@@ -3,15 +3,16 @@ import {skipToken, useQuery} from '@tanstack/react-query';
 import type {BaseAvatarProps} from '@sentry/scraps/avatar';
 import {useAvatar} from '@sentry/scraps/avatar';
 
+import type {ImageAnalysis} from './avatarImageAnalysis';
 import {resolveImageAvatarColors} from './avatarImageAnalysis';
 
-// `dominant` is the color the avatar shows. `style` says whether an image fills
-// the frame or should be inset. `edge` is the color along the bottom of a
-// full-bleed image, where it meets the chonk.
+// `brand` is the color that represents the avatar, or null when it has none
+// (a neutral logo, or an image that hasn't been sampled yet) and the UI keeps
+// its default styling.
 export type AvatarColorsResult =
-  | {dominant: string; edge: string | null; style: 'padded' | 'fill'; type: 'image'}
-  | {dominant: string; type: 'letter'}
-  | {type: 'none'};
+  | ({type: 'image'} & ImageAnalysis)
+  | {brand: string; type: 'letter'}
+  | {brand: null; type: 'none'};
 
 export function useAvatarColors(avatar?: BaseAvatarProps): AvatarColorsResult {
   const avatarDefinition = useAvatar({
@@ -38,21 +39,16 @@ export function useAvatarColors(avatar?: BaseAvatarProps): AvatarColorsResult {
   });
 
   if (!avatar) {
-    return {type: 'none'};
+    return {type: 'none', brand: null};
   }
 
   if (avatarDefinition.type === 'letter') {
-    return {type: 'letter', dominant: avatarDefinition.configuration.background};
+    return {type: 'letter', brand: avatarDefinition.configuration.background};
   }
 
   if (imageResult) {
-    return {
-      type: 'image',
-      dominant: imageResult.dominant,
-      edge: imageResult.edge,
-      style: imageResult.style,
-    };
+    return {type: 'image', ...imageResult};
   }
 
-  return {type: 'none'};
+  return {type: 'none', brand: null};
 }

@@ -1,16 +1,36 @@
-import {dominantColor, px, toHex, type Rgb} from './dominantColor';
+import {brandColor} from './brandColor';
+import {meanRgb, rgbToHex, type Rgb} from './color';
 
 // Large enough that small logo marks keep their real colors instead of being
 // blended with their surroundings by the downscale.
 export const SAMPLE_SIZE = 32;
 
+// How many rows along the bottom of a full-bleed image meet the chonk.
+const EDGE_ROWS = 2;
+
+// TS can't prove typed-array index access is defined; this centralizes the
+// single suppression so callers stay clean.
+// eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+const px = (data: Uint8ClampedArray, i: number): number => data[i]!;
+
 function isOpaqueAt(data: Uint8ClampedArray, col: number, row: number): boolean {
   return px(data, (row * SAMPLE_SIZE + col) * 4 + 3) >= 128;
 }
 
-// Returns 'fill' when the image covers the frame edge to edge, 'padded' when an
-// edge is fully transparent or a corner is transparent (e.g. a round logo).
-export function shouldPadImage(data: Uint8ClampedArray): 'fill' | 'padded' {
+/** The RGB channels of every opaque pixel in RGBA `data`. */
+export function opaquePixels(data: Uint8ClampedArray): Rgb[] {
+  const pixels: Rgb[] = [];
+  for (let i = 0; i < data.length; i += 4) {
+    if (px(data, i + 3) >= 128) {
+      pixels.push([px(data, i), px(data, i + 1), px(data, i + 2)]);
+    }
+  }
+  return pixels;
+}
+
+// Whether the image covers the frame edge to edge. It doesn't when an edge is
+// fully transparent or a corner is transparent (e.g. a round logo).
+function coversFrame(data: Uint8ClampedArray): boolean {
   const last = SAMPLE_SIZE - 1;
   const edges: Array<(i: number) => boolean> = [
     i => isOpaqueAt(data, 0, i),
@@ -24,7 +44,7 @@ export function shouldPadImage(data: Uint8ClampedArray): 'fill' | 'padded' {
       edgeHasContent = isOpaque(i);
     }
     if (!edgeHasContent) {
-      return 'padded';
+      return false;
     }
   }
 
@@ -34,8 +54,33 @@ export function shouldPadImage(data: Uint8ClampedArray): 'fill' | 'padded' {
     [0, last],
     [last, last],
   ];
-  return corners.every(([col, row]) => isOpaqueAt(data, col, row)) ? 'fill' : 'padded';
+  return corners.every(([col, row]) => isOpaqueAt(data, col, row));
 }
+
+// The average color of the bottom rows of the sample, or null if they're empty.
+export function bottomEdgeColor(data: Uint8ClampedArray): string | null {
+  const pixels = opaquePixels(data.subarray((SAMPLE_SIZE - EDGE_ROWS) * SAMPLE_SIZE * 4));
+  return pixels.length ? rgbToHex(meanRgb(pixels)) : null;
+}
+
+/**
+ * How the image sits in the button. A 'fill' image covers the frame and its
+ * `edge` (the color along its bottom) sits right on top of the chonk; a
+ * 'padded' image is inset instead.
+ */
+export type ImageLayout = {style: 'padded'} | {edge: string; style: 'fill'};
+
+export function imageLayout(data: Uint8ClampedArray): ImageLayout {
+  if (!coversFrame(data)) {
+    return {style: 'padded'};
+  }
+  // Opaque bottom corners mean the bottom rows always have pixels to average.
+  const edge = bottomEdgeColor(data);
+  return edge ? {style: 'fill', edge} : {style: 'padded'};
+}
+
+/** The image's layout, plus its brand color (null for neutral logos). */
+export type ImageAnalysis = ImageLayout & {brand: string | null};
 
 function readPixels(img: HTMLImageElement): Uint8ClampedArray | null {
   try {
@@ -68,38 +113,18 @@ function readPixels(img: HTMLImageElement): Uint8ClampedArray | null {
   }
 }
 
-// The average color of the bottom rows of the sample, or null if they're empty.
-export function bottomEdgeColor(data: Uint8ClampedArray): string | null {
-  const rows = 2;
-  const sum: Rgb = [0, 0, 0];
-  let count = 0;
-  for (let i = (SAMPLE_SIZE - rows) * SAMPLE_SIZE * 4; i < data.length; i += 4) {
-    if (px(data, i + 3) < 128) {
-      continue;
-    }
-    sum[0] += px(data, i);
-    sum[1] += px(data, i + 1);
-    sum[2] += px(data, i + 2);
-    count++;
-  }
-  return count ? toHex([sum[0] / count, sum[1] / count, sum[2] / count]) : null;
-}
-
-function sampleAvatarColor(
-  img: HTMLImageElement
-): {dominant: string; edge: string | null; style: 'fill' | 'padded'} | null {
+function analyzeImage(img: HTMLImageElement): ImageAnalysis | null {
   const data = readPixels(img);
   if (!data) {
     return null;
   }
 
-  const dominant = dominantColor(data);
-  if (!dominant) {
+  const pixels = opaquePixels(data);
+  if (pixels.length === 0) {
     return null;
   }
 
-  const style = shouldPadImage(data);
-  return {dominant, style, edge: style === 'fill' ? bottomEdgeColor(data) : null};
+  return {brand: brandColor(pixels), ...imageLayout(data)};
 }
 
 function loadImageElement(src: string): Promise<HTMLImageElement | null> {
@@ -135,10 +160,10 @@ export function toPageOriginIfSameHost(url: string): string {
 
 export async function resolveImageAvatarColors(
   url: string
-): Promise<ReturnType<typeof sampleAvatarColor>> {
+): Promise<ImageAnalysis | null> {
   try {
     const img = await loadImageElement(toPageOriginIfSameHost(url));
-    return img ? sampleAvatarColor(img) : null;
+    return img ? analyzeImage(img) : null;
   } catch {
     return null;
   }

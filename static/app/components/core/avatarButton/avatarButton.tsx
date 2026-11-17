@@ -51,11 +51,8 @@ export function AvatarButton({
   });
 
   const colors = useAvatarColors(isSuggested ? undefined : avatar);
-  const edge = colors.type === 'image' ? colors.edge : undefined;
-  const chonk =
-    colors.type === 'none'
-      ? undefined
-      : getAvatarChonk(colors.dominant, theme.type, edge);
+  const edge = colors.type === 'image' && colors.style === 'fill' ? colors.edge : null;
+  const chonk = colors.brand ? getAvatarChonk(colors.brand, theme.type, edge) : undefined;
   // The avatar covers the button's own border, so redraw it in the frame color.
   // Without a tinted chonk that is the default button edge, not transparent.
   const borderColor = isSuggested
@@ -81,25 +78,6 @@ export function AvatarButton({
     );
   }
 
-  if (avatarDefinition.type === 'letter') {
-    return (
-      <StyledAvatarButton {...props} size={size} round={round} chonk={chonk}>
-        <AvatarContainer
-          size={size}
-          round={round}
-          padded={false}
-          borderColor={borderColor}
-          borderStyle={isSuggested ? 'dashed' : 'solid'}
-        >
-          <StyledLetterAvatar
-            configuration={avatarDefinition.configuration}
-            suggested={isSuggested}
-          />
-        </AvatarContainer>
-      </StyledAvatarButton>
-    );
-  }
-
   return (
     <StyledAvatarButton {...props} size={size} round={round} chonk={chonk}>
       <AvatarContainer
@@ -109,10 +87,17 @@ export function AvatarButton({
         borderColor={borderColor}
         borderStyle={isSuggested ? 'dashed' : 'solid'}
       >
-        <StyledImageAvatar
-          configuration={avatarDefinition.configuration}
-          suggested={isSuggested}
-        />
+        {avatarDefinition.type === 'letter' ? (
+          <StyledLetterAvatar
+            configuration={avatarDefinition.configuration}
+            suggested={isSuggested}
+          />
+        ) : (
+          <StyledImageAvatar
+            configuration={avatarDefinition.configuration}
+            suggested={isSuggested}
+          />
+        )}
       </AvatarContainer>
     </StyledAvatarButton>
   );

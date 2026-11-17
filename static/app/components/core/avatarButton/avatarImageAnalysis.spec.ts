@@ -1,11 +1,12 @@
 import {
   bottomEdgeColor,
+  imageLayout,
+  opaquePixels,
   resolveImageAvatarColors,
   SAMPLE_SIZE,
-  shouldPadImage,
   toPageOriginIfSameHost,
 } from './avatarImageAnalysis';
-import {dominantColor, isNeutralColor} from './dominantColor';
+import {brandColor} from './brandColor';
 
 describe('resolveImageAvatarColors', () => {
   afterEach(() => {
@@ -30,11 +31,7 @@ describe('resolveImageAvatarColors', () => {
     expect(image.src).toBe('https://example.com/avatar/logo/');
     image.dispatchEvent(new Event('load'));
 
-    await expect(result).resolves.toEqual({
-      dominant: '#649632',
-      edge: null,
-      style: 'padded',
-    });
+    await expect(result).resolves.toEqual({brand: '#649632', style: 'padded'});
     expect(fetchSpy).not.toHaveBeenCalled();
   });
 
@@ -66,57 +63,62 @@ function makePixelData(
   return data;
 }
 
-describe('shouldPadImage', () => {
+describe('imageLayout', () => {
   it('returns fill for a fully opaque image', () => {
     const data = makePixelData(() => [200, 100, 50, 255]);
-    expect(shouldPadImage(data)).toBe('fill');
+    expect(imageLayout(data)).toEqual({style: 'fill', edge: '#c86432'});
   });
 
   it('returns padded when the left edge is transparent', () => {
     const data = makePixelData((col, _row) =>
       col === 0 ? [0, 0, 0, 0] : [200, 100, 50, 255]
     );
-    expect(shouldPadImage(data)).toBe('padded');
+    expect(imageLayout(data)).toEqual({style: 'padded'});
   });
 
   it('returns padded when the right edge is transparent', () => {
     const data = makePixelData((col, _row) =>
       col === SAMPLE_SIZE - 1 ? [0, 0, 0, 0] : [200, 100, 50, 255]
     );
-    expect(shouldPadImage(data)).toBe('padded');
+    expect(imageLayout(data)).toEqual({style: 'padded'});
   });
 
   it('returns padded when the top edge is transparent', () => {
     const data = makePixelData((_col, row) =>
       row === 0 ? [0, 0, 0, 0] : [200, 100, 50, 255]
     );
-    expect(shouldPadImage(data)).toBe('padded');
+    expect(imageLayout(data)).toEqual({style: 'padded'});
   });
 
   it('returns padded when the bottom edge is transparent', () => {
     const data = makePixelData((_col, row) =>
       row === SAMPLE_SIZE - 1 ? [0, 0, 0, 0] : [200, 100, 50, 255]
     );
-    expect(shouldPadImage(data)).toBe('padded');
+    expect(imageLayout(data)).toEqual({style: 'padded'});
   });
 
   it('returns padded when any corner is transparent', () => {
     const data = makePixelData((col, row) =>
       col === 0 && row === 0 ? [0, 0, 0, 0] : [200, 100, 50, 255]
     );
-    expect(shouldPadImage(data)).toBe('padded');
+    expect(imageLayout(data)).toEqual({style: 'padded'});
   });
 });
 
-describe('dominantColor', () => {
+describe('brandColor', () => {
   it('returns the dominant color of a uniform image', () => {
     const data = makePixelData(() => [0, 100, 200, 255]);
-    expect(dominantColor(data)).toBe('#0064c8');
+    expect(brandColor(opaquePixels(data))).toBe('#0064c8');
   });
 
   it('returns null for all-transparent data', () => {
     const data = makePixelData(() => [0, 0, 0, 0]);
-    expect(dominantColor(data)).toBeNull();
+    expect(brandColor(opaquePixels(data))).toBeNull();
+  });
+
+  it('returns null for a gray logo', () => {
+    const data = makePixelData(() => [128, 128, 128, 255]);
+    expect(brandColor(opaquePixels(data))).toBeNull();
   });
 
   it('ignores a small colored accent next to gray content', () => {
@@ -124,7 +126,7 @@ describe('dominantColor', () => {
     const data = makePixelData((col, row) =>
       col < 4 && row < 4 ? [252, 109, 38, 255] : [100, 100, 100, 255]
     );
-    expect(isNeutralColor(dominantColor(data)!)).toBe(true);
+    expect(brandColor(opaquePixels(data))).toBeNull();
   });
 
   it('does not count a white plate against the logo color', () => {
@@ -132,10 +134,10 @@ describe('dominantColor', () => {
     const data = makePixelData((col, row) =>
       col < 10 && row < 10 ? [118, 185, 0, 255] : [255, 255, 255, 255]
     );
-    expect(dominantColor(data)).toBe('#76b900');
+    expect(brandColor(opaquePixels(data))).toBe('#76b900');
   });
 
-  it('treats a logo split across unrelated hues as neutral', () => {
+  it('has no brand color when split across unrelated hues', () => {
     // Four equal quadrants in four different hues, like a multicolor mark.
     const quadrants: Array<[number, number, number, number]> = [
       [224, 30, 90, 255],
@@ -147,14 +149,14 @@ describe('dominantColor', () => {
     const data = makePixelData(
       (col, row) => quadrants[(row < half ? 0 : 2) + (col < half ? 0 : 1)]!
     );
-    expect(isNeutralColor(dominantColor(data)!)).toBe(true);
+    expect(brandColor(opaquePixels(data))).toBeNull();
   });
 
   it('keeps the color of a logo with a single dominant hue', () => {
     const data = makePixelData((col, _row) =>
       col < SAMPLE_SIZE / 2 ? [99, 91, 255, 255] : [80, 70, 230, 255]
     );
-    expect(isNeutralColor(dominantColor(data)!)).toBe(false);
+    expect(brandColor(opaquePixels(data))).not.toBeNull();
   });
 
   it('compares hues perceptually, so lime highlights count as green', () => {
@@ -164,35 +166,17 @@ describe('dominantColor', () => {
     const data = makePixelData((col, _row) =>
       col < 14 ? [0, 200, 0, 255] : col < 24 ? [160, 240, 0, 255] : [0, 0, 200, 255]
     );
-    expect(dominantColor(data)).toBe('#00c800');
+    expect(brandColor(opaquePixels(data))).toBe('#00c800');
   });
 
   it('prefers chromatic over grayscale when both exist', () => {
     const data = makePixelData((col, _row) =>
       col < SAMPLE_SIZE / 2 ? [128, 128, 128, 255] : [0, 0, 200, 255]
     );
-    const result = dominantColor(data);
+    const result = brandColor(opaquePixels(data));
     expect(result).not.toBeNull();
     const b = parseInt(result!.slice(5, 7), 16);
     expect(b).toBeGreaterThan(150);
-  });
-});
-
-describe('isNeutralColor', () => {
-  it('treats grays, black and white as neutral', () => {
-    expect(isNeutralColor('#000000')).toBe(true);
-    expect(isNeutralColor('#ffffff')).toBe(true);
-    expect(isNeutralColor('#808080')).toBe(true);
-  });
-
-  it('expands three-digit hex colors', () => {
-    expect(isNeutralColor('#fff')).toBe(true);
-    expect(isNeutralColor('#000')).toBe(true);
-    expect(isNeutralColor('#f00')).toBe(false);
-  });
-
-  it('treats saturated colors as colored', () => {
-    expect(isNeutralColor('#635bff')).toBe(false);
   });
 });
 

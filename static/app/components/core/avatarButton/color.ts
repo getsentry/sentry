@@ -1,21 +1,13 @@
-// Minimal OKLCH <-> sRGB conversion (https://bottosson.github.io/posts/oklab/).
+// sRGB helpers and a minimal OKLCH <-> sRGB conversion
+// (https://bottosson.github.io/posts/oklab/).
 
-interface Oklch {
+/** 0-255 sRGB channels. */
+export type Rgb = [number, number, number];
+
+export interface Oklch {
   c: number;
   h: number;
   l: number;
-}
-
-type Rgb = [number, number, number];
-
-function decode(channel: number): number {
-  const c = channel / 255;
-  return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-}
-
-function encode(linear: number): number {
-  const c = linear <= 0.0031308 ? 12.92 * linear : 1.055 * linear ** (1 / 2.4) - 0.055;
-  return Math.round(Math.min(1, Math.max(0, c)) * 255);
 }
 
 /**
@@ -35,13 +27,50 @@ export function hexToRgb(hex: string): Rgb {
   return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
 }
 
+export function rgbToHex(rgb: Rgb): string {
+  return `#${rgb.map(v => Math.round(v).toString(16).padStart(2, '0')).join('')}`;
+}
+
+export function meanRgb(pixels: Rgb[]): Rgb {
+  const sum: Rgb = [0, 0, 0];
+  for (const [r, g, b] of pixels) {
+    sum[0] += r;
+    sum[1] += g;
+    sum[2] += b;
+  }
+  return [sum[0] / pixels.length, sum[1] / pixels.length, sum[2] / pixels.length];
+}
+
+export function saturationOf([r, g, b]: Rgb): number {
+  return (Math.max(r, g, b) - Math.min(r, g, b)) / 255;
+}
+
+// Below this saturation a color counts as gray rather than colored.
+const MIN_SATURATION = 0.15;
+
+/** Black, white and grays, which say nothing about a brand. */
+export function isNeutral(rgb: Rgb): boolean {
+  return saturationOf(rgb) < MIN_SATURATION;
+}
+
+function decode(channel: number): number {
+  const c = channel / 255;
+  return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+}
+
+function encode(linear: number): number {
+  const c = linear <= 0.0031308 ? 12.92 * linear : 1.055 * linear ** (1 / 2.4) - 0.055;
+  return Math.min(1, Math.max(0, c)) * 255;
+}
+
 export function hexToOklch(hex: string): Oklch {
   return rgbToOklch(hexToRgb(hex));
 }
 
-/** OKLCH for 0-255 sRGB channels. */
-export function rgbToOklch(rgb: Rgb): Oklch {
-  const [r, g, b] = rgb.map(decode) as Rgb;
+export function rgbToOklch([red, green, blue]: Rgb): Oklch {
+  const r = decode(red);
+  const g = decode(green);
+  const b = decode(blue);
 
   const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
   const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
@@ -83,9 +112,9 @@ function inGamut(rgb: Rgb): boolean {
  * saturated orange clips to plain red.
  */
 export function oklchToHex(color: Oklch): string {
-  let rgb = oklchToLinearRgb(color);
+  let linear = oklchToLinearRgb(color);
 
-  if (!inGamut(rgb)) {
+  if (!inGamut(linear)) {
     let low = 0;
     let high = color.c;
     for (let i = 0; i < 20; i++) {
@@ -96,8 +125,9 @@ export function oklchToHex(color: Oklch): string {
         high = mid;
       }
     }
-    rgb = oklchToLinearRgb({...color, c: low});
+    linear = oklchToLinearRgb({...color, c: low});
   }
 
-  return `#${rgb.map(v => encode(v).toString(16).padStart(2, '0')).join('')}`;
+  const [r, g, b] = linear;
+  return rgbToHex([encode(r), encode(g), encode(b)]);
 }
