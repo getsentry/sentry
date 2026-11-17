@@ -113,6 +113,30 @@ describe('AIContentRenderer', () => {
     expect(hasAnnotations(container.textContent ?? '')).toBe(false);
   });
 
+  it('marks scrubbed values in JSON', () => {
+    const rule = JSON.stringify({ruleId: '@email:replace', remark: 's'});
+    const {container} = render(
+      <AIContentRenderer
+        text={JSON.stringify({note: `Mail ${annotate('[email]', rule)} now`})}
+      />
+    );
+
+    expect(screen.getByText('[email]')).toBeInTheDocument();
+    expect(container).toHaveTextContent('"Mail [email] now"');
+    expect(hasAnnotations(container.textContent ?? '')).toBe(false);
+  });
+
+  it('marks scrubbed values in JSON code blocks', () => {
+    const rule = JSON.stringify({ruleId: '@email:replace', remark: 's'});
+    const json = JSON.stringify({note: `Mail ${annotate('[email]', rule)} now`});
+    const {container} = render(
+      <AIContentRenderer text={`Result:\n\n\`\`\`json\n${json}\n\`\`\``} inline />
+    );
+
+    expect(screen.getByText('[email]')).toBeInTheDocument();
+    expect(hasAnnotations(container.textContent ?? '')).toBe(false);
+  });
+
   it('renders collapsible XML tags with tag name label', () => {
     const text = '<thinking>\nsome thought\n</thinking>';
     render(<AIContentRenderer text={text} inline />);

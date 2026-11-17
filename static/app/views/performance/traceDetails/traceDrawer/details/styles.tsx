@@ -738,8 +738,8 @@ function MultilineJSON({
   maxDefaultDepth = 2,
   autoCollapseLimit,
   clip = false,
+  meta,
   mode,
-  renderString,
 }: {
   value: any;
   autoCollapseLimit?: number;
@@ -750,12 +750,15 @@ function MultilineJSON({
   clip?: boolean;
   maxDefaultDepth?: number;
   /**
+   * Meta of the parsed value, in the shape Relay reports for events. The pretty
+   * (tree) view highlights the values it marks as redacted.
+   */
+  meta?: Record<string, any>;
+  /**
    * Forces the pretty (tree) or raw (JSON text) view and hides the hover toggle,
    * for callers that control the format themselves.
    */
   mode?: 'pretty' | 'raw';
-  /** Renders the strings in the pretty (tree) view. */
-  renderString?: (value: string) => React.ReactNode;
 }) {
   const [showRawState, setShowRaw] = useState(false);
   const showRaw = mode ? mode === 'raw' : showRawState;
@@ -794,7 +797,7 @@ function MultilineJSON({
       )}
       {showRaw ? (
         <pre>
-          <code>{stripAnnotations(JSON.stringify(json, null, 2))}</code>
+          <code>{JSON.stringify(json, null, 2)}</code>
         </pre>
       ) : (
         <StructuredData
@@ -802,9 +805,9 @@ function MultilineJSON({
             isString: v => typeof v === 'string',
             isBoolean: v => typeof v === 'boolean',
             isNumber: v => typeof v === 'number',
-            renderStringNode: renderString,
           }}
           value={json}
+          meta={meta}
           maxDefaultDepth={maxDefaultDepth}
           autoCollapseLimit={autoCollapseLimit}
           initialExpandedPaths={computedExpandedPaths}

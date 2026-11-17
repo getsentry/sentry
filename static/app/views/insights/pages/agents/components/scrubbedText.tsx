@@ -1,12 +1,18 @@
 import {Fragment} from 'react';
 
-import {Link} from '@sentry/scraps/link';
-import {annotate, splitAnnotations} from '@sentry/scraps/markdown/annotation';
+import {
+  annotate,
+  hasAnnotations,
+  splitAnnotations,
+  stripAnnotations,
+} from '@sentry/scraps/markdown/annotation';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Redaction} from 'sentry/components/events/meta/annotatedText/redaction';
 import {getTooltipText} from 'sentry/components/events/meta/annotatedText/utils';
-import {t, tct} from 'sentry/locale';
+import type {ChunkType} from 'sentry/types/group';
+import {isRecord} from 'sentry/utils/object/isRecord';
+import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {
   TraceItemDetailsMeta,
@@ -121,7 +127,7 @@ function utf8OffsetToIndex(value: string, offset: number): number | undefined {
 }
 
 function isJson(value: string): boolean {
-  if (!value.startsWith('{') && !value.startsWith('[')) {
+  if (!/^\s*[{["]/.test(value)) {
     return false;
   }
   try {
@@ -149,10 +155,6 @@ export function ScrubbedText({children}: {children: string}) {
   );
 }
 
-export function renderScrubbedText(value: string) {
-  return <ScrubbedText>{value}</ScrubbedText>;
-}
-
 /** Renders a range from `markScrubbedValue` the way error events render redacted values. */
 export function ScrubbedAnnotation({children, data}: {children: string; data: string}) {
   const rule = parseRule(data);
@@ -168,8 +170,17 @@ export function ScrubbedAnnotation({children, data}: {children: string; data: st
 
 function parseRule(data: string): ScrubbingRule | undefined {
   try {
-    const rule = JSON.parse(data);
-    return typeof rule?.ruleId === 'string' ? rule : undefined;
+    const rule: unknown = JSON.parse(data);
+    return isRecord(rule) &&
+      typeof rule.ruleId === 'string' &&
+      typeof rule.remark === 'string'
+      ? {
+          ruleId: rule.ruleId,
+          remark: rule.remark,
+          projectSlug:
+            typeof rule.projectSlug === 'string' ? rule.projectSlug : undefined,
+        }
+      : undefined;
   } catch {
     return undefined;
   }
@@ -177,48 +188,86 @@ function parseRule(data: string): ScrubbingRule | undefined {
 
 function ScrubbedTooltip({rule}: {rule: ScrubbingRule}) {
   const organization = useOrganization({allowNull: true}) ?? undefined;
-  // Rules a customer adds are prefixed with their scope, like `project:0`. Built-in
-  // rules, like `@email:replace`, come from the default scrubbing settings.
-  const [scope, ruleName] = rule.ruleId.split(':');
-  const isDefaultRule = rule.ruleId.startsWith('@');
+  // The project's details hold its scrubbing rules, which the tooltip names and
+  // links to. Only fetched once the tooltip opens.
+  const {data: project} = useDetailedProject(
+    {orgSlug: organization?.slug ?? '', projectSlug: rule.projectSlug ?? ''},
+    {enabled: !!organization && !!rule.projectSlug, notifyOnChangeProps: ['data']}
+  );
+  return getTooltipText({
+    remark: rule.remark,
+    rule_id: rule.ruleId,
+    organization,
+    project,
+  });
+}
 
-  if (organization && scope === 'organization') {
-    return tct(
-      "Replaced because of a [rule:data scrubbing rule] in your organization's settings",
-      {
-        rule: (
-          <Link
-            to={`/settings/${organization.slug}/security-and-privacy/advanced-data-scrubbing/${ruleName}/`}
-          />
-        ),
+interface ScrubbedJson {
+  /** Meta in the shape Relay reports for events, which `StructuredData` renders. */
+  meta: Record<string, any> | undefined;
+  /** The JSON without marks. */
+  value: unknown;
+}
+
+/**
+ * Splits parsed JSON whose strings carry marks from `markScrubbedValue` into the
+ * plain JSON and the meta that makes `StructuredData` highlight the scrubbed
+ * values. Meta describes values only, so marks in object keys are just removed.
+ */
+export function splitScrubbedJson(value: unknown): ScrubbedJson {
+  if (typeof value === 'string') {
+    return splitScrubbedString(value);
+  }
+
+  if (Array.isArray(value)) {
+    const meta: Record<string, any> = {};
+    const items = value.map((item, index) => {
+      const split = splitScrubbedJson(item);
+      if (split.meta) {
+        meta[index] = split.meta;
       }
-    );
+      return split.value;
+    });
+    return {value: items, meta: Object.keys(meta).length > 0 ? meta : undefined};
   }
 
-  if (organization && rule.projectSlug) {
-    const settings = `/settings/${organization.slug}/projects/${rule.projectSlug}/security-and-privacy/`;
-    if (scope === 'project') {
-      return tct(
-        'Replaced because of a [rule:data scrubbing rule] in the settings of the project [project]',
-        {
-          rule: <Link to={`${settings}advanced-data-scrubbing/${ruleName}/`} />,
-          project: rule.projectSlug,
-        }
-      );
-    }
-    if (isDefaultRule) {
-      return tct(
-        'Replaced because of a default data scrubbing rule in the settings of the project [project]',
-        {project: <Link to={settings}>{rule.projectSlug}</Link>}
-      );
-    }
+  if (isRecord(value)) {
+    const meta: Record<string, any> = {};
+    const entries = Object.entries(value).map(([markedKey, item]) => {
+      const key = stripAnnotations(markedKey);
+      const split = splitScrubbedJson(item);
+      if (split.meta) {
+        meta[key] = split.meta;
+      }
+      return [key, split.value];
+    });
+    return {
+      value: Object.fromEntries(entries),
+      meta: Object.keys(meta).length > 0 ? meta : undefined,
+    };
   }
 
-  if (isDefaultRule) {
-    return t(
-      "Replaced because of a default data scrubbing rule in your project's settings"
-    );
+  return {value, meta: undefined};
+}
+
+function splitScrubbedString(value: string): ScrubbedJson {
+  if (!hasAnnotations(value)) {
+    return {value, meta: undefined};
   }
-  // Size limits and the like, or rules whose settings can't be linked.
-  return getTooltipText({remark: rule.remark, rule_id: rule.ruleId});
+  const chunks = splitAnnotations(value).map((segment): ChunkType => {
+    if (typeof segment === 'string') {
+      return {type: 'text', text: segment, rule_id: ''};
+    }
+    const rule = parseRule(segment.data);
+    return rule
+      ? {type: 'redaction', text: segment.text, rule_id: rule.ruleId, remark: rule.remark}
+      : {type: 'text', text: segment.text, rule_id: ''};
+  });
+  const rem = chunks
+    .filter(chunk => chunk.type === 'redaction')
+    .map(chunk => [chunk.rule_id, chunk.remark]);
+  return {
+    value: chunks.map(chunk => chunk.text).join(''),
+    meta: rem.length > 0 ? {'': {rem, chunks}} : undefined,
+  };
 }

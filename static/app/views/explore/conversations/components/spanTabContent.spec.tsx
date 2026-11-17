@@ -38,6 +38,16 @@ describe('SpanTabContent', () => {
     expect(hasAnnotations(container.textContent ?? '')).toBe(false);
   });
 
+  it('removes the marks of scrubbed keys in structured content', () => {
+    const rule = JSON.stringify({ruleId: '@email:replace', remark: 's'});
+    const {container} = render(
+      <SpanTabContent content={{[annotate('[email]', rule)]: 'value'}} />
+    );
+
+    expect(screen.getByText('[email]')).toBeInTheDocument();
+    expect(hasAnnotations(container.textContent ?? '')).toBe(false);
+  });
+
   it.each(['A system prompt', {prompt: 'A system prompt'}])(
     'supports optional clipping: %p',
     content => {

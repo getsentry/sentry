@@ -1,9 +1,9 @@
 import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {stripAnnotations} from '@sentry/scraps/markdown/annotation';
 import {Text} from '@sentry/scraps/text';
 
 import {StructuredData} from 'sentry/components/structuredEventData';
+import {AnnotatedValue} from 'sentry/components/structuredEventData/annotatedValue';
 import {getDefaultExpanded} from 'sentry/components/structuredEventData/utils';
 import {t, tn} from 'sentry/locale';
 
@@ -42,16 +42,19 @@ function getOutputLabel(output: ToolOutputData): string {
 
 interface ToolOutputProps {
   value: unknown;
-  /** Renders the output's strings, both text output and strings within JSON. */
-  renderString?: (value: string) => React.ReactNode;
+  /**
+   * Meta of the parsed output, in the shape Relay reports for events. The values
+   * it marks as redacted are highlighted.
+   */
+  meta?: Record<string, any>;
 }
 
 function ToolOutputContent({
   output,
-  renderString,
+  meta,
 }: {
   output: ToolOutputData;
-  renderString?: ToolOutputProps['renderString'];
+  meta?: ToolOutputProps['meta'];
 }) {
   switch (output.kind) {
     case 'array':
@@ -60,7 +63,8 @@ function ToolOutputContent({
         <Text as="div" size="sm" monospace>
           <StructuredData
             value={output.value}
-            config={{...STRUCTURED_DATA_CONFIG, renderStringNode: renderString}}
+            config={STRUCTURED_DATA_CONFIG}
+            meta={meta}
             maxDefaultDepth={MAX_DEFAULT_DEPTH}
             autoCollapseLimit={AUTO_COLLAPSE_LIMIT}
             initialExpandedPaths={[
@@ -79,7 +83,7 @@ function ToolOutputContent({
       }
       return (
         <Text as="div" wrap="pre-wrap" wordBreak="break-word">
-          {renderString?.(output.value) ?? output.value}
+          <AnnotatedValue value={output.value} meta={meta} withAnnotatedText />
         </Text>
       );
     case 'number':
@@ -94,17 +98,16 @@ function ToolOutputContent({
   }
 }
 
-export function ToolOutput({value, renderString}: ToolOutputProps) {
+export function ToolOutput({value, meta}: ToolOutputProps) {
   const output = parseToolOutput(value);
   const label = getOutputLabel(output);
   if (output.kind === 'missing') {
     return <Text variant="muted">{label}</Text>;
   }
-  const copyText = stripAnnotations(
+  const copyText =
     typeof output.value === 'string'
       ? output.value
-      : JSON.stringify(output.value, null, 2)
-  );
+      : JSON.stringify(output.value, null, 2);
 
   return (
     <Stack gap="sm" minWidth="0">
@@ -126,7 +129,7 @@ export function ToolOutput({value, renderString}: ToolOutputProps) {
         minWidth="0"
         overflow="auto"
       >
-        <ToolOutputContent output={output} renderString={renderString} />
+        <ToolOutputContent output={output} meta={meta} />
       </Container>
     </Stack>
   );

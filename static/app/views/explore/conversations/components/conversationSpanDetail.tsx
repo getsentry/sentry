@@ -13,6 +13,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {CodeModeDetails} from 'sentry/components/ai/toolDetails/codeModeDetails';
 import {ToolOutput} from 'sentry/components/ai/toolDetails/toolOutput';
+import {parseToolOutput} from 'sentry/components/ai/toolDetails/toolOutputData';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {getDuration} from 'sentry/utils/duration/getDuration';
@@ -28,7 +29,7 @@ import {EvaluationResultSummary} from 'sentry/views/insights/pages/agents/compon
 import {ExtractionResultSummary} from 'sentry/views/insights/pages/agents/components/extractionContent';
 import {
   markScrubbedAttributes,
-  renderScrubbedText,
+  splitScrubbedJson,
 } from 'sentry/views/insights/pages/agents/components/scrubbedText';
 import {getTraceNodeAttribute} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {
@@ -74,8 +75,8 @@ import {MemoryInputTab, MemoryOutputTab} from './memorySpanTabs';
 import {
   EmptySpanTab,
   SPAN_TAB_JSON_AUTO_COLLAPSE_LIMIT,
-  SPAN_TAB_JSON_MAX_DEFAULT_DEPTH,
   SpanTabContent,
+  SpanTabJson,
 } from './spanTabContent';
 
 const AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH = 100;
@@ -476,15 +477,7 @@ function InputTab({
           />
         </Fragment>
       ))}
-      {toolArgs ? (
-        <TraceDrawerComponents.MultilineJSON
-          key={`${node.id}:tool-input`}
-          value={toolArgs}
-          maxDefaultDepth={SPAN_TAB_JSON_MAX_DEFAULT_DEPTH}
-          autoCollapseLimit={SPAN_TAB_JSON_AUTO_COLLAPSE_LIMIT}
-          renderString={renderScrubbedText}
-        />
-      ) : null}
+      {toolArgs ? <SpanTabJson key={`${node.id}:tool-input`} value={toolArgs} /> : null}
       {embeddingsInput ? (
         <TraceDrawerComponents.MultilineText clip={false}>
           {embeddingsInput.toString()}
@@ -505,8 +498,13 @@ function OutputTab({
     node,
     attributes
   );
-  const toolOutput = getAIToolOutput(node, attributes);
-  const hasToolOutput = toolOutput !== undefined;
+  const markedToolOutput = getAIToolOutput(node, attributes);
+  const hasToolOutput = markedToolOutput !== undefined;
+  // Parsed here, like `ToolOutput` does, so the meta matches the parsed output.
+  const toolOutput = useMemo(
+    () => splitScrubbedJson(parseToolOutput(markedToolOutput).value),
+    [markedToolOutput]
+  );
 
   // Reasoning is supplementary to the actual output, so clip it when there is
   // other content; when it is the only output, show it in full.
@@ -573,20 +571,18 @@ function OutputTab({
           <TraceDrawerComponents.MultilineTextLabel>
             {t('Tool Calls')}
           </TraceDrawerComponents.MultilineTextLabel>
-          <TraceDrawerComponents.MultilineJSON
+          <SpanTabJson
             key={`${node.id}:tool-calls`}
             value={toolCalls}
             maxDefaultDepth={AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH}
-            autoCollapseLimit={SPAN_TAB_JSON_AUTO_COLLAPSE_LIMIT}
-            renderString={renderScrubbedText}
           />
         </Fragment>
       ) : null}
       {hasToolOutput ? (
         <ToolOutput
           key={`${node.id}:tool-output`}
-          value={toolOutput}
-          renderString={renderScrubbedText}
+          value={toolOutput.value}
+          meta={toolOutput.meta}
         />
       ) : null}
     </Fragment>

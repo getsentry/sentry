@@ -1,9 +1,12 @@
+import {useMemo} from 'react';
+
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {renderScrubbedText} from 'sentry/views/insights/pages/agents/components/scrubbedText';
+import {splitScrubbedJson} from 'sentry/views/insights/pages/agents/components/scrubbedText';
 import {AIContentRenderer} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
+import {tryParseJsonRecursive} from 'sentry/views/performance/traceDetails/traceDrawer/details/utils';
 
 export const SPAN_TAB_JSON_MAX_DEFAULT_DEPTH = 3;
 export const SPAN_TAB_JSON_AUTO_COLLAPSE_LIMIT = 100_000;
@@ -23,12 +26,32 @@ export function SpanTabContent({
       clip={clip}
     />
   ) : (
+    <SpanTabJson value={content} clip={clip} />
+  );
+}
+
+/** Renders JSON as a tree that highlights the values PII scrubbing changed. */
+export function SpanTabJson({
+  value: markedValue,
+  maxDefaultDepth = SPAN_TAB_JSON_MAX_DEFAULT_DEPTH,
+  clip = false,
+}: {
+  value: unknown;
+  clip?: boolean;
+  maxDefaultDepth?: number;
+}) {
+  // Parsed here, like `MultilineJSON` does, so the meta matches the parsed value.
+  const {value, meta} = useMemo(
+    () => splitScrubbedJson(tryParseJsonRecursive(markedValue)),
+    [markedValue]
+  );
+  return (
     <TraceDrawerComponents.MultilineJSON
-      value={content}
-      maxDefaultDepth={SPAN_TAB_JSON_MAX_DEFAULT_DEPTH}
+      value={value}
+      meta={meta}
+      maxDefaultDepth={maxDefaultDepth}
       autoCollapseLimit={SPAN_TAB_JSON_AUTO_COLLAPSE_LIMIT}
       clip={clip}
-      renderString={renderScrubbedText}
     />
   );
 }
