@@ -1,3 +1,5 @@
+import {annotate} from '@sentry/scraps/markdown/annotation';
+
 import {SpanFields} from 'sentry/views/insights/types';
 
 import {
@@ -18,6 +20,12 @@ import {
   partitionSpansByType,
   turnsToMessages,
 } from './conversationMessages';
+
+// How the conversation view marks a value that PII scrubbing replaced entirely.
+const MARKED_FILTERED = annotate(
+  '[Filtered]',
+  JSON.stringify({ruleId: '@password:filter', remark: 's'})
+);
 
 function createMockNode(overrides: {
   id: string;
@@ -351,6 +359,20 @@ describe('conversationMessages utilities', () => {
       expect(parseUserContent(node as any)).toBe('[Filtered]');
     });
 
+    it('keeps the marks of scrubbed input messages', () => {
+      const node = createMockNode({
+        id: 'node-1',
+        attributes: {
+          [SpanFields.GEN_AI_INPUT_MESSAGES]: MARKED_FILTERED,
+        },
+      });
+      expect(parseUserContent(node as any)).toBe(MARKED_FILTERED);
+      expect(getInputMessageStats(node as any)).toEqual({
+        totalMessageCount: 0,
+        userMessageCount: 0,
+      });
+    });
+
     it('parses parts-format user messages', () => {
       const messages = JSON.stringify([
         {role: 'user', parts: [{type: 'text', content: 'Parts question'}]},
@@ -506,6 +528,19 @@ describe('conversationMessages utilities', () => {
         },
       });
       expect(parseAssistantContent(node as any).content).toBe('[Filtered]');
+    });
+
+    it('keeps the marks of scrubbed output messages', () => {
+      const node = createMockNode({
+        id: 'node-1',
+        attributes: {
+          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: MARKED_FILTERED,
+        },
+      });
+      expect(parseAssistantContent(node as any)).toEqual({
+        content: MARKED_FILTERED,
+        reasoning: null,
+      });
     });
 
     it('treats a plain string output.messages as the assistant response', () => {
@@ -1121,23 +1156,26 @@ describe('conversationMessages utilities', () => {
       expect(assistantMessages).toHaveLength(1);
     });
 
-    it('does not deduplicate [Filtered] messages across turns', () => {
+    it.each([
+      ['[Filtered]', '[Filtered]'],
+      ['marked [Filtered]', MARKED_FILTERED],
+    ])('does not deduplicate %s messages across turns', (_, filtered) => {
       const turns = [
         makeTurn({
           generation: {
             id: 'gen-1',
             value: {start_timestamp: 1000, end_timestamp: 1100},
           } as any,
-          userContent: '[Filtered]',
-          assistantContent: '[Filtered]',
+          userContent: filtered,
+          assistantContent: filtered,
         }),
         makeTurn({
           generation: {
             id: 'gen-2',
             value: {start_timestamp: 2000, end_timestamp: 2100},
           } as any,
-          userContent: '[Filtered]',
-          assistantContent: '[Filtered]',
+          userContent: filtered,
+          assistantContent: filtered,
         }),
       ];
 
