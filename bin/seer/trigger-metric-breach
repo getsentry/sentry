@@ -61,13 +61,11 @@ SEED_TOKEN_SCOPES = (
     "team:write",
 )
 RUN_WAIT = timedelta(seconds=90)
-DEFAULT_SEER_PATH = Path(__file__).resolve().parents[2].parent / "seer"
+DEFAULT_SEER_PATH = Path(__file__).resolve().parents[3] / "seer"
 
 
 @dataclass(frozen=True)
 class SeededBreach:
-    """What Seer's `evals.investigation.seeds.local` prints: the monitor it made and its breach."""
-
     detector_id: int
     open_period_start: datetime
 
@@ -89,8 +87,6 @@ class SeededBreach:
 
 @dataclass(frozen=True)
 class MetricBreachTrigger:
-    """Seeds a Seer eval scenario into this Sentry, then breaches its monitor for an automation."""
-
     organization: Organization
     scenario: str
     seer_path: Path
@@ -119,9 +115,7 @@ class MetricBreachTrigger:
             update.set_scope(SelectedMonitors((monitor.id,)))
 
         subscription = self._subscription(monitor)
-        # Sentry opens the issue when the monitor is evaluated, so the seed puts its breach at now.
-        evaluated_at = breach.open_period_start
-        value = self._monitor_value(monitor, subscription, evaluated_at)
+        value = self._monitor_value(monitor, subscription, breach.open_period_start)
         self._write(
             f"> Evaluating the monitor with {subscription.snuba_query.aggregate} = {value}..."
         )
@@ -132,7 +126,7 @@ class MetricBreachTrigger:
                     entity="events",
                     subscription_id=subscription.subscription_id or str(subscription.id),
                     values={"value": value},
-                    timestamp=evaluated_at,
+                    timestamp=breach.open_period_start,
                 ),
             ),
             DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,

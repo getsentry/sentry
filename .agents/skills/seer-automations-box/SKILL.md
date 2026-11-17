@@ -27,26 +27,20 @@ box exec <name> 'cd sentry && git fetch origin <branch> && git checkout -B <bran
 
 ## 3. Turn on the Seer flags
 
-Flagpole's rules for these flags include a `sentry_cell` condition that a box never matches, so they read False until they're overridden. Write `~/feature-overrides.json` on the box with this content. getsentry's org on a box has the slug `sentry`, and box's docs cover the file under `/docs/devserver#feature-flags`.
+Flagpole's rules for these flags include a `sentry_cell` condition a box never matches, so they're off until overridden. Write `~/feature-overrides.json` on the box, before `box serve`, with this content (getsentry's org on a box has the slug `sentry`):
 
 ```json
 {
   "feature.organizations:seer-automations": {
     "created_at": "2026-10-14",
     "enabled": true,
-    "owner": {
-      "team": "ml-ai"
-    },
+    "owner": {"team": "ml-ai"},
     "segments": [
       {
         "name": "box",
         "rollout": 100,
         "conditions": [
-          {
-            "property": "organization_slug",
-            "operator": "equals",
-            "value": "sentry"
-          }
+          {"property": "organization_slug", "operator": "equals", "value": "sentry"}
         ]
       }
     ]
@@ -54,19 +48,13 @@ Flagpole's rules for these flags include a `sentry_cell` condition that a box ne
   "feature.organizations:investigations": {
     "created_at": "2026-08-25",
     "enabled": true,
-    "owner": {
-      "team": "ml-ai"
-    },
+    "owner": {"team": "ml-ai"},
     "segments": [
       {
         "name": "box",
         "rollout": 100,
         "conditions": [
-          {
-            "property": "organization_slug",
-            "operator": "equals",
-            "value": "sentry"
-          }
+          {"property": "organization_slug", "operator": "equals", "value": "sentry"}
         ]
       }
     ]
@@ -74,19 +62,13 @@ Flagpole's rules for these flags include a `sentry_cell` condition that a box ne
   "feature.organizations:investigations-issue-links": {
     "created_at": "2026-11-10",
     "enabled": true,
-    "owner": {
-      "team": "issues"
-    },
+    "owner": {"team": "issues"},
     "segments": [
       {
         "name": "box",
         "rollout": 100,
         "conditions": [
-          {
-            "property": "organization_slug",
-            "operator": "equals",
-            "value": "sentry"
-          }
+          {"property": "organization_slug", "operator": "equals", "value": "sentry"}
         ]
       }
     ]
@@ -94,19 +76,13 @@ Flagpole's rules for these flags include a `sentry_cell` condition that a box ne
   "feature.organizations:seer-explorer": {
     "created_at": "2025-07-10",
     "enabled": true,
-    "owner": {
-      "team": "ml-ai"
-    },
+    "owner": {"team": "ml-ai"},
     "segments": [
       {
         "name": "box",
         "rollout": 100,
         "conditions": [
-          {
-            "property": "organization_slug",
-            "operator": "equals",
-            "value": "sentry"
-          }
+          {"property": "organization_slug", "operator": "equals", "value": "sentry"}
         ]
       }
     ]
@@ -114,19 +90,13 @@ Flagpole's rules for these flags include a `sentry_cell` condition that a box ne
   "feature.organizations:seer-primary-nav": {
     "created_at": "2026-10-22",
     "enabled": true,
-    "owner": {
-      "team": "ml-ai"
-    },
+    "owner": {"team": "ml-ai"},
     "segments": [
       {
         "name": "box",
         "rollout": 100,
         "conditions": [
-          {
-            "property": "organization_slug",
-            "operator": "equals",
-            "value": "sentry"
-          }
+          {"property": "organization_slug", "operator": "equals", "value": "sentry"}
         ]
       }
     ]
@@ -144,7 +114,7 @@ Wait until Seer answers: `box exec <name> 'until curl -sf localhost:9091/health/
 
 ## 5. Run the breach script
 
-A box serves getsentry's devserver, which uses the `getsentry` database, while a box shell's `SENTRY_CONF` points at plain Sentry's. Point the script at getsentry's settings so it reads the same database the devserver writes:
+A box serves getsentry's devserver and its `getsentry` database, while a box shell's `SENTRY_CONF` points at plain Sentry's, so point the script at getsentry's settings:
 
 ```bash
 box exec <name> 'cd sentry && SENTRY_CONF=/workspace/getsentry/getsentry/settings.py .venv/bin/python bin/seer/trigger-metric-breach'
