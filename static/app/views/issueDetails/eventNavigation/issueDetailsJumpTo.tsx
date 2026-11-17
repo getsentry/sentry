@@ -54,9 +54,6 @@ export function IssueDetailsJumpTo() {
   const excludedSectionKeys = useMemo(() => {
     const features = organization.features ?? [];
     const excluded: SectionKey[] = [];
-    if (!features.includes('performance-view')) {
-      excluded.push(SectionKey.TRACE);
-    }
     if (!features.includes('ourlogs-enabled')) {
       excluded.push(SectionKey.LOGS);
     }

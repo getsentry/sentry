@@ -53,7 +53,7 @@ describe('ProjectDetail > ProjectApdex', () => {
 
     render(
       <ProjectApdexScoreCard
-        organization={{...organization, features: ['discover-basic', 'performance-view']}}
+        organization={{...organization, features: ['discover-basic']}}
         selection={selection}
         isProjectStabilized
         hasTransactions
@@ -107,7 +107,7 @@ describe('ProjectDetail > ProjectApdex', () => {
 
     render(
       <ProjectApdexScoreCard
-        organization={{...organization, features: ['performance-view']}}
+        organization={organization}
         hasTransactions={false}
         selection={selection}
         isProjectStabilized
