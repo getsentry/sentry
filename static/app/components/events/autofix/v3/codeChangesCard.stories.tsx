@@ -156,6 +156,14 @@ const BRANCH_MOVED_PULL_REQUEST: RepoPRState = {
     "The pull request's branch has commits newer than the code Seer edited, so pushing would have to force-push over them.",
 };
 
+// Seer's push failed because the organization ran out of credits.
+const OUT_OF_CREDITS_PULL_REQUEST: RepoPRState = {
+  ...PULL_REQUEST,
+  pr_creation_status: 'error',
+  pr_creation_error_code: 'out_of_credits',
+  pr_creation_error: "Your organization doesn't have enough Seer credits.",
+};
+
 function makeSection(
   status: AutofixSection['status'],
   blocks: AutofixSection['blocks'],
@@ -508,6 +516,25 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
 
   story('PR iteration stopped for credits', () => {
     const user = useUser();
+    const stoppedRunState: Partial<ExplorerAutofixState> = {
+      status: 'error',
+      failure_reason: 'out_of_credits',
+      repo_pr_states: {'org/repo': PULL_REQUEST},
+      pr_iteration_out_of_credits: true,
+      pr_iteration_out_of_credits_unfinished_action: 'agent_turn',
+    };
+    const stoppedSection: AutofixSection = {
+      ...makeSection('error', [
+        makeStepBlock('code_changes', 'Guarded the handler against a null user.'),
+        makeFeedbackBlock(0, userUiFeedback('Add a regression test', user)),
+        makeStepBlock(
+          undefined,
+          'Adding a test for an unauthenticated request in `test_handlers.py`.'
+        ),
+        SEER_OUT_OF_CREDITS_BLOCK,
+      ]),
+      failureReason: 'out_of_credits',
+    };
     return (
       <Stack gap="xl">
         <Text size="sm" variant="muted">
@@ -519,26 +546,19 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
             <StatusExample label="Stopped partway: the feedback failed, and its retry is disabled until the organization has credits.">
               <CodeChangesCard
                 groupId="1"
-                autofix={makeAutofix([], {
-                  status: 'error',
-                  failure_reason: 'out_of_credits',
-                  repo_pr_states: {'org/repo': PULL_REQUEST},
-                })}
-                section={{
-                  ...makeSection('error', [
-                    makeStepBlock(
-                      'code_changes',
-                      'Guarded the handler against a null user.'
-                    ),
-                    makeFeedbackBlock(0, userUiFeedback('Add a regression test', user)),
-                    makeStepBlock(
-                      undefined,
-                      'Adding a test for an unauthenticated request in `test_handlers.py`.'
-                    ),
-                    SEER_OUT_OF_CREDITS_BLOCK,
-                  ]),
-                  failureReason: 'out_of_credits',
-                }}
+                autofix={makeAutofix([], stoppedRunState)}
+                section={stoppedSection}
+              />
+            </StatusExample>
+
+            <StatusExample label="Stopped partway with feedback queued behind it: the stop line, plus a line counting the waiting feedback.">
+              <CodeChangesCard
+                groupId="1"
+                autofix={makeAutofix(
+                  [githubPrCommentFeedback('Also log the retry count')],
+                  stoppedRunState
+                )}
+                section={stoppedSection}
               />
             </StatusExample>
 
@@ -575,6 +595,21 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
                     1,
                     githubPrCommentFeedback('Can you add a test for this?')
                   ),
+                ])}
+              />
+            </StatusExample>
+
+            <StatusExample label="Seer's push failed: the latest changes wait for credits to be pushed, instead of showing as failed.">
+              <CodeChangesCard
+                groupId="1"
+                autofix={makeAutofix([], {
+                  repo_pr_states: {'org/repo': OUT_OF_CREDITS_PULL_REQUEST},
+                  pr_iteration_out_of_credits: true,
+                  pr_iteration_out_of_credits_unfinished_action: 'push',
+                })}
+                section={makeSection('completed', [
+                  makeFeedbackBlock(0, userUiFeedback('Please add a null check', user)),
+                  makeFeedbackBlock(1, userUiFeedback('Rename cfg to config', user)),
                 ])}
               />
             </StatusExample>
