@@ -2,7 +2,7 @@ import type {ECharts} from 'echarts';
 
 import type {EChartClickHandler} from 'sentry/types/echarts';
 
-import {BAND_Y_AXIS} from './bandShapes';
+import {BAND_Y_AXIS, BAND_Z} from './bandShapes';
 import {mergeChartBands, type ChartBand} from './mergeChartBands';
 
 type ClickEvent = Parameters<EChartClickHandler>[0];
@@ -40,8 +40,8 @@ describe('mergeChartBands', () => {
     expect(merged.yAxes).toEqual([...yAxes, BAND_Y_AXIS, BAND_Y_AXIS]);
     expect(merged.series).toEqual([
       ...series,
-      expect.objectContaining({id: 'first', yAxisIndex: 2}),
-      expect.objectContaining({id: 'second', yAxisIndex: 3}),
+      expect.objectContaining({id: 'first', yAxisIndex: 2, z: BAND_Z}),
+      expect.objectContaining({id: 'second', yAxisIndex: 3, z: BAND_Z}),
     ]);
   });
 

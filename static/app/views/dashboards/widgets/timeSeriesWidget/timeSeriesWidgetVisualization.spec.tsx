@@ -3,6 +3,7 @@ import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {BAND_Z} from 'sentry/components/charts/bands/bandShapes';
 import {RELEASE_BAND_SERIES_ID} from 'sentry/components/charts/bands/useReleaseBand';
 import {BaseChart} from 'sentry/components/charts/baseChart';
 import {DROPPED_DATA_SERIES_ID} from 'sentry/components/droppedData/band/useDroppedDataBand';
@@ -84,6 +85,31 @@ describe('TimeSeriesWidgetVisualization', () => {
       }),
     ]);
     expect(series?.find(({name}) => name === 'Releases')).toBeUndefined();
+  });
+
+  it('draws the bands above the plotted series so their highlight covers them', () => {
+    const {timestamp: start} = sampleThroughputTimeSeries.values[2]!;
+
+    render(
+      <TimeSeriesWidgetVisualization
+        plottables={plottables}
+        releases={releases}
+        showReleaseAs="band"
+        droppedData={{
+          dataset: DiscoverDatasets.SPANS,
+          droppedEvents: [OutcomeRowFixture({start, count: 10})],
+        }}
+      />
+    );
+
+    const {series} = jest.mocked(BaseChart).mock.calls.at(-1)![0];
+
+    expect(series).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({id: DROPPED_DATA_SERIES_ID, z: BAND_Z}),
+        expect.objectContaining({id: RELEASE_BAND_SERIES_ID, z: BAND_Z}),
+      ])
+    );
   });
 
   it('shows the same tooltip on the release and dropped data bands for a bucket', async () => {

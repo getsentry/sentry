@@ -11,6 +11,7 @@ import {
   bandLayout,
   bandRect,
   bandTrack,
+  bucketHighlight,
   bucketSlot,
   clampRange,
   type BandBucket,
@@ -60,6 +61,7 @@ function releaseBandRenderItem(
     }
 
     children.push(
+      ...bucketHighlight(slot, params, theme),
       bandRect(clampRange(slot, track), y, track, theme.tokens.graphics.accent.vibrant, {
         opacity: bucket.opacity,
       })

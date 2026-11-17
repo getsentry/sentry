@@ -8,6 +8,7 @@ import {
   bandLayout,
   bandRect,
   bandTrack,
+  bucketHighlight,
   bucketSlot,
   clampRange,
   type BandElement,
@@ -135,7 +136,10 @@ function droppedDataRenderItem(
       }
     }
 
-    children.push(bandRect(clampRange(slot, track), y, track, 'transparent'));
+    children.push(
+      ...bucketHighlight(slot, params, theme),
+      bandRect(clampRange(slot, track), y, track, 'transparent')
+    );
 
     return {type: 'group', children};
   };

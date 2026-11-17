@@ -247,7 +247,7 @@ describe('useDroppedDataBand', () => {
           {
             dataIndex,
             dataIndexInside: dataIndex,
-            coordSys: {type: 'cartesian2d', x: 0, width: TRACK_WIDTH},
+            coordSys: {type: 'cartesian2d', x: 0, y: 0, width: TRACK_WIDTH, height: 100},
           } as unknown as CustomSeriesRenderItemParams,
           api
         ) as {children: BandRect[]};
@@ -268,8 +268,18 @@ describe('useDroppedDataBand', () => {
       const [first, second] = renderShapes([bucket(2), bucket(3)]);
 
       expect(first?.[0]).toMatchObject({shape: {x: 0, width: TRACK_WIDTH}, silent: true});
-      expect(first).toHaveLength(3);
-      expect(second).toHaveLength(1);
+      expect(first).toHaveLength(6);
+      expect(second).toHaveLength(4);
+    });
+
+    it('highlights the hovered bucket over the plot', () => {
+      const [shapes] = renderShapes([bucket(3)]);
+
+      expect(shapes?.slice(-4, -1).map(span)).toEqual([
+        [0, 150],
+        [210, TRACK_WIDTH],
+        [150, 210],
+      ]);
     });
 
     it('draws the band at the offset it is given below the plot', () => {

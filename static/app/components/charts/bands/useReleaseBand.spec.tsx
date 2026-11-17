@@ -32,7 +32,7 @@ describe('useReleaseBand', () => {
     expect(result.current).toBeNull();
   });
 
-  it('draws the track once and a marker shaded by release count on each bucket', () => {
+  it('draws the track once and a highlightable marker shaded by release count on each bucket', () => {
     const TRACK_WIDTH = 600;
     const api = {
       coord: ([time]: number[]) => [(time ?? 0) / 1000, 100],
@@ -62,22 +62,36 @@ describe('useReleaseBand', () => {
             {
               dataIndex,
               dataIndexInside: dataIndex,
-              coordSys: {type: 'cartesian2d', x: 0, width: TRACK_WIDTH},
+              coordSys: {
+                type: 'cartesian2d',
+                x: 0,
+                y: 0,
+                width: TRACK_WIDTH,
+                height: 100,
+              },
             } as unknown as CustomSeriesRenderItemParams,
             api
           ) as {children: BandRect[]}
         ).children
     );
 
-    expect(first).toHaveLength(2);
+    expect(first).toHaveLength(5);
     expect(first?.[0]).toMatchObject({shape: {x: 0, width: TRACK_WIDTH}, silent: true});
-    expect(second).toHaveLength(1);
+    expect(second).toHaveLength(4);
 
-    expect(first?.[1]).toMatchObject({shape: {x: 90, width: 60}, style: {opacity: 0.25}});
-    expect(second?.[0]).toMatchObject({
+    expect(first?.at(-1)).toMatchObject({
+      shape: {x: 90, width: 60},
+      style: {opacity: 0.25},
+    });
+    expect(second?.at(-1)).toMatchObject({
       shape: {x: 270, width: 60},
       style: {opacity: 0.75},
     });
+    expect(second?.slice(0, 3)).toMatchObject([
+      {shape: {x: 0, width: 270}, silent: true},
+      {shape: {x: 330, width: 270}, silent: true},
+      {shape: {x: 270, width: 60}, silent: true},
+    ]);
   });
 
   it('gives the shared tooltip the release count of each bucket with releases', () => {

@@ -9,7 +9,7 @@ import type {
 import type {EChartClickHandler} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
 
-import {BAND_Y_AXIS, type BandBucket} from './bandShapes';
+import {BAND_Y_AXIS, BAND_Z, type BandBucket} from './bandShapes';
 
 /**
  * A strip of per-bucket markers drawn under a chart's plot.
@@ -58,6 +58,7 @@ export function mergeChartBands(
       ...band.series(bandOffset),
       id: band.id,
       yAxisIndex: yAxes.length + index,
+      z: BAND_Z,
     };
     bandOffset += band.height;
     return bandSeriesOption;

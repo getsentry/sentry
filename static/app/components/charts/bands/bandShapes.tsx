@@ -16,6 +16,15 @@ const BOX_BORDER_RADIUS = 2;
 export const BAND_HEIGHT = BAND_PADDING_TOP + BOX_HEIGHT + BAND_PADDING_BOTTOM;
 
 /**
+ * Above line, area, and bar series so a bucket highlight covers them, and
+ * below mark lines such as releases.
+ */
+export const BAND_Z = 4;
+
+const HIGHLIGHT_DIM_OPACITY = 0.6;
+const HIGHLIGHT_WASH_OPACITY = 0.1;
+
+/**
  * Each band gets its own hidden y-axis so its series never affects the scale
  * of the plotted data.
  */
@@ -32,8 +41,10 @@ type BandGroup = Extract<NonNullable<CustomSeriesRenderItemReturn>, {type: 'grou
 export type BandElement = BandGroup['children'][number];
 
 type CartesianCoordSys = CustomSeriesRenderItemParams['coordSys'] & {
+  height: number;
   width: number;
   x: number;
+  y: number;
 };
 
 export interface BandBucket {
@@ -141,4 +152,36 @@ export function bandTrack(track: PixelRange, y: number, theme: Theme): BandEleme
     silent: true,
     z2: -1,
   });
+}
+
+/**
+ * Silent rects over the plot that only show while the bucket is hovered: the
+ * plot dims on either side and the bucket itself gets a light wash. They live
+ * in the item so ECharts toggles them through emphasis without `setOption`.
+ */
+export function bucketHighlight(
+  slot: PixelRange,
+  params: CustomSeriesRenderItemParams,
+  theme: Theme
+): BandElement[] {
+  const {x, y, width, height} = params.coordSys as CartesianCoordSys;
+  const plot = {left: x, right: x + width};
+  const bucket = clampRange(slot, plot);
+  const dim = {fill: theme.tokens.background.primary, opacity: HIGHLIGHT_DIM_OPACITY};
+  const wash = {
+    fill: theme.tokens.graphics.accent.vibrant,
+    opacity: HIGHLIGHT_WASH_OPACITY,
+  };
+
+  return [
+    {range: {left: plot.left, right: bucket.left}, ...dim},
+    {range: {left: bucket.right, right: plot.right}, ...dim},
+    {range: bucket, ...wash},
+  ].map(({range, fill, opacity}) => ({
+    type: 'rect',
+    silent: true,
+    shape: {x: range.left, y, width: range.right - range.left, height},
+    style: {fill, opacity: 0},
+    emphasis: {style: {opacity}},
+  }));
 }
