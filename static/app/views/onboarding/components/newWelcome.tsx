@@ -10,7 +10,7 @@ import {IconWarning} from '@sentry/icons/warning';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
-import {Button} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -206,8 +206,10 @@ export function NewWelcomeUI(props: StepProps) {
             {showAgentSetup ? (
               // Swaps in after the stagger has run, so it drives the variants
               // itself rather than inheriting the step's.
-              <MotionContainer
+              <MotionStack
                 key="agent-setup"
+                align="center"
+                gap="2xl"
                 width="100%"
                 initial="initial"
                 animate="animate"
@@ -225,7 +227,15 @@ export function NewWelcomeUI(props: StepProps) {
                   onSetupInBrowser={handleComplete}
                   run={run}
                 />
-              </MotionContainer>
+                {showAgentHeading && (
+                  <LinkButton
+                    variant="primary"
+                    to={`/organizations/${organization.slug}/issues/`}
+                  >
+                    {t("I'm finished")}
+                  </LinkButton>
+                )}
+              </MotionStack>
             ) : (
               <MotionStack key="products" gap="3xl" width="100%" {...ONBOARDING_STAGGER}>
                 <MotionGrid
