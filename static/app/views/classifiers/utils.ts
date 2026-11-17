@@ -176,10 +176,6 @@ export function getClassifierFilterParts(filterQuery: string): ClassifierFilterP
 
 export const ENRICHMENT_ATTRIBUTE_PREFIX = 'sentry.enrichment.';
 
-export function getEnrichmentAttributeName(resultAttribute: string) {
-  return `${ENRICHMENT_ATTRIBUTE_PREFIX}${resultAttribute}`;
-}
-
 export function getClassifiersPath(organizationSlug: string) {
   return normalizeUrl(`/organizations/${organizationSlug}/seer/classifiers/`);
 }
@@ -212,7 +208,7 @@ export function getOutputTypeLabel(
 }
 
 export function getResultAttributeKey(resultAttribute: string) {
-  return `sentry.enrichment.${resultAttribute}`;
+  return `${ENRICHMENT_ATTRIBUTE_PREFIX}${resultAttribute}`;
 }
 
 export function getEnvironmentsFilter(environments: readonly string[]) {
