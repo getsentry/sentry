@@ -24,6 +24,7 @@ SAVEPOINT_DISTRIBUTION_MIN = 10
 # Postgres caches 64 subtransaction ids per backend; once a transaction passes that, every snapshot falls back to pg_subtrans until it ends.
 SAVEPOINT_CACHE_SIZE = 64
 FIRST_OVERFLOWING_SAVEPOINT = SAVEPOINT_CACHE_SIZE + 1
+RPC_SERVICE_URL_NAME = "sentry-api-0-rpc-service"
 
 
 def remove_null(value: str) -> str:
@@ -84,13 +85,32 @@ def _execute__include_sql_in_error(
         raise
 
 
+def _current_view_name() -> str:
+    # lazy import: sentry.app loads the models, which need this backend already imported
+    from sentry.app import env
+
+    request = env.request
+    if request is None:
+        return "none"
+    match = request.resolver_match
+    if match is None:
+        return "none"
+    if match.url_name == RPC_SERVICE_URL_NAME:
+        # Every internal RPC call shares one URL name; the service and method tell them apart.
+        service_name = match.kwargs["service_name"]
+        method_name = match.kwargs["method_name"]
+        return f"rpc:{service_name}.{method_name}"
+    return match.view_name
+
+
 def _savepoint_metric_tags(alias: str) -> dict[str, str]:
     task = current_task()
     if task is None:
         taskname = "none"
     else:
         taskname = task.taskname
-    return {"taskname": taskname, "alias": alias}
+    view = _current_view_name()
+    return {"taskname": taskname, "view": view, "alias": alias}
 
 
 class CursorWrapper:
