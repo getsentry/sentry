@@ -28,7 +28,7 @@ class NotebookItemType(InboxItemType[Notebook]):
 
     def get_url(self, *, organization: Organization, subject_id: str) -> str:
         return organization.absolute_url(
-            f"/organizations/{organization.slug}/seer/investigations/{subject_id}/"
+            f"/organizations/{organization.slug}/inbox/notebook/{subject_id}/"
         )
 
     def filter_recipients(self, *, subject: Notebook, user_ids: Sequence[int]) -> list[int]:
@@ -47,6 +47,7 @@ class NotebookItemType(InboxItemType[Notebook]):
 @dataclass(frozen=True, kw_only=True)
 class NotebookCompletedData(InboxEventData):
     seer_run_id: int  # Seer DbRunState ID, matching issue inbox events.
+    generation: int
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -72,7 +73,7 @@ NOTEBOOK_COMPLETED = InboxEventType(
 )
 NOTEBOOK_USER_MENTIONED = InboxEventType(
     event_type="notebook.user_mentioned",
-    summary=InboxEventSummary.NOTEBOOK_MENTIONED,
+    summary=InboxEventSummary.NOTEBOOK_USER_MENTIONED,
     item_type=NOTEBOOK,
     data_class=NotebookMentionedData,
     notification_setting=NotificationSettingEnum.INBOX_MENTIONS,

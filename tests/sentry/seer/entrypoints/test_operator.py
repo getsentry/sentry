@@ -6,6 +6,10 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 from django.test import override_settings
 from django.utils import timezone
+from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_AUTOFIX_INTEGRATIONS,
+    SEER_BILLING_FEATURE_SEER_AGENT_SLACK,
+)
 from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_seer_credits_pb2 import (
     CheckSeerCreditsResponse,
 )
@@ -198,6 +202,10 @@ class SeerOperatorTest(TestCase):
                 stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
             )
 
+        assert (
+            mock_trigger_autofix.call_args.kwargs["billing_feature"]
+            == SEER_BILLING_FEATURE_AUTOFIX_INTEGRATIONS
+        )
         activity = Activity.objects.get(group=self.group, type=ActivityType.TRIGGER_AUTOFIX.value)
         assert activity.user_id == self.user.id
         assert activity.data == {"referrer": AutofixReferrer.SLACK.value}
@@ -1459,6 +1467,7 @@ class TestSeerAgentOperatorCodeMode(TestCase):
 
     @patch("sentry.seer.entrypoints.operator.SeerAgentClient")
     def test_non_slack_category_does_not_use_code_mode(self, mock_client_cls: MagicMock) -> None:
+        self.entrypoint.key = SeerEntrypointKey.SLACK
         mock_client = Mock()
         mock_client.start_run.return_value = Mock(seer_run_state_id=1)
         mock_client.latest_run.return_value = None
@@ -1474,6 +1483,10 @@ class TestSeerAgentOperatorCodeMode(TestCase):
 
         mock_client_cls.assert_called_once()
         assert mock_client_cls.call_args.kwargs["enable_code_mode_tools"] == "off"
+        assert (
+            mock_client.start_run.call_args.kwargs["billing_feature"]
+            == SEER_BILLING_FEATURE_SEER_AGENT_SLACK
+        )
 
     def _trigger_slack(self, mock_client_cls: Mock) -> None:
         mock_client = Mock()
@@ -1521,6 +1534,14 @@ class TestSeerAgentOperatorCodeMode(TestCase):
         kwargs = mock_client_cls.call_args.kwargs
         assert kwargs["enable_coding"] is False
         assert kwargs["enable_write_pull_request"] is False
+
+    @patch("sentry.seer.entrypoints.operator.SeerAgentClient")
+    def test_completion_hook_also_runs_when_the_run_fails(self, mock_client_cls: MagicMock) -> None:
+        self._trigger_slack(mock_client_cls)
+
+        kwargs = mock_client_cls.call_args.kwargs
+        assert kwargs["on_completion_hook"] is SeerOperatorCompletionHook
+        assert kwargs["hook_call_on_failure"] is True
 
 
 class TestSeerInvestigationOperatorAccess(TestCase):

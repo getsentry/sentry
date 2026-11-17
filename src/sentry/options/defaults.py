@@ -487,7 +487,19 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "cleanup.inbox-items.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "cleanup.inbox-events.sample-rate",
+    default=0.0,
+    type=Float,
+    flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "cleanup.inbox-items.sample-rate",
     default=0.0,
     type=Float,
     flags=FLAG_MODIFIABLE_RATE | FLAG_AUTOMATOR_MODIFIABLE,
@@ -3019,6 +3031,14 @@ register(
     "hybridcloud.outbox.deep_shard_logging.threshold",
     default=10_000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Outbox category names (e.g. ORGANIZATION_MEMBER_UPDATE) whose synchronous
+# drains are tagged with the calling endpoint or task. Opt-in to bound cardinality.
+register(
+    "hybridcloud.outbox.sync_drain_caller_tag.categories",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Break glass controls
 register(

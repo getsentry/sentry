@@ -7,6 +7,7 @@ from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q, QuerySet
+from sentry_protos.billing.v1.common.v1 import seer_billing_feature_pb2 as billing
 
 from sentry import features, quotas
 from sentry.constants import (
@@ -50,7 +51,12 @@ from sentry.seer.autofix.utils import (
     get_event_matched_project_repo_ids,
     is_free_cohort_org,
 )
-from sentry.seer.credits import SeerFeature, SeerOperation, has_enough_seer_credits
+from sentry.seer.credits import (
+    SeerFeature,
+    SeerOperation,
+    check_seer_operation,
+    get_denial_reason,
+)
 from sentry.seer.models.run import SeerAgentRun, SeerRun
 from sentry.seer.models.seer_api_models import UNKNOWN_RUN_ID_FOR_GROUP, SeerPermissionError
 from sentry.users.models.user import User
@@ -73,6 +79,7 @@ class AutofixFeatureArgs:
     user: User | RpcUser | AnonymousUser | None = None
     flush: bool = True
     single_run: bool = False
+    billing_feature: int | None = None
 
 
 def _run_mirrors(group: Group, run_id: int) -> QuerySet[SeerAgentRun]:
@@ -182,10 +189,9 @@ def check_autofix_billing(
     """
     # Check credits for token-billed orgs.
     if features.has("organizations:token-billed-seer-enabled", organization):
-        if features.has(
-            "organizations:seer-credit-checks", organization
-        ) and not has_enough_seer_credits(organization, SeerFeature.AUTOFIX, operation):
-            raise SeerOutOfCreditsException()
+        credits = check_seer_operation(organization, SeerFeature.AUTOFIX, operation)
+        if not credits.has_enough_credits:
+            raise SeerOutOfCreditsException(get_denial_reason(credits))
         return False
 
     # Check quota for non-token-billed orgs once per run.
@@ -337,6 +343,18 @@ def trigger_autofix_feature(
     from sentry.seer.autofix.on_completion_hook import AutofixOnCompletionHook
 
     is_new_run = args.existing_run_id is None
+    billing_feature = args.billing_feature
+    if is_new_run and billing_feature in (None, billing.SEER_BILLING_FEATURE_UNSPECIFIED):
+        logger.warning(
+            "autofix_feature.dispatch.missing_billing_feature",
+            extra={
+                "group_id": group.id,
+                "organization_id": group.organization.id,
+                "referrer": args.referrer.value,
+                "billing_feature": billing_feature,
+            },
+        )
+        billing_feature = billing.SEER_BILLING_FEATURE_AUTOFIX_HEADLESS
     try:
         uses_quota = check_autofix_billing(
             group.organization,
@@ -356,7 +374,7 @@ def trigger_autofix_feature(
             },
         )
         raise
-    except SeerOutOfCreditsException:
+    except SeerOutOfCreditsException as e:
         logger.info(
             "autofix_feature.dispatch.out_of_credits",
             extra={
@@ -364,6 +382,7 @@ def trigger_autofix_feature(
                 "organization_id": group.organization.id,
                 "operation": args.step.seer_operation.value,
                 "referrer": args.referrer.value,
+                "denial_reason": e.denial_reason,
             },
         )
         raise
@@ -472,6 +491,7 @@ def trigger_autofix_feature(
     if is_new_run:
         run = client.start_feature_run(
             feature_id=SINGLE_RUN_FEATURE_ID if single_run else FEATURE_ID,
+            billing_feature=billing_feature,
             payload=payload.dict(),
             referrer=args.referrer.value,
             user_org_context=user_org_context,

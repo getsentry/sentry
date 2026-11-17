@@ -1,7 +1,6 @@
 import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {vec2} from 'gl-matrix';
-import qs from 'query-string';
 
 import type {CSS} from '@sentry/scraps/cssTypes';
 import {toast} from '@sentry/scraps/toast';
@@ -25,6 +24,7 @@ import {SpanChartRenderer2D} from 'sentry/utils/profiling/renderers/spansRendere
 import {SpansTextRenderer} from 'sentry/utils/profiling/renderers/spansTextRenderer';
 import type {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
 import {Rect} from 'sentry/utils/profiling/speedscope';
+import * as qs from 'sentry/utils/url/qs';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SpanFields} from 'sentry/views/insights/types';

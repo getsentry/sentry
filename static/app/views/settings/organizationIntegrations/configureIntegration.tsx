@@ -206,7 +206,6 @@ function IntegrationMainTab({
   organization,
   provider,
   queryClient,
-  usesExplicitMappingRemovals,
 }: {
   gcpVerificationError: boolean;
   integration: OrganizationIntegration;
@@ -217,7 +216,6 @@ function IntegrationMainTab({
   organization: Organization;
   provider: IntegrationProvider;
   queryClient: QueryClient;
-  usesExplicitMappingRemovals: boolean;
 }) {
   const instructions =
     integration.dynamicDisplayInformation?.configure_integration?.instructions;
@@ -225,6 +223,7 @@ function IntegrationMainTab({
   const hasVercelProjectMappings =
     provider.key === 'vercel' &&
     integration.configOrganization?.some(field => field.name === 'project_mappings');
+  const usesExplicitMappingRemovals = provider.key === 'jira';
   const hasSettings =
     !hasVercelProjectMappings &&
     (externalUrl || (integration.configOrganization?.length ?? 0) > 0);
@@ -552,10 +551,6 @@ function ConfigureIntegration() {
     return null;
   }
 
-  const usesExplicitMappingRemovals =
-    provider.key === 'jira' &&
-    organization.features.includes('jira-explicit-mapping-removals');
-
   // Determines whether there is anything to show in the Settings tab.
   // When empty and no other tabs exist, the settings content renders directly.
   const settingsInstructions =
@@ -631,7 +626,6 @@ function ConfigureIntegration() {
       organization={organization}
       provider={provider}
       queryClient={queryClient}
-      usesExplicitMappingRemovals={usesExplicitMappingRemovals}
     />
   );
 
