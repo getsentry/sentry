@@ -68,6 +68,10 @@ export interface DropdownMenuListProps
     >,
     TreeProps<MenuItemProps>,
     DropdownMenuContentSizeOptions {
+  /**
+   * Where this menu sits in the menu tree.
+   */
+  menuLevel: DropdownMenuLevel;
   overlayPositionProps: React.HTMLAttributes<HTMLDivElement>;
   /**
    * Whether the menu should close when an item has been clicked/selected
@@ -89,34 +93,15 @@ export interface DropdownMenuListProps
    */
   menuFooter?: React.ReactNode;
   /**
-   * Ref for the menu element. A submenu trigger passes one, so it can move
-   * focus into its submenu.
-   */
-  menuRef?: React.RefObject<HTMLUListElement | null>;
-  /**
    * Title to display on top of the menu
    */
   menuTitle?: React.ReactNode;
-  /**
-   * State of the root menu trigger. Only the root menu passes it. Submenus read
-   * it from context.
-   */
-  rootMenuState?: RootMenuTriggerState;
   /** Controlled input state supplied by DropdownMenuContent. */
   searchState?: DropdownMenuSearchOptions & {
     onChange: (value: string) => void;
     value: string;
   };
   size?: MenuItemProps['size'];
-  /**
-   * Set when this list is a submenu.
-   */
-  submenu?: {
-    /** Closes this submenu and returns focus to its trigger. */
-    close: () => void;
-    /** Whether the submenu was opened from the keyboard and should take focus. */
-    shouldAutoFocus: boolean;
-  };
   /**
    * Number of items, counting the items inside sections, above which only the
    * items near the viewport are rendered. Submenus inherit the threshold of
@@ -131,6 +116,29 @@ export interface DropdownMenuListProps
    */
   zIndex?: number;
 }
+
+/**
+ * A root menu starts a menu tree, even when it renders inside another menu.
+ * A submenu belongs to the tree of the menu that contains its trigger, and
+ * reads the root menu state from context.
+ */
+type DropdownMenuLevel =
+  | {
+      state: RootMenuTriggerState;
+      type: 'root';
+    }
+  | {
+      /** Closes this submenu and returns focus to its trigger. */
+      close: () => void;
+      /**
+       * Index of this submenu in the root menu's `expandedKeysStack`: 0 for a
+       * submenu of the root menu, 1 for a submenu of that submenu, and so on.
+       */
+      level: number;
+      /** Ref for the menu element, so the trigger can move focus into it. */
+      ref: React.RefObject<HTMLUListElement | null>;
+      type: 'submenu';
+    };
 
 type DropdownMenuCollectionProps = {
   closeOnSelect: boolean;
@@ -316,20 +324,16 @@ function DropdownMenuList({
   isVirtualized: virtualized = false,
   // Only provided to submenus through context, which inherit it.
   virtualizeThreshold,
-  menuRef: menuRefProp,
-  rootMenuState: rootMenuStateProp,
-  submenu,
+  menuLevel,
   autoFocus,
   ...props
 }: DropdownMenuListProps) {
   const {t} = useTranslation();
   const theme = useTheme();
   const context = useContext(DropdownMenuContext);
-  // A root menu passes its own state, even when it renders inside another
-  // menu, so it starts a new menu tree.
-  const isRootMenu = rootMenuStateProp !== undefined;
-  const rootMenuState = rootMenuStateProp ?? context.rootMenuState;
-  const submenuLevel = isRootMenu ? 0 : (context.submenuLevel ?? -1) + 1;
+  const isRootMenu = menuLevel.type === 'root';
+  const rootMenuState = isRootMenu ? menuLevel.state : context.rootMenuState;
+  const submenuLevel = isRootMenu ? 0 : menuLevel.level + 1;
   const state = useTreeState<MenuItemProps>({...props, selectionMode: 'single'});
   const stateCollection = useMemo(() => [...state.collection], [state.collection]);
   const flatNodes = useMemo(() => flattenSections(stateCollection), [stateCollection]);
@@ -353,7 +357,7 @@ function DropdownMenuList({
 
   // Implement focus states, keyboard navigation, aria-label,...
   const ownMenuRef = useRef<HTMLUListElement>(null);
-  const menuRef = menuRefProp ?? ownMenuRef;
+  const menuRef = isRootMenu ? ownMenuRef : menuLevel.ref;
   const searchRef = useRef<HTMLInputElement>(null);
   const {menuProps} = useMenu(
     {
@@ -440,7 +444,7 @@ function DropdownMenuList({
     // submenu opened by hover leaves focus on its trigger.
     <FocusScope
       restoreFocus
-      autoFocus={!submenu || submenu.shouldAutoFocus || Boolean(searchState)}
+      autoFocus={isRootMenu || Boolean(autoFocus) || Boolean(searchState)}
     >
       <PositionWrapper
         zIndex={zIndex === undefined ? theme.zIndex.dropdown : Number(zIndex)}
@@ -459,7 +463,7 @@ function DropdownMenuList({
                   // are portaled out of this overlay, so they handle their own.
                   if (
                     event.key === 'Escape' &&
-                    submenu &&
+                    menuLevel.type === 'submenu' &&
                     event.currentTarget.contains(event.target as HTMLElement)
                   ) {
                     event.stopPropagation();
@@ -468,7 +472,7 @@ function DropdownMenuList({
                       return;
                     }
                     event.preventDefault();
-                    submenu.close();
+                    menuLevel.close();
                   }
                 }}
                 style={{
@@ -685,7 +689,6 @@ function DropdownSubmenu({
   const {
     submenuLevel: _submenuLevel,
     onClose: _closeAll,
-    autoFocus,
     ...submenuMenuProps
   } = submenuProps;
 
@@ -715,10 +718,10 @@ function DropdownSubmenu({
             search={options.search}
             size={size}
             {...submenuMenuProps}
-            autoFocus={autoFocus}
-            menuRef={submenuRef}
-            submenu={{
-              shouldAutoFocus: Boolean(autoFocus),
+            menuLevel={{
+              type: 'submenu',
+              level: submenuLevel,
+              ref: submenuRef,
               close: () => {
                 submenuState.close();
                 triggerRef.current?.focus();

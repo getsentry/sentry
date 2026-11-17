@@ -858,6 +858,56 @@ describe('DropdownMenu', () => {
     );
   });
 
+  it('opens the submenus of a menu nested in another menu', async () => {
+    const onAction = jest.fn();
+    render(
+      <DropdownMenu
+        triggerLabel="Outer"
+        items={[{key: 'outer-item', label: 'Outer item'}]}
+        menuFooter={
+          <DropdownMenu
+            triggerLabel="Inner"
+            items={[
+              {
+                key: 'inner-parent',
+                label: 'Inner parent',
+                submenu: true,
+                children: [{key: 'inner-child', label: 'Inner child', onAction}],
+              },
+            ]}
+          />
+        }
+      />,
+      {wrapper: ThemeWrapper}
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Outer'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Inner'}));
+    await userEvent.hover(screen.getByRole('menuitem', {name: 'Inner parent'}));
+
+    // The nested menu starts its own menu tree, so its submenu opens at the
+    // first level of that tree.
+    const child = await screen.findByRole('menuitemradio', {name: 'Inner child'});
+    expect(screen.getByRole('menuitem', {name: 'Inner parent'})).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    );
+    expect(screen.getByRole('button', {name: 'Outer'})).toHaveAttribute(
+      'aria-expanded',
+      'true'
+    );
+
+    await userEvent.click(child);
+
+    // Selecting an item of the nested menu closes the outer menu too.
+    expect(onAction).toHaveBeenCalledTimes(1);
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Outer'})).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
+  });
+
   it('renders disabled', async () => {
     const onAction = jest.fn();
 

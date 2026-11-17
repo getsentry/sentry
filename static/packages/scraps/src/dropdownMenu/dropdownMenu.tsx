@@ -1,11 +1,9 @@
 import type * as React from 'react';
-import {useContext, useMemo, useState} from 'react';
+import {useContext, useMemo} from 'react';
 import {createPortal} from 'react-dom';
 import styled from '@emotion/styled';
 import {useButton} from '@react-aria/button';
 import {useMenuTrigger} from '@react-aria/menu';
-import type {RootMenuTriggerState} from '@react-stately/menu';
-import type {Key} from '@react-types/shared';
 
 import {ControlContext, DropdownButton} from '@sentry/scraps/menu';
 import type {TriggerProps} from '@sentry/scraps/overlayTrigger';
@@ -16,6 +14,7 @@ import {DropdownMenuContent} from './content';
 import {DropdownMenuContext} from './context';
 import type {MenuItemProps} from './item';
 import type {DropdownMenuContentProps, DropdownMenuListProps} from './list';
+import {useDropdownRootMenuState} from './useDropdownRootMenuState';
 
 export type {MenuItemProps};
 
@@ -23,7 +22,7 @@ interface BaseDropdownMenuProps
   extends
     Omit<
       DropdownMenuContentProps,
-      'rootMenuState' | 'overlayPositionProps' | 'items' | 'children' | 'menuTitle'
+      'menuLevel' | 'overlayPositionProps' | 'items' | 'children' | 'menuTitle'
     >,
     Pick<
       UseOverlayProps,
@@ -163,62 +162,7 @@ function DropdownMenu({
     strategy,
   });
 
-  // Keys of the open submenu triggers, one per submenu level. Matches the shape
-  // of react-stately's `useMenuTriggerState`, so `useSubmenuTrigger` can manage
-  // submenus, while `useOverlay` keeps owning the open state and positioning.
-  const [expandedKeysStack, setExpandedKeysStack] = useState<Key[]>([]);
-  const [wasOpen, setWasOpen] = useState(isOpen);
-  if (wasOpen !== isOpen) {
-    setWasOpen(isOpen);
-    if (!isOpen) {
-      // Submenus read their level from the stack when they mount, so it must
-      // be empty before the menu opens again.
-      setExpandedKeysStack([]);
-    }
-  }
-  // `useOverlayTriggerState` returns a new object on every render, but its
-  // callbacks are stable. Depend on those, so the menu context only changes
-  // when the open state does.
-  const {
-    isOpen: overlayIsOpen,
-    setOpen: setOverlayOpen,
-    open: openOverlay,
-    close: closeOverlay,
-    toggle: toggleOverlay,
-  } = overlayState;
-  const rootMenuState = useMemo<RootMenuTriggerState>(
-    () => ({
-      isOpen: overlayIsOpen,
-      setOpen: setOverlayOpen,
-      focusStrategy: 'first',
-      open: () => openOverlay(),
-      toggle: () => toggleOverlay(),
-      close: () => {
-        setExpandedKeysStack([]);
-        closeOverlay();
-      },
-      expandedKeysStack,
-      openSubmenu: (triggerKey, level) =>
-        setExpandedKeysStack(stack =>
-          // A submenu opens from an item of an open menu, so its level is at
-          // most the number of open submenus. Ignore anything deeper rather
-          // than leave a gap in the stack.
-          level > stack.length ? stack : [...stack.slice(0, level), triggerKey]
-        ),
-      closeSubmenu: (triggerKey, level) =>
-        setExpandedKeysStack(stack =>
-          stack[level] === triggerKey ? stack.slice(0, level) : stack
-        ),
-    }),
-    [
-      overlayIsOpen,
-      setOverlayOpen,
-      openOverlay,
-      toggleOverlay,
-      closeOverlay,
-      expandedKeysStack,
-    ]
-  );
+  const rootMenuState = useDropdownRootMenuState(overlayState, parentRootMenuState);
 
   const {menuTriggerProps, menuProps} = useMenuTrigger(
     {type: 'menu', isDisabled},
@@ -255,7 +199,7 @@ function DropdownMenu({
             minWidth: minMenuWidth ?? overlayProps.style?.minWidth,
           },
         }}
-        rootMenuState={rootMenuState}
+        menuLevel={{type: 'root', state: rootMenuState}}
         items={items}
       />
     );
