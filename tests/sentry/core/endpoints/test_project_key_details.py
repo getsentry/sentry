@@ -104,6 +104,58 @@ class UpdateProjectKeyTest(APITestCase):
         assert key.rate_limit_count == 1
         assert key.rate_limit_window == 60
 
+    def test_rate_limit_change_without_feature(self) -> None:
+        project = self.create_project()
+        key = ProjectKey.objects.create(
+            project=project, rate_limit_window=3600, rate_limit_count=100
+        )
+        self.login_as(user=self.user)
+        url = reverse(
+            "sentry-api-0-project-key-details",
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+                "key_id": key.public_key,
+            },
+        )
+        with self.feature({"projects:rate-limits": False}):
+            response = self.client.put(
+                url, {"name": "renamed", "rateLimit": {"count": 50, "window": 86400}}
+            )
+            assert response.status_code == 400, response.content
+            assert response.data == {
+                "rateLimit": ["Rate limits are not available on this project's plan."]
+            }
+            response = self.client.put(url, {"rateLimit": None})
+            assert response.status_code == 400, response.content
+
+        key = ProjectKey.objects.get(id=key.id)
+        assert key.label != "renamed"
+        assert key.rate_limit_count == 100
+        assert key.rate_limit_window == 3600
+
+    def test_unchanged_rate_limit_without_feature(self) -> None:
+        project = self.create_project()
+        key = ProjectKey.objects.create(
+            project=project, rate_limit_window=3600, rate_limit_count=100
+        )
+        self.login_as(user=self.user)
+        url = reverse(
+            "sentry-api-0-project-key-details",
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+                "key_id": key.public_key,
+            },
+        )
+        with self.feature({"projects:rate-limits": False}):
+            response = self.client.put(
+                url, {"name": "renamed", "rateLimit": {"count": 100, "window": 3600}}
+            )
+        assert response.status_code == 200, response.content
+        key = ProjectKey.objects.get(id=key.id)
+        assert key.label == "renamed"
+
     @patch("sentry.api.base.create_audit_entry")
     def test_rate_limit_change_data(self, mock_create_audit_entry: MagicMock) -> None:
         project = self.create_project()

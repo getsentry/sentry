@@ -30,6 +30,20 @@ from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
 
 
+def _requested_rate_limit(
+    rate_limit: dict[str, int | None] | None, current: tuple[int | None, int | None]
+) -> tuple[int | None, int | None]:
+    """The (count, window) that `put` stores for a validated `rateLimit` value."""
+    if rate_limit is None:
+        return (None, None)
+    if not rate_limit:
+        return current
+    count, window = rate_limit.get("count"), rate_limit.get("window")
+    if count is None or window is None:
+        return (None, None)
+    return (count, window)
+
+
 @extend_schema(tags=["Projects"])
 @cell_silo_endpoint
 class ProjectKeyDetailsEndpoint(ProjectKeyEndpoint):
@@ -117,6 +131,16 @@ class ProjectKeyDetailsEndpoint(ProjectKeyEndpoint):
         if not serializer.is_valid():
             return Response(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
         result = serializer.validated_data
+
+        # Without the feature the rate limit is never written, so a change must
+        # fail instead of returning 200 with the old limit.
+        if "rateLimit" in result and not features.has("projects:rate-limits", project):
+            current = (project_key.rate_limit_count, project_key.rate_limit_window)
+            if _requested_rate_limit(result["rateLimit"], current) != current:
+                errors: ValidationErrorResponse = {
+                    "rateLimit": ["Rate limits are not available on this project's plan."]
+                }
+                return Response(errors, status=status.HTTP_400_BAD_REQUEST)
 
         if result.get("name"):
             project_key.label = result["name"]
