@@ -151,10 +151,15 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
   ) {
     heldForCreditsMessage =
       OUT_OF_CREDITS_PR_ITERATION_MESSAGE[outOfCredits.unfinished_action];
-  } else if (outOfCredits?.held_feedback_count) {
-    heldForCreditsMessage = OUT_OF_CREDITS_PR_ITERATION_MESSAGE.held(
-      outOfCredits.held_feedback_count
-    );
+  } else {
+    // A pause wins, so held feedback won't run.
+    const heldFeedbackCount = isPaused
+      ? 0
+      : (autofix.runState?.queued_feedback ?? []).filter(item => item.held_for_credits)
+          .length;
+    if (heldFeedbackCount) {
+      heldForCreditsMessage = OUT_OF_CREDITS_PR_ITERATION_MESSAGE.held(heldFeedbackCount);
+    }
   }
 
   // Once a PR exists, reset opens the PR iteration form, so it stays available

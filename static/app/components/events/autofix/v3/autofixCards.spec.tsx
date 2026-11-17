@@ -3025,14 +3025,6 @@ describe('out of credits', () => {
               {text: 'Also log it', source: {type: 'user-ui'}, held_for_credits: true},
               {text: 'And rename it', source: {type: 'user-ui'}, held_for_credits: true},
             ],
-            warnings: [
-              {
-                warning_type: 'pr_iteration_out_of_credits',
-                unfinished_action: null,
-                unfinished_iteration_index: null,
-                held_feedback_count: 2,
-              },
-            ],
           },
         }}
         groupId="1"

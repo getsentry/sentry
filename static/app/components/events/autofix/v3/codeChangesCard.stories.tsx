@@ -553,17 +553,7 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
                     },
                     {...checkSuiteFeedback(), held_for_credits: true},
                   ],
-                  {
-                    repo_pr_states: {'org/repo': PULL_REQUEST},
-                    warnings: [
-                      {
-                        warning_type: 'pr_iteration_out_of_credits',
-                        unfinished_action: null,
-                        unfinished_iteration_index: null,
-                        held_feedback_count: 2,
-                      },
-                    ],
-                  }
+                  {repo_pr_states: {'org/repo': PULL_REQUEST}}
                 )}
                 section={makeSection('completed', [
                   makeFeedbackBlock(0, userUiFeedback('Please add a null check', user)),
@@ -581,7 +571,6 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
                       warning_type: 'pr_iteration_out_of_credits',
                       unfinished_action: 'push',
                       unfinished_iteration_index: 1,
-                      held_feedback_count: 0,
                     },
                   ],
                 })}
@@ -605,7 +594,6 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
                       warning_type: 'pr_iteration_out_of_credits',
                       unfinished_action: 'branch_moved_retry',
                       unfinished_iteration_index: 1,
-                      held_feedback_count: 0,
                     },
                   ],
                 })}

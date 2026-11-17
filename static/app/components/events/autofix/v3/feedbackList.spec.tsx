@@ -223,14 +223,12 @@ describe('FeedbackList', () => {
   }
 
   function outOfCreditsWarning(
-    overrides: Partial<PrIterationOutOfCreditsWarning> = {}
+    unfinishedAction: PrIterationOutOfCreditsWarning['unfinished_action']
   ): PrIterationOutOfCreditsWarning {
     return {
       warning_type: 'pr_iteration_out_of_credits',
-      unfinished_action: null,
-      unfinished_iteration_index: null,
-      held_feedback_count: 0,
-      ...overrides,
+      unfinished_action: unfinishedAction,
+      unfinished_iteration_index: 0,
     };
   }
 
@@ -241,7 +239,6 @@ describe('FeedbackList', () => {
       queued_feedback: [
         {text: 'Make the button blue', source: {type: 'user-ui'}, held_for_credits: true},
       ],
-      warnings: [outOfCreditsWarning({held_feedback_count: 1})],
     });
 
     render(<IterationFeedback state={state} />);
@@ -258,9 +255,7 @@ describe('FeedbackList', () => {
     const state = ExplorerAutofixStateFixture({
       status: 'completed',
       blocks: [...iterationBlocks(), completedBlock()],
-      warnings: [
-        outOfCreditsWarning({unfinished_action: 'push', unfinished_iteration_index: 0}),
-      ],
+      warnings: [outOfCreditsWarning('push')],
     });
 
     render(<IterationFeedback state={state} />);
@@ -279,12 +274,7 @@ describe('FeedbackList', () => {
           pr_creation_error_code: 'branch_moved',
         }),
       },
-      warnings: [
-        outOfCreditsWarning({
-          unfinished_action: 'branch_moved_retry',
-          unfinished_iteration_index: 0,
-        }),
-      ],
+      warnings: [outOfCreditsWarning('branch_moved_retry')],
     });
 
     render(<IterationFeedback state={state} />);

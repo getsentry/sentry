@@ -258,8 +258,7 @@ export interface ExplorerAutofixState {
 type PrIterationUnfinishedAction = 'agent_turn' | 'push' | 'branch_moved_retry';
 
 export interface PrIterationOutOfCreditsWarning {
-  held_feedback_count: number;
-  unfinished_action: PrIterationUnfinishedAction | null;
+  unfinished_action: PrIterationUnfinishedAction;
   unfinished_iteration_index: number | null;
   warning_type: 'pr_iteration_out_of_credits';
 }
