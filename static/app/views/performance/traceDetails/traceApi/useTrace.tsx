@@ -9,7 +9,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import type {PageFilters} from 'sentry/types/core';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {decodeScalar, type QueryParams} from 'sentry/utils/queryString';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {useDefaultMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {parseAsRawList} from 'sentry/views/explore/queryParams/parsers';
@@ -73,7 +73,7 @@ type TraceQueryParams = {
 } & {errorId?: string};
 
 export function getTraceQueryParams(
-  query: QueryParams,
+  query: Location['query'],
   filters?: Partial<PageFilters>,
   options: TraceQueryParamOptions = {}
 ): TraceQueryParams {

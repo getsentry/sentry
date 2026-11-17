@@ -20,7 +20,6 @@ const ALL_AVAILABLE_FEATURES = [
   'discover-query',
   'session-replay-ui',
   'ourlogs-enabled',
-  'performance-view',
   'profiling',
   'visibility-explore-view',
 ];

@@ -54,7 +54,11 @@ from sentry.seer.autofix.github_perms import (
 )
 from sentry.seer.autofix.pr_iteration.emit import PrIterationOutcome, record_pr_iteration_blocked
 from sentry.seer.autofix.pr_iteration.logs import PrIterationLogContext
-from sentry.seer.autofix.pr_iteration.run_markers import get_run_marker, record_run_marker
+from sentry.seer.autofix.pr_iteration.run_markers import (
+    get_run_marker,
+    get_seer_run,
+    record_run_marker,
+)
 from sentry.seer.models.run import SeerRun
 from sentry.utils import metrics
 
@@ -324,7 +328,7 @@ def _queue_missing_permissions_comments(
 ) -> None:
     from sentry.tasks.seer.pr_iteration import comment_on_missing_permissions
 
-    seer_run = SeerRun.objects.filter(seer_run_state_id=run_id, organization=organization).first()
+    seer_run = get_seer_run(run_id=run_id, organization_id=organization.id)
     if seer_run is None:
         # Legacy runs predating SeerRun mirroring have no row to dedupe
         # against; staying silent beats commenting on every failing suite.
@@ -384,7 +388,7 @@ def post_missing_permissions_comment(
         "scm_repo_full_name": repo_name,
         "pr_id": pr_id,
     }
-    seer_run = SeerRun.objects.filter(seer_run_state_id=run_id, organization=organization).first()
+    seer_run = get_seer_run(run_id=run_id, organization_id=organization.id)
     if seer_run is None:
         _skip(log_ctx, "no_seer_run", **log_fields)
         return

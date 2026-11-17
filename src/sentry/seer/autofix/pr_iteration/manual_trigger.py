@@ -20,6 +20,7 @@ from rest_framework.response import Response
 from sentry.models.group import Group
 from sentry.seer.autofix.autofix_agent import get_autofix_run_state
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.feature.dispatch import get_run_billing_feature
 from sentry.seer.autofix.pr_iteration.emit import (
     PrIterationOutcome,
     bootstrap_iteration,
@@ -30,11 +31,11 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTrigge
 from sentry.seer.autofix.pr_iteration.out_of_credits import mark_out_of_credits
 from sentry.seer.autofix.pr_iteration.pause import PauseReason, get_pause_reason
 from sentry.seer.autofix.pr_iteration.queue import enqueue_autofix_feedback
-from sentry.seer.credits import SeerFeature, SeerOperation, can_run_seer_operation
+from sentry.seer.credits import SeerOperation, check_seer_operation, get_denial_reason
 from sentry.seer.endpoints.utils import (
     SEER_AUTOFIX_CONTINUE_OUT_OF_CREDITS_DETAIL,
-    SEER_OUT_OF_CREDITS_CODE,
     SEER_PERMISSION_DENIED,
+    seer_out_of_credits_response,
 )
 from sentry.seer.models import SeerPermissionError
 from sentry.tasks.seer.pr_iteration import trigger_consume_pr_iteration_feedback
@@ -93,8 +94,8 @@ def handle_ui_feedback(
         )
 
     # Check credits here, since the queued feedback is consumed after this request returns.
-    out_of_credits = not can_run_seer_operation(
-        group.organization, SeerFeature.AUTOFIX, SeerOperation.AUTOFIX_PR_ITERATION
+    credits = check_seer_operation(
+        group.organization, get_run_billing_feature(run_state), SeerOperation.AUTOFIX_PR_ITERATION
     )
 
     serialized_users = user_service.serialize_many(
@@ -129,7 +130,7 @@ def handle_ui_feedback(
         actor_user_id=user_id,
     )
 
-    if out_of_credits:
+    if not credits.has_enough_credits:
         # Hold the queue until a drain after a top-up, as a refused drain does.
         mark_out_of_credits(run_id=run_id, organization_id=group.organization.id)
         # Save the reason for the sweep, in case no top-up comes.
@@ -139,12 +140,8 @@ def handle_ui_feedback(
             organization_id=group.organization.id,
             reason=PrIterationOutcome.SENTRY_OUT_OF_CREDITS.value,
         )
-        return Response(
-            {
-                "detail": SEER_AUTOFIX_CONTINUE_OUT_OF_CREDITS_DETAIL,
-                "code": SEER_OUT_OF_CREDITS_CODE,
-            },
-            status=status.HTTP_402_PAYMENT_REQUIRED,
+        return seer_out_of_credits_response(
+            SEER_AUTOFIX_CONTINUE_OUT_OF_CREDITS_DETAIL, get_denial_reason(credits)
         )
 
     trigger_consume_pr_iteration_feedback(

@@ -1,12 +1,13 @@
 import styled from '@emotion/styled';
 import {IconDelete} from '@sentry/icons/delete';
 import {useMutation} from '@tanstack/react-query';
+import noop from 'lodash/noop';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Confirm} from '@sentry/scraps/confirm';
 import {Grid, Container} from '@sentry/scraps/layout';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 import {toast} from '@sentry/scraps/toast';
 
 import {openEmailVerification} from 'sentry/actionCreators/modal';
@@ -94,15 +95,17 @@ export default function AccountSecurity() {
     <SentryDocumentTitle title={t('Security')}>
       <SettingsPageHeader title={t('Security')} />
       <Container marginBottom="xl">
-        <Tabs value={activeTab}>
-          <TabList>
-            <TabList.Item key="settings" to={routePrefix}>
-              {t('Settings')}
-            </TabList.Item>
-            <TabList.Item key="sessionHistory" to={`${routePrefix}session-history/`}>
-              {t('Session History')}
-            </TabList.Item>
-          </TabList>
+        <Tabs onChange={noop} value={activeTab}>
+          {({TabList}) => (
+            <TabList>
+              <TabList.Item key="settings" to={routePrefix}>
+                {t('Settings')}
+              </TabList.Item>
+              <TabList.Item key="sessionHistory" to={`${routePrefix}session-history/`}>
+                {t('Session History')}
+              </TabList.Item>
+            </TabList>
+          )}
         </Tabs>
       </Container>
 

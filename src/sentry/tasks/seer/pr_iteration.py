@@ -55,6 +55,7 @@ from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import SeerOutOfCreditsException
 from sentry.seer.autofix.feature.dispatch import (
     continue_single_run_from_pr_feedback,
+    get_run_billing_feature,
     require_autofix_run_for_group,
 )
 from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
@@ -73,8 +74,10 @@ from sentry.seer.autofix.pr_iteration.emit import (
     trigger_pr_iteration_details,
 )
 from sentry.seer.autofix.pr_iteration.feedback import (
+    NOT_REQUESTED,
     Feedback,
     automated_iteration_allowed,
+    feedback_allowed_by_project,
     feedback_kind,
     feedback_text,
 )
@@ -105,6 +108,11 @@ from sentry.seer.autofix.pr_iteration.missing_permissions import (
     block_iteration_for_missing_permissions,
     post_missing_permissions_comment,
 )
+from sentry.seer.autofix.pr_iteration.nudge import (
+    NudgeKind,
+    post_not_requested_nudge,
+    queue_not_requested_nudge,
+)
 from sentry.seer.autofix.pr_iteration.out_of_credits import (
     get_out_of_credits,
     mark_out_of_credits,
@@ -128,6 +136,7 @@ from sentry.seer.autofix.pr_iteration.queue import (
     count_queued_autofix_feedback,
     enqueue_autofix_feedback,
     pop_queued_autofix_feedback,
+    record_skipped_autofix_feedback,
     requeue_autofix_feedback,
 )
 from sentry.seer.autofix.pr_iteration.sweep import sweep_stale_pr_iterations
@@ -429,6 +438,38 @@ def comment_on_missing_permissions(
 
 
 @instrumented_task(
+    name="sentry.tasks.autofix.nudge_not_requested_feedback",
+    namespace=seer_tasks,
+    processing_deadline_duration=60,
+)
+def nudge_not_requested_feedback(
+    run_id: int,
+    organization_id: int,
+    repository_id: int,
+    pr_number: int,
+    kind: str,
+    *args: Any,
+    **kwargs: Any,
+) -> None:
+    """Post the run's one comment saying how to ask for feedback the project gate skipped.
+
+    Split out of the skip so the GitHub call never runs inside a webhook
+    task's deadline. See ``pr_iteration.nudge``.
+    """
+    organization = _organization_for_gate(run_id, organization_id)
+    if organization is None:
+        return
+
+    post_not_requested_nudge(
+        organization=organization,
+        run_id=run_id,
+        repository_id=repository_id,
+        pr_number=pr_number,
+        kind=NudgeKind(kind),
+    )
+
+
+@instrumented_task(
     name="sentry.tasks.autofix.consume_queued_feedback",
     namespace=seer_tasks,
     processing_deadline_duration=60,
@@ -648,7 +689,7 @@ def _drain_queued_autofix_feedback(
 ) -> None:
     """Pop this run's queued feedback and hand whatever survives to the agent."""
     group = (
-        Group.objects.filter(id=group_id, project__organization_id=organization_id).first()
+        Group.objects.get_or_none(id=group_id, project__organization_id=organization_id)
         if group_id
         else None
     )
@@ -776,6 +817,19 @@ def _drain_queued_autofix_feedback(
 
         consumable_items.append(item)
 
+    # Backstop for the project gate the producers apply before queueing: the
+    # setting can be turned off while feedback waits in the queue.
+    project_allowed_items: list[QueuedAutofixFeedback] = []
+    for item in consumable_items:
+        project_decision = feedback_allowed_by_project(
+            organization_id=organization_id, group_id=group.id, feedback=item.feedback
+        )
+        if project_decision.ok:
+            project_allowed_items.append(item)
+        else:
+            dropped.append(_dropped_feedback(item.feedback, project_decision.reason))
+    consumable_items = project_allowed_items
+
     # The same automated-iteration check `trigger_consume_pr_iteration_feedback`
     # applies before scheduling a consume. It has to run again here: the completion hook
     # schedules a drain without it, and a deferred consume can fire long after
@@ -895,12 +949,14 @@ def _drain_queued_autofix_feedback(
                 iteration_id=iteration_id,
                 commit_author=commit_author,
                 referrer=referrer,
+                billing_feature=get_run_billing_feature(state),
             )
         else:
             trigger_autofix_agent(
                 group=group,
                 step=AutofixStep.PR_ITERATION,
                 referrer=referrer,
+                billing_feature=get_run_billing_feature(state),
                 run_id=run_id,
                 user_context=feedback_text(feedback_items),
                 feedback=feedback_items,
@@ -1341,7 +1397,7 @@ def _resolve_run_for_pr_comment(
     every cell holding an org on the installation. The stop command therefore
     stays silent and leaves the answer to the cell that owns the run.
     """
-    repo = Repository.objects.filter(id=repo_id, organization_id=organization_id).first()
+    repo = Repository.objects.get_or_none(id=repo_id, organization_id=organization_id)
     if repo is None:
         logger.info(
             "autofix.pr_iteration.comment_trigger.missing_repo",
@@ -1935,7 +1991,7 @@ def _trigger_pr_iteration_from_review(
         "author_is_bot": author_is_bot,
     }
 
-    repo = Repository.objects.filter(id=repo_id, organization_id=organization_id).first()
+    repo = Repository.objects.get_or_none(id=repo_id, organization_id=organization_id)
     if repo is None:
         logger.info("autofix.pr_iteration.review_trigger.missing_repo", extra=log_extra)
         return None
@@ -2074,12 +2130,51 @@ def _trigger_pr_iteration_from_review(
     if group_id is None:
         raise ValueError(f"Missing group id in agent run {agent_state.run_id}")
 
+    # Judged per item: with the project's setting off, only the comments that
+    # mention @sentry are queued, not the rest of their review.
+    skipped: list[tuple[Feedback, str]] = []
+    allowed_items: list[Feedback] = []
+    for feedback_obj in feedback_items:
+        project_decision = feedback_allowed_by_project(
+            organization_id=organization_id, group_id=group_id, feedback=feedback_obj
+        )
+        if project_decision.ok:
+            allowed_items.append(feedback_obj)
+        else:
+            skipped.append((feedback_obj, project_decision.reason))
+    feedback_items = allowed_items
+
+    # Nothing left to queue opens no iteration row: nothing will run it.
     log_ctx = bootstrap_iteration(
         logger=logger,
         run_state=agent_state,
         organization_id=organization_id,
         group_id=group_id,
+        create=bool(feedback_items),
     )
+    for feedback_obj, reason in skipped:
+        record_skipped_autofix_feedback(
+            log_ctx=log_ctx,
+            feedback=feedback_obj,
+            reason=reason,
+            referrer=AutofixReferrer.GITHUB_PR_REVIEW,
+            run_state=agent_state,
+        )
+    if not feedback_items:
+        metrics.incr("autofix.pr_iteration.review_trigger.not_requested")
+        logger.info("autofix.pr_iteration.review_trigger.not_requested", extra=log_extra)
+        # Only when the whole review was skipped: a reviewer who mentioned
+        # @sentry on one comment already knows how to ask.
+        if any(reason == NOT_REQUESTED for _, reason in skipped):
+            queue_not_requested_nudge(
+                run_id=agent_state.run_id,
+                organization_id=organization_id,
+                repository_id=repo_id,
+                pr_number=pr_number,
+                kind=NudgeKind.REVIEW,
+            )
+        return None
+
     for feedback_obj in feedback_items:
         enqueue_autofix_feedback(
             log_ctx=log_ctx,

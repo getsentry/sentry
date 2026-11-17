@@ -335,7 +335,7 @@ def finish_workflow_run(
         agent_run = (
             SeerAgentRun.objects.select_for_update(of=("self",))
             .filter(run_id=run_id, run__organization_id=organization_id, source=feature_id)
-            .first()
+            .get_or_none()
         )
         if agent_run is None or agent_run.extras.get("status") in TERMINAL_STATUSES:
             return

@@ -6,7 +6,11 @@ from typing import Any
 
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.pr_iteration.iterations import is_pr_feedback_turn
-from sentry.seer.autofix.pr_iteration.run_markers import get_run_extra, record_run_extras
+from sentry.seer.autofix.pr_iteration.run_markers import (
+    get_run_extra,
+    get_seer_run,
+    record_run_extras,
+)
 from sentry.seer.autofix.types import PrIterationUnfinishedAction
 from sentry.seer.credits import OUT_OF_CREDITS
 from sentry.seer.models.run import SeerRun
@@ -34,10 +38,6 @@ class PrIterationOutOfCredits:
     unfinished_action: PrIterationUnfinishedAction | None
 
 
-def _get_seer_run(run_id: int, organization_id: int) -> SeerRun | None:
-    return SeerRun.objects.filter(seer_run_state_id=run_id, organization_id=organization_id).first()
-
-
 def _parse(marker: Any | None) -> OutOfCreditsMarker | None:
     if marker is None:
         return None
@@ -51,7 +51,7 @@ def mark_out_of_credits(
     *, run_id: int, organization_id: int, stranded_action: StrandedAction | None = None
 ) -> bool:
     """Mark the run stopped on credits, keeping any stranded action already recorded."""
-    seer_run = _get_seer_run(run_id, organization_id)
+    seer_run = get_seer_run(run_id=run_id, organization_id=organization_id)
     if seer_run is None:
         return False
 
@@ -69,7 +69,7 @@ def mark_out_of_credits(
 
 
 def get_out_of_credits(*, run_id: int, organization_id: int) -> OutOfCreditsMarker | None:
-    seer_run = _get_seer_run(run_id, organization_id)
+    seer_run = get_seer_run(run_id=run_id, organization_id=organization_id)
     if seer_run is None:
         return None
     return out_of_credits_marker(seer_run)
@@ -123,7 +123,7 @@ def pr_iteration_out_of_credits(
 
 def take_out_of_credits(*, run_id: int, organization_id: int) -> OutOfCreditsMarker | None:
     """Clear the marker as the next step starts, so only one drain redoes a stranded action."""
-    seer_run = _get_seer_run(run_id, organization_id)
+    seer_run = get_seer_run(run_id=run_id, organization_id=organization_id)
     if seer_run is None or get_run_extra(seer_run, OUT_OF_CREDITS_EXTRA) is None:
         return None
 

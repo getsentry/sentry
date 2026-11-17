@@ -9,7 +9,6 @@ import type {PageFilters, PageFilterDatetime} from 'sentry/types/core';
 import {toArray} from 'sentry/utils/array/toArray';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
-import type {QueryParams} from 'sentry/utils/queryString';
 
 import {DATE_TIME_KEYS, URL_PARAM} from './constants';
 import type {PageFiltersState} from './types';
@@ -17,11 +16,7 @@ import type {PageFiltersState} from './types';
 type StatsPeriodType = 'h' | 'd' | 's' | 'm' | 'w';
 
 type SingleParamValue = string | undefined | null;
-type ParamValue = Array<string | null> | SingleParamValue;
-
-function isString(value: string | null): value is string {
-  return typeof value === 'string';
-}
+type ParamValue = string[] | SingleParamValue;
 
 const STATS_PERIOD_PATTERN = '^(\\d+)([hdmsw])?(-\\w+)?$';
 
@@ -67,7 +62,7 @@ function coerceStatsPeriod(input: string) {
  */
 function getStatsPeriodValue(maybe: ParamValue) {
   if (Array.isArray(maybe)) {
-    const result = maybe.filter(isString).find(coerceStatsPeriod);
+    const result = maybe.find(coerceStatsPeriod);
 
     return result ? coerceStatsPeriod(result) : undefined;
   }
@@ -148,7 +143,7 @@ function getProject(maybe: ParamValue) {
   }
 
   if (Array.isArray(maybe)) {
-    return maybe.filter(isString).map(p => parseInt(p, 10));
+    return maybe.map(p => parseInt(p, 10));
   }
 
   const projectFromQueryIdInt = parseInt(maybe, 10);
@@ -163,7 +158,7 @@ function getEnvironment(maybe: ParamValue) {
     return;
   }
 
-  return toArray(maybe).filter(isString);
+  return toArray(maybe);
 }
 
 type InputParams = {
@@ -299,7 +294,7 @@ export function normalizeDateTimeParams(
  *  - Parses `start` and `end` into Date objects.
  */
 export function getStateFromQuery(
-  query: QueryParams,
+  query: Location['query'],
   normalizeOptions: DateTimeNormalizeOptions = {}
 ) {
   const {allowAbsoluteDatetime} = normalizeOptions;

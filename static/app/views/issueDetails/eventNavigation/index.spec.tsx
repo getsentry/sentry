@@ -215,6 +215,13 @@ describe('EventNavigation', () => {
       hideAiFeatures: false,
     });
 
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${seerOrganization.slug}/issues/${group.id}/autofix/`,
+        body: {autofix: null},
+      });
+    });
+
     function renderNav(
       org: typeof organization,
       {navGroup = group, tab = Tab.EVENTS}: {navGroup?: typeof group; tab?: Tab} = {}

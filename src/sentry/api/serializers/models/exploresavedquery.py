@@ -15,6 +15,7 @@ from sentry.explore.models import (
     ExploreSavedQueryLastVisited,
     ExploreSavedQueryStarred,
 )
+from sentry.search.eap.constants import QueryPriorities
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
@@ -166,6 +167,12 @@ class ExploreSavedQueryResponse(ExploreSavedQueryResponseOptional):
             "What was dropped when the query was migrated from Discover. Null when it wasn't migrated"
         ),
     ]
+    queryPriority: Annotated[
+        str,
+        ApiDescription(
+            "Whether to run the query faster but at lower accuracy or a balance of accuracy and speed"
+        ),
+    ]
 
 
 class ExploreSavedQueryAttrs(TypedDict, total=False):
@@ -256,6 +263,11 @@ class ExploreSavedQueryModelSerializer(Serializer[ExploreSavedQueryResponse]):
         dataset_name = ExploreSavedQueryDataset.get_type_name(obj.dataset)
         assert dataset_name is not None
         dataset_name = cast(ExploreSavedQueryDatasetType, dataset_name)
+        query_priority = (
+            QueryPriorities.get_type_name(obj.query_priority)
+            if obj.query_priority is not None
+            else None
+        )
         data: ExploreSavedQueryResponse = {
             "id": str(obj.id),
             "name": obj.name,
@@ -270,6 +282,7 @@ class ExploreSavedQueryModelSerializer(Serializer[ExploreSavedQueryResponse]):
             "position": cast(int | None, attrs.get("position")),
             "isPrebuilt": obj.prebuilt_id is not None,
             "changedReason": obj.changed_reason,
+            "queryPriority": query_priority if query_priority is not None else "normal",
         }
 
         for key in query_keys:

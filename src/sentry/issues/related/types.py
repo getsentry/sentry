@@ -78,8 +78,8 @@ class SimilarStacktraceMeta(RelationTypeMeta):
         Annotated[
             str,
             ApiDescription(
-                "ID of the event whose stack trace was compared: the issue's latest event. "
-                "Missing when no event was read"
+                "ID of the event whose stack trace was compared: the eventId parameter, else the "
+                "issue's latest event. Missing when no event was read"
             ),
         ]
     ]
@@ -90,8 +90,8 @@ class SameTraceMeta(RelationTypeMeta):
         Annotated[
             str,
             ApiDescription(
-                "ID of the event whose trace was searched: the issue's latest event. "
-                "Missing when no event was read"
+                "ID of the event whose trace was searched: the eventId parameter, else the "
+                "issue's latest event. Missing when no event was read"
             ),
         ]
     ]
@@ -108,8 +108,8 @@ class ContributingMeta(RelationTypeMeta):
         Annotated[
             str,
             ApiDescription(
-                "ID of the event whose detector query was searched: the issue's latest event. "
-                "Missing when no event was read"
+                "ID of the event whose detector query was searched: the eventId parameter, else "
+                "the issue's latest event. Missing when no event was read"
             ),
         ]
     ]

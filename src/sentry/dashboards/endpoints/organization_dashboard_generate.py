@@ -8,6 +8,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_protos.billing.v1.common.v1 import seer_billing_feature_pb2 as billing
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -225,6 +226,7 @@ class OrganizationDashboardGenerateEndpoint(OrganizationEndpoint):
                 artifact_key="dashboard",
                 artifact_schema=GeneratedDashboard,
                 request=request,
+                billing_feature=billing.SEER_BILLING_FEATURE_DASHBOARD_GENERATION,
             )
             return Response(
                 DashboardGenerateResponse(

@@ -338,9 +338,9 @@ def run_agentic_triage_for_org(
     When execute_in_task is True, the heavy execution phase (eligibility,
     triage, autofix) is dispatched to a separate task so the caller doesn't
     block on it. The run record, if created, is created synchronously."""
-    organization = Organization.objects.filter(
+    organization = Organization.objects.get_or_none(
         id=organization_id, status=OrganizationStatus.ACTIVE
-    ).first()
+    )
     if organization is None:
         return None
 
@@ -466,7 +466,7 @@ def run_agentic_triage_execution(
     """Heavy phase of an agentic triage run: eligibility, triage, and optional
     autofix dispatch. Single code path used by both sync invocation (from
     run_agentic_triage_for_org) and async dispatch (apply_async)."""
-    run = SeerWorkflowRun.objects.select_related("organization").filter(id=run_id).first()
+    run = SeerWorkflowRun.objects.select_related("organization").filter(id=run_id).get_or_none()
     if run is None:
         logger.info("night_shift.missing_run", extra={"night_shift_run_id": run_id})
         return None
@@ -626,7 +626,7 @@ def build_run_options(
     if org_tweaks is not None:
         layered.update(_tweaks_to_partial(org_tweaks))
     if project_id is not None:
-        project = Project.objects.filter(id=project_id, organization_id=organization_id).first()
+        project = Project.objects.get_or_none(id=project_id, organization_id=organization_id)
         if project is not None:
             layered.update(_tweaks_to_partial(get_agentic_triage_tweaks(project)))
     layered.update(manual_overrides or {})

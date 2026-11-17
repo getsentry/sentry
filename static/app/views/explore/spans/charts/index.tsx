@@ -13,9 +13,9 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ChartLayersControl} from 'sentry/components/charts/chartLayersControl';
+import {useChartLayers} from 'sentry/components/charts/useChartLayers';
 import {DroppedDataFilterNote} from 'sentry/components/droppedData/droppedDataFilterNote';
 import {DroppedDataLLMContext} from 'sentry/components/droppedData/droppedDataLLMContext';
-import {useDroppedDataLayer} from 'sentry/components/droppedData/useDroppedDataLayer';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
@@ -320,7 +320,6 @@ function Chart({
   const groupBys = useQueryParamsGroupBys();
   const [chartInterval, setChartInterval, intervalOptions] = useChartInterval();
   const dataset = useSpansDataset();
-
   const {
     dismiss: dismissChartSelectionAlert,
     isDismissed: isChartSelectionAlertDismissed,
@@ -335,10 +334,12 @@ function Chart({
   const isHeatMapEnabled = canUseSpansHeatMap(organization);
   const heatMapYAxis = getSpansHeatMapYAxis(visualize);
   const isHeatMap = !isCombinedChart && isSpansHeatMap(visualize, organization);
-  const droppedData = useDroppedDataLayer(
-    {dataset, interval: chartInterval},
-    {enabled: !isHeatMap}
-  );
+  const {droppedData, layerControl} = useChartLayers({
+    dataset,
+    interval: chartInterval,
+    source: 'explore',
+    enabled: !isHeatMap,
+  });
   const showTransformationControls =
     visualize.visible &&
     (isHeatMap || visualize.chartType !== ChartType.HEATMAP) &&
@@ -480,9 +481,7 @@ function Chart({
 
   const Actions = visualize.visible ? (
     <Fragment>
-      {droppedData.layerControl ? (
-        <ChartLayersControl {...droppedData.layerControl} />
-      ) : null}
+      {layerControl ? <ChartLayersControl {...layerControl} /> : null}
       <Tooltip
         title={
           isCombinedChart

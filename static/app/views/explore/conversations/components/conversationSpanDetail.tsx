@@ -7,7 +7,7 @@ import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {TabList, TabPanels, TabStateProvider} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 
 import {CodeModeDetails} from 'sentry/components/ai/toolDetails/codeModeDetails';
@@ -278,66 +278,75 @@ export function ConversationSpanDetail({
       ) : isError ? (
         <EmptySpanTab message={t('Failed to load span details')} />
       ) : (
-        <TabStateProvider<DetailTab>
-          value={getVisibleTab(activeTab, combinedTab)}
-          onChange={onTabChange}
-        >
-          <TabList>
-            <TabList.Item key="input" hidden={combinedTab !== null}>
-              {t('Input')}
-            </TabList.Item>
-            <TabList.Item key="output" hidden={combinedTab !== null}>
-              {t('Output')}
-            </TabList.Item>
-            <TabList.Item key="decision" hidden={combinedTab !== 'decision'}>
-              {t('Decision')}
-            </TabList.Item>
-            <TabList.Item key="extraction" hidden={combinedTab !== 'extraction'}>
-              {t('Extraction')}
-            </TabList.Item>
-            <TabList.Item key="attributes">{t('Attributes')}</TabList.Item>
-          </TabList>
-
-          <Container
-            flex="0 0 auto"
-            minHeight="0"
-            width="100%"
-            overflowX="visible"
-            overflowY="visible"
-            // Gutter so the scroll container doesn't clip a focused input's focus ring.
-            padding="xs"
-          >
-            <TabPanels
-              css={css`
-                padding-top: 0;
-              `}
+        <Container display="contents">
+          {tabsRootProps => (
+            <Tabs
+              value={getVisibleTab(activeTab, combinedTab)}
+              onChange={onTabChange}
+              {...tabsRootProps}
             >
-              <TabPanels.Item key="input">
-                {memory ? (
-                  <MemoryInputTab memory={memory} />
-                ) : (
-                  <InputTab node={node} attributes={attributes} />
-                )}
-              </TabPanels.Item>
-              <TabPanels.Item key="output">
-                {memory ? (
-                  <MemoryOutputTab memory={memory} />
-                ) : (
-                  <OutputTab node={node} attributes={attributes} />
-                )}
-              </TabPanels.Item>
-              <TabPanels.Item key="decision">
-                {evaluation ? <EvaluationTab evaluation={evaluation} /> : null}
-              </TabPanels.Item>
-              <TabPanels.Item key="extraction">
-                {extraction ? <ExtractionTab extraction={extraction} /> : null}
-              </TabPanels.Item>
-              <TabPanels.Item key="attributes">
-                <AttributesTab node={node} attributes={attributes} />
-              </TabPanels.Item>
-            </TabPanels>
-          </Container>
-        </TabStateProvider>
+              {({TabList, TabPanels}) => (
+                <Fragment>
+                  <TabList>
+                    <TabList.Item key="input" hidden={combinedTab !== null}>
+                      {t('Input')}
+                    </TabList.Item>
+                    <TabList.Item key="output" hidden={combinedTab !== null}>
+                      {t('Output')}
+                    </TabList.Item>
+                    <TabList.Item key="decision" hidden={combinedTab !== 'decision'}>
+                      {t('Decision')}
+                    </TabList.Item>
+                    <TabList.Item key="extraction" hidden={combinedTab !== 'extraction'}>
+                      {t('Extraction')}
+                    </TabList.Item>
+                    <TabList.Item key="attributes">{t('Attributes')}</TabList.Item>
+                  </TabList>
+
+                  <Container
+                    flex="0 0 auto"
+                    minHeight="0"
+                    width="100%"
+                    overflowX="visible"
+                    overflowY="visible"
+                    // Gutter so the scroll container doesn't clip a focused input's focus ring.
+                    padding="xs"
+                  >
+                    <TabPanels
+                      css={css`
+                        padding-top: 0;
+                      `}
+                    >
+                      <TabPanels.Item key="input">
+                        {memory ? (
+                          <MemoryInputTab memory={memory} />
+                        ) : (
+                          <InputTab node={node} attributes={attributes} />
+                        )}
+                      </TabPanels.Item>
+                      <TabPanels.Item key="output">
+                        {memory ? (
+                          <MemoryOutputTab memory={memory} />
+                        ) : (
+                          <OutputTab node={node} attributes={attributes} />
+                        )}
+                      </TabPanels.Item>
+                      <TabPanels.Item key="decision">
+                        {evaluation ? <EvaluationTab evaluation={evaluation} /> : null}
+                      </TabPanels.Item>
+                      <TabPanels.Item key="extraction">
+                        {extraction ? <ExtractionTab extraction={extraction} /> : null}
+                      </TabPanels.Item>
+                      <TabPanels.Item key="attributes">
+                        <AttributesTab node={node} attributes={attributes} />
+                      </TabPanels.Item>
+                    </TabPanels>
+                  </Container>
+                </Fragment>
+              )}
+            </Tabs>
+          )}
+        </Container>
       )}
     </SpanDetailCard>
   );

@@ -129,9 +129,9 @@ class JiraRequestParser(BaseRequestParser):
         # Only Forge-native sites are keyed by cloud ID for now. Sites that moved from
         # Connect keep their clientKey, so their events are dropped here and they keep
         # getting the Connect issue-updated webhook until they're rekeyed to the cloud ID.
-        integration = Integration.objects.filter(
+        integration = Integration.objects.get_or_none(
             provider=self.provider, external_id=cloud_id, status=ObjectStatus.ACTIVE
-        ).first()
+        )
         forge = (integration.metadata.get("forge") or {}) if integration else {}
         # Only the installation that owns the integration may update its issues.
         if integration is None or forge.get("installation_id") != invocation.installation_id:

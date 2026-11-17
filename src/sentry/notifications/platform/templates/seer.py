@@ -331,9 +331,9 @@ class SeerAgentWriteApprovalTemplate(NotificationTemplate[SeerAgentWriteApproval
 
 
 class SeerInvestigationStarted(NotificationData):
-    """Posted in the alert's Slack thread when someone starts a Seer investigation."""
+    """Posted in an alert's Slack thread when a Seer investigation starts."""
 
-    slack_user_id: str
+    slack_user_id: str | None = None
     investigation_url: str
     source: NotificationSource = NotificationSource.SEER_INVESTIGATION_STARTED
 
