@@ -1,0 +1,288 @@
+import {useState, type PointerEventHandler, type ReactNode} from 'react';
+import {css, ThemeProvider, type Theme} from '@emotion/react';
+import styled from '@emotion/styled';
+import {IconSettings} from '@sentry/icons/settings';
+import {useStore} from 'zustand';
+
+import {Alert} from '@sentry/scraps/alert';
+import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {InfoText} from '@sentry/scraps/info';
+import {Container} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Text} from '@sentry/scraps/text';
+import {darkTheme} from '@sentry/scraps/theme';
+import {toast} from '@sentry/scraps/toast';
+
+import {t} from 'sentry/locale';
+import {ConfigStore} from 'sentry/stores/configStore';
+
+import {getHandoffPrompt} from './handoffPrompt';
+import {
+  AgentHandoffFlow,
+  type AgentHandoffContext,
+  useAgentHandoff,
+} from './useAgentHandoff';
+import {useHandoffPromptInteractions} from './useHandoffPromptInteractions';
+
+// ---------------------------------------------------------------------------
+// Preview URL
+// ---------------------------------------------------------------------------
+
+export function getHandoffPreviewUrl(flow: AgentHandoffFlow, sentryUrl: string): string {
+  return new URL(`/agent-handoff.md?preview=1&flow=${flow}`, sentryUrl).href;
+}
+
+export function useSentryUrl(): string {
+  return useStore(ConfigStore, state => state.links.sentryUrl);
+}
+
+// ---------------------------------------------------------------------------
+// IP-pinning state + copy orchestration
+// ---------------------------------------------------------------------------
+
+interface UseHandoffPromptCopyOptions<Flow extends AgentHandoffFlow> {
+  context: AgentHandoffContext<Flow> | null;
+  flow: Flow;
+  onCopySuccess?: (handoffId: string) => void;
+}
+
+export function useHandoffPromptCopy<Flow extends AgentHandoffFlow>({
+  flow,
+  context,
+  onCopySuccess,
+}: UseHandoffPromptCopyOptions<Flow>) {
+  const [useIpPinning, setUseIpPinning] = useState(true);
+  const handoff = useAgentHandoff(flow, context);
+  const copyDisabled = !context || handoff.isPending;
+
+  function copyPrompt() {
+    if (handoff.isPending) {
+      return;
+    }
+    void handoff
+      .copyPrompt({disableIpPinning: !useIpPinning})
+      .then(handoffId => {
+        toast.success(t('Agent prompt copied to clipboard'));
+        onCopySuccess?.(handoffId);
+      })
+      .catch(() => null);
+  }
+
+  function toggleIpPinning() {
+    setUseIpPinning(enabled => !enabled);
+    handoff.reset();
+  }
+
+  return {
+    copyPrompt,
+    copyDisabled,
+    handoff,
+    useIpPinning,
+    toggleIpPinning,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Advanced (IP-pinning) dropdown
+// ---------------------------------------------------------------------------
+
+interface HandoffAdvancedMenuProps {
+  disabled: boolean;
+  onToggle: () => void;
+  useIpPinning: boolean;
+}
+
+export function HandoffAdvancedMenu({
+  disabled,
+  useIpPinning,
+  onToggle,
+}: HandoffAdvancedMenuProps) {
+  return (
+    <DropdownMenu
+      items={[
+        {
+          key: 'ip-pinning',
+          label: t('Use IP pinning'),
+          details: t(
+            'Restricts the handoff code to your current IP address. Turn this off when your agent runs on a different network.'
+          ),
+          textValue: t('Use IP pinning'),
+          disabled,
+          isSelected: useIpPinning,
+          onAction: onToggle,
+        },
+      ]}
+      maxWidth={360}
+      position="bottom-end"
+      shouldApplyMinWidth={false}
+      size="xs"
+      usePortal
+      trigger={(triggerProps: any) => (
+        <OverlayTrigger.Button
+          {...triggerProps}
+          aria-label={t('Advanced options')}
+          icon={<IconSettings />}
+          showChevron={false}
+          size="xs"
+          variant="transparent"
+        >
+          {t('Advanced')}
+        </OverlayTrigger.Button>
+      )}
+    />
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Alerts (IP-pinning warning + mint error)
+// ---------------------------------------------------------------------------
+
+interface HandoffPromptAlertsProps {
+  error: Error | null;
+  useIpPinning: boolean;
+}
+
+export function HandoffPromptAlerts({useIpPinning, error}: HandoffPromptAlertsProps) {
+  return (
+    <>
+      {!useIpPinning && (
+        <Alert variant="warning">
+          {t(
+            'Without IP pinning, anyone with this prompt can use its handoff code from any IP address to authorize an agent on your behalf. Avoid pasting your prompt when streaming or screen sharing.'
+          )}
+        </Alert>
+      )}
+      {error && <Alert variant="danger">{error.message}</Alert>}
+    </>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Dark-theme masked prompt box
+// ---------------------------------------------------------------------------
+
+interface HandoffPromptBoxProps {
+  /** The copy action triggered by the icon button or native clipboard copy. */
+  onCopyPrompt: () => void;
+  /** Called when the user clicks the prompt text (for selection analytics). */
+  onSelect?: () => void;
+  /** When set, the preview text names the product ("to set up tracing"). */
+  product?: string;
+  /** Optional action node placed in the top-right corner (e.g. an icon copy button). */
+  topRightAction?: ReactNode;
+}
+
+export function HandoffPromptBox({
+  product,
+  onCopyPrompt,
+  onSelect,
+  topRightAction,
+}: HandoffPromptBoxProps) {
+  const [isPromptSelected, setIsPromptSelected] = useState(false);
+
+  const {
+    promptProps: {onCopy, onPointerDown, ref: promptRef, tabIndex},
+  } = useHandoffPromptInteractions(onCopyPrompt);
+
+  const handlePointerDown: PointerEventHandler<HTMLDivElement> = event => {
+    onPointerDown(event);
+    if (event.button === 0) {
+      setIsPromptSelected(true);
+      onSelect?.();
+    }
+  };
+
+  return (
+    <ThemeProvider theme={darkTheme}>
+      <Container
+        background="primary"
+        border="primary"
+        radius="md"
+        padding="md xl"
+        paddingRight={topRightAction ? '3xl' : 'xl'}
+        position="relative"
+      >
+        {(promptBoxProps: any) => (
+          <PromptBox {...promptBoxProps} onCopy={onCopy}>
+            <PromptText
+              ref={promptRef}
+              as="div"
+              monospace
+              size="sm"
+              tabIndex={tabIndex}
+              textWrap="wrap"
+              onBlur={() => setIsPromptSelected(false)}
+              onPointerDown={handlePointerDown}
+            >
+              {getHandoffPrompt(
+                'sntryh_****',
+                maskedCode => (
+                  <MaskedCode
+                    data-selected={isPromptSelected || undefined}
+                    monospace
+                    variant="warning"
+                    title={t('The secret code authorizes your agent on your behalf')}
+                  >
+                    {maskedCode}
+                  </MaskedCode>
+                ),
+                product
+              )}
+            </PromptText>
+            {topRightAction && (
+              <Container position="absolute" top="8px" right="8px">
+                {topRightAction}
+              </Container>
+            )}
+          </PromptBox>
+        )}
+      </Container>
+    </ThemeProvider>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Styled primitives (private to this module)
+// ---------------------------------------------------------------------------
+
+const PromptBox = styled('div')`
+  box-shadow: inset 0 1px 0
+    ${p => p.theme.tokens.interactive.chonky.debossed.neutral.chonk};
+`;
+
+const accentSelection = (p: {theme: Theme}) => css`
+  &::selection {
+    background: ${p.theme.tokens.background.accent.vibrant};
+    color: ${p.theme.tokens.content.onVibrant.light};
+  }
+`;
+
+const PromptText = styled(Text)`
+  ${accentSelection}
+
+  /* Focus is only set programmatically to select the prompt; it is not tabbable. */
+  &:focus {
+    outline: none;
+  }
+`;
+
+const MaskedCode = styled(InfoText)`
+  position: relative;
+  isolation: isolate;
+  text-decoration: none;
+  ${accentSelection}
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0 calc(-1 * ${p => p.theme.space.xs});
+    z-index: -1;
+    background: ${p => p.theme.tokens.background.transparent.warning.muted};
+    border-radius: ${p => p.theme.radius.xs};
+    pointer-events: none;
+  }
+
+  &[data-selected]::before {
+    display: none;
+  }
+`;

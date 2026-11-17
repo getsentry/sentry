@@ -10,12 +10,28 @@ type WrapCode<T> = (code: string) => T;
  * both share one template and their wording can't drift apart. A wrapper that returns a
  * string produces a plain string prompt. The prompt is read by the agent, so it is
  * intentionally not translated.
+ *
+ * When `product` is provided, the prompt names the feature so the agent doesn't have
+ * to infer it.
  */
-export function getHandoffPrompt(code: string, wrapCode: WrapCode<string>): string;
-export function getHandoffPrompt(code: string, wrapCode: WrapCode<ReactNode>): ReactNode;
-export function getHandoffPrompt(code: string, wrapCode: WrapCode<ReactNode>): ReactNode {
+export function getHandoffPrompt(
+  code: string,
+  wrapCode: WrapCode<string>,
+  product?: string
+): string;
+export function getHandoffPrompt(
+  code: string,
+  wrapCode: WrapCode<ReactNode>,
+  product?: string
+): ReactNode;
+export function getHandoffPrompt(
+  code: string,
+  wrapCode: WrapCode<ReactNode>,
+  product?: string
+): ReactNode {
   const guideUrl = `${ConfigStore.get('urlPrefix').replace(/\/$/, '')}/agent-handoff.md`;
-  const start = `Read and follow ${guideUrl} verbatim. Your handoff code is `;
+  const purpose = product ? ` to set up ${product}` : '';
+  const start = `Read and follow ${guideUrl} verbatim${purpose}. Your handoff code is `;
   const end = '.';
   const wrappedCode = wrapCode(code);
 

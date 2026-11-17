@@ -1,5 +1,6 @@
 import {useRef} from 'react';
 import {useMutation} from '@tanstack/react-query';
+import isEqual from 'lodash/isEqual';
 
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -8,13 +9,14 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {getHandoffPrompt} from './handoffPrompt';
 
-function formatPrompt(code: string) {
-  return getHandoffPrompt(code, handoffCode => `\`${handoffCode}\``);
+function formatPrompt(code: string, product?: string) {
+  return getHandoffPrompt(code, handoffCode => `\`${handoffCode}\``, product);
 }
 
 export enum AgentHandoffFlow {
   CREATE_PROJECT = 'create_project',
   ONBOARDING = 'onboarding',
+  ADD_FEATURE = 'add_feature',
 }
 
 interface Handoff {
@@ -32,9 +34,15 @@ interface ProjectSetupContext {
   runId: string;
 }
 
+export interface AddFeatureContext {
+  product: 'tracing';
+  projectId: string;
+}
+
 interface HandoffContexts {
   [AgentHandoffFlow.CREATE_PROJECT]: ProjectSetupContext;
   [AgentHandoffFlow.ONBOARDING]: ProjectSetupContext;
+  [AgentHandoffFlow.ADD_FEATURE]: AddFeatureContext;
 }
 
 export type AgentHandoffContext<Flow extends AgentHandoffFlow = AgentHandoffFlow> =
@@ -68,7 +76,7 @@ function isHandoffStale<Flow extends AgentHandoffFlow>(
   return (
     handoff.organizationSlug !== context.organizationSlug ||
     handoff.flow !== context.flow ||
-    handoff.context.runId !== context.context.runId ||
+    !isEqual(handoff.context, context.context) ||
     handoff.disableIpPinning !== context.disableIpPinning ||
     Date.parse(handoff.expiresAt) <= Date.now() + PROMPT_EXPIRATION_BUFFER_MS
   );
@@ -78,6 +86,16 @@ function clipboardError() {
   return new Error(
     t('Unable to copy your agent prompt. Allow clipboard access and try again.')
   );
+}
+
+function getProductForFlow<Flow extends AgentHandoffFlow>(
+  flow: Flow,
+  context: AgentHandoffContext<Flow>
+): string | undefined {
+  if (flow === AgentHandoffFlow.ADD_FEATURE) {
+    return (context as AddFeatureContext).product;
+  }
+  return undefined;
 }
 
 /**
@@ -108,7 +126,11 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
 
     const cachedHandoff = handoff.current;
     if (cachedHandoff && !isHandoffStale(cachedHandoff, promptContext)) {
-      return {handoffId: cachedHandoff.handoffId, text: formatPrompt(cachedHandoff.code)};
+      const product = getProductForFlow(flow, options.context);
+      return {
+        handoffId: cachedHandoff.handoffId,
+        text: formatPrompt(cachedHandoff.code, product),
+      };
     }
 
     try {
@@ -125,7 +147,8 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
       });
       handoff.current = {...minted, ...promptContext};
 
-      return {handoffId: minted.handoffId, text: formatPrompt(minted.code)};
+      const product = getProductForFlow(flow, options.context);
+      return {handoffId: minted.handoffId, text: formatPrompt(minted.code, product)};
     } catch {
       throw new Error(t('Unable to create your agent prompt. Try again.'));
     }
