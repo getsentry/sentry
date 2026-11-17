@@ -499,7 +499,9 @@ class InternalIntegrationProxyEndpoint(Endpoint):
         if isinstance(exc, IdentityNotValid):
             logger.warning("hybrid_cloud.integration_proxy.invalid_identity", extra=self.log_extra)
             self._add_failure_metric(IntegrationProxyFailureMetricType.INVALID_IDENTITY)
-            return self.respond(status=400)
+            # 401 so the cell client raises ApiUnauthorized and callers treat this as lost
+            # access (halt, no retry) instead of a generic bad request.
+            return self.respond(status=401)
         elif isinstance(exc, ApiHostError):
             logger.info(
                 "hybrid_cloud.integration_proxy.host_unreachable_error", extra=self.log_extra
