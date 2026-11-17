@@ -10,6 +10,7 @@ errors raised here are grouped with the rest of PR iteration.
 
 from __future__ import annotations
 
+from dataclasses import asdict
 from typing import Any
 
 from sentry.models.organization import Organization
@@ -59,18 +60,15 @@ def get_pr_iteration_state_fields(
     # Off the fetched row, not is_pr_iteration_paused: polled every second.
     paused_marker = get_run_extra(run, PAUSED_EXTRA) if run is not None else None
     pause_reason = pause_reason_from_marker(paused_marker)
+
     out_of_credits = pr_iteration_out_of_credits(state, run) if paused_marker is None else None
 
     return {
         "queued_feedback": queued_feedback,
         "pr_iteration_paused": paused_marker is not None,
         "pr_iteration_pause_reason": pause_reason.value if pause_reason else None,
-        "pr_iteration_out_of_credits": out_of_credits is not None,
-        "pr_iteration_out_of_credits_unfinished_action": (
-            out_of_credits.unfinished_action if out_of_credits is not None else None
-        ),
-        "pr_iteration_out_of_credits_denial_reason": (
-            out_of_credits.denial_reason if out_of_credits is not None else None
+        "pr_iteration_out_of_credits": (
+            asdict(out_of_credits) if out_of_credits is not None else None
         ),
         "warnings": warnings,
     }

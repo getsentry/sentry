@@ -422,7 +422,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         response = self.client.get(self._get_url(group.id), format="json")
         assert response.status_code == 200, response.data
-        assert response.data["autofix"]["pr_iteration_out_of_credits"] is False
+        assert response.data["autofix"]["pr_iteration_out_of_credits"] is None
 
         mark_out_of_credits(
             run_id=888, organization_id=self.organization.id, denial_reason="daily_cap_exceeded"
@@ -430,13 +430,10 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         response = self.client.get(self._get_url(group.id), format="json")
         assert response.status_code == 200, response.data
-        assert response.data["autofix"]["pr_iteration_out_of_credits"] is True
-        assert (
-            response.data["autofix"]["pr_iteration_out_of_credits_denial_reason"]
-            == "daily_cap_exceeded"
-        )
-        # Nothing was left unfinished.
-        assert response.data["autofix"]["pr_iteration_out_of_credits_unfinished_action"] is None
+        assert response.data["autofix"]["pr_iteration_out_of_credits"] == {
+            "unfinished_action": None,
+            "denial_reason": "daily_cap_exceeded",
+        }
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
     def test_get_does_not_report_the_out_of_credits_state_when_paused(
@@ -469,11 +466,10 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         response = self.client.get(self._get_url(group.id), format="json")
         assert response.status_code == 200, response.data
-        assert response.data["autofix"]["pr_iteration_out_of_credits"] is True
-        assert (
-            response.data["autofix"]["pr_iteration_out_of_credits_unfinished_action"]
-            == "agent_turn"
-        )
+        assert response.data["autofix"]["pr_iteration_out_of_credits"] == {
+            "unfinished_action": "agent_turn",
+            "denial_reason": None,
+        }
 
         pause_pr_iteration(
             run_id=888, organization_id=self.organization.id, reason=PauseReason.USER_STOP
@@ -481,8 +477,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         response = self.client.get(self._get_url(group.id), format="json")
         assert response.status_code == 200, response.data
-        assert response.data["autofix"]["pr_iteration_out_of_credits"] is False
-        assert response.data["autofix"]["pr_iteration_out_of_credits_unfinished_action"] is None
+        assert response.data["autofix"]["pr_iteration_out_of_credits"] is None
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
     def test_get_llm_format_adds_formatted_field(self, mock_get_explorer_state: MagicMock) -> None:
