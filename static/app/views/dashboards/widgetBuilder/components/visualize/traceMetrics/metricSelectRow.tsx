@@ -230,6 +230,7 @@ export function MetricSelectRow({
           traceMetric={traceMetric}
           usePortal
           skipDefaultOption={excludeDefaultAggregates ? skipDefaultOption : undefined}
+          allowFreeformMetric
           getDisabledOptionReason={
             state.displayType === DisplayType.HEATMAP
               ? getDisabledOptionReason
