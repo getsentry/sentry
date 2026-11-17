@@ -1,10 +1,9 @@
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from snuba_sdk import Column, Condition, Limit, Op
 
 from sentry.exceptions import InvalidSearchQuery
-from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.search.eap.utils import add_start_end_conditions
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
@@ -14,56 +13,9 @@ from sentry.snuba.entity_subscription import (
     get_entity_subscription_from_snuba_query,
 )
 from sentry.snuba.models import SnubaQuery
-from sentry.utils import metrics, snuba_rpc
+from sentry.utils import snuba_rpc
 
 logger = logging.getLogger(__name__)
-"""
-We pull these methods out of the subscription processor to be used by the
-workflow engine data condition handlers.
-"""
-
-# NOTE (mifu67): this is set to None in the subscription processor code and doesn't
-# seem to be used. Maybe we don't need the logic gated by it?
-CRASH_RATE_ALERT_MINIMUM_THRESHOLD: int | None = None
-
-BASELINE_QUERY_REFERRER = "subscription_processor.comparison_query"
-
-
-def get_crash_rate_alert_metrics_aggregation_value_helper(
-    subscription_update: QuerySubscriptionUpdate,
-) -> float | None:
-    """
-    Handles validation and extraction of Crash Rate Alerts subscription updates values over
-    metrics dataset.
-    The subscription update looks like
-    [
-        {'project_id': 8, 'tags[5]': 6, 'count': 2.0, 'crashed': 1.0}
-    ]
-    - `count` represents sessions or users sessions that were started, hence to get the crash
-    free percentage, we would need to divide number of crashed sessions by that number,
-    and subtract that value from 1. This is also used when CRASH_RATE_ALERT_MINIMUM_THRESHOLD is
-    set in the sense that if the minimum threshold is greater than the session count,
-    then the update is dropped. If the minimum threshold is not set then the total sessions
-    count is just ignored
-    - `crashed` represents the total sessions or user counts that crashed.
-    """
-    row = subscription_update["values"]["data"][0]
-    total_session_count = row.get("count", 0)
-    crash_count = row.get("crashed", 0)
-
-    if total_session_count == 0:
-        metrics.incr("incidents.alert_rules.ignore_update_no_session_data")
-        return None
-
-    if CRASH_RATE_ALERT_MINIMUM_THRESHOLD is not None:
-        min_threshold = int(CRASH_RATE_ALERT_MINIMUM_THRESHOLD)
-        if total_session_count < min_threshold:
-            metrics.incr("incidents.alert_rules.ignore_update_count_lower_than_min_threshold")
-            return None
-
-    evaluation_value: int = round((1 - crash_count / total_session_count) * 100, 3)
-
-    return evaluation_value
 
 
 def coerce_aggregation_value(value: object, *, none_defaults_to_zero: bool = False) -> float | None:
@@ -97,15 +49,6 @@ def coerce_aggregation_value(value: object, *, none_defaults_to_zero: bool = Fal
             return None
 
     return None
-
-
-def get_aggregation_value_helper(subscription_update: QuerySubscriptionUpdate) -> float | None:
-    evaluation_value = list(subscription_update["values"]["data"][0].values())[0]
-    # In some cases Snuba can return a None value for an aggregation. This means
-    # there were no rows present when we made the query for certain types of aggregations
-    # like avg. Defaulting this to 0 for now. It might turn out that we'd prefer to skip
-    # the update in the future.
-    return coerce_aggregation_value(evaluation_value, none_defaults_to_zero=True)
 
 
 def _is_eap_query(snuba_query: SnubaQuery) -> bool:
@@ -211,40 +154,3 @@ def run_query_for_window(
         return None
 
     return coerce_aggregation_value(value)
-
-
-def get_comparison_aggregation_value(
-    subscription_update: QuerySubscriptionUpdate,
-    snuba_query: SnubaQuery,
-    organization_id: int,
-    project_ids: list[int],
-    comparison_delta: int | None = None,
-) -> float | None:
-    # NOTE (mifu67): we create this helper because we also use it in the new detector processing flow
-    evaluation_value = get_aggregation_value_helper(subscription_update)
-    if evaluation_value is None:
-        return None
-    if comparison_delta is None:
-        return evaluation_value
-
-    # For comparison alerts run a query over the comparison period and use it to calculate the
-    # % change.
-    delta = timedelta(seconds=comparison_delta)
-    end = subscription_update["timestamp"] - delta
-    start = end - timedelta(seconds=snuba_query.time_window)
-
-    baseline_value = run_query_for_window(
-        snuba_query=snuba_query,
-        subscription_id=subscription_update["subscription_id"],
-        org_id=organization_id,
-        project_ids=project_ids,
-        window_start=start,
-        window_end=end,
-        referrer=BASELINE_QUERY_REFERRER,
-    )
-
-    if not baseline_value:
-        metrics.incr("incidents.alert_rules.skipping_update_comparison_value_invalid")
-        return None
-
-    return (evaluation_value / baseline_value) * 100
