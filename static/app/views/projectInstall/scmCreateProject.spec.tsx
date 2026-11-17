@@ -33,6 +33,7 @@ import type {PlatformKey} from 'sentry/types/platform';
 import * as analytics from 'sentry/utils/analytics';
 import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 
+import {FROM_PROJECT_CREATION_STATE} from './gettingStartedLocationState';
 import {DEFAULT_ISSUE_ALERT_OPTIONS_VALUES} from './issueAlertOptions';
 import {PlatformDocHeader} from './platformDocHeader';
 import {ScmCreateProject} from './scmCreateProject';
@@ -1615,7 +1616,9 @@ describe('ScmCreateProject', () => {
         persistWizardSession({
           projectDetailsForm: {projectName: 'restored-name', teamSlug: adminTeam.slug},
         });
-        router.navigate('/organizations/org-slug/projects/python/getting-started/');
+        router.navigate('/organizations/org-slug/projects/python/getting-started/', {
+          state: FROM_PROJECT_CREATION_STATE,
+        });
         await waitFor(() => expect(overviewRequest).toHaveBeenCalled());
 
         router.navigate(-1);
