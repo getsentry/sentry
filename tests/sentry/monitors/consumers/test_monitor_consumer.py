@@ -807,6 +807,7 @@ class MonitorConsumerTest(TestCase):
                     }
                 ],
             ),
+            expected_monitor_slug="my-new-monitor",
         )
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)

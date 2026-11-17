@@ -202,7 +202,7 @@ def _ensure_monitor_with_config(
     monitor_slug: str,
     config: dict[str, Any] | None,
 ) -> tuple[Monitor | None, ProcessingErrorsException | None]:
-    non_fatal_processing_error = None
+    non_fatal_errors: list[ProcessingError] = []
     try:
         monitor = Monitor.objects.get(
             slug=monitor_slug,
@@ -213,7 +213,7 @@ def _ensure_monitor_with_config(
         monitor = None
 
     if not config:
-        return (monitor, non_fatal_processing_error)
+        return (monitor, None)
 
     # The upsert payload doesn't quite match the api one. Pop out the owner here since
     # it's not part of the monitor config
@@ -229,7 +229,7 @@ def _ensure_monitor_with_config(
                 "errors": {str(owner): [str(e.detail)]},
             }
         )
-        non_fatal_processing_error = ProcessingErrorsException([validation_error])
+        non_fatal_errors.append(validation_error)
     except Exception:
         logger.exception(
             "Error attempting to resolve owner",
@@ -266,7 +266,7 @@ def _ensure_monitor_with_config(
                 "errors": validator.errors,
             }
             raise ProcessingErrorsException([error])
-        return (monitor, non_fatal_processing_error)
+        return (monitor, _non_fatal_exception(non_fatal_errors, monitor))
 
     validated_config = validator.validated_data
     created = False
@@ -300,7 +300,13 @@ def _ensure_monitor_with_config(
         ):
             monitor.update(owner_user_id=owner_user_id, owner_team_id=owner_team_id)
 
-    return (monitor, non_fatal_processing_error)
+    return (monitor, _non_fatal_exception(non_fatal_errors, monitor))
+
+
+def _non_fatal_exception(
+    errors: list[ProcessingError], monitor: Monitor | None
+) -> ProcessingErrorsException | None:
+    return ProcessingErrorsException(errors, monitor) if errors else None
 
 
 def check_killswitch(
