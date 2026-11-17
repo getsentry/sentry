@@ -3,7 +3,10 @@ from unittest import mock
 import pytest
 from django.db import connection, transaction
 from django.db.utils import DataError
+from django.http import HttpRequest
+from django.urls import resolve
 
+from sentry.app import env
 from sentry.constants import MAX_CULPRIT_LENGTH
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -73,6 +76,12 @@ def _open_savepoints(count: int) -> None:
             pass
 
 
+def _request_resolved_to(path: str) -> HttpRequest:
+    request = HttpRequest()
+    request.resolver_match = resolve(path)
+    return request
+
+
 class SavepointMetricsTest(TransactionTestCase):
     @mock.patch("sentry.db.postgres.base.current_task")
     @mock.patch("sentry.db.postgres.base.metrics")
@@ -82,8 +91,14 @@ class SavepointMetricsTest(TransactionTestCase):
         current_task.return_value = mock.Mock(taskname="sentry.tasks.example")
         metrics.incr.side_effect = RuntimeError
         metrics.distribution.side_effect = RuntimeError
-        tags = {"taskname": "sentry.tasks.example", "alias": "default"}
-        overflow = mock.call("db.transaction.savepoint_overflow", tags=tags)
+        tags = {"taskname": "sentry.tasks.example", "view": "none", "alias": "default"}
+        api_tags = {**tags, "view": "sentry-api-0-organization-teams"}
+        rpc_tags = {**tags, "view": "rpc:organization.get_organization_by_id"}
+        api_request = _request_resolved_to("/api/0/organizations/example/teams/")
+        rpc_request = _request_resolved_to(
+            "/api/0/internal/rpc/organization/get_organization_by_id/"
+        )
+        overflow = mock.call("db.transaction.savepoint_overflow", tags=tags, sample_rate=1.0)
 
         with transaction.atomic(using="default"):
             _open_savepoints(64)
@@ -105,22 +120,23 @@ class SavepointMetricsTest(TransactionTestCase):
                         raise ValueError
             _open_savepoints(40)
 
-        with pytest.raises(ValueError):
+        with env.active_request(api_request), pytest.raises(ValueError):
             with transaction.atomic(using="default"):
                 _open_savepoints(10)
                 raise ValueError
 
-        transaction.set_autocommit(False, using="default")
-        for _ in range(10):
-            transaction.savepoint(using="default")
-        connection.close()
+        with env.active_request(rpc_request):
+            transaction.set_autocommit(False, using="default")
+            for _ in range(10):
+                transaction.savepoint(using="default")
+            connection.close()
 
         assert metrics.incr.call_args_list == [overflow]
         assert metrics.distribution.call_args_list == [
-            mock.call("db.transaction.savepoints", 70, tags=tags),
-            mock.call("db.transaction.savepoints", 41, tags=tags),
-            mock.call("db.transaction.savepoints", 10, tags=tags),
-            mock.call("db.transaction.savepoints", 10, tags=tags),
+            mock.call("db.transaction.savepoints", 70, tags=tags, sample_rate=1.0),
+            mock.call("db.transaction.savepoints", 41, tags=tags, sample_rate=1.0),
+            mock.call("db.transaction.savepoints", 10, tags=api_tags, sample_rate=1.0),
+            mock.call("db.transaction.savepoints", 10, tags=rpc_tags, sample_rate=1.0),
         ]
 
 
