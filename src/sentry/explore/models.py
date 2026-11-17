@@ -16,9 +16,9 @@ from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.bounded import BoundedBigIntegerField, BoundedPositiveIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
-from sentry.models.dashboard import QueryPriorities
 from sentry.models.dashboard_widget import TypesClass
 from sentry.models.organization import Organization
+from sentry.search.eap.constants import QueryPriorities
 from sentry.search.eap.types import SupportedTraceItemType
 from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS
 from sentry.users.models.user import User

@@ -1,4 +1,4 @@
-import {Fragment, useState, type ReactNode} from 'react';
+import {Fragment, useEffect, useState, type ReactNode} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
@@ -22,6 +22,10 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {seerCreditChecksQueryKey} from 'sentry/utils/seer/useSeerCreditCheck';
 
+import {AuthenticatePayment} from 'getsentry/components/authenticatePayment';
+import {CreditCardForm} from 'getsentry/components/creditCardEdit/form';
+import {StripeWrapper} from 'getsentry/components/stripeWrapper';
+import {usePaymentIntentData} from 'getsentry/hooks/useIntentData';
 import {displayPrice, displayPriceWithCents} from 'getsentry/utils/billing';
 import {
   seerWalletAutoTopUpOptions,
@@ -44,6 +48,30 @@ type AutoTopUpFormProps = AutoTopUpModalProps & {
   balanceCredits: number;
   creditPriceCents: number;
   purchased: SeerWalletBalance['purchased'];
+};
+
+type PaymentVerification = {
+  clientSecret: string;
+  paymentIntentId: string;
+  required: boolean;
+};
+
+type PaymentRequiredResponse = {
+  detail?: string;
+  invoiceGuid?: string;
+  verification?: PaymentVerification;
+};
+
+/**
+ * Auto-reload stays off until its first refill is paid. Once the customer pays,
+ * the settings are sent again to turn it on, and nothing is charged twice
+ * because the paid refill lifts the balance above the threshold.
+ */
+type PendingPayment = {
+  invoiceGuid: string;
+  settings: SeerWalletAutoTopUp;
+  detail?: string;
+  verification?: PaymentVerification;
 };
 
 function parseWholeNumber(value: string) {
@@ -144,6 +172,19 @@ function AutoTopUpForm({
     toWholeDollarCents(autoTopUp.dailySpendCapCents)
   );
   const [error, setError] = useState<string | null>(null);
+  const [pendingPayment, setPendingPayment] = useState<PendingPayment | null>(null);
+
+  const refreshWallet = () => {
+    queryClient.invalidateQueries({
+      queryKey: seerWalletAutoTopUpOptions(organization).queryKey,
+    });
+    // Turning on can bill credits right away, so refresh the balance as well.
+    queryClient.invalidateQueries({
+      queryKey: seerWalletBalanceOptions(organization).queryKey,
+    });
+    // Turning on auto-reload can unblock Seer, so let gated buttons recheck.
+    queryClient.invalidateQueries({queryKey: seerCreditChecksQueryKey(organization)});
+  };
 
   const {mutate: save, isPending} = useMutation({
     mutationFn: (data: SeerWalletAutoTopUp) =>
@@ -155,15 +196,7 @@ function AutoTopUpForm({
         data,
       }),
     onSuccess: data => {
-      queryClient.invalidateQueries({
-        queryKey: seerWalletAutoTopUpOptions(organization).queryKey,
-      });
-      // Turning on can bill credits right away, so refresh the balance as well.
-      queryClient.invalidateQueries({
-        queryKey: seerWalletBalanceOptions(organization).queryKey,
-      });
-      // Turning on auto-reload can unblock Seer, so let gated buttons recheck.
-      queryClient.invalidateQueries({queryKey: seerCreditChecksQueryKey(organization)});
+      refreshWallet();
       if (!data.enabled) {
         toast.success(t('Auto-reload turned off'));
       } else if (isTurningOn) {
@@ -173,11 +206,13 @@ function AutoTopUpForm({
       }
       closeModal();
     },
-    onError: err => {
-      const fieldErrors =
-        err instanceof RequestError
-          ? (err.responseJSON as Record<string, string[]> | undefined)
-          : undefined;
+    onError: (err, settings) => {
+      const payment = getPendingPayment(err, settings);
+      if (payment) {
+        setPendingPayment(payment);
+        return;
+      }
+      const fieldErrors = err instanceof RequestError ? err.responseJSON : undefined;
       setIsConfirmingTurnOff(false);
       setError(
         fieldErrors
@@ -186,6 +221,52 @@ function AutoTopUpForm({
       );
     },
   });
+
+  if (pendingPayment) {
+    const returnToSettings = (message?: string) => {
+      setPendingPayment(null);
+      setError(message ?? null);
+    };
+    const sendSettingsAgain = () => {
+      refreshWallet();
+      setPendingPayment(null);
+      save(pendingPayment.settings);
+    };
+    return (
+      <Fragment>
+        <Header closeButton>
+          <Heading as="h2" size="xl">
+            {pendingPayment.verification
+              ? t('Verify payment')
+              : t('Pay for Seer credits')}
+          </Heading>
+        </Header>
+        <Body>
+          {pendingPayment.verification ? (
+            <StripeWrapper>
+              <AuthenticatePayment
+                clientSecret={pendingPayment.verification.clientSecret}
+                invoiceGuid={pendingPayment.invoiceGuid}
+                organization={organization}
+                onCancel={() => returnToSettings()}
+                onFailure={returnToSettings}
+                onSuccess={sendSettingsAgain}
+              />
+            </StripeWrapper>
+          ) : (
+            <PayPendingInvoice
+              organization={organization}
+              invoiceGuid={pendingPayment.invoiceGuid}
+              detail={pendingPayment.detail}
+              onCancel={() => returnToSettings()}
+              onFailure={returnToSettings}
+              onSuccess={sendSettingsAgain}
+            />
+          )}
+        </Body>
+      </Fragment>
+    );
+  }
 
   if (isConfirmingTurnOff) {
     return (
@@ -377,6 +458,87 @@ function AutoTopUpForm({
         </Flex>
       </Footer>
     </Fragment>
+  );
+}
+
+function getPendingPayment(
+  error: unknown,
+  settings: SeerWalletAutoTopUp
+): PendingPayment | null {
+  if (!(error instanceof RequestError) || error.status !== 402) {
+    return null;
+  }
+  const response = error.responseJSON as PaymentRequiredResponse | undefined;
+  if (!response?.invoiceGuid) {
+    return null;
+  }
+  const verification = response.verification;
+  return {
+    invoiceGuid: response.invoiceGuid,
+    settings,
+    detail: response.detail,
+    verification:
+      verification?.required && verification.clientSecret ? verification : undefined,
+  };
+}
+
+/**
+ * Pays a refill that is still open from an earlier attempt, or one the card on
+ * file declined. Pay Now resumes a 3D Secure challenge that is still waiting,
+ * and otherwise lets the customer pay with another card.
+ */
+function PayPendingInvoice({
+  organization,
+  invoiceGuid,
+  detail,
+  onCancel,
+  onFailure,
+  onSuccess,
+}: {
+  invoiceGuid: string;
+  onCancel: () => void;
+  onFailure: (message: string) => void;
+  onSuccess: () => void;
+  organization: Organization;
+  detail?: string;
+}) {
+  // The payment form needs the amount up front. This shares its query, so the
+  // intent is created once.
+  const {intentData, isLoading, isError, isFetching, error} = usePaymentIntentData({
+    organizationSlug: organization.slug,
+    invoiceId: invoiceGuid,
+  });
+  // A failed refetch keeps the earlier error on the query until the next request
+  // settles, so only a finished request counts as a failure.
+  const failed = isError && !isFetching;
+
+  useEffect(() => {
+    if (failed) {
+      onFailure(error ?? t('We could not start the payment. Please try again.'));
+    }
+  }, [failed, error, onFailure]);
+
+  // The payment form reads the same query. Mounting it on a failed query
+  // refetches it, which puts this component back to loading and unmounts the
+  // form, so it would request the intent again in a loop.
+  if (isLoading || isError) {
+    return <LoadingIndicator />;
+  }
+
+  return (
+    <Stack gap="md">
+      {detail && <Text as="p">{detail}</Text>}
+      <CreditCardForm
+        organization={organization}
+        budgetTerm={t('pay-as-you-go')}
+        cardMode="payment"
+        invoiceGuid={invoiceGuid}
+        amount={intentData ? Number(intentData.amount) : undefined}
+        buttonText={t('Pay Now')}
+        onCancel={onCancel}
+        onSuccess={onSuccess}
+      />
+    </Stack>
   );
 }
 

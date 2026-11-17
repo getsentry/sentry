@@ -187,11 +187,13 @@ function errorFromResponse(
     });
   }
 
+  // Keep a parsed body without a string `detail`, such as a
+  // `{"detail": {"code", "message", "extra"}}` one, for `SentryApiError.code`.
   return createApiError(
     `API request failed: ${response.statusText}\n${errorText}`,
     response.status,
     errorText,
-    undefined,
+    body.json,
     retryAfterMs,
     acceptedScopes,
   );

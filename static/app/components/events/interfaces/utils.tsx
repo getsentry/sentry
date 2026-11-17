@@ -1,5 +1,3 @@
-import qs from 'query-string';
-
 import {FILTER_MASK} from 'sentry/constants';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Image} from 'sentry/types/debugImage';
@@ -9,6 +7,7 @@ import type {PlatformKey} from 'sentry/types/platform';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {StacktraceOrder, type AvatarUser} from 'sentry/types/user';
 import {defined} from 'sentry/utils/defined';
+import * as qs from 'sentry/utils/url/qs';
 
 import {getThreadException} from './threads/threadSelector/getThreadException';
 

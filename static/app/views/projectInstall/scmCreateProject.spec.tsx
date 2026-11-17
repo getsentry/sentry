@@ -1297,6 +1297,7 @@ describe('ScmCreateProject', () => {
       ).toBeInTheDocument();
       await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
       const session = request.mock.calls[0]?.[1]?.data;
+      expect(session.origin).toBe('project_creation');
       expect(session.clientRunId).not.toBe(onboardingSession.agenticProgressClientRunId);
       expect(session.onboardingCode).toBeUndefined();
       expect(
@@ -1351,6 +1352,7 @@ describe('ScmCreateProject', () => {
         method: 'POST',
         body: {
           code: 'sntryh_example',
+          handoffId: 'b'.repeat(32),
           expiresAt: new Date(Date.now() + 300_000).toISOString(),
         },
       });
@@ -1363,6 +1365,7 @@ describe('ScmCreateProject', () => {
       await waitFor(() => expect(progressRequest).toHaveBeenCalled());
       expect(request.mock.calls[0]?.[1]?.data).toEqual({
         clientRunId: expect.any(String),
+        origin: 'project_creation',
       });
 
       await user.click(screen.getByRole('button', {name: 'Copy agent prompt'}));
@@ -1384,6 +1387,7 @@ describe('ScmCreateProject', () => {
           expect.objectContaining({
             source: 'prompt',
             variant: 'scm',
+            handoff_id: 'b'.repeat(32),
             run_id: run.runId,
           })
         )
