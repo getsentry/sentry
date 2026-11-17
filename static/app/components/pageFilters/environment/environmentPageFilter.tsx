@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useRef} from 'react';
+import {Fragment, useCallback, useMemo, useRef} from 'react';
 import {useMatches} from 'react-router';
 import {isAppleDevice} from '@react-aria/utils';
 import isEqual from 'lodash/isEqual';
@@ -261,14 +261,14 @@ export function EnvironmentPageFilter({
       }
       menuWidth={menuWidth ?? defaultMenuWidth}
       menuHeaderTrailingItems={
-        <>
+        <Fragment>
           {environments.length > 0 ? (
             <MenuComponents.HeaderButton onClick={handleSelectAll}>
               {t('Select All')}
             </MenuComponents.HeaderButton>
           ) : null}
           {shouldShowReset ? <MenuComponents.ResetButton onClick={handleReset} /> : null}
-        </>
+        </Fragment>
       }
       menuFooter={
         hasStagedChanges ? (
