@@ -411,7 +411,9 @@ export function InvestigationPageContent({
                     ?.scrollIntoView?.({block: 'center', behavior: 'smooth'})
                 }
               >
-                {t('Original prompt')}
+                <Text bold={false} variant="inherit">
+                  {t('Original prompt')}
+                </Text>
               </Button>
             ) : (
               <Text variant="muted">{formatSourceType(investigation.sourceType)}</Text>
