@@ -111,6 +111,23 @@ export const DISTRIBUTION_SENTRY_APP_PERMISSION: PermissionObj = {
   },
 };
 
+// Only offered on personal tokens, for organizations with
+// `organizations:service-accounts`. The backend doesn't make
+// `service_account:write` imply read, so Read & Write requests both.
+export const SERVICE_ACCOUNT_SENTRY_APP_PERMISSION: PermissionObj = {
+  resource: 'ServiceAccount',
+  label: 'Service Accounts',
+  help: 'Service accounts and their tokens',
+  choices: {
+    'no-access': {label: 'No Access', scopes: []},
+    read: {label: 'Read', scopes: ['service_account:read']},
+    write: {
+      label: 'Read & Write',
+      scopes: ['service_account:read', 'service_account:write'],
+    },
+  },
+};
+
 export const CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION: SpecialPermissionObj = {
   fieldName: 'ContinuousIntegration--permission',
   label: 'Continuous Integration (CI)',
@@ -148,10 +165,6 @@ export type GranularPermissionObj = {
    * Scope prefix, e.g. `dashboard` for `dashboard:read`.
    */
   resource: string;
-  /**
-   * Organization feature required to show the row.
-   */
-  feature?: string;
 };
 
 // Granular permissions replace SENTRY_APP_PERMISSIONS on personal tokens while
@@ -299,13 +312,6 @@ export const GRANULAR_SENTRY_APP_PERMISSIONS: GranularPermissionObj[] = [
     label: t('User Preferences'),
     help: t('Your personal settings and preferences'),
     levels: [GranularPermissionLevel.READ, GranularPermissionLevel.WRITE],
-  },
-  {
-    resource: 'service_account',
-    label: t('Service Accounts'),
-    help: t('Service accounts and their tokens'),
-    levels: [GranularPermissionLevel.READ, GranularPermissionLevel.WRITE],
-    feature: 'service-accounts',
   },
   // CI and integrations
   {
