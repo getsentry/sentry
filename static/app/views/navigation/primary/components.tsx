@@ -36,7 +36,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
-  NAVIGATION_PRIMARY_LINK_DATA_ATTRIBUTE,
   PRIMARY_HEADER_HEIGHT,
   PRIMARY_SIDEBAR_WIDTH,
   SIDEBAR_NAVIGATION_SOURCE,
@@ -142,8 +141,6 @@ function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
     state: {source: SIDEBAR_NAVIGATION_SOURCE},
     'aria-current': props['aria-current'],
     'data-active-group': props['data-active-group'],
-    onMouseEnter: props.onMouseEnter,
-    onMouseLeave: props.onMouseLeave,
     onClick: (e: React.MouseEvent<HTMLAnchorElement>) => {
       trackAnalytics('navigation.primary_item_clicked', {
         item: props.analyticsKey,
@@ -152,7 +149,6 @@ function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
       });
       props.onClick?.(e);
     },
-    [NAVIGATION_PRIMARY_LINK_DATA_ATTRIBUTE]: true,
   };
 
   const desktopChildren = (

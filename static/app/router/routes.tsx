@@ -35,6 +35,7 @@ import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {OverviewWrapper} from 'sentry/views/issueList/overviewWrapper';
 import {IssueTaxonomy} from 'sentry/views/issueList/taxonomies';
 import {OrganizationContainerRoute} from 'sentry/views/organizationContainer';
+import {OrganizationHomeRedirect} from 'sentry/views/organizationHomeRedirect';
 import {OrganizationLayout} from 'sentry/views/organizationLayout';
 import {OrganizationStatsWrapper} from 'sentry/views/organizationStats/organizationStatsWrapper';
 import {Tab as TransactionSummaryTab} from 'sentry/views/performance/transactionSummary/tabs';
@@ -3228,7 +3229,7 @@ function buildRoutes(): RouteObject[] {
         routeHook('routes:legacy-organization-redirects'),
         {
           index: true,
-          redirectTo: 'issues/',
+          component: OrganizationHomeRedirect,
         },
         {
           path: 'teams/',

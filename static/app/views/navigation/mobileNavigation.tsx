@@ -75,7 +75,7 @@ function MobilePrimaryNavigation() {
         <PrimaryNavigation.SidebarHeader>
           {organization &&
             (isSettingsNavigation ? (
-              <SettingsNavigationBackButton organizationSlug={organization.slug} />
+              <SettingsNavigationBackButton organization={organization} />
             ) : (
               <OrganizationDropdown />
             ))}

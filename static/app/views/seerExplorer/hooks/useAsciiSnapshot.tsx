@@ -122,7 +122,7 @@ export function createGridHelpers(rows: number, cols: number): GridHelpers {
 function computeLeftShiftPx(viewportWidth: number): number {
   try {
     const navSelector =
-      '[role="navigation"][aria-label="Primary Navigation"], [role="navigation"][aria-label="Secondary Navigation"], [data-test-id="collapsed-secondary-sidebar"]';
+      '[role="navigation"][aria-label="Primary Navigation"], [role="navigation"][aria-label="Secondary Navigation"]';
     const nodes = Array.from(document.querySelectorAll(navSelector));
     let shift = 0;
     for (const n of nodes) {
@@ -151,7 +151,7 @@ function createIsExcluded(): (el: Element | null) => boolean {
         return true;
       }
       const nav = (node as HTMLElement).closest(
-        '[role="navigation"][aria-label="Primary Navigation"], [role="navigation"][aria-label="Secondary Navigation"], [data-test-id="collapsed-secondary-sidebar"]'
+        '[role="navigation"][aria-label="Primary Navigation"], [role="navigation"][aria-label="Secondary Navigation"]'
       );
       if (nav) {
         return true;

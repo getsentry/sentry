@@ -2,7 +2,6 @@ export const NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY =
   'secondary-sidebar-width';
 export const NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY =
   'navigation-sidebar-is-collapsed';
-export const NAVIGATION_PRIMARY_LINK_DATA_ATTRIBUTE = 'data-primary-navigation-link';
 export const NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE =
   'data-secondary-navigation-sidebar';
 
@@ -14,10 +13,6 @@ export const SUPERUSER_MARQUEE_HEIGHT = 24;
 export const SECONDARY_SIDEBAR_WIDTH = 190;
 export const SECONDARY_SIDEBAR_MIN_WIDTH = 150;
 export const SECONDARY_SIDEBAR_MAX_WIDTH = 450;
-
-export const NAVIGATION_SIDEBAR_COLLAPSE_DELAY_MS = 200;
-export const NAVIGATION_SIDEBAR_OPEN_DELAY_MS = 250;
-export const NAVIGATION_SIDEBAR_RESET_DELAY_MS = 300;
 
 export const NAVIGATION_MOBILE_TOPBAR_HEIGHT = 40;
 
