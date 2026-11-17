@@ -2,13 +2,16 @@
 
 import os
 import sys
+from importlib.util import find_spec
 from pathlib import Path
 
 WORKSPACE = Path(__file__).resolve().parents[3]
+GETSENTRY_SETTINGS = WORKSPACE / "getsentry" / "getsentry" / "settings.py"
 
-# getsentry's devserver keeps its own database, so its settings must load before Django does.
-if "--getsentry" in sys.argv:
-    os.environ["SENTRY_CONF"] = str(WORKSPACE / "getsentry" / "getsentry" / "settings.py")
+# Where getsentry is installed (as on a box), its devserver is the one running, and it keeps
+# its own database, so load its settings the way the `getsentry` command does.
+if find_spec("getsentry") is not None and GETSENTRY_SETTINGS.exists():
+    os.environ["SENTRY_CONF"] = str(GETSENTRY_SETTINGS)
 
 from sentry.runner import configure
 
@@ -298,11 +301,6 @@ if __name__ == "__main__":
         nargs="?",
         default="sentry",
         help="Organization slug or ID (default: sentry)",
-    )
-    parser.add_argument(
-        "--getsentry",
-        action="store_true",
-        help="Run against the getsentry devserver's database, as on a box",
     )
     parser.add_argument(
         "--scenario",
