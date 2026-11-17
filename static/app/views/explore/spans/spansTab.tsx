@@ -1,11 +1,8 @@
 import {Fragment} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconChevron} from '@sentry/icons/chevron';
 import {useQuery} from '@tanstack/react-query';
 
-import {Button} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
@@ -29,6 +26,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {ChartSelectionProvider} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
 import {ExploreQuotaExceededAlert} from 'sentry/views/explore/components/exploreQuotaExceededAlert';
 import {ExploreShareButton} from 'sentry/views/explore/components/exploreShareButton';
+import {ExploreSidebarToggle} from 'sentry/views/explore/components/exploreSidebarToggle';
 import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
 import {
   ExploreBodyContent,
@@ -304,23 +302,10 @@ function SpanTabContentSectionInner({
   return (
     <ExploreContentSection gap="md">
       <OverChartButtonGroup>
-        <ChevronButton
-          aria-label={
-            controlSectionExpanded ? t('Collapse sidebar') : t('Expand sidebar')
-          }
+        <ExploreSidebarToggle
           expanded={controlSectionExpanded}
-          size="xs"
-          icon={
-            <IconChevron
-              isDouble
-              direction={controlSectionExpanded ? 'left' : 'right'}
-              size="xs"
-            />
-          }
-          onClick={() => setControlSectionExpanded(!controlSectionExpanded)}
-        >
-          {controlSectionExpanded ? null : t('Advanced')}
-        </ChevronButton>
+          onExpandedChange={setControlSectionExpanded}
+        />
         <Flex gap="xs">
           <ExploreShareButton traceItemDataset={TraceItemDataset.SPANS} />
           <TracesExportModalButton
@@ -394,32 +379,4 @@ const SpanTabContentSection = registerLLMContext(
 
 const OnboardingContentSection = styled('section')`
   grid-column: 1/3;
-`;
-
-export function ChevronButton(
-  props: React.ComponentProps<typeof Button> & {expanded: boolean}
-) {
-  return (
-    <Container as="span" display="inline-flex">
-      <StyledChevronButton {...props} />
-    </Container>
-  );
-}
-
-const StyledChevronButton = styled(Button)<{expanded: boolean}>`
-  ${p =>
-    p.expanded &&
-    css`
-      @container (min-width: ${p.theme.container.xl}) {
-        margin-left: -17px;
-        border-top-left-radius: 0;
-        border-bottom-left-radius: 0;
-
-        &::after {
-          border-left-color: ${p.theme.tokens.border.primary};
-          border-top-left-radius: 0;
-          border-bottom-left-radius: 0;
-        }
-      }
-    `}
 `;

@@ -3251,11 +3251,6 @@
       "count": 1
     }
   },
-  "views/explore/spans/spansTab.tsx": {
-    "@sentry/scraps/prefer-container-responsive-props": {
-      "count": 1
-    }
-  },
   "views/explore/spans/tour.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
