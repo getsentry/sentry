@@ -47,13 +47,13 @@ describe('getting started with rack', () => {
     ).toBeInTheDocument();
   });
 
-  it('enables logs by setting enable_logs to true', () => {
+  it('patches the logger when logs are selected', () => {
     renderWithOnboardingLayout(docs, {
       selectedProducts: [ProductSolution.ERROR_MONITORING, ProductSolution.LOGS],
     });
 
     expect(
-      screen.getByText(textWithMarkupMatcher(/config.enable_logs = true/))
+      screen.getByText(textWithMarkupMatcher(/Logs are sent to Sentry by default/))
     ).toBeInTheDocument();
     expect(
       screen.getByText(textWithMarkupMatcher(/config.enabled_patches = \[:logger\]/))

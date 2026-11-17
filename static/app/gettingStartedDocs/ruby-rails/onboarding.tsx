@@ -24,10 +24,12 @@ Sentry.init do |config|
     params.isLogsSelected
       ? `
 
-  # Enable sending logs to Sentry
-  config.enable_logs = true
+  # Logs are sent to Sentry by default
   # Patch Ruby logger to forward logs
-  config.enabled_patches = [:logger]`
+  config.enabled_patches = [:logger]
+
+  # Enable Rails structured logging (disabled by default since sentry-ruby 7.1.0)
+  config.rails.structured_logging.enabled = true`
       : ''
   }${
     params.isPerformanceSelected
