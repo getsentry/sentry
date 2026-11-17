@@ -143,8 +143,9 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
 
   const isPaused = isPrIterationPaused(autofix.runState);
 
-  const unfinishedAction =
-    autofix.runState?.pr_iteration_out_of_credits_unfinished_action;
+  const unfinishedAction = isPrIterationOutOfCredits(autofix.runState)
+    ? autofix.runState?.pr_iteration_out_of_credits_unfinished_action
+    : null;
   let heldForCreditsMessage: string | null = null;
   if (unfinishedAction === 'push' || unfinishedAction === 'branch_moved_retry') {
     heldForCreditsMessage = OUT_OF_CREDITS_PR_ITERATION_MESSAGE[unfinishedAction];
