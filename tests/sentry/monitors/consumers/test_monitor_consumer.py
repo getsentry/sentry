@@ -22,6 +22,7 @@ from sentry.db.models import BoundedPositiveIntegerField
 from sentry.models.environment import Environment
 from sentry.monitors.constants import MAX_TIMEOUT, TIMEOUT, PermitCheckInStatus
 from sentry.monitors.consumers.monitor_consumer import StoreMonitorCheckInStrategyFactory
+from sentry.monitors.logic.checkin_config import get_checkin_config_id
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -1107,6 +1108,7 @@ class MonitorConsumerTest(TestCase):
         stale_checkin = MonitorCheckIn.objects.create(
             monitor_environment=monitor_environment,
             status=CheckInStatus.IN_PROGRESS,
+            checkin_config_id=get_checkin_config_id(monitor.get_validated_config()),
             date_added=monitor.date_added - timedelta(weeks=52),
         )
 
