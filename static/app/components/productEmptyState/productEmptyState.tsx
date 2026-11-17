@@ -5,7 +5,7 @@ import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {AgentHandoffProductPrompt} from 'sentry/components/agentHandoff/agentHandoffProductPrompt';
-import type {AddFeatureProduct} from 'sentry/components/agentHandoff/useAgentHandoff';
+import type {AddFeatureProduct} from 'sentry/components/agentHandoff/types';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {Benefit} from 'sentry/components/onboarding/benefit';
 import {t, tct} from 'sentry/locale';
