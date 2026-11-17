@@ -60,7 +60,7 @@ describe('useBreadcrumbFilters', () => {
     });
     expect(result.current.items).toHaveLength(0);
 
-    act(() => result.current.clearFilters());
+    act(() => result.current.clearAllFilters());
 
     await waitFor(() => expect(router.location.query).toEqual({}));
     expect(result.current.items).toHaveLength(3);

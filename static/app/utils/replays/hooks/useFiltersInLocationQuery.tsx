@@ -13,7 +13,6 @@ const parseAsStringArray = parseAsNativeArrayOf(parseAsString);
 
 export const replayDetailFilterParsers = {
   f_b_search: parseAsString,
-  // Unknown values are dropped, so a bad link falls back to every type.
   f_b_type: parseAsNativeArrayOf(parseAsStringLiteral(BREADCRUMB_TYPES)),
   f_c_logLevel: parseAsStringArray,
   f_c_search: parseAsString,

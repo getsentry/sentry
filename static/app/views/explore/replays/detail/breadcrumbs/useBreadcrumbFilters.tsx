@@ -17,7 +17,7 @@ type Options = {
 };
 
 type Return = {
-  clearFilters: () => void;
+  clearAllFilters: () => void;
   expandPathsRef: RefObject<Map<number, Set<string>>>;
   getBreadcrumbTypes: () => Array<{label: string; value: BreadcrumbType}>;
   items: ReplayFrame[];
@@ -138,13 +138,13 @@ export function useBreadcrumbFilters({frames}: Options): Return {
     [setFilter]
   );
 
-  const clearFilters = useCallback(
+  const clearAllFilters = useCallback(
     () => setFilter({f_b_type: undefined, f_b_search: undefined}),
     [setFilter]
   );
 
   return {
-    clearFilters,
+    clearAllFilters,
     expandPathsRef,
     getBreadcrumbTypes,
     items,

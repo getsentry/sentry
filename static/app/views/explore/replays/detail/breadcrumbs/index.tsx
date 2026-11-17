@@ -36,7 +36,7 @@ export function Breadcrumbs() {
   const frames = replay?.getChapterFrames();
 
   const filterProps = useBreadcrumbFilters({frames: frames || []});
-  const {clearFilters, expandPathsRef, items} = filterProps;
+  const {clearAllFilters, expandPathsRef, items} = filterProps;
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   const {totalSize, virtualItems, virtualizer} = useVirtualRows({
@@ -140,7 +140,7 @@ export function Breadcrumbs() {
             onWheel={() => setAutoScrollEnabled(false)}
           >
             {items.length === 0 ? (
-              <NoRowRenderer unfilteredItems={frames} clearSearchTerm={clearFilters}>
+              <NoRowRenderer unfilteredItems={frames} clearSearchTerm={clearAllFilters}>
                 {t('No breadcrumbs recorded')}
               </NoRowRenderer>
             ) : (
