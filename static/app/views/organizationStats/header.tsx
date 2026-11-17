@@ -18,7 +18,7 @@ type Props = {
 /**
  * Only billing members of orgs that pay for Seer by token usage see Seer cost.
  */
-export function hasSeerCostTab(organization: Organization) {
+function hasSeerCostTab(organization: Organization) {
   return (
     organization.features.includes('token-billed-seer-enabled') &&
     organization.access.includes('org:billing')

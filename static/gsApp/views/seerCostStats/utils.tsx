@@ -57,7 +57,7 @@ function getProducts() {
   ];
 }
 
-export function getProductLabel(feature: string): string {
+function getProductLabel(feature: string): string {
   const product = getProducts().find(
     ({prefix}) => feature === prefix || feature.startsWith(`${prefix}_`)
   );
