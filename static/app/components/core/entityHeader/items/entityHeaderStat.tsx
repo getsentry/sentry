@@ -19,13 +19,13 @@ import {Placeholder} from 'sentry/components/placeholder';
 type EntityHeaderStatValue = number | string | null;
 
 /**
- * One half of a stat — its label or its value. Each half declares what it is,
- * rather than the component inferring it from whether a destination happens
- * to be defined. The content may change as often as it likes; the type may
- * not, so a link half stays a link when its count is zero or empty.
+ * How one half of a stat behaves, apart from what it shows. Each half declares
+ * what it is, rather than the component inferring it from whether a
+ * destination happens to be defined. The content may change as often as it
+ * likes; the type may not, so a link half stays a link when its count is zero
+ * or empty.
  */
-type EntityHeaderStatPart<TContent> = {
-  content: TContent;
+type EntityHeaderStatPartBehavior = {
   /**
    * Takes structured content as readily as a string, so it can be built from
    * `Tooltip.Header`, `Tooltip.Grid` and `Tooltip.Row`. Keep it readable
@@ -39,6 +39,14 @@ type EntityHeaderStatPart<TContent> = {
       onClick?: () => void;
     } & LinkDestination)
 );
+
+/**
+ * One half of a stat — its label or its value: what it shows, and how it
+ * behaves.
+ */
+type EntityHeaderStatPart<TContent> = {
+  content: TContent;
+} & EntityHeaderStatPartBehavior;
 
 export interface EntityHeaderStatProps {
   /**
@@ -148,7 +156,7 @@ function StatPart({
   textVariant,
 }: {
   children: React.ReactNode;
-  part: EntityHeaderStatPart<EntityHeaderStatValue>;
+  part: EntityHeaderStatPartBehavior;
   styles: typeof LABEL_STYLES | typeof VALUE_STYLES;
   textVariant?: 'muted';
 }) {
