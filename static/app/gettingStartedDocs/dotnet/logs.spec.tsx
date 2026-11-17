@@ -18,6 +18,9 @@ describe('dotnet logs onboarding docs', () => {
       await screen.findByText(textWithMarkupMatcher(/SentrySdk\.Logger\.LogInfo/))
     ).toBeInTheDocument();
     expect(
+      screen.getByText(textWithMarkupMatcher(/SentrySdk\.Init\(options =>/))
+    ).toBeInTheDocument();
+    expect(
       screen.queryByText(textWithMarkupMatcher(/EnableLogs = true/))
     ).not.toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'logs documentation'})).toHaveAttribute(
@@ -58,6 +61,13 @@ describe('dotnet logs onboarding docs', () => {
     expect(
       screen.getByText(textWithMarkupMatcher(/in the UseSentry callback/))
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(
+          /builder\.UseSentry\(options =>[\s\S]*options\.EnableLogs = true;/
+        )
+      )
+    ).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'logs documentation'})).toHaveAttribute(
       'href',
       'https://docs.sentry.io/platforms/dotnet/guides/maui/logs/'
@@ -68,6 +78,11 @@ describe('dotnet logs onboarding docs', () => {
       screen.getByText(
         textWithMarkupMatcher(/dotnet add package Sentry\.Maui -v 1\.99\.9/)
       )
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'appsettings.json'}));
+    expect(
+      screen.getByText(textWithMarkupMatcher(/"EnableLogs": true/))
     ).toBeInTheDocument();
   });
 

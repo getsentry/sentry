@@ -20,7 +20,7 @@ Install-Package Sentry.AspNet -Version ${getPackageVersion(
 const getInstallSnippetEntityFramework = (params: DocsParams) => `
 Install-Package Sentry.EntityFramework -Version ${getPackageVersion(
   params,
-  'sentry.dotnet.aspnet',
+  'sentry.dotnet.ef',
   '7.0.0'
 )}`;
 

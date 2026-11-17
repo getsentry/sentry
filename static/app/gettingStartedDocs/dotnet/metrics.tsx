@@ -14,6 +14,13 @@ import {
   type DotNetSdkPackage,
 } from './utils';
 
+const METRICS_EMIT_SNIPPET = `SentrySdk.Metrics.EmitCounter("button_click", 5,
+    [new KeyValuePair<string, object>("browser", "Firefox"), new KeyValuePair<string, object>("app_version", "1.0.0")]);
+SentrySdk.Metrics.EmitDistribution("page_load", 15.0, MeasurementUnit.Duration.Millisecond,
+    [new KeyValuePair<string, object>("page", "/home")]);
+SentrySdk.Metrics.EmitGauge("page_load", 15.0, MeasurementUnit.Duration.Millisecond,
+    [new KeyValuePair<string, object>("page", "/home")]);`;
+
 export const metricsVerify = (params: DocsParams): ContentBlock => ({
   type: 'conditional',
   condition: params.isMetricsSelected,
@@ -27,13 +34,7 @@ export const metricsVerify = (params: DocsParams): ContentBlock => ({
     {
       type: 'code',
       language: 'csharp',
-      code: `SentrySdk.Metrics.EmitCounter("button_click", 5,
-    [new KeyValuePair<string, object>("browser", "Firefox"), new KeyValuePair<string, object>("app_version", "1.0.0")]);
-SentrySdk.Metrics.EmitDistribution("page_load", 15.0, MeasurementUnit.Duration.Millisecond,
-    [new KeyValuePair<string, object>("page", "/home")]);
-SentrySdk.Metrics.EmitGauge("page_load", 15.0, MeasurementUnit.Duration.Millisecond,
-    [new KeyValuePair<string, object>("page", "/home")]);
-`,
+      code: METRICS_EMIT_SNIPPET,
     },
     {
       type: 'text',
@@ -43,13 +44,6 @@ SentrySdk.Metrics.EmitGauge("page_load", 15.0, MeasurementUnit.Duration.Millisec
     },
   ],
 });
-
-const METRICS_EMIT_SNIPPET = `SentrySdk.Metrics.EmitCounter("button_click", 5,
-    [new KeyValuePair<string, object>("browser", "Firefox"), new KeyValuePair<string, object>("app_version", "1.0.0")]);
-SentrySdk.Metrics.EmitDistribution("page_load", 15.0, MeasurementUnit.Duration.Millisecond,
-    [new KeyValuePair<string, object>("page", "/home")]);
-SentrySdk.Metrics.EmitGauge("page_load", 15.0, MeasurementUnit.Duration.Millisecond,
-    [new KeyValuePair<string, object>("page", "/home")]);`;
 
 /**
  * @param hostInitializesSdk For platforms where the host starts Sentry, through

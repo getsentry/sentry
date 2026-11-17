@@ -56,17 +56,28 @@ describe('gcpfunctions onboarding docs', () => {
   it('renders the logs onboarding for this platform', async () => {
     renderWithOnboardingLayout(
       {onboarding: docs.logsOnboarding!},
-      {selectedProducts: [ProductSolution.LOGS]}
+      {
+        releaseRegistry: {'sentry.dotnet.google-cloud-function': {version: '1.99.9'}},
+        selectedProducts: [ProductSolution.LOGS],
+      }
     );
 
     expect(
       await screen.findByText(
-        textWithMarkupMatcher(/Install-Package Sentry\.Google\.Cloud\.Functions -Version/)
+        textWithMarkupMatcher(
+          /Install-Package Sentry\.Google\.Cloud\.Functions -Version 1\.99\.9/
+        )
       )
     ).toBeInTheDocument();
     expect(
       screen.getByText(textWithMarkupMatcher(/logger\.LogInformation/))
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/"EnableLogs": true/))
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/builder\.UseSentry/))
+    ).not.toBeInTheDocument();
   });
 
   it('renders the metrics onboarding for this platform', async () => {

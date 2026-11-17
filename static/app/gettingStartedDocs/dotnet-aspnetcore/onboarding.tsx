@@ -113,7 +113,7 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'text',
           text: tct(
-            'Add Sentry to [code:Program.cs] by calling [code:UseSentry] on [code:builder]:',
+            'Add Sentry to [code:Program.cs] by calling [code:UseSentry] on [code:builder]. On [code:Sentry.AspNetCore] 6.x, which lacks this overload, call [code:builder.WebHost.UseSentry] instead:',
             {code: <code />}
           ),
         },

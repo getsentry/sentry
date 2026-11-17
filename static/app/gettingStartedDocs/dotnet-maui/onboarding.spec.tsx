@@ -62,17 +62,24 @@ describe('maui onboarding docs', () => {
   it('renders the logs onboarding for this platform', async () => {
     renderWithOnboardingLayout(
       {onboarding: docs.logsOnboarding!},
-      {selectedProducts: [ProductSolution.LOGS]}
+      {
+        releaseRegistry: {'sentry.dotnet.maui': {version: '1.99.9'}},
+        selectedProducts: [ProductSolution.LOGS],
+      }
     );
 
     expect(
       await screen.findByText(
-        textWithMarkupMatcher(/Install-Package Sentry\.Maui -Version/)
+        textWithMarkupMatcher(/Install-Package Sentry\.Maui -Version 1\.99\.9/)
       )
     ).toBeInTheDocument();
     expect(
       screen.getByText(textWithMarkupMatcher(/logger\.LogInformation/))
     ).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'logs documentation'})).toHaveAttribute(
+      'href',
+      'https://docs.sentry.io/platforms/dotnet/guides/maui/logs/'
+    );
   });
 
   it('renders the metrics onboarding for this platform', async () => {

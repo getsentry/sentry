@@ -14,7 +14,20 @@ import {
   type DotNetSdkPackage,
 } from './utils';
 
-const INJECTED_LOGGER = 'logger';
+/**
+ * The `ILogger` a verify snippet logs through: `logger` stands for an `ILogger<T>` that
+ * the user's class takes from dependency injection, and `app.Logger` is the
+ * `WebApplication`'s logger.
+ */
+type DotNetLogger = 'logger' | 'app.Logger';
+
+const getEnableLogsAppSettingsSnippet = (params: DocsParams) => `{
+  "Sentry": {
+    "Dsn": "${params.dsn.public}",
+    // Send ILogger entries to Sentry as logs
+    "EnableLogs": true
+  }
+}`;
 
 export const logsVerify = (params: DocsParams): ContentBlock => ({
   type: 'conditional',
@@ -39,12 +52,12 @@ SentrySdk.Logger.LogError("A {0} log message", "formatted");`,
  * The second line logs a warning, not an error: `ILogger` entries at `Error` and above
  * also create an issue in Sentry, which a test log shouldn't.
  *
- * @param logger The `ILogger` to log through. The default, `logger`, stands for an
- * `ILogger<T>` the user injects, and the text says so.
+ * @param logger The `ILogger` to log through. For the default, `logger`, the text says
+ * it is an `ILogger<T>` taken from dependency injection.
  */
 export const loggerLogsVerify = (
   params: DocsParams,
-  logger = INJECTED_LOGGER
+  logger: DotNetLogger = 'logger'
 ): ContentBlock => ({
   type: 'conditional',
   condition: params.isLogsSelected,
@@ -52,7 +65,7 @@ export const loggerLogsVerify = (
     {
       type: 'text',
       text:
-        logger === INJECTED_LOGGER
+        logger === 'logger'
           ? tct(
               'Send a test log through an [code:ILogger<T>] that your class takes from dependency injection, then refresh this page to verify it arrived in Sentry.',
               {
@@ -83,14 +96,18 @@ ${logger}.LogWarning("A {Parameter} log message", "formatted");`,
  * `Sentry`. Installing `Sentry` at a newer major version than the platform's package
  * breaks the app, at build or at startup.
  * @param docsGuide The docs guide whose logs page to link, for platforms that have one.
+ * @param appSettingsOnly For platforms with a `logger` whose host has no `UseSentry`
+ * callback, so the `EnableLogs` opt-in can only go in `appsettings.json`.
  */
 export const logs = ({
   logger,
   sdkPackage,
   docsGuide,
+  appSettingsOnly,
 }: {
+  appSettingsOnly?: boolean;
   docsGuide?: string;
-  logger?: string;
+  logger?: DotNetLogger;
   sdkPackage?: DotNetSdkPackage;
 } = {}): OnboardingConfig => ({
   install: params => [
@@ -132,13 +149,46 @@ export const logs = ({
           ? ([
               {
                 type: 'text',
-                text: tct(
-                  'To send the entries your app writes through [code:ILogger] to Sentry as logs, set [code:EnableLogs] to [code:true] where you configure Sentry: in the [code:UseSentry] callback, or in the [code:Sentry] section of [code:appsettings.json].',
-                  {
-                    code: <code />,
-                  }
-                ),
+                text: appSettingsOnly
+                  ? tct(
+                      'To send the entries your app writes through [code:ILogger] to Sentry as logs, set [code:EnableLogs] to [code:true] in the [code:Sentry] section of [code:appsettings.json]:',
+                      {
+                        code: <code />,
+                      }
+                    )
+                  : tct(
+                      'To send the entries your app writes through [code:ILogger] to Sentry as logs, set [code:EnableLogs] to [code:true] where you configure Sentry: in the [code:UseSentry] callback, or in the [code:Sentry] section of [code:appsettings.json]:',
+                      {
+                        code: <code />,
+                      }
+                    ),
               },
+              appSettingsOnly
+                ? {
+                    type: 'code',
+                    language: 'json',
+                    code: getEnableLogsAppSettingsSnippet(params),
+                  }
+                : {
+                    type: 'code',
+                    tabs: [
+                      {
+                        label: 'UseSentry',
+                        language: 'csharp',
+                        code: `builder.UseSentry(options =>
+{
+    options.Dsn = "${params.dsn.public}";
+    // Send ILogger entries to Sentry as logs
+    options.EnableLogs = true;
+});`,
+                      },
+                      {
+                        label: 'appsettings.json',
+                        language: 'json',
+                        code: getEnableLogsAppSettingsSnippet(params),
+                      },
+                    ],
+                  },
             ] satisfies ContentBlock[])
           : ([
               {

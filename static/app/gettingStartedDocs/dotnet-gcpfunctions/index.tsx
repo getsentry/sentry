@@ -16,6 +16,6 @@ export const docs: Docs = {
   onboarding,
   feedbackOnboardingCrashApi: feedback,
   crashReportOnboarding: crashReport,
-  logsOnboarding: logs({logger: 'logger', sdkPackage}),
+  logsOnboarding: logs({logger: 'logger', sdkPackage, appSettingsOnly: true}),
   metricsOnboarding: metrics({hostInitializesSdk: true, sdkPackage}),
 };

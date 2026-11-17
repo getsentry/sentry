@@ -13,6 +13,9 @@ describe('aspnet onboarding docs', () => {
         'sentry.dotnet.aspnet': {
           version: '1.99.9',
         },
+        'sentry.dotnet.ef': {
+          version: '2.88.8',
+        },
       },
       selectedProducts: [
         ProductSolution.PERFORMANCE_MONITORING,
@@ -31,6 +34,11 @@ describe('aspnet onboarding docs', () => {
     expect(
       await screen.findByText(
         textWithMarkupMatcher(/Install-Package Sentry.AspNet -Version 1\.99\.9/)
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher(/Install-Package Sentry\.EntityFramework -Version 2\.88\.8/)
       )
     ).toBeInTheDocument();
   });
@@ -61,12 +69,15 @@ describe('aspnet onboarding docs', () => {
   it('renders the logs onboarding for this platform', async () => {
     renderWithOnboardingLayout(
       {onboarding: docs.logsOnboarding!},
-      {selectedProducts: [ProductSolution.LOGS]}
+      {
+        releaseRegistry: {'sentry.dotnet.aspnet': {version: '1.99.9'}},
+        selectedProducts: [ProductSolution.LOGS],
+      }
     );
 
     expect(
       await screen.findByText(
-        textWithMarkupMatcher(/Install-Package Sentry\.AspNet -Version/)
+        textWithMarkupMatcher(/Install-Package Sentry\.AspNet -Version 1\.99\.9/)
       )
     ).toBeInTheDocument();
     expect(
