@@ -557,6 +557,40 @@ describe('DropdownMenu', () => {
     expect(onAction).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps an empty submenu as a submenu trigger', async () => {
+    const onAction = jest.fn();
+    render(
+      <DropdownMenu
+        triggerLabel="Projects"
+        items={[
+          {
+            key: 'all-projects',
+            label: 'All Projects',
+            onAction,
+            submenu: {
+              emptyMessage: 'No projects found',
+              search: {placeholder: 'Search projects'},
+            },
+            children: [],
+          },
+        ]}
+      />,
+      {wrapper: ThemeWrapper}
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
+    const trigger = screen.getByRole('menuitem', {name: 'All Projects'});
+    expect(trigger).toHaveAttribute('aria-haspopup', 'menu');
+
+    await userEvent.hover(trigger);
+    const search = await screen.findByRole('searchbox', {name: 'Search projects'});
+    await userEvent.type(search, 'sentry');
+    expect(await screen.findByText('No projects found')).toBeInTheDocument();
+
+    await userEvent.click(trigger);
+    expect(onAction).not.toHaveBeenCalled();
+  });
+
   it('returns from the first enabled item to search when a disabled item comes first', async () => {
     render(
       <DropdownMenu

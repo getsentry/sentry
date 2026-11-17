@@ -656,7 +656,7 @@ function DropdownSubmenu({
   }
   const submenu = node.value?.submenu;
   const options = typeof submenu === 'object' ? submenu : {};
-  const isDisabled = state.disabledKeys.has(node.key) || items.length === 0;
+  const isDisabled = state.disabledKeys.has(node.key);
   const submenuState = useDropdownSubmenuState({
     level: submenuLevel,
     rootMenuState,
