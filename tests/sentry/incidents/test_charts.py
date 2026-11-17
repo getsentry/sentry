@@ -12,13 +12,15 @@ from sentry.incidents.charts import (
 )
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.typings.metric_detector import AlertContext, OpenPeriodContext
-from sentry.incidents.utils.process_update_helpers import calculate_event_date_from_update_date
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.types.group import PriorityLevel
+from sentry.workflow_engine.endpoints.serializers.group_open_period_serializer import (
+    calculate_event_date_from_update_date,
+)
 from sentry.workflow_engine.models import Detector, DetectorGroup
 from tests.sentry.incidents.utils.test_metric_issue_base import BaseMetricIssueTest
 

@@ -3,11 +3,12 @@ from unittest import mock
 
 from django.utils import timezone
 
-from sentry.incidents.utils.process_update_helpers import get_aggregation_value
-from sentry.incidents.utils.types import QuerySubscriptionUpdate
+from sentry.incidents.utils.process_update_helpers import (
+    coerce_aggregation_value,
+    run_query_for_window,
+)
 from sentry.search.exceptions import InvalidIssueSearchQuery
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.entity_subscription import get_entity_subscription_from_snuba_query
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import create_snuba_query
 from sentry.testutils.cases import TestCase
@@ -24,7 +25,7 @@ class InvalidIssueSearchQueryTest(TestCase):
         assert "do not exist" in str(exc)
 
 
-class GetAggregationValueTest(TestCase):
+class RunQueryForWindowTest(TestCase):
     def test_missing_issue_ids_returns_none_gracefully(self) -> None:
         now = timezone.now()
         start = now - timedelta(minutes=5)
@@ -44,76 +45,42 @@ class GetAggregationValueTest(TestCase):
             ],
         )
 
-        entity_subscription = get_entity_subscription_from_snuba_query(
-            snuba_query, self.organization.id
-        )
-
-        subscription_update: QuerySubscriptionUpdate = {
-            "entity": "events",
-            "subscription_id": "test-sub-id",
-            "timestamp": end,
-            "values": {"data": [{"count": 0}]},
-        }
-
         with mock.patch("sentry.incidents.utils.process_update_helpers.logger") as mock_logger:
-            result = get_aggregation_value(
-                entity_subscription=entity_subscription,
-                subscription_update=subscription_update,
+            result = run_query_for_window(
                 snuba_query=snuba_query,
+                subscription_id="test-sub-id",
+                org_id=self.organization.id,
                 project_ids=[self.project.id],
-                organization_id=self.organization.id,
-                start=start,
-                end=end,
-                alert_rule_id=None,
+                window_start=start,
+                window_end=end,
+                referrer="test.referrer",
             )
 
             assert result is None
             mock_logger.info.assert_called_once()
             call_args = mock_logger.info.call_args
-            assert "non-existent issue IDs" in call_args[0][0]
+            assert "invalid search query" in call_args[0][0]
 
 
-class GetAggregationValueHelperTest(TestCase):
-    def _update(self, value: object) -> QuerySubscriptionUpdate:
-        from sentry.incidents.utils.types import QuerySubscriptionUpdate
-
-        update: QuerySubscriptionUpdate = {
-            "entity": "events",
-            "subscription_id": "test-sub-id",
-            "timestamp": timezone.now(),
-            "values": {"data": [{"max_transaction_duration": value}]},
-        }
-        return update
-
-    def test_none_defaults_to_zero(self) -> None:
-        from sentry.incidents.utils.process_update_helpers import get_aggregation_value_helper
-
-        assert get_aggregation_value_helper(self._update(None)) == 0.0
+class NormalizeSnubaQueryResultTest(TestCase):
+    def test_none(self) -> None:
+        assert coerce_aggregation_value(None) is None
+        assert coerce_aggregation_value(None, none_defaults_to_zero=True) == 0.0
 
     def test_numeric_values(self) -> None:
-        from sentry.incidents.utils.process_update_helpers import get_aggregation_value_helper
-
-        assert get_aggregation_value_helper(self._update(12.5)) == 12.5
-        assert get_aggregation_value_helper(self._update(3)) == 3.0
+        assert coerce_aggregation_value(12.5) == 12.5
+        assert coerce_aggregation_value(3) == 3.0
 
     def test_empty_string_returns_none(self) -> None:
-        from sentry.incidents.utils.process_update_helpers import get_aggregation_value_helper
-
-        assert get_aggregation_value_helper(self._update("")) is None
-        assert get_aggregation_value_helper(self._update("   ")) is None
+        assert coerce_aggregation_value("") is None
+        assert coerce_aggregation_value("   ") is None
 
     def test_numeric_string(self) -> None:
-        from sentry.incidents.utils.process_update_helpers import get_aggregation_value_helper
-
-        assert get_aggregation_value_helper(self._update("42.5")) == 42.5
+        assert coerce_aggregation_value("42.5") == 42.5
 
     def test_non_numeric_string_returns_none(self) -> None:
-        from sentry.incidents.utils.process_update_helpers import get_aggregation_value_helper
-
-        assert get_aggregation_value_helper(self._update("not-a-number")) is None
+        assert coerce_aggregation_value("not-a-number") is None
 
     def test_bool_values(self) -> None:
-        from sentry.incidents.utils.process_update_helpers import get_aggregation_value_helper
-
-        assert get_aggregation_value_helper(self._update(True)) == 1.0
-        assert get_aggregation_value_helper(self._update(False)) == 0.0
+        assert coerce_aggregation_value(True) == 1.0
+        assert coerce_aggregation_value(False) == 0.0

@@ -177,9 +177,9 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
     # We probably need similar logic within workflow engine.
 
 
-class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
+class PercentDetectorProcessUpdateTest(ProcessUpdateBaseClass):
     @cached_property
-    def comparison_detector_above(self) -> Detector:
+    def increase_detector(self) -> Detector:
         self.detector.config.update({"detection_type": "percent", "comparison_delta": 60 * 60})
         self.detector.save()
         self.update_threshold(self.detector, DetectorPriorityLevel.HIGH, 150)
@@ -189,7 +189,7 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
         return self.detector
 
     @cached_property
-    def comparison_detector_below(self) -> Detector:
+    def decrease_detector(self) -> Detector:
         self.detector.config.update({"detection_type": "percent", "comparison_delta": 60 * 60})
         self.detector.save()
         DataCondition.objects.filter(
@@ -200,41 +200,36 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
         snuba_query.update(time_window=60 * 60)
         return self.detector
 
-    @patch("sentry.incidents.utils.process_update_helpers.metrics")
-    def test_comparison_alert_above(self, helper_metrics: MagicMock) -> None:
-        detector = self.comparison_detector_above
+    def test_increase_detector(self) -> None:
+        detector = self.increase_detector
         comparison_delta = timedelta(seconds=detector.config["comparison_delta"])
         self.send_update(self.critical_threshold + 1, timedelta(minutes=-10))
 
-        # Shouldn't trigger, since there should be no data in the comparison period
+        # Shouldn't trigger, since the baseline is 0
         assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
-        helper_metrics.incr.assert_has_calls(
-            [
-                call("incidents.alert_rules.skipping_update_comparison_value_invalid"),
-            ]
-        )
         self.metrics.incr.assert_has_calls(
             [
+                call("incidents.alert_rules.skipping_update_comparison_value_invalid"),
                 call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
             ]
         )
-        comparison_date = timezone.now() - comparison_delta
+        baseline_window_end = timezone.now() - comparison_delta
 
         for i in range(4):
             self.store_event(
                 data={
-                    "timestamp": (comparison_date - timedelta(minutes=30 + i)).isoformat(),
+                    "timestamp": (baseline_window_end - timedelta(minutes=30 + i)).isoformat(),
                     "environment": self.environment.name,
                 },
                 project_id=self.project.id,
             )
         self.metrics.incr.reset_mock()
         self.send_update(2, timedelta(minutes=-9))
-        # Shouldn't trigger, since there are 4 events in the comparison period, and 2/4 == 50%
+        # Shouldn't trigger, since the baseline is 4, and 2/4 == 50%
         assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
 
         self.send_update(4, timedelta(minutes=-8))
-        # Shouldn't trigger, since there are 4 events in the comparison period, and 4/4 == 100%
+        # Shouldn't trigger, since the baseline is 4, and 4/4 == 100%
         assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
 
         self.send_update(6, timedelta(minutes=-7))
@@ -249,30 +244,25 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
         self.send_update(6, timedelta(minutes=-5))
         assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
 
-    @patch("sentry.incidents.utils.process_update_helpers.metrics")
-    def test_comparison_alert_below(self, helper_metrics: MagicMock) -> None:
-        detector = self.comparison_detector_below
+    def test_decrease_detector(self) -> None:
+        detector = self.decrease_detector
         comparison_delta = timedelta(seconds=detector.config["comparison_delta"])
         self.send_update(self.critical_threshold - 1, timedelta(minutes=-10))
 
-        # Shouldn't trigger, since there should be no data in the comparison period
+        # Shouldn't trigger, since the baseline is 0
         assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
-        helper_metrics.incr.assert_has_calls(
-            [
-                call("incidents.alert_rules.skipping_update_comparison_value_invalid"),
-            ]
-        )
         self.metrics.incr.assert_has_calls(
             [
+                call("incidents.alert_rules.skipping_update_comparison_value_invalid"),
                 call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
             ]
         )
-        comparison_date = timezone.now() - comparison_delta
+        baseline_window_end = timezone.now() - comparison_delta
 
         for i in range(4):
             self.store_event(
                 data={
-                    "timestamp": (comparison_date - timedelta(minutes=30 + i)).isoformat(),
+                    "timestamp": (baseline_window_end - timedelta(minutes=30 + i)).isoformat(),
                     "environment": self.environment.name,
                 },
                 project_id=self.project.id,
@@ -280,11 +270,11 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
 
         self.metrics.incr.reset_mock()
         self.send_update(6, timedelta(minutes=-9))
-        # Shouldn't trigger, since there are 4 events in the comparison period, and 6/4 == 150%
+        # Shouldn't trigger, since the baseline is 4, and 6/4 == 150%
         assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
 
         self.send_update(4, timedelta(minutes=-8))
-        # Shouldn't trigger, since there are 4 events in the comparison period, and 4/4 == 100%
+        # Shouldn't trigger, since the baseline is 4, and 4/4 == 100%
         assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
 
         self.send_update(2, timedelta(minutes=-7))
@@ -299,9 +289,8 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
         self.send_update(2, timedelta(minutes=-5))
         assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
 
-    @patch("sentry.incidents.utils.process_update_helpers.metrics")
-    def test_comparison_alert_eap(self, helper_metrics: MagicMock) -> None:
-        detector = self.comparison_detector_above
+    def test_eap_increase_detector(self) -> None:
+        detector = self.increase_detector
         self.snuba_query.update(
             aggregate="count(span.duration)",
             dataset=Dataset.EventsAnalyticsPlatform.value,
@@ -309,20 +298,16 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
         )
         self.send_update(self.critical_threshold + 1, timedelta(minutes=-10))
 
-        # Shouldn't trigger, since there should be no data in the comparison period
+        # Shouldn't trigger, since the baseline is 0
         assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
-        helper_metrics.incr.assert_has_calls(
-            [
-                call("incidents.alert_rules.skipping_update_comparison_value_invalid"),
-            ]
-        )
         self.metrics.incr.assert_has_calls(
             [
+                call("incidents.alert_rules.skipping_update_comparison_value_invalid"),
                 call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
             ]
         )
         comparison_delta = timedelta(seconds=detector.config["comparison_delta"])
-        comparison_date = timezone.now() - comparison_delta
+        baseline_window_end = timezone.now() - comparison_delta
 
         spans = []
         for i in range(4):
@@ -334,7 +319,7 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
                         "tags": {"foo": "five"},
                     },
                     measurements={"foo": {"value": 5}},
-                    start_ts=(comparison_date - timedelta(minutes=30 + i)),
+                    start_ts=(baseline_window_end - timedelta(minutes=30 + i)),
                     project=self.project,
                 )
             )
@@ -343,11 +328,11 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
 
         self.metrics.incr.reset_mock()
         self.send_update(2, timedelta(minutes=-9))
-        # Shouldn't trigger, since there are 4 events in the comparison period, and 2/4 == 50%
+        # Shouldn't trigger, since the baseline is 4, and 2/4 == 50%
         assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
 
         self.send_update(4, timedelta(minutes=-8))
-        # Shouldn't trigger, since there are 4 events in the comparison period, and 4/4 == 100%
+        # Shouldn't trigger, since the baseline is 4, and 4/4 == 100%
         assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
 
         self.send_update(6, timedelta(minutes=-7))
@@ -362,32 +347,27 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
         self.send_update(6, timedelta(minutes=-5))
         assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
 
-    @patch("sentry.incidents.utils.process_update_helpers.metrics")
-    def test_is_unresolved_comparison_query(self, helper_metrics: MagicMock) -> None:
+    def test_is_unresolved_query(self) -> None:
         """
         Test that uses the ErrorsQueryBuilder (because of the specific query)
         """
-        detector = self.comparison_detector_above
+        detector = self.increase_detector
         comparison_delta = timedelta(seconds=detector.config["comparison_delta"])
         snuba_query = self.get_snuba_query(detector)
         snuba_query.update(query="(event.type:error) AND (is:unresolved)")
 
-        self.send_update(self.critical_threshold + 1, timedelta(minutes=-10), subscription=self.sub)
-        helper_metrics.incr.assert_has_calls(
-            [
-                call("incidents.alert_rules.skipping_update_comparison_value_invalid"),
-            ]
-        )
+        self.send_update(self.critical_threshold + 1, timedelta(minutes=-10))
         self.metrics.incr.assert_has_calls(
             [
+                call("incidents.alert_rules.skipping_update_comparison_value_invalid"),
                 call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
             ]
         )
-        comparison_date = timezone.now() - comparison_delta
+        baseline_window_end = timezone.now() - comparison_delta
 
         for i in range(4):
             data = {
-                "timestamp": (comparison_date - timedelta(minutes=30 + i)).isoformat(),
+                "timestamp": (baseline_window_end - timedelta(minutes=30 + i)).isoformat(),
                 "environment": self.environment.name,
                 "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
                 "fingerprint": ["group2"],
@@ -408,11 +388,11 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
 
         self.metrics.incr.reset_mock()
         self.send_update(2, timedelta(minutes=-9))
-        # Shouldn't trigger, since there are 4 events in the comparison period, and 2/4 == 50%
+        # Shouldn't trigger, since the baseline is 4, and 2/4 == 50%
         assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
 
         self.send_update(4, timedelta(minutes=-8))
-        # Shouldn't trigger, since there are 4 events in the comparison period, and 4/4 == 100%
+        # Shouldn't trigger, since the baseline is 4, and 4/4 == 100%
         assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
 
         self.send_update(6, timedelta(minutes=-7))
@@ -427,30 +407,25 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
         self.send_update(6, timedelta(minutes=-5))
         assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
 
-    @patch("sentry.incidents.utils.process_update_helpers.metrics")
-    def test_is_unresolved_different_aggregate(self, helper_metrics: MagicMock) -> None:
-        detector = self.comparison_detector_above
+    def test_unique_users_query(self) -> None:
+        detector = self.increase_detector
         comparison_delta = timedelta(seconds=detector.config["comparison_delta"])
         snuba_query = self.get_snuba_query(detector)
         snuba_query.update(aggregate="count_unique(tags[sentry:user])")
 
-        self.send_update(self.critical_threshold + 1, timedelta(minutes=-10), subscription=self.sub)
-        helper_metrics.incr.assert_has_calls(
-            [
-                call("incidents.alert_rules.skipping_update_comparison_value_invalid"),
-            ]
-        )
+        self.send_update(self.critical_threshold + 1, timedelta(minutes=-10))
         self.metrics.incr.assert_has_calls(
             [
+                call("incidents.alert_rules.skipping_update_comparison_value_invalid"),
                 call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
             ]
         )
-        comparison_date = timezone.now() - comparison_delta
+        baseline_window_end = timezone.now() - comparison_delta
 
         for i in range(4):
             self.store_event(
                 data={
-                    "timestamp": (comparison_date - timedelta(minutes=30 + i)).isoformat(),
+                    "timestamp": (baseline_window_end - timedelta(minutes=30 + i)).isoformat(),
                     "environment": self.environment.name,
                     "tags": {"sentry:user": i},
                 },
@@ -459,11 +434,11 @@ class ProcessUpdateComparisonAlertTest(ProcessUpdateBaseClass):
 
         self.metrics.incr.reset_mock()
         self.send_update(2, timedelta(minutes=-9))
-        # Shouldn't trigger, since there are 4 events in the comparison period, and 2/4 == 50%
+        # Shouldn't trigger, since the baseline is 4, and 2/4 == 50%
         assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
 
         self.send_update(4, timedelta(minutes=-8))
-        # Shouldn't trigger, since there are 4 events in the comparison period, and 4/4 == 100%
+        # Shouldn't trigger, since the baseline is 4, and 4/4 == 100%
         assert self.get_detector_state(detector) == DetectorPriorityLevel.OK
 
         self.send_update(6, timedelta(minutes=-7))
@@ -861,10 +836,7 @@ class MetricsCrashRateDetectorProcessUpdateTest(ProcessUpdateBaseClass, BaseMetr
         )
         assert self.get_detector_state(self.detector) == DetectorPriorityLevel.MEDIUM
 
-    @patch("sentry.incidents.utils.process_update_helpers.metrics")
-    def test_crash_rate_detector_for_sessions_with_no_sessions_data(
-        self, helper_metrics: MagicMock
-    ) -> None:
+    def test_crash_rate_detector_for_sessions_with_no_sessions_data(self) -> None:
         """
         Test that ensures we skip the crash rate detector processing if we have no sessions data
         """
@@ -873,22 +845,15 @@ class MetricsCrashRateDetectorProcessUpdateTest(ProcessUpdateBaseClass, BaseMetr
             value=None,
             subscription=self.sub,
         )
-        helper_metrics.incr.assert_has_calls(
-            [
-                call("incidents.alert_rules.ignore_update_no_session_data"),
-            ]
-        )
         self.metrics.incr.assert_has_calls(
             [
+                call("incidents.alert_rules.ignore_update_no_session_data"),
                 call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
             ]
         )
 
-    @patch("sentry.incidents.utils.process_update_helpers.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
-    @patch("sentry.incidents.utils.process_update_helpers.metrics")
-    def test_crash_rate_detector_when_session_count_is_lower_than_minimum_threshold(
-        self, helper_metrics: MagicMock
-    ) -> None:
+    @patch("sentry.incidents.subscription_processor.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
+    def test_crash_rate_detector_when_session_count_is_lower_than_minimum_threshold(self) -> None:
         # Send Critical Update
         update_value = (1 - self.critical_threshold / 100) + 0.05
         self.send_crash_rate_detector_update(
@@ -898,18 +863,14 @@ class MetricsCrashRateDetectorProcessUpdateTest(ProcessUpdateBaseClass, BaseMetr
             subscription=self.sub,
         )
         assert self.get_detector_state(self.detector) == DetectorPriorityLevel.OK
-        helper_metrics.incr.assert_has_calls(
-            [
-                call("incidents.alert_rules.ignore_update_count_lower_than_min_threshold"),
-            ]
-        )
         self.metrics.incr.assert_has_calls(
             [
+                call("incidents.alert_rules.ignore_update_count_lower_than_min_threshold"),
                 call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
             ]
         )
 
-    @patch("sentry.incidents.utils.process_update_helpers.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
+    @patch("sentry.incidents.subscription_processor.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
     def test_crash_rate_detector_when_session_count_is_higher_than_minimum_threshold(self) -> None:
         # Send Critical Update
         update_value = (1 - self.critical_threshold / 100) + 0.05
@@ -921,10 +882,7 @@ class MetricsCrashRateDetectorProcessUpdateTest(ProcessUpdateBaseClass, BaseMetr
         )
         assert self.get_detector_state(self.detector) == DetectorPriorityLevel.HIGH
 
-    @patch("sentry.incidents.utils.process_update_helpers.metrics")
-    def test_multiple_threshold_trigger_is_reset_when_no_sessions_data(
-        self, helper_metrics: MagicMock
-    ) -> None:
+    def test_multiple_threshold_trigger_is_reset_when_no_sessions_data(self) -> None:
         update_value = (1 - self.critical_threshold / 100) + 0.05
         self.send_crash_rate_detector_update(
             value=update_value,
@@ -938,22 +896,17 @@ class MetricsCrashRateDetectorProcessUpdateTest(ProcessUpdateBaseClass, BaseMetr
             time_delta=timedelta(minutes=-1),
             subscription=self.sub,
         )
-        helper_metrics.incr.assert_has_calls(
-            [
-                call("incidents.alert_rules.ignore_update_no_session_data"),
-            ],
-        )
         self.metrics.incr.assert_has_calls(
             [
+                call("incidents.alert_rules.ignore_update_no_session_data"),
                 call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
             ]
         )
         assert self.get_detector_state(self.detector) == DetectorPriorityLevel.HIGH
 
-    @patch("sentry.incidents.utils.process_update_helpers.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
-    @patch("sentry.incidents.utils.process_update_helpers.metrics")
+    @patch("sentry.incidents.subscription_processor.CRASH_RATE_ALERT_MINIMUM_THRESHOLD", 30)
     def test_multiple_threshold_trigger_is_reset_when_count_is_lower_than_min_threshold(
-        self, helper_metrics: MagicMock
+        self,
     ) -> None:
         update_value = (1 - self.critical_threshold / 100) + 0.05
         subscription = self.sub
@@ -971,22 +924,15 @@ class MetricsCrashRateDetectorProcessUpdateTest(ProcessUpdateBaseClass, BaseMetr
             time_delta=timedelta(minutes=-1),
             subscription=subscription,
         )
-        helper_metrics.incr.assert_has_calls(
-            [
-                call("incidents.alert_rules.ignore_update_count_lower_than_min_threshold"),
-            ],
-        )
         self.metrics.incr.assert_has_calls(
             [
+                call("incidents.alert_rules.ignore_update_count_lower_than_min_threshold"),
                 call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
-            ],
+            ]
         )
         assert self.get_detector_state(self.detector) == DetectorPriorityLevel.HIGH
 
-    @patch("sentry.incidents.utils.process_update_helpers.metrics")
-    def test_ensure_case_when_no_metrics_index_not_found_is_handled_gracefully(
-        self, helper_metrics: MagicMock
-    ) -> None:
+    def test_ensure_case_when_no_metrics_index_not_found_is_handled_gracefully(self) -> None:
         with self.feature("organizations:performance-view"):
             SubscriptionProcessor.process(
                 self.sub,
@@ -1009,14 +955,9 @@ class MetricsCrashRateDetectorProcessUpdateTest(ProcessUpdateBaseClass, BaseMetr
                 },
             )
         assert self.get_detector_state(self.detector) == DetectorPriorityLevel.OK
-        helper_metrics.incr.assert_has_calls(
-            [
-                call("incidents.alert_rules.ignore_update_no_session_data"),
-            ]
-        )
-
         self.metrics.incr.assert_has_calls(
             [
+                call("incidents.alert_rules.ignore_update_no_session_data"),
                 call("incidents.alert_rules.skipping_update_invalid_aggregation_value"),
             ]
         )
