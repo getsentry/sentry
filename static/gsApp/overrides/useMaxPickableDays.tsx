@@ -3,6 +3,7 @@ import moment from 'moment-timezone';
 
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {DataCategory} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import {
   ErrorsUpsellFooter,
@@ -32,7 +33,8 @@ export function useMaxPickableDays({
     function getMaxPickableDaysFor(dataCategory: DataCategory) {
       const maxPickableDays = getMaxPickableDaysBySubscription(
         dataCategory,
-        subscription
+        subscription,
+        organization
       );
       if (defined(maxPickableDays)) {
         return maxPickableDays;
@@ -46,7 +48,8 @@ export function useMaxPickableDays({
 
 function getMaxPickableDaysBySubscription(
   dataCategory: DataCategory,
-  subscription: Subscription | null
+  subscription: Subscription | null,
+  organization: Organization
 ): MaxPickableDaysOptions | undefined {
   switch (dataCategory) {
     case DataCategory.SPANS:
@@ -77,10 +80,29 @@ function getMaxPickableDaysBySubscription(
       };
     }
     case DataCategory.TRACE_METRICS: {
-      // TODO: undecided for now, fixed at 30 days
+      if (!organization.features.includes('dashboards-tracemetrics-90-day-range')) {
+        return {
+          maxPickableDays: 30,
+          maxUpgradableDays: 30,
+          defaultPeriod: '24h',
+        };
+      }
+
+      // Capped at 90 days because downsampled retention for trace metrics may be
+      // removed, and we don't want customers relying on longer look-backs.
+      const maxPickableDays = Math.min(
+        MAX_PICKABLE_DAYS,
+        Math.max(
+          ...[
+            30, // default 30 day retention
+            subscription?.effectiveRetentions?.traceMetric?.standard,
+            subscription?.effectiveRetentions?.traceMetric?.downsampled,
+          ].filter<number>(defined)
+        )
+      );
       return {
-        maxPickableDays: 30,
-        maxUpgradableDays: 30,
+        maxPickableDays,
+        maxUpgradableDays: maxPickableDays,
         defaultPeriod: '24h',
       };
     }

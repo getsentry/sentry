@@ -286,4 +286,70 @@ describe('useMaxPickableDays', () => {
       });
     });
   });
+
+  describe('trace metrics with dashboards-tracemetrics-90-day-range', () => {
+    const organization = OrganizationFixture({
+      features: ['dashboards-tracemetrics-90-day-range'],
+    });
+
+    it('uses the downsampled trace metrics retention', () => {
+      SubscriptionStore.set(
+        organization.slug,
+        SubscriptionFixture({
+          organization,
+          effectiveRetentions: {traceMetric: {standard: 30, downsampled: 60}},
+        })
+      );
+
+      const {result} = renderHookWithProviders(
+        () => useMaxPickableDays({dataCategories: [DataCategory.TRACE_METRICS]}),
+        {organization}
+      );
+
+      expect(result.current).toEqual({
+        defaultPeriod: '24h',
+        maxPickableDays: 60,
+        maxUpgradableDays: 60,
+      });
+    });
+
+    it('caps the trace metrics retention at 90 days', () => {
+      SubscriptionStore.set(
+        organization.slug,
+        SubscriptionFixture({
+          organization,
+          effectiveRetentions: {traceMetric: {standard: 30, downsampled: 396}},
+        })
+      );
+
+      const {result} = renderHookWithProviders(
+        () => useMaxPickableDays({dataCategories: [DataCategory.TRACE_METRICS]}),
+        {organization}
+      );
+
+      expect(result.current).toEqual({
+        defaultPeriod: '24h',
+        maxPickableDays: 90,
+        maxUpgradableDays: 90,
+      });
+    });
+
+    it('returns 30 days without trace metrics retention', () => {
+      SubscriptionStore.set(
+        organization.slug,
+        SubscriptionFixture({organization, effectiveRetentions: {}})
+      );
+
+      const {result} = renderHookWithProviders(
+        () => useMaxPickableDays({dataCategories: [DataCategory.TRACE_METRICS]}),
+        {organization}
+      );
+
+      expect(result.current).toEqual({
+        defaultPeriod: '24h',
+        maxPickableDays: 30,
+        maxUpgradableDays: 30,
+      });
+    });
+  });
 });
