@@ -122,6 +122,7 @@ from sentry.models.environment import Environment
 from sentry.models.files.control_file import ControlFile
 from sentry.models.files.file import File
 from sentry.models.group import Group
+from sentry.models.grouphash import GroupHash
 from sentry.models.grouphistory import GroupHistory
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupopenperiod import GroupOpenPeriod
@@ -1600,6 +1601,11 @@ class Factories:
                 )
 
         return group
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_group_hash(group: Group, hash: str, **kwargs: Any) -> GroupHash:
+        return GroupHash.objects.create(project=group.project, group=group, hash=hash, **kwargs)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)

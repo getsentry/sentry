@@ -49,6 +49,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.tsdb.base import TSDBModel
 from sentry.utils import redis
+from sentry.utils.query import task_run_batch_query
 
 # Use the default redis client as a cluster client in the similarity index
 index = _make_index_backend(redis.redis_clusters.get_binary("default"))
@@ -210,6 +211,23 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
     @with_feature("projects:similarity-indexing")
     def test_unmerge(self) -> None:
+        self._assert_unmerge({})
+
+    @with_feature("projects:similarity-indexing")
+    def test_unmerge_with_recovery_and_small_batches(self) -> None:
+        with patch(
+            "sentry.tasks.unmerge.task_run_batch_query", wraps=task_run_batch_query
+        ) as query:
+            self._assert_unmerge(
+                {
+                    "operation_id": uuid.uuid4().hex,
+                },
+                batch_size=2,
+            )
+        assert len(query.call_args_list) > 5
+        assert {call.kwargs["batch_size"] for call in query.call_args_list} == {2}
+
+    def _assert_unmerge(self, operation_kwargs: Mapping[str, Any], batch_size: int = 5) -> None:
         # Replace second=0 to ensure all 17 events (now+0s to now+17s)
         # stay within the same hour bucket. Without this, if now is within
         # 17 seconds of an hour boundary, events can cross into the next
@@ -330,7 +348,13 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
         with self.tasks():
             unmerge.delay(
-                project.id, source.id, destination.id, [list(events.keys())[0]], None, batch_size=5
+                project.id,
+                source.id,
+                destination.id,
+                [list(events.keys())[0]],
+                None,
+                batch_size=batch_size,
+                **operation_kwargs,
             )
 
         assert (
@@ -768,10 +792,9 @@ class StartUnmergeTest(TestCase):
                 destination_id=None,
                 fingerprints=["abc", "def"],
                 actor_id=3,
-                batch_size=500,
             )
 
-        mock_delay.assert_called_once_with(1, 2, None, ["abc", "def"], 3, batch_size=500)
+        mock_delay.assert_called_once_with(1, 2, None, ["abc", "def"], 3, batch_size=250)
 
 
 class PublishDestinationFirstSeenTest(TestCase):

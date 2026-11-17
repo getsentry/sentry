@@ -1,3 +1,25 @@
+import uuid
+from dataclasses import replace
+from typing import Any
+from unittest.mock import Mock, patch
+
+import pytest
+from redis.exceptions import ConnectionError as RedisConnectionError
+
+from sentry.db.models.manager.base_query_set import BaseQuerySet
+from sentry.issues.unmerge_recovery import (
+    RETENTION_SECONDS,
+    UnmergeBusy,
+    UnmergeCheckpoint,
+    UnmergeNeedsRecovery,
+    client,
+    owner_key,
+    release_hashes,
+)
+from sentry.models.grouphash import GroupHash
+from sentry.tasks.unmerge import start_unmerge, unmerge
+from sentry.testutils.cases import TestCase
+from sentry.testutils.factories import Factories
 from sentry.unmerge import (
     InitialUnmergeArgs,
     PrimaryHashUnmergeReplacement,
@@ -19,13 +41,13 @@ def test_argument_parsing_endpoint() -> None:
             fingerprints=["a" * 32],
         ),
         actor_id=None,
-        batch_size=500,
+        batch_size=250,
     )
 
     dumped = args.dump_arguments()
     assert dumped == {
         "actor_id": None,
-        "batch_size": 500,
+        "batch_size": 250,
         "destination_id": None,
         "destinations": {},
         "fingerprints": None,
@@ -75,3 +97,419 @@ def test_argument_parsing_page2() -> None:
     )
 
     assert UnmergeArgsBase.parse_arguments(**args.dump_arguments()) == args
+
+
+class UnmergeRecoveryTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.source = self.create_group(project=self.project)
+        self.fingerprint = "a" * 32
+        self.group_hash = Factories.create_group_hash(group=self.source, hash=self.fingerprint)
+        self.args = InitialUnmergeArgs(
+            project_id=self.project.id,
+            source_id=self.source.id,
+            replacement=PrimaryHashUnmergeReplacement(fingerprints=[self.fingerprint]),
+            actor_id=None,
+            batch_size=500,
+            destinations={},
+            operation_id=uuid.uuid4().hex,
+        )
+
+    def test_recovery_arguments_round_trip(self) -> None:
+        arguments = self.args.dump_arguments()
+        assert UnmergeArgsBase.parse_arguments(**arguments) == self.args
+        assert UnmergeArgsBase.parse_arguments(**arguments) == self.args
+
+    def test_lock_intent_survives_transaction_rollback(self) -> None:
+        queryset_type = type(GroupHash.objects.all())
+        original_update = queryset_type.update
+
+        def interrupted_update(
+            queryset: BaseQuerySet[GroupHash, GroupHash], **kwargs: object
+        ) -> int:
+            original_update(queryset, **kwargs)
+            raise KeyboardInterrupt()
+
+        with UnmergeCheckpoint(self.args) as checkpoint:
+            with (
+                patch.object(queryset_type, "update", interrupted_update),
+                pytest.raises(KeyboardInterrupt),
+            ):
+                checkpoint.lock_hashes()
+            assert checkpoint.phase == "reading"
+
+        self.group_hash.refresh_from_db()
+        assert self.group_hash.state == GroupHash.State.UNLOCKED
+        with UnmergeCheckpoint(self.args) as redelivery:
+            assert redelivery.lock_hashes() == [self.fingerprint]
+        self.group_hash.refresh_from_db()
+        assert self.group_hash.state == GroupHash.State.LOCKED_IN_MIGRATION
+
+    def test_hard_death_after_sql_commit(self) -> None:
+        # A killed worker cannot release its lease. Simulate its expiry.
+        killed = UnmergeCheckpoint(self.args).__enter__()
+        assert killed.lock_hashes() == [self.fingerprint]
+        with pytest.raises(UnmergeBusy):
+            UnmergeCheckpoint(self.args).__enter__()
+        client().delete(killed.lease_key)
+        with UnmergeCheckpoint(self.args) as redelivery:
+            assert redelivery.lock_hashes() == [self.fingerprint]
+            with pytest.raises(UnmergeBusy):
+                killed.begin_mutations()
+            killed.__exit__(None, None, None)
+            assert client().get(redelivery.lease_key) == redelivery.token
+
+    @patch("sentry.tasks.unmerge.task_run_batch_query")
+    def test_ownership_conflict_rejects_the_whole_request(self, query: Mock) -> None:
+        other_hash = "b" * 32
+        Factories.create_group_hash(group=self.source, hash=other_hash)
+        client().set(owner_key(self.project.id, other_hash), "another-operation", ex=600)
+        arguments = replace(
+            self.args,
+            replacement=PrimaryHashUnmergeReplacement(fingerprints=[self.fingerprint, other_hash]),
+        ).dump_arguments()
+
+        with pytest.raises(UnmergeNeedsRecovery, match="another unmerge"):
+            unmerge(**arguments)
+        query.assert_not_called()
+        self.group_hash.refresh_from_db()
+        assert self.group_hash.state == GroupHash.State.UNLOCKED
+        assert client().get(owner_key(self.project.id, self.fingerprint)) is None
+        assert client().get(owner_key(self.project.id, other_hash)) == "another-operation"
+
+    def test_locked_hash_without_checkpoint_is_not_adopted(self) -> None:
+        self.group_hash.update(state=GroupHash.State.LOCKED_IN_MIGRATION)
+        with UnmergeCheckpoint(self.args) as redelivery, pytest.raises(UnmergeNeedsRecovery):
+            redelivery.lock_hashes()
+        assert client().get(owner_key(self.project.id, self.fingerprint)) is None
+
+    @patch("sentry.tasks.unmerge.task_run_batch_query")
+    @patch("sentry.tasks.unmerge.truncate_denormalizations")
+    def test_legacy_redelivery_with_no_owned_hashes_does_not_reset_source(
+        self, truncate: Mock, query: Mock
+    ) -> None:
+        self.group_hash.update(state=GroupHash.State.LOCKED_IN_MIGRATION)
+        unmerge(self.project.id, self.source.id, None, [self.fingerprint], None)
+        truncate.assert_not_called()
+        query.assert_not_called()
+
+    @patch("sentry.tasks.unmerge.task_run_batch_query")
+    def test_killswitch_releases_recovered_initial_locks(self, query: Mock) -> None:
+        with UnmergeCheckpoint(self.args) as checkpoint:
+            checkpoint.lock_hashes()
+        with self.options({"unmerge.killswitch-projects": [{"project_id": self.project.id}]}):
+            unmerge(**self.args.dump_arguments())
+        query.assert_not_called()
+        self.group_hash.refresh_from_db()
+        assert self.group_hash.state == GroupHash.State.UNLOCKED
+        assert client().get(owner_key(self.project.id, self.fingerprint)) is None
+
+    @patch("sentry.tasks.unmerge.task_run_batch_query")
+    def test_moved_hash_releases_ownership_and_retires_request(self, query: Mock) -> None:
+        self.group_hash.update(group=self.create_group(project=self.project))
+        with pytest.raises(UnmergeNeedsRecovery, match="no longer belong"):
+            unmerge(**self.args.dump_arguments())
+        self.assert_cleanup_complete()
+        unmerge(**self.args.dump_arguments())
+        query.assert_not_called()
+
+    @patch("sentry.tasks.unmerge.task_run_batch_query")
+    def test_moved_hash_releases_previously_acquired_sql_lock(self, query: Mock) -> None:
+        with UnmergeCheckpoint(self.args) as checkpoint:
+            checkpoint.lock_hashes()
+        self.group_hash.update(group=self.create_group(project=self.project))
+        with pytest.raises(UnmergeNeedsRecovery, match="no longer belong"):
+            unmerge(**self.args.dump_arguments())
+        self.assert_cleanup_complete()
+        query.assert_not_called()
+
+    @patch("sentry.tasks.unmerge.task_run_batch_query")
+    def test_killswitch_does_not_unlock_an_unowned_sql_lock(self, query: Mock) -> None:
+        self.group_hash.update(state=GroupHash.State.LOCKED_IN_MIGRATION)
+        client().set(owner_key(self.project.id, self.fingerprint), "another-operation", ex=600)
+        with self.options({"unmerge.killswitch-projects": [{"project_id": self.project.id}]}):
+            unmerge(**self.args.dump_arguments())
+        self.group_hash.refresh_from_db()
+        assert self.group_hash.state == GroupHash.State.LOCKED_IN_MIGRATION
+        assert client().get(owner_key(self.project.id, self.fingerprint)) == "another-operation"
+        query.assert_not_called()
+
+    @patch("sentry.tasks.unmerge.task_run_batch_query")
+    def test_deleted_hash_releases_previously_acquired_ownership(self, query: Mock) -> None:
+        with UnmergeCheckpoint(self.args) as checkpoint:
+            checkpoint.lock_hashes()
+        self.group_hash.delete()
+        with pytest.raises(UnmergeNeedsRecovery, match="no longer belong"):
+            unmerge(**self.args.dump_arguments())
+        assert client().get(owner_key(self.project.id, self.fingerprint)) is None
+        with UnmergeCheckpoint(self.args) as checkpoint:
+            assert checkpoint.finished
+        unmerge(**self.args.dump_arguments())
+        query.assert_not_called()
+
+    @patch("sentry.tasks.unmerge.task_run_batch_query")
+    def test_killswitch_cleanup_resumes_before_sql_unlock(self, query: Mock) -> None:
+        with UnmergeCheckpoint(self.args) as checkpoint:
+            checkpoint.lock_hashes()
+        with (
+            self.options({"unmerge.killswitch-projects": [{"project_id": self.project.id}]}),
+            patch.object(type(GroupHash.objects.all()), "update", side_effect=KeyboardInterrupt),
+            pytest.raises(KeyboardInterrupt),
+        ):
+            unmerge(**self.args.dump_arguments())
+        # Cleanup must continue even if the killswitch has since been disabled.
+        unmerge(**self.args.dump_arguments())
+        self.assert_cleanup_complete()
+        query.assert_not_called()
+
+    @patch("sentry.tasks.unmerge.task_run_batch_query")
+    def test_killswitch_cleanup_resumes_after_sql_unlock(self, query: Mock) -> None:
+        with UnmergeCheckpoint(self.args) as checkpoint:
+            checkpoint.lock_hashes()
+        original_save = UnmergeCheckpoint.save
+
+        def interrupted_save(checkpoint: UnmergeCheckpoint, phase: str, **updates: object) -> None:
+            if phase == "releasing":
+                raise KeyboardInterrupt()
+            original_save(checkpoint, phase, **updates)
+
+        with (
+            self.options({"unmerge.killswitch-projects": [{"project_id": self.project.id}]}),
+            patch.object(UnmergeCheckpoint, "save", interrupted_save),
+            pytest.raises(KeyboardInterrupt),
+        ):
+            unmerge(**self.args.dump_arguments())
+        self.group_hash.refresh_from_db()
+        assert self.group_hash.state == GroupHash.State.UNLOCKED
+        unmerge(**self.args.dump_arguments())
+        self.assert_cleanup_complete()
+        query.assert_not_called()
+
+    @patch("sentry.tasks.unmerge.task_run_batch_query")
+    def test_killswitch_cleanup_resumes_partial_release_without_unlocking_new_owner(
+        self, query: Mock
+    ) -> None:
+        other_hash = "b" * 32
+        other_group_hash = Factories.create_group_hash(group=self.source, hash=other_hash)
+        args = replace(
+            self.args,
+            replacement=PrimaryHashUnmergeReplacement(fingerprints=[self.fingerprint, other_hash]),
+        )
+        with UnmergeCheckpoint(args) as checkpoint:
+            checkpoint.lock_hashes()
+
+        def interrupted_release(project_id: int, fingerprints: list[str], owner: str) -> None:
+            release_hashes(project_id, fingerprints[:1], owner)
+            raise KeyboardInterrupt()
+
+        with (
+            self.options({"unmerge.killswitch-projects": [{"project_id": self.project.id}]}),
+            patch("sentry.issues.unmerge_recovery.release_hashes", side_effect=interrupted_release),
+            pytest.raises(KeyboardInterrupt),
+        ):
+            unmerge(**args.dump_arguments())
+        with UnmergeCheckpoint(replace(self.args, operation_id=uuid.uuid4().hex)) as newer:
+            newer.lock_hashes()
+            newer_owner = newer.owner
+        unmerge(**args.dump_arguments())
+        other_group_hash.refresh_from_db()
+        assert other_group_hash.state == GroupHash.State.UNLOCKED
+        assert client().get(owner_key(self.project.id, other_hash)) is None
+        self.group_hash.refresh_from_db()
+        assert self.group_hash.state == GroupHash.State.LOCKED_IN_MIGRATION
+        assert client().get(owner_key(self.project.id, self.fingerprint)) == newer_owner
+        with UnmergeCheckpoint(args) as checkpoint:
+            assert checkpoint.finished
+        query.assert_not_called()
+
+    def assert_cleanup_complete(self) -> None:
+        self.group_hash.refresh_from_db()
+        assert self.group_hash.state == GroupHash.State.UNLOCKED
+        assert client().get(owner_key(self.project.id, self.fingerprint)) is None
+        with UnmergeCheckpoint(self.args) as checkpoint:
+            assert checkpoint.phase == "complete"
+
+    @patch("sentry.tasks.unmerge.truncate_denormalizations")
+    @patch("sentry.tasks.unmerge.task_run_batch_query")
+    def test_read_failure_resumes_owned_hashes_before_truncating(
+        self, query: Mock, truncate: Mock
+    ) -> None:
+        query.side_effect = MemoryError("event hydration interrupted")
+        with pytest.raises(UnmergeBusy):
+            unmerge(**self.args.dump_arguments())
+        truncate.assert_not_called()
+        self.group_hash.refresh_from_db()
+        assert self.group_hash.state == GroupHash.State.LOCKED_IN_MIGRATION
+
+        query.side_effect = None
+        query.return_value = (None, [])
+        unmerge(**self.args.dump_arguments())
+        assert query.call_args.kwargs["batch_size"] == 500
+        truncate.assert_called_once()
+        self.group_hash.refresh_from_db()
+        assert self.group_hash.state == GroupHash.State.UNLOCKED
+        assert client().get(owner_key(self.project.id, self.fingerprint)) is None
+
+        query.reset_mock()
+        unmerge(**self.args.dump_arguments())
+        query.assert_not_called()
+
+    @patch("sentry.tasks.unmerge.task_run_batch_query")
+    def test_later_read_failure_resumes_its_cursor(self, query: Mock) -> None:
+        arguments = {
+            **self.args.dump_arguments(),
+            "batch_number": 1,
+            "last_event": {"timestamp": "old-cursor", "event_id": "b" * 32},
+            "locked_primary_hashes": [self.fingerprint],
+        }
+        with UnmergeCheckpoint(self.args) as parent:
+            parent.lock_hashes()
+            parent.begin_mutations()
+            parent.handoff(arguments)
+        query.side_effect = MemoryError()
+        with patch("sentry.tasks.unmerge.truncate_denormalizations") as truncate:
+            with pytest.raises(UnmergeBusy):
+                unmerge(**arguments)
+            query.side_effect = None
+            query.return_value = (None, [])
+            unmerge(**arguments)
+        truncate.assert_not_called()
+        assert query.call_count == 2
+        assert query.call_args.kwargs["state"] == arguments["last_event"]
+
+    def prepare_successive_batch(self) -> dict[str, Any]:
+        arguments = {
+            **self.args.dump_arguments(),
+            "batch_number": 1,
+            "last_event": {"timestamp": "old-cursor", "event_id": "b" * 32},
+            "locked_primary_hashes": [self.fingerprint],
+        }
+        with UnmergeCheckpoint(self.args) as parent:
+            parent.lock_hashes()
+            parent.begin_mutations()
+            parent.handoff(arguments)
+        return arguments
+
+    @patch("sentry.tasks.unmerge.truncate_denormalizations")
+    @patch("sentry.tasks.unmerge.task_run_batch_query", return_value=(None, []))
+    def test_empty_final_batch_retries_before_lock_cleanup(
+        self, query: Mock, truncate: Mock
+    ) -> None:
+        arguments = self.prepare_successive_batch()
+        with (
+            patch(
+                "sentry.tasks.unmerge.publish_destination_first_seen",
+                side_effect=RedisConnectionError("completion interrupted"),
+            ),
+            pytest.raises(UnmergeBusy),
+        ):
+            unmerge(**arguments)
+        unmerge(**arguments)
+        assert query.call_count == 2
+        truncate.assert_not_called()
+        self.assert_cleanup_complete()
+
+    @patch("sentry.tasks.unmerge.task_run_batch_query", return_value=(None, []))
+    def test_empty_final_batch_resumes_sql_unlock(self, query: Mock) -> None:
+        arguments = self.prepare_successive_batch()
+        with (
+            patch.object(type(GroupHash.objects.all()), "update", side_effect=KeyboardInterrupt),
+            pytest.raises(KeyboardInterrupt),
+        ):
+            unmerge(**arguments)
+        unmerge(**arguments)
+        query.assert_called_once()
+        self.assert_cleanup_complete()
+
+    @patch("sentry.tasks.unmerge.task_run_batch_query", return_value=(None, []))
+    def test_empty_final_batch_resumes_redis_release(self, query: Mock) -> None:
+        arguments = self.prepare_successive_batch()
+        with (
+            patch(
+                "sentry.issues.unmerge_recovery.release_hashes",
+                side_effect=RedisConnectionError("owner release interrupted"),
+            ),
+            pytest.raises(UnmergeBusy),
+        ):
+            unmerge(**arguments)
+        unmerge(**arguments)
+        query.assert_called_once()
+        self.assert_cleanup_complete()
+
+    @patch("sentry.tasks.unmerge.task_run_batch_query", side_effect=MemoryError)
+    def test_successive_batch_refreshes_owner_expiry(self, query: Mock) -> None:
+        arguments = self.prepare_successive_batch()
+        key = owner_key(self.project.id, self.fingerprint)
+        client().expire(key, 60)
+        with pytest.raises(UnmergeBusy):
+            unmerge(**arguments)
+        assert client().get(key) == self.args.operation_id
+        assert client().ttl(key) > RETENTION_SECONDS - 10
+        query.assert_called_once()
+
+    def test_ownership_check_does_not_refresh_a_foreign_owner(self) -> None:
+        with UnmergeCheckpoint(self.args) as checkpoint:
+            checkpoint.lock_hashes()
+            key = owner_key(self.project.id, self.fingerprint)
+            client().set(key, "another-operation", ex=60)
+            with pytest.raises(UnmergeNeedsRecovery, match="ownership"):
+                checkpoint.check_ownership([self.fingerprint])
+        assert client().get(key) == "another-operation"
+        assert 0 < client().ttl(key) <= 60
+
+    @patch("sentry.tasks.unmerge.truncate_denormalizations")
+    @patch("sentry.tasks.unmerge.task_run_batch_query", return_value=(None, []))
+    def test_interrupted_mutations_are_not_replayed(self, query: Mock, truncate: Mock) -> None:
+        truncate.side_effect = RuntimeError("partial aggregate changes")
+        with pytest.raises(RuntimeError, match="partial aggregate"):
+            unmerge(**self.args.dump_arguments())
+        query.reset_mock()
+        with pytest.raises(UnmergeNeedsRecovery, match="partially applied"):
+            unmerge(**self.args.dump_arguments())
+        query.assert_not_called()
+        truncate.assert_called_once()
+
+    @patch.object(unmerge, "apply_async_with_future")
+    def test_handoff_retries_delivery_without_reapplying_batch(self, send: Mock) -> None:
+        next_arguments = {**self.args.dump_arguments(), "batch_number": 1}
+
+        def apply_batch(args: object, checkpoint: UnmergeCheckpoint) -> None:
+            checkpoint.begin_mutations()
+            checkpoint.handoff(next_arguments)
+            raise KeyboardInterrupt()
+
+        with patch("sentry.tasks.unmerge._unmerge", side_effect=apply_batch) as apply:
+            with pytest.raises(KeyboardInterrupt):
+                unmerge(**self.args.dump_arguments())
+            send.assert_not_called()
+            send.return_value.result.side_effect = TimeoutError("delivery unknown")
+            with pytest.raises(UnmergeBusy):
+                unmerge(**self.args.dump_arguments())
+            send.return_value.result.side_effect = None
+            unmerge(**self.args.dump_arguments())
+
+            with UnmergeCheckpoint(replace(self.args, batch_number=1)) as child:
+                child.complete()
+            unmerge(**self.args.dump_arguments())
+            unmerge(**next_arguments)
+            apply.assert_called_once()
+        assert send.call_count == 2
+        send.return_value.result.assert_called_with(timeout=30)
+
+    @patch.object(unmerge, "apply_async_with_future")
+    def test_starter_resends_same_operation_when_delivery_is_unknown(self, send: Mock) -> None:
+        send.return_value.result.side_effect = TimeoutError()
+        with pytest.raises(UnmergeBusy):
+            start_unmerge(
+                self.project.id,
+                self.source.id,
+                None,
+                [self.fingerprint],
+                None,
+                operation_id=self.args.operation_id,
+            )
+        assert send.call_args.kwargs["kwargs"]["operation_id"] == self.args.operation_id
+
+    def test_missing_checkpoint_cannot_resume_a_later_batch(self) -> None:
+        with pytest.raises(UnmergeNeedsRecovery):
+            UnmergeCheckpoint(replace(self.args, batch_number=1)).__enter__()
