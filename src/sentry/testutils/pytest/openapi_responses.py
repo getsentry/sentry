@@ -198,8 +198,11 @@ class Checker:
         operation = self.index.find(method, path)
         view_class = None
         if operation is not None:
+            # the client resolves the URL lazily, and a response that never went through URL
+            # resolution has no resolver_match at all
             try:
-                view_class = getattr(response.resolver_match.func, "view_class", None)
+                match = getattr(response, "resolver_match", None)
+                view_class = getattr(getattr(match, "func", None), "view_class", None)
             except Resolver404:
                 pass
         if operation is None or view_class is None:

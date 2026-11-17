@@ -76,7 +76,10 @@ def test_paths_and_methods_outside_the_schema_are_skipped() -> None:
     checker.check("/api/0/internal/rpc/user/get_many/", "POST", response(200, {}))
     checker.check("/api/0/organizations/acme/issues/1/", "DELETE", response(204, {}))
     get(checker, "/api/0/organizations/acme/issues/1/", response(500, {}, view_class=None))
-    assert (checker.checked, checker.skipped, checker.findings) == (0, 3, {})
+    unresolved = response(402, {})
+    unresolved.resolver_match = None  # type: ignore[attr-defined]
+    get(checker, "/api/0/organizations/acme/issues/1/", unresolved)
+    assert (checker.checked, checker.skipped, checker.findings) == (0, 4, {})
 
 
 def test_reports_undocumented_status_and_body_drift_keyed_by_endpoint_method() -> None:
