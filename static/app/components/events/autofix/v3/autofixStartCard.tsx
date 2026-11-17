@@ -1,6 +1,5 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconBug} from '@sentry/icons/bug';
 
 import seerConfigConnectImg from 'sentry-images/spot/seer-config-connect-2.svg';
 
@@ -79,7 +78,6 @@ export function AutofixStartCard({
   const startButton = (
     <Button
       size="md"
-      icon={<IconBug />}
       aria-label={t('Start Analysis')}
       variant="primary"
       onClick={handleStartRootCause}
@@ -137,9 +135,9 @@ export function AutofixStartCard({
         >
           {showNotice ? null : (
             <Fragment>
-              <ImageContainer>
+              <Container display={{zero: 'none', xs: 'block'}} flex="none" height="80px">
                 <Image src={seerConfigConnectImg} alt="" width="auto" height="100%" />
-              </ImageContainer>
+              </Container>
               <Stack gap="sm" flex="1">
                 <Text bold>{t('Let Seer find the root cause and fix it')}</Text>
                 <Text variant="muted">
@@ -150,14 +148,16 @@ export function AutofixStartCard({
               </Stack>
             </Fragment>
           )}
-          <Stack gap="md" align="start">
+          <Flex gap={{zero: 'md', xs: 'lg'}} width={{zero: '100%', xs: 'auto'}}>
             {showContext ? null : (
-              <Button size="md" onClick={() => setShowContext(true)}>
-                {t('Add Context')}
-              </Button>
+              <Stack flex={{zero: '1 1 auto', xs: 'none'}}>
+                <Button size="md" onClick={() => setShowContext(true)}>
+                  {t('Add Context')}
+                </Button>
+              </Stack>
             )}
-            {startButton}
-          </Stack>
+            <Stack flex={{zero: '1 1 auto', xs: 'none'}}>{startButton}</Stack>
+          </Flex>
           {showContext ? (
             <ContextInput
               autoFocus
@@ -217,11 +217,6 @@ const LegacyImageContainer = styled(Flex)<{
   aspectRatio?: CSS['aspectRatio'];
 }>`
   ${p => p.aspectRatio && `aspect-ratio: ${p.aspectRatio}`};
-`;
-
-const ImageContainer = styled('div')`
-  flex: none;
-  height: 80px;
 `;
 
 const ContextInput = styled(Input)`
