@@ -16,7 +16,10 @@ import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/anal
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {SourceMapsDebuggerModal} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
-import {getThreadById} from 'sentry/components/events/interfaces/utils';
+import {
+  findImageForAddress,
+  getThreadById,
+} from 'sentry/components/events/interfaces/utils';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {StrictClick} from 'sentry/components/strictClick';
 import {t, tn} from 'sentry/locale';
@@ -228,6 +231,15 @@ export function DeprecatedLine({
                     isHoverPreviewed={isHoverPreviewed}
                     meta={frameMeta}
                     isPotentiallyThirdParty={isPotentiallyThirdPartyFrame(data, event)}
+                    fallbackPackageName={
+                      data.package
+                        ? undefined
+                        : (findImageForAddress({
+                            event,
+                            addrMode: data.addrMode,
+                            address: data.instructionAddr,
+                          })?.code_file ?? undefined)
+                    }
                   />
                 </Container>
               </Flex>
