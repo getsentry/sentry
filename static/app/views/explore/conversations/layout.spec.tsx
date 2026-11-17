@@ -9,7 +9,7 @@ import ConversationsLayout from './layout';
 import {CONVERSATIONS_LANDING_TITLE, CONVERSATIONS_SIDEBAR_LABEL} from './settings';
 
 const organization = OrganizationFixture({
-  features: ['performance-view', 'gen-ai-conversations'],
+  features: ['performance-view'],
 });
 
 function renderLayout(
