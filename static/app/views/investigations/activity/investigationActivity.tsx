@@ -183,6 +183,10 @@ function StartedRow({investigation}: {investigation: InvestigationDetail}) {
 
   // Whoever or whatever started it is a reference, so it uses the issue
   // activity feed's inline chips, and the row keeps the timeline dot.
+  // Only service accounts create investigations without createdBy, so a
+  // person's investigation never credits its source issue, even while their
+  // member lookup is pending or after it fails.
+  const startedFromSource = !createdBy && source.groupId;
   const word = <StartedWord />;
   let details: React.ReactNode = null;
   if (user) {
@@ -207,7 +211,7 @@ function StartedRow({investigation}: {investigation: InvestigationDetail}) {
         </InlineChip>
       ),
     });
-  } else if (source.groupId) {
+  } else if (startedFromSource) {
     details = tct('[word:from] [source]', {
       word,
       source: (

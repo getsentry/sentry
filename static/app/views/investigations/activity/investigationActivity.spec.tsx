@@ -157,6 +157,36 @@ describe('InvestigationActivity', () => {
     );
   });
 
+  it('does not credit the issue when a member started the investigation', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({
+        createdBy: '2',
+        sourceType: 'metric_open_period',
+        source: {
+          type: 'metric_open_period',
+          ref: {groupId: '123', openPeriodId: '456'},
+          revision: 1,
+        },
+      }),
+    });
+    MockApiClient.addMockResponse({url: commentsUrl, body: []});
+    const membersRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/members/',
+      body: [],
+    });
+    renderPage();
+
+    const activity = await findActivity();
+    await waitFor(() => expect(membersRequest).toHaveBeenCalled());
+    expect(within(activity).getByRole('listitem')).toHaveTextContent(
+      /^Investigation started •/
+    );
+    expect(
+      within(activity).queryByRole('link', {name: 'an issue'})
+    ).not.toBeInTheDocument();
+  });
+
   it('merges applied action requests into the comments by date', async () => {
     MockApiClient.addMockResponse({
       url: detailUrl,
