@@ -24,6 +24,7 @@ import {IconStar} from '@sentry/icons/star';
 import {IconSubscribed} from '@sentry/icons/subscribed';
 import {IconUser} from '@sentry/icons/user';
 import * as Sentry from '@sentry/react';
+import {useDebouncedValue} from '@tanstack/react-pacer';
 import {skipToken, useMutation, useQuery} from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
 import {useQueryState} from 'nuqs';
@@ -48,7 +49,11 @@ import {
   getDsnNavTargets,
 } from 'sentry/components/search/sources/dsnLookupUtils';
 import type {DsnLookupResponse} from 'sentry/components/search/sources/dsnLookupUtils';
-import {DEPLOY_PREVIEW_CONFIG, NODE_ENV} from 'sentry/constants';
+import {
+  DEFAULT_DEBOUNCE_DURATION,
+  DEPLOY_PREVIEW_CONFIG,
+  NODE_ENV,
+} from 'sentry/constants';
 import {t, toggleLocaleDebug} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
@@ -145,7 +150,7 @@ const DSN_ICONS: React.ReactElement[] = [
 const helpSearch = new SentryGlobalSearch(['docs', 'develop']);
 const EVENT_ID_PATTERN =
   /^(?:[A-Fa-f0-9]{32}|[A-Fa-f0-9]{8}(?:-[A-Fa-f0-9]{4}){3}-[A-Fa-f0-9]{12})$/;
-const SHORT_ID_PATTERN = /^[A-Za-z][\w-]*-\w{3,}$/;
+const SHORT_ID_PATTERN = /^[A-Za-z][\w-]*-[A-Za-z0-9]+$/;
 
 function renderAsyncResult(item: CommandPaletteAction, index: number) {
   if ('to' in item) {
@@ -172,7 +177,9 @@ type ResolvedIdentifier =
 function ResolvedIdentifierCommandPaletteAction() {
   const organization = useOrganization();
   const {projects} = useProjects();
-  const {query} = useCommandPaletteState();
+  const {query: rawQuery} = useCommandPaletteState();
+  // Wait for typing to settle so a typed ID gets one lookup, not one per keystroke.
+  const [query] = useDebouncedValue(rawQuery, {wait: DEFAULT_DEBOUNCE_DURATION});
   const isEventId = EVENT_ID_PATTERN.test(query);
   const isShortId = SHORT_ID_PATTERN.test(query) && !isEventId;
 

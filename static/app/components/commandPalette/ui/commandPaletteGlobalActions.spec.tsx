@@ -423,6 +423,23 @@ describe('GlobalCommandPaletteActions - search recall', () => {
     },
     {
       body: {
+        group: {
+          id: '43',
+          metadata: {},
+          project: {id: project.id, slug: project.slug},
+          status: 'unresolved',
+        },
+        groupId: '43',
+        organizationSlug: organization.slug,
+        projectSlug: project.slug,
+        shortId: 'WEB-DA',
+      },
+      expectedOption: /Issue WEB-DA/,
+      query: 'WEB-DA',
+      lookupUrl: `/organizations/${organization.slug}/shortids/WEB-DA/`,
+    },
+    {
+      body: {
         event: {id: '954df831ab094388ac98eee198584479'},
         eventId: '954df831ab094388ac98eee198584479',
         groupId: '42',
@@ -456,7 +473,8 @@ describe('GlobalCommandPaletteActions - search recall', () => {
       renderPalette();
 
       const input = await screen.findByRole('searchbox', {name: 'Search commands'});
-      await userEvent.type(input, query);
+      await userEvent.click(input);
+      await userEvent.paste(query);
 
       expect(
         await screen.findByRole('option', {name: expectedOption})
