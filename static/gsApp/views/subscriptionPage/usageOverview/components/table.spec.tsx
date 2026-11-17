@@ -18,7 +18,11 @@ import {Container} from '@sentry/scraps/layout';
 
 import {DataCategory} from 'sentry/types/core';
 
-import {GIGABYTE, UNLIMITED_RESERVED} from 'getsentry/constants';
+import {
+  GIGABYTE,
+  SEER_CREDITS_LINE_ITEM_UID,
+  UNLIMITED_RESERVED,
+} from 'getsentry/constants';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {OnDemandBudgetMode} from 'getsentry/types';
 import {UsageOverviewTable} from 'getsentry/views/subscriptionPage/usageOverview/components/table';
@@ -654,6 +658,45 @@ describe('UsageOverviewTable', () => {
     expect(
       screen.queryByTestId(`product-row-disabled-${seerUsageUid}`)
     ).not.toBeInTheDocument();
+  });
+
+  it('does not render a row for Seer Credits', async () => {
+    const sub = SubscriptionFixture({organization, plan: 'am3_business'});
+    (sub.categories as Record<string, any>)[SEER_CREDITS_LINE_ITEM_UID] = {
+      category: SEER_CREDITS_LINE_ITEM_UID,
+      reserved: 500,
+      prepaid: 500,
+      free: 0,
+      usage: 120,
+      onDemandBudget: 0,
+      onDemandQuantity: 0,
+      onDemandSpendUsed: 0,
+      customPrice: null,
+      paygCpe: null,
+      softCapType: null,
+      usageExceeded: false,
+      order: 1000,
+      isDisabled: false,
+    };
+    sub.planDetails.categoryDisplayNames = {
+      ...sub.planDetails.categoryDisplayNames,
+      [SEER_CREDITS_LINE_ITEM_UID]: {plural: 'seer credits', singular: 'seer credit'},
+    };
+    SubscriptionStore.set(organization.slug, sub);
+
+    render(
+      <UsageOverviewTable
+        subscription={sub}
+        organization={organization}
+        usageData={usageData}
+        onRowClick={jest.fn()}
+        selectedProduct={DataCategory.ERRORS}
+      />
+    );
+
+    await screen.findByRole('columnheader', {name: 'Feature'});
+
+    expect(screen.queryByText('Seer Credits')).not.toBeInTheDocument();
   });
 
   it('formats a micro-cent line item as dollars', async () => {

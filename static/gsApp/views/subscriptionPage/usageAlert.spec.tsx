@@ -10,7 +10,11 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {DataCategory} from 'sentry/types/core';
 
-import {GIGABYTE, MILLISECONDS_IN_HOUR} from 'getsentry/constants';
+import {
+  GIGABYTE,
+  MILLISECONDS_IN_HOUR,
+  SEER_CREDITS_LINE_ITEM_UID,
+} from 'getsentry/constants';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {UsageAlert} from 'getsentry/views/subscriptionPage/usageAlert';
 
@@ -665,6 +669,68 @@ describe('Subscription > UsageAlert', () => {
       );
 
       expect(screen.queryByTestId('usage-alert')).not.toBeInTheDocument();
+    });
+  });
+
+  describe('Seer Credits', () => {
+    it('does not let Seer Credits exceed or project an overage', () => {
+      const organization = OrganizationFixture({access: ['org:billing']});
+      const subscription = SubscriptionFixture({organization, canTrial: false});
+
+      render(
+        <UsageAlert
+          subscription={{
+            ...subscription,
+            plan: 'am1_f',
+            categories: {
+              errors: MetricHistoryFixture({prepaid: 5_000, reserved: 5_000}),
+              [SEER_CREDITS_LINE_ITEM_UID]: MetricHistoryFixture({
+                category: SEER_CREDITS_LINE_ITEM_UID as DataCategory,
+                prepaid: 500,
+                reserved: 500,
+                usageExceeded: true,
+              }),
+            },
+          }}
+          usage={CustomerUsageFixture({
+            totals: {
+              errors: UsageTotalFixture({accepted: 3_000, projected: 10_000}),
+              [SEER_CREDITS_LINE_ITEM_UID]: UsageTotalFixture({
+                accepted: 500,
+                projected: 2_000,
+              }),
+            },
+          })}
+        />,
+        {organization}
+      );
+
+      expect(screen.getByText(/will need at least 10K errors\./)).toBeInTheDocument();
+      expect(screen.queryByTestId('usage-exceeded-alert')).not.toBeInTheDocument();
+    });
+
+    it('leaves Seer Credits out of the exceeded categories', () => {
+      const organization = OrganizationFixture({access: ['org:billing']});
+      const subscription = SubscriptionFixture({
+        organization,
+        plan: 'am1_f',
+        canTrial: false,
+        categories: {
+          errors: MetricHistoryFixture({usageExceeded: true}),
+          [SEER_CREDITS_LINE_ITEM_UID]: MetricHistoryFixture({
+            category: SEER_CREDITS_LINE_ITEM_UID as DataCategory,
+            usageExceeded: true,
+          }),
+        },
+      });
+
+      render(<UsageAlert subscription={subscription} usage={emptyUsage} />, {
+        organization,
+      });
+
+      expect(
+        screen.getByText(textWithMarkupMatcher(/depleted its errors capacity/))
+      ).toBeInTheDocument();
     });
   });
 });

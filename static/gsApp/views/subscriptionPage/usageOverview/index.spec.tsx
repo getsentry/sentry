@@ -10,7 +10,7 @@ import {Container} from '@sentry/scraps/layout';
 import {DataCategory} from 'sentry/types/core';
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 
-import {UNLIMITED_RESERVED} from 'getsentry/constants';
+import {SEER_CREDITS_LINE_ITEM_UID, UNLIMITED_RESERVED} from 'getsentry/constants';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import type {Subscription} from 'getsentry/types';
 import {UsageOverview} from 'getsentry/views/subscriptionPage/usageOverview';
@@ -136,6 +136,38 @@ describe('UsageOverview', () => {
     expect(onNuqsUrlUpdate).toHaveBeenCalledWith(
       expect.objectContaining({options: expect.objectContaining({history: 'replace'})})
     );
+  });
+
+  it('does not select Seer Credits from URL query parameter', async () => {
+    const subscriptionWithSeerCredits = SubscriptionFixture({
+      organization,
+      plan: 'am3_business',
+    });
+    (subscriptionWithSeerCredits.categories as Record<string, any>)[
+      SEER_CREDITS_LINE_ITEM_UID
+    ] = {
+      ...subscriptionWithSeerCredits.categories.errors!,
+      category: SEER_CREDITS_LINE_ITEM_UID,
+      isDisabled: false,
+    };
+    subscriptionWithSeerCredits.planDetails.categoryDisplayNames = {
+      ...subscriptionWithSeerCredits.planDetails.categoryDisplayNames,
+      [SEER_CREDITS_LINE_ITEM_UID]: {plural: 'seer credits', singular: 'seer credit'},
+    };
+    renderUsageOverview(
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: '/organizations/org-slug/subscription/usage-overview',
+            query: {product: SEER_CREDITS_LINE_ITEM_UID},
+          },
+        },
+      },
+      subscriptionWithSeerCredits
+    );
+
+    await screen.findByRole('heading', {name: 'Errors'});
+    expect(screen.queryByRole('heading', {name: 'Seer Credits'})).not.toBeInTheDocument();
   });
 
   it('selects gifted-only product from URL query parameter', async () => {

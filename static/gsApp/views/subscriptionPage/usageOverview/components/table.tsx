@@ -6,6 +6,7 @@ import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 
+import {SEER_CREDITS_LINE_ITEM_UID} from 'getsentry/constants';
 import type {AddOnCategoryInfo, BillingMetricHistory} from 'getsentry/types';
 import {
   checkIsAddOnChildCategory,
@@ -34,7 +35,9 @@ export function UsageOverviewTable({
 
   // Partition regular categories into enabled and disabled (locked) groups
   const filteredCategories = sortedCategories.filter(
-    categoryInfo => !addOnDataCategories.includes(categoryInfo.category)
+    categoryInfo =>
+      !addOnDataCategories.includes(categoryInfo.category) &&
+      categoryInfo.category !== SEER_CREDITS_LINE_ITEM_UID
   );
   const [enabledCategories, disabledCategories] = partition(
     filteredCategories,
