@@ -24,7 +24,6 @@ import type {
   ErrorFrame,
   fullSnapshotEvent,
   incrementalSnapshotEvent,
-  MemoryFrame,
   OptionFrame,
   RawReplayError,
   RecordingFrame,
@@ -43,6 +42,7 @@ import {
   isDeadClick,
   isDeadRageClick,
   isMetaFrame,
+  isMemoryFrame,
   isPaintFrame,
   isSlowClickFrame,
   isTouchEndFrame,
@@ -805,14 +805,7 @@ export class ReplayReader {
     ].sort(sortFrames)
   );
 
-  getMemoryFrames = memoize(() =>
-    this._sortedSpanFrames.filter(
-      // Raw SDK payloads aren't guaranteed to match the type: skip memory frames
-      // without `data.memory` (reported in hydrateSpans) so consumers can rely on it.
-      (frame): frame is MemoryFrame =>
-        frame.op === 'memory' && Boolean((frame as MemoryFrame).data?.memory)
-    )
-  );
+  getMemoryFrames = memoize(() => this._sortedSpanFrames.filter(isMemoryFrame));
 
   getCustomFrames = memoize(() =>
     this._sortedBreadcrumbFrames.filter(

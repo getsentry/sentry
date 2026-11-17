@@ -234,13 +234,13 @@ describe('ReplayReader', () => {
     });
   });
 
-  it('excludes memory frames without memory data from getMemoryFrames', () => {
+  it('excludes memory frames without a usable heap size from getMemoryFrames', () => {
     const timestamp = new Date('2023-12-25T00:02:00');
     const validMemory = ReplayMemoryEventFixture({
       startTimestamp: timestamp,
       endTimestamp: timestamp,
     });
-    const memoryWithoutData = {
+    const memoryEventWithData = (data: Record<string, unknown>) => ({
       type: EventType.Custom,
       timestamp: timestamp.getTime(),
       data: {
@@ -250,13 +250,18 @@ describe('ReplayReader', () => {
           description: 'memory',
           startTimestamp: timestamp.getTime() / 1000,
           endTimestamp: timestamp.getTime() / 1000,
-          data: {},
+          data,
         },
       },
-    };
+    });
 
     const replay = ReplayReader.factory({
-      attachments: [validMemory, memoryWithoutData],
+      attachments: [
+        validMemory,
+        memoryEventWithData({}),
+        memoryEventWithData({memory: {}}),
+        memoryEventWithData({memory: {usedJSHeapSize: null}}),
+      ],
       errors: [],
       fetching: false,
       replayRecord,
@@ -264,7 +269,7 @@ describe('ReplayReader', () => {
 
     const memoryFrames = replay?.getMemoryFrames();
     expect(memoryFrames).toHaveLength(1);
-    expect(memoryFrames?.[0]?.data?.memory.usedJSHeapSize).toBe(0);
+    expect(memoryFrames?.[0]?.data.memory.usedJSHeapSize).toBe(0);
   });
 
   it('excludes a slow click from the chapter frames when its node has no tagName', () => {
