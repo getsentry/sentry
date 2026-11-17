@@ -268,6 +268,8 @@ class SeerInvestigationActionHandler(ActionHandler):
     @staticmethod
     @override
     def execute(invocation: ActionInvocation) -> None:
+        # TODO(telkins): WFE reports an arbitrary workflow when an action is attached to
+        # several. If that becomes possible here, store the config id in Action.data.
         config_id = (
             SeerWorkflowConfig.objects.filter(backing_workflow_id=invocation.workflow_id)
             .values_list("id", flat=True)
@@ -368,13 +370,6 @@ class SeerInvestigationActionHandler(ActionHandler):
             with lock_config(group.organization.id, config_id) as config:
                 if not config.enabled:
                     return IgnoredMetricBreach("config_disabled")
-                if (
-                    binding_id is None
-                    and not SeerInvestigationActionHandler._is_backing_workflow_action(
-                        config, action_id
-                    )
-                ):
-                    return IgnoredMetricBreach("configuration_unavailable")
                 definition = _definition_for(config)
                 if definition is None or not isinstance(definition.trigger, MetricAlertTrigger):
                     return IgnoredMetricBreach("configuration_unavailable")
@@ -391,18 +386,6 @@ class SeerInvestigationActionHandler(ActionHandler):
                 return AcceptedMetricBreach(run=run.lifecycle.get_run(), created=run.created)
         except SeerWorkflowConfig.DoesNotExist:
             return IgnoredMetricBreach("configuration_unavailable")
-
-    @staticmethod
-    def _is_backing_workflow_action(config: SeerWorkflowConfig, action_id: int) -> bool:
-        condition_groups = DataConditionGroupAction.objects.filter(action_id=action_id).values(
-            "condition_group_id"
-        )
-        workflow_ids = set(
-            WorkflowDataConditionGroup.objects.filter(
-                condition_group_id__in=condition_groups
-            ).values_list("workflow_id", flat=True)
-        )
-        return workflow_ids == {config.backing_workflow_id}
 
 
 @action_handler_registry.register(Action.Type.SEER_WORKFLOW)

@@ -541,22 +541,6 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
         assert inputs.binding_id is None
         assert inputs.action_id == self.action.id
 
-    def test_investigation_action_shared_with_another_workflow_is_ignored(self) -> None:
-        self.action.seer_workflow_binding.delete()
-        self.action.update(type=Action.Type.SEER_INVESTIGATION)
-        other_conditions = self.create_data_condition_group(organization=self.organization)
-        self.create_workflow_data_condition_group(
-            workflow=self.create_workflow(organization=self.organization),
-            condition_group=other_conditions,
-        )
-        self.create_data_condition_group_action(
-            action=self.action, condition_group=other_conditions
-        )
-
-        self.process_breach_workflow(self.breach_event(detector_id=self.detector.id))
-
-        assert not SeerWorkflowRun.objects.exists()
-
     def test_disconnected_monitor_does_not_start_a_run(self) -> None:
         DetectorWorkflow.objects.filter(detector=self.detector, workflow=self.workflow).delete()
         self.process_breach_workflow(self.breach_event(detector_id=self.detector.id))
