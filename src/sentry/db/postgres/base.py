@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable, Iterable, Iterator
 from typing import Any
 
@@ -15,6 +16,8 @@ from .decorators import auto_reconnect_connection, auto_reconnect_cursor
 from .schema import DatabaseSchemaEditorProxy
 
 __all__ = ("DatabaseWrapper",)
+
+logger = logging.getLogger(__name__)
 
 # Transactions that never hold this many savepoints at once are not reported, to keep the distribution's volume down.
 SAVEPOINT_DISTRIBUTION_MIN = 10
@@ -144,13 +147,16 @@ class DatabaseWrapper(DjangoDatabaseWrapper):
 
     def _savepoint(self, sid: str) -> None:
         super()._savepoint(sid)  # type: ignore[misc]
-        self.savepoints_alive_before[sid] = self.savepoints_alive
-        self.savepoints_alive += 1
-        if self.savepoints_alive > self.savepoints_peak:
-            self.savepoints_peak = self.savepoints_alive
-            if self.savepoints_peak == FIRST_OVERFLOWING_SAVEPOINT:
-                tags = _savepoint_metric_tags(self.alias)
-                metrics.incr("db.transaction.savepoint_overflow", tags=tags)
+        try:
+            self.savepoints_alive_before[sid] = self.savepoints_alive
+            self.savepoints_alive += 1
+            if self.savepoints_alive > self.savepoints_peak:
+                self.savepoints_peak = self.savepoints_alive
+                if self.savepoints_peak == FIRST_OVERFLOWING_SAVEPOINT:
+                    tags = _savepoint_metric_tags(self.alias)
+                    metrics.incr("db.transaction.savepoint_overflow", tags=tags)
+        except Exception:
+            logger.exception("db.savepoint_metrics.failed")
 
     def _savepoint_rollback(self, sid: str) -> None:
         super()._savepoint_rollback(sid)  # type: ignore[misc]
@@ -176,9 +182,14 @@ class DatabaseWrapper(DjangoDatabaseWrapper):
         self.savepoints_alive = 0
         self.savepoints_peak = 0
         self.savepoints_alive_before.clear()
-        if savepoints_peak >= SAVEPOINT_DISTRIBUTION_MIN:
+        if savepoints_peak < SAVEPOINT_DISTRIBUTION_MIN:
+            return
+        # Runs after the commit or rollback has happened; raising here would report a finished transaction as failed.
+        try:
             tags = _savepoint_metric_tags(self.alias)
             metrics.distribution("db.transaction.savepoints", savepoints_peak, tags=tags)
+        except Exception:
+            logger.exception("db.savepoint_metrics.failed")
 
     def close(self, reconnect: bool = False) -> None:
         """

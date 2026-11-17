@@ -80,6 +80,8 @@ class SavepointMetricsTest(TransactionTestCase):
         self, metrics: mock.MagicMock, current_task: mock.MagicMock
     ) -> None:
         current_task.return_value = mock.Mock(taskname="sentry.tasks.example")
+        metrics.incr.side_effect = RuntimeError
+        metrics.distribution.side_effect = RuntimeError
         tags = {"taskname": "sentry.tasks.example", "alias": "default"}
         overflow = mock.call("db.transaction.savepoint_overflow", tags=tags)
 
