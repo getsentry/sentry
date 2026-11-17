@@ -8,7 +8,8 @@
 const STRICT_RESERVED = /[!'()*]/g;
 
 function encode(value: unknown): string {
-  const text = value instanceof Date ? value.toISOString() : String(value);
+  // An invalid date has no ISO form; like query-string, write `Invalid Date`.
+  const text = value instanceof Date && !Number.isNaN(value.getTime()) ? value.toISOString() : String(value);
   return encodeURIComponent(text).replace(
     STRICT_RESERVED,
     (character) => `%${character.charCodeAt(0).toString(16).toUpperCase()}`,
@@ -47,7 +48,7 @@ function pairs(key: string, value: unknown): string[] {
  * - arrays repeat the key (`a=1&a=2`), with the same rules per item, and an
  *   empty array is omitted;
  * - objects are written in `deepObject` style (`a[b]=1`), their keys sorted;
- * - dates are written as ISO strings;
+ * - valid dates are written as ISO strings, invalid ones as `Invalid Date`;
  * - keys and values are percent-encoded, including `!'()*`.
  */
 export function serializeQuery(query: Record<string, unknown>): string {

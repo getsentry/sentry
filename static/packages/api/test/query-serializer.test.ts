@@ -19,6 +19,7 @@ const cases: [string, Record<string, unknown>, string][] = [
   ["object keys", { filter: { z: "1", a: null, b: undefined } }, "?filter[a]&filter[z]=1"],
   ["numbers and booleans", { per_page: 25, expand: true }, "?expand=true&per_page=25"],
   ["dates", { start: new Date("2026-01-01T00:00:00Z") }, "?start=2026-01-01T00%3A00%3A00.000Z"],
+  ["invalid dates", { start: new Date(Number.NaN) }, "?start=Invalid%20Date"],
   ["reserved characters", { query: "is:unresolved !(a*b)'" }, "?query=is%3Aunresolved%20%21%28a%2Ab%29%27"],
 ];
 
