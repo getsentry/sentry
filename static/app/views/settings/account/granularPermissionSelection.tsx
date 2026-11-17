@@ -8,6 +8,7 @@ import {Text} from '@sentry/scraps/text';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {GRANULAR_SENTRY_APP_PERMISSIONS, GranularPermissionLevel} from 'sentry/constants';
 import {t} from 'sentry/locale';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 const NO_ACCESS = 'no-access';
 
@@ -50,6 +51,11 @@ type Props = {
 };
 
 export function GranularPermissionSelection({permissions, onChange}: Props) {
+  const organization = useOrganization({allowNull: true});
+  const visiblePermissions = GRANULAR_SENTRY_APP_PERMISSIONS.filter(
+    ({feature}) => !feature || organization?.features.includes(feature)
+  );
+
   return (
     <Fragment>
       <Flex padding="md xl">
@@ -57,7 +63,7 @@ export function GranularPermissionSelection({permissions, onChange}: Props) {
           {t('Each access level also grants the levels listed before it.')}
         </Text>
       </Flex>
-      {GRANULAR_SENTRY_APP_PERMISSIONS.map(({label, help, levels}) => (
+      {visiblePermissions.map(({label, help, levels}) => (
         <FieldGroup key={label} label={label} help={help}>
           <Select<GranularPermissionLevel | typeof NO_ACCESS>
             aria-label={label}

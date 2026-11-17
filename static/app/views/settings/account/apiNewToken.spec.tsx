@@ -263,5 +263,44 @@ describe('ApiNewToken', () => {
         )
       );
     });
+
+    it('does not render service account permissions without the service-accounts flag', () => {
+      render(<ApiNewToken />, {organization});
+      expect(
+        screen.queryByRole('textbox', {name: 'Service Accounts'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('submits service account scopes with the service-accounts flag', async () => {
+      MockApiClient.clearMockResponses();
+      const assignMock = MockApiClient.addMockResponse({
+        method: 'POST',
+        url: '/api-tokens/',
+      });
+
+      render(<ApiNewToken />, {
+        organization: OrganizationFixture({
+          features: ['granular-permission-scopes-ui', 'service-accounts'],
+        }),
+      });
+
+      await selectEvent.select(
+        screen.getByRole('textbox', {name: 'Service Accounts'}),
+        'Write'
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Create Token'}));
+
+      await waitFor(() =>
+        expect(assignMock).toHaveBeenCalledWith(
+          '/api-tokens/',
+          expect.objectContaining({
+            data: expect.objectContaining({
+              scopes: ['service_account:read', 'service_account:write'],
+            }),
+          })
+        )
+      );
+    });
   });
 });

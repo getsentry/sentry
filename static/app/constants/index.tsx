@@ -148,6 +148,10 @@ export type GranularPermissionObj = {
    * Scope prefix, e.g. `dashboard` for `dashboard:read`.
    */
   resource: string;
+  /**
+   * Organization feature required to show the row.
+   */
+  feature?: string;
 };
 
 // Granular permissions replace SENTRY_APP_PERMISSIONS on personal tokens while
@@ -295,6 +299,13 @@ export const GRANULAR_SENTRY_APP_PERMISSIONS: GranularPermissionObj[] = [
     label: t('User Preferences'),
     help: t('Your personal settings and preferences'),
     levels: [GranularPermissionLevel.READ, GranularPermissionLevel.WRITE],
+  },
+  {
+    resource: 'service_account',
+    label: t('Service Accounts'),
+    help: t('Service accounts and their tokens'),
+    levels: [GranularPermissionLevel.READ, GranularPermissionLevel.WRITE],
+    feature: 'service-accounts',
   },
   // CI and integrations
   {
