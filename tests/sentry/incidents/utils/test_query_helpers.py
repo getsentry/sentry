@@ -71,6 +71,10 @@ class NormalizeSnubaQueryResultTest(TestCase):
         assert normalize_snuba_query_result(12.5) == 12.5
         assert normalize_snuba_query_result(3) == 3.0
 
+    def test_nan_returns_none(self) -> None:
+        assert normalize_snuba_query_result(float("nan")) is None
+        assert normalize_snuba_query_result("nan") is None
+
     def test_empty_string_returns_none(self) -> None:
         assert normalize_snuba_query_result("") is None
         assert normalize_snuba_query_result("   ") is None
