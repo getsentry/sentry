@@ -31,8 +31,10 @@ await generateClient("./openapi-normalized.json", "src");
 cpSync("lib/sentry-pagination.ts", "src/sentry-pagination.ts");
 cpSync("lib/sentry-errors.ts", "src/sentry-errors.ts");
 cpSync("lib/query-string-serializer.ts", "src/query-string-serializer.ts");
+cpSync("lib/auth-challenges.ts", "src/auth-challenges.ts");
 cpSync("lib/browser-client.ts", "src/browser-client.ts");
 cpSync("lib/source-analysis.ts", "src/source-analysis.ts");
+cpSync("lib/project-rename.ts", "src/project-rename.ts");
 cpSync("lib/api-client", "src/api-client", { recursive: true });
 
 // 3. Patch the generated output and generate the rest from it, in this order,
@@ -53,6 +55,8 @@ const steps = [
   // that accepts a `cursor` query parameter.
   "generate-pagination",
   "generate-error-results",
+  // Error codes and their `extra` keys, from the spec's SentryApiErrorBody component.
+  "generate-error-codes",
   "generate-query-enum-types",
   // A type-only map from path and method to each operation's types.
   "generate-api-routes",
@@ -82,9 +86,11 @@ appendFileSync(
   [
     "",
     "export { API_BASE_PATH } from './api-base-path.gen.ts';",
-    "export { callWithTypedErrors, getSentryApiErrorDetails, narrowError, SentryApiError } from './sentry-errors.ts';",
+    "export { callWithTypedErrors, getSentryApiErrorDetails, isSentryErrorCode, narrowError, SentryApiError } from './sentry-errors.ts';",
     "export { queryStringSerializer } from './query-string-serializer.ts';",
-    "export type { DocumentedSentryApiError, NarrowedResult, SentryApiErrorDetails, SentryApiResultError, SentryApiTransportError, SdkResult, UndocumentedSentryApiError } from './sentry-errors.ts';",
+    "export type { DocumentedSentryApiError, KnownSentryErrorCode, NarrowedResult, SentryApiErrorDetails, SentryApiResultError, SentryApiTransportError, SentryErrorCode, SdkResult, UndocumentedSentryApiError } from './sentry-errors.ts';",
+    "export { getSentryAuthChallenge, withAuthChallenges } from './auth-challenges.ts';",
+    "export type { AuthChallengeDecision, AuthChallengeHandler, SentryAuthChallenge } from './auth-challenges.ts';",
     "export { parseSentryLinkHeader, parseSentryLinks, readSentryResponseHeaders, unwrapResult, unwrapPaginatedResult, fetchPage, paginateAll, paginateUpTo, consumePage } from './sentry-pagination.ts';",
     "export type { SentryLink, SentryResponseHeaders, UnwrappedResult, PaginatedResponse, PaginatedCollection, PaginateAllOptions, PaginateUpToOptions, PageFetcher, BudgetedPageFetcher, CollectionPage, CollectionPageFetcher, PagePosition, PaginationContinuation } from './sentry-pagination.ts';",
     "export * from './error-results.gen.ts';",
@@ -93,6 +99,8 @@ appendFileSync(
     "export * from './pagination.gen.ts';",
     "export { createSentryClient } from './sentry-client.gen.ts';",
     "export type { SentryClient } from './sentry-client.gen.ts';",
+    "export { getSentryProjectRename } from './project-rename.ts';",
+    "export type { SentryProjectRename } from './project-rename.ts';",
     "export type { BaseUrlRequest, BaseUrlResolver, Config } from './client/index.ts';",
     "",
   ].join("\n"),

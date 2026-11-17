@@ -15,19 +15,44 @@ export type RegionUrlLookup = (
   request: BaseUrlRequest,
 ) => string | undefined | Promise<string | undefined>;
 
+/** Options for {@link routeCellOperations}. */
+export type RouteCellOperationsOptions = {
+  /**
+   * Where raw requests go: requests without `routing`, such as
+   * `client.prepareRequest` or `client.get` with a hand-written path.
+   * `'baseUrl'`, the default, keeps the configured base URL. `'lookup'` sends
+   * a raw request whose path names an organization (its `scope`) to the URL
+   * the lookup returns for it, like a cell operation. Use it when the lookup
+   * does more than find a region, such as picking the account or server that
+   * knows the organization, and raw requests need that too.
+   */
+  rawRequests?: "baseUrl" | "lookup";
+};
+
 /**
  * A `resolveBaseUrl` that sends each operation Sentry declares cell-only to
  * the region `regionUrl` returns for its organization. Everything else keeps
  * the configured base URL: control and `both` operations, `unknown`
- * operations, raw requests, and cell operations whose region is unknown. It
- * never looks a region up itself, and trusts whatever URL `regionUrl` returns.
+ * operations, cell operations whose region is unknown, and raw requests unless
+ * `rawRequests` is `'lookup'`. It never looks a region up itself, and trusts
+ * whatever URL `regionUrl` returns.
  */
-export function routeCellOperations(regionUrl: RegionUrlLookup): BaseUrlResolver {
-  return async (request) => {
-    const { baseUrl, organization, routing } = request;
-    if (routing?.silo !== "cell" || organization === undefined) {
-      return baseUrl;
+export function routeCellOperations(
+  regionUrl: RegionUrlLookup,
+  { rawRequests = "baseUrl" }: RouteCellOperationsOptions = {},
+): BaseUrlResolver {
+  // The organization to look up, or undefined to keep the configured base URL.
+  const organizationToRoute = ({ routing, organization, scope }: BaseUrlRequest) => {
+    if (routing) {
+      return routing.silo === "cell" ? organization : undefined;
     }
-    return (await regionUrl(organization, request)) ?? baseUrl;
+    return rawRequests === "lookup" ? scope?.organization : undefined;
+  };
+  return async (request) => {
+    const organization = organizationToRoute(request);
+    if (organization === undefined) {
+      return request.baseUrl;
+    }
+    return (await regionUrl(organization, request)) ?? request.baseUrl;
   };
 }

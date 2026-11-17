@@ -56,8 +56,9 @@ workspaces:
         artifacts:
           Package pack:
             - '{{workspaceName}}-tarball'
-    # npm goes first so a published GitHub release means the package is
-    # already on npm (bump-sentry-docs.yml relies on that).
+    # npm goes first so the package is published before the GitHub release.
+    # The registry can still lag, so dispatch-api-consumers.yml waits until npm
+    # serves the new version.
     targets:
       - name: npm
         access: public

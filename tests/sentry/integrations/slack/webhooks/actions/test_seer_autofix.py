@@ -2,10 +2,15 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import orjson
+from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_seer_credits_pb2 import (
+    CheckSeerCreditsResponse,
+)
 
 from sentry.integrations.slack.message_builder.routing import encode_action_id
 from sentry.integrations.slack.message_builder.types import SlackAction
+from sentry.seer.agent.client_models import MemoryBlock, Message, SeerRunState
 from sentry.seer.autofix.utils import AutofixStoppingPoint
+from sentry.testutils.helpers.features import with_feature
 
 from . import BaseEventTest
 
@@ -97,6 +102,43 @@ class SeerAutofixActionTest(BaseEventTest):
         assert response.status_code == 200
         assert mock_trigger.called
         assert not mock_not_member_message.called
+
+    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @patch(
+        "sentry.seer_credit.backend.check_seer_credits",
+        return_value=CheckSeerCreditsResponse(has_enough_credits=False),
+    )
+    @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
+    @patch("sentry.integrations.slack.integration.SlackIntegration.update_message")
+    @patch("sentry.seer.autofix.autofix_agent.get_autofix_agent_state")
+    def test_autofix_start_out_of_credits_still_points_at_an_existing_run(
+        self,
+        mock_get_autofix_state: MagicMock,
+        mock_update_message: MagicMock,
+        mock_send_threaded_ephemeral_message: MagicMock,
+        _mock_check_seer_credits: MagicMock,
+    ) -> None:
+        mock_get_autofix_state.return_value = SeerRunState(
+            run_id=123,
+            blocks=[
+                MemoryBlock(
+                    id="1",
+                    message=Message(role="assistant", metadata={"step": "root_cause"}),
+                    timestamp="2024-01-01T00:00:00Z",
+                )
+            ],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+        )
+
+        response = self.post_webhook_block_kit(
+            action_data=[self.get_autofix_start_action()],
+            original_message={**self.get_original_message(), "text": "boop"},
+        )
+
+        assert response.status_code == 200
+        mock_update_message.assert_called_once()
+        assert not mock_send_threaded_ephemeral_message.called
 
     @patch("sentry.integrations.slack.webhooks.action.send_not_org_member_message")
     @patch("sentry.integrations.slack.webhooks.action.SeerAutofixOperator.trigger_handoff")

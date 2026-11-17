@@ -15,6 +15,7 @@ import {noGlobalReact} from './noGlobalReact.ts';
 import {noQueryDataTypeParameters} from './noQueryDataTypeParameters.ts';
 import {noRawCssInStyled} from './noRawCssInStyled.ts';
 import {noRedundantDefaultArgument} from './noRedundantDefaultArgument.ts';
+import {noRelativeApiUrl} from './noRelativeApiUrl.ts';
 import {noRelativeImportPaths} from './noRelativeImportPaths.ts';
 import {noShadowDangerousGlobals} from './noShadowDangerousGlobals.ts';
 import {noStaticTranslations} from './noStaticTranslations.ts';
@@ -41,6 +42,7 @@ export const rules = {
   'no-query-data-type-parameters': noQueryDataTypeParameters,
   'no-raw-css-in-styled': noRawCssInStyled,
   'no-redundant-default-argument': noRedundantDefaultArgument,
+  'no-relative-api-url': noRelativeApiUrl,
   'no-relative-import-paths': noRelativeImportPaths,
   'no-shadow-dangerous-globals': noShadowDangerousGlobals,
   'no-static-translations': noStaticTranslations,

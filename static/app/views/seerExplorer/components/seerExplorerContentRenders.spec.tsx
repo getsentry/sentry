@@ -92,7 +92,7 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
 
 describe('SeerExplorerContent re-renders', () => {
   const organization = OrganizationFixture({
-    features: ['seer-explorer', 'seer-explorer-code-mode-tools'],
+    features: ['seer-explorer'],
     hideAiFeatures: false,
   });
   const getPageReferrer = () => '/issues/';

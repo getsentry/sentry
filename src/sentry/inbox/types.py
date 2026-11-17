@@ -1,13 +1,15 @@
 from __future__ import annotations
 
+import hashlib
 from abc import ABC, abstractmethod
-from collections.abc import Iterable, Sequence
-from dataclasses import asdict, dataclass
+from collections.abc import Iterable, Mapping, Sequence
+from dataclasses import asdict, dataclass, fields
 from enum import StrEnum
 from functools import partial
 from random import random
-from typing import Literal
+from typing import Any, Literal, Self
 
+import orjson
 from django.db import router, transaction
 from django.db.models.functions import Greatest
 from django.utils import timezone
@@ -15,6 +17,7 @@ from django.utils import timezone
 from sentry import features, options
 from sentry.constants import ObjectStatus
 from sentry.inbox.event_retention import cleanup_inbox_item_events
+from sentry.inbox.item_retention import cleanup_inbox_items
 from sentry.models.organization import Organization
 from sentry.notifications.models.inboxitem import InboxItem
 from sentry.notifications.models.inboxitemevent import InboxActorType, InboxItemEvent
@@ -36,7 +39,21 @@ class InboxActor:
 SYSTEM_ACTOR = InboxActor(type=InboxActorType.SYSTEM, id=None)
 
 
-def _schedule_retention(items: Sequence[InboxItem]) -> None:
+def _schedule_item_retention(items: Sequence[InboxItem]) -> None:
+    if not options.get("cleanup.inbox-items.enabled"):
+        return
+
+    rate = options.get("cleanup.inbox-items.sample-rate")
+    for item in items:
+        if random() < rate:
+            safe_execute(
+                cleanup_inbox_items.delay,
+                organization_id=item.organization_id,
+                user_id=item.user_id,
+            )
+
+
+def _schedule_event_retention(items: Sequence[InboxItem]) -> None:
     if not options.get("cleanup.inbox-events.enabled"):
         return
 
@@ -66,7 +83,7 @@ class InboxItemType[SubjectT](ABC):
 
     @abstractmethod
     def get_url(self, *, organization: Organization, subject_id: str) -> str:
-        """Subject URL, independent of inbox items or events."""
+        """Subject's inbox URL, independent of recorded inbox items or events."""
 
     @abstractmethod
     def filter_recipients(self, *, subject: SubjectT, user_ids: Sequence[int]) -> list[int]:
@@ -80,14 +97,32 @@ class InboxEventSummary(StrEnum):
     ISSUE_TEAM_MENTIONED = "Mentioned your team in a comment"
     ISSUE_PR_READY_FOR_REVIEW = "Pull request ready for review"
     NOTEBOOK_COMPLETED = "Investigation completed"
-    NOTEBOOK_MENTIONED = "Mentioned you"
+    NOTEBOOK_USER_MENTIONED = "Mentioned you"
     NOTEBOOK_TEAM_MENTIONED = "Mentioned your team"
     NOTEBOOK_PARTICIPANT_ADDED = "Added you"
 
 
 @dataclass(frozen=True, kw_only=True)
 class InboxEventData:
-    pass
+    """
+    Event payload, stored as JSON on each recorded event.
+
+    Give any field added to an existing data class a default. Stored payloads won't have it, and
+    rebuilding them without a value fails, so their URLs fall back to the subject URL.
+    """
+
+    @classmethod
+    def from_payload(cls, payload: Mapping[str, Any]) -> Self:
+        """Rebuild from a stored payload, ignoring keys that are no longer fields."""
+        names = {field.name for field in fields(cls) if field.init}
+        return cls(**{key: value for key, value in payload.items() if key in names})
+
+    def get_url(self, subject_url: str) -> str:
+        """
+        URL for this event, built from the subject URL. Override to point at something on the
+        subject's page, such as the comment that mentioned you.
+        """
+        return subject_url
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -102,6 +137,23 @@ class InboxEventType[SubjectT, DataT: InboxEventData]:
     notification_setting: NotificationSettingEnum
     recipient: Literal["team", "user"] = "user"
 
+    def get_idempotency_key(self, *, data: DataT) -> str:
+        return hashlib.sha256(orjson.dumps(asdict(data), option=orjson.OPT_SORT_KEYS)).hexdigest()
+
+    def get_url(self, *, organization: Organization, subject_id: str, data: DataT) -> str:
+        """URL for an event of this type."""
+        subject_url = self.item_type.get_url(organization=organization, subject_id=subject_id)
+        return data.get_url(subject_url)
+
+    def get_event_url(self, *, organization: Organization, event: InboxItemEvent) -> str:
+        """URL for a recorded event, or the subject URL if its payload lacks required fields."""
+        subject_id = event.inbox_item.subject_id
+        try:
+            data = self.data_class.from_payload(event.data)
+        except TypeError:
+            return self.item_type.get_url(organization=organization, subject_id=subject_id)
+        return self.get_url(organization=organization, subject_id=subject_id, data=data)
+
     def record(
         self,
         *,
@@ -110,7 +162,7 @@ class InboxEventType[SubjectT, DataT: InboxEventData]:
         recipient_user_ids: Iterable[int],
         actor: InboxActor,
     ) -> list[InboxItemEvent]:
-        """Returns one recorded event per recipient, each with its inbox_item set."""
+        """Return newly created events, with their inbox items attached."""
         recipients = set(recipient_user_ids)
         if actor.type == InboxActorType.USER:
             recipients -= {actor.id}
@@ -124,12 +176,14 @@ class InboxEventType[SubjectT, DataT: InboxEventData]:
             return []
 
         subject_id = self.item_type.get_subject_id(subject)
+        idempotency_key = self.get_idempotency_key(data=data)
         payload = asdict(data)
         tags = {"event_type": self.event_type}
+        using = router.db_for_write(InboxItem)
 
         with (
             metrics.timer("inbox.record.duration", tags=tags),
-            transaction.atomic(using=router.db_for_write(InboxItem)),
+            transaction.atomic(using=using),
         ):
             items = InboxItem.objects.bulk_create(
                 [
@@ -147,26 +201,35 @@ class InboxEventType[SubjectT, DataT: InboxEventData]:
                 unique_fields=["user_id", "organization", "subject_type", "subject_id"],
                 update_fields=["status"],
             )
-            events = InboxItemEvent.objects.bulk_create(
-                [
-                    InboxItemEvent(
-                        inbox_item=item,
-                        type=self.event_type,
-                        actor_type=actor.type,
-                        actor_id=actor.id,
-                        data=payload,
-                    )
-                    for item in items
-                ]
-            )
+            events = []
+            for item in items:
+                event, created = InboxItemEvent.objects.get_or_create(
+                    inbox_item=item,
+                    type=self.event_type,
+                    idempotency_key=idempotency_key,
+                    defaults={
+                        "actor_type": actor.type,
+                        "actor_id": actor.id,
+                        "data": payload,
+                    },
+                )
+                if created:
+                    events.append(event)
+                activity_at = event.date_added if created else timezone.now()
+                item.last_activity_at = Greatest("last_activity_at", activity_at)
+                item.date_updated = activity_at
             transaction.on_commit(
-                partial(_schedule_retention, items),
+                partial(_schedule_item_retention, items),
                 using=router.db_for_write(InboxItem),
             )
-            for item, event in zip(items, events):
-                item.last_activity_at = Greatest("last_activity_at", event.date_added)
-                item.date_updated = event.date_added
+            transaction.on_commit(
+                partial(_schedule_event_retention, items),
+                using=router.db_for_write(InboxItem),
+            )
             InboxItem.objects.bulk_update(items, ["last_activity_at", "date_updated"])
 
-        metrics.incr("inbox.events.recorded", amount=len(recipients), tags=tags)
+            transaction.on_commit(
+                lambda: metrics.incr("inbox.events.processed", amount=len(recipients), tags=tags),
+                using=using,
+            )
         return events
