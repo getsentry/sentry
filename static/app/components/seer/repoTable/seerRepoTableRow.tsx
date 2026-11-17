@@ -8,7 +8,6 @@ import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {getRepoStatusLabel} from 'sentry/components/repositories/getRepoStatusLabel';
 import {repositoryWithSettingsApiOptions} from 'sentry/components/repositories/repositoryWithSettingsApiOptions';
