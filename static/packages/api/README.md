@@ -308,6 +308,22 @@ It runs once per request, including `prepareRequest`, after `requestValidator`
 and before request interceptors. A per-call `resolveBaseUrl` replaces the
 configured one. A throw rejects the request unchanged, before `fetch` is called.
 
+### Renamed projects
+
+A request that uses a project's old slug gets a 302 to the same URL with the new slug, and fetch follows it. `getSentryProjectRename(request, response)` reports such a rename, from the followed redirect or from the 302's `Location` when redirects are not followed. It returns `{ organization, previousSlug, slug, url }`, or `undefined` for any other response, and never redirects. Use it in a response interceptor to update stored slugs or links:
+
+```ts
+import { getSentryProjectRename } from "@sentry/api";
+
+sentry.client.interceptors.response.use((response, request) => {
+  const rename = getSentryProjectRename(request, response);
+  if (rename) console.info(`Project ${rename.previousSlug} is now ${rename.slug}`);
+  return response;
+});
+```
+
+Browsers hide the target of an unfollowed (`redirect: "manual"`) redirect, so there only a followed redirect is reported.
+
 ### Linking to Sentry
 
 To link to something in Sentry, use the URL the API returns instead of building one from the base URL and slugs. Those URLs account for how the deployment is set up, such as organization subdomains or a self-hosted URL prefix:
