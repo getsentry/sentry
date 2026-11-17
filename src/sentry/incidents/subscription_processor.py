@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import math
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -263,7 +262,7 @@ class SubscriptionProcessor:
             evaluation_value = self.get_evaluation_value(subscription_update)
 
             # `get_evaluation_value` already normalizes Snuba values to float | None
-            if evaluation_value is None or math.isnan(evaluation_value):
+            if evaluation_value is None:
                 metrics.incr("incidents.alert_rules.skipping_update_invalid_aggregation_value")
                 # We have an invalid aggregate, but we _did_ process the update, so we bump the last
                 # update time to reflect that and avoid reprocessing
