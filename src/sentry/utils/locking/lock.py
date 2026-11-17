@@ -8,6 +8,8 @@ from contextlib import contextmanager
 from typing import ContextManager
 from uuid import uuid4
 
+from django.conf import settings
+
 from sentry.utils import metrics
 from sentry.utils.locking import LockNotOwned, UnableToAcquireLock
 from sentry.utils.locking.backends import LockBackend
@@ -17,12 +19,24 @@ logger = logging.getLogger(__name__)
 
 class Lock:
     def __init__(
-        self, backend: LockBackend, key: str, duration: int, name: str | None = None
+        self,
+        backend: LockBackend,
+        key: str,
+        duration: int,
+        name: str | None = None,
+        metrics_sample_rate: float | None = None,
     ) -> None:
         self.backend = backend
         self.key = key
         self.duration = duration
         self.name = name
+        # A rarely taken lock passes 1.0: at the default rate most of its
+        # acquires go unrecorded, and each sampled one is scaled up.
+        self.metrics_sample_rate = (
+            settings.SENTRY_METRICS_SAMPLE_RATE
+            if metrics_sample_rate is None
+            else metrics_sample_rate
+        )
         # Set by a successful acquire. Release sends this token so a stale
         # holder cannot delete a newer acquisition that reused the process uuid.
         self.token: str | None = None
@@ -33,11 +47,18 @@ class Lock:
 
     def _incr(self, key: str, tags: dict[str, str]) -> None:
         if self.name is not None:
-            metrics.incr(key, tags={"lock_name": self.name, **tags})
+            metrics.incr(
+                key, tags={"lock_name": self.name, **tags}, sample_rate=self.metrics_sample_rate
+            )
 
     def _timing(self, key: str, value: float, tags: dict[str, str] | None = None) -> None:
         if self.name is not None:
-            metrics.timing(key, value, tags={"lock_name": self.name, **(tags or {})})
+            metrics.timing(
+                key,
+                value,
+                tags={"lock_name": self.name, **(tags or {})},
+                sample_rate=self.metrics_sample_rate,
+            )
 
     def _acquire_once(self) -> ContextManager[None]:
         token = uuid4().hex

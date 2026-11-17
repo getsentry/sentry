@@ -3,10 +3,14 @@ from unittest import mock
 from unittest.mock import MagicMock, call, patch
 
 import pytest
+from django.conf import settings
 
 from sentry.utils.locking import LockNotOwned, UnableToAcquireLock
 from sentry.utils.locking.backends import LockBackend
 from sentry.utils.locking.lock import Lock
+from sentry.utils.locking.manager import LockManager
+
+DEFAULT_RATE = settings.SENTRY_METRICS_SAMPLE_RATE
 
 
 class LockTestCase(unittest.TestCase):
@@ -153,12 +157,17 @@ class LockMetricsTestCase(unittest.TestCase):
                 call(
                     "locks.acquire",
                     tags={"lock_name": "my_lock", "mode": "nonblocking", "result": "acquired"},
+                    sample_rate=DEFAULT_RATE,
                 ),
-                call("locks.release", tags={"lock_name": "my_lock", "result": "released"}),
+                call(
+                    "locks.release",
+                    tags={"lock_name": "my_lock", "result": "released"},
+                    sample_rate=DEFAULT_RATE,
+                ),
             ]
         )
         mock_metrics.timing.assert_called_once_with(
-            "locks.held", 2.5, tags={"lock_name": "my_lock"}
+            "locks.held", 2.5, tags={"lock_name": "my_lock"}, sample_rate=DEFAULT_RATE
         )
 
     def test_failed_acquire(self, mock_metrics: MagicMock) -> None:
@@ -172,6 +181,7 @@ class LockMetricsTestCase(unittest.TestCase):
         mock_metrics.incr.assert_called_once_with(
             "locks.acquire",
             tags={"lock_name": "my_lock", "mode": "nonblocking", "result": "failed"},
+            sample_rate=DEFAULT_RATE,
         )
 
     def test_blocking_acquire_records_wait(self, mock_metrics: MagicMock) -> None:
@@ -191,8 +201,12 @@ class LockMetricsTestCase(unittest.TestCase):
 
         tags = {"lock_name": "my_lock", "mode": "blocking", "result": "acquired"}
         # Retries inside the loop do not count as failed acquires.
-        mock_metrics.incr.assert_called_once_with("locks.acquire", tags=tags)
-        mock_metrics.timing.assert_called_once_with("locks.acquire.wait", 0.75, tags=tags)
+        mock_metrics.incr.assert_called_once_with(
+            "locks.acquire", tags=tags, sample_rate=DEFAULT_RATE
+        )
+        mock_metrics.timing.assert_called_once_with(
+            "locks.acquire.wait", 0.75, tags=tags, sample_rate=DEFAULT_RATE
+        )
 
     def test_blocking_acquire_timeout(self, mock_metrics: MagicMock) -> None:
         backend = mock.Mock(spec=LockBackend)
@@ -203,9 +217,11 @@ class LockMetricsTestCase(unittest.TestCase):
             lock.blocking_acquire(initial_delay=0, timeout=0.01)
 
         tags = {"lock_name": "my_lock", "mode": "blocking", "result": "timeout"}
-        mock_metrics.incr.assert_called_once_with("locks.acquire", tags=tags)
+        mock_metrics.incr.assert_called_once_with(
+            "locks.acquire", tags=tags, sample_rate=DEFAULT_RATE
+        )
         assert mock_metrics.timing.call_args.args[0] == "locks.acquire.wait"
-        assert mock_metrics.timing.call_args.kwargs == {"tags": tags}
+        assert mock_metrics.timing.call_args.kwargs == {"tags": tags, "sample_rate": DEFAULT_RATE}
 
     def test_release_not_owned(self, mock_metrics: MagicMock) -> None:
         backend = mock.Mock(spec=LockBackend)
@@ -217,7 +233,9 @@ class LockMetricsTestCase(unittest.TestCase):
         lock.release()
 
         mock_metrics.incr.assert_called_once_with(
-            "locks.release", tags={"lock_name": "my_lock", "result": "not_owned"}
+            "locks.release",
+            tags={"lock_name": "my_lock", "result": "not_owned"},
+            sample_rate=DEFAULT_RATE,
         )
         mock_metrics.timing.assert_not_called()
 
@@ -230,5 +248,33 @@ class LockMetricsTestCase(unittest.TestCase):
         lock.release()
 
         mock_metrics.incr.assert_called_once_with(
-            "locks.release", tags={"lock_name": "my_lock", "result": "error"}
+            "locks.release",
+            tags={"lock_name": "my_lock", "result": "error"},
+            sample_rate=DEFAULT_RATE,
+        )
+
+    def test_metrics_sample_rate(self, mock_metrics: MagicMock) -> None:
+        backend = mock.Mock(spec=LockBackend)
+        lock = LockManager(backend).get("lock", 60, name="my_lock", metrics_sample_rate=0.25)
+
+        with patch("sentry.utils.locking.lock.time.monotonic", side_effect=[10.0, 12.5]):
+            with lock.acquire():
+                pass
+
+        mock_metrics.incr.assert_has_calls(
+            [
+                call(
+                    "locks.acquire",
+                    tags={"lock_name": "my_lock", "mode": "nonblocking", "result": "acquired"},
+                    sample_rate=0.25,
+                ),
+                call(
+                    "locks.release",
+                    tags={"lock_name": "my_lock", "result": "released"},
+                    sample_rate=0.25,
+                ),
+            ]
+        )
+        mock_metrics.timing.assert_called_once_with(
+            "locks.held", 2.5, tags={"lock_name": "my_lock"}, sample_rate=0.25
         )
