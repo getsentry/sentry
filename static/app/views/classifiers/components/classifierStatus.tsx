@@ -13,7 +13,7 @@ import type {TelemetryClassifier} from 'sentry/views/classifiers/types';
 function useCanEditClassifier(classifier: TelemetryClassifier) {
   const organization = useOrganization();
   const project = useProjectFromId({project_id: classifier.projectId});
-  return hasEveryAccess(['project:write'], {organization, project});
+  return hasEveryAccess(['project:read'], {organization, project});
 }
 
 function useUpdateClassifierStatus(classifier: TelemetryClassifier) {
