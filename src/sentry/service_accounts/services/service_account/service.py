@@ -69,8 +69,7 @@ class ServiceAccountService(RpcService):
         When `idempotency_key` matches an account in `organization_id`, that account is
         returned unchanged instead of creating another.
 
-        `owner_kind` is a `ServiceAccountOwnerKind` value for an account that an object such
-        as a Seer automation manages. Leave it None for an account an admin creates.
+        `owner_kind` is a `ServiceAccountOwnerKind` value. None records the owner as unknown.
         """
 
     @rpc_method

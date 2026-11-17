@@ -71,8 +71,10 @@ def service_account_outboxes(
 
 
 class ServiceAccountOwnerKind(models.TextChoices):
-    """The kind of object that created an account and manages its access."""
+    """Who created an account and manages its access."""
 
+    # A person, in settings.
+    USER = "user"
     SEER_WORKFLOW_CONFIG = "seer_workflow_config"
 
 
@@ -104,9 +106,9 @@ class ServiceAccount(ReplicatedControlModel):
     created_by = FlexibleForeignKey("sentry.User", null=True, blank=True, on_delete=models.SET_NULL)
     # Lets a retried create, such as an outbox redelivery, find the account it already made.
     idempotency_key = models.CharField(max_length=64, null=True, blank=True)
-    # Set when an object such as a Seer automation created the account and manages its
-    # access. Null when an admin created it in settings. Only the owner, in the cell, holds
-    # the link between them, so control knows the kind of owner but not which one.
+    # Null for accounts created before this was recorded, so their owner is unknown. Only an
+    # owner in the cell, such as a Seer automation, holds the link to its account, so control
+    # knows the kind of owner but not which one.
     owner_kind = models.CharField(
         max_length=64, choices=ServiceAccountOwnerKind.choices, null=True, blank=True
     )
