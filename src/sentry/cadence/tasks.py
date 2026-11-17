@@ -57,7 +57,6 @@ class _Cursor:
     id: int
 
 
-# Keep issues aliases while old producers and queued tasks drain.
 @instrumented_task(
     name="sentry.cadence.tasks.cadence_tick",
     namespace=cadence_tasks,
