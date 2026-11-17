@@ -312,7 +312,7 @@ While `isLoading` is set, a declared `metadata` keeps its row even if every item
 />
 ```
 
-Data that arrives after the entity has its own flag, on top of the header's: `people.isLoading`, or `isLoading` on a single stat. Without it, a pending stat renders whatever it holds, usually a `0` it has not confirmed.
+For data that arrives after the entity, use the slot's own flag as well as the header's: `people.isLoading`, or `isLoading` on a single stat. Without it, a pending stat renders whatever it holds, usually a `0` it has not confirmed.
 
 ```jsx
 <EntityHeader
