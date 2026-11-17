@@ -28,7 +28,11 @@ interface SeerExploreQuery {
 }
 
 function getSeerExploreMode(result: AskSeerSearchQuery): Mode {
-  if ((result.groupBys?.length ?? 0) > 0 || result.mode === 'aggregates') {
+  if (
+    (result.groupBys?.length ?? 0) > 0 ||
+    result.mode === 'aggregates' ||
+    result.visualizations.some(visualization => visualization.transformations?.length)
+  ) {
     return Mode.AGGREGATE;
   }
 
@@ -38,9 +42,10 @@ function getSeerExploreMode(result: AskSeerSearchQuery): Mode {
 function getSeerVisualizes(
   visualizations: readonly SeerVisualization[]
 ): BaseVisualize[] {
-  return visualizations.map(({chartType, yAxes}) => ({
+  return visualizations.map(({chartType, yAxes, transformations}) => ({
     chartType,
     yAxes,
+    ...(transformations ? {transformations} : {}),
   }));
 }
 
@@ -49,13 +54,13 @@ function getSeerVisualizes(
  * (logs, spans, metrics) apply to their query params. This is the first step
  * when applying a Seer "ask" result to the page.
  *
- * - `mode` is {@link Mode.AGGREGATE} when the result has any group bys or Seer
- *   explicitly returned `mode: 'aggregates'`, otherwise {@link Mode.SAMPLES}.
+ * - `mode` is {@link Mode.AGGREGATE} when the result has group bys, transformed
+ *   axes, or `mode: 'aggregates'`, otherwise {@link Mode.SAMPLES}.
  * - `datetime` resolves the result's `start`/`end`/`statsPeriod` against the
  *   current page filter datetime, falling back to the page selection when Seer
  *   didn't return a time range.
  * - `query`, `sort`, and `groupBys` are passed through as-is; `visualizes` is
- *   stripped down to the writable `{chartType, yAxes}` shape.
+ *   converted to writable visualization entries, retaining their transformations.
  */
 export function getSeerExploreQuery({
   pageDatetime,

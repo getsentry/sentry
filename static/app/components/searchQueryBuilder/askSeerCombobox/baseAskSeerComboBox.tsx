@@ -1,4 +1,4 @@
-import {useEffect, useLayoutEffect, useMemo, useRef} from 'react';
+import {useCallback, useEffect, useLayoutEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 import {mergeRefs} from '@react-aria/utils';
 import {Item} from '@react-stately/collections';
@@ -21,10 +21,13 @@ import {useSearchQueryBuilderAI} from 'sentry/components/searchQueryBuilder/cont
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isEquation} from 'sentry/utils/discover/fields';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
 
+import {useAiQueryContext} from './aiQueryContext';
 import {AskSeerQueryStatusIndicator} from './askSeerQueryStatusIndicator';
 import {AskSeerSearchHeader} from './askSeerSearchHeader';
 import {AskSeerSearchListBox} from './askSeerSearchListBox';
@@ -66,10 +69,10 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
   loadingContent,
   onReset,
   onSearchQueryChange,
-  queries,
+  queries: responses,
   searchQuery,
   submitQuery,
-  unsupportedReason: unsupportedReasonProp,
+  unsupportedReason: responseUnsupportedReason,
   additionalFeedbackTags,
   ...props
 }: BaseAskSeerComboBoxProps<T>) {
@@ -81,7 +84,60 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
   const isInitialRender = useRef(true);
   const inputRef = useRef<HTMLInputElement>(null);
   const organization = useOrganization();
+  const {strategy} = useAiQueryContext();
   const {projects} = useProjects();
+
+  const transformationsEnabled = organization.features.includes(
+    'explore-interpolation-and-smoothing'
+  );
+  const getUnsupportedReason = useCallback(
+    (query: T) => {
+      if (query.unsupportedReason) {
+        return query.unsupportedReason;
+      }
+      if (!query.visualizations?.some(viz => viz.transformations?.length)) {
+        return null;
+      }
+      if (
+        !transformationsEnabled ||
+        !strategy ||
+        !['Traces', 'Logs', 'Metrics'].includes(strategy)
+      ) {
+        return t('Chart transformations are not available for this search.');
+      }
+      if (
+        query.visualizations.some(
+          viz => viz.transformations?.length && viz.chartType === ChartType.HEATMAP
+        )
+      ) {
+        return t('Chart transformations are not supported on heatmaps.');
+      }
+      if (strategy === 'Metrics') {
+        const axes = query.visualizations.flatMap(viz => viz.yAxes);
+        if (axes.some(isEquation) && axes.some(axis => !isEquation(axis))) {
+          return t(
+            'This suggestion combines equations and other metric charts. Ask Seer for separate suggestions.'
+          );
+        }
+      }
+      return null;
+    },
+    [strategy, transformationsEnabled]
+  );
+
+  const {queries, unsupportedReason: suggestionUnsupportedReason} = useMemo(() => {
+    const supportedResponses = responses.map(query => ({
+      query,
+      reason: getUnsupportedReason(query),
+    }));
+    return {
+      queries: responseUnsupportedReason
+        ? []
+        : supportedResponses.filter(item => !item.reason).map(item => item.query),
+      unsupportedReason:
+        responseUnsupportedReason || supportedResponses.find(item => item.reason)?.reason,
+    };
+  }, [responses, responseUnsupportedReason, getUnsupportedReason]);
 
   const openForm = useFeedbackForm();
 
@@ -109,6 +165,11 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
   );
 
   const applySelectedQuery = (item: T) => {
+    const reason = getUnsupportedReason(item);
+    if (reason) {
+      toast.error(reason);
+      return;
+    }
     askSeerNLQueryRef.current = searchQuery.trim();
     skipNextSearchQueryBuilderAutoFocusRef.current = true;
     inputRef.current?.blur();
@@ -308,7 +369,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
   const hasResults = queries.length > 0;
   const isNoResults = hasResponse && !isPending && !isError && !hasResults;
   const unsupportedReason =
-    unsupportedReasonProp ||
+    suggestionUnsupportedReason ||
     (isNoResults
       ? t("Seer couldn't turn that into a search. Try rephrasing your question.")
       : null);

@@ -15,6 +15,7 @@ import {
 import * as modal from 'sentry/actionCreators/modal';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {AiQueryProvider} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
@@ -73,7 +74,9 @@ describe('LogsTabContent', () => {
         analyticsPageSource={LogsAnalyticsPageSource.EXPLORE_LOGS}
         source="location"
       >
-        <LogsPageDataProvider>{children}</LogsPageDataProvider>
+        <AiQueryProvider strategy="Logs">
+          <LogsPageDataProvider>{children}</LogsPageDataProvider>
+        </AiQueryProvider>
       </LogsQueryParamsProvider>
     );
   }
@@ -212,6 +215,89 @@ describe('LogsTabContent', () => {
       method: 'GET',
       body: {},
     });
+  });
+
+  it('applies sample-mode log suggestions with distinct indexed transformations', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/start/',
+      method: 'POST',
+      body: {run_id: 1},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/search-agent/state/1/',
+      body: {
+        session: {
+          status: 'completed',
+          final_response: {
+            responses: [
+              {
+                query: 'severity:error',
+                sort: '',
+                group_by: [],
+                stats_period: '24h',
+                start: null,
+                end: null,
+                mode: 'samples',
+                visualization: [
+                  {
+                    y_axes: ['count(message)'],
+                    interval: '1h',
+                    transformations: ['fill(locf)', 'smooth(sma,5)'],
+                  },
+                  {
+                    y_axes: ['count(message)'],
+                    interval: '1h',
+                    transformations: ['smooth(ema)'],
+                  },
+                ],
+              },
+            ],
+            unsupported_reason: null,
+          },
+        },
+      },
+    });
+    render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+      organization: {
+        ...organization,
+        hideAiFeatures: false,
+        features: [
+          ...organization.features,
+          'explore-interpolation-and-smoothing',
+          'seer-assisted-query-codemode',
+        ],
+      },
+      initialRouterConfig,
+      additionalWrapper: ProviderWrapper,
+    });
+    const search = screen.getByTestId('query-builder-input');
+    await waitFor(() => expect(search).toBeEnabled());
+    await userEvent.click(search);
+    await userEvent.click(await screen.findByText(/Ask AI to build your query/));
+    await userEvent.type(
+      screen.getByRole('combobox', {name: 'Ask Seer with Natural Language'}),
+      'smooth logs{Enter}'
+    );
+    const option = await screen.findByRole('option', {
+      name: /count\(message\) with fill\(locf\), then smooth\(sma,5\).*count\(message\) with smooth\(ema\)/,
+    });
+    expect(option).toHaveTextContent(
+      'count(message) with fill(locf), then smooth(sma,5)'
+    );
+    await userEvent.click(option);
+    await waitFor(() =>
+      expect(eventsTimeSeriesMock).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({
+            interval: '1h',
+            yAxis: ['count(message)', 'count(message)', 'count(message)'],
+            'transformations[0]': ['fill(locf)', 'smooth(sma,5)'],
+            'transformations[1]': ['smooth(ema)'],
+          }),
+        })
+      )
+    );
   });
 
   it('edits per-series transformations beneath the charts through the log URL', async () => {

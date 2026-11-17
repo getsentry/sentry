@@ -174,6 +174,27 @@ describe('transformSeerResponse', () => {
 });
 
 describe('mapSeerResponseItem', () => {
+  it.each([{transformations: []}, {transformations: undefined}])(
+    'keeps the first interval for raw suggestions with transformations $transformations',
+    ({transformations}) => {
+      const result = mapSeerResponseItem({
+        query: '',
+        sort: '',
+        group_by: [],
+        stats_period: '',
+        start: null,
+        end: null,
+        mode: 'aggregates',
+        visualization: [
+          {y_axes: ['count()'], interval: '1h', transformations},
+          {y_axes: ['count()'], interval: '5m', transformations},
+        ],
+      });
+      expect(result.interval).toBe('1h');
+      expect(result.unsupportedReason).toBeUndefined();
+    }
+  );
+
   it('maps Seer response fields into the shared query shape', () => {
     expect(
       mapSeerResponseItem({
@@ -184,7 +205,10 @@ describe('mapSeerResponseItem', () => {
         start: null,
         end: null,
         mode: 'aggregates',
-        visualization: [{chart_type: ChartType.BAR, y_axes: ['count()']}],
+        visualization: [
+          {chart_type: ChartType.BAR, y_axes: ['count()']},
+          {y_axes: ['avg(span.duration)'], transformations: []},
+        ],
       })
     ).toEqual({
       query: 'span.op:db',
@@ -194,7 +218,10 @@ describe('mapSeerResponseItem', () => {
       start: null,
       end: null,
       mode: 'aggregates',
-      visualizations: [{chartType: ChartType.BAR, yAxes: ['count()']}],
+      visualizations: [
+        {chartType: ChartType.BAR, yAxes: ['count()']},
+        {yAxes: ['avg(span.duration)'], transformations: []},
+      ],
     });
   });
 

@@ -198,6 +198,94 @@ describe('MetricsTabContent', () => {
     });
   });
 
+  it.each(['functions', 'equation'])(
+    'applies transformed %s suggestions after metric reconstruction',
+    async kind => {
+      const axes =
+        kind === 'equation'
+          ? ['equation|p50(value,bar,distribution,none) / 2']
+          : ['p50(value)', 'p50(value)'];
+      const response = {
+        responses: [
+          {
+            query: 'metric.name:bar metric.type:distribution',
+            sort: '',
+            group_by: [],
+            stats_period: '24h',
+            start: null,
+            end: null,
+            mode: 'aggregates',
+            visualization: axes.map((axis, index) => ({
+              y_axes: [axis],
+              interval: '1h',
+              transformations:
+                index === 0 ? ['fill(locf)', 'smooth(sma,5)'] : ['smooth(ema)'],
+            })),
+          },
+        ],
+        unsupported_reason: null,
+      };
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/search-agent/start/',
+        method: 'POST',
+        body: {run_id: 1},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/search-agent/state/1/',
+        body: {session: {status: 'completed', final_response: response}},
+      });
+      const request = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-timeseries/',
+        body: {timeSeries: []},
+      });
+      render(<MetricsTabContent datePageFilterProps={datePageFilterProps} />, {
+        organization: {
+          ...organization,
+          hideAiFeatures: false,
+          features: [
+            ...organization.features,
+            'explore-interpolation-and-smoothing',
+            'seer-assisted-query-codemode',
+          ],
+        },
+        additionalWrapper: ProviderWrapper,
+        initialRouterConfig,
+      });
+      const search = within(screen.getByTestId('metric-toolbar')).getByRole('combobox');
+      await waitFor(() => expect(search).toBeEnabled());
+      await userEvent.click(search);
+      await userEvent.click(await screen.findByText(/Ask AI to build your query/));
+      await userEvent.type(
+        screen.getByRole('combobox', {name: 'Ask Seer with Natural Language'}),
+        'smooth metric{Enter}'
+      );
+      const option = await screen.findByRole('option', {
+        name: /with fill\(locf\), then smooth\(sma,5\)/,
+      });
+      expect(option).toHaveTextContent('with fill(locf), then smooth(sma,5)');
+      await userEvent.click(option);
+      await waitFor(() =>
+        expect(request).toHaveBeenLastCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            query: expect.objectContaining({
+              interval: '1h',
+              yAxis:
+                kind === 'equation'
+                  ? axes
+                  : [
+                      'p50(value,bar,distribution,none)',
+                      'p50(value,bar,distribution,none)',
+                    ],
+              'transformations[0]': ['fill(locf)', 'smooth(sma,5)'],
+              ...(kind === 'functions' ? {'transformations[1]': ['smooth(ema)']} : {}),
+            }),
+          })
+        )
+      );
+    }
+  );
+
   it('edits panel transformations in the URL without changing other metrics', async () => {
     const firstMetric = JSON.stringify({
       metric: {name: 'bar', type: 'distribution'},

@@ -1,5 +1,5 @@
 import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
-import type {ChartType} from 'sentry/views/insights/common/components/chart';
+import type {BaseVisualize} from 'sentry/views/explore/queryParams/visualize';
 
 /** Dataset the search agent runs against. */
 export type AskSeerStrategy = 'Errors' | 'Issues' | 'Logs' | 'Metrics' | 'Traces';
@@ -27,6 +27,7 @@ export interface SeerRawResponseItem {
   visualization?: Array<{
     chart_type?: number;
     interval?: string | null;
+    transformations?: string[];
     y_axes?: string[];
   }>;
 }
@@ -66,8 +67,11 @@ export interface QueryTokensProps {
   sort?: string;
   start?: string | null;
   statsPeriod?: string;
-  visualizations?: Array<{yAxes: string[]; chartType?: ChartType}>;
+  unsupportedReason?: string;
+  visualizations?: SeerVisualization[];
 }
+
+type SeerVisualization = Pick<BaseVisualize, 'yAxes' | 'chartType' | 'transformations'>;
 
 export interface AskSeerSearchQuery extends QueryTokensProps {
   end: string | null;
@@ -77,7 +81,7 @@ export interface AskSeerSearchQuery extends QueryTokensProps {
   sort: string;
   start: string | null;
   statsPeriod: string;
-  visualizations: Array<{yAxes: string[]; chartType?: ChartType}>;
+  visualizations: SeerVisualization[];
 }
 
 /**
