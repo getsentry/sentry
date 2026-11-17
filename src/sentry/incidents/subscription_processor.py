@@ -137,7 +137,7 @@ class SubscriptionProcessor:
         )
         return aggregation_value
 
-    def get_aggregation_value(
+    def get_evaluation_value(
         self, subscription_update: QuerySubscriptionUpdate, comparison_delta: int | None = None
     ) -> float | None:
         if self.subscription.snuba_query.dataset == Dataset.Metrics.value:
@@ -240,9 +240,9 @@ class SubscriptionProcessor:
         ):
             metrics.incr("incidents.alert_rules.process_update.start")
             comparison_delta = self.get_comparison_delta(self.detector)
-            aggregation_value = self.get_aggregation_value(subscription_update, comparison_delta)
+            aggregation_value = self.get_evaluation_value(subscription_update, comparison_delta)
 
-            # get_aggregation_value already normalizes Snuba values to float | None.
+            # `get_evaluation_value` already normalizes Snuba values to float | None.
             if aggregation_value is None or math.isnan(aggregation_value):
                 metrics.incr("incidents.alert_rules.skipping_update_invalid_aggregation_value")
                 # We have an invalid aggregate, but we _did_ process the update, so we store
