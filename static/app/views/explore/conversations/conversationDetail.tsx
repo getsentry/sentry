@@ -22,6 +22,7 @@ import {
 } from './components/conversationView';
 import {ExportTranscriptButton} from './components/exportTranscriptButton';
 import {useConversation} from './hooks/useConversation';
+import {useConversationSpanSearch} from './hooks/useConversationSpanSearch';
 import {extractMessagesFromNodes} from './utils/conversationMessages';
 import {hasConversationTranscriptSearchFeature} from './utils/features';
 
@@ -53,7 +54,16 @@ function ConversationDetailPage() {
     () => ({conversationId, startTimestamp, endTimestamp}),
     [conversationId, startTimestamp, endTimestamp]
   );
-  const {stats, nodes, nodeTraceMap, isLoading, hasNextPage, title} = useConversation({
+  const {
+    stats,
+    nodes,
+    nodeTraceMap,
+    isLoading,
+    hasNextPage,
+    canAutoFetchNextPage,
+    isFetchingNextPage,
+    title,
+  } = useConversation({
     ...conversation,
     autoFetchAll: false,
   });
@@ -83,6 +93,53 @@ function ConversationDetailPage() {
     },
     [setQueryState]
   );
+
+  const spanSearch = useConversationSpanSearch({
+    conversation,
+    onMatch: handleSelectSpan,
+  });
+
+  // Spans the transcript can highlight. User messages and assistant turns without
+  // text have no selectable block.
+  const transcriptNodeIds = useMemo(
+    () =>
+      new Set(
+        messages.flatMap(message => [
+          ...(message.role === 'user' ||
+          (message.role === 'assistant' && message.content === '')
+            ? []
+            : [message.nodeId]),
+          ...(message.toolCalls ?? []).map(toolCall => toolCall.nodeId),
+        ])
+      ),
+    [messages]
+  );
+
+  const getSearchStatus = (): string | null => {
+    const {state} = spanSearch;
+    switch (state.status) {
+      case 'idle':
+        return null;
+      case 'searching':
+        return t('Searching…');
+      case 'no-match':
+        return t('No results');
+      case 'error':
+        return t('Search failed');
+      case 'match':
+        if (!nodes.some(node => node.id === state.spanId)) {
+          return isLoading || canAutoFetchNextPage || isFetchingNextPage
+            ? t('Loading match…')
+            : t('Match is beyond the loaded spans');
+        }
+        if (queryState.tab === 'transcript' && !transcriptNodeIds.has(state.spanId)) {
+          return t('Match has no transcript block, showing its details');
+        }
+        return null;
+      default:
+        return null;
+    }
+  };
 
   const handleDeselectSpan = useCallback(() => {
     setQueryState({spanId: null, focusedTool: null});
@@ -131,7 +188,11 @@ function ConversationDetailPage() {
           )}
         </Flex>
         {hasConversationTranscriptSearchFeature(organization) && (
-          <ConversationSearchInput />
+          <ConversationSearchInput
+            onSearch={spanSearch.search}
+            onClear={spanSearch.clear}
+            status={getSearchStatus()}
+          />
         )}
         <ConversationViewContainer>
           <ConversationViewContent
