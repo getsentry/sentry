@@ -27,7 +27,10 @@ provider_types = {
 # A request can name a category of the integrations directory instead of one provider, with
 # provider type "category" and the category as the slug, when any integration in it would do.
 CATEGORY_PROVIDER_TYPE = "category"
-REQUESTABLE_CATEGORIES = frozenset({"source code management"})
+# The categories a request can name, each with how the email says what was requested.
+REQUESTABLE_CATEGORIES: Mapping[str, str] = {
+    "source code management": "a source code management integration",
+}
 
 
 def get_url(
@@ -86,12 +89,11 @@ class IntegrationRequestNotification(OrganizationRequestNotification):
 
     def _requested(self) -> str:
         """What was requested, for the middle of a sentence."""
-        if self.provider_name is None:
-            return "an integration"
-        name = sanitize_outbound_name(self.provider_name)
         if self._is_one_provider():
-            return f"the {name} integration"
-        return f"a {name} integration"
+            return f"the {sanitize_outbound_name(self.provider_name or '')} integration"
+        if self.provider_type == CATEGORY_PROVIDER_TYPE and self.provider_slug:
+            return REQUESTABLE_CATEGORIES.get(self.provider_slug, "an integration")
+        return "an integration"
 
     def get_context(self) -> MutableMapping[str, Any]:
         return {
@@ -99,7 +101,6 @@ class IntegrationRequestNotification(OrganizationRequestNotification):
             "requester_name": self.requester.get_display_name(),
             "organization_name": self.organization.name,
             "integration_link": self.integration_link,
-            "integration_name": self.provider_name,
             "requested": (
                 f"the installation of {self.provider_name}"
                 if self._is_one_provider()

@@ -56,6 +56,7 @@ class OrganizationIntegrationRequestTest(APITestCase):
         )
         body = mail.outbox[0].body
         assert "requested an integration." in body
+        assert "Install integration by clicking the link below" in body
         assert f"/settings/{self.organization.slug}/integrations/?referrer=request_email" in body
 
     def test_integration_request_with_only_provider_type(self) -> None:
