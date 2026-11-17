@@ -182,7 +182,9 @@ describe('FeedbackList', () => {
 
     await userEvent.hover(screen.getByRole('img', {name: 'Feedback failed'}));
     expect(
-      await screen.findByText("This feedback couldn't finish because credits ran out")
+      await screen.findByText(
+        "This feedback couldn't finish because your organization is out of credits"
+      )
     ).toBeInTheDocument();
   });
 
@@ -209,7 +211,9 @@ describe('FeedbackList', () => {
 
     await userEvent.hover(screen.getByRole('img', {name: 'Feedback failed'}));
     expect(
-      await screen.findByText("This feedback couldn't finish because credits ran out")
+      await screen.findByText(
+        "This feedback couldn't finish because your organization is out of credits"
+      )
     ).toBeInTheDocument();
   });
 
@@ -234,7 +238,7 @@ describe('FeedbackList', () => {
     expect(screen.getByText('Queued')).toBeInTheDocument();
     await userEvent.hover(screen.getByRole('img', {name: 'Waiting for credits'}));
     expect(
-      await screen.findByText('This feedback is waiting for credits')
+      await screen.findByText('This feedback is waiting for available credits')
     ).toBeInTheDocument();
   });
 

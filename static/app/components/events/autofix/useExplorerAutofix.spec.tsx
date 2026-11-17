@@ -1544,7 +1544,7 @@ describe('useExplorerAutofix - startStep pr_iteration', () => {
     ).rejects.toThrow();
 
     expect(errorSpy).toHaveBeenCalledWith(
-      'Your organization is out of credits. Seer will pick up this feedback the next time it iterates on the pull request.'
+      "Seer couldn't start on this feedback because your organization is out of credits. Seer continues the next time it iterates on the pull request."
     );
     await waitFor(() =>
       expect(result.current.runState?.pr_iteration_out_of_credits).toBeTruthy()

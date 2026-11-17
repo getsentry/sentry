@@ -834,7 +834,9 @@ function getFeedbackErrorMessage(errorCode: string | null | undefined): string {
         'Seer did not push these changes because it would have had to force-push over newer commits on the PR branch.'
       );
     case 'out_of_credits':
-      return t("This feedback couldn't finish because credits ran out");
+      return t(
+        "This feedback couldn't finish because your organization is out of credits"
+      );
     default:
       return t('Changes from this feedback could not be pushed');
   }
@@ -886,7 +888,7 @@ function FeedbackStatusIcon({
       );
     case 'waiting_for_credits':
       return (
-        <Tooltip title={t('This feedback is waiting for credits')} skipWrapper>
+        <Tooltip title={t('This feedback is waiting for available credits')} skipWrapper>
           <Flex
             align="center"
             justify="center"

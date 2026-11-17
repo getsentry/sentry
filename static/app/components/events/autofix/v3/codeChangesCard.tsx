@@ -143,10 +143,12 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
 
   const isPaused = isPrIterationPaused(autofix.runState);
 
-  const outOfCreditsMessage = defined(autofix.runState?.pr_iteration_out_of_credits)
+  const outOfCredits = autofix.runState?.pr_iteration_out_of_credits;
+  const outOfCreditsMessage = outOfCredits
     ? getPrIterationOutOfCreditsMessage(
         getPrIterationWaitingAction(autofix.runState),
-        autofix.runState?.queued_feedback?.length ?? 0
+        autofix.runState?.queued_feedback?.length ?? 0,
+        outOfCredits.denial_reason
       )
     : null;
 

@@ -3010,7 +3010,16 @@ describe('out of credits', () => {
     }
   );
 
-  it('says queued feedback is waiting when out of credits', () => {
+  it.each([
+    [
+      null,
+      "Seer couldn't start on 2 feedback items because your organization is out of credits. Seer continues the next time it iterates on the pull request.",
+    ],
+    [
+      'daily_cap_exceeded' as const,
+      "Seer couldn't start on 2 feedback items because your organization hit its daily usage limit. Seer continues the next time it iterates on the pull request.",
+    ],
+  ])('says queued feedback is waiting when denied for %s', (denialReason, message) => {
     render(
       <CodeChangesCard
         autofix={{
@@ -3021,7 +3030,10 @@ describe('out of credits', () => {
             status: 'completed',
             updated_at: '2026-01-01T00:00:00Z',
             repo_pr_states: {'org/repo': makePR()},
-            pr_iteration_out_of_credits: {unfinished_action: null, denial_reason: null},
+            pr_iteration_out_of_credits: {
+              unfinished_action: null,
+              denial_reason: denialReason,
+            },
             queued_feedback: [
               {text: 'Also log it', source: {type: 'user-ui'}},
               {text: 'And rename it', source: {type: 'user-ui'}},
@@ -3039,11 +3051,7 @@ describe('out of credits', () => {
       {organization}
     );
 
-    expect(
-      screen.getByText(
-        '2 feedback items are waiting because your organization is out of credits. Seer continues the next time it iterates on the pull request.'
-      )
-    ).toBeInTheDocument();
+    expect(screen.getByText(message)).toBeInTheDocument();
   });
 
   describe('a PR that failed for credits', () => {
