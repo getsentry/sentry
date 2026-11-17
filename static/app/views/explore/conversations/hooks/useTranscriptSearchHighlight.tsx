@@ -46,7 +46,14 @@ function scrollToCenter(element: HTMLElement) {
     elementRect.top - scrollerRect.top - (scroller.clientHeight - elementRect.height) / 2;
 }
 
+function supportsHighlights() {
+  return typeof CSS !== 'undefined' && 'highlights' in CSS;
+}
+
 function clearHighlights() {
+  if (!supportsHighlights()) {
+    return;
+  }
   CSS.highlights.delete(MATCH_HIGHLIGHT);
   CSS.highlights.delete(CURRENT_HIGHLIGHT);
 }
@@ -66,7 +73,7 @@ export function useTranscriptSearchHighlight({
 
   useEffect(() => {
     const root = rootRef.current;
-    if (!root || !query || !('highlights' in CSS)) {
+    if (!root || !query || !supportsHighlights()) {
       clearHighlights();
       setIsCurrentShown(null);
       return;
