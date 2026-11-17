@@ -13,7 +13,10 @@ import {
   ReplayOptionFrameFixture,
   ReplaySpanFrameEventFixture,
 } from 'sentry-fixture/replay/replayFrameEvents';
-import {ReplayRequestFrameFixture} from 'sentry-fixture/replay/replaySpanFrameData';
+import {
+  ReplayMemoryFrameFixture,
+  ReplayRequestFrameFixture,
+} from 'sentry-fixture/replay/replaySpanFrameData';
 import {
   RRWebDOMFrameFixture,
   RRWebFullSnapshotFrameEventFixture,
@@ -240,20 +243,20 @@ describe('ReplayReader', () => {
       startTimestamp: timestamp,
       endTimestamp: timestamp,
     });
-    const memoryEventWithData = (data: Record<string, unknown>) => ({
-      type: EventType.Custom,
-      timestamp: timestamp.getTime(),
-      data: {
-        tag: 'performanceSpan',
-        payload: {
-          op: 'memory',
-          description: 'memory',
-          startTimestamp: timestamp.getTime() / 1000,
-          endTimestamp: timestamp.getTime() / 1000,
-          data,
+    const memoryEventWithData = (data: unknown) =>
+      ReplaySpanFrameEventFixture({
+        timestamp,
+        data: {
+          payload: {
+            ...ReplayMemoryFrameFixture({
+              startTimestamp: timestamp,
+              endTimestamp: timestamp,
+            }),
+            // @ts-expect-error: Explicitly test data that doesn't match the SDK types
+            data,
+          },
         },
-      },
-    });
+      });
 
     const replay = ReplayReader.factory({
       attachments: [
