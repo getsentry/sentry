@@ -61,7 +61,7 @@ describe('TracingEmptyState', () => {
     expect(await screen.findByText('Install Sentry')).toBeInTheDocument();
   });
 
-  it('shows a docs link on the manual tab for unsupported platforms', async () => {
+  it('shows only a docs link for unsupported platforms, with no tab switcher', async () => {
     const project = ProjectFixture({platform: 'elixir'});
 
     MockApiClient.addMockResponse({
@@ -72,12 +72,11 @@ describe('TracingEmptyState', () => {
 
     render(<TracingEmptyState organization={organization} project={project} />);
 
-    await screen.findByText('Tracing in Sentry');
-
-    await userEvent.click(screen.getByRole('radio', {name: 'Set up manually'}));
-
     const docsLink = await screen.findByRole('button', {name: 'Go to Documentation'});
     expect(docsLink).toHaveAttribute('href', 'https://docs.sentry.io/platforms/');
+    expect(
+      screen.queryByRole('radio', {name: 'Set up manually'})
+    ).not.toBeInTheDocument();
   });
 
   it('shows the waiting indicator while no trace has arrived', async () => {

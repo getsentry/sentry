@@ -89,6 +89,16 @@ function doesNotSupportPerformance(project: Project): boolean {
   return project.platform ? withoutPerformanceSupport.has(project.platform) : false;
 }
 
+function getPlatformLabels(
+  project: Project,
+  currentPlatform: PlatformIntegration | undefined
+) {
+  return {
+    platformName: currentPlatform?.name ?? project.slug,
+    platformId: currentPlatform?.id ?? project.platform ?? 'unknown',
+  };
+}
+
 interface DocsFallbackProps {
   children: ReactNode;
   href: string;
@@ -111,7 +121,6 @@ function DocsFallback({href, onClick, children}: DocsFallbackProps) {
 interface TracingManualSetupProps {
   currentPlatform: PlatformIntegration | undefined;
   dsn: ProjectKey['dsn'] | undefined;
-  noPerformanceSupport: boolean;
   organization: Organization;
   performanceDocs: OnboardingConfig | undefined;
   project: Project;
@@ -121,7 +130,6 @@ interface TracingManualSetupProps {
 function TracingManualSetup({
   currentPlatform,
   dsn,
-  noPerformanceSupport,
   organization,
   performanceDocs,
   project,
@@ -135,22 +143,7 @@ function TracingManualSetup({
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
 
-  const platformName = currentPlatform?.name ?? project.slug;
-  const platformId = currentPlatform?.id ?? project.platform ?? 'unknown';
-
-  if (noPerformanceSupport) {
-    return (
-      <DocsFallback
-        href={PLATFORM_DOCS_URL}
-        onClick={() => traceAnalytics.trackPlatformDocsViewed(organization, platformId)}
-      >
-        {tct(
-          'Fiddlesticks. Performance isn\u2019t available for your [platform] project yet but we\u2019re definitely still working on it. Stay tuned.',
-          {platform: platformName}
-        )}
-      </DocsFallback>
-    );
-  }
+  const {platformName, platformId} = getPlatformLabels(project, currentPlatform);
 
   if (!currentPlatform || !performanceDocs || !dsn || !projectKeyId) {
     return (
@@ -255,7 +248,24 @@ export function TracingEmptyState({organization, project}: Props) {
     return <LoadingIndicator />;
   }
 
-  const footer = noPerformanceSupport ? undefined : (
+  if (noPerformanceSupport) {
+    const {platformName, platformId} = getPlatformLabels(project, currentPlatform);
+    return (
+      <Container column="1 / -1" border="primary" radius="xl" padding="2xl">
+        <DocsFallback
+          href={PLATFORM_DOCS_URL}
+          onClick={() => traceAnalytics.trackPlatformDocsViewed(organization, platformId)}
+        >
+          {tct(
+            'Fiddlesticks. Performance isn\u2019t available for your [platform] project yet but we\u2019re definitely still working on it. Stay tuned.',
+            {platform: platformName}
+          )}
+        </DocsFallback>
+      </Container>
+    );
+  }
+
+  const footer = (
     <Flex align="center" justify="between" gap="md">
       {received ? <EventReceivedIndicator /> : <EventWaitingIndicator />}
       {received && <TakeMeToTraceButton traceId={traceId} />}
@@ -288,7 +298,6 @@ export function TracingEmptyState({organization, project}: Props) {
           <TracingManualSetup
             currentPlatform={currentPlatform}
             dsn={dsn}
-            noPerformanceSupport={noPerformanceSupport}
             organization={organization}
             performanceDocs={docs?.performanceOnboarding}
             project={project}
