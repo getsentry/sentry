@@ -1,6 +1,6 @@
 import type {CallbackDataParams} from 'echarts/types/dist/shared';
 
-import {act, renderHookWithProviders, within} from 'sentry-test/reactTestingLibrary';
+import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {Text} from '@sentry/scraps/text';
 
@@ -93,9 +93,7 @@ describe('useBandTooltips', () => {
     const fromReleases = await hover(releases, 0);
 
     expect(fromDropped.innerHTML).toBe(fromReleases.innerHTML);
-    expect(within(fromDropped).getByRole('banner')).toHaveTextContent(
-      'Jan 12, 2024 3:01 PM - 3:02 PM UTC'
-    );
+    expect(fromDropped).toHaveTextContent('Jan 12, 2024 3:01 PM - 3:02 PM UTC');
     expect(fromDropped).toHaveTextContent(/dropped at 1.*releases at 1/);
   });
 

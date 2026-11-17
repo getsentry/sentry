@@ -48,25 +48,25 @@ interface ChartBandTooltipProps {
 }
 
 /**
- * The tooltip every band shows for a bucket: its time range, then a section
- * from each band that has data in it.
+ * The tooltip every band shows for a bucket: a section from each band that
+ * has data in it, then the bucket's time range.
  */
 export function ChartBandTooltip({bucket, sections, timezone}: ChartBandTooltipProps) {
   return (
     <Fragment>
       <TooltipBody className="tooltip-series">
-        <Container as="header" padding="lg xl">
-          <Text size="sm" variant="muted">
-            {formatBucketRange(bucket.start, bucket.end, timezone)}
-          </Text>
-        </Container>
         {sections.map((section, index) => (
           <Fragment key={index}>
-            <Separator orientation="horizontal" />
+            {index > 0 && <Separator orientation="horizontal" />}
             {section}
           </Fragment>
         ))}
       </TooltipBody>
+      <Container className="tooltip-footer tooltip-footer-centered">
+        <Text size="xs" variant="muted">
+          {formatBucketRange(bucket.start, bucket.end, timezone)}
+        </Text>
+      </Container>
       <div className="tooltip-arrow arrow-top" />
     </Fragment>
   );

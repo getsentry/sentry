@@ -4,7 +4,7 @@ import type {
   CustomSeriesRenderItemParams,
 } from 'echarts';
 
-import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+import {render, renderHookWithProviders, screen} from 'sentry-test/reactTestingLibrary';
 
 import {useReleaseBand} from './useReleaseBand';
 
@@ -78,5 +78,26 @@ describe('useReleaseBand', () => {
       shape: {x: 270, width: 60},
       style: {opacity: 0.75},
     });
+  });
+
+  it('gives the shared tooltip the release count of each bucket with releases', () => {
+    const {result} = renderHookWithProviders(() =>
+      useReleaseBand({
+        buckets,
+        releases: [
+          release('1.1.0', 5 * MINUTE),
+          release('1.1.1', 5 * MINUTE + 1000),
+          release('1.1.2', 5 * MINUTE + 2000),
+        ],
+      })
+    );
+    const band = result.current!;
+
+    expect(band.tooltipSection?.(2 * MINUTE)).toBeNull();
+
+    render(band.tooltipSection!(5 * MINUTE)!);
+
+    expect(screen.getByText('Releases')).toBeInTheDocument();
+    expect(screen.getByText('3')).toBeInTheDocument();
   });
 });

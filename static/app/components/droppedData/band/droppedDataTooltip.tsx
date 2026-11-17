@@ -1,7 +1,4 @@
-import {Fragment} from 'react';
-
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 
 import {ChartBandTooltipHeading} from 'sentry/components/charts/bands/chartBandTooltip';
@@ -60,18 +57,15 @@ export function DroppedDataTooltipSection({
         value={formatDroppedShare(bucket.ratio)}
       />
       {bucket.byOutcome.length > 0 && (
-        <Fragment>
-          <Separator orientation="horizontal" />
-          <Stack gap="md" padding="lg xl">
-            {bucket.byOutcome.map(outcome => (
-              <VolumeRow
-                key={outcome.outcome}
-                label={outcomeLabel(outcome.outcome)}
-                {...formatCountRatio(outcome.count, totalEvents)}
-              />
-            ))}
-          </Stack>
-        </Fragment>
+        <Stack gap="md" padding="0 xl lg">
+          {bucket.byOutcome.map(outcome => (
+            <VolumeRow
+              key={outcome.outcome}
+              label={outcomeLabel(outcome.outcome)}
+              {...formatCountRatio(outcome.count, totalEvents)}
+            />
+          ))}
+        </Stack>
       )}
     </Container>
   );

@@ -12,16 +12,13 @@ import {
   type BandBucket,
   type BandElement,
 } from './bandShapes';
-import {
-  bucketReleases,
-  type BucketableRelease,
-  type ReleaseBucket,
-} from './bucketReleases';
+import {bucketReleases, type ReleaseBucket} from './bucketReleases';
 import type {ChartBand} from './mergeChartBands';
+import {ReleaseBandTooltipSection, type BandRelease} from './releaseBandTooltip';
 
 export const RELEASE_BAND_SERIES_ID = '__release_band__';
 
-interface ReleaseBandItem extends ReleaseBucket<BucketableRelease> {
+interface ReleaseBandItem extends ReleaseBucket<BandRelease> {
   opacity: number;
   value: [start: number, y: number];
 }
@@ -66,7 +63,7 @@ function releaseBandRenderItem(
 
 interface UseReleaseBandParams {
   buckets: BandBucket[];
-  releases?: readonly BucketableRelease[];
+  releases?: readonly BandRelease[];
 }
 
 /**
@@ -95,10 +92,16 @@ export function useReleaseBand({
       value: [bucket.start, 0],
     }));
 
+    const bucketsByStart = new Map(releaseBuckets.map(bucket => [bucket.start, bucket]));
+
     return {
       id: RELEASE_BAND_SERIES_ID,
       buckets: releaseBuckets,
       height: BAND_HEIGHT,
+      tooltipSection: start => {
+        const bucket = bucketsByStart.get(start);
+        return bucket ? <ReleaseBandTooltipSection bucket={bucket} /> : null;
+      },
       series: bandOffset => ({
         type: 'custom',
         renderItem: releaseBandRenderItem(data, bandOffset, theme),
@@ -107,7 +110,6 @@ export function useReleaseBand({
         color: theme.tokens.graphics.accent.vibrant,
         animation: false,
         legendHoverLink: false,
-        tooltip: {show: false},
       }),
     };
   }, [buckets, releases, theme]);

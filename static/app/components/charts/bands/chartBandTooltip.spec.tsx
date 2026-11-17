@@ -8,7 +8,7 @@ const bucket = {
 };
 
 describe('ChartBandTooltip', () => {
-  it('shows the bucket range in the header', () => {
+  it('shows the bucket range', () => {
     render(
       <ChartBandTooltip
         bucket={bucket}
@@ -17,9 +17,7 @@ describe('ChartBandTooltip', () => {
       />
     );
 
-    expect(screen.getByRole('banner')).toHaveTextContent(
-      'Jan 12, 2024 3:00 PM - 3:05 PM UTC'
-    );
+    expect(screen.getByText('Jan 12, 2024 3:00 PM - 3:05 PM UTC')).toBeInTheDocument();
   });
 
   it('shows the full end date for a bucket that spans days', () => {
@@ -36,7 +34,7 @@ describe('ChartBandTooltip', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows each section in order, separated from the header and each other', () => {
+  it('shows each section in order with a separator between them', () => {
     render(
       <ChartBandTooltip
         bucket={bucket}
@@ -52,6 +50,6 @@ describe('ChartBandTooltip', () => {
     expect(screen.getByText('25%')).toBeInTheDocument();
     expect(screen.getByText('Releases')).toBeInTheDocument();
     expect(screen.getByText('3')).toBeInTheDocument();
-    expect(screen.getAllByRole('separator')).toHaveLength(2);
+    expect(screen.getAllByRole('separator')).toHaveLength(1);
   });
 });
