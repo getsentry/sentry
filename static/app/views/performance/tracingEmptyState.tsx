@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {type ReactNode, useEffect} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import {createSerializer, parseAsInteger, parseAsString} from 'nuqs';
@@ -31,7 +31,7 @@ import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import type {Organization} from 'sentry/types/organization';
-import type {PlatformIntegration, Project} from 'sentry/types/project';
+import type {PlatformIntegration, Project, ProjectKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useApi} from 'sentry/utils/useApi';
@@ -90,7 +90,7 @@ function doesNotSupportPerformance(project: Project): boolean {
 }
 
 interface DocsFallbackProps {
-  children: string;
+  children: ReactNode;
   href: string;
   onClick: () => void;
 }
@@ -110,7 +110,7 @@ function DocsFallback({href, onClick, children}: DocsFallbackProps) {
 
 interface TracingManualSetupProps {
   currentPlatform: PlatformIntegration | undefined;
-  dsn: string | undefined;
+  dsn: ProjectKey['dsn'] | undefined;
   noPerformanceSupport: boolean;
   organization: Organization;
   performanceDocs: OnboardingConfig | undefined;
