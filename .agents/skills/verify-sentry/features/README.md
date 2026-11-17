@@ -53,4 +53,4 @@ Keep implementation details out of the map. Name only user paths, stable handles
 - [Manual setup docs](./manual-setup-docs.md) covers the "Configure React SDK" page: DSN, Copy DSN, product toggles, waiting for the first event, and Skip setup.
 - [Agent handoff](./agent-handoff.md) covers the coding-agent prompt, the handoff code, live progress, failure, completion, and reloads, from onboarding and from `/projects/new/`.
 - [Navigation and state](./navigation-state.md) covers in-app back, browser back and forward, changing the platform, reload, and deep links mid-flow, and whether the project and DSN survive each one.
-- [Project creation](./project-creation.md) covers `/projects/new/` in an existing org, manual and agent, the first-event handoff to Issues, where completion lands, and member permissions.
+- [Project creation](./project-creation.md) covers `/projects/new/` in an existing org, manual and agent, where completion lands, and member permissions.
