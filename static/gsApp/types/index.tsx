@@ -493,8 +493,8 @@ export type Charge = {
 export type ReceiptType =
   | 'subscription'
   | 'payg'
-  | 'seer_seats'
-  | 'seer_auto_reload'
+  | 'seer_legacy_seats'
+  | 'seer_token'
   | 'credit_grant';
 
 export type InvoiceBase = StructuredAddress & {

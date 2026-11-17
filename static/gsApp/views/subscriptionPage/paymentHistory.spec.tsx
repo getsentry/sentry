@@ -151,7 +151,7 @@ describe('Subscription > PaymentHistory', () => {
           amountBilled: 12000,
           amountRefunded: 2000,
           receipt: {url: 'https://example.com/receipt.pdf'},
-          receiptType: 'seer_auto_reload',
+          receiptType: 'seer_token',
         }),
       ],
     });
@@ -205,7 +205,7 @@ describe('Subscription > PaymentHistory', () => {
         InvoiceFixture({
           id: '2b3c4d5e6f7a',
           dateCreated: '2018-07-25T22:33:38.042Z',
-          receiptType: 'seer_seats',
+          receiptType: 'seer_legacy_seats',
         }),
       ],
     });
@@ -229,7 +229,7 @@ describe('Subscription > PaymentHistory', () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/invoices/`,
       method: 'GET',
-      body: [InvoiceFixture({receiptType: 'seer_auto_reload'})],
+      body: [InvoiceFixture({receiptType: 'seer_token'})],
     });
 
     render(<PaymentHistory />, {organization});
