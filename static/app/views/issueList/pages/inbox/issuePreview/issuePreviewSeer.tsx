@@ -132,8 +132,7 @@ function useIssuePreviewSeerState(group: Group, project: Project) {
       });
   const creditCheck = useAutofixCreditCheck(creditAction, {
     // Find Root Cause and Restart Autofix both start a new run.
-    billingFeature:
-      creditAction === 'root_cause' ? undefined : autofix.runState?.billing_feature,
+    runState: creditAction === 'root_cause' ? undefined : autofix.runState,
   });
 
   return {

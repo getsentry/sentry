@@ -30,9 +30,10 @@ const AUTOFIX_CREDIT_OPERATIONS: Record<AutofixAction, SeerCreditOperation> = {
   pr_iteration: 'autofix_pr_iteration',
 };
 
-interface AutofixCreditCheckOptions {
-  billingFeature?: number | null;
+export interface AutofixCreditCheckOptions {
   enabled?: boolean;
+  /** The run being continued. Omit for an action that starts a new run. */
+  runState?: ExplorerAutofixState | null;
 }
 
 /**
@@ -41,10 +42,11 @@ interface AutofixCreditCheckOptions {
  */
 export function useAutofixCreditCheck(
   action: AutofixAction | null | undefined,
-  {billingFeature, enabled = true}: AutofixCreditCheckOptions = {}
+  {enabled = true, runState}: AutofixCreditCheckOptions = {}
 ) {
   // The endpoint's default prices new runs as web Autofix. For an existing
   // run with null or UNSPECIFIED attribution, let the backend use its fallback.
+  const billingFeature = runState?.billing_feature;
   const isUnattributed = billingFeature === null || billingFeature === 0;
   const creditCheck = useSeerCreditCheck(
     AUTOFIX_CREDIT_OPERATIONS[action ?? 'root_cause'],
@@ -131,7 +133,7 @@ interface AutofixOutOfCreditsAlertProps {
    */
   action: AutofixAction | null;
   reason: SeerOutOfCreditsReason;
-  billingFeature?: number | null;
+  runState?: ExplorerAutofixState | null;
 }
 
 /**
@@ -141,12 +143,10 @@ interface AutofixOutOfCreditsAlertProps {
  */
 export function AutofixOutOfCreditsAlert({
   action,
-  billingFeature,
   reason,
+  runState,
 }: AutofixOutOfCreditsAlertProps) {
-  const {hasEnoughCredits, denialReason} = useAutofixCreditCheck(action, {
-    billingFeature,
-  });
+  const {hasEnoughCredits, denialReason} = useAutofixCreditCheck(action, {runState});
 
   if (hasEnoughCredits) {
     return null;

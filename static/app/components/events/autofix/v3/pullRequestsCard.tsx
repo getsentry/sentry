@@ -50,8 +50,8 @@ export function PullRequestsCard({autofix, section}: PullRequestsCardProps) {
   const outOfCreditsPullRequests = artifact?.filter(isOutOfCreditsPRState) ?? [];
   // Their "Retry PR" fails the same way until the organization can afford it.
   const outOfCreditsRetry = useOutOfCreditsRetry('create_pr', {
-    billingFeature: autofix.runState?.billing_feature,
     enabled: defined(runId) && outOfCreditsPullRequests.length > 0,
+    runState: autofix.runState,
   });
 
   if (!runId) {

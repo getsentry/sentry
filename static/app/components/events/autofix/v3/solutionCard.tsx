@@ -48,8 +48,8 @@ export function SolutionCard({autofix, section}: SolutionCardProps) {
 
   const isOutOfCredits = isOutOfCreditsSection(section);
   const outOfCreditsRetry = useOutOfCreditsRetry('solution', {
-    billingFeature: autofix.runState?.billing_feature,
     enabled: isOutOfCredits,
+    runState: autofix.runState,
   });
 
   const {canReset, shouldShowReset, setShouldShowReset, handleReset} =
