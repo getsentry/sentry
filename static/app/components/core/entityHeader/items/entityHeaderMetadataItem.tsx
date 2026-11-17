@@ -22,8 +22,9 @@ const TEXT_STYLES = {
 
 interface EntityHeaderMetadataItemBase {
   /**
-   * What the property is — "Started at", "Browser". Always in the DOM, so the
-   * value is never announced unexplained; `mode` decides whether it is drawn.
+   * What the property is — "Started at", "Browser". Always exposed to
+   * assistive technology, as text or in a link's name, so the value is never
+   * announced unexplained; `mode` decides whether it is drawn.
    */
   label: string;
   /**
@@ -52,7 +53,7 @@ interface EntityHeaderMetadataItemBase {
     value: React.ReactNode;
   };
   /**
-   * Explains the value on hover, underlined to signal it.
+   * Explains the value on hover or focus, underlined to signal it.
    */
   tooltip?: React.ReactNode;
 }
@@ -65,8 +66,8 @@ export type EntityHeaderMetadataItemProps = EntityHeaderMetadataItemBase &
         /**
          * Colours the value. Narrower than `ContentVariant`, because a
          * tooltipped value also colours its underline and `Tooltip` takes a
-         * smaller set. Left out: `accent`, which would read as a link, and
-         * `promotion`.
+         * smaller set. `muted` stands in for `secondary`; left out are
+         * `accent`, which would read as a link, and `promotion`.
          */
         variant?: 'primary' | 'muted' | 'danger' | 'success' | 'warning';
       }

@@ -253,7 +253,7 @@ The example below is the Replay Details header. The title links to the replays l
 
 ## Loading
 
-Pass `isLoading` and every declared slot renders a skeleton instead: one per declared item, at the fixed height of the line it will hold. A stat is held as a single block, and the title's graphic and tags wait until it loads.
+Pass `isLoading` and every declared slot renders a skeleton instead: one per stat or metadata item, at the fixed height of the line it will hold. A stat is held as a single block, and the title's graphic and tags wait until it loads.
 
 While `isLoading` is set, a declared `metadata` keeps its row even if every item is still `null`, so the page below does not jump when the facts land together. Once loading ends, a `metadata` whose items are all `null` leaves no row, the same as an omitted one. `subtitle` has nothing to declare, so its line appears when its text does.
 
@@ -389,7 +389,7 @@ A link title is accent-colored with no underline. The link wraps the `h2`, so a 
 
 ### Leading graphic
 
-`title.leadingGraphic` is data, not a node, so the header controls its size. `project` and `platform` draw the same badge: use `project` when you have projects (the header maps them to platforms) and `platform` when you only have a platform. A project with no known platform falls back to the generic platform tile.
+`title.leadingGraphic` is data, not a node, so the header controls its size. `project` and `platform` draw the same badge: use `project` when you have projects (the header maps them to platforms) and `platform` when you only have a platform. When none of the projects has a known platform, the badge falls back to the generic platform tile.
 
 <Storybook.Demo resizable direction="column" align="stretch" gap="xl">
   <EntityHeader
@@ -545,7 +545,9 @@ items: [
 ```
 
 > [!WARNING]
-> Don't switch a half between `text` and `link` based on its data. Swapping a span for an anchor moves the row, so a link stays a link when its count is zero or empty.
+> Don't switch a half between `text` and `link` based on its data. A half that became a link once its data arrived would swap a span for an anchor mid-load and move the row. A link stays a link when its count is zero or empty.
+
+Color is set by the header, not the caller: a text label is muted, a link half is accent, and stats take no `variant`.
 
 Both halves can link, to the same place or to different ones. Two links to the same place add a second tab stop for nothing, so prefer one.
 
@@ -727,7 +729,7 @@ People related to the entity, such as who viewed a replay or who is involved in 
 
 The metadata row is a list of properties. Each item has a `label` saying what it is and a `value`. Add `secondary` for a qualifier such as a browser's version rather than joining both into one string; its `label` composes with the parent's, so "version" under "Browser" is read "Browser version". A property needing a third value is two properties.
 
-`type: 'link'` makes the value a link, with `to` or `externalHref` as on the title. Its name includes the key ("Release 8.42.0"), because the key is usually hidden. `tooltip` explains the value on hover, with an underline. `mode: 'full'` draws the key beside the value; the default, `compact`, keeps it for screen readers only.
+`type: 'link'` makes the value a link, with `to` or `externalHref` as on the title. Its name includes the key ("Release 8.42.0"), because the key is usually hidden. `tooltip` explains the value on hover or focus, with an underline. `mode: 'full'` draws the key beside the value; the default, `compact`, keeps it for screen readers only.
 
 Each header below varies one thing. The first shows leading items and how the key is drawn, the second compares a value with and without a `secondary` qualifier, and the third shows the kinds of value.
 
