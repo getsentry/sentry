@@ -43,7 +43,6 @@ from sentry.seer.workflows.base import (
     WorkflowUpdateError,
     lock_config,
 )
-from sentry.seer.workflows.configuration import action_is_owned_by_workflow
 from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
 from sentry.seer_workflow_outputs.executions import finish_execution_if_outputs_done
 from sentry.seer_workflow_outputs.models import SeerWorkflowOutputLink
@@ -369,7 +368,12 @@ class SeerInvestigationActionHandler(ActionHandler):
             with lock_config(group.organization.id, config_id) as config:
                 if not config.enabled:
                     return IgnoredMetricBreach("config_disabled")
-                if binding_id is None and not action_is_owned_by_workflow(config, action_id):
+                if (
+                    binding_id is None
+                    and not SeerInvestigationActionHandler._is_backing_workflow_action(
+                        config, action_id
+                    )
+                ):
                     return IgnoredMetricBreach("configuration_unavailable")
                 definition = _definition_for(config)
                 if definition is None or not isinstance(definition.trigger, MetricAlertTrigger):
@@ -387,6 +391,18 @@ class SeerInvestigationActionHandler(ActionHandler):
                 return AcceptedMetricBreach(run=run.lifecycle.get_run(), created=run.created)
         except SeerWorkflowConfig.DoesNotExist:
             return IgnoredMetricBreach("configuration_unavailable")
+
+    @staticmethod
+    def _is_backing_workflow_action(config: SeerWorkflowConfig, action_id: int) -> bool:
+        condition_groups = DataConditionGroupAction.objects.filter(action_id=action_id).values(
+            "condition_group_id"
+        )
+        workflow_ids = set(
+            WorkflowDataConditionGroup.objects.filter(
+                condition_group_id__in=condition_groups
+            ).values_list("workflow_id", flat=True)
+        )
+        return workflow_ids == {config.backing_workflow_id}
 
 
 @action_handler_registry.register(Action.Type.SEER_WORKFLOW)
