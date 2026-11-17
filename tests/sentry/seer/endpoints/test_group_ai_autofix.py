@@ -32,7 +32,11 @@ from sentry.seer.autofix.pr_iteration.emit import FAILURE_REASON_DATA_KEY, PrIte
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource, Decision
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
-from sentry.seer.autofix.pr_iteration.out_of_credits import mark_out_of_credits
+from sentry.seer.autofix.pr_iteration.out_of_credits import (
+    OutOfCreditsMarker,
+    get_out_of_credits,
+    mark_out_of_credits,
+)
 from sentry.seer.autofix.pr_iteration.pause import (
     PAUSED_EXTRA,
     PauseReason,
@@ -1825,7 +1829,10 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             "code": "seer_out_of_credits",
         }
         mock_consume.assert_not_called()
-        assert [item.held_for_credits for item in peek_queued_autofix_feedback(123)] == [True]
+        assert len(peek_queued_autofix_feedback(123)) == 1
+        assert get_out_of_credits(
+            run_id=123, organization_id=self.organization.id
+        ) == OutOfCreditsMarker(stranded_action=None)
         (row,) = open_iterations(seer_run)
         assert row.data[FAILURE_REASON_DATA_KEY] == PrIterationOutcome.SENTRY_OUT_OF_CREDITS.value
 

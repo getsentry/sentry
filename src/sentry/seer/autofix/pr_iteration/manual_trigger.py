@@ -27,6 +27,7 @@ from sentry.seer.autofix.pr_iteration.emit import (
 )
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import ConsumeTriggerSource
+from sentry.seer.autofix.pr_iteration.out_of_credits import mark_out_of_credits
 from sentry.seer.autofix.pr_iteration.pause import PauseReason, get_pause_reason
 from sentry.seer.autofix.pr_iteration.queue import enqueue_autofix_feedback
 from sentry.seer.credits import SeerFeature, SeerOperation, can_run_seer_operation
@@ -92,7 +93,7 @@ def handle_ui_feedback(
         )
 
     # Check credits here, since the queued feedback is consumed after this request returns.
-    held_for_credits = not can_run_seer_operation(
+    out_of_credits = not can_run_seer_operation(
         group.organization, SeerFeature.AUTOFIX, SeerOperation.AUTOFIX_PR_ITERATION
     )
 
@@ -126,10 +127,11 @@ def handle_ui_feedback(
         referrer=referrer,
         run_state=run_state,
         actor_user_id=user_id,
-        held_for_credits=held_for_credits,
     )
 
-    if held_for_credits:
+    if out_of_credits:
+        # Hold the queue until a drain after a top-up, as a refused drain does.
+        mark_out_of_credits(run_id=run_id, organization_id=group.organization.id)
         # Save the reason for the sweep, in case no top-up comes.
         record_pr_iteration_failure_reason(
             log_ctx=log_ctx,

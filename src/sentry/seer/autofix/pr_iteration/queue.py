@@ -42,7 +42,6 @@ def enqueue_autofix_feedback(
     referrer: AutofixReferrer,
     run_state: SeerRunState,
     actor_user_id: int | None = None,
-    held_for_credits: bool = False,
 ) -> None:
     """Push one feedback item onto the run's queue. Unconditional.
 
@@ -58,7 +57,6 @@ def enqueue_autofix_feedback(
         feedback=feedback,
         referrer=referrer,
         actor_user_id=actor_user_id,
-        held_for_credits=held_for_credits,
     )
 
     redis = redis_clusters.get(_REDIS_CLUSTER)
@@ -87,7 +85,6 @@ def enqueue_autofix_feedback(
         feedback_id=feedback.feedback_id,
         referrer=referrer.value,
         actor_user_id=actor_user_id,
-        held_for_credits=held_for_credits,
         **feedback.source.log_fields(run_state),
     )
 
