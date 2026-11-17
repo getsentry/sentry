@@ -17,10 +17,12 @@ describe("matchOperation", () => {
     ["without a trailing slash", "/api/0/organizations/acme/issues"],
     ["with a query string and hash", "/api/0/organizations/acme/issues/?query=is:unresolved#top"],
     ["as a full URL", "https://us.sentry.io/api/0/organizations/acme/issues/"],
-    ["under a self-hosted prefix", "/sentry/api/0/organizations/acme/issues/"],
-    ["as a full URL under a self-hosted prefix", "https://sentry.example.com/sentry/api/0/organizations/acme/issues/"],
   ])("accepts a path %s", (_, path) => {
     expect(matchOperation("get", path)?.operation.path).toBe(orgIssues);
+  });
+
+  test("does not look for the base path under a path prefix, which Sentry doesn't support", () => {
+    expect(matchOperation("get", "/sentry/api/0/organizations/acme/issues/")).toBeUndefined();
   });
 
   test("decodes parameter values", () => {
@@ -78,12 +80,6 @@ describe("createOperationMatcher", () => {
     expect(() => match("GET", "/teams/backend/")).toThrow(
       "Ambiguous operation templates: GET /teams/{team}/ and GET /teams/{team_id_or_slug}/",
     );
-  });
-
-  test("strips the base path under a prefix for custom templates too", () => {
-    const match = createOperationMatcher([{ method: "GET", path: "/" }, { method: "GET", path: "/teams/{team}/" }]);
-    expect(match("GET", "/sentry/api/0/teams/backend/")?.params).toEqual({ team: "backend" });
-    expect(match("GET", "https://sentry.example.com/sentry/api/0")?.operation.path).toBe("/");
   });
 
   test("keeps templates that differ only in method apart", () => {
