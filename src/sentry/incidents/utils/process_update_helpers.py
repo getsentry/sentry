@@ -6,7 +6,6 @@ from snuba_sdk import Column, Condition, Limit, Op
 from sentry.exceptions import InvalidSearchQuery
 from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.search.eap.utils import add_start_end_conditions
-from sentry.search.exceptions import InvalidIssueSearchQuery
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
     ENTITY_TIME_COLUMNS,
@@ -26,6 +25,8 @@ workflow engine data condition handlers.
 # NOTE (mifu67): this is set to None in the subscription processor code and doesn't
 # seem to be used. Maybe we don't need the logic gated by it?
 CRASH_RATE_ALERT_MINIMUM_THRESHOLD: int | None = None
+
+BASELINE_QUERY_REFERRER = "subscription_processor.comparison_query"
 
 
 def get_crash_rate_alert_metrics_aggregation_value_helper(
@@ -107,112 +108,109 @@ def get_aggregation_value_helper(subscription_update: QuerySubscriptionUpdate) -
     return coerce_aggregation_value(evaluation_value, none_defaults_to_zero=True)
 
 
-def get_eap_aggregation_value(
-    entity_subscription: EntitySubscription,
-    subscription_update: QuerySubscriptionUpdate,
+def _is_eap_query(snuba_query: SnubaQuery) -> bool:
+    return (
+        SnubaQuery.Type(snuba_query.type) == SnubaQuery.Type.PERFORMANCE
+        and Dataset(snuba_query.dataset) == Dataset.EventsAnalyticsPlatform
+    )
+
+
+def _run_eap_query(
+    subscription: EntitySubscription,
     snuba_query: SnubaQuery,
+    org_id: int,
     project_ids: list[int],
-    organization_id: int,
-    start: datetime,
-    end: datetime,
+    window_start: datetime,
+    window_end: datetime,
+    referrer: str,
+) -> object:
+    rpc_time_series_request = subscription.build_rpc_request(
+        query=snuba_query.query,
+        project_ids=project_ids,
+        environment=snuba_query.environment,
+        params={"organization_id": org_id, "project_id": project_ids},
+        referrer=referrer,
+    )
+    rpc_time_series_request = add_start_end_conditions(
+        rpc_time_series_request, window_start, window_end
+    )
+
+    rpc_response = snuba_rpc.timeseries_rpc([rpc_time_series_request])[0]
+    if not rpc_response.result_timeseries:
+        return None
+    return rpc_response.result_timeseries[0].data_points[0].data
+
+
+def _run_snql_query(
+    subscription: EntitySubscription,
+    snuba_query: SnubaQuery,
+    org_id: int,
+    project_ids: list[int],
+    window_start: datetime,
+    window_end: datetime,
+    referrer: str,
+) -> object:
+    # TODO: determine whether we need to include the subscription query_extra here
+    query_builder = subscription.build_query_builder(
+        query=snuba_query.query,
+        project_ids=project_ids,
+        environment=snuba_query.environment,
+        params={
+            "organization_id": org_id,
+            "project_id": project_ids,
+            "start": window_start,
+            "end": window_end,
+        },
+    )
+    time_col = ENTITY_TIME_COLUMNS[get_entity_key_from_query_builder(query_builder)]
+    query_builder.add_conditions(
+        [
+            Condition(Column(time_col), Op.GTE, window_start),
+            Condition(Column(time_col), Op.LT, window_end),
+        ]
+    )
+    query_builder.limit = Limit(1)
+    results = query_builder.run_query(referrer=referrer)
+    return list(results["data"][0].values())[0]
+
+
+def run_query_for_window(
+    snuba_query: SnubaQuery,
+    subscription_id: str,
+    org_id: int,
+    project_ids: list[int],
+    window_start: datetime,
+    window_end: datetime,
+    referrer: str,
 ) -> float | None:
-    baseline_value: None | float = None
+    """
+    Run the detector's query over `[start, end)` and return its value, or None if the query fails
+    or returns no usable value. EAP queries go through the RPC time-series endpoint, everything else
+    through SnQL.
+    """
+    subscription = get_entity_subscription_from_snuba_query(snuba_query, org_id)
+    logger_extra = {
+        "subscription_id": subscription_id,
+        "organization_id": org_id,
+        "dataset": snuba_query.dataset,
+        "referrer": referrer,
+    }
+
     try:
-        rpc_time_series_request = entity_subscription.build_rpc_request(
-            query=snuba_query.query,
-            project_ids=project_ids,
-            environment=snuba_query.environment,
-            params={
-                "organization_id": organization_id,
-                "project_id": project_ids,
-            },
-            referrer="subscription_processor.comparison_query",
+        run_query = _run_eap_query if _is_eap_query(snuba_query) else _run_snql_query
+        value = run_query(
+            subscription, snuba_query, org_id, project_ids, window_start, window_end, referrer
         )
-
-        rpc_time_series_request = add_start_end_conditions(rpc_time_series_request, start, end)
-
-        rpc_response = snuba_rpc.timeseries_rpc([rpc_time_series_request])[0]
-        if len(rpc_response.result_timeseries):
-            baseline_value = rpc_response.result_timeseries[0].data_points[0].data
-
     except InvalidSearchQuery:
-        # Queries with invalid search syntax are user configuration errors and
-        # are not unexpected. Log at info level to avoid noisy error alerts.
-        logger.info(
-            "EAP comparison query has an invalid search query",
-            extra={
-                "subscription_id": subscription_update.get("subscription_id"),
-                "organization_id": organization_id,
-            },
-        )
+        # Invalid search syntax, or a filter on issue IDs that don't exist - either way, it's user
+        # error, so log rather than capturing an exception
+        logger.info("Metric detector query has an invalid search query", extra=logger_extra)
         return None
     except Exception:
-        logger.exception(
-            "Failed to run RPC comparison query",
-            extra={
-                "subscription_id": subscription_update.get("subscription_id"),
-                "organization_id": organization_id,
-            },
-        )
+        logger.exception("Failed to run metric detector query", extra=logger_extra)
         return None
-    return coerce_aggregation_value(baseline_value)
 
-
-def get_aggregation_value(
-    entity_subscription: EntitySubscription,
-    subscription_update: QuerySubscriptionUpdate,
-    snuba_query: SnubaQuery,
-    project_ids: list[int],
-    organization_id: int,
-    start: datetime,
-    end: datetime,
-) -> float | None:
-    baseline_value: None | float = None
-    try:
-        # TODO: determine whether we need to include the subscription query_extra here
-        query_builder = entity_subscription.build_query_builder(
-            query=snuba_query.query,
-            project_ids=project_ids,
-            environment=snuba_query.environment,
-            params={
-                "organization_id": organization_id,
-                "project_id": project_ids,
-                "start": start,
-                "end": end,
-            },
-        )
-        time_col = ENTITY_TIME_COLUMNS[get_entity_key_from_query_builder(query_builder)]
-        query_builder.add_conditions(
-            [
-                Condition(Column(time_col), Op.GTE, start),
-                Condition(Column(time_col), Op.LT, end),
-            ]
-        )
-        query_builder.limit = Limit(1)
-        results = query_builder.run_query(referrer="subscription_processor.comparison_query")
-        baseline_value = list(results["data"][0].values())[0]
-
-    except InvalidIssueSearchQuery:
-        # Queries that reference non-existent issue IDs are not useful and
-        # we should help users fix them, but they're not unexpected.
-        logger.info(
-            "Comparison query references non-existent issue IDs",
-            extra={
-                "subscription_id": subscription_update.get("subscription_id"),
-                "organization_id": organization_id,
-            },
-        )
-        return None
-    except Exception:
-        logger.exception(
-            "Failed to run comparison query",
-            extra={
-                "subscription_id": subscription_update.get("subscription_id"),
-                "organization_id": organization_id,
-            },
-        )
-        return None
-    return coerce_aggregation_value(baseline_value)
+    return coerce_aggregation_value(value)
 
 
 def get_comparison_aggregation_value(
@@ -235,31 +233,15 @@ def get_comparison_aggregation_value(
     end = subscription_update["timestamp"] - delta
     start = end - timedelta(seconds=snuba_query.time_window)
 
-    entity_subscription = get_entity_subscription_from_snuba_query(snuba_query, organization_id)
-    dataset = Dataset(snuba_query.dataset)
-    query_type = SnubaQuery.Type(snuba_query.type)
-
-    if query_type == SnubaQuery.Type.PERFORMANCE and dataset == Dataset.EventsAnalyticsPlatform:
-        baseline_value = get_eap_aggregation_value(
-            entity_subscription,
-            subscription_update,
-            snuba_query,
-            project_ids,
-            organization_id,
-            start,
-            end,
-        )
-
-    else:
-        baseline_value = get_aggregation_value(
-            entity_subscription,
-            subscription_update,
-            snuba_query,
-            project_ids,
-            organization_id,
-            start,
-            end,
-        )
+    baseline_value = run_query_for_window(
+        snuba_query=snuba_query,
+        subscription_id=subscription_update["subscription_id"],
+        org_id=organization_id,
+        project_ids=project_ids,
+        window_start=start,
+        window_end=end,
+        referrer=BASELINE_QUERY_REFERRER,
+    )
 
     if not baseline_value:
         metrics.incr("incidents.alert_rules.skipping_update_comparison_value_invalid")
