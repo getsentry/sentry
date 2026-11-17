@@ -53,7 +53,7 @@ export function ClassifierInstancesChart({classifier}: ClassifierInstancesChartP
   const intervalOptions = getIntervalOptionsForPageFilter(selection.datetime);
   const chartInterval =
     intervalOptions.find(option => option.value === selectedInterval)?.value ??
-    intervalOptions.at(-1)!.value;
+    intervalOptions.at(-1)?.value;
 
   const pageFilters: PageFilters = {
     ...selection,

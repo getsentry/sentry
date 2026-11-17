@@ -43,21 +43,24 @@ function buildConjunction(tokens: ParseResultToken[]): FilterTreeNode[] {
     }
     if (token.type === Token.LOGIC_GROUP) {
       const options = buildDisjunction(token.inner);
-      return options.length === 1
-        ? options[0]!
-        : [{type: 'any', key: token.location.start.offset, options}];
+      if (options.length > 1) {
+        return [{type: 'any', key: token.location.start.offset, options}];
+      }
+      return options[0] ?? [];
     }
     return [];
   });
 }
 
 function buildDisjunction(tokens: ParseResultToken[]): FilterTreeNode[][] {
-  const groups: ParseResultToken[][] = [[]];
+  let current: ParseResultToken[] = [];
+  const groups = [current];
   for (const token of tokens) {
     if (token.type === Token.LOGIC_BOOLEAN && token.value === BooleanOperator.OR) {
-      groups.push([]);
+      current = [];
+      groups.push(current);
     } else {
-      groups.at(-1)!.push(token);
+      current.push(token);
     }
   }
   return groups.map(buildConjunction).filter(conjunction => conjunction.length > 0);

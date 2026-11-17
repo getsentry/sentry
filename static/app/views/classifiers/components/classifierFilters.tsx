@@ -30,17 +30,22 @@ function FilterNode({node}: {node: FilterTreeNode}) {
 
   return (
     <LabeledGroup label={t('Any of')}>
-      {node.options.map(option =>
-        option.length === 1 ? (
-          <FilterNode key={option[0]!.key} node={option[0]!} />
-        ) : (
-          <LabeledGroup key={option[0]!.key} label={t('All of')}>
+      {node.options.map(option => {
+        const [first] = option;
+        if (!first) {
+          return null;
+        }
+        if (option.length === 1) {
+          return <FilterNode key={first.key} node={first} />;
+        }
+        return (
+          <LabeledGroup key={first.key} label={t('All of')}>
             {option.map(child => (
               <FilterNode key={child.key} node={child} />
             ))}
           </LabeledGroup>
-        )
-      )}
+        );
+      })}
     </LabeledGroup>
   );
 }
