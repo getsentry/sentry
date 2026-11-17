@@ -35,6 +35,7 @@ from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.authproviderreplica import AuthProviderReplica
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.team import Team
 from sentry.receivers.outbox import maybe_process_tombstone
 from sentry.seer.agent.client import (
     _trigger_explorer_indexes_if_needed,
@@ -227,6 +228,11 @@ def process_project_updates(
         previous_organization_id=shard_identifier,
         transferred_at=datetime.fromisoformat(payload["transferred_at"]),
     )
+
+
+@receiver(process_cell_outbox, sender=OutboxCategory.TEAM_UPDATE)
+def process_team_updates(object_identifier: int, **kwds: Any) -> None:
+    maybe_process_tombstone(Team, object_identifier)
 
 
 @receiver(process_cell_outbox, sender=OutboxCategory.ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE)

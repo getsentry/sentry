@@ -2,6 +2,7 @@ from django.db import connection
 from django.test import override_settings
 
 from sentry.deletions.tasks.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs_control
+from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team
@@ -70,6 +71,22 @@ class TeamTest(TestCase):
 
         assert team.id == seq_value
         assert Team.objects.filter(id=team.id).exists()
+
+
+class TeamOutboxTest(TestCase):
+    def setUp(self) -> None:
+        self.organization = self.create_organization()
+        with outbox_runner():
+            pass
+
+    def test_create_and_edit_produce_no_outbox(self) -> None:
+        with outbox_context(flush=False):
+            team = self.create_team(organization=self.organization, name="Platform")
+            team.update(name="Infra")
+            team.slug = "infra"
+            team.save()
+
+        assert CellOutbox.objects.count() == 0
 
 
 class TeamDeletionTest(TestCase):
