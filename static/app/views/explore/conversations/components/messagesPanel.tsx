@@ -262,7 +262,13 @@ const AssistantTurn = memo(function AssistantTurnImpl({
   onSelectNode,
 }: AssistantTurnProps) {
   const organization = useOrganization();
+  const theme = useTheme();
   const generationNode = nodeMap.get(message.nodeId);
+  // Without a bubble, the turn's first row shows the selection instead.
+  const isRowSelected = isSelected && message.content === '';
+  const selectedRowStyle = isRowSelected
+    ? {outline: `2px solid ${theme.tokens.focus.default}`, outlineOffset: '-2px'}
+    : undefined;
   // Spans often report `gen_ai.cost.total_tokens` as 0 when the API omits cost;
   // treat that as absent so we don't show `<$0.01`, matching the timeline.
   const cost = generationNode
@@ -293,12 +299,19 @@ const AssistantTurn = memo(function AssistantTurnImpl({
       )}
       {message.reasoning && (
         <MessageRow from="assistant" density="compact">
-          {/* A reasoning-only turn (no assistant bubble to hang meta on) surfaces
-           * the turn's cost/duration in the thinking row's own meta column. */}
-          <ReasoningSection
-            reasoning={message.reasoning}
-            meta={message.content === '' && hasMeta ? meta : undefined}
-          />
+          <Container
+            width="100%"
+            radius="xs"
+            data-selected={isRowSelected}
+            style={selectedRowStyle}
+          >
+            {/* A reasoning-only turn (no assistant bubble to hang meta on) surfaces
+             * the turn's cost/duration in the thinking row's own meta column. */}
+            <ReasoningSection
+              reasoning={message.reasoning}
+              meta={message.content === '' && hasMeta ? meta : undefined}
+            />
+          </Container>
         </MessageRow>
       )}
       {message.content === '' ? (
@@ -309,7 +322,13 @@ const AssistantTurn = memo(function AssistantTurnImpl({
         hasMeta &&
         !message.reasoning && (
           <MessageRow from="assistant" density="compact">
-            <Flex justify="end" width="100%">
+            <Flex
+              justify="end"
+              width="100%"
+              radius="xs"
+              data-selected={isRowSelected}
+              style={selectedRowStyle}
+            >
               {meta}
             </Flex>
           </MessageRow>

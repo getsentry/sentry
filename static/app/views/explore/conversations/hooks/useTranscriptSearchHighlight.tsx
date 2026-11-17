@@ -89,8 +89,20 @@ export function useTranscriptSearchHighlight({
       CSS.highlights.set(CURRENT_HIGHLIGHT, new Highlight(...current));
 
       const revealKey = `${query}\u0000${currentSpanId}`;
+      if (!currentSpanId || revealedRef.current === revealKey) {
+        return;
+      }
       const first = current[0];
-      if (!first || revealedRef.current === revealKey) {
+      if (!first) {
+        // The query is only in parts of the span the transcript doesn't show, like
+        // its input history, so center its selected block instead.
+        const selected = root.querySelector<HTMLElement>(
+          `[data-node-id="${currentSpanId}"] [data-selected="true"], [data-node-id="${currentSpanId}"][data-selected="true"]`
+        );
+        if (selected) {
+          revealedRef.current = revealKey;
+          scrollToCenter(selected);
+        }
         return;
       }
       revealedRef.current = revealKey;
