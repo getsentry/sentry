@@ -69,8 +69,8 @@ Write every artifact to `.artifacts/verify-sentry/<run-id>/<feature>/` in the ch
 - UI proof is a screenshot plus `snapshot -i` output saved to a `.aria.txt` file, taken after the action and after the result appears.
 - Every project mutation has a `state` JSON before and after it. A page that looks right is not proof that the project and DSN exist.
 - Agent proof includes the HAR of the copy click and the `fake_agent.py --out` transcript.
-- Name each artifact after the claim ID it proves, and report each claim as pass or fail with the artifact path.
-- Use the real user path. Do not call internal setters, and do not create the onboarding project through the API, unless the claim is about an API.
+- Name each artifact after the sub-feature ID it proves, and report each sub-feature as pass or fail with the artifact path.
+- Use the real user path. Do not call internal setters or test-only endpoints, and do not create the onboarding project through the API. A unit, acceptance, or eval test passing is not proof of a sub-feature; only a drive of the running app is.
 
 HAR files and transcripts contain handoff codes and OAuth tokens for the local instance. They are single-use and local, but do not paste them into PRs or issues.
 
@@ -92,4 +92,4 @@ agent-browser --session verify-sentry-owner-2 close   # if a deep-link recipe op
 
 ## Map
 
-[features/README.md](features/README.md) indexes the feature files. Cite a claim as `<file>#<id>`, for example `navigation-state#inapp-back-keeps-project`. Claims state intended behavior. A claim that the product fails today carries a `Fails today` note with the run that observed it. Remove the note when a run proves the claim, and never edit the claim to match a bug.
+[features/README.md](features/README.md) indexes the feature files and defines their shape. Sub-features describe intended user-visible behavior. When a drive shows the product doing something else, report it as a product gap; do not edit the map to match it. Keep the map current with `maintain-verification-skill`.
