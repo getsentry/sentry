@@ -57,13 +57,15 @@ type ConditionType =
   | 'log_message'
   | 'release'
   | 'environment'
-  | 'ip_address';
+  | 'ip_address'
+  | 'browser_name'
+  | 'browser_version';
 
 // How a condition compares its values to the field, as the API names it. `glob`
 // matches each value as a glob pattern. The literal operators read every character
 // of a value as itself. `cidr` matches an IP address against addresses and ranges,
-// `not_cidr` one that none covers. The ordered operators compare a release as a
-// version. A condition matches when any value does, except under a negated
+// `not_cidr` one that none covers. The ordered operators compare a release or a
+// browser version as a version. A condition matches when any value does, except under a negated
 // operator, which matches when none does.
 export type ConditionOperator =
   | 'glob'
@@ -161,14 +163,16 @@ type ConditionSpec = {
   label: string;
   placeholder: string;
   // Values compare as versions too, so the query builder offers >, >=, < and <=.
-  comparable?: boolean;
-  // The data type whose field this condition reads. Absent for `release`,
-  // `environment` and `ip_address`, which every data type carries, so they stay
-  // on offer whatever the filter targets.
+  // `versionHint` says what a value is under them.
+  comparable?: {versionHint: string};
+  // The data type whose field this condition reads. Absent for the conditions
+  // every data type carries, so they stay on offer whatever the filter targets.
   dataType?: FilterDataType;
   // Values are addresses and ranges, not text: the field "matches" them or "does
   // not match" them, and the query builder offers no wildcard.
   exact?: boolean;
+  // The organization feature the condition rolls out behind.
+  feature?: string;
 };
 
 // Declaration order is the order of the key menu. Keep the conditions every data
@@ -211,7 +215,7 @@ const CONDITIONS: Record<ConditionType, ConditionSpec> = {
     description: t('Matches the body of the log.'),
   },
   release: {
-    comparable: true,
+    comparable: {versionHint: t('A release with a version, e.g. 1.2.0 or myapp@1.2.0')},
     label: t('Release'),
     placeholder: t('Glob pattern, e.g. 2.41.*'),
     description: {
@@ -223,6 +227,7 @@ const CONDITIONS: Record<ConditionType, ConditionSpec> = {
     },
   },
   environment: {
+    feature: 'inbound-filters-environment-condition',
     label: t('Environment'),
     placeholder: t('Glob pattern, e.g. staging'),
     description: {
@@ -239,6 +244,27 @@ const CONDITIONS: Record<ConditionType, ConditionSpec> = {
     placeholder: t('IP address or CIDR range, e.g. 203.0.113.7 or 10.0.0.0/8'),
     description: t(
       'Matches the IP address the data was sent from against single addresses and CIDR ranges, e.g. 203.0.113.7 or 10.0.0.0/8.'
+    ),
+  },
+  browser_name: {
+    feature: 'inbound-filters-browser-condition',
+    label: t('Browser'),
+    placeholder: t('Glob pattern, e.g. Chrome*'),
+    description: t(
+      'Matches the name of the browser, e.g. Chrome. Mobile browsers have names of their own, e.g. Chrome Mobile or Mobile Safari, so Chrome* matches every Chrome.'
+    ),
+  },
+  browser_version: {
+    comparable: {
+      versionHint: t(
+        'A browser version, e.g. 120 or 120.0.6099. To match a version and every older one, compare with the next version, e.g. < 121.'
+      ),
+    },
+    feature: 'inbound-filters-browser-condition',
+    label: t('Browser Version'),
+    placeholder: t('Glob pattern, e.g. 120.*'),
+    description: t(
+      'Matches the version of the browser, e.g. 120.0.6099. Versions compare part by part, so 120.0.6099 is greater than 120.'
     ),
   },
 };
@@ -291,24 +317,30 @@ function getFilterKeys(dataType: FilterDataType): TagCollection {
   return keys;
 }
 
-// The environment condition rolls out behind its own flag, so the key menu leaves
-// it out until the organization has it. Parsing still reads it, so a filter that
-// already holds one stays editable.
-const FILTER_KEYS_WITHOUT_ENVIRONMENT = new Map<FilterDataType, TagCollection>();
+// A condition that rolls out behind its own flag stays out of the key menu until the
+// organization has it. Parsing still reads it, so a filter that already holds one
+// stays editable. Each set of hidden keys gets its own stable key set.
+const OFFERED_FILTER_KEYS = new Map<string, TagCollection>();
 
 function getOfferedFilterKeys(
   dataType: FilterDataType,
-  hasEnvironmentCondition: boolean
+  organizationFeatures: string[]
 ): TagCollection {
   const keys = getFilterKeys(dataType);
-  if (hasEnvironmentCondition) {
+  const hidden = Object.keys(keys).filter(key => {
+    const feature = getCondition(key).feature;
+    return feature !== undefined && !organizationFeatures.includes(feature);
+  });
+  if (hidden.length === 0) {
     return keys;
   }
-  let offered = FILTER_KEYS_WITHOUT_ENVIRONMENT.get(dataType);
+  const cacheKey = `${dataType}:${hidden.join(',')}`;
+  let offered = OFFERED_FILTER_KEYS.get(cacheKey);
   if (!offered) {
-    const {environment: _environment, ...rest} = keys;
-    offered = rest;
-    FILTER_KEYS_WITHOUT_ENVIRONMENT.set(dataType, offered);
+    offered = Object.fromEntries(
+      Object.entries(keys).filter(([key]) => !hidden.includes(key))
+    );
+    OFFERED_FILTER_KEYS.set(cacheKey, offered);
   }
   return offered;
 }
@@ -333,7 +365,7 @@ function getValueHint(spec: ConditionSpec, operator: TermOperator): string | und
   }
   const conditionOperator = TERM_OPERATORS[operator];
   if (conditionOperator && COMPARISON_OPERATORS.has(conditionOperator)) {
-    return t('A release with a version, e.g. 1.2.0 or myapp@1.2.0');
+    return spec.comparable?.versionHint;
   }
   if (operator === TermOperator.DEFAULT || operator === TermOperator.EQUAL) {
     return t('The exact text, or a pattern with * as a wildcard');
@@ -355,8 +387,8 @@ function getFieldDefinitionGetter(dataType: FilterDataType): FieldDefinitionGett
         kind: FieldKind.FIELD,
         valueType: FieldValueType.STRING,
         desc: getMatchDescription(key, dataType),
-        allowComparisonOperators: spec.comparable,
-        comparisonOperatorsFirst: spec.comparable,
+        allowComparisonOperators: spec.comparable !== undefined,
+        comparisonOperatorsFirst: spec.comparable !== undefined,
         allowWildcard: !spec.exact,
         disallowWildcardOperators: spec.exact,
         disallowedOperators: spec.exact ? undefined : TEXT_DISALLOWED_OPERATORS,
@@ -851,9 +883,6 @@ function CustomFilterModal({
 }) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
-  const hasEnvironmentCondition = organization.features.includes(
-    'inbound-filters-environment-condition'
-  );
 
   // A row that holds a legacy list keeps its one condition and its data type: the
   // modal edits the lines of the condition.
@@ -1073,7 +1102,7 @@ function CustomFilterModal({
                               initialQuery={queryField.state.value}
                               filterKeys={getOfferedFilterKeys(
                                 dataType,
-                                hasEnvironmentCondition
+                                organization.features
                               )}
                               fieldDefinitionGetter={getFieldDefinitionGetter(dataType)}
                               getTagValues={getNoTagValues}

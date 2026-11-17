@@ -66,6 +66,11 @@ describe('ProjectFilters', () => {
     features: [...inboundFiltersV2Org.features, 'inbound-filters-environment-condition'],
   });
 
+  const browserConditionOrg = OrganizationFixture({
+    ...inboundFiltersV2Org,
+    features: [...inboundFiltersV2Org.features, 'inbound-filters-browser-condition'],
+  });
+
   const nameSuggestionOrg = OrganizationFixture({
     ...inboundFiltersV2Org,
     features: [...inboundFiltersV2Org.features, 'inbound-filters-name-suggestion'],
@@ -1527,6 +1532,146 @@ describe('ProjectFilters', () => {
     );
     expect(await screen.findByRole('option', {name: 'release'})).toBeInTheDocument();
     expect(screen.queryByRole('option', {name: 'environment'})).not.toBeInTheDocument();
+  });
+
+  it('hides the browser conditions without their feature', async () => {
+    renderInboundFilters([]);
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Add Filter'}));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.click(
+      within(dialog).getAllByRole('combobox', {name: 'Add a search term'}).at(-1)!
+    );
+    expect(await screen.findByRole('option', {name: 'release'})).toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'browser_name'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', {name: 'browser_version'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('creates a catch-all filter for a browser version range', async () => {
+    renderInboundFilters([], businessProject, browserConditionOrg);
+    expect(await screen.findByText('No custom inbound filters yet')).toBeInTheDocument();
+
+    const createMock = MockApiClient.addMockResponse({
+      url: CUSTOM_INBOUND_FILTERS_URL,
+      method: 'POST',
+      body: CustomInboundFilterFixture({id: '10', name: 'Chrome 120 to 122'}),
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add Filter'}));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.click(within(dialog).getByRole('textbox', {name: 'Name'}));
+    await userEvent.paste('Chrome 120 to 122');
+    await userEvent.click(within(dialog).getByRole('textbox', {name: 'Data Type'}));
+    await userEvent.click(
+      within(dialog).getByRole('menuitemradio', {name: 'All Data Types'})
+    );
+
+    // Every data type carries the browser, so the catch-all offers both conditions.
+    await userEvent.click(
+      within(dialog).getAllByRole('combobox', {name: 'Add a search term'}).at(-1)!
+    );
+    expect(await screen.findByRole('option', {name: 'browser_name'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'browser_version'})).toBeInTheDocument();
+
+    await userEvent.paste(
+      'browser_name:Chrome browser_version:>=120 browser_version:<123'
+    );
+    await userEvent.click(within(dialog).getByRole('button', {name: 'Create Filter'}));
+
+    await waitFor(() =>
+      expect(createMock).toHaveBeenCalledWith(
+        CUSTOM_INBOUND_FILTERS_URL,
+        expect.objectContaining({
+          method: 'POST',
+          data: {
+            name: 'Chrome 120 to 122',
+            dataType: 'all',
+            conditions: [
+              {type: 'browser_name', operator: 'equals', value: ['Chrome']},
+              {type: 'browser_version', operator: 'gte', value: ['120']},
+              {type: 'browser_version', operator: 'lt', value: ['123']},
+            ],
+          },
+        })
+      )
+    );
+  });
+
+  it('offers the version comparisons on browser version, with a browser hint', async () => {
+    renderInboundFilters([], businessProject, browserConditionOrg);
+    expect(await screen.findByText('No custom inbound filters yet')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add Filter'}));
+    const dialog = await screen.findByRole('dialog');
+    await enterConditions('browser_version:120');
+
+    await userEvent.click(
+      within(dialog).getByRole('button', {
+        name: 'Edit operator for filter: browser_version',
+      })
+    );
+    const names = screen.getAllByRole('option').map(option => option.textContent);
+    expect(names.slice(0, 5)).toEqual(['is', '>=', '<=', '>', '<']);
+    await userEvent.click(screen.getByRole('option', {name: '<'}));
+
+    await userEvent.click(
+      within(dialog).getByRole('button', {name: 'Edit value for filter: browser_version'})
+    );
+    expect(
+      await screen.findByText(/A browser version, e\.g\. 120 or 120\.0\.6099/)
+    ).toBeInTheDocument();
+  });
+
+  it('sends a browser name with a wildcard as a glob', async () => {
+    renderInboundFilters([], businessProject, browserConditionOrg);
+    expect(await screen.findByText('No custom inbound filters yet')).toBeInTheDocument();
+
+    const createMock = MockApiClient.addMockResponse({
+      url: CUSTOM_INBOUND_FILTERS_URL,
+      method: 'POST',
+      body: CustomInboundFilterFixture({id: '10', name: 'Old Chrome and Safari'}),
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add Filter'}));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.click(within(dialog).getByRole('textbox', {name: 'Name'}));
+    await userEvent.paste('Old Chrome and Safari');
+    await enterConditions('browser_name:[Chrome*,*Safari] browser_version:<110');
+    await userEvent.click(within(dialog).getByRole('button', {name: 'Create Filter'}));
+
+    await waitFor(() =>
+      expect(createMock).toHaveBeenCalledWith(
+        CUSTOM_INBOUND_FILTERS_URL,
+        expect.objectContaining({
+          method: 'POST',
+          data: {
+            name: 'Old Chrome and Safari',
+            dataType: 'error',
+            conditions: [
+              {type: 'browser_name', operator: 'glob', value: ['Chrome*', '*Safari']},
+              {type: 'browser_version', operator: 'lt', value: ['110']},
+            ],
+          },
+        })
+      )
+    );
+  });
+
+  it('refuses a comparison on the browser name', async () => {
+    renderInboundFilters([], businessProject, browserConditionOrg);
+    expect(await screen.findByText('No custom inbound filters yet')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add Filter'}));
+    const dialog = await screen.findByRole('dialog');
+    await enterConditions('browser_name:Chrome');
+    await userEvent.click(
+      within(dialog).getByRole('button', {name: 'Edit operator for filter: browser_name'})
+    );
+    const names = screen.getAllByRole('option').map(option => option.textContent);
+    expect(names).not.toContain('<');
+    expect(names).toContain('starts with');
   });
 
   it('creates a catch-all filter that applies to every data type', async () => {
