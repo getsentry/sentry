@@ -261,8 +261,8 @@ class AutomationMatch:
     binding_id: int | None = None
 
 
-@action_handler_registry.register(Action.Type.SEER_WORKFLOW)
-class SeerMetricAlertActionHandler(ActionHandler):
+@action_handler_registry.register(Action.Type.SEER_INVESTIGATION)
+class SeerInvestigationActionHandler(ActionHandler):
     group = ActionHandler.Group.OTHER
     required_features = (FeatureGate("organizations:seer-automations"),)
     config_schema = {"type": "object", "properties": {}, "additionalProperties": False}
@@ -276,21 +276,25 @@ class SeerMetricAlertActionHandler(ActionHandler):
     @staticmethod
     @override
     def execute(invocation: ActionInvocation) -> None:
-        SeerMetricAlertActionHandler.handle(
-            invocation, SeerMetricAlertActionHandler.find_automation
+        SeerInvestigationActionHandler.handle(
+            invocation, SeerInvestigationActionHandler.find_automation
         )
 
     @staticmethod
     def find_automation(
         group: Group, invocation: ActionInvocation
     ) -> AutomationMatch | IgnoredMetricBreach:
-        binding = SeerWorkflowTriggerBinding.objects.get_or_none(
-            workflow_config__organization_id=group.project.organization_id,
-            trigger_action=invocation.action,
+        config_id = (
+            SeerWorkflowConfig.objects.filter(
+                organization_id=group.project.organization_id,
+                backing_workflow_id=invocation.workflow_id,
+            )
+            .values_list("id", flat=True)
+            .first()
         )
-        if binding is None:
-            return IgnoredMetricBreach("missing_binding")
-        return AutomationMatch(config_id=binding.workflow_config_id, binding_id=binding.id)
+        if config_id is None:
+            return IgnoredMetricBreach("configuration_unavailable")
+        return AutomationMatch(config_id=config_id)
 
     @staticmethod
     def handle(
@@ -315,7 +319,7 @@ class SeerMetricAlertActionHandler(ActionHandler):
             return
 
         extra.update(workflow_config_id=match.config_id, binding_id=match.binding_id)
-        admission = SeerMetricAlertActionHandler.admit(
+        admission = SeerInvestigationActionHandler.admit(
             group,
             event,
             config_id=match.config_id,
@@ -339,23 +343,6 @@ class SeerMetricAlertActionHandler(ActionHandler):
             outcome = "ignored"
             reason = admission.reason
         _record_trigger_outcome(outcome, extra, reason=reason, deduplicated=deduplicated)
-
-    @staticmethod
-    def accept(
-        group: Group,
-        event: GroupEvent,
-        *,
-        binding: SeerWorkflowTriggerBinding,
-        workflow_id: int,
-    ) -> AcceptedMetricBreach | RejectedMetricBreach | IgnoredMetricBreach:
-        return SeerMetricAlertActionHandler.admit(
-            group,
-            event,
-            config_id=binding.workflow_config_id,
-            action_id=binding.trigger_action_id,
-            workflow_id=workflow_id,
-            binding_id=binding.id,
-        )
 
     @staticmethod
     def admit(
@@ -424,13 +411,13 @@ class SeerMetricAlertActionHandler(ActionHandler):
             return IgnoredMetricBreach("configuration_unavailable")
 
 
-@action_handler_registry.register(Action.Type.SEER_INVESTIGATION)
-class SeerInvestigationActionHandler(SeerMetricAlertActionHandler):
+@action_handler_registry.register(Action.Type.SEER_WORKFLOW)
+class SeerMetricAlertActionHandler(SeerInvestigationActionHandler):
     @staticmethod
     @override
     def execute(invocation: ActionInvocation) -> None:
-        SeerMetricAlertActionHandler.handle(
-            invocation, SeerInvestigationActionHandler.find_automation
+        SeerInvestigationActionHandler.handle(
+            invocation, SeerMetricAlertActionHandler.find_automation
         )
 
     @staticmethod
@@ -438,17 +425,30 @@ class SeerInvestigationActionHandler(SeerMetricAlertActionHandler):
     def find_automation(
         group: Group, invocation: ActionInvocation
     ) -> AutomationMatch | IgnoredMetricBreach:
-        config_id = (
-            SeerWorkflowConfig.objects.filter(
-                organization_id=group.project.organization_id,
-                backing_workflow_id=invocation.workflow_id,
-            )
-            .values_list("id", flat=True)
-            .first()
+        binding = SeerWorkflowTriggerBinding.objects.get_or_none(
+            workflow_config__organization_id=group.project.organization_id,
+            trigger_action=invocation.action,
         )
-        if config_id is None:
-            return IgnoredMetricBreach("configuration_unavailable")
-        return AutomationMatch(config_id=config_id)
+        if binding is None:
+            return IgnoredMetricBreach("missing_binding")
+        return AutomationMatch(config_id=binding.workflow_config_id, binding_id=binding.id)
+
+    @staticmethod
+    def accept(
+        group: Group,
+        event: GroupEvent,
+        *,
+        binding: SeerWorkflowTriggerBinding,
+        workflow_id: int,
+    ) -> AcceptedMetricBreach | RejectedMetricBreach | IgnoredMetricBreach:
+        return SeerInvestigationActionHandler.admit(
+            group,
+            event,
+            config_id=binding.workflow_config_id,
+            action_id=binding.trigger_action_id,
+            workflow_id=workflow_id,
+            binding_id=binding.id,
+        )
 
 
 def _record_trigger_outcome(
