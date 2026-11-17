@@ -5,6 +5,7 @@ from taskbroker_client.app import TaskbrokerApp
 from sentry.runner.boot_gc import frozen_after_boot
 from sentry.taskworker.adapters import (
     DatabaseConnectionResetHook,
+    DeadlineRestoreModeHook,
     DjangoCacheAtMostOnceStore,
     LocalCacheClearHook,
     SentryRouter,
@@ -29,7 +30,12 @@ app = SentryTaskbrokerApp(
     metrics_class=make_metrics(),
     router_class=SentryRouter(),
     at_most_once_store=DjangoCacheAtMostOnceStore(cache),
-    context_hooks=[DatabaseConnectionResetHook(), ViewerContextHook(), LocalCacheClearHook()],
+    context_hooks=[
+        DatabaseConnectionResetHook(),
+        ViewerContextHook(),
+        LocalCacheClearHook(),
+        DeadlineRestoreModeHook(),
+    ],
 )
 app.set_config(
     {

@@ -28,6 +28,7 @@ from taskbroker_client.types import AtMostOnceStore
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic
 from sentry.silo.base import SiloMode
+from sentry.taskworker.deadline_restore import task_mode
 from sentry.utils import json
 from sentry.utils.arroyo_producer import SingletonProducer, get_arroyo_producer
 from sentry.viewer_context import (
@@ -202,6 +203,21 @@ class DatabaseConnectionResetHook:
         finally:
             # A task can also catch the error a deadline leaves behind and still succeed
             reset_broken_database_connections()
+
+
+class DeadlineRestoreModeHook:
+    """
+    ContextHook that reads the deadline restore mode once, before the task opens a transaction,
+    so the rule never reads an option while a block is ending.
+    """
+
+    def on_dispatch(self, headers: MutableMapping[str, Any]) -> None:
+        return None
+
+    @contextlib.contextmanager
+    def on_execute(self, headers: dict[str, str]) -> Iterator[None]:
+        with task_mode():
+            yield
 
 
 def is_broken(connection: BaseDatabaseWrapper) -> bool:

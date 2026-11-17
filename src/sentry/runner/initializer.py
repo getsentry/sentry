@@ -11,6 +11,7 @@ from django.conf import settings
 
 from sentry.runner import gc_metrics
 from sentry.silo.patches.silo_aware_transaction_patch import patch_silo_aware_atomic
+from sentry.taskworker.deadline_restore import patch_atomic_exit_to_restore_deadlines
 from sentry.utils import warnings
 from sentry.utils.arroyo import initialize_arroyo_main
 from sentry.utils.sdk import configure_sdk
@@ -476,6 +477,10 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
 
     _trace("patch_silo_aware_atomic")
     patch_silo_aware_atomic()
+
+    # Before configure_sdk, whose span wrapper on the same method has to stay outermost
+    _trace("patch_atomic_exit_to_restore_deadlines")
+    patch_atomic_exit_to_restore_deadlines()
 
     _trace("apply_legacy_settings")
     apply_legacy_settings(settings)
