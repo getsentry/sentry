@@ -304,6 +304,24 @@ describe('useNetworkFilters', () => {
     });
     expect(result.current.items).toHaveLength(1);
   });
+
+  it('should keep frames without a description unless there is a searchTerm', () => {
+    const {description: _description, ...frameWithoutDescription} = SPAN_3_FETCH!;
+    const frames = [frameWithoutDescription, SPAN_7_FETCH_GET!];
+
+    const {result} = renderHook(useNetworkFilters, {
+      initialProps: {networkFrames: frames},
+    });
+    expect(result.current.items).toHaveLength(2);
+
+    const {result: searchResult} = renderHook(useNetworkFilters, {
+      initialProps: {networkFrames: frames},
+      initialRouterConfig: {
+        location: {pathname: '/', query: {f_n_search: 'pokemon'}},
+      },
+    });
+    expect(searchResult.current.items).toStrictEqual([SPAN_7_FETCH_GET]);
+  });
 });
 
 describe('getMethodTypes', () => {

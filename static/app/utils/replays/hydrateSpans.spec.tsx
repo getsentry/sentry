@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import {ReplayMemoryFrameFixture} from 'sentry-fixture/replay/replaySpanFrameData';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
@@ -64,5 +65,24 @@ describe('hydrateSpans', () => {
 
     // @ts-expect-error: Explicitly test invalid input
     expect(hydrateSpans(replayRecord, spans)).toStrictEqual([]);
+  });
+
+  it('keeps spans without a description and logs which ops were missing one', () => {
+    const warn = jest.spyOn(Sentry.logger, 'warn').mockImplementation(() => {});
+    const {description: _description, ...span} = ReplayMemoryFrameFixture({
+      startTimestamp: new Date('2023/12/23'),
+      endTimestamp: new Date('2023/12/23 23:00'),
+    });
+
+    const [hydrated] = hydrateSpans(replayRecord, [span]);
+
+    expect(hydrated).toBeDefined();
+    expect(hydrated).not.toHaveProperty('description');
+    expect(warn).toHaveBeenCalledWith('Replay: span frames are missing description', {
+      ops: 'memory',
+      sdk_name: replayRecord.sdk.name,
+      sdk_version: replayRecord.sdk.version,
+    });
+    warn.mockRestore();
   });
 });
