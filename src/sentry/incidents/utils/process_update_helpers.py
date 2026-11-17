@@ -248,15 +248,3 @@ def get_comparison_aggregation_value(
         return None
 
     return (evaluation_value / baseline_value) * 100
-
-
-def calculate_event_date_from_update_date(update_date: datetime, time_window: int) -> datetime:
-    """
-    Calculates the date that an event actually happened based on the date that we
-    received the update. This takes into account time window and threshold period.
-    :return:
-    """
-    # Subscriptions label buckets by the end of the bucket, whereas discover
-    # labels them by the front. This causes us an off-by-one error with event dates,
-    # so to prevent this we subtract a bucket off of the date.
-    return update_date - timedelta(seconds=time_window)
