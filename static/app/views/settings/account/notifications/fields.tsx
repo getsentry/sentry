@@ -293,10 +293,6 @@ const CATEGORY_QUOTA_FIELDS = Object.values(DATA_CATEGORY_INFO)
           ),
         }
       ),
-      choices: [
-        ['always', t('On')],
-        ['never', t('Off')],
-      ] as const,
     };
   });
 
@@ -312,23 +308,20 @@ const quotaSeerBudgetField = {
       />
     ),
   }),
+};
+
+export const QUOTA_WARNINGS_FIELD = {
+  name: 'quotaWarnings',
+  label: t('Set Quota Limit'),
+  help: t('Receive notifications when your organization exceeds the following limits.'),
   choices: [
-    ['always', t('On')],
-    ['never', t('Off')],
+    ['always', t('100% and 80%')],
+    ['never', t('100%')],
   ] as const,
 };
 
-// partial field definition for quota sub-categories
-export const QUOTA_FIELDS = [
-  {
-    name: 'quotaWarnings',
-    label: t('Set Quota Limit'),
-    help: t('Receive notifications when your organization exceeds the following limits.'),
-    choices: [
-      ['always', t('100% and 80%')],
-      ['never', t('100%')],
-    ] as const,
-  },
+// Quota sub-categories that are either on or off, so the page renders them as toggles.
+export const QUOTA_TOGGLE_FIELDS = [
   ...CATEGORY_QUOTA_FIELDS,
   quotaSeerBudgetField,
   {
@@ -344,12 +337,10 @@ export const QUOTA_FIELDS = [
       </Fragment>
     ),
     help: t('Receive notifications about your spend allocations.'),
-    choices: [
-      ['always', t('On')],
-      ['never', t('Off')],
-    ] as const,
   },
 ];
+
+export const QUOTA_FIELDS = [QUOTA_WARNINGS_FIELD, ...QUOTA_TOGGLE_FIELDS];
 
 // One on/off setting per Inbox category. Each controls email and Slack only; the item
 // still shows up in the Inbox.

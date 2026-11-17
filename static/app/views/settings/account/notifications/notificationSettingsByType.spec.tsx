@@ -176,6 +176,64 @@ describe('NotificationSettingsByType', () => {
     expect(screen.getByText('Seer Budget')).toBeInTheDocument();
     expect(screen.getByText('Spend Allocations')).toBeInTheDocument();
   });
+
+  it('renders on/off quota subcategories as toggles', async () => {
+    renderComponent({
+      notificationType: 'quota',
+      notificationOptions: [
+        {
+          id: '1',
+          scopeIdentifier: '1',
+          scopeType: 'user',
+          type: 'quotaErrors',
+          value: 'never',
+        },
+      ],
+    });
+
+    expect(await screen.findByRole('checkbox', {name: 'Errors'})).not.toBeChecked();
+    expect(screen.getByRole('checkbox', {name: 'Transactions'})).toBeChecked();
+    expect(screen.getByRole('checkbox', {name: 'Seer Budget'})).toBeChecked();
+    // Quota limit has two thresholds rather than on/off, so it stays a dropdown.
+    expect(
+      screen.queryByRole('checkbox', {name: 'Set Quota Limit'})
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Delivery Method'})).toHaveTextContent(
+      'Email'
+    );
+  });
+
+  it('saves a quota toggle as a user setting', async () => {
+    ConfigStore.set('user', UserFixture({id: '1'}));
+    renderComponent({notificationType: 'quota'});
+    const saveSettingMock = MockApiClient.addMockResponse({
+      url: '/users/me/notification-options/',
+      method: 'PUT',
+      body: {
+        id: '7',
+        scopeIdentifier: '1',
+        scopeType: 'user',
+        type: 'quotaErrors',
+        value: 'never',
+      },
+    });
+
+    await userEvent.click(await screen.findByRole('checkbox', {name: 'Errors'}));
+
+    await waitFor(() =>
+      expect(saveSettingMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          data: {
+            type: 'quotaErrors',
+            scopeType: 'user',
+            scopeIdentifier: '1',
+            value: 'never',
+          },
+        })
+      )
+    );
+  });
   it('adds a project override and removes it', async () => {
     renderComponent({});
 
