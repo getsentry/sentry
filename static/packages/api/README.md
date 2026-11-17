@@ -426,7 +426,7 @@ Failures throw `ObjectstoreError`, an `ApiError` with the failing object or requ
 
 ## Runtime validation
 
-The root `@sentry/api` entry has no runtime dependencies. It provides the API client and pure TypeScript types without installing a validation library.
+The root `@sentry/api` entry imports no other package at runtime, and neither do `@sentry/api/browser`, `@sentry/api/operations`, and `@sentry/api/docs`. It provides the API client and pure TypeScript types without installing a validation library. Only `@sentry/api/client` imports packages, `p-limit` and `http-cache-semantics`. They are regular dependencies, so npm installs them with `@sentry/api` even when you never import `/client`.
 
 Valibot 1 runtime schemas are available through a separate optional entry point:
 
