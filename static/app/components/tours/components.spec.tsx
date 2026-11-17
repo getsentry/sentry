@@ -344,7 +344,7 @@ describe('Tour Components', () => {
       expect(mockHandleDismiss).toHaveBeenCalled();
     });
 
-    it('focuses keyboard-enabled guides so Tab reaches their controls', async () => {
+    it('focuses the guide itself when it has no primary action', async () => {
       render(
         <TourGuide
           isOpen

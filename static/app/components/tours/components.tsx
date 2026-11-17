@@ -318,6 +318,7 @@ export function TourElementContent<T extends TourEnumType>({
     }
     changeStep();
   };
+  const primaryActionRef = useRef<HTMLButtonElement>(null);
   const defaultActions = (
     <Grid flow="column" align="center" gap="md">
       {hasPreviousStep && (
@@ -326,11 +327,12 @@ export function TourElementContent<T extends TourEnumType>({
         </TextTourAction>
       )}
       {hasNextStep ? (
-        <TourAction size="xs" onClick={withFocusHandoff(nextStep)}>
+        <TourAction ref={primaryActionRef} size="xs" onClick={withFocusHandoff(nextStep)}>
           {t('Next')}
         </TourAction>
       ) : (
         <TourAction
+          ref={primaryActionRef}
           size="xs"
           onClick={() => {
             endTour();
@@ -381,6 +383,7 @@ export function TourElementContent<T extends TourEnumType>({
           : undefined
       }
       focusHandoffRef={focusHandoffRef}
+      primaryActionRef={primaryActionRef}
       returnFocusRef={returnFocusRef}
       variant={variant}
       stepCount={stepCount}
@@ -426,6 +429,11 @@ interface TourGuideProps extends Omit<
   onKeyDown?: (event: React.KeyboardEvent) => void;
   position?: UseOverlayProps['position'];
   /**
+   * The guide's main action, such as Next or Done. It takes focus when the
+   * guide does; without it, the guide itself takes focus.
+   */
+  primaryActionRef?: React.RefObject<HTMLButtonElement | null>;
+  /**
    * Where focus goes when the guide closes while focused. Defaults to the
    * highlighted element.
    */
@@ -467,6 +475,7 @@ export function TourGuide({
   margin,
   onKeyDown,
   focusHandoffRef,
+  primaryActionRef,
   returnFocusRef,
   variant,
 }: TourGuideProps) {
@@ -511,7 +520,7 @@ export function TourGuide({
     }
     // Don't pull focus away from something the user is already working in.
     if (isNothingFocused()) {
-      overlay.focus({preventScroll: true});
+      (primaryActionRef?.current ?? overlay).focus({preventScroll: true});
     }
     const returnFocusTarget = returnFocusRef?.current ?? triggerRef.current;
     let hasFocus = overlay.contains(document.activeElement);
@@ -539,7 +548,15 @@ export function TourGuide({
         }
       }
     };
-  }, [isOpen, isFocusable, overlayRef, triggerRef, focusHandoffRef, returnFocusRef]);
+  }, [
+    isOpen,
+    isFocusable,
+    overlayRef,
+    triggerRef,
+    focusHandoffRef,
+    primaryActionRef,
+    returnFocusRef,
+  ]);
 
   const titleId = useId();
   const focusProps: HTMLAttributes<HTMLElement> = isFocusable
@@ -567,7 +584,7 @@ export function TourGuide({
       </ClassNames>
       {isOpen && defined(title) && defined(description)
         ? createPortal(
-            <PositionWrapper
+            <GuideWrapper
               zIndex={zIndex.overlay}
               {...mergeProps(overlayProps, focusProps)}
             >
@@ -646,7 +663,7 @@ export function TourGuide({
                   )}
                 </ClassNames>
               </ThemeProvider>
-            </PositionWrapper>,
+            </GuideWrapper>,
             document.body
           )
         : null}
@@ -656,6 +673,13 @@ export function TourGuide({
 
 // useOverlay keeps 16px between the guide and each edge of the viewport.
 const TOUR_GUIDE_MAX_WIDTH = 'calc(100vw - 32px)';
+
+// Like other dialogs, the guide shows no focus ring of its own.
+const GuideWrapper = styled(PositionWrapper)`
+  &:focus-visible {
+    outline: none;
+  }
+`;
 
 export function TourAction(props: React.ComponentProps<typeof Button>) {
   return <Button {...props} variant="primary" size="sm" />;
