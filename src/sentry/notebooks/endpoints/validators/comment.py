@@ -40,9 +40,9 @@ class CommentCreateValidator(CommentValidator):
     )
 
     def validate_block_id(self, value: int) -> NotebookBlock:
-        block = NotebookBlock.objects.filter(
+        block = NotebookBlock.objects.get_or_none(
             id=value, notebook=self.context["notebook"], deleted_at__isnull=True
-        ).first()
+        )
         if block is None:
             raise serializers.ValidationError("Block not found.")
         return block

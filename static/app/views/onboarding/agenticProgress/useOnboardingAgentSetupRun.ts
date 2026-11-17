@@ -30,6 +30,7 @@ export function useOnboardingAgentSetupRun({enabled}: {enabled: boolean}) {
   return useAgenticSetupRun({
     createOnboardingCode: false,
     enabled,
+    origin: 'onboarding',
     session,
     onSessionChange,
   });

@@ -12,17 +12,15 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 import {Table} from './table';
 
-const FEATURES = ['performance-view'];
-
 const initializeData = (settings = {}, features: string[] = []) => {
   const projects = [
     ProjectFixture({id: '1', slug: '1'}),
     ProjectFixture({id: '2', slug: '2'}),
   ];
   return _initializeData({
-    features: [...FEATURES, ...features],
+    features,
     projects,
-    selectedProject: projects[0]!.id,
+    selectedProject: projects[0],
     ...settings,
   });
 };

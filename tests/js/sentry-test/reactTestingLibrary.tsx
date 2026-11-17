@@ -17,9 +17,7 @@ import {CacheProvider, ThemeProvider} from '@emotion/react';
 import {QueryClientProvider} from '@tanstack/react-query';
 import * as rtl from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import {userEvent} from '@testing-library/user-event'; // eslint-disable-line no-restricted-imports
-import type {Query} from 'history';
 import type {OnUrlUpdateFunction} from 'nuqs/adapters/testing';
-import qs from 'query-string';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
@@ -33,6 +31,7 @@ import {SentryOverlayProvider} from 'sentry/scrapsProviders/overlay';
 import type {Organization} from 'sentry/types/organization';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
+import * as qs from 'sentry/utils/url/qs';
 import {GlobalAlertProvider} from 'sentry/views/app/globalAlerts';
 import {TopBarSlots} from 'sentry/views/navigation/topBarSlot';
 import {LLMContextProvider} from 'sentry/views/seerExplorer/contexts/llmContext';
@@ -267,7 +266,7 @@ class TestRouter {
 
   get location() {
     // Return parsed query params for convenience
-    const query = qs.parse(this.router.state.location.search) as Query;
+    const query = qs.parse(this.router.state.location.search);
 
     return {
       ...this.router.state.location,

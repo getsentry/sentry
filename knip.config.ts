@@ -18,6 +18,8 @@ const productionEntryPoints = [
   'chartcuterie/**/*.{js,ts,tsx}',
   // TODO: Remove when the autofixRef embed consumes it (#122099)
   'components/seer/autofixChatContext.tsx',
+  // TODO: Remove when the tracing empty state renders it
+  'components/agentHandoff/agentHandoffProductPrompt.tsx',
   // TODO: Remove when the Seer credit gates consume it (#129563, #129565)
   'utils/seer/useSeerCreditCheck.tsx',
   // TODO: Remove when the Seer credit gates render it (#129563, #129565)
@@ -76,8 +78,6 @@ const config: KnipConfig = {
         'tslib', // subdependency of many packages, declare the latest version
         'odiff-bin', // raw binary consumed by Python backend, not a JS import
         'zrender', // used in echarts
-        // Referenced by its node_modules path in tests/js/createJestConfig.ts.
-        'reflux',
       ],
     },
     'static/app': {

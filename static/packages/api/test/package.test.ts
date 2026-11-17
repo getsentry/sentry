@@ -33,6 +33,17 @@ describe("package entry points", () => {
     expect(root).not.toMatch(/from ["']zod["']/);
   });
 
+  test("imports packages at runtime only from the client entry", async () => {
+    const imports = async (name: string) =>
+      [...(await readBundle(name)).matchAll(/(?:from |import\()["']([^."'/][^"']*)["']/g)].map((match) => match[1]);
+    for (const name of ["index", "browser", "operations", "docs"]) {
+      expect(await imports(name)).toEqual([]);
+    }
+    const client = new Set(await imports("api-client/index"));
+    expect(client).toEqual(new Set(["@sentry/api", "http-cache-semantics", "p-limit"]));
+    expect(Object.keys(packageJson.dependencies).sort()).toEqual(["http-cache-semantics", "p-limit"]);
+  });
+
   test("isolates optional tools and validators to their own entry points", async () => {
     const [valibot, zod, analysis] = await Promise.all([
       readBundle("valibot"),

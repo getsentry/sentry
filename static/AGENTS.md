@@ -8,7 +8,7 @@
 - **Framework**: React 19
 - **Build Tool**: Rsbuild (powered by Rspack)
 - **Package management**: pnpm
-- **State Management**: Reflux, React Query (TanStack Query)
+- **State Management**: React Query (TanStack Query), Zustand
 - **Styling**: Emotion (CSS-in-JS), Less
 - **Testing**: Jest, React Testing Library
 
@@ -65,7 +65,7 @@ The cell host is cross-origin. A bare `fetch()` needs `credentials: 'include'`, 
 
 ## General Frontend Rules
 
-1. NO new Reflux stores
+1. NO Reflux stores
 2. NO class components
 3. NO CSS files (use [core components](./app/components/core/) or Emotion in edge cases)
 4. ALWAYS use TypeScript

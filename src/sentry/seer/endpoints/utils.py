@@ -5,9 +5,13 @@ from collections.abc import Callable
 from typing import TYPE_CHECKING, Any, Final, Literal, NamedTuple, TypeVar
 
 from rest_framework import status
+from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.authentication import ServiceAccountTokenAuthentication
 from sentry.api.bases.organization import OrganizationPermission
+from sentry.api.exceptions import UserRequired
+from sentry.seer.credits import SeerCreditDenialReason
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus
 from sentry.utils.numbers import validate_bigint
 
@@ -32,6 +36,27 @@ SEER_AUTOFIX_CONTINUE_OUT_OF_CREDITS_DETAIL = (
 SEER_AGENT_CHAT_OUT_OF_CREDITS_DETAIL = (
     "Your organization does not have enough credits left for you to message Seer."
 )
+
+
+def refuse_service_account_token(request: Request) -> None:
+    """
+    Raise ``UserRequired`` for a request authenticated with a service account token.
+
+    A run started here hands Seer a viewer context that names the service account, not
+    the token, so Seer's callbacks would get the account's full scopes. Service-account
+    viewer contexts, which Seer itself uses, are still allowed.
+    """
+    if isinstance(request.successful_authenticator, ServiceAccountTokenAuthentication):
+        raise UserRequired()
+
+
+def seer_out_of_credits_response(
+    detail: str, denial_reason: SeerCreditDenialReason | None
+) -> Response:
+    return Response(
+        {"detail": detail, "code": SEER_OUT_OF_CREDITS_CODE, "denialReason": denial_reason},
+        status=status.HTTP_402_PAYMENT_REQUIRED,
+    )
 
 
 class OrganizationTraceExplorerAIPermission(OrganizationPermission):
@@ -98,7 +123,7 @@ def resolve_seer_run(
     except (TypeError, ValueError):
         return Response({"detail": "Invalid run_id"}, status=status.HTTP_400_BAD_REQUEST)
 
-    run = SeerRun.objects.filter(uuid=run_uuid, organization=organization).first()
+    run = SeerRun.objects.get_or_none(uuid=run_uuid, organization=organization)
     if run is None:
         return Response({"session": None}, status=status.HTTP_404_NOT_FOUND)
     if user_id is not None and run.user_id != user_id:

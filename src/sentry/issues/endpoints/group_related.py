@@ -23,6 +23,7 @@ from sentry.apidocs.spectacular_ports import build_choice_description_list
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.issues.endpoints.bases.group import GroupEndpoint
+from sentry.issues.grouptype import GroupCategory
 from sentry.issues.related.combine import combine
 from sentry.issues.related.contributing import CONTRIBUTING_DESCRIPTION, contributing_issues
 from sentry.issues.related.same_trace import SAME_TRACE_DESCRIPTION, same_trace_issues
@@ -40,9 +41,15 @@ from sentry.issues.related.types import (
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
+from sentry.services import eventstore
+from sentry.services.eventstore.models import GroupEvent
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 ALL_TYPES_UNAVAILABLE_DETAIL = "Related issues are temporarily unavailable. Try again later."
+EVENT_NOT_FOUND_DETAIL = (
+    "Event not found in this issue. The event ID may be incorrect, belong to another issue, or "
+    "be past the retention period."
+)
 
 
 # Each type and what it finds. The type parameter's description lists them.
@@ -68,6 +75,13 @@ class GroupRelatedQuerySerializer(serializers.Serializer[dict[str, Any]]):
         min_value=1,
         max_value=100,
         help_text="The maximum number of issues to return for each type.",
+    )
+    eventId = serializers.UUIDField(
+        required=False,
+        help_text=(
+            "ID of one of the issue's events to find related issues from. Defaults to the "
+            "issue's latest event. Returns 404 when the event isn't in this issue."
+        ),
     )
 
 
@@ -95,8 +109,9 @@ class GroupRelatedEndpoint(GroupEndpoint):
             "Returns other issues related to this one, each with the types of relation that "
             "matched it. Use it when triaging an issue, before resolving or ignoring it, to find "
             "duplicates and other issues connected to it. The type parameter lists each type and "
-            "what it finds. meta.types says whether each requested type ran, doesn't apply to "
-            "this issue, or failed. Returns 503 only when every requested type failed."
+            "what it finds. Types read the issue's latest event, or the event passed in eventId. "
+            "meta.types says whether each requested type ran, doesn't apply to this issue, or "
+            "failed. Returns 503 only when every requested type failed."
         ),
         parameters=[GlobalParams.ORG_ID_OR_SLUG, IssueParams.ISSUE_ID, GroupRelatedQuerySerializer],
         responses={
@@ -117,9 +132,17 @@ class GroupRelatedEndpoint(GroupEndpoint):
             raise ParseError({"detail": query.errors})
         params = query.validated_data
 
+        event_id = params.get("eventId")
+        if event_id is None:
+            event = group.get_latest_event()
+        else:
+            event = _get_group_event(group, event_id.hex)
+            if event is None:
+                return Response({"detail": EVENT_NOT_FOUND_DETAIL}, status=404)
+
         ctx = RelatedIssuesContext(
             group=group,
-            event=group.get_latest_event(),
+            event=event,
             limit=params["limit"],
             user=request.user,
         )
@@ -139,6 +162,27 @@ class GroupRelatedEndpoint(GroupEndpoint):
         ):
             return Response({"detail": ALL_TYPES_UNAVAILABLE_DETAIL}, status=503)
         return Response(combine(ctx, results))
+
+
+def _get_group_event(group: Group, event_id: str) -> GroupEvent | None:
+    """The issue's event with this ID, or None when the event isn't in the issue."""
+    project_id = group.project_id
+    if group.issue_category == GroupCategory.ERROR:
+        # Passing group_id would attach any error event in the project to this issue unchecked.
+        # Without it, the lookup reads the event's issue from Snuba.
+        event = eventstore.backend.get_event_by_id(project_id=project_id, event_id=event_id)
+        if event is None or event.group_id != group.id:
+            return None
+    else:
+        # A transaction event can be in several performance issues, one for each problem found in
+        # it. With group_id, the lookup finds the event's row in this issue, with its occurrence.
+        event = eventstore.backend.get_event_by_id(
+            project_id=project_id, event_id=event_id, group_id=group.id
+        )
+        # The lookup attaches an error event to group_id unchecked, so it can't show one is here
+        if event is None or event.get_event_type() == "error":
+            return None
+    return event if isinstance(event, GroupEvent) else event.for_group(group)
 
 
 def _readable_projects(request: Request, organization_id: int) -> list[Project]:

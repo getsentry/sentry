@@ -190,4 +190,36 @@ describe("operation routing", () => {
     expect(raw.url).toBe("https://sentry.io/api/0/organizations/acme/");
     expect(lookups).toEqual(["acme", "other"]);
   });
+
+  test("routeCellOperations with rawRequests: 'lookup' also looks up raw requests that name an organization", async () => {
+    const urls: string[] = [];
+    const lookups: string[] = [];
+    const sentry = createSentryClient({
+      baseUrl: "https://sentry.io",
+      fetch: recordingFetch(urls),
+      resolveBaseUrl: routeCellOperations(async organization => {
+        lookups.push(organization);
+        return organization === "acme" ? "https://us.sentry.io" : undefined;
+      }, { rawRequests: "lookup" }),
+    });
+    const control = operations.find(entry => entry.routing.silo === "control" && entry.routing.organizationParameter &&
+      entry.method === "GET" && entry.pathParameters.length === 1)!;
+    const prepared = async (url: string) => (await sentry.client.prepareRequest({ method: "GET", url })).url;
+
+    expect(await prepared("/organizations/acme/issues/")).toBe("https://us.sentry.io/api/0/organizations/acme/issues/");
+    expect(await prepared("/projects/acme/web/")).toBe("https://us.sentry.io/api/0/projects/acme/web/");
+    expect(await prepared("/organizations/other/")).toBe("https://sentry.io/api/0/organizations/other/");
+    expect(await prepared("/users/me/")).toBe("https://sentry.io/api/0/users/me/");
+    // Generated operations keep their routing: only cell operations are looked up.
+    await sentry.getOrganization({ path: { organization_id_or_slug: "acme" } });
+    await (sentry as unknown as Record<string, (options: object) => Promise<unknown>>)[control.functionName]!({
+      path: { [control.routing.organizationParameter!]: "acme" },
+    });
+
+    expect(urls).toEqual([
+      "https://us.sentry.io/api/0/organizations/acme/",
+      `https://sentry.io/api/0${control.path.replace(`{${control.routing.organizationParameter}}`, "acme")}`,
+    ]);
+    expect(lookups).toEqual(["acme", "acme", "other", "acme"]);
+  });
 });
