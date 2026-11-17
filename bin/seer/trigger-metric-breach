@@ -98,7 +98,10 @@ class MetricBreachTrigger:
 
     def run(self) -> None:
         if not features.has("organizations:seer-automations", self.organization):
-            sys.exit("> organizations:seer-automations is not enabled for this organization.")
+            sys.exit(
+                "> organizations:seer-automations is not enabled for organization "
+                f"{self.organization.slug} (id {self.organization.id})."
+            )
 
         workflow = self._automation()
         breach = self._seed()
