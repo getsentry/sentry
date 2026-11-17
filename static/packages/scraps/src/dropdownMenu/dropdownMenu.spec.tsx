@@ -818,6 +818,44 @@ describe('DropdownMenu', () => {
     }
   );
 
+  it('does not defer a sibling hover from inside a details overlay', async () => {
+    const user = userEvent.setup();
+    render(
+      <DropdownMenu
+        triggerLabel="Menu"
+        items={[
+          {
+            key: 'parent',
+            label: 'Parent',
+            details: 'Parent details',
+            showDetailsInOverlay: true,
+            submenu: true,
+            children: [{key: 'child', label: 'Child'}],
+          },
+          {key: 'sibling', label: 'Sibling'},
+        ]}
+      />,
+      {wrapper: ThemeWrapper}
+    );
+    await user.click(screen.getByRole('button', {name: 'Menu'}));
+    const parent = screen.getByRole('menuitemradio', {name: 'Parent'});
+    const sibling = screen.getByRole('menuitemradio', {name: 'Sibling'});
+    await user.pointer({target: parent, coords: {clientX: 80, clientY: 20}});
+    const child = screen.getByRole('menuitemradio', {name: 'Child'});
+    layOut(screen.getByRole('menu', {name: 'Parent'}), new DOMRect(200, 0, 200, 240));
+
+    // The overlay is portaled out of the row, so leaving it must not start a safety
+    // triangle from the overlay toward the submenu.
+    await user.pointer({
+      target: screen.getByText('Parent details'),
+      coords: {clientX: 10, clientY: 100},
+    });
+    await user.pointer({target: sibling, coords: {clientX: 50, clientY: 100}});
+
+    expect(child).not.toBeInTheDocument();
+    expect(sibling).toHaveFocus();
+  });
+
   it.each(['away', 'outside', 'timeout', 'click', 'touch'] as const)(
     'releases deferred sibling hover on %s',
     async action => {

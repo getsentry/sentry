@@ -331,10 +331,18 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
     mergedMenuItemContentProps;
   const itemLabel = node.rendered ?? label;
 
+  // The details overlay is portaled out of the row but still bubbles React events
+  // through it. Ignore those, as useHover does, so the row tracks only its own box.
+  const isFromRow = (event: React.PointerEvent<HTMLElement>) =>
+    event.target instanceof Node && event.currentTarget.contains(event.target);
+
   // The row, not the item, handles pointer and arrow key events, so they cover the
   // trailing action that sits beside the item.
   const rowEventProps = {
     onPointerEnter: (event: React.PointerEvent<HTMLElement>) => {
+      if (!isFromRow(event)) {
+        return;
+      }
       lastPointerPosition.current = {x: event.clientX, y: event.clientY};
       // React clears currentTarget after dispatch, but hover may be deferred.
       const savedEvent = {...event, currentTarget: event.currentTarget};
@@ -346,10 +354,16 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
       }
     },
     onPointerMove: (event: React.PointerEvent<HTMLElement>) => {
+      if (!isFromRow(event)) {
+        return;
+      }
       lastPointerPosition.current = {x: event.clientX, y: event.clientY};
       onPointerMove?.(event);
     },
     onPointerLeave: (event: React.PointerEvent<HTMLElement>) => {
+      if (!isFromRow(event)) {
+        return;
+      }
       safetyTriangle?.leave(event.currentTarget);
       if (
         event.pointerType === 'mouse' &&
