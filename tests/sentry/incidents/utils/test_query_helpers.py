@@ -4,7 +4,7 @@ from unittest import mock
 from django.utils import timezone
 
 from sentry.incidents.utils.query_helpers import (
-    coerce_aggregation_value,
+    normalize_snuba_query_result,
     run_query_for_window,
 )
 from sentry.search.exceptions import InvalidIssueSearchQuery
@@ -64,23 +64,27 @@ class RunQueryForWindowTest(TestCase):
 
 class NormalizeSnubaQueryResultTest(TestCase):
     def test_none(self) -> None:
-        assert coerce_aggregation_value(None) is None
-        assert coerce_aggregation_value(None, none_defaults_to_zero=True) == 0.0
+        assert normalize_snuba_query_result(None) is None
+        assert normalize_snuba_query_result(None, none_defaults_to_zero=True) == 0.0
 
     def test_numeric_values(self) -> None:
-        assert coerce_aggregation_value(12.5) == 12.5
-        assert coerce_aggregation_value(3) == 3.0
+        assert normalize_snuba_query_result(12.5) == 12.5
+        assert normalize_snuba_query_result(3) == 3.0
+
+    def test_nan_returns_none(self) -> None:
+        assert normalize_snuba_query_result(float("nan")) is None
+        assert normalize_snuba_query_result("nan") is None
 
     def test_empty_string_returns_none(self) -> None:
-        assert coerce_aggregation_value("") is None
-        assert coerce_aggregation_value("   ") is None
+        assert normalize_snuba_query_result("") is None
+        assert normalize_snuba_query_result("   ") is None
 
     def test_numeric_string(self) -> None:
-        assert coerce_aggregation_value("42.5") == 42.5
+        assert normalize_snuba_query_result("42.5") == 42.5
 
     def test_non_numeric_string_returns_none(self) -> None:
-        assert coerce_aggregation_value("not-a-number") is None
+        assert normalize_snuba_query_result("not-a-number") is None
 
     def test_bool_values(self) -> None:
-        assert coerce_aggregation_value(True) == 1.0
-        assert coerce_aggregation_value(False) == 0.0
+        assert normalize_snuba_query_result(True) == 1.0
+        assert normalize_snuba_query_result(False) == 0.0

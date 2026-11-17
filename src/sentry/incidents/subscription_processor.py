@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import math
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -11,7 +10,7 @@ from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
 from sentry.constants import ObjectStatus
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.query_helpers import (
-    coerce_aggregation_value,
+    normalize_snuba_query_result,
     run_query_for_window,
 )
 from sentry.incidents.utils.subscription_limits import is_metric_subscription_allowed
@@ -28,7 +27,6 @@ from sentry.snuba.models import QuerySubscription
 from sentry.utils import metrics, redis
 from sentry.utils.dates import to_datetime
 from sentry.utils.memory import track_memory_usage
-from sentry.workflow_engine.generated_schema_types import MetricIssueDetectorConfig
 from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.processors import DetectorEvaluation
 from sentry.workflow_engine.processors.data_packet import process_data_packet
@@ -55,7 +53,14 @@ class SubscriptionProcessor:
         """
         self.subscription = subscription
         self.detector = detector
-        self.last_update = get_detector_last_update(detector, subscription.project_id)
+        self.dataset = self.subscription.snuba_query.dataset
+        self.project = self.subscription.project
+
+        # The subscription's `subscription_id` field is nullable, since it's only set once Snuba
+        # accepts the subscription, but we wouldn't get here if it weren't set (the subscription
+        # update consumer only calls this processor once it's found the subscription via the id).
+        assert self.subscription.subscription_id is not None
+        self.snuba_subscription_id = self.subscription.subscription_id
 
     @classmethod
     def process(
@@ -138,18 +143,16 @@ class SubscriptionProcessor:
         Note: Only the current value is included in the subscription update, so this requires a
         snuba query in order to get the baseline value.
         """
-        detector_config: MetricIssueDetectorConfig = self.detector.config
         snuba_query = self.subscription.snuba_query
-
         baseline_window_end = subscription_update["timestamp"] - timedelta(
-            seconds=detector_config["comparison_delta"]
+            seconds=self.detector.config["comparison_delta"]
         )
         baseline_window_start = baseline_window_end - timedelta(seconds=snuba_query.time_window)
         baseline_value = run_query_for_window(
             snuba_query=snuba_query,
-            subscription_id=subscription_update["subscription_id"],
-            org_id=self.subscription.project.organization.id,
-            project_ids=[self.subscription.project_id],
+            subscription_id=self.snuba_subscription_id,
+            org_id=self.project.organization.id,
+            project_ids=[self.project.id],
             window_start=baseline_window_start,
             window_end=baseline_window_end,
             referrer="subscription_processor.comparison_query",
@@ -166,10 +169,10 @@ class SubscriptionProcessor:
 
         # This comes before the percent check, so a percent detector on the crash-rate dataset
         # (which the UI doesn't offer, but the API allows) runs as static
-        if self.subscription.snuba_query.dataset == Dataset.Metrics.value:
+        if self.dataset == Dataset.Metrics.value:
             return self._get_crash_free_rate(raw_data)
 
-        current_value = coerce_aggregation_value(
+        current_value = normalize_snuba_query_result(
             list(raw_data.values())[0], none_defaults_to_zero=True
         )
         if current_value is None:
@@ -187,18 +190,19 @@ class SubscriptionProcessor:
         subscription_update: QuerySubscriptionUpdate,
         evaluation_value: float,
     ) -> list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluation]]]:
-        detector_cfg: MetricIssueDetectorConfig = detector.config
-        if detector_cfg["detection_type"] == AlertRuleDetectionType.DYNAMIC.value:
+        timestamp = subscription_update["timestamp"]
+
+        if detector.config["detection_type"] == AlertRuleDetectionType.DYNAMIC.value:
             anomaly_detection_packet = AnomalyDetectionUpdate(
                 entity=subscription_update.get("entity", ""),
-                subscription_id=subscription_update["subscription_id"],
+                subscription_id=self.snuba_subscription_id,
                 values={
                     "value": evaluation_value,
                     "source_id": str(self.subscription.id),
-                    "subscription_id": subscription_update["subscription_id"],
-                    "timestamp": self.last_update,
+                    "subscription_id": self.snuba_subscription_id,
+                    "timestamp": timestamp,
                 },
-                timestamp=self.last_update,
+                timestamp=timestamp,
             )
             anomaly_detection_data_packet = DataPacket[AnomalyDetectionUpdate](
                 source_id=str(self.subscription.id), packet=anomaly_detection_packet
@@ -209,9 +213,9 @@ class SubscriptionProcessor:
         else:
             metric_packet = ProcessedSubscriptionUpdate(
                 entity=subscription_update.get("entity", ""),
-                subscription_id=subscription_update["subscription_id"],
+                subscription_id=self.snuba_subscription_id,
                 values={"value": evaluation_value},
-                timestamp=self.last_update,
+                timestamp=timestamp,
             )
             metric_data_packet = DataPacket[ProcessedSubscriptionUpdate](
                 source_id=str(self.subscription.id), packet=metric_packet
@@ -225,32 +229,26 @@ class SubscriptionProcessor:
         Core processing method. Assumes subscription has cached project/organization and detector
         exists (enforced by the `process` classmethod).
         """
-        dataset = self.subscription.snuba_query.dataset
-        organization = self.subscription.project.organization
-
-        if not is_metric_subscription_allowed(dataset, organization):
+        if not is_metric_subscription_allowed(self.dataset, self.project.organization):
             metrics.incr(
                 "incidents.alert_rules.ignore_update_not_enabled",
-                tags={"dataset": dataset},
+                tags={"dataset": self.dataset},
             )
             return False
 
-        if subscription_update["timestamp"] <= self.last_update:
+        if subscription_update["timestamp"] <= get_detector_last_update(
+            self.detector, self.project.id
+        ):
             metrics.incr("incidents.alert_rules.skipping_already_processed_update")
             return False
 
-        self.last_update = subscription_update["timestamp"]
-
-        if (
-            len(subscription_update["values"]["data"]) > 1
-            and self.subscription.snuba_query.dataset != Dataset.Metrics.value
-        ):
+        if len(subscription_update["values"]["data"]) > 1 and self.dataset != Dataset.Metrics.value:
             logger.warning(
                 "Subscription returned more than 1 row of data",
                 extra={
                     "subscription_id": self.subscription.id,
-                    "dataset": self.subscription.snuba_query.dataset,
-                    "snuba_subscription_id": self.subscription.subscription_id,
+                    "dataset": self.dataset,
+                    "snuba_subscription_id": self.snuba_subscription_id,
                     "result": subscription_update,
                 },
             )
@@ -263,23 +261,21 @@ class SubscriptionProcessor:
             evaluation_value = self.get_evaluation_value(subscription_update)
 
             # `get_evaluation_value` already normalizes Snuba values to float | None
-            if evaluation_value is None or math.isnan(evaluation_value):
+            if evaluation_value is None:
                 metrics.incr("incidents.alert_rules.skipping_update_invalid_aggregation_value")
-                # We have an invalid aggregate, but we _did_ process the update, so we bump the last
-                # update time to reflect that and avoid reprocessing
-                store_detector_last_update(
-                    self.detector, self.subscription.project.id, self.last_update
+            else:
+                self.process_results_workflow_engine(
+                    self.detector, subscription_update, evaluation_value
                 )
-                return False
 
-            self.process_results_workflow_engine(
-                self.detector, subscription_update, evaluation_value
-            )
-            # Ensure that we have last_update stored for all Detector evaluations.
+            # Whether or not the value was valid, we processed the update, so bump the stored last
+            # update time to avoid reprocessing it. This happens after processing, not before, so
+            # an update interrupted partway through can still be redelivered and reprocessed.
             store_detector_last_update(
-                self.detector, self.subscription.project.id, self.last_update
+                self.detector, self.project.id, subscription_update["timestamp"]
             )
-            return True
+
+            return evaluation_value is not None
 
 
 def build_detector_last_update_key(detector: Detector, project_id: int) -> str:

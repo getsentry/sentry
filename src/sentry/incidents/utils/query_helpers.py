@@ -1,4 +1,5 @@
 import logging
+import math
 from datetime import datetime
 
 from snuba_sdk import Column, Condition, Limit, Op
@@ -18,32 +19,33 @@ from sentry.utils import snuba_rpc
 logger = logging.getLogger(__name__)
 
 
-def coerce_aggregation_value(value: object, *, none_defaults_to_zero: bool = False) -> float | None:
+def normalize_snuba_query_result(
+    value: object, *, none_defaults_to_zero: bool = False
+) -> float | None:
     """
     Normalize a Snuba/EAP aggregate to float | None.
 
-    Subscription and comparison queries can return None, empty strings, or other non-numeric values
-    for some aggregates (e.g. max/min with no matching rows). Callers should skip the update when
-    this returns None rather than doing type checks later.
+    Snuba queries can return None, NaN, empty strings, or other non-numeric values for some
+    aggregates (e.g. avg/max/min with no matching rows). Callers should skip the update when this
+    returns None rather than doing type checks later.
     """
+    if isinstance(value, float):
+        # ClickHouse returns NaN for some aggregates over zero rows (e.g. avg, quantiles)
+        return None if math.isnan(value) else value
+
     if value is None:
         return 0.0 if none_defaults_to_zero else None
 
-    if isinstance(value, bool):
-        # bool is a subclass of int; treat explicitly before numeric checks.
-        return float(value)
-
-    if isinstance(value, (int, float)):
+    if isinstance(value, (int, bool)):
         return float(value)
 
     # Snuba occasionally returns empty/non-numeric strings for max/min-style aggregates when no
-    # matching rows exist. Skip those updates rather than crashing in math.isnan() or coercing to 0
-    # (which can false-trigger alerts).
+    # matching rows exist. Skip those updates rather than coercing to 0 (which can false-trigger
+    # alerts).
     if isinstance(value, str):
-        if value.strip() == "":
-            return None
         try:
-            return float(value)
+            value = float(value)
+            return None if math.isnan(value) else value
         except ValueError:
             return None
 
@@ -152,4 +154,4 @@ def run_query_for_window(
         logger.exception("Failed to run metric detector query", extra=logger_extra)
         return None
 
-    return coerce_aggregation_value(value)
+    return normalize_snuba_query_result(value)
