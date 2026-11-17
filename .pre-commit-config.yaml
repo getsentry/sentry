@@ -70,6 +70,27 @@ repos:
         entry: python3 -m tools.mypy_helpers.prevent_weaklist_additions
         files: ^pyproject\.toml$
         language: python
+      - id: seer-nav-snapshot
+        name: seer nav snapshot
+        entry: python3 -m tools.seer_nav.generate_snapshot --hook
+        # The files tools/seer_nav reads. String constants the nav files import are not
+        # listed; the CI check catches those.
+        files: |
+          (?x)^(
+            static/app/views/navigation/.*|
+            static/app/views/settings/organization/userOrgNavigationConfiguration\.tsx|
+            static/app/views/settings/project/navigationConfiguration\.tsx|
+            static/app/views/settings/useSettingsV3\.ts|
+            static/app/views/issueList/taxonomies\.tsx|
+            static/app/views/dashboards/utils/prebuiltConfigs/.*|
+            static/app/views/explore/tables/index\.tsx|
+            static/app/utils/seer/(showNewSeer|orgHasNewSeerPlan)\.ts|
+            static/app/(.*/)?routes\.tsx?|
+            static/gsApp/overrides/useBillingNavigationConfig\.tsx|
+            tools/seer_nav/.*
+          )$
+        pass_filenames: false
+        language: python
       - id: prevent-push
         name: prevent pushing master
         stages: [pre-push]
