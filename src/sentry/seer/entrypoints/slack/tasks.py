@@ -30,7 +30,6 @@ from sentry.seer.entrypoints.slack.cache import SlackSeerAgentMessageCache
 from sentry.seer.entrypoints.slack.entrypoint import (
     EntrypointSetupError,
     SlackAgentEntrypoint,
-    SlackThreadDetails,
 )
 from sentry.seer.entrypoints.slack.mention import (
     SlackMessageLink,
@@ -51,6 +50,7 @@ from sentry.seer.entrypoints.slack.metrics import (
     ProcessReactionFailureReason,
     ProcessReactionHaltReason,
 )
+from sentry.seer.entrypoints.slack.types import SlackThreadDetails
 from sentry.seer.entrypoints.types import SeerEntrypointKey
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_tasks

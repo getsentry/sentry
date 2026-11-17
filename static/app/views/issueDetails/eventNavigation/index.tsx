@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 import {IconTelescope} from '@sentry/icons/telescope';
 import {keepPreviousData} from '@tanstack/react-query';
@@ -10,7 +11,7 @@ import {LinkButton} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 
 import {Feature} from 'sentry/components/acl/feature';
@@ -19,7 +20,9 @@ import {Count} from 'sentry/components/count';
 import {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {AutofixReferrerInfoTip} from 'sentry/components/events/autofix/v3/autofixReferrerInfoTip';
 import {SeerPanelActions} from 'sentry/components/events/autofix/v3/seerPanelActions';
+import {useAutofixUnread} from 'sentry/components/events/autofix/v3/useAutofixUnread';
 import {TourElement} from 'sentry/components/tours/components';
+import {UnreadIndicator} from 'sentry/components/unreadIndicator';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -66,6 +69,7 @@ interface ContentTab {
   hidden: boolean;
   key: Tab;
   name: string;
+  hasUnread?: boolean;
 }
 
 const LIST_VIEW_TABS = new Set([
@@ -137,6 +141,11 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
   const hasManyAttachments =
     attachmentPagination.next?.results || attachmentPagination.previous?.results;
 
+  const hasUnreadAutofix = useAutofixUnread(group, {
+    enabled: showAutofixTab,
+    isViewing: currentTab === Tab.AUTOFIX,
+  });
+
   const TabName: Partial<Record<Tab, string>> = {
     [Tab.DETAILS]: issueTypeConfig.customCopy.eventUnits,
     [Tab.EVENTS]: issueTypeConfig.customCopy.eventUnits,
@@ -159,6 +168,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
       // Autofix has no count to show; it is a single ongoing analysis.
       count: null,
       hidden: !showAutofixTab,
+      hasUnread: hasUnreadAutofix,
     },
     {
       key: Tab.REPLAYS,
@@ -248,32 +258,35 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
         <Container maxWidth="100%">
           {props => (
             <Tabs
-              {...props}
               size="sm"
               value={selectedContentTab}
-              onChange={key => trackContentSelected(key as Tab)}
+              onChange={trackContentSelected}
+              {...props}
             >
-              <TabList variant="floating">
-                {contentTabs.map(tab => (
-                  <TabList.Item
-                    key={tab.key}
-                    hidden={tab.hidden}
-                    to={contentLocation(tab.key)}
-                    textValue={tab.name}
-                  >
-                    <Flex as="span" align="center" gap="xs">
-                      {tab.name}
-                      {tab.count === null ? null : (
-                        <Badge variant="muted">
-                          <Text tabular variant="inherit">
-                            {tab.count}
-                          </Text>
-                        </Badge>
-                      )}
-                    </Flex>
-                  </TabList.Item>
-                ))}
-              </TabList>
+              {({TabList}) => (
+                <TabList variant="floating">
+                  {contentTabs.map(tab => (
+                    <TabList.Item
+                      key={tab.key}
+                      hidden={tab.hidden}
+                      to={contentLocation(tab.key)}
+                      textValue={tab.name}
+                    >
+                      <Flex as="span" align="center" gap="xs">
+                        {tab.name}
+                        {tab.hasUnread ? <TabUnreadIndicator /> : null}
+                        {tab.count === null ? null : (
+                          <Badge variant="muted">
+                            <Text tabular variant="inherit">
+                              {tab.count}
+                            </Text>
+                          </Badge>
+                        )}
+                      </Flex>
+                    </TabList.Item>
+                  ))}
+                </TabList>
+              )}
             </Tabs>
           )}
         </Container>
@@ -475,3 +488,8 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
     </Flex>
   );
 }
+
+const TabUnreadIndicator = styled(UnreadIndicator)`
+  width: 6px;
+  height: 6px;
+`;

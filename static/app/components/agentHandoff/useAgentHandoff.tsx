@@ -20,6 +20,12 @@ export enum AgentHandoffFlow {
 interface Handoff {
   code: string;
   expiresAt: string;
+  handoffId: string;
+}
+
+interface PreparedPrompt {
+  handoffId: string;
+  text: string;
 }
 
 interface ProjectSetupContext {
@@ -86,14 +92,14 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
 ) {
   const organization = useOrganization();
   const handoff = useRef<CachedHandoff<Flow> | null>(null);
-  const copyOperation = useRef<Promise<void> | null>(null);
+  const copyOperation = useRef<Promise<string> | null>(null);
   const mutation = useMutation({
     gcTime: 0,
     retry: false,
-    mutationFn: (operation: Promise<void>) => operation,
+    mutationFn: (operation: Promise<string>) => operation,
   });
 
-  async function getPrompt(options: HandoffPromptOptions<Flow>) {
+  async function getPrompt(options: HandoffPromptOptions<Flow>): Promise<PreparedPrompt> {
     const promptContext: PromptContext<Flow> = {
       ...options,
       flow,
@@ -102,7 +108,7 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
 
     const cachedHandoff = handoff.current;
     if (cachedHandoff && !isHandoffStale(cachedHandoff, promptContext)) {
-      return formatPrompt(cachedHandoff.code);
+      return {handoffId: cachedHandoff.handoffId, text: formatPrompt(cachedHandoff.code)};
     }
 
     try {
@@ -119,7 +125,7 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
       });
       handoff.current = {...minted, ...promptContext};
 
-      return formatPrompt(minted.code);
+      return {handoffId: minted.handoffId, text: formatPrompt(minted.code)};
     } catch {
       throw new Error(t('Unable to create your agent prompt. Try again.'));
     }
@@ -130,9 +136,9 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
       return Promise.reject(new Error(t('Your agent prompt is still being prepared.')));
     }
 
-    const promptText = getPrompt({...options, context});
-    const clipboardPayload = promptText.then(
-      text => new Blob([text], {type: 'text/plain'})
+    const preparedPrompt = getPrompt({...options, context});
+    const clipboardPayload = preparedPrompt.then(
+      ({text}) => new Blob([text], {type: 'text/plain'})
     );
     let clipboardWrite: Promise<void>;
     try {
@@ -149,7 +155,7 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
       clipboardWrite = Promise.reject(clipboardError());
     }
 
-    return Promise.allSettled([promptText, clipboardPayload, clipboardWrite]).then(
+    return Promise.allSettled([preparedPrompt, clipboardPayload, clipboardWrite]).then(
       ([promptResult, , clipboardResult]) => {
         if (promptResult.status === 'rejected') {
           throw promptResult.reason;
@@ -158,6 +164,8 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
         if (clipboardResult.status === 'rejected') {
           throw clipboardResult.reason;
         }
+
+        return promptResult.value.handoffId;
       }
     );
   }

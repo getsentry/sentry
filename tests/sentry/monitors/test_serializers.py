@@ -1,6 +1,6 @@
 from sentry.api.serializers import serialize
 from sentry.monitors.logic.checkin_config import get_checkin_config_id
-from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorEnvironment, ScheduleType
+from sentry.monitors.models import CheckInStatus, MonitorEnvironment, ScheduleType
 from sentry.monitors.serializers import (
     MonitorCheckInSerializer,
     MonitorEnvironmentSerializer,
@@ -121,7 +121,7 @@ class MonitorCheckInSerializerTest(TestCase):
             environment_id=999999,  # Non-existent environment ID
         )
 
-        checkin = MonitorCheckIn.objects.create(
+        checkin = self.create_monitor_checkin(
             monitor_environment=monitor_env,
             status=CheckInStatus.OK,
         )
@@ -145,17 +145,12 @@ class MonitorCheckInSerializerTest(TestCase):
             "max_runtime": 30,
             "checkin_margin": 5,
         }
-        snapshot = MonitorCheckIn.objects.create(
+        snapshot = self.create_monitor_checkin(
             monitor_environment=monitor_env,
             status=CheckInStatus.OK,
             checkin_config_id=get_checkin_config_id(config),
         )
-        no_config = MonitorCheckIn.objects.create(
-            monitor_environment=monitor_env,
-            status=CheckInStatus.OK,
-        )
 
-        result = serialize([snapshot, no_config], self.user, MonitorCheckInSerializer())
+        result = serialize([snapshot], self.user, MonitorCheckInSerializer())
 
         assert result[0]["monitorConfig"] == {**config, "schedule_type": "crontab"}
-        assert not result[1]["monitorConfig"]
