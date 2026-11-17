@@ -34,7 +34,6 @@ describe('useReleaseBand', () => {
 
   it('draws the track once and a marker shaded by release count on each bucket', () => {
     const TRACK_WIDTH = 600;
-    // One pixel per second, so each one-minute bucket is 60px wide.
     const api = {
       coord: ([time]: number[]) => [(time ?? 0) / 1000, 100],
     } as unknown as CustomSeriesRenderItemAPI;
