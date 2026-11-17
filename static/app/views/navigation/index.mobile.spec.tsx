@@ -52,6 +52,10 @@ function setupMocks() {
   localStorage.clear();
   sessionStorage.clear();
   MockApiClient.clearMockResponses();
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/inbox/count/',
+    body: {count: 0},
+  });
 
   // MobileNavigation requires a #main element to manage inert/overflow attributes
   const mainEl = document.createElement('div');
