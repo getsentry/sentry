@@ -63,7 +63,7 @@ class OrganizationNotebooksDuplicateTest(APITestCase):
             "sentry-api-0-organization-notebook-duplicate",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": source.id,
+                "notebook_id": source.id,
             },
         )
 

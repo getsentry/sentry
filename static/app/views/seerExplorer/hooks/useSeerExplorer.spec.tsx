@@ -4,6 +4,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {toast} from '@sentry/scraps/toast';
+
 import * as llmContextModule from 'sentry/views/seerExplorer/contexts/llmContext';
 import {
   SeerExplorerChatStateProvider,
@@ -1189,6 +1191,68 @@ describe('useSeerExplorer', () => {
       await waitFor(() => {
         expect(result.current.isPolling).toBe(false);
       });
+    });
+  });
+
+  describe('PR creation errors', () => {
+    const chatUrl = `/organizations/${organization.slug}/seer/explorer-chat/`;
+    const runId = 789;
+
+    function mockPRState(prState: Record<string, unknown>) {
+      MockApiClient.addMockResponse({
+        url: `${chatUrl}${runId}/`,
+        method: 'GET',
+        body: {
+          session: {
+            status: 'completed',
+            blocks: [],
+            updated_at: new Date().toISOString(),
+            repo_pr_states: {
+              'acme/web': {repo_name: 'acme/web', pr_number: null, ...prState},
+            },
+          },
+        },
+      });
+    }
+
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(async () => {
+      try {
+        await act(() => jest.runOnlyPendingTimersAsync());
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it('toasts out-of-credits copy instead of the raw error', async () => {
+      const errorSpy = jest.spyOn(toast, 'error');
+      mockPRState({pr_creation_status: 'creating'});
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
+      });
+      act(() => {
+        result.current.switchToRun(runId);
+      });
+      await waitFor(() => expect(result.current.isPolling).toBe(true));
+
+      mockPRState({
+        pr_creation_status: 'error',
+        pr_creation_error: "Your organization doesn't have enough Seer credits for this.",
+        pr_creation_error_code: 'out_of_credits',
+      });
+
+      // The next poll picks up the failure.
+      await act(() => jest.advanceTimersByTimeAsync(500));
+      await waitFor(() =>
+        expect(errorSpy).toHaveBeenCalledWith(
+          "Seer couldn't open a pull request in acme/web because your organization is out of credits."
+        )
+      );
     });
   });
 

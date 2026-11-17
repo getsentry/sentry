@@ -6,6 +6,9 @@ from unittest.mock import MagicMock, Mock, call, patch
 import orjson
 import pytest
 from django.test import override_settings
+from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_AUTOFIX_POST_PROCESS,
+)
 
 from sentry.issues.action_log.types import SYSTEM_ACTOR, ActionSource, TriggerAutofixAction
 from sentry.issues.grouptype import WebVitalsGroup
@@ -45,7 +48,7 @@ class TriggerAutofixTaskTest(TestCase):
     @patch("sentry.seer.autofix.issue_summary.SeerAutofixOperator.has_access", return_value=False)
     @patch("sentry.seer.autofix.issue_summary.trigger_autofix_agent", return_value=123)
     def test_post_process_kickoff_creates_system_activity(
-        self, _mock_trigger_autofix: MagicMock, _mock_operator_access: MagicMock
+        self, mock_trigger_autofix: MagicMock, _mock_operator_access: MagicMock
     ) -> None:
         group = self.create_group()
 
@@ -58,6 +61,10 @@ class TriggerAutofixTaskTest(TestCase):
                 referrer="issue_summary.post_process_fixability",
             )
 
+        assert (
+            mock_trigger_autofix.call_args.kwargs["billing_feature"]
+            == SEER_BILLING_FEATURE_AUTOFIX_POST_PROCESS
+        )
         activity = Activity.objects.get(group=group, type=ActivityType.TRIGGER_AUTOFIX.value)
         assert activity.user_id is None
         assert activity.data == {"referrer": "issue_summary.post_process_fixability"}

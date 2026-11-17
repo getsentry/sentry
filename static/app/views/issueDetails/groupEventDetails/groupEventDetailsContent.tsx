@@ -187,7 +187,7 @@ export function EventDetailsContent({
       {issueTypeConfig.profilingDurationRegression.enabled && (
         <Fragment>
           <ErrorBoundary mini>
-            <EventFunctionBreakpointChart event={event} />
+            <EventFunctionBreakpointChart event={event} group={group} />
           </ErrorBoundary>
           <ErrorBoundary mini>
             <FoldSection
@@ -200,7 +200,7 @@ export function EventDetailsContent({
             frame with the largest increase in call stack population likely
             contributed to the cause for the duration regression.`)}
               </p>
-              <EventDifferentialFlamegraph event={event} />
+              <EventDifferentialFlamegraph event={event} group={group} />
             </FoldSection>
           </ErrorBoundary>
         </Fragment>
@@ -234,11 +234,9 @@ export function EventDetailsContent({
           <MetricsSection event={event} />
         </Feature>
       </ErrorBoundary>
-      {issueTypeConfig.trace.enabled &&
-        event.contexts.trace?.trace_id &&
-        organization.features.includes('performance-view') && (
-          <EventTraceView group={group} event={event} organization={organization} />
-        )}
+      {issueTypeConfig.trace.enabled && event.contexts.trace?.trace_id && (
+        <EventTraceView group={group} event={event} organization={organization} />
+      )}
       {defined(eventEntries[EntryType.REQUEST]) && (
         <EntryErrorBoundary type={EntryType.REQUEST}>
           <Request event={event} data={eventEntries[EntryType.REQUEST].data} />

@@ -35,9 +35,9 @@ const props: EntityHeaderProps = {
   stats: {
     label: 'Replay stats',
     items: [
-      {type: 'text', label: 'Dead Clicks', value: 0},
-      {type: 'text', label: 'Rage Clicks', value: 2},
-      {type: 'text', label: 'Errors', value: 1},
+      {label: 'Dead Clicks', value: 0},
+      {label: 'Rage Clicks', value: 2},
+      {label: 'Errors', value: 1},
     ],
   },
 };
@@ -75,8 +75,22 @@ describe('EntityHeader', () => {
           stats={{
             label: 'Replay stats',
             items: [
-              {type: 'link', label: 'Errors', value: 3, to: '/replays/1/'},
-              {type: 'text', label: 'Errors', value: 3},
+              {label: {type: 'link', content: 'Errors', to: '/replays/1/'}, value: 3},
+              {label: 'Errors', value: {type: 'link', content: 3, to: '/replays/1/'}},
+              {
+                label: {type: 'link', content: 'Errors', to: '/replays/1/'},
+                value: {type: 'link', content: 3, to: '/issues/'},
+              },
+              {
+                label: {
+                  type: 'link',
+                  content: 'Errors',
+                  to: '/replays/1/',
+                  tooltip: 'Why',
+                },
+                value: {type: 'link', content: 3, to: '/issues/', tooltip: 'Split'},
+              },
+              {label: 'Errors', value: 3},
             ],
           }}
         />
@@ -96,14 +110,20 @@ describe('EntityHeader', () => {
           stats={{
             label: 'Build stats',
             items: [
-              {type: 'text', label: 'Install Size', value: '12 MB'},
-              {type: 'text', label: 'Cost', value: null},
-              {type: 'link', label: 'Errors', value: null, to: '/replays/1/'},
+              {label: 'Install Size', value: '12 MB'},
+              {label: 'Cost', value: null},
+              {label: {type: 'link', content: 'Errors', to: '/replays/1/'}, value: null},
               {
-                type: 'text',
+                label: 'Issues',
+                value: {type: 'link', content: null, to: '/issues/'},
+              },
+              {
                 label: 'Download Size',
-                value: null,
-                valueTooltip: 'Not reported for this platform',
+                value: {
+                  type: 'text',
+                  content: null,
+                  tooltip: 'Not reported for this platform',
+                },
               },
             ],
           }}
@@ -129,7 +149,7 @@ describe('EntityHeader', () => {
           }}
           stats={{
             label: 'Replay stats',
-            items: [{type: 'text', label: 'Errors', value: 0}],
+            items: [{label: 'Errors', value: 0}],
           }}
         />
       ),

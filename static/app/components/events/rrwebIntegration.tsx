@@ -9,6 +9,7 @@ import type {IssueAttachment} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
@@ -72,7 +73,9 @@ function EventRRWebIntegrationContent({
   }
 
   const createAttachmentUrl = (attachment: IssueAttachment) =>
-    `/api/0/projects/${orgId}/${projectSlug}/events/${event.id}/attachments/${attachment.id}/?download`;
+    resolveHostname(
+      `/api/0/projects/${orgId}/${projectSlug}/events/${event.id}/attachments/${attachment.id}/?download`
+    );
 
   return (
     <FoldSection

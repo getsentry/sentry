@@ -9,7 +9,7 @@ import {platformProductAvailability, ProductSelection} from './productSelection'
 
 describe('Onboarding Product Selection', () => {
   const organization = OrganizationFixture({
-    features: ['session-replay', 'performance-view', 'profiling-view'],
+    features: ['session-replay', 'profiling-view'],
   });
 
   beforeEach(() => {

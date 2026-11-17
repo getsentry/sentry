@@ -5,13 +5,18 @@ import {IconGraph} from '@sentry/icons/graph';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useFetchEventsTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {getIntervalOptionsForPageFilter} from 'sentry/utils/useChartInterval';
+import {useClassifiedConversationCount} from 'sentry/views/classifiers/hooks/useClassifiedConversationCount';
+import {useClassifierPageFilters} from 'sentry/views/classifiers/hooks/useClassifierPageFilters';
 import type {TelemetryClassifier} from 'sentry/views/classifiers/types';
 import {getResultAttributeKey} from 'sentry/views/classifiers/utils';
 import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
@@ -24,34 +29,42 @@ import {ChartType} from 'sentry/views/insights/common/components/chartTypes';
 
 const TITLE = t('Instances');
 
-const DATETIME: PageFilters['datetime'] = {
-  period: '24h',
-  start: null,
-  end: null,
-  utc: null,
-};
-
-const INTERVAL_OPTIONS = getIntervalOptionsForPageFilter(DATETIME);
+function ClassifiedConversationCount({count}: {count: number}) {
+  return (
+    <Text size="sm" variant="muted">
+      {count === 1
+        ? t('1 conversation classified')
+        : t('%s conversations classified', formatAbbreviatedNumber(count))}
+    </Text>
+  );
+}
 
 interface ClassifierInstancesChartProps {
   classifier: TelemetryClassifier;
 }
 
 export function ClassifierInstancesChart({classifier}: ClassifierInstancesChartProps) {
+  const selection = useClassifierPageFilters(classifier);
+  const {data: classifiedCount, isPending: isCountPending} =
+    useClassifiedConversationCount(classifier);
   const [chartType, setChartType] = useState(ChartType.BAR);
-  const [interval, setInterval] = useState(INTERVAL_OPTIONS.at(-1)!.value);
+  const [selectedInterval, setSelectedInterval] = useState<string | null>(null);
+
+  const intervalOptions = getIntervalOptionsForPageFilter(selection.datetime);
+  const chartInterval =
+    intervalOptions.find(option => option.value === selectedInterval)?.value ??
+    intervalOptions.at(-1)?.value;
 
   const pageFilters: PageFilters = {
+    ...selection,
     projects: [Number(classifier.projectId)],
-    environments: [],
-    datetime: DATETIME,
   };
 
   const {data, isPending, error} = useFetchEventsTimeSeries(
     DiscoverDatasets.ENRICHMENT_ATTRIBUTES,
     {
       yAxis: `count(tags[${getResultAttributeKey(classifier.resultAttribute)},number])`,
-      interval,
+      interval: chartInterval,
       pageFilters,
     },
     'api.classifiers.detail.instances-chart'
@@ -121,22 +134,30 @@ export function ClassifierInstancesChart({classifier}: ClassifierInstancesChartP
               size="xs"
             />
           )}
-          value={interval}
+          value={chartInterval}
           menuTitle={t('Interval')}
-          options={INTERVAL_OPTIONS}
-          onChange={option => setInterval(option.value)}
+          options={intervalOptions}
+          onChange={option => setSelectedInterval(option.value)}
         />
       </Tooltip>
     </Fragment>
   );
 
+  let footer: React.ReactNode;
+  if (isCountPending) {
+    footer = <Placeholder width="160px" height="1lh" />;
+  } else if (classifiedCount !== undefined) {
+    footer = <ClassifiedConversationCount count={classifiedCount} />;
+  }
+
   return (
-    <Container height="240px">
+    <Container height="280px">
       <Widget
         Title={<Widget.WidgetTitle title={TITLE} />}
         Actions={actions}
         revealActions="always"
         Visualization={visualization}
+        Footer={footer}
       />
     </Container>
   );

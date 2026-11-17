@@ -33,7 +33,6 @@ import {
   OnboardingDrawerStore,
   useIsOnboardingDrawerOpen,
 } from 'sentry/stores/onboardingDrawerStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import type {Project} from 'sentry/types/project';
 import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
@@ -82,7 +81,10 @@ function SidebarContent() {
 
   const [currentProject, setCurrentProject] = useState<Project | undefined>(undefined);
 
-  const {selection} = useLegacyStore(PageFiltersStore);
+  const selectedProjectIds = useStore(
+    PageFiltersStore,
+    state => state.selection.projects
+  );
 
   const {projectsWithoutFirstTransactionEvent, projectsForOnboarding} =
     filterProjects(projects);
@@ -143,7 +145,7 @@ function SidebarContent() {
     setCurrentProject(projectsWithoutFirstTransactionEvent[0]);
   }, [
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
-    selection.projects,
+    selectedProjectIds,
     projects,
     projectsForOnboarding,
     projectsWithoutFirstTransactionEvent,
