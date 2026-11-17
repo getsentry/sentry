@@ -1,19 +1,21 @@
 from collections.abc import Mapping
 from typing import Any, cast
 
-import orjson
-
 from sentry import options
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.provider import MigratingIdentityId
 from sentry.identity.oauth2 import OAuth2Provider
-from sentry.utils.signing import urlsafe_b64decode
+from sentry.identity.oidc import verify_id_token
 
 # When no hosted domain is in use for the authenticated user, we default to the
 # gmail domain. It doesn't necessarily mean the users account is a gmail
 # account (you can register a google account with any email), but it is not a
 # gsuite account, which we want to differentiate on.
 DEFAULT_GOOGLE_DOMAIN = "gmail.com"
+
+# https://developers.google.com/identity/openid-connect/openid-connect#validatinganidtoken
+GOOGLE_ID_TOKEN_ISSUERS = ("https://accounts.google.com", "accounts.google.com")
+GOOGLE_JWKS_URI = "https://www.googleapis.com/oauth2/v3/certs"
 
 
 def normalize_email_verified(value: Any) -> bool:
@@ -48,17 +50,14 @@ class GoogleIdentityProvider(OAuth2Provider):
         try:
             id_token = cast(str, data["id_token"])
         except KeyError:
-            raise IdentityNotValid("Missing id_token in OAuth response: %s" % data)
+            raise IdentityNotValid("Missing id_token in OAuth response, keys: %s" % sorted(data))
 
-        try:
-            _, payload, _ = map(urlsafe_b64decode, id_token.split(".", 2))
-        except Exception as exc:
-            raise IdentityNotValid("Unable to decode id_token: %s" % exc)
-
-        try:
-            user_data = orjson.loads(payload)
-        except ValueError as exc:
-            raise IdentityNotValid("Unable to decode id_token payload: %s" % exc)
+        user_data = verify_id_token(
+            id_token,
+            jwks_uri=GOOGLE_JWKS_URI,
+            issuers=GOOGLE_ID_TOKEN_ISSUERS,
+            audience=self.get_oauth_client_id(),
+        )
 
         # XXX(epurkhiser): This is carryover from the AuthProvider version of
         # google identity. Because we will have code that handles interop

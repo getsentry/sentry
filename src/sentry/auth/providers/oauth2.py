@@ -134,12 +134,13 @@ class OAuth2Callback(AuthView):
         state = request.GET.get("state")
         code = request.GET.get("code")
 
-        if error:
-            return pipeline.error(error)
-
         stored_state = pipeline.fetch_state("state")
         if not state or not stored_state or not constant_time_compare(state, stored_state):
             return pipeline.error(ERR_INVALID_STATE)
+
+        # Only a callback for the flow we started may tell us that flow failed.
+        if error:
+            return pipeline.error(error)
 
         if code is None:
             return pipeline.error("no code was provided")

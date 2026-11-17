@@ -183,6 +183,32 @@ class OAuth2CallbackViewTest(TestCase):
         error.assert_called_once_with(ERR_INVALID_STATE)
         assert not exchange_token.called
 
+    def _dispatch_error_callback(self, state: str) -> MagicMock:
+        request = RequestFactory().get("/", {"error": "access_denied", "state": state})
+        request.session = Client().session
+        request.subdomain = None
+        pipeline = IdentityPipeline(request=request, provider_key="dummy")
+
+        with (
+            patch.object(pipeline, "fetch_state", return_value="expected-state"),
+            patch.object(pipeline, "error") as error,
+            patch.object(OAuth2CallbackView, "exchange_token") as exchange_token,
+        ):
+            self.view.dispatch(request, pipeline)
+
+        assert not exchange_token.called
+        return error
+
+    def test_dispatch_error_with_invalid_state(self, mock_record: MagicMock) -> None:
+        error = self._dispatch_error_callback(state="attacker-state")
+
+        error.assert_called_once_with(ERR_INVALID_STATE)
+
+    def test_dispatch_error_with_valid_state(self, mock_record: MagicMock) -> None:
+        error = self._dispatch_error_callback(state="expected-state")
+
+        error.assert_called_once_with(f"{ERR_INVALID_STATE}\nError: access_denied")
+
 
 @control_silo_test
 class OAuth2LoginViewTest(TestCase):
