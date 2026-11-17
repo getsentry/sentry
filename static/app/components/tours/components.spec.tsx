@@ -344,7 +344,7 @@ describe('Tour Components', () => {
       expect(mockHandleDismiss).toHaveBeenCalled();
     });
 
-    it('focuses keyboard-enabled subtle guides so Tab reaches their controls', async () => {
+    it('focuses keyboard-enabled guides so Tab reaches their controls', async () => {
       render(
         <TourGuide
           isOpen
@@ -358,30 +358,30 @@ describe('Tour Components', () => {
         </TourGuide>
       );
 
-      await screen.findByText('Test Title');
-      await waitFor(() =>
-        expect(screen.getByText('Test Title').closest('[tabindex="-1"]')).toHaveFocus()
-      );
+      const guide = await screen.findByRole('dialog', {name: 'Test Title'});
+      await waitFor(() => expect(guide).toHaveFocus());
       await userEvent.tab();
       expect(screen.getByRole('button', {name: 'Test Action'})).toHaveFocus();
     });
 
-    it('does not automatically move focus for spotlight guides', async () => {
+    it('does not take focus from an element the user is working in', async () => {
       render(
-        <TourGuide
-          isOpen
-          variant="spotlight"
-          title="Test Title"
-          description="Test Description"
-          onKeyDown={jest.fn()}
-        >
-          {props => <button {...props}>Child Element</button>}
-        </TourGuide>
+        <div>
+          <input aria-label="Search" autoFocus />
+          <TourGuide
+            isOpen
+            variant="subtle"
+            onKeyDown={jest.fn()}
+            title="Test Title"
+            description="Test Description"
+          >
+            {props => <button {...props}>Child Element</button>}
+          </TourGuide>
+        </div>
       );
 
-      const title = await screen.findByText('Test Title');
-      expect(document.body).toHaveFocus();
-      expect(title.closest('[tabindex="-1"]')).toHaveAttribute('tabindex', '-1');
+      expect(await screen.findByRole('dialog', {name: 'Test Title'})).toBeInTheDocument();
+      expect(screen.getByRole('textbox', {name: 'Search'})).toHaveFocus();
     });
 
     it('scrolls the highlighted element into view and pins the guide to the viewport', async () => {

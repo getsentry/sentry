@@ -1,5 +1,5 @@
 import type {HTMLAttributes} from 'react';
-import {Fragment, useContext, useEffect, useMemo, useRef} from 'react';
+import {Fragment, useContext, useEffect, useId, useMemo, useRef} from 'react';
 import {createPortal} from 'react-dom';
 import {ClassNames, ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -110,8 +110,8 @@ export function TourContextProvider<T extends TourEnumType>({
   );
   const {endTour, previousStep, nextStep, currentStepId} = tourContextValue;
   const isTourActive = currentStepId !== null;
-  // Set when the user steps through a subtle tour from a focused guide, so the
-  // next guide can take focus over.
+  // Set while a subtle tour changes step, so the closing guide leaves focus for
+  // the next guide instead of returning it to the page.
   const focusHandoffRef = useRef(false);
   const variantTourContextValue = {
     ...tourContextValue,
@@ -312,9 +312,8 @@ export function TourElementContent<T extends TourEnumType>({
     }
   }, [isOpen, id, organization, tourKey, stepCount]);
 
-  // Keyboard users keep their place when the step changes under them.
-  const withFocusHandoff = (changeStep: () => void) => (event: React.MouseEvent) => {
-    if (focusHandoffRef && event.currentTarget === document.activeElement) {
+  const withFocusHandoff = (changeStep: () => void) => () => {
+    if (focusHandoffRef) {
       focusHandoffRef.current = true;
     }
     changeStep();
@@ -411,7 +410,8 @@ interface TourGuideProps extends Omit<
    */
   actions?: React.ReactNode;
   /**
-   * When true as the guide opens, the guide takes focus and resets it.
+   * True while the tour changes step. The closing guide then leaves focus for
+   * the next guide instead of returning it. Reset when a guide opens.
    */
   focusHandoffRef?: React.RefObject<boolean>;
   handleDismiss?: (e: React.MouseEvent) => void;
@@ -419,7 +419,9 @@ interface TourGuideProps extends Omit<
   margin?: number;
   offset?: UseOverlayProps['offset'];
   /**
-   * Handles keys pressed while focus is inside the guide.
+   * Handles keys pressed while focus is inside the guide. The guide then takes
+   * focus when it opens, unless something else on the page has it, and returns
+   * focus to the page when it closes.
    */
   onKeyDown?: (event: React.KeyboardEvent) => void;
   position?: UseOverlayProps['position'];
@@ -445,6 +447,10 @@ const zIndex = {
  * highlighted element, such as one that is taller than the viewport.
  */
 const keepGuideInViewport = {crossAxis: true, tether: false};
+
+function isNothingFocused() {
+  return !document.activeElement || document.activeElement === document.body;
+}
 
 export function TourGuide({
   children,
@@ -500,10 +506,11 @@ export function TourGuide({
     if (!isOpen || !isFocusable || !overlay) {
       return;
     }
-    if (variant !== 'spotlight' || focusHandoffRef?.current) {
-      if (focusHandoffRef) {
-        focusHandoffRef.current = false;
-      }
+    if (focusHandoffRef) {
+      focusHandoffRef.current = false;
+    }
+    // Don't pull focus away from something the user is already working in.
+    if (isNothingFocused()) {
       overlay.focus({preventScroll: true});
     }
     const returnFocusTarget = returnFocusRef?.current ?? triggerRef.current;
@@ -526,26 +533,22 @@ export function TourGuide({
       overlay.removeEventListener('focusout', handleFocusOut);
       // Leave focus alone when the next guide takes it over, or when something
       // else, like a modal, has already moved it.
-      const isFocusLost =
-        !document.activeElement || document.activeElement === document.body;
-      if (hasFocus && isFocusLost && !focusHandoffRef?.current) {
+      if (hasFocus && isNothingFocused() && !focusHandoffRef?.current) {
         if (returnFocusTarget?.isConnected) {
           returnFocusTarget.focus();
         }
       }
     };
-  }, [
-    isOpen,
-    isFocusable,
-    variant,
-    overlayRef,
-    triggerRef,
-    focusHandoffRef,
-    returnFocusRef,
-  ]);
+  }, [isOpen, isFocusable, overlayRef, triggerRef, focusHandoffRef, returnFocusRef]);
 
+  const titleId = useId();
   const focusProps: HTMLAttributes<HTMLElement> = isFocusable
-    ? {tabIndex: -1, onKeyDown}
+    ? {
+        tabIndex: -1,
+        onKeyDown,
+        role: 'dialog',
+        'aria-labelledby': defined(title) ? titleId : undefined,
+      }
     : {};
 
   return (
@@ -615,7 +618,13 @@ export function TourGuide({
                         )}
                         {title && (
                           <Container padding="xs 0">
-                            <Text as="div" size="xl" bold density="comfortable">
+                            <Text
+                              as="div"
+                              id={titleId}
+                              size="xl"
+                              bold
+                              density="comfortable"
+                            >
                               {title}
                             </Text>
                           </Container>

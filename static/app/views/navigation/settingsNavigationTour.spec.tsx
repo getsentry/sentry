@@ -154,7 +154,7 @@ describe('Settings navigation tour', () => {
     await userEvent.keyboard('{Enter}');
     expect(await screen.findByText('Tour projects')).toBeInTheDocument();
     await waitFor(() =>
-      expect(screen.getByText('Tour projects').closest('[tabindex="-1"]')).toHaveFocus()
+      expect(screen.getByRole('dialog', {name: 'Tour projects'})).toHaveFocus()
     );
     // Keys keep working, since focus stayed inside the tour.
     await userEvent.keyboard('{Escape}');
@@ -176,7 +176,7 @@ describe('Settings navigation tour', () => {
     render(<Tour />, {organization});
     expect(await screen.findByText('Tour entry')).toBeInTheDocument();
     await waitFor(() =>
-      expect(screen.getByText('Tour entry').closest('[tabindex="-1"]')).toHaveFocus()
+      expect(screen.getByRole('dialog', {name: 'Tour entry'})).toHaveFocus()
     );
     await userEvent.tab();
     expect(screen.getByRole('button', {name: 'Close'})).toHaveFocus();

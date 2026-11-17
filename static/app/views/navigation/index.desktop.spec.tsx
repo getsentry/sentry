@@ -314,17 +314,19 @@ describe('desktop navigation', () => {
         </PrimaryNavigationContextProvider>,
         navigationContext({organization: settingsV3})
       );
-      const initialGuide = await screen.findByText('Access Settings here');
-      await waitFor(() => expect(initialGuide.closest('[tabindex="-1"]')).toHaveFocus());
+      const initialGuide = await screen.findByRole('dialog', {
+        name: 'Access Settings here',
+      });
+      await waitFor(() => expect(initialGuide).toHaveFocus());
       await userEvent.tab(); // Move from the autofocused guide to Close.
       expect(screen.getByRole('button', {name: 'Close'})).toHaveFocus();
       await userEvent.tab(); // Reach Next.
       expect(screen.getByRole('button', {name: 'Next'})).toHaveFocus();
       await userEvent.keyboard('{Enter}');
-      const guide = await screen.findByText(
-        'Quick settings-access for your important Projects'
-      );
-      await waitFor(() => expect(guide.closest('[tabindex="-1"]')).toHaveFocus());
+      const guide = await screen.findByRole('dialog', {
+        name: 'Quick settings-access for your important Projects',
+      });
+      await waitFor(() => expect(guide).toHaveFocus());
       await userEvent.keyboard('{Escape}');
       expect(
         screen.queryByText('Quick settings-access for your important Projects')
