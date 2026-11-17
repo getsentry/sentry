@@ -473,8 +473,8 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# What happens when a database error replaces a task's deadline as a transaction block ends:
-# "off" leaves the database error, "report" also counts it, "enforce" raises the deadline instead.
+# A database error that replaces a task's deadline as a transaction block ends is left alone
+# ("off"), counted ("report"), or swapped back for the deadline and counted ("enforce").
 register(
     "taskworker.deadline_restore.mode",
     default="off",

@@ -207,8 +207,8 @@ class DatabaseConnectionResetHook:
 
 class DeadlineRestoreModeHook:
     """
-    ContextHook that reads the deadline restore mode once, before the task opens a transaction,
-    so the rule never reads an option while a block is ending.
+    ContextHook that reads the deadline restore mode once per task, so the rule
+    never reads an option while a transaction block is ending.
     """
 
     def on_dispatch(self, headers: MutableMapping[str, Any]) -> None:

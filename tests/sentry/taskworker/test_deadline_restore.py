@@ -140,7 +140,7 @@ class TestDeadlineRestore(TransactionTestCase):
         first = KeyError("first")
         second = ValueError("second")
         first.__context__ = second
-        second.__cause__ = first
+        second.__context__ = first
 
         with self._task("enforce"), self._give_up_after(seconds=3):
             with pytest.raises(KeyError, match="first"):
@@ -148,17 +148,7 @@ class TestDeadlineRestore(TransactionTestCase):
                     transaction.on_commit(mock.Mock(side_effect=first), using="default")
 
     def test_a_commit_hook_gets_its_own_error_while_the_deadline_is_in_flight(self) -> None:
-        connection = connections["default"]
-        commit = connection.commit
-        errors_after_each_commit: Iterator[BaseException] = iter(
-            [ProcessingDeadlineExceeded(), OperationalError("commit failed in the hook")]
-        )
         errors_seen_by_the_hook: list[type[Exception]] = []
-
-        def commit_then_raise() -> None:
-            commit()
-
-            raise next(errors_after_each_commit)
 
         def commit_hook() -> None:
             try:
@@ -168,13 +158,32 @@ class TestDeadlineRestore(TransactionTestCase):
 
         with (
             self._task("enforce"),
-            mock.patch.object(connection, "commit", side_effect=commit_then_raise),
+            self._each_commit_then_raises(
+                ProcessingDeadlineExceeded(), OperationalError("commit failed in the hook")
+            ),
         ):
             with pytest.raises(ProcessingDeadlineExceeded):
                 with transaction.atomic(using="default"):
                     transaction.on_commit(commit_hook, using="default")
 
         assert errors_seen_by_the_hook == [OperationalError]
+
+    def test_enforce_keeps_a_deadline_in_flight_when_a_commit_hook_fails(self) -> None:
+        def commit_hook() -> None:
+            raise ValueError("the hook failed") from KeyError("unrelated")
+
+        with self._task("enforce"), self._each_commit_then_raises(ProcessingDeadlineExceeded()):
+            with pytest.raises(ProcessingDeadlineExceeded):
+                with transaction.atomic(using="default"):
+                    transaction.on_commit(commit_hook, using="default")
+
+    def test_the_rule_is_off_again_once_the_task_ends(self) -> None:
+        with self._task("enforce"):
+            pass
+
+        with self._deadline_during_commit():
+            with pytest.raises(ProgrammingError, match="set_session cannot be used"):
+                write_in_a_block("deadline_restore.interrupted")
 
     def test_any_other_mode_raises_the_database_error(self) -> None:
         for mode in ("off", "report", "not-a-mode"):
@@ -251,7 +260,7 @@ class TestDeadlineRestore(TransactionTestCase):
                     write_in_a_block("deadline_restore.interrupted")
 
     def test_refuses_to_install_over_a_wrapper(self) -> None:
-        # The conftest's commit hook fixture has already wrapped the method by now
+        # The test fixtures that wrap the same method (simulate_on_commit, savepoints) already have
         with pytest.raises(RuntimeError, match="must be installed first"):
             deadline_restore.patch_atomic_exit_to_restore_deadlines()
 
@@ -269,6 +278,21 @@ class TestDeadlineRestore(TransactionTestCase):
         with mock.patch.object(
             connections["default"], "_commit", side_effect=ProcessingDeadlineExceeded()
         ):
+            yield
+
+    @contextlib.contextmanager
+    def _each_commit_then_raises(self, *errors: BaseException) -> Iterator[None]:
+        # Raising after the commit is how a deadline lands once Django has armed the commit hooks
+        connection = connections["default"]
+        commit = connection.commit
+        errors_after_each_commit = iter(errors)
+
+        def commit_then_raise() -> None:
+            commit()
+
+            raise next(errors_after_each_commit)
+
+        with mock.patch.object(connection, "commit", side_effect=commit_then_raise):
             yield
 
     @contextlib.contextmanager

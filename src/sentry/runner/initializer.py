@@ -478,7 +478,7 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
     _trace("patch_silo_aware_atomic")
     patch_silo_aware_atomic()
 
-    # Before configure_sdk, whose span wrapper on the same method has to stay outermost
+    # Before configure_sdk, which wraps the same method: this one has to wrap Django's own function
     _trace("patch_atomic_exit_to_restore_deadlines")
     patch_atomic_exit_to_restore_deadlines()
 

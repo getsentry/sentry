@@ -2,7 +2,7 @@
 Keeps a task's processing deadline from being replaced by a database error.
 
 A deadline that lands while Django ends a transaction block is replaced by whatever Django's
-own cleanup raises next. A task that catches ordinary errors then never learns its time is up.
+cleanup raises next, so a task that catches ordinary errors never learns its time is up.
 """
 
 from __future__ import annotations
@@ -34,7 +34,7 @@ MATCHED_METRIC = "taskworker.deadline_restore.matched"
 
 DJANGO_ATOMIC_EXIT_QUALNAME = "Atomic.__exit__"
 
-# A chain of errors can loop back on itself, so the walk through it is bounded
+# Bounds the walk through a chain of errors, which can loop back on itself
 MAX_CHAIN_STEPS = 16
 
 _mode: ContextVar[str] = ContextVar("deadline_restore_mode", default=MODE_OFF)
@@ -42,7 +42,7 @@ _mode: ContextVar[str] = ContextVar("deadline_restore_mode", default=MODE_OFF)
 
 @contextlib.contextmanager
 def task_mode() -> Iterator[None]:
-    """The span of one task, during which the rule runs in the mode the option holds."""
+    """The span of one task, with the mode read from the option once at its start."""
     token = _mode.set(_read_mode())
     try:
         yield
@@ -51,11 +51,11 @@ def task_mode() -> Iterator[None]:
 
 
 def patch_atomic_exit_to_restore_deadlines() -> None:
-    """The wrapper on Django's `Atomic.__exit__` that applies the rule."""
+    """The install of the rule, as a wrapper on Django's `Atomic.__exit__`."""
     django_exit = Atomic.__exit__
     django_exit_code = django_exit.__code__
 
-    # The rule recognises Django's own frame, so it has to wrap Django's function directly
+    # Wrapped around another wrapper, the rule would never see Django's own frame and never match
     if django_exit_code.co_qualname != DJANGO_ATOMIC_EXIT_QUALNAME:
         raise RuntimeError(
             f"Atomic.__exit__ is already wrapped by {django_exit_code.co_qualname}; "
@@ -68,7 +68,7 @@ def patch_atomic_exit_to_restore_deadlines() -> None:
         exc_value: BaseException | None,
         traceback: TracebackType | None,
     ) -> None:
-        handled_on_entry = sys.exception()
+        handled_before_exit = sys.exception()
         try:
             django_exit(self, exc_type, exc_value, traceback)
         except Exception as error:
@@ -76,7 +76,7 @@ def patch_atomic_exit_to_restore_deadlines() -> None:
             if mode == MODE_OFF:
                 raise
 
-            deadline = _deadline_hidden_by(error, handled_on_entry, exc_value, django_exit_code)
+            deadline = _deadline_hidden_by(error, exc_value, handled_before_exit, django_exit_code)
             if deadline is None:
                 raise
 
@@ -103,46 +103,39 @@ def _read_mode() -> str:
 
 def _deadline_hidden_by(
     error: BaseException,
-    handled_on_entry: BaseException | None,
     raised_in_block: BaseException | None,
+    handled_before_exit: BaseException | None,
     django_exit_code: CodeType,
 ) -> ProcessingDeadlineExceeded | None:
     """The deadline that this exit of a block replaced with `error`, if there is one."""
-    current = error
+    newer = error
     for _ in range(MAX_CHAIN_STEPS):
-        previous = _previous_in_chain(current)
-        if previous is None:
+        # The context of an error is the error that was in flight when it was raised
+        replaced = newer.__context__
+        if replaced is None:
             return None
 
-        if previous is raised_in_block:
-            if isinstance(previous, ProcessingDeadlineExceeded):
-                return previous
+        # The block's own error is the oldest one this exit could have replaced
+        if replaced is raised_in_block:
+            if isinstance(replaced, ProcessingDeadlineExceeded):
+                return replaced
             return None
 
-        # Anything already being handled when the block ended was not hidden by this exit
-        if previous is handled_on_entry:
+        # Already in flight before this exit began, so it is still its own handler's to raise
+        if replaced is handled_before_exit:
             return None
 
-        if isinstance(previous, ProcessingDeadlineExceeded):
-            if _last_escaped_into(previous, django_exit_code):
-                return previous
+        # A deadline that landed during this exit counts only when Django's cleanup replaced it
+        if isinstance(replaced, ProcessingDeadlineExceeded):
+            if _stopped_in(replaced, django_exit_code):
+                return replaced
 
-        current = previous
+        newer = replaced
     return None
 
 
-def _previous_in_chain(error: BaseException) -> BaseException | None:
-    # Django raises its own error `from` the driver's, which hides the driver error's context
-    # unless the cause is followed first
-    if error.__cause__ is not None:
-        return error.__cause__
-    if error.__suppress_context__:
-        return None
-    return error.__context__
-
-
-def _last_escaped_into(error: BaseException, code: CodeType) -> bool:
-    # A deadline the task or a commit hook already caught last escaped into their frame instead
+def _stopped_in(error: BaseException, code: CodeType) -> bool:
+    # A traceback starts at the last frame its error reached: the one that caught or replaced it
     traceback = error.__traceback__
     if traceback is None:
         return False
