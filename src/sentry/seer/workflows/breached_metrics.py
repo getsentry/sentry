@@ -254,8 +254,8 @@ class RejectedMetricBreach:
     created: bool
 
 
-@action_handler_registry.register(Action.Type.SEER_WORKFLOW)
-class SeerMetricAlertActionHandler(ActionHandler):
+@action_handler_registry.register(Action.Type.SEER_INVESTIGATION)
+class SeerInvestigationActionHandler(ActionHandler):
     group = ActionHandler.Group.OTHER
     required_features = (FeatureGate("organizations:seer-automations"),)
     config_schema = {"type": "object", "properties": {}, "additionalProperties": False}
@@ -269,13 +269,12 @@ class SeerMetricAlertActionHandler(ActionHandler):
     @staticmethod
     @override
     def execute(invocation: ActionInvocation) -> None:
-        binding = SeerWorkflowTriggerBinding.objects.get_or_none(trigger_action=invocation.action)
-        if binding is None:
-            SeerMetricAlertActionHandler._handle(invocation, None)
-        else:
-            SeerMetricAlertActionHandler._handle(
-                invocation, binding.workflow_config_id, binding_id=binding.id
-            )
+        config_id = (
+            SeerWorkflowConfig.objects.filter(backing_workflow_id=invocation.workflow_id)
+            .values_list("id", flat=True)
+            .first()
+        )
+        SeerInvestigationActionHandler._handle(invocation, config_id)
 
     @staticmethod
     def _handle(
@@ -298,7 +297,7 @@ class SeerMetricAlertActionHandler(ActionHandler):
             return
 
         extra.update(workflow_config_id=config_id, binding_id=binding_id)
-        admission = SeerMetricAlertActionHandler._admit(
+        admission = SeerInvestigationActionHandler._admit(
             group,
             event,
             config_id=config_id,
@@ -322,23 +321,6 @@ class SeerMetricAlertActionHandler(ActionHandler):
             outcome = "ignored"
             reason = admission.reason
         _record_trigger_outcome(outcome, extra, reason=reason, deduplicated=deduplicated)
-
-    @staticmethod
-    def accept(
-        group: Group,
-        event: GroupEvent,
-        *,
-        binding: SeerWorkflowTriggerBinding,
-        workflow_id: int,
-    ) -> AcceptedMetricBreach | RejectedMetricBreach | IgnoredMetricBreach:
-        return SeerMetricAlertActionHandler._admit(
-            group,
-            event,
-            config_id=binding.workflow_config_id,
-            action_id=binding.trigger_action_id,
-            workflow_id=workflow_id,
-            binding_id=binding.id,
-        )
 
     @staticmethod
     def _admit(
@@ -407,8 +389,8 @@ class SeerMetricAlertActionHandler(ActionHandler):
             return IgnoredMetricBreach("configuration_unavailable")
 
 
-@action_handler_registry.register(Action.Type.SEER_INVESTIGATION)
-class SeerInvestigationActionHandler(ActionHandler):
+@action_handler_registry.register(Action.Type.SEER_WORKFLOW)
+class SeerMetricAlertActionHandler(ActionHandler):
     group = ActionHandler.Group.OTHER
     required_features = (FeatureGate("organizations:seer-automations"),)
     config_schema = {"type": "object", "properties": {}, "additionalProperties": False}
@@ -422,12 +404,30 @@ class SeerInvestigationActionHandler(ActionHandler):
     @staticmethod
     @override
     def execute(invocation: ActionInvocation) -> None:
-        config_id = (
-            SeerWorkflowConfig.objects.filter(backing_workflow_id=invocation.workflow_id)
-            .values_list("id", flat=True)
-            .first()
+        binding = SeerWorkflowTriggerBinding.objects.get_or_none(trigger_action=invocation.action)
+        if binding is None:
+            SeerInvestigationActionHandler._handle(invocation, None)
+        else:
+            SeerInvestigationActionHandler._handle(
+                invocation, binding.workflow_config_id, binding_id=binding.id
+            )
+
+    @staticmethod
+    def accept(
+        group: Group,
+        event: GroupEvent,
+        *,
+        binding: SeerWorkflowTriggerBinding,
+        workflow_id: int,
+    ) -> AcceptedMetricBreach | RejectedMetricBreach | IgnoredMetricBreach:
+        return SeerInvestigationActionHandler._admit(
+            group,
+            event,
+            config_id=binding.workflow_config_id,
+            action_id=binding.trigger_action_id,
+            workflow_id=workflow_id,
+            binding_id=binding.id,
         )
-        SeerMetricAlertActionHandler._handle(invocation, config_id)
 
 
 def _record_trigger_outcome(
