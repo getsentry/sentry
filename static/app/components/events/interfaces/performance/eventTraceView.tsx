@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useState} from 'react';
 
-import {Flex} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import {ISSUE_DETAILS_LAZY_RENDER_OBSERVER_OPTIONS} from 'sentry/components/events/issueDetailsLazyRender';
@@ -21,6 +21,7 @@ import {
   TraceViewSkeleton,
 } from './agentRun/eventAgentRun';
 import {useEventAgentRun} from './agentRun/useEventAgentRun';
+import {TraceLinkedIssues} from './traceLinkedIssues';
 import {TracePreview, TracePreviewFullTraceButton} from './tracePreview';
 import {useTraceLinkedIssues} from './useTraceLinkedIssues';
 import {eventHasSyntheticTrace} from './utils';
@@ -92,8 +93,18 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
       />
     );
   } else {
-    content = <TracePreview event={event} organization={organization} source="issues" />;
+    content = (
+      <TracePreview
+        event={event}
+        organization={organization}
+        source="issues"
+        showLinkedIssues={!canHaveAgentRun}
+      />
+    );
   }
+
+  // The other issues don't change with the view, so they sit below it, outside the toggle.
+  const showLinkedIssuesBelow = canHaveAgentRun && isInView && !isLoading;
 
   return (
     <FoldSection
@@ -135,7 +146,14 @@ export function EventTraceView({group, event, organization}: EventTraceViewProps
         )
       }
     >
-      {content}
+      {showLinkedIssuesBelow ? (
+        <Stack gap="md">
+          {content}
+          <TraceLinkedIssues event={event} />
+        </Stack>
+      ) : (
+        content
+      )}
     </FoldSection>
   );
 }

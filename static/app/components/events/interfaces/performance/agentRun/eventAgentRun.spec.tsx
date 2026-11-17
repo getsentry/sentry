@@ -1,5 +1,4 @@
 import {EventFixture} from 'sentry-fixture/event';
-import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
@@ -199,52 +198,6 @@ describe('useEventAgentRun', () => {
 });
 
 describe('EventAgentActivity', () => {
-  beforeEach(() => {
-    MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/`,
-      body: [],
-    });
-  });
-
-  it("shows the trace's other issues below the steps", async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/users/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/issues/`,
-      body: [GroupFixture({id: '2', shortId: 'EXAMPLE-2'})],
-      headers: {'X-Hits': '1'},
-      match: [
-        MockApiClient.matchQuery({query: `trace:${traceId} !issue.id:${event.groupID}`}),
-      ],
-    });
-    const agentRun = getEventAgentRun(
-      makeTrace({errorInsideTool: true}),
-      errorEventId,
-      organization
-    );
-    if (agentRun.type !== 'inside') {
-      throw new Error('Expected the error to be inside an agent run');
-    }
-
-    render(
-      <EventAgentActivity
-        event={event}
-        failingNode={agentRun.failingNode}
-        nodes={agentRun.nodes}
-      />,
-      {organization}
-    );
-
-    const linkedIssues = await screen.findByText('1 other issue appears in this trace.');
-    expect(
-      screen.getByText('search_docs').compareDocumentPosition(linkedIssues) &
-        Node.DOCUMENT_POSITION_FOLLOWING
-    ).toBeTruthy();
-  });
-
   it('shows the run with the failing step', () => {
     const agentRun = getEventAgentRun(
       makeTrace({errorInsideTool: true}),

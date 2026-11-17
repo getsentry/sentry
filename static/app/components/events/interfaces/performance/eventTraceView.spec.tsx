@@ -218,14 +218,32 @@ describe('EventTraceView', () => {
       ],
     });
 
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/`,
+      body: [GroupFixture({id: '2', shortId: 'EXAMPLE-2'})],
+      headers: {'X-Hits': '1'},
+      match: [
+        MockApiClient.matchQuery({query: `trace:${traceId} !issue.id:${group.id}`}),
+      ],
+    });
+
     render(
       <EventTraceView group={group} event={event} organization={agentOrganization} />,
       {organization: agentOrganization}
     );
 
     expect(screen.getByTestId('trace-view-skeleton')).toBeInTheDocument();
-    expect(await screen.findByText('search_docs')).toBeInTheDocument();
+    const steps = await screen.findByText('search_docs');
     expect(screen.queryByTestId('trace-view-skeleton')).not.toBeInTheDocument();
+    // The trace's other issues sit below the view, outside the toggle.
+    const linkedIssues = screen.getByText('1 other issue appears in this trace.');
+    expect(
+      steps.compareDocumentPosition(linkedIssues) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
     expect(screen.getByRole('radio', {name: 'Agent Activity'})).toBeChecked();
     expect(screen.getByRole('button', {name: 'View Full Trace'})).toHaveAttribute(
       'href',
@@ -233,6 +251,7 @@ describe('EventTraceView', () => {
     );
 
     await userEvent.click(screen.getByRole('radio', {name: 'Waterfall'}));
+    expect(screen.getAllByText('1 other issue appears in this trace.')).toHaveLength(1);
     expect(screen.getByRole('button', {name: 'View Full Trace'})).not.toHaveAttribute(
       'href',
       expect.stringContaining('tab=ai-spans')
