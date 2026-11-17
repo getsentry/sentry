@@ -280,6 +280,9 @@ export function NativeFrame({
   const addressTooltip = getAddressTooltip();
   const functionName = getFunctionName();
   const status = getStatus();
+  // Some symbolicated frames are stored without a `package`; fall back to the
+  // matched debug image's binary name so the frame title still names it.
+  const packageName = frame.package ?? image?.code_file ?? image?.debug_file ?? undefined;
 
   return (
     <StackTraceFrame data-test-id="stack-trace-frame">
@@ -333,7 +336,7 @@ export function NativeFrame({
             )}
             <InfoText
               title={
-                frame.package ??
+                packageName ??
                 (isDartAsyncSuspensionFrame
                   ? t('Dart async operation')
                   : t('Go to images loaded'))
@@ -345,8 +348,8 @@ export function NativeFrame({
               variant="inherit"
             >
               <Container as="span" paddingRight="2xs">
-                {frame.package
-                  ? trimPackage(frame.package)
+                {packageName
+                  ? trimPackage(packageName)
                   : isDartAsyncSuspensionFrame
                     ? t('Dart async')
                     : `<${t('unknown')}>`}
