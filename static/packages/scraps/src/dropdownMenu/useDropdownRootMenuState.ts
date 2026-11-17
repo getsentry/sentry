@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {useState} from 'react';
 import type {RootMenuTriggerState} from '@react-stately/menu';
 import type {OverlayTriggerState} from '@react-stately/overlays';
 import type {Key} from '@react-types/shared';
@@ -31,35 +31,32 @@ export function useDropdownRootMenuState(
   }
 
   // `useOverlayTriggerState` returns a new object on every render, but its
-  // callbacks are stable. Depend on those, so the menu context only changes
-  // when the open state does.
+  // callbacks are stable. Read them individually, so the React Compiler only
+  // rebuilds the menu state when the open state changes.
   const {isOpen, setOpen, open, close, toggle} = overlayState;
   const closeParentMenu = parentMenuState?.close;
-  return useMemo<RootMenuTriggerState>(
-    () => ({
-      isOpen,
-      setOpen,
-      focusStrategy: 'first',
-      open: () => open(),
-      toggle: () => toggle(),
-      close: () => {
-        setExpandedKeysStack([]);
-        close();
-        closeParentMenu?.();
-      },
-      expandedKeysStack,
-      openSubmenu: (triggerKey, level) =>
-        setExpandedKeysStack(stack =>
-          // A submenu opens from an item of an open menu, so its level is at
-          // most the number of open submenus. Ignore anything deeper rather
-          // than leave a gap in the stack.
-          level > stack.length ? stack : [...stack.slice(0, level), triggerKey]
-        ),
-      closeSubmenu: (triggerKey, level) =>
-        setExpandedKeysStack(stack =>
-          stack[level] === triggerKey ? stack.slice(0, level) : stack
-        ),
-    }),
-    [isOpen, setOpen, open, toggle, close, closeParentMenu, expandedKeysStack]
-  );
+  return {
+    isOpen,
+    setOpen,
+    focusStrategy: 'first',
+    open: () => open(),
+    toggle: () => toggle(),
+    close: () => {
+      setExpandedKeysStack([]);
+      close();
+      closeParentMenu?.();
+    },
+    expandedKeysStack,
+    openSubmenu: (triggerKey, level) =>
+      setExpandedKeysStack(stack =>
+        // A submenu opens from an item of an open menu, so its level is at
+        // most the number of open submenus. Ignore anything deeper rather
+        // than leave a gap in the stack.
+        level > stack.length ? stack : [...stack.slice(0, level), triggerKey]
+      ),
+    closeSubmenu: (triggerKey, level) =>
+      setExpandedKeysStack(stack =>
+        stack[level] === triggerKey ? stack.slice(0, level) : stack
+      ),
+  };
 }

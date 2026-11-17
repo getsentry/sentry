@@ -1,4 +1,4 @@
-import {useCallback, useMemo, useState} from 'react';
+import {useState} from 'react';
 import type {RootMenuTriggerState, SubmenuTriggerState} from '@react-stately/menu';
 import type {FocusStrategy, Key} from '@react-types/shared';
 
@@ -27,40 +27,24 @@ export function useDropdownSubmenuState({
   const isOpen = expandedKeysStack[level] === triggerKey;
   const [focusStrategy, setFocusStrategy] = useState<FocusStrategy | null>(null);
 
-  const open = useCallback(
-    (strategy?: FocusStrategy | null) => {
-      setFocusStrategy(strategy ?? null);
-      openSubmenu(triggerKey, level);
-    },
-    [openSubmenu, triggerKey, level]
-  );
-  const close = useCallback(() => {
+  const open = (strategy?: FocusStrategy | null) => {
+    setFocusStrategy(strategy ?? null);
+    openSubmenu(triggerKey, level);
+  };
+  const close = () => {
     setFocusStrategy(null);
     closeSubmenu(triggerKey, level);
-  }, [closeSubmenu, triggerKey, level]);
-  const toggle = useCallback(
-    (strategy?: FocusStrategy | null) => {
-      if (isOpen) {
-        close();
-      } else {
-        open(strategy);
-      }
-    },
-    [isOpen, open, close]
-  );
+  };
 
-  return useMemo(
-    () => ({
-      focusStrategy,
-      isOpen,
-      open,
-      close,
-      closeAll,
-      submenuLevel: level,
-      // Unused, kept for parity with OverlayTriggerState.
-      setOpen: () => {},
-      toggle,
-    }),
-    [focusStrategy, isOpen, open, close, closeAll, level, toggle]
-  );
+  return {
+    focusStrategy,
+    isOpen,
+    open,
+    close,
+    closeAll,
+    submenuLevel: level,
+    // Unused, kept for parity with OverlayTriggerState.
+    setOpen: () => {},
+    toggle: strategy => (isOpen ? close() : open(strategy)),
+  };
 }
