@@ -6,6 +6,10 @@ from unittest.mock import ANY, MagicMock, Mock, call, patch
 
 from django.test import override_settings
 from django.utils import timezone
+from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_AUTOFIX_HEADLESS,
+    SEER_BILLING_FEATURE_AUTOFIX_WEB,
+)
 from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_seer_credits_pb2 import (
     CheckSeerCreditsResponse,
 )
@@ -46,11 +50,15 @@ from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.seer.credits import SEER_OPERATION_ESTIMATES, SeerFeature, SeerOperation
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.models.run import SeerRun
+from sentry.service_accounts.models import ServiceAccountToken
+from sentry.service_accounts.tokens import generate_token, stored_token_fields
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
@@ -1061,6 +1069,41 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 202, response.data
         assert mock_trigger_explorer.call_args.kwargs["user"] is None
 
+    @with_feature("organizations:service-accounts")
+    @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
+    def test_post_service_account_token_is_user_required(
+        self, mock_trigger_explorer: MagicMock
+    ) -> None:
+        group = self.create_group()
+        service_account = self.create_service_account(
+            organization=self.organization,
+            scope_list=["event:write", "org:read", "project:read"],
+            project_ids=[group.project_id],
+        )
+        token_str = generate_token(self.organization.slug, "https://test-region.sentry.io")
+        stored = stored_token_fields(token_str)
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            ServiceAccountToken.objects.create(
+                service_account=service_account,
+                organization_id=self.organization.id,
+                name="ci",
+                token_hashed=stored.token_hashed,
+                token_last_characters=stored.token_last_characters,
+                scope_list=["event:write", "org:read", "project:read"],
+                created_by=self.user,
+            )
+
+        response = self.client.post(
+            self._get_url(group.id),
+            data={"step": "root_cause"},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token_str}",
+        )
+
+        assert response.status_code == 403, response.data
+        assert response.data["detail"]["code"] == "user-required"
+        mock_trigger_explorer.assert_not_called()
+
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     def test_post_kickoff_returns_sentry_run_id(self, mock_trigger_explorer: MagicMock) -> None:
         group = self.create_group()
@@ -1259,13 +1302,16 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         response = self.client.post(
             self._get_url(group.id),
-            data={"step": "root_cause", "referrer": AutofixReferrer.WEB.value},
+            data={"step": "root_cause", "referrer": AutofixReferrer.AGENTIC_TRIAGE.value},
             format="json",
             headers={"user-agent": "sentry-mcp/0.35.0 (https://mcp.sentry.dev)"},
         )
 
         assert response.status_code == 202, response.data
-        assert mock_trigger_explorer.call_args.kwargs["referrer"] == AutofixReferrer.WEB
+        assert mock_trigger_explorer.call_args.kwargs["referrer"] == AutofixReferrer.AGENTIC_TRIAGE
+        assert mock_trigger_explorer.call_args.kwargs["billing_feature"] == (
+            SEER_BILLING_FEATURE_AUTOFIX_HEADLESS
+        )
 
     @patch("sentry.seer.endpoints.group_ai_autofix.trigger_autofix_agent")
     def test_post_seer_explorer_referrer_is_recognized(
@@ -1306,6 +1352,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             group=group,
             step=AutofixStep.ROOT_CAUSE,
             referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+            billing_feature=SEER_BILLING_FEATURE_AUTOFIX_WEB,
             stopping_point=AutofixStoppingPoint.CODE_CHANGES,
             run_id=None,
             user_context=None,
@@ -1343,6 +1390,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
             group=group,
             step=AutofixStep.SOLUTION,
             referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+            billing_feature=None,
             stopping_point=None,
             run_id=42,
             user_context=None,

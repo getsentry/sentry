@@ -21,8 +21,14 @@ from sentry.seer.autofix.prompt_redaction import AUTOFIX_PROMPT_PLACEHOLDER
 from sentry.seer.endpoints.organization_seer_agent_chat import SeerAgentChatSerializer
 from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunMirrorStatus, SeerRunType
+from sentry.service_accounts.models import ServiceAccountToken
+from sentry.service_accounts.tokens import generate_token as generate_service_account_token
+from sentry.service_accounts.tokens import stored_token_fields
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import json
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
@@ -200,14 +206,8 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
         assert response.status_code == 400
 
-    @with_feature("organizations:seer-explorer-code-mode-tools")
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
-    def test_code_mode_feature_selects_only(self, mock_client_class: MagicMock) -> None:
-        """The flag means Code Mode instead of the classic tools, not alongside them.
-
-        Running both gives the agent two ways to do everything and it mixes them, so the
-        surface being dogfooded is never the one that ships.
-        """
+    def test_selects_code_mode_only(self, mock_client_class: MagicMock) -> None:
         mock_client = MagicMock()
         mock_client.start_run.return_value = MagicMock(seer_run_state_id=456, uuid=uuid.uuid4())
         mock_client_class.return_value = mock_client
@@ -217,10 +217,8 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         assert response.status_code == 200
         assert mock_client_class.call_args.kwargs["enable_code_mode_tools"] == "only"
 
-    @with_feature("organizations:seer-explorer-code-mode-tools")
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
-    def test_frontend_override_still_selects_the_mode(self, mock_client_class: MagicMock) -> None:
-        """The override is how the two surfaces get compared, so it outranks the flag."""
+    def test_frontend_override_turns_code_mode_off(self, mock_client_class: MagicMock) -> None:
         mock_client = MagicMock()
         mock_client.start_run.return_value = MagicMock(seer_run_state_id=456, uuid=uuid.uuid4())
         mock_client_class.return_value = mock_client
@@ -228,17 +226,6 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         response = self.client.post(
             self.url, {"query": "hi", "override_code_mode_enable": "off"}, format="json"
         )
-
-        assert response.status_code == 200
-        assert mock_client_class.call_args.kwargs["enable_code_mode_tools"] == "off"
-
-    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
-    def test_no_code_mode_feature_stays_off(self, mock_client_class: MagicMock) -> None:
-        mock_client = MagicMock()
-        mock_client.start_run.return_value = MagicMock(seer_run_state_id=456, uuid=uuid.uuid4())
-        mock_client_class.return_value = mock_client
-
-        response = self.client.post(self.url, {"query": "hi"}, format="json")
 
         assert response.status_code == 200
         assert mock_client_class.call_args.kwargs["enable_code_mode_tools"] == "off"
@@ -359,7 +346,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             enable_bash_mode=False,
             enable_coding=False,
             enable_write_pull_request=False,
-            enable_code_mode_tools="off",
+            enable_code_mode_tools="only",
             enable_investigation_tools=True,
             enable_inbox_tools=True,
             enable_scm_connect_prompt=False,
@@ -374,8 +361,39 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             sent_at=None,
             ui_tools=None,
             override_ce_enable=True,
+            metadata=None,
             request=ANY,
         )
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_post_new_conversation_records_referrer(self, mock_client_class: MagicMock) -> None:
+        mock_client = MagicMock()
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=456, uuid=uuid.uuid4())
+        mock_client_class.return_value = mock_client
+
+        response = self.client.post(
+            self.url, {"query": "dsn", "referrer": "autofix.ask_seer"}, format="json"
+        )
+
+        assert response.status_code == 200
+        assert mock_client.start_run.call_args.kwargs["metadata"] == {
+            "referrer": "autofix.ask_seer"
+        }
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_post_new_conversation_drops_malformed_referrer(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        mock_client = MagicMock()
+        mock_client.start_run.return_value = MagicMock(seer_run_state_id=456, uuid=uuid.uuid4())
+        mock_client_class.return_value = mock_client
+
+        response = self.client.post(
+            self.url, {"query": "dsn", "referrer": "Command Palette!"}, format="json"
+        )
+
+        assert response.status_code == 200
+        assert mock_client.start_run.call_args.kwargs["metadata"] is None
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_post_forwards_page_location(self, mock_client_class: MagicMock) -> None:
@@ -530,7 +548,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             enable_bash_mode=False,
             enable_coding=False,
             enable_write_pull_request=False,
-            enable_code_mode_tools="off",
+            enable_code_mode_tools="only",
             enable_investigation_tools=True,
             enable_inbox_tools=True,
             enable_scm_connect_prompt=False,
@@ -815,6 +833,40 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
         assert response.status_code == 403
         assert response.data == {"detail": "A user account is required to continue a conversation."}
+        mock_client_class.assert_not_called()
+
+    @with_feature("organizations:service-accounts")
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_post_with_service_account_token_is_user_required(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        service_account = self.create_service_account(
+            organization=self.organization, scope_list=["org:read"]
+        )
+        token_str = generate_service_account_token(
+            self.organization.slug, "https://test-region.sentry.io"
+        )
+        stored = stored_token_fields(token_str)
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            ServiceAccountToken.objects.create(
+                service_account=service_account,
+                organization_id=self.organization.id,
+                name="ci",
+                token_hashed=stored.token_hashed,
+                token_last_characters=stored.token_last_characters,
+                scope_list=["org:read"],
+                created_by=self.user,
+            )
+
+        response = self.client.post(
+            self.url,
+            {"query": "What is this error about?"},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token_str}",
+        )
+
+        assert response.status_code == 403, response.data
+        assert response.data["detail"]["code"] == "user-required"
         mock_client_class.assert_not_called()
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")

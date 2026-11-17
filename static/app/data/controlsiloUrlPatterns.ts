@@ -85,6 +85,7 @@ export const controlsiloUrlPatterns: RegExp[] = [
   new RegExp('^service-worker\\.js$'),
   new RegExp('^agent-handoff\\.md$'),
   new RegExp('^agent-handoff/$'),
+  new RegExp('^api/0/agent-handoff/$'),
   new RegExp('^get-cli/$'),
   new RegExp('^get-cli/[^/]+/[^/]+/?$'),
   new RegExp('^api/0/organizations/[^/]+/data-secrecy/$'),

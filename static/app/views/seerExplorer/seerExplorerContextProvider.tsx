@@ -177,6 +177,7 @@ export function SeerExplorerContextProvider({children}: {children: ReactNode}) {
       removeRunIdParam();
       // An unanswered "Ask Seer" question doesn't outlive the panel it was shown in.
       dispatch({type: 'set chat prompt', payload: null});
+      dispatch({type: 'set pending restart', payload: null});
     }
   }, [isOpen, isPoppedOut, removeRunIdParam, dispatch]);
 

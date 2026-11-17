@@ -6,7 +6,7 @@ import {IconSeer} from '@sentry/icons/seer';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, ButtonBar} from '@sentry/scraps/button';
-import {Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {
   AutofixOutOfCreditsAlert,
@@ -115,24 +115,30 @@ export function SeerDrawerContent({
         )}
       {singleRun && (
         <NextStepWrap isSticky={stickyNextStep}>
-          <ButtonBar>
-            <Button
-              variant="primary"
-              icon={<IconSeer />}
-              onClick={() => singleRunId !== undefined && openSingleRunChat(singleRunId)}
-              disabled={isSingleRunChatOpen}
-              tooltipProps={{title: isSingleRunChatOpen ? t('Chat is open') : undefined}}
-            >
-              {t('Open Autofix')}
-            </Button>
-            {singleRunHasRootCause && singleRunId !== undefined && (
-              <SingleRunHandoffDropdown
-                autofix={autofix}
-                group={group}
-                runId={singleRunId}
-              />
-            )}
-          </ButtonBar>
+          <Flex>
+            <ButtonBar>
+              <Button
+                variant="primary"
+                icon={<IconSeer />}
+                onClick={() =>
+                  singleRunId !== undefined && openSingleRunChat(singleRunId)
+                }
+                disabled={isSingleRunChatOpen}
+                tooltipProps={{
+                  title: isSingleRunChatOpen ? t('Chat is open') : undefined,
+                }}
+              >
+                {t('Open Autofix')}
+              </Button>
+              {singleRunHasRootCause && singleRunId !== undefined && (
+                <SingleRunHandoffDropdown
+                  autofix={autofix}
+                  group={group}
+                  runId={singleRunId}
+                />
+              )}
+            </ButtonBar>
+          </Flex>
         </NextStepWrap>
       )}
       {autofix.codingAgentErrors.map(({id, message}) => (

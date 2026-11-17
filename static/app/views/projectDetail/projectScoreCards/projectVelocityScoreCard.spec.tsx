@@ -90,7 +90,7 @@ describe('ProjectDetail > ProjectVelocity', () => {
 
     render(
       <ProjectVelocityScoreCard
-        organization={{...organization, features: ['performance-view']}}
+        organization={organization}
         selection={selection}
         isProjectStabilized
       />

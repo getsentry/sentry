@@ -28,7 +28,7 @@ import DetectorNewSettings from './detectorNewSettings';
 
 describe('DetectorEdit', () => {
   const organization = OrganizationFixture({
-    features: ['visibility-explore-view', 'performance-view'],
+    features: ['visibility-explore-view'],
   });
   const organizationWithMonitorDuplication = OrganizationFixture({
     ...organization,
@@ -1588,7 +1588,7 @@ describe('DetectorEdit', () => {
   describe('Metric Detector with Metrics dataset', () => {
     it('shows metrics dataset option', async () => {
       const metricsOrganization = OrganizationFixture({
-        features: ['visibility-explore-view', 'performance-view', 'tracemetrics-enabled'],
+        features: ['visibility-explore-view', 'tracemetrics-enabled'],
       });
 
       render(<DetectorNewSettings />, {
@@ -1618,7 +1618,7 @@ describe('DetectorEdit', () => {
 
     it('can submit a new metric detector with metrics dataset from URL params', async () => {
       const metricsOrganization = OrganizationFixture({
-        features: ['visibility-explore-view', 'performance-view', 'tracemetrics-enabled'],
+        features: ['visibility-explore-view', 'tracemetrics-enabled'],
       });
 
       MockApiClient.addMockResponse({
