@@ -29,8 +29,9 @@ SUPABASE_TOKEN_URL = f"{SUPABASE_API_URL}/oauth/token"
 SUPABASE_REVOKE_URL = f"{SUPABASE_API_URL}/oauth/revoke"
 SUPABASE_ORGANIZATIONS_URL = f"{SUPABASE_API_URL}/organizations"
 SUPABASE_MCP_RESOURCE = "https://mcp.supabase.com/mcp"
-# Account tools discover projects; debugging tools read logs and advisors. Do not enable
-# database or notebooks tools, which can read application data even in read-only mode.
+# Account tools discover projects; debugging tools read logs and advisors. This filter
+# limits exposed MCP tools, not the OAuth grant: database:read also permits read-only SQL
+# through the Management API (https://supabase.com/docs/reference/api/v1-read-only-query).
 SUPABASE_MCP_URL = f"{SUPABASE_MCP_RESOURCE}?read_only=true&features=account,debugging"
 SUPABASE_SCOPES = ("organizations:read", "projects:read", "analytics:read", "database:read")
 
@@ -289,32 +290,36 @@ class SupabaseClient:
             integration = Integration.objects.filter(id=self.integration.id).first()
             if integration is None:
                 return
-            refresh_token = integration.metadata.get("refresh_token")
-            if refresh_token:
-                client_id, client_secret = _oauth_credentials()
-                try:
-                    response = safe_urlopen(
-                        SUPABASE_REVOKE_URL,
-                        method="POST",
-                        json={
-                            "client_id": client_id,
-                            "client_secret": client_secret,
-                            "refresh_token": refresh_token,
-                        },
-                        timeout=10,
-                    )
-                except (RestrictedIPAddress, RequestException):
-                    raise IntegrationConfigurationError(SUPABASE_UNREACHABLE_ERROR) from None
-                if response.status_code not in (200, 204):
-                    raise IntegrationConfigurationError(SUPABASE_RESPONSE_ERROR)
-            Integration.objects.filter(
-                id=integration.id, date_updated=integration.date_updated
-            ).update(
-                metadata={
-                    key: value
-                    for key, value in integration.metadata.items()
-                    if key not in {"access_token", "refresh_token", "expires_at"}
-                },
-                status=ObjectStatus.DISABLED,
-                date_updated=timezone.now(),
-            )
+            try:
+                refresh_token = integration.metadata.get("refresh_token")
+                if refresh_token:
+                    client_id, client_secret = _oauth_credentials()
+                    try:
+                        response = safe_urlopen(
+                            SUPABASE_REVOKE_URL,
+                            method="POST",
+                            json={
+                                "client_id": client_id,
+                                "client_secret": client_secret,
+                                "refresh_token": refresh_token,
+                            },
+                            timeout=10,
+                        )
+                    except (RestrictedIPAddress, RequestException):
+                        raise IntegrationConfigurationError(SUPABASE_UNREACHABLE_ERROR) from None
+                    if response.status_code not in (200, 204):
+                        raise IntegrationConfigurationError(SUPABASE_RESPONSE_ERROR)
+            finally:
+                # Uninstall does not retry failed revocation. Always discard local credentials,
+                # but preserve a grant replaced by concurrent reauthorization.
+                Integration.objects.filter(
+                    id=integration.id, date_updated=integration.date_updated
+                ).update(
+                    metadata={
+                        key: value
+                        for key, value in integration.metadata.items()
+                        if key not in {"access_token", "refresh_token", "expires_at"}
+                    },
+                    status=ObjectStatus.DISABLED,
+                    date_updated=timezone.now(),
+                )
