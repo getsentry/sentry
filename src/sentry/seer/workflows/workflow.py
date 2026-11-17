@@ -160,7 +160,7 @@ class SeerWorkflow:
         extras = extras or SeerWorkflowConfigExtras()
         definition = get_definition(strategy)
         definition.validate_settings(extras)
-        validate_service_account_grant(organization_id, service_account_grant)
+        scopes = validate_service_account_grant(organization_id, service_account_grant)
 
         database = router.db_for_write(SeerWorkflowConfig)
         try:
@@ -191,7 +191,7 @@ class SeerWorkflow:
                     owner_kind=ServiceAccountOwnerKind.SEER_WORKFLOW_CONFIG,
                     owner_id=config.id,
                     name=_service_account_name(config.id, extras.name),
-                    scope_list=service_account_grant.scopes,
+                    scope_list=scopes,
                     project_ids=service_account_grant.project_ids,
                     all_projects=service_account_grant.all_projects,
                     created_by_id=extras.created_by,

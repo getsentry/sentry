@@ -21,6 +21,7 @@ from uuid import uuid4
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.hybridcloud.rpc.service import RpcValidationException
+from sentry.service_accounts.models import GrantableScope
 from sentry.service_accounts.services.service_account import service_account_service
 
 logger = logging.getLogger(__name__)
@@ -69,7 +70,7 @@ def service_account_create_outbox(
     owner_kind: ServiceAccountOwnerKind,
     owner_id: int,
     name: str,
-    scope_list: Sequence[str],
+    scope_list: Sequence[GrantableScope],
     project_ids: Sequence[int] = (),
     all_projects: bool = False,
     created_by_id: int | None = None,
@@ -137,7 +138,7 @@ def service_account_grant_update_outbox(
     *,
     organization_id: int,
     service_account_id: int,
-    scope_list: Sequence[str],
+    scope_list: Sequence[GrantableScope],
     project_ids: Sequence[int] = (),
     all_projects: bool = False,
 ) -> CellOutbox:

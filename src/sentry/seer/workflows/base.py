@@ -25,10 +25,11 @@ from sentry.seer.models.workflow import (
 )
 from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
 from sentry.service_accounts.models import (
+    GrantableScope,
     InvalidScopeError,
     ServiceAccountProjectReplica,
     ServiceAccountReplica,
-    validate_grantable_scopes,
+    parse_grantable_scopes,
 )
 from sentry.service_accounts.outbox import service_account_grant_update_outbox
 from sentry.utils import json
@@ -87,11 +88,13 @@ class SeerServiceAccountGrant:
         )
 
 
-def validate_service_account_grant(organization_id: int, grant: SeerServiceAccountGrant) -> None:
+def validate_service_account_grant(
+    organization_id: int, grant: SeerServiceAccountGrant
+) -> list[GrantableScope]:
     if not grant.all_projects:
         validate_project_ids(organization_id, set(grant.project_ids))
     try:
-        validate_grantable_scopes(grant.scopes)
+        return parse_grantable_scopes(grant.scopes)
     except InvalidScopeError as e:
         raise WorkflowUpdateError(" ".join(e.messages)) from e
 
@@ -350,14 +353,14 @@ class ConfigUpdate:
         Returns whether the grant differs from the replicated one. Callers must authorize
         the grant and audit a change.
         """
-        validate_service_account_grant(self.config.organization_id, grant)
+        scopes = validate_service_account_grant(self.config.organization_id, grant)
         replica = self._service_account_replica()
         # Sent even when the replica already matches: it can lag control, and applying the
         # same grant twice changes nothing.
         service_account_grant_update_outbox(
             organization_id=self.config.organization_id,
             service_account_id=replica.service_account_id,
-            scope_list=grant.scopes,
+            scope_list=scopes,
             project_ids=grant.project_ids,
             all_projects=grant.all_projects,
         ).save()
