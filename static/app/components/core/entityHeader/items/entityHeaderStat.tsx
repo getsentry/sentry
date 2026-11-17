@@ -5,12 +5,12 @@ import {ROW_HEIGHT, STAT_VALUE_HEIGHT} from '@sentry/scraps/entityHeader/constan
 import {InfoText} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 import type {LinkDestination} from '@sentry/scraps/link';
-import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {Placeholder} from 'sentry/components/placeholder';
+
+import {EntityHeaderTextLink} from './entityHeaderLink';
 
 /**
  * Required rather than optional, so a stat with nothing to show is written on
@@ -179,33 +179,14 @@ function StatPart({
     // Named by its own text. The other half is read in the same list item,
     // which is context enough for the link's purpose.
     return (
-      <Text {...styles} variant="accent">
-        {styleProps => {
-          const link =
-            behavior.externalHref === undefined ? (
-              <Link to={behavior.to} onClick={behavior.onClick} {...styleProps}>
-                {children}
-              </Link>
-            ) : (
-              <ExternalLink
-                href={behavior.externalHref}
-                onClick={behavior.onClick}
-                {...styleProps}
-              >
-                {children}
-              </ExternalLink>
-            );
-          // The tooltip attaches to the link rather than wrapping it in
-          // InfoText, which would put a second tab stop inside the anchor.
-          return behavior.tooltip ? (
-            <Tooltip title={behavior.tooltip} skipWrapper showUnderline>
-              {link}
-            </Tooltip>
-          ) : (
-            link
-          );
-        }}
-      </Text>
+      <EntityHeaderTextLink
+        {...styles}
+        destination={behavior}
+        onClick={behavior.onClick}
+        tooltip={behavior.tooltip}
+      >
+        {children}
+      </EntityHeaderTextLink>
     );
   }
 

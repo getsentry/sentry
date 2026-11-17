@@ -8,11 +8,11 @@ import {METADATA_TEXT_HEIGHT} from '@sentry/scraps/entityHeader/constants';
 import {InfoText} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 import type {LinkDestination} from '@sentry/scraps/link';
-import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Placeholder} from 'sentry/components/placeholder';
+
+import {EntityHeaderTextLink} from './entityHeaderLink';
 
 const TEXT_STYLES = {
   size: 'md',
@@ -94,31 +94,14 @@ function MetadataValue(props: EntityHeaderMetadataItemProps) {
 
   if (props.type === 'link') {
     return (
-      <Text {...TEXT_STYLES} variant="accent">
-        {textProps => {
-          const link =
-            props.externalHref === undefined ? (
-              <Link to={props.to} aria-label={`${label} ${props.value}`} {...textProps}>
-                {props.value}
-              </Link>
-            ) : (
-              <ExternalLink
-                href={props.externalHref}
-                aria-label={`${label} ${props.value}`}
-                {...textProps}
-              >
-                {props.value}
-              </ExternalLink>
-            );
-          return tooltip ? (
-            <Tooltip title={tooltip} skipWrapper showUnderline>
-              {link}
-            </Tooltip>
-          ) : (
-            link
-          );
-        }}
-      </Text>
+      <EntityHeaderTextLink
+        {...TEXT_STYLES}
+        destination={props}
+        aria-label={`${label} ${props.value}`}
+        tooltip={tooltip}
+      >
+        {props.value}
+      </EntityHeaderTextLink>
     );
   }
 
