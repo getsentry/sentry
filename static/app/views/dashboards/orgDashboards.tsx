@@ -11,7 +11,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
@@ -155,11 +154,10 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
     // a flicker from stale data on refetch
     return () => {
       queryClient.removeQueries({
-        queryKey: [
-          getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
-            path: {organizationIdOrSlug: organization.slug, dashboardId},
-          }),
-        ],
+        queryKey: apiOptions.as<unknown>()(
+          '/organizations/$organizationIdOrSlug/dashboards/$dashboardId/',
+          {path: {organizationIdOrSlug: organization.slug, dashboardId}, staleTime: 0}
+        ).queryKey,
       });
     };
   }, [dashboardId, organization.slug, queryClient]);

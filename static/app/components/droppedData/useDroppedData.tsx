@@ -4,7 +4,6 @@ import moment from 'moment-timezone';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
@@ -30,11 +29,10 @@ interface DroppedEventsResponse {
 }
 
 export function makeDroppedDataQueryKeyPrefix(organizationSlug: string) {
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/events-dropped/', {
-      path: {organizationIdOrSlug: organizationSlug},
-    }),
-  ] as const;
+  return apiOptions.as<unknown>()(
+    '/organizations/$organizationIdOrSlug/events-dropped/',
+    {path: {organizationIdOrSlug: organizationSlug}, staleTime: 0}
+  ).queryKey;
 }
 
 export interface UseDroppedDataParams {

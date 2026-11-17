@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 /**
@@ -28,24 +28,37 @@ export function useRefreshAutofixProgressQueries(groupId: string) {
   return useCallback(() => {
     const path = {organizationIdOrSlug: organization.slug};
 
-    const urls = [
+    const queryKeys = [
       // The inbox sections, bucketed and sorted on `issue.progress:`, which each
       // completed step advances. Not the legacy issue stream — that reads
       // through GroupStore and IssueListCacheStore, which this cannot reach.
-      getApiUrl('/organizations/$organizationIdOrSlug/issues/', {path}),
+      apiOptions.as<unknown>()('/organizations/$organizationIdOrSlug/issues/', {
+        path,
+        staleTime: 0,
+      }).queryKey,
       // Counts on the inbox's my / my teams / all tabs.
-      getApiUrl('/organizations/$organizationIdOrSlug/issues-count/', {path}),
+      apiOptions.as<unknown>()('/organizations/$organizationIdOrSlug/issues-count/', {
+        path,
+        staleTime: 0,
+      }).queryKey,
       // Pull request badge on the inbox row, filled in once a PR is opened.
-      getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/pull-requests/', {
-        path: {...path, issueId: groupId},
-      }),
+      apiOptions.as<unknown>()(
+        '/organizations/$organizationIdOrSlug/issues/$issueId/pull-requests/',
+        {path: {...path, issueId: groupId}, staleTime: 0}
+      ).queryKey,
       // Seer workflows overview cards, including the issue stats and project
       // config expands that never poll.
-      getApiUrl('/organizations/$organizationIdOrSlug/seer/autofix-overview/', {path}),
+      apiOptions.as<unknown>()(
+        '/organizations/$organizationIdOrSlug/seer/autofix-overview/',
+        {
+          path,
+          staleTime: 0,
+        }
+      ).queryKey,
     ];
 
-    for (const url of urls) {
-      queryClient.invalidateQueries({queryKey: [url]});
+    for (const queryKey of queryKeys) {
+      queryClient.invalidateQueries({queryKey});
     }
   }, [groupId, organization.slug, queryClient]);
 }

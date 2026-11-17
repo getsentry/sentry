@@ -1,8 +1,4 @@
-import {
-  useQuery,
-  type QueryStatus,
-  type QueryFunctionContext,
-} from '@tanstack/react-query';
+import {useQuery, type QueryClient, type QueryStatus} from '@tanstack/react-query';
 import {createLoader} from 'nuqs';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
@@ -10,8 +6,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {apiFetch} from 'sentry/utils/api/apiFetch';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useDefaultMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -27,6 +22,8 @@ export type TraceMetaTrace = {
 type UseTraceMetaOptions = TraceMetaTrace | TraceMetaTrace[];
 
 const loadTraceMetaQueryParams = createLoader(traceDateTimeParsers);
+
+const TRACE_META_STALE_TIME = 1000 * 60 * 10;
 
 type TraceMetaQueryParams =
   | {
@@ -77,10 +74,10 @@ function mergeCountMap(acc: Record<string, number>, value: Record<string, number
 }
 
 async function fetchTraceMetaInBatches(
+  queryClient: QueryClient,
   organization: Organization,
   traces: TraceMetaTrace[],
   normalizedParams: any,
-  fetchContext: QueryFunctionContext,
   filters: Partial<PageFilters> = {},
   statsPeriodOverride?: string
 ) {
@@ -100,34 +97,29 @@ async function fetchTraceMetaInBatches(
   while (pendingTraces.length > 0) {
     const batch = pendingTraces.splice(0, 3);
     const results = await Promise.allSettled<ResponseEAPTraceMeta>(
-      batch.map(trace => {
-        const url = getApiUrl(
-          '/organizations/$organizationIdOrSlug/trace-meta/$traceId/',
-          {
-            path: {
-              organizationIdOrSlug: organization.slug,
-              traceId: trace.traceSlug,
-            },
-          }
-        );
-
-        return apiFetch<ResponseEAPTraceMeta>({
-          ...fetchContext,
-          queryKey: [
-            url,
-            {
-              method: 'GET',
-              data: getMetaQueryParams(
-                trace,
-                normalizedParams,
-                filters,
-                statsPeriodOverride
-              ),
-            },
-            {infinite: false},
-          ],
-        }).then(response => response.json);
-      })
+      batch.map(trace =>
+        queryClient
+          .fetchQuery(
+            apiOptions.as<ResponseEAPTraceMeta>()(
+              '/organizations/$organizationIdOrSlug/trace-meta/$traceId/',
+              {
+                path: {
+                  organizationIdOrSlug: organization.slug,
+                  traceId: trace.traceSlug,
+                },
+                method: 'GET',
+                data: getMetaQueryParams(
+                  trace,
+                  normalizedParams,
+                  filters,
+                  statsPeriodOverride
+                ),
+                staleTime: TRACE_META_STALE_TIME,
+              }
+            )
+          )
+          .then(response => response.json)
+      )
     );
 
     results.reduce((acc, result) => {
@@ -183,12 +175,12 @@ export function useTraceMeta(
   // eslint-disable-next-line @tanstack/query/exhaustive-deps
   const {data, isLoading, status} = useQuery({
     queryKey: ['traceData', traces.map(trace => trace.traceSlug), disableUrlSync],
-    queryFn: async context => {
+    queryFn: async ({client}) => {
       const result = await fetchTraceMetaInBatches(
+        client,
         organization,
         traces,
         normalizedParams,
-        context,
         filters.selection
       );
 
@@ -201,10 +193,10 @@ export function useTraceMeta(
         maxPickableDays > defaultStatsDays
       ) {
         return fetchTraceMetaInBatches(
+          client,
           organization,
           traces,
           normalizedParams,
-          context,
           filters.selection,
           `${maxPickableDays}d`
         );
@@ -212,7 +204,7 @@ export function useTraceMeta(
 
       return result;
     },
-    staleTime: 1000 * 60 * 10,
+    staleTime: TRACE_META_STALE_TIME,
     enabled: traces.length > 0,
   });
 

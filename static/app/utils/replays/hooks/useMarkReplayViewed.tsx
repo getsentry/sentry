@@ -1,5 +1,6 @@
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -27,17 +28,19 @@ export function useMarkReplayViewed() {
       return fetchMutation({method: 'POST', url});
     },
     onSuccess(_data, {projectSlug, replayId}) {
-      const url = getApiUrl(
-        '/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/$replayId/viewed-by/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: projectSlug,
-            replayId,
-          },
-        }
-      );
-      queryClient.refetchQueries({queryKey: [url]});
+      queryClient.refetchQueries({
+        queryKey: apiOptions.as<unknown>()(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/$replayId/viewed-by/',
+          {
+            path: {
+              organizationIdOrSlug: organization.slug,
+              projectIdOrSlug: projectSlug,
+              replayId,
+            },
+            staleTime: 0,
+          }
+        ).queryKey,
+      });
     },
     retry: false,
   });

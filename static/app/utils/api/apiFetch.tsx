@@ -46,16 +46,16 @@ export async function apiFetch<TQueryFnData = unknown>({
 }: {
   queryKey: ApiQueryKey;
 }): Promise<ApiResponse<TQueryFnData>> {
-  const [url, options] = queryKey;
+  const {fullUrl, options} = queryKey[1];
 
-  const [json, , response] = await QUERY_API_CLIENT.requestPromise(url, {
+  const [json, , response] = await QUERY_API_CLIENT.requestPromise(fullUrl, {
     includeAllArgs: true,
-    allowAuthError: options?.allowAuthError,
-    host: options?.host,
-    method: options?.method ?? 'GET',
-    data: options?.data,
-    query: options?.query,
-    headers: options?.headers,
+    allowAuthError: options.allowAuthError,
+    host: options.host,
+    method: options.method ?? 'GET',
+    data: options.data,
+    query: options.query,
+    headers: options.headers,
   });
 
   return {
@@ -72,19 +72,19 @@ export async function apiFetchInfinite<TQueryFnData = unknown>({
   pageParam: null | undefined | ParsedHeader;
   queryKey: InfiniteApiQueryKey;
 }): Promise<ApiResponse<TQueryFnData>> {
-  const [url, options] = queryKey;
+  const {fullUrl, options} = queryKey[1];
 
-  const [json, , response] = await QUERY_API_CLIENT.requestPromise(url, {
+  const [json, , response] = await QUERY_API_CLIENT.requestPromise(fullUrl, {
     includeAllArgs: true,
-    allowAuthError: options?.allowAuthError,
-    host: options?.host,
-    method: options?.method ?? 'GET',
-    data: options?.data,
+    allowAuthError: options.allowAuthError,
+    host: options.host,
+    method: options.method ?? 'GET',
+    data: options.data,
     query: {
-      ...options?.query,
-      cursor: pageParam?.cursor ?? options?.query?.cursor,
+      ...options.query,
+      cursor: pageParam?.cursor ?? options.query?.cursor,
     },
-    headers: options?.headers,
+    headers: options.headers,
   });
 
   return {

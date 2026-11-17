@@ -12,7 +12,8 @@ import {getWorkflowEngineResponseErrorMessage} from 'sentry/components/workflowE
 import {t, tct, tn} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {PageFilters} from 'sentry/types/core';
-import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {isApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {defined} from 'sentry/utils/defined';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {capitalize} from 'sentry/utils/string/capitalize';
@@ -212,8 +213,10 @@ export function invalidateIssueQueries({
   if (itemIds !== undefined) {
     for (const itemId of itemIds) {
       queryClient.invalidateQueries({
-        queryKey: [`/organizations/${organizationSlug}/issues/${itemId}/`],
-        exact: false,
+        queryKey: apiOptions.as<unknown>()(
+          '/organizations/$organizationIdOrSlug/issues/$issueId/',
+          {path: {organizationIdOrSlug: organizationSlug, issueId: itemId}, staleTime: 0}
+        ).queryKey,
       });
     }
     return;
@@ -221,11 +224,11 @@ export function invalidateIssueQueries({
 
   queryClient.invalidateQueries({
     predicate: apiQuery => {
-      const queryKey = safeParseQueryKey(apiQuery.queryKey);
-      if (!queryKey) {
-        return false;
-      }
-      return queryKey.url.startsWith(`/organizations/${organizationSlug}/issues/`);
+      const {queryKey} = apiQuery;
+      return (
+        isApiQueryKey(queryKey) &&
+        queryKey[1].fullUrl.startsWith(`/organizations/${organizationSlug}/issues/`)
+      );
     },
   });
 }

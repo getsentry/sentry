@@ -3,7 +3,10 @@ import type {QueryClient} from '@tanstack/react-query';
 import {useInfiniteQuery, useQueryClient} from '@tanstack/react-query';
 
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
-import {parseQueryKey, type QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
+import {
+  createApiQueryKey,
+  type QueryKeyEndpointOptions,
+} from 'sentry/utils/api/apiQueryKey';
 import {defined} from 'sentry/utils/defined';
 import {type EventsMetaType} from 'sentry/utils/discover/eventView';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
@@ -120,7 +123,8 @@ export function useInfiniteLogsQuery({
   const queryResult = useInfiniteQuery({
     queryKey: queryKeyWithInfinite,
     queryFn: async ({pageParam, queryKey, client, signal, meta}) => {
-      const {url, options: baseOptions} = parseQueryKey(queryKey);
+      const {infinite: _infinite, ...pageKeyParams} = queryKey[1];
+      const baseOptions = pageKeyParams.options;
 
       // Build a v2 (non-infinite) query key for apiFetch — we drive pagination via
       // the query body, not via Link cursors, so we don't need apiFetchInfinite.
@@ -133,35 +137,33 @@ export function useInfiniteLogsQuery({
       async function fetchPage(param: LogPageParam) {
         let response = await apiFetch<EventsLogsResult>({
           ...fetchContext,
-          queryKey: [
-            url,
-            {
+          queryKey: createApiQueryKey({
+            ...pageKeyParams,
+            options: {
               ...baseOptions,
-              query: getParamBasedQuery(baseOptions?.query, param),
+              query: getParamBasedQuery(baseOptions.query, param),
             },
-            {infinite: false},
-          ],
+          }),
         });
 
         if (
           !response.json?.data?.length && // no matches found
           response.json?.meta?.dataScanned === 'partial' && // partial scan performed
-          !baseOptions?.data?.highFidelity // not high fidelity mode
+          !baseOptions.data?.highFidelity // not high fidelity mode
         ) {
           const retryOptions: QueryKeyEndpointOptions = {
             ...baseOptions,
-            query: {...baseOptions?.query, sampling: SAMPLING_MODE.HIGH_ACCURACY},
+            query: {...baseOptions.query, sampling: SAMPLING_MODE.HIGH_ACCURACY},
           };
           response = await apiFetch<EventsLogsResult>({
             ...fetchContext,
-            queryKey: [
-              url,
-              {
+            queryKey: createApiQueryKey({
+              ...pageKeyParams,
+              options: {
                 ...retryOptions,
                 query: getParamBasedQuery(retryOptions.query, param),
               },
-              {infinite: false},
-            ],
+            }),
           });
         }
 

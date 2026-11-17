@@ -4,6 +4,7 @@ import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import * as Storybook from 'sentry/stories';
 import type {Event} from 'sentry/types/event';
 import type {Group, GroupOpenPeriod} from 'sentry/types/group';
+import {isApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -69,7 +70,8 @@ class FixtureQueryClient extends QueryClient {
 
   override defaultQueryOptions: QueryClient['defaultQueryOptions'] = options => {
     const defaulted = super.defaultQueryOptions(options);
-    const url = String(defaulted.queryKey[0]);
+    const {queryKey} = defaulted;
+    const url = isApiQueryKey(queryKey) ? queryKey[1].fullUrl : '';
     const queryFn = () => Promise.resolve({json: this.respond(url), headers: {}});
     // Each fixture matches the response type of the query that asked for it.
     return {...defaulted, queryFn: queryFn as never};

@@ -78,11 +78,10 @@ function isTargetedItem(item: InboxItem, target: InboxItemsTarget) {
  * Matches the cached inbox lists for every combination of filters.
  */
 function getInboxListsQueryKey(organization: Organization) {
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/inbox/', {
-      path: {organizationIdOrSlug: organization.slug},
-    }),
-  ];
+  return apiOptions.as<unknown>()('/organizations/$organizationIdOrSlug/inbox/', {
+    path: {organizationIdOrSlug: organization.slug},
+    staleTime: 0,
+  }).queryKey;
 }
 
 /**
@@ -134,11 +133,10 @@ function applyReadState(item: InboxItem, isRead: boolean): InboxItem {
 }
 
 function getInboxCountQueryKey(organization: Organization) {
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/inbox/count/', {
-      path: {organizationIdOrSlug: organization.slug},
-    }),
-  ];
+  return apiOptions.as<unknown>()('/organizations/$organizationIdOrSlug/inbox/count/', {
+    path: {organizationIdOrSlug: organization.slug},
+    staleTime: 0,
+  }).queryKey;
 }
 
 export function removeInboxItemsMutationOptions({

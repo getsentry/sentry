@@ -284,7 +284,9 @@ function AdminUserEdit() {
     ...userDetailsQueryOptions(id),
     placeholderData: () => {
       const found = queryClient
-        .getQueriesData<ApiResponse<User[]>>({queryKey: [getApiUrl('/users/')]})
+        .getQueriesData<ApiResponse<User[]>>({
+          queryKey: apiOptions.as<unknown>()('/users/', {staleTime: 0}).queryKey,
+        })
         .flatMap(([, data]) => data?.json ?? [])
         .find(candidate => candidate.id === id);
       return found ? {json: found, headers: {}} : undefined;

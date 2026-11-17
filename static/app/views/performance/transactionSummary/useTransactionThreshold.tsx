@@ -126,9 +126,6 @@ export function useTransactionThreshold({
     overrideQuery.isLoading ||
     (overrideQuery.isError && projectThresholdQuery.isPending);
 
-  const overrideUrl = overrideOptions.queryKey[0];
-  const projectThresholdUrl = projectOptions.queryKey[0];
-
   const openThresholdModal = useCallback(() => {
     openModal(
       modalProps => (
@@ -142,8 +139,26 @@ export function useTransactionThreshold({
           onApply={(newThreshold, metric) => {
             // The modal writes the threshold itself, so refetch rather than
             // patching the cache by hand.
-            queryClient.invalidateQueries({queryKey: [overrideUrl]});
-            queryClient.invalidateQueries({queryKey: [projectThresholdUrl]});
+            queryClient.invalidateQueries({
+              queryKey: apiOptions.as<unknown>()(
+                '/organizations/$organizationIdOrSlug/project-transaction-threshold-override/',
+                {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
+              ).queryKey,
+            });
+            if (project) {
+              queryClient.invalidateQueries({
+                queryKey: apiOptions.as<unknown>()(
+                  '/projects/$organizationIdOrSlug/$projectIdOrSlug/transaction-threshold/configure/',
+                  {
+                    path: {
+                      organizationIdOrSlug: organization.slug,
+                      projectIdOrSlug: project.slug,
+                    },
+                    staleTime: 0,
+                  }
+                ).queryKey,
+              });
+            }
             onChangeThreshold?.(newThreshold, metric);
           }}
         />
@@ -157,8 +172,7 @@ export function useTransactionThreshold({
     eventView,
     threshold,
     queryClient,
-    overrideUrl,
-    projectThresholdUrl,
+    project,
     onChangeThreshold,
   ]);
 

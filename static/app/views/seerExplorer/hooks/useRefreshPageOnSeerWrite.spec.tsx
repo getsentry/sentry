@@ -6,6 +6,8 @@ import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {createApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import type {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import type {Block, CallRecord, SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 
@@ -70,10 +72,18 @@ const listIssues: CallRecord = {
   status: 200,
 };
 
+function cachedQueryKey(url: string) {
+  return createApiQueryKey({
+    fullUrl: url as ReturnType<typeof getApiUrl>,
+    urlParts: url.split('/').filter(Boolean),
+    options: {},
+  });
+}
+
 function renderRefreshHook(initialBlocks: Block[] | undefined) {
   const queryClient = makeTestQueryClient();
   for (const url of CACHED_URLS) {
-    queryClient.setQueryData([url, {}, {infinite: false}], {});
+    queryClient.setQueryData(cachedQueryKey(url), {});
   }
   const invalidateQueries = jest.spyOn(queryClient, 'invalidateQueries');
   const hook = renderHook(useRefreshPageOnSeerWrite, {
@@ -86,7 +96,7 @@ function renderRefreshHook(initialBlocks: Block[] | undefined) {
   });
   const invalidatedUrls = () =>
     CACHED_URLS.filter(
-      url => queryClient.getQueryState([url, {}, {infinite: false}])?.isInvalidated
+      url => queryClient.getQueryState(cachedQueryKey(url))?.isInvalidated
     );
   return {...hook, invalidateQueries, invalidatedUrls};
 }

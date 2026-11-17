@@ -5,7 +5,7 @@ import {uniq} from 'sentry/utils/array/uniq';
 import {defined} from 'sentry/utils/defined';
 
 import {type ApiResponse} from './apiFetch';
-import {type ApiQueryKey, parseQueryKey, safeParseQueryKey} from './apiQueryKey';
+import {type ApiQueryKey, type InfiniteApiQueryKey, isApiQueryKey} from './apiQueryKey';
 
 const BUFFER_WAIT_MS = 20;
 
@@ -51,7 +51,7 @@ interface Props<AggregatableQueryKey, Data, ResponseData = Data> {
   onError?: (error: Error) => void;
 
   /** Restrict which query keys can contribute cached responses. */
-  queryFilter?: (queryKey: readonly unknown[]) => boolean;
+  queryFilter?: (queryKey: ApiQueryKey | InfiniteApiQueryKey) => boolean;
 }
 
 /**
@@ -101,7 +101,7 @@ export function useAggregatedQueryKeys<AggregatableQueryKey, Data, ResponseData 
   const queryClient = useQueryClient();
   const cache = queryClient.getQueryCache();
 
-  const url = parseQueryKey(getQueryOptions([]).queryKey).url;
+  const url = getQueryOptions([]).queryKey[1].fullUrl;
 
   // Sentinels live in the shared query cache, rather than in this hook, so
   // every instance can see what is already queued or in flight.
@@ -112,7 +112,9 @@ export function useAggregatedQueryKeys<AggregatableQueryKey, Data, ResponseData 
   const isApiQueryKeyForUrl = useCallback(
     (queryKey: readonly unknown[]): boolean => {
       return (
-        safeParseQueryKey(queryKey)?.url === url && (queryFilter?.(queryKey) ?? true)
+        isApiQueryKey(queryKey) &&
+        queryKey[1].fullUrl === url &&
+        (queryFilter?.(queryKey) ?? true)
       );
     },
     [queryFilter, url]

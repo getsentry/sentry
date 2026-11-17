@@ -94,9 +94,8 @@ export function useExportConversation(
       }
 
       const exportQueryKey = [
-        options.queryKey[0],
-        options.queryKey[1],
-        {...options.queryKey[2], export: true},
+        ...options.queryKey,
+        {export: true},
       ] as unknown as typeof options.queryKey;
 
       await queryClient.cancelQueries({queryKey: exportQueryKey});

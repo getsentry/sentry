@@ -30,6 +30,7 @@ import type {PageFilterDatetime} from 'sentry/types/core';
 import type {BaseGroup, Group, PriorityLevel} from 'sentry/types/group';
 import {GroupStatus} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {CursorPoller} from 'sentry/utils/cursorPoller';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -735,11 +736,10 @@ function IssueListOverviewInner({
 
   const invalidateIssueCounts = () => {
     queryClient.invalidateQueries({
-      queryKey: [
-        getApiUrl('/organizations/$organizationIdOrSlug/issues-count/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-      ],
+      queryKey: apiOptions.as<unknown>()(
+        '/organizations/$organizationIdOrSlug/issues-count/',
+        {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
+      ).queryKey,
     });
   };
 

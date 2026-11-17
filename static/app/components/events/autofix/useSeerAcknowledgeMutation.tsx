@@ -1,7 +1,8 @@
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {promptsUpdate} from 'sentry/actionCreators/prompts';
-import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {isApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -25,14 +26,19 @@ export function useSeerAcknowledgeMutation() {
     onSuccess: () => {
       // Invalidate organization-level setup check
       queryClient.invalidateQueries({
-        queryKey: [setupCheckQueryKey(organization.slug)],
+        queryKey: apiOptions.as<unknown>()(
+          '/organizations/$organizationIdOrSlug/seer/setup-check/',
+          {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
+        ).queryKey,
       });
       // Invalidate all group-level autofix setup queries
       queryClient.invalidateQueries({
         predicate: query => {
-          const key = safeParseQueryKey(query.queryKey)?.url;
+          if (!isApiQueryKey(query.queryKey)) {
+            return false;
+          }
+          const key = query.queryKey[1].fullUrl;
           return (
-            typeof key === 'string' &&
             key.includes(`/organizations/${organization.slug}/issues/`) &&
             key.includes('/autofix/setup/')
           );

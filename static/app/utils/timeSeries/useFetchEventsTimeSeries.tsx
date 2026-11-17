@@ -4,7 +4,7 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {type QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
 import {defined} from 'sentry/utils/defined';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -98,12 +98,14 @@ export function useFetchSpanTimeSeries<
   );
 }
 
-export function makeEventsTimeSeriesQueryKeyPrefix(organizationSlug: string) {
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/events-timeseries/', {
-      path: {organizationIdOrSlug: organizationSlug},
-    }),
-  ] as const;
+export function makeEventsTimeSeriesQueryKeyPrefix(
+  organizationSlug: string,
+  options?: QueryKeyEndpointOptions
+) {
+  return apiOptions.as<unknown>()(
+    '/organizations/$organizationIdOrSlug/events-timeseries/',
+    {path: {organizationIdOrSlug: organizationSlug}, ...options, staleTime: 0}
+  ).queryKey;
 }
 
 /**

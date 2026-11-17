@@ -1,5 +1,3 @@
-import {z} from 'zod';
-
 import type {getApiUrl} from './getApiUrl';
 
 export type RequestMethod = 'DELETE' | 'GET' | 'PATCH' | 'POST' | 'PUT';
@@ -16,53 +14,58 @@ export type QueryKeyEndpointOptions = {
   query?: Record<string, unknown>;
 };
 
-const apiUrlSchema = z.custom<ApiUrl>(val => typeof val === 'string');
-const optionsSchema = z.custom<QueryKeyEndpointOptions>(
-  val => typeof val === 'object' && val !== null && !Array.isArray(val)
-);
-const markerSchema = z.object({infinite: z.boolean()});
+type ApiQueryKeyOptions = QueryKeyEndpointOptions & {
+  path?: Record<string, string>;
+};
 
-const queryKeySchema = z
-  .tuple([apiUrlSchema, optionsSchema, markerSchema])
-  .rest(z.unknown())
-  .transform(([url, options, marker]) => ({
-    url,
-    options,
-    isInfinite: marker.infinite,
-  }));
+type ApiQueryKeyParams = {
+  /**
+   * The resolved url that gets requested
+   */
+  fullUrl: ApiUrl;
+  options: ApiQueryKeyOptions;
+  /**
+   * The url template split into segments, with `$param` placeholders kept.
+   * Use it to match every query below a url prefix, across all param values.
+   */
+  urlParts: readonly string[];
+  /**
+   * Only set on infinite queries, so a non-infinite key used as a filter
+   * matches both variants of the same url.
+   */
+  infinite?: never;
+};
+
+type InfiniteApiQueryKeyParams = Omit<ApiQueryKeyParams, 'infinite'> & {
+  infinite: true;
+};
+
+const API_QUERY_KEY_MARKER = '_api';
 
 export type ApiQueryKey = readonly [
-  ApiUrl,
-  QueryKeyEndpointOptions,
-  {infinite: false},
+  typeof API_QUERY_KEY_MARKER,
+  ApiQueryKeyParams,
   ...unknown[],
 ];
 
 export type InfiniteApiQueryKey = readonly [
-  ApiUrl,
-  QueryKeyEndpointOptions,
-  {infinite: true},
+  typeof API_QUERY_KEY_MARKER,
+  InfiniteApiQueryKeyParams,
   ...unknown[],
 ];
 
-type ParsedQueryKey = z.infer<typeof queryKeySchema>;
-
-export function parseQueryKey(
-  queryKey: ApiQueryKey | InfiniteApiQueryKey
-): ParsedQueryKey {
-  return queryKeySchema.parse(queryKey);
+export function isApiQueryKey(
+  queryKey: readonly unknown[]
+): queryKey is ApiQueryKey | InfiniteApiQueryKey {
+  return queryKey[0] === API_QUERY_KEY_MARKER;
 }
 
-const safeParseCache = new WeakMap<readonly unknown[], ParsedQueryKey | undefined>();
-
-export function safeParseQueryKey(
-  queryKey: readonly unknown[]
-): ParsedQueryKey | undefined {
-  if (safeParseCache.has(queryKey)) {
-    return safeParseCache.get(queryKey);
-  }
-
-  const result = queryKeySchema.safeParse(queryKey).data;
-  safeParseCache.set(queryKey, result);
-  return result;
+export function createApiQueryKey(
+  params: ApiQueryKeyParams
+): readonly [typeof API_QUERY_KEY_MARKER, ApiQueryKeyParams];
+export function createApiQueryKey(
+  params: InfiniteApiQueryKeyParams
+): readonly [typeof API_QUERY_KEY_MARKER, InfiniteApiQueryKeyParams];
+export function createApiQueryKey(params: ApiQueryKeyParams | InfiniteApiQueryKeyParams) {
+  return [API_QUERY_KEY_MARKER, params] as const;
 }

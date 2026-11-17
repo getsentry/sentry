@@ -30,7 +30,10 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
+import {
+  allDetectorListsQueryKey,
+  detectorListApiOptions,
+} from 'sentry/views/detectors/hooks';
 import type {
   SeerServiceAccountResponse,
   SeerWorkflowConfigResponse,
@@ -206,7 +209,7 @@ export function MetricAutomationForm(props: Props) {
     placeholderData: previous => {
       const known = new Map<string, Detector>();
       for (const [, data] of queryClient.getQueriesData<ApiResponse<Detector[]>>({
-        queryKey: [monitorsQueryOptions.queryKey[0]],
+        queryKey: allDetectorListsQueryKey(organization),
       })) {
         data?.json.forEach(monitor => known.set(monitor.id, monitor));
       }

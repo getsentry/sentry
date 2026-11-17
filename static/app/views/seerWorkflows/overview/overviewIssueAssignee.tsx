@@ -8,7 +8,7 @@ import {
 import type {Group} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import type {AutofixOverviewResponse} from './types';
@@ -51,13 +51,6 @@ export function OverviewIssueAssignee({
 }: OverviewIssueAssigneeProps) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
-  const issueIndexUrl = getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
-    path: {organizationIdOrSlug: organization.slug},
-  });
-  const overviewUrl = getApiUrl(
-    '/organizations/$organizationIdOrSlug/seer/autofix-overview/',
-    {path: {organizationIdOrSlug: organization.slug}}
-  );
 
   const group = useMemo(
     () => ({
@@ -76,17 +69,31 @@ export function OverviewIssueAssignee({
     (nextAssignedTo: Group['assignedTo']) => {
       // Patch the assignee straight into the cached overview so the card and the
       // filter's options/counts update without a full (Snuba-heavy) refetch.
+      const path = {organizationIdOrSlug: organization.slug};
       queryClient.setQueriesData<ApiResponse<AutofixOverviewResponse>>(
-        {queryKey: [overviewUrl]},
+        {
+          queryKey: apiOptions.as<unknown>()(
+            '/organizations/$organizationIdOrSlug/seer/autofix-overview/',
+            {path, staleTime: 0}
+          ).queryKey,
+        },
         previous =>
           previous && {
             ...previous,
             json: withRunAssignee(previous.json, groupId, nextAssignedTo),
           }
       );
-      void queryClient.invalidateQueries({queryKey: [issueIndexUrl]});
+      void queryClient.invalidateQueries({
+        queryKey: apiOptions.as<unknown>()(
+          '/organizations/$organizationIdOrSlug/issues/',
+          {
+            path,
+            staleTime: 0,
+          }
+        ).queryKey,
+      });
     },
-    [groupId, issueIndexUrl, overviewUrl, queryClient]
+    [groupId, organization.slug, queryClient]
   );
 
   const {handleAssigneeChange, assigneeLoading} = useHandleAssigneeChange({

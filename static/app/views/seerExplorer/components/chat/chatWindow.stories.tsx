@@ -5,6 +5,7 @@ import {Container} from '@sentry/scraps/layout';
 import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
 import * as Storybook from 'sentry/stories';
+import {isApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SeerExplorerContent} from 'sentry/views/seerExplorer/components/seerExplorerContent';
@@ -91,7 +92,8 @@ class FixtureQueryClient extends QueryClient {
 
   override defaultQueryOptions: QueryClient['defaultQueryOptions'] = options => {
     const defaulted = super.defaultQueryOptions(options);
-    const url = String(defaulted.queryKey[0]);
+    const {queryKey} = defaulted;
+    const url = isApiQueryKey(queryKey) ? queryKey[1].fullUrl : '';
     // `then` turns a fixture that throws into a failed query.
     const queryFn = () =>
       Promise.resolve().then(() => ({json: this.respond(url), headers: {}}));

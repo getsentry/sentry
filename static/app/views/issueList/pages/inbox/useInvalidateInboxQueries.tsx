@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 
-import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {isApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -31,7 +31,10 @@ export function useInvalidateInboxQueries(groupId: string) {
 
     void queryClient.invalidateQueries({
       predicate: query => {
-        const url = safeParseQueryKey(query.queryKey)?.url;
+        if (!isApiQueryKey(query.queryKey)) {
+          return false;
+        }
+        const url = query.queryKey[1].fullUrl;
         return (
           url === issueListUrl || url === issueCountUrl || url === issueActivitiesUrl
         );

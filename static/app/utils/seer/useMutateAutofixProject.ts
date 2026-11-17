@@ -14,7 +14,7 @@ import {
 } from './preferredAgent';
 import {getSeerProjectReposInfiniteQueryOptions} from './seerProjectRepos';
 import {
-  getInfiniteSeerProjectsSettingsQueryOptions,
+  allSeerProjectsSettingsQueryKey,
   getSeerProjectSettingsQueryOptions,
 } from './seerProjectSettings';
 import {getTuningFromStoppingPoint, resolveStoppingPoint} from './stoppingPoint';
@@ -102,7 +102,7 @@ export function useMutateAutofixProject() {
         organization,
         project,
       });
-      const [reposUrl] = reposQueryOptions.queryKey;
+      const reposUrl = reposQueryOptions.queryKey[1].fullUrl;
       await fetchMutation({
         method: 'PUT',
         url: reposUrl,
@@ -120,7 +120,7 @@ export function useMutateAutofixProject() {
         organization,
         project: {slug: project.slug},
       });
-      const [settingsUrl] = settingsQueryOptions.queryKey;
+      const settingsUrl = settingsQueryOptions.queryKey[1].fullUrl;
       try {
         await fetchMutation<SeerProjectSettingResponse>({
           method: 'PUT',
@@ -166,10 +166,8 @@ export function useMutateAutofixProject() {
       // Invalidate the org-level infinite seer projects list so the
       // /settings/seer/projects/ table reflects the newly added project
       // without waiting for its 60s staleTime to expire.
-      const {queryKey: infiniteProjectsQueryKey} =
-        getInfiniteSeerProjectsSettingsQueryOptions({organization, query: {}});
       queryClient.invalidateQueries({
-        queryKey: [infiniteProjectsQueryKey[0]],
+        queryKey: allSeerProjectsSettingsQueryKey(organization),
         exact: false,
       });
     },

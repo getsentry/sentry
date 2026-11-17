@@ -1,108 +1,138 @@
-import {
-  parseQueryKey,
-  safeParseQueryKey,
-  type ApiQueryKey,
-  type InfiniteApiQueryKey,
-} from './apiQueryKey';
-import {getApiUrl} from './getApiUrl';
+import {QueryClient} from '@tanstack/react-query';
+
+import {apiOptions} from './apiOptions';
+import {isApiQueryKey} from './apiQueryKey';
+
+function issuesOptions(organizationIdOrSlug: string, query?: Record<string, string>) {
+  return apiOptions.as<unknown>()('/organizations/$organizationIdOrSlug/issues/', {
+    path: {organizationIdOrSlug},
+    query,
+    staleTime: 0,
+  });
+}
+
+function issueOptions(organizationIdOrSlug: string, issueId: string) {
+  return apiOptions.as<unknown>()(
+    '/organizations/$organizationIdOrSlug/issues/$issueId/',
+    {path: {organizationIdOrSlug, issueId}, staleTime: 0}
+  );
+}
+
+function issuesInfiniteOptions(organizationIdOrSlug: string) {
+  return apiOptions.asInfinite<unknown>()(
+    '/organizations/$organizationIdOrSlug/issues/',
+    {path: {organizationIdOrSlug}, staleTime: 0}
+  );
+}
+
+function seedCache() {
+  const queryClient = new QueryClient();
+  const keys = {
+    acmeIssues: issuesOptions('acme').queryKey,
+    acmeIssuesFiltered: issuesOptions('acme', {query: 'is:unresolved'}).queryKey,
+    acmeIssuesInfinite: issuesInfiniteOptions('acme').queryKey,
+    acmeIssue: issueOptions('acme', '1').queryKey,
+    otherIssues: issuesOptions('other').queryKey,
+    nonApi: ['bootstrap-projects'],
+  };
+  Object.values(keys).forEach(queryKey => queryClient.setQueryData(queryKey, {}));
+
+  const matching = (queryKey: readonly unknown[]) =>
+    Object.entries(keys)
+      .filter(([, key]) =>
+        queryClient
+          .getQueryCache()
+          .findAll({queryKey})
+          .some(query => query.queryKey === key)
+      )
+      .map(([name]) => name)
+      .sort();
+
+  return {keys, matching};
+}
 
 describe('apiQueryKey', () => {
-  it.each<{baseKey: ApiQueryKey | InfiniteApiQueryKey}>([
-    {baseKey: [getApiUrl('/api-tokens/'), {}, {infinite: false}]},
-    {baseKey: [getApiUrl('/api-tokens/'), {}, {infinite: true}]},
-  ])('parses trailing metadata after the required API key fields (%#)', ({baseKey}) => {
-    const queryKey = [...baseKey, {sessionKey: 'session'}, 'revision'] as const;
-    const expected = {
-      url: '/api-tokens/',
-      options: {},
-      isInfinite: baseKey[2].infinite,
-    };
-
-    expect(parseQueryKey(queryKey)).toEqual(expected);
-    expect(safeParseQueryKey(queryKey)).toEqual(expected);
-  });
-
-  describe('parseQueryKey', () => {
-    it('parses a canonical non-infinite key', () => {
-      const queryKey: ApiQueryKey = [
-        getApiUrl('/api-tokens/'),
-        {query: {filter: 'red'}},
-        {infinite: false},
-      ];
-      expect(parseQueryKey(queryKey)).toEqual({
-        isInfinite: false,
-        url: '/api-tokens/',
-        options: {query: {filter: 'red'}},
-      });
+  describe('isApiQueryKey', () => {
+    it('accepts keys from apiOptions, also with trailing elements', () => {
+      const {queryKey} = issuesOptions('acme');
+      expect(isApiQueryKey(queryKey)).toBe(true);
+      expect(isApiQueryKey([...queryKey, {sessionKey: 'session'}])).toBe(true);
+      expect(isApiQueryKey(issuesInfiniteOptions('acme').queryKey)).toBe(true);
     });
 
-    it('parses a´n infinite key', () => {
-      const queryKey: InfiniteApiQueryKey = [
-        getApiUrl('/api-tokens/'),
-        {query: {filter: 'red'}},
-        {infinite: true},
-      ];
-      expect(parseQueryKey(queryKey)).toEqual({
-        isInfinite: true,
-        url: '/api-tokens/',
-        options: {query: {filter: 'red'}},
-      });
+    it('rejects keys that are not api keys', () => {
+      expect(isApiQueryKey([])).toBe(false);
+      expect(isApiQueryKey(['bootstrap-projects'])).toBe(false);
+      expect(isApiQueryKey(['/organizations/acme/issues/', {}, {infinite: false}])).toBe(
+        false
+      );
     });
   });
 
-  describe('safeParseQueryKey', () => {
-    it('parses canonical non-infinite', () => {
+  describe('apiOptions keys as filters', () => {
+    it('match both variants of the url, with any other options', () => {
+      const {matching} = seedCache();
+
+      expect(matching(issuesOptions('acme').queryKey)).toEqual([
+        'acmeIssues',
+        'acmeIssuesFiltered',
+        'acmeIssuesInfinite',
+      ]);
+    });
+
+    it('match only infinite queries when built with asInfinite', () => {
+      const {matching} = seedCache();
+
+      expect(matching(issuesInfiniteOptions('acme').queryKey)).toEqual([
+        'acmeIssuesInfinite',
+      ]);
+    });
+
+    it('narrow the match by their options', () => {
+      const {matching} = seedCache();
+
+      expect(matching(issuesOptions('acme', {query: 'is:unresolved'}).queryKey)).toEqual([
+        'acmeIssuesFiltered',
+      ]);
+    });
+  });
+
+  describe('partial matching', () => {
+    it('matches all organizations below a url template prefix', () => {
+      const {matching} = seedCache();
+
       expect(
-        safeParseQueryKey(['/api-tokens/', {query: {filter: 'red'}}, {infinite: false}])
-      ).toEqual({
-        isInfinite: false,
-        url: '/api-tokens/',
-        options: {query: {filter: 'red'}},
-      });
+        matching(['_api', {urlParts: ['organizations', '$organizationIdOrSlug']}])
+      ).toEqual([
+        'acmeIssue',
+        'acmeIssues',
+        'acmeIssuesFiltered',
+        'acmeIssuesInfinite',
+        'otherIssues',
+      ]);
     });
 
-    it('parses canonical infinite', () => {
+    it('narrows a url template prefix by path params', () => {
+      const {matching} = seedCache();
+
       expect(
-        safeParseQueryKey(['/api-tokens/', {query: {filter: 'red'}}, {infinite: true}])
-      ).toEqual({
-        isInfinite: true,
-        url: '/api-tokens/',
-        options: {query: {filter: 'red'}},
-      });
+        matching([
+          '_api',
+          {
+            urlParts: ['organizations', '$organizationIdOrSlug', 'issues'],
+            options: {path: {organizationIdOrSlug: 'acme'}},
+          },
+        ])
+      ).toEqual(['acmeIssue', 'acmeIssues', 'acmeIssuesFiltered', 'acmeIssuesInfinite']);
     });
 
-    describe('rejection', () => {
-      it('returns undefined for an empty array', () => {
-        expect(safeParseQueryKey([])).toBeUndefined();
-      });
+    it('narrows by infinite and by query options', () => {
+      const {matching} = seedCache();
 
-      it('returns undefined when the first element is a number', () => {
-        expect(safeParseQueryKey([123])).toBeUndefined();
-      });
-
-      it('returns undefined when the first element is null', () => {
-        expect(safeParseQueryKey([null])).toBeUndefined();
-      });
-
-      it('returns undefined when the first element is not a string', () => {
-        expect(safeParseQueryKey([123, {}, {infinite: false}])).toBeUndefined();
-      });
-
-      it('returns undefined when the second element is not an object', () => {
-        expect(safeParseQueryKey(['/url/', 'not-an-object'])).toBeUndefined();
-      });
-
-      it('returns undefined when the third element is not a marker', () => {
-        expect(safeParseQueryKey(['/url/', {query: {}}, 'not-a-marker'])).toBeUndefined();
-      });
-
-      it('returns undefined when the marker is missing the infinite field', () => {
-        expect(safeParseQueryKey(['/url/', {query: {}}, {}])).toBeUndefined();
-      });
-    });
-
-    it('returns undefined for a [string, object] tuple missing the marker', () => {
-      expect(safeParseQueryKey(['filter', {scope: 'feedback'}])).toBeUndefined();
+      expect(matching(['_api', {infinite: true}])).toEqual(['acmeIssuesInfinite']);
+      expect(matching(['_api', {options: {query: {query: 'is:unresolved'}}}])).toEqual([
+        'acmeIssuesFiltered',
+      ]);
     });
   });
 });

@@ -1,6 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 
@@ -24,7 +23,7 @@ describe('DetectorTransactionsConfig', () => {
         comparisonDelta: undefined,
       }).queryKey;
 
-      const {url, options} = parseQueryKey(key);
+      const {fullUrl: url, options} = key[1];
       expect(url).toBe(`/organizations/${organization.slug}/events-stats/`);
       const params = options?.query!;
       expect(params.dataset).toBe(DiscoverDatasets.METRICS_ENHANCED);
@@ -52,7 +51,7 @@ describe('DetectorTransactionsConfig', () => {
         comparisonDelta: undefined,
       }).queryKey;
 
-      const {options} = parseQueryKey(key);
+      const {options} = key[1];
       const params = options.query!;
       expect(params.dataset).toBe(DiscoverDatasets.METRICS_ENHANCED);
       expect(params.query).toBe('transaction.duration:>0');

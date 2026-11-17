@@ -5,6 +5,7 @@ import type {Group, GroupActivity, GroupActivityNote} from 'sentry/types/group';
 import {GroupActivityType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
@@ -27,11 +28,10 @@ export function useMutateActivity({organization, group}: Props) {
     organizationSlug: organization.slug,
     groupId: group.id,
   });
-  const activityQueryKey = [
-    getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/activities/', {
-      path: {organizationIdOrSlug: organization.slug, issueId: group.id},
-    }),
-  ];
+  const activityQueryKey = apiOptions.as<unknown>()(
+    '/organizations/$organizationIdOrSlug/issues/$issueId/activities/',
+    {path: {organizationIdOrSlug: organization.slug, issueId: group.id}, staleTime: 0}
+  ).queryKey;
 
   const {mutateAsync} = useMutation({
     mutationFn: (mutation: ActivityMutation) => {

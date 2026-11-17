@@ -28,6 +28,10 @@ function useConfigUrls(configId = '') {
         path: {organizationIdOrSlug: organization.slug},
       }
     ),
+    configsQueryKey: apiOptions.as<unknown>()(
+      '/organizations/$organizationIdOrSlug/seer/workflows/configs/',
+      {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
+    ).queryKey,
     configUrl: getApiUrl(
       '/organizations/$organizationIdOrSlug/seer/workflows/configs/$configId/',
       {path: {organizationIdOrSlug: organization.slug, configId}}
@@ -69,12 +73,12 @@ export function useFetchConfigs({
  */
 export function useCreateConfig() {
   const queryClient = useQueryClient();
-  const {configsUrl} = useConfigUrls();
+  const {configsUrl, configsQueryKey} = useConfigUrls();
 
   return useMutation({
     mutationFn: (data: SeerWorkflowConfigCreateRequest) =>
       fetchMutation<SeerWorkflowConfigResponse>({url: configsUrl, method: 'POST', data}),
-    onSuccess: () => queryClient.invalidateQueries({queryKey: [configsUrl]}),
+    onSuccess: () => queryClient.invalidateQueries({queryKey: configsQueryKey}),
   });
 }
 
@@ -94,13 +98,13 @@ export function useIsUpdatingConfig({configId}: {configId: string}) {
  */
 export function useUpdateConfig({configId}: {configId: string}) {
   const queryClient = useQueryClient();
-  const {configsUrl, configUrl} = useConfigUrls(configId);
+  const {configsQueryKey, configUrl} = useConfigUrls(configId);
 
   return useMutation({
     mutationKey: getUpdateConfigMutationKey(configId),
     mutationFn: (data: SeerWorkflowConfigUpdateRequest) =>
       fetchMutation<SeerWorkflowConfigResponse>({url: configUrl, method: 'PUT', data}),
-    onSuccess: () => queryClient.invalidateQueries({queryKey: [configsUrl]}),
+    onSuccess: () => queryClient.invalidateQueries({queryKey: configsQueryKey}),
   });
 }
 
@@ -109,10 +113,10 @@ export function useUpdateConfig({configId}: {configId: string}) {
  */
 export function useDeleteConfig({configId}: {configId: string}) {
   const queryClient = useQueryClient();
-  const {configsUrl, configUrl} = useConfigUrls(configId);
+  const {configsQueryKey, configUrl} = useConfigUrls(configId);
 
   return useMutation({
     mutationFn: () => fetchMutation({url: configUrl, method: 'DELETE'}),
-    onSuccess: () => queryClient.invalidateQueries({queryKey: [configsUrl]}),
+    onSuccess: () => queryClient.invalidateQueries({queryKey: configsQueryKey}),
   });
 }

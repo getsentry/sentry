@@ -109,6 +109,40 @@ describe('useTraceMeta', () => {
     expect(result.current.data?.metricsCount).toBe(6);
   });
 
+  it('only requests the traces it has not fetched yet when the trace list grows', async () => {
+    const metaBody = {
+      errorsCount: 1,
+      logsCount: 0,
+      metricsCount: 0,
+      performanceIssuesCount: 0,
+      spansCount: 1,
+      spansCountMap: {},
+      uptimeCount: 0,
+    };
+    const slug1Mock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/trace-meta/slug1/',
+      body: metaBody,
+    });
+    const slug2Mock = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/trace-meta/slug2/',
+      body: metaBody,
+    });
+
+    const {result, rerender} = renderHookWithProviders(useTraceMeta, {
+      organization,
+      initialProps: [mockedTraces[0]!],
+    });
+    await waitFor(() => expect(result.current.data?.errorsCount).toBe(1));
+
+    rerender([mockedTraces[0]!, mockedTraces[1]!]);
+    await waitFor(() => expect(result.current.data?.errorsCount).toBe(2));
+
+    expect(slug1Mock).toHaveBeenCalledTimes(1);
+    expect(slug2Mock).toHaveBeenCalledTimes(1);
+  });
+
   it('accepts trace metadata with span counts', async () => {
     const trace = {
       traceSlug: 'slug-without-transactions-count',

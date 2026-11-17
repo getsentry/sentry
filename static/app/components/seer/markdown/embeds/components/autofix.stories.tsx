@@ -32,6 +32,7 @@ import {SeerOutOfCreditsCta} from 'sentry/components/seer/outOfCredits/seerOutOf
 import * as Storybook from 'sentry/stories';
 import type {Group} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {isApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {
@@ -584,7 +585,8 @@ class CreditsQueryClient extends QueryClient {
       return defaulted;
     }
 
-    const url = String(defaulted.queryKey[0]);
+    const {queryKey} = defaulted;
+    const url = isApiQueryKey(queryKey) ? queryKey[1].fullUrl : '';
     let json: unknown = [];
     if (url.includes('/seer/credit-check/')) {
       json = {hasEnoughCredits: this.hasEnoughCredits};

@@ -36,7 +36,10 @@ type GroupQueryKeyParameters = Pick<
 >;
 
 export function groupQueryKey(params: GroupQueryKeyParameters) {
-  return [groupApiOptions({...params, environments: []}).queryKey[0]] as const;
+  return apiOptions.as<Group>()('/organizations/$organizationIdOrSlug/issues/$issueId/', {
+    path: {organizationIdOrSlug: params.organizationSlug, issueId: params.groupId},
+    staleTime: 0,
+  }).queryKey;
 }
 
 interface UseGroupOptions {

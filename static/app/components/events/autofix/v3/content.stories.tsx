@@ -10,6 +10,7 @@ import type {
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import * as Storybook from 'sentry/stories';
 import type {Group} from 'sentry/types/group';
+import {isApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
@@ -212,7 +213,8 @@ class SimulatedCreditsQueryClient extends QueryClient {
       return defaulted;
     }
 
-    const url = String(defaulted.queryKey[0]);
+    const {queryKey} = defaulted;
+    const url = isApiQueryKey(queryKey) ? queryKey[1].fullUrl : '';
     let json: unknown = [];
     if (url.includes('/seer/credit-check/')) {
       json = {hasEnoughCredits: this.hasEnoughCredits};

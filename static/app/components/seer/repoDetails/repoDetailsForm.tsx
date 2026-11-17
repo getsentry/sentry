@@ -9,6 +9,7 @@ import {t, tct} from 'sentry/locale';
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {CodeReviewTrigger} from 'sentry/types/seer';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -74,7 +75,10 @@ export function RepoDetailsForm({organization, repoWithSettings}: Props) {
     },
     onSettled: () => {
       queryClient.invalidateQueries({
-        queryKey: [`/organizations/${organization.slug}/repos/`],
+        queryKey: apiOptions.as<unknown>()(
+          '/organizations/$organizationIdOrSlug/repos/',
+          {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
+        ).queryKey,
       });
       queryClient.invalidateQueries({
         queryKey: getSeerOnboardingCheckQueryOptions({organization}).queryKey,

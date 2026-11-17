@@ -327,11 +327,10 @@ export default function IntegrationDetailedView() {
           }).queryKey,
         });
         queryClient.invalidateQueries({
-          queryKey: [
-            getApiUrl('/organizations/$organizationIdOrSlug/config/integrations/', {
-              path: {organizationIdOrSlug: organization.slug},
-            }),
-          ],
+          queryKey: apiOptions.as<unknown>()(
+            '/organizations/$organizationIdOrSlug/config/integrations/',
+            {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
+          ).queryKey,
         });
       }
       navigate(

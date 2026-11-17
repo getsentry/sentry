@@ -70,6 +70,22 @@ export function getInvestigationDetailQueryOptions(
 export const INVESTIGATION_COMMENTS_PAGE_SIZE = 100;
 
 /** Newest first. Without `blockId`, page-level and block comments together. */
+function allInvestigationCommentsQueryKey({
+  organizationSlug,
+  investigationId,
+}: {
+  investigationId: string;
+  organizationSlug: string;
+}) {
+  return apiOptions.as<unknown>()(
+    '/organizations/$organizationIdOrSlug/notebooks/$notebookId/comments/',
+    {
+      path: {organizationIdOrSlug: organizationSlug, notebookId: investigationId},
+      staleTime: 0,
+    }
+  ).queryKey;
+}
+
 export function investigationCommentsQueryOptions({
   organizationSlug,
   investigationId,
@@ -95,10 +111,10 @@ export function useCreateInvestigationCommentMutation(
   investigationId: string,
   options?: MutationOptions<InvestigationComment, {body: string; blockId?: string}>
 ) {
-  const [commentsUrl] = investigationCommentsQueryOptions({
+  const commentsUrl = investigationCommentsQueryOptions({
     organizationSlug,
     investigationId,
-  }).queryKey;
+  }).queryKey[1].fullUrl;
   const invalidateComments = useInvalidateInvestigationComments(
     organizationSlug,
     investigationId
@@ -141,13 +157,11 @@ function useInvalidateInvestigationComments(
   investigationId: string
 ) {
   const queryClient = useQueryClient();
-  const [commentsUrl] = investigationCommentsQueryOptions({
-    organizationSlug,
-    investigationId,
-  }).queryKey;
   return () =>
     Promise.all([
-      queryClient.invalidateQueries({queryKey: [commentsUrl]}),
+      queryClient.invalidateQueries({
+        queryKey: allInvestigationCommentsQueryKey({organizationSlug, investigationId}),
+      }),
       queryClient.invalidateQueries({
         queryKey: investigationCommentCountsQueryOptions(
           organizationSlug,
@@ -162,10 +176,6 @@ export function useUpdateInvestigationCommentMutation(
   investigationId: string
 ) {
   const queryClient = useQueryClient();
-  const [commentsUrl] = investigationCommentsQueryOptions({
-    organizationSlug,
-    investigationId,
-  }).queryKey;
   const invalidateComments = useInvalidateInvestigationComments(
     organizationSlug,
     investigationId
@@ -180,7 +190,7 @@ export function useUpdateInvestigationCommentMutation(
       }),
     onSuccess: updated => {
       queryClient.setQueriesData(
-        {queryKey: [commentsUrl]},
+        {queryKey: allInvestigationCommentsQueryKey({organizationSlug, investigationId})},
         (prev: ApiResponse<InvestigationComment[]> | undefined) =>
           prev && {
             ...prev,
@@ -199,10 +209,6 @@ export function useDeleteInvestigationCommentMutation(
   investigationId: string
 ) {
   const queryClient = useQueryClient();
-  const [commentsUrl] = investigationCommentsQueryOptions({
-    organizationSlug,
-    investigationId,
-  }).queryKey;
   const invalidateComments = useInvalidateInvestigationComments(
     organizationSlug,
     investigationId
@@ -216,7 +222,7 @@ export function useDeleteInvestigationCommentMutation(
       }),
     onSuccess: (_data, {commentId}) => {
       queryClient.setQueriesData(
-        {queryKey: [commentsUrl]},
+        {queryKey: allInvestigationCommentsQueryKey({organizationSlug, investigationId})},
         (prev: ApiResponse<InvestigationComment[]> | undefined) =>
           prev && {...prev, json: prev.json.filter(comment => comment.id !== commentId)}
       );
@@ -398,12 +404,11 @@ export function investigationCandidatesQueryOptions({
   );
 }
 
-function investigationCandidatesUrl(organizationSlug: string) {
-  const [url] = investigationCandidatesQueryOptions({
-    organizationSlug,
-    sources: [],
-  }).queryKey;
-  return url;
+function allInvestigationCandidatesQueryKey(organizationSlug: string) {
+  return apiOptions.as<unknown>()(
+    '/organizations/$organizationIdOrSlug/investigations/candidates/',
+    {path: {organizationIdOrSlug: organizationSlug}, staleTime: 0}
+  ).queryKey;
 }
 
 type FavoriteVariables = {
@@ -449,7 +454,7 @@ function useInvestigationMutation<TData, TVariables>(
         }),
         invalidateCandidates
           ? queryClient.invalidateQueries({
-              queryKey: [investigationCandidatesUrl(organizationSlug)],
+              queryKey: allInvestigationCandidatesQueryKey(organizationSlug),
             })
           : Promise.resolve(),
       ]);
