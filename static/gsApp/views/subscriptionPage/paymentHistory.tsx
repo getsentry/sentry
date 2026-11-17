@@ -85,6 +85,8 @@ function getReceiptTypeLabel(receiptType: ReceiptType, plan: Plan | undefined) {
   switch (receiptType) {
     case 'payg':
       return displayBudgetName(plan, {title: true});
+    case 'seer_seats':
+      return t('Seer seats');
     case 'seer_auto_reload':
       return t('Seer auto-reload');
     case 'credit_grant':
@@ -205,7 +207,7 @@ function PaymentHistory() {
 
 const COLUMNS: TableColumnConfig[] = [
   {key: 'date', width: 'minmax(min-content, 1fr)'},
-  {key: 'type', width: 'minmax(max-content, 1fr)'},
+  {key: 'type', width: 'minmax(max-content, 1fr)', visible: {sm: true}},
   {key: 'amount', width: 'minmax(max-content, 1fr)'},
   {
     key: 'status',

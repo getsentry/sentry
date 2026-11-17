@@ -490,7 +490,12 @@ export type Charge = {
 /**
  * What a receipt paid for.
  */
-export type ReceiptType = 'subscription' | 'payg' | 'seer_auto_reload' | 'credit_grant';
+export type ReceiptType =
+  | 'subscription'
+  | 'payg'
+  | 'seer_seats'
+  | 'seer_auto_reload'
+  | 'credit_grant';
 
 export type InvoiceBase = StructuredAddress & {
   amount: number;
@@ -514,8 +519,8 @@ export type InvoiceBase = StructuredAddress & {
   taxNumber: string | null;
   type: string | null;
   /**
-   * Only the receipts list returns this. Null when the API can't name what an
-   * off-cycle invoice paid for.
+   * Only the receipts list returns this. Null when the API can't tell what the
+   * receipt paid for.
    */
   receiptType?: ReceiptType | null;
   /**
