@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Collection
 from typing import Any
 
+from django.db.models import QuerySet
 from rest_framework import status
 from rest_framework.exceptions import APIException, PermissionDenied
 from rest_framework.request import Request
@@ -18,7 +19,11 @@ from sentry.auth.principal import acting_user_id
 from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.notebooks.access import has_notebooks_access, service_account_reaches
+from sentry.notebooks.access import (
+    filter_visible_notebooks,
+    has_notebooks_access,
+    service_account_reaches,
+)
 from sentry.notebooks.endpoints.schema import NotebookSchema
 from sentry.notebooks.models import Notebook, NotebookBlock, NotebookComment
 from sentry.notebooks.services import (
@@ -158,13 +163,20 @@ class OrganizationNotebookEndpoint(OrganizationNotebooksBaseEndpoint):
         args, kwargs = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
         organization = kwargs["organization"]
         try:
-            notebook = Notebook.objects.select_related("organization").get(
-                id=notebook_id, organization=organization
+            notebooks: QuerySet[Notebook] = Notebook.objects.select_related("organization").filter(
+                organization=organization
             )
+            if request.method in ("GET", "HEAD") or self.is_notebook_metadata_read:
+                notebooks = filter_visible_notebooks(notebooks, request.access)
+            notebook = notebooks.get(id=notebook_id)
         except (Notebook.DoesNotExist, ValueError):
             raise ResourceDoesNotExist
         kwargs["notebook"] = notebook
         return args, kwargs
+
+    # Presence is a PUT that also reads other viewers. Writes and execution admission
+    # otherwise retain their existing authorization.
+    is_notebook_metadata_read = False
 
 
 class OrganizationNotebookBlockEndpoint(OrganizationNotebookEndpoint):

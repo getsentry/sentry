@@ -3,17 +3,20 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import Any
 from unittest import mock
+from uuid import uuid4
 
 import pytest
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
 
+from sentry.auth.access import from_user
 from sentry.constants import ObjectStatus
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.investigations.models import InvestigationOrchestrationRun
 from sentry.investigations.services.breached_metrics import resolve_investigation_source
 from sentry.investigations.services.orchestration import (
+    accept_orchestration_command,
     agentic_breached_metric_source_key,
     create_agentic_breached_metric_investigation,
     create_agentic_manual_investigation,
@@ -21,13 +24,17 @@ from sentry.investigations.services.orchestration import (
 )
 from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.organization import Organization
+from sentry.notebooks.access import can_view_notebook
+from sentry.notebooks.endpoints.validators import NotebookUpdateValidator
 from sentry.notebooks.models import Notebook, NotebookStatus
 from sentry.notebooks.services.notebooks import NotebookValidationError
+from sentry.seer.models.workflow import SeerWorkflowStrategy
 from sentry.service_accounts.models import ServiceAccountReplica
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
+from sentry.testutils.factories import Factories
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import cell_silo_test
 from sentry.viewer_context import ActorId, ActorType
@@ -136,6 +143,57 @@ class AgenticBreachedMetricInvestigationTest(BreachedMetricInvestigationTestCase
 
         assert not created
         assert investigation.id == self.investigation.id
+
+    def test_original_source_survives_reuse_selection_content_and_retention(self) -> None:
+        original = self.investigation.source
+        other_team = self.create_team(organization=self.organization)
+        other = self.create_project(organization=self.organization, teams=[other_team])
+        update = NotebookUpdateValidator(
+            instance=self.investigation,
+            data={"notebookVersion": self.investigation.version, "projectIds": [other.id]},
+        )
+        assert update.is_valid(), update.errors
+        update.save()
+        self.create_notebook_block(
+            notebook=self.investigation,
+            kind="text",
+            content=f"Later findings about project {other.id}",
+        )
+        self.snuba_query.update(time_window=900)
+        reused, created = self.launch()
+        assert not created
+        assert reused.source == original
+        assert rebuild_orchestration_source(reused) is not None
+        orchestration = InvestigationOrchestrationRun.objects.get(investigation=reused)
+        with self.captureOnCommitCallbacks(execute=False):
+            accept_orchestration_command(
+                investigation=reused,
+                request_id=uuid4(),
+                expected_workflow_version=orchestration.workflow_version,
+                command_type="steer",
+                payload={"target": "run", "instruction": "Follow up"},
+                actor_id=self.user.id,
+            )
+        reused.refresh_from_db()
+        assert reused.source == original
+        config = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
+        )
+        run = Factories.create_seer_workflow_run(self.organization, workflow_config=config)
+        execution = Factories.create_seer_workflow_run_execution(run)
+        Factories.create_seer_workflow_output_link(execution, notebook=reused)
+        execution.delete()
+        self.detector.delete()
+        reused.refresh_from_db()
+        assert reused.source == original
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        reader = self.create_user()
+        self.create_member(organization=self.organization, user=reader, teams=[self.team])
+        assert can_view_notebook(reused, from_user(reader, self.organization))
+        later_reader = self.create_user()
+        self.create_member(organization=self.organization, user=later_reader, teams=[other_team])
+        assert not can_view_notebook(reused, from_user(later_reader, self.organization))
 
     def test_starts_a_new_revision_once_the_active_one_is_archived(self) -> None:
         self.investigation.update(status=NotebookStatus.ARCHIVED)

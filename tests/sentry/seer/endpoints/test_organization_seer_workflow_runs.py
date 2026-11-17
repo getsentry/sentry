@@ -9,9 +9,11 @@ from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from openapi_schema_validator import OAS30Validator
+from rest_framework.test import APIClient
 
 from sentry.apidocs.examples.seer_workflow_examples import WORKFLOW_RUNS_RESPONSE
 from sentry.apidocs.spectacular_ports import resolve_type_hint
+from sentry.auth.access import from_user
 from sentry.db.models.fields.bounded import I64_MAX
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
@@ -36,6 +38,7 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.features import with_feature
 from sentry.utils import json
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 from sentry.workflow_engine.models import Workflow
 
 
@@ -427,10 +430,41 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
             execution = Factories.create_seer_workflow_run_execution(
                 run, seer_run=Factories.create_seer_run(self.organization)
             )
-            first = self.create_notebook(self.organization, title="Checkout latency")
-            second = self.create_notebook(self.organization, title="Database latency")
+            first = self.create_notebook(
+                self.organization,
+                title="Checkout latency",
+                source_type="metric_open_period",
+                source_key=f"metric_open_period:{run.id}:1",
+                source_revision=1,
+                source={
+                    "type": "metric_open_period",
+                    "snapshot": {"project": {"id": str(self.project.id)}},
+                },
+            )
+            second = self.create_notebook(
+                self.organization,
+                title="Database latency",
+                source_type="metric_open_period",
+                source_key=f"metric_open_period:{run.id}:2",
+                source_revision=1,
+                source={
+                    "type": "metric_open_period",
+                    "snapshot": {"project": {"id": self.project.id}},
+                },
+            )
+            malformed = self.create_notebook(
+                self.organization,
+                source_type="metric_open_period",
+                source_key=f"metric_open_period:{run.id}:3",
+                source_revision=1,
+                source={
+                    "type": "metric_open_period",
+                    "snapshot": {"project": {"id": {"invalid": True}}},
+                },
+            )
             Factories.create_seer_workflow_output_link(execution, notebook=first)
             Factories.create_seer_workflow_output_link(execution, notebook=second)
+            Factories.create_seer_workflow_output_link(execution, notebook=malformed)
             Factories.create_seer_workflow_run_execution(run)
         runs = list(
             SeerWorkflowRun.objects.filter(id__in=[run.id for run in created])
@@ -441,13 +475,69 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
             .order_by("id")
         )
         using = router.db_for_read(SeerWorkflowRunExecution)
+        access = from_user(self.user, self.organization)
         with CaptureQueriesContext(connections[using]) as queries:
-            result = serialize_workflow_runs(runs, include_investigations=True)
+            result = serialize_workflow_runs(
+                runs, include_investigations=True, investigation_access=access
+            )
 
         assert len(queries) == 2
         assert [len(run["executions"]) for run in result["runs"]] == [2, 2, 2]
         assert result["runs"][0]["executions"][0]["seerRunId"] is not None
         assert [len(run["executions"][0]["outputs"]) for run in result["runs"]] == [2, 2, 2]
+
+    @override_settings(SEER_API_SHARED_SECRET="workflow-output-visibility-test-secret")
+    @with_feature("organizations:service-accounts")
+    def test_visible_run_omits_investigations_from_other_source_projects(self) -> None:
+        account = self.create_service_account(
+            organization=self.organization,
+            scope_list=["org:read"],
+            project_ids=[self.project.id],
+            all_projects=False,
+        )
+        self.client = APIClient()
+        self.client.credentials(
+            HTTP_X_VIEWER_CONTEXT=encode_viewer_context(
+                ViewerContext(
+                    actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=account.id),
+                    organization_id=self.organization.id,
+                ),
+                key="workflow-output-visibility-test-secret",
+            )
+        )
+        run = self.create_run(extras={"snapshot": {"inputs": {"project_id": self.project.id}}})
+        execution = Factories.create_seer_workflow_run_execution(run)
+        visible = self.create_notebook(
+            self.organization,
+            title="Allowed",
+            source_type="metric_open_period",
+            source_key="metric_open_period:1:1",
+            source_revision=1,
+            source={
+                "type": "metric_open_period",
+                "snapshot": {"project": {"id": str(self.project.id)}},
+            },
+        )
+        hidden = self.create_notebook(
+            self.organization,
+            title="Protected original project",
+            source_type="metric_open_period",
+            source_key="metric_open_period:2:2",
+            source_revision=1,
+            source={
+                "type": "metric_open_period",
+                "snapshot": {"project": {"id": str(self.create_project().id)}},
+            },
+        )
+        manual = self.create_notebook(self.organization, title="Manual")
+        for notebook in (visible, hidden, manual):
+            Factories.create_seer_workflow_output_link(execution, notebook=notebook)
+        response = self.get_success_response(self.organization.slug)
+        assert response.data["runs"][0]["id"] == str(run.id)
+        assert response.data["runs"][0]["executions"][0]["outputs"] == [
+            {"type": "investigation", "id": str(visible.id), "title": visible.title},
+            {"type": "investigation", "id": str(manual.id), "title": manual.title},
+        ]
 
     def test_omits_foreign_and_empty_output_links(self) -> None:
         run = self.create_run()

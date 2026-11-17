@@ -25,6 +25,7 @@ from sentry.notebooks.presence import HEARTBEAT_INTERVAL, record_visit
 @extend_schema(tags=["Investigations"])
 @cell_silo_endpoint
 class OrganizationNotebookPresenceEndpoint(OrganizationNotebookEndpoint):
+    is_notebook_metadata_read = True
     owner = ApiOwner.ML_AI
     publish_status = {"PUT": ApiPublishStatus.PRIVATE}
 

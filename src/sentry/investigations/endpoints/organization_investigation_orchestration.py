@@ -58,6 +58,7 @@ class OrganizationInvestigationOrchestrationEndpoint(OrganizationNotebookEndpoin
         heartbeatAt (nullable), updatedAt, and serverTime. Optional timing and scheduling fields
         may arrive as the workflow progresses. Returns 404 for a notebook without orchestration.
         Requires the organizations:investigations feature and open organization membership.
+        Monitor-backed investigations also require current access to their original source project.
         """
         try:
             projection = get_orchestration_projection(notebook)

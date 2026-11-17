@@ -103,6 +103,7 @@ class OrganizationInboxIndexEndpoint(OrganizationInboxEndpoint):
             organization=organization, user_id=user.id, status=ObjectStatus.ACTIVE
         )
         items = filter_inbox_items(items, filters.validated_data).select_related("organization")
+        items = self.filter_visible_items(items, request)
         return self.paginate(
             request,
             queryset=items,

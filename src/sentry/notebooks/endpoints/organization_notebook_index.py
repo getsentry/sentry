@@ -23,6 +23,7 @@ from sentry.apidocs.response_types import (
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.principal import acting_user_id
 from sentry.models.organization import Organization
+from sentry.notebooks.access import filter_visible_notebooks
 from sentry.notebooks.endpoints.base import (
     OrganizationNotebooksBaseEndpoint,
     organization_project_ids,
@@ -119,6 +120,7 @@ class OrganizationNotebookIndexEndpoint(OrganizationNotebooksBaseEndpoint):
         by its agentic run's status with runStatus. Returns a paginated array of summaries;
         follow the Link header for more results. Requires the organizations:investigations
         feature and open organization membership.
+        Monitor-backed investigations also require current access to their original source project.
         """
         requested_status = request.GET.get("status", NotebookStatus.ACTIVE)
         if requested_status not in NotebookStatus.values:
@@ -167,6 +169,7 @@ class OrganizationNotebookIndexEndpoint(OrganizationNotebooksBaseEndpoint):
         notebooks: QuerySet[Notebook] = Notebook.objects.filter(
             organization=organization, status=requested_status
         ).filter(Q(source_key__isnull=True) | ~Exists(newer_lineage_revision))
+        notebooks = filter_visible_notebooks(notebooks, request.access)
         query = request.GET.get("query")
         if query:
             notebooks = notebooks.filter(title__icontains=query)

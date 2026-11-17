@@ -69,6 +69,7 @@ class OrganizationNotebookDetailsEndpoint(OrganizationNotebookEndpoint):
         and saved values, and ordered active blocks. Poll this endpoint for notebook and block
         output updates. Requires the organizations:investigations feature and open organization
         membership.
+        Monitor-backed investigations also require current access to their original source project.
         """
         body: NotebookDetailsSerializerResponse = serialize(
             notebook,

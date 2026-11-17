@@ -133,6 +133,21 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
         assert launched.status_code == 404
         assert not Notebook.objects.filter(organization=self.organization).exists()
 
+    def test_candidate_never_returns_an_unresolvable_original_source(self) -> None:
+        group, open_period = self.create_metric_open_period()
+        source = {
+            "type": "metric_open_period",
+            "ref": {"groupId": str(group.id), "openPeriodId": str(open_period.id)},
+        }
+        launched = self.client.post(self.start_url, {"source": source}, format="json")
+        assert launched.status_code == 201
+        notebook = Notebook.objects.get(id=launched.data["id"])
+        notebook.update(source={"type": "metric_open_period", "ref": source["ref"]})
+
+        response = self.client.post(self.candidates_url, {"sources": [source]}, format="json")
+        assert response.status_code == 200
+        assert response.data == {"items": [{"status": "investigate"}]}
+
     def test_candidate_launches_the_exact_open_period(self) -> None:
         group, open_period = self.create_metric_open_period()
         ended_at = timezone.now() - timedelta(hours=1)

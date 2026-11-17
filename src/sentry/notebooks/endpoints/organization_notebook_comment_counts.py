@@ -41,6 +41,7 @@ class OrganizationNotebookCommentCountsEndpoint(OrganizationNotebookEndpoint):
         comments are included; investigation-level comments and deleted blocks are excluded.
         Returns an empty object when no block comments exist. Requires the
         organizations:investigations feature and open organization membership.
+        Monitor-backed investigations also require current access to their original source project.
         """
         counts = (
             NotebookComment.objects.filter(

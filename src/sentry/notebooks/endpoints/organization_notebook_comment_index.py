@@ -61,6 +61,7 @@ class OrganizationNotebookCommentIndexEndpoint(OrganizationNotebookEndpoint):
         List comments newest first as a paginated array. Optionally filter to one block using
         blockId. Follow the Link header for more results. Requires the
         organizations:investigations feature and open organization membership.
+        Monitor-backed investigations also require current access to their original source project.
         """
         # A deleted block's comments are hidden, and come back if Seer restores the block.
         comments = NotebookComment.objects.filter(notebook=notebook).filter(

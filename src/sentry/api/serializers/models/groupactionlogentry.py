@@ -3,7 +3,9 @@ from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Annotated, Any, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
-from django.db.models import Q
+from django.db.models import Exists, OuterRef, Q, TextField
+from django.db.models.fields.json import KeyTextTransform
+from django.db.models.functions import Cast
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.activity import (
@@ -42,8 +44,8 @@ from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.project import Project
 from sentry.models.pullrequest import PullRequest
-from sentry.notebooks.access import can_view_issue_links
-from sentry.notebooks.models import Notebook
+from sentry.notebooks.access import can_view_issue_links, filter_visible_notebooks
+from sentry.notebooks.models import Notebook, NotebookSourceType
 from sentry.sentry_apps.api.serializers.sentry_app_avatar import SentryAppAvatarSerializer
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.services.app.model import RpcSentryApp
@@ -165,12 +167,24 @@ def get_serialized_activity_items(
     hidden_types: list[GroupActionType] = []
     if access is None or not can_view_issue_links(group.project.organization, user, access):
         hidden_types.append(GroupActionType.INVESTIGATION_LINKED)
+    visible_actions = Q()
+    if access is not None:
+        hidden_notebooks = (
+            Notebook.objects.filter(source_type=NotebookSourceType.METRIC_OPEN_PERIOD)
+            .exclude(id__in=filter_visible_notebooks(Notebook.objects.all(), access))
+            .annotate(notebook_id_text=Cast("id", TextField()))
+            .filter(notebook_id_text=KeyTextTransform("notebook_id", OuterRef("data")))
+        )
+        visible_actions = ~Q(type=GroupActionType.INVESTIGATION_LINKED) | ~Q(
+            Exists(hidden_notebooks)
+        )
     oldest_entry = (
         GroupActionLogEntry.objects.filter(
             group_id=group.id,
             type__in=[*GroupAction.get_user_visible_types(), *COMMENT_ACTION_TYPES],
         )
         .exclude(type__in=hidden_types)
+        .filter(visible_actions)
         .order_by("date_added", "id")
         .first()
     )
@@ -188,6 +202,7 @@ def get_serialized_activity_items(
         GroupActionLogEntry.objects.user_visible()
         .filter(group_id=group.id)
         .filter(action_filter if action_filter is not None else Q())
+        .filter(visible_actions)
         # Appended separately below, regardless of the limit.
         .exclude(type__in=[GroupActionType.FIRST_SEEN, *hidden_types])
         .order_by("-date_added", "-id")[:limit]
