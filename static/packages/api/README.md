@@ -308,6 +308,22 @@ It runs once per request, including `prepareRequest`, after `requestValidator`
 and before request interceptors. A per-call `resolveBaseUrl` replaces the
 configured one. A throw rejects the request unchanged, before `fetch` is called.
 
+### Renamed projects
+
+A request that uses a project's old slug gets a 302 to the same URL with the new slug, and fetch follows it. `getSentryProjectRename(request, response)` reports such a rename, from the followed redirect or from the 302's `Location` when redirects are not followed. It returns `{ organization, previousSlug, slug, url }`, or `undefined` for any other response, and never redirects. Use it in a response interceptor to update stored slugs or links:
+
+```ts
+import { getSentryProjectRename } from "@sentry/api";
+
+sentry.client.interceptors.response.use((response, request) => {
+  const rename = getSentryProjectRename(request, response);
+  if (rename) console.info(`Project ${rename.previousSlug} is now ${rename.slug}`);
+  return response;
+});
+```
+
+Browsers hide the target of an unfollowed (`redirect: "manual"`) redirect, so there only a followed redirect is reported.
+
 ### Linking to Sentry
 
 To link to something in Sentry, use the URL the API returns instead of building one from the base URL and slugs. Those URLs account for how the deployment is set up, such as organization subdomains or a self-hosted URL prefix:
@@ -426,7 +442,7 @@ Failures throw `ObjectstoreError`, an `ApiError` with the failing object or requ
 
 ## Runtime validation
 
-The root `@sentry/api` entry has no runtime dependencies. It provides the API client and pure TypeScript types without installing a validation library.
+The root `@sentry/api` entry imports no other package at runtime, and neither do `@sentry/api/browser`, `@sentry/api/operations`, and `@sentry/api/docs`. It provides the API client and pure TypeScript types without installing a validation library. Only `@sentry/api/client` imports packages, `p-limit` and `http-cache-semantics`. They are regular dependencies, so npm installs them with `@sentry/api` even when you never import `/client`.
 
 Valibot 1 runtime schemas are available through a separate optional entry point:
 
