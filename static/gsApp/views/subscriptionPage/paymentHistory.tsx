@@ -211,6 +211,8 @@ const COLUMNS: TableColumnConfig[] = [
   {key: 'download', width: {zero: 'max-content', xl: 'minmax(max-content, 2fr)'}},
 ];
 
+const COLUMNS_WITHOUT_TYPE = COLUMNS.filter(column => column.key !== 'type');
+
 function ReceiptTable({
   isError,
   isPending,
@@ -225,17 +227,21 @@ function ReceiptTable({
   payments: InvoiceBase[] | undefined;
 }) {
   const isSmallContainer = useResponsivePropValue({zero: true, xl: false});
+  // Only token-billed Seer has auto-reloads and credit grants to tell apart.
+  const showReceiptType = organization.features.includes('token-billed-seer-enabled');
 
   return (
     <SimpleTable
       aria-label={t('Receipts')}
-      columns={COLUMNS}
+      columns={showReceiptType ? COLUMNS : COLUMNS_WITHOUT_TYPE}
       data-test-id="payment-list"
       scrollable
       header={
         <SimpleTable.HeaderRow>
           <SimpleTable.HeaderCell>{t('Date')}</SimpleTable.HeaderCell>
-          <SimpleTable.HeaderCell>{t('Type')}</SimpleTable.HeaderCell>
+          {showReceiptType && (
+            <SimpleTable.HeaderCell>{t('Type')}</SimpleTable.HeaderCell>
+          )}
           <SimpleTable.HeaderCell align="right">{t('Amount')}</SimpleTable.HeaderCell>
           <SimpleTable.HeaderCell>{t('Status')}</SimpleTable.HeaderCell>
           <SimpleTable.HeaderCell>{t('Receipt ID')}</SimpleTable.HeaderCell>
@@ -255,11 +261,13 @@ function ReceiptTable({
                 {moment(payment.dateCreated).format('MMM D, YYYY')}
               </Link>
             </SimpleTable.RowCell>
-            <SimpleTable.RowCell>
-              {payment.receiptType && (
-                <Text>{getReceiptTypeLabel(payment.receiptType)}</Text>
-              )}
-            </SimpleTable.RowCell>
+            {showReceiptType && (
+              <SimpleTable.RowCell>
+                {payment.receiptType && (
+                  <Text>{getReceiptTypeLabel(payment.receiptType)}</Text>
+                )}
+              </SimpleTable.RowCell>
+            )}
             <SimpleTable.RowCell justify="end">
               <Container>
                 <Text align="right">{formatCurrency(payment.amountBilled ?? 0)}</Text>

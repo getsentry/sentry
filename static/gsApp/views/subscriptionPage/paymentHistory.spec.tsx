@@ -138,6 +138,7 @@ describe('Subscription > PaymentHistory', () => {
     const organization = OrganizationFixture({
       slug: 'dogz-rule',
       access: ['org:billing'],
+      features: ['token-billed-seer-enabled'],
     });
     const subscription = SubscriptionFixture({organization});
     SubscriptionStore.set(organization.slug, subscription);
@@ -185,6 +186,30 @@ describe('Subscription > PaymentHistory', () => {
       'href',
       'https://example.com/receipt.pdf'
     );
+  });
+
+  it('leaves out the receipt type without token-billed Seer', async () => {
+    const organization = OrganizationFixture({
+      slug: 'dogz-rule',
+      access: ['org:billing'],
+    });
+    const subscription = SubscriptionFixture({organization});
+    SubscriptionStore.set(organization.slug, subscription);
+
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/invoices/`,
+      method: 'GET',
+      body: [InvoiceFixture({receiptType: 'seer_auto_reload'})],
+    });
+
+    render(<PaymentHistory />, {organization});
+
+    const table = await screen.findByRole('table', {name: 'Receipts'});
+    await within(table).findByRole('row', {name: /^Jun 25, 2018/});
+    expect(
+      within(table).queryByRole('columnheader', {name: 'Type'})
+    ).not.toBeInTheDocument();
+    expect(within(table).queryByText('Seer auto-reload')).not.toBeInTheDocument();
   });
 
   it('retries loading receipts when the request fails', async () => {
