@@ -37,6 +37,7 @@ from sentry.seer.workflows.base import (
     WorkflowUpdateError,
 )
 from sentry.seer.workflows.breached_metrics import ConnectedMonitor
+from sentry.seer.workflows.configuration import investigation_actions
 from sentry.seer.workflows.workflow import SeerWorkflow
 from sentry.service_accounts.models import ServiceAccount, ServiceAccountProject
 from sentry.silo.base import SiloMode
@@ -99,6 +100,7 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
         response = self.get_success_response(self.organization.slug)
 
         assert [item["id"] for item in response.data["configs"]] == [str(config.id), str(empty.id)]
+        assert config.backing_workflow is not None
         assert response.data["configs"][0] == {
             "id": str(config.id),
             "strategy": "agentic_triage_v2",
@@ -113,6 +115,10 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
             "outputPolicy": {"review_mode": "manual"},
             "seededDefault": "agentic_triage_v2",
             "nextRunAt": None,
+            "workflowId": str(config.backing_workflow_id),
+            "actionId": str(investigation_actions(config).get().id),
+            "actionSettings": investigation_actions(config).get().data,
+            "name": config.backing_workflow.name,
             "dateAdded": config.date_added,
             "dateUpdated": config.date_updated,
         }
@@ -271,7 +277,7 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
                 configs, accessible_project_ids=[project_id], has_global_access=True
             )
 
-        assert len(queries) == 3
+        assert len(queries) == 5
         assert [config["dateLastRun"] for config in result["configs"]] == [
             run.date_added for run in runs
         ]
@@ -484,7 +490,9 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         # Recording the updater is part of the same save, so the version bumps once.
         assert response.data["version"] == version + 1
         config.refresh_from_db()
-        assert config.extras == {"created_by": self.user.id, "updated_by": updater.id}
+        assert config.extras == {"updated_by": updater.id}
+        assert config.backing_workflow is not None
+        assert config.backing_workflow.created_by_id == self.user.id
 
     def test_put_by_another_user_replaces_updated_by(self) -> None:
         config = self.create_config()
@@ -580,7 +588,8 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         assert response.data["detail"] == "Requesting all projects requires global access"
         config.refresh_from_db()
         assert config.filters["all_projects"] is True
-        assert config.enabled is False
+        assert config.backing_workflow is not None
+        assert config.backing_workflow.enabled is False
         assert self.selected_project_ids(config) == []
 
     def test_member_cannot_put_all_projects(self) -> None:
@@ -741,7 +750,8 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         )
         assert response.data["enabled"] is True
         config.refresh_from_db()
-        assert config.enabled is True
+        assert config.backing_workflow is not None
+        assert config.backing_workflow.enabled is True
 
     def test_agent_projects_hide_projects_the_viewer_cannot_access(self) -> None:
         member, accessible = self.create_member_with_project(open_membership=False)
@@ -914,6 +924,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
 
     def test_put_monitor_ids_on_non_metric_config_returns_400(self) -> None:
         config = self.create_config()
+        workflow_id = config.backing_workflow_id
         monitor = self.create_metric_monitor(self.project)
 
         response = self.get_error_response(
@@ -929,7 +940,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         }
         config.refresh_from_db()
         assert config.version == 1
-        assert config.backing_workflow_id is None
+        assert config.backing_workflow_id == workflow_id
 
     def test_put_breached_metric_member_needs_access_to_monitor_projects(self) -> None:
         member, accessible_project = self.create_member_with_project(open_membership=False)
@@ -998,7 +1009,8 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         assert response.data["projects"] == [self.project.id]
         assert response.data["name"] == "Checkout triage"
         config.refresh_from_db()
-        assert config.extras["name"] == "Checkout triage"
+        assert config.backing_workflow is not None
+        assert config.backing_workflow.name == "Checkout triage"
 
     def test_put_failure_rolls_back_every_change(self) -> None:
         config = self.create_config()
@@ -1018,7 +1030,8 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
 
         config.refresh_from_db()
         assert config.version == 1
-        assert config.enabled is False
+        assert config.backing_workflow is not None
+        assert config.backing_workflow.enabled is False
         assert self.selected_project_ids(config) == [self.project.id]
 
     def test_put_project_ids_on_breached_metric_config_returns_400(self) -> None:
@@ -1200,12 +1213,41 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             )
         assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
 
+    def test_prompt_settings_are_stored_on_the_wfe_action(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug,
+            strategy="agentic_triage_v2",
+            name="Weekly triage",
+            actionSettings={"mode": "prompted", "prompt": "Investigate slow API requests"},
+            status_code=201,
+        )
+        config = SeerWorkflowConfig.objects.get(
+            organization=self.organization, id=response.data["id"]
+        )
+        action = investigation_actions(config).get()
+        assert action.data == {"mode": "prompted", "prompt": "Investigate slow API requests"}
+        assert config.extras == {}
+        assert config.backing_workflow is not None
+        assert config.backing_workflow.name == "Weekly triage"
+        assert response.data["actionId"] == str(action.id)
+        assert response.data["workflowId"] == str(config.backing_workflow_id)
+
+    def test_invalid_prompt_settings_do_not_create_an_automation(self) -> None:
+        self.get_error_response(
+            self.organization.slug,
+            strategy="agentic_triage_v2",
+            actionSettings={"mode": "prompted", "prompt": "   "},
+            status_code=400,
+        )
+        assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
+
     def test_creates_config_with_defaults(self) -> None:
         response = self.get_success_response(
             self.organization.slug, strategy="agentic_triage_v2", status_code=201
         )
 
         config = SeerWorkflowConfig.objects.get(organization=self.organization)
+        assert config.backing_workflow is not None
         assert response.data == {
             "id": str(config.id),
             "strategy": "agentic_triage_v2",
@@ -1225,11 +1267,17 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             "outputPolicy": {},
             "seededDefault": None,
             "nextRunAt": None,
+            "workflowId": str(config.backing_workflow_id),
+            "actionId": str(investigation_actions(config).get().id),
+            "actionSettings": investigation_actions(config).get().data,
+            "name": config.backing_workflow.name,
             "dateAdded": config.date_added,
             "dateUpdated": config.date_updated,
             "createdBy": str(self.user.id),
         }
-        assert config.extras == {"created_by": self.user.id}
+        assert config.extras == {}
+        assert config.backing_workflow is not None
+        assert config.backing_workflow.created_by_id == self.user.id
 
     @patch(
         "sentry.seer.endpoints.organization_seer_workflow_configs.acting_user_id",
@@ -1382,8 +1430,13 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         )
 
         config = SeerWorkflowConfig.objects.get(id=response.data["id"])
-        assert config.enabled is True
-        assert config.extras == {"name": "Checkout triage", "created_by": self.user.id}
+        assert config.backing_workflow is not None
+        assert config.backing_workflow.enabled is True
+        assert config.extras == {}
+        assert config.backing_workflow is not None
+        assert config.backing_workflow.name == "Checkout triage"
+        assert config.backing_workflow is not None
+        assert config.backing_workflow.created_by_id == self.user.id
         assert response.data["name"] == "Checkout triage"
         assert response.data["environments"] == ["production"]
         assert sorted(response.data["projects"]) == sorted([self.project.id, other.id])
@@ -1525,9 +1578,14 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
 
         config = SeerWorkflowConfig.objects.get(id=response.data["id"])
         assert config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
-        assert config.enabled is True
+        assert config.backing_workflow is not None
+        assert config.backing_workflow.enabled is True
         assert config.filters == {"all_projects": False, "environments": ["production"]}
-        assert config.extras == {"name": "Latency breaches", "created_by": self.user.id}
+        assert config.extras == {}
+        assert config.backing_workflow is not None
+        assert config.backing_workflow.name == "Latency breaches"
+        assert config.backing_workflow is not None
+        assert config.backing_workflow.created_by_id == self.user.id
         assert config.version == 1
         assert config.backing_workflow is not None
         assert set(

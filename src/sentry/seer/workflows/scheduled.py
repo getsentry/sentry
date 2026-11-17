@@ -41,11 +41,14 @@ from sentry.seer.models.workflow import (
     SeerWorkflowFilters,
     SeerWorkflowRun,
     SeerWorkflowSchedule,
+    SeerWorkflowStrategy,
+    WorkflowRunSnapshot,
 )
+from sentry.seer.workflows.action_settings import InvestigationSettings
+from sentry.seer.workflows.admission import admit_run
 from sentry.seer.workflows.base import (
     AllProjects,
-    AutomationAction,
-    AutomationDefinition,
+    AutomationConfiguration,
     AutomationTrigger,
     ConfigUpdate,
     ScopeSelection,
@@ -55,11 +58,11 @@ from sentry.seer.workflows.base import (
     lock_config,
     validate_project_ids,
 )
-from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
+from sentry.seer.workflows.configuration import investigation_actions, is_enabled
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
-from sentry.utils import metrics
+from sentry.utils import json, metrics
 
 logger = logging.getLogger(__name__)
 
@@ -103,7 +106,7 @@ def _daily() -> CronSchedule:
 
 def schedule_for(config: SeerWorkflowConfig) -> Schedule | None:
     """The schedule a scheduled `config` should run on, or None while it is disabled."""
-    if not config.enabled:
+    if not is_enabled(config):
         return None
     extras = SeerWorkflowConfigExtras.parse_obj(config.extras)
     settings = ScheduleSettings.parse_obj(extras.trigger_settings or {})
@@ -197,27 +200,14 @@ class ScheduleTrigger(AutomationTrigger[ScheduledRunInputs]):
         sync_schedule(config)
 
     def teardown(self, config: SeerWorkflowConfig) -> None:
+        from sentry.seer.workflows.breached_metrics import MetricAlertTrigger
+
+        MetricAlertTrigger().teardown(config)
         clear_schedule(
             organization_id=config.organization_id,
             trigger_type=ScheduledTriggerType.SEER_WORKFLOW,
             target_id=config.id,
         )
-
-
-class PromptedInvestigationAction(AutomationAction[BaseModel]):
-    """Run an investigation from a prompt, whatever started the run."""
-
-    settings_type = PromptSettings
-
-    def dispatch(
-        self, config: SeerWorkflowConfig, run: SeerWorkflowRunLifecycle, inputs: BaseModel
-    ) -> None:
-        """Persist the execution plan and durable dispatch before admission commits.
-
-        Seer result/status delivery must complete those executions. Raising here rolls back
-        admission if the execution flag is enabled before this implementation is supplied.
-        """
-        raise NotImplementedError("Scheduled Seer automation dispatch is not implemented")
 
 
 def trigger_key_for(scheduled_for: datetime) -> str:
@@ -312,7 +302,7 @@ def _run(organization_id: int, config_id: int, scheduled_for: datetime) -> Sched
 
 
 def _record_scheduled_run(
-    definition: AutomationDefinition[Any],
+    definition: AutomationConfiguration[Any],
     organization_id: int,
     config_id: int,
     scheduled_for: datetime,
@@ -320,13 +310,34 @@ def _record_scheduled_run(
     """Admit and dispatch the run scheduled for `scheduled_for`, once per config."""
     try:
         with lock_config(organization_id, config_id) as config:
-            if not config.enabled:
+            if not is_enabled(config):
                 return ScheduledRunOutcome("ignored", reason="config_disabled")
 
-            run = definition.trigger_run(
-                config,
-                trigger_key=trigger_key_for(scheduled_for),
-                inputs=ScheduledRunInputs(scheduled_for=scheduled_for),
+            # Temporary cadence adapter until WFE accepts issue-independent invocations.
+            from sentry.seer.workflows.breached_metrics import SeerInvestigationActionHandler
+
+            inputs = ScheduledRunInputs(scheduled_for=scheduled_for)
+
+            def snapshot() -> WorkflowRunSnapshot:
+                action = investigation_actions(config).get()
+                settings = InvestigationSettings.parse_obj(action.data)
+                if settings.mode != "prompted":
+                    raise WorkflowUpdateError(
+                        "Scheduled investigations require prompted action settings"
+                    )
+                return WorkflowRunSnapshot(
+                    config_version=config.version,
+                    strategy=SeerWorkflowStrategy(config.strategy),
+                    filters=config.filters,
+                    project_ids=tuple(definition.project_ids(config)),
+                    output_policy=config.output_policy,
+                    inputs=json.loads(inputs.json()),
+                    action_data=settings.dict(),
+                    service_account_id=config.service_account_id,
+                )
+
+            run = admit_run(
+                config, trigger_key=trigger_key_for(scheduled_for), build_snapshot=snapshot
             )
             if not run.created:
                 return ScheduledRunOutcome("duplicate", run=run.lifecycle.get_run())
@@ -334,6 +345,8 @@ def _record_scheduled_run(
                 return ScheduledRunOutcome(
                     "rejected", reason=run.rejection, run=run.lifecycle.get_run()
                 )
+            run.lifecycle.start()
+            SeerInvestigationActionHandler.dispatch(config, run.lifecycle, inputs)
             return ScheduledRunOutcome("accepted", run=run.lifecycle.get_run())
     except SeerWorkflowConfig.DoesNotExist:
         return ScheduledRunOutcome("ignored", reason="configuration_unavailable")

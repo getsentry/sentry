@@ -6,7 +6,7 @@ from datetime import datetime
 from functools import partial
 from typing import Any, Literal, NotRequired, TypedDict
 
-from django.db.models import OuterRef, Subquery
+from django.db.models import OuterRef, Subquery, prefetch_related_objects
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
@@ -40,6 +40,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowSchedule,
     SeerWorkflowStrategy,
 )
+from sentry.seer.workflows.action_settings import InvestigationSettings
 from sentry.seer.workflows.base import (
     AllProjects,
     SeerServiceAccountGrant,
@@ -52,6 +53,7 @@ from sentry.seer.workflows.breached_metrics import (
     get_config_monitors_bulk,
     get_monitor_project_ids,
 )
+from sentry.seer.workflows.configuration import is_enabled, read_extras
 from sentry.seer.workflows.definitions import get_definition
 from sentry.seer.workflows.workflow import SeerWorkflow
 from sentry.service_accounts.models import (
@@ -61,6 +63,12 @@ from sentry.service_accounts.models import (
 )
 from sentry.service_accounts.services.service_account import RpcServiceAccount
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.workflow_engine.endpoints.validators.utils import validate_json_schema
+from sentry.workflow_engine.models import (
+    Action,
+    DataConditionGroupAction,
+    WorkflowDataConditionGroup,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -95,6 +103,9 @@ class SeerWorkflowConfigResponse(TypedDict):
     dateUpdated: datetime
     dateLastRun: NotRequired[datetime]
     lastRunStatus: NotRequired[str | None]
+    workflowId: str | None
+    actionId: str | None
+    actionSettings: dict[str, Any]
     name: NotRequired[str]
     createdBy: NotRequired[str]
     updatedBy: NotRequired[str]
@@ -142,7 +153,15 @@ class ServiceAccountGrantSerializer(serializers.Serializer):
         )
 
 
+class InvestigationSettingsField(serializers.JSONField):
+    def to_internal_value(self, data: Any) -> dict[str, Any]:
+        value = super().to_internal_value(data)
+        validate_json_schema(value, InvestigationSettings.json_schema())
+        return InvestigationSettings.parse_obj(value).dict()
+
+
 class WorkflowConfigCreateSerializer(serializers.Serializer):
+    actionSettings = InvestigationSettingsField(required=False)
     strategy = serializers.ChoiceField(
         choices=sorted(s.value for s in SEER_CONFIGURABLE_WORKFLOW_STRATEGIES)
     )
@@ -193,6 +212,7 @@ class WorkflowConfigCreateSerializer(serializers.Serializer):
 
 
 class WorkflowConfigUpdateSerializer(serializers.Serializer):
+    actionSettings = InvestigationSettingsField(required=False)
     enabled = serializers.BooleanField(required=False)
     serviceAccount = ServiceAccountGrantSerializer(required=False)
     name = serializers.CharField(required=False, max_length=64)
@@ -452,6 +472,7 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
         extras = SeerWorkflowConfigExtras(
             name=data.get("name"),
             created_by=acting_user_id(request.user),
+            action_settings=data.get("actionSettings"),
         )
         try:
             if strategy is SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
@@ -609,7 +630,8 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
             raise NotFound from e
         workflow = SeerWorkflow(config_id=config.id, organization_id=organization.id)
 
-        enabled: bool | None = serializer.validated_data.get("enabled")
+        data = serializer.validated_data
+        enabled: bool | None = data.get("enabled")
         project_ids: list[int] | None = serializer.validated_data.get("projectIds")
         monitor_ids: list[int] | None = serializer.validated_data.get("monitorIds")
         name: str | None = serializer.validated_data.get("name")
@@ -727,14 +749,29 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                     if update.set_service_account_grant(grant):
                         applied_grant = grant
 
-                if name is not None:
-                    extras = SeerWorkflowConfigExtras.parse_obj(update.config.extras)
-                    extras.name = name
+                if name is not None or "actionSettings" in data:
+                    # Settings affect work across the full scope, including hidden projects.
+                    if "actionSettings" in data:
+                        denied = _check_project_access(
+                            [ALL_ACCESS_PROJECT_ID]
+                            if config_all_projects
+                            else workflow.get_project_ids(),
+                            request=request,
+                            organization=organization,
+                            endpoint=self,
+                        )
+                        if denied is not None:
+                            raise PermissionDenied(detail=denied)
+                    extras = read_extras(update.config)
+                    if name is not None:
+                        extras.name = name
+                    if "actionSettings" in data:
+                        extras.action_settings = data["actionSettings"]
                     update.set_extras(extras)
 
                 if update.changed:
                     user_id = acting_user_id(request.user)
-                    extras = SeerWorkflowConfigExtras.parse_obj(update.config.extras)
+                    extras = read_extras(update.config)
                     extras.updated_by = "bot" if user_id is None else user_id
                     update.set_extras(extras)
 
@@ -812,6 +849,7 @@ def serialize_workflow_configs(
     accounts: Sequence[RpcServiceAccount] = (),
 ) -> SeerWorkflowConfigsResponse:
     """``accounts`` override the cell replicas, which may lag a write in this request."""
+    prefetch_related_objects(configs, "backing_workflow")
     accessible = set(accessible_project_ids)
     service_accounts = get_config_service_accounts(configs, accessible_project_ids=accessible) | {
         account.id: SeerServiceAccountResponse(
@@ -835,6 +873,17 @@ def serialize_workflow_configs(
     )
     last_runs_by_config_id = {run.config_id: run for run in last_runs}
     next_run_times = get_next_run_times(configs)
+    groups = dict(
+        WorkflowDataConditionGroup.objects.filter(
+            workflow_id__in=[config.backing_workflow_id for config in configs]
+        ).values_list("condition_group_id", "workflow_id")
+    )
+    actions_by_workflow = {
+        groups[link.condition_group_id]: link.action
+        for link in DataConditionGroupAction.objects.filter(
+            condition_group_id__in=groups, action__type=Action.Type.SEER_INVESTIGATION
+        ).select_related("action")
+    }
     return {
         "configs": [
             serialize_workflow_config(
@@ -848,6 +897,7 @@ def serialize_workflow_configs(
                     else None
                 ),
                 next_run_at=next_run_times.get(config.id),
+                action=actions_by_workflow.get(config.backing_workflow_id),
             )
             for config in configs
         ]
@@ -918,6 +968,7 @@ def serialize_workflow_config(
     last_run: WorkflowConfigLastRun | None,
     service_account: SeerServiceAccountResponse | None,
     next_run_at: datetime | None,
+    action: Action | None = None,
 ) -> SeerWorkflowConfigResponse:
     filters = SeerWorkflowFilters.parse_obj(config.filters)
     monitor_ids = [m.monitor_id for m in connected_monitors]
@@ -931,7 +982,10 @@ def serialize_workflow_config(
     result: SeerWorkflowConfigResponse = {
         "id": str(config.id),
         "strategy": config.strategy,
-        "enabled": config.enabled,
+        "workflowId": str(config.backing_workflow_id) if config.backing_workflow_id else None,
+        "actionId": str(action.id) if action else None,
+        "actionSettings": action.data if action else {},
+        "enabled": is_enabled(config),
         "schedule": config.schedule,
         "version": config.version,
         "projects": project_ids,
@@ -956,6 +1010,9 @@ def serialize_workflow_config(
         result["dateLastRun"] = last_run.last_run_at
         result["lastRunStatus"] = last_run.last_run_status
     extras = SeerWorkflowConfigExtras.parse_obj(config.extras)
+    if config.backing_workflow is not None:
+        extras.name = config.backing_workflow.name
+        extras.created_by = config.backing_workflow.created_by_id
     if extras.name is not None:
         result["name"] = extras.name
     if extras.created_by is not None:

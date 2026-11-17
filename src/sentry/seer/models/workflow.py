@@ -91,6 +91,7 @@ class SeerWorkflowConfig(DefaultFieldsModel):
         null=True,
     )
     strategy = models.CharField(max_length=256, choices=SeerWorkflowStrategy.choices)
+    # Legacy organization-wide strategies only. Configurable automations use Workflow.enabled.
     enabled = models.BooleanField(default=False)
     schedule = models.CharField(
         max_length=256, choices=SeerWorkflowSchedule.choices, default=SeerWorkflowSchedule.DAILY
@@ -154,24 +155,6 @@ class SeerWorkflowConfigProject(DefaultFieldsModel):
     __repr__ = sane_repr("config_id", "project_id")
 
 
-@cell_silo_model
-class SeerWorkflowTriggerBinding(DefaultFieldsModel):
-    """Connect a WFE Action to an automation; a config may have multiple bindings."""
-
-    __relocation_scope__ = RelocationScope.Excluded
-
-    workflow_config = FlexibleForeignKey("seer.SeerWorkflowConfig", on_delete=models.CASCADE)
-    trigger_action = models.OneToOneField(
-        "workflow_engine.Action", on_delete=models.CASCADE, related_name="seer_workflow_binding"
-    )
-
-    class Meta:
-        app_label = "seer"
-        db_table = "seer_workflowtriggerbinding"
-
-    __repr__ = sane_repr("workflow_config_id", "trigger_action_id")
-
-
 class SeerWorkflowRunStatus(models.TextChoices):
     QUEUED = "queued"
     RUNNING = "running"
@@ -199,6 +182,8 @@ class WorkflowRunSnapshot(BaseModel):
     project_ids: tuple[int, ...]
     output_policy: dict[str, Any]
     inputs: dict[str, Any]
+    action_data: dict[str, Any] = {}
+    service_account_id: int | None = None
 
     class Config:
         allow_mutation = False

@@ -88,7 +88,7 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
                 {
                     "id": str(run.id),
                     "configId": str(self.config.id),
-                    "configName": None,
+                    "configName": "Seer automation",
                     "strategy": "breached_metric_investigation",
                     "trigger": None,
                     "status": "running",
@@ -436,7 +436,7 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
             SeerWorkflowRun.objects.filter(id__in=[run.id for run in created])
             .annotate(
                 strategy=F("workflow_config__strategy"),
-                config_extras=F("workflow_config__extras"),
+                config_name=F("workflow_config__backing_workflow__name"),
             )
             .order_by("id")
         )
@@ -510,7 +510,8 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
         }
 
     def test_returns_the_config_name(self) -> None:
-        self.config.update(extras={"name": "Checkout latency"})
+        assert self.config.backing_workflow is not None
+        self.config.backing_workflow.update(name="Checkout latency")
         self.create_run()
 
         response = self.get_success_response(self.organization.slug)
