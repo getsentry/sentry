@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+from pathlib import Path
+
+EXCEPTIONS_PATH = Path("api_exceptions/exceptions.json")
+
 
 def entry_signature(entry: dict[str, object]) -> tuple[object, object, object, object]:
     """An entry's (rule, path, scope, key), which is what identifies it between runs"""
@@ -86,8 +90,11 @@ def diff_entries(
     return added, removed, changed
 
 
-def describe_entry(entry: dict[str, object]) -> str:
-    """One line naming an entry for the printed summary: rule, path, scope, key and owner"""
-    return (
-        f"{entry['rule']} {entry['path']} {entry['scope']} {entry['key'] or '-'} ({entry['owner']})"
-    )
+def describe_entry(entry: dict[str, object], with_owner: bool = True) -> str:
+    """One line naming an entry for the printed summary: rule, path, scope, key and owner
+    `with_owner` False leaves the "(owner)" off, for output already grouped by team
+    """
+    line = f"{entry['rule']} {entry['path']} {entry['scope']} {entry['key'] or '-'}"
+    if with_owner:
+        line += f" ({entry['owner']})"
+    return line

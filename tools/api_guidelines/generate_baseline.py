@@ -7,14 +7,18 @@ from collections import Counter
 from datetime import date
 from pathlib import Path
 
-from tools.api_guidelines.entries import describe_entry, diff_entries, merge_entries
+from tools.api_guidelines.entries import (
+    EXCEPTIONS_PATH,
+    describe_entry,
+    diff_entries,
+    merge_entries,
+)
 from tools.api_guidelines.owners import owner_for
 from tools.api_guidelines.rules import BASELINED_RULES
 from tools.api_guidelines.scan import collect_findings
 from tools.api_guidelines.signature import BaselineSignature
 from tools.flake8_plugin import ApiInputViolation
 
-EXCEPTIONS_PATH = Path("api_exceptions/exceptions.json")
 OWNER_MAP_PATH = Path(".artifacts/api-endpoint-owners.json")
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 
