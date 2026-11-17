@@ -5,7 +5,7 @@ from collections.abc import Mapping, Sequence, Set
 from datetime import datetime
 from typing import Literal, NamedTuple, TypedDict
 
-from django.db.models import Exists, F, OuterRef, Prefetch, Q, TextField, prefetch_related_objects
+from django.db.models import Exists, F, OuterRef, Prefetch, Q, TextField
 from django.db.models.fields.json import KeyTextTransform, KeyTransform
 from django.db.models.functions import Cast
 from drf_spectacular.utils import extend_schema
@@ -263,6 +263,40 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
                 )
             )
 
+        output_links = SeerWorkflowOutputLink.objects.select_related("notebook").order_by("id")
+        if not has_notebooks_access(organization, actor=request.user):
+            output_links = output_links.none()
+        else:
+            source_projects = Project.objects.filter(
+                organization=organization, status=ObjectStatus.ACTIVE
+            )
+            if accessible_project_ids is not None:
+                source_projects = source_projects.filter(id__in=accessible_project_ids)
+            # The original server-owned source survives edits to project selection and run links.
+            # Cast the project ID, never the saved JSON, so malformed snapshots cannot fail a page.
+            source_projects = source_projects.annotate(
+                source_project_id=Cast("id", TextField())
+            ).filter(
+                source_project_id=KeyTextTransform(
+                    "id", KeyTransform("project", KeyTransform("snapshot", OuterRef("source")))
+                )
+            )
+            visible_notebooks = Notebook.objects.filter(organization=organization).filter(
+                ~Q(source_type=NotebookSourceType.METRIC_OPEN_PERIOD)
+                | (
+                    Q(source__type=NotebookSourceType.METRIC_OPEN_PERIOD)
+                    & Q(Exists(source_projects))
+                )
+            )
+            output_links = output_links.filter(notebook__in=visible_notebooks)
+        runs = runs.prefetch_related(
+            Prefetch(
+                "executions",
+                queryset=SeerWorkflowRunExecution.objects.select_related("seer_run").order_by("id"),
+            ),
+            Prefetch("executions__output_links", queryset=output_links),
+        )
+
         return self.paginate(
             request=request,
             queryset=runs,
@@ -270,9 +304,6 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
             paginator_cls=OffsetPaginator,
             on_results=lambda runs: serialize_workflow_runs(
                 runs,
-                # TODO(telkins): Align automation and investigation access checks instead of
-                # returning empty outputs for otherwise visible runs.
-                include_investigations=has_notebooks_access(organization, actor=request.user),
                 accessible_project_ids=accessible_project_ids,
             ),
         )
@@ -298,43 +329,12 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
 def serialize_workflow_runs(
     runs: Sequence[SeerWorkflowRun],
     *,
-    include_investigations: bool,
     accessible_project_ids: set[int] | None = None,
 ) -> SeerWorkflowRunsResponse:
-    """Serialize runs loaded with `strategy` and `config_extras` annotations.
+    """Serialize runs with annotations and visible executions/output links already prefetched.
 
-    `accessible_project_ids` limits detector names and monitor investigation outputs to
-    those projects; None means all active projects in each investigation's organization.
+    `accessible_project_ids` limits detector names to those projects; None means all.
     """
-    output_links = SeerWorkflowOutputLink.objects.select_related("notebook").order_by("id")
-    if not include_investigations:
-        output_links = output_links.none()
-    else:
-        projects = Project.objects.filter(
-            organization_id=OuterRef("organization_id"), status=ObjectStatus.ACTIVE
-        )
-        if accessible_project_ids is not None:
-            projects = projects.filter(id__in=accessible_project_ids)
-        # The original server-owned source survives edits to project selection and run links.
-        # Cast the project ID, never the saved JSON, so malformed snapshots cannot fail a page.
-        projects = projects.annotate(source_project_id=Cast("id", TextField())).filter(
-            source_project_id=KeyTextTransform(
-                "id", KeyTransform("project", KeyTransform("snapshot", OuterRef("source")))
-            )
-        )
-        visible_notebooks = Notebook.objects.filter(
-            ~Q(source_type=NotebookSourceType.METRIC_OPEN_PERIOD)
-            | (Q(source__type=NotebookSourceType.METRIC_OPEN_PERIOD) & Q(Exists(projects)))
-        )
-        output_links = output_links.filter(notebook__in=visible_notebooks)
-    prefetch_related_objects(
-        runs,
-        Prefetch(
-            "executions",
-            queryset=SeerWorkflowRunExecution.objects.select_related("seer_run").order_by("id"),
-        ),
-        Prefetch("executions__output_links", queryset=output_links),
-    )
     organization_ids = {run.organization_id for run in runs}
     detector_ids = {
         detector_id

@@ -4,7 +4,6 @@ from typing import Any
 from unittest.mock import patch
 
 from django.db import connections, router
-from django.db.models import F
 from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
@@ -33,6 +32,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowStrategy,
 )
 from sentry.seer.monitor_cleanup.runs import deliver_monitor_cleanup_result
+from sentry.seer_workflow_outputs.models import SeerWorkflowOutputLink
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import parse_link_header
@@ -466,19 +466,43 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
             Factories.create_seer_workflow_output_link(execution, notebook=second)
             Factories.create_seer_workflow_output_link(execution, notebook=malformed)
             Factories.create_seer_workflow_run_execution(run)
-        runs = list(
-            SeerWorkflowRun.objects.filter(id__in=[run.id for run in created])
-            .annotate(
-                strategy=F("workflow_config__strategy"),
-                config_extras=F("workflow_config__extras"),
-            )
-            .order_by("id")
-        )
         using = router.db_for_read(SeerWorkflowRunExecution)
-        with CaptureQueriesContext(connections[using]) as queries:
-            result = serialize_workflow_runs(runs, include_investigations=True)
 
-        assert len(queries) == 2
+        def serialize_prefetched(
+            runs: Sequence[SeerWorkflowRun], *, accessible_project_ids: set[int] | None
+        ) -> SeerWorkflowRunsResponse:
+            with CaptureQueriesContext(connections[using]) as queries:
+                # Both relations must be loaded and filtered before entering the serializer.
+                assert [len(run.executions.all()[0].output_links.all()) for run in runs] == [
+                    2,
+                    2,
+                    2,
+                ]
+                result = serialize_workflow_runs(
+                    runs, accessible_project_ids=accessible_project_ids
+                )
+            assert len(queries) == 0
+            return result
+
+        with patch(
+            "sentry.seer.endpoints.organization_seer_workflow_runs.serialize_workflow_runs",
+            side_effect=serialize_prefetched,
+        ):
+            with CaptureQueriesContext(connections[using]) as request_queries:
+                response = self.get_success_response(self.organization.slug)
+
+        related_tables = (
+            SeerWorkflowRunExecution._meta.db_table,
+            SeerWorkflowOutputLink._meta.db_table,
+        )
+        assert (
+            sum(
+                any(f'FROM "{table}"' in query["sql"] for table in related_tables)
+                for query in request_queries
+            )
+            == 2
+        )
+        result = response.data
         assert [len(run["executions"]) for run in result["runs"]] == [2, 2, 2]
         assert result["runs"][0]["executions"][0]["seerRunId"] is not None
         assert [len(run["executions"][0]["outputs"]) for run in result["runs"]] == [2, 2, 2]
