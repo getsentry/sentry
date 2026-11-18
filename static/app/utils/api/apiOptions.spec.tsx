@@ -91,17 +91,6 @@ describe('apiOptions', () => {
     ]);
   });
 
-  it('should stringify number path params', () => {
-    const options = apiOptions.as<unknown>()('/api-tokens/$tokenId/', {
-      staleTime: 0,
-      path: {tokenId: 123},
-    });
-
-    const {fullUrl, options: keyOptions} = options.queryKey[1];
-    expect(fullUrl).toBe('/api-tokens/123/');
-    expect(keyOptions.path).toEqual({tokenId: '123'});
-  });
-
   it('should not do accidental replacements', () => {
     // @ts-expect-error Using a sample path, not a real one
     const options = apiOptions.as<unknown>()('/projects/$id1/$id', {
@@ -244,20 +233,19 @@ describe('apiOptions', () => {
       expectTypeOf(options.queryFn).returns.toEqualTypeOf<QueryFunctionResult<never>>();
     });
 
-    it('should allow string or number path parameters', () => {
-      const options = apiOptions.as<never>()('/api-tokens/$tokenId/', {
+    it('should only allow string path parameters', () => {
+      apiOptions.as<never>()('/api-tokens/$tokenId/', {
         staleTime: 0,
+        // @ts-expect-error Path parameters must be strings
         path: {tokenId: 123},
       });
 
-      expectTypeOf(options.queryFn).returns.toEqualTypeOf<QueryFunctionResult<never>>();
-
-      const options2 = apiOptions.as<never>()('/api-tokens/$tokenId/', {
+      const options = apiOptions.as<never>()('/api-tokens/$tokenId/', {
         staleTime: 0,
         path: {tokenId: 'abc'},
       });
 
-      expectTypeOf(options2.queryFn).returns.toEqualTypeOf<QueryFunctionResult<never>>();
+      expectTypeOf(options.queryFn).returns.toEqualTypeOf<QueryFunctionResult<never>>();
     });
 
     it('should default to never for unknown API paths', () => {
@@ -292,7 +280,7 @@ describe('apiOptions', () => {
     it('should have a default select that extracts content', () => {
       const options = apiOptions.as<number>()('/api-tokens/$tokenId/', {
         staleTime: 0,
-        path: {tokenId: 123},
+        path: {tokenId: '123'},
       });
 
       expectTypeOf(options.select).returns.toEqualTypeOf<number>();

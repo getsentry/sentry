@@ -22,7 +22,7 @@ type Options = QueryKeyEndpointOptions & {staleTime: number | 'static'};
 type PathParamOptions<TApiPath extends string> =
   ExtractPathParams<TApiPath> extends never
     ? {path?: never}
-    : {path: Record<ExtractPathParams<TApiPath>, string | number> | SkipToken};
+    : {path: Record<ExtractPathParams<TApiPath>, string> | SkipToken};
 
 type SegmentPrefixes<
   TUrl extends string,
@@ -45,10 +45,10 @@ type KnownApiUrlPattern = KnownApiUrls | `${SegmentPrefixes<KnownApiUrls>}*`;
 type PatternPathOptions<TPattern extends string> = TPattern extends `${infer TPrefix}*`
   ? ExtractPathParams<TPrefix> extends never
     ? {path?: never}
-    : {path: Partial<Record<ExtractPathParams<TPrefix>, string | number>>}
+    : {path: Partial<Record<ExtractPathParams<TPrefix>, string>>}
   : ExtractPathParams<TPattern> extends never
     ? {path?: never}
-    : {path: Record<ExtractPathParams<TPattern>, string | number>};
+    : {path: Record<ExtractPathParams<TPattern>, string>};
 
 type QueryKeyOptions<TPattern extends string> = QueryKeyEndpointOptions &
   PatternPathOptions<TPattern> & {infinite?: true};
@@ -76,20 +76,9 @@ function stripUndefinedValues<T extends Record<string, unknown>>(obj: T): T {
   return result as T;
 }
 
-function stringifyPathParams(
-  pathParams: Record<string, string | number> | SkipToken | undefined
-): Record<string, string> | undefined {
-  if (!pathParams || pathParams === skipToken) {
-    return;
-  }
-  return Object.fromEntries(
-    Object.entries(pathParams).map(([key, value]) => [key, String(value)])
-  );
-}
-
 function getQueryKeyParams(
   path: KnownApiUrls,
-  pathParams: Record<string, string | number> | SkipToken | undefined,
+  pathParams: Record<string, string> | SkipToken | undefined,
   options: QueryKeyEndpointOptions
 ) {
   return {
@@ -100,7 +89,7 @@ function getQueryKeyParams(
     urlParts: path.split('/').filter(Boolean),
     options: stripUndefinedValues({
       ...options,
-      path: stringifyPathParams(pathParams),
+      path: pathParams === skipToken ? undefined : pathParams,
     }),
   };
 }
@@ -142,13 +131,13 @@ function _queryKey(
     ...options
   }: QueryKeyEndpointOptions & {
     infinite?: true;
-    path?: Record<string, string | number>;
+    path?: Record<string, string>;
   } = {}
 ) {
   const isPrefix = url.endsWith('*');
   const keyOptions = stripUndefinedValues({
     ...options,
-    path: isPrefix ? stringifyPathParams(path) : undefined,
+    path: isPrefix ? path : undefined,
   });
 
   return createApiQueryKeyFilter({

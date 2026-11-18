@@ -80,7 +80,7 @@ function renderDetail(
   const queryClient = makeSnapshotQueryClient([
     [
       apiOptions.as<User>()('/organizations/$organizationIdOrSlug/users/$userId/', {
-        path: {organizationIdOrSlug: snapshotOrganization.slug, userId: 7},
+        path: {organizationIdOrSlug: snapshotOrganization.slug, userId: '7'},
         staleTime: Infinity,
       }).queryKey,
       {json: editor, headers: {}},
