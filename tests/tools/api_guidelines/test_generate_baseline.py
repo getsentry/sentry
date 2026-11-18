@@ -13,7 +13,6 @@ import pytest
 from tools.api_guidelines import generate_baseline
 from tools.api_guidelines.generate_baseline import (
     build_entries,
-    diff_entries,
     main,
     write_exceptions,
 )
@@ -245,23 +244,27 @@ def test_write_exceptions_writes_one_entry_per_line(tmp_path: Path) -> None:
     dest_file = tmp_path / "new_folder" / "exceptions.json"
     entries: list[dict[str, object]] = [{"rule": "S026", "count": 1}, {"rule": "S028", "count": 2}]
 
-    write_exceptions(entries, dest_file)
+    write_exceptions(entries, dest_file, generated=TODAY)
 
     assert dest_file.read_text() == (
-        '{"version": 1, "entries": [\n'
+        '{"version": 1, "generated": "2026-11-09", "entries": [\n'
         '{"rule": "S026", "count": 1},\n'
         '{"rule": "S028", "count": 2}\n'
         "]}\n"
     )
-    assert json.loads(dest_file.read_text()) == {"version": 1, "entries": entries}
+    assert json.loads(dest_file.read_text()) == {
+        "version": 1,
+        "generated": TODAY,
+        "entries": entries,
+    }
 
 
 def test_write_exceptions_with_no_entries(tmp_path: Path) -> None:
     dest_file = tmp_path / "exceptions.json"
 
-    write_exceptions([], dest_file)
+    write_exceptions([], dest_file, generated=TODAY)
 
-    assert dest_file.read_text() == '{"version": 1, "entries": []}\n'
+    assert dest_file.read_text() == '{"version": 1, "generated": "2026-11-09", "entries": []}\n'
 
 
 def test_main_writes_the_baseline(fake_repo: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -388,7 +391,7 @@ def test_files_keeps_status_reason_and_first_seen_and_takes_the_new_count(
     reviewed["status"] = "accepted"
     reviewed["reason"] = "id selects the object"
     reviewed["first_seen"] = "2026-11-02"
-    write_exceptions(entries, output)
+    write_exceptions(entries, output, generated="2026-11-02")
 
     # one of the two reads of id goes away -> the count drops from 2 to 1
     _edit_endpoint(fake_repo, '        b = request.GET.get("id") # line 6\n', "")
@@ -593,35 +596,6 @@ def test_files_normalizes_dot_slash_paths(fake_repo: Path) -> None:
     assert len(entries) == 3
 
 
-def _entry(key: str, count: int) -> dict[str, object]:
-    """A small entry for the diff_entries tests, only the fields it reads"""
-    return {
-        "rule": "S026",
-        "path": PATH,
-        "scope": "ExampleEndpoint.get",
-        "key": key,
-        "count": count,
-        "owner": "issues-feed",
-    }
-
-
-def test_diff_entries_finds_added_removed_and_changed() -> None:
-    old = [_entry("query:a", 1), _entry("query:b", 2), _entry("query:c", 1)]
-    new = [_entry("query:a", 1), _entry("query:b", 3), _entry("query:d", 1)]
-
-    added, removed, changed = diff_entries(old_entries=old, new_entries=new)
-
-    assert added == [_entry("query:d", 1)]
-    assert removed == [_entry("query:c", 1)]
-    assert changed == [(_entry("query:b", 2), _entry("query:b", 3))]
-
-
-def test_diff_entries_with_no_changes() -> None:
-    entries = [_entry("query:a", 1)]
-
-    assert diff_entries(old_entries=entries, new_entries=entries) == ([], [], [])
-
-
 def test_root_scans_another_checkout(
     fake_repo: Path, tmp_path_factory: pytest.TempPathFactory
 ) -> None:
@@ -683,3 +657,11 @@ def test_files_listing_the_same_file_twice_counts_it_once(
     out = capsys.readouterr().out
     assert "Rescanned 1 files (4 findings)" in out
     assert "0 new, 0 fixed, 0 with a changed count" in out
+
+
+def test_files_updates_the_generated_date(fake_repo: Path) -> None:
+    assert _run_main(fake_repo) == 0
+
+    assert _run_main(fake_repo, "--files", PATH, "--date", "2026-11-16") == 0
+
+    assert json.loads((fake_repo / "out.json").read_text())["generated"] == "2026-11-16"

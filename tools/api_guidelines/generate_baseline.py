@@ -7,13 +7,18 @@ from collections import Counter
 from datetime import date
 from pathlib import Path
 
+from tools.api_guidelines.entries import (
+    EXCEPTIONS_PATH,
+    describe_entry,
+    diff_entries,
+    merge_entries,
+)
 from tools.api_guidelines.owners import owner_for
 from tools.api_guidelines.rules import BASELINED_RULES
 from tools.api_guidelines.scan import collect_findings
 from tools.api_guidelines.signature import BaselineSignature
 from tools.flake8_plugin import ApiInputViolation
 
-EXCEPTIONS_PATH = Path("api_exceptions/exceptions.json")
 OWNER_MAP_PATH = Path(".artifacts/api-endpoint-owners.json")
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -76,10 +81,11 @@ def build_entries(
     return entries
 
 
-def write_exceptions(entries: list[dict[str, object]], dest_file: Path) -> None:
+def write_exceptions(entries: list[dict[str, object]], dest_file: Path, generated: str) -> None:
     """Writes entries to the exceptions.json file.
     `entries` a list of already generated entries to go into the exceptions.json baseline
     `dest_file` the path of the file to write to, i.e api_exceptions/exceptions.json. Its folder is created if it doesn't exist and an existing file is replaced
+    `generated` the date of this run, written at the top so the report card can say what the file is as of
     Returns nothing since it only writes the file
 
     Note: we need dest_file as a param, even though every time this is called `dest_file` is almost always exceptions.json just for handling test cases since we don't want to override exceptions.json for testing
@@ -90,98 +96,15 @@ def write_exceptions(entries: list[dict[str, object]], dest_file: Path) -> None:
     for entry in entries:
         json_lines.append(json.dumps(entry))
 
+    header = '{"version": 1, "generated": ' + json.dumps(generated) + ', "entries": '
     if json_lines:
-        text = '{"version": 1, "entries": [\n' + ",\n".join(json_lines) + "\n]}\n"
+        text = header + "[\n" + ",\n".join(json_lines) + "\n]}\n"
     else:
-        text = '{"version": 1, "entries": []}\n'
+        text = header + "[]}\n"
 
     # create the output's folder if needed then write the file (create it or replace it)
     dest_file.parent.mkdir(parents=True, exist_ok=True)
     dest_file.write_text(text)
-
-
-def _entry_signature(entry: dict[str, object]) -> tuple[object, object, object, object]:
-    """An entry's (rule, path, scope, key), which is what identifies it between runs"""
-    return (entry["rule"], entry["path"], entry["scope"], entry["key"])
-
-
-def _entry_sort_key(entry: dict[str, object]) -> tuple[str, str, str, str]:
-    """The same order as _sort_key, for entries that are already dicts: path, scope, rule, then key"""
-    return (str(entry["path"]), str(entry["scope"]), str(entry["rule"]), str(entry["key"] or ""))
-
-
-def merge_entries(
-    new_entries: list[dict[str, object]],
-    old_entries: list[dict[str, object]],
-    kept_entries: list[dict[str, object]],
-) -> list[dict[str, object]]:
-    """Merges the rescanned files' entries back into the rest of exceptions.json
-    `new_entries` the entries built from rescanning the `--files` paths
-    `old_entries` every entry in exceptions.json before this run
-    `kept_entries` the old entries for files that weren't rescanned, kept as is
-    Returns every entry, sorted by path, scope, rule and key. A rescanned entry that was already
-    in the file keeps its status, reason and first_seen, and takes the new count and owner
-    """
-    # {(rule, path, scope, key) -> {entry dict}}
-    old_by_signature: dict[tuple[object, object, object, object], dict[str, object]] = {}
-
-    for entry in old_entries:
-        old_by_signature[_entry_signature(entry)] = entry
-
-    # list of entries that shouldn't be modified and should be merged with new entries
-    merged: list[dict[str, object]] = []
-    for entry in kept_entries:
-        merged.append(entry)
-
-    for entry in new_entries:
-        old = old_by_signature.get(_entry_signature(entry))
-        # the finding was already recorded so keep what was decided about it and when it was first seen
-        if old is not None:
-            entry["status"] = old["status"]
-            entry["reason"] = old["reason"]
-            entry["first_seen"] = old["first_seen"]
-        merged.append(entry)
-
-    merged.sort(key=_entry_sort_key)
-    return merged
-
-
-def diff_entries(
-    old_entries: list[dict[str, object]],
-    new_entries: list[dict[str, object]],
-) -> tuple[
-    list[dict[str, object]],
-    list[dict[str, object]],
-    list[tuple[dict[str, object], dict[str, object]]],
-]:
-    """Compares exceptions.json before and after a run
-    `old_entries` every entry in the file before this run
-    `new_entries` every entry this run writes
-    Returns (added, removed, changed): the entries that are new, the entries that are gone (fixed),
-    and (old, new) pairs for the entries whose count changed
-    """
-    old_by_signature: dict[tuple[object, object, object, object], dict[str, object]] = {}
-    for entry in old_entries:
-        old_by_signature[_entry_signature(entry)] = entry
-
-    new_signatures: set[tuple[object, object, object, object]] = set()
-    added: list[dict[str, object]] = []
-    changed: list[tuple[dict[str, object], dict[str, object]]] = []
-    for entry in new_entries:
-        signature = _entry_signature(entry)
-        new_signatures.add(signature)
-        old = old_by_signature.get(signature)
-        if old is None:
-            added.append(entry)
-        elif old["count"] != entry["count"]:
-            changed.append((old, entry))
-
-    removed: list[dict[str, object]] = []
-    for entry in old_entries:
-        if _entry_signature(entry) not in new_signatures:
-            removed.append(entry)
-
-    return added, removed, changed
 
 
 def _possible_moves(
@@ -222,13 +145,6 @@ def _rescan_path(path: str, root: Path) -> str | None:
     if not (path.startswith("src/") and path.endswith(".py")):
         return None
     return path
-
-
-def _describe(entry: dict[str, object]) -> str:
-    """One line naming an entry for the printed summary: rule, path, scope, key and owner"""
-    return (
-        f"{entry['rule']} {entry['path']} {entry['scope']} {entry['key'] or '-'} ({entry['owner']})"
-    )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -359,7 +275,7 @@ def main(argv: list[str] | None = None) -> int:
             new_entries=entries, old_entries=old_entries, kept_entries=kept_entries
         )
 
-    write_exceptions(entries, dest_file=args.output)
+    write_exceptions(entries, dest_file=args.output, generated=args.date)
 
     if args.files:
         assert rescan_paths is not None
@@ -369,16 +285,16 @@ def main(argv: list[str] | None = None) -> int:
         )
         print(f"    {len(added)} new, {len(removed)} fixed, {len(changed)} with a changed count")
         for entry in added:
-            print(f"    new    {_describe(entry)}")
+            print(f"    new    {describe_entry(entry)}")
         for entry in removed:
-            print(f"    fixed  {_describe(entry)}")
+            print(f"    fixed  {describe_entry(entry)}")
         for old, new in changed:
-            print(f"    count  {_describe(new)}: {old['count']} -> {new['count']}")
+            print(f"    count  {describe_entry(new)}: {old['count']} -> {new['count']}")
         moved_from: set[object] = set()
         for old, new in _possible_moves(removed, added):
             moved_from.add(old["path"])
             print(
-                f"Possibly moved: {_describe(old)} -> {new['path']}. Its status and reason were not "
+                f"Possibly moved: {describe_entry(old)} -> {new['path']}. Its status and reason were not "
                 "carried over, so copy them by hand if they were reviewed.",
                 file=sys.stderr,
             )
