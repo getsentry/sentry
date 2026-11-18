@@ -345,7 +345,7 @@ class ProjectSeerRepoEndpoint(ProjectEndpoint):
             if features.has("organizations:token-billed-seer-enabled", project.organization)
             else _get_seat_based_billing_project_repos(project)
         )
-        project_repo = project_repos_qs.filter(repository_id=repo_id).first()
+        project_repo = project_repos_qs.filter(repository_id=repo_id).first()  # noqa: S035
         if project_repo is None:
             return Response(status=404)
 

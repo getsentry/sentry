@@ -361,7 +361,7 @@ def run_agentic_triage_for_org(
             organization=organization,
             workflow_config__strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE,
             trigger_key=schedule_id,
-        ).first()
+        ).first()  # noqa: S035
         # Without quota, only completed runs or runs with persisted executions can continue.
         if existing_run is None or (
             existing_run.date_completed is None and not existing_run.executions.exists()

@@ -438,7 +438,7 @@ export function FilterSelector({
         multiple={false}
         disabled={false}
         options={translatedOptions}
-        value={activeFilterValues.length > 0 ? activeFilterValues[0] : undefined}
+        value={activeFilterValues[0]}
         onChange={option => {
           const newValue = option?.value;
           handleChange(newValue ? [newValue] : []);

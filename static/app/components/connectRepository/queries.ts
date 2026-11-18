@@ -176,6 +176,7 @@ function buildRepoSelectOption(
   return {
     value: `${integration.id}:${repo.identifier}`,
     label: repo.name,
+    textValue: repo.name,
     leadingItems: getIntegrationIcon(integration.provider.key, 'sm'),
     defaultBranch: repo.defaultBranch,
     providerKey: integration.provider.key,

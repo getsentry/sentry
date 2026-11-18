@@ -235,7 +235,16 @@ test('package lint enforces shared rules and local test boundaries', t => {
       'json',
       '.',
     ],
-    {cwd: directory, encoding: 'utf8'}
+    {
+      cwd: directory,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        OXLINT_TSGOLINT_PATH: fileURLToPath(
+          new URL('bin/tsrs-lint', import.meta.resolve('tsrs/package.json'))
+        ),
+      },
+    }
   );
   assert.equal(result.status, 1, result.stderr);
   const {diagnostics} = JSON.parse(result.stdout) as {

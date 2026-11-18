@@ -14,8 +14,17 @@ logger = logging.getLogger("sentry.mail")
 
 
 def send_messages(messages: Sequence[EmailMultiAlternatives], fail_silently: bool = False) -> int:
-    connection = get_connection(fail_silently=fail_silently)
-    sent = connection.send_messages(messages)
+    try:
+        connection = get_connection(fail_silently=fail_silently)
+        sent = connection.send_messages(messages)
+    except Exception as e:
+        metrics.incr(
+            "email.sent",
+            len(messages),
+            skip_internal=False,
+            tags={"success": False, "error_type": type(e).__name__},
+        )
+        raise
     metrics.incr("email.sent", sent, skip_internal=False, tags={"success": True})
     failed = len(messages) - sent
     if failed > 0:
