@@ -19,6 +19,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
+from sentry.api.utils import get_date_range_from_params
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST
 from sentry.apidocs.examples import seer_workflow_examples as SeerWorkflowExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
@@ -62,6 +63,11 @@ class WorkflowRunListSerializer(serializers.Serializer):
         min_value=1,
         max_value=I64_MAX,
         help_text="The workflow config ID to filter runs by. Omit to list runs across configs.",
+    )
+    status = serializers.ChoiceField(
+        required=False,
+        choices=SeerWorkflowRunStatus.choices,
+        help_text="Filter by the run's saved lifecycle status.",
     )
 
 
@@ -202,7 +208,16 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
     @extend_schema(
         operation_id="List Seer workflow runs",
         examples=SeerWorkflowExamples.WORKFLOW_RUNS_RESPONSE,
-        parameters=[GlobalParams.ORG_ID_OR_SLUG, CursorQueryParam, WorkflowRunListSerializer],
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            CursorQueryParam,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.STATS_PERIOD_START,
+            GlobalParams.STATS_PERIOD_END,
+            GlobalParams.START,
+            GlobalParams.END,
+            WorkflowRunListSerializer,
+        ],
         responses={
             200: inline_sentry_response_serializer("SeerWorkflowRuns", SeerWorkflowRunsResponse),
             400: inline_sentry_response_serializer(
@@ -212,6 +227,11 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
     )
     def get(self, request: Request, organization: Organization) -> Response:
         """List automation runs with their executions, newest first.
+
+        Date ranges include runs created at or after the start and before the end.
+        Supply ``start`` and ``end`` together. Timestamps without an offset use UTC.
+        Omit date filters to include the full history. Empty or invalid filters
+        return HTTP 400.
 
         Limited-access members see a run started by a trigger in one project (such as a
         monitor) when they can access that project. For other runs they must be able to
@@ -225,6 +245,25 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
 
         if len(request.query_params.getlist("config")) > 1:
             return Response({"detail": "Supply only one config."}, status=400)
+        for param in (
+            "config",
+            "status",
+            "statsPeriod",
+            "statsPeriodStart",
+            "statsPeriodEnd",
+            "start",
+            "end",
+            "timeframe",
+            "timeframeStart",
+            "timeframeEnd",
+        ):
+            if request.query_params.get(param) == "":
+                return Response({"detail": f"Supply a value for {param}."}, status=400)
+        try:
+            start, end = get_date_range_from_params(request.GET, optional=True)
+        except (ValueError, OverflowError, OSError):
+            # Out-of-range numeric timestamps can fail in datetime.fromtimestamp.
+            return Response({"detail": "Date range is out of bounds."}, status=400)
         serializer = WorkflowRunListSerializer(data=request.query_params.dict())
         if not serializer.is_valid():
             return Response({"detail": serializer.errors}, status=400)
@@ -238,10 +277,13 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
             config_extras=F("workflow_config__extras"),
         )
 
-        # Filter by a config
-        config_id = serializer.validated_data.get("config")
-        if config_id is not None:
-            runs = runs.filter(workflow_config_id=config_id)
+        filters = serializer.validated_data
+        if "config" in filters:
+            runs = runs.filter(workflow_config_id=filters["config"])
+        if start is not None:
+            runs = runs.filter(date_added__gte=start, date_added__lt=end)
+        if "status" in filters:
+            runs = runs.filter(status=filters["status"])
 
         # Filter by accessible projects. A run started by a trigger in one project only needs
         # access to that project; other runs need access to every project in their saved scope.
