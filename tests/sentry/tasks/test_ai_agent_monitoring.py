@@ -5,6 +5,7 @@ import responses
 
 from sentry.relay.config.ai_model_costs import AI_MODEL_METADATA_CACHE_KEY, AIModelMetadataConfig
 from sentry.tasks.ai_agent_monitoring import (
+    LLM_PRICES_URL,
     MODELS_DEV_API_URL,
     OPENROUTER_MODELS_API_URL,
     fetch_ai_model_metadata,
@@ -510,6 +511,140 @@ class FetchAIModelMetadataTest(TestCase):
         """Test retrieving from empty cache"""
         cached_data = _get_metadata_from_cache()
         assert cached_data is None
+
+    def _mock_llm_prices_response(self) -> None:
+        responses.add(
+            responses.GET,
+            LLM_PRICES_URL,
+            json={
+                "models": [
+                    {
+                        "provider": "mistral",
+                        "model": "mistral-large-4",
+                        "aliases": ["mistral-large-latest"],
+                        "status": "listed",
+                        "input": 0.7,
+                        "output": 2.1,
+                        "cache_read": 0.07,
+                        "cache_write": None,
+                    },
+                    {
+                        "provider": "anthropic",
+                        "model": "claude-sonnet-4-5",
+                        "aliases": ["claude-sonnet-4-5-20250929"],
+                        "status": "listed",
+                        "input": 3,
+                        "output": 15,
+                        "cache_read": 0.3,
+                        "cache_write": {"5m": 3.75, "1h": 6},
+                    },
+                    {
+                        "provider": "openai",
+                        "model": "gpt-4",
+                        "aliases": [],
+                        "status": "listed",
+                        "input": 30,
+                        "output": 60,
+                        "cache_read": None,
+                        "cache_write": None,
+                    },
+                    # Not a first-party provider: ignored
+                    {
+                        "provider": "openrouter",
+                        "model": "openai/gpt-4.1-mini",
+                        "aliases": [],
+                        "status": "listed",
+                        "input": 99,
+                        "output": 99,
+                    },
+                    # Retired rows are ignored
+                    {
+                        "provider": "google",
+                        "model": "gemini-2.5-pro",
+                        "aliases": [],
+                        "status": "retired",
+                        "input": 99,
+                        "output": 99,
+                    },
+                ]
+            },
+            status=200,
+        )
+
+    @responses.activate
+    def test_fetch_ai_model_metadata_llm_prices_overrides_resold_prices(self) -> None:
+        """First-party prices from llm-prices replace aggregator and reseller prices"""
+        self._mock_openrouter_api_response(MOCK_OPENROUTER_API_RESPONSE)
+        # models.dev lists the same model id under many resellers, and the last one wins
+        reseller_row = {
+            "cost": {"input": 2, "output": 6, "cache_read": 0.2},
+            "limit": {"context": 128000},
+        }
+        self._mock_models_dev_api_response(
+            {
+                **MOCK_MODELS_DEV_API_RESPONSE,
+                "mistral": {
+                    "models": {
+                        "mistral-large-latest": {
+                            "cost": {"input": 0.7, "output": 2.1, "cache_read": 0.07},
+                            "limit": {"context": 256000},
+                        }
+                    }
+                },
+                "some-reseller": {"models": {"mistral-large-latest": reseller_row}},
+            }
+        )
+        self._mock_llm_prices_response()
+
+        fetch_ai_model_metadata()
+
+        cached_data = _get_metadata_from_cache()
+        assert cached_data is not None
+        models = cached_data["models"]
+
+        mistral_large = models["mistral-large-latest"]
+        assert mistral_large["costs"]["inputPerToken"] == pytest.approx(0.7 / 1000000)
+        assert mistral_large["costs"]["outputPerToken"] == pytest.approx(2.1 / 1000000)
+        assert mistral_large["costs"]["inputCachedPerToken"] == pytest.approx(0.07 / 1000000)
+        assert mistral_large.get("contextSize") == 128000  # context size is kept
+        assert models["mistral-large-4"]["costs"]["inputPerToken"] == pytest.approx(0.7 / 1000000)
+
+        # Ids missing from both aggregators are added, with the 5 minute cache write price
+        sonnet = models["claude-sonnet-4-5-20250929"]
+        assert sonnet["costs"]["inputPerToken"] == pytest.approx(3 / 1000000)
+        assert sonnet["costs"]["outputPerToken"] == pytest.approx(15 / 1000000)
+        assert sonnet["costs"]["inputCachedPerToken"] == pytest.approx(0.3 / 1000000)
+        assert sonnet["costs"]["inputCacheWritePerToken"] == pytest.approx(3.75 / 1000000)
+        assert "contextSize" not in sonnet
+        assert models["claude-sonnet-4-5"]["costs"] == sonnet["costs"]
+
+        # Fields llm-prices leaves empty keep the OpenRouter value
+        gpt4 = models["gpt-4"]
+        assert gpt4["costs"]["inputPerToken"] == pytest.approx(30 / 1000000)
+        assert gpt4["costs"]["outputPerToken"] == pytest.approx(60 / 1000000)
+        assert gpt4["costs"]["outputReasoningPerToken"] == 0.0
+        assert gpt4["costs"]["inputCachedPerToken"] == 0.0000015
+        assert gpt4["costs"]["inputCacheWritePerToken"] == 0.00001875
+        assert gpt4.get("contextSize") == 1000000
+
+        # Other providers and retired rows are ignored
+        assert models["gpt-4.1-mini"]["costs"]["inputPerToken"] == 0.4
+        assert models["gemini-2.5-pro"]["costs"]["inputPerToken"] == 1.25
+
+    @responses.activate
+    def test_fetch_ai_model_metadata_llm_prices_http_error(self) -> None:
+        """An llm-prices failure keeps the OpenRouter and models.dev costs"""
+        self._mock_openrouter_api_response(MOCK_OPENROUTER_API_RESPONSE)
+        self._mock_models_dev_api_response(MOCK_MODELS_DEV_API_RESPONSE)
+        responses.add(responses.GET, LLM_PRICES_URL, status=500)
+
+        fetch_ai_model_metadata()
+
+        cached_data = _get_metadata_from_cache()
+        assert cached_data is not None
+        models = cached_data["models"]
+        assert models["gpt-4"]["costs"]["inputPerToken"] == 0.0000003
+        assert models["gpt-4.1-mini"]["costs"]["inputPerToken"] == 0.4
 
     @responses.activate
     def test_fetch_ai_model_metadata_with_normalized_and_prefix_glob_names(self) -> None:

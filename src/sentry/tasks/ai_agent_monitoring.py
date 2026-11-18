@@ -27,6 +27,14 @@ OPENROUTER_MODELS_API_URL = "https://openrouter.ai/api/v1/models"
 MODELS_DEV_API_URL = "https://models.dev/api.json?type=all"
 # Specialized models.dev types priced per token. Models without a type are general models.
 MODELS_DEV_TOKEN_PRICED_TYPES = frozenset({"decision"})
+# llm-prices (https://github.com/Mattbusel/llm-prices) is read from each provider's own
+# pricing page, so its rows override the aggregators for the providers listed below.
+# DeepSeek is left out because its price depends on the time of day, and Perplexity
+# because its row is the Agent API price rather than the Sonar API price.
+LLM_PRICES_URL = "https://github.com/Mattbusel/llm-prices/releases/latest/download/prices.json"
+LLM_PRICES_FIRST_PARTY_PROVIDERS = frozenset(
+    {"anthropic", "openai", "google", "mistral", "xai", "cohere"}
+)
 
 
 def _add_glob_model_names(models_dict: dict[ModelId, AIModelMetadata]) -> None:
@@ -69,7 +77,8 @@ def fetch_ai_model_metadata() -> None:
 
     This task fetches model pricing and context size data from both sources and
     converts it to the AIModelMetadata format.
-    OpenRouter data takes precedence over models.dev data.
+    OpenRouter data takes precedence over models.dev data. Costs for first-party model
+    ids are then taken from llm-prices when it has them.
     """
     if settings.SENTRY_AIR_GAP:
         return
@@ -96,6 +105,13 @@ def fetch_ai_model_metadata() -> None:
             "Failed to fetch AI model metadata from models.dev API", extra={"error": str(e)}
         )
         raise
+
+    # Costs from the providers' own pricing pages replace aggregator costs for the
+    # same model id. This source is optional, so a failure keeps the costs above.
+    try:
+        _apply_llm_prices_costs(models_dict, _fetch_llm_prices_costs())
+    except Exception as e:
+        logger.warning("Failed to fetch AI model costs from llm-prices", extra={"error": str(e)})
 
     # Add glob versions of model names for flexible matching
     _add_glob_model_names(models_dict)
@@ -275,6 +291,114 @@ def _fetch_models_dev_models() -> dict[ModelId, AIModelMetadata]:
                 continue
 
     return models_dict
+
+
+def _llm_prices_per_token(value: Any) -> float | None:
+    """Convert an llm-prices price (USD per 1M tokens) to USD per token."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or value < 0:
+        return None
+    return value / 1000000
+
+
+def _fetch_llm_prices_costs() -> dict[ModelId, dict[str, float]]:
+    """Fetch first-party model costs from the latest llm-prices release.
+
+    Only the cost fields the provider's page lists are returned, so fields it leaves
+    empty keep the value from OpenRouter or models.dev.
+
+    Example response:
+    {
+        "models": [
+            {
+                "provider": "anthropic",
+                "model": "claude-sonnet-4-5",
+                "aliases": ["claude-sonnet-4-5-20250929"],
+                "status": "listed",
+                "input": 3,
+                "output": 15,
+                "cache_read": 0.3,
+                "cache_write": {"5m": 3.75, "1h": 6},
+            }
+        ]
+    }
+    """
+    response = safe_urlopen(LLM_PRICES_URL, allow_redirects=True)
+    response.raise_for_status()
+
+    data = response.json()
+
+    if not isinstance(data, dict) or not isinstance(data.get("models"), list):
+        raise ValueError("Invalid llm-prices response format: missing 'models' list")
+
+    costs: dict[ModelId, dict[str, float]] = {}
+
+    for row in data["models"]:
+        if not isinstance(row, dict):
+            continue
+        if row.get("provider") not in LLM_PRICES_FIRST_PARTY_PROVIDERS:
+            continue
+        if row.get("status") != "listed":
+            continue
+
+        input_per_token = _llm_prices_per_token(row.get("input"))
+        output_per_token = _llm_prices_per_token(row.get("output"))
+        if input_per_token is None or output_per_token is None:
+            continue
+
+        model_cost = {
+            "inputPerToken": input_per_token,
+            "outputPerToken": output_per_token,
+            # Providers bill reasoning tokens as output tokens, and Relay uses the
+            # output price when this is 0.
+            "outputReasoningPerToken": 0.0,
+        }
+        cache_read = _llm_prices_per_token(row.get("cache_read"))
+        if cache_read is not None:
+            model_cost["inputCachedPerToken"] = cache_read
+        cache_write = row.get("cache_write")
+        if isinstance(cache_write, dict):
+            # Anthropic lists 5 minute and 1 hour cache writes; 5 minutes is the default.
+            cache_write = cache_write.get("5m")
+        cache_write = _llm_prices_per_token(cache_write)
+        if cache_write is not None:
+            model_cost["inputCacheWritePerToken"] = cache_write
+
+        aliases = row.get("aliases")
+        model_ids = [row.get("model"), *(aliases if isinstance(aliases, list) else [])]
+        for model_id in model_ids:
+            if not isinstance(model_id, str) or not model_id:
+                continue
+            if "/" in model_id:
+                model_id = model_id.split("/", maxsplit=1)[1]
+            costs.setdefault(model_id, model_cost)
+
+    return costs
+
+
+def _apply_llm_prices_costs(
+    models_dict: dict[ModelId, AIModelMetadata], costs: dict[ModelId, dict[str, float]]
+) -> None:
+    """Replace aggregator costs with llm-prices costs, keeping the context size."""
+    for model_id, model_cost in costs.items():
+        existing = models_dict.get(model_id)
+        existing_costs = existing["costs"] if existing is not None else None
+        merged = AIModelCost(
+            inputPerToken=model_cost["inputPerToken"],
+            outputPerToken=model_cost["outputPerToken"],
+            outputReasoningPerToken=model_cost["outputReasoningPerToken"],
+            inputCachedPerToken=model_cost.get(
+                "inputCachedPerToken",
+                existing_costs["inputCachedPerToken"] if existing_costs else 0.0,
+            ),
+            inputCacheWritePerToken=model_cost.get(
+                "inputCacheWritePerToken",
+                existing_costs["inputCacheWritePerToken"] if existing_costs else 0.0,
+            ),
+        )
+        metadata = AIModelMetadata(costs=merged)
+        if existing is not None and "contextSize" in existing:
+            metadata["contextSize"] = existing["contextSize"]
+        models_dict[model_id] = metadata
 
 
 def safe_float_conversion(value: Any) -> float:
