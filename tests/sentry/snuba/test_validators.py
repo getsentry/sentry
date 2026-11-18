@@ -88,6 +88,19 @@ class SnubaQueryValidatorTest(TestCase):
                 )
             ]
 
+    def test_partial_missing_aggregate_returns_validation_error(self) -> None:
+        del self.valid_data["aggregate"]
+        validator = SnubaQueryValidator(data=self.valid_data, context=self.context, partial=True)
+        assert not validator.is_valid()
+        assert "aggregate" in validator.errors
+
+    def test_partial_nested_query_subscription_returns_validation_error(self) -> None:
+        data = {"querySubscription": self.valid_data, "type": "snuba_query_subscription"}
+        validator = SnubaQueryValidator(data=data, context=self.context, partial=True)
+        assert not validator.is_valid()
+        assert "aggregate" in validator.errors
+        assert "timeWindow" in validator.errors
+
     def test_time_window_at_bounds(self) -> None:
         for time_window in (60, 86400):
             self.valid_data["timeWindow"] = time_window

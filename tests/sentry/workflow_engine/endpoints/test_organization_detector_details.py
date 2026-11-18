@@ -653,6 +653,22 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         conditions = list(DataCondition.objects.filter(condition_group=condition_group))
         assert len(conditions) == 3
 
+    def test_update_nested_data_source_payload_rejected(self) -> None:
+        data = {**self.valid_data}
+        data["dataSources"] = [
+            {
+                "type": "snuba_query_subscription",
+                "query_subscription": {**self.valid_data["dataSources"][0]},
+            }
+        ]
+        response = self.get_error_response(
+            self.organization.slug,
+            self.detector.id,
+            **data,
+            status_code=400,
+        )
+        assert "aggregate" in str(response.data)
+
     def test_update_bad_schema(self) -> None:
         """
         Test when we encounter bad data in the payload
