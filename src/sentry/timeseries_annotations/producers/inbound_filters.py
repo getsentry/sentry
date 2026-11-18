@@ -18,11 +18,6 @@ from sentry.viewer_context import ActorId, ActorType
 
 logger = logging.getLogger(__name__)
 
-# The framework-wide flag gates every annotation producer; each use case has its own flag
-# on top so a single producer can be rolled out or killed without the others.
-_ANNOTATIONS_FEATURE = "organizations:timeseries-annotations"
-_FILTER_CHANGE_FEATURE = "organizations:timeseries-annotations-usecase-filter-change"
-
 # Built-in inbound filters drop events from a single telemetry dataset. Most act on the
 # error pipeline; the health-check filter drops transactions (spans). The scope tells the
 # chart which dataset's volume stepped when the filter changed.
@@ -49,7 +44,7 @@ def _actor(principal: RequestPrincipal) -> ActorId | None:
     return ActorId(ActorType.USER, user_id) if user_id is not None else None
 
 
-def _record(
+def _create_filter_change_annotation(
     project: Project,
     scope: AnnotationScope,
     description: str,
@@ -57,9 +52,12 @@ def _record(
     principal: RequestPrincipal,
 ) -> None:
     organization = project.organization
-    if not features.has(_ANNOTATIONS_FEATURE, organization):
-        return
-    if not features.has(_FILTER_CHANGE_FEATURE, organization):
+    # The framework-wide flag gates every annotation producer; the use-case flag on top
+    # rolls out or kills this one producer on its own.
+    if not (
+        features.has("organizations:timeseries-annotations", organization)
+        and features.has("organizations:timeseries-annotations-usecase-filter-change", organization)
+    ):
         return
     # Best-effort context: a producer failure must never break the filter write.
     try:
@@ -84,7 +82,7 @@ def record_builtin_filter_change_as_annotation(
 ) -> None:
     """Annotate a change to a built-in inbound filter. Call only when state changed."""
     scope = _BUILTIN_FILTER_SCOPE.get(filter_id, AnnotationScope.ERRORS)
-    _record(
+    _create_filter_change_annotation(
         project,
         scope,
         description=f"Inbound filter '{filter_id}' changed",
@@ -102,7 +100,7 @@ def record_custom_filter_change_as_annotation(
 ) -> None:
     """Annotate a create/update/delete of a custom inbound filter."""
     scope = _CUSTOM_DATA_TYPE_SCOPE.get(data_type, AnnotationScope.GLOBAL)
-    _record(
+    _create_filter_change_annotation(
         project,
         scope,
         description=f"Custom inbound filter {action}",
