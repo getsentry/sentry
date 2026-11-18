@@ -202,7 +202,7 @@ class AutomationDefinition[Inputs: BaseModel]:
     """An automation: a trigger paired with an action that accepts what it produces."""
 
     trigger: AutomationTrigger[Inputs]
-    action: AutomationAction[Inputs]
+    action: AutomationAction[Inputs] | None = None
 
     def project_ids(self, config: SeerWorkflowConfig) -> list[int]:
         return list(self.trigger.projects(config).order_by("id").values_list("id", flat=True))
@@ -228,7 +228,9 @@ class AutomationDefinition[Inputs: BaseModel]:
         try:
             return (
                 self.trigger.settings_type.parse_obj(extras.trigger_settings or {}),
-                self.action.settings_type.parse_obj(extras.action_settings or {}),
+                (self.action.settings_type if self.action else NoSettings).parse_obj(
+                    extras.action_settings or {}
+                ),
             )
         except ValidationError as e:
             raise WorkflowUpdateError(
@@ -300,6 +302,8 @@ class AutomationDefinition[Inputs: BaseModel]:
 
     def trigger_run(self, config: LockedConfig, *, trigger_key: str, inputs: Inputs) -> AdmittedRun:
         """Admit a triggered run and, the first time it is accepted, dispatch the action."""
+        if self.action is None:
+            raise ValueError(f"{config.strategy} automations start their own runs")
         run = self.admit_run(config, trigger_key=trigger_key, inputs=inputs)
         if run.created and run.rejection is None:
             run.lifecycle.start()

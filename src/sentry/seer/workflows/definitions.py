@@ -6,7 +6,6 @@ from typing import Any
 from sentry.seer.models.workflow import SeerWorkflowStrategy
 from sentry.seer.workflows.base import AutomationDefinition
 from sentry.seer.workflows.breached_metrics import (
-    InvestigateBreachedMetricAction,
     MetricAlertTrigger,
     MetricBreachInputs,
 )
@@ -21,7 +20,7 @@ DEFINITIONS: Mapping[SeerWorkflowStrategy, AutomationDefinition[Any]] = {
         trigger=ScheduleTrigger(), action=PromptedInvestigationAction()
     ),
     SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION: AutomationDefinition[MetricBreachInputs](
-        trigger=MetricAlertTrigger(), action=InvestigateBreachedMetricAction()
+        trigger=MetricAlertTrigger()
     ),
 }
 
