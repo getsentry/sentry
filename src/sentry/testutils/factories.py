@@ -200,11 +200,11 @@ from sentry.seer.models.run import (
     SeerRunType,
 )
 from sentry.seer.models.workflow import (
+    SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
     SeerWorkflowConfig,
     SeerWorkflowConfigProject,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
-    SeerWorkflowStrategy,
     SeerWorkflowTriggerBinding,
 )
 from sentry.seer.workflows.base import ConfigUpdate, LockedConfig, SelectedMonitors
@@ -3635,7 +3635,7 @@ class Factories:
         config = SeerWorkflowConfig.objects.create(organization=organization, **kwargs)
         for action in trigger_actions:
             Factories.create_seer_workflow_trigger_binding(config, action)
-        if config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
+        if config.strategy in SEER_CONFIGURABLE_WORKFLOW_STRATEGIES:
             update = ConfigUpdate(LockedConfig(config), get_definition(config.strategy))
             update.definition.trigger.setup(
                 update, name=None, created_by_id=None, enabled=config.enabled

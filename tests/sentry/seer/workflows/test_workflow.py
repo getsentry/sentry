@@ -21,6 +21,7 @@ from sentry.seer.models.workflow import (
 )
 from sentry.seer.workflows.base import (
     AllProjects,
+    AutomationDefinition,
     SeerServiceAccountGrant,
     SelectedMonitors,
     SelectedProjects,
@@ -358,7 +359,7 @@ class SeerWorkflowUpdateConfigTest(TestCase):
 
         config = self.workflow.get_config()
         assert config.version == 2
-        assert config.enabled is True
+        assert AutomationDefinition.is_enabled(config) is True
         assert self.workflow.filters.all_projects is True
 
     def test_unchanged_update_does_not_save(self) -> None:
@@ -406,7 +407,7 @@ class SeerWorkflowUpdateConfigTest(TestCase):
 
         config = self.workflow.get_config()
         assert config.version == 1
-        assert config.enabled is False
+        assert AutomationDefinition.is_enabled(config) is False
         assert self.workflow.get_project_ids() == [self.selected.id]
 
 
@@ -449,7 +450,8 @@ class SeerWorkflowScopeTest(TestCase):
         assert workflow.matches_scope(self.project.id, "staging") is False
         assert workflow.matches_scope(self.project.id, None) is False
 
-        SeerWorkflowConfig.objects.filter(id=config.id).update(enabled=False)
+        assert config.backing_workflow is not None
+        config.backing_workflow.update(enabled=False)
 
         assert workflow.matches_scope(self.project.id, "production") is False
 
@@ -735,7 +737,7 @@ class SeerWorkflowServiceAccountTest(TestCase):
                 update.set_enabled(True)
                 raise WorkflowUpdateError("failed")
 
-        assert not self.workflow.get_config().enabled
+        assert not AutomationDefinition.is_enabled(self.workflow.get_config())
         assert not self.control_service_account(self.account.id).all_projects
         assert not CellOutbox.objects.filter(
             category=OutboxCategory.SERVICE_ACCOUNT_GRANT_UPDATE
@@ -746,7 +748,7 @@ class SeerWorkflowServiceAccountTest(TestCase):
             update.set_enabled(True)
 
         config = self.workflow.get_config()
-        assert config.enabled
+        assert AutomationDefinition.is_enabled(config)
         assert config.version == version + 1
         account = self.control_service_account(self.account.id)
         assert account.scope_list == ["project:read"]

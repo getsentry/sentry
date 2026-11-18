@@ -209,7 +209,7 @@ class AutomationDefinition[Inputs: BaseModel]:
     def is_enabled(config: SeerWorkflowConfig) -> bool:
         workflow = config.backing_workflow
         if workflow is None:
-            return config.enabled
+            raise ValueError(f"Automation {config.id} has no backing workflow")
         return workflow.enabled and workflow.status == ObjectStatus.ACTIVE
 
     def covers(self, config: SeerWorkflowConfig, project_id: int, environment: str | None) -> bool:
@@ -332,15 +332,11 @@ class ConfigUpdate:
 
     def set_enabled(self, enabled: bool) -> None:
         workflow = self.config.backing_workflow
-        if workflow is not None:
-            if workflow.enabled != enabled:
-                workflow.update(enabled=enabled)
-                self.mark_related_changed()
-            return
-        if self.config.enabled == enabled:
-            return
-        self.config.enabled = enabled
-        self.mark("enabled")
+        if workflow is None:
+            raise WorkflowUpdateError("The automation has no backing workflow")
+        if workflow.enabled != enabled:
+            workflow.update(enabled=enabled)
+            self.mark_related_changed()
 
     def set_workflow_fields(
         self, *, name: str | None = None, created_by_id: int | None = None

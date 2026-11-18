@@ -84,20 +84,22 @@ class SeerWorkflow:
                 Organization.objects.using(database).select_for_update().filter(id=organization_id)
             )
             existing = set(configs.values_list("strategy", flat=True))
-            SeerWorkflowConfig.objects.using(database).bulk_create(
-                [
-                    SeerWorkflowConfig(
-                        organization_id=organization_id,
-                        strategy=strategy.value,
-                        filters=SeerWorkflowFilters(all_projects=True).dict(),
-                        extras=SeerWorkflowConfigExtras(seeded_default=strategy).dict(
-                            exclude_none=True
-                        ),
-                    )
-                    for strategy in SEER_DEFAULT_WORKFLOW_STRATEGIES
-                    if strategy.value not in existing
-                ]
-            )
+            for strategy in SEER_DEFAULT_WORKFLOW_STRATEGIES:
+                if strategy.value in existing:
+                    continue
+                config = SeerWorkflowConfig.objects.using(database).create(
+                    organization_id=organization_id,
+                    strategy=strategy.value,
+                    filters=SeerWorkflowFilters(all_projects=True).dict(),
+                    extras=SeerWorkflowConfigExtras(seeded_default=strategy).dict(
+                        exclude_none=True
+                    ),
+                )
+                update = ConfigUpdate(LockedConfig(config), get_definition(strategy))
+                update.definition.trigger.setup(
+                    update, name=None, created_by_id=None, enabled=config.enabled
+                )
+                config.save(using=database, update_fields=sorted(update.dirty_fields))
 
     @overload
     @classmethod

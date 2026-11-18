@@ -31,6 +31,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowStrategy,
 )
 from sentry.seer.workflows.base import (
+    AutomationDefinition,
     ConfigUpdate,
     SeerServiceAccountGrant,
     SelectedMonitors,
@@ -584,7 +585,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         assert response.data["detail"] == "Requesting all projects requires global access"
         config.refresh_from_db()
         assert config.filters["all_projects"] is True
-        assert config.enabled is False
+        assert AutomationDefinition.is_enabled(config) is False
         assert self.selected_project_ids(config) == []
 
     def test_member_cannot_put_all_projects(self) -> None:
@@ -741,7 +742,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
             enabled=True,
             status_code=403,
         )
-        assert workflow.get_config().enabled is False
+        assert AutomationDefinition.is_enabled(workflow.get_config()) is False
 
     def test_put_enables_all_projects_config(self) -> None:
         config = self.create_config(filters={"all_projects": True})
@@ -752,7 +753,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         )
         assert response.data["enabled"] is True
         config.refresh_from_db()
-        assert config.enabled is True
+        assert AutomationDefinition.is_enabled(config) is True
 
     def test_agent_projects_hide_projects_the_viewer_cannot_access(self) -> None:
         member, accessible = self.create_member_with_project(open_membership=False)
@@ -1025,7 +1026,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
 
         config.refresh_from_db()
         assert config.version == 1
-        assert config.enabled is False
+        assert AutomationDefinition.is_enabled(config) is False
         assert self.selected_project_ids(config) == [self.project.id]
 
     def test_put_project_ids_on_breached_metric_config_returns_400(self) -> None:
@@ -1387,7 +1388,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         )
 
         config = SeerWorkflowConfig.objects.get(id=response.data["id"])
-        assert config.enabled is True
+        assert AutomationDefinition.is_enabled(config) is True
         assert response.data["environments"] == ["production"]
         assert sorted(response.data["projects"]) == sorted([self.project.id, other.id])
         assert self.selected_project_ids(config) == sorted([self.project.id, other.id])

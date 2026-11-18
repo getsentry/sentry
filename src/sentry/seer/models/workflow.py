@@ -87,6 +87,8 @@ class SeerWorkflowConfig(DefaultFieldsModel):
         null=True,
     )
     strategy = models.CharField(max_length=256, choices=SeerWorkflowStrategy.choices)
+    # Deprecated and being removed: automations read and write their enabled state, name and
+    # creator on `backing_workflow`.
     enabled = models.BooleanField(default=False)
     schedule = models.CharField(
         max_length=256, choices=SeerWorkflowSchedule.choices, default=SeerWorkflowSchedule.DAILY
