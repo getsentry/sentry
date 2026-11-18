@@ -256,7 +256,7 @@ def _service_account_owner(kind: ServiceAccountOwnerKind) -> ServiceAccountOwner
     match kind:
         case ServiceAccountOwnerKind.SEER_WORKFLOW_CONFIG:
             return SEER_WORKFLOW_SERVICE_ACCOUNT_OWNER
-        case ServiceAccountOwnerKind.USER:
+        case ServiceAccountOwnerKind.ORGANIZATION:
             # `service_account_create_outbox` refuses this kind: there's no cell object to link.
             return None
         case _:

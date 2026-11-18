@@ -16,19 +16,19 @@ from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
 
 @cell_silo_test
 class ServiceAccountCreateOutboxTest(TestCase):
-    def test_user_owner_kind_is_refused(self) -> None:
+    def test_organization_owner_kind_is_refused(self) -> None:
         with pytest.raises(ValueError):
             service_account_create_outbox(
                 organization_id=self.organization.id,
-                owner_kind=ServiceAccountOwnerKind.USER,
+                owner_kind=ServiceAccountOwnerKind.ORGANIZATION,
                 owner_id=1,
                 name="nightly-triage",
                 scope_list=["event:read"],
             )
 
-    def test_user_owner_kind_payload_is_dropped_without_blocking_the_shard(self) -> None:
+    def test_organization_owner_kind_payload_is_dropped_without_blocking_the_shard(self) -> None:
         payload: ServiceAccountCreatePayload = {
-            "owner_kind": ServiceAccountOwnerKind.USER.value,
+            "owner_kind": ServiceAccountOwnerKind.ORGANIZATION.value,
             "owner_id": 1,
             "name": "nightly-triage",
             "scope_list": ["event:read"],

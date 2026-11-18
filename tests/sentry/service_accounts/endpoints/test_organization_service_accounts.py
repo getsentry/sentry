@@ -150,7 +150,7 @@ class OrganizationServiceAccountIndexTest(APITestCase):
         assert service_account.scope_list == ["event:read", "project:read"]
         assert service_account.is_active
         assert service_account.created_by_id == self.user.id
-        assert service_account.owner_kind == ServiceAccountOwnerKind.USER
+        assert service_account.owner_kind == ServiceAccountOwnerKind.ORGANIZATION
         assert project_ids_for(service_account) == [project.id]
         assert response.data == {
             "id": str(service_account.id),
@@ -158,7 +158,7 @@ class OrganizationServiceAccountIndexTest(APITestCase):
             "scopes": ["event:read", "project:read"],
             "projectIds": [str(project.id)],
             "allProjects": False,
-            "ownerKind": "user",
+            "ownerKind": "organization",
             "dateCreated": service_account.date_added,
         }
 

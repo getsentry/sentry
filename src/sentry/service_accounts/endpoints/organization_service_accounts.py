@@ -320,7 +320,7 @@ class OrganizationServiceAccountIndexEndpoint(OrganizationServiceAccountEndpoint
                 project_ids=data.get("projectIds") or (),
                 all_projects=all_projects,
                 created_by_id=acting_user_id(request.user),
-                owner_kind=ServiceAccountOwnerKind.USER,
+                owner_kind=ServiceAccountOwnerKind.ORGANIZATION,
             )
         except IntegrityError:
             # The (organization_id, name) unique constraint is the duplicate name check.

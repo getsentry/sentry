@@ -71,10 +71,11 @@ def service_account_outboxes(
 
 
 class ServiceAccountOwnerKind(models.TextChoices):
-    """Who created an account and manages its access."""
+    """What owns an account's lifecycle. `created_by_id` records the person who made it."""
 
-    # A person, in settings.
-    USER = "user"
+    # The org's admins manage it in settings.
+    ORGANIZATION = "organization"
+    # The workflow config manages it, and deleting the config deletes the account.
     SEER_WORKFLOW_CONFIG = "seer_workflow_config"
 
 
