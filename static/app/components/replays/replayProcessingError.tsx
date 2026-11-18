@@ -28,15 +28,29 @@ export function ReplayProcessingError({className}: Props) {
     });
   }, [replay, sdk]);
 
-  if (replay?.isOnlyMissingFullSnapshot()) {
+  const playerOnlyError = replay?.hasTimelineData()
+    ? replay.isMissingFullSnapshot()
+      ? {
+          heading: t('No Screen Recording'),
+          reason: t(
+            'The SDK sent events for this replay but never captured the page itself, so there is nothing to play back.'
+          ),
+        }
+      : replay.isMissingMeta()
+        ? {
+            heading: t('Recording Cannot Be Played'),
+            reason: t(
+              'The SDK captured the page but not the screen size it was shown at, so the recording cannot be played back.'
+            ),
+          }
+        : null
+    : null;
+
+  if (playerOnlyError) {
     return (
       <StyledAlert variant="info" className={className}>
-        <Heading>{t('No Screen Recording')}</Heading>
-        <p>
-          {t(
-            'The SDK sent events for this replay but never captured the page itself, so there is nothing to play back.'
-          )}
-        </p>
+        <Heading>{playerOnlyError.heading}</Heading>
+        <p>{playerOnlyError.reason}</p>
         <p>
           {t(
             'You can still look through the activity, network requests, and console logs for this replay.'

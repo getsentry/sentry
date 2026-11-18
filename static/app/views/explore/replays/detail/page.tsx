@@ -41,7 +41,7 @@ export function ReplayDetailsPage({readerResult}: Props) {
         </Stack>
       )}
       renderProcessingError={({replay}) =>
-        replay?.isOnlyMissingFullSnapshot() ? (
+        replay?.hasTimelineData() ? (
           // The player shows the error in its place, and the activity,
           // network, and console tabs still work.
           <ReplayLayout

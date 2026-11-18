@@ -205,6 +205,7 @@ function removeDuplicateNavCrumbs(
   return otherBreadcrumbFrames.concat(uniqueNavCrumbs);
 }
 
+const MISSING_META_ERROR = 'Missing Meta Frame';
 const MISSING_FULL_SNAPSHOT_ERROR = 'Missing Full Snapshot Frame';
 
 export class ReplayReader {
@@ -551,7 +552,7 @@ export class ReplayReader {
         : null,
       this.getRRWebFrames().some(frame => frame.type === EventType.Meta)
         ? null
-        : 'Missing Meta Frame',
+        : MISSING_META_ERROR,
       this.isVideoReplay() ||
       this.getRRWebFrames().some(frame => frame.type === EventType.FullSnapshot)
         ? null
@@ -563,13 +564,21 @@ export class ReplayReader {
   };
 
   /**
-   * The SDK sent events but never a DOM snapshot, so the player has nothing
-   * to draw. Breadcrumbs, network requests, and console logs are still usable.
+   * Processing errors only break the player. The other tabs read breadcrumbs,
+   * spans, and errors, so the page stays useful while any of those exist.
    */
-  isOnlyMissingFullSnapshot = () => {
-    const errors = this.processingErrors();
-    return errors.length === 1 && errors[0] === MISSING_FULL_SNAPSHOT_ERROR;
-  };
+  hasTimelineData = memoize(
+    () =>
+      this.getRRWebFrames().some(frame => frame.type !== EventType.Custom) ||
+      this._sortedBreadcrumbFrames.some(frame => frame.category !== 'replay.init') ||
+      this._sortedSpanFrames.length > 0 ||
+      this._errors.length > 0
+  );
+
+  isMissingFullSnapshot = () =>
+    this.processingErrors().includes(MISSING_FULL_SNAPSHOT_ERROR);
+
+  isMissingMeta = () => this.processingErrors().includes(MISSING_META_ERROR);
 
   domQuery = () => {
     if (this._replayerQuery) {
