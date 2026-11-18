@@ -301,7 +301,8 @@ class MonitorValidatorCreateTest(MonitorTestCase):
         assert monitor.owner_user_id is None
         assert monitor.owner_team_id == team.id
 
-    def test_create_with_status_disabled(self) -> None:
+    @patch("sentry.quotas.backend.assign_seat")
+    def test_create_with_status_disabled(self, assign_seat: MagicMock) -> None:
         """Test creating a monitor with disabled status."""
         data = {
             "project": self.project.slug,
@@ -316,6 +317,7 @@ class MonitorValidatorCreateTest(MonitorTestCase):
         monitor = validator.save()
 
         assert monitor.status == ObjectStatus.DISABLED
+        assign_seat.assert_not_called()
 
     def test_create_with_is_muted_noop(self) -> None:
         """Test that creating a monitor with is_muted does nothing.
@@ -1369,6 +1371,7 @@ class MonitorIncidentDetectorValidatorTest(BaseMonitorValidatorTestCase):
         monitor = get_cron_monitor(detector)
         assert monitor.status == ObjectStatus.DISABLED
         assert detector.enabled is False
+        mock_assign_seat.assert_not_called()
 
     @patch("sentry.quotas.backend.assign_seat", return_value=Outcome.ACCEPTED)
     def test_update_enable_assigns_seat(self, mock_assign_seat: MagicMock) -> None:
