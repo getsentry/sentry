@@ -273,7 +273,7 @@ class SeerInvestigationActionHandler(ActionHandler):
         config_id = (
             SeerWorkflowConfig.objects.filter(backing_workflow_id=invocation.workflow_id)
             .values_list("id", flat=True)
-            .first()
+            .get_or_none()
         )
         SeerInvestigationActionHandler._handle(invocation, config_id)
 
