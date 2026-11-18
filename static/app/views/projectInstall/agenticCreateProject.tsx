@@ -1,7 +1,6 @@
 import {Activity, useState} from 'react';
 import {IconArrow} from '@sentry/icons/arrow';
 
-import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
@@ -20,6 +19,8 @@ import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+
+import {TeamAdminProjectCreationAlert} from './teamAdminProjectCreationAlert';
 
 function getSetupHeading({
   hasRunFailed,
@@ -140,24 +141,14 @@ export function AgenticCreateProject({
                 </Text>
               </Stack>
               {projectCreationTeams.length > 0 && !isSetupComplete && (
-                <Alert
-                  variant="warning"
-                  showIcon
-                  trailingItems={
-                    // AgenticSetup hides its manual link while a run is active,
-                    // which is when an agent stuck on a 403 needs a way out.
-                    isAgentConnected && !hasRunFailed ? (
-                      <Button size="xs" onClick={handleSetupInBrowser}>
-                        {t('Set up manually')}
-                      </Button>
-                    ) : undefined
+                <TeamAdminProjectCreationAlert
+                  teams={projectCreationTeams}
+                  // AgenticSetup hides its manual link while a run is active,
+                  // which is when an agent stuck on a 403 needs a way out.
+                  onSetupInBrowser={
+                    isAgentConnected && !hasRunFailed ? handleSetupInBrowser : undefined
                   }
-                >
-                  {t(
-                    'Your organization only lets members create projects on teams they administer: %s. Tell your agent to use one of these teams, or ask an owner or manager to create the project for you.',
-                    projectCreationTeams.map(team => `#${team.slug}`).join(', ')
-                  )}
-                </Alert>
+                />
               )}
               <AgenticSetup
                 handoffFlow={AgentHandoffFlow.CREATE_PROJECT}
