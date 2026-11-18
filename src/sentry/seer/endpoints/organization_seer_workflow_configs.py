@@ -727,7 +727,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                         applied_grant = grant
 
                 if name is not None:
-                    update.set_workflow_fields(name=name)
+                    update.set_name(name)
 
                 if update.changed:
                     user_id = acting_user_id(request.user)

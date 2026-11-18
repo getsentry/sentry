@@ -209,7 +209,7 @@ from sentry.seer.models.workflow import (
 )
 from sentry.seer.workflows.base import ConfigUpdate, LockedConfig, SelectedMonitors
 from sentry.seer.workflows.definitions import get_definition
-from sentry.seer.workflows.workflow import SeerWorkflow, setup_backing_workflow
+from sentry.seer.workflows.workflow import SeerWorkflow
 from sentry.seer_workflow_outputs.models import SeerWorkflowOutputLink
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
@@ -3637,7 +3637,7 @@ class Factories:
             Factories.create_seer_workflow_trigger_binding(config, action)
         if config.strategy in SEER_CONFIGURABLE_WORKFLOW_STRATEGIES:
             update = ConfigUpdate(LockedConfig(config), get_definition(config.strategy))
-            setup_backing_workflow(update, name=None, created_by_id=None, enabled=config.enabled)
+            update.setup_backing_workflow(name=None, created_by_id=None, enabled=config.enabled)
             config.save(update_fields=["backing_workflow"])
         if monitors:
             workflow = SeerWorkflow(config_id=config.id, organization_id=config.organization_id)

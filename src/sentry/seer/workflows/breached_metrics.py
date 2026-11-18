@@ -13,7 +13,6 @@ from pydantic import BaseModel, PositiveInt, ValidationError
 
 from sentry import features
 from sentry.constants import ObjectStatus
-from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.incidents.grouptype import MetricIssue
 from sentry.investigations.services import create_agentic_breached_metric_investigation
 from sentry.investigations.services.breached_metrics import resolve_breached_metric_sources
@@ -143,16 +142,6 @@ class MetricAlertTrigger(AutomationTrigger[MetricBreachInputs]):
             ),
             using=router.db_for_write(SeerWorkflowConfig),
         )
-
-    def teardown(self, config: SeerWorkflowConfig) -> None:
-        if config.backing_workflow_id is None:
-            return
-        workflow = Workflow.objects_for_deletion.filter(
-            id=config.backing_workflow_id, organization_id=config.organization_id
-        ).first()
-        if workflow is not None and workflow.status == ObjectStatus.ACTIVE:
-            CellScheduledDeletion.schedule(workflow, days=0)
-            workflow.update(status=ObjectStatus.PENDING_DELETION)
 
 
 class InvestigateBreachedMetricAction(AutomationAction[MetricBreachInputs]):

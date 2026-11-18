@@ -34,6 +34,7 @@ from sentry.service_accounts.models import (
 )
 from sentry.service_accounts.outbox import service_account_grant_update_outbox
 from sentry.utils import json
+from sentry.workflow_engine.models import Workflow
 
 logger = logging.getLogger(__name__)
 
@@ -149,7 +150,7 @@ class AutomationTrigger[Inputs: BaseModel](Protocol):
 
     def teardown(self, config: SeerWorkflowConfig) -> None:
         """Remove anything the trigger keeps outside the config, before it is deleted."""
-        ...
+        return None
 
 
 class AutomationAction[Inputs: BaseModel](Protocol):
@@ -320,44 +321,59 @@ class ConfigUpdate:
     config: LockedConfig
     definition: AutomationDefinition[Any]
     dirty_fields: set[str] = field(default_factory=set)
+    workflow_dirty_fields: set[str] = field(default_factory=set)
     related_changed: bool = False
 
     @property
     def changed(self) -> bool:
-        return bool(self.dirty_fields) or self.related_changed
+        return bool(self.dirty_fields) or bool(self.workflow_dirty_fields) or self.related_changed
 
     def mark(self, *fields: str) -> None:
         """Record changed columns on the config row."""
         self.dirty_fields.update(fields)
 
+    def mark_workflow(self, *fields: str) -> None:
+        """Record changed columns on the backing workflow, saved once with the config."""
+        self.workflow_dirty_fields.update(fields)
+
     def mark_related_changed(self) -> None:
         """Record changes outside the row, like project links, that still bump the version."""
         self.related_changed = True
 
-    def set_enabled(self, enabled: bool) -> None:
-        workflow = self.config.backing_workflow
-        if workflow is None:
-            raise WorkflowUpdateError("The automation has no backing workflow")
-        if workflow.enabled != enabled:
-            workflow.update(enabled=enabled)
-            self.mark_related_changed()
-
-    def set_workflow_fields(
-        self, *, name: str | None = None, created_by_id: int | None = None
+    def setup_backing_workflow(
+        self, *, name: str | None, created_by_id: int | None, enabled: bool
     ) -> None:
+        """Give a new automation the backing workflow that holds its name and enabled state."""
+        self.definition.trigger.setup(self, name=name, created_by_id=created_by_id, enabled=enabled)
+        if self.config.backing_workflow is not None:
+            return
+        # TODO(telkins): Scheduled triggers keep nothing on the workflow yet, so it starts bare.
+        self.config.backing_workflow = Workflow.objects.create(
+            organization_id=self.config.organization_id,
+            name=name or "Seer automation",
+            enabled=enabled,
+            created_by_id=created_by_id,
+            config={"frequency": 0},
+        )
+        self.mark("backing_workflow")
+
+    def set_enabled(self, enabled: bool) -> None:
+        workflow = self._backing_workflow()
+        if workflow.enabled != enabled:
+            workflow.enabled = enabled
+            self.mark_workflow("enabled")
+
+    def set_name(self, name: str) -> None:
+        workflow = self._backing_workflow()
+        if workflow.name != name:
+            workflow.name = name
+            self.mark_workflow("name")
+
+    def _backing_workflow(self) -> Workflow:
         workflow = self.config.backing_workflow
         if workflow is None:
             raise WorkflowUpdateError("The automation has no backing workflow")
-        changed_fields = []
-        if name is not None and workflow.name != name:
-            workflow.name = name
-            changed_fields.append("name")
-        if created_by_id is not None and workflow.created_by_id != created_by_id:
-            workflow.created_by_id = created_by_id
-            changed_fields.append("created_by_id")
-        if changed_fields:
-            workflow.save(update_fields=[*changed_fields, "date_updated"])
-            self.mark_related_changed()
+        return workflow
 
     def set_extras(self, extras: SeerWorkflowConfigExtras) -> None:
         self.definition.validate_settings(extras)
