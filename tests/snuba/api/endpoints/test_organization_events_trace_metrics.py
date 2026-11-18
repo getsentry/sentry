@@ -555,6 +555,8 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
                     "count(value,foo,histogram,-)",
                     "per_second(value,foo,histogram,-)",
                     "count(value,bar,distribution,-)",
+                    "count(metric.name,foo,histogram,-)",
+                    "count_unique(value,foo,histogram,-)",
                 ],
                 "project": self.project.id,
                 "dataset": self.dataset,
@@ -563,16 +565,22 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
         )
         assert response.status_code == 200, response.content
 
-        count, per_second, distribution_count = mock_table_rpc.call_args.args[0][0].columns
+        columns = mock_table_rpc.call_args.args[0][0].columns
+        count, per_second, distribution_count, count_name, count_unique = columns
         assert count.conditional_aggregation.key.name == "sentry.value"
         assert count.conditional_aggregation.histogram_mode == HistogramMode.HISTOGRAM_MODE_BUCKETS
         rate = per_second.formula.left.conditional_aggregation
         assert rate.key.name == "sentry.value"
         assert rate.histogram_mode == HistogramMode.HISTOGRAM_MODE_BUCKETS
-        # Other metric types are left as is
-        assert distribution_count.conditional_aggregation.key.name == "sentry.project_id"
+        # Other metric types, and aggregates Snuba can't compute from buckets, are left as is
+        for column in [distribution_count, count_name]:
+            assert column.conditional_aggregation.key.name == "sentry.project_id"
+            assert (
+                column.conditional_aggregation.histogram_mode
+                == HistogramMode.HISTOGRAM_MODE_UNSPECIFIED
+            )
         assert (
-            distribution_count.conditional_aggregation.histogram_mode
+            count_unique.conditional_aggregation.histogram_mode
             == HistogramMode.HISTOGRAM_MODE_UNSPECIFIED
         )
 

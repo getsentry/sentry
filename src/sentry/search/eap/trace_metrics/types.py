@@ -4,6 +4,7 @@ from typing import Literal
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeKey,
     AttributeValue,
+    Function,
     HistogramMode,
 )
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
@@ -18,6 +19,20 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
 from sentry.search.eap.types import SearchResolverConfig
 
 TraceMetricType = Literal["counter", "gauge", "distribution", "histogram"]
+
+# The aggregates Snuba can compute from histogram buckets
+HISTOGRAM_BUCKET_FUNCTIONS = {
+    Function.FUNCTION_COUNT,
+    Function.FUNCTION_SUM,
+    Function.FUNCTION_AVG,
+    Function.FUNCTION_MIN,
+    Function.FUNCTION_MAX,
+    Function.FUNCTION_P50,
+    Function.FUNCTION_P75,
+    Function.FUNCTION_P90,
+    Function.FUNCTION_P95,
+    Function.FUNCTION_P99,
+}
 
 # Represents "any unit" — no unit filter is applied
 ANY_UNIT = "-"

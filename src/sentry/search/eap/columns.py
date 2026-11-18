@@ -26,6 +26,7 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
 from sentry.search.eap.extrapolation_mode import resolve_extrapolation_mode
 from sentry.search.eap.trace_metrics.types import (
+    HISTOGRAM_BUCKET_FUNCTIONS,
     TraceMetric,
     TraceMetricType,
     get_histogram_mode,
@@ -715,11 +716,16 @@ class TraceMetricAggregateDefinition(AggregateDefinition):
         trace_metric = extract_trace_metric_aggregate_arguments(
             resolved_arguments, offset=self.offset
         )
-        histogram_mode = get_histogram_mode(search_config, trace_metric)
-
         resolved_attribute = resolved_arguments[self.offset]
-        # Snuba only reads histogram buckets when aggregating the value, so skip the
-        # sentry.project_id optimization for count
+        # Snuba only reads histogram buckets for some aggregates of the value, so skip the
+        # sentry.project_id optimization for count when it does
+        histogram_mode = (
+            get_histogram_mode(search_config, trace_metric)
+            if self.internal_function in HISTOGRAM_BUCKET_FUNCTIONS
+            and resolved_attribute
+            == AttributeKey(name="sentry.value", type=AttributeKey.Type.TYPE_DOUBLE)
+            else HistogramMode.HISTOGRAM_MODE_UNSPECIFIED
+        )
         if (
             self.attribute_resolver is not None
             and histogram_mode != HistogramMode.HISTOGRAM_MODE_BUCKETS
