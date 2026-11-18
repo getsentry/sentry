@@ -121,8 +121,7 @@ writeFileSync("src/browser.ts", 'export * from "./browser-client.ts";\n');
 //    Validator entries externalise their peers; the root stays dependency-free.
 //    Runtime entries target the browser platform, so a Node built-in import
 //    fails the build. source-analysis is a Node build tool and keeps node:path.
-//    Declarations come from tsconfig.json; the validator schemas, which take
-//    most of the checking time, each get their own worker.
+//    Declarations come from tsconfig.json, emitted by TypeScript 7's tsc.
 const bundle = (entry, { external = [], platform = "browser" } = {}) =>
   build({
     entryPoints: [`src/${entry}.ts`],
@@ -145,5 +144,5 @@ await Promise.all([
   bundle("operations"),
   bundle("docs"),
   bundle("source-analysis", { external: ["typescript"], platform: "node" }),
-  emitDeclarations([["valibot.ts", "valibot.gen.ts"], ["zod.ts", "zod.gen.ts"]]),
+  emitDeclarations(),
 ]);
