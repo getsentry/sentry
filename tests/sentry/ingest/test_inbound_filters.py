@@ -18,8 +18,15 @@ from sentry.ingest.inbound_filters import (
     get_custom_inbound_filter_generic_filters,
     get_generic_filters,
     get_global_generic_filters,
+    get_supported_condition_types,
+    get_supported_operators,
 )
-from sentry.models.custominboundfilter import LegacyFilter
+from sentry.models.custominboundfilter import (
+    ConditionOperator,
+    ConditionType,
+    DataType,
+    LegacyFilter,
+)
 from sentry.models.project import Project
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -1159,3 +1166,151 @@ def test_ip_denylist_becomes_a_generic_filter_with_the_native_reason(
         ],
     }
     assert_relay_accepts_condition(generic_filters["filters"][0]["condition"])
+
+
+SEGMENT_NAME = "span.attributes.sentry.segment.name.value"
+
+
+@django_db_all
+@pytest.mark.parametrize(
+    ("conditions", "expected_condition"),
+    [
+        pytest.param(
+            [{"type": "transaction_name", "operator": "glob", "value": ["*/health{/,}"]}],
+            {"op": "glob", "name": SEGMENT_NAME, "value": ["*/health{/,}"]},
+            id="glob",
+        ),
+        pytest.param(
+            [{"type": "transaction_name", "operator": "starts_with", "value": ["/ping", "/up"]}],
+            {"op": "glob", "name": SEGMENT_NAME, "value": ["/ping*", "/up*"]},
+            id="literal_operator",
+        ),
+        pytest.param(
+            [{"type": "transaction_name", "operator": "does_not_start_with", "value": ["/api"]}],
+            {
+                "op": "and",
+                "inner": [
+                    {"op": "glob", "name": SEGMENT_NAME, "value": ["*"]},
+                    {
+                        "op": "not",
+                        "inner": {"op": "glob", "name": SEGMENT_NAME, "value": ["/api*"]},
+                    },
+                ],
+            },
+            id="negated",
+        ),
+        pytest.param(
+            [
+                {"type": "transaction_name", "operator": "equals", "value": ["/status"]},
+                {"type": "environment", "operator": "equals", "value": ["production"]},
+            ],
+            {
+                "op": "and",
+                "inner": [
+                    {"op": "glob", "name": SEGMENT_NAME, "value": ["/status"]},
+                    {
+                        "op": "glob",
+                        "name": "span.attributes.sentry.environment.value",
+                        "value": ["production"],
+                    },
+                ],
+            },
+            id="combined_with_other_conditions",
+        ),
+    ],
+)
+def test_transaction_name_condition_translation(
+    default_project: Project,
+    factories: Factories,
+    conditions: list[dict[str, object]],
+    expected_condition: dict[str, object],
+) -> None:
+    custom_filter = factories.create_project_custom_inbound_filter(
+        default_project, data_type="span", conditions=conditions
+    )
+
+    [generic_filter] = get_custom_inbound_filter_generic_filters(default_project)
+    assert generic_filter == {
+        "id": f"custom-inbound-filter:{custom_filter.id}",
+        "isEnabled": True,
+        "condition": expected_condition,
+    }
+    assert_relay_accepts_condition(generic_filter["condition"])
+
+
+@django_db_all
+@pytest.mark.parametrize("data_type", ["all", "error"])
+def test_transaction_name_filters_on_other_data_types_are_skipped(
+    default_project: Project, factories: Factories, data_type: str
+) -> None:
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        data_type=data_type,
+        conditions=[{"type": "transaction_name", "operator": "glob", "value": ["*/health*"]}],
+    )
+
+    assert get_custom_inbound_filter_generic_filters(default_project) == []
+
+
+@pytest.mark.parametrize(
+    ("data_type", "offered"),
+    [
+        (DataType.SPAN, True),
+        (DataType.ALL, False),
+        (DataType.ERROR, False),
+        (DataType.LOG, False),
+        (DataType.METRIC, False),
+    ],
+)
+def test_transaction_name_is_offered_for_spans_only(data_type: DataType, offered: bool) -> None:
+    assert (ConditionType.TRANSACTION_NAME in get_supported_condition_types(data_type)) is offered
+
+
+def test_transaction_name_takes_the_text_operators() -> None:
+    assert get_supported_operators(ConditionType.TRANSACTION_NAME) == [
+        ConditionOperator.GLOB,
+        ConditionOperator.EQUALS,
+        ConditionOperator.STARTS_WITH,
+        ConditionOperator.CONTAINS,
+        ConditionOperator.ENDS_WITH,
+        ConditionOperator.DOES_NOT_START_WITH,
+        ConditionOperator.DOES_NOT_CONTAIN,
+        ConditionOperator.DOES_NOT_END_WITH,
+    ]
+
+
+# The fields each item type carries when it has a transaction name. Transaction and
+# error events carry the name too, but a span filter reads only span fields.
+TRANSACTION_NAME_ITEMS: dict[str, dict[str, str]] = {
+    "span": {SEGMENT_NAME: "/users/{id}"},
+    "transaction": {"event.transaction": "/users/{id}"},
+    "error": {"event.transaction": "/users/{id}"},
+    "log": {"log.attributes.sentry.release.value": "2.0.0"},
+    "metric": {"trace_metric.attributes.sentry.release.value": "2.0.0"},
+}
+
+
+@django_db_all
+@pytest.mark.parametrize(
+    "operator", ["does_not_start_with", "does_not_contain", "does_not_end_with"]
+)
+def test_negated_transaction_name_drops_only_spans(
+    default_project: Project, factories: Factories, operator: str
+) -> None:
+    # A bare `not` would be true for every item without a segment name, so a span filter
+    # would drop every error, log and metric. The negation requires the field instead.
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        data_type="span",
+        conditions=[{"type": "transaction_name", "operator": operator, "value": ["health"]}],
+    )
+    [generic_filter] = get_custom_inbound_filter_generic_filters(default_project)
+    condition = generic_filter["condition"]
+    assert condition is not None
+
+    dropped = {
+        item_type
+        for item_type, item in TRANSACTION_NAME_ITEMS.items()
+        if relay_matches(condition, item)
+    }
+    assert dropped == {"span"}

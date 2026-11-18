@@ -734,6 +734,14 @@ _CONDITION_MATCHERS: Mapping[
     ConditionType.GEO_COUNTRY_CODE: {
         DataType.ERROR: _field_matcher("event.user.geo.country_code"),
     },
+    # The name of the span's segment (its transaction), not the span's own name. Every
+    # span of a segment carries it, so a match drops all of the segment's spans. This
+    # matches spans only: Relay filters a transaction event before it extracts the spans,
+    # and the event has no span fields, so SDKs that send transaction events are not
+    # filtered by this yet.
+    ConditionType.TRANSACTION_NAME: {
+        DataType.SPAN: _field_matcher("span.attributes.sentry.segment.name.value"),
+    },
 }
 
 _SINGLE_DATA_TYPES = frozenset(DataType) - {DataType.ALL}
@@ -790,6 +798,12 @@ def _custom_filter_condition(
     """
     Translates a custom inbound filter's conditions into a Relay rule condition.
 
+    Relay never reads `CustomInboundFilter` rows. It only applies the generic filters in
+    a project's config, and each of those is a condition in Relay's `RuleCondition` DSL.
+    A row stores what the user picked (a condition type, an operator and values), so
+    this turns it into the condition on the item fields Relay can read, e.g. a `release`
+    condition on a span filter becomes a glob on `span.attributes.sentry.release.value`.
+
     Conditions are combined with AND. Returns None if the filter cannot be translated
     (a missing data type, a data type, condition type, operator, or value shape unknown
     to this revision, a condition type whose field the filter's data type does not
@@ -837,6 +851,14 @@ def _custom_filter_condition(
 
 
 def get_custom_inbound_filter_generic_filters(project: Project) -> list[GenericFilter]:
+    """
+    The project's custom inbound filters as generic filters, which is how they reach
+    Relay: `get_generic_filters` adds these to the project config.
+
+    Inactive rows and filters that cannot be translated are left out, see
+    `_custom_filter_condition`. So are rows that hold a legacy filter list: the project
+    config serves those lists from the legacy settings instead.
+    """
     generic_filters: list[GenericFilter] = []
     custom_filters = CustomInboundFilter.objects.filter(
         project_id=project.id, active=True, legacy_filter__isnull=True
