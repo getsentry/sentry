@@ -1,3 +1,6 @@
+import {useState} from 'react';
+import {flushSync} from 'react-dom';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {TourAction, TourContextProvider, TourElement, TourGuide} from './components';
@@ -395,6 +398,38 @@ describe('Tour Components', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'Page Button'}));
       expect(handlePageClick).toHaveBeenCalledTimes(1);
+      expect(handleClickOutside).toHaveBeenCalledTimes(1);
+    });
+
+    it('ignores the click that opened the guide', async () => {
+      Element.prototype.scrollIntoView = jest.fn();
+      const handleClickOutside = jest.fn();
+
+      function OpenOnClick() {
+        const [isOpen, setIsOpen] = useState(false);
+        return (
+          <div>
+            {/* A browser renders the guide while the click is still on its way to
+                the document. flushSync does the same in tests. */}
+            <button onClick={() => flushSync(() => setIsOpen(true))}>Open</button>
+            <TourGuide
+              isOpen={isOpen}
+              title="Test Title"
+              description="Test Description"
+              onClickOutside={handleClickOutside}
+            >
+              {props => <div {...props}>Child Element</div>}
+            </TourGuide>
+          </div>
+        );
+      }
+      render(<OpenOnClick />);
+
+      await userEvent.click(screen.getByRole('button', {name: 'Open'}));
+      expect(await screen.findByText('Test Title')).toBeInTheDocument();
+      expect(handleClickOutside).not.toHaveBeenCalled();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Open'}));
       expect(handleClickOutside).toHaveBeenCalledTimes(1);
     });
 

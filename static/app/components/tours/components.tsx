@@ -494,20 +494,27 @@ export function TourGuide({
     if (!isOpen || !onClickOutside) {
       return;
     }
-    const handleClick = (event: MouseEvent) => {
-      const target = event.target;
-      if (target instanceof Node && !overlayRef.current?.contains(target)) {
-        onClickOutside();
-      }
+    const isOutside = (event: Event) =>
+      event.target instanceof Node && !overlayRef.current?.contains(event.target);
+    // Only a click whose press started outside while the guide was open counts,
+    // so the click that opened it, such as "Next" on the previous step, does not
+    // dismiss it.
+    let isPressedOutside = false;
+    const handlePointerDown = (event: Event) => {
+      isPressedOutside = isOutside(event);
     };
     // Runs after the page handles the click, so the click still goes through.
-    // Listening starts after the current event, so the click that opened this
-    // guide, such as "Next" on the previous step, does not dismiss it.
-    const timeout = window.setTimeout(() =>
-      document.addEventListener('click', handleClick)
-    );
+    const handleClick = (event: Event) => {
+      if (isPressedOutside && isOutside(event)) {
+        onClickOutside();
+      }
+      isPressedOutside = false;
+    };
+    // Captured, since the page may stop the press from bubbling.
+    document.addEventListener('pointerdown', handlePointerDown, true);
+    document.addEventListener('click', handleClick);
     return () => {
-      window.clearTimeout(timeout);
+      document.removeEventListener('pointerdown', handlePointerDown, true);
       document.removeEventListener('click', handleClick);
     };
   }, [isOpen, onClickOutside, overlayRef]);
