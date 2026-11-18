@@ -157,7 +157,6 @@ describe('DetectorDetails', () => {
     it('publishes a monitor-detail node for Seer', async () => {
       let getLLMContext: ReturnType<typeof useLLMContext>['getLLMContext'] | undefined;
       function Component() {
-        // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
         ({getLLMContext} = useLLMContext());
         return <DetectorDetails />;
       }

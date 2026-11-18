@@ -917,7 +917,6 @@ describe('AutofixSection', () => {
 
     function ContextCapture() {
       const {getLLMContext} = useLLMContext();
-      // oxlint-disable-next-line react/immutability
       snapshotRef.current = getLLMContext;
       return null;
     }

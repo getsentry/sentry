@@ -288,7 +288,7 @@ def _group_and_referrer_from_run(
             source__in=(FEATURE_ID, LEGACY_FEATURE_ID),
         )
         .values("group_id", "extras")
-        .first()
+        .first()  # noqa: S035
     )
     if run_context is None:
         return None, None
@@ -890,7 +890,7 @@ def trigger_push_changes(
 
     seer_run = SeerRun.objects.filter(
         organization_id=group.organization.id, seer_run_state_id=run_id
-    ).first()
+    ).first()  # noqa: S035
 
     # Draft when review-request/CI-green is enabled; mark ready once green fires.
     client.push_changes(

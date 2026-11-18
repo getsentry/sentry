@@ -1,0 +1,9 @@
+<!--
+CI only, installed by bootstrap-snuba.py: the image logs at trace level, to a
+file and to system.text_log. The logger level reloads without a restart.
+-->
+<clickhouse>
+    <logger>
+        <level>warning</level>
+    </logger>
+</clickhouse>

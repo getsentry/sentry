@@ -127,7 +127,7 @@ export function Content({
       const isLastFrame = frameIndex === frames.length - 1;
 
       if (repeatedFrame) {
-        // oxlint-disable-next-line react/todo
+        // oxlint-disable-next-line react/immutability
         nRepeats++;
       }
 

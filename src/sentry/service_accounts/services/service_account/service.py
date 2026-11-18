@@ -59,6 +59,7 @@ class ServiceAccountService(RpcService):
         all_projects: bool,
         created_by_id: int | None,
         idempotency_key: str | None = None,
+        owner_kind: str | None = None,
     ) -> RpcServiceAccount:
         """
         `scope_list` must not be empty, `name` must be at most `MAX_NAME_LENGTH` characters,
@@ -67,6 +68,8 @@ class ServiceAccountService(RpcService):
 
         When `idempotency_key` matches an account in `organization_id`, that account is
         returned unchanged instead of creating another.
+
+        `owner_kind` is a `ServiceAccountOwnerKind` value. None records the owner as unknown.
         """
 
     @rpc_method

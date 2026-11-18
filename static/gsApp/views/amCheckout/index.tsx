@@ -284,7 +284,7 @@ function AMCheckout(props: Props) {
         newOnDemandMaxSpend = Math.max(newOnDemandMaxSpend, 0);
       }
 
-      let newOnDemandBudget: OnDemandBudgets | undefined = undefined;
+      let newOnDemandBudget: OnDemandBudgets | undefined;
 
       if (
         hasOnDemandBudgetsFeature(organization, subscription) ||

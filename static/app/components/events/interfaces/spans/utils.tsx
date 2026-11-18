@@ -102,7 +102,7 @@ function subTimingMarkToTime(span: RawSpanType, mark: SpanSubTimingMark) {
     return span.timestamp;
   }
 
-  return (span as any).data?.[mark] as number | undefined;
+  return span.data?.[mark] as number | undefined;
 }
 
 export function getSpanSubTimings(

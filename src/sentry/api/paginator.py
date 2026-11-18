@@ -156,6 +156,9 @@ class BasePaginator:
 
         return queryset
 
+    def fetch_results(self, queryset: QuerySet[Model], offset: int, stop: int) -> list[Model]:
+        return list(queryset[offset:stop])
+
     def get_item_key(self, item: Any, for_prev: bool = False) -> CursorValue:
         raise NotImplementedError
 
@@ -216,7 +219,7 @@ class BasePaginator:
             extra += 1
 
         stop = offset + limit + extra
-        results: list[Model] = list(queryset[offset:stop])
+        results = self.fetch_results(queryset, offset, stop)
 
         if cursor.is_prev and cursor.value:
             # If the first result is equal to the cursor_value then it's safe to filter
