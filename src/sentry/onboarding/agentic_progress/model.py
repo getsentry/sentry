@@ -617,6 +617,9 @@ def apply_update(run: OnboardingRun, update: ProgressUpdate[Any], now: datetime)
     stages = {state.stage: state for state in run.stages}
     current_index = STAGE_INDEX[update.stage]
     for definition in STAGE_DEFINITIONS[:current_index]:
+        # Bypassed is frozen, so bypassing the receipt stage would block the final-stage gate.
+        if definition.stage is Stage.RECEIVE_VERIFICATION_ERROR:
+            continue
         current = stages[definition.stage]
         if current.status not in {
             StageStatus.COMPLETED,

@@ -277,7 +277,7 @@ def test_from_dict_rejects_empty_persisted_stage_status() -> None:
         OnboardingRun.from_dict(persisted)
 
 
-def test_later_stage_bypasses_all_earlier_unreported_stages() -> None:
+def test_later_stage_bypasses_earlier_unreported_stages_except_receipt() -> None:
     now = datetime(2020, 1, 1, tzinfo=timezone.utc)
     result = apply_update(
         make_run(now),
@@ -286,9 +286,34 @@ def test_later_stage_bypasses_all_earlier_unreported_stages() -> None:
     )
 
     states = {state.stage: state.status for state in result.stages}
-    assert all(states[stage] is StageStatus.BYPASSED for stage in list(Stage)[:7])
+    assert all(states[stage] is StageStatus.BYPASSED for stage in list(Stage)[:6])
+    assert states[Stage.RECEIVE_VERIFICATION_ERROR] is None
     assert states[Stage.PREPARE_PRODUCTION] is StageStatus.ACTIVE
     assert states[Stage.CHECK_STACK_TRACE_QUALITY] is None
+
+
+def test_run_completes_when_receipt_is_reported_after_a_later_stage() -> None:
+    now = datetime(2020, 1, 1, tzinfo=timezone.utc)
+    run = make_run(now)
+    extra = VerificationErrorExtra(issue_ids=("12345",))
+    updates: tuple[ProgressUpdate[Any], ...] = (
+        ProgressUpdate(stage=Stage.PREPARE_PRODUCTION, status=StageStatus.COMPLETED),
+        ProgressUpdate(
+            stage=Stage.RECEIVE_VERIFICATION_ERROR, status=StageStatus.COMPLETED, extra=extra
+        ),
+        ProgressUpdate(
+            stage=Stage.CHECK_STACK_TRACE_QUALITY,
+            status=StageStatus.COMPLETED,
+            run_status=RunStatus.COMPLETED,
+        ),
+    )
+    for update in updates:
+        run = apply_update(run, update, now)
+
+    receipt = run.stages[STAGE_INDEX[Stage.RECEIVE_VERIFICATION_ERROR]]
+    assert receipt.status is StageStatus.COMPLETED
+    assert receipt.extra == extra
+    assert run.run_status is RunStatus.COMPLETED
 
 
 def test_optional_stage_can_be_explicitly_skipped() -> None:
@@ -548,17 +573,12 @@ def test_inferred_bypass_clears_stale_event_note() -> None:
             Stage.CREATE_PROJECT,
             CreateProjectExtra(project_slugs=("example-project",)),
         ),
-        (
-            Stage.PREPARE_PRODUCTION,
-            Stage.RECEIVE_VERIFICATION_ERROR,
-            VerificationErrorExtra(issue_ids=("12345",)),
-        ),
     ],
 )
 def test_bypassed_stage_accepts_late_metadata(
     later_stage: Stage,
     owning_stage: Stage,
-    extra: CreateProjectExtra | VerificationErrorExtra,
+    extra: CreateProjectExtra,
 ) -> None:
     now = datetime(2020, 1, 1, tzinfo=timezone.utc)
     advanced = apply_update(
