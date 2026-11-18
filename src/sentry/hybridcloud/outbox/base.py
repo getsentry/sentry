@@ -47,10 +47,10 @@ class CellOutboxProducingModel(Model):
     def prepare_outboxes(
         self, *, outbox_before_super: bool, flush: bool | None = None
     ) -> Generator[None]:
-        from sentry.hybridcloud.models.outbox import outbox_context, outbox_flushing_enabled
+        from sentry.hybridcloud.models.outbox import get_outbox_flushing_enabled, outbox_context
 
         if flush is None:
-            flush = outbox_flushing_enabled()
+            flush = get_outbox_flushing_enabled()
         if flush is None:
             flush = self.default_flush
 
@@ -236,9 +236,9 @@ class ControlOutboxProducingModel(Model):
 
     @contextlib.contextmanager
     def _maybe_prepare_outboxes(self, *, outbox_before_super: bool) -> Generator[None]:
-        from sentry.hybridcloud.models.outbox import outbox_context, outbox_flushing_enabled
+        from sentry.hybridcloud.models.outbox import get_outbox_flushing_enabled, outbox_context
 
-        flush = outbox_flushing_enabled()
+        flush = get_outbox_flushing_enabled()
         if flush is None:
             flush = self.default_flush
 
