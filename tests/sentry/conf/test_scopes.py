@@ -19,9 +19,7 @@ EXPLICIT_SCOPE_RESOURCES = {"service_account"}
 # Scopes are `<resource>:<action>`, see src/AGENTS.md. Adding a verb here should be a
 # deliberate choice made in review, not a way to name a resource.
 SCOPE_ACTIONS = {"read", "write", "admin", "create", "invite"}
-_SNAKE_CASE = r"[a-z]+(?:_[a-z]+)*"
-# A resource, optionally split into subresources like `membership.general`.
-SCOPE_RESOURCE_RE = re.compile(rf"{_SNAKE_CASE}(?:\.{_SNAKE_CASE})?")
+SCOPE_RESOURCE_RE = re.compile(r"[a-z]+(_[a-z]+)*")
 # OIDC requires these exact names.
 OIDC_SCOPES = {"openid", "profile", "email"}
 # Older scopes that name a resource or capability in the action slot. Do not add to this.
@@ -67,16 +65,8 @@ class ScopesTest(TestCase):
             resource, _, action = scope.partition(":")
             assert SCOPE_RESOURCE_RE.fullmatch(resource) and action in SCOPE_ACTIONS, (
                 f"{scope!r} must be <resource>:<action>, with a snake_case resource "
-                f"(e.g. project_key, or membership.general for a subresource) and an action in "
-                f"{sorted(SCOPE_ACTIONS)}. See src/AGENTS.md."
+                f"(e.g. project_key) and an action in {sorted(SCOPE_ACTIONS)}. See src/AGENTS.md."
             )
-
-    def test_split_resources_have_no_parent_scope(self) -> None:
-        # A parent scope like `membership:read` would read as covering every subresource,
-        # so a resource with subresources only has subresource scopes.
-        resources = {scope.partition(":")[0] for scope in SENTRY_SCOPES if ":" in scope}
-        split_resources = {resource.partition(".")[0] for resource in resources if "." in resource}
-        assert split_resources & resources == set()
 
     def test_legacy_scope_names_still_exist(self) -> None:
         # Drop an entry here once its scope is removed or renamed.

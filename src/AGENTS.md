@@ -113,7 +113,6 @@ class MyPermission(SentryPermission):
 New scopes in `SENTRY_SCOPES` (`src/sentry/conf/server.py`) use `<resource>:<action>`:
 
 - `<resource>` is the singular snake_case object being accessed, such as `saved_query` or `project_key`. Do not put the object in the action under a parent resource: `project_key:write`, not `project:keys`.
-- To split one resource into parts that are granted separately, use subresources: `<resource>.<subresource>`, such as `membership.general:read` or `membership.invite:write`. A split resource has no parent scope (no `membership:read`), and a subresource scope never implies another one; `test_split_resources_have_no_parent_scope` enforces the first.
 - `<action>` is `read`, `write`, `admin`, or `create`, such as `project_key:create`. Use another verb only when those don't fit, and add it to `SCOPE_ACTIONS` in `tests/sentry/conf/test_scopes.py`.
 - `test_scope_names_follow_resource_action` enforces this. Older scopes that break it are listed in `LEGACY_SCOPE_NAMES` there; do not add to that list.
 

@@ -1226,8 +1226,8 @@ class OrganizationMemberTeamMembershipScopeTest(OrganizationMemberTeamTestBase):
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
 
     @with_feature("organizations:granular-permission-scopes")
-    @granular_roles_granting("membership.general:read")
-    def test_membership_general_read_can_get_team_membership(self) -> None:
-        self._use_token(["membership.general:read"])
+    @granular_roles_granting("membership:read")
+    def test_membership_read_can_get_team_membership(self) -> None:
+        self._use_token(["membership:read"])
         response = self.get_success_response(self.org.slug, self.member_on_team.id, self.team.slug)
         assert response.data["isActive"] is True

@@ -31,7 +31,7 @@ def test_translate_member_read_adds_granular_scopes() -> None:
         translate_deprecated_scopes(["member:read"])
         == {
             "member:read",
-            "membership.general:read",
+            "membership:read",
         }
         | USER_PREFERENCE_SCOPES
     )

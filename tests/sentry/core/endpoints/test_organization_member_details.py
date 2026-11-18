@@ -1485,16 +1485,16 @@ class OrganizationMemberDetailsMembershipScopeTest(OrganizationMemberTestBase):
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
 
     @with_feature("organizations:granular-permission-scopes")
-    @granular_roles_granting("membership.general:read")
-    def test_membership_general_read_can_get_member(self) -> None:
-        self._use_token(["membership.general:read"])
+    @granular_roles_granting("membership:read")
+    def test_membership_read_can_get_member(self) -> None:
+        self._use_token(["membership:read"])
         response = self.get_success_response(self.organization.slug, self.other.id)
         assert response.data["id"] == str(self.other.id)
 
     @with_feature("organizations:granular-permission-scopes")
-    @granular_roles_granting("membership.general:read")
-    def test_membership_general_read_cannot_update_or_remove_member(self) -> None:
-        self._use_token(["membership.general:read"])
+    @granular_roles_granting("membership:read")
+    def test_membership_read_cannot_update_or_remove_member(self) -> None:
+        self._use_token(["membership:read"])
         self.get_error_response(
             self.organization.slug, self.other.id, method="put", role="admin", status_code=403
         )

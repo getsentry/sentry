@@ -69,7 +69,7 @@ granular_scopes = [
     "user_preference:write",
 ]
 # Accepted by endpoints, but no role grants them yet.
-ungranted_scopes = ["membership.general:read"]
+ungranted_scopes = ["membership:read"]
 non_default_owner_scopes = [
     "org:ci",
     "org:tokens",

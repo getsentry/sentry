@@ -85,8 +85,8 @@ class OrganizationUserDetailsMembershipScopeTest(APITestCase):
         self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
 
     @with_feature("organizations:granular-permission-scopes")
-    @granular_roles_granting("membership.general:read")
-    def test_membership_general_read_can_get_user(self) -> None:
-        self._use_token(["membership.general:read"])
+    @granular_roles_granting("membership:read")
+    def test_membership_read_can_get_user(self) -> None:
+        self._use_token(["membership:read"])
         response = self.get_success_response(self.organization.slug, self.other_user.id)
         assert response.data["id"] == str(self.other_user.id)
