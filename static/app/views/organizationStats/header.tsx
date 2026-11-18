@@ -1,8 +1,7 @@
 import {Fragment} from 'react';
-import noop from 'lodash/noop';
 
 import {Container} from '@sentry/scraps/layout';
-import {Tabs} from '@sentry/scraps/tabs';
+import {LinkTabs} from '@sentry/scraps/tabs';
 
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -39,7 +38,7 @@ export function StatsHeader({organization, activeTab}: Props) {
       />
       {(showSeerTab || showTeamInsightsTabs) && (
         <Container borderBottom="primary" marginBottom="xl">
-          <Tabs onChange={noop} value={activeTab}>
+          <LinkTabs value={activeTab}>
             {({TabList}) => (
               <TabList>
                 <TabList.Item
@@ -83,7 +82,7 @@ export function StatsHeader({organization, activeTab}: Props) {
                 </TabList.Item>
               </TabList>
             )}
-          </Tabs>
+          </LinkTabs>
         </Container>
       )}
     </Fragment>
