@@ -235,22 +235,30 @@ class BigtableKVStorage(KVStorage[str, bytes]):
         start = time.monotonic()
         try:
             return self._set(key, value, ttl)
-        except (exceptions.InternalServerError, exceptions.ServiceUnavailable):
+        except (exceptions.InternalServerError, exceptions.ServiceUnavailable) as e:
             # Delete cached client before retry
             with self.__table_lock:
                 del self.__table
             # Retry once on InternalServerError or ServiceUnavailable
             # 500 Received RST_STREAM with error code 2
             # SENTRY-S6D
-            context_timeout = _bigtable_operation_timeout.get()
-            if context_timeout is None:
-                return self._set(key, value, ttl)
-            # The retry shares the contextual timeout with the first attempt.
-            remaining = context_timeout - (time.monotonic() - start)
-            if remaining <= 0:
+            error = type(e).__name__
+            retry_timeout: contextlib.AbstractContextManager[None] = contextlib.nullcontext()
+            if (context_timeout := _bigtable_operation_timeout.get()) is not None:
+                # The retry shares the contextual timeout with the first attempt.
+                remaining = context_timeout - (time.monotonic() - start)
+                if remaining <= 0:
+                    metrics.incr("bigtable.set.retry", tags={"error": error, "outcome": "skipped"})
+                    raise
+                retry_timeout = bigtable_operation_timeout(remaining)
+
+            try:
+                with retry_timeout:
+                    self._set(key, value, ttl)
+            except Exception:
+                metrics.incr("bigtable.set.retry", tags={"error": error, "outcome": "failure"})
                 raise
-            with bigtable_operation_timeout(remaining):
-                return self._set(key, value, ttl)
+            metrics.incr("bigtable.set.retry", tags={"error": error, "outcome": "success"})
 
     def _set(self, key: str, value: bytes, ttl: timedelta | None = None) -> None:
         # XXX: There is a type mismatch here -- ``direct_row`` expects

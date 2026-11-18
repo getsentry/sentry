@@ -236,6 +236,7 @@ def test_set_retry_shares_context_timeout() -> None:
     with (
         mock.patch.object(store, "_get_table", return_value=mock_table),
         mock.patch("sentry.utils.kvstore.bigtable.time.monotonic", side_effect=[100.0, 108.0]),
+        mock.patch("sentry.utils.kvstore.bigtable.metrics.incr") as incr,
     ):
         store._BigtableKVStorage__table = mock_table  # type: ignore[attr-defined]
         with bigtable_operation_timeout(20.0):
@@ -243,6 +244,28 @@ def test_set_retry_shares_context_timeout() -> None:
 
     _, kwargs = mock_table.mutate_rows.call_args
     assert kwargs["retry"]._timeout == 12.0
+    incr.assert_called_once_with(
+        "bigtable.set.retry", tags={"error": "ServiceUnavailable", "outcome": "success"}
+    )
+
+
+def test_set_retry_failure_is_recorded() -> None:
+    store = BigtableKVStorage("test", "test", "test")
+    mock_table = mock.Mock()
+    mock_table.direct_row.return_value.table = mock_table
+    mock_table.mutate_rows.side_effect = exceptions.InternalServerError("internal")
+    with (
+        mock.patch.object(store, "_get_table", return_value=mock_table),
+        mock.patch("sentry.utils.kvstore.bigtable.metrics.incr") as incr,
+    ):
+        store._BigtableKVStorage__table = mock_table  # type: ignore[attr-defined]
+        with pytest.raises(exceptions.InternalServerError):
+            store.set("some-key", b"value")
+
+    assert mock_table.mutate_rows.call_count == 2
+    incr.assert_called_once_with(
+        "bigtable.set.retry", tags={"error": "InternalServerError", "outcome": "failure"}
+    )
 
 
 def test_set_does_not_retry_when_context_timeout_is_spent() -> None:
@@ -253,9 +276,13 @@ def test_set_does_not_retry_when_context_timeout_is_spent() -> None:
     with (
         mock.patch.object(store, "_get_table", return_value=mock_table),
         mock.patch("sentry.utils.kvstore.bigtable.time.monotonic", side_effect=[100.0, 121.0]),
+        mock.patch("sentry.utils.kvstore.bigtable.metrics.incr") as incr,
     ):
         store._BigtableKVStorage__table = mock_table  # type: ignore[attr-defined]
         with bigtable_operation_timeout(20.0), pytest.raises(exceptions.ServiceUnavailable):
             store.set("some-key", b"value")
 
     assert mock_table.mutate_rows.call_count == 1
+    incr.assert_called_once_with(
+        "bigtable.set.retry", tags={"error": "ServiceUnavailable", "outcome": "skipped"}
+    )
