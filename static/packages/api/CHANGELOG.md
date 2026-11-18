@@ -1,3 +1,9 @@
+## 2.14.2
+
+### Internal Changes 🔧
+
+- (api) Typecheck @sentry/api with TypeScript 7 by @kedarv and @claude in [#131625](https://github.com/getsentry/sentry/pull/131625)
+
 ## 2.14.1
 
 ### Internal Changes 🔧
