@@ -207,9 +207,8 @@ export function NewWelcomeUI(props: StepProps) {
             {showAgentSetup ? (
               // Swaps in after the stagger has run, so it drives the variants
               // itself rather than inheriting the step's.
-              <MotionStack
+              <MotionContainer
                 key="agent-setup"
-                gap="md"
                 width="100%"
                 initial="initial"
                 animate="animate"
@@ -226,20 +225,20 @@ export function NewWelcomeUI(props: StepProps) {
                   onSelectSnippet={handleSelectSnippet}
                   onSetupInBrowser={handleComplete}
                   run={run}
+                  metaAction={
+                    isSetupComplete ? undefined : (
+                      <LinkButton
+                        variant="transparent"
+                        size="xs"
+                        icon={<IconNext size="xs" />}
+                        to={`/organizations/${organization.slug}/issues/`}
+                      >
+                        {t("I'm finished")}
+                      </LinkButton>
+                    )
+                  }
                 />
-                {showAgentHeading && !isSetupComplete && (
-                  <Flex justify="end">
-                    <LinkButton
-                      variant="transparent"
-                      size="xs"
-                      icon={<IconNext size="xs" />}
-                      to={`/organizations/${organization.slug}/issues/`}
-                    >
-                      {t("I'm finished")}
-                    </LinkButton>
-                  </Flex>
-                )}
-              </MotionStack>
+              </MotionContainer>
             ) : (
               <MotionStack key="products" gap="3xl" width="100%" {...ONBOARDING_STAGGER}>
                 <MotionGrid
