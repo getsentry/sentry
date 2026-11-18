@@ -4,6 +4,7 @@ from unittest.mock import patch
 import pytest
 
 from sentry.api.serializers import serialize
+from sentry.inbox.event_data import InboxEventData
 from sentry.inbox.issue import ISSUE_USER_MENTIONED, IssueMentionedData
 from sentry.inbox.notebook import (
     NOTEBOOK,
@@ -13,7 +14,7 @@ from sentry.inbox.notebook import (
 )
 from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
 from sentry.inbox.serializers import InboxItemEventSerializer, InboxItemSerializer
-from sentry.inbox.types import SYSTEM_ACTOR, InboxEventData
+from sentry.inbox.types import SYSTEM_ACTOR
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.notebooks.models import NotebookStatus
