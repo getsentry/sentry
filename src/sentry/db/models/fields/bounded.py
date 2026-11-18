@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from django.db import models
+from django.db.models.expressions import Combinable
 from django.utils.translation import gettext_lazy as _
 
 __all__ = (
@@ -18,7 +19,7 @@ U32_MAX = 4_294_967_295  # 2**32 - 1
 I64_MAX = 9_223_372_036_854_775_807  # 2**63 - 1
 
 
-class BoundedIntegerField(models.IntegerField):
+class BoundedIntegerField(models.IntegerField):  # type: ignore[type-arg]
     MAX_VALUE = I32_MAX
 
     def get_prep_value(self, value: int) -> int:
@@ -28,7 +29,7 @@ class BoundedIntegerField(models.IntegerField):
         return super().get_prep_value(value)
 
 
-class BoundedPositiveIntegerField(models.PositiveIntegerField):
+class BoundedPositiveIntegerField(models.PositiveIntegerField):  # type: ignore[type-arg]
     MAX_VALUE = I32_MAX
 
     def get_prep_value(self, value: int) -> int:
@@ -38,7 +39,7 @@ class BoundedPositiveIntegerField(models.PositiveIntegerField):
         return super().get_prep_value(value)
 
 
-class WrappingU32IntegerField(models.IntegerField):
+class WrappingU32IntegerField(models.IntegerField):  # type: ignore[type-arg]
     """
     This type allows storing a full unsigned `u32` value by manually wrapping it around,
     so it is stored as a signed `i32` value in the database.
@@ -57,7 +58,9 @@ class WrappingU32IntegerField(models.IntegerField):
 
         return super().get_prep_value(value)
 
-    def from_db_value(self, value: int | None, expression, connection) -> int | None:
+    def from_db_value(
+        self, value: int | None, expression: object, connection: object
+    ) -> int | None:
         if value is None:
             return None
         if value < 0:
@@ -65,7 +68,7 @@ class WrappingU32IntegerField(models.IntegerField):
         return value
 
 
-class BoundedAutoField(models.AutoField):
+class BoundedAutoField(models.AutoField):  # type: ignore[type-arg]
     MAX_VALUE = I32_MAX
 
     def get_prep_value(self, value: int) -> int:
@@ -75,7 +78,7 @@ class BoundedAutoField(models.AutoField):
         return super().get_prep_value(value)
 
 
-class BoundedBigIntegerField(models.BigIntegerField):
+class BoundedBigIntegerField(models.BigIntegerField):  # type: ignore[type-arg]
     description = _("Big Integer")
 
     MAX_VALUE = I64_MAX
@@ -90,7 +93,7 @@ class BoundedBigIntegerField(models.BigIntegerField):
         return super().get_prep_value(value)
 
 
-class BoundedPositiveBigIntegerField(models.PositiveBigIntegerField):
+class BoundedPositiveBigIntegerField(models.PositiveBigIntegerField):  # type: ignore[type-arg]
     description = _("Positive big integer")
 
     MAX_VALUE = I64_MAX
@@ -105,7 +108,10 @@ class BoundedPositiveBigIntegerField(models.PositiveBigIntegerField):
         return super().get_prep_value(value)
 
 
-class BoundedBigAutoField(models.BigAutoField):
+class BoundedBigAutoField(models.BigAutoField):  # type: ignore[type-arg]
+    _pyi_private_set_type: float | int | str | Combinable
+    _pyi_private_get_type: int
+
     description = _("Big Integer")
 
     MAX_VALUE = I64_MAX

@@ -411,8 +411,6 @@ class CircuitBreaker:
         self.limiter = RedisSlidingWindowRateLimiter(
             cluster=settings.SENTRY_RATE_LIMIT_REDIS_CLUSTER
         )
-        self.redis_pipeline = self.limiter.client.pipeline()
-
         self.trip_strategy = trip_strategy
 
         # Initialize each strategy (validation and Redis quota setup happen here)
@@ -477,11 +475,14 @@ class CircuitBreaker:
             return
 
         # Tell the limiter to increment the key by 1 for each tracking quota
-        self.limiter.use_quotas(
-            [RequestedQuota(self.key, 1, tracking)],
-            [GrantedQuota(self.key, 1, [])],
-            now,
-        )
+        try:
+            self.limiter.use_quotas(
+                [RequestedQuota(self.key, 1, tracking)],
+                [GrantedQuota(self.key, 1, [])],
+                now,
+            )
+        except Exception:
+            logger.exception("Couldn't record success in redis for circuit breaker '%s'", self.key)
 
     def _should_trip(self, controlling_quota: Quota) -> bool:
         window_end_time = int(time.time())
@@ -532,25 +533,37 @@ class CircuitBreaker:
             *self.trip_strategy.tracking_quotas(is_recovery=state == CircuitBreakerState.RECOVERY),
         ]
 
-        self.limiter.use_quotas(
-            [RequestedQuota(self.key, 1, quotas)],
-            [GrantedQuota(self.key, 1, [])],
-            now,
-        )
+        try:
+            self.limiter.use_quotas(
+                [RequestedQuota(self.key, 1, quotas)],
+                [GrantedQuota(self.key, 1, [])],
+                now,
+            )
+            controlling_quota = self._get_controlling_quota(state)
+            should_trip = self._should_trip(controlling_quota)
+        except Exception:
+            logger.exception("Couldn't record error in redis for circuit breaker '%s'", self.key)
+            return
 
         # If incrementing has made us hit the current limit, switch to the BROKEN state
-        controlling_quota = self._get_controlling_quota(state)
-        if self._should_trip(controlling_quota):
-            window_end_time = int(time.time())
-            remaining = self._get_remaining_error_quota(controlling_quota, window_end_time)
-            trip_log_context = self.trip_strategy.get_trip_log_context(
-                controlling_quota,
-                remaining,
-                self.limiter,
-                self.key,
-                window_end_time,
-                state,
-            )
+        if should_trip:
+            try:
+                window_end_time = int(time.time())
+                remaining = self._get_remaining_error_quota(controlling_quota, window_end_time)
+                trip_log_context = self.trip_strategy.get_trip_log_context(
+                    controlling_quota,
+                    remaining,
+                    self.limiter,
+                    self.key,
+                    window_end_time,
+                    state,
+                )
+            # Log context only; don't let it stop the trip
+            except Exception:
+                logger.exception(
+                    "Couldn't get trip log context from redis for circuit breaker '%s'", self.key
+                )
+                trip_log_context = {}
             logger.warning(
                 "Circuit breaker '%s' error limit hit",
                 self.key,
@@ -610,21 +623,34 @@ class CircuitBreaker:
         # If there's no remaining quota, in theory we should already be in a broken state. That
         # said, it's possible we could be in a race condition and hit this just as the state is
         # being changed, so just to be safe we also check here.
-        if self._should_trip(controlling_quota):
+        try:
+            should_trip = self._should_trip(controlling_quota)
+        except Exception:
+            logger.exception("Couldn't check quota in redis for circuit breaker '%s'", self.key)
+            # Same default as a failed state read: let traffic through
+            return True
+
+        if should_trip:
             metrics.incr(f"circuit_breaker.{self.metrics_key}.request_blocked")
             return False
 
         return True
 
     def _get_from_redis(self, keys: list[str]) -> Any:
+        # Use a fresh pipeline per call. If `execute()` fails before acquiring a connection (e.g.
+        # a connect timeout), redis-py leaves the queued commands on the pipeline, and reusing a
+        # shared pipeline would then return extra results on the next call.
+        pipeline = self.limiter.client.pipeline()
         for key in keys:
-            self.redis_pipeline.get(key)
-        return self.redis_pipeline.execute()
+            pipeline.get(key)
+        return pipeline.execute()
 
     def _set_in_redis(self, keys_values_and_timeouts: list[tuple[str, Any, int]]) -> None:
+        # See `_get_from_redis` for why this doesn't reuse a shared pipeline
+        pipeline = self.limiter.client.pipeline()
         for key, value, timeout in keys_values_and_timeouts:
-            self.redis_pipeline.set(key, value, timeout)
-        self.redis_pipeline.execute()
+            pipeline.set(key, value, timeout)
+        pipeline.execute()
 
     def _get_state_and_remaining_time(
         self,

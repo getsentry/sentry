@@ -811,12 +811,13 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
         project.add_team(other_team)
 
         with self.feature(self.features):
+            query_params: dict[str, Any] = {
+                "project": [self.project.id],
+                "team": ["myteams", other_team.id],
+            }
             response = self.client.get(
                 reverse("sentry-api-0-organization-key-transactions-list", args=[org.slug]),
-                data={
-                    "project": [self.project.id],
-                    "team": ["myteams", other_team.id],
-                },
+                data=query_params,
                 format="json",
             )
 
@@ -827,12 +828,13 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
 
     def test_get_key_transaction_list_my_teams(self) -> None:
         with self.feature(self.features):
+            query_params: dict[str, Any] = {
+                "project": [self.project.id],
+                "team": ["myteams"],
+            }
             response = self.client.get(
                 self.url,
-                data={
-                    "project": [self.project.id],
-                    "team": ["myteams"],
-                },
+                data=query_params,
                 format="json",
             )
 
@@ -895,12 +897,13 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
 
     def test_get_key_transaction_list_mixed_my_and_other_teams(self) -> None:
         with self.feature(self.features):
+            query_params: dict[str, Any] = {
+                "project": [self.project.id],
+                "team": ["myteams", self.team4.id, self.team5.id],
+            }
             response = self.client.get(
                 self.url,
-                data={
-                    "project": [self.project.id],
-                    "team": ["myteams", self.team4.id, self.team5.id],
-                },
+                data=query_params,
                 format="json",
             )
 

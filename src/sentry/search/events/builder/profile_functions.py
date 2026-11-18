@@ -43,7 +43,7 @@ class ProfileFunctionsQueryBuilderMixin:
         resolved: str | None = self.config.resolve_column_type(field)
         return resolved
 
-    def process_profiling_function_columns(self, row: SnubaRow):
+    def process_profiling_function_columns(self, row: SnubaRow) -> None:
         # We need to check both the aliased and non aliased names
         # as not all use cases enable `transform_alias_to_input_format`
         # and the events-stats endpoint does not actually apply it.
@@ -96,7 +96,7 @@ class ProfileFunctionsTimeseriesQueryBuilder(
     function_alias_prefix = "sentry_"
     config_class = ProfileFunctionsDatasetConfig
 
-    def strip_alias_prefix(self, result):
+    def strip_alias_prefix(self, result: dict[str, Any]) -> dict[str, Any]:
         alias_mappings = {
             column: get_function_alias(function_details.field)
             for column, function_details in self.function_alias_map.items()

@@ -3,8 +3,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {SourceContextResponse} from 'sentry/components/events/interfaces/frame/useSourceContext';
-import {useSourceContext} from 'sentry/components/events/interfaces/frame/useSourceContext';
+import type {SourceContextResponse} from './useSourceContext';
+import {useSourceContext} from './useSourceContext';
 
 describe('useSourceContext', () => {
   const project = ProjectFixture();

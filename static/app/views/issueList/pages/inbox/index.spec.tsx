@@ -28,9 +28,9 @@ import {DiffFileType} from 'sentry/components/events/autofix/types';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import {ProgressState} from 'sentry/types/group';
-import {INBOX_AUTOFIX_CATEGORY_FILTER} from 'sentry/views/issueList/pages/inbox/utils';
 
 import InboxPage from './index';
+import {INBOX_AUTOFIX_CATEGORY_FILTER} from './utils';
 
 function InboxPageInContainer() {
   return (
@@ -140,6 +140,7 @@ describe('InboxPage', () => {
   beforeEach(() => {
     Element.prototype.scrollIntoView = jest.fn();
     ProjectsStore.reset();
+    TeamStore.reset();
     ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
@@ -164,7 +165,6 @@ describe('InboxPage', () => {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
     localStorage.removeItem('inbox-split-size');
-    TeamStore.reset();
   });
 
   function mockSection(
@@ -342,7 +342,6 @@ describe('InboxPage', () => {
       body: {
         hasSupportedScmIntegration: true,
         isAutofixEnabled: false,
-        isCodeReviewEnabled: false,
         isSeerConfigured: false,
       },
     });
@@ -1155,18 +1154,6 @@ describe('InboxPage', () => {
     );
   });
 
-  it('shows the Seer empty state for an assigned issue', async () => {
-    mockAssignedPreview(AutofixSetupFixture({}));
-    render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
-
-    const preview = await openAssignedPreview();
-
-    expect(await within(preview).findByText('Have Seer...')).toBeInTheDocument();
-    expect(
-      within(preview).getByRole('button', {name: 'Find Root Cause'})
-    ).toBeInTheDocument();
-  });
-
   it('shows root cause generation after starting Autofix for an assigned issue', async () => {
     mockAssignedPreview(AutofixSetupFixture({}));
     MockApiClient.addMockResponse({
@@ -1219,19 +1206,15 @@ describe('InboxPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('shows project setup for an assigned issue with paid Seer', async () => {
+  it('keeps Resolve available when the assigned project has no Seer repository', async () => {
     mockAssignedPreview(AutofixSetupFixture({seerReposLinked: false}));
     render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
 
     const preview = await openAssignedPreview();
 
     expect(
-      await within(preview).findByText('Finish Configuring Seer')
+      await within(preview).findByRole('button', {name: 'Resolve'})
     ).toBeInTheDocument();
-    expect(
-      within(preview).getByRole('button', {name: 'Set Up Seer for This Project'})
-    ).toHaveAttribute('href', '/settings/org-slug/projects/project-slug/seer/');
-    expect(within(preview).getByRole('button', {name: 'Resolve'})).toBeInTheDocument();
   });
 
   it('keeps Resolve available for an assigned issue without Seer quota', async () => {
@@ -1453,6 +1436,94 @@ describe('InboxPage', () => {
     ).toHaveAttribute('href', 'https://github.com/org/repository/pull/649');
   });
 
+  describe('an Autofix pull request that failed for credits', () => {
+    const creditsOrganization = OrganizationFixture({
+      features: [
+        ...organization.features,
+        'seer-credit-checks',
+        'token-billed-seer-enabled',
+      ],
+    });
+
+    function mockOutOfCreditsPullRequest() {
+      mockSuccessfulSections();
+      mockIssuePreview();
+      mockAutofixResponse(
+        ExplorerAutofixResponseFixture({
+          autofix: ExplorerAutofixStateFixture({
+            repo_pr_states: {
+              'org/repository': AutofixRepoPRStateFixture({
+                pr_creation_error:
+                  "Your organization doesn't have enough Seer credits for this.",
+                pr_creation_error_code: 'out_of_credits',
+                pr_creation_status: 'error',
+                pr_id: null,
+                pr_number: null,
+                pr_url: null,
+              }),
+            },
+          }),
+        })
+      );
+    }
+
+    function mockCreditCheck(hasEnoughCredits: boolean) {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${creditsOrganization.slug}/seer/credit-check/`,
+        match: [MockApiClient.matchQuery({operation: 'autofix_open_pr'})],
+        body: {hasEnoughCredits},
+      });
+    }
+
+    it('keeps its retry, disabled, while out of credits', async () => {
+      mockOutOfCreditsPullRequest();
+      mockCreditCheck(false);
+
+      render(<InboxPage />, {
+        organization: creditsOrganization,
+        initialRouterConfig,
+      });
+
+      const preview = await openFixProposedPreview();
+      const retryButton = await within(preview).findByRole('button', {
+        name: 'Retry PR in org/repository',
+      });
+      expect(retryButton).toHaveAttribute('aria-disabled', 'true');
+
+      await userEvent.hover(retryButton);
+      expect(
+        await screen.findByText(
+          'Your organization does not have enough Seer credits for this.'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('enables its retry once the organization can afford it', async () => {
+      mockOutOfCreditsPullRequest();
+      mockCreditCheck(true);
+
+      render(<InboxPage />, {
+        organization: creditsOrganization,
+        initialRouterConfig,
+      });
+
+      const preview = await openFixProposedPreview();
+      const retryButton = await within(preview).findByRole('button', {
+        name: 'Retry PR in org/repository',
+      });
+      await waitFor(() =>
+        expect(retryButton).not.toHaveAttribute('aria-disabled', 'true')
+      );
+
+      await userEvent.hover(retryButton);
+      expect(
+        await screen.findByText(
+          "Seer couldn't open a pull request in org/repository because your organization is out of credits."
+        )
+      ).toBeInTheDocument();
+    });
+  });
+
   it('retries a failed Autofix pull request', async () => {
     mockSuccessfulSections();
     mockIssuePreview();
@@ -1530,7 +1601,7 @@ describe('InboxPage', () => {
     );
   });
 
-  it('does not render without the progress UI feature', () => {
+  it('does not render without the issue-inbox feature', () => {
     render(<InboxPage />, {
       organization: OrganizationFixture({features: []}),
       initialRouterConfig,

@@ -11,6 +11,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, internal_cell_silo_endpoint
 from sentry.api.permissions import StaffPermission
+from sentry.auth.principal import acting_user_id
 from sentry.preprod.analytics import PreprodArtifactApiAdminGetInfoEvent
 from sentry.preprod.models import (
     InstallablePreprodArtifact,
@@ -74,7 +75,7 @@ class PreprodArtifactAdminInfoEndpoint(Endpoint):
             PreprodArtifactApiAdminGetInfoEvent(
                 organization_id=preprod_artifact.project.organization_id,
                 project_id=preprod_artifact.project.id,
-                user_id=request.user.id,
+                user_id=acting_user_id(request.user),
                 artifact_id=head_artifact_id,
             )
         )
@@ -87,9 +88,9 @@ class PreprodArtifactAdminInfoEndpoint(Endpoint):
             InstallablePreprodArtifact.objects.filter(preprod_artifact_id=head_artifact_id_int)
         )
 
-        snapshot_metrics = PreprodSnapshotMetrics.objects.filter(
+        snapshot_metrics = PreprodSnapshotMetrics.objects.get_or_none(
             preprod_artifact_id=head_artifact_id_int
-        ).first()
+        )
 
         snapshot_comparison = None
         if snapshot_metrics:
@@ -302,7 +303,7 @@ class PreprodArtifactAdminInfoEndpoint(Endpoint):
             "preprod_artifact.admin_get_info",
             extra={
                 "preprod_artifact_id": head_artifact_id,
-                "user_id": request.user.id,
+                "user_id": acting_user_id(request.user),
                 "organization_id": preprod_artifact.project.organization_id,
                 "project_id": preprod_artifact.project.id,
             },

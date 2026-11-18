@@ -13,9 +13,10 @@ import {z} from 'zod';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {getTraceNodeAttribute} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
-import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {getTraceNodeAttribute} from './aiTraceNodes';
+import type {AITraceSpanNode} from './types';
 
 // Schemas describe the valid shape only and keep values as sent; ordering and
 // other presentation happens when rendering. Optional fields may be missing,
@@ -172,7 +173,7 @@ const inputItemSchema = z.object({
   type: z.literal('evaluation'),
   // The evaluated content is the core of the input, so it must be present.
   state: evaluatedStateSchema,
-  questions: z.unknown(),
+  questions: z.unknown().optional(),
 });
 
 const outputItemSchema = z.object({
@@ -345,6 +346,34 @@ export function findQuestion(
     (question): question is EvaluationQuestion =>
       question.kind === 'question' && question.key === key
   );
+}
+
+export interface EvaluationResult {
+  key: string;
+  answer?: EvaluationAnswer;
+  question?: EvaluationQuestionEntry;
+}
+
+/**
+ * Pairs each question with its answer by key, in question order. Answers to
+ * questions that weren't sent follow at the end.
+ */
+export function getEvaluationResults(
+  questions: EvaluationQuestionEntry[],
+  answers: EvaluationAnswer[]
+): EvaluationResult[] {
+  const answersByKey = new Map(answers.map(answer => [answer.key, answer]));
+  const questionKeys = new Set(questions.map(question => question.key));
+  return [
+    ...questions.map(question => ({
+      key: question.key,
+      question,
+      answer: answersByKey.get(question.key),
+    })),
+    ...answers
+      .filter(answer => !questionKeys.has(answer.key))
+      .map(answer => ({key: answer.key, answer})),
+  ];
 }
 
 /**

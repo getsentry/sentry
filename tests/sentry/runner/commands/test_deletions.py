@@ -28,8 +28,8 @@ class CellDeletionsCliTest(CliTestCase):
             assert viewer_context is not None
             assert viewer_context.organization_id == project.organization_id
             assert viewer_context.project_id == project.id
-            assert viewer_context.user_id is None
-            assert viewer_context.actor_type == ActorType.SYSTEM
+            assert viewer_context.actor.actor_id is None
+            assert viewer_context.actor.type == ActorType.SYSTEM
             return False
 
         task.chunk.side_effect = assert_viewer_context
@@ -57,8 +57,8 @@ class CellDeletionsCliTest(CliTestCase):
             assert viewer_context is not None
             assert viewer_context.organization_id == project.organization_id
             assert viewer_context.project_id == project.id
-            assert viewer_context.user_id == self.user.id
-            assert viewer_context.actor_type == ActorType.USER
+            assert viewer_context.actor.actor_id == self.user.id
+            assert viewer_context.actor.type == ActorType.USER
             return False
 
         task.chunk.side_effect = assert_viewer_context

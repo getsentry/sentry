@@ -378,6 +378,8 @@ function updateCachedSourceFile(fileName: string, source: string): void {
   const modifiedTime = ts.sys.getModifiedTime?.(resolvedFileName)?.getTime();
   for (const resolver of staleResolvers) {
     resolver.sourceFiles.set(resolvedFileName, {modifiedTime, sourceFile});
+    // Resolved defaults may come from this file, directly or via re-exports.
+    resolver.defaultsByExport.clear();
   }
 }
 
@@ -637,8 +639,7 @@ function getImportedBinding(
 ): {exportName: string; moduleSpecifier: string} | undefined {
   const definition = variable.defs.find(candidate => candidate.type === 'ImportBinding');
   if (
-    !definition ||
-    definition.parent?.type !== 'ImportDeclaration' ||
+    definition?.parent?.type !== 'ImportDeclaration' ||
     typeof definition.parent.source.value !== 'string'
   ) {
     return undefined;
@@ -809,8 +810,6 @@ export const noRedundantDefaultArgument = defineRule({
 
       if (syntacticResolver === undefined) {
         syntacticResolver = getSyntacticResolver(currentFileName) ?? null;
-        syntacticResolver?.defaultsByExport.clear();
-        syntacticResolver?.moduleResolutionCache.clear();
       }
       const defaults = syntacticResolver
         ? getSyntacticImportedDefaults(syntacticResolver, currentFileName, variable)

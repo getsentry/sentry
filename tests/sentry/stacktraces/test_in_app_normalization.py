@@ -7,7 +7,10 @@ from sentry.stacktraces.processing import normalize_stacktraces_for_grouping
 from sentry.testutils.cases import TestCase
 
 
-def make_stacktrace(frame_0_in_app="not set", frame_1_in_app="not set") -> dict[str, Any]:
+def make_stacktrace(
+    frame_0_in_app: bool | str | None = "not set",
+    frame_1_in_app: bool | str | None = "not set",
+) -> dict[str, Any]:
     frames = [
         {
             "abs_path": "http://example.com/foo.js",
@@ -196,7 +199,7 @@ class MacOSInAppDetectionTest(TestCase):
 
 
 class iOSInAppDetectionTest(TestCase):
-    def assert_correct_in_app_value(self, function, is_in_app: bool):
+    def assert_correct_in_app_value(self, function: str, is_in_app: bool) -> None:
         data: dict[str, Any] = {
             "platform": "cocoa",
             "debug_meta": {"images": []},  # omitted

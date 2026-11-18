@@ -28,7 +28,7 @@ describe('EventTagsTree', () => {
     {key: 'magic.is', value: 'real'},
     {key: 'magic.is.probably.not', value: 'spells'},
     {key: 'double..dot', value: 'works'},
-    {key: 'im.a.bit.too.nested.to.display', value: 'bird'},
+    {key: 'very.deeply.nested.key.still.displays', value: 'bird'},
   ];
   const pillOnlyTags = [
     'app.app_start_time',
@@ -41,8 +41,18 @@ describe('EventTagsTree', () => {
     'favorite.game',
     'magic.is',
     'magic.is.probably.not',
+    'very.deeply.nested.key.still.displays',
   ];
-  const emptyBranchTags = ['favorite', 'magic', 'probably'];
+  const emptyBranchTags = [
+    'favorite',
+    'magic',
+    'probably',
+    'very',
+    'deeply',
+    'nested',
+    'key',
+    'still',
+  ];
   const treeBranchTags = [
     'app_start_time',
     'app_name',
@@ -56,7 +66,7 @@ describe('EventTagsTree', () => {
     'is',
     'not',
     'double..dot',
-    'im.a.bit.too.nested.to.display',
+    'displays',
   ].concat(emptyBranchTags);
 
   const event = EventFixture({tags});

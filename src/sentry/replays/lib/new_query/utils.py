@@ -30,6 +30,18 @@ def does_not_contain(condition: Condition) -> Condition:
     )
 
 
+def any_of(conditions: list[Condition]) -> Condition:
+    """Return true if any of the conditions is true.  A single condition is returned as-is because
+    snuba-sdk's "Or" requires at least two conditions."""
+    return conditions[0] if len(conditions) == 1 else Or(conditions=conditions)
+
+
+def all_of(conditions: list[Condition]) -> Condition:
+    """Return true if all of the conditions are true.  A single condition is returned as-is because
+    snuba-sdk's "And" requires at least two conditions."""
+    return conditions[0] if len(conditions) == 1 else And(conditions=conditions)
+
+
 # Work-around for https://github.com/getsentry/snuba-sdk/issues/115
 def translate_condition_to_function(condition: Condition | And | Or) -> Function:
     """Transforms infix operations to prefix operations."""

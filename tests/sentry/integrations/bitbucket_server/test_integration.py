@@ -1,5 +1,5 @@
 from functools import cached_property
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import responses
@@ -7,7 +7,10 @@ from django.urls import reverse
 from requests.exceptions import ReadTimeout
 
 from fixtures.bitbucket_server import EXAMPLE_PRIVATE_KEY
-from sentry.integrations.bitbucket_server.integration import BitbucketServerIntegrationProvider
+from sentry.integrations.bitbucket_server.integration import (
+    BitbucketServerIntegration,
+    BitbucketServerIntegrationProvider,
+)
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import IntegrationPipeline
@@ -25,7 +28,7 @@ class BitbucketServerIntegrationTest(IntegrationTestCase):
 
     @cached_property
     @assume_test_silo_mode(SiloMode.CONTROL)
-    def integration(self):
+    def integration(self) -> Integration:
         integration = Integration.objects.create(
             provider=self.provider.key,
             name="Bitbucket Server",
@@ -39,7 +42,10 @@ class BitbucketServerIntegrationTest(IntegrationTestCase):
         return integration
 
     def test_source_url_matches(self) -> None:
-        installation = self.integration.get_installation(self.organization.id)
+        installation = cast(
+            BitbucketServerIntegration,
+            self.integration.get_installation(self.organization.id),
+        )
 
         test_cases = [
             (
@@ -68,7 +74,10 @@ class BitbucketServerIntegrationTest(IntegrationTestCase):
             assert installation.source_url_matches(source_url) == matches
 
     def test_format_source_url(self) -> None:
-        installation = self.integration.get_installation(self.organization.id)
+        installation = cast(
+            BitbucketServerIntegration,
+            self.integration.get_installation(self.organization.id),
+        )
 
         with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
@@ -95,7 +104,10 @@ class BitbucketServerIntegrationTest(IntegrationTestCase):
         )
 
     def test_extract_branch_from_source_url(self) -> None:
-        installation = self.integration.get_installation(self.organization.id)
+        installation = cast(
+            BitbucketServerIntegration,
+            self.integration.get_installation(self.organization.id),
+        )
 
         with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
@@ -126,7 +138,10 @@ class BitbucketServerIntegrationTest(IntegrationTestCase):
         )
 
     def test_extract_source_path_from_source_url(self) -> None:
-        installation = self.integration.get_installation(self.organization.id)
+        installation = cast(
+            BitbucketServerIntegration,
+            self.integration.get_installation(self.organization.id),
+        )
 
         with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(

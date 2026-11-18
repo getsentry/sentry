@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
 
-from django.db.models import Q, QuerySet
+from django.db.models import Model, Q, QuerySet
 from django.db.models.functions import TruncSecond
 from rest_framework.exceptions import ParseError
 
@@ -58,7 +58,7 @@ class SynapsePaginator:
 
     def __init__(
         self,
-        queryset: QuerySet,
+        queryset: QuerySet[Model],
         id_field: str,
         timestamp_field: str,
     ) -> None:

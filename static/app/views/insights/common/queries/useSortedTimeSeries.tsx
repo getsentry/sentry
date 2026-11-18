@@ -18,9 +18,10 @@ import type {
 } from 'sentry/views/dashboards/widgets/common/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {FALLBACK_SERIES_NAME} from 'sentry/views/explore/settings';
-import {getSeriesEventView} from 'sentry/views/insights/common/queries/getSeriesEventView';
-import {isEventViewEndInFuture} from 'sentry/views/insights/common/queries/useSpansQuery';
 import type {SpanFields, SpanFunctions} from 'sentry/views/insights/types';
+
+import {getSeriesEventView} from './getSeriesEventView';
+import {isEventViewEndInFuture} from './useSpansQuery';
 
 type SeriesMap = Record<string, TimeSeries[]>;
 
@@ -37,6 +38,7 @@ interface Options<Fields> {
   search?: AnyMutableSearch;
   spanQuery?: string[];
   topEvents?: number;
+  transformations?: ReadonlyArray<readonly string[]>;
   yAxis?: Fields;
 }
 
@@ -61,6 +63,7 @@ export const useSortedTimeSeries = <
     logQuery,
     metricQuery,
     spanQuery,
+    transformations,
   } = options;
 
   const pageFilters = usePageFilters();
@@ -105,6 +108,7 @@ export const useSortedTimeSeries = <
     dataset ?? DiscoverDatasets.SPANS,
     {
       yAxis: yAxis as unknown as any,
+      transformations,
       query: search,
       topEvents,
       groupBy,
@@ -126,10 +130,20 @@ export const useSortedTimeSeries = <
   );
 
   const data = useMemo(() => {
-    return (
-      result.data ? Object.groupBy(result.data.timeSeries, ts => ts.yAxis) : {}
-    ) as SeriesMap;
-  }, [result.data]);
+    if (!result.data) {
+      return {};
+    }
+
+    // Each response group repeats the requested axes in order, without an axis index.
+    const series = transformations
+      ? result.data.timeSeries.map((timeSeries, index) => ({
+          ...timeSeries,
+          requestedTransformations: transformations[index % yAxis.length] ?? [],
+        }))
+      : result.data.timeSeries;
+
+    return Object.groupBy(series, ts => ts.yAxis) as SeriesMap;
+  }, [result.data, transformations, yAxis]);
 
   return {
     ...result,

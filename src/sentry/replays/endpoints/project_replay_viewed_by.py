@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Annotated, Any, Literal, TypedDict
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
@@ -16,25 +16,72 @@ from sentry.apidocs.constants import (
     RESPONSE_NO_CONTENT,
     RESPONSE_NOT_FOUND,
 )
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.replay_examples import ReplayExamples
+from sentry.apidocs.formats import NumericId
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id, require_user
 from sentry.models.project import Project
 from sentry.replays.endpoints.project_replay_endpoint import ProjectReplayEndpoint
 from sentry.replays.lib.kafka import publish_replay_event
 from sentry.replays.query import query_replay_viewed_by_ids
 from sentry.replays.usecases.events import viewed_event
 from sentry.replays.usecases.query import execute_query, make_full_aggregation_query
+from sentry.users.api.serializers.user import SerializedAvatarFields
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service
 
 
+class ReplayViewerEmailResponse(TypedDict):
+    id: Annotated[str, ApiDescription("Email ID")]
+    email: Annotated[str, ApiDescription("Email address")]
+    is_verified: Annotated[bool, ApiDescription("Whether the email address is verified")]
+
+
+class ReplayViewerResponse(TypedDict):
+    id: Annotated[NumericId, ApiDescription("User ID")]
+    name: Annotated[str, ApiDescription("Display name of the user")]
+    username: Annotated[str, ApiDescription("Username")]
+    email: Annotated[str, ApiDescription("Primary email address")]
+    avatarUrl: Annotated[str, ApiDescription("Gravatar URL for the primary email address")]
+    avatar: Annotated[SerializedAvatarFields, ApiDescription("User avatar")]
+    isActive: Annotated[bool, ApiDescription("Whether the account is active")]
+    hasPasswordAuth: Annotated[bool, ApiDescription("Whether the user has a password set")]
+    isManaged: Annotated[
+        bool,
+        ApiDescription(
+            "Whether the account is managed, which stops the user from changing their username, password and similar details"
+        ),
+    ]
+    dateJoined: Annotated[datetime, ApiDescription("When the account was created (ISO 8601)")]
+    lastLogin: Annotated[
+        datetime | None, ApiDescription("When the user last signed in (ISO 8601), or null")
+    ]
+    has2fa: Annotated[bool, ApiDescription("Whether the user has two-factor authentication on")]
+    lastActive: Annotated[
+        datetime | None, ApiDescription("When the user was last active (ISO 8601), or null")
+    ]
+    isSuperuser: Annotated[bool, ApiDescription("Whether the user is a superuser")]
+    isStaff: Annotated[bool, ApiDescription("Whether the user has staff status")]
+    experiments: Annotated[dict[str, str], ApiDescription("Deprecated. Always an empty object")]
+    emails: Annotated[
+        list[ReplayViewerEmailResponse],
+        ApiDescription(
+            "Email addresses of the user. Only included for the requesting user or superusers; empty otherwise"
+        ),
+    ]
+    type: Annotated[Literal["user"], ApiDescription("Kind of viewer. Always user")]
+
+
 class ReplayViewedByResponsePayload(TypedDict):
-    viewed_by: list[dict[str, Any]]
+    viewed_by: Annotated[
+        list[ReplayViewerResponse], ApiDescription("Users who have viewed the replay")
+    ]
 
 
 class ReplayViewedByResponse(TypedDict):
-    data: ReplayViewedByResponsePayload
+    data: Annotated[ReplayViewedByResponsePayload, ApiDescription("Viewers of the replay")]
 
 
 @cell_silo_endpoint
@@ -65,11 +112,6 @@ class ProjectReplayViewedByEndpoint(ProjectReplayEndpoint):
         """Return a list of users who have viewed a replay."""
         self.check_replay_access(request, project)
 
-        try:
-            uuid.UUID(replay_id)
-        except ValueError:
-            return Response(status=404)
-
         # query for user ids who viewed the replay
         filter_params = self.get_filter_params(request, project, date_filter_optional=False)
 
@@ -80,7 +122,7 @@ class ProjectReplayViewedByEndpoint(ProjectReplayEndpoint):
                 replay_id=replay_id,
                 start=filter_params["start"],
                 end=filter_params["end"],
-                request_user_id=request.user.id,
+                request_user_id=acting_user_id(request.user),
                 organization=project.organization,
             )
         if not viewed_by_ids_response:
@@ -129,12 +171,10 @@ class ProjectReplayViewedByEndpoint(ProjectReplayEndpoint):
 
         self.check_replay_access(request, project)
 
-        try:
-            replay_id = str(uuid.UUID(replay_id))
-        except ValueError:
-            return Response(status=404)
+        replay_id = str(uuid.UUID(replay_id))
 
-        user_orgs = user_service.get_organizations(user_id=request.user.id)
+        user = require_user(request)
+        user_orgs = user_service.get_organizations(user_id=user.id)
         if project.organization.id not in [org.id for org in user_orgs]:
             # If the user is not in the same organization as the replay, we don't need to do anything.
             return Response(status=204)
@@ -149,7 +189,7 @@ class ProjectReplayViewedByEndpoint(ProjectReplayEndpoint):
                     project_ids=[project.id],
                     period_start=filter_params["start"],
                     period_end=filter_params["end"],
-                    request_user_id=request.user.id,
+                    request_user_id=acting_user_id(request.user),
                 ),
                 tenant_id={"organization_id": project.organization.id}
                 if project.organization
@@ -165,14 +205,14 @@ class ProjectReplayViewedByEndpoint(ProjectReplayEndpoint):
         message = viewed_event(
             project.id,
             replay_id,
-            request.user.id,
+            user.id,
             finished_at_ts,
         )
         publish_replay_event(message)
         return Response(status=204)
 
 
-def _normalize_user(user: dict[str, Any]) -> dict[str, Any]:
+def _normalize_user(user: dict[str, Any]) -> ReplayViewerResponse:
     """Return a normalized user dictionary.
 
     The viewed-by resource is expected to return a subset of the user_service's

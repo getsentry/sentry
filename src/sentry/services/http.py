@@ -9,7 +9,7 @@ from granian import Granian
 from sentry.services.base import Service
 
 
-def _run_server(options: dict[str, Any]):
+def _run_server(options: dict[str, Any]) -> None:
     server = Granian(
         target=options["module"],
         address=options["host"],
@@ -110,7 +110,7 @@ class SentryHTTPServer(Service):
         # This has already been validated inside __init__
         env["SENTRY_SKIP_BACKEND_VALIDATION"] = "1"
 
-    def run(self):
+    def run(self) -> None:
         self.prepare_environment()
         if self.debug or os.environ.get("SENTRY_RUNNING_GRANIAN") == "0":
             from wsgiref.simple_server import make_server

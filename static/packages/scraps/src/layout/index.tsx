@@ -14,13 +14,11 @@ export {Stack, type StackProps} from './stack';
 export {
   ContainerQueryContext,
   ContainerQueryProvider,
-  rc,
   type Responsive,
   type ResponsiveKey,
   /** @public */
   useContainerBreakpoint,
   useHasContainerQuery,
-  useResponsivePropResolver,
   useResponsivePropValue,
 } from './styles';
 export {getBorder, getMargin, getRadius, getSpacing} from './styles';

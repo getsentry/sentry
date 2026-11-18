@@ -12,7 +12,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AutoSizedText} from 'sentry/views/dashboards/widgetCard/autoSizedText';
-import {DifferenceToPreviousPeriodValue} from 'sentry/views/dashboards/widgets/bigNumberWidget/differenceToPreviousPeriodValue';
 import {NON_FINITE_NUMBER_MESSAGE} from 'sentry/views/dashboards/widgets/common/settings';
 import type {
   TabularRow,
@@ -23,6 +22,7 @@ import type {
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 
+import {DifferenceToPreviousPeriodValue} from './differenceToPreviousPeriodValue';
 import {DEEMPHASIS_VARIANT, LOADING_PLACEHOLDER} from './settings';
 import {ThresholdsIndicator} from './thresholdsIndicator';
 

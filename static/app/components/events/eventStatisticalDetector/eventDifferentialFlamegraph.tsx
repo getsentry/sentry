@@ -17,6 +17,7 @@ import {DifferentialFlamegraphToolbar} from 'sentry/components/profiling/flamegr
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
@@ -40,8 +41,11 @@ import {relativeChange} from 'sentry/utils/profiling/units/units';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {LOADING_PROFILE_GROUP} from 'sentry/views/explore/profiling/profileGroupProvider';
 
+import {getResolvedAt} from './getResolvedAt';
+
 interface EventDifferentialFlamegraphProps {
   event: Event;
+  group: Group;
 }
 
 export function EventDifferentialFlamegraph(props: EventDifferentialFlamegraphProps) {
@@ -77,6 +81,7 @@ export function EventDifferentialFlamegraph(props: EventDifferentialFlamegraphPr
     breakpoint,
     environments: selection.selection.environments,
     fingerprint: props.event.occurrence?.evidenceData?.fingerprint,
+    resolvedAt: getResolvedAt(props.group),
   });
 
   return (

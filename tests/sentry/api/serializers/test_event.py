@@ -1,6 +1,9 @@
 from datetime import UTC, datetime
 from unittest import mock
 
+from django.core.cache import cache
+from django.test import override_settings
+
 from sentry.api.serializers import SimpleEventSerializer, serialize
 from sentry.api.serializers.models.event import (
     IssueEventSerializer,
@@ -11,6 +14,7 @@ from sentry.api.serializers.rest_framework import convert_dict_key_case, snake_t
 from sentry.models.eventerror import EventErrorType
 from sentry.models.release import Release
 from sentry.sdk_updates import SdkIndexState
+from sentry.tasks.release_registry import SDK_INDEX_CACHE_KEY
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.issue_detection.event_generators import get_event
@@ -465,6 +469,40 @@ class IssueEventSerializerTest(TestCase):
 
         result = serialize(event, None, IssueEventSerializer())
         assert result["sdkUpdates"] == []
+
+    @override_settings(SENTRY_RELEASE_REGISTRY_BASEURL="https://release-registry.example.com")
+    def test_sdk_updates_fetch_sdk_index_once(self) -> None:
+        cache.set(
+            SDK_INDEX_CACHE_KEY,
+            {"example.sdk": {"version": "2.0.0", "main_docs_url": "https://example.com/docs"}},
+            60,
+        )
+        event = self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "message": "oh no",
+                "timestamp": before_now(minutes=1).isoformat(),
+                "fingerprint": ["group-1"],
+                "sdk": {"name": "example.sdk", "version": "1.0.0"},
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+
+        with mock.patch("sentry.sdk_updates.cache.get", wraps=cache.get) as cache_get:
+            result = serialize(event, None, IssueEventSerializer())
+
+        assert result["sdkUpdates"] == [
+            {
+                "enables": [],
+                "newSdkVersion": "2.0.0",
+                "sdkName": "example.sdk",
+                "sdkUrl": "https://example.com/docs",
+                "type": "updateSdk",
+            }
+        ]
+        sdk_index_gets = [c for c in cache_get.call_args_list if c.args[0] == SDK_INDEX_CACHE_KEY]
+        assert len(sdk_index_gets) == 1
 
     def test_resolved_with_skips_frames_without_resolution(self) -> None:
         min_ago = before_now(minutes=1).isoformat()

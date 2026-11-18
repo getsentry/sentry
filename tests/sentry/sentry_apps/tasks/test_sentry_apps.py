@@ -26,6 +26,7 @@ from sentry.sentry_apps.metrics import SentryAppWebhookFailureReason, SentryAppW
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
+from sentry.sentry_apps.services.app.serial import serialize_sentry_app_installation
 from sentry.sentry_apps.tasks.sentry_apps import (
     build_comment_webhook,
     installation_webhook,
@@ -79,16 +80,16 @@ def raiseStatusTrue() -> bool:
     return True
 
 
-def raiseException():
+def raiseException() -> None:
     raise Exception
 
 
-def raiseHTTPError():
+def raiseHTTPError() -> None:
     raise HTTPError()
 
 
 class RequestMock:
-    def __init__(self):
+    def __init__(self) -> None:
         self.body = "blah blah"
 
 
@@ -360,8 +361,8 @@ class TestSendAlertEvent(TestCase, OccurrenceTestMixin):
     @patch("sentry.utils.sentry_apps.webhooks.safe_urlopen", return_value=MockResponseInstance)
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_send_alert_event_with_additional_payload_legacy_rule_id(
-        self, mock_record, safe_urlopen
-    ):
+        self, mock_record: MagicMock, safe_urlopen: MagicMock
+    ) -> None:
         rule = self.create_project_rule(
             action_data=[
                 {
@@ -813,8 +814,8 @@ class TestProcessResourceChange(TestCase):
 
     @patch("sentry_sdk.capture_exception")
     def test_silently_handles_chunked_encoding_error_unpublished(
-        self, capture_exception, safe_urlopen
-    ):
+        self, capture_exception: MagicMock, safe_urlopen: MagicMock
+    ) -> None:
         """
         ChunkedEncodingError is swallowed by @ignore_unpublished_app_errors for
         unpublished apps. In production, it's also in silenced_exceptions on the task.
@@ -850,7 +851,9 @@ class TestProcessResourceChange(TestCase):
         assert safe_urlopen.call_count == 1
 
     @patch("sentry_sdk.capture_exception")
-    def test_chunked_encoding_error_propagates_for_published(self, capture_exception, safe_urlopen):
+    def test_chunked_encoding_error_propagates_for_published(
+        self, capture_exception: MagicMock, safe_urlopen: MagicMock
+    ) -> None:
         """
         For published apps, ChunkedEncodingError is NOT swallowed by
         @ignore_unpublished_app_errors — it propagates up to the
@@ -918,7 +921,7 @@ class TestProcessResourceChange(TestCase):
         # ValueError is in the task's ignore list, this won't be
         # raised in production.
         with pytest.raises(ValueError):
-            process_resource_change_bound("delete", "Group", self.create_group().id)
+            process_resource_change_bound("delete", "Group", str(self.create_group().id))
         assert len(safe_urlopen.mock_calls) == 0
 
         # We got an invalid event prior to lifecycle starting so we would exit early
@@ -937,7 +940,7 @@ class TestProcessResourceChange(TestCase):
         # DOES NOT subscribe to Issue events
         self.create_sentry_app_installation(organization=self.organization)
 
-        process_resource_change_bound("created", "Group", self.create_group().id)
+        process_resource_change_bound("created", "Group", str(self.create_group().id))
 
         assert len(safe_urlopen.mock_calls) == 0
         assert_success_metric(mock_record)
@@ -1864,7 +1867,10 @@ class TestWebhookRequests(TestCase):
         data = {"issue": serialize(self.issue)}
         with pytest.raises(ClientError):
             send_webhooks(
-                installation=self.install, event="issue.assigned", data=data, actor=self.user
+                installation=serialize_sentry_app_installation(self.install),
+                event="issue.assigned",
+                data=data,
+                actor=self.user,
             )
 
         requests = self.buffer.get_requests()
@@ -1900,7 +1906,7 @@ class TestWebhookRequests(TestCase):
             }
         ):
             send_webhooks(
-                installation=installation,
+                installation=serialize_sentry_app_installation(installation),
                 event="issue.assigned",
                 data={"issue": serialize(self.issue)},
                 actor=self.user,
@@ -1929,7 +1935,7 @@ class TestWebhookRequests(TestCase):
             }
         ):
             send_webhooks(
-                installation=self.install,
+                installation=serialize_sentry_app_installation(self.install),
                 event="issue.assigned",
                 data={"issue": serialize(self.issue)},
                 actor=self.user,

@@ -1,18 +1,14 @@
 import {useState} from 'react';
 import {IconAdd} from '@sentry/icons/add';
-import {useQueryClient} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
+import {type ModalRenderProps} from '@sentry/scraps/modal';
 import type {TableColumnConfig} from '@sentry/scraps/table';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
-import {type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -20,15 +16,20 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {ApiApplication} from 'sentry/types/user';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {Row} from 'sentry/views/settings/account/apiApplications/row';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
+import {Row} from './row';
+
 const ROUTE_PREFIX = '/settings/account/api/';
+
+const applicationsOptions = apiOptions.as<ApiApplication[]>()('/api-applications/', {
+  staleTime: 0,
+});
 
 export default function ApiApplications() {
   const {openModal} = useModal();
@@ -44,10 +45,7 @@ export default function ApiApplications() {
     isLoading,
     isError,
     refetch,
-  } = useApiQuery<ApiApplication[]>([ENDPOINT], {
-    staleTime: 0,
-    enabled: !isDemoModeActive(),
-  });
+  } = useQuery({...applicationsOptions, enabled: !isDemoModeActive()});
 
   if (isLoading) {
     return <LoadingIndicator />;
@@ -58,7 +56,7 @@ export default function ApiApplications() {
   }
 
   const createApplication = async (isPublic: boolean) => {
-    addLoadingMessage();
+    toast.loading(t('Saving changes...'));
 
     try {
       const app = await api.requestPromise(ENDPOINT, {
@@ -66,10 +64,10 @@ export default function ApiApplications() {
         data: {isPublic},
       });
 
-      addSuccessMessage(t('Created a new API Application'));
+      toast.success(t('Created a new API Application'));
       navigate(`${ROUTE_PREFIX}applications/${app.id}/`);
     } catch {
-      addErrorMessage(t('Unable to create application. Please try again.'));
+      toast.error(t('Unable to create application. Please try again.'));
     }
   };
 
@@ -89,8 +87,10 @@ export default function ApiApplications() {
   };
 
   const handleRemoveApplication = (app: ApiApplication) => {
-    setApiQueryData<any>(queryClient, [ENDPOINT], (oldAppList: any) =>
-      oldAppList.filter((a: any) => a.id !== app.id)
+    queryClient.setQueryData(applicationsOptions.queryKey, response =>
+      response
+        ? {...response, json: response.json.filter(a => a.id !== app.id)}
+        : response
     );
   };
 

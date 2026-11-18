@@ -1,6 +1,6 @@
 import {Component, Fragment} from 'react';
 
-import {LoadingPanel} from 'sentry/components/charts/loadingPanel';
+import {LoadingPanel} from './loadingPanel';
 
 const defaultProps = {
   height: '200px',

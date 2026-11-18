@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from io import BytesIO
 from typing import Any
 from unittest.mock import patch
@@ -28,6 +28,7 @@ from sentry.runner.commands.cleanup import (
     prepare_deletes_by_project,
     remove_cross_project_bulk_query_models,
     remove_cross_project_models,
+    remove_expired_timeseries_annotations,
     remove_inactive_notification_threads,
     remove_old_notification_messages,
     run_bulk_deletes_by_project,
@@ -46,6 +47,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.timeseries_annotations.models import AnnotationType, TimeseriesAnnotation
 from sentry.uptime.models import UptimeResponseCapture, UptimeSubscription
 from sentry.viewer_context import ActorType, get_viewer_context
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
@@ -274,8 +276,8 @@ class RunBulkQueryDeletesByProjectTest(TestCase):
             assert viewer_context is not None
             assert viewer_context.organization_id == self.organization.id
             assert viewer_context.project_id == self.project.id
-            assert viewer_context.user_id is None
-            assert viewer_context.actor_type == ActorType.SYSTEM
+            assert viewer_context.actor.actor_id is None
+            assert viewer_context.actor.type == ActorType.SYSTEM
 
         with (
             assume_test_silo_mode(SiloMode.CELL),
@@ -340,6 +342,47 @@ class AIConversationMetadataCleanupTest(TestCase):
 
         assert not AIConversationMetadata.objects.filter(id=old.id).exists()
         assert AIConversationMetadata.objects.filter(id=recent.id).exists()
+
+
+class TimeseriesAnnotationCleanupTest(TestCase):
+    def _create_annotation(
+        self, start_timestamp: datetime, end_timestamp: datetime | None = None
+    ) -> TimeseriesAnnotation:
+        return TimeseriesAnnotation.objects.create(
+            organization=self.organization,
+            start_timestamp=start_timestamp,
+            end_timestamp=end_timestamp,
+            annotation_type=AnnotationType.INBOUND_FILTER_CHANGE,
+            description="filter changed",
+        )
+
+    def test_reaps_on_effective_end(self) -> None:
+        expired_point = self._create_annotation(before_now(days=40))
+        recent_point = self._create_annotation(before_now(days=20))
+        # Future maintenance window created now: start is ahead of the cutoff, so it stays.
+        future_point = self._create_annotation(before_now(days=-5))
+        # Resolved range that started before the window but ended inside it: the read
+        # path still shows it, so it must survive even though start is 100d old.
+        live_range = self._create_annotation(before_now(days=100), before_now(days=20))
+        # Resolved range fully behind the window.
+        expired_range = self._create_annotation(before_now(days=100), before_now(days=40))
+        # Ongoing range (null end) older than the window: falls back to start, reaped.
+        stale_ongoing = self._create_annotation(before_now(days=40))
+
+        remove_expired_timeseries_annotations(lambda model: False, 30, set())
+
+        survivors = set(TimeseriesAnnotation.objects.values_list("id", flat=True))
+        assert survivors == {recent_point.id, future_point.id, live_range.id}
+        assert expired_point.id not in survivors
+        assert expired_range.id not in survivors
+        assert stale_ongoing.id not in survivors
+
+    def test_respects_is_filtered(self) -> None:
+        annotation = self._create_annotation(before_now(days=40))
+
+        remove_expired_timeseries_annotations(lambda model: True, 30, set())
+
+        assert TimeseriesAnnotation.objects.filter(id=annotation.id).exists()
 
 
 class UptimeResponseCaptureCleanupTest(TestCase):
@@ -432,8 +475,8 @@ class SeerRunCleanupTest(TestCase):
         assert not SeerRun.objects.filter(id=run.id).exists()
         shard.refresh_from_db()
         result.refresh_from_db()
-        assert shard.seer_run_id is None
-        assert result.result_seer_run_id is None
+        assert not shard.seer_run_id
+        assert not result.result_seer_run_id
 
 
 class PartitionValidationTest(TestCase):

@@ -5,8 +5,9 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {useSpansSaveQuery} from 'sentry/views/explore/hooks/useSaveQuery';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
+
+import {useSpansSaveQuery} from './useSaveQuery';
 
 function Wrapper({children}: {children: ReactNode}) {
   return <SpansQueryParamsProvider>{children}</SpansQueryParamsProvider>;
@@ -31,7 +32,6 @@ describe('useSpansSaveQuery', () => {
   });
 
   afterEach(() => {
-    PageFiltersStore.reset();
     MockApiClient.clearMockResponses();
   });
 

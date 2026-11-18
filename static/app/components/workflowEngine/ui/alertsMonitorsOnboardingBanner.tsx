@@ -8,10 +8,11 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
-import {openAlertsMonitorsShowcase} from 'sentry/components/workflowEngine/ui/alertsMonitorsShowcase';
 import {t, tct} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
+
+import {openAlertsMonitorsShowcase} from './alertsMonitorsShowcase';
 
 const ONBOARDING_CUTOFF_DATE = new Date('2026-05-10T00:00:00Z');
 

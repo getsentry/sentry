@@ -39,10 +39,10 @@ def get_frames(
 
 
 def get_crash_event(
-    sdk_frame_abs_path="package:sentry/src/sentry_tracer.dart",
-    system_frame_abs_path="dart:core-patch/growable_array.dart",
-    sdk_function="SentryTracer.setTag",
-    **kwargs,
+    sdk_frame_abs_path: str = "package:sentry/src/sentry_tracer.dart",
+    system_frame_abs_path: str = "dart:core-patch/growable_array.dart",
+    sdk_function: str = "SentryTracer.setTag",
+    **kwargs: object,
 ) -> dict[str, object]:
     return get_crash_event_with_frames(
         get_frames(sdk_frame_abs_path, system_frame_abs_path, sdk_function=sdk_function),
@@ -50,7 +50,9 @@ def get_crash_event(
     )
 
 
-def get_crash_event_with_frames(frames: Sequence[Mapping[str, str]], **kwargs) -> dict[str, object]:
+def get_crash_event_with_frames(
+    frames: Sequence[Mapping[str, str]], **kwargs: object
+) -> dict[str, object]:
     result = {
         "event_id": "0a52a8331d3b45089ebd74f8118d4fa1",
         "release": "io.sentry.flutter.sentryFlutterExample@8.2.0+8.2.0",

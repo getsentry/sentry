@@ -99,6 +99,8 @@ from typing import Any
 from django.conf import settings
 from django.core.cache import cache
 from django.db.models import Model, QuerySet
+from redis.client import StrictRedis
+from sentry_redis_tools.clients import RedisCluster
 from taskbroker_client.task import Task
 
 from sentry.locks import locks
@@ -355,7 +357,7 @@ class CursoredScheduler[M: Model]:
             return True
         return time.time() >= float(next_start_at)
 
-    def _finalize_cycle(self):
+    def _finalize_cycle(self) -> None:
         """Reset cursor, batch size, and PK list. The next cycle starts once it is due."""
         self._emit_cycle_duration()
         cache.set(self.cache_key, 0, self.cache_ttl)
@@ -440,5 +442,5 @@ class CursoredScheduler[M: Model]:
         raw = client.lrange(self.pk_list_cache_key, offset, offset + count - 1)
         return [int(v) for v in raw]
 
-    def _get_redis_client(self):
+    def _get_redis_client(self) -> RedisCluster[str] | StrictRedis[str]:
         return redis.redis_clusters.get("default")

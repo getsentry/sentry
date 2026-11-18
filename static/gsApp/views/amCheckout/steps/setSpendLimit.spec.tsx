@@ -6,13 +6,10 @@ import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {PlanTier} from 'getsentry-test/planTier';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import type {Client} from 'sentry/api';
-
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import AMCheckout from 'getsentry/views/amCheckout';
 
 describe('SetSpendLimit', () => {
-  let api: Client;
   const organization = OrganizationFixture({
     features: ['ondemand-budgets'],
   });
@@ -21,7 +18,6 @@ describe('SetSpendLimit', () => {
   });
 
   beforeEach(() => {
-    api = new MockApiClient();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/`,
@@ -51,10 +47,9 @@ describe('SetSpendLimit', () => {
       plan: 'am3_f',
     });
     SubscriptionStore.set(organization.slug, sub);
-    render(
-      <AMCheckout {...RouteComponentPropsFixture({})} api={api} navigate={jest.fn()} />,
-      {organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture({})} navigate={jest.fn()} />, {
+      organization,
+    });
 
     expect(await screen.findByText('Set your pay-as-you-go limit')).toBeInTheDocument();
     expect(
@@ -83,10 +78,9 @@ describe('SetSpendLimit', () => {
       plan: 'am2_team',
     });
     SubscriptionStore.set(preAm3Organization.slug, sub);
-    render(
-      <AMCheckout {...RouteComponentPropsFixture()} api={api} navigate={jest.fn()} />,
-      {organization: preAm3Organization}
-    );
+    render(<AMCheckout {...RouteComponentPropsFixture()} navigate={jest.fn()} />, {
+      organization: preAm3Organization,
+    });
 
     expect(await screen.findByText('Set your on-demand limit')).toBeInTheDocument();
     expect(screen.getByRole('radio', {name: 'Shared spending limit mode'})).toBeChecked();

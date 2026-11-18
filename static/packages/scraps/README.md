@@ -6,9 +6,9 @@ The source code is open, but the system is designed for Sentry and is not intend
 
 ## Development in Sentry
 
-The package source lives in [src](./src). Component stories remain in the app.
+The package source lives in [src](./src). Component docs (`.mdx`) sit next to their components and render in the app's Scraps viewer; `.npmignore` and the build config keep them out of the published package.
 
-Move components and their tests into `src` as they become isolated. The [Scraps contribution guide](../../app/components/core/overview/contributing.mdx) covers component contributions and the Figma process for changing design tokens.
+Move components, their tests, and their docs into `src` as they become isolated. The [Scraps contribution guide](../../app/components/core/overview/contributing.mdx) covers component contributions and the Figma process for changing design tokens.
 
 Run package checks from the repository root:
 
@@ -43,9 +43,10 @@ Import from its explicit subpaths, including `@sentry/scraps/code/inlineCode`
 and `@sentry/scraps/hotkey/kbd`. The package has no root export; unlisted module
 paths remain private.
 Add an entry only when its runtime and type dependencies belong to the package
-or are declared dependencies. App stories cover more components than this API;
-for example, the hotkey story uses both `Hotkey` and `Kbd`, but only `Kbd` is
-isolated. Published consumers have no fallback to app components.
+or are declared dependencies. Both `Hotkey` and `Kbd` are isolated and exported
+from `@sentry/scraps/hotkey`; `Kbd` also has its own `@sentry/scraps/hotkey/kbd`
+entry point. App stories cover more components than this API. Published consumers
+have no fallback to app components.
 
 Consumers provide Emotion's `ThemeProvider` with `lightTheme` or `darkTheme`.
 The package does not include application providers, global CSS, or fonts.

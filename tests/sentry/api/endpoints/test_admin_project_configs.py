@@ -32,6 +32,7 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
 
         self.p1_pk = self.create_project_key(self.proj1)
         self.p2_pk = self.create_project_key(self.proj2)
+        assert self.p1_pk.public_key is not None
 
         projectconfig_cache.backend.set_many(
             {
@@ -160,6 +161,7 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         url = self.get_url()
         self.login_as(self.superuser, superuser=True)
         data = {"projectId": self.proj2.id}
+        assert self.p2_pk.public_key is not None
         projectconfig_cache.backend.set_many(
             {
                 self.p2_pk.public_key: {"proj2": "config"},
@@ -172,6 +174,7 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         url = self.get_url()
         self.login_as(self.superuser, superuser=True)
         data = {"projectId": self.proj2.id}
+        assert self.p2_pk.public_key is not None
         projectconfig_cache.backend.set_many(
             {
                 self.p2_pk.public_key: {"proj2": "config"},
@@ -207,6 +210,8 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         second_key = test_project.key_set.create()
 
         # Set configs for both keys
+        assert first_key.public_key is not None
+        assert second_key.public_key is not None
         projectconfig_cache.backend.set_many(
             {
                 first_key.public_key: {"test_proj": "config1"},
@@ -226,6 +231,7 @@ class AdminRelayProjectConfigsEndpointTest(APITestCase):
         Tests that making a GET request for an uncached project results
         in its configuration being cached.
         """
+        assert self.p2_pk.public_key is not None
         initial_cached_config = projectconfig_cache.backend.get(self.p2_pk.public_key)
         assert initial_cached_config is None
 

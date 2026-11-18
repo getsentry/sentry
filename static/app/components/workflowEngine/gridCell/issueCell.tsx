@@ -7,11 +7,12 @@ import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {TimeSince} from 'sentry/components/timeSince';
-import {EmptyCell} from 'sentry/components/workflowEngine/gridCell/emptyCell';
 import {tct} from 'sentry/locale';
 import type {SimpleGroup} from 'sentry/types/group';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {EmptyCell} from './emptyCell';
 
 type IssueCellProps = {
   group: SimpleGroup | null;

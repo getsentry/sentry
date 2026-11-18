@@ -1,10 +1,12 @@
 import logging
+from collections.abc import Callable
 
 import sentry_sdk
 from django.http import HttpRequest, HttpResponse
 
 from sentry import analytics, options
 from sentry.api.analytics import DevToolbarApiRequestEvent
+from sentry.auth.principal import acting_user_id
 from sentry.utils.http import origin_from_request
 from sentry.utils.http import query_string as get_query_string
 from sentry.utils.urls import parse_id_or_slug_param
@@ -13,10 +15,10 @@ logger = logging.getLogger(__name__)
 
 
 class DevToolbarAnalyticsMiddleware:
-    def __init__(self, get_response):
+    def __init__(self, get_response: Callable[[HttpRequest], HttpResponse]) -> None:
         self.get_response = get_response
 
-    def __call__(self, request):
+    def __call__(self, request: HttpRequest) -> HttpResponse:
         response = self.get_response(request)
         try:
             # Note ordering of conditions to reduce option queries. GET contains the query params, regardless of method.
@@ -62,7 +64,7 @@ def _record_api_request(request: HttpRequest, response: HttpResponse) -> None:
                 organization_slug=org_slug,
                 project_id=project_id or None,
                 project_slug=project_slug,
-                user_id=request.user.id if hasattr(request, "user") and request.user else None,
+                user_id=acting_user_id(request.user) if hasattr(request, "user") else None,
             )
         )
     except Exception as e:

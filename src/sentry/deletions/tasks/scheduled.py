@@ -26,6 +26,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import deletion_control_tasks, deletion_tasks
 from sentry.utils.env import in_test_environment
 from sentry.viewer_context import (
+    Actor,
     ActorType,
     ViewerContext,
     get_viewer_context,
@@ -49,7 +50,7 @@ def scheduled_deletion_viewer_context(
         return nullcontext()
 
     viewer_context = (
-        ViewerContext(user_id=deletion.actor_id, actor_type=ActorType.USER)
+        ViewerContext(actor=Actor(type=ActorType.USER, actor_id=deletion.actor_id))
         if deletion.actor_id is not None
         else origin_context or get_viewer_context()
     )

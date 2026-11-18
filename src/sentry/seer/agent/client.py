@@ -8,8 +8,8 @@ from collections.abc import Callable, Collection
 from datetime import datetime
 from typing import Any, Literal
 
-from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q, QuerySet
+from django.http import HttpRequest
 from django.utils import timezone as django_timezone
 from django.utils.timezone import now
 from pydantic import BaseModel
@@ -17,6 +17,7 @@ from rest_framework.request import Request
 from urllib3 import BaseHTTPResponse
 
 from sentry import features, options
+from sentry.auth.principal import RequestPrincipal, acting_user_id, has_user
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT, ObjectStatus
 from sentry.identity import default_manager as identity_manager
 from sentry.identity.mcp import McpIdentityProvider
@@ -25,6 +26,7 @@ from sentry.integrations.types import MONITORING_PROVIDERS
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.notebooks.access import has_notebooks_access
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.agent.client_utils import (
     AgentChatRequest,
@@ -44,8 +46,10 @@ from sentry.seer.agent.client_utils import (
     make_feature_run_request,
     poll_until_done,
 )
-from sentry.seer.agent.coding_agent_handoff import launch_coding_agents
-from sentry.seer.agent.custom_tool_utils import AgentTool, extract_tool_schema
+from sentry.seer.agent.coding_agent_handoff import (
+    CodingAgentHandoffResult,
+    launch_coding_agents,
+)
 from sentry.seer.agent.embed_widgets import get_embed_widgets
 from sentry.seer.agent.monitoring_providers import get_monitoring_provider_connections
 from sentry.seer.agent.on_completion_hook import (
@@ -65,8 +69,6 @@ from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import SeerViewerContext
 from sentry.tasks.seer.context_engine_index import build_service_map, index_org_project_knowledge
 from sentry.tasks.seer.explorer_index import dispatch_explorer_index_projects
-from sentry.users.models.user import User
-from sentry.users.services.user import RpcUser
 from sentry.utils.prompts import (
     get_prompt_activities_for_user,
     seer_monitoring_provider_dont_ask_feature,
@@ -210,32 +212,6 @@ class SeerAgentClient:
         state = client.get_run(run_id, blocking=True)
         solution = state.get_artifact("solution", Solution)
 
-        # WITH CUSTOM TOOLS
-        from pydantic import BaseModel, Field
-        from sentry.seer.agent.custom_tool_utils import AgentTool
-
-        class DeploymentStatusParams(BaseModel):
-            environment: str = Field(description="Environment name (e.g., 'production', 'staging')")
-            service: str = Field(description="Service name")
-
-        class DeploymentStatusTool(AgentTool[DeploymentStatusParams]):
-            params_model = DeploymentStatusParams
-
-            @classmethod
-            def get_description(cls) -> str:
-                return "Check if a service is deployed in an environment"
-
-            @classmethod
-            def execute(cls, organization, params: DeploymentStatusParams) -> str:
-                return "deployed" if check_deployment(organization, params.environment, params.service) else "not deployed"
-
-        client = SeerAgentClient(
-            organization,
-            user,
-            custom_tools=[DeploymentStatusTool]
-        )
-        run_id = client.start_run("Check if payment-service is deployed in production").seer_run_state_id
-
         # WITH ON-COMPLETION HOOK
         from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
 
@@ -299,7 +275,6 @@ class SeerAgentClient:
             group: Optional group/issue for issue-scoped runs (e.g. autofix for an issue)
             category_key: Optional category key for filtering/grouping runs (e.g., "bug-fixer", "trace-analyzer"). Must be provided together with category_value. Makes it easy to retrieve runs for your feature later.
             category_value: Optional category value for filtering/grouping runs (e.g., issue ID, trace ID). Must be provided together with category_key. Makes it easy to retrieve a specific run for your feature later.
-            custom_tools: Optional list of `AgentTool` classes to make available as tools to the agent. Each tool must inherit from AgentTool, define a params_model (Pydantic BaseModel), and implement execute(). Tools are automatically given access to the organization context. Tool classes must be module-level (not nested classes).
             on_completion_hook: Optional `AgentOnCompletionHook` class to call when the agent completes. The hook's execute() method receives the organization and run ID. By default this is called only when the run succeeds; see hook_call_on_failure. Hook classes must be module-level (not nested classes).
             hook_call_on_failure: Also call the hook when the run errors or times out, including when Seer's stale-run sweep ends a run whose worker died. The hook is told nothing about which outcome it was called for, so it must read the run status itself. Seer pins this when the run is created, so it cannot be varied per step of an existing run. Default is False.
             intelligence_level: Optionally set the intelligence level of the agent. Higher intelligence gives better result quality at the cost of significantly higher latency and cost.
@@ -309,17 +284,18 @@ class SeerAgentClient:
             max_iterations: Optional maximum number of agent iterations. Useful for lightweight/fast runs that don't need full exploration depth.
             enable_embeds: Allow the agent to emit rich inline embed widgets (e.g. formatted timestamps) as Markdoc tags. Only enable for surfaces that render these embeds (the Explorer chat in the Sentry UI). Disable for plaintext/markdown surfaces like Slack, where the tags would leak as raw text. Default is True.
             enable_investigation_tools: Let Code Mode read and change investigations: notebooks, cells and their runs, the agent workflow, and comments. Only takes effect where the investigation endpoints themselves would answer, i.e. with the organizations:investigations feature and open membership. Default is False.
+            enable_inbox_tools: Let Code Mode read and update the user's personal inbox. Only takes effect where the inbox endpoints themselves would answer, i.e. for a user with the organizations:universal-inbox feature. Default is False.
+            enable_scm_connect_prompt: Let an interactive agent pause and ask the user to fix access when a tool cannot open a repository: no source control is connected, the repository's account isn't connected, or the repository isn't in Sentry. Pass True only when the user can install integrations (the org:integrations scope). Default is False.
     """
 
     def __init__(
         self,
         organization: Organization,
-        user: User | RpcUser | AnonymousUser | None = None,
+        user: RequestPrincipal | None = None,
         project: Project | None = None,
         group: Group | None = None,
         category_key: str | None = None,
         category_value: str | None = None,
-        custom_tools: list[type[AgentTool[Any]]] | None = None,
         on_completion_hook: type[AgentOnCompletionHook] | None = None,
         hook_call_on_failure: bool = False,
         intelligence_level: Literal["low", "medium", "high"] = "medium",
@@ -335,12 +311,14 @@ class SeerAgentClient:
         enable_embeds: bool = True,
         enable_streaming: bool | None = None,
         enable_investigation_tools: bool = False,
+        enable_inbox_tools: bool = False,
+        enable_scm_connect_prompt: bool = False,
     ):
         self.organization = organization
         self.user = user
+        self._user_id = acting_user_id(user) if user is not None else None
         self.project = project
         self.group = group
-        self.custom_tools = custom_tools or []
         self.on_completion_hook = on_completion_hook
         self.hook_call_on_failure = hook_call_on_failure
         self.intelligence_level = intelligence_level
@@ -348,9 +326,7 @@ class SeerAgentClient:
         self.category_key = category_key
         self.category_value = category_value
         self.is_interactive = is_interactive
-        self.enable_bash_mode = enable_bash_mode and features.has(
-            "organizations:seer-explorer-allow-bash-mode", organization, actor=user
-        )
+        self.enable_bash_mode = enable_bash_mode
         self.enable_code_mode_tools = enable_code_mode_tools
         self.code_review_enabled = code_review_enabled
         self.max_iterations = max_iterations
@@ -371,11 +347,18 @@ class SeerAgentClient:
         self.enable_write_pull_request = enable_write_pull_request
         # The same gate the investigation endpoints apply, so Code Mode isn't handed
         # operations that would only 404.
-        self.enable_investigation_tools = (
-            enable_investigation_tools
-            and features.has("organizations:investigations", organization, actor=user)
-            and bool(organization.flags.allow_joinleave)
+        self.enable_investigation_tools = enable_investigation_tools and has_notebooks_access(
+            organization, actor=user
         )
+        # The inbox endpoints are personal, so they answer only with a user behind the run.
+        self.enable_inbox_tools = (
+            enable_inbox_tools
+            and user is not None
+            and has_user(user)
+            and features.has("organizations:universal-inbox", organization, actor=user)
+        )
+
+        self.enable_scm_connect_prompt = enable_scm_connect_prompt
 
         self.viewer_context = self._build_viewer_context()
 
@@ -392,8 +375,8 @@ class SeerAgentClient:
 
     def _build_viewer_context(self) -> SeerViewerContext:
         context = SeerViewerContext(organization_id=self.organization.id)
-        if self.user and hasattr(self.user, "id") and self.user.id is not None:
-            context["user_id"] = self.user.id
+        if self._user_id is not None:
+            context["user_id"] = self._user_id
         return context
 
     def start_run(
@@ -407,12 +390,13 @@ class SeerAgentClient:
         artifact_key: str | None = None,
         artifact_schema: type[BaseModel] | None = None,
         metadata: dict[str, Any] | None = None,
-        request: Request | None = None,
+        request: HttpRequest | Request | None = None,
         override_ce_enable: bool = True,
         force_ce: bool | None = None,
         ui_tools: str | None = None,
         record_in_history: bool = True,
         on_run_created: Callable[[SeerRun], None] | None = None,
+        billing_feature: int | None = None,
     ) -> SeerRun:
         """
         Start a new Seer Agent session.
@@ -449,6 +433,8 @@ class SeerAgentClient:
             "enable_write_pull_request": self.enable_write_pull_request,
             "enable_bash_mode": self.enable_bash_mode,
             "enable_investigation_tools": self.enable_investigation_tools,
+            "enable_inbox_tools": self.enable_inbox_tools,
+            "enable_scm_connect_prompt": self.enable_scm_connect_prompt,
         }
 
         chat_body: AgentChatRequest = AgentChatRequest(
@@ -467,6 +453,9 @@ class SeerAgentClient:
             proxy_headers=get_proxy_headers() if self.enable_code_mode_tools != "off" else None,
         )
 
+        if billing_feature is not None:
+            chat_body["billing_feature"] = billing_feature
+
         if self.reasoning_effort is not None:
             chat_body["reasoning_effort"] = self.reasoning_effort
 
@@ -483,12 +472,6 @@ class SeerAgentClient:
         if artifact_key and artifact_schema:
             chat_body["artifact_key"] = artifact_key
             chat_body["artifact_schema"] = artifact_schema.schema()
-
-        # Extract and add custom tool definitions
-        if self.custom_tools:
-            chat_body["custom_tools"] = [
-                extract_tool_schema(tool).dict() for tool in self.custom_tools
-            ]
 
         # Add on-completion hook if provided
         if self.on_completion_hook:
@@ -516,11 +499,7 @@ class SeerAgentClient:
             )
         )
 
-        user_id = (
-            self.user.id
-            if self.user and hasattr(self.user, "id") and self.user.id is not None
-            else None
-        )
+        user_id = self._user_id
 
         def _create_agent_run(run: SeerRun) -> None:
             if record_in_history:
@@ -568,6 +547,7 @@ class SeerAgentClient:
         agent_run_options: AgentRunOptions | None = None,
         user_org_context: UserOrgContext | None = None,
         proxy_headers: dict[str, str] | None = None,
+        billing_feature: int | None = None,
     ) -> SeerRun:
         """Dispatch a run to a registered Seer feature by feature_id via the
         SEER_RUN_CREATE outbox. The feature builds its own agent run from
@@ -588,11 +568,7 @@ class SeerAgentClient:
         Explicit agent_run_options override any options derived from organization
         configuration.
         """
-        user_id = (
-            self.user.id
-            if self.user and hasattr(self.user, "id") and self.user.id is not None
-            else None
-        )
+        user_id = self._user_id
 
         def _create_agent_run(run: SeerRun) -> None:
             SeerAgentRun.objects.create(
@@ -616,6 +592,8 @@ class SeerAgentClient:
             agent_run_options=resolved_agent_run_options,
             referrer=referrer,
         )
+        if billing_feature is not None:
+            body["billing_feature"] = billing_feature
         if user_org_context is not None:
             body["user_org_context"] = user_org_context
         if proxy_headers is not None:
@@ -803,6 +781,8 @@ class SeerAgentClient:
             "enable_write_pull_request": self.enable_write_pull_request,
             "enable_bash_mode": self.enable_bash_mode,
             "enable_investigation_tools": self.enable_investigation_tools,
+            "enable_inbox_tools": self.enable_inbox_tools,
+            "enable_scm_connect_prompt": self.enable_scm_connect_prompt,
             "enable_assisted_query_code_mode": self.enable_assisted_query_code_mode,
         }
 
@@ -831,11 +811,7 @@ class SeerAgentClient:
         if ui_tools:
             chat_body["ui_tools"] = ui_tools
 
-        monitoring_user_id = (
-            self.user.id
-            if self.user and not isinstance(self.user, AnonymousUser) and self.user.id is not None
-            else None
-        )
+        monitoring_user_id = self._user_id
         monitoring_provider_connections = get_monitoring_provider_connections(
             self.organization, monitoring_user_id
         )
@@ -933,7 +909,7 @@ class SeerAgentClient:
         start: datetime | None = None,
         end: datetime | None = None,
     ) -> QuerySet[SeerRun]:
-        user_id = int(self.user.id) if self.user is not None and self.user.id is not None else None
+        user_id = self._user_id
         queryset = queryset_for_query(query, self.organization, user_id)
         queryset = queryset.filter(
             Q(agent__project_id__isnull=True) | Q(agent__project_id__in=accessible_project_ids)
@@ -949,19 +925,15 @@ class SeerAgentClient:
         *,
         group_id: int | None = None,
         only_current_user: bool = True,
+        sources: tuple[str, ...] | None = None,
     ) -> SeerAgentRun | None:
         """Most recent run for this source; ordering by last_triggered_at keeps a continued run current."""
         qs = SeerAgentRun.objects.filter(
             run__organization_id=self.organization.id,
-            source=self.category_key or "",
+            source__in=sources or (self.category_key or "",),
         )
-        if (
-            only_current_user
-            and self.user
-            and hasattr(self.user, "id")
-            and self.user.id is not None
-        ):
-            qs = qs.filter(run__user_id=int(self.user.id))
+        if only_current_user and self._user_id is not None:
+            qs = qs.filter(run__user_id=self._user_id)
         if group_id is not None:
             qs = qs.filter(group_id=group_id)
         elif self.category_value is not None:
@@ -978,12 +950,18 @@ class SeerAgentClient:
         *,
         group_id: int | None = None,
         only_current_user: bool = True,
+        sources: tuple[str, ...] | None = None,
     ) -> SeerRunState | None:
         """The remote state of the latest live run mirror for this client, or None."""
-        run = self.latest_run(group_id=group_id, only_current_user=only_current_user)
+        run = self.latest_run(
+            group_id=group_id, only_current_user=only_current_user, sources=sources
+        )
         if run is None:
             return None
-        return self.get_run(run.run.seer_run_state_id)
+        run_state_id = run.run.seer_run_state_id
+        if run_state_id is None:
+            return None
+        return self.get_run(run_state_id)
 
     def get_repos(self, run_id: int) -> BaseHTTPResponse:
         body = AgentReposRequest(
@@ -1004,6 +982,7 @@ class SeerAgentClient:
         poll_timeout: float = 120.0,
         author: SeerCommitAuthor | None = None,
         allow_force_push: bool = True,
+        source: str | None = None,
     ) -> SeerRunState | None:
         """
         Push code changes to PR(s) and wait for completion.
@@ -1018,6 +997,7 @@ class SeerAgentClient:
             poll_timeout: Maximum seconds to wait
             author: Git commit author; None lets Seer pick one
             allow_force_push: Overwrite the branch if it has commits Seer didn't push
+            source: Stable caller-flow label, or None when unspecified; not the commit author
 
         Returns:
             SeerRunState: Final state with PR info
@@ -1035,6 +1015,7 @@ class SeerAgentClient:
         # Trigger PR creation
         payload: dict[str, Any] = {
             "type": "create_pr",
+            "source": source,
             "ready_for_review": ready_for_review,
             "verify_content": verify_content,
             "allow_force_push": allow_force_push,
@@ -1096,7 +1077,7 @@ class SeerAgentClient:
         user_id: int | None = None,
         issue_short_id: str | None = None,
         issue_url: str | None = None,
-    ) -> dict[str, list]:
+    ) -> CodingAgentHandoffResult:
         """
         Launch coding agents for an agent run.
 

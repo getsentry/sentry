@@ -1,22 +1,21 @@
+import {useQuery} from '@tanstack/react-query';
+
 import type {Group} from 'sentry/types/group';
 import type {GroupIntegration} from 'sentry/types/integrations';
 import type {OrganizationSummary} from 'sentry/types/organization';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 
-function makeIntegrationsQueryKey(
-  group: Group,
-  organization: OrganizationSummary
-): ApiQueryKey {
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/integrations/', {
+function integrationsOptions(group: Group, organization: OrganizationSummary) {
+  return apiOptions.as<GroupIntegration[]>()(
+    '/organizations/$organizationIdOrSlug/issues/$issueId/integrations/',
+    {
       path: {
         organizationIdOrSlug: organization.slug,
         issueId: group.id,
       },
-    }),
-  ];
+      staleTime: Infinity,
+    }
+  );
 }
 
 export function useFetchIntegrations({
@@ -26,7 +25,5 @@ export function useFetchIntegrations({
   group: Group;
   organization: OrganizationSummary;
 }) {
-  return useApiQuery<GroupIntegration[]>(makeIntegrationsQueryKey(group, organization), {
-    staleTime: Infinity,
-  });
+  return useQuery(integrationsOptions(group, organization));
 }

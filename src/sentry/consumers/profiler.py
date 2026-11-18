@@ -18,7 +18,7 @@ class JoinProfiler(ProcessingStrategy[TStrategyPayload]):
     def __init__(self, next_step: ProcessingStrategy[TStrategyPayload]) -> None:
         self.__next_step = next_step
 
-    def join(self, timeout: float | None = None):
+    def join(self, timeout: float | None = None) -> None:
         traces.new_trace()
         propagation_context = sentry_sdk.get_current_scope().get_active_propagation_context()
         prev_sampling_context = propagation_context.custom_sampling_context

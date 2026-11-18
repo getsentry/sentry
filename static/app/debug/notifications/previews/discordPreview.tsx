@@ -2,7 +2,7 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {Image} from '@sentry/scraps/image';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';

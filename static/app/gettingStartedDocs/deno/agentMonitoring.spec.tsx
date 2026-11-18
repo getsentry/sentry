@@ -3,7 +3,8 @@ import type {
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {reactNodeToText} from 'sentry/components/onboarding/utils/stepsToMarkdown';
-import {agentMonitoring} from 'sentry/gettingStartedDocs/deno/agentMonitoring';
+
+import {agentMonitoring} from './agentMonitoring';
 
 function makeParams(platformOptions: Record<string, string> = {}): DocsParams {
   return {
@@ -79,6 +80,39 @@ describe('deno agentMonitoring onboarding', () => {
       const steps = agentMonitoring.verify(params);
 
       expect(collectText(steps)).toContain('Pi Durable conversations');
+    });
+  });
+
+  describe.each([
+    ['openai', 'npm:openai'],
+    ['anthropic', 'npm:@anthropic-ai/sdk'],
+    ['google_genai', 'npm:@google/genai'],
+    ['langchain', 'npm:@langchain/openai'],
+    ['langgraph', 'npm:@langchain/langgraph/prebuilt'],
+  ])('%s', (integration, verifyImport) => {
+    const params = makeParams({integration});
+
+    it('requires the SDK version that auto-instruments it', () => {
+      const text = collectText(agentMonitoring.install!(params));
+
+      expect(text).toContain('11.0.0');
+    });
+
+    it('preloads the Sentry import hook', () => {
+      const code = collectCode(agentMonitoring.configure(params));
+
+      expect(code).toContain('import * as Sentry from "npm:@sentry/deno";');
+      expect(code).toContain('"nodeModulesDir": "auto"');
+      expect(code).toContain('--allow-net=o1.ingest.sentry.io \\');
+      expect(code).toContain('--preload=npm:@sentry/deno/import');
+      expect(code).not.toContain('experimental_telemetry');
+    });
+
+    it('verifies with a Deno-compatible snippet', () => {
+      const code = collectCode(agentMonitoring.verify(params));
+
+      expect(code).toContain(verifyImport);
+      expect(code).not.toContain('require(');
     });
   });
 

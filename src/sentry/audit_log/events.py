@@ -192,7 +192,7 @@ class ProjectPerformanceDetectionSettingsAuditLogEvent(AuditLogEvent):
         return "edited project performance issue detector settings " + items_string
 
 
-def render_project_action(audit_log_entry: AuditLogEntry, action: str):
+def render_project_action(audit_log_entry: AuditLogEntry, action: str) -> str:
     # Most logs will just be name of the filter, but legacy browser changes can be bool, str, list, or sets
     filter_name = audit_log_entry.data["state"]
     slug = audit_log_entry.data.get("slug")
@@ -383,7 +383,14 @@ class InternalIntegrationDisabledAuditLogEvent(AuditLogEvent):
 
     def render(self, audit_log_entry: AuditLogEntry) -> str:
         integration_name = audit_log_entry.data.get("name") or ""
-        return f"disabled internal integration {integration_name}".format(**audit_log_entry.data)
+        return f"disabled internal integration {integration_name}"
+
+
+class InternalIntegrationTokenAuditLogEvent(AuditLogEvent):
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
+        # Legacy entries stored the app under sentry_app_slug instead of sentry_app.
+        data = audit_log_entry.data
+        return (self.template or "").format(**{"sentry_app": data.get("sentry_app_slug"), **data})
 
 
 class MonitorAddAuditLogEvent(AuditLogEvent):

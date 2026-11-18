@@ -392,6 +392,7 @@ def _base_repo_definition(
     is_private: bool | None,
 ) -> dict[str, Any]:
     repo_definition = {
+        "repository_id": repo.id,
         "provider": provider,
         "owner": owner,
         "name": name,

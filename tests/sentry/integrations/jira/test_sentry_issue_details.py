@@ -2,13 +2,14 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import MagicMock, patch
 
 import responses
-from jwt import ExpiredSignatureError
 
-from sentry.integrations.jira import JIRA_KEY
 from sentry.integrations.jira.views import UNABLE_TO_VERIFY_INSTALLATION
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
-from sentry.integrations.utils.atlassian_connect import AtlassianConnectValidationError
+from sentry.integrations.utils.atlassian_connect import (
+    AtlassianConnectTokenExpiredError,
+    AtlassianConnectValidationError,
+)
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.models.project import Project
@@ -80,12 +81,12 @@ class JiraIssueHookTest(APITestCase):
 
         self.login_as(self.user)
 
-        self.properties_key = f"com.atlassian.jira.issue:{JIRA_KEY}:sentry-issues-glance:status"
+        self.properties_key = "com.atlassian.jira.issue:testserver.jira:sentry-issues-glance:status"
         self.properties_url = "https://getsentry.atlassian.net/rest/api/3/issue/%s/properties/%s"
 
     @patch(
         "sentry.integrations.jira.views.sentry_issue_details.get_integration_from_request",
-        side_effect=ExpiredSignatureError(),
+        side_effect=AtlassianConnectTokenExpiredError(),
     )
     def test_expired_signature_error(self, mock_get_integration_from_request: MagicMock) -> None:
         response = self.client.get(self.path)
@@ -235,12 +236,12 @@ class JiraIssueHookControlTest(APITestCase):
 
         self.login_as(self.user)
 
-        self.properties_key = f"com.atlassian.jira.issue:{JIRA_KEY}:sentry-issues-glance:status"
+        self.properties_key = "com.atlassian.jira.issue:testserver.jira:sentry-issues-glance:status"
         self.properties_url = "https://getsentry.atlassian.net/rest/api/3/issue/%s/properties/%s"
 
     @patch(
         "sentry.integrations.jira.views.sentry_issue_details.get_integration_from_request",
-        side_effect=ExpiredSignatureError(),
+        side_effect=AtlassianConnectTokenExpiredError(),
     )
     def test_expired_signature_error(self, mock_get_integration_from_request: MagicMock) -> None:
         response = self.client.get(self.path)

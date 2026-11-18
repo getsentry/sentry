@@ -10,7 +10,6 @@ import {Text} from '@sentry/scraps/text';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import {
   LocalWidgetLegendSelectionState,
   useLocalWidgetLegendSelectionState,
@@ -18,6 +17,7 @@ import {
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {t, tn} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import {dashboardDetailsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {getIntervalOptionsForPageFilter} from 'sentry/utils/useChartInterval';
@@ -29,21 +29,29 @@ import {
   getSavedFiltersAsPageFilters,
   hasSavedPageFilters,
 } from 'sentry/views/dashboards/utils';
-import {PREBUILT_DASHBOARDS} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {getPrebuiltDashboardConfig} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {WidgetQueryQueueProvider} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
+
+import {SeerEmbedBlock} from './seerEmbedBlock';
 
 // Keep the embed compact by showing at most a single row of two widgets.
 const MAX_PREVIEW_WIDGETS = 2;
 // Limit the rows or series fetched inside each previewed widget.
 const MAX_PREVIEW_ITEMS_PER_WIDGET = 5;
 
-function getDashboardPreview(dashboard: DashboardDetails): DashboardDetails {
+function getDashboardPreview(
+  dashboard: DashboardDetails,
+  organization: Organization
+): DashboardDetails {
   if (!dashboard.prebuiltId) {
     return dashboard;
   }
 
-  const prebuiltDashboard = PREBUILT_DASHBOARDS[dashboard.prebuiltId];
+  const prebuiltDashboard = getPrebuiltDashboardConfig(
+    dashboard.prebuiltId,
+    organization
+  );
   if (!prebuiltDashboard) {
     return dashboard;
   }
@@ -197,7 +205,10 @@ export default function DashboardBlock({id, title}: EmbedOutput<'dashboard'>) {
     ...dashboardDetailsApiOptions(organization, String(id)),
     retry: false,
   });
-  const dashboard = useMemo(() => (data ? getDashboardPreview(data) : undefined), [data]);
+  const dashboard = useMemo(
+    () => (data ? getDashboardPreview(data, organization) : undefined),
+    [data, organization]
+  );
 
   return (
     <SeerEmbedBlock

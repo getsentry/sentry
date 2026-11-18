@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
+import {LLMCosts} from './llmCosts';
 
 describe('LLMCosts', () => {
   it('renders a regular cost as a dollar amount', () => {

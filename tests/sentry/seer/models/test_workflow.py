@@ -29,6 +29,15 @@ class SeerWorkflowConfigTest(TestCase):
 
         assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
 
+    def test_legacy_lookup_rejects_breached_metric_automations(self) -> None:
+        with pytest.raises(ValueError):
+            SeerWorkflowConfig.get_or_create_for_strategy(
+                self.organization.id,
+                SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
+            )
+
+        assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
+
     def test_legacy_strategy_has_one_config_per_organization_and_v2_has_many(self) -> None:
         legacy = SeerWorkflowConfig.get_or_create_for_strategy(
             self.organization.id, SeerWorkflowStrategy.AGENTIC_TRIAGE

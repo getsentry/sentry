@@ -39,6 +39,7 @@ def instrumented_task(
     retry: Retry | None = None,
     expires: int | datetime.timedelta | None = None,
     processing_deadline_duration: int | datetime.timedelta | None = None,
+    heartbeat: int | datetime.timedelta | None = None,
     at_most_once: bool = False,
     wait_for_delivery: bool = False,
     compression_type: CompressionType = CompressionType.PLAINTEXT,
@@ -46,7 +47,7 @@ def instrumented_task(
     silenced_exceptions: tuple[type[BaseException], ...] | None = None,
     silo_mode: SiloMode | None = None,
     pass_headers: bool = False,
-    **kwargs,
+    **kwargs: object,
 ) -> Callable[[Callable[P, R]], Task[P, R]]:
     """
     Decorator for defining tasks.
@@ -100,6 +101,10 @@ def instrumented_task(
         When a taskbroker gives an activation to the taskworker to execute, a result is expected
         in this many seconds. If not provided, the default task duration of
         DEFAULT_PROCESSING_DEADLINE will be used.
+    heartbeat : int | datetime.timedelta | None
+        How often in seconds that the worker should send a heartbeat to the taskbroker. If the taskbroker
+        does not receive a heartbeat within the heartbeat interval, the task will be restarted. Note that
+        a heartbeat that is longer than the processing deadline duration will be ignored.
     at_most_once : bool
         Enable at-most-once execution. Tasks with `at_most_once` cannot
         define retry policies, and use a worker side idempotency key to
@@ -123,6 +128,7 @@ def instrumented_task(
             retry=retry,
             expires=expires,
             processing_deadline_duration=processing_deadline_duration,
+            heartbeat=heartbeat,
             at_most_once=at_most_once,
             wait_for_delivery=wait_for_delivery,
             compression_type=compression_type,
@@ -147,6 +153,7 @@ def instrumented_task(
                 retry=retry,
                 expires=expires,
                 processing_deadline_duration=processing_deadline_duration,
+                heartbeat=heartbeat,
                 at_most_once=at_most_once,
                 wait_for_delivery=wait_for_delivery,
                 compression_type=compression_type,
@@ -165,8 +172,8 @@ def instrumented_task(
     return wrapped
 
 
-def track_group_async_operation(function):
-    def wrapper(*args, **kwargs):
+def track_group_async_operation(function: Callable[P, R]) -> Callable[P, R]:
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> R:
         from sentry.utils import snuba
 
         try:

@@ -1,21 +1,19 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
+import type {UseQueryOptions} from '@tanstack/react-query';
 
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import type {UseApiQueryOptions} from 'sentry/utils/queryClient';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import type {ReplayReader} from 'sentry/utils/replays/replayReader';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {useTimeout} from 'sentry/utils/useTimeout';
-import {
-  ReplaySummaryStatus,
-  ReplaySummaryTemp,
-  type SummaryResponse,
-} from 'sentry/views/explore/replays/detail/ai/utils';
+
+import {ReplaySummaryStatus, ReplaySummaryTemp, type SummaryResponse} from './utils';
 
 const POLL_INTERVAL_MS = 500;
 const ERROR_POLL_INTERVAL_MS = 5000;
@@ -71,24 +69,26 @@ const shouldPoll = (
   }
 };
 
-function createAISummaryQueryKey(
+function createAISummaryOptions(
   orgSlug: string,
   projectSlug: string | undefined,
   replayId: string
-): ApiQueryKey {
-  return [
-    getApiUrl(
-      '/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/$replayId/summarize/',
-      {
-        path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug!, replayId},
-      }
-    ),
-  ];
+) {
+  return apiOptions.as<SummaryResponse>()(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/$replayId/summarize/',
+    {
+      path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug!, replayId},
+      staleTime: 0,
+    }
+  );
 }
 
 export function useReplaySummary(
   replay: ReplayReader,
-  options?: UseApiQueryOptions<SummaryResponse>
+  options?: Omit<
+    UseQueryOptions<ApiResponse<SummaryResponse>, Error, SummaryResponse, ApiQueryKey>,
+    'queryKey' | 'queryFn' | 'select'
+  > & {staleTime: number}
 ): UseReplaySummaryResult {
   const organization = useOrganization();
   const replayRecord = replay.getReplay();
@@ -183,11 +183,11 @@ export function useReplaySummary(
       // invalidate the query when a summary task is requested
       // so the cached data is marked as stale.
       queryClient.invalidateQueries({
-        queryKey: createAISummaryQueryKey(
+        queryKey: createAISummaryOptions(
           organization.slug,
           project?.slug,
           replayRecord?.id ?? ''
-        ),
+        ).queryKey,
       });
       // oxlint-disable-next-line react/purity
       startSummaryRequestTime.current = Date.now();
@@ -207,23 +207,18 @@ export function useReplaySummary(
     startStartTimeout();
   }, [options?.enabled, startSummaryRequestMutate, startTotalTimeout, startStartTimeout]);
 
-  const {data: summaryData, dataUpdatedAt: lastFetchTime} = useApiQuery<SummaryResponse>(
-    createAISummaryQueryKey(organization.slug, project?.slug, replayRecord?.id ?? ''),
-    {
-      staleTime: 0,
-      retry: false,
-      refetchInterval: query => {
-        if (shouldPoll(query.state.data?.json, isStartSummaryRequestError, didTimeout)) {
-          return query.state.status === 'error'
-            ? ERROR_POLL_INTERVAL_MS
-            : POLL_INTERVAL_MS;
-        }
-        return false;
-      },
-      refetchOnWindowFocus: 'always',
-      ...options,
-    }
-  );
+  const {data: summaryData, dataUpdatedAt: lastFetchTime} = useQuery({
+    ...createAISummaryOptions(organization.slug, project?.slug, replayRecord?.id ?? ''),
+    retry: false,
+    refetchInterval: query => {
+      if (shouldPoll(query.state.data?.json, isStartSummaryRequestError, didTimeout)) {
+        return query.state.status === 'error' ? ERROR_POLL_INTERVAL_MS : POLL_INTERVAL_MS;
+      }
+      return false;
+    },
+    refetchOnWindowFocus: 'always',
+    ...options,
+  });
 
   // Auto-start logic. Triggered at most once per page load.
   const segmentsIncreased =

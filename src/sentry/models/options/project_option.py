@@ -28,6 +28,7 @@ OPTION_KEYS = frozenset(
         "sentry:safe_fields",
         "sentry:store_crash_reports",
         "sentry:builtin_symbol_sources",
+        "sentry:enable_native_source_server_mapping",
         "sentry:symbol_sources",
         "sentry:sensitive_fields",
         "sentry:highlight_tags",
@@ -236,11 +237,6 @@ class ProjectOption(Model):
         unique_together = (("project", "key"),)
         indexes = [
             models.Index(fields=["key"]),
-            models.Index(
-                fields=["value", "id"],
-                condition=models.Q(key="sentry:group_action_log_backfill_completed"),
-                name="sentry_proj_gal_val_id_idx",
-            ),
         ]
 
     __repr__ = sane_repr("project_id", "key", "value")

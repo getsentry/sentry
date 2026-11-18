@@ -1444,6 +1444,14 @@ def perform_cell_request(cell: Cell, payload: WebhookPayload) -> None:
 
             # We need to retry on cell 500s
             if status.HTTP_500_INTERNAL_SERVER_ERROR <= response_code < 600:
+                metrics.incr(
+                    "hybridcloud.deliver_webhooks.failure",
+                    tags={
+                        "reason": "cell_5xx",
+                        "destination_region": cell.name,
+                        "provider": _provider_from_mailbox(payload.mailbox_name),
+                    },
+                )
                 raise DeliveryFailed() from err
 
             # We don't retry 404 or 400 as they will fail again.

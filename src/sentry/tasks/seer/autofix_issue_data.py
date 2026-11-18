@@ -20,7 +20,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
-from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
+from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
 
@@ -98,7 +98,7 @@ def schedule_judging() -> None:
     processing_deadline_duration=5 * 60,
 )
 def schedule_judging_for_org(organization_id: int, *args: Any, **kwargs: Any) -> None:
-    organization = Organization.objects.filter(id=organization_id).first()
+    organization = Organization.objects.get_or_none(id=organization_id)
     if organization is None or not features.has(FEATURE_FLAG, organization):
         return
 
@@ -143,7 +143,9 @@ def judge_issue_data(issues: list[tuple[int, str]], *args: Any, **kwargs: Any) -
 
 def _judge_issue(issue_data_id: int, event_id: str) -> None:
     issue_data = (
-        SeerAutofixIssueData.objects.select_related("organization").filter(id=issue_data_id).first()
+        SeerAutofixIssueData.objects.select_related("organization")
+        .filter(id=issue_data_id)
+        .get_or_none()
     )
     if issue_data is None or not features.has(FEATURE_FLAG, issue_data.organization):
         return
@@ -155,8 +157,7 @@ def _judge_issue(issue_data_id: int, event_id: str) -> None:
 
     with viewer_context_scope(
         ViewerContext(
-            organization_id=issue_data.organization_id,
-            actor_type=ActorType.SYSTEM,
+            actor=Actor(type=ActorType.SYSTEM), organization_id=issue_data.organization_id
         )
     ):
         result = JudgeResponse.parse_obj(

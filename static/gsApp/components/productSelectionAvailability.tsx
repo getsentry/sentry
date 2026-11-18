@@ -34,24 +34,12 @@ function getDisabledProducts({
 }): DisabledProducts {
   const disabledProducts: DisabledProducts = {};
   const hasSessionReplay = organization.features.includes('session-replay');
-  const hasPerformance = organization.features.includes('performance-view');
+
   const hasProfiling = organization.features.includes('profiling-view');
   const hasBillingAccess = organization.access?.includes('org:billing');
 
   // if performance is not available, it means that users are on a MM* plan and we don't have an upsell modal to show.
-  const shouldShowUpsellModals = hasPerformance && hasBillingAccess && canSelfServe;
-
-  if (!hasPerformance) {
-    const reason = hasBillingAccess
-      ? t("To use Performance, update your organization's plan to its latest version.")
-      : t(
-          'To use Performance, request an owner in your organization to update its plan to the latest version.'
-        );
-
-    disabledProducts[ProductSolution.PERFORMANCE_MONITORING] = {
-      reason,
-    };
-  }
+  const shouldShowUpsellModals = hasBillingAccess && canSelfServe;
 
   if (!hasSessionReplay) {
     const reason = canSelfServe

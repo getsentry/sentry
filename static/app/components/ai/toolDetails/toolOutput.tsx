@@ -1,7 +1,7 @@
+import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {getDefaultExpanded} from 'sentry/components/structuredEventData/utils';
 import {t, tn} from 'sentry/locale';

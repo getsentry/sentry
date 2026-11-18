@@ -1,1 +1,1 @@
-export const COMMAND_PALETTE_HOTKEYS = ['mod+shift+p', 'mod+k'];
+export const COMMAND_PALETTE_HOTKEYS = ['Mod+Shift+P', 'Mod+K'] as const;

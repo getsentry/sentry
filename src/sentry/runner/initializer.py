@@ -9,6 +9,7 @@ from typing import IO, Any
 import click
 from django.conf import settings
 
+from sentry.runner import gc_metrics
 from sentry.silo.patches.silo_aware_transaction_patch import patch_silo_aware_atomic
 from sentry.utils import warnings
 from sentry.utils.arroyo import initialize_arroyo_main
@@ -103,7 +104,6 @@ self_hosted_options_mapper = {
     "intercom.sentry-api-secret": "SENTRY_INTERCOM_API_SECRET",
     "relay.static_auth": "SENTRY_RELAY_STATIC_AUTH",
     "objectstore.config": "SENTRY_OBJECTSTORE_CONFIG",
-    "viewer-context.enabled": "SENTRY_VIEWER_CONTEXT_ENABLED",
     "analytics.backend": "SENTRY_ANALYTICS_BACKEND",
     "analytics.options": "SENTRY_ANALYTICS_OPTIONS",
     "mail.list-namespace": "SENTRY_MAIL_LIST_NAMESPACE",
@@ -462,6 +462,9 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
     _trace("django.setup")
     django.setup()
 
+    _trace("monkeypatch_request_principal")
+    monkeypatch_request_principal()
+
     _trace("validate_regions")
     validate_regions(settings)
 
@@ -519,6 +522,9 @@ def initialize_app(config: dict[str, Any], skip_service_validation: bool = False
         else:
             # For first time users that have not yet set system url prefix, let's default to localhost url
             settings.CSRF_TRUSTED_ORIGINS = ["http://localhost:9000", "http://127.0.0.1:9000"]
+
+    _trace("gc_metrics")
+    gc_metrics.install()
 
     _trace("done")
 
@@ -595,6 +601,12 @@ def monkeypatch_django_migrations() -> None:
     from sentry.new_migrations.monkey import monkey_migrations
 
     monkey_migrations()
+
+
+def monkeypatch_request_principal() -> None:
+    from sentry.auth.principal import patch_request_principal
+
+    patch_request_principal()
 
 
 def monkeypatch_drf_listfield_serializer_errors() -> None:
@@ -769,7 +781,11 @@ def validate_snuba() -> None:
         and
         # TODO(mattrobenolt): Remove ServiceDelegator check
         settings.SENTRY_TSDB
-        in ("sentry.tsdb.redissnuba.RedisSnubaTSDB", "sentry.utils.services.ServiceDelegator")
+        in (
+            "sentry.tsdb.snuba.SnubaTSDB",
+            "sentry.tsdb.redissnuba.RedisSnubaTSDB",
+            "sentry.utils.services.ServiceDelegator",
+        )
     )
 
     eventstream_is_snuba = (

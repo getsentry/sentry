@@ -301,7 +301,7 @@ class ApiApplicationTest(TestCase):
         assert "%EF%BF%BD" not in result
         assert "%25ab" in result.lower()
 
-    def _assert_no_bypass(self, app, attack_uri, registered_path):
+    def _assert_no_bypass(self, app: ApiApplication, attack_uri: str, registered_path: str) -> None:
         """Verify an attack URI cannot redirect outside the registered path.
 
         Passes if EITHER validation rejects the URI, OR the normalized

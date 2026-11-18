@@ -5,15 +5,14 @@ interface ReasonInfo {
   title: string;
 }
 
-export const DROPPED_DATA_DOCS_URL =
-  'https://docs.sentry.io/product/explore/dropped-data/';
+const DROPPED_DATA_DOCS_URL = 'https://docs.sentry.io/product/explore/dropped-data/';
 
 // One entry per drop reason, keyed by the reason code Relay/Sentry emits.
 // `title` is the row heading. `docsAnchor` is the reason's section id on
 // DROPPED_DATA_DOCS_URL; it's kept separate from `title` because titles are
 // translated and the docs are English-only.
 // Content mirrors the "Dropped Events Descriptions" registry.
-export const REASON_INFO: Record<string, ReasonInfo> = {
+const REASON_INFO: Record<string, ReasonInfo> = {
   before_send: {title: t('Dropped by before send'), docsAnchor: 'dropped-by-before-send'},
   ignore_spans: {
     title: t('Dropped by ignored spans'),
@@ -384,3 +383,32 @@ export const REASON_INFO: Record<string, ReasonInfo> = {
   rate_limited: {title: t('Internal rate limit'), docsAnchor: 'internal-rate-limit'},
   key_quota: {title: t('DSN rate limit'), docsAnchor: 'dsn-rate-limit'},
 };
+
+function normalizeReason(reason: string): string {
+  if (reason === 'ignored') {
+    return 'ignore_spans';
+  }
+  if (REASON_INFO[reason]) {
+    return reason;
+  }
+  // Reasons like `Sampled:0` or `custom-inbound-filter:foo` carry a dynamic
+  // suffix; the registry keys on the bare prefix. Exact keys (`too_large:span`)
+  // are matched above, so this only strips genuinely dynamic suffixes.
+  const colonIndex = reason.indexOf(':');
+  if (colonIndex !== -1) {
+    const prefix = reason.slice(0, colonIndex);
+    if (REASON_INFO[prefix]) {
+      return prefix;
+    }
+  }
+  return reason.endsWith('_usage_exceeded') ? 'usage_exceeded' : reason;
+}
+
+export function reasonTitle(reason: string): string {
+  return REASON_INFO[normalizeReason(reason)]?.title ?? reason;
+}
+
+export function reasonDocsUrl(reason: string): string {
+  const anchor = REASON_INFO[normalizeReason(reason)]?.docsAnchor;
+  return anchor ? `${DROPPED_DATA_DOCS_URL}#${anchor}` : DROPPED_DATA_DOCS_URL;
+}

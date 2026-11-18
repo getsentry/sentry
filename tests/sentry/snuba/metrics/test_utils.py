@@ -161,7 +161,9 @@ test_get_num_intervals_cases = [
     test_get_num_intervals_cases,
     ids=[x[5] for x in test_get_num_intervals_cases],
 )
-def test_get_num_intervals(start, end, granularity, interval, expected, test_message) -> None:
+def test_get_num_intervals(
+    start: str, end: str, granularity: int, interval: int, expected: int, test_message: str
+) -> None:
     start_date = datetime.fromisoformat(start)
     end_date = datetime.fromisoformat(end)
 
@@ -272,7 +274,9 @@ test_get_intervals_cases = [
     test_get_intervals_cases,
     ids=[x[4] for x in test_get_intervals_cases],
 )
-def test_get_intervals(start, end, granularity, interval, test_message, expected) -> None:
+def test_get_intervals(
+    start: str, end: str, granularity: int, interval: int, test_message: str, expected: list[str]
+) -> None:
     start_date = datetime.fromisoformat(start)
     end_date = datetime.fromisoformat(end)
 
@@ -284,7 +288,7 @@ def test_get_intervals(start, end, granularity, interval, test_message, expected
     assert actual == expected, test_message
 
 
-def _to_timestring(d):
+def _to_timestring(d: datetime) -> str:
     return d.strftime("%H:%M:%S %Z")
 
 
@@ -352,8 +356,14 @@ test_to_intervals_cases = [
     ids=[x[6] for x in test_to_intervals_cases],
 )
 def test_to_intervals(
-    start, end, interval, expected_start, expected_end, expected_num_intervals, test_message
-):
+    start: str,
+    end: str,
+    interval: int,
+    expected_start: str,
+    expected_end: str,
+    expected_num_intervals: int,
+    test_message: str,
+) -> None:
     start_date = datetime.fromisoformat(start)
     end_date = datetime.fromisoformat(end)
 

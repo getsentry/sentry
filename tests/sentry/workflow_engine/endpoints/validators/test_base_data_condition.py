@@ -96,6 +96,43 @@ class TestRegisteredComparisonSchemas(TestCase):
         assert self._validator(Condition.ISSUE_PRIORITY_DEESCALATING, 100).is_valid() is False
 
 
+class TestDefaultConditionResult(TestCase):
+    def test_workflow_trigger__defaults_to_true(self) -> None:
+        validator = BaseDataConditionValidator(
+            data={"type": Condition.FIRST_SEEN_EVENT.value, "comparison": True}
+        )
+        assert validator.is_valid(), validator.errors
+        assert validator.validated_data["condition_result"] is True
+
+    def test_action_filter__defaults_to_true(self) -> None:
+        validator = BaseDataConditionValidator(
+            data={
+                "type": Condition.ISSUE_PRIORITY_DEESCALATING.value,
+                "comparison": PriorityLevel.HIGH,
+            }
+        )
+        assert validator.is_valid(), validator.errors
+        assert validator.validated_data["condition_result"] is True
+
+    def test_explicit_value_is_kept(self) -> None:
+        validator = BaseDataConditionValidator(
+            data={
+                "type": Condition.FIRST_SEEN_EVENT.value,
+                "comparison": True,
+                "conditionResult": False,
+            }
+        )
+        assert validator.is_valid(), validator.errors
+        assert validator.validated_data["condition_result"] is False
+
+    def test_detector_condition__still_required(self) -> None:
+        validator = BaseDataConditionValidator(
+            data={"type": Condition.GREATER.value, "comparison": 10}
+        )
+        assert validator.is_valid() is False
+        assert "conditionResult" in validator.errors
+
+
 class MockComplexDataConditionHandler(DataConditionHandler[dict[str, Any]]):
     comparison_json_schema = {
         "type": "object",

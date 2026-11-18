@@ -55,6 +55,21 @@ describe('RootCausePreview', () => {
     expect(screen.getByText('Finding the root cause…')).toBeInTheDocument();
   });
 
+  it('shows why a single run stopped instead of the failure text', () => {
+    const stop = {
+      key: 'stop',
+      reason: 'stop',
+      data: {reason: 'R', suggestion: 'N'},
+    };
+
+    render(<RootCausePreview section={makeSection('root_cause', [stop])} />);
+
+    expect(screen.getByText('R')).toBeInTheDocument();
+    expect(
+      screen.queryByText(/Seer failed to generate a root cause/)
+    ).not.toBeInTheDocument();
+  });
+
   it('handles null data', () => {
     const artifact: Artifact<RootCauseArtifact> = {
       key: 'root-cause',
@@ -193,6 +208,61 @@ describe('CodeChangesPreview', () => {
     expect(
       screen.getByText(
         'Seer failed to generate a code change. This one is on us. Try running it again.'
+      )
+    ).toBeInTheDocument();
+  });
+});
+
+describe('a step that stopped for credits', () => {
+  function makeStoppedSection(step: string): AutofixSection {
+    return {
+      step,
+      artifacts: [],
+      blocks: [],
+      status: 'error',
+      failureReason: 'out_of_credits',
+    };
+  }
+
+  it.each([
+    [RootCausePreview, 'root_cause', 'Seer stopped before finishing the root cause'],
+    [SolutionPreview, 'solution', 'Seer stopped before finishing the plan'],
+    [
+      CodeChangesPreview,
+      'code_changes',
+      'Seer stopped before finishing the code changes',
+    ],
+  ])('says so instead of blaming Seer (%#)', (Preview, step, message) => {
+    render(<Preview section={makeStoppedSection(step)} />);
+
+    expect(screen.getByText(new RegExp(message))).toBeInTheDocument();
+    expect(screen.queryByText(/This one is on us/)).not.toBeInTheDocument();
+  });
+
+  it('says a PR iteration stopped, not the code changes', () => {
+    function makeStepBlock(id: string, step: string): AutofixSection['blocks'][number] {
+      return {
+        id,
+        timestamp: '2026-01-01T00:00:00Z',
+        message: {role: 'assistant', content: '', metadata: {step}},
+      };
+    }
+
+    render(
+      <CodeChangesPreview
+        section={{
+          ...makeStoppedSection('code_changes'),
+          blocks: [
+            makeStepBlock('block-1', 'code_changes'),
+            makeStepBlock('block-2', 'pr_iteration'),
+          ],
+        }}
+      />
+    );
+
+    expect(
+      screen.getByText(
+        'Seer stopped before updating the pull request because your organization is out of credits.'
       )
     ).toBeInTheDocument();
   });

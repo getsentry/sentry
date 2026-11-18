@@ -3,7 +3,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {FeedbackEmptyState} from 'sentry/views/feedback/feedbackEmptyState';
+
+import {FeedbackEmptyState} from './feedbackEmptyState';
 
 describe('FeedbackEmptyState', () => {
   const project = ProjectFixture({id: '1'});

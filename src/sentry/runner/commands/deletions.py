@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any
 import click
 
 from sentry.runner.decorators import configuration
-from sentry.viewer_context import ActorType, ViewerContext
+from sentry.viewer_context import Actor, ActorType, ViewerContext
 
 if TYPE_CHECKING:
     from sentry.deletions.models.scheduleddeletion import BaseScheduledDeletion
@@ -161,7 +161,7 @@ def _run_one(*, deletion: BaseScheduledDeletion, verbose: bool = False) -> None:
     with scheduled_deletion_viewer_context(
         deletion,
         instance,
-        origin_context=ViewerContext(actor_type=ActorType.SYSTEM),
+        origin_context=ViewerContext(actor=Actor(type=ActorType.SYSTEM)),
     ):
         task = deletions_module.get(
             model=deletion.get_model(),

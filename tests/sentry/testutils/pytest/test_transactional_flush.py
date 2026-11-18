@@ -172,7 +172,7 @@ class TransactionalFlushTest(TransactionTestCase):
                             [cleanup_pid],
                         )
                         query, wait_event_type = cursor.fetchone()
-                        return query.startswith("TRUNCATE") and wait_event_type == "Lock"
+                        return bool(query.startswith("TRUNCATE") and wait_event_type == "Lock")
 
                     _wait_for(truncate_waits, "Django's flush to wait for the writer")
                     cursor.execute("COMMIT")

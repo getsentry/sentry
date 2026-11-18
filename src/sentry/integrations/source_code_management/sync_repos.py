@@ -27,9 +27,9 @@ from sentry.integrations.source_code_management.metrics import (
 )
 from sentry.integrations.source_code_management.repo_audit import log_repo_change
 from sentry.integrations.source_code_management.repository import (
-    HaltReason,
     RepositoryIntegration,
 )
+from sentry.integrations.types import HaltReason
 from sentry.integrations.utils.metrics import IntegrationEventLifecycle
 from sentry.locks import locks
 from sentry.organizations.services.organization import organization_service
@@ -83,7 +83,7 @@ def bump_org_integration_last_sync(
     `repos_changed` is True, also stamp `config["last_repos_change"]` to record
     the last time the repo set actually changed.
     """
-    oi = OrganizationIntegration.objects.filter(id=organization_integration_id).first()
+    oi = OrganizationIntegration.objects.get_or_none(id=organization_integration_id)
     if oi is None:
         return
     now = timezone.now().isoformat()
@@ -481,6 +481,7 @@ def disable_repos_batch(
         organization_id=rpc_org.id,
         integration_id=integration.id,
         providers=[provider],
+        external_ids=external_ids,
     )
     repo_by_external_id = {r.external_id: r for r in all_repos}
 
@@ -517,6 +518,7 @@ def restore_repos_batch(
         organization_id=rpc_org.id,
         integration_id=integration.id,
         providers=[provider],
+        external_ids=external_ids,
     )
     integration_repo_provider = get_integration_repository_provider(integration)
     restore_set = set(external_ids)

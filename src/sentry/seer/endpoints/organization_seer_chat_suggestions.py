@@ -18,6 +18,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.utils import to_valid_int_id
+from sentry.auth.principal import acting_user_id
 from sentry.constants import ALL_ACCESS_PROJECT_ID
 from sentry.dashboards.endpoints.organization_dashboards import OrganizationDashboardsPermission
 from sentry.models.dashboard import Dashboard
@@ -32,7 +33,7 @@ from sentry.seer.oneshot import run_oneshot
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import metrics
 from sentry.workflow_engine.endpoints.organization_detector_details import (
-    _check_metric_detector_allowed,
+    check_metric_detector_allowed,
 )
 from sentry.workflow_engine.endpoints.validators.utils import (
     ORGANIZATION_WORKFLOW_WRITE_SCOPES,
@@ -125,9 +126,7 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
             "projects": [
                 {"slug": project.slug, "platform": project.platform} for project in projects
             ],
-            "code_mode": features.has(
-                "organizations:seer-explorer-code-mode-tools", organization, actor=request.user
-            ),
+            "code_mode": True,
             "actions_enabled": actions_enabled,
         }
         if actions_enabled:
@@ -145,7 +144,7 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
                 "chat_suggestions",
                 payload,
                 organization,
-                user_id=request.user.id,
+                user_id=acting_user_id(request.user),
                 timeout=3.5,
             )
         except HTTPError:
@@ -193,18 +192,20 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
     ) -> str | None:
         """The page's context node type, if the user can edit the item on that page."""
         if dashboard_id := _to_valid_int_id("dashboardId", route_params.get("dashboardId")):
-            dashboard = Dashboard.objects.filter(
+            dashboard = Dashboard.objects.get_or_none(
                 id=dashboard_id, organization_id=organization.id
-            ).first()
+            )
             if dashboard and OrganizationDashboardsPermission().has_object_permission(
                 request, self, dashboard
             ):
                 return "dashboard"
 
         elif workflow_id := _to_valid_int_id("automationId", route_params.get("automationId")):
-            workflow = Workflow.objects.filter(
-                id=workflow_id, organization_id=organization.id
-            ).first()
+            workflow = Workflow.objects.get_or_none(
+                id=workflow_id,
+                organization_id=organization.id,
+                type=Workflow.Type.ALERT,
+            )
             if workflow:
                 try:
                     enforce_workflow_access(workflow, organization, request)
@@ -233,7 +234,7 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
                 return None
 
             try:
-                _check_metric_detector_allowed(detector, organization)
+                check_metric_detector_allowed(detector, organization)
             except ResourceDoesNotExist:
                 return None
             if can_edit_detector(detector, request):

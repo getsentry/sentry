@@ -14,7 +14,7 @@ from parsimonious.exceptions import IncompleteParseError
 from parsimonious.grammar import Grammar
 from parsimonious.nodes import Node, NodeVisitor, RegexNode
 
-from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
+from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery, SearchQueryParseError
 from sentry.search.events.constants import (
     DURATION_UNITS,
     NOT_HAS_FILTER_ERROR_MESSAGE,
@@ -157,6 +157,7 @@ explicit_tag_key        = "tags" open_bracket escaped_key closed_bracket
 explicit_string_tag_key = "tags" open_bracket escaped_key spaces comma spaces "string" closed_bracket
 explicit_number_tag_key = "tags" open_bracket escaped_key spaces comma spaces "number" closed_bracket
 explicit_boolean_tag_key = "tags" open_bracket escaped_key spaces comma spaces "boolean" closed_bracket
+explicit_array_tag_key  = "tags" open_bracket escaped_key spaces comma spaces "array" closed_bracket
 
 aggregate_key                    = key open_paren spaces function_args? spaces closed_paren
 function_args                    = aggregate_param (spaces comma spaces !comma aggregate_param?)*
@@ -167,7 +168,7 @@ quoted_aggregate_param           = '"' ('\\"' / ~r'[^\t\n\"]')* '"'
 explicit_tag_key_aggregate_param = explicit_tag_key / explicit_number_tag_key / explicit_string_tag_key / explicit_boolean_tag_key
 
 search_key             = explicit_number_flag_key / explicit_number_tag_key / explicit_boolean_tag_key / key / quoted_key
-text_key               = explicit_flag_key / explicit_string_flag_key / explicit_tag_key / explicit_string_tag_key  / search_key
+text_key               = explicit_flag_key / explicit_string_flag_key / explicit_tag_key / explicit_string_tag_key / explicit_array_tag_key / search_key
 value                  = ~r"[^()\t\n ]*"
 quoted_value           = '"' ('\\"' / ~r'[^"]')* '"'
 in_value               = (&in_value_termination in_value_char)+
@@ -590,7 +591,7 @@ def _is_wildcard(raw_value: object) -> TypeIs[str]:
 
 
 class SearchValue(NamedTuple):
-    raw_value: str | float | datetime | Sequence[float] | Sequence[str]
+    raw_value: str | float | datetime | Sequence[float] | Sequence[str] | None
     # Used for top events where we don't want to modify the raw value at all
     use_raw_value: bool = False
     is_regex: bool = False
@@ -829,6 +830,9 @@ class SearchConfig[TAllowBoolean: (Literal[True], Literal[False]) = Literal[True
 
     # Disallow the use of the !has filter
     allow_not_has_filter: bool = True
+
+    # What the value for has filters should be
+    has_filter_value: str | None = ""
 
     @overload
     @classmethod
@@ -1440,7 +1444,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         (search_key,) = self._validate_has_search_keys(negation, [search_key])
 
         operator = "=" if is_negated(negation) else "!="
-        return SearchFilter(search_key, operator, SearchValue(""))
+        return SearchFilter(search_key, operator, SearchValue(self.config.has_filter_value))
 
     def _validate_has_search_keys(
         self, negation: Node | tuple[Node], search_keys: Sequence[SearchKey]
@@ -1696,6 +1700,22 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         ],
     ) -> SearchKey:
         return SearchKey(f"tags[{children[2]},boolean]")
+
+    def visit_explicit_array_tag_key(
+        self,
+        node: Node,
+        children: tuple[
+            Node,  # "tags"
+            str,  # '['
+            str,  # escaped_key
+            str,  # ' '
+            Node,  # ','
+            str,  # ' '
+            Node,  # "array"
+            str,  # ']'
+        ],
+    ) -> SearchKey:
+        return SearchKey(f"tags[{children[2]},array]")
 
     def visit_explicit_flag_key(
         self,
@@ -2002,7 +2022,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
         search_keys = self._validate_has_search_keys(negation, search_keys)
 
         operator = "=" if is_negated(negation) else "!="
-        search_value = SearchValue("")
+        search_value = SearchValue(self.config.has_filter_value)
         all_filters = [
             SearchFilter(search_key, operator, search_value) for search_key in search_keys
         ]
@@ -2159,7 +2179,7 @@ def parse_search_query(
         idx = e.column()
         prefix = query[max(0, idx - 5) : idx]
         suffix = query[idx : (idx + 5)]
-        err = InvalidSearchQuery(
+        err = SearchQueryParseError(
             "{} {}".format(
                 f"Parse error at '{prefix}{suffix}' (column {e.column():d}).",
                 "This is commonly caused by unmatched parentheses. Enclose any text in double quotes.",
@@ -2168,9 +2188,17 @@ def parse_search_query(
         err.extra = {"idx": idx}
         raise err
 
-    return SearchVisitor(
-        config,
-        params=params,
-        get_field_type=get_field_type,
-        get_function_result_type=get_function_result_type,
-    ).visit(tree)
+    try:
+        return SearchVisitor(
+            config,
+            params=params,
+            get_field_type=get_field_type,
+            get_function_result_type=get_function_result_type,
+        ).visit(tree)
+    except InvalidSearchQuery as e:
+        # Subclasses already carry a more specific meaning; keep them as they are
+        if type(e) is not InvalidSearchQuery:
+            raise
+        err = SearchQueryParseError(*e.args)
+        err.extra = e.extra
+        raise err from e

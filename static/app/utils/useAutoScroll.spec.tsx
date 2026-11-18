@@ -2,7 +2,7 @@ import type {ReactNode} from 'react';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useAutoScroll} from 'sentry/utils/useAutoScroll';
+import {useAutoScroll} from './useAutoScroll';
 
 function ScrollContainer({
   children,

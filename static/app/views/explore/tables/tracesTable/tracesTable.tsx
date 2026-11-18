@@ -18,6 +18,7 @@ import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
 import {getQueryErrorMessage} from 'sentry/utils/discover/genericDiscoverQuery';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -25,6 +26,7 @@ import type {TracesTableResult} from 'sentry/views/explore/hooks/useExploreTrace
 import {usePaginationAnalytics} from 'sentry/views/explore/hooks/usePaginationAnalytics';
 import type {TraceResult} from 'sentry/views/explore/hooks/useTraces';
 import {useQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
+
 import {
   Description,
   ProjectBadgeWrapper,
@@ -32,14 +34,9 @@ import {
   SpanTimeRenderer,
   TraceBreakdownRenderer,
   TraceIdRenderer,
-} from 'sentry/views/explore/tables/tracesTable/fieldRenderers';
-import {
-  BreakdownCell,
-  EmptyStateText,
-  EmptyValueContainer,
-  WrappingText,
-} from 'sentry/views/explore/tables/tracesTable/styles';
-import {TraceSpansTable} from 'sentry/views/explore/tables/tracesTable/traceSpansTable';
+} from './fieldRenderers';
+import {BreakdownCell, EmptyStateText, EmptyValueContainer, WrappingText} from './styles';
+import {TraceSpansTable} from './traceSpansTable';
 
 const TRACES_TABLE_COLUMNS: TableColumnConfig[] = [
   {key: 'trace', width: 'min-content'},
@@ -122,8 +119,10 @@ export function TracesTable({tracesTableResult}: TracesTableProps) {
         ))}
       </SimpleTable>
       <Pagination
-        pageLinks={result.data?.headers.Link}
-        paginationAnalyticsEvent={paginationAnalyticsEvent}
+        {...getPaginationProps(result.data?.headers.Link)}
+        onPageChange={(_cursor, delta) =>
+          paginationAnalyticsEvent(delta === -1 ? 'Previous' : 'Next')
+        }
       />
     </Fragment>
   );

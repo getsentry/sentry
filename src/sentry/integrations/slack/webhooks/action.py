@@ -10,6 +10,7 @@ import requests as requests_
 import sentry_sdk
 from django.urls import reverse
 from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
 from slack_sdk.errors import SlackApiError
@@ -22,7 +23,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.api.client import ApiClient, client
 from sentry.api.helpers.group_index import update_groups
-from sentry.auth.access import from_member
+from sentry.auth.access import from_member, from_user
 from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.integrations.messaging.metrics import (
     MessageInteractionFailureReason,
@@ -46,7 +47,9 @@ from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.spec import SlackMessagingSpec
 from sentry.integrations.slack.utils.errors import MODAL_NOT_FOUND, unpack_slack_api_error
 from sentry.integrations.slack.webhooks.actions.investigation import (
+    InvestigationUnavailableReason,
     handle_seer_investigation_start,
+    record_investigation_unavailable,
 )
 from sentry.integrations.slack.webhooks.actions.seer_agent import (
     SEER_AGENT_WRITE_APPROVAL_ACTIONS,
@@ -59,6 +62,13 @@ from sentry.locks import locks
 from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.notifications.platform.registry import template_registry
+from sentry.notifications.platform.tracking import (
+    NotificationEngagementMechanism,
+    NotificationTrackingContext,
+    is_tracking_enabled,
+    record_engagement,
+)
 from sentry.notifications.services import notifications_service
 from sentry.notifications.types import NotificationOrigin
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
@@ -88,6 +98,7 @@ UNLINK_IDENTITY_MESSAGE = (
 )
 
 NO_ACCESS_MESSAGE = "You do not have access to the organization for the invitation."
+NO_PROJECT_ACCESS_MESSAGE = "You do not have access to this project."
 NO_PERMISSION_MESSAGE = "You do not have permission to approve member invitations."
 NO_IDENTITY_MESSAGE = "Identity not linked for user."
 ENABLE_SLACK_SUCCESS_MESSAGE = "Slack notifications have been enabled."
@@ -122,6 +133,8 @@ def update_group(
         raise client.ApiError(
             status_code=403, body="The user does not have access to the organization."
         )
+    if not from_user(user, group.organization).has_project_access(group.project):
+        raise PermissionDenied(NO_PROJECT_ACCESS_MESSAGE)
 
     with action_context_scope(source=ActionSource.SLACK, actor=GroupActionActor.user(user.id)):
         resp = update_groups(request=request, groups=[group], user=user, data=data)
@@ -155,7 +168,7 @@ def get_notification_origin(
 def get_group(slack_request: SlackActionRequest) -> Group | None:
     """Determine the issue group on which an action is being taken."""
     group_id = slack_request.callback_data["issue"]
-    group = Group.objects.select_related("project__organization").filter(id=group_id).first()
+    group = Group.objects.select_related("project__organization").filter(id=group_id).get_or_none()
     if group:
         if not integration_service.get_organization_integration(
             organization_id=group.project.organization_id,
@@ -434,6 +447,9 @@ class SlackActionEndpoint(Endpoint):
 
                 try:
                     self.on_status(request, identity_user, group, status_action)
+                except PermissionDenied as error:
+                    lifecycle.record_halt(error)
+                    return self.respond_ephemeral(str(error.detail))
                 except client.ApiError as error:
                     lifecycle.record_failure(error)
                     return self.api_error(
@@ -522,6 +538,8 @@ class SlackActionEndpoint(Endpoint):
                             user=identity_user,
                         )
                     defer_attachment_update = True
+            except PermissionDenied as error:
+                return self.respond_ephemeral(str(error.detail))
             except client.ApiError as error:
                 return self.api_error(slack_request, group, identity_user, error, action.name)
             except serializers.ValidationError as error:
@@ -766,6 +784,39 @@ class SlackActionEndpoint(Endpoint):
 
         return action_list
 
+    @classmethod
+    def record_tracked_clicks(cls, slack_request: SlackActionRequest) -> None:
+        """
+        Records a click on each button whose action ID names the notification it was sent in.
+        Never raises.
+        """
+        try:
+            for action_data in slack_request.data.get("actions", []):
+                routing_data = decode_action_id(action_data.get("action_id", ""))
+                tracking = routing_data.tracking
+                if (
+                    tracking is None
+                    or routing_data.organization_id is None
+                    or routing_data.action not in SlackAction
+                    or not is_tracking_enabled(tracking.source, slack_request.integration.provider)
+                ):
+                    continue
+                identity = slack_request.get_identity()
+                record_engagement(
+                    NotificationTrackingContext(
+                        source=tracking.source,
+                        provider=slack_request.integration.provider,
+                        category=template_registry.get(tracking.source).category,
+                        notification_uuid=tracking.notification_uuid,
+                        organization_id=routing_data.organization_id,
+                    ),
+                    mechanism=NotificationEngagementMechanism.PROVIDER_CALLBACK,
+                    link=routing_data.action,
+                    user_id=identity.user_id if identity else None,
+                )
+        except Exception:
+            _logger.exception("slack.action.record_tracked_clicks.failed")
+
     def post(self, request: Request) -> Response:
         try:
             slack_request = self.slack_request_class(request)
@@ -790,6 +841,8 @@ class SlackActionEndpoint(Endpoint):
         sentry_sdk.set_tag("integration_id", slack_request.integration.id)
         sentry_sdk.set_attribute("integration_id", slack_request.integration.id)
 
+        self.record_tracked_clicks(slack_request)
+
         # Actions list may be empty when receiving a dialog response.
 
         action_option, action_id = self.get_action_option(slack_request=slack_request)
@@ -811,10 +864,15 @@ class SlackActionEndpoint(Endpoint):
             )
 
         if action_id == SlackAction.SEER_INVESTIGATION_START.value:
+            routing_data = decode_action_id(slack_request.data["actions"][0]["action_id"])
             identity_user = slack_request.get_identity_user()
             if not identity_user:
+                record_investigation_unavailable(
+                    InvestigationUnavailableReason.IDENTITY_NOT_LINKED,
+                    organization_id=routing_data.organization_id,
+                    integration_id=slack_request.integration.id,
+                )
                 return self._respond_link_identity(slack_request)
-            routing_data = decode_action_id(slack_request.data["actions"][0]["action_id"])
             return handle_seer_investigation_start(
                 slack_request=slack_request,
                 organization_id=routing_data.organization_id,
@@ -835,6 +893,8 @@ class SlackActionEndpoint(Endpoint):
             SlackAction.SEER_AUTOFIX_VIEW_IN_SENTRY.value,
             SlackAction.SEER_AUTOFIX_VIEW_PR.value,
             SlackAction.SEER_INVESTIGATION_START.value,
+            SlackAction.SEER_VIEW_BILLING.value,
+            SlackAction.SEER_REQUEST_CREDITS.value,
         }:
             return self.respond()
 
@@ -882,10 +942,22 @@ class SlackActionEndpoint(Endpoint):
         try:
             member = OrganizationMember.objects.get_member_invite_query(member_id).get()
         except OrganizationMember.DoesNotExist:
-            # member request is gone, likely someone else rejected it
             member_email = slack_request.callback_data["member_email"]
+            approved_member = (
+                OrganizationMember.objects.filter(
+                    id=member_id, invite_status=InviteStatus.APPROVED.value
+                )
+                .select_related("organization")
+                .get_or_none()
+            )
+            # Only reveal the request status to users who can see the organization.
+            if approved_member and approved_member.organization.has_access(identity_user):
+                text = f"Member invitation for {member_email} has already been approved."
+            else:
+                # Rejecting a request deletes the member row.
+                text = f"Member invitation for {member_email} no longer exists."
             webhook_client.send(
-                text=f"Member invitation for {member_email} no longer exists.",
+                text=text,
                 response_type="in_channel",
                 replace_original=False,
             )

@@ -20,7 +20,7 @@ class ServiceHookValidator(serializers.Serializer):
         required=False, default=True, help_text="Whether the service hook is active."
     )
 
-    def validate_events(self, value):
+    def validate_events(self, value: list[str]) -> list[str]:
         if value:
             for event in value:
                 if event not in SERVICE_HOOK_EVENTS:

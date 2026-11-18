@@ -15,6 +15,7 @@ from sentry.api.bases.organization import (
     OrganizationIntegrationsPermission,
 )
 from sentry.api.serializers import serialize
+from sentry.auth.principal import has_user
 from sentry.constants import ObjectStatus
 from sentry.exceptions import NotRegistered
 from sentry.integrations.manager import default_manager as integrations
@@ -87,7 +88,7 @@ class OrganizationIntegrationDirectEnableEndpoint(ControlSiloOrganizationEndpoin
                 data = provider.build_integration({})
                 integration = ensure_integration(provider.key, data)
 
-                user = request.user if request.user.is_authenticated else None
+                user = request.user if has_user(request.user) else None
                 org_integration = integration.add_organization(organization, user)
                 if org_integration is None:
                     raise IntegrityError

@@ -1,11 +1,12 @@
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Annotated, Any, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register, serialize
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.auth.access import Access
 from sentry.integrations.models.data_forwarder import DataForwarder
 from sentry.integrations.models.data_forwarder_project import DataForwarderProject
@@ -14,35 +15,62 @@ from sentry.users.services.user import RpcUser
 
 
 class ProjectResponse(TypedDict):
-    id: str
-    slug: str
-    platform: str | None
+    id: Annotated[str, ApiDescription("ID of the project")]
+    slug: Annotated[str, ApiDescription("Slug of the project")]
+    platform: Annotated[str | None, ApiDescription("Platform of the project")]
 
 
 class DataForwarderProjectResponse(TypedDict):
-    id: str
-    isEnabled: bool
-    dataForwarderId: str
-    project: ProjectResponse
+    id: Annotated[str, ApiDescription("ID of the project's data forwarding configuration")]
+    isEnabled: Annotated[bool, ApiDescription("Whether data forwarding is on for the project")]
+    dataForwarderId: Annotated[str, ApiDescription("ID of the data forwarder")]
+    project: Annotated[ProjectResponse, ApiDescription("Project the configuration applies to")]
     # The overrides + effectiveConfig fields are omitted unless request has `org:write`, since the values are sensitive.
-    overrides: dict[str, str]
-    effectiveConfig: dict[str, str]
-    dateAdded: datetime
-    dateUpdated: datetime
+    overrides: Annotated[
+        dict[str, str],
+        ApiDescription(
+            "Settings that override the forwarder's config for the project. Empty without project:write or org:write access"
+        ),
+    ]
+    effectiveConfig: Annotated[
+        dict[str, str],
+        ApiDescription(
+            "Forwarder config merged with the project's overrides. Empty without org:write access"
+        ),
+    ]
+    dateAdded: Annotated[
+        datetime, ApiDescription("When the project configuration was created (ISO 8601)")
+    ]
+    dateUpdated: Annotated[
+        datetime, ApiDescription("When the project configuration was last updated (ISO 8601)")
+    ]
 
 
 class DataForwarderResponse(TypedDict):
-    id: str
-    organizationId: str
-    isEnabled: bool
-    enrollNewProjects: bool
-    enrolledProjects: list[ProjectResponse]
-    provider: str
+    id: Annotated[str, ApiDescription("ID of the data forwarder")]
+    organizationId: Annotated[str, ApiDescription("ID of the organization")]
+    isEnabled: Annotated[bool, ApiDescription("Whether the data forwarder is on")]
+    enrollNewProjects: Annotated[
+        bool, ApiDescription("Whether new projects are enrolled in the forwarder automatically")
+    ]
+    enrolledProjects: Annotated[
+        list[ProjectResponse], ApiDescription("Projects enrolled in the forwarder")
+    ]
+    provider: Annotated[
+        str, ApiDescription("Service the data is forwarded to: segment, sqs or splunk")
+    ]
     # The config is omitted unless request has `org:write`, since the values are sensitive.
-    config: dict[str, str] | None
-    projectConfigs: list[DataForwarderProjectResponse]
-    dateAdded: datetime
-    dateUpdated: datetime
+    config: Annotated[
+        dict[str, str] | None,
+        ApiDescription("Provider settings of the forwarder. Null without org:write access"),
+    ]
+    projectConfigs: Annotated[
+        list[DataForwarderProjectResponse], ApiDescription("Configuration of each enrolled project")
+    ]
+    dateAdded: Annotated[datetime, ApiDescription("When the data forwarder was created (ISO 8601)")]
+    dateUpdated: Annotated[
+        datetime, ApiDescription("When the data forwarder was last updated (ISO 8601)")
+    ]
 
 
 @register(DataForwarder)

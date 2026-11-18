@@ -20,7 +20,7 @@ class TwoFactorAuthView(BaseView):
 
 
 @control_silo_view
-def u2f_appid(request):
+def u2f_appid(request: HttpRequest) -> HttpResponse:
     facets = options.get("u2f.facets")
     if not facets:
         facets = [options.get("system.url-prefix")]

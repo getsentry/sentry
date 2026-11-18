@@ -119,9 +119,11 @@ class ScmCreateProjectTest(AcceptanceTestCase):
         self.browser.wait_until('[data-test-id="menu-list-item-label"]')
         self.browser.click('[data-test-id="menu-list-item-label"]')
         self.browser.wait_until(xpath='//*[contains(text(), "Detected from")]')
-        self.browser.wait_until(
-            xpath='//*[@role="radiogroup"]//*[@role="radio" and @aria-checked="true"]'
-            '[contains(., "Django")]'
+        self.browser.wait_until_script_execution(
+            """return Array.from(document.querySelectorAll(
+                '[role="radiogroup"] [role="radio"][aria-checked="true"], '
+                + '[role="radiogroup"] label:has(input[type="radio"]:checked)'
+            )).some(card => card.textContent.includes('Django'));"""
         )
 
     def create_scm_project(self, sdk_name: str, platform: str, project_name: str) -> Project:
@@ -214,6 +216,12 @@ class ScmCreateProjectTest(AcceptanceTestCase):
             self.browser.wait_until(xpath='//button[contains(., "Install GitHub App")]')
             self.browser.driver.execute_script("window.__testOpenUrl = null;")
             self.browser.click(xpath='//button[contains(., "Install GitHub App")]')
+            self.create_provider_integration(
+                provider="github",
+                name="getsentry",
+                external_id="12345",
+                metadata={"sender": {"login": "testuser"}},
+            )
             self.browser.driver.execute_script(
                 "window.postMessage(arguments[0], window.location.origin);",
                 {
@@ -242,10 +250,17 @@ class ScmCreateProjectTest(AcceptanceTestCase):
             )
             self.browser.click(xpath='//p[@data-test-id="menu-list-item-label"][text()="React"]')
 
-            self.browser.wait_until(xpath='//*[@role="checkbox"][.//*[text()="Tracing"]]')
-            self.browser.click(xpath='//*[@role="checkbox"][.//*[text()="Tracing"]]')
             self.browser.wait_until(
-                xpath='//*[@role="checkbox" and @aria-checked="true"][.//*[text()="Tracing"]]'
+                xpath='//*[@role="checkbox" or (self::label and .//input[@type="checkbox"])][.//*[text()="Tracing"]]'
+            )
+            self.browser.click(
+                xpath='//*[@role="checkbox" or (self::label and .//input[@type="checkbox"])][.//*[text()="Tracing"]]'
+            )
+            self.browser.wait_until_script_execution(
+                """return Array.from(document.querySelectorAll(
+                    '[role="checkbox"][aria-checked="true"], '
+                    + 'label:has(input[type="checkbox"]:checked)'
+                )).some(card => card.textContent.includes('Tracing'));"""
             )
             self.create_scm_project("React", "javascript-react", "javascript-react")
 

@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import {skipToken, useInfiniteQuery} from '@tanstack/react-query';
 
 import {
@@ -11,11 +11,10 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {MAX_PICKABLE_DAYS} from 'sentry/views/explore/conversations/settings';
 import {getGenAiOperationTypeFromSpanName} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
-import {AiSpanDetails} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/aiSpanDetails';
-import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 
 export interface UseConversationsOptions {
@@ -65,6 +64,7 @@ export interface ConversationApiSpan {
   'gen_ai.response.object'?: string;
   'gen_ai.tool.call.arguments'?: string;
   'gen_ai.tool.call.result'?: string;
+  'gen_ai.tool.call.result.size'?: number | null;
   'gen_ai.tool.name'?: string;
   'gen_ai.usage.cache_creation.input_tokens'?: number;
   'gen_ai.usage.cache_read.input_tokens'?: number;
@@ -187,8 +187,8 @@ function createNodeFromApiSpan(
       [SpanFields.GEN_AI_CONVERSATION_ID]: apiSpan['gen_ai.conversation.id'],
       [SpanFields.GEN_AI_EMBEDDINGS_INPUT]: apiSpan['gen_ai.embeddings.input'] ?? '',
       [SpanFields.GEN_AI_INPUT_MESSAGES]: apiSpan['gen_ai.input.messages'] ?? '',
-      // Recognizes evaluation and embeddings spans, which report the ai_client
-      // operation type.
+      // Recognizes evaluation, extraction and embeddings spans, which report the
+      // ai_client operation type.
       [SpanFields.GEN_AI_OPERATION_NAME]: apiSpan['gen_ai.operation.name'] ?? '',
       [SpanFields.GEN_AI_OPERATION_TYPE]: operationType ?? '',
       [SpanFields.GEN_AI_MEMORY_STORE_ID]: apiSpan['gen_ai.memory.store.id'] ?? '',
@@ -206,6 +206,9 @@ function createNodeFromApiSpan(
       [SpanFields.GEN_AI_TOOL_NAME]: apiSpan['gen_ai.tool.name'] ?? '',
       'gen_ai.tool.call.arguments': apiSpan['gen_ai.tool.call.arguments'] ?? '',
       'gen_ai.tool.call.result': apiSpan['gen_ai.tool.call.result'] ?? '',
+      ...(typeof apiSpan['gen_ai.tool.call.result.size'] === 'number' && {
+        'gen_ai.tool.call.result.size': apiSpan['gen_ai.tool.call.result.size'],
+      }),
       ...(apiSpan['gen_ai.usage.input_tokens'] !== undefined && {
         [SpanFields.GEN_AI_USAGE_INPUT_TOKENS]: apiSpan['gen_ai.usage.input_tokens'],
       }),
@@ -291,10 +294,6 @@ function createNodeFromApiSpan(
       return null;
     },
     findParentEapTransaction: () => null,
-
-    renderDetails(props: TraceTreeNodeDetailsProps<AITraceSpanNode>) {
-      return <AiSpanDetails node={props.node} traceId={props.traceId} />;
-    },
   };
 
   return node as unknown as AITraceSpanNode;
@@ -371,10 +370,35 @@ function orderDepthFirst(
 }
 
 const ONE_HOUR_MS = 60 * 60 * 1000;
+const ONE_DAY_MS = 24 * ONE_HOUR_MS;
+// Covers request latency and client clock drift against the API's own cutoff.
+const RETENTION_CUTOFF_SLACK_MS = 10 * 60 * 1000;
+
+/**
+ * Pads the conversation's window by an hour on each side, but never starts it
+ * before the API's 30-day cutoff, which rejects such requests with a 400.
+ */
+function getPaddedConversationWindow(
+  startTimestamp: number,
+  endTimestamp: number,
+  now: number
+) {
+  const earliestStart = now - MAX_PICKABLE_DAYS * ONE_DAY_MS + RETENTION_CUTOFF_SLACK_MS;
+  const paddedStart = startTimestamp - ONE_HOUR_MS;
+  // Clamping a conversation that ends before the earliest start would skip it
+  // entirely, so those keep their window.
+  const start =
+    endTimestamp > earliestStart ? Math.max(paddedStart, earliestStart) : paddedStart;
+  return {
+    start: new Date(start).toISOString(),
+    end: new Date(endTimestamp + ONE_HOUR_MS).toISOString(),
+  };
+}
 
 function buildConversationQueryParams(
   conversation: UseConversationsOptions,
-  selection: PageFilters
+  selection: PageFilters,
+  now: number
 ) {
   const defaultPeriod = getDefaultPageFilterSelection().datetime.period;
   const hasExplicitDatetime =
@@ -383,10 +407,11 @@ function buildConversationQueryParams(
 
   const datetimeParams =
     conversation.startTimestamp !== undefined && conversation.endTimestamp !== undefined
-      ? {
-          start: new Date(conversation.startTimestamp - ONE_HOUR_MS).toISOString(),
-          end: new Date(conversation.endTimestamp + ONE_HOUR_MS).toISOString(),
-        }
+      ? getPaddedConversationWindow(
+          conversation.startTimestamp,
+          conversation.endTimestamp,
+          now
+        )
       : hasExplicitDatetime
         ? normalizeDateTimeParams(selection.datetime)
         : {};
@@ -424,7 +449,8 @@ const MAX_PAGES = 100;
 export function getConversationQueryOptions(
   organization: Organization,
   conversation: UseConversationsOptions,
-  selection: PageFilters
+  selection: PageFilters,
+  now = Date.now()
 ) {
   return apiOptions.asInfinite<ConversationApiResponse>()(
     '/organizations/$organizationIdOrSlug/agents/conversations/$conversationId/',
@@ -435,7 +461,7 @@ export function getConversationQueryOptions(
             conversationId: conversation.conversationId,
           }
         : skipToken,
-      query: buildConversationQueryParams(conversation, selection),
+      query: buildConversationQueryParams(conversation, selection, now),
       staleTime: Infinity,
     }
   );
@@ -446,6 +472,9 @@ export function useConversation(
 ): UseConversationResult {
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  // Fixed for the hook's lifetime so the retention clamp can't change the
+  // query key between renders.
+  const [now] = useState(Date.now);
 
   const {
     data,
@@ -457,7 +486,7 @@ export function useConversation(
     isLoading,
     isLoadingError,
   } = useInfiniteQuery(
-    getConversationQueryOptions(organization, conversation, selection)
+    getConversationQueryOptions(organization, conversation, selection, now)
   );
 
   const pageCount = data?.pages.length ?? 0;

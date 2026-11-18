@@ -1,6 +1,6 @@
 import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import {useLogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
+import {useLogsPinning} from './useLogsPinning';
 
 describe('useLogsPinning', () => {
   it('starts with an empty pinnedRows when the location has no logsPinned query', () => {

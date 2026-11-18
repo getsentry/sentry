@@ -47,7 +47,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         super().setUp()
         self.min_ago = before_now(minutes=1)
 
-    def _parse_links(self, header):
+    def _parse_links(self, header: str) -> dict[str | None, dict[str, str | None]]:
         # links come in {url: {...attrs}}, but we need {rel: {...attrs}}
         links = {}
         for url, attrs in parse_link_header(header).items():
@@ -101,6 +101,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         )
+        assert event1.group is not None
         event2 = self.store_event(
             data={
                 "fingerprint": ["put-me-in-group-2"],
@@ -108,6 +109,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         )
+        assert event2.group is not None
         self.login_as(user=self.user)
         response = self.client.get(f"{self.path}?sort_by=date&limit=1", format="json")
         assert response.status_code == 200
@@ -119,7 +121,9 @@ class GroupListTest(APITestCase, SnubaTestCase):
         assert links["previous"]["results"] == "false"
         assert links["next"]["results"] == "true"
 
-        response = self.client.get(links["next"]["href"], format="json")
+        next_href = links["next"]["href"]
+        assert next_href is not None
+        response = self.client.get(next_href, format="json")
         assert response.status_code == 200
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(event1.group.id)
@@ -184,6 +188,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             data={"event_id": event_id, "timestamp": self.min_ago.isoformat()},
             project_id=self.project.id,
         )
+        assert event.group is not None
         self.login_as(user=self.user)
 
         response = self.client.get("{}?query={}".format(self.path, "c" * 32), format="json")
@@ -200,6 +205,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             data={"environment": "test", "timestamp": self.min_ago.isoformat()},
             project_id=self.project.id,
         )
+        assert event.group is not None
 
         self.login_as(user=self.user)
 
@@ -217,6 +223,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             data={"event_id": "c" * 32, "timestamp": self.min_ago.isoformat()},
             project_id=self.project.id,
         )
+        assert event.group is not None
         self.login_as(user=self.user)
         response = self.client.get(
             "{}?query=%20%20{}%20%20".format(self.path, "c" * 32), format="json"
@@ -281,10 +288,12 @@ class GroupListTest(APITestCase, SnubaTestCase):
         release = Release.objects.create(organization=project.organization, version="12345")
         release.add_project(project)
         release.add_project(project2)
-        group = self.store_event(
+        group_event = self.store_event(
             data={"release": release.version, "timestamp": before_now(seconds=1).isoformat()},
             project_id=project.id,
-        ).group
+        )
+        assert group_event.group is not None
+        group = group_event.group
         self.store_event(
             data={"release": release.version, "timestamp": before_now(seconds=1).isoformat()},
             project_id=project2.id,
@@ -303,6 +312,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             data={"tags": {"sentry:release": version}}, project_id=self.project.id
         )
         group = event.group
+        assert group is not None
         url = "{}?query={}".format(self.path, quote('release:"%s"' % version))
         response = self.client.get(url, format="json")
         issues = json.loads(response.content)
@@ -317,6 +327,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             data={"tags": {"sentry:release": version}}, project_id=self.project.id
         )
         group = event.group
+        assert group is not None
         release_wildcard = version[:3] + "*"
         url = "{}?query={}".format(self.path, quote('release:"%s"' % release_wildcard))
         response = self.client.get(url, format="json")
@@ -361,6 +372,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
+        assert event.group is not None
         event.group.update(status=GroupStatus.RESOLVED, substatus=None)
         self.login_as(user=self.user)
         response = self.client.get(f"{self.path}?query=!is:unresolved", format="json")
@@ -372,6 +384,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
+        assert event.group is not None
 
         self.login_as(user=self.user)
 
@@ -385,11 +398,13 @@ class GroupListTest(APITestCase, SnubaTestCase):
             data={"timestamp": before_now(seconds=500).isoformat(), "fingerprint": ["group-1"]},
             project_id=self.project.id,
         )
+        assert event.group is not None
 
         event2 = self.store_event(
             data={"timestamp": before_now(seconds=400).isoformat(), "fingerprint": ["group-2"]},
             project_id=self.project.id,
         )
+        assert event2.group is not None
         self.login_as(user=self.user)
 
         response = self.client.get(
@@ -412,7 +427,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
     def path(self) -> str:
         return f"/api/0/projects/{self.project.organization.slug}/{self.project.slug}/issues/"
 
-    def assertNoResolution(self, group):
+    def assertNoResolution(self, group: Group) -> None:
         assert not GroupResolution.objects.filter(group=group).exists()
 
     def test_global_resolve(self) -> None:
@@ -1169,7 +1184,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
                 },
                 project_id=self.project.id,
             )
+            assert event.group is not None
 
+        assert event.group is not None
         group = Group.objects.get(id=event.group.id)
         group.status = GroupStatus.RESOLVED
         group.substatus = None
@@ -1591,9 +1608,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert not Group.objects.filter(id=group1.id).exists()
         assert Group.objects.filter(id=group2.id).exists()
         assert GroupHash.objects.filter(id=group_hash.id).exists()
-        tombstone = GroupTombstone.objects.get(
-            id=GroupHash.objects.get(id=group_hash.id).group_tombstone_id
-        )
+        group_tombstone_id = GroupHash.objects.get(id=group_hash.id).group_tombstone_id
+        assert group_tombstone_id is not None
+        tombstone = GroupTombstone.objects.get(id=group_tombstone_id)
         assert tombstone.message == group1.message
         assert tombstone.culprit == group1.culprit
         assert tombstone.project == group1.project
@@ -1792,6 +1809,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         # Store an event to create a group
         event1 = self.store_event(data=data, project_id=self.project.id)
         original_group = event1.group
+        assert original_group is not None
         original_group_id = original_group.id
 
         # First we delete the group & hashes
@@ -1807,6 +1825,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         assert event1.get_primary_hash() == event2.get_primary_hash()
         # Verify a new group is created with a different ID
         new_group = event2.group
+        assert new_group is not None
         assert new_group.id != original_group_id
         groups = Group.objects.all()
         assert groups.count() == 1

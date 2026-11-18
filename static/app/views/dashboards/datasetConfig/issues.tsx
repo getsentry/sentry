@@ -9,6 +9,7 @@ import {IssuesSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/
 import {ISSUE_FIELD_TO_HEADER_MAP} from 'sentry/views/dashboards/widgetBuilder/issueWidget/fields';
 import {generateIssueWidgetFieldOptions} from 'sentry/views/dashboards/widgetBuilder/issueWidget/utils';
 import {
+  type IssuesSeriesResponse,
   useIssuesSeriesQuery,
   useIssuesTableQuery,
 } from 'sentry/views/dashboards/widgetCard/hooks/useIssuesWidgetQuery';
@@ -17,10 +18,6 @@ import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {useIssueListSearchBarDataProvider} from 'sentry/views/issueList/searchBar';
 import {getSortLabel, IssueSortOptions} from 'sentry/views/issueList/utils';
 
-import {
-  type IssuesSeriesResponse,
-  transformIssuesResponseToSeries,
-} from './utils/transformIssuesResponseToSeries';
 import {transformIssuesResponseToTable} from './utils/transformIssuesResponseToTable';
 import type {DatasetConfig} from './base';
 
@@ -64,7 +61,6 @@ export const IssuesConfig: DatasetConfig<IssuesSeriesResponse, Group[]> = {
   getCustomFieldRenderer: getIssueFieldRenderer,
   SearchBar: IssuesSearchBar,
   useSearchBarDataProvider: useIssueListSearchBarDataProvider,
-  transformSeries: transformIssuesResponseToSeries,
   filterYAxisOptions,
   getTableSortOptions,
   getTimeseriesSortOptions: () => ({}),

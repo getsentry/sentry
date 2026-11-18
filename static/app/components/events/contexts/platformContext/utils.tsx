@@ -2,12 +2,13 @@ import type {SVGIconProps} from '@sentry/icons/svgIcon';
 import {PlatformIcon} from 'platformicons';
 
 import {getContextKeys} from 'sentry/components/events/contexts/dataUtils';
-import {getLaravelContextData} from 'sentry/components/events/contexts/platformContext/laravel';
-import {getReactContextData} from 'sentry/components/events/contexts/platformContext/react';
-import {getSpringContextData} from 'sentry/components/events/contexts/platformContext/spring';
-import {getUnityContextData} from 'sentry/components/events/contexts/platformContext/unity';
 import {t} from 'sentry/locale';
 import type {KeyValueListData} from 'sentry/types/group';
+
+import {getLaravelContextData} from './laravel';
+import {getReactContextData} from './react';
+import {getSpringContextData} from './spring';
+import {getUnityContextData} from './unity';
 
 enum PlatformContextKeys {
   LARAVEL = 'laravel',

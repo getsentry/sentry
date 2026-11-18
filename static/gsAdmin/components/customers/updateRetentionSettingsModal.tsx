@@ -1,8 +1,9 @@
 import {Fragment, useState} from 'react';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {openModal} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+import {openModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
+
 import {SelectField} from 'sentry/components/forms/fields/selectField';
 import {Form} from 'sentry/components/forms/form';
 import {DataCategory} from 'sentry/types/core';
@@ -162,7 +163,7 @@ function UpdateRetentionSettingsModal({
           includeAllArgs: true,
         }
       );
-      addSuccessMessage('Retention settings updated successfully.');
+      toast.success('Retention settings updated successfully.');
       closeModal();
       onSuccess();
     } catch (e) {
@@ -174,7 +175,7 @@ function UpdateRetentionSettingsModal({
           : typeof detail === 'object' && detail?.message
             ? detail.message
             : 'Failed to update retention settings.';
-      addErrorMessage(message);
+      toast.error(message);
     }
   };
 

@@ -1,9 +1,10 @@
 import type {Detector, MetricConditionGroup} from 'sentry/types/workflowEngine/detectors';
 import {unreachable} from 'sentry/utils/unreachable';
 import {UptimeMonitorMode} from 'sentry/views/detectors/components/uptime/types';
-import {getDetectorEnvironment} from 'sentry/views/detectors/utils/getDetectorEnvironment';
-import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
-import {percentThresholdAbsoluteToDelta} from 'sentry/views/detectors/utils/percentThreshold';
+
+import {getDetectorEnvironment} from './getDetectorEnvironment';
+import {getMetricDetectorSuffix} from './metricDetectorSuffix';
+import {percentThresholdAbsoluteToDelta} from './percentThreshold';
 
 /**
  * Flatten a detector's condition group into the thresholds it represents.

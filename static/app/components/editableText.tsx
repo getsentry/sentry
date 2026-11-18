@@ -4,10 +4,10 @@ import styled from '@emotion/styled';
 import {IconEdit} from '@sentry/icons/edit';
 
 import {Input} from '@sentry/scraps/input';
+import {toast} from '@sentry/scraps/toast';
+import {useOnClickOutside} from '@sentry/scraps/useOnClickOutside';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {TextOverflow} from 'sentry/components/textOverflow';
-import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
+import {TextOverflow} from './textOverflow';
 
 type Props = {
   onChange: (value: string) => void;
@@ -69,7 +69,7 @@ export function EditableText({
     (status: 'error' | 'success') => {
       if (status === 'error') {
         if (errorMessage) {
-          addErrorMessage(errorMessage);
+          toast.error(errorMessage);
         }
         return;
       }

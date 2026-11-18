@@ -1,4 +1,4 @@
-import {escapeTagValue} from 'sentry/components/searchBar/utils';
+import {escapeTagValue} from './utils';
 
 describe('escapeTagValue()', () => {
   it('wraps tags containing quotes in quotes', () => {

@@ -9,38 +9,36 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.apidocs import constants
-from sentry.apidocs.parameters import GlobalParams, InvestigationParams
+from sentry.apidocs.parameters import GlobalParams, NotebookParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.investigations.endpoints.base import (
-    OrganizationInvestigationEndpoint,
-    require_authenticated_user,
-    service_error,
-)
 from sentry.investigations.endpoints.serializers.responses import (
     InvestigationCommandResponse,
     InvestigationOrchestrationResponse,
 )
-from sentry.investigations.endpoints.validators import (
-    InvestigationOrchestrationCommandValidator,
-)
-from sentry.investigations.models import Investigation
-from sentry.investigations.services.investigations import InvestigationServiceError
+from sentry.investigations.endpoints.validators import InvestigationOrchestrationCommandValidator
 from sentry.investigations.services.orchestration import (
     accept_orchestration_command,
     get_orchestration_projection,
 )
 from sentry.models.organization import Organization
+from sentry.notebooks.endpoints.base import (
+    OrganizationNotebookEndpoint,
+    require_authenticated_user,
+    service_error,
+)
+from sentry.notebooks.models import Notebook
+from sentry.notebooks.services.notebooks import NotebookServiceError
 
 
 @extend_schema(tags=["Investigations"])
 @cell_silo_endpoint
-class OrganizationInvestigationOrchestrationEndpoint(OrganizationInvestigationEndpoint):
+class OrganizationInvestigationOrchestrationEndpoint(OrganizationNotebookEndpoint):
     owner = ApiOwner.ML_AI
     publish_status = {"GET": ApiPublishStatus.PRIVATE}
 
     @extend_schema(
         operation_id="Retrieve Investigation Orchestration",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG, InvestigationParams.INVESTIGATION_ID],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, NotebookParams.NOTEBOOK_ID],
         request=None,
         responses={
             200: inline_sentry_response_serializer(
@@ -52,9 +50,7 @@ class OrganizationInvestigationOrchestrationEndpoint(OrganizationInvestigationEn
             404: constants.RESPONSE_NOT_FOUND,
         },
     )
-    def get(
-        self, request: Request, organization: Organization, investigation: Investigation
-    ) -> Response:
+    def get(self, request: Request, organization: Organization, notebook: Notebook) -> Response:
         """
         Poll the agent workflow independently of notebook details. The Seer-owned projection
         includes runId (nullable before dispatch), investigationId, workflowVersion, generation,
@@ -64,8 +60,8 @@ class OrganizationInvestigationOrchestrationEndpoint(OrganizationInvestigationEn
         Requires the organizations:investigations feature and open organization membership.
         """
         try:
-            projection = get_orchestration_projection(investigation)
-        except InvestigationServiceError as error:
+            projection = get_orchestration_projection(notebook)
+        except NotebookServiceError as error:
             response = service_error(error)
             if response is not None:
                 return response
@@ -75,13 +71,13 @@ class OrganizationInvestigationOrchestrationEndpoint(OrganizationInvestigationEn
 
 @extend_schema(tags=["Investigations"])
 @cell_silo_endpoint
-class OrganizationInvestigationOrchestrationCommandsEndpoint(OrganizationInvestigationEndpoint):
+class OrganizationInvestigationOrchestrationCommandsEndpoint(OrganizationNotebookEndpoint):
     owner = ApiOwner.ML_AI
     publish_status = {"POST": ApiPublishStatus.PRIVATE}
 
     @extend_schema(
         operation_id="Send an Investigation Command",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG, InvestigationParams.INVESTIGATION_ID],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, NotebookParams.NOTEBOOK_ID],
         request=InvestigationOrchestrationCommandValidator,
         responses={
             200: inline_sentry_response_serializer(
@@ -108,9 +104,7 @@ class OrganizationInvestigationOrchestrationCommandsEndpoint(OrganizationInvesti
             )
         ],
     )
-    def post(
-        self, request: Request, organization: Organization, investigation: Investigation
-    ) -> Response:
+    def post(self, request: Request, organization: Organization, notebook: Notebook) -> Response:
         """
         Submit provide_input, add_hypothesis, set_hypothesis_disposition, steer, retry, or
         cancel. Use a UUID requestId for idempotency and expectedWorkflowVersion from the
@@ -130,14 +124,14 @@ class OrganizationInvestigationOrchestrationCommandsEndpoint(OrganizationInvesti
         command_type = command.pop("type")
         try:
             accepted = accept_orchestration_command(
-                investigation=investigation,
+                investigation=notebook,
                 request_id=values["request_id"],
                 expected_workflow_version=values["expected_workflow_version"],
                 command_type=command_type,
                 payload=command,
                 actor_id=actor_id,
             )
-        except InvestigationServiceError as error:
+        except NotebookServiceError as error:
             response = service_error(error)
             if response is not None:
                 return response

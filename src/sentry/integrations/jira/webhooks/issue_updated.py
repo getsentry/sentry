@@ -68,7 +68,7 @@ class JiraIssueUpdatedWebhook(JiraWebhookBase):
 
         return super().handle_exception_with_details(request, exc, handler_context, scope)
 
-    def post(self, request: Request, *args, **kwargs) -> Response:
+    def post(self, request: Request, *args: object, **kwargs: object) -> Response:
         token = self.get_token(request)
         rpc_integration = get_integration_from_jwt(
             token=token,

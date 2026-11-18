@@ -3,7 +3,6 @@ import type {DragEndEvent} from '@dnd-kit/core';
 import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
-import {useSortableMetricQueries} from 'sentry/views/explore/metrics/hooks/useSortableMetricQueries';
 import {
   MultiMetricsQueryParamsProvider,
   useMultiMetricsQueryParams,
@@ -13,6 +12,8 @@ import {
   VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
+
+import {useSortableMetricQueries} from './useSortableMetricQueries';
 
 function Wrapper({children}: {children: React.ReactNode}) {
   return <MultiMetricsQueryParamsProvider>{children}</MultiMetricsQueryParamsProvider>;

@@ -1,6 +1,9 @@
+from collections.abc import Iterable
 from datetime import datetime
+from typing import cast
 from unittest.mock import patch
 
+from django.http import HttpResponseBase
 from django.test import override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -34,19 +37,20 @@ class GroupTagExportTest(TestCase, SnubaTestCase):
             assert_no_errors=False,
         )
 
+        assert self.event.group is not None
         self.group = self.event.group
 
         self.first_seen = datetime.fromisoformat(event_timestamp).strftime("%Y-%m-%dT%H:%M:%S.%fZ")
         self.last_seen = self.first_seen
         self.login_as(user=self.user)
 
-    def verify_test(self, response):
+    def verify_test(self, response: HttpResponseBase) -> None:
         assert response.status_code == 200
         assert response.streaming
         assert response["Content-Type"] == "text/csv"
-        rows = list(response.streaming_content)
-        for idx, row in enumerate(rows):
-            row = row.decode("utf-8")
+        rows = list(cast(Iterable[bytes], getattr(response, "streaming_content")))
+        for idx, chunk in enumerate(rows):
+            row = chunk.decode("utf-8")
             assert row.endswith("\r\n")
             bits = row[:-2].split(",")
             if idx == 0:
@@ -71,6 +75,32 @@ class GroupTagExportTest(TestCase, SnubaTestCase):
 
         response = self.client.get(self.url)
         self.verify_test(response)
+
+    def test_formula_tag_value_escaped(self) -> None:
+        group = self.store_event(
+            data={
+                "fingerprint": ["formula"],
+                "tags": {self.key: "=1+1"},
+                "timestamp": before_now(seconds=1).isoformat(),
+                "environment": self.environment.name,
+            },
+            project_id=self.project.id,
+        ).group
+        assert group is not None
+        url = reverse(
+            "sentry-group-tag-export",
+            kwargs={
+                "organization_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
+                "group_id": group.id,
+                "key": self.key,
+            },
+        )
+
+        response = self.client.get(f"{url}?environment={self.environment.name}")
+
+        rows = response.getvalue().decode("utf-8").splitlines()
+        assert rows[1].startswith("'=1+1,1,")
 
     def test_simple_organization_prefix(self) -> None:
         url = reverse(

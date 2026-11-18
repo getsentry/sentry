@@ -1,7 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import type {PlatformOption} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {PlatformOptionsControl} from 'sentry/components/onboarding/platformOptionsControl';
+import type {PlatformOption} from './gettingStartedDoc/types';
+import {PlatformOptionsControl} from './platformOptionsControl';
 
 describe('Onboarding Product Selection', () => {
   const platformOptions: Record<string, PlatformOption> = {
@@ -105,6 +105,24 @@ describe('Onboarding Product Selection', () => {
         },
       })
     );
+  });
+
+  it('keeps history state on change', async () => {
+    const state = {fromProjectCreation: true};
+    const {router} = render(
+      <PlatformOptionsControl platformOptions={platformOptions} />,
+      {
+        initialRouterConfig: {
+          location: {pathname: '/mock-pathname/', query: {springBoot: 'v3'}, state},
+          route: '/mock-pathname/',
+        },
+      }
+    );
+
+    await userEvent.click(screen.getByRole('radio', {name: 'V2'}));
+
+    expect(router.location.query).toEqual({springBoot: 'v2'});
+    expect(router.location.state).toEqual(state);
   });
 
   it('triggers onChange callback', async () => {

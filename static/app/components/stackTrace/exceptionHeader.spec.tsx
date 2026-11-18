@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {ExceptionDescription} from 'sentry/components/stackTrace/exceptionHeader';
+import {ExceptionDescription} from './exceptionHeader';
 
 describe('ExceptionDescription', () => {
   it('renders colored text and links without escape codes when given an ANSI value', () => {

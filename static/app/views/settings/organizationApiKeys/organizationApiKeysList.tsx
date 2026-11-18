@@ -3,10 +3,10 @@ import {IconDelete} from '@sentry/icons/delete';
 
 import {AlertLink} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 
-import {Confirm} from 'sentry/components/confirm';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';

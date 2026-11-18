@@ -7,6 +7,7 @@ import msgpack
 import pytest
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Message, Partition, Topic
+from django.core.cache.backends.base import BaseCache
 
 from sentry.attachments import MissingAttachmentChunks, attachment_cache
 from sentry.ingest.consumer.attachment_event import decode_and_process_chunks
@@ -65,7 +66,7 @@ def load_chunk(event_id: str) -> bytes:
     ids=["normal_mode", "recovery_not_stuck", "recovery_stuck_event", "recovery_stuck_transaction"],
 )
 def test_decode_and_process_chunks_restores_chunks_only_for_stuck_events(
-    django_cache,
+    django_cache: BaseCache,
     reprocess_only_stuck_events: bool,
     stuck_in: str | None,
     expect_stored: bool,

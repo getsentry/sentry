@@ -1,6 +1,7 @@
 import {DisplayType} from 'sentry/views/dashboards/types';
-import {canScaleThresholds} from 'sentry/views/dashboards/widgetCard/canScaleThresholds';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {canScaleThresholds} from './canScaleThresholds';
 
 const query = {
   name: '',

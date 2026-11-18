@@ -30,7 +30,8 @@ class _GitHubClient:
                 )
             except HTTPError as e:
                 raise ApiError.from_response(e.response)
-        return resp.json()
+        data = resp.json()
+        return data
 
 
 class GitHubKeysPayload(BaseModel):
