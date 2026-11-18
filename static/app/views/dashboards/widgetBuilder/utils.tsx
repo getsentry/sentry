@@ -41,16 +41,12 @@ export function getDiscoverDatasetFromWidgetType(widgetType: WidgetType) {
   }
 }
 
-/**
- * The most groups a chart can plot and stay within the series budget. Always at
- * least 1, since a widget with many series plots them regardless of grouping.
- */
 export function getResultsLimit(numQueries: number, numYAxes: number) {
   if (numQueries === 0 || numYAxes === 0) {
     return DEFAULT_RESULTS_LIMIT;
   }
 
-  return Math.max(1, Math.floor(RESULTS_LIMIT / (numQueries * numYAxes)));
+  return Math.floor(RESULTS_LIMIT / (numQueries * numYAxes));
 }
 
 // for the widget builder params that are not in the url
