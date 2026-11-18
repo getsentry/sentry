@@ -60,6 +60,9 @@ def _relay_server_container_name() -> str:
     return "sentry_test_relay_server"
 
 
+_READINESS_PATH = "/api/relay/healthcheck/ready/"
+
+
 def _wait_until_ready(url: str, timeout: float) -> None:
     deadline = time.monotonic() + timeout
     last_result = "not probed"
@@ -199,13 +202,65 @@ def relay_server_setup(
             _remove_container_if_exists(docker_client, container_name)
 
 
-@pytest.fixture(scope="function")
-def relay_server(relay_server_setup: RelayServerSetup) -> Generator[RelayServer]:
+def _start_relay(relay_server_setup: RelayServerSetup) -> None:
+    options = relay_server_setup["options"]
+    url = relay_server_setup["url"]
+
+    # Keep the docker client open through the readiness wait so the error paths
+    # below can still fetch `container.logs()` for diagnostics.
+    with get_docker_client() as docker_client:
+        container_name = _relay_server_container_name()
+        _remove_container_if_exists(docker_client, container_name)
+        # Docker may not release the host port binding immediately after
+        # container removal; retry to ride out the race window.
+        for attempt in range(5):
+            try:
+                container = docker_client.containers.run(**options)
+                break
+            except docker.errors.APIError as e:
+                if "address already in use" in str(e) and attempt < 4:
+                    time.sleep(1 * 1.5**attempt)
+                    _remove_container_if_exists(docker_client, container_name)
+                    continue
+                raise
+
+        _log.info("Waiting for Relay container to start")
+
+        # Gate on Relay's readiness probe rather than a bare GET, which only proves the
+        # HTTP server is up. Readiness reports whether Relay can actually accept envelopes
+        # (authenticated with the upstream, spool capacity, memory); posting before then
+        # races startup and Relay rejects the request with a 503. This mirrors production,
+        # where load balancers route ingest traffic only to Relays passing this same probe.
+        #
+        # Poll at a fixed short interval: Relay is usually ready within a couple of
+        # seconds, and exponential backoff overshoots that by up to the last sleep.
+        # The deadline matches the previous backoff schedule's total.
+        readiness_url = f"{url}{_READINESS_PATH}"
+        try:
+            _wait_until_ready(readiness_url, timeout=25.5)
+        except TimeoutError as e:
+            try:
+                logs = container.logs().decode()
+            finally:
+                if not environ.get("RELAY_TEST_KEEP_CONTAINER", False):
+                    _remove_container_if_exists(docker_client, container_name)
+            raise ValueError(
+                f"relay did not become ready in time (now: {datetime.datetime.now().isoformat()}, last result: {e}) {readiness_url}:\n{logs}"
+            ) from e
+
+
+def _is_ready(url: str) -> bool:
+    try:
+        return requests.get(f"{url}{_READINESS_PATH}", timeout=1).status_code == 200
+    except requests.RequestException:
+        return False
+
+
+@pytest.fixture(scope="module")
+def _relay_module_settings() -> Generator[None]:
     # Imported lazily: this module is loaded as a pytest plugin before Django is set up,
     # and override_options pulls in app code that requires configured settings.
     from sentry.testutils.helpers.options import override_options
-
-    options = relay_server_setup["options"]
 
     # `relay.endpoint-fetch-config.enabled` (default True since #114947) makes Relay's
     # minidump/unreal endpoints resolve the project config synchronously before queueing.
@@ -213,58 +268,28 @@ def relay_server(relay_server_setup: RelayServerSetup) -> Generator[RelayServer]
     # rejects the upload with a 503 (ProjectUnavailable) -- the cause of the minidump test
     # flakiness. These tests cover the ingestion pipeline, not the endpoint-fetch path,
     # so turn it off.
-    # It is served to the test Relay via the upstream global config, hence the override
-    # must wrap Relay startup.
+    # It is served to the test Relay via the upstream global config, which Relay fetches
+    # at startup and again every 10s, hence the override must last as long as Relay does.
     with (
         relay_test_settings(),
         override_options({"relay.endpoint-fetch-config.enabled": False}),
     ):
-        # Keep the docker client open through the readiness wait so the error paths
-        # below can still fetch `container.logs()` for diagnostics.
-        with get_docker_client() as docker_client:
-            container_name = _relay_server_container_name()
-            _remove_container_if_exists(docker_client, container_name)
-            # Docker may not release the host port binding immediately after
-            # container removal; retry to ride out the race window.
-            for attempt in range(5):
-                try:
-                    container = docker_client.containers.run(**options)
-                    break
-                except docker.errors.APIError as e:
-                    if "address already in use" in str(e) and attempt < 4:
-                        time.sleep(1 * 1.5**attempt)
-                        _remove_container_if_exists(docker_client, container_name)
-                        continue
-                    raise
+        yield
 
-            _log.info("Waiting for Relay container to start")
 
-            url = relay_server_setup["url"]
-
-            # Gate on Relay's readiness probe rather than a bare GET, which only proves the
-            # HTTP server is up. Readiness reports whether Relay can actually accept envelopes
-            # (authenticated with the upstream, spool capacity, memory); posting before then
-            # races startup and Relay rejects the request with a 503. This mirrors production,
-            # where load balancers route ingest traffic only to Relays passing this same probe.
-            #
-            # Poll at a fixed short interval: Relay is usually ready within a couple of
-            # seconds, and exponential backoff overshoots that by up to the last sleep.
-            # The deadline matches the previous backoff schedule's total.
-            readiness_url = f"{url}/api/relay/healthcheck/ready/"
-            try:
-                _wait_until_ready(readiness_url, timeout=25.5)
-            except TimeoutError as e:
-                try:
-                    logs = container.logs().decode()
-                finally:
-                    if not environ.get("RELAY_TEST_KEEP_CONTAINER", False):
-                        _remove_container_if_exists(docker_client, container_name)
-                raise ValueError(
-                    f"relay did not become ready in time (now: {datetime.datetime.now().isoformat()}, last result: {e}) {readiness_url}:\n{logs}"
-                ) from e
-
-        server: RelayServer = {"url": relay_server_setup["url"]}
-        yield server
+# One Relay serves every test in a module, since starting one per test dominated the
+# runtime of these files. Relay caches project configs by public key, and each test
+# creates its project keys with random public keys, so no test sees another's config.
+@pytest.fixture
+def relay_server(relay_server_setup: RelayServerSetup, _relay_module_settings: None) -> RelayServer:
+    url = relay_server_setup["url"]
+    # Start Relay from a test rather than from module setup: Relay fetches its global
+    # config at startup, and serving that reads options from the database, which a test
+    # can access but module setup cannot. Start a new one whenever the module's Relay
+    # is not ready, so a test never gets a Relay that an earlier test left broken.
+    if not _is_ready(url):
+        _start_relay(relay_server_setup)
+    return {"url": url}
 
 
 def relay_test_settings() -> AbstractContextManager[object]:
@@ -272,6 +297,11 @@ def relay_test_settings() -> AbstractContextManager[object]:
     Settings that let a Relay instance running inside a docker container call the app.
     """
     from django.test import override_settings
+
+    from sentry.utils import json
+
+    with open(path.join(_get_template_dir(), "credentials.json")) as f:
+        credentials = json.load(f)
 
     return override_settings(
         ALLOWED_HOSTS=[
@@ -290,7 +320,12 @@ def relay_test_settings() -> AbstractContextManager[object]:
                 },
             }
         },
-        SENTRY_RELAY_WHITELIST_PK=["SMSesqan65THCV6M4qs4kBzPai60LzuDn-xNsvYpuP8"],
+        SENTRY_RELAY_WHITELIST_PK=[credentials["public_key"]],
+        # Relay registers once per module, and a registration stored in the database
+        # would not survive the flush after the module's first test.
+        SENTRY_RELAY_STATIC_AUTH={
+            credentials["id"]: {"internal": True, "public_key": credentials["public_key"]}
+        },
         SENTRY_USE_RELAY=True,
     )
 
