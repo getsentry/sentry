@@ -119,8 +119,6 @@ class MetricAlertTrigger(AutomationTrigger[MetricBreachInputs]):
         if change is None:
             return
         update.mark("backing_workflow")
-        if change.workflow_created:
-            update.mark("extras", "enabled")
         # Read the version at commit time, after update_config bumps it.
         transaction.on_commit(
             lambda: logger.info(
@@ -135,9 +133,6 @@ class MetricAlertTrigger(AutomationTrigger[MetricBreachInputs]):
             ),
             using=router.db_for_write(SeerWorkflowConfig),
         )
-
-    def sync(self, config: SeerWorkflowConfig) -> None:
-        pass
 
     def teardown(self, config: SeerWorkflowConfig) -> None:
         if config.backing_workflow_id is None:
@@ -500,20 +495,7 @@ def _get_or_create_backing_workflow(
     )
     if workflow is not None and workflow.status == ObjectStatus.ACTIVE:
         return workflow, False
-    extras = SeerWorkflowConfigExtras.parse_obj(config.extras)
-    if workflow is None:
-        name, created_by_id, enabled = extras.name, extras.created_by, config.enabled
-    else:
-        name, created_by_id, enabled = workflow.name, workflow.created_by_id, workflow.enabled
-    config.backing_workflow = workflow = _create_backing_workflow(
-        organization_id,
-        config,
-        name=name or "Seer automation",
-        created_by_id=created_by_id,
-        enabled=enabled,
-    )
-    config.extras = extras.copy(update={"name": None, "created_by": None}).dict(exclude_none=True)
-    config.enabled = False
+    config.backing_workflow = workflow = _create_backing_workflow(organization_id, config)
     return workflow, True
 
 
@@ -529,14 +511,8 @@ def _replace_monitor_connections(
     )
 
 
-def _create_backing_workflow(
-    organization_id: int,
-    config: SeerWorkflowConfig,
-    *,
-    name: str,
-    created_by_id: int | None,
-    enabled: bool,
-) -> Workflow:
+def _create_backing_workflow(organization_id: int, config: SeerWorkflowConfig) -> Workflow:
+    extras = SeerWorkflowConfigExtras.parse_obj(config.extras)
     triggers = DataConditionGroup.objects.create(
         organization_id=organization_id,
         logic_type=DataConditionGroup.Type.ANY_SHORT_CIRCUIT,
@@ -549,9 +525,9 @@ def _create_backing_workflow(
     )
     workflow = Workflow.objects.create(
         organization_id=organization_id,
-        name=name,
-        enabled=enabled,
-        created_by_id=created_by_id,
+        name=extras.name or "Seer automation",
+        enabled=config.enabled,
+        created_by_id=extras.created_by,
         config={"frequency": 0},
         when_condition_group=triggers,
     )

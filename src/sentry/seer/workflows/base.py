@@ -136,7 +136,7 @@ class AutomationTrigger[Inputs: BaseModel](Protocol):
 
     def sync(self, config: SeerWorkflowConfig) -> None:
         """Bring anything the trigger keeps outside the config in line with it."""
-        ...
+        return None
 
     def teardown(self, config: SeerWorkflowConfig) -> None:
         """Remove anything the trigger keeps outside the config, before it is deleted."""

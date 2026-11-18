@@ -1533,7 +1533,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         config = SeerWorkflowConfig.objects.get(id=response.data["id"])
         assert config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
         assert config.filters == {"all_projects": False, "environments": ["production"]}
-        assert config.extras == {}
+        assert config.extras == {"name": "Latency breaches", "created_by": self.user.id}
         assert config.version == 1
         assert config.backing_workflow is not None
         assert config.backing_workflow.enabled is True
