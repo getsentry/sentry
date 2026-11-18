@@ -215,7 +215,13 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1
 
-    owned = find_owners(collect_findings(_REPO_ROOT), owner_map)
+    # only the rules with a column are counted, so the totals add up and the header's list of
+    # rules without structured output stays true
+    findings: list[tuple[str, ApiInputViolation]] = []
+    for path, finding in collect_findings(_REPO_ROOT):
+        if finding.rule in BASELINED_RULES:
+            findings.append((path, finding))
+    owned = find_owners(findings, owner_map)
 
     if args.team:
         lines = team_findings(owned, args.team)

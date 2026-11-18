@@ -131,6 +131,25 @@ def test_main_prints_the_owner_map_date_and_the_table(
     )
 
 
+def test_main_leaves_out_rules_without_a_column(
+    fake_repo: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    findings = [_finding("S026"), _finding("S034")]
+
+    with mock.patch.object(report_card, "collect_findings", return_value=findings):
+        assert main([]) == 0
+
+    out = capsys.readouterr().out
+    # S034 has no column, so it isn't in the total either
+    assert "API report card: 1 findings" in out
+    assert out.endswith(
+        "team         total   S025   S026   S027   S028  files\n"
+        "issues-feed      1      0      1      0      0      1\n"
+        "unowned          0      0      0      0      0      0\n"
+        "total            1      0      1      0      0      1\n"
+    )
+
+
 def test_main_prints_markdown(fake_repo: Path, capsys: pytest.CaptureFixture[str]) -> None:
     assert main(["--format", "markdown"]) == 0
 
