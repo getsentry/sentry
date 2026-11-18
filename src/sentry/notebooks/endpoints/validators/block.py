@@ -149,8 +149,11 @@ class BlockCreateValidator(NotebookVersionValidator[tuple[NotebookBlock, bool]])
     Needs notebook, user_id and producer_writer in its context.
     """
 
-    notebook_version_required = False
-
+    notebook_version = serializers.IntegerField(
+        min_value=1,
+        required=False,
+        help_text="Current notebook version from the latest detail response. Stale versions return 409. Send this, or key and revision.",
+    )
     key = serializers.CharField(
         max_length=128,
         required=False,

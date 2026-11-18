@@ -104,7 +104,13 @@ class ConversationDataset:
                 "has:gen_ai.operation.type "
                 "(has:gen_ai.input.messages OR has:gen_ai.output.messages)"
             ),
-            selected_columns=["timestamp", "trace", "client_sample_rate", *_MESSAGE_ATTRIBUTES],
+            selected_columns=[
+                "timestamp",
+                "trace",
+                "client_sample_rate",
+                "environment",
+                *_MESSAGE_ATTRIBUTES,
+            ],
             orderby=["-timestamp"],
             offset=0,
             limit=MAX_SPANS + 1,
@@ -130,6 +136,7 @@ class ConversationDataset:
             timestamp=datetime.fromisoformat(newest["timestamp"]),
             client_sample_rate=newest.get("client_sample_rate") or 1.0,
             conversation_id=entity_id,
+            environment=newest.get("environment") or None,
         )
 
 

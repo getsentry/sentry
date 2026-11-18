@@ -2,12 +2,14 @@ from __future__ import annotations
 
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import Any, TypedDict, override
+from typing import Annotated, Any, TypedDict, override
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer
+from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.formats import JsonValue
 from sentry.notebooks.models import (
     Notebook,
     NotebookBlock,
@@ -20,13 +22,15 @@ from sentry.users.services.user.model import RpcUser
 
 
 class NotebookBlockExecutionSerializerResponse(TypedDict):
-    id: str
-    status: str
-    executor: str
-    schemaVersion: int
-    startedAt: datetime | None
-    completedAt: datetime | None
-    error: Any
+    id: Annotated[str, ApiDescription("The execution ID")]
+    status: Annotated[str, ApiDescription("The execution status")]
+    executor: Annotated[str, ApiDescription("What ran the block")]
+    schemaVersion: Annotated[int, ApiDescription("The version of the result's schema")]
+    startedAt: Annotated[datetime | None, ApiDescription("When the execution started")]
+    completedAt: Annotated[
+        datetime | None, ApiDescription("When the execution finished, if it has")
+    ]
+    error: Annotated[JsonValue, ApiDescription("What went wrong, if the execution failed")]
 
 
 class NotebookBlockSerializerResponse(TypedDict):
@@ -38,26 +42,56 @@ class NotebookBlockSerializerResponse(TypedDict):
     set on blocks a producer wrote.
     """
 
-    id: str
-    position: int
-    kind: str
-    title: str
-    content: str
-    generationPrompt: str
-    generatedContent: str
-    output: Any
-    outputStatus: str
-    currentExecution: NotebookBlockExecutionSerializerResponse | None
-    config: dict[str, Any]
-    display: dict[str, Any]
-    dependencies: list[str]
-    parameterKeys: list[str]
-    version: int
-    staleAt: datetime | None
-    createdBy: str | None
-    lastEditedBy: str | None
-    producerKey: str | None
-    producerRevision: int | None
+    id: Annotated[str, ApiDescription("The block ID")]
+    position: Annotated[int, ApiDescription("The block's position in the notebook, starting at 0")]
+    kind: Annotated[str, ApiDescription("text for Markdown, or query for a data query")]
+    title: Annotated[str, ApiDescription("The block title. May be empty")]
+    content: Annotated[
+        str, ApiDescription("The block's content: Markdown for text, the query for query")
+    ]
+    generationPrompt: Annotated[str, ApiDescription("Instructions used when running the block")]
+    generatedContent: Annotated[
+        str, ApiDescription("The latest generated content, before anyone edited it")
+    ]
+    output: Annotated[
+        JsonValue,
+        ApiDescription("The latest successful result. Text blocks have schemaVersion and markdown"),
+    ]
+    outputStatus: Annotated[
+        str, ApiDescription("available, notRun, or the status of the latest execution")
+    ]
+    currentExecution: Annotated[
+        NotebookBlockExecutionSerializerResponse | None,
+        ApiDescription("The latest execution, if the block has run"),
+    ]
+    config: Annotated[dict[str, JsonValue], ApiDescription("How the block runs, such as auto-run")]
+    display: Annotated[
+        dict[str, JsonValue],
+        ApiDescription(
+            "How the block is shown. Text uses type markdown; query uses table, line, bar, or area"
+        ),
+    ]
+    dependencies: Annotated[list[str], ApiDescription("The IDs of blocks this block depends on")]
+    parameterKeys: Annotated[list[str], ApiDescription("The keys of the parameters the block uses")]
+    version: Annotated[
+        int, ApiDescription("The block's concurrency token. Send it as version with a change")
+    ]
+    staleAt: Annotated[
+        datetime | None,
+        ApiDescription("When an input changed after the output was made, if one did"),
+    ]
+    createdBy: Annotated[
+        str | None, ApiDescription("The ID of the user who added the block, if a user did")
+    ]
+    lastEditedBy: Annotated[
+        str | None, ApiDescription("The ID of the user who last edited the block, if a user did")
+    ]
+    producerKey: Annotated[
+        str | None, ApiDescription("The producer's key for the block, if a producer wrote it")
+    ]
+    producerRevision: Annotated[
+        int | None, ApiDescription("The producer's revision for the block, if a producer wrote it")
+    ]
 
 
 class NotebookBlockSerializer(Serializer[NotebookBlockSerializerResponse]):

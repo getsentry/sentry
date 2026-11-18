@@ -56,10 +56,13 @@ workspaces:
         artifacts:
           Package pack:
             - '{{workspaceName}}-tarball'
+    # npm goes first so the package is published before the GitHub release.
+    # The registry can still lag, so dispatch-api-consumers.yml waits until npm
+    # serves the new version.
     targets:
-      - name: github
-        tagPrefix: '{{workspaceName}}@'
       - name: npm
         access: public
+      - name: github
+        tagPrefix: '{{workspaceName}}@'
     versioning:
       policy: auto

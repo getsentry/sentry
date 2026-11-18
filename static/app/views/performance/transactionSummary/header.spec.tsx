@@ -5,6 +5,8 @@ import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {Tabs} from '@sentry/scraps/tabs';
+
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {PlatformKey} from 'sentry/types/platform';
@@ -60,21 +62,29 @@ function initializeData(opts?: InitialOpts) {
 
 // The header renders into TopBar slots, so the bar has to be mounted alongside
 // it for the breadcrumbs and title to appear.
-function renderHeader(data = initializeData()) {
+function renderHeader(
+  data = initializeData(),
+  currentTab: Tab = Tab.TRANSACTION_SUMMARY
+) {
   const {project, organization, router, eventView} = data;
 
   return render(
     <TopBar.Slot.Provider>
       <TopBar />
-      <TransactionHeader
-        eventView={eventView}
-        location={router.location}
-        organization={organization}
-        projects={[project]}
-        projectId={project.id}
-        transactionName={TRANSACTION_NAME}
-        currentTab={Tab.TRANSACTION_SUMMARY}
-      />
+      <Tabs value={currentTab} onChange={jest.fn()}>
+        {({TabList}) => (
+          <TransactionHeader
+            TabList={TabList}
+            eventView={eventView}
+            location={router.location}
+            organization={organization}
+            projects={[project]}
+            projectId={project.id}
+            transactionName={TRANSACTION_NAME}
+            currentTab={currentTab}
+          />
+        )}
+      </Tabs>
     </TopBar.Slot.Provider>,
     {organization}
   );

@@ -5,7 +5,6 @@ from collections.abc import Mapping
 
 import orjson
 from cryptography.exceptions import InvalidSignature
-from django.conf import settings
 from rest_framework import status
 from rest_framework.request import Request
 from sentry_viewercontext import viewer_context_var
@@ -161,9 +160,6 @@ class DiscordRequest:
         self._set_viewer_context_actor()
 
     def _set_viewer_context_actor(self) -> None:
-        if not settings.SENTRY_VIEWER_CONTEXT_ENABLED:
-            return
-
         current = get_viewer_context()
         # A guild can span organizations. Keep only previously resolved scope.
         viewer_context_var.set(

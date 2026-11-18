@@ -1,3 +1,4 @@
+from dataclasses import dataclass, field
 from enum import StrEnum
 
 from django.views.decorators.debug import sensitive_variables
@@ -14,6 +15,7 @@ from sentry.agent_handoff.flows import get_flow
 from sentry.agent_handoff.flows.base import InvalidHandoffContext
 from sentry.agent_handoff.runbook import render_agent_runbook
 from sentry.analytics.events.agent_handoff import AgentHandoffClaimedEvent
+from sentry.analytics.events.oauth_setup_code import OAuthSetupCodeIssuedEvent
 from sentry.api.helpers.oauth_consent import (
     InvalidOrganizationSelection,
     persist_authorization,
@@ -36,17 +38,46 @@ def _record_claim(outcome: ClaimOutcome, handoff: AgentHandoff | None) -> None:
     analytics.record(
         AgentHandoffClaimedEvent(
             outcome=outcome.value,
+            handoff_id=handoff.handoff_id if handoff else None,
             user_id=handoff.user_id if handoff else None,
             organization_id=handoff.organization_id if handoff else None,
             flow=handoff.flow.value if handoff else None,
-            run_id=handoff.context.run_id if handoff and handoff.context else None,
         )
     )
+
+
+@dataclass(frozen=True)
+class ClaimedHandoff:
+    organization_slug: str
+    organization_name: str
+    user_email: str
+    sentry_url: str
+    client_id: str
+    setup_code: str = field(repr=False)
+    flow_instructions: str = field(repr=False)
+
+    def render_runbook(self) -> str:
+        return render_agent_runbook(
+            organization_slug=self.organization_slug,
+            organization_name=self.organization_name,
+            user_email=self.user_email,
+            sentry_url=self.sentry_url,
+            client_id=self.client_id,
+            setup_code=self.setup_code,
+            flow_instructions=self.flow_instructions,
+        )
 
 
 @sensitive_variables()
 def claim_handoff(code: str, *, ip_address: str | None) -> str | None:
     """Consume a handoff and render credentials after revalidating its authorization."""
+    claim = claim_handoff_context(code, ip_address=ip_address)
+    return claim.render_runbook() if claim is not None else None
+
+
+@sensitive_variables()
+def claim_handoff_context(code: str, *, ip_address: str | None) -> ClaimedHandoff | None:
+    """Consume a handoff and mint credentials after revalidating its authorization."""
     try:
         handoff = consume_handoff(code, ip_address=ip_address)
     except HandoffExpired as error:
@@ -60,14 +91,14 @@ def claim_handoff(code: str, *, ip_address: str | None) -> str | None:
         _record_claim(ClaimOutcome.INVALID, None)
         return None
 
-    guide = _render_guide(handoff)
-    _record_claim(ClaimOutcome.ACCEPTED if guide is not None else ClaimOutcome.INVALID, handoff)
-    return guide
+    claim = _claim(handoff)
+    _record_claim(ClaimOutcome.ACCEPTED if claim is not None else ClaimOutcome.INVALID, handoff)
+    return claim
 
 
 @sensitive_variables()
-def _render_guide(handoff: AgentHandoff) -> str | None:
-    user = User.objects.filter(id=handoff.user_id, is_active=True, is_suspended=False).first()
+def _claim(handoff: AgentHandoff) -> ClaimedHandoff | None:
+    user = User.objects.get_or_none(id=handoff.user_id, is_active=True, is_suspended=False)
     application = get_handoff_application(handoff.scope_list)
     if user is None or application is None or application.id != handoff.application_id:
         return None
@@ -97,13 +128,22 @@ def _render_guide(handoff: AgentHandoff) -> str | None:
         return None
 
     persist_authorization(application, user.id, handoff.scope_list, organization_id)
-    _, setup_code = ApiSetupCode.mint(
+    minted, setup_code = ApiSetupCode.mint(
         application=application,
         user_id=user.id,
         scope_list=handoff.scope_list,
         organization_id=organization_id,
     )
-    return render_agent_runbook(
+    analytics.record(
+        OAuthSetupCodeIssuedEvent(
+            user_id=user.id,
+            organization_id=organization_id,
+            application_id=application.id,
+            setup_code_id=minted.id,
+            flow=handoff.flow.value,
+        )
+    )
+    return ClaimedHandoff(
         organization_slug=context.organization.slug,
         organization_name=context.organization.name,
         user_email=user.email,

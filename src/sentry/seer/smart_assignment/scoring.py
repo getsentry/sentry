@@ -136,7 +136,7 @@ def _assignment_updates(group: Group) -> RunUpdates | None:
     """Mirror the current assignee (user and/or team), or ``None`` when the group has
     no assignee or the assignment is one we can't grade a prediction against.
     """
-    assignee = GroupAssignee.objects.filter(group=group).first()
+    assignee = GroupAssignee.objects.get_or_none(group=group)
     if assignee is None:
         return None
     if _has_unscorable_assignment(group):
@@ -167,7 +167,10 @@ def _apply(run_id: int, updates: RunUpdates) -> bool:
     persisted -- ``False`` when the row is already a terminal snapshot."""
     with transaction.atomic(using=router.db_for_write(SeerAgentRun)):
         run = (
-            SeerAgentRun.objects.select_for_update().select_related("run").filter(id=run_id).first()
+            SeerAgentRun.objects.select_for_update()
+            .select_related("run")
+            .filter(id=run_id)
+            .get_or_none()
         )
         if run is None:
             return False

@@ -254,9 +254,9 @@ def test_investigation_delete_schema_requires_camel_case_versions() -> None:
         {**request["content"]["application/json"]["schema"], "components": schema["components"]}
     )
     assert validator.is_valid({"notebookVersion": 1, "version": 1})
-    assert validator.is_valid({"investigationVersion": 1, "version": 1})
+    assert not validator.is_valid({"version": 1})
     assert not validator.is_valid({"notebookVersion": 1})
-    assert not validator.is_valid({"notebook_version": 1, "version": 1})
+    assert not validator.is_valid({"investigationVersion": 1, "version": 1})
 
 
 @pytest.mark.parametrize(

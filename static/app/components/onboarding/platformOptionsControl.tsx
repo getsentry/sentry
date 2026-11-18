@@ -93,7 +93,9 @@ export function PlatformOptionsControl({
           [key]: value,
         },
       },
-      {replace: true}
+      // The location descriptor drops history state, and the getting-started
+      // page reads it to know it was reached from project creation.
+      {replace: true, state: location.state}
     );
   };
 

@@ -19,7 +19,6 @@ from sentry.models.dashboard import (
     DashboardFavoriteUser,
     DashboardLastVisited,
     DashboardRevision,
-    QueryPriorities,
 )
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
@@ -32,6 +31,7 @@ from sentry.models.dashboard_widget import (
     DatasetSourcesTypes,
 )
 from sentry.organizations.absolute_url import has_customer_domain, organization_absolute_url
+from sentry.search.eap.constants import QueryPriorities
 from sentry.search.events.fields import is_function, parse_arguments
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
 from sentry.users.api.serializers.user import UserSerializerResponse

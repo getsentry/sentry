@@ -90,9 +90,9 @@ logger = logging.getLogger(__name__)
 #      the registered function's return type and reject any `Any`. Without
 #      this, `-> Any` would slip past the structural check because `Any` is
 #      bidirectionally compatible with everything.
-# To add a method, define a Pydantic response model in
-# `sentry.seer.sentry_data_models`, annotate the handler with it, and register
-# the handler as `"name": seer_rpc(handler)`.
+# DEPRECATED: The Sentry<>Seer RPC surface is being removed. Seer now reads
+# Sentry data through the public Sentry API via codemode. Do not add new methods
+# here; add or extend a public API endpoint instead.
 
 
 # Registry of read-only telemetry methods that are safe to expose
@@ -215,6 +215,10 @@ def _serialize_result(result: Any) -> Any:
 @cell_silo_endpoint
 class OrganizationSeerRpcEndpoint(OrganizationEndpoint):
     """
+    DEPRECATED: The Sentry<>Seer RPC surface is being removed. Seer now reads
+    Sentry data through the public Sentry API via codemode. Do not add new methods;
+    add or extend a public API endpoint instead.
+
     Public RPC endpoint for organization members to call read-only seer methods.
 
     This endpoint supports both organization-level and project-level methods:

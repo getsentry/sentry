@@ -1,0 +1,55 @@
+---
+title: Supabase Installation
+description: Connect a Supabase organization to Seer with read-only access.
+category: forms
+source: sentry/components/pipeline/integrationSupabase
+---
+
+import {supabaseIntegrationPipeline} from 'sentry/components/pipeline/integrationSupabase';
+import * as Storybook from 'sentry/stories';
+
+export const SupabaseOAuthLoginStep = supabaseIntegrationPipeline.steps[0].component;
+
+The Supabase pipeline opens an authorization popup to connect a Supabase organization. A Supabase organization owner authorizes the read-only connection, which lets Seer investigate logs and security and performance advisors across its projects and is shared with the Sentry organization.
+
+## Authorization
+
+This demo disables authorization until the backend supplies an OAuth URL. It does not open a popup or make API requests.
+
+<Storybook.Demo>
+  <SupabaseOAuthLoginStep
+    advance={() => {}}
+    advanceError={null}
+    isAdvancing={false}
+    isInitializing={false}
+    stepData={{}}
+    stepIndex={0}
+    totalSteps={1}
+  />
+</Storybook.Demo>
+
+```jsx
+<SupabaseOAuthLoginStep
+  advance={() => {}}
+  advanceError={null}
+  isAdvancing={false}
+  isInitializing={false}
+  stepData={{}}
+  stepIndex={0}
+  totalSteps={1}
+/>
+```
+
+## Props
+
+The pipeline provides the standard `PipelineStepProps`. The authorization step uses these props:
+
+| Prop          | Type                                             | Description                                                   |
+| ------------- | ------------------------------------------------ | ------------------------------------------------------------- |
+| `stepData`    | `{oauthUrl?: string} \| null`                    | Authorization URL supplied by the backend.                    |
+| `advance`     | `(data?: {code: string; state: string}) => void` | Submits the authorization callback to the pipeline.           |
+| `isAdvancing` | `boolean`                                        | Disables authorization while the callback is being submitted. |
+
+## Accessibility
+
+The authorization button has an accessible label and is disabled until the authorization URL is ready. Cancellation and connection failures are announced with alerts. If the browser blocks the popup, the step explains how to retry.
