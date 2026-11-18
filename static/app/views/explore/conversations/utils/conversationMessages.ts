@@ -387,14 +387,14 @@ export function partitionSpansByType(nodes: AITraceSpanNode[]): {
   const extractionSpans: AITraceSpanNode[] = [];
   const memorySpans: AITraceSpanNode[] = [];
 
-  const spansByKind: Record<SpanKind, AITraceSpanNode[]> = {
+  const spansByKind = {
     evaluation: evaluationSpans,
     extraction: extractionSpans,
     memory: memorySpans,
     embedding: embeddingSpans,
     generation: generationSpans,
     tool: toolSpans,
-  };
+  } satisfies Record<SpanKind, AITraceSpanNode[]>;
   for (const node of nodes) {
     const kind = getSpanKind(node);
     if (kind) {
@@ -740,18 +740,24 @@ function buildAgentHierarchyMessages(nodes: AITraceSpanNode[]): ConversationMess
   // Nested agents get their own scope when they can be reached from a top-level
   // agent. Agents whose parent chain loops back on itself can't, so they are
   // treated as top-level rather than dropped.
-  const nestedAgents = nodes.filter(node => isAgentNode(node) && getParentAgent(node));
-  const nestedAgentIds = new Set(nestedAgents.map(agent => agent.id));
+  const nestedAgents: Array<{agent: AITraceSpanNode; parent: AITraceSpanNode}> = [];
+  for (const node of nodes) {
+    const parent = getParentAgent(node);
+    if (isAgentNode(node) && parent) {
+      nestedAgents.push({agent: node, parent});
+    }
+  }
+  const nestedAgentIds = new Set(nestedAgents.map(({agent}) => agent.id));
   const childAgentsById = new Map<string, AITraceSpanNode[]>();
-  for (const agent of nestedAgents) {
-    pushToMap(childAgentsById, getParentAgent(agent)!.id, agent);
+  const pending: AITraceSpanNode[] = [];
+  for (const {agent, parent} of nestedAgents) {
+    pushToMap(childAgentsById, parent.id, agent);
+    if (!nestedAgentIds.has(parent.id)) {
+      pending.push(agent);
+    }
   }
   const reachable = new Set<string>();
-  const pending = nestedAgents.filter(
-    agent => !nestedAgentIds.has(getParentAgent(agent)!.id)
-  );
-  while (pending.length > 0) {
-    const agent = pending.pop()!;
+  for (let agent = pending.pop(); agent; agent = pending.pop()) {
     if (!reachable.has(agent.id)) {
       reachable.add(agent.id);
       pending.push(...(childAgentsById.get(agent.id) ?? []));
@@ -761,9 +767,9 @@ function buildAgentHierarchyMessages(nodes: AITraceSpanNode[]): ConversationMess
     agent && reachable.has(agent.id) ? agent.id : MAIN_SCOPE;
 
   const subAgentsByScope = new Map<ScopeId, AITraceSpanNode[]>();
-  for (const agent of nestedAgents) {
+  for (const {agent, parent} of nestedAgents) {
     if (reachable.has(agent.id)) {
-      pushToMap(subAgentsByScope, getScopeId(getParentAgent(agent)), agent);
+      pushToMap(subAgentsByScope, getScopeId(parent), agent);
     }
   }
 
@@ -778,7 +784,7 @@ function buildAgentHierarchyMessages(nodes: AITraceSpanNode[]): ConversationMess
     const subAgentCalls = (subAgentsByScope.get(scopeId) ?? []).map(agent =>
       toSubAgentCall(
         agent,
-        placements.get(agent.id)!.viaTool,
+        placements.get(agent.id)?.viaTool ?? null,
         buildScope(agent.id),
         (nodesByScope.get(agent.id) ?? []).filter(
           node => getSpanKind(node) === 'generation'
