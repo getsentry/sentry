@@ -383,7 +383,9 @@ class HandleQueryErrorsTest(APITestCase):
             with handle_query_errors():
                 parse_search_query('message:*"rate limit"*')
 
-        assert str(raised.value.detail["detail"]).startswith("Invalid quote at '*\"rate'")
+        detail = raised.value.detail
+        assert isinstance(detail, dict)
+        assert str(detail["detail"]).startswith("Invalid quote at '*\"rate'")
         mock_set_tag.assert_any_call("query.error_reason", "Invalid quoting in filter")
         mock_set_attribute.assert_any_call("query.error_reason", "Invalid quoting in filter")
 
