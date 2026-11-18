@@ -7,6 +7,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {InfoText} from '@sentry/scraps/info';
 import {Container} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 import {darkTheme} from '@sentry/scraps/theme';
@@ -139,16 +140,30 @@ export function HandoffPromptBox<Flow extends AgentHandoffFlow>({
               onBlur={() => setIsPromptSelected(false)}
               onPointerDown={handlePointerDown}
             >
-              {getHandoffPrompt('sntryh_****', flow, context, maskedCode => (
-                <MaskedCode
-                  data-selected={isPromptSelected || undefined}
-                  monospace
-                  variant="warning"
-                  title={t('The secret code authorizes your agent on your behalf')}
-                >
-                  {maskedCode}
-                </MaskedCode>
-              ))}
+              {getHandoffPrompt(
+                'sntryh_****',
+                flow,
+                context,
+                maskedCode => (
+                  <MaskedCode
+                    data-selected={isPromptSelected || undefined}
+                    monospace
+                    variant="warning"
+                    title={t('The secret code authorizes your agent on your behalf')}
+                  >
+                    {maskedCode}
+                  </MaskedCode>
+                ),
+                guideUrl => (
+                  // Stop the prompt from selecting itself so the click opens the link.
+                  <ExternalLink
+                    href={guideUrl}
+                    onPointerDown={event => event.stopPropagation()}
+                  >
+                    {guideUrl}
+                  </ExternalLink>
+                )
+              )}
             </PromptText>
             {topRightAction && (
               <Container position="absolute" top="8px" right="8px">
