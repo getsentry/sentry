@@ -1,4 +1,4 @@
-export type AnnotationKind = 'release' | 'flag' | 'change';
+export type AnnotationKind = 'release' | 'flag' | 'timeseriesAnnotation';
 
 /**
  * Something that happened at a point in time and is drawn in the annotations
