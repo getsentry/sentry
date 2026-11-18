@@ -106,15 +106,53 @@ describe('annotations', () => {
 
   it('keeps references apart once they need more than one character', () => {
     const annotations = Array.from({length: 300}, (_, index) =>
-      annotate(`${index}`, `{"rule":"@rule-${index}"}`)
+      annotate(`${index}`, `{"rule":"@many-${index}"}`)
     );
 
-    expect(splitAnnotations(annotations[299]!)).toEqual([
-      {text: '299', data: '{"rule":"@rule-299"}'},
+    // Past 128 distinct data, references take a second character.
+    expect(annotations[299]).toHaveLength('299'.length + 5);
+    // Each annotation gets its own reference, which leads back to its own data.
+    const marks = annotations.map((annotation, index) =>
+      annotation.replace(`${index}`, '')
+    );
+    expect(new Set(marks).size).toBe(annotations.length);
+    annotations.forEach((annotation, index) => {
+      expect(splitAnnotations(annotation)).toEqual([
+        {text: `${index}`, data: `{"rule":"@many-${index}"}`},
+      ]);
+    });
+  });
+
+  it('drops the marks of an annotation that was cut inside its reference', () => {
+    const data = Array.from({length: 200}, (_, index) => `{"rule":"@cut-${index}"}`);
+    const annotated = `Mail ${data.map(item => annotate('[email]', item))[199]} today`;
+    // An opening mark, a reference of two characters, and a separator.
+    expect(annotated.indexOf('[email]') - annotated.indexOf('\uFDD0')).toBe(4);
+    // Cut between the two characters of the reference.
+    const cut = annotated.slice(0, annotated.indexOf('[email]') - 2);
+
+    expect(splitAnnotations(cut)).toEqual(['Mail ']);
+    expect(stripAnnotations(cut)).toBe('Mail ');
+    expect(splitAnnotations(`${cut}${annotated}`)).toEqual([
+      'Mail Mail ',
+      {text: '[email]', data: data[199]},
+      ' today',
     ]);
-    expect(splitAnnotations(annotations[3]!)).toEqual([
-      {text: '3', data: '{"rule":"@rule-3"}'},
+  });
+
+  it.each([
+    ['empty data', ''],
+    ['data with marks and private use characters', 'a\uFDD0b\uFDD1c\uFDD2 \uE100\uE17F'],
+    ['data in other scripts and with emoji', 'Café 🙂 日本語'],
+  ])('keeps %s as it is', (_, data) => {
+    const annotated = `Mail ${annotate('[email]', data)} today`;
+
+    expect(splitAnnotations(annotated)).toEqual([
+      'Mail ',
+      {text: '[email]', data},
+      ' today',
     ]);
+    expect(stripAnnotations(annotated)).toBe('Mail [email] today');
   });
 
   it('gives annotations with an unknown reference no data', () => {
@@ -126,6 +164,15 @@ describe('annotations', () => {
       ' today',
     ]);
     expect(stripAnnotations(unknown)).toBe('Mail [email] today');
+  });
+
+  it('gives annotations without a reference no data', () => {
+    // An empty reference doesn't lead to the first data, which `text` holds.
+    expect(splitAnnotations('Mail \uFDD0\uFDD1[email]\uFDD2 today')).toEqual([
+      'Mail ',
+      {text: '[email]', data: ''},
+      ' today',
+    ]);
   });
 
   it('leaves private use characters, like icon font glyphs, alone', () => {
@@ -144,6 +191,10 @@ describe('annotations', () => {
       text: '[e',
       data: '{"rule":"@email:replace"}',
     });
+    // Annotating the kept text again reuses the reference of its data.
+    expect(truncated.slice(0, truncated.indexOf('[e'))).toBe(
+      text.slice(0, text.indexOf('[email]'))
+    );
     expect(truncateAnnotated(text, 100)).toBe(text);
   });
 
