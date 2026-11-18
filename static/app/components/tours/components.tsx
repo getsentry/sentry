@@ -615,7 +615,7 @@ export function TourGuide({
       </ClassNames>
       {isOpen && defined(title) && defined(description)
         ? createPortal(
-            <PositionWrapper
+            <GuidePositionWrapper
               zIndex={zIndex.overlay}
               {...mergeProps(overlayProps, dialogProps)}
             >
@@ -699,7 +699,7 @@ export function TourGuide({
                   )}
                 </ClassNames>
               </ThemeProvider>
-            </PositionWrapper>,
+            </GuidePositionWrapper>,
             document.body
           )
         : null}
@@ -716,6 +716,22 @@ export function TourAction(props: React.ComponentProps<typeof Button>) {
 export function TextTourAction(props: React.ComponentProps<typeof Button>) {
   return <Button {...props} variant="transparent" size="sm" />;
 }
+
+/**
+ * A focused guide shows the focus ring on its visible box, rather than the
+ * browser's outline around the wrapper that positions it.
+ */
+const GuidePositionWrapper = styled(PositionWrapper)`
+  outline: none;
+
+  /* Like a focused button, the ring wraps the box's bottom edge too. */
+  &:focus-visible > [data-overlay] {
+    box-shadow:
+      0 2px 0 0 ${darkTheme.tokens.border.primary},
+      0 2px 0 2px ${p => p.theme.tokens.focus.default},
+      0 0 0 2px ${p => p.theme.tokens.focus.default};
+  }
+`;
 
 const BlurWindow = styled('div')`
   content: '';
