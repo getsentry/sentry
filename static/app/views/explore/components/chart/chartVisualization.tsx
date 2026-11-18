@@ -32,9 +32,6 @@ import type {ChartInfo} from './types';
 
 interface ChartVisualizationProps {
   chartInfo: ChartInfo;
-  /**
-   * Annotations drawn as a band under the plot.
-   */
   annotations?: AnnotationItem[];
   chartRef?: Ref<ReactEchartsRef>;
   chartXRangeSelection?: Partial<ChartXRangeSelectionProps>;
