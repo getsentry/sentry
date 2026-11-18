@@ -2,6 +2,7 @@ import {Temporal} from '@js-temporal/polyfill';
 
 import {
   formatTimezone,
+  getIntlFormatter,
   type DateTimeInput,
   type DateTimePreferences,
 } from '@sentry/scraps/dateTime';
@@ -55,9 +56,10 @@ export function formatChartDateTime(
   try {
     const base = {timeZone: timezone, calendar: 'gregory'};
     const formatYear = () =>
-      new Intl.NumberFormat(locale, {minimumIntegerDigits: 4, useGrouping: false}).format(
-        value.year
-      );
+      getIntlFormatter(Intl.NumberFormat, locale, {
+        minimumIntegerDigits: 4,
+        useGrouping: false,
+      }).format(value.year);
     if (style === 'year') {
       return formatYear();
     }
@@ -65,7 +67,7 @@ export function formatChartDateTime(
       return formatTimezone(value.epochMilliseconds, timezone);
     }
     if (style === 'replayTime') {
-      const parts = new Intl.DateTimeFormat(locale, {
+      const parts = getIntlFormatter(Intl.DateTimeFormat, locale, {
         ...base,
         hourCycle: clock === '24' ? 'h23' : 'h12',
         hour: '2-digit',
@@ -78,7 +80,7 @@ export function formatChartDateTime(
       return `${part('hour')}:${part('minute')}:${part('second')}.${part('fractionalSecond')}`;
     }
 
-    const formatter = new Intl.DateTimeFormat(locale, {
+    const formatter = getIntlFormatter(Intl.DateTimeFormat, locale, {
       ...base,
       month: style === 'longOrdinalDate' ? 'long' : 'short',
       day: 'numeric',
@@ -93,7 +95,9 @@ export function formatChartDateTime(
     const parts = formatter.formatToParts(value.epochMilliseconds);
     const part = (type: Intl.DateTimeFormatPartTypes) =>
       parts.find(item => item.type === type)?.value ?? '';
-    const category = new Intl.PluralRules(locale, {type: 'ordinal'}).select(value.day);
+    const category = getIntlFormatter(Intl.PluralRules, locale, {type: 'ordinal'}).select(
+      value.day
+    );
     const suffix =
       category === 'one'
         ? 'st'

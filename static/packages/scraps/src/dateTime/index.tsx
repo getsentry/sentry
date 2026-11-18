@@ -14,3 +14,4 @@ export {
   type TimePrecision,
   type YearDisplay,
 } from './format';
+export {getIntlFormatter} from './intlFormatter';

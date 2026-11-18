@@ -1,6 +1,7 @@
 import {Temporal} from '@js-temporal/polyfill';
 
 import {getSnapshot, type DateTimePreferences, type FormattingSnapshot} from './config';
+import {getIntlFormatter} from './intlFormatter';
 import {parseDate} from './parseDate';
 
 /** Numbers are epoch milliseconds; strings must be ISO timestamps with an offset. */
@@ -34,7 +35,10 @@ export function formatTimezone(
   }
   return (
     snapshot.getTimezoneAbbreviation?.(epochMilliseconds, timezone, snapshot.locale) ??
-    new Intl.DateTimeFormat(snapshot.locale, {timeZone: timezone, timeZoneName: 'short'})
+    getIntlFormatter(Intl.DateTimeFormat, snapshot.locale, {
+      timeZone: timezone,
+      timeZoneName: 'short',
+    })
       .formatToParts(epochMilliseconds)
       .find(part => part.type === 'timeZoneName')?.value ??
     ''
@@ -64,7 +68,7 @@ export function formatDateTimeWithSnapshot(
     Date.now()
   ).toZonedDateTimeISO(timezone).year;
   const showYear = year === 'always' || (year === 'auto' && value.year !== currentYear);
-  const dateParts = new Intl.DateTimeFormat(snapshot.locale, {
+  const dateParts = getIntlFormatter(Intl.DateTimeFormat, snapshot.locale, {
     calendar: 'gregory',
     timeZone: timezone,
     year: showYear ? 'numeric' : undefined,
@@ -74,14 +78,14 @@ export function formatDateTimeWithSnapshot(
   const dateText = dateParts
     .map(part =>
       part.type === 'year' && value.year < 1000
-        ? new Intl.NumberFormat(snapshot.locale, {
+        ? getIntlFormatter(Intl.NumberFormat, snapshot.locale, {
             minimumIntegerDigits: 4,
             useGrouping: false,
           }).format(value.year)
         : part.value
     )
     .join('');
-  const timeText = new Intl.DateTimeFormat(snapshot.locale, {
+  const timeText = getIntlFormatter(Intl.DateTimeFormat, snapshot.locale, {
     timeZone: timezone,
     hour: clock === '24' ? '2-digit' : 'numeric',
     minute: '2-digit',

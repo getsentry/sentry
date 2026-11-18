@@ -3,6 +3,7 @@ import {Temporal} from '@js-temporal/polyfill';
 import type {DateTimeInput} from '@sentry/scraps/dateTime';
 
 import {getSnapshot, type FormattingSnapshot} from '../dateTime/config';
+import {getIntlFormatter} from '../dateTime/intlFormatter';
 import {parseDate} from '../dateTime/parseDate';
 import {getDurationWithMessages} from '../duration/getDuration';
 
@@ -98,14 +99,13 @@ export function formatRelativeDate(
     const {unit, count} = getFuzzyDuration(value, now);
     const isEnglish = snapshot.locale.toLowerCase().split('-')[0] === 'en';
     if (!isEnglish && (isFuture ? prefix : suffix) === undefined) {
-      return new Intl.RelativeTimeFormat(snapshot.locale, {numeric: 'always'}).format(
-        isFuture ? count : -count,
-        unit
-      );
+      return getIntlFormatter(Intl.RelativeTimeFormat, snapshot.locale, {
+        numeric: 'always',
+      }).format(isFuture ? count : -count, unit);
     }
     duration = isEnglish
       ? englishFuzzyDuration(unit, count)
-      : new Intl.NumberFormat(snapshot.locale, {
+      : getIntlFormatter(Intl.NumberFormat, snapshot.locale, {
           style: 'unit',
           unit,
           unitDisplay: 'long',
