@@ -1832,3 +1832,29 @@ class MonitorConsumerTest(TestCase):
 
         check_accept_monitor_checkin.assert_called_with(self.project.id, monitor.slug)
         assign_seat.assert_called_with(seat_object=monitor)
+
+    @mock.patch("sentry.quotas.backend.assign_seat")
+    @mock.patch("sentry.quotas.backend.check_accept_monitor_checkin")
+    def test_monitor_accept_upsert_disabled_monitor(
+        self,
+        check_accept_monitor_checkin: mock.MagicMock,
+        assign_seat: mock.MagicMock,
+    ) -> None:
+        """
+        A check-in for a disabled monitor that has no seat does not assign a
+        seat. The monitor gets its seat when it is enabled.
+        """
+        check_accept_monitor_checkin.return_value = PermitCheckInStatus.ACCEPTED_FOR_UPSERT
+        assign_seat.return_value = Outcome.ACCEPTED
+
+        monitor = self._create_monitor(status=ObjectStatus.DISABLED, slug="my-monitor")
+        self.send_checkin(
+            "my-monitor",
+            expected_error=ProcessingErrorsException(
+                [{"type": ProcessingErrorType.MONITOR_DISABLED}],
+                monitor,
+            ),
+        )
+
+        assert not MonitorCheckIn.objects.filter(guid=self.guid).exists()
+        assign_seat.assert_not_called()

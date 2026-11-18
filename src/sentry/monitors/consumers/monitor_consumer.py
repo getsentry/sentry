@@ -816,11 +816,18 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
         raise ProcessingErrorsException([limit_error])
 
     # When accepting for upsert attempt to assign a seat for the monitor,
-    # otherwise the monitor is marked as disabled
-    if monitor and quotas_outcome == PermitCheckInStatus.ACCEPTED_FOR_UPSERT:
+    # otherwise the monitor is marked as disabled. A disabled monitor gets its
+    # seat when it is enabled.
+    seat_refused = False
+    if (
+        monitor
+        and monitor.status != ObjectStatus.DISABLED
+        and quotas_outcome == PermitCheckInStatus.ACCEPTED_FOR_UPSERT
+    ):
         seat_outcome = quotas.backend.assign_seat(seat_object=monitor)
         if seat_outcome != Outcome.ACCEPTED:
             update_monitor_status(monitor, ObjectStatus.DISABLED)
+            seat_refused = True
 
     if not monitor:
         metrics.incr(
@@ -847,12 +854,9 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
         ensure_config_errors.append(monitor_missing_error)
         raise ProcessingErrorsException(ensure_config_errors)
 
-    # When a monitor was accepted for upsert but is disabled we were unable to
-    # assign a seat. Discard the check-in in this case.
-    if (
-        quotas_outcome == PermitCheckInStatus.ACCEPTED_FOR_UPSERT
-        and monitor.status == ObjectStatus.DISABLED
-    ):
+    # When a monitor was accepted for upsert but we were unable to assign a
+    # seat, discard the check-in.
+    if seat_refused:
         metrics.incr(
             "monitors.checkin.result",
             tags={**metric_kwargs, "status": "monitor_disabled_no_quota"},
