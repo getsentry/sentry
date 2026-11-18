@@ -1002,7 +1002,7 @@ describe('AutofixSection', () => {
   describe('out of Seer credits', () => {
     const creditCheckOrganization = OrganizationFixture({
       hideAiFeatures: false,
-      features: ['seer-credit-checks', 'token-billed-seer-enabled'],
+      features: ['token-billed-seer-enabled'],
     });
     const creditCheckUrl = `/organizations/${organization.slug}/seer/credit-check/`;
 
