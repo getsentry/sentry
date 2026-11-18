@@ -33,6 +33,7 @@ from sentry.models.organization import Organization
 from sentry.onboarding.agentic_progress.model import (
     MAX_EVENT_NOTE_LENGTH,
     STAGE_INDEX,
+    VERIFICATION_ERROR_REQUIRED_DETAIL,
     ConnectionMethod,
     InvalidProgressUpdate,
     OnboardingRun,
@@ -44,6 +45,7 @@ from sentry.onboarding.agentic_progress.model import (
     Stage,
     StageExtra,
     StageStatus,
+    VerificationErrorRequired,
     get_stage_definition,
     validate_update,
 )
@@ -323,9 +325,9 @@ class OrganizationAgenticOnboardingStatusEndpoint(OrganizationEndpoint):
             return Response({"detail": "Onboarding run has expired"}, status=410)
         except OnboardingRunTerminal:
             return Response({"detail": "Onboarding run is terminal"}, status=409)
-        except InvalidProgressUpdate as error:
-            # These messages are written for the agent, which needs them to recover.
-            return Response({"detail": str(error)}, status=400)
+        except VerificationErrorRequired:
+            # The agent needs to know which stage to report before it can finish.
+            return Response({"detail": VERIFICATION_ERROR_REQUIRED_DETAIL}, status=400)
         except ValueError:
             return Response({"detail": INVALID_PROGRESS_UPDATE_DETAIL}, status=400)
 

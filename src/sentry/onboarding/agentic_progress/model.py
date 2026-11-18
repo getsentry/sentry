@@ -18,6 +18,9 @@ from pydantic import (
 
 SCHEMA_VERSION = 1
 MAX_EVENT_NOTE_LENGTH = 256
+VERIFICATION_ERROR_REQUIRED_DETAIL = (
+    "The receive_verification_error stage must be completed before setup can finish"
+)
 
 
 class RunOrigin(StrEnum):
@@ -333,6 +336,13 @@ class InvalidProgressUpdate(ValueError):
         super().__init__(message)
 
 
+class VerificationErrorRequired(InvalidProgressUpdate):
+    """The run cannot finish until a test error has been received."""
+
+    def __init__(self) -> None:
+        super().__init__(ProgressUpdateField.STATUS, VERIFICATION_ERROR_REQUIRED_DETAIL)
+
+
 class OnboardingRunExpired(ValueError):
     """The onboarding run has passed its absolute expiry."""
 
@@ -602,10 +612,7 @@ def apply_update(run: OnboardingRun, update: ProgressUpdate[Any], now: datetime)
         and run.stages[STAGE_INDEX[Stage.RECEIVE_VERIFICATION_ERROR]].status
         is not StageStatus.COMPLETED
     ):
-        raise InvalidProgressUpdate(
-            ProgressUpdateField.STATUS,
-            "The receive_verification_error stage must be completed before setup can finish",
-        )
+        raise VerificationErrorRequired()
 
     stages = {state.stage: state for state in run.stages}
     current_index = STAGE_INDEX[update.stage]
