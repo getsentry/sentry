@@ -144,15 +144,13 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
   const isPaused = isPrIterationPaused(autofix.runState);
 
   const outOfCredits = autofix.runState?.pr_iteration_out_of_credits;
-  // A stopped step says so itself, below.
-  const outOfCreditsMessage =
-    outOfCredits && !isOutOfCredits
-      ? getPrIterationOutOfCreditsMessage(
-          getPrIterationWaitingAction(autofix.runState),
-          autofix.runState?.queued_feedback?.length ?? 0,
-          outOfCredits.denial_reason
-        )
-      : null;
+  const outOfCreditsMessage = outOfCredits
+    ? getPrIterationOutOfCreditsMessage(
+        getPrIterationWaitingAction(autofix.runState),
+        autofix.runState?.queued_feedback?.length ?? 0,
+        outOfCredits.denial_reason
+      )
+    : null;
 
   // Once a PR exists, reset opens the PR iteration form, so it stays available
   // while an iteration is processing.
@@ -477,7 +475,11 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
       <FeedbackList items={feedback} />
       {/* TODO(CW-3102): Add a Retry button, enabled once the organization has
           credits, so the work doesn't wait for the next iteration. */}
-      {outOfCreditsMessage && <OutOfCreditsStatus message={outOfCreditsMessage} />}
+      {/* A step that stopped for credits has its own line, with its retry, in
+          `content`. */}
+      {outOfCreditsMessage && !isOutOfCredits && (
+        <OutOfCreditsStatus message={outOfCreditsMessage} />
+      )}
       {content}
     </ArtifactCard>
   );
