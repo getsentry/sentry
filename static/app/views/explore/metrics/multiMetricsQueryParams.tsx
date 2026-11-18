@@ -26,7 +26,7 @@ import {
   type MetricQueriesControllerValue,
 } from './useMetricQueriesController';
 
-export const MAX_METRICS_ALLOWED = 8;
+export const MAX_METRICS_ALLOWED = 12;
 
 function encodeMetricQueries(metricQueries: BaseMetricQuery[]): string[] {
   return metricQueries
