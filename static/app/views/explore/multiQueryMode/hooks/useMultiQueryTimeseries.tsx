@@ -6,7 +6,6 @@ import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/topEventsConstants';
-import {useExploreQuerySpeed} from 'sentry/views/explore/hooks/useExploreQuerySpeed';
 import {
   useProgressiveQuery,
   type RPCQueryExtras,
@@ -35,7 +34,6 @@ export function useMultiQueryTimeseries({
   index,
   queryExtras,
 }: UseMultiQueryTimeseriesOptions) {
-  const {isReady: querySpeedReady, samplingMode} = useExploreQuerySpeed();
   const canTriggerHighAccuracy = useCallback(
     (results: ReturnType<typeof useMultiQueryTimeseriesImpl>['result']) => {
       const hasData = Object.values(results.data).some(result => {
@@ -57,10 +55,9 @@ export function useMultiQueryTimeseries({
   );
   return useProgressiveQuery<typeof useMultiQueryTimeseriesImpl>({
     queryHookImplementation: useMultiQueryTimeseriesImpl, // oxlint-disable-line react/hooks -- useProgressiveQuery takes the query hook as a value and calls it per accuracy tier.
-    queryHookArgs: {enabled: enabled && querySpeedReady, index, queryExtras},
+    queryHookArgs: {enabled, index, queryExtras},
     queryOptions: {
       canTriggerHighAccuracy,
-      samplingMode,
     },
   });
 }

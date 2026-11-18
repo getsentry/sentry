@@ -250,7 +250,6 @@ export function getExploreMultiQueryUrl({
   queries,
   title,
   id,
-  queryPriority,
   referrer,
 }: {
   interval: string;
@@ -258,7 +257,6 @@ export function getExploreMultiQueryUrl({
   queries: ReadableExploreQueryParts[];
   selection: PageFilters;
   id?: number;
-  queryPriority?: 'normal' | 'faster';
   referrer?: string;
   title?: string;
 }) {
@@ -286,7 +284,6 @@ export function getExploreMultiQueryUrl({
     ),
     title,
     id,
-    queryPriority,
     utc,
     referrer,
   };
