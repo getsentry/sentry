@@ -8,9 +8,11 @@ import {t} from 'sentry/locale';
 
 import {
   BAND_HEIGHT,
+  bandHoverTarget,
   bandLayout,
   bandRect,
   bandTrack,
+  bucketHighlight,
   bucketSlot,
   clampRange,
   type BandBucket,
@@ -59,11 +61,16 @@ function releaseBandRenderItem(
       children.push(bandTrack(track, y, theme));
     }
 
-    children.push(
-      bandRect(clampRange(slot, track), y, track, theme.tokens.graphics.accent.vibrant, {
-        opacity: bucket.opacity,
-      })
-    );
+    const range = clampRange(slot, track);
+    children.push(...bucketHighlight(slot, params, theme));
+    if (bucket.releases.length > 0) {
+      children.push(
+        bandRect(range, y, track, theme.tokens.graphics.accent.vibrant, {
+          opacity: bucket.opacity,
+        })
+      );
+    }
+    children.push(bandHoverTarget(range, y));
 
     return {type: 'group', children};
   };
@@ -75,7 +82,8 @@ interface UseReleaseBandParams {
 }
 
 /**
- * A band with a marker for every chart bucket that has releases.
+ * A band with a marker for every chart bucket that has releases. Buckets
+ * without releases can still be hovered.
  */
 export function useReleaseBand({
   buckets,
@@ -85,15 +93,18 @@ export function useReleaseBand({
 
   return useMemo(() => {
     const releaseBuckets = bucketReleases(releases ?? [], buckets);
-    if (releaseBuckets.length === 0) {
+    const bucketsWithReleases = releaseBuckets.filter(
+      bucket => bucket.releases.length > 0
+    );
+    if (bucketsWithReleases.length === 0) {
       return null;
     }
 
-    const releaseCount = releaseBuckets.reduce(
+    const releaseCount = bucketsWithReleases.reduce(
       (count, bucket) => count + bucket.releases.length,
       0
     );
-    const averageCount = releaseCount / releaseBuckets.length;
+    const averageCount = releaseCount / bucketsWithReleases.length;
     const data: ReleaseBandItem[] = releaseBuckets.map(bucket => ({
       ...bucket,
       opacity: releaseOpacity(bucket.releases.length, averageCount),

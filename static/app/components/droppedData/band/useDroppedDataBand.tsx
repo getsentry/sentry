@@ -5,9 +5,11 @@ import type {LinearGradientObject} from 'echarts/types/dist/shared';
 
 import {
   BAND_HEIGHT,
+  bandHoverTarget,
   bandLayout,
   bandRect,
   bandTrack,
+  bucketHighlight,
   bucketSlot,
   clampRange,
   type BandElement,
@@ -128,14 +130,15 @@ function droppedDataRenderItem(
       const gradient = bandGradient(highlighted, api);
       if (gradient) {
         children.push(
-          bandRect(clampRange(gradient.range, track), y, track, gradient.fill, {
-            silent: true,
-          })
+          bandRect(clampRange(gradient.range, track), y, track, gradient.fill)
         );
       }
     }
 
-    children.push(bandRect(clampRange(slot, track), y, track, 'transparent'));
+    children.push(
+      ...bucketHighlight(slot, params, theme),
+      bandHoverTarget(clampRange(slot, track), y)
+    );
 
     return {type: 'group', children};
   };
