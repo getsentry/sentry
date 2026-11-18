@@ -1,7 +1,25 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import type * as React from 'react';
+import {ThemeProvider} from '@emotion/react';
+import {act, render, screen} from '@testing-library/react';
+import moment from 'moment-timezone';
 
-import {type DateTimeContextValue, DateTimeProvider} from '@sentry/scraps/datetime';
+import {
+  configureFormatting,
+  type DateTimePreferences,
+  DateTimeProvider,
+} from '@sentry/scraps/dateTime';
 import {RelativeTime} from '@sentry/scraps/relativeTime';
+import {lightTheme} from '@sentry/scraps/theme';
+
+import {getSnapshot} from '../dateTime/config';
+
+afterEach(() => {
+  try {
+    jest.runOnlyPendingTimers();
+  } finally {
+    jest.useRealTimers();
+  }
+});
 
 // Midnight UTC on New Year's Day, which is still the previous year in Los
 // Angeles. Rows straddling a date boundary is the case the card exists for.
@@ -10,21 +28,31 @@ const DATE = '2026-01-01T00:00:00Z';
 function renderInTimezone(
   children: NonNullable<React.ReactNode>,
   timezone: string,
-  clockDisplay: DateTimeContextValue['clockDisplay'] = '12'
+  clock: DateTimePreferences['clock'] = '12'
 ) {
   return render(
-    <DateTimeProvider value={{timezone, clockDisplay}}>{children}</DateTimeProvider>
+    <ThemeProvider theme={lightTheme}>
+      <DateTimeProvider value={{timezone, clock}}>{children}</DateTimeProvider>
+    </ThemeProvider>
   );
 }
 
 describe('RelativeTime', () => {
+  let restore: () => void;
   beforeEach(() => {
     jest.useFakeTimers().setSystemTime(new Date('2026-09-01T00:00:00Z'));
+    const snapshot = {
+      ...getSnapshot(),
+      getTimezoneAbbreviation: (epochMilliseconds: number, timezone: string) =>
+        moment.tz.zone(timezone)?.abbr(epochMilliseconds),
+    };
+    restore = configureFormatting({
+      getSnapshot: () => snapshot,
+      subscribe: () => () => {},
+    });
   });
 
-  afterEach(() => {
-    jest.useRealTimers();
-  });
+  afterEach(() => act(() => restore()));
 
   it('renders the label and relative time in the header', () => {
     renderInTimezone(
@@ -129,7 +157,8 @@ describe('RelativeTime', () => {
         date="2026-09-04T00:00:00Z"
         label="Last Seen"
         suffix="ago"
-        unitStyle="short"
+        rounding="unit"
+        style="short"
       />,
       'America/Los_Angeles'
     );
@@ -137,12 +166,67 @@ describe('RelativeTime', () => {
     expect(screen.getByText('in 3d')).toBeInTheDocument();
   });
 
-  it('matches the trigger by respecting unitStyle', () => {
+  it('matches the trigger by respecting unit width', () => {
     renderInTimezone(
-      <RelativeTime date={DATE} label="Last Seen" suffix="ago" unitStyle="short" />,
+      <RelativeTime
+        date={DATE}
+        label="Last Seen"
+        suffix="ago"
+        rounding="unit"
+        style="short"
+      />,
       'America/Los_Angeles'
     );
 
     expect(screen.getByText('8mo ago')).toBeInTheDocument();
+  });
+});
+
+describe('localized preferences', () => {
+  beforeEach(() => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-01-01T00:00:05Z'));
+  });
+  it('updates localized duration and clock preferences through the date provider', () => {
+    const snapshot = {
+      ...getSnapshot(),
+      messages: {
+        ...getSnapshot().messages,
+        tn: (_singular: string, plural: string) => `translated ${plural}`,
+      },
+    };
+    const restore = configureFormatting({
+      getSnapshot: () => snapshot,
+      subscribe: () => () => {},
+    });
+    const {rerender} = render(
+      <ThemeProvider theme={lightTheme}>
+        <DateTimeProvider value={{timezone: 'UTC', clock: '12'}}>
+          <RelativeTime
+            date={DATE}
+            label="Last seen"
+            suffix="elapsed"
+            rounding="unit"
+            style="long"
+          />
+        </DateTimeProvider>
+      </ThemeProvider>
+    );
+    expect(screen.getByText('5 translated seconds elapsed')).toBeInTheDocument();
+    expect(screen.getByText('12:00 AM')).toBeInTheDocument();
+    rerender(
+      <ThemeProvider theme={lightTheme}>
+        <DateTimeProvider value={{timezone: 'UTC', clock: '24'}}>
+          <RelativeTime
+            date={DATE}
+            label="Last seen"
+            suffix="elapsed"
+            rounding="unit"
+            style="long"
+          />
+        </DateTimeProvider>
+      </ThemeProvider>
+    );
+    expect(screen.getByText('00:00')).toBeInTheDocument();
+    restore();
   });
 });

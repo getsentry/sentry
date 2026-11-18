@@ -3,9 +3,10 @@ import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
 import {parseAsString, useQueryStates} from 'nuqs';
 
+import {DateTime} from '@sentry/scraps/dateTime';
+
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import {ChartLayersControl} from 'sentry/components/charts/chartLayersControl';
-import {DateTime} from 'sentry/components/dateTime';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
   isWidgetViewerPath,
@@ -78,7 +79,9 @@ const SESSION_DURATION_INGESTION_STOP_DATE = new Date('2023-01-12');
 const SESSION_DURATION_ALERT_TEXT = tct(
   'session.duration is no longer being recorded as of [date]. Data in this widget may be incomplete.',
   {
-    date: <DateTime dateOnly year date={SESSION_DURATION_INGESTION_STOP_DATE} />,
+    date: (
+      <DateTime date={SESSION_DURATION_INGESTION_STOP_DATE} mode="date" year="always" />
+    ),
   }
 );
 

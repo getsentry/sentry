@@ -1,25 +1,24 @@
+import type * as React from 'react';
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import moment from 'moment-timezone';
 
 import {Tag} from '@sentry/scraps/badge';
-import {useTimezone} from '@sentry/scraps/datetime';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
-import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
-import {DateTime} from 'sentry/components/dateTime';
-import {defined} from 'sentry/utils/defined';
+import {useFormattingSnapshot} from '../dateTime/context';
+import {formatTimezone} from '../dateTime/format';
+import {parseDate} from '../dateTime/parseDate';
 
-import {getRelativeDate, type RelaxedDateType, type UnitStyle} from './getRelativeDate';
+import {
+  formatRelativeDate,
+  type RelaxedDateType,
+  type RelativeTimeOptions,
+} from './getRelativeDate';
 
-/**
- * Most timezone abbreviations are three or four characters. Zones without an
- * abbreviation format as a five character offset instead (`+0545`, `+1245`),
- * and the rows do not wrap, so the card is allowed to grow to this rather than
- * spill outside its own border.
- */
+/** Allow room for offset labels such as GMT+5:45 without wrapping timestamp rows. */
 export const RELATIVE_TIME_MAX_WIDTH = 280;
 
 /**
@@ -27,7 +26,7 @@ export const RELATIVE_TIME_MAX_WIDTH = 280;
  */
 const UTC = 'UTC';
 
-interface RelativeTimeProps {
+export interface RelativeTimeProps extends RelativeTimeOptions {
   /**
    * The date value, can be string, number (e.g. timestamp), or instance of Date
    */
@@ -58,11 +57,6 @@ interface RelativeTimeProps {
    * @default "ago"
    */
   suffix?: string;
-  /**
-   * How much text should be used for the relative time's units. Should match
-   * the trigger it is shown for, so both read the same.
-   */
-  unitStyle?: UnitStyle;
 }
 
 /**
@@ -88,19 +82,15 @@ export function RelativeTime({
   label,
   prefix,
   suffix,
-  unitStyle,
+  rounding,
+  style,
   showSeconds,
 }: RelativeTimeProps) {
-  const timezone = useTimezone();
-  const {t} = useTranslation();
-
-  // Defaulted to match <TimeSince>, so a card that omits them reads the same as
-  // the trigger that also omitted them. Resolved here rather than as default
-  // parameters because the words come from a provider.
-  const resolvedPrefix = prefix ?? t('in');
-  const resolvedSuffix = suffix ?? t('ago');
-
-  const abbreviation = moment.tz(date, timezone).format('z');
+  const snapshot = useFormattingSnapshot();
+  const value = parseDate(date, snapshot.timezone);
+  const abbreviation = value
+    ? formatTimezone(value.epochMilliseconds, snapshot.timezone, snapshot)
+    : 'Invalid date';
   // Zones that resolve to UTC itself would render the second row identically to
   // the first. Zones that merely share its offset right now (GMT, and BST's
   // winter half) keep both rows, because the differing label is the useful part.
@@ -108,9 +98,13 @@ export function RelativeTime({
 
   return (
     <Fragment>
-      {defined(label) && (
+      {label != null && (
         <Tooltip.Header
-          trailingItems={getRelativeDate(date, resolvedSuffix, resolvedPrefix, unitStyle)}
+          trailingItems={formatRelativeDate(
+            date,
+            {suffix, prefix, rounding, style},
+            snapshot
+          )}
         >
           {label}
         </Tooltip.Header>
@@ -167,7 +161,13 @@ function TimestampRow({
       </DescriptionList.Term>
       <DescriptionList.Details>
         <Text tabular wrap="nowrap">
-          <DateTime date={date} dateOnly year utc={utc} timeZone={false} />
+          <DateTime
+            date={date}
+            mode="date"
+            year="always"
+            timezone={utc ? 'UTC' : undefined}
+            showTimezone={false}
+          />
         </Text>
       </DescriptionList.Details>
       <DescriptionList.Details>
@@ -176,10 +176,10 @@ function TimestampRow({
         <Text align="right" tabular wrap="nowrap">
           <DateTime
             date={date}
-            timeOnly
-            seconds={showSeconds}
-            utc={utc}
-            timeZone={false}
+            mode="time"
+            precision={showSeconds ? 'second' : 'minute'}
+            timezone={utc ? 'UTC' : undefined}
+            showTimezone={false}
           />
         </Text>
       </DescriptionList.Details>

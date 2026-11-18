@@ -6,7 +6,9 @@ import type {
 
 import {render, renderHookWithProviders, screen} from 'sentry-test/reactTestingLibrary';
 
-import {useReleaseBand} from './useReleaseBand';
+import type {AnnotationItem} from 'sentry/components/charts/annotations/types';
+
+import {useAnnotationBand} from './useAnnotationBand';
 
 const MINUTE = 60_000;
 
@@ -15,8 +17,8 @@ const buckets = Array.from({length: 10}, (_, index) => ({
   end: (index + 1) * MINUTE,
 }));
 
-function release(version: string, time: number) {
-  return {version, timestamp: new Date(time).toISOString()};
+function release(version: string, time: number): AnnotationItem {
+  return {id: version, kind: 'release', start: time, title: version};
 }
 
 interface BandRect {
@@ -25,23 +27,23 @@ interface BandRect {
   silent?: boolean;
 }
 
-describe('useReleaseBand', () => {
-  it('returns no band without releases', () => {
-    const {result} = renderHookWithProviders(() => useReleaseBand({buckets}));
+describe('useAnnotationBand', () => {
+  it('returns no band without annotations', () => {
+    const {result} = renderHookWithProviders(() => useAnnotationBand({buckets}));
 
     expect(result.current).toBeNull();
   });
 
-  it('draws a marker shaded by release count on buckets with releases and keeps every bucket hoverable', () => {
+  it('draws a marker shaded by annotation count on buckets with annotations and keeps every bucket hoverable', () => {
     const TRACK_WIDTH = 600;
     const api = {
       coord: ([time]: number[]) => [(time ?? 0) / 1000, 100],
     } as unknown as CustomSeriesRenderItemAPI;
 
     const {result} = renderHookWithProviders(() =>
-      useReleaseBand({
+      useAnnotationBand({
         buckets,
-        releases: [
+        items: [
           release('1.0.0', 2 * MINUTE),
           release('1.1.0', 5 * MINUTE),
           release('1.1.1', 5 * MINUTE),
@@ -51,7 +53,7 @@ describe('useReleaseBand', () => {
     );
     const series = result.current?.series(0);
     if (!series || typeof series.renderItem !== 'function') {
-      throw new Error('Expected the release band series to render items');
+      throw new Error('Expected the annotation band series to render items');
     }
     const renderItem = series.renderItem as CustomSeriesRenderItem;
 
@@ -108,9 +110,9 @@ describe('useReleaseBand', () => {
 
   it('gives the shared tooltip the release count of every bucket', () => {
     const {result} = renderHookWithProviders(() =>
-      useReleaseBand({
+      useAnnotationBand({
         buckets,
-        releases: [
+        items: [
           release('1.1.0', 5 * MINUTE),
           release('1.1.1', 5 * MINUTE + 1000),
           release('1.1.2', 5 * MINUTE + 2000),
@@ -128,5 +130,28 @@ describe('useReleaseBand', () => {
 
     render(band.tooltipSection!(2 * MINUTE)!);
     expect(screen.getByText('0')).toBeInTheDocument();
+  });
+
+  it('counts each kind in the band on its own tooltip row', () => {
+    const flag: AnnotationItem = {
+      id: 'flag-1',
+      kind: 'flag',
+      start: 2 * MINUTE,
+      title: 'my-flag',
+    };
+    const {result} = renderHookWithProviders(() =>
+      useAnnotationBand({
+        buckets,
+        items: [release('1.1.0', 5 * MINUTE), release('1.1.1', 5 * MINUTE), flag],
+      })
+    );
+
+    render(result.current!.tooltipSection!(5 * MINUTE)!);
+
+    expect(screen.getByText('Releases')).toBeInTheDocument();
+    expect(screen.getByText('2')).toBeInTheDocument();
+    expect(screen.getByText('Flags')).toBeInTheDocument();
+    expect(screen.getByText('0')).toBeInTheDocument();
+    expect(screen.queryByText('Changes')).not.toBeInTheDocument();
   });
 });

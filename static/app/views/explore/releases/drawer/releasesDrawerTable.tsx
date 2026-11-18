@@ -4,13 +4,13 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 import {parseAsString, useQueryState} from 'nuqs';
 
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
-import {DateTime} from 'sentry/components/dateTime';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {
@@ -172,7 +172,15 @@ export function ReleasesDrawerTable({
       if (column.key === 'date') {
         return (
           <Text tabular variant="muted" wrap="nowrap">
-            {props => <DateTime {...props} date={dataRow.date} seconds timeZone year />}
+            {props => (
+              <DateTime
+                {...props}
+                date={dataRow.date}
+                precision="second"
+                year="always"
+                showTimezone
+              />
+            )}
           </Text>
         );
       }
