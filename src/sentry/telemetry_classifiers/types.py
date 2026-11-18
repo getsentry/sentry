@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
@@ -73,4 +74,6 @@ class TelemetryInput:
     timestamp: datetime
     client_sample_rate: float
     conversation_id: str | None
-    environment: str | None
+    # Attributes of the newest span copied onto the result, by EAP attribute name, so results can be
+    # filtered and grouped like the telemetry they were classified from.
+    copied_attributes: Mapping[str, str]
