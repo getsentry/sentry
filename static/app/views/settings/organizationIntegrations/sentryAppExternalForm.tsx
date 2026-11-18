@@ -699,7 +699,6 @@ export function SentryAppExternalForm({
   }, [
     action,
     appName,
-    // oxlint-disable-next-line react/exhaustive-effect-dependencies
     cascadeFetchDependents,
     config.uri,
     element,

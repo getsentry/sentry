@@ -32,6 +32,7 @@ from sentry.api.serializers.rest_framework import (
 )
 from sentry.api.serializers.types import ReleaseSerializerResponse
 from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
     RESPONSE_NO_CONTENT,
     RESPONSE_NOT_FOUND,
@@ -82,6 +83,10 @@ class OrganizationReleaseSerializer(ReleaseSerializer):
 class _ReleaseDateQueryAndOrder(TypedDict):
     date_query_q: Q
     order_by: list[str]
+
+
+class _RefsErrorResponse(TypedDict):
+    refs: list[str]
 
 
 def add_status_filter_to_queryset(
@@ -379,6 +384,7 @@ class OrganizationReleaseDetailsEndpoint(
         ],
         responses={
             200: inline_sentry_response_serializer("OrgReleaseResponse", ReleaseSerializerResponse),
+            400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -513,6 +519,7 @@ class OrganizationReleaseDetailsEndpoint(
         request=OrganizationReleaseSerializer,
         responses={
             200: inline_sentry_response_serializer("OrgReleaseResponse", ReleaseSerializerResponse),
+            400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -521,7 +528,11 @@ class OrganizationReleaseDetailsEndpoint(
     )
     def put(
         self, request: Request, organization: Organization, version: str
-    ) -> Response[ReleaseSerializerResponse] | Response[ValidationErrorResponse]:
+    ) -> (
+        Response[ReleaseSerializerResponse]
+        | Response[_RefsErrorResponse]
+        | Response[ValidationErrorResponse]
+    ):
         """
 
         Update a release. This can change some metadata associated with
@@ -644,6 +655,7 @@ class OrganizationReleaseDetailsEndpoint(
         ],
         responses={
             204: RESPONSE_NO_CONTENT,
+            400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,

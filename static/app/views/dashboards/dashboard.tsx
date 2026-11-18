@@ -16,10 +16,12 @@ import {useQueryState} from 'nuqs';
 import {Button} from '@sentry/scraps/button';
 
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
+import {DroppedDataLLMContext} from 'sentry/components/droppedData/droppedDataLLMContext';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
+import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {scheduleMicroTask} from 'sentry/utils/scheduleMicroTask';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -33,9 +35,11 @@ import {
 } from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
 import {WidgetSyncContextProvider} from './contexts/widgetSyncContext';
+import {widgetCanUseTimeSeriesVisualization} from './utils/widgetCanUseTimeSeriesVisualization';
 import {useWidgetQueryQueue} from './utils/widgetQueryQueue';
 import type {DataSet} from './widgetBuilder/utils';
 import {trackEngagementAnalytics} from './widgetBuilder/utils/trackEngagementAnalytics';
+import {WIDGET_TYPE_TO_DROPPED_DATA_DATASET} from './widgetCard/useWidgetChartLayers';
 import {getQueryHintLegend} from './widgetCard/widgetLLMContext';
 import {ADD_WIDGET_BUTTON_DRAG_ID, AddWidget} from './addWidget';
 import {NUM_DESKTOP_COLS, DRAG_HANDLE_CLASS, DASHBOARD_CHART_GROUP} from './constants';
@@ -144,6 +148,26 @@ function DashboardInner({
     // and wait for a widget node to register instead (see PAGE_CONTEXT_READY_NODES).
     {isLoading: dashboard.widgets.length > 0}
   );
+
+  // One node per dataset rather than per widget, so Seer gets each dataset's
+  // drops once. The widgets' bands share the same request.
+  const droppedDataDatasets = useMemo(() => {
+    if (!organization.features.includes('dashboards-data-fidelity-annotations')) {
+      return [];
+    }
+    const datasets = new Set<DiscoverDatasets>();
+    for (const widget of dashboard.widgets) {
+      if (!widget.widgetType || !widgetCanUseTimeSeriesVisualization(widget)) {
+        continue;
+      }
+      const dataset = WIDGET_TYPE_TO_DROPPED_DATA_DATASET[widget.widgetType];
+      if (dataset) {
+        datasets.add(dataset);
+      }
+    }
+    return [...datasets];
+  }, [organization, dashboard.widgets]);
+
   const {queue} = useWidgetQueryQueue();
   const layouts = useMemo<LayoutState>(() => {
     const desktopLayout = getDashboardLayout(dashboard.widgets);
@@ -369,6 +393,14 @@ function DashboardInner({
 
   return (
     <WidgetSyncContextProvider groupName={DASHBOARD_CHART_GROUP}>
+      {defined(widgetInterval) &&
+        droppedDataDatasets.map(dataset => (
+          <DroppedDataLLMContext
+            key={dataset}
+            dataset={dataset}
+            interval={widgetInterval}
+          />
+        ))}
       <GridLayout
         breakpoints={BREAKPOINTS(theme)}
         cols={COLUMNS}

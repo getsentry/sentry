@@ -444,7 +444,7 @@ export function getContextSummary({
 } {
   let title: React.ReactNode = null;
   let subtitle: React.ReactNode = null;
-  let subtitleType: string | undefined = undefined;
+  let subtitleType: string | undefined;
   switch (type) {
     case 'device':
       title = (

@@ -25,7 +25,13 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import DetailedProjectResponse, DetailedProjectSerializer
 from sentry.api.serializers.rest_framework.list import EmptyListField
 from sentry.api.serializers.rest_framework.origin import OriginField
-from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NO_CONTENT, RESPONSE_NOT_FOUND
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_CONFLICT,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NO_CONTENT,
+    RESPONSE_NOT_FOUND,
+)
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.apidocs.parameters import GlobalParams
@@ -266,23 +272,27 @@ E.g. `{'user': ['id', 'email']}`""",
 E.g. `['release', 'environment']`""",
     )
     digestsMinDelay = serializers.IntegerField(
+        required=False,
         min_value=60,
         max_value=3600,
         help_text="Minimum time in seconds to wait before sending an issue digest email.",
     )
     digestsMaxDelay = serializers.IntegerField(
+        required=False,
         min_value=60,
         max_value=3600,
         help_text="Maximum time in seconds to wait before sending an issue digest email.",
     )
     securityToken = serializers.RegexField(
         r"^[-a-zA-Z0-9+/=\s]+$",
+        required=False,
         max_length=255,
         allow_blank=True,
         help_text="Token sent with security reports (CSP, Expect-CT, HPKP) so Sentry can verify their origin.",
     )
     securityTokenHeader = serializers.RegexField(
         r"^[a-zA-Z0-9_\-]+$",
+        required=False,
         max_length=64,
         allow_blank=True,
         help_text="Name of the header carrying the security token on inbound security reports.",
@@ -457,7 +467,7 @@ E.g. `['release', 'environment']`""",
         other = (
             Project.objects.filter(slug=slug, organization=project.organization)
             .exclude(id=project.id)
-            .first()
+            .get_or_none()
         )
         if other is not None:
             raise serializers.ValidationError(
@@ -665,6 +675,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         request=None,
         responses={
             200: DetailedProjectSerializer,
+            400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
@@ -715,8 +726,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         request=ProjectAdminSerializer,
         responses={
             200: DetailedProjectSerializer,
+            400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
+            409: RESPONSE_CONFLICT,
         },
         examples=ProjectExamples.DETAILED_PROJECT,
     )

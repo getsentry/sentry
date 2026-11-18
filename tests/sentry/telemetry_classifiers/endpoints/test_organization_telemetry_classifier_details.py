@@ -36,6 +36,7 @@ class OrganizationTelemetryClassifierDetailsGetTest(APITestCase):
             "prebuiltClassifierKey": None,
             "naturalLanguagePrompt": "Is the user frustrated?",
             "outputType": "binary",
+            "binaryThreshold": 0.8,
             "dateAdded": self.classifier.date_added,
             "dateUpdated": self.classifier.date_updated,
         }
@@ -125,6 +126,7 @@ class OrganizationTelemetryClassifierDetailsPutTest(APITestCase):
                 "prebuiltClassifierKey": "refusal",
                 "naturalLanguagePrompt": None,
                 "outputType": None,
+                "binaryThreshold": None,
                 "dateAdded": self.classifier.date_added,
                 "dateUpdated": self.classifier.date_updated,
             }
@@ -164,7 +166,7 @@ class OrganizationTelemetryClassifierDetailsPutTest(APITestCase):
         assert self.classifier.name == "Refusals"
         assert self.classifier.status == "enabled"
 
-    def test_requires_project_write(self) -> None:
+    def test_member_can_update(self) -> None:
         member = self.create_user()
         self.create_member(
             organization=self.organization, user=member, role="member", teams=[self.team]
@@ -172,12 +174,13 @@ class OrganizationTelemetryClassifierDetailsPutTest(APITestCase):
         self.login_as(member)
 
         with self.feature(self.features):
-            self.get_error_response(
-                self.organization.slug, self.classifier.id, status="disabled", status_code=403
+            response = self.get_success_response(
+                self.organization.slug, self.classifier.id, status="disabled"
             )
 
+        assert response.data["status"] == "disabled"
         self.classifier.refresh_from_db()
-        assert self.classifier.status == "enabled"
+        assert self.classifier.status == "disabled"
 
     def test_team_admin_can_update(self) -> None:
         team_admin = self.create_user()

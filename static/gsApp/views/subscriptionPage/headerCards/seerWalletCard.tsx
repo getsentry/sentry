@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import {IconInfo} from '@sentry/icons/info';
 import {IconPause} from '@sentry/icons/pause';
 import {IconSeer} from '@sentry/icons/seer';
@@ -17,6 +18,7 @@ import type {Organization} from 'sentry/types/organization';
 import {SubscriptionHeaderCard} from 'getsentry/views/subscriptionPage/headerCards/subscriptionHeaderCard';
 import {openSeerAutoTopUpModal} from 'getsentry/views/subscriptionPage/seerWallet/autoTopUpModal';
 import {
+  SEER_AUTO_RELOAD_MODAL_HASH,
   seerWalletAutoTopUpOptions,
   seerWalletBalanceOptions,
   type SeerWalletAutoTopUp,
@@ -26,6 +28,19 @@ import {
 export function SeerWalletCard({organization}: {organization: Organization}) {
   const balanceQuery = useQuery(seerWalletBalanceOptions(organization));
   const autoTopUpQuery = useQuery(seerWalletAutoTopUpOptions(organization));
+
+  useEffect(() => {
+    if (window.location.hash === SEER_AUTO_RELOAD_MODAL_HASH) {
+      openSeerAutoTopUpModal({organization});
+
+      // Clear the hash so a refresh doesn't open the modal again.
+      window.history.replaceState(
+        null,
+        '',
+        window.location.pathname + window.location.search
+      );
+    }
+  }, [organization]);
 
   if (balanceQuery.isError || autoTopUpQuery.isError) {
     return <SeerWalletError />;
@@ -90,11 +105,11 @@ export function SeerWalletCard({organization}: {organization: Organization}) {
         >
           <Stack gap="2xs">
             <Text size="xs" bold>
-              {autoTopUp.enabled ? t('Auto-load • On') : t('Auto-load • Off')}
+              {autoTopUp.enabled ? t('Auto-reload • On') : t('Auto-reload • Off')}
             </Text>
             <Text size="xs" variant="muted">
               {autoTopUp.enabled
-                ? tct('Adds [credits] credits when below [threshold]', {
+                ? tct('Adds [credits] credits when at or below [threshold]', {
                     credits: autoTopUp.topUpCredits.toLocaleString(),
                     threshold: autoTopUp.thresholdCredits.toLocaleString(),
                   })
@@ -151,8 +166,8 @@ function PausedTag({
   autoTopUp: SeerWalletAutoTopUp;
   wallet: SeerWalletBalance;
 }) {
-  // With auto-load on, an empty wallet means the daily usage limit stopped the
-  // reloads, so Seer resumes the next day rather than when included credits reset.
+  // With auto-reload on, an empty wallet means the daily usage limit stopped the
+  // auto-reloads, so Seer resumes the next day rather than when included credits reset.
   const resumesAt = autoTopUp.enabled ? null : wallet.included.resetsAt;
 
   return (

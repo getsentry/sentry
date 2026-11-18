@@ -2,13 +2,18 @@ import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {Markdown, type MarkdownProps} from '@sentry/scraps/markdown';
+import {Markdown, stripAnnotations, type MarkdownProps} from '@sentry/scraps/markdown';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {CollapsibleContent} from 'sentry/components/ai/chat/collapsibleContent';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {getDefaultExpanded} from 'sentry/components/structuredEventData/utils';
+import {
+  ScrubbedAnnotation,
+  ScrubbedText,
+  splitScrubbedJson,
+} from 'sentry/views/insights/pages/agents/components/scrubbedText';
 import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
 import {parseJsonWithFix} from 'sentry/views/performance/traceDetails/traceDrawer/details/utils';
 
@@ -54,7 +59,8 @@ function parseJson(raw: string): unknown {
 }
 
 /** Renders a parsed JSON value as an interactive tree, without any surrounding chrome. */
-function JsonTree({value}: {value: unknown}) {
+function JsonTree({value: markedValue}: {value: unknown}) {
+  const {value, meta} = useMemo(() => splitScrubbedJson(markedValue), [markedValue]);
   const initialExpandedPaths = Array.from(
     new Set([
       '$',
@@ -69,6 +75,7 @@ function JsonTree({value}: {value: unknown}) {
     <StructuredData
       config={STRUCTURED_DATA_CONFIG}
       value={value}
+      meta={meta}
       maxDefaultDepth={EMBEDDED_JSON_MAX_DEPTH}
       autoCollapseLimit={EMBEDDED_JSON_AUTO_COLLAPSE_LIMIT}
       initialExpandedPaths={initialExpandedPaths}
@@ -89,13 +96,19 @@ const markdownComponents: MarkdownProps['components'] = {
         return <JsonTree value={parsed} />;
       }
     }
-    return <Default lang={lang}>{children}</Default>;
+    return <Default lang={lang}>{stripAnnotations(children)}</Default>;
   },
+  InlineCode: ({children, Default}) => <Default>{stripAnnotations(children)}</Default>,
+  Annotation: ScrubbedAnnotation,
   Heading: ({children, level}) => (
     <Heading as={`h${level}`} size={HEADING_SIZES[level - 1]}>
       {children}
     </Heading>
   ),
+};
+
+const plainTextMarkdownComponents: MarkdownProps['components'] = {
+  Annotation: ScrubbedAnnotation,
 };
 
 /** Fences raw AI content and renders it. Memoized since fencing scans the whole string. */
@@ -240,6 +253,10 @@ export function AIContentRenderer({
   clip,
 }: AIContentRendererProps) {
   const detection = useMemo(() => detectAIContentType(text), [text]);
+  const json = useMemo(
+    () => ('parsedData' in detection ? splitScrubbedJson(detection.parsedData) : null),
+    [detection]
+  );
 
   // Preserve each branch's historical default when the caller doesn't specify:
   // text was clipped, JSON flowed. Explicit `clip` always wins.
@@ -252,7 +269,8 @@ export function AIContentRenderer({
     case 'python-dict':
       return (
         <TraceDrawerComponents.MultilineJSON
-          value={detection.parsedData}
+          value={json?.value}
+          meta={json?.meta}
           maxDefaultDepth={maxJsonDepth}
           autoCollapseLimit={autoCollapseLimit}
           clip={clipJson}
@@ -290,10 +308,13 @@ export function AIContentRenderer({
     case 'plain-text':
     default:
       if (inline) {
-        return <Fragment>{text}</Fragment>;
+        return <ScrubbedText>{text}</ScrubbedText>;
       }
       return (
-        <TraceDrawerComponents.MultilineText clip={clipText}>
+        <TraceDrawerComponents.MultilineText
+          clip={clipText}
+          markdownComponents={plainTextMarkdownComponents}
+        >
           {text}
         </TraceDrawerComponents.MultilineText>
       );

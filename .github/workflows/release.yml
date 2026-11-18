@@ -9,6 +9,7 @@ on:
         default: sentry
         options:
           - sentry
+          - static/packages/api
           - static/packages/scraps
           - static/packages/icons
           - static/packages/search-syntax

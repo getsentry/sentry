@@ -14,6 +14,7 @@ from sentry.ai_monitoring.message_normalizer import (
     normalize_to_messages,
     stringify_message_content,
 )
+from sentry.constants import DataCategory
 from sentry.models.project import Project
 from sentry.search.eap.occurrences.query_utils import build_escaped_term_filter
 from sentry.search.eap.types import SearchResolverConfig
@@ -33,6 +34,16 @@ MAX_MESSAGE_CHARS = 4_000
 # Message attributes and the role assumed when a message doesn't name one.
 _MESSAGE_ATTRIBUTES = {"gen_ai.input.messages": "user", "gen_ai.output.messages": "assistant"}
 _ROLES = frozenset({"user", "assistant"})
+# Span columns copied from the newest span onto results, by public alias and EAP attribute name.
+_COPIED_ATTRIBUTES = {
+    "environment": "sentry.environment",
+    "release": "sentry.release",
+    "user": "sentry.user",
+    "user.id": "sentry.user.id",
+    "user.email": "sentry.user.email",
+    "user.username": "sentry.user.username",
+    "user.ip": "sentry.user.ip",
+}
 
 
 class ConversationDataset:
@@ -40,6 +51,7 @@ class ConversationDataset:
 
     # A conversation is classified once 20 minutes pass after its last span.
     cooldown = timedelta(minutes=20)
+    data_category = DataCategory.SPAN
 
     def compile_filter(self, filter_query: str, snuba_params: SnubaParams) -> str:
         """Compile a classifier filter into a query that selects whole conversations.
@@ -54,9 +66,16 @@ class ConversationDataset:
         return query
 
     def select(
-        self, project: Project, filter_query: str, start: datetime, end: datetime, limit: int
+        self,
+        project: Project,
+        filter_query: str,
+        start: datetime,
+        end: datetime,
+        limit: int,
+        offset: int,
     ) -> list[str]:
-        """Return conversations whose cooldown ended in ``[start, end)`` and that match the filter.
+        """Return a page of IDs of conversations whose cooldown ended in ``[start, end)`` and that match
+        the filter.
 
         Any newer span keeps a conversation out until it goes quiet again.
         """
@@ -74,8 +93,8 @@ class ConversationDataset:
                 f"max(timestamp):>={last_span_start} max(timestamp):<{last_span_end}"
             ),
             selected_columns=[CONVERSATION_ID, "max(timestamp)"],
-            orderby=["max(timestamp)", CONVERSATION_ID],
-            offset=0,
+            orderby=["-max(timestamp)", CONVERSATION_ID],
+            offset=offset,
             limit=limit,
             referrer=Referrer.TELEMETRY_CLASSIFIERS_CONVERSATIONS_SELECT.value,
             config=CONVERSATION_RESOLVER_CONFIG,
@@ -95,7 +114,13 @@ class ConversationDataset:
                 "has:gen_ai.operation.type "
                 "(has:gen_ai.input.messages OR has:gen_ai.output.messages)"
             ),
-            selected_columns=["timestamp", "trace", "client_sample_rate", *_MESSAGE_ATTRIBUTES],
+            selected_columns=[
+                "timestamp",
+                "trace",
+                "client_sample_rate",
+                *_COPIED_ATTRIBUTES,
+                *_MESSAGE_ATTRIBUTES,
+            ],
             orderby=["-timestamp"],
             offset=0,
             limit=MAX_SPANS + 1,
@@ -121,6 +146,11 @@ class ConversationDataset:
             timestamp=datetime.fromisoformat(newest["timestamp"]),
             client_sample_rate=newest.get("client_sample_rate") or 1.0,
             conversation_id=entity_id,
+            copied_attributes={
+                name: value
+                for column, name in _COPIED_ATTRIBUTES.items()
+                if (value := newest.get(column))
+            },
         )
 
 

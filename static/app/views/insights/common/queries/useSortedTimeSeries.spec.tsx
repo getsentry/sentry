@@ -14,10 +14,6 @@ describe('useSortedTimeSeries', () => {
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
   });
 
-  afterEach(() => {
-    PageFiltersStore.reset();
-  });
-
   it('selects raw and smoothed values separately for each group', async () => {
     const response = {
       timeSeries: ['first', 'second'].flatMap(group =>

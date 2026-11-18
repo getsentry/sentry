@@ -5,7 +5,7 @@ from collections.abc import Mapping, Sequence, Set
 from datetime import datetime
 from typing import Literal, NamedTuple, TypedDict
 
-from django.db.models import F, Prefetch, Q, prefetch_related_objects
+from django.db.models import Prefetch, Q, prefetch_related_objects
 from drf_spectacular.utils import extend_schema
 from pydantic import ValidationError
 from rest_framework import serializers
@@ -19,6 +19,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST
 from sentry.apidocs.examples import seer_workflow_examples as SeerWorkflowExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -232,10 +233,7 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
             organization=organization,
             workflow_config__organization=organization,
             workflow_config__strategy__in=SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
-        ).annotate(
-            strategy=F("workflow_config__strategy"),
-            config_extras=F("workflow_config__extras"),
-        )
+        ).select_related("workflow_config__backing_workflow")
 
         # Filter by a config
         config_id = serializer.validated_data.get("config")
@@ -277,6 +275,7 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
             202: inline_sentry_response_serializer(
                 "SeerWorkflowRunCreate", WorkflowRunCreateResponse
             ),
+            400: RESPONSE_BAD_REQUEST,
         },
     )
     def post(self, request: Request, organization: Organization) -> Response:
@@ -293,7 +292,7 @@ def serialize_workflow_runs(
     include_investigations: bool,
     accessible_project_ids: set[int] | None = None,
 ) -> SeerWorkflowRunsResponse:
-    """Serialize runs loaded with `strategy` and `config_extras` annotations.
+    """Serialize runs loaded with their `workflow_config`.
 
     `accessible_project_ids` limits detector names to those projects; None means all.
     """
@@ -360,16 +359,18 @@ def serialize_workflow_run(
     existing_group_ids: Set[int],
     accessible_project_ids: set[int] | None,
 ) -> SeerWorkflowRunResponse:
-    """Serialize a run loaded with `strategy` and `config_extras` annotations."""
-    config_extras = getattr(run, "config_extras")
-    config_name = config_extras.get("name") if isinstance(config_extras, dict) else None
+    """Serialize a run loaded with its `workflow_config`."""
+    config = run.workflow_config
+    if config is None:
+        raise ValueError("Workflow runs are listed only for their automation")
     result: SeerWorkflowRunResponseBase = {
         "id": str(run.id),
         "configId": str(run.workflow_config_id),
-        "configName": config_name if isinstance(config_name, str) else None,
-        "strategy": getattr(run, "strategy"),
+        "configName": config.backing_workflow.name if config.backing_workflow else None,
+        "strategy": config.strategy,
         "trigger": serialize_trigger(
             run,
+            strategy=config.strategy,
             detectors=detectors,
             existing_group_ids=existing_group_ids,
             accessible_project_ids=accessible_project_ids,
@@ -396,18 +397,18 @@ def serialize_workflow_run(
 def serialize_trigger(
     run: SeerWorkflowRun,
     *,
+    strategy: str,
     detectors: Mapping[int, DetectorInfo],
     existing_group_ids: Set[int],
     accessible_project_ids: set[int] | None,
 ) -> TriggerResponse | None:
-    """Serialize the trigger of a run loaded with a `workflow_config__strategy` annotation.
+    """Serialize the trigger of a run.
 
     `detectors` maps each preloaded detector's ID to its current project and name. The
     name is only returned when the detector still belongs to the trigger's project and
     that project is in `accessible_project_ids` (None means all projects).
     `existing_group_ids` holds the preloaded IDs of trigger groups that have not been deleted.
     """
-    strategy = getattr(run, "strategy")
     if is_scheduled(strategy):
         return {"type": "cron"}
     if strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION and get_path(

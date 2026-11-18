@@ -63,9 +63,23 @@ describe('AgenticProgressList', () => {
     expect(screen.getByText('Skipped')).toBeInTheDocument();
     expect(screen.getByText('Bypassed')).toBeInTheDocument();
     expect(screen.getByText('Failed')).toBeInTheDocument();
-    expect(screen.getByText('Awaiting Input')).toBeInTheDocument();
+    expect(screen.getByText('Check your agent')).toBeInTheDocument();
     expect(screen.getByText('In progress')).toBeInTheDocument();
     expect(screen.getByText('Check stack traces')).toBeInTheDocument();
+  });
+
+  it('sends the user back to their agent when it is waiting on them', () => {
+    render(
+      <AgenticProgressList
+        stages={[
+          {stage: 'plan_test_error', status: 'waiting', eventNote: null, extra: null},
+        ]}
+      />
+    );
+
+    expect(screen.getByText('Plan test error')).toBeInTheDocument();
+    expect(screen.getByText('Check your agent')).toBeInTheDocument();
+    expect(screen.queryByText('Awaiting Input')).not.toBeInTheDocument();
   });
 
   it('renders send and confirmation progress as separate rows', () => {
@@ -136,7 +150,6 @@ describe('AgenticProgressList', () => {
 
     expect(screen.getByText('Created 2 projects')).toBeInTheDocument();
     expect(screen.getByText(/Last update/)).toBeInTheDocument();
-    expect(screen.getByText('ID:Lg1iSt2qeQ')).toBeInTheDocument();
     await waitFor(() => expect(projectsRequest).toHaveBeenCalled());
   });
 

@@ -4,13 +4,14 @@ import {IconDownload} from '@sentry/icons/download';
 import {useQuery} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {DateTime} from '@sentry/scraps/dateTime';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {ExportQueryType} from 'sentry/components/exports/useDataExport';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -159,7 +160,9 @@ function ValidDownload({
         <LinkButton
           variant="primary"
           icon={<IconDownload />}
-          href={`/api/0/organizations/${orgSlug}/data-export/${dataExportId}/?download=true`}
+          href={resolveHostname(
+            `/api/0/organizations/${orgSlug}/data-export/${dataExportId}/?download=true`
+          )}
         >
           {t('Download %s', exportFormatLabel)}
         </LinkButton>

@@ -1,4 +1,5 @@
 import uuid
+from datetime import timedelta
 from itertools import cycle
 from unittest import mock
 
@@ -7,11 +8,11 @@ from django.utils import timezone
 from sentry.issues.ingest import process_occurrence_data
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouphash import GroupHash
+from sentry.monitors.logic.incidents import LAST_SUCCESSFUL_LOOKBACK
 from sentry.monitors.logic.mark_failed import mark_failed
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
-    MonitorCheckIn,
     MonitorEnvironment,
     MonitorIncident,
     MonitorStatus,
@@ -46,7 +47,7 @@ class MarkFailedTestCase(TestCase):
         last_checkin = timezone.now()
         trace_id = uuid.uuid4()
 
-        checkin = MonitorCheckIn.objects.create(
+        checkin = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             status=CheckInStatus.ERROR,
             trace_id=trace_id,
@@ -89,7 +90,7 @@ class MarkFailedTestCase(TestCase):
             is_muted=True,
         )
         assert monitor_environment.active_incident is None
-        checkin = MonitorCheckIn.objects.create(
+        checkin = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             status=CheckInStatus.UNKNOWN,
         )
@@ -126,7 +127,7 @@ class MarkFailedTestCase(TestCase):
             status=MonitorStatus.OK,
         )
 
-        MonitorCheckIn.objects.create(
+        self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             status=CheckInStatus.OK,
         )
@@ -135,7 +136,7 @@ class MarkFailedTestCase(TestCase):
 
         for _ in range(0, failure_issue_threshold - 1):
             status = next(failure_statuses)
-            checkin = MonitorCheckIn.objects.create(
+            checkin = self.create_monitor_checkin(
                 monitor_environment=monitor_environment,
                 status=status,
             )
@@ -146,14 +147,14 @@ class MarkFailedTestCase(TestCase):
         assert monitor_environment.status == MonitorStatus.OK
 
         # create another OK check-in to break the chain
-        MonitorCheckIn.objects.create(
+        self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             status=CheckInStatus.OK,
         )
 
         for _ in range(0, failure_issue_threshold):
             status = next(failure_statuses)
-            checkin = MonitorCheckIn.objects.create(
+            checkin = self.create_monitor_checkin(
                 monitor_environment=monitor_environment,
                 status=status,
             )
@@ -177,7 +178,7 @@ class MarkFailedTestCase(TestCase):
 
         # send another check-in to make sure the incident does not change
         status = next(failure_statuses)
-        checkin = MonitorCheckIn.objects.create(
+        checkin = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             status=status,
         )
@@ -194,7 +195,7 @@ class MarkFailedTestCase(TestCase):
         assert mock_dispatch_incident_occurrence.call_count == failure_issue_threshold + 1
 
         # Resolve the incident with an OK check-in
-        ok_checkin = MonitorCheckIn.objects.create(
+        ok_checkin = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             status=MonitorStatus.OK,
         )
@@ -207,7 +208,7 @@ class MarkFailedTestCase(TestCase):
         # Cause a new incident and ensure we create a new incident
         for _ in range(0, failure_issue_threshold):
             status = next(failure_statuses)
-            checkin = MonitorCheckIn.objects.create(
+            checkin = self.create_monitor_checkin(
                 monitor_environment=monitor_environment,
                 status=status,
             )
@@ -241,7 +242,7 @@ class MarkFailedTestCase(TestCase):
             status=MonitorStatus.OK,
         )
 
-        MonitorCheckIn.objects.create(
+        self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             status=CheckInStatus.OK,
         )
@@ -249,7 +250,7 @@ class MarkFailedTestCase(TestCase):
         # create in-progress check-ins
         checkins = []
         for i in range(0, failure_issue_threshold + 1):
-            checkin = MonitorCheckIn.objects.create(
+            checkin = self.create_monitor_checkin(
                 monitor_environment=monitor_environment,
                 status=CheckInStatus.IN_PROGRESS,
             )
@@ -311,7 +312,7 @@ class MarkFailedTestCase(TestCase):
         )
         assert monitor_environment.active_incident is None
         for _ in range(0, failure_issue_threshold):
-            checkin = MonitorCheckIn.objects.create(
+            checkin = self.create_monitor_checkin(
                 monitor_environment=monitor_environment,
                 status=CheckInStatus.UNKNOWN,
             )
@@ -349,7 +350,7 @@ class MarkFailedTestCase(TestCase):
         )
 
         for _ in range(failure_issue_threshold - 1):
-            checkin = MonitorCheckIn.objects.create(
+            checkin = self.create_monitor_checkin(
                 monitor_environment=monitor_environment,
                 status=CheckInStatus.ERROR,
             )
@@ -360,7 +361,7 @@ class MarkFailedTestCase(TestCase):
         assert monitor_environment.active_incident is None
         mock_dispatch_incident_occurrence.assert_not_called()
 
-        checkin = MonitorCheckIn.objects.create(
+        checkin = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             status=CheckInStatus.ERROR,
         )
@@ -390,12 +391,12 @@ class MarkFailedTestCase(TestCase):
             status=MonitorStatus.OK,
         )
 
-        MonitorCheckIn.objects.create(
+        self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             status=CheckInStatus.OK,
         )
 
-        checkin = MonitorCheckIn.objects.create(
+        checkin = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             status=CheckInStatus.IN_PROGRESS,
         )
@@ -445,7 +446,7 @@ class MarkFailedTestCase(TestCase):
         expected_fingerprint = f"crons:{monitor_environment.id}"
 
         for i in range(3):
-            checkin = MonitorCheckIn.objects.create(
+            checkin = self.create_monitor_checkin(
                 monitor_environment=monitor_environment,
                 status=CheckInStatus.ERROR,
             )
@@ -454,7 +455,7 @@ class MarkFailedTestCase(TestCase):
         first_incident = MonitorIncident.objects.get(monitor_environment=monitor_environment)
         assert first_incident.grouphash == expected_fingerprint
 
-        ok_checkin = MonitorCheckIn.objects.create(
+        ok_checkin = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             status=CheckInStatus.OK,
         )
@@ -470,7 +471,7 @@ class MarkFailedTestCase(TestCase):
         assert first_incident.resolving_checkin == ok_checkin
 
         for i in range(3):
-            checkin = MonitorCheckIn.objects.create(
+            checkin = self.create_monitor_checkin(
                 monitor_environment=monitor_environment,
                 status=CheckInStatus.ERROR,
             )
@@ -486,3 +487,99 @@ class MarkFailedTestCase(TestCase):
         assert second_incident.id != first_incident.id
         assert second_incident.grouphash == expected_fingerprint
         assert second_incident.grouphash == first_incident.grouphash
+
+    def _create_monitor_environment(self, failure_issue_threshold: int) -> MonitorEnvironment:
+        monitor = Monitor.objects.create(
+            name="test monitor",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            config={
+                "schedule": [1, "month"],
+                "schedule_type": ScheduleType.INTERVAL,
+                "failure_issue_threshold": failure_issue_threshold,
+                "max_runtime": None,
+                "checkin_margin": None,
+            },
+        )
+        return MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment_id=self.environment.id,
+            status=MonitorStatus.OK,
+        )
+
+    @mock.patch("sentry.monitors.logic.incident_occurrence.produce_occurrence_to_kafka")
+    def test_mark_failed_sets_last_successful_timestamp(
+        self, mock_produce_occurrence_to_kafka: mock.MagicMock
+    ) -> None:
+        monitor_environment = self._create_monitor_environment(failure_issue_threshold=2)
+        now = timezone.now().replace(microsecond=0)
+
+        self.create_monitor_checkin(
+            monitor_environment=monitor_environment,
+            status=CheckInStatus.OK,
+            date_added=now - timedelta(minutes=10),
+        )
+        last_ok = self.create_monitor_checkin(
+            monitor_environment=monitor_environment,
+            status=CheckInStatus.OK,
+            date_added=now - timedelta(minutes=5),
+        )
+        first_failure = self.create_monitor_checkin(
+            monitor_environment=monitor_environment,
+            status=CheckInStatus.ERROR,
+            date_added=now - timedelta(minutes=2),
+        )
+        mark_failed(first_failure, failed_at=first_failure.date_added)
+        failure = self.create_monitor_checkin(
+            monitor_environment=monitor_environment,
+            status=CheckInStatus.ERROR,
+            date_added=now,
+        )
+        assert mark_failed(failure, failed_at=failure.date_added)
+
+        incident = MonitorIncident.objects.get(monitor_environment=monitor_environment)
+        assert incident.starting_checkin_id == first_failure.id
+        assert incident.last_successful_timestamp == last_ok.date_added
+
+        evidence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"].evidence_display
+        assert evidence[2].name == "Last successful check-in"
+        assert evidence[2].value == last_ok.date_added.isoformat()
+
+    @mock.patch("sentry.monitors.logic.incident_occurrence.produce_occurrence_to_kafka")
+    def test_mark_failed_no_successful_checkin(
+        self, mock_produce_occurrence_to_kafka: mock.MagicMock
+    ) -> None:
+        monitor_environment = self._create_monitor_environment(failure_issue_threshold=1)
+        failure = self.create_monitor_checkin(
+            monitor_environment=monitor_environment,
+            status=CheckInStatus.ERROR,
+        )
+        assert mark_failed(failure, failed_at=failure.date_added)
+
+        incident = MonitorIncident.objects.get(monitor_environment=monitor_environment)
+        assert incident.last_successful_timestamp is None
+
+        evidence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"].evidence_display
+        assert evidence[2].value == "Never"
+
+    @mock.patch("sentry.monitors.logic.incident_occurrence.produce_occurrence_to_kafka")
+    def test_mark_failed_ignores_successful_checkin_past_lookback(
+        self, mock_produce_occurrence_to_kafka: mock.MagicMock
+    ) -> None:
+        monitor_environment = self._create_monitor_environment(failure_issue_threshold=1)
+        now = timezone.now().replace(microsecond=0)
+
+        self.create_monitor_checkin(
+            monitor_environment=monitor_environment,
+            status=CheckInStatus.OK,
+            date_added=now - LAST_SUCCESSFUL_LOOKBACK - timedelta(minutes=1),
+        )
+        failure = self.create_monitor_checkin(
+            monitor_environment=monitor_environment,
+            status=CheckInStatus.ERROR,
+            date_added=now,
+        )
+        assert mark_failed(failure, failed_at=failure.date_added)
+
+        incident = MonitorIncident.objects.get(monitor_environment=monitor_environment)
+        assert incident.last_successful_timestamp is None
