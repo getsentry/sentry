@@ -262,13 +262,12 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
             config_extras=F("workflow_config__extras"),
         )
 
-        filters = serializer.validated_data
-        if "config" in filters:
-            runs = runs.filter(workflow_config_id=filters["config"])
+        if config_id := serializer.validated_data.get("config"):
+            runs = runs.filter(workflow_config_id=config_id)
+        if status := serializer.validated_data.get("status"):
+            runs = runs.filter(status=status)
         if start is not None:
             runs = runs.filter(date_added__gte=start, date_added__lt=end)
-        if "status" in filters:
-            runs = runs.filter(status=filters["status"])
 
         # Filter by accessible projects. A run started by a trigger in one project only needs
         # access to that project; other runs need access to every project in their saved scope.
