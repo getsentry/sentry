@@ -848,7 +848,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
 
         stopping_point = AutofixStoppingPoint(raw_stopping_point)
         stopping_step = STOPPING_POINT_TO_STEP.get(stopping_point)
-        # A user can continue a run past its stopping point, which never changes.
+        # A user can pick up an Agentic Triage Autofix run, it must not continue past the stopping point.
         if (
             stopping_step is not None
             and current_step in PIPELINE_ORDER
