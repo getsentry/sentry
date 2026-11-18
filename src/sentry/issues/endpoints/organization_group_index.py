@@ -1,11 +1,10 @@
 import functools
 import logging
 from collections.abc import Mapping, Sequence
-from datetime import datetime, timedelta
-from typing import Any, cast
+from datetime import datetime
+from typing import Any
 
 import sentry_sdk
-from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
@@ -19,7 +18,6 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.bases import OrganizationEventPermission
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.api.event_search import SearchFilter
 from sentry.api.helpers.group_index import (
     build_query_params_from_request,
     calculate_stats_period,
@@ -32,7 +30,6 @@ from sentry.api.helpers.group_index import (
 from sentry.api.helpers.group_index.types import MutateIssueResponse
 from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.helpers.group_index.validators.group import GroupValidator
-from sentry.api.paginator import DateTimePaginator, Paginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import (
     StreamGroupSerializerSnuba,
@@ -60,118 +57,19 @@ from sentry.apidocs.parameters import (
 from sentry.apidocs.response_types import DetailResponse, ValidationErrorResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.principal import acting_user_id
-from sentry.constants import ALLOWED_FUTURE_DELTA
-from sentry.exceptions import InvalidParams, InvalidSearchQuery
+from sentry.exceptions import InvalidParams
 from sentry.models.environment import Environment
-from sentry.models.group import Group, GroupStatus
-from sentry.models.groupenvironment import GroupEnvironment
-from sentry.models.groupinbox import GroupInbox
+from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.search.snuba.backend import assigned_or_suggested_filter
-from sentry.search.snuba.executors import get_search_filter
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.utils.cursors import Cursor, CursorResult
+from sentry.utils.cursors import CursorResult
 from sentry.utils.validators import normalize_event_id
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', '14d' and 'auto'"
-allowed_inbox_search_terms = frozenset(["date", "status", "for_review", "assigned_or_suggested"])
 
 logger = logging.getLogger(__name__)
-
-
-def inbox_search(
-    projects: Sequence[Project],
-    environments: Sequence[Environment] | None = None,
-    limit: int = 100,
-    cursor: Cursor | None = None,
-    count_hits: bool = False,
-    search_filters: Sequence[SearchFilter] | None = None,
-    date_from: datetime | None = None,
-    date_to: datetime | None = None,
-    max_hits: int | None = None,
-    actor: Any | None = None,
-) -> CursorResult[Group]:
-    now: datetime = timezone.now()
-    end: datetime | None = None
-    end_params: list[datetime] = [
-        _f for _f in [date_to, get_search_filter(search_filters, "date", "<")] if _f
-    ]
-    if end_params:
-        end = min(end_params)
-
-    end = end if end else now + ALLOWED_FUTURE_DELTA
-
-    # We only want to search back a week at most, since that's the oldest inbox rows
-    # can be.
-    earliest_date = now - timedelta(days=7)
-    start_params = [date_from, earliest_date, get_search_filter(search_filters, "date", ">")]
-    start = max(_f for _f in start_params if _f)
-    end = max([earliest_date, end])
-
-    if start >= end:
-        return cast(CursorResult[Group], Paginator(Group.objects.none()).get_result())
-
-    # Make sure search terms are valid
-    invalid_search_terms = (
-        [str(sf) for sf in search_filters if sf.key.name not in allowed_inbox_search_terms]
-        if search_filters
-        else []
-    )
-    if invalid_search_terms:
-        raise InvalidSearchQuery(f"Invalid search terms for 'inbox' search: {invalid_search_terms}")
-
-    # Make sure this is an inbox search
-    if not get_search_filter(search_filters, "for_review", "="):
-        raise InvalidSearchQuery("Sort key 'inbox' only supported for inbox search")
-
-    if get_search_filter(
-        search_filters, "status", "="
-    ) != GroupStatus.UNRESOLVED and get_search_filter(search_filters, "status", "IN") != [
-        GroupStatus.UNRESOLVED
-    ]:
-        raise InvalidSearchQuery("Inbox search only works for 'unresolved' status")
-
-    # We just filter on `GroupInbox.date_added` here, and don't filter by date
-    # on the group. This keeps the query simpler and faster in some edge cases,
-    # and date_added is a good enough proxy when we're using this sort.
-    qs = GroupInbox.objects.filter(
-        date_added__gte=start,
-        date_added__lte=end,
-        project__in=projects,
-    ).using_replica()
-
-    if environments is not None:
-        environment_ids: list[int] = [environment.id for environment in environments]
-        qs = qs.filter(
-            group_id__in=GroupEnvironment.objects.filter(environment_id__in=environment_ids)
-            .values_list("group_id", flat=True)
-            .distinct()
-        )
-
-    owner_search = get_search_filter(search_filters, "assigned_or_suggested", "IN")
-    if owner_search is not None:
-        qs = qs.filter(
-            assigned_or_suggested_filter(owner_search, projects, field_filter="group_id")
-        )
-
-    paginator = DateTimePaginator(qs.order_by("date_added"), "-date_added")
-    results = paginator.get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits)
-
-    # We want to return groups from the endpoint, but have the cursor be related to the
-    # GroupInbox rows. So we paginate on the GroupInbox results queryset, then fetch
-    # the group_ids out and use them to get the actual groups.
-    group_ids = [r.group_id for r in cast(Sequence[GroupInbox], results.results)]
-    group_qs = Group.objects.filter(
-        id__in=group_ids,
-        project__in=projects,
-        status=GroupStatus.UNRESOLVED,
-    )
-    groups: Mapping[int, Group] = {g.id: g for g in group_qs}
-    group_results: CursorResult[Group] = cast(CursorResult[Group], results)
-    group_results.results = [groups[group_id] for group_id in group_ids if group_id in groups]
-    return group_results
 
 
 def search_issues(
@@ -205,12 +103,7 @@ def search_issues(
             query_kwargs["sort_by"] = "recommended_v2"
         elif query_kwargs["sort_by"] == "recommended_v1":
             query_kwargs["sort_by"] = "recommended"
-        if query_kwargs["sort_by"] == "inbox":
-            query_kwargs.pop("sort_by")
-            query_kwargs.pop("referrer")
-            result = inbox_search(**query_kwargs)
-        else:
-            result = search.backend.query(**query_kwargs)
+        result = search.backend.query(**query_kwargs)
         return result, query_kwargs
 
 

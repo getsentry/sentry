@@ -40,7 +40,6 @@ IS_VALUES = [
     "regressed",
     "assigned",
     "unassigned",
-    "for_review",
     "linked",
     "unlinked",
 ]

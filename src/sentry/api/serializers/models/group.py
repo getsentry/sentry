@@ -92,7 +92,6 @@ from sentry.utils.snuba import aliased_query, get_snuba_column_name, raw_query
 if TYPE_CHECKING:
     from sentry.api.serializers.types import ReleaseSerializerResponse
     from sentry.integrations.api.serializers.models.external_issue import ExternalIssueResponse
-    from sentry.models.groupinbox import InboxDetails
     from sentry.models.groupowner import OwnersSerialized
     from sentry.sentry_apps.api.serializers.platform_external_issue import (
         PlatformExternalIssueSerializerResponse,
@@ -299,10 +298,6 @@ class GroupDetailsResponseOptional(TypedDict, total=False):
         ),
     ]
     # Opt-in via `?expand=...`
-    inbox: Annotated[
-        InboxDetails | None,
-        ApiDescription("Why the issue is in the inbox. Only included when requested with expand"),
-    ]
     owners: Annotated[
         list[OwnersSerialized] | None,
         ApiDescription("Suggested owners of the issue. Only included when requested with expand"),
@@ -1194,7 +1189,6 @@ SKIP_SNUBA_FIELDS = frozenset(
         "monitor",
         "bookmarked_by",
         "assigned_to",
-        "for_review",
         "assigned_or_suggested",
         "unassigned",
         "linked",

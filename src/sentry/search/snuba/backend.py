@@ -165,15 +165,6 @@ def first_release_all_environments_filter(
     return Q(first_release_id__in=list(releases.values()))
 
 
-def inbox_filter(inbox: bool, projects: Sequence[Project]) -> Q:
-    query = Q(groupinbox__id__isnull=False)
-    if not inbox:
-        query = ~query
-    else:
-        query = query & Q(groupinbox__project_id__in=[p.id for p in projects])
-    return query
-
-
 def assigned_or_suggested_filter(
     owners: Sequence[User | Team | None], projects: Sequence[Project], field_filter: str = "id"
 ) -> Q:
@@ -640,7 +631,6 @@ class EventsDatasetSnubaSearchBackend(SnubaSearchBackendBase):
                     ).values_list("group")
                 )
             ),
-            "for_review": QCallbackCondition(functools.partial(inbox_filter, projects=projects)),
             "assigned_or_suggested": QCallbackCondition(
                 functools.partial(assigned_or_suggested_filter, projects=projects)
             ),

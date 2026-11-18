@@ -22,7 +22,6 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
 from sentry.models.grouphash import GroupHash
-from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.groupseen import GroupSeen
@@ -446,7 +445,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             format="json",
         )
         assert response.status_code == 200, response.data
-        assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
+        assert response.data == {"status": "resolved", "statusDetails": {}}
 
         # the previously resolved entry should not be included
         new_group1 = Group.objects.get(id=group1.id)
@@ -494,7 +493,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         )
         assert response.status_code == 200, response.data
 
-        assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
+        assert response.data == {"status": "resolved", "statusDetails": {}}
         response = self.client.get(f"{self.path}?sort_by=date&query=is:unresolved", format="json")
 
         assert len(response.data) == 0
@@ -564,7 +563,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
                 group = Group.objects.get(id=group.id)
                 assert group.status == GroupStatus.RESOLVED
 
-                assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
+                assert response.data == {"status": "resolved", "statusDetails": {}}
                 mock_sync_status_outbound.assert_called_once_with(
                     external_issue, True, group.project_id
                 )
@@ -705,7 +704,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         url = f"{self.path}?id={group1.id}&id={group2.id}&group4={group4.id}"
         response = self.client.put(url, data={"status": "resolved"}, format="json")
         assert response.status_code == 200
-        assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
+        assert response.data == {"status": "resolved", "statusDetails": {}}
 
         new_group1 = Group.objects.get(id=group1.id)
         assert new_group1.resolved_at is not None
@@ -1111,7 +1110,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         group = Group.objects.get(id=group.id)
         assert group.status == GroupStatus.IGNORED
 
-        assert response.data == {"status": "ignored", "statusDetails": {}, "inbox": None}
+        assert response.data == {"status": "ignored", "statusDetails": {}}
 
     def test_snooze_duration(self) -> None:
         group = self.create_group(status=GroupStatus.RESOLVED)
@@ -1341,22 +1340,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         r4 = GroupSeen.objects.filter(group=group4, user_id=self.user.id)
         assert not r4.exists()
-
-    def test_inbox_fields(self) -> None:
-        group1 = self.create_group(status=GroupStatus.UNRESOLVED)
-        add_group_to_inbox(group1, GroupInboxReason.NEW)
-        self.login_as(user=self.user)
-        url = f"{self.path}?id={group1.id}"
-        response = self.client.put(url, data={"status": "resolved"}, format="json")
-        assert "inbox" in response.data
-        assert response.data["inbox"] is None
-
-        group2 = self.create_group(status=GroupStatus.RESOLVED)
-        add_group_to_inbox(group2, GroupInboxReason.NEW)
-        self.login_as(user=self.user)
-        url = f"{self.path}?id={group2.id}"
-        response = self.client.put(url, data={"status": "resolved"}, format="json")
-        assert "inbox" not in response.data
 
     @patch("sentry.issues.merge.uuid4")
     @patch("sentry.issues.merge.start_merge_groups")

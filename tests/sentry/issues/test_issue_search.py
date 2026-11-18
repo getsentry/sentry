@@ -104,11 +104,6 @@ class ParseSearchQueryTest(unittest.TestCase):
 
         assert str(excinfo.value).startswith('Invalid value for "is" search, valid values are')
 
-    def test_is_query_inbox(self) -> None:
-        assert parse_search_query("is:for_review") == [
-            SearchFilter(key=SearchKey(name="for_review"), operator="=", value=SearchValue(True))
-        ]
-
     def test_numeric_filter(self) -> None:
         # test numeric format
         assert parse_search_query("times_seen:500") == [

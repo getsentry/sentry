@@ -131,7 +131,6 @@ POSTGRES_ONLY_SEARCH_FIELDS = [
     "linked",
     "subscribed_by",
     "regressed_in_release",
-    "for_review",
 ]
 
 

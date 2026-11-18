@@ -42,7 +42,6 @@ from sentry.issues.ignored import handle_archived_until_escalating, handle_ignor
 from sentry.issues.merge import MergedGroup, handle_merge
 from sentry.issues.priority import update_priority
 from sentry.issues.status_change import handle_status_update, infer_substatus
-from sentry.issues.update_inbox import update_inbox
 from sentry.models.activity import Activity, ActivityIntegration
 from sentry.models.commit import Commit
 from sentry.models.group import STATUS_UPDATE_CHOICES, Group, GroupStatus
@@ -659,7 +658,6 @@ def process_group_resolution(
     group.substatus = None
     group.resolved_at = now
     remove_group_from_inbox(group, action=GroupInboxRemoveAction.RESOLVED, user=acting_user)
-    result["inbox"] = None
 
     assigned_to = self_subscribe_and_assign_issue(acting_user, group, self_assign_issue)
     if assigned_to is not None:
@@ -767,7 +765,6 @@ def handle_other_status_updates(
                 )
             else:
                 result["statusDetails"] = handle_ignored(group_list, status_details, acting_user)
-            result["inbox"] = None
         else:
             result["statusDetails"] = {}
 
@@ -878,16 +875,6 @@ def prepare_response(
                     project=child.project,
                     actor=ctx.actor,
                 )
-
-    inbox = result.get("inbox", None)
-    if inbox is not None:
-        result["inbox"] = update_inbox(
-            inbox,
-            group_list,
-            project_lookup,
-            acting_user,
-            sender=update_groups,
-        )
 
     # TODO(issues): This type is very fragile since it's fields are updated in quite a few places.
     # Since this is a public API, we are using assuming a shape of MutateIssueResponse, but this

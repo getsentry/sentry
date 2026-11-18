@@ -4,7 +4,6 @@ from typing import Any
 from rest_framework import serializers
 
 from sentry.api.fields.actor import ActorField
-from sentry.api.helpers.group_index.validators.inbox_details import InboxDetailsValidator
 from sentry.api.helpers.group_index.validators.status_details import StatusDetailsValidator
 from sentry.models.group import STATUS_UPDATE_CHOICES, Group
 from sentry.types.actor import Actor
@@ -12,9 +11,6 @@ from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, PriorityLevel
 
 
 class GroupValidator(serializers.Serializer[Group]):
-    inbox = serializers.BooleanField(
-        required=False, help_text="If true, marks the issue as reviewed by the requestor."
-    )
     status = serializers.ChoiceField(
         required=False,
         help_text="The new status for the issues.",
@@ -91,11 +87,6 @@ class GroupValidator(serializers.Serializer[Group]):
         min_value=0,
         max_value=7 * 24 * 60,
         help_text="Window in minutes over which `ignoreUserCount` is measured. Maximum is 7 days.",
-    )
-    # The `inboxDetails`` field is empty.
-    inboxDetails = InboxDetailsValidator(
-        required=False,
-        help_text="Details recorded when the issue is moved out of the inbox.",
     )
     # The `snooze` field is deprecated.
     # TODO(dcramer): remove in 9.0

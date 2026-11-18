@@ -42,7 +42,6 @@ from sentry.issues.grouptype import GroupCategory
 from sentry.models.environment import Environment
 from sentry.models.eventattachment import EventAttachment
 from sentry.models.group import Group, bulk_get_latest_event_ids
-from sentry.models.groupinbox import InboxDetails, get_inbox_details
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupowner import OwnersSerialized, get_owner_details
 from sentry.notifications.helpers import SubscriptionDetails
@@ -478,14 +477,6 @@ class StreamGroupSerializerSnubaResponse(TypedDict):
             ),
         ]
     ]
-    inbox: NotRequired[
-        Annotated[
-            InboxDetails,
-            ApiDescription(
-                "Why the issue is in the inbox. Only included when requested with expand"
-            ),
-        ]
-    ]
     owners: NotRequired[
         Annotated[
             list[OwnersSerialized] | None,
@@ -657,11 +648,6 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                         else:
                             attrs[item]["sessionCount"] = None
 
-        if self._expand("inbox"):
-            inbox_stats = get_inbox_details(item_list)
-            for item in item_list:
-                attrs[item]["inbox"] = inbox_stats.get(item.id)
-
         if self._expand("owners"):
             owner_details = get_owner_details(item_list)
             for item in item_list:
@@ -790,9 +776,6 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
 
             if self.stats_period and self._expand("sessions"):
                 result["sessionCount"] = attrs["sessionCount"]
-
-        if self._expand("inbox"):
-            result["inbox"] = attrs["inbox"]
 
         if self._expand("owners"):
             result["owners"] = attrs["owners"]

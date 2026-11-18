@@ -19,7 +19,6 @@ class MutateIssueResponse(TypedDict):
     hasSeen: NotRequired[
         Annotated[bool, ApiDescription("Whether the requesting user has now seen the issues")]
     ]
-    inbox: NotRequired[Annotated[bool, ApiDescription("Whether the issues are now in the inbox")]]
     isBookmarked: NotRequired[
         Annotated[bool, ApiDescription("Whether the requesting user has now bookmarked the issues")]
     ]
