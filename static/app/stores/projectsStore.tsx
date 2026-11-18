@@ -45,6 +45,20 @@ export const ProjectsStore = {
     store.setState({projects: sortBySlug(items), loading: false}, true);
   },
 
+  /**
+   * Adds projects to the store, replacing any with the same id. Merges against
+   * the current state so concurrent loads are never overwritten.
+   */
+  mergeProjects(items: readonly Project[]): void {
+    store.setState(state => {
+      const byId = new Map(state.projects.map(project => [project.id, project]));
+      for (const project of items) {
+        byId.set(project.id, project);
+      }
+      return {projects: sortBySlug([...byId.values()]), loading: false};
+    }, true);
+  },
+
   onChangeSlug(prevSlug: string, newSlug: string): void {
     const prevProject = ProjectsStore.getBySlug(prevSlug);
 

@@ -9,7 +9,17 @@ from yaml.scanner import ScannerError
 
 from sentry.utils.yaml import safe_load
 
-__all__ = ("InvalidTypeError", "Any", "Bool", "Int", "Float", "String", "Dict", "Sequence")
+__all__ = (
+    "InvalidTypeError",
+    "Any",
+    "Bool",
+    "Int",
+    "NonNegativeInt",
+    "Float",
+    "String",
+    "Dict",
+    "Sequence",
+)
 
 T = typing.TypeVar("T")
 
@@ -99,6 +109,15 @@ class IntType(Type[int]):
             return None
 
 
+class NonNegativeIntType(IntType):
+    """Coerce an integer from a string, rejecting negative values"""
+
+    name = "non-negative integer"
+
+    def test(self, value: object) -> TypeGuard[int]:
+        return isinstance(value, int) and value >= 0
+
+
 class FloatType(Type[float]):
     """Coerce a float from a string or integer"""
 
@@ -167,6 +186,7 @@ class SequenceType(Type[list[TAny]]):
 Any = AnyType()
 Bool = BoolType()
 Int = IntType()
+NonNegativeInt = NonNegativeIntType()
 Float = FloatType()
 String = StringType()
 Dict = DictType()

@@ -2,15 +2,14 @@ import {Fragment} from 'react';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 
 import {ROW_HEIGHT, STAT_VALUE_HEIGHT} from '@sentry/scraps/entityHeader/constants';
-import {InfoText} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 import type {LinkDestination} from '@sentry/scraps/link';
-import {ExternalLink, Link} from '@sentry/scraps/link';
-import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {Placeholder} from 'sentry/components/placeholder';
+
+import type {EntityHeaderTextBehavior, EntityHeaderTextStyles} from './entityHeaderText';
+import {EntityHeaderText} from './entityHeaderText';
 
 /**
  * Required rather than optional, so a stat with nothing to show is written on
@@ -43,14 +42,6 @@ type EntityHeaderStatLinkBehavior = {
   type: 'link';
   onClick?: () => void;
 } & LinkDestination;
-
-/**
- * A half as it is drawn. The colour is the component's to decide, not the
- * caller's, and only a text half can carry one: a link is always accent, so
- * its colour says it navigates.
- */
-type EntityHeaderStatRenderPart = EntityHeaderStatPartTooltip &
-  ((EntityHeaderStatTextBehavior & {variant?: 'muted'}) | EntityHeaderStatLinkBehavior);
 
 /**
  * One half of a stat — its label or its value: what it shows, and how it
@@ -102,7 +93,7 @@ export interface EntityHeaderStatProps {
 const STAT_PART_STYLES = {
   label: {size: 'sm', bold: true, density: 'comfortable', wrap: 'nowrap'},
   value: {size: 'lg', bold: true, tabular: true, wrap: 'nowrap'},
-} as const;
+} as const satisfies Record<'label' | 'value', EntityHeaderTextStyles>;
 
 const EMPTY_VALUE = '\u2014';
 
@@ -145,7 +136,7 @@ function getValuePart(
 function muteText(
   behavior: EntityHeaderStatPartBehavior,
   muted: boolean
-): EntityHeaderStatRenderPart {
+): EntityHeaderTextBehavior {
   return behavior.type === 'text' && muted ? {...behavior, variant: 'muted'} : behavior;
 }
 
@@ -161,66 +152,6 @@ function EmptyValue() {
       <span aria-hidden>{EMPTY_VALUE}</span>
       <VisuallyHidden elementType="span">{noData}</VisuallyHidden>
     </Fragment>
-  );
-}
-
-function StatPart({
-  part,
-  behavior,
-  children,
-}: {
-  behavior: EntityHeaderStatRenderPart;
-  children: React.ReactNode;
-  part: 'label' | 'value';
-}) {
-  const styles = STAT_PART_STYLES[part];
-
-  if (behavior.type === 'link') {
-    // Named by its own text. The other half is read in the same list item,
-    // which is context enough for the link's purpose.
-    return (
-      <Text {...styles} variant="accent">
-        {styleProps => {
-          const link =
-            behavior.externalHref === undefined ? (
-              <Link to={behavior.to} onClick={behavior.onClick} {...styleProps}>
-                {children}
-              </Link>
-            ) : (
-              <ExternalLink
-                href={behavior.externalHref}
-                onClick={behavior.onClick}
-                {...styleProps}
-              >
-                {children}
-              </ExternalLink>
-            );
-          // The tooltip attaches to the link rather than wrapping it in
-          // InfoText, which would put a second tab stop inside the anchor.
-          return behavior.tooltip ? (
-            <Tooltip title={behavior.tooltip} skipWrapper showUnderline>
-              {link}
-            </Tooltip>
-          ) : (
-            link
-          );
-        }}
-      </Text>
-    );
-  }
-
-  if (behavior.tooltip) {
-    return (
-      <InfoText title={behavior.tooltip} variant={behavior.variant} {...styles}>
-        {children}
-      </InfoText>
-    );
-  }
-
-  return (
-    <Text variant={behavior.variant} {...styles}>
-      {children}
-    </Text>
   );
 }
 
@@ -247,17 +178,23 @@ export function EntityHeaderStat(props: EntityHeaderStatProps) {
         then "3".
       */}
       <Flex align="baseline" gap="xs" minWidth={0}>
-        <StatPart part="label" behavior={muteText(label, true)}>
+        <EntityHeaderText
+          behavior={muteText(label, true)}
+          styles={STAT_PART_STYLES.label}
+        >
           {label.content}
-        </StatPart>
+        </EntityHeaderText>
         {/*
           An empty value keeps the value's typography, so the row's height and
           baseline do not move, and is muted so it does not read as a
           measurement — unless it links, where the colour says it navigates.
         */}
-        <StatPart part="value" behavior={muteText(value, isEmpty)}>
+        <EntityHeaderText
+          behavior={muteText(value, isEmpty)}
+          styles={STAT_PART_STYLES.value}
+        >
           {isEmpty ? <EmptyValue /> : value.content}
-        </StatPart>
+        </EntityHeaderText>
       </Flex>
     </Flex>
   );
