@@ -1,0 +1,536 @@
+"""Collect sparse, bucketed detector inputs from cell-local Snuba datasets."""
+
+from __future__ import annotations
+
+import math
+from collections import defaultdict
+from collections.abc import Iterator, Sequence
+from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
+from typing import TYPE_CHECKING, Literal
+
+from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeries
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeValue, StrArray
+from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
+    ComparisonFilter,
+    ExistsFilter,
+    NotFilter,
+    TraceItemFilter,
+)
+from snuba_sdk import (
+    And,
+    BooleanCondition,
+    Column,
+    Condition,
+    Direction,
+    Entity,
+    Function,
+    Granularity,
+    Limit,
+    LimitBy,
+    Op,
+    Or,
+    OrderBy,
+    Query,
+    Request,
+)
+
+from sentry.search.eap.rpc_utils import and_trace_item_filters, or_trace_item_filters
+from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.events.types import SnubaParams, SnubaRow
+from sentry.snuba.dataset import Dataset
+from sentry.snuba.rpc_dataset_common import LimitBy as SpanLimitBy
+from sentry.snuba.spans_rpc import Spans
+from sentry.utils import snuba_rpc
+from sentry.utils.snuba import raw_snql_query
+
+if TYPE_CHECKING:
+    from sentry.models.organization import Organization
+    from sentry.models.project import Project
+    from sentry.search.eap.resolver import SearchResolver
+
+Row = tuple[datetime, str, str, str, str, str, float | None]
+Interval = Literal["1m", "1h"]
+
+MAX_ENVIRONMENTS = 8
+MAX_SLICES = 10
+_BUCKETS_PER_QUERY = 96
+_REFERRER = "anomaly-detection.collect"
+_ROLLUPS: dict[Interval, int] = {"1m": 60, "1h": 3600}
+
+ERROR_USER = "tags[sentry:user]"
+ERROR_RELEASE = "tags[sentry:release]"
+ERROR_METRICS = ("count()", "count_unique(user)")
+SPAN_COUNTS = ("count()", "count_sample()")
+SPAN_LATENCY = (*SPAN_COUNTS, "p95(span.duration)")
+REQUEST_QUERY = "is_transaction:true"
+FAILED_QUERY = f"{REQUEST_QUERY} http.response_status_code:>=500"
+
+
+@dataclass(frozen=True)
+class SpanSignal:
+    name: str
+    query: str
+    dimension: str
+    metrics: tuple[str, ...]
+
+
+SPAN_SLICES = (
+    SpanSignal("endpoints", REQUEST_QUERY, "transaction", (*SPAN_LATENCY, "failure_rate()")),
+    SpanSignal("outbound_db", "span.category:db", "db.name", SPAN_LATENCY),
+    SpanSignal(
+        "outbound_http", "span.op:http.client", "span.domain", (*SPAN_LATENCY, "failure_rate()")
+    ),
+)
+
+
+class IncompleteCollection(RuntimeError):
+    """A response violated a collection bound; don't advance over incomplete data."""
+
+
+def _project_map(organization: Organization, projects: Sequence[Project]) -> dict[str, Project]:
+    if any(project.organization_id != organization.id for project in projects):
+        raise ValueError("Anomaly detection projects must belong to the organization")
+    return {str(project.id): project for project in projects}
+
+
+def _utc(value: datetime | str | int) -> datetime:
+    if isinstance(value, str):
+        value = datetime.fromisoformat(value)
+    elif isinstance(value, int):
+        value = datetime.fromtimestamp(value, timezone.utc)
+    return value.astimezone(timezone.utc).replace(tzinfo=None) if value.tzinfo else value
+
+
+def _number(value: object) -> float | None:
+    if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value):
+        return float(value)
+    return None
+
+
+def _normalize(
+    data: Sequence[SnubaRow],
+    *,
+    project: str,
+    signal: str,
+    metrics: tuple[str, ...],
+    start: datetime,
+    end: datetime,
+    env: str,
+    dimension: str = "",
+) -> Iterator[Row]:
+    for point in data:
+        timestamp = _utc(point["time"])
+        if not start <= timestamp < end:
+            continue
+        for metric in metrics:
+            if metric not in point:
+                continue
+            value = _number(point[metric])
+            if metric in {"p95(span.duration)", "failure_rate()"} and not _number(
+                point.get("count_sample()")
+            ):
+                value = None
+            yield timestamp, signal, metric, project, env, dimension, value
+
+
+def _windows(start: datetime, end: datetime, rollup: int) -> Iterator[tuple[datetime, datetime]]:
+    width = timedelta(seconds=rollup * _BUCKETS_PER_QUERY)
+    while start < end:
+        boundary = min(start + width, end)
+        yield start, boundary
+        start = boundary
+
+
+# Environment comes back nullable in the errors dataset. Use one expression for
+# grouping and filtering so null and empty environment mean the same thing.
+def _error_env(alias: str | None = None) -> Function:
+    return Function("coalesce", [Column("environment"), ""], alias)
+
+
+def _error_where(project: Project, start: datetime, end: datetime) -> list[Condition]:
+    return [
+        Condition(Column("project_id"), Op.EQ, project.id),
+        Condition(Column("timestamp"), Op.GTE, start.replace(tzinfo=timezone.utc)),
+        Condition(Column("timestamp"), Op.LT, end.replace(tzinfo=timezone.utc)),
+    ]
+
+
+def _run_errors(
+    organization: Organization, query: Query, referrer: str = _REFERRER
+) -> list[SnubaRow]:
+    response = raw_snql_query(
+        Request(
+            dataset=Dataset.Events.value,
+            app_id="errors",
+            query=query,
+            tenant_ids={"organization_id": organization.id},
+        ),
+        referrer=referrer,
+    )
+    return response["data"]
+
+
+def _collect_errors(
+    organization: Organization, project: Project, start: datetime, end: datetime, rollup: int
+) -> Iterator[Row]:
+    scope = _error_where(project, start, end)
+    count = Function("count", [])
+    env = _error_env()
+    env_group = _error_env("env")
+    top_envs = _run_errors(
+        organization,
+        Query(
+            match=Entity("events"),
+            select=[count],
+            where=scope,
+            groupby=[env_group],
+            orderby=[OrderBy(count, Direction.DESC), OrderBy(Column("env"), Direction.ASC)],
+            limit=Limit(MAX_ENVIRONMENTS),
+        ),
+    )
+    envs: list[str] = [row["env"] for row in top_envs]
+    if len(envs) > MAX_ENVIRONMENTS or len(set(envs)) != len(envs):
+        raise IncompleteCollection("Errors environment query exceeded its grouping bound")
+    if not envs:
+        return
+    release = Column(ERROR_RELEASE)
+    top_releases = _run_errors(
+        organization,
+        Query(
+            match=Entity("events"),
+            select=[count],
+            where=[*scope, Condition(env, Op.IN, envs), Condition(release, Op.NEQ, "")],
+            groupby=[env_group, release],
+            orderby=[OrderBy(count, Direction.DESC), OrderBy(release, Direction.ASC)],
+            limitby=LimitBy([Column("env")], MAX_SLICES),
+            limit=Limit(len(envs) * MAX_SLICES + 1),
+        ),
+    )
+    releases: dict[str, list[str]] = defaultdict(list)
+    for row in top_releases:
+        if row["env"] not in envs:
+            raise IncompleteCollection("Unexpected release environment")
+        if row[ERROR_RELEASE]:
+            releases[row["env"]].append(row[ERROR_RELEASE])
+    if len(top_releases) > len(envs) * MAX_SLICES or any(
+        len(group) > MAX_SLICES for group in releases.values()
+    ):
+        raise IncompleteCollection("Errors release query exceeded grouping bound")
+
+    release_groups = {(name, value) for name, values in releases.items() for value in values}
+    release_conditions = [
+        And([Condition(env, Op.EQ, name), Condition(release, Op.IN, values)])
+        for name, values in releases.items()
+    ]
+    queries: list[
+        tuple[str, list[Column | Function], Condition | BooleanCondition, set[tuple[str, str]]]
+    ] = [
+        ("errors", [env_group], Condition(env, Op.IN, envs), {(name, "") for name in envs}),
+    ]
+    if release_conditions:
+        release_where = (
+            Or(release_conditions) if len(release_conditions) > 1 else release_conditions[0]
+        )
+        queries.append(("errors_by_release", [env_group, release], release_where, release_groups))
+
+    for left, right in _windows(start, end, rollup):
+        # Use native time grouping rather than the UI helpers that append
+        # zero-filled buckets or concatenate environment/dimension labels.
+        bucket = Column("time")
+        metrics = [count, Function("uniq", [Column(ERROR_USER)], "users")]
+        where = _error_where(project, left, right)
+        for signal, groups, condition, allowed in queries:
+            cap = len(allowed) * int((right - left).total_seconds() / rollup)
+            result = _run_errors(
+                organization,
+                Query(
+                    match=Entity("events"),
+                    select=metrics,
+                    where=[*where, condition],
+                    groupby=[bucket, *groups],
+                    granularity=Granularity(rollup),
+                    limit=Limit(cap + 1),
+                ),
+            )
+            if len(result) > cap:
+                raise IncompleteCollection("Errors time series exceeded its row bound")
+            seen: set[tuple[datetime, str, str]] = set()
+            for row in result:
+                timestamp = _utc(row["time"])
+                name, dimension = row["env"], row.get(ERROR_RELEASE) or ""
+                key = (timestamp, name, dimension)
+                if (name, dimension) not in allowed or key in seen:
+                    raise IncompleteCollection("Unexpected or duplicate error time series bucket")
+                seen.add(key)
+                point = {
+                    "time": timestamp,
+                    "count()": row.get("count()"),
+                    "count_unique(user)": row.get("users"),
+                }
+                yield from _normalize(
+                    [point],
+                    project=str(project.id),
+                    signal=signal,
+                    metrics=ERROR_METRICS,
+                    start=left,
+                    end=right,
+                    env=name,
+                    dimension=dimension,
+                )
+
+
+def _span_attribute_filter(
+    resolver: SearchResolver, field: str, values: tuple[str, ...]
+) -> TraceItemFilter | None:
+    attribute, _ = resolver.resolve_attribute(field)
+    key = attribute.proto_definition
+    nonempty = [value for value in values if value]
+    filters: list[TraceItemFilter] = []
+    if nonempty:
+        filters.append(
+            TraceItemFilter(
+                comparison_filter=ComparisonFilter(
+                    key=key,
+                    op=ComparisonFilter.OP_IN,
+                    value=AttributeValue(val_str_array=StrArray(values=nonempty)),
+                )
+            )
+        )
+    if "" in values:
+        filters.extend(
+            (
+                TraceItemFilter(
+                    not_filter=NotFilter(
+                        filters=[TraceItemFilter(exists_filter=ExistsFilter(key=key))]
+                    )
+                ),
+                TraceItemFilter(
+                    comparison_filter=ComparisonFilter(
+                        key=key, op=ComparisonFilter.OP_EQUALS, value=AttributeValue(val_str="")
+                    )
+                ),
+            )
+        )
+    return or_trace_item_filters(*filters)
+
+
+@dataclass(frozen=True, kw_only=True)
+class ScopedSpans(SearchResolverConfig):
+    filters: tuple[tuple[str, tuple[str, ...]], ...] = ()
+    stable_timestamp_quantization: bool = False
+    zerofill_timeseries: bool = False
+
+    def extra_conditions(
+        self,
+        search_resolver: SearchResolver,
+        selected_columns: list[str] | None,
+        equations: list[str] | None,
+    ) -> TraceItemFilter | None:
+        return and_trace_item_filters(
+            *(
+                _span_attribute_filter(search_resolver, field, values)
+                for field, values in self.filters
+            )
+        )
+
+
+def _span_groups(
+    params: SnubaParams, query: str, dimension: str, envs: tuple[str, ...] = ()
+) -> list[tuple[str, ...]]:
+    fields = ["environment", dimension] if dimension else ["environment"]
+    limit = len(envs) * MAX_SLICES if dimension else MAX_ENVIRONMENTS
+    response = Spans.run_table_query(
+        params=params,
+        query_string=query,
+        selected_columns=[*fields, "count()"],
+        orderby=["-count()", *fields],
+        offset=0,
+        limit=limit + bool(dimension),
+        referrer=_REFERRER,
+        config=ScopedSpans(filters=(("environment", envs),) if envs else ()),
+        limit_by=SpanLimitBy(columns=["environment"], limit=MAX_SLICES) if dimension else None,
+    )
+    data = response["data"]
+    groups = list(dict.fromkeys(tuple(row[field] or "" for field in fields) for row in data))
+    token = response.get("page_token")
+    if len(data) > limit or (dimension and token is not None and not token.end_pagination):
+        raise IncompleteCollection("Spans group discovery exceeded its partition limit")
+    if dimension and any(group[0] not in envs for group in groups):
+        raise IncompleteCollection("Unexpected Spans slice environment")
+    # Missing dimensions aren't a stable slice and must not become project totals.
+    return [group for group in groups if not dimension or group[1]]
+
+
+def _span_series(
+    organization: Organization,
+    project: Project,
+    start: datetime,
+    end: datetime,
+    rollup: int,
+    signal: SpanSignal,
+    groups: list[tuple[str, ...]],
+    *,
+    positive_requests: set[tuple[datetime, str]] | None = None,
+) -> Iterator[Row]:
+    if not groups:
+        return
+    allowed = set(groups)
+    fields = ["environment", signal.dimension] if signal.dimension else ["environment"]
+    config = ScopedSpans()
+    for left, right in _windows(start, end, rollup):
+        params = SnubaParams(
+            organization=organization,
+            projects=[project],
+            start=left,
+            end=right,
+            granularity_secs=rollup,
+        )
+        resolver = Spans.get_resolver(params, config)
+        conditions = or_trace_item_filters(
+            *(
+                and_trace_item_filters(
+                    *(
+                        _span_attribute_filter(resolver, field, (value,))
+                        for field, value in zip(fields, group)
+                    )
+                )
+                for group in groups
+            )
+        )
+        request, _, columns = Spans.get_timeseries_query(
+            search_resolver=resolver,
+            params=params,
+            query_string=signal.query,
+            y_axes=list(signal.metrics),
+            groupby=fields,
+            referrer=_REFERRER,
+            sampling_mode=None,
+            extra_conditions=conditions,
+        )
+        response = snuba_rpc.timeseries_rpc([request])[0]
+        grouped: dict[tuple[str, ...], list[TimeSeries]] = defaultdict(list)
+        bucket_count = int((right - left).total_seconds() / rollup)
+        for series in response.result_timeseries:
+            attributes = series.group_by_attributes
+            key = tuple(attributes.get(column.internal_name, "") for column in columns)
+            if key not in allowed:
+                raise IncompleteCollection("Unexpected group in Spans time series")
+            if series.label not in signal.metrics or len(series.buckets) > bucket_count:
+                raise IncompleteCollection("Unexpected metric or bucket count in Spans time series")
+            if len(series.buckets) != len(series.data_points):
+                raise IncompleteCollection(
+                    "Spans time series did not return a value for every bucket"
+                )
+            grouped[key].append(series)
+        present: set[tuple[datetime, str]] = set()
+        for key, group_series in grouped.items():
+            if len(group_series) != len({item.label for item in group_series}):
+                raise IncompleteCollection("Duplicate group/metric in Spans time series")
+            data = Spans.process_timeseries_list(group_series, config).timeseries
+            if not signal.dimension:
+                # EAP emits a placeholder with null for every aggregate in an
+                # empty bucket. Missing or partially populated metrics remain
+                # unknown rather than being synthesized as zero.
+                data = [
+                    point
+                    for point in data
+                    if not all(
+                        metric in point and point[metric] is None for metric in signal.metrics
+                    )
+                ]
+            if not signal.dimension:
+                present.update((_utc(point["time"]), key[0]) for point in data)
+            yield from _normalize(
+                data,
+                project=str(project.id),
+                signal=signal.name,
+                metrics=signal.metrics,
+                start=left,
+                end=right,
+                env=key[0],
+                dimension=key[1] if signal.dimension else "",
+            )
+        if not signal.dimension:
+            for index in range(bucket_count):
+                timestamp = left + timedelta(seconds=index * rollup)
+                for (env,) in groups:
+                    bucket = timestamp, env
+                    if bucket in present or (
+                        positive_requests is not None and bucket not in positive_requests
+                    ):
+                        continue
+                    for metric in signal.metrics:
+                        yield timestamp, signal.name, metric, str(project.id), env, "", 0.0
+
+
+def collect(
+    organization: Organization,
+    projects: Sequence[Project],
+    start: datetime,
+    end: datetime,
+    interval: Interval,
+) -> list[Row]:
+    """Collect measurements in [start, end), with bucket-aligned naive UTC timestamps.
+
+    Group discovery keeps only the most active environments and top slices.
+    Absent request buckets can represent silence; other measurements remain
+    sparse, and query failures propagate to the scheduler.
+    """
+    rollup = _ROLLUPS[interval]
+    start, end = _utc(start), _utc(end)
+    if start >= end:
+        return []
+    if any(
+        value.microsecond or int(value.replace(tzinfo=timezone.utc).timestamp()) % rollup
+        for value in (start, end)
+    ):
+        raise ValueError("Anomaly collection window must align with its bucket boundaries")
+
+    rows: list[Row] = []
+    for project in _project_map(organization, projects).values():
+        rows.extend(_collect_errors(organization, project, start, end, rollup))
+        if not Spans.filter_project(project):
+            continue
+        params = SnubaParams(organization=organization, projects=[project], start=start, end=end)
+        # Discover traffic scopes even when the collection window itself is silent.
+        discovery = SnubaParams(
+            organization=organization, projects=[project], start=start - timedelta(days=1), end=end
+        )
+        groups = _span_groups(discovery, REQUEST_QUERY, "")
+        requests = list(
+            _span_series(
+                organization,
+                project,
+                start,
+                end,
+                rollup,
+                SpanSignal("requests", REQUEST_QUERY, "", SPAN_COUNTS),
+                groups,
+            )
+        )
+        rows.extend(requests)
+        positive_requests = {
+            (timestamp, env)
+            for timestamp, _, metric, _, env, _, value in requests
+            if metric == "count()" and value is not None and value > 0
+        }
+        rows.extend(
+            _span_series(
+                organization,
+                project,
+                start,
+                end,
+                rollup,
+                SpanSignal("failed_requests", FAILED_QUERY, "", SPAN_COUNTS),
+                groups,
+                positive_requests=positive_requests,
+            )
+        )
+        if not groups:
+            continue
+        environments = tuple(group[0] for group in groups)
+        for signal in SPAN_SLICES:
+            slices = _span_groups(params, signal.query, signal.dimension, environments)
+            rows.extend(_span_series(organization, project, start, end, rollup, signal, slices))
+    return rows
