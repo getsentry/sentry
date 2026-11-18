@@ -4,7 +4,6 @@ from typing import Any
 from unittest.mock import patch
 
 from django.db import connections, router
-from django.db.models import F
 from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
@@ -434,11 +433,7 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
             Factories.create_seer_workflow_run_execution(run)
         runs = list(
             SeerWorkflowRun.objects.filter(id__in=[run.id for run in created])
-            .annotate(
-                strategy=F("workflow_config__strategy"),
-                config_extras=F("workflow_config__extras"),
-                config_workflow_name=F("workflow_config__backing_workflow__name"),
-            )
+            .select_related("workflow_config__backing_workflow")
             .order_by("id")
         )
         using = router.db_for_read(SeerWorkflowRunExecution)
