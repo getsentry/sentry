@@ -35,13 +35,13 @@ function MetricDetectorTriggeredSectionWithProvider(
 }
 
 // Issue details refetches the event after the zoom navigation and remounts the event
-// content about a second later.
+// content about a second later, which can cross into the next minute.
 function RemountOnLocationChange(
   props: ComponentProps<typeof MetricDetectorTriggeredSection>
 ) {
   const location = useLocation();
   if (location.search) {
-    setMockDate(new Date('2024-01-01T00:20:01.456Z'));
+    setMockDate(new Date('2024-01-01T00:21:00.400Z'));
   }
   return <MetricDetectorTriggeredSectionWithProvider key={location.search} {...props} />;
 }
@@ -1431,7 +1431,7 @@ describe('MetricDetectorTriggeredSection', () => {
         body: {cohort1Total: 0, cohort2Total: 0, rankedAttributes: []},
       });
 
-      setMockDate(new Date('2024-01-01T00:20:00.123Z'));
+      setMockDate(new Date('2024-01-01T00:20:59.500Z'));
 
       const {router} = render(
         <RemountOnLocationChange {...defaultProps} event={spansEvent} />,
@@ -1459,7 +1459,7 @@ describe('MetricDetectorTriggeredSection', () => {
       expect(rankedAttributesRequest).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
-          query: expect.objectContaining({end: '2024-01-01T00:20:01.000'}),
+          query: expect.objectContaining({end: '2024-01-01T00:22:00.000'}),
         })
       );
     });

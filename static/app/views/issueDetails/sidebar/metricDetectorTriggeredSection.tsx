@@ -421,12 +421,11 @@ function TriggeredConditionDetails({
     (max, c) => (!max || c.conditionResult > max.conditionResult ? c : max),
     undefined
   );
-  // Whole seconds keep query keys built from this date stable within the same second.
-  const [fallbackEndDate] = useState(() => {
-    const now = new Date();
-    now.setMilliseconds(0);
-    return now.toISOString();
-  });
+  // Rounding up to the minute keeps query keys built from this date stable across
+  // remounts, and never ends the range before now.
+  const [fallbackEndDate] = useState(() =>
+    new Date(Math.ceil(Date.now() / 60_000) * 60_000).toISOString()
+  );
   const detectionType = evidenceData.config?.detectionType ?? 'static';
   const {data: openPeriod, isLoading: isOpenPeriodLoading} = useEventOpenPeriod({
     groupId,
