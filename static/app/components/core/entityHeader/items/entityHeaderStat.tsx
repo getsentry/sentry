@@ -1,23 +1,94 @@
+import {Fragment} from 'react';
+import {VisuallyHidden} from '@react-aria/visually-hidden';
+
 import {ROW_HEIGHT, STAT_VALUE_HEIGHT} from '@sentry/scraps/entityHeader/constants';
 import {InfoText} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
-import type {LinkProps} from '@sentry/scraps/link';
-import {Link} from '@sentry/scraps/link';
+import type {LinkDestination} from '@sentry/scraps/link';
+import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {Placeholder} from 'sentry/components/placeholder';
 
-interface EntityHeaderStatBase {
+/**
+ * Required rather than optional, so a stat with nothing to show is written on
+ * purpose as `null`, never arrived at by leaving the value out.
+ */
+type EntityHeaderStatValue = number | string | null;
+
+/**
+ * How one half of a stat behaves, apart from what it shows. Each half declares
+ * what it is, rather than the component inferring it from whether a
+ * destination happens to be defined. The content may change as often as it
+ * likes; the type may not, so a link half stays a link when its count is zero
+ * or empty.
+ */
+type EntityHeaderStatPartBehavior = EntityHeaderStatPartTooltip &
+  (EntityHeaderStatTextBehavior | EntityHeaderStatLinkBehavior);
+
+type EntityHeaderStatPartTooltip = {
   /**
-   * Short, static label such as "Dead Clicks".
+   * Takes structured content as readily as a string, so it can be built from
+   * `Tooltip.Header`, `Tooltip.Grid` and `Tooltip.Row`. Keep it readable
+   * without links: nothing inside a tooltip can be reached by keyboard.
    */
-  label: string;
+  tooltip?: React.ReactNode;
+};
+
+type EntityHeaderStatTextBehavior = {type: 'text'};
+
+type EntityHeaderStatLinkBehavior = {
+  type: 'link';
+  onClick?: () => void;
+} & LinkDestination;
+
+/**
+ * A half as it is drawn. The colour is the component's to decide, not the
+ * caller's, and only a text half can carry one: a link is always accent, so
+ * its colour says it navigates.
+ */
+type EntityHeaderStatRenderPart = EntityHeaderStatPartTooltip &
+  ((EntityHeaderStatTextBehavior & {variant?: 'muted'}) | EntityHeaderStatLinkBehavior);
+
+/**
+ * One half of a stat — its label or its value: what it shows, and how it
+ * behaves.
+ */
+type EntityHeaderStatPart<TContent> = {
+  content: TContent;
+} & EntityHeaderStatPartBehavior;
+
+export interface EntityHeaderStatProps {
+  /**
+   * Short, static label such as "Dead Clicks". A string is shorthand for a
+   * `text` label.
+   *
+   * Link the label when the destination is about what the stat measures —
+   * the tab where dead clicks are listed. Its tooltip explains a label that is
+   * jargon on its own.
+   */
+  label: string | EntityHeaderStatPart<string>;
   /**
    * The measurement itself. Text, not a node: the row is built for single
-   * numbers, and any breakdown belongs in `valueTooltip`.
+   * numbers, and any breakdown belongs in the value's `tooltip`. A number,
+   * string or `null` is shorthand for a `text` value.
+   *
+   * Link the value when the destination is the things it counts — the errors
+   * behind an error count. Its tooltip carries what the value is made of, or,
+   * when the content is `null`, why there is none.
+   *
+   * `null` means the data was never collected for this entity — no cost
+   * recorded, no size reported. It renders a "—" and is read "No data". Never
+   * pass a placeholder such as `'-'` or `'—'` yourself: a screen reader reads it
+   * aloud as the data ("dash").
+   *
+   * Not for a real zero (pass `0`), a value still loading (pass `isLoading`),
+   * or a stat that does not apply to this entity (pass `null` for the whole
+   * item instead).
    */
-  value: number | string;
+  value: EntityHeaderStatValue | EntityHeaderStatPart<EntityHeaderStatValue>;
   /**
    * Hold this one stat as a skeleton while the rest of the header is live. Use
    * it when the value comes from a request that settles after the entity does;
@@ -26,76 +97,108 @@ interface EntityHeaderStatBase {
    * `isLoading`.
    */
   isLoading?: boolean;
-  /**
-   * What the stat measures, for a label that is jargon on its own. Takes
-   * structured content as readily as a string, so it can be built from
-   * `Tooltip.Header`, `Tooltip.Grid` and `Tooltip.Row`.
-   */
-  labelTooltip?: React.ReactNode;
-  /**
-   * What the value is made of — the projects behind an error count, say.
-   * Takes structured content, which is how a breakdown stays out of the row.
-   */
-  valueTooltip?: React.ReactNode;
 }
 
-/**
- * A stat declares what it is, rather than the component inferring it from
- * whether a destination happens to be defined. The value may change as often
- * as it likes; the type may not.
- */
-export type EntityHeaderStatProps =
-  | ({type: 'text'} & EntityHeaderStatBase)
-  | ({
-      /**
-       * Where the label leads. Required, so the stat cannot quietly stop being
-       * a link when its count is zero.
-       */
-      to: LinkProps['to'];
-      type: 'link';
-      onClick?: () => void;
-    } & EntityHeaderStatBase);
-
-const VALUE_STYLES = {size: 'lg', bold: true, tabular: true, wrap: 'nowrap'} as const;
-
-const LABEL_STYLES = {
-  size: 'sm',
-  bold: true,
-  density: 'comfortable',
-  wrap: 'nowrap',
+const STAT_PART_STYLES = {
+  label: {size: 'sm', bold: true, density: 'comfortable', wrap: 'nowrap'},
+  value: {size: 'lg', bold: true, tabular: true, wrap: 'nowrap'},
 } as const;
 
-function StatValue({value, valueTooltip}: EntityHeaderStatProps) {
-  if (valueTooltip) {
-    return (
-      <InfoText title={valueTooltip} {...VALUE_STYLES}>
-        {value}
-      </InfoText>
-    );
-  }
+const EMPTY_VALUE = '\u2014';
 
-  return <Text {...VALUE_STYLES}>{value}</Text>;
+const PLACEHOLDER_VALUES = new Set(['', '-', '\u2013', '\u2014', 'n/a', 'N/A']);
+
+const warnedPlaceholderLabels = new Set<string>();
+
+function warnOnPlaceholderValue(label: string, value: EntityHeaderStatValue): void {
+  if (process.env.NODE_ENV === 'production') {
+    return;
+  }
+  if (typeof value !== 'string' || !PLACEHOLDER_VALUES.has(value.trim())) {
+    return;
+  }
+  if (warnedPlaceholderLabels.has(label)) {
+    return;
+  }
+  warnedPlaceholderLabels.add(label);
+
+  // eslint-disable-next-line no-console
+  console.warn(
+    `EntityHeader stat "${label}" was given the placeholder value "${value}", which a screen reader reads aloud as data. Pass \`value: null\` for a stat with nothing to show.`
+  );
 }
 
-function StatLabel(props: EntityHeaderStatProps) {
-  const {label, labelTooltip} = props;
+function getLabelPart(
+  label: EntityHeaderStatProps['label']
+): EntityHeaderStatPart<string> {
+  return typeof label === 'string' ? {type: 'text', content: label} : label;
+}
 
-  if (props.type === 'link') {
-    const {to, onClick} = props;
-    // Named by its label alone — where it leads. The count beside it is read
-    // in the same list item, which is context enough for the link's purpose.
+function getValuePart(
+  value: EntityHeaderStatProps['value']
+): EntityHeaderStatPart<EntityHeaderStatValue> {
+  return value !== null && typeof value === 'object'
+    ? value
+    : {type: 'text', content: value};
+}
+
+function muteText(
+  behavior: EntityHeaderStatPartBehavior,
+  muted: boolean
+): EntityHeaderStatRenderPart {
+  return behavior.type === 'text' && muted ? {...behavior, variant: 'muted'} : behavior;
+}
+
+function EmptyValue() {
+  const {t} = useTranslation();
+  // Translators: read by a screen reader in place of the dash shown for a stat that has nothing to show, e.g. no cost recorded
+  const noData = t('No data');
+
+  // The dash is for the eye only; read aloud it would be "dash", which sounds
+  // like a value.
+  return (
+    <Fragment>
+      <span aria-hidden>{EMPTY_VALUE}</span>
+      <VisuallyHidden elementType="span">{noData}</VisuallyHidden>
+    </Fragment>
+  );
+}
+
+function StatPart({
+  part,
+  behavior,
+  children,
+}: {
+  behavior: EntityHeaderStatRenderPart;
+  children: React.ReactNode;
+  part: 'label' | 'value';
+}) {
+  const styles = STAT_PART_STYLES[part];
+
+  if (behavior.type === 'link') {
+    // Named by its own text. The other half is read in the same list item,
+    // which is context enough for the link's purpose.
     return (
-      <Text {...LABEL_STYLES} variant="accent">
+      <Text {...styles} variant="accent">
         {styleProps => {
-          const link = (
-            <Link to={to} onClick={onClick} {...styleProps}>
-              {label}
-            </Link>
-          );
+          const link =
+            behavior.externalHref === undefined ? (
+              <Link to={behavior.to} onClick={behavior.onClick} {...styleProps}>
+                {children}
+              </Link>
+            ) : (
+              <ExternalLink
+                href={behavior.externalHref}
+                onClick={behavior.onClick}
+                {...styleProps}
+              >
+                {children}
+              </ExternalLink>
+            );
           // The tooltip attaches to the link rather than wrapping it in
           // InfoText, which would put a second tab stop inside the anchor.
-          return labelTooltip ? (
-            <Tooltip title={labelTooltip} skipWrapper showUnderline>
+          return behavior.tooltip ? (
+            <Tooltip title={behavior.tooltip} skipWrapper showUnderline>
               {link}
             </Tooltip>
           ) : (
@@ -106,17 +209,17 @@ function StatLabel(props: EntityHeaderStatProps) {
     );
   }
 
-  if (labelTooltip) {
+  if (behavior.tooltip) {
     return (
-      <InfoText title={labelTooltip} variant="muted" {...LABEL_STYLES}>
-        {label}
+      <InfoText title={behavior.tooltip} variant={behavior.variant} {...styles}>
+        {children}
       </InfoText>
     );
   }
 
   return (
-    <Text {...LABEL_STYLES} variant="muted">
-      {label}
+    <Text variant={behavior.variant} {...styles}>
+      {children}
     </Text>
   );
 }
@@ -130,6 +233,12 @@ export function EntityHeaderStat(props: EntityHeaderStatProps) {
     );
   }
 
+  const label = getLabelPart(props.label);
+  const value = getValuePart(props.value);
+  const isEmpty = value.content === null;
+
+  warnOnPlaceholderValue(label.content, value.content);
+
   return (
     <Flex as="li" align="center" height={ROW_HEIGHT} flexShrink={0} minWidth={0}>
       {/*
@@ -138,8 +247,17 @@ export function EntityHeaderStat(props: EntityHeaderStatProps) {
         then "3".
       */}
       <Flex align="baseline" gap="xs" minWidth={0}>
-        <StatLabel {...props} />
-        <StatValue {...props} />
+        <StatPart part="label" behavior={muteText(label, true)}>
+          {label.content}
+        </StatPart>
+        {/*
+          An empty value keeps the value's typography, so the row's height and
+          baseline do not move, and is muted so it does not read as a
+          measurement — unless it links, where the colour says it navigates.
+        */}
+        <StatPart part="value" behavior={muteText(value, isEmpty)}>
+          {isEmpty ? <EmptyValue /> : value.content}
+        </StatPart>
       </Flex>
     </Flex>
   );

@@ -3,6 +3,7 @@ from __future__ import annotations
 from django.conf.urls import include
 from django.urls import URLPattern, URLResolver, re_path
 
+from sentry.agent_handoff.endpoints.claim_agent_handoff import ClaimAgentHandoffEndpoint
 from sentry.agent_handoff.endpoints.organization_agent_handoff import (
     OrganizationAgentHandoffEndpoint,
 )
@@ -331,7 +332,6 @@ from sentry.issues.endpoints import (
     GroupNotesEndpoint,
     GroupPullRequestsEndpoint,
     GroupRelatedEndpoint,
-    GroupSimilarIssuesEmbeddingsEndpoint,
     GroupSimilarIssuesEndpoint,
     GroupTombstoneDetailsEndpoint,
     GroupTombstoneEndpoint,
@@ -620,7 +620,11 @@ from sentry.seer.endpoints.organization_seer_monitoring_providers import (
     OrganizationSeerMonitoringIdentityTokenEndpoint,
     OrganizationSeerMonitoringIntegrationTokenEndpoint,
 )
+from sentry.seer.endpoints.organization_seer_nav_links import OrganizationSeerNavLinksEndpoint
 from sentry.seer.endpoints.organization_seer_onboarding_check import OrganizationSeerOnboardingCheck
+from sentry.seer.endpoints.organization_seer_repo_access import (
+    OrganizationSeerRepoAccessEndpoint,
+)
 from sentry.seer.endpoints.organization_seer_rpc import OrganizationSeerRpcEndpoint
 from sentry.seer.endpoints.organization_seer_runs import OrganizationSeerRunsEndpoint
 from sentry.seer.endpoints.organization_seer_setup_check import OrganizationSeerSetupCheckEndpoint
@@ -706,6 +710,7 @@ from sentry.sentry_apps.api.endpoints.sentry_internal_app_tokens import (
     SentryInternalAppTokensEndpoint,
 )
 from sentry.service_accounts.endpoints.organization_service_account_tokens import (
+    OrganizationServiceAccountTokenDetailsEndpoint,
     OrganizationServiceAccountTokenIndexEndpoint,
 )
 from sentry.service_accounts.endpoints.organization_service_account_viewer_context import (
@@ -1040,11 +1045,6 @@ def create_group_urls(
             r"^(?P<issue_id>[^/]+)/similar/$",
             GroupSimilarIssuesEndpoint.as_view(),
             name=f"{name_prefix}-group-similar",
-        ),
-        re_path(
-            r"^(?P<issue_id>[^/]+)/similar-issues-embeddings/$",
-            GroupSimilarIssuesEmbeddingsEndpoint.as_view(),
-            name=f"{name_prefix}-group-similar-issues-embeddings",
         ),
         re_path(
             r"^(?P<issue_id>[^/]+)/external-issues/$",
@@ -1849,6 +1849,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-service-account-tokens",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/service-accounts/(?P<service_account_id>\d+)/tokens/(?P<token_id>\d+)/$",
+        OrganizationServiceAccountTokenDetailsEndpoint.as_view(),
+        name="sentry-api-0-organization-service-account-token-details",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/service-accounts/(?P<service_account_id>\d+)/viewer-context/$",
         OrganizationServiceAccountViewerContextEndpoint.as_view(),
         name="sentry-api-0-organization-service-account-viewer-context",
@@ -2464,12 +2469,12 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-investigation-candidates",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/orchestration/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<notebook_id>[^/]+)/orchestration/$",
         OrganizationInvestigationOrchestrationEndpoint.as_view(),
         name="sentry-api-0-organization-investigation-orchestration",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<investigation_id>[^/]+)/orchestration/commands/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<notebook_id>[^/]+)/orchestration/commands/$",
         OrganizationInvestigationOrchestrationCommandsEndpoint.as_view(),
         name="sentry-api-0-organization-investigation-orchestration-commands",
     ),
@@ -2479,82 +2484,82 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-notebooks",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<investigation_id>[^/]+)/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<notebook_id>[^/]+)/$",
         OrganizationNotebookDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-notebook-details",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<investigation_id>[^/]+)/blocks/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<notebook_id>[^/]+)/blocks/$",
         OrganizationNotebookBlockIndexEndpoint.as_view(),
         name="sentry-api-0-organization-notebook-blocks",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<investigation_id>[^/]+)/blocks/order/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<notebook_id>[^/]+)/blocks/order/$",
         OrganizationNotebookBlockOrderEndpoint.as_view(),
         name="sentry-api-0-organization-notebook-block-order",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<investigation_id>[^/]+)/blocks/(?P<block_id>[^/]+)/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<notebook_id>[^/]+)/blocks/(?P<block_id>[^/]+)/$",
         OrganizationNotebookBlockDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-notebook-block-details",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<investigation_id>[^/]+)/blocks/(?P<block_id>[^/]+)/executions/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<notebook_id>[^/]+)/blocks/(?P<block_id>[^/]+)/executions/$",
         OrganizationNotebookBlockExecutionIndexEndpoint.as_view(),
         name="sentry-api-0-organization-notebook-block-executions",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<investigation_id>[^/]+)/blocks/(?P<block_id>[^/]+)/executions/(?P<execution_id>[^/]+)/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<notebook_id>[^/]+)/blocks/(?P<block_id>[^/]+)/executions/(?P<execution_id>[^/]+)/$",
         OrganizationNotebookBlockExecutionDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-notebook-block-execution-details",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<investigation_id>[^/]+)/favorite/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<notebook_id>[^/]+)/favorite/$",
         OrganizationNotebookFavoriteEndpoint.as_view(),
         name="sentry-api-0-organization-notebook-favorite",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<investigation_id>[^/]+)/comments/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<notebook_id>[^/]+)/comments/$",
         OrganizationNotebookCommentIndexEndpoint.as_view(),
         name="sentry-api-0-organization-notebook-comments",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<investigation_id>[^/]+)/comment-counts/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<notebook_id>[^/]+)/comment-counts/$",
         OrganizationNotebookCommentCountsEndpoint.as_view(),
         name="sentry-api-0-organization-notebook-comment-counts",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<investigation_id>[^/]+)/comments/(?P<comment_id>[^/]+)/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<notebook_id>[^/]+)/comments/(?P<comment_id>[^/]+)/$",
         OrganizationNotebookCommentDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-notebook-comment-details",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<investigation_id>[^/]+)/duplicate/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<notebook_id>[^/]+)/duplicate/$",
         OrganizationNotebookDuplicateEndpoint.as_view(),
         name="sentry-api-0-organization-notebook-duplicate",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<investigation_id>[^/]+)/action-requests/(?P<action_request_id>[^/]+)/apply/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<notebook_id>[^/]+)/action-requests/(?P<action_request_id>[^/]+)/apply/$",
         OrganizationNotebookActionRequestApplyEndpoint.as_view(),
         name="sentry-api-0-organization-notebook-action-request-apply",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<investigation_id>[^/]+)/action-requests/(?P<action_request_id>[^/]+)/recheck/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<notebook_id>[^/]+)/action-requests/(?P<action_request_id>[^/]+)/recheck/$",
         OrganizationNotebookActionRequestRecheckEndpoint.as_view(),
         name="sentry-api-0-organization-notebook-action-request-recheck",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<investigation_id>[^/]+)/action-requests/(?P<action_request_id>[^/]+)/retry-follow-up/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<notebook_id>[^/]+)/action-requests/(?P<action_request_id>[^/]+)/retry-follow-up/$",
         OrganizationNotebookActionRequestRetryFollowUpEndpoint.as_view(),
         name="sentry-api-0-organization-notebook-action-request-retry-follow-up",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<investigation_id>[^/]+)/presence/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<notebook_id>[^/]+)/presence/$",
         OrganizationNotebookPresenceEndpoint.as_view(),
         name="sentry-api-0-organization-notebook-presence",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<investigation_id>[^/]+)/title-generation/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<notebook_id>[^/]+)/title-generation/$",
         OrganizationNotebookTitleGenerationEndpoint.as_view(),
         name="sentry-api-0-organization-notebook-title-generation",
     ),
@@ -2594,6 +2599,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-seer-chat-suggestions",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/nav-links/$",
+        OrganizationSeerNavLinksEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-nav-links",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/autofix-overview/$",
         OrganizationSeerAutofixOverviewEndpoint.as_view(),
         name="sentry-api-0-organization-seer-autofix-overview",
@@ -2602,6 +2612,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/seer/autofix-scm-info/$",
         OrganizationSeerAutofixScmInfoEndpoint.as_view(),
         name="sentry-api-0-organization-seer-autofix-scm-info",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/seer/repo-access/$",
+        OrganizationSeerRepoAccessEndpoint.as_view(),
+        name="sentry-api-0-organization-seer-repo-access",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/seer/runs/$",
@@ -3863,6 +3878,11 @@ INTERNAL_URLS = [
 ]
 
 urlpatterns = [
+    re_path(
+        r"^agent-handoff/$",
+        ClaimAgentHandoffEndpoint.as_view(),
+        name="sentry-api-0-agent-handoff-claim",
+    ),
     # Relay
     re_path(
         r"^relays/",

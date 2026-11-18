@@ -45,6 +45,7 @@ import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
+import {FROM_PROJECT_CREATION_STATE} from './gettingStartedLocationState';
 import {useCreateNotificationAction} from './issueAlertNotificationOptions';
 import type {AlertRuleOptions, RequestDataFragment} from './issueAlertOptions';
 import {getRequestDataFragment, IssueAlertOptions, RuleAction} from './issueAlertOptions';
@@ -352,15 +353,18 @@ export function CreateProject() {
           wasNameManuallyModified: hasUserModifiedProjectName.current,
         });
 
-        navigate({
-          pathname: normalizeUrl(
-            makeProjectsPathname({
-              path: `/${project.slug}/getting-started/`,
-              organization,
-            })
-          ),
-          query: {projectCreationVariant: 'legacy'},
-        });
+        navigate(
+          {
+            pathname: normalizeUrl(
+              makeProjectsPathname({
+                path: `/${project.slug}/getting-started/`,
+                organization,
+              })
+            ),
+            query: {projectCreationVariant: 'legacy'},
+          },
+          {state: FROM_PROJECT_CREATION_STATE}
+        );
       } catch (error: any) {
         toast.error(t('Failed to create project %s', projectName));
 

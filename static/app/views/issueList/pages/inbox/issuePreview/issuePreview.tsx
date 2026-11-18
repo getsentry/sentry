@@ -317,6 +317,7 @@ function IssuePreviewContent() {
                   ? 'autofix-start'
                   : 'autofix-continue'
               }
+              denialReason={previewSeer.creditCheck.denialReason}
             />
           )}
           {summary && <IssuePreviewSummary summary={summary} />}

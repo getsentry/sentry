@@ -4,16 +4,20 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ClassifierDataset, PrebuiltClassifier} from 'sentry/views/classifiers/types';
 
-export function usePrebuiltClassifiers(dataset: ClassifierDataset) {
+export function usePrebuiltClassifiers(
+  dataset: ClassifierDataset,
+  {enabled = true}: {enabled?: boolean} = {}
+) {
   const organization = useOrganization();
-  return useQuery(
-    apiOptions.as<PrebuiltClassifier[]>()(
+  return useQuery({
+    ...apiOptions.as<PrebuiltClassifier[]>()(
       '/organizations/$organizationIdOrSlug/classifiers/prebuilt/',
       {
         path: {organizationIdOrSlug: organization.slug},
         query: {dataset},
         staleTime: 60_000,
       }
-    )
-  );
+    ),
+    enabled,
+  });
 }

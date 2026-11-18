@@ -21,6 +21,7 @@ from sentry.seer.autofix.pr_iteration.queue import (
     enqueue_autofix_feedback,
     peek_queued_autofix_feedback,
     pop_queued_autofix_feedback,
+    requeue_autofix_feedback,
 )
 from sentry.testutils.cases import TestCase
 from sentry.utils import json
@@ -231,6 +232,26 @@ class TryEnqueueAutofixFeedbackTest(TestCase):
 
         assert [item.feedback.text for item in items] == ["first", "second"]
         assert peek_queued_autofix_feedback(4848) == []
+
+    def test_requeue_puts_a_batch_back_ahead_of_newer_feedback(self) -> None:
+        for text in ("first", "second"):
+            self._enqueue(
+                run_id=5050,
+                feedback=Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback=text)),
+            )
+        batch = pop_queued_autofix_feedback(5050)
+        self._enqueue(
+            run_id=5050,
+            feedback=Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="newer")),
+        )
+
+        requeue_autofix_feedback(5050, batch)
+
+        assert [item.feedback.text for item in peek_queued_autofix_feedback(5050)] == [
+            "first",
+            "second",
+            "newer",
+        ]
 
     def test_clear_empties_the_queue(self) -> None:
         feedback = Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="fix it"))

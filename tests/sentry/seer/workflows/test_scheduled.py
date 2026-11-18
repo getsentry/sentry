@@ -270,10 +270,16 @@ class ScheduledAutomationEndToEndTest(TestCase):
                 self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
             )
             enable(config)
+        (scheduled,) = get_schedules(
+            organization_id=self.organization.id,
+            trigger_type=ScheduledTriggerType.SEER_WORKFLOW,
+            target_ids=[config.id],
+        ).values()
+        assert scheduled.next_scheduled_for == SCHEDULED_FOR
+        assert scheduled.next_fire_at is not None
 
-        # Past the end of the spread window, so the firing is due whatever its offset.
         with (
-            freeze_time(SCHEDULED_FOR + timedelta(hours=1)),
+            freeze_time(scheduled.next_fire_at),
             override_options({"cadence.tick.enabled": True}),
             self.tasks(),
         ):

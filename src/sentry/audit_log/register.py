@@ -325,7 +325,7 @@ default_manager.add(
 default_manager.add(events.InternalIntegrationAddAuditLogEvent())
 default_manager.add(events.InternalIntegrationDisabledAuditLogEvent())
 default_manager.add(
-    AuditLogEvent(
+    events.InternalIntegrationTokenAuditLogEvent(
         event_id=135,
         name="INTERNAL_INTEGRATION_ADD_TOKEN",
         api_name="internal-integration.add-token",
@@ -333,7 +333,7 @@ default_manager.add(
     )
 )
 default_manager.add(
-    AuditLogEvent(
+    events.InternalIntegrationTokenAuditLogEvent(
         event_id=136,
         name="INTERNAL_INTEGRATION_REMOVE_TOKEN",
         api_name="internal-integration.remove-token",
@@ -790,5 +790,21 @@ default_manager.add(
         name="SERVICE_ACCOUNT_REMOVE",
         api_name="service-account.remove",
         template="removed service account {name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=226,
+        name="SERVICE_ACCOUNT_TOKEN_ADD",
+        api_name="service-account-token.create",
+        template="added token {name} to service account {service_account_name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=227,
+        name="SERVICE_ACCOUNT_TOKEN_REMOVE",
+        api_name="service-account-token.remove",
+        template="revoked token {name} of service account {service_account_name}",
     )
 )

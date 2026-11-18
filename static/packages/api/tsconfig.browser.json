@@ -1,0 +1,12 @@
+{
+  // The shared client must run in browsers and Workers: check it against the
+  // DOM library with no Node or Bun types, so a Node-only API fails to compile.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "lib": ["ESNext", "DOM", "DOM.Iterable"],
+    "types": [],
+    "noEmit": true,
+    "emitDeclarationOnly": false
+  },
+  "include": ["src/api-client/**/*.ts", "src/browser.ts"]
+}

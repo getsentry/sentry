@@ -13,6 +13,7 @@ from sentry.api.serializers.models.activity import (
     serialize_group_notes,
 )
 from sentry.api.serializers.rest_framework.group_notes import NoteSerializer
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.principal import acting_user
 from sentry.constants import CELL_API_DEPRECATION_DATE
@@ -67,7 +68,8 @@ class GroupNotesEndpoint(GroupEndpoint):
     @extend_schema(
         request=NoteSerializer,
         responses={
-            201: inline_sentry_response_serializer("CreateGroupNote", GroupNoteSerializerResponse)
+            201: inline_sentry_response_serializer("CreateGroupNote", GroupNoteSerializerResponse),
+            400: RESPONSE_BAD_REQUEST,
         },
     )
     @deprecated(

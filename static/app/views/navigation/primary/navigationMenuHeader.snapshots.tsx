@@ -49,6 +49,8 @@ function Frame({children, sampled}: {children: ReactNode; sampled?: Logo}) {
   );
 }
 
+const LONG_NAME = 'a-very-long-slug-that-keeps-going-past-the-menu-edge';
+
 interface Logo {
   color: string;
   kind: string;
@@ -108,6 +110,32 @@ describe('NavigationMenuHeader', () => {
       </Frame>
     ),
     {tags: {avatar: 'letter', area: 'core'}}
+  );
+
+  // A title that wraps must not squeeze the avatar.
+  it.snapshot(
+    'organization-long-name',
+    () => (
+      <Frame>
+        <NavigationMenuHeader
+          organization={OrganizationFixture({name: LONG_NAME, slug: LONG_NAME})}
+          projectCount={2}
+        />
+      </Frame>
+    ),
+    {tags: {avatar: 'letter', name: 'long', area: 'core'}}
+  );
+
+  it.snapshot(
+    'user-long-name',
+    () => (
+      <Frame>
+        <NavigationMenuHeader
+          user={UserFixture({name: LONG_NAME, email: 'jane@example.com'})}
+        />
+      </Frame>
+    ),
+    {tags: {avatar: 'letter', name: 'long', area: 'core'}}
   );
 
   // The user menu takes its gradient from the organization's avatar.

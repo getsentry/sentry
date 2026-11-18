@@ -35,9 +35,9 @@ const props: EntityHeaderProps = {
   stats: {
     label: 'Replay stats',
     items: [
-      {type: 'text', label: 'Dead Clicks', value: 0},
-      {type: 'text', label: 'Rage Clicks', value: 2},
-      {type: 'text', label: 'Errors', value: 1},
+      {label: 'Dead Clicks', value: 0},
+      {label: 'Rage Clicks', value: 2},
+      {label: 'Errors', value: 1},
     ],
   },
 };
@@ -75,14 +75,62 @@ describe('EntityHeader', () => {
           stats={{
             label: 'Replay stats',
             items: [
-              {type: 'link', label: 'Errors', value: 3, to: '/replays/1/'},
-              {type: 'text', label: 'Errors', value: 3},
+              {label: {type: 'link', content: 'Errors', to: '/replays/1/'}, value: 3},
+              {label: 'Errors', value: {type: 'link', content: 3, to: '/replays/1/'}},
+              {
+                label: {type: 'link', content: 'Errors', to: '/replays/1/'},
+                value: {type: 'link', content: 3, to: '/issues/'},
+              },
+              {
+                label: {
+                  type: 'link',
+                  content: 'Errors',
+                  to: '/replays/1/',
+                  tooltip: 'Why',
+                },
+                value: {type: 'link', content: 3, to: '/issues/', tooltip: 'Split'},
+              },
+              {label: 'Errors', value: 3},
             ],
           }}
         />
       </MemoryRouter>
     ),
     {viewport: 900, tags: {area: 'core'}}
+  );
+
+  // An empty value keeps the value's typography, so it should sit on the same
+  // baseline and row height as the populated stats beside it.
+  it.snapshot(
+    'empty stats',
+    () => (
+      <MemoryRouter>
+        <EntityHeader
+          title={props.title}
+          stats={{
+            label: 'Build stats',
+            items: [
+              {label: 'Install Size', value: '12 MB'},
+              {label: 'Cost', value: null},
+              {label: {type: 'link', content: 'Errors', to: '/replays/1/'}, value: null},
+              {
+                label: 'Issues',
+                value: {type: 'link', content: null, to: '/issues/'},
+              },
+              {
+                label: 'Download Size',
+                value: {
+                  type: 'text',
+                  content: null,
+                  tooltip: 'Not reported for this platform',
+                },
+              },
+            ],
+          }}
+        />
+      </MemoryRouter>
+    ),
+    {viewport: 900, tags: {state: 'empty', area: 'core'}}
   );
 
   describe.each([480, 900])('late metadata at %s', viewport => {
@@ -101,7 +149,7 @@ describe('EntityHeader', () => {
           }}
           stats={{
             label: 'Replay stats',
-            items: [{type: 'text', label: 'Errors', value: 0}],
+            items: [{label: 'Errors', value: 0}],
           }}
         />
       ),

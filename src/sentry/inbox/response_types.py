@@ -36,6 +36,7 @@ class InboxItemResponse(TypedDict):
     subjectType: str
     subjectId: str
     title: str | None  # Null when the subject is unavailable.
+    url: str  # Latest event's URL, falling back to the subject's inbox URL.
     subtitle: str  # The latest event's summary.
     eventTypes: list[str]
     eventCount: int

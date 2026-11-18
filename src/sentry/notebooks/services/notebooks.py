@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from copy import deepcopy
 from typing import Any
 
-from django.db import router, transaction
+from django.db import IntegrityError, router, transaction
 from django.db.models import Max
 from django.utils import timezone
 
@@ -21,6 +21,7 @@ from sentry.notebooks.models import (
     NotebookSourceType,
     NotebookStatus,
 )
+from sentry.notebooks.services.producer_sources import ProducerSource
 
 UPDATABLE_NOTEBOOK_FIELDS = frozenset({"title", "status", "filters"})
 MAX_NOTEBOOK_TITLE_LENGTH = 255
@@ -147,6 +148,78 @@ def create_notebook(
     return notebook
 
 
+def get_or_create_source_notebook(
+    *, organization: Organization, source_key: str, create: Callable[[int], Notebook]
+) -> tuple[Notebook, bool]:
+    """The active notebook for source_key, or the one create() makes at the next revision.
+    The bool is True when create() ran.
+    """
+    # Uniqueness on the active source and revision arbitrates concurrent launches.
+    for attempt in range(3):
+        active = (
+            Notebook.objects.filter(
+                organization=organization,
+                source_key=source_key,
+                status=NotebookStatus.ACTIVE,
+            )
+            .order_by("-source_revision", "-id")
+            .first()
+        )
+        if active is not None:
+            return active, False
+        latest_revision = Notebook.objects.filter(
+            organization=organization,
+            source_key=source_key,
+        ).aggregate(latest=Max("source_revision"))["latest"]
+        try:
+            with transaction.atomic(using=router.db_for_write(Notebook)):
+                return create((latest_revision or 0) + 1), True
+        except IntegrityError:
+            if attempt == 2:
+                active = Notebook.objects.filter(
+                    organization=organization,
+                    source_key=source_key,
+                    status=NotebookStatus.ACTIVE,
+                ).first()
+                if active is not None:
+                    return active, False
+                raise
+    raise AssertionError("unreachable")
+
+
+def create_producer_notebook(
+    *,
+    organization: Organization,
+    creator: CreatorReference,
+    title: str,
+    source: ProducerSource,
+    filters: dict[str, Any],
+) -> tuple[Notebook, bool]:
+    """The active notebook for the producer's source, or a new revision of it.
+    The bool is True when it was created.
+    """
+    source_type, resolved = source.source_type, source.resolved
+    source_key = source_type.source_key(resolved)
+
+    def create(revision: int) -> Notebook:
+        return create_notebook(
+            organization=organization,
+            created_by_id=creator["created_by_id"],
+            created_by_service_account_id=creator["created_by_service_account_id"],
+            title=title,
+            source_type=source_type.name,
+            source_key=source_key,
+            source=source_type.notebook_source(resolved),
+            source_revision=revision,
+            filters=filters,
+            project_ids=resolved.project_ids,
+        )
+
+    return get_or_create_source_notebook(
+        organization=organization, source_key=source_key, create=create
+    )
+
+
 def _copy_title(title: str) -> str:
     prefix = "Copy of "
     return prefix + title[: MAX_NOTEBOOK_TITLE_LENGTH - len(prefix)]
@@ -266,7 +339,7 @@ def create_block(
     *,
     notebook: Notebook,
     expected_notebook_version: int,
-    user_id: int,
+    user_id: int | None,
     values: dict[str, Any],
 ) -> NotebookBlock:
     with transaction.atomic(using=router.db_for_write(Notebook)):
@@ -294,7 +367,7 @@ def update_block(
     block: NotebookBlock,
     expected_notebook_version: int,
     expected_block_version: int,
-    user_id: int,
+    user_id: int | None,
     values: dict[str, Any],
 ) -> NotebookBlock:
     with transaction.atomic(using=router.db_for_write(Notebook)):
