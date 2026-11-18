@@ -64,6 +64,7 @@ class ProjectSeerSettingsEndpointBaseTest(APITestCase):
             "scannerAutomation": True,
             "prIteration": self.pr_iteration_default,
             "reposCount": 0,
+            "repoProviders": [],
         }
 
     def test_get_returns_configured_project_options(self, mock_is_seat_based: MagicMock) -> None:
@@ -167,6 +168,44 @@ class ProjectSeerSettingsEndpointBaseTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data["reposCount"] == 1
+
+    def create_seer_eligible_gitlab_repo(self, project: Project, name: str) -> Repository:
+        return self.create_repo(
+            project=project,
+            name=name,
+            provider="integrations:gitlab",
+            integration_id=self.integration.id,
+            external_id=name,
+        )
+
+    def test_get_repo_providers(self, mock_is_seat_based: MagicMock) -> None:
+        """repoProviders lists each provider of the repos Seer can use once, sorted."""
+        for repo in (
+            self.create_seer_eligible_gitlab_repo(self.project, "owner/gitlab-repo"),
+            self.create_seer_eligible_repo(self.project, "owner/repo-1"),
+            self.create_seer_eligible_repo(self.project, "owner/repo-2"),
+        ):
+            self.create_seer_project_repository(project=self.project, repository=repo)
+
+        response = self.client.get(self.url)
+
+        assert response.status_code == 200
+        assert response.data["repoProviders"] == ["integrations:github", "integrations:gitlab"]
+
+    def test_get_repo_providers_excludes_inactive_repos(
+        self, mock_is_seat_based: MagicMock
+    ) -> None:
+        active_repo = self.create_seer_eligible_repo(self.project, "owner/active")
+        disabled_repo = self.create_seer_eligible_gitlab_repo(self.project, "owner/deleted")
+        disabled_repo.status = ObjectStatus.DISABLED
+        disabled_repo.save()
+        self.create_seer_project_repository(project=self.project, repository=active_repo)
+        self.create_seer_project_repository(project=self.project, repository=disabled_repo)
+
+        response = self.client.get(self.url)
+
+        assert response.status_code == 200
+        assert response.data["repoProviders"] == ["integrations:github"]
 
     def test_put_returns_updated_settings(self, mock_is_seat_based: MagicMock) -> None:
         """PUT response should contain the full updated settings object."""
@@ -417,6 +456,7 @@ class ProjectSeerSettingsEndpointSeatBasedBillingTest(ProjectSeerSettingsEndpoin
 
         assert response.status_code == 200
         assert response.data["reposCount"] == 0
+        assert response.data["repoProviders"] == []
 
 
 @with_feature(
@@ -441,6 +481,7 @@ class ProjectSeerSettingsEndpointTokenBasedBillingTest(ProjectSeerSettingsEndpoi
 
         assert response.status_code == 200
         assert response.data["reposCount"] == 2
+        assert response.data["repoProviders"] == ["integrations:github"]
 
     def test_get_repos_count_excludes_repos_seer_cannot_use(self) -> None:
         self.create_project_repository(
@@ -472,6 +513,8 @@ class ProjectSeerSettingsEndpointTokenBasedBillingTest(ProjectSeerSettingsEndpoi
 
         assert response.status_code == 200
         assert response.data["reposCount"] == 1
+        # The unsupported provider's repo is not one Seer can use, so it's not listed.
+        assert response.data["repoProviders"] == ["integrations:github"]
 
 
 @patch(
@@ -524,6 +567,7 @@ class OrganizationSeerProjectSettingsEndpointBaseTest(APITestCase):
             "scannerAutomation": True,
             "prIteration": self.pr_iteration_default,
             "reposCount": 0,
+            "repoProviders": [],
         }
 
     def test_get_returns_configured_project_options(self, mock_is_seat_based: MagicMock) -> None:
@@ -628,6 +672,29 @@ class OrganizationSeerProjectSettingsEndpointBaseTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data[0]["reposCount"] == 1
+
+    def test_get_repo_providers_per_project(self, mock_is_seat_based: MagicMock) -> None:
+        """Each project lists the providers of its own repos."""
+        gitlab_project = self.create_project(organization=self.organization, slug="gitlab-only")
+        github_repo = self.create_seer_eligible_repo(self.project, "owner/github-repo")
+        gitlab_repo = self.create_repo(
+            project=gitlab_project,
+            name="owner/gitlab-repo",
+            provider="integrations:gitlab",
+            integration_id=self.integration.id,
+            external_id="owner/gitlab-repo",
+        )
+        self.create_seer_project_repository(project=self.project, repository=github_repo)
+        self.create_seer_project_repository(project=gitlab_project, repository=gitlab_repo)
+
+        response = self.client.get(self.url)
+
+        assert response.status_code == 200
+        providers_by_slug = {row["projectSlug"]: row["repoProviders"] for row in response.data}
+        assert providers_by_slug == {
+            self.project.slug: ["integrations:github"],
+            "gitlab-only": ["integrations:gitlab"],
+        }
 
     def test_get_only_returns_accessible_projects(self, mock_is_seat_based: MagicMock) -> None:
         """Response should only include projects the user has access to."""
