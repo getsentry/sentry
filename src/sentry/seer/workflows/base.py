@@ -345,6 +345,7 @@ class ConfigUpdate:
         workflow = Workflow.objects.create(
             organization_id=self.config.organization_id,
             name=name or "Seer automation",
+            type=Workflow.Type.SEER_INVESTIGATION,
             enabled=enabled,
             created_by_id=created_by_id,
             config={"frequency": 0},
