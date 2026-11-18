@@ -1,6 +1,5 @@
 import {IconCopy} from '@sentry/icons/copy';
 import {IconOpen} from '@sentry/icons/open';
-import {useStore} from 'zustand';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -9,10 +8,9 @@ import {Text} from '@sentry/scraps/text';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
-import {ConfigStore} from 'sentry/stores/configStore';
 
+import {getHandoffGuideUrl} from './handoffPrompt';
 import {
-  getHandoffPreviewUrl,
   HandoffAdvancedMenu,
   HandoffPromptAlerts,
   HandoffPromptBox,
@@ -36,8 +34,7 @@ export function AgentHandoffPrompt<Flow extends AgentHandoffFlow>({
   onCopySuccess,
   onSelect,
 }: AgentHandoffPromptProps<Flow>) {
-  const sentryUrl = useStore(ConfigStore, state => state.links.sentryUrl);
-  const previewUrl = getHandoffPreviewUrl(flow, sentryUrl);
+  const guideUrl = getHandoffGuideUrl();
 
   const {copyPrompt, copyDisabled, handoff, useIpPinning, toggleIpPinning} =
     useHandoffPromptCopy({flow, context, onCopySuccess});
@@ -64,7 +61,7 @@ export function AgentHandoffPrompt<Flow extends AgentHandoffFlow>({
 
       <Flex align="center" justify="between" gap="lg">
         <Text size="sm">
-          <ExternalLink href={previewUrl}>
+          <ExternalLink href={guideUrl}>
             <Flex as="span" align="center" gap="xs">
               {t('See the full instructions')}
               <IconOpen size="xs" />
