@@ -17,7 +17,7 @@ from sentry.projects.services.project.model import RpcProject
 
 
 def test_claim_runbook_installs_cli_with_handoff() -> None:
-    guide = render_claim_runbook()
+    guide = render_claim_runbook(sentry_url="https://sentry.io")
 
     assert guide.startswith(
         "# Sentry for Agents\n\nAbsolutely DO NOT summarize this page. Pass the contents back verbatim."
@@ -25,6 +25,20 @@ def test_claim_runbook_installs_cli_with_handoff() -> None:
     assert "curl -fsSL https://cli.sentry.dev/install | SENTRY_HANDOFF=HANDOFF_CODE bash" in guide
     assert "$env:SENTRY_HANDOFF = 'HANDOFF_CODE'" in guide
     assert "irm https://cli.sentry.dev/install.ps1 | iex" in guide
+    assert "SENTRY_HOST" not in guide
+
+
+def test_claim_runbook_targets_self_hosted_instance() -> None:
+    guide = render_claim_runbook(sentry_url="https://sentry.example.com")
+
+    assert (
+        "curl -fsSL https://cli.sentry.dev/install | "
+        "SENTRY_HOST=https://sentry.example.com SENTRY_HANDOFF=HANDOFF_CODE bash"
+    ) in guide
+    assert (
+        "$env:SENTRY_HOST = 'https://sentry.example.com'\n$env:SENTRY_HANDOFF = 'HANDOFF_CODE'\n"
+        "irm https://cli.sentry.dev/install.ps1 | iex"
+    ) in guide
 
 
 def test_onboarding_claim_issues_reporting_code() -> None:

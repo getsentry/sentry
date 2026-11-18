@@ -13,11 +13,11 @@ Replace HANDOFF_CODE with the handoff code and run the command for the current s
 once. Follow the instructions printed after setup succeeds.
 
 ```bash
-curl -fsSL https://cli.sentry.dev/install | SENTRY_HANDOFF=HANDOFF_CODE bash
+curl -fsSL https://cli.sentry.dev/install | {{ unix_host }}SENTRY_HANDOFF=HANDOFF_CODE bash
 ```
 
 ```powershell
-$env:SENTRY_HANDOFF = 'HANDOFF_CODE'
+{{ windows_host }}$env:SENTRY_HANDOFF = 'HANDOFF_CODE'
 irm https://cli.sentry.dev/install.ps1 | iex
 ```
 

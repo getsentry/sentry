@@ -3,6 +3,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 from django.views.generic import View
 
+from sentry import options
 from sentry.agent_handoff.runbook import render_claim_runbook
 from sentry.web.decorators import ai_machine_readable
 from sentry.web.frontend.base import control_silo_view
@@ -22,4 +23,7 @@ class AgentHandoffView(View):
         return response
 
     def get(self, request: HttpRequest) -> HttpResponse:
-        return HttpResponse(render_claim_runbook(), content_type="text/markdown; charset=utf-8")
+        return HttpResponse(
+            render_claim_runbook(sentry_url=options.get("system.url-prefix")),
+            content_type="text/markdown; charset=utf-8",
+        )

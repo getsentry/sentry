@@ -258,8 +258,10 @@ class AgentHandoffViewTest(TestCase):
         assert response["Referrer-Policy"] == "no-referrer"
         body = response.content.decode()
         assert (
-            "curl -fsSL https://cli.sentry.dev/install | SENTRY_HANDOFF=HANDOFF_CODE bash" in body
-        )
+            "curl -fsSL https://cli.sentry.dev/install | "
+            "SENTRY_HOST=http://testserver SENTRY_HANDOFF=HANDOFF_CODE bash"
+        ) in body
+        assert "$env:SENTRY_HOST = 'http://testserver'" in body
         assert "$env:SENTRY_HANDOFF = 'HANDOFF_CODE'" in body
         assert "irm https://cli.sentry.dev/install.ps1 | iex" in body
         assert consume_handoff(code, ip_address="127.0.0.1") is not None
