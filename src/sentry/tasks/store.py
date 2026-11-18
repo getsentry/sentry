@@ -44,7 +44,7 @@ from sentry.utils import metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.event import track_event_since_received
 from sentry.utils.event_tracker import TransactionStageStatus, track_sampled_event
-from sentry.utils.kvstore.bigtable import bigtable_timeout
+from sentry.utils.kvstore.bigtable import bigtable_operation_timeout
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import set_current_event_project
 from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
@@ -653,7 +653,7 @@ def _do_save_event(
 
                 # Bound nodestore calls so a stuck write is retried, or fails,
                 # before the task's processing deadline is exceeded.
-                with bigtable_timeout(SAVE_EVENT_NODESTORE_TIMEOUT):
+                with bigtable_operation_timeout(SAVE_EVENT_NODESTORE_TIMEOUT):
                     # event.project.organization is populated after this statement.
                     EventManager(data).save(
                         project=project,

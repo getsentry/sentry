@@ -33,14 +33,24 @@ class BigtableError(Exception):
     pass
 
 
-_bigtable_timeout: ContextVar[float | None] = ContextVar("bigtable_timeout", default=None)
+_bigtable_operation_timeout: ContextVar[float | None] = ContextVar(
+    "bigtable_operation_timeout", default=None
+)
 
 
 @contextlib.contextmanager
-def bigtable_timeout(timeout: float) -> Generator[None]:
+def bigtable_operation_timeout(timeout: float) -> Generator[None]:
     """
-    Caps how long, in seconds, each Bigtable (nodestore) operation within this
-    context keeps retrying before raising ``BigtableError``.
+    Caps how long, in seconds, each Bigtable operation within this context
+    keeps retrying before raising ``BigtableError``. The limit applies to each
+    operation individually, not to the block as a whole, so several slow
+    operations can together exceed it. It applies to every
+    ``BigtableKVStorage`` in the context (nodestore and any Bigtable-backed
+    processing store).
+
+    Affected operations: ``get`` (only ever tightens its own 5s default),
+    ``get_many`` (retry budget), and ``set``, ``delete`` and ``delete_many``
+    (retry budget). ``bootstrap`` and ``destroy`` are unaffected.
 
     For mutations, each attempt times out after ``min(5, floor(timeout))``
     seconds (see ``_mutate_rows``). ``timeout`` only decides whether to start
@@ -48,15 +58,15 @@ def bigtable_timeout(timeout: float) -> Generator[None]:
     overrun ``timeout`` by up to one attempt.
 
     This never loosens a tighter timeout, whether from an enclosing
-    ``bigtable_timeout`` or an operation's own default.
+    ``bigtable_operation_timeout`` or an operation's own default.
     """
-    if (outer := _bigtable_timeout.get()) is not None:
+    if (outer := _bigtable_operation_timeout.get()) is not None:
         timeout = min(timeout, outer)
-    token = _bigtable_timeout.set(timeout)
+    token = _bigtable_operation_timeout.set(timeout)
     try:
         yield
     finally:
-        _bigtable_timeout.reset(token)
+        _bigtable_operation_timeout.reset(token)
 
 
 class BigtableKVStorage(KVStorage[str, bytes]):
@@ -153,7 +163,7 @@ class BigtableKVStorage(KVStorage[str, bytes]):
         with traces.start_span(name="bigtable.get", attributes={"sentry.op": "bigtable.get"}):
             # Modify retry based on https://cloud.google.com/python/docs/reference/storage/latest/retry_timeout#configuring-retries
             timeout = DEFAULT_GET_TIMEOUT
-            if (context_timeout := _bigtable_timeout.get()) is not None:
+            if (context_timeout := _bigtable_operation_timeout.get()) is not None:
                 timeout = min(timeout, context_timeout)
             modified_retry = DEFAULT_RETRY_READ_ROWS.with_timeout(timeout)
             row = self._get_table().read_row(key, retry=modified_retry)
@@ -173,7 +183,7 @@ class BigtableKVStorage(KVStorage[str, bytes]):
             rows.add_row_key(key)
 
         retry_read_rows = DEFAULT_RETRY_READ_ROWS
-        if (context_timeout := _bigtable_timeout.get()) is not None:
+        if (context_timeout := _bigtable_operation_timeout.get()) is not None:
             retry_read_rows = retry_read_rows.with_timeout(context_timeout)
 
         for row in self._get_table().read_rows(row_set=rows, retry=retry_read_rows):
@@ -232,14 +242,14 @@ class BigtableKVStorage(KVStorage[str, bytes]):
             # Retry once on InternalServerError or ServiceUnavailable
             # 500 Received RST_STREAM with error code 2
             # SENTRY-S6D
-            context_timeout = _bigtable_timeout.get()
+            context_timeout = _bigtable_operation_timeout.get()
             if context_timeout is None:
                 return self._set(key, value, ttl)
             # The retry shares the contextual timeout with the first attempt.
             remaining = context_timeout - (time.monotonic() - start)
             if remaining <= 0:
                 raise
-            with bigtable_timeout(remaining):
+            with bigtable_operation_timeout(remaining):
                 return self._set(key, value, ttl)
 
     def _set(self, key: str, value: bytes, ttl: timedelta | None = None) -> None:
@@ -317,7 +327,7 @@ class BigtableKVStorage(KVStorage[str, bytes]):
         Calls ``table.mutate_rows``, applying any contextual timeout. Rows
         whose mutations ran out of time have a ``None`` status.
         """
-        context_timeout = _bigtable_timeout.get()
+        context_timeout = _bigtable_operation_timeout.get()
         if context_timeout is None:
             return list(table.mutate_rows(rows))
 
