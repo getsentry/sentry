@@ -1238,7 +1238,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert mock_query.call_args.kwargs["referrer"] == Referrer.SEARCH_GROUP_INDEX
 
     def test_date_range(self) -> None:
-        with self.options({"system.event-retention-days": 2}):
+        with self.options({"system.event-retention-days": 7}):
             event = self.store_event(
                 data={"timestamp": before_now(hours=5).isoformat()}, project_id=self.project.id
             )

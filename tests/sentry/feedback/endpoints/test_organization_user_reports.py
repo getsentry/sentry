@@ -165,7 +165,7 @@ class OrganizationUserReportListTest(APITestCase, SnubaTestCase):
 
     @patch("sentry.quotas.backend.get_event_retention")
     def test_event_retention(self, mock_get_event_retention: MagicMock) -> None:
-        retention_days = 21
+        retention_days = 30
         mock_get_event_retention.return_value = retention_days
 
         old_event = self.store_event(
