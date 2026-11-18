@@ -9,7 +9,7 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import type {Organization} from 'sentry/types/organization';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
-import {isApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {
   LOGS_AUTO_REFRESH_KEY,
   LOGS_REFRESH_INTERVAL_KEY,
@@ -223,9 +223,7 @@ describe('useInfiniteLogsQuery', () => {
 
     const queryCache = queryClient.getQueryCache();
     const queryKeys = queryCache.getAll().map(query => query.queryKey);
-    const infiniteQueryKey = queryKeys.find(
-      key => isApiQueryKey(key) && key[1].infinite
-    )!;
+    const infiniteQueryKey = queryKeys.find(key => safeParseQueryKey(key)?.infinite)!;
 
     // https://github.com/typescript-eslint/typescript-eslint/issues/10722
     // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
@@ -385,9 +383,7 @@ describe('useInfiniteLogsQuery', () => {
 
     const queryCache = queryClient.getQueryCache();
     const queryKeys = queryCache.getAll().map(query => query.queryKey);
-    const infiniteQueryKey = queryKeys.find(
-      key => isApiQueryKey(key) && key[1].infinite
-    )!;
+    const infiniteQueryKey = queryKeys.find(key => safeParseQueryKey(key)?.infinite)!;
 
     // https://github.com/typescript-eslint/typescript-eslint/issues/10722
     // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style

@@ -60,6 +60,22 @@ export function isApiQueryKey(
   return queryKey[0] === API_QUERY_KEY_MARKER;
 }
 
+/**
+ * Reads the request params of an api query key, without coupling callers to the key's layout.
+ */
+export function parseQueryKey<TQueryKey extends ApiQueryKey | InfiniteApiQueryKey>(
+  queryKey: TQueryKey
+): TQueryKey[1] {
+  return queryKey[1];
+}
+
+/**
+ * Like `parseQueryKey`, but for keys that may not be api query keys.
+ */
+export function safeParseQueryKey(queryKey: readonly unknown[]) {
+  return isApiQueryKey(queryKey) ? parseQueryKey(queryKey) : undefined;
+}
+
 export function createApiQueryKey(
   params: ApiQueryKeyParams
 ): readonly [typeof API_QUERY_KEY_MARKER, ApiQueryKeyParams];

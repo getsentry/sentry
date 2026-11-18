@@ -6,6 +6,7 @@ import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {
   createApiQueryKey,
   type QueryKeyEndpointOptions,
+  parseQueryKey,
 } from 'sentry/utils/api/apiQueryKey';
 import {defined} from 'sentry/utils/defined';
 import {type EventsMetaType} from 'sentry/utils/discover/eventView';
@@ -121,7 +122,7 @@ export function useInfiniteLogsQuery({
   const queryResult = useInfiniteQuery({
     queryKey: queryKeyWithInfinite,
     queryFn: async ({pageParam, queryKey, client, signal, meta}) => {
-      const {infinite: _infinite, ...pageKeyParams} = queryKey[1];
+      const {infinite: _infinite, ...pageKeyParams} = parseQueryKey(queryKey);
       const baseOptions = pageKeyParams.options;
 
       // Build a v2 (non-infinite) query key for apiFetch — we drive pagination via

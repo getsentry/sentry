@@ -18,6 +18,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {FeedbackIssueListItem} from 'sentry/utils/feedback/types';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -91,7 +92,7 @@ export function FeedbackList({onItemSelect}: Props) {
     <ListItemCheckboxProvider
       hits={Number(queryResult.data?.pages[0]?.headers['X-Hits'] ?? issues.length)}
       knownIds={issues.map(issue => issue.id)}
-      endpointOptions={listApiOptions.queryKey[1].options}
+      endpointOptions={parseQueryKey(listApiOptions.queryKey).options}
     >
       <FeedbackListHeader />
       <Stack flexGrow={1} paddingBottom="xs">

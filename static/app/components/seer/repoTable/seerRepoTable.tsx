@@ -22,6 +22,7 @@ import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {t, tct} from 'sentry/locale';
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import {organizationRepositoriesWithSettingsInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';
@@ -203,7 +204,7 @@ export function SeerRepoTable() {
       <ListItemCheckboxProvider
         hits={repositories?.length ?? 0}
         knownIds={knownIds}
-        endpointOptions={queryOptions.queryKey[1].options}
+        endpointOptions={parseQueryKey(queryOptions.queryKey).options}
       >
         <SimpleTable
           aria-label={t('Repositories')}

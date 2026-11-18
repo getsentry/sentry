@@ -10,6 +10,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {AvatarProject} from 'sentry/types/project';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {Sort} from 'sentry/utils/discover/fields';
 import type {ListItemCheckboxState} from 'sentry/utils/list/useListItemCheckboxState';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -114,7 +115,7 @@ export function getMutateSeerProjectSettingsOptions({
   knownAgents?: AgentIntegration[];
 }) {
   const queryKey = getSeerProjectSettingsQueryOptions({organization, project}).queryKey;
-  const url = queryKey[1].fullUrl;
+  const url = parseQueryKey(queryKey).fullUrl;
 
   return mutationOptions({
     mutationKey: getSeerProjectSettingsMutationKey(organization.slug, project.slug),
@@ -245,7 +246,7 @@ export function getMutateSeerProjectsSettingsOptions({
     organization,
     query: {},
   }).queryKey;
-  const infiniteUrl = infiniteQueryKey[1].fullUrl;
+  const infiniteUrl = parseQueryKey(infiniteQueryKey).fullUrl;
 
   const singleProjectSettingsQueryKey = apiOptions.queryKey(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/seer/settings/*',

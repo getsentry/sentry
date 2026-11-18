@@ -1,7 +1,7 @@
 import type {QueryClient} from '@tanstack/react-query';
 
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
-import {isApiQueryKey, type ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {safeParseQueryKey, type ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 
 type PrefixSearchCacheKey = {
   optionsFingerprint: string;
@@ -55,10 +55,10 @@ export function findFreshEmptyPrefixSearchCacheMatch({
 function getPrefixSearchCacheKey(
   queryKey: readonly unknown[]
 ): PrefixSearchCacheKey | undefined {
-  if (!isApiQueryKey(queryKey) || queryKey.length !== 2 || queryKey[1].infinite) {
+  const parsed = safeParseQueryKey(queryKey);
+  if (!parsed || parsed.infinite || queryKey.length !== 2) {
     return undefined;
   }
-  const parsed = queryKey[1];
 
   const query = getRecord(parsed.options.query);
   const substringMatch = query?.substringMatch;

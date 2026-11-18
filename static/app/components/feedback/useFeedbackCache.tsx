@@ -2,7 +2,7 @@ import {useCallback} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
-import {isApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {defined} from 'sentry/utils/defined';
 import type {FeedbackIssue, FeedbackIssueListItem} from 'sentry/utils/feedback/types';
 
@@ -17,10 +17,8 @@ type ListCache = {
 
 const issueApiEndpointRegexp = /^\/organizations\/\w+\/issues\/\d+\/$/;
 function isIssueEndpointUrl(query: {queryKey: readonly unknown[]}) {
-  return (
-    isApiQueryKey(query.queryKey) &&
-    issueApiEndpointRegexp.test(query.queryKey[1].fullUrl)
-  );
+  const fullUrl = safeParseQueryKey(query.queryKey)?.fullUrl;
+  return fullUrl !== undefined && issueApiEndpointRegexp.test(fullUrl);
 }
 
 export function useFeedbackCache() {

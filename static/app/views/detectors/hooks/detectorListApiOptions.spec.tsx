@@ -4,6 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import type {Detector, UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {
   detectorListApiOptions,
   allDetectorListsQueryKey,
@@ -14,47 +15,56 @@ const organization = OrganizationFixture();
 describe('detectorListApiOptions', () => {
   describe('query construction', () => {
     it('excludes issue_stream detectors by default', () => {
-      const {options} = detectorListApiOptions(organization).queryKey[1];
+      const {options} = parseQueryKey(detectorListApiOptions(organization).queryKey);
       expect(options?.query?.query).toBe('!type:issue_stream');
     });
 
     it('does not exclude issue_stream when includeIssueStreamDetectors is true', () => {
-      const {options} = detectorListApiOptions(organization, {
-        includeIssueStreamDetectors: true,
-      }).queryKey[1];
+      const {options} = parseQueryKey(
+        detectorListApiOptions(organization, {
+          includeIssueStreamDetectors: true,
+        }).queryKey
+      );
       expect(options?.query?.query).toBeUndefined();
     });
 
     it('adds type filter when type is provided', () => {
-      const {options} = detectorListApiOptions(organization, {type: 'uptime'})
-        .queryKey[1];
+      const {options} = parseQueryKey(
+        detectorListApiOptions(organization, {type: 'uptime'}).queryKey
+      );
       expect(options?.query?.query).toBe('!type:issue_stream type:uptime');
     });
 
     it('combines type filter with custom query', () => {
-      const {options} = detectorListApiOptions(organization, {
-        type: 'uptime',
-        query: 'my-search',
-      }).queryKey[1];
+      const {options} = parseQueryKey(
+        detectorListApiOptions(organization, {
+          type: 'uptime',
+          query: 'my-search',
+        }).queryKey
+      );
       expect(options?.query?.query).toBe('!type:issue_stream type:uptime my-search');
     });
 
     it('combines includeIssueStreamDetectors with type', () => {
-      const {options} = detectorListApiOptions(organization, {
-        type: 'uptime',
-        includeIssueStreamDetectors: true,
-      }).queryKey[1];
+      const {options} = parseQueryKey(
+        detectorListApiOptions(organization, {
+          type: 'uptime',
+          includeIssueStreamDetectors: true,
+        }).queryKey
+      );
       expect(options?.query?.query).toBe('type:uptime');
     });
 
     it('passes through pagination and filter params', () => {
-      const {options} = detectorListApiOptions(organization, {
-        cursor: 'abc123',
-        limit: 25,
-        sortBy: 'name',
-        projects: [1, 2],
-        ids: ['10', '20'],
-      }).queryKey[1];
+      const {options} = parseQueryKey(
+        detectorListApiOptions(organization, {
+          cursor: 'abc123',
+          limit: 25,
+          sortBy: 'name',
+          projects: [1, 2],
+          ids: ['10', '20'],
+        }).queryKey
+      );
       expect(options?.query).toEqual(
         expect.objectContaining({
           cursor: 'abc123',
@@ -67,7 +77,7 @@ describe('detectorListApiOptions', () => {
     });
 
     it('builds the correct URL', () => {
-      const {fullUrl: url} = detectorListApiOptions(organization).queryKey[1];
+      const {fullUrl: url} = parseQueryKey(detectorListApiOptions(organization).queryKey);
       expect(url).toBe(`/organizations/${organization.slug}/detectors/`);
     });
   });

@@ -2,6 +2,7 @@ import {useCallback} from 'react';
 
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {useAggregatedQueryKeys} from 'sentry/utils/api/useAggregatedQueryKeys';
 import {useHasReplayAccess} from 'sentry/utils/replays/hooks/useHasReplayAccess';
 
@@ -62,7 +63,10 @@ export function useReplayCount({
   const cache = useAggregatedQueryKeys<string, CountState>({
     cacheKey: `/organizations/${organization.slug}/replay-count/|${dataSource}|${fieldName}|${cachePeriod}`,
     bufferLimit,
-    queryFilter: useCallback(queryKey => !queryKey[1].options.query?.returnIds, []),
+    queryFilter: useCallback(
+      queryKey => !parseQueryKey(queryKey).options.query?.returnIds,
+      []
+    ),
     getQueryOptions: useCallback(
       ids =>
         apiOptions.as<CountState>()(

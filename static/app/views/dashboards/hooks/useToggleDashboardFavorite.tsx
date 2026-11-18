@@ -6,7 +6,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {isApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -67,7 +67,7 @@ export function useToggleDashboardFavorite() {
         if (!response) {
           return;
         }
-        const sort = isApiQueryKey(key) ? key[1].options.query?.sort : undefined;
+        const sort = safeParseQueryKey(key)?.options.query?.sort;
         const json =
           sort === 'recentlyViewed' && hasUserLastVisited
             ? reorderFavoriteDashboards(response.json, dashboardId, shouldFavorite)

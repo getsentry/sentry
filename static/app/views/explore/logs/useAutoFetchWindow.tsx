@@ -1,6 +1,8 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
+
 import {
   LOGS_HIGH_FIDELITY_INITIAL_AUTO_FETCH_WINDOW_MS,
   LOGS_HIGH_FIDELITY_RESUMED_AUTO_FETCH_WINDOW_MS,
@@ -50,7 +52,7 @@ export function useAutoFetchWindow({
   const deadlineMs = getAutoFetchWindowDeadlineMs(resumeCount, windowStartMs);
 
   const queryKeyHash = useMemo(() => {
-    const {fullUrl, options} = queryKey[1];
+    const {fullUrl, options} = parseQueryKey(queryKey);
     return JSON.stringify([fullUrl, options.query]);
   }, [queryKey]);
 

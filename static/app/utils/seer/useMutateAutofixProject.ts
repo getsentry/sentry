@@ -3,6 +3,7 @@ import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {projectSeerPreferencesApiOptions} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -96,7 +97,7 @@ export function useMutateAutofixProject() {
         organization,
         project,
       });
-      const reposUrl = reposQueryOptions.queryKey[1].fullUrl;
+      const reposUrl = parseQueryKey(reposQueryOptions.queryKey).fullUrl;
       await fetchMutation({
         method: 'PUT',
         url: reposUrl,
@@ -114,7 +115,7 @@ export function useMutateAutofixProject() {
         organization,
         project: {slug: project.slug},
       });
-      const settingsUrl = settingsQueryOptions.queryKey[1].fullUrl;
+      const settingsUrl = parseQueryKey(settingsQueryOptions.queryKey).fullUrl;
       try {
         await fetchMutation<SeerProjectSettingResponse>({
           method: 'PUT',

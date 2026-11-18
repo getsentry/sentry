@@ -1,6 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
 import {validateEventParamsOptions} from './validateEventParamsOptions';
@@ -24,8 +25,10 @@ describe('validateEventParamsOptions', () => {
       query: 'span.op:http',
     });
 
-    expect(options.queryKey[1].fullUrl).toBe('/organizations/org-slug/events/validate/');
-    expect(options.queryKey[1].options).toEqual(
+    expect(parseQueryKey(options.queryKey).fullUrl).toBe(
+      '/organizations/org-slug/events/validate/'
+    );
+    expect(parseQueryKey(options.queryKey).options).toEqual(
       expect.objectContaining({
         query: {
           dataset: TraceItemDataset.SPANS,

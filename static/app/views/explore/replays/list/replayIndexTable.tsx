@@ -12,6 +12,7 @@ import {useReplayTableSort} from 'sentry/components/replays/table/useReplayTable
 import {usePlaylistQuery} from 'sentry/components/replays/usePlaylistQuery';
 import {t, tct} from 'sentry/locale';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import {MIN_REPLAY_CLICK_SDK} from 'sentry/utils/replays/sdkVersions';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -62,7 +63,7 @@ export function ReplayIndexTable({
   const {allMobileProj} = useAllMobileProj();
   const columns = useReplayIndexTableColumns({allMobileProj, tableDimensions});
 
-  const endpointOptions = queryKey[1].options;
+  const endpointOptions = parseQueryKey(queryKey).options;
   const needsSDKUpdateForClickSearch = useNeedsSDKUpdateForClickSearch({
     search:
       typeof endpointOptions?.query?.query === 'string'

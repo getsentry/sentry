@@ -9,6 +9,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {AvatarProject} from 'sentry/types/project';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {ParsedHeader} from 'sentry/utils/parseLinkHeader';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {organizationRepositoriesInfiniteOptions} from 'sentry/utils/repositories/repoQueryOptions';
@@ -123,7 +124,7 @@ export function getMutateSeerProjectRepoOptions({
     project,
     repoId,
   }).queryKey;
-  const singleUrl = singleQueryKey[1].fullUrl;
+  const singleUrl = parseQueryKey(singleQueryKey).fullUrl;
 
   const infiniteQueryKey = getSeerProjectReposInfiniteQueryOptions({
     organization,
@@ -227,11 +228,13 @@ export function getDeleteSeerProjectRepoOptions({
 
   return mutationOptions({
     mutationFn: ({repoId}: {repoId: string}) => {
-      const singleUrl = getSeerProjectRepoQueryOptions({
-        organization,
-        project,
-        repoId,
-      }).queryKey[1].fullUrl;
+      const singleUrl = parseQueryKey(
+        getSeerProjectRepoQueryOptions({
+          organization,
+          project,
+          repoId,
+        }).queryKey
+      ).fullUrl;
 
       return fetchMutation({method: 'DELETE', url: singleUrl, data: {repoId}});
     },
@@ -424,7 +427,7 @@ export function getMutateSeerProjectReposOptionsAddRepo({
     organization,
     project,
   }).queryKey;
-  const infiniteUrl = infiniteQueryKey[1].fullUrl;
+  const infiniteUrl = parseQueryKey(infiniteQueryKey).fullUrl;
 
   return mutationOptions({
     mutationFn: (data: {repos: SeerProjectRepoCreateInput[]}) => {

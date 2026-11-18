@@ -8,6 +8,7 @@ import {z} from 'zod';
 
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -103,10 +104,12 @@ export function useCreateInvestigationCommentMutation(
   investigationId: string,
   options?: MutationOptions<InvestigationComment, {body: string; blockId?: string}>
 ) {
-  const commentsUrl = investigationCommentsQueryOptions({
-    organizationSlug,
-    investigationId,
-  }).queryKey[1].fullUrl;
+  const commentsUrl = parseQueryKey(
+    investigationCommentsQueryOptions({
+      organizationSlug,
+      investigationId,
+    }).queryKey
+  ).fullUrl;
   const invalidateComments = useInvalidateInvestigationComments(
     organizationSlug,
     investigationId

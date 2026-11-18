@@ -3,7 +3,7 @@ import {useQueryClient, type Query} from '@tanstack/react-query';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
-import {isApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {Block, CallRecord, SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 
@@ -190,10 +190,9 @@ export function useRefreshPageOnSeerWrite({
 
     queryClient.invalidateQueries({
       predicate: (query: Query) => {
-        const {queryKey} = query;
+        const fullUrl = safeParseQueryKey(query.queryKey)?.fullUrl;
         return (
-          isApiQueryKey(queryKey) &&
-          prefixes.some(prefix => isStaleUrl(queryKey[1].fullUrl, prefix))
+          fullUrl !== undefined && prefixes.some(prefix => isStaleUrl(fullUrl, prefix))
         );
       },
     });

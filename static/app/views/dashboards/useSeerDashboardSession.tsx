@@ -5,6 +5,7 @@ import {toast} from '@sentry/scraps/toast';
 
 import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -175,7 +176,7 @@ export function useSeerDashboardSession({
           // A session exists, send the message to the existing session
           const {queryKey} = seerDashboardSessionApiOptions(organization.slug, seerRunId);
           await fetchMutation({
-            url: queryKey[1].fullUrl,
+            url: parseQueryKey(queryKey).fullUrl,
             method: 'POST',
             data: {
               query: message,

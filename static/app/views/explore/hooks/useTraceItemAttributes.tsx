@@ -5,6 +5,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {TagCollection} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {FieldKind} from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -76,7 +77,7 @@ function isProjectArray(
 }
 
 function getAttributeScopeHash(queryKey: ApiQueryKey) {
-  const {fullUrl, options} = queryKey[1];
+  const {fullUrl, options} = parseQueryKey(queryKey);
   return hashKey([
     fullUrl,
     {
