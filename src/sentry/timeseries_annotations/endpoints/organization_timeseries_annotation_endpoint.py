@@ -18,7 +18,6 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
 from sentry.api.utils import get_date_range_from_params
-from sentry.exceptions import InvalidParams
 from sentry.models.organization import Organization
 from sentry.timeseries_annotations.endpoints.serializers import TimeseriesAnnotationSerializer
 from sentry.timeseries_annotations.models import (
@@ -44,10 +43,7 @@ class OrganizationTimeseriesAnnotationEndpoint(OrganizationEndpoint):
         ):
             raise ResourceDoesNotExist
 
-        try:
-            start, end = get_date_range_from_params(request.GET)
-        except InvalidParams as e:
-            raise ParseError(detail=f"Invalid date range: {e}")
+        start, end = get_date_range_from_params(request.GET)
 
         # Scope project-level annotations to projects the caller can access; org-wide
         # annotations (null project) apply to every chart. Unconditional: with no access the
