@@ -227,6 +227,7 @@ class SeerAutofixOperator[CachePayloadT]:
             trigger_push_changes,
         )
         from sentry.seer.autofix.feature.models import FEATURE_ID as AUTOFIX_FEATURE_ID
+        from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
         from sentry.seer.autofix.steps import AutofixStep
 
         event_lifecyle = SeerOperatorEventLifecycleMetric(
@@ -251,6 +252,13 @@ class SeerAutofixOperator[CachePayloadT]:
                     existing_state is None or existing_state.run_id != run_id
                 ):
                     existing_state = get_autofix_run_state(group, run_id)
+                single_run_state = (
+                    get_autofix_agent_state(
+                        group.organization, group.id, sources=(SINGLE_RUN_FEATURE_ID,)
+                    )
+                    if existing_state is None and run_id is None
+                    else None
+                )
             except Exception as e:
                 with SeerOperatorEventLifecycleMetric(
                     interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_ERROR,
@@ -260,6 +268,17 @@ class SeerAutofixOperator[CachePayloadT]:
                         error="Encountered an error while talking to Seer"
                     )
                 lifecycle.record_failure(failure_reason=e)
+                return
+            # Slack can't continue a single run, so an existing one blocks a new kickoff.
+            if single_run_state is not None:
+                with SeerOperatorEventLifecycleMetric(
+                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_ALREADY_EXISTS,
+                    entrypoint_key=self.entrypoint.key,
+                ).capture():
+                    self.entrypoint.on_trigger_autofix_already_exists(
+                        run_id=single_run_state.run_id,
+                        has_complete_stage=single_run_state.status != "processing",
+                    )
                 return
             if existing_state:
                 has_complete_stage = get_autofix_explorer_status(stopping_point, existing_state)
