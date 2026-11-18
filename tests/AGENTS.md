@@ -44,6 +44,10 @@ Notes:
 - Tests should ALWAYS be procedural with NO branching logic. It is very rare
   that you will need an if statement as part of a backend test.
 
+## Tests and Snuba
+
+Tests that don't declare Snuba skip the Snuba writes that saving models and events causes (group attribute snapshots, eventstream inserts from `store_event`), so they run without Snuba. A test that reads groups or events back from Snuba must use `SnubaTestCase` or `@requires_snuba`. See `skip_snuba_writes_unless_test_requires_snuba` in `src/sentry/testutils/pytest/fixtures.py`.
+
 ## Date-stable tests (current or future year)
 
 Flake8 **S015** rejects a current or future UTC year as a hardcoded test "now" at module or class scope, because that date drifts into Snuba retention. Use `before_now(...)` for relative time, or an older fixed year for an intentional historical fixture.
