@@ -14,7 +14,7 @@ import pytest
 from django.core.files.base import ContentFile
 from django.db import OperationalError, connections, router
 from django.db.models.query import QuerySet
-from django.test.utils import CaptureQueriesContext
+from django.test.utils import CaptureQueriesContext, override_settings
 
 from sentry.models.artifactbundle import (
     ArtifactBundle,
@@ -129,6 +129,39 @@ class AssembleDifTest(BaseAssembleTest):
         assert dif.storage_path
         assert not File.objects.filter(type="project.dif", checksum=checksum).exists()
         assert not FileBlobIndex.objects.exists()
+
+    def test_legacy_dif_reuses_uploaded_chunks(self) -> None:
+        sym_file = self.load_fixture("crash.sym")
+        chunk_size = len(sym_file) // 3
+        blobs = [
+            FileBlob.from_file_with_organization(
+                ContentFile(sym_file[offset : offset + chunk_size]), self.organization
+            )
+            for offset in range(0, len(sym_file), chunk_size)
+        ]
+        checksum = sha1(sym_file).hexdigest()
+
+        with (
+            self.feature({"organizations:objectstore-debugfiles-exclusive-write": False}),
+            override_settings(SENTRY_CHUNK_UPLOAD_BLOB_SIZE=chunk_size),
+        ):
+            assemble_dif(
+                project_id=self.project.id,
+                name="crash.sym",
+                checksum=checksum,
+                chunks=[blob.checksum for blob in blobs],
+            )
+
+        dif = ProjectDebugFile.objects.get(project_id=self.project.id, checksum=checksum)
+        assert dif.storage_path is None
+        assert dif.file is not None
+        assert dif.file.checksum == checksum
+        assert dif.file.getfile().read() == sym_file
+
+        # The legacy `File` references the uploaded chunks instead of storing the contents again.
+        indexes = FileBlobIndex.objects.filter(file=dif.file).order_by("offset")
+        assert [index.blob_id for index in indexes] == [blob.id for blob in blobs]
+        assert FileBlob.objects.count() == len(blobs)
 
     def test_assemble_from_files(self) -> None:
         files = []

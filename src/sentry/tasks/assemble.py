@@ -21,7 +21,7 @@ from django.db.models import Q
 from django.utils import timezone
 from sentry_sdk import traces
 
-from sentry import features, options
+from sentry import options
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.debug_files.artifact_bundles import (
@@ -329,65 +329,36 @@ def assemble_dif(
     Assembles uploaded chunks into a ``ProjectDebugFile``.
     """
     from sentry.lang.native.sources import record_last_upload
-    from sentry.models.debugfile import (
-        BadDif,
-        create_dif_from_file,
-        create_dif_from_fileobj,
-        detect_single_dif_from_path,
-    )
+    from sentry.models.debugfile import BadDif, create_dif, detect_single_dif_from_path
     from sentry.models.project import Project
 
     sentry_sdk.set_tag("project", project_id)
     sentry_sdk.set_attribute("project", project_id)
 
-    file: File | None = None
-    delete_file = False
-
     try:
         project = Project.objects.filter(id=project_id).get()
         set_assemble_status(AssembleTask.DIF, project_id, checksum, ChunkFileState.ASSEMBLING)
 
-        if features.has(
-            "organizations:objectstore-debugfiles-exclusive-write", project.organization
-        ):
-            temp_file = assemble_file_blobs(AssembleTask.DIF, project, name, checksum, chunks)
-            if temp_file is None:
-                return
-        else:
-            # Assemble the chunks into a legacy File and temporary file.
-            rv = assemble_file(
-                AssembleTask.DIF, project, name, checksum, chunks, file_type="project.dif"
-            )
+        temp_file = assemble_file_blobs(AssembleTask.DIF, project, name, checksum, chunks)
 
-            # If no file has been created this means that the file failed to
-            # assemble because of bad input data. In this case, assemble_file
-            # has set the assemble status already.
-            if rv is None:
-                return
-
-            file, temp_file = rv
-            delete_file = True
+        # If no temporary file has been created this means that the chunks failed
+        # to assemble because of bad input data. In this case, assemble_file_blobs
+        # has set the assemble status already.
+        if temp_file is None:
+            return
 
         with temp_file:
             # We only permit split difs to hit this endpoint.
             # The client is required to split them up first or we error.
             try:
                 meta = detect_single_dif_from_path(temp_file.name, name=name, debug_id=debug_id)
-                if file is None:
-                    temp_file.seek(0)
-                    dif, created = create_dif_from_fileobj(project, meta, temp_file)
-                else:
-                    dif, created = create_dif_from_file(project, meta, file)
+                temp_file.seek(0)
+                dif, created = create_dif(project, meta, temp_file)
             except BadDif as e:
                 set_assemble_status(
                     AssembleTask.DIF, project_id, checksum, ChunkFileState.ERROR, detail=e.args[0]
                 )
                 return
-
-            # We can delete the temporary file when either the new DIF is objectstore-backed (i.e. `dif.file is None`),
-            # or when the new DIF references an already existing underlying `File` that's not this temporary one.
-            # Only if `dif.file is file` we want to avoid the deletion, given that the new DIF will be backed by `File` that up until now we considered temporary.
-            delete_file = file is not None and dif.file is not file
 
             if created:
                 record_last_upload(project)
@@ -404,9 +375,6 @@ def assemble_dif(
         set_assemble_status(
             AssembleTask.DIF, project_id, checksum, ChunkFileState.OK, detail=serialize(dif)
         )
-    finally:
-        if delete_file and file is not None:
-            file.delete()
 
 
 class AssembleArtifactsError(Exception):

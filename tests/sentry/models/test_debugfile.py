@@ -4,8 +4,9 @@ import os
 import tempfile
 import time
 import zipfile
+from hashlib import sha1
 from io import BytesIO
-from typing import IO, Any
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -20,8 +21,7 @@ from sentry.models.debugfile import (
     DifMeta,
     ProjectDebugFile,
     create_debug_file_from_dif,
-    create_dif_from_file,
-    create_dif_from_fileobj,
+    create_dif,
     create_files_from_dif_zip,
     detect_dif_from_path,
     get_debug_id_from_dif_request,
@@ -345,44 +345,76 @@ class CreateDebugFileTest(APITestCase):
         args.update(kwargs)
         return DifMeta(**args)
 
-    def create_dif(self, file: File, **kwargs: object) -> tuple[ProjectDebugFile, bool]:
-        if file.size is None:
-            file.size = 0
-            file.save(update_fields=["size"])
-        return create_dif_from_file(self.project, self._create_meta(**kwargs), file)
+    def create_dif(self, content: bytes, **kwargs: object) -> tuple[ProjectDebugFile, bool]:
+        return create_dif(self.project, self._create_meta(**kwargs), BytesIO(content))
 
-    def create_dif_from_fileobj(
-        self, fileobj: IO[bytes], **kwargs: object
+    def create_objectstore_dif(
+        self, content: bytes, **kwargs: object
     ) -> tuple[ProjectDebugFile, bool]:
-        return create_dif_from_fileobj(self.project, self._create_meta(**kwargs), fileobj)
-
-    def create_stored_file(self, content: bytes) -> File:
-        file = self.create_file(name="crash.dsym")
-        file.putfile(ContentFile(content))
-        return file
+        with self.feature("organizations:objectstore-debugfiles-exclusive-write"):
+            return self.create_dif(content, **kwargs)
 
     def create_dual_written_dif(self, content: bytes) -> ProjectDebugFile:
         # Existing dual-written rows remain supported even though new writes use one backend.
-        dif, created = self.create_dif_from_fileobj(BytesIO(content))
+        dif, created = self.create_objectstore_dif(content)
         assert created
-        dif.update(file=self.create_stored_file(content))
+        file = self.create_file(name="crash.dsym")
+        file.putfile(ContentFile(content))
+        dif.update(file=file)
         return dif
 
     @patch("sentry.models.debugfile.get_session")
-    def test_create_dif_from_file(self, get_session: MagicMock) -> None:
-        file = self.create_stored_file(b"debug symbols")
-        dif, created = self.create_dif(file)
+    def test_create_legacy_dif(self, get_session: MagicMock) -> None:
+        content = b"debug symbols"
+        dif, created = self.create_dif(content)
 
         get_session.assert_not_called()
         assert dif.storage_path is None
-        assert dif.get_file().read() == b"debug symbols"
+        assert dif.get_file().read() == content
 
         assert created
         assert dif is not None
         assert dif.file is not None
         assert dif.file.type == "project.dif"
-        assert "Content-Type" in dif.file.headers
+        assert dif.file.headers == {"Content-Type": "application/x-mach-binary"}
+        assert dif.file.size == len(content)
+        assert dif.checksum == dif.file.checksum == sha1(content).hexdigest()
         assert ProjectDebugFile.objects.filter(id=dif.id).exists()
+
+    def test_legacy_dif_is_idempotent(self) -> None:
+        first, first_created = self.create_dif(b"debug symbols")
+        file_count = File.objects.count()
+
+        with patch("sentry.models.debugfile.File.putfile") as putfile:
+            second, second_created = self.create_dif(b"debug symbols")
+
+        assert first_created
+        assert not second_created
+        assert first.id == second.id
+        putfile.assert_not_called()
+        assert File.objects.count() == file_count
+
+    def test_legacy_dif_cleans_up_after_database_error(self) -> None:
+        with (
+            patch(
+                "sentry.models.debugfile.ProjectDebugFile.objects.create",
+                side_effect=RuntimeError,
+            ),
+            pytest.raises(RuntimeError),
+        ):
+            self.create_dif(b"debug symbols")
+
+        assert not File.objects.filter(type="project.dif").exists()
+
+    def test_legacy_dif_cleans_up_after_storage_error(self) -> None:
+        with (
+            patch("sentry.models.debugfile.File.putfile", side_effect=RuntimeError),
+            pytest.raises(RuntimeError),
+        ):
+            self.create_dif(b"debug symbols")
+
+        assert not ProjectDebugFile.objects.filter(project_id=self.project.id).exists()
+        assert not File.objects.filter(type="project.dif").exists()
 
     def test_create_dif_rejects_unknown_format(self) -> None:
         meta = DifMeta(
@@ -393,13 +425,15 @@ class CreateDebugFileTest(APITestCase):
         )
 
         with pytest.raises(TypeError, match="unknown dif type 'unknown'"):
-            create_dif_from_file(self.project, meta, self.create_stored_file(b"debug symbols"))
+            create_dif(self.project, meta, BytesIO(b"debug symbols"))
+
+        assert not File.objects.filter(type="project.dif").exists()
 
     @requires_objectstore
-    def test_exclusive_objectstore_create_dif_from_fileobj(self) -> None:
+    def test_create_objectstore_dif(self) -> None:
         content = b"objectstore-dif-content"
         checksum = "46b15fc7714307c2d13a1e42651ba92245662ab0"
-        dif, created = self.create_dif_from_fileobj(BytesIO(content))
+        dif, created = self.create_objectstore_dif(content)
 
         assert created
         assert dif.file is None
@@ -414,9 +448,8 @@ class CreateDebugFileTest(APITestCase):
         content = b"objectstore-dif-content"
         get_session.return_value.put.return_value = "storage-path"
 
-        with self.feature("organizations:objectstore-debugfiles-exclusive-write"):
-            first, first_created = self.create_dif_from_fileobj(BytesIO(content))
-            second, second_created = self.create_dif_from_fileobj(BytesIO(content))
+        first, first_created = self.create_objectstore_dif(content)
+        second, second_created = self.create_objectstore_dif(content)
 
         assert first_created
         assert not second_created
@@ -431,11 +464,8 @@ class CreateDebugFileTest(APITestCase):
         get_session.return_value.put.return_value = "storage-path"
         create.side_effect = RuntimeError
 
-        with (
-            self.feature("organizations:objectstore-debugfiles-exclusive-write"),
-            pytest.raises(RuntimeError),
-        ):
-            self.create_dif_from_fileobj(BytesIO(b"objectstore-dif-content"))
+        with pytest.raises(RuntimeError):
+            self.create_objectstore_dif(b"objectstore-dif-content")
 
         get_session.return_value.delete.assert_called_once_with("storage-path")
 
@@ -446,20 +476,17 @@ class CreateDebugFileTest(APITestCase):
         self, get_session: MagicMock, sleep: MagicMock
     ) -> None:
         get_session.return_value.put.side_effect = RuntimeError
-        with (
-            self.feature("organizations:objectstore-debugfiles-exclusive-write"),
-            pytest.raises(RuntimeError),
-        ):
-            self.create_dif_from_fileobj(BytesIO(b"objectstore-dif-content"))
+        with pytest.raises(RuntimeError):
+            self.create_objectstore_dif(b"objectstore-dif-content")
 
         assert get_session.return_value.put.call_count == 3
         assert sleep.call_count == 2
         assert not ProjectDebugFile.objects.filter(project_id=self.project.id).exists()
         assert not File.objects.filter(type="project.dif").exists()
 
-    @patch("sentry.models.debugfile.create_dif_from_file", side_effect=RuntimeError)
+    @patch("sentry.models.debugfile.ProjectDebugFile.objects.create", side_effect=RuntimeError)
     def test_create_debug_file_cleans_up_legacy_file_after_create_error(
-        self, create_dif: MagicMock
+        self, create: MagicMock
     ) -> None:
         with tempfile.NamedTemporaryFile() as file:
             file.write(b"debug symbols")
@@ -527,36 +554,35 @@ class CreateDebugFileTest(APITestCase):
                 dif.get_file()
 
     def test_keep_disjoint_difs(self) -> None:
-        file = self.create_stored_file(b"unwind symbols")
-        dif1, created1 = self.create_dif(file=file, data={"features": ["unwind"]})
+        dif1, created1 = self.create_dif(b"unwind symbols", data={"features": ["unwind"]})
 
-        file = self.create_stored_file(b"debug symbols")
-        dif2, created2 = self.create_dif(file=file, data={"features": ["debug"]})
+        dif2, created2 = self.create_dif(b"debug symbols", data={"features": ["debug"]})
 
         assert created1 and created2
         assert ProjectDebugFile.objects.filter(id=dif1.id).exists()
         assert ProjectDebugFile.objects.filter(id=dif2.id).exists()
 
     def test_keep_overlapping_difs(self) -> None:
-        file = self.create_stored_file(b"symtab unwind symbols")
-        dif1, created1 = self.create_dif(file=file, data={"features": ["symtab", "unwind"]})
+        dif1, created1 = self.create_dif(
+            b"symtab unwind symbols", data={"features": ["symtab", "unwind"]}
+        )
 
-        file = self.create_stored_file(b"symtab debug symbols")
-        dif2, created2 = self.create_dif(file=file, data={"features": ["symtab", "debug"]})
+        dif2, created2 = self.create_dif(
+            b"symtab debug symbols", data={"features": ["symtab", "debug"]}
+        )
 
         assert created1 and created2
         assert ProjectDebugFile.objects.filter(id=dif1.id).exists()
         assert ProjectDebugFile.objects.filter(id=dif2.id).exists()
 
     def test_keep_latest_dif(self) -> None:
-        file = self.create_stored_file(b"debug unwind symbols")
-        dif1, created1 = self.create_dif(file=file, data={"features": ["debug", "unwind"]})
+        dif1, created1 = self.create_dif(
+            b"debug unwind symbols", data={"features": ["debug", "unwind"]}
+        )
 
-        file = self.create_stored_file(b"debug symbols")
-        dif2, created2 = self.create_dif(file=file, data={"features": ["debug"]})
+        dif2, created2 = self.create_dif(b"debug symbols", data={"features": ["debug"]})
 
-        file = self.create_stored_file(b"symbols")
-        dif3, created3 = self.create_dif(file=file, data={"features": []})
+        dif3, created3 = self.create_dif(b"symbols", data={"features": []})
 
         # XXX: dif2 and dif3 would actually be redundant, but since they are more
         # recent than dif1 we keep both of them. This assumes that newer uploads
@@ -568,26 +594,17 @@ class CreateDebugFileTest(APITestCase):
         assert ProjectDebugFile.objects.filter(id=dif3.id).exists()
 
     def test_skip_redundant_dif(self) -> None:
-        file = self.create_file(
-            name="crash.dsym", checksum="dc1e3f3e411979d336c3057cce64294f3420f93a"
-        )
-        dif1, created1 = self.create_dif(file)
-
-        file = self.create_file(
-            name="crash.dsym", checksum="dc1e3f3e411979d336c3057cce64294f3420f93a"
-        )
-        dif2, created2 = self.create_dif(file)
+        dif1, created1 = self.create_dif(b"debug symbols")
+        dif2, created2 = self.create_dif(b"debug symbols")
 
         assert created1
         assert not created2
         assert dif1 == dif2
 
     def test_remove_redundant_dif(self) -> None:
-        file = self.create_stored_file(b"first debug symbols")
-        dif1, created1 = self.create_dif(file=file, data={"features": ["debug"]})
+        dif1, created1 = self.create_dif(b"first debug symbols", data={"features": ["debug"]})
 
-        file = self.create_stored_file(b"second debug symbols")
-        dif2, created2 = self.create_dif(file=file, data={"features": ["debug"]})
+        dif2, created2 = self.create_dif(b"second debug symbols", data={"features": ["debug"]})
 
         assert created1 and created2
         assert not ProjectDebugFile.objects.filter(id=dif1.id).exists()
@@ -598,11 +615,8 @@ class CreateDebugFileTest(APITestCase):
         obj = Archive.open(wasm_path)._get_object(0)
         meta = DifMeta.from_object(obj, wasm_path, name="index.wasm")
 
-        file = self.create_file(name="index.wasm")
         with open(wasm_path, "rb") as f:
-            file.putfile(f)
-
-        dif, created = create_dif_from_file(self.project, meta, file)
+            dif, created = create_dif(self.project, meta, f)
 
         # Any `symbolic` version before 14.0.0a4 would've wrongly read the code ID
         # as "10da03eb5d63d750faab0fb8e7cc12a1c3". We now save that as the legacy code ID.
@@ -619,8 +633,14 @@ class CreateDebugFileTest(APITestCase):
         obj = Archive.open(wasm_path)._get_object(0)
         meta = DifMeta.from_object(obj, wasm_path, name="index.wasm")
 
-        with open(wasm_path, "rb") as f:
-            dif, created = create_dif_from_fileobj(self.project, meta, f)
+        with (
+            self.feature("organizations:objectstore-debugfiles-exclusive-write"),
+            open(wasm_path, "rb") as f,
+        ):
+            dif, created = create_dif(self.project, meta, f)
+
+        assert dif.file is None
+        assert dif.storage_path is not None
 
         # Any `symbolic` version before 14.0.0a4 would've wrongly read the code ID
         # as "10da03eb5d63d750faab0fb8e7cc12a1c3". We now save that as the legacy code ID.

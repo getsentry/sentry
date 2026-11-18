@@ -14,7 +14,7 @@ from symbolic.debuginfo import Archive
 from sentry.models.debugfile import (
     DifMeta,
     ProjectDebugFile,
-    create_dif_from_file,
+    create_dif,
 )
 from sentry.models.files.file import File
 from sentry.models.release import Release
@@ -104,10 +104,8 @@ class DebugFilesTestCases(APITestCase):
         meta.legacy_debug_id = None
         meta.legacy_code_id = None
 
-        file = self.create_file(name="index.wasm")
-        file.size = 17
-        file.checksum = "foobar"
-        create_dif_from_file(self.project, meta, file)
+        with open(wasm_path, "rb") as f:
+            create_dif(self.project, meta, f)
 
     def _assert_successful_download(
         self, response: HttpResponse, content: bytes, filename: str | None = None

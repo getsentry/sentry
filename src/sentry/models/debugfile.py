@@ -23,6 +23,7 @@ from typing import (
     overload,
 )
 
+from django.conf import settings
 from django.db import models
 from django.db.models import ProtectedError, Q
 from django.db.models.functions import Now
@@ -536,73 +537,17 @@ def _get_fileobj_checksum_and_size(fileobj: IO[bytes]) -> tuple[str, int]:
     return hasher.hexdigest(), file_size
 
 
-def create_dif_from_file(
-    project: Project,
-    meta: DifMeta,
-    file: File,
-) -> tuple[ProjectDebugFile, bool]:
-    """Creates a legacy-backed ``ProjectDebugFile`` from an existing ``File``.
-
-    Use this when the DIF has already been written to Sentry's legacy ``File`` storage. The
-    existing ``File`` is retained. To create an Objectstore-only DIF from a file-like object, use
-    ``create_dif_from_fileobj`` instead.
-    """
-    file_size = file.size
-    assert file_size is not None
-    checksum = file.checksum
-    assert checksum is not None
-
-    dif = find_existing_dif(project, meta, checksum)
-
-    if dif is not None:
-        return dif, False
-
-    object_name = _get_dif_object_name(meta)
-    content_type = DIF_MIMETYPES[meta.file_format]
-
-    file.type = "project.dif"
-    file.headers["Content-Type"] = content_type
-    file.save()
-
-    metrics.distribution(
-        "storage.put.size",
-        file_size,
-        tags={"usecase": "debug_files", "compression": "none"},
-        unit="byte",
-    )
-
-    dif = ProjectDebugFile.objects.create(
-        file=file,
-        checksum=checksum,
-        debug_id=meta.debug_id,
-        code_id=meta.code_id,
-        wasm_legacy_code_id=meta.legacy_code_id,
-        wasm_legacy_debug_id=meta.legacy_debug_id,
-        cpu_name=meta.arch,
-        object_name=object_name,
-        project_id=project.id,
-        data=meta.data,
-    )
-
-    # The DIF we've just created might actually be removed here again. But since
-    # this can happen at any time in near or distant future, we don't care and
-    # assume a successful upload. The DIF will be reported to the uploader and
-    # reprocessing can start.
-    clean_redundant_difs(project, meta.debug_id)
-
-    return dif, True
-
-
-def create_dif_from_fileobj(
+def create_dif(
     project: Project, meta: DifMeta, fileobj: IO[bytes]
 ) -> tuple[ProjectDebugFile, bool]:
-    """Creates an Objectstore-backed ``ProjectDebugFile`` from a file-like object.
+    """Creates a ``ProjectDebugFile`` from a file-like object.
 
-    Use this when the DIF content is available in a readable file object and should be stored
-    only in Objectstore. To create a DIF from an existing legacy ``File``, use
-    ``create_dif_from_file`` instead. This function intentionally does not check feature flags:
-    callers must only use it when exclusive Objectstore writes are enabled. Objectstore upload
-    failures are fatal.
+    The DIF is stored in exactly one backend: Objectstore if exclusive Objectstore writes are
+    enabled for the organization, Sentry's legacy ``File`` storage otherwise. A failure to store
+    the DIF is fatal.
+
+    Returns the DIF and whether it was created. If the project already has a DIF with the same
+    debug ID and contents, that one is returned and nothing is stored.
     """
     checksum, file_size = _get_fileobj_checksum_and_size(fileobj)
 
@@ -613,8 +558,41 @@ def create_dif_from_fileobj(
 
     object_name = _get_dif_object_name(meta)
     content_type = DIF_MIMETYPES[meta.file_format]
+    fields: dict[str, Any] = {
+        "checksum": checksum,
+        "debug_id": meta.debug_id,
+        "code_id": meta.code_id,
+        "wasm_legacy_code_id": meta.legacy_code_id,
+        "wasm_legacy_debug_id": meta.legacy_debug_id,
+        "cpu_name": meta.arch,
+        "object_name": object_name,
+        "project_id": project.id,
+        "data": meta.data,
+    }
+
+    if features.has("organizations:objectstore-debugfiles-exclusive-write", project.organization):
+        dif = _create_objectstore_dif(project, meta, fileobj, content_type, file_size, fields)
+    else:
+        dif = _create_legacy_dif(meta, fileobj, content_type, file_size, fields)
+
+    # The DIF we've just created might actually be removed here again. But since
+    # this can happen at any time in near or distant future, we don't care and
+    # assume a successful upload. The DIF will be reported to the uploader and
+    # reprocessing can start.
+    clean_redundant_difs(project, meta.debug_id)
+
+    return dif, True
+
+
+def _create_objectstore_dif(
+    project: Project,
+    meta: DifMeta,
+    fileobj: IO[bytes],
+    content_type: str,
+    file_size: int,
+    fields: Mapping[str, Any],
+) -> ProjectDebugFile:
     session = get_session(UsecaseId.DEBUG_FILES, project)
-    storage_path: str | None = None
 
     def upload() -> str:
         fileobj.seek(0)
@@ -633,43 +611,57 @@ def create_dif_from_fileobj(
         logger.exception("Failed to write debug file to Objectstore")
         raise
 
-    objectstore_metadata = {
-        "storage_path": storage_path,
-        "content_type": content_type,
-        "file_size": file_size,
-        "date_created": timezone.now(),
-    }
-
     try:
-        dif = ProjectDebugFile.objects.create(
+        return ProjectDebugFile.objects.create(
             file=None,
-            checksum=checksum,
-            debug_id=meta.debug_id,
-            code_id=meta.code_id,
-            wasm_legacy_code_id=meta.legacy_code_id,
-            wasm_legacy_debug_id=meta.legacy_debug_id,
-            cpu_name=meta.arch,
-            object_name=object_name,
-            project_id=project.id,
-            data=meta.data,
-            **objectstore_metadata,
+            storage_path=storage_path,
+            content_type=content_type,
+            file_size=file_size,
+            date_created=timezone.now(),
+            **fields,
         )
     except Exception:
-        if storage_path is not None:
-            assert session is not None
-            try:
-                session.delete(storage_path)
-            except Exception:
-                logger.exception("Failed to clean up Objectstore debug file after database error")
+        try:
+            session.delete(storage_path)
+        except Exception:
+            logger.exception("Failed to clean up Objectstore debug file after database error")
         raise
 
-    # The DIF we've just created might actually be removed here again. But since
-    # this can happen at any time in near or distant future, we don't care and
-    # assume a successful upload. The DIF will be reported to the uploader and
-    # reprocessing can start.
-    clean_redundant_difs(project, meta.debug_id)
 
-    return dif, True
+def _create_legacy_dif(
+    meta: DifMeta,
+    fileobj: IO[bytes],
+    content_type: str,
+    file_size: int,
+    fields: Mapping[str, Any],
+) -> ProjectDebugFile:
+    file = File.objects.create(
+        name=meta.debug_id,
+        type="project.dif",
+        headers={"Content-Type": content_type},
+    )
+
+    try:
+        fileobj.seek(0)
+        # Chunk-uploaded DIFs already have their contents in ``FileBlob``s of the chunk upload
+        # size. Splitting at the same boundaries lets ``putfile`` find those blobs by checksum and
+        # reference them, instead of storing the contents a second time.
+        file.putfile(fileobj, blob_size=settings.SENTRY_CHUNK_UPLOAD_BLOB_SIZE)
+
+        metrics.distribution(
+            "storage.put.size",
+            file_size,
+            tags={"usecase": "debug_files", "compression": "none"},
+            unit="byte",
+        )
+
+        return ProjectDebugFile.objects.create(file=file, **fields)
+    except Exception:
+        try:
+            file.delete()
+        except Exception:
+            logger.exception("Failed to clean up legacy debug file after error")
+        raise
 
 
 def _analyze_progard_filename(filename: str | None) -> str | None:
@@ -999,36 +991,12 @@ def create_debug_file_from_dif(
     """Create a ProjectDebugFile from a dif (Debug Information File) and
     return an array of created objects.
     """
-    exclusive_objectstore_write = features.has(
-        "organizations:objectstore-debugfiles-exclusive-write", project.organization
-    )
     rv = []
     for meta in to_create:
         with open(meta.path, "rb") as f:
-            if exclusive_objectstore_write:
-                dif, created = create_dif_from_fileobj(project, meta, f)
-            else:
-                checksum, _ = _get_fileobj_checksum_and_size(f)
-                if find_existing_dif(project, meta, checksum) is not None:
-                    continue
-                file = File.objects.create(
-                    name=meta.debug_id,
-                    type="project.dif",
-                    headers={"Content-Type": DIF_MIMETYPES[meta.file_format]},
-                )
-                file.putfile(f)
-                try:
-                    dif, created = create_dif_from_file(project, meta, file)
-                except Exception:
-                    try:
-                        file.delete()
-                    except ProtectedError:
-                        pass
-                    raise
-                if not created:
-                    file.delete()
-            if created:
-                rv.append(dif)
+            dif, created = create_dif(project, meta, f)
+        if created:
+            rv.append(dif)
     return rv
 
 
