@@ -26,8 +26,6 @@ from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
-FEATURE_FLAG = "organizations:seer-smart-assignment-run"
-
 # Rolling window (seconds) for the per-org and global dispatch caps below.
 _RATE_LIMIT_WINDOW = 86400
 
@@ -39,8 +37,8 @@ def trigger_smart_assignment(
 ) -> None:
     """Trigger and/or score a Smart Assignment run for an issue.
 
-    If we haven't run Smart Assignment yet on this issue, and the org has the
-    flag on, and we haven't hit daily caps, _dispatch() smart assignment.
+    If we haven't run Smart Assignment yet on this issue, and the org is a Seer
+    customer, and we haven't hit daily caps, _dispatch() smart assignment.
 
     Always call record_ground_truth(), which will record details from this
     activity (the user manually assigned to the issue) if it indicates
@@ -58,11 +56,8 @@ def trigger_smart_assignment(
     organization = group.organization
 
     if not (
-        features.has(FEATURE_FLAG, organization)
-        and (
-            features.has("organizations:seer-added", organization)
-            or features.has("organizations:seat-based-seer-enabled", organization)
-        )
+        features.has("organizations:seer-added", organization)
+        or features.has("organizations:seat-based-seer-enabled", organization)
     ):
         return
 
