@@ -21,9 +21,7 @@ describe('SeerAutomationProjects', () => {
   });
 
   it('describes linked repositories for token-billed orgs', async () => {
-    const organization = OrganizationFixture({
-      features: ['token-billed-seer-enabled'],
-    });
+    const organization = OrganizationFixture({features: ['token-billed-seer-enabled']});
     mockEndpoints(organization);
 
     render(<SeerAutomationProjects />, {organization});

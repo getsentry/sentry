@@ -55,9 +55,7 @@ describe('PrimaryNavSeerConfigReminder', () => {
   });
 
   it('shows the reminder for a token-billed org', async () => {
-    const organization = OrganizationFixture({
-      features: ['token-billed-seer-enabled'],
-    });
+    const organization = OrganizationFixture({features: ['token-billed-seer-enabled']});
     mockOnboardingCheck(organization, false);
 
     renderReminder(organization);
@@ -79,9 +77,7 @@ describe('PrimaryNavSeerConfigReminder', () => {
   });
 
   it('hides the reminder for a token-billed org with repos connected', async () => {
-    const organization = OrganizationFixture({
-      features: ['token-billed-seer-enabled'],
-    });
+    const organization = OrganizationFixture({features: ['token-billed-seer-enabled']});
     mockOnboardingCheck(organization, true);
 
     renderReminder(organization);
