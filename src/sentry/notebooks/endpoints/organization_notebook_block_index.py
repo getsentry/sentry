@@ -95,7 +95,7 @@ class OrganizationNotebookBlockIndexEndpoint(OrganizationNotebookEndpoint):
         concurrency. A producer sends key and revision instead to write its text block: the
         same key updates the block, overwriting user edits and bringing back a deleted block,
         and a block with a newer revision returns 409. A bound workflow sends workflowRunId,
-        a key, and consecutive revisions starting at 1. It can write text or a block widget
+        its registered writerRunId, a key, and consecutive revisions starting at 1. It can write text or a block widget
         with its original query or evidence reference. Replaying an identical workflow write
         returns the saved block. Changing a removed workflow block requires a new key.
         Returns 201 with the new block, or 200

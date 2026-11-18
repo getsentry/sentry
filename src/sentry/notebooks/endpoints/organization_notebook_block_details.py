@@ -175,6 +175,8 @@ class OrganizationNotebookBlockDetailsEndpoint(OrganizationNotebookBlockEndpoint
                 block=block,
                 expected_notebook_version=validator.validated_data["notebook_version"],
                 expected_block_version=validator.validated_data["version"],
+                workflow_run_id=validator.validated_data.get("workflow_run_id"),
+                writer_run_id=validator.validated_data.get("writer_run_id"),
             )
         except Exception as error:
             response = service_error(error)

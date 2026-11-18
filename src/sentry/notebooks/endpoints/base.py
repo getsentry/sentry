@@ -83,6 +83,13 @@ def require_project_access(request: Request, project_ids: Collection[int]) -> No
         raise PermissionDenied
 
 
+def require_notebook_project_access(request: Request, notebook: Notebook) -> None:
+    if isinstance(request.access, ServiceAccountAccess):
+        require_project_access(request, list(notebook.projects.values_list("id", flat=True)))
+        if notebook.workflow_project_ids is not None:
+            require_project_access(request, notebook.workflow_project_ids)
+
+
 def require_notebook_writer(request: Request, notebook: Notebook | None = None) -> int | None:
     """The user behind a notebook write, or None for a service account.
 
@@ -91,7 +98,7 @@ def require_notebook_writer(request: Request, notebook: Notebook | None = None) 
     if not is_service_account_auth(request.auth):
         return require_authenticated_user(request)
     if notebook is not None:
-        require_project_access(request, list(notebook.projects.values_list("id", flat=True)))
+        require_notebook_project_access(request, notebook)
     return None
 
 
@@ -163,8 +170,7 @@ class OrganizationNotebookEndpoint(OrganizationNotebooksBaseEndpoint):
             )
         except (Notebook.DoesNotExist, ValueError):
             raise ResourceDoesNotExist
-        if isinstance(request.access, ServiceAccountAccess):
-            require_project_access(request, list(notebook.projects.values_list("id", flat=True)))
+        require_notebook_project_access(request, notebook)
         kwargs["notebook"] = notebook
         return args, kwargs
 

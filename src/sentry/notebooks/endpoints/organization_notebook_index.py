@@ -170,9 +170,12 @@ class OrganizationNotebookIndexEndpoint(OrganizationNotebooksBaseEndpoint):
         ).filter(Q(source_key__isnull=True) | ~Exists(newer_lineage_revision))
         if isinstance(request.access, ServiceAccountAccess) and not request.access.has_all_projects:
             projects = NotebookProject.objects.filter(notebook_id=OuterRef("pk"))
+            allowed = list(request.access.accessible_project_ids)
             notebooks = notebooks.filter(
                 Exists(projects),
-                ~Exists(projects.exclude(project_id__in=request.access.accessible_project_ids)),
+                ~Exists(projects.exclude(project_id__in=allowed)),
+                Q(workflow_project_ids__isnull=True)
+                | (Q(workflow_project_ids__contained_by=allowed) & ~Q(workflow_project_ids=[])),
             )
         query = request.GET.get("query")
         if query:

@@ -20,7 +20,12 @@ from sentry.models.organization import Organization
 from sentry.notebooks.contracts import MAX_MARKDOWN_CHARS
 from sentry.notebooks.models import Notebook, NotebookBlock, NotebookBlockKind, NotebookWorkflowRun
 from sentry.notebooks.services.action_requests import sync_snapshot_action_requests
-from sentry.notebooks.services.notebooks import create_manual_notebook
+from sentry.notebooks.services.notebooks import (
+    _validate_project_ids,
+    create_manual_notebook,
+    require_workflow_writer,
+    validate_evidence_scope,
+)
 from sentry.notebooks.services.producer_writes import notebook_writes
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.utils import json
@@ -46,12 +51,25 @@ def open_workflow_notebook(
 
     # get_or_create evaluates callable defaults inside its savepoint. A simultaneous
     # first open that loses the unique-key race also rolls back its blank notebook.
-    binding, _ = NotebookWorkflowRun.objects.get_or_create(
-        organization=organization, run_id=run_id, defaults={"notebook": destination_notebook}
-    )
-    if destination is not None and destination.id != binding.notebook_id:
-        raise ConflictError("This workflow already opened another notebook.")
-    return binding.notebook
+    with transaction.atomic(using=router.db_for_write(Notebook)):
+        binding, _ = NotebookWorkflowRun.objects.get_or_create(
+            organization=organization, run_id=run_id, defaults={"notebook": destination_notebook}
+        )
+        if destination is not None and destination.id != binding.notebook_id:
+            raise ConflictError("This workflow already opened another notebook.")
+        notebook = Notebook.objects.select_for_update().get(
+            pk=binding.notebook_id, organization=organization
+        )
+        if notebook.status != "active":
+            raise ConflictError("Archived notebooks are read-only.")
+        evidence = _validate_project_ids(organization.id, project_ids)
+        validate_evidence_scope(list(notebook.projects.values_list("id", flat=True)), evidence)
+        prior = notebook.workflow_project_ids
+        if prior is not None:
+            evidence = sorted(set(prior).union(evidence)) if prior and evidence else []
+        if evidence != prior:
+            notebook.update(workflow_project_ids=evidence)
+        return notebook
 
 
 def validate_embed(value: Any, widgets: list[dict[str, Any]]) -> None:
@@ -101,6 +119,7 @@ def write_workflow_block(
     notebook: Notebook,
     *,
     workflow_run_id: UUID,
+    writer_run_id: int,
     key: str,
     revision: int,
     kind: str,
@@ -111,16 +130,7 @@ def write_workflow_block(
     embed_source: str | None = None,
 ) -> tuple[NotebookBlock, bool]:
     with notebook_writes(notebook) as writes:
-        try:
-            writer_id = NotebookWorkflowRun.objects.values_list(
-                "writer_run__seer_run_state_id", flat=True
-            ).get(
-                organization_id=notebook.organization_id, run_id=workflow_run_id, notebook=notebook
-            )
-        except NotebookWorkflowRun.DoesNotExist:
-            raise serializers.ValidationError(
-                {"workflowRunId": "Open this notebook first."}
-            ) from None
+        require_workflow_writer(notebook, workflow_run_id, writer_run_id)
         blocks = notebook.blocks
         stored_key = f"workflow:{key}"
         block = blocks.filter(producer_key=stored_key).order_by("-producer_revision").first()
@@ -155,7 +165,7 @@ def write_workflow_block(
         block.embed_source = embed_source
         block.embed_summary = None
         block.producer_revision = revision
-        block.producing_seer_run_id = writer_id
+        block.producing_seer_run_id = writer_run_id
         block.last_edited_by_id = user_id
         if not created:
             block.version += 1
@@ -164,8 +174,12 @@ def write_workflow_block(
         return block, created
 
 
-def save_summary(notebook: Notebook, block_id: int, version: int, finding: str) -> NotebookBlock:
+def save_summary(
+    binding: NotebookWorkflowRun, writer_run_id: int, block_id: int, version: int, finding: str
+) -> NotebookBlock:
+    notebook = binding.notebook
     with notebook_writes(notebook) as writes:
+        require_workflow_writer(notebook, binding.run_id, writer_run_id)
         block = notebook.blocks.filter(
             pk=block_id, deleted_at__isnull=True, kind=NotebookBlockKind.EMBED
         ).first()
@@ -188,27 +202,32 @@ def content_revision(notebook: Notebook) -> str:
     versions = (
         notebook.blocks.filter(deleted_at__isnull=True)
         .order_by("position", "id")
-        .values_list("id", "version")
+        .values_list("id", "version", "result_execution_id")
     )
     return block_revision(versions)
 
 
-def block_revision(versions: Iterable[tuple[int, int]]) -> str:
-    return hashlib.sha256(json.dumps(list(versions)).encode()).hexdigest()
+def block_revision(versions: Iterable[tuple[int, int, int | None]]) -> str:
+    # Keep the existing revision for blocks without a published query result.
+    rows = [
+        (pk, version, result) if result is not None else (pk, version)
+        for pk, version, result in versions
+    ]
+    return hashlib.sha256(json.dumps(rows).encode()).hexdigest()
 
 
 def deliver_finalizer(
     binding: NotebookWorkflowRun, revision: str, section: str, result: dict[str, Any]
 ) -> None:
     with transaction.atomic(using=router.db_for_write(Notebook)):
-        # Legacy orchestration also locks its run before its notebook.
+        # Notebook edits and orchestration events acquire the notebook lock first.
+        notebook = Notebook.objects.select_for_update().get(pk=binding.notebook_id)
         orchestration = (
             InvestigationOrchestrationRun.objects.select_for_update()
             .filter(investigation_id=binding.notebook_id)
             .first()
         )
         binding = NotebookWorkflowRun.objects.select_for_update().get(pk=binding.pk)
-        notebook = Notebook.objects.select_for_update().get(pk=binding.notebook_id)
         if binding.delivered.get(section) == revision:
             return
         if notebook.status != "active" or content_revision(notebook) != revision:
@@ -223,7 +242,7 @@ def deliver_finalizer(
             complete_report_metadata(
                 orchestration,
                 {
-                    "title": result["title"],
+                    "title": None if binding.preserve_title else result["title"],
                     "summary": result["summary"],
                     "summaryDescription": result["description"],
                 },
@@ -231,7 +250,7 @@ def deliver_finalizer(
             orchestration.save(update_fields=["projection", "notebook_revision", "date_updated"])
         elif section == "metadata":
             notebook.update(
-                title=result["title"],
+                title=notebook.title if binding.preserve_title else result["title"],
                 summary=result["summary"],
                 summary_description=result["description"],
                 version=notebook.version + 1,
@@ -245,6 +264,6 @@ def deliver_finalizer(
                 if action is None:
                     raise serializers.ValidationError({"suggestions": "Invalid next step."})
                 actions.append(action)
-            sync_snapshot_action_requests(notebook, actions)
+            sync_snapshot_action_requests(notebook, actions, workflow_run=binding)
             notebook.update(version=notebook.version + 1)
         binding.update(delivered={**binding.delivered, section: revision})

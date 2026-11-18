@@ -159,6 +159,12 @@ class BlockCreateValidator(NotebookVersionValidator[tuple[NotebookBlock, bool]])
     workflow_run_id = serializers.UUIDField(
         required=False, help_text="Workflow bound to this notebook."
     )
+    writer_run_id = serializers.IntegerField(
+        required=False,
+        min_value=1,
+        max_value=2**63 - 1,
+        help_text="Registered Seer writer attempt, required for workflow writes.",
+    )
     block_version = serializers.IntegerField(
         min_value=1,
         required=False,
@@ -217,7 +223,7 @@ class BlockCreateValidator(NotebookVersionValidator[tuple[NotebookBlock, bool]])
         if "workflow_run_id" in attrs:
             if not self.context["producer_writer"]:
                 raise PermissionDenied
-            required = {"workflow_run_id", "key", "revision", "kind"}
+            required = {"workflow_run_id", "writer_run_id", "key", "revision", "kind"}
             kind = attrs["kind"]
             fields = required | (
                 {"embed", "embed_source"} if kind == NotebookBlockKind.EMBED else {"content"}
@@ -227,7 +233,9 @@ class BlockCreateValidator(NotebookVersionValidator[tuple[NotebookBlock, bool]])
                 or set(attrs) - {"block_version"} != fields
             ):
                 raise serializers.ValidationError(
-                    {"detail": "Send key, revision and either text content or an embed and source."}
+                    {
+                        "detail": "Send writerRunId, key, revision and either text content or an embed and source."
+                    }
                 )
             if (
                 len("workflow:" + attrs["key"]) > 128
@@ -248,7 +256,7 @@ class BlockCreateValidator(NotebookVersionValidator[tuple[NotebookBlock, bool]])
                     ),
                 )
             return attrs
-        if {"embed", "embed_source", "block_version"}.intersection(attrs) or attrs[
+        if {"embed", "embed_source", "block_version", "writer_run_id"}.intersection(attrs) or attrs[
             "kind"
         ] == NotebookBlockKind.EMBED:
             raise serializers.ValidationError(
@@ -379,10 +387,26 @@ class BlockUpdateValidator(NotebookVersionValidator):
 
 
 class BlockDeleteValidator(NotebookVersionValidator):
+    workflow_run_id = serializers.UUIDField(
+        required=False, help_text="Parent workflow for a writer removal."
+    )
+    writer_run_id = serializers.IntegerField(
+        required=False,
+        min_value=1,
+        max_value=2**63 - 1,
+        help_text="Registered Seer writer attempt.",
+    )
     version = serializers.IntegerField(
         min_value=1,
         help_text="Current block version from the latest block response. Stale versions return 409.",
     )
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        if ("workflow_run_id" in attrs) != ("writer_run_id" in attrs):
+            raise serializers.ValidationError(
+                {"detail": "Send workflowRunId and writerRunId together."}
+            )
+        return attrs
 
 
 class BlockExecutionStartValidator(NotebookVersionValidator):

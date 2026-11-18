@@ -98,6 +98,13 @@ class NotebookWriterTest(APITestCase):
         self.create_notebook_project(self.notebook, self.project)
         listing = restricted.get(self.url("sentry-api-0-organization-notebooks"))
         assert [item["id"] for item in listing.data] == [str(self.notebook.id)]
+        # Project deletion can remove a link after a workflow published its evidence.
+        NotebookProject.objects.filter(
+            notebook_id=opened.data["notebookId"], project=other
+        ).delete()
+        assert restricted.get(details).status_code == 403
+        listing = restricted.get(self.url("sentry-api-0-organization-notebooks"))
+        assert [item["id"] for item in listing.data] == [str(self.notebook.id)]
         self.login_as(self.user)
         assert self.client.get(url).status_code == 403
 
@@ -124,6 +131,29 @@ class NotebookWriterTest(APITestCase):
         assert newer.data["writerRunUuid"] != receipt.data["writerRunUuid"]
         assert agent.get(url).data["writerRunUuid"] == newer.data["writerRunUuid"]
         assert system.put(writer_url, body).status_code == 409
+
+    def test_destination_must_cover_evidence_even_after_binding(self) -> None:
+        other = self.create_project(organization=self.organization)
+        self.create_notebook_project(self.notebook, self.project)
+        agent = self.agent_client()
+        url = self.url("sentry-api-0-organization-notebook-workflow", workflow_run_id=uuid4())
+        destination = {"title": "Report", "notebookId": self.notebook.id}
+        assert agent.post(url, {**destination, "projectIds": [other.id]}).status_code == 400
+        assert agent.post(url, {**destination, "projectIds": []}).status_code == 400
+        assert agent.get(url).data["notebookId"] is None
+        assert agent.post(url, {**destination, "projectIds": [self.project.id]}).status_code == 200
+        assert agent.post(url, {"title": "Reopen", "projectIds": [other.id]}).status_code == 400
+        detail = self.url(
+            "sentry-api-0-organization-notebook-details", notebook_id=self.notebook.id
+        )
+        assert (
+            agent.put(
+                detail,
+                {"notebookVersion": self.notebook.version, "projectIds": [other.id]},
+                format="json",
+            ).status_code
+            == 400
+        )
 
     def sentry_app_client(self) -> APIClient:
         integration = self.create_internal_integration(

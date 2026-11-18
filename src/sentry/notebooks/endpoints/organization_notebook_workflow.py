@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, TypedDict
 from uuid import UUID
 
+from django.db import router, transaction
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
@@ -70,11 +71,14 @@ class OpenWorkflowNotebook(StrictCamelSnakeValidator[None]):
     project_ids = serializers.ListField(
         child=serializers.IntegerField(min_value=1),
         default=list,
-        help_text="Project IDs for a newly created notebook.",
+        help_text="Projects represented by the workflow evidence. An empty list means all projects.",
     )
 
 
 class SummaryWrite(StrictCamelSnakeValidator[None]):
+    writer_run_id = serializers.IntegerField(
+        min_value=1, max_value=2**63 - 1, help_text="Registered Seer writer attempt."
+    )
     block_id = serializers.IntegerField(min_value=1, help_text="ID of the saved embed block.")
     version = serializers.IntegerField(
         min_value=1, help_text="Version of the block used to generate the finding."
@@ -210,20 +214,20 @@ class OrganizationNotebookWorkflowEndpoint(OrganizationNotebooksBaseEndpoint):
             if destination is None:
                 raise ResourceDoesNotExist
         require_notebook_writer(request, destination)
-        if destination is None and binding is None:
-            require_project_access(request, values["project_ids"])
+        require_project_access(request, values["project_ids"])
         try:
-            notebook = open_workflow_notebook(
-                organization,
-                workflow_run_id,
-                destination=destination,
-                creator=get_creator_reference(request),
-                title=values["title"],
-                project_ids=values["project_ids"],
-            )
+            with transaction.atomic(using=router.db_for_write(Notebook)):
+                notebook = open_workflow_notebook(
+                    organization,
+                    workflow_run_id,
+                    destination=destination,
+                    creator=get_creator_reference(request),
+                    title=values["title"],
+                    project_ids=values["project_ids"],
+                )
+                require_notebook_writer(request, notebook)
         except NotebookValidationError as error:
             raise serializers.ValidationError(error.errors) from error
-        require_notebook_writer(request, notebook)
         return Response({"notebookId": str(notebook.id), "version": notebook.version})
 
     @extend_schema(
@@ -235,7 +239,7 @@ class OrganizationNotebookWorkflowEndpoint(OrganizationNotebooksBaseEndpoint):
     )
     def patch(self, request: Request, binding: NotebookWorkflowRun, **kwargs: Any) -> Response:
         """Attach the finding to the exact block version used to generate it."""
-        block = save_summary(binding.notebook, **_validate_payload(SummaryWrite, request.data))
+        block = save_summary(binding, **_validate_payload(SummaryWrite, request.data))
         return Response({"version": block.version, "summary": block.embed_summary})
 
     @extend_schema(
