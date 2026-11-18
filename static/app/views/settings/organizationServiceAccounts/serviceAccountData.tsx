@@ -46,10 +46,7 @@ export interface ScopeResource {
   id: string;
   label: string;
   scopes: Scope[];
-  /**
-   * Settings have no creator, so "only its own data" can't apply to them. Guardrails
-   * that limit actions to own data block these instead.
-   */
+  /** Settings have no creator, so "only its own data" can't apply to them. */
   ownerless?: boolean;
 }
 
@@ -61,11 +58,6 @@ export interface Bundle {
   name: string;
   /** Granular scopes included in this bundle. */
   scopes: string[];
-  /**
-   * Scopes that only apply to data the service account created, on top of what
-   * `dataAccess` already limits. Set by guardrails.
-   */
-  ownDataOnlyScopes?: string[];
 }
 
 function scopes(
@@ -302,7 +294,6 @@ const SENSITIVE_RESOURCES = [
 const OWNER_ROLE_SCOPES = ALL_SCOPE_IDS;
 
 export const DEFAULT_BUNDLE_ID = 'default_agent';
-export const CUSTOM_BUNDLE_ID = 'custom';
 
 /** Ordered from least to most permissive. */
 export const BUNDLES: Bundle[] = [
@@ -348,15 +339,6 @@ export const BUNDLES: Bundle[] = [
     dataAccess: 'all',
     scopes: OWNER_ROLE_SCOPES,
   },
-  {
-    id: CUSTOM_BUNDLE_ID,
-    name: 'Custom',
-    description: 'Choose individual permissions, up to what your role allows.',
-    // Guardrails decide what is limited to its own data, so Custom has no limit of its own.
-    dataAccess: 'all',
-    // Starting point only. The page keeps the chosen scopes in state.
-    scopes: [],
-  },
 ];
 
 export function getGrantedScopes(bundle: Bundle, resource: ScopeResource): Scope[] {
@@ -370,113 +352,12 @@ export function isLimitedByDataAccess(scope: Scope): boolean {
   );
 }
 
-export type GuardrailId = 'cost_impact' | 'data_irreversible';
-
-export interface Guardrail {
-  description: string;
-  /**
-   * `remove` takes the scopes out of the bundle. `own_data_only` keeps them, but only
-   * for data the service account created.
-   */
-  effect: 'remove' | 'own_data_only';
-  id: GuardrailId;
-  name: string;
-  /** Scopes this guardrail applies to. */
-  scopes: string[];
-}
-
-/**
- * The doc's `cost_impact` and `data_irreversible` bundles, used as restrictions on top
- * of the selected bundle.
- */
-export const GUARDRAILS: Guardrail[] = [
-  {
-    id: 'cost_impact',
-    effect: 'remove',
-    name: 'Block cost-impacting actions',
-    description:
-      'Blocks paid Seer runs, undiscarding issues, removing project inbound filters, and changing organization spend settings or billing.',
-    scopes: scopeIds(scope => scope.costImpact),
-  },
-  {
-    id: 'data_irreversible',
-    effect: 'own_data_only',
-    name: 'Only allow irreversible actions on its own data',
-    description:
-      'Can delete data this service account created, but not data created by others. Irreversible changes to things with no owner, such as settings, discarded issues or project transfers, are blocked.',
-    scopes: scopeIds(scope => scope.irreversible),
-  },
-];
-
-export function applyGuardrails(bundle: Bundle, guardrails: GuardrailId[]): Bundle {
-  const active = GUARDRAILS.filter(guardrail => guardrails.includes(guardrail.id));
-  const scopesFor = (effect: Guardrail['effect']) =>
-    active.filter(g => g.effect === effect).flatMap(guardrail => guardrail.scopes);
-
-  // "Own data only" means nothing for settings, which have no owner, so those scopes are
-  // removed instead.
-  const isOwnerless = (scope: string) => OWNERLESS_SCOPES.has(scope);
-  const ownDataOnlyScopes = scopesFor('own_data_only');
-  const removed = new Set([
-    ...scopesFor('remove'),
-    ...ownDataOnlyScopes.filter(isOwnerless),
-  ]);
-  const ownDataOnly = new Set(ownDataOnlyScopes.filter(scope => !isOwnerless(scope)));
-
-  const keptScopes = bundle.scopes.filter(scope => !removed.has(scope));
-  return {
-    ...bundle,
-    scopes: keptScopes,
-    ownDataOnlyScopes: keptScopes.filter(scope => ownDataOnly.has(scope)),
-  };
-}
-
 export function getCategoryResources(category: ScopeCategoryId): ScopeResource[] {
   return SCOPE_RESOURCES.filter(resource => resource.category === category);
 }
 
 export function getBundle(id: string): Bundle {
   return BUNDLES.find(bundle => bundle.id === id) ?? BUNDLES[0]!;
-}
-
-/** Why a guardrail has no effect on a bundle, or `null` when it does. */
-export function getGuardrailNoEffectReason(
-  guardrail: Guardrail,
-  bundle: Bundle
-): string | null {
-  if (bundle.dataAccess === null) {
-    return `${bundle.name} can't change anything.`;
-  }
-  if (guardrail.effect === 'own_data_only' && bundle.dataAccess === 'own') {
-    return `${bundle.name} only changes its own data.`;
-  }
-  return null;
-}
-
-/** The guardrails that change what a bundle can do. */
-export function getActiveGuardrails(
-  bundle: Bundle,
-  guardrails: GuardrailId[]
-): GuardrailId[] {
-  return guardrails.filter(id => {
-    const guardrail = GUARDRAILS.find(g => g.id === id);
-    return guardrail && getGuardrailNoEffectReason(guardrail, bundle) === null;
-  });
-}
-
-/** The bundle with guardrails applied. Custom uses the scopes picked by hand. */
-export function resolveBundle({
-  bundleId,
-  customScopes,
-  guardrails,
-}: {
-  bundleId: string;
-  customScopes: string[];
-  guardrails: GuardrailId[];
-}): Bundle {
-  const base = getBundle(bundleId);
-  const bundle = base.id === CUSTOM_BUNDLE_ID ? {...base, scopes: customScopes} : base;
-  return applyGuardrails(bundle, getActiveGuardrails(bundle, guardrails));
 }
 
 export function getScopeResource(scope: string): ScopeResource | undefined {

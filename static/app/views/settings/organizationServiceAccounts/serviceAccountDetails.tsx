@@ -25,9 +25,9 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 
 import {serviceAccountOptions, useDeleteServiceAccount} from './mockServiceAccountApi';
 import {PermissionSummary, PermissionTable} from './permissionRows';
-import {resolveBundle} from './serviceAccountData';
+import {getBundle} from './serviceAccountData';
 import {ServiceAccountTokens} from './serviceAccountTokens';
-import {describePermissions, getAccountProjects} from './serviceAccountUtils';
+import {getAccountProjects} from './serviceAccountUtils';
 import type {ServiceAccount} from './types';
 import {useServiceAccountAccess} from './useServiceAccountAccess';
 
@@ -157,7 +157,7 @@ export default function ServiceAccountDetails() {
 
         <Grid columns={{zero: '1fr 1fr', md: 'repeat(4, minmax(0, 1fr))'}} gap="xl">
           <Detail label={t('Permission level')}>
-            <Text>{describePermissions(account)}</Text>
+            <Text>{getBundle(account.bundleId).name}</Text>
           </Detail>
           <Detail label={t('Project access')}>
             <ProjectAccess account={account} />
@@ -184,9 +184,9 @@ export default function ServiceAccountDetails() {
         <Stack gap="lg">
           <Stack gap="xs">
             <Heading as="h3">{t('Permissions')}</Heading>
-            <PermissionSummary bundle={resolveBundle(account)} />
+            <PermissionSummary bundle={getBundle(account.bundleId)} />
           </Stack>
-          <PermissionTable bundle={resolveBundle(account)} />
+          <PermissionTable bundle={getBundle(account.bundleId)} />
         </Stack>
       </Stack>
     </Fragment>

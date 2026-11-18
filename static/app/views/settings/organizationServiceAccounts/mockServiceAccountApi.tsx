@@ -9,7 +9,7 @@ import {queryOptions, useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 
-import {resolveBundle, type GuardrailId} from './serviceAccountData';
+import {getBundle} from './serviceAccountData';
 import type {
   NewServiceAccountToken,
   ServiceAccount,
@@ -43,8 +43,6 @@ function fromNow(ms: number) {
   return new Date(Date.now() + ms).toISOString();
 }
 
-const BOTH_GUARDRAILS: GuardrailId[] = ['cost_impact', 'data_irreversible'];
-
 function getAccounts(): StoredAccount[] {
   if (accounts) {
     return accounts;
@@ -56,8 +54,6 @@ function getAccounts(): StoredAccount[] {
       name: 'github-actions-deploy',
       description: 'Uploads source maps and creates releases',
       bundleId: 'ci',
-      guardrails: BOTH_GUARDRAILS,
-      customScopes: [],
       allProjects: true,
       projectIds: [],
       createdBy: {name: 'Jane Doe'},
@@ -69,8 +65,6 @@ function getAccounts(): StoredAccount[] {
       name: 'triage-agent',
       description: 'Nightly issue triage',
       bundleId: 'default_agent',
-      guardrails: BOTH_GUARDRAILS,
-      customScopes: [],
       allProjects: false,
       projectIds: projectIds.slice(0, 3),
       createdBy: {name: 'Sam Lee'},
@@ -82,8 +76,6 @@ function getAccounts(): StoredAccount[] {
       name: 'status-dashboard',
       description: '',
       bundleId: 'read_only',
-      guardrails: BOTH_GUARDRAILS,
-      customScopes: [],
       allProjects: false,
       projectIds: projectIds.slice(0, 2),
       createdBy: {name: 'Jane Doe'},
@@ -144,10 +136,8 @@ function getAccounts(): StoredAccount[] {
   return accounts;
 }
 
-function getScopes(
-  account: Pick<StoredAccount, 'bundleId' | 'customScopes' | 'guardrails'>
-) {
-  return resolveBundle(account).scopes;
+function getScopes(account: Pick<StoredAccount, 'bundleId'>) {
+  return getBundle(account.bundleId).scopes;
 }
 
 function toResponse(account: StoredAccount): ServiceAccount {

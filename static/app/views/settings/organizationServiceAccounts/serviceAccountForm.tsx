@@ -16,18 +16,8 @@ import {t} from 'sentry/locale';
 import {useProjects} from 'sentry/utils/useProjects';
 
 import {MockFieldError} from './mockServiceAccountApi';
-import {PermissionSummary, PermissionTable, setResourceLevel} from './permissionRows';
-import {
-  ALL_SCOPE_IDS,
-  applyGuardrails,
-  BUNDLES,
-  CUSTOM_BUNDLE_ID,
-  DEFAULT_BUNDLE_ID,
-  getActiveGuardrails,
-  getBundle,
-  GUARDRAILS,
-  resolveBundle,
-} from './serviceAccountData';
+import {PermissionSummary, PermissionTable} from './permissionRows';
+import {BUNDLES, DEFAULT_BUNDLE_ID, getBundle} from './serviceAccountData';
 import type {ServiceAccount, ServiceAccountInput} from './types';
 import {useServiceAccountAccess} from './useServiceAccountAccess';
 
@@ -36,9 +26,7 @@ const schema = z.object({
   description: z.string(),
   projectAccess: z.enum(['all', 'specific']),
   projectIds: z.array(z.string()),
-  guardrails: z.array(z.enum(['cost_impact', 'data_irreversible'])),
   bundleId: z.string(),
-  customScopes: z.array(z.string()),
 });
 
 type FormValues = z.infer<typeof schema>;
@@ -53,10 +41,7 @@ export function getDefaultValues(
       description: '',
       projectAccess: hasGlobalRole ? 'all' : 'specific',
       projectIds: [],
-      guardrails: ['cost_impact', 'data_irreversible'],
       bundleId: DEFAULT_BUNDLE_ID,
-      // Custom starts from Default Agent, so there is something to edit.
-      customScopes: BUNDLES.find(bundle => bundle.id === DEFAULT_BUNDLE_ID)!.scopes,
     };
   }
   return {
@@ -64,9 +49,7 @@ export function getDefaultValues(
     description: account.description,
     projectAccess: account.allProjects ? 'all' : 'specific',
     projectIds: account.projectIds,
-    guardrails: account.guardrails,
     bundleId: account.bundleId,
-    customScopes: account.customScopes,
   };
 }
 
@@ -118,9 +101,7 @@ export function ServiceAccountForm({
           description: value.description.trim(),
           allProjects: value.projectAccess === 'all',
           projectIds: value.projectAccess === 'all' ? [] : value.projectIds,
-          guardrails: value.guardrails,
           bundleId: value.bundleId,
-          customScopes: value.bundleId === CUSTOM_BUNDLE_ID ? value.customScopes : [],
         });
       } catch (error) {
         if (error instanceof MockFieldError) {
@@ -136,22 +117,7 @@ export function ServiceAccountForm({
   });
 
   const values = useStore(form.store, state => state.values);
-  const selectedBundle = resolveBundle(values);
-
-  // Scopes the active guardrails would remove from Custom, with the guardrail's name.
-  const customBlockedScopes = new Map<string, string>();
-  const unresolvedCustom = {...BUNDLES.find(b => b.id === CUSTOM_BUNDLE_ID)!};
-  for (const id of getActiveGuardrails(unresolvedCustom, values.guardrails)) {
-    const guardrail = GUARDRAILS.find(g => g.id === id)!;
-    const allowed = applyGuardrails({...unresolvedCustom, scopes: ALL_SCOPE_IDS}, [
-      id,
-    ]).scopes;
-    for (const scope of ALL_SCOPE_IDS) {
-      if (!allowed.includes(scope)) {
-        customBlockedScopes.set(scope, t('Blocked by "%s"', guardrail.name));
-      }
-    }
-  }
+  const selectedBundle = getBundle(values.bundleId);
 
   return (
     <form.AppForm form={form}>
@@ -234,7 +200,7 @@ export function ServiceAccountForm({
         <form.AppField name="bundleId">
           {field => (
             <field.Layout.Row
-              label={t('Start from')}
+              label={t('Permission level')}
               hintText={
                 <Stack gap="xs">
                   <Text>{getBundle(field.state.value).description}</Text>
@@ -244,41 +210,15 @@ export function ServiceAccountForm({
             >
               <field.CompactSelect
                 value={field.state.value}
-                onChange={value => {
-                  if (value === CUSTOM_BUNDLE_ID) {
-                    // Custom starts from whatever is shown now.
-                    form.setFieldValue('customScopes', selectedBundle.scopes);
-                  }
-                  field.handleChange(value);
-                }}
+                onChange={field.handleChange}
                 options={BUNDLES.map(bundle => ({
                   value: bundle.id,
                   label: bundle.name,
                   details: bundle.description,
                 }))}
-                menuTitle={t('Permission presets')}
+                menuTitle={t('Permission levels')}
               />
             </field.Layout.Row>
-          )}
-        </form.AppField>
-        <form.AppField name="guardrails">
-          {field => (
-            <field.CheckboxGroup value={field.state.value} onChange={field.handleChange}>
-              {({Item}) => (
-                <field.Layout.Row
-                  label={t('Guardrails')}
-                  hintText={t('Extra restrictions on top of the permissions below.')}
-                >
-                  <Stack gap="md">
-                    {GUARDRAILS.map(guardrail => (
-                      <Item key={guardrail.id} value={guardrail.id}>
-                        {guardrail.name}
-                      </Item>
-                    ))}
-                  </Stack>
-                </field.Layout.Row>
-              )}
-            </field.CheckboxGroup>
           )}
         </form.AppField>
         <Stack gap="md">
@@ -286,22 +226,11 @@ export function ServiceAccountForm({
             <Text bold>{t('Permissions')}</Text>
             <Text size="sm" variant="muted">
               {t(
-                'Read access is enough for most automation. Grant write access only for the actions this account needs to take. Changing any permission switches to Custom.'
+                'What this permission level grants. To change it, pick a different level above.'
               )}
             </Text>
           </Stack>
-          <PermissionTable
-            bundle={selectedBundle}
-            blockedScopes={customBlockedScopes}
-            onChange={(resource, level) => {
-              // Changing any permission turns the preset into Custom.
-              form.setFieldValue(
-                'customScopes',
-                setResourceLevel(selectedBundle.scopes, resource, level)
-              );
-              form.setFieldValue('bundleId', CUSTOM_BUNDLE_ID);
-            }}
-          />
+          <PermissionTable bundle={selectedBundle} />
         </Stack>
       </form.FieldGroup>
 

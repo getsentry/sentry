@@ -1,5 +1,3 @@
-import type {GuardrailId} from './serviceAccountData';
-
 interface ServiceAccountActor {
   name: string;
 }
@@ -14,11 +12,9 @@ export interface ServiceAccount {
   allProjects: boolean;
   bundleId: string;
   createdBy: ServiceAccountActor;
-  customScopes: string[];
   dateCreated: string;
   dateLastActive: string | null;
   description: string;
-  guardrails: GuardrailId[];
   id: string;
   name: string;
   projectIds: string[];
@@ -45,9 +41,7 @@ export interface NewServiceAccountToken extends ServiceAccountToken {
 export interface ServiceAccountInput {
   allProjects: boolean;
   bundleId: string;
-  customScopes: string[];
   description: string;
-  guardrails: GuardrailId[];
   name: string;
   projectIds: string[];
 }
