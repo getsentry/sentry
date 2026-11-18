@@ -390,7 +390,8 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         assert response.data["projects"] == [self.project.id]
 
     def test_get_includes_created_by(self) -> None:
-        config = self.create_config(extras={"created_by": self.user.id})
+        config = self.create_config()
+        config.update(backing_workflow=self.create_workflow(created_by_id=self.user.id))
 
         response = self.get_success_response(self.organization.slug, config.id)
 
@@ -469,7 +470,10 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         assert self.selected_project_ids(config) == []
 
     def test_put_sets_updated_by(self) -> None:
-        config = self.create_config(extras={"created_by": self.user.id})
+        config = self.create_config()
+        config.update(
+            backing_workflow=self.create_workflow(created_by_id=self.user.id, enabled=False)
+        )
         updater = self.create_user()
         self.create_member(organization=self.organization, user=updater, role="owner")
         self.login_as(updater)
@@ -484,7 +488,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         # Recording the updater is part of the same save, so the version bumps once.
         assert response.data["version"] == version + 1
         config.refresh_from_db()
-        assert config.extras == {"created_by": self.user.id, "updated_by": updater.id}
+        assert config.extras == {"updated_by": updater.id}
 
     def test_put_by_another_user_replaces_updated_by(self) -> None:
         config = self.create_config()
@@ -997,15 +1001,11 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
             method="put",
             projectIds=[self.project.id],
             enabled=True,
-            name="Checkout triage",
         )
 
         assert response.data["version"] == config.version + 1
         assert response.data["enabled"] is True
         assert response.data["projects"] == [self.project.id]
-        assert response.data["name"] == "Checkout triage"
-        config.refresh_from_db()
-        assert config.extras["name"] == "Checkout triage"
 
     def test_put_failure_rolls_back_every_change(self) -> None:
         config = self.create_config()
@@ -1234,9 +1234,8 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             "nextRunAt": None,
             "dateAdded": config.date_added,
             "dateUpdated": config.date_updated,
-            "createdBy": str(self.user.id),
         }
-        assert config.extras == {"created_by": self.user.id}
+        assert config.extras == {}
 
     @patch(
         "sentry.seer.endpoints.organization_seer_workflow_configs.acting_user_id",
@@ -1384,14 +1383,11 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             enabled=True,
             environments=["production"],
             projectIds=[self.project.id, other.id, other.id],
-            name="Checkout triage",
             status_code=201,
         )
 
         config = SeerWorkflowConfig.objects.get(id=response.data["id"])
         assert config.enabled is True
-        assert config.extras == {"name": "Checkout triage", "created_by": self.user.id}
-        assert response.data["name"] == "Checkout triage"
         assert response.data["environments"] == ["production"]
         assert sorted(response.data["projects"]) == sorted([self.project.id, other.id])
         assert self.selected_project_ids(config) == sorted([self.project.id, other.id])
@@ -1533,7 +1529,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         config = SeerWorkflowConfig.objects.get(id=response.data["id"])
         assert config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
         assert config.filters == {"all_projects": False, "environments": ["production"]}
-        assert config.extras == {"name": "Latency breaches", "created_by": self.user.id}
+        assert config.extras == {}
         assert config.version == 1
         assert config.backing_workflow is not None
         assert config.backing_workflow.enabled is True

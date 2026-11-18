@@ -25,6 +25,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowStrategy,
 )
 from sentry.seer.workflows.base import (
+    BackingWorkflowFields,
     ConfigUpdate,
     LockedConfig,
     ProjectSelection,
@@ -35,7 +36,6 @@ from sentry.seer.workflows.base import (
     lock_config,
     validate_service_account_grant,
 )
-from sentry.seer.workflows.breached_metrics import MetricAlertTrigger
 from sentry.seer.workflows.definitions import get_definition
 from sentry.service_accounts.models import (
     MAX_NAME_LENGTH,
@@ -111,6 +111,8 @@ class SeerWorkflow:
         schedule: SeerWorkflowSchedule = ...,
         scope: SelectedMonitors,
         environments: Sequence[str] = ...,
+        name: str | None = ...,
+        created_by_id: int | None = ...,
         extras: SeerWorkflowConfigExtras | None = ...,
         service_account_grant: SeerServiceAccountGrant,
     ) -> SeerWorkflow: ...
@@ -126,6 +128,8 @@ class SeerWorkflow:
         schedule: SeerWorkflowSchedule = ...,
         scope: ProjectSelection,
         environments: Sequence[str] = ...,
+        name: str | None = ...,
+        created_by_id: int | None = ...,
         extras: SeerWorkflowConfigExtras | None = ...,
         service_account_grant: SeerServiceAccountGrant,
     ) -> SeerWorkflow: ...
@@ -140,6 +144,8 @@ class SeerWorkflow:
         schedule: SeerWorkflowSchedule = SeerWorkflowSchedule.DAILY,
         scope: ScopeSelection,
         environments: Sequence[str] = (),
+        name: str | None = None,
+        created_by_id: int | None = None,
         extras: SeerWorkflowConfigExtras | None = None,
         service_account_grant: SeerServiceAccountGrant,
     ) -> SeerWorkflow:
@@ -191,19 +197,22 @@ class SeerWorkflow:
                     organization_id=organization_id,
                     owner_kind=ServiceAccountOwnerKind.SEER_WORKFLOW_CONFIG,
                     owner_id=config.id,
-                    name=_service_account_name(config.id, extras.name),
+                    name=_service_account_name(config.id, name),
                     scope_list=service_account_grant.scopes,
                     project_ids=service_account_grant.project_ids,
                     all_projects=service_account_grant.all_projects,
-                    created_by_id=extras.created_by,
+                    created_by_id=created_by_id,
                 ).save()
 
                 update = ConfigUpdate(LockedConfig(config), definition)
-                if isinstance(definition.trigger, MetricAlertTrigger):
-                    definition.trigger.create_backing_workflow(
-                        update, name=extras.name, created_by_id=extras.created_by, enabled=enabled
-                    )
-                update.set_scope(scope)
+                update.set_scope(
+                    scope,
+                    new_workflow=BackingWorkflowFields(
+                        name=name or "Seer automation",
+                        created_by_id=created_by_id,
+                        enabled=enabled,
+                    ),
+                )
                 if update.dirty_fields:
                     config.save(using=database, update_fields=sorted(update.dirty_fields))
                 definition.trigger.sync(config)
@@ -233,12 +242,7 @@ class SeerWorkflow:
 
     @property
     def extras(self) -> SeerWorkflowConfigExtras:
-        config = self.get_config()
-        extras = SeerWorkflowConfigExtras.parse_obj(config.extras)
-        if config.backing_workflow is not None:
-            extras.name = config.backing_workflow.name
-            extras.created_by = config.backing_workflow.created_by_id
-        return extras
+        return SeerWorkflowConfigExtras.parse_obj(self.get_config().extras)
 
     @property
     def filters(self) -> SeerWorkflowFilters:

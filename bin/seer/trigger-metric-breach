@@ -29,7 +29,6 @@ from sentry.models.team import Team
 from sentry.search.events.types import SnubaParams
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
-    SeerWorkflowConfigExtras,
     SeerWorkflowRun,
     SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
@@ -216,7 +215,8 @@ class MetricBreachTrigger:
                 strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
                 enabled=True,
                 scope=SelectedMonitors(()),
-                extras=SeerWorkflowConfigExtras(name=AUTOMATION_NAME, created_by=self.user.id),
+                name=AUTOMATION_NAME,
+                created_by_id=self.user.id,
                 service_account_grant=SeerServiceAccountGrant(
                     scopes=SERVICE_ACCOUNT_SCOPES, all_projects=True
                 ),

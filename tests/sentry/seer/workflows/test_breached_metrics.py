@@ -24,7 +24,6 @@ from sentry.models.project import Project
 from sentry.notebooks.models import Notebook, NotebookSourceType
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
-    SeerWorkflowConfigExtras,
     SeerWorkflowExecutionStatus,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
@@ -882,14 +881,13 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
             enabled=True,
             environments=["production"],
             monitor_ids=self.monitor_ids,
-            extras=SeerWorkflowConfigExtras(name="Latency breaches"),
+            name="Latency breaches",
             service_account_grant=GRANT,
         )
 
         config = workflow.get_config()
         assert config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
         assert config.filters == {"all_projects": False, "environments": ["production"]}
-        assert workflow.extras.name == "Latency breaches"
         assert config.version == 1
         assert config.backing_workflow is not None
         assert config.backing_workflow.enabled is True

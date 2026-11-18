@@ -113,6 +113,15 @@ def lock_config(organization_id: int, config_id: int) -> Iterator[LockedConfig]:
         )
 
 
+@dataclass(frozen=True)
+class BackingWorkflowFields:
+    """What a newly created backing workflow starts with."""
+
+    name: str = "Seer automation"
+    created_by_id: int | None = None
+    enabled: bool = True
+
+
 class NoSettings(BaseModel):
     class Config:
         extra = "forbid"
@@ -130,7 +139,12 @@ class AutomationTrigger[Inputs: BaseModel](Protocol):
         """Return the active projects in the config's scope."""
         ...
 
-    def set_scope(self, update: ConfigUpdate, selection: ScopeSelection) -> None:
+    def set_scope(
+        self,
+        update: ConfigUpdate,
+        selection: ScopeSelection,
+        new_workflow: BackingWorkflowFields,
+    ) -> None:
         """Replace the config's scope, marking ``update`` only when something changed."""
         ...
 
@@ -336,21 +350,25 @@ class ConfigUpdate:
         self.config.enabled = enabled
         self.mark("enabled")
 
+    def set_workflow_fields(
+        self, *, name: str | None = None, created_by_id: int | None = None
+    ) -> None:
+        workflow = self.config.backing_workflow
+        if workflow is None:
+            raise WorkflowUpdateError("The automation has no backing workflow")
+        changed_fields = []
+        if name is not None and workflow.name != name:
+            workflow.name = name
+            changed_fields.append("name")
+        if created_by_id is not None and workflow.created_by_id != created_by_id:
+            workflow.created_by_id = created_by_id
+            changed_fields.append("created_by_id")
+        if changed_fields:
+            workflow.save(update_fields=[*changed_fields, "date_updated"])
+            self.mark_related_changed()
+
     def set_extras(self, extras: SeerWorkflowConfigExtras) -> None:
         self.definition.validate_settings(extras)
-        workflow = self.config.backing_workflow
-        if workflow is not None:
-            changed_fields = []
-            if extras.name is not None and workflow.name != extras.name:
-                workflow.name = extras.name
-                changed_fields.append("name")
-            if extras.created_by is not None and workflow.created_by_id != extras.created_by:
-                workflow.created_by_id = extras.created_by
-                changed_fields.append("created_by_id")
-            if changed_fields:
-                workflow.save(update_fields=[*changed_fields, "date_updated"])
-                self.mark_related_changed()
-            extras = extras.copy(update={"name": None, "created_by": None})
         new_extras = extras.dict(exclude_none=True)
         current_extras = {k: v for k, v in self.config.extras.items() if v is not None}
         if current_extras == new_extras:
@@ -413,10 +431,15 @@ class ConfigUpdate:
             raise WorkflowUpdateError("The automation's service account can't be found")
         return replica
 
-    def set_scope(self, selection: ScopeSelection) -> None:
+    def set_scope(
+        self,
+        selection: ScopeSelection,
+        *,
+        new_workflow: BackingWorkflowFields | None = None,
+    ) -> None:
         """Replace which projects the automation covers, in the form its trigger takes.
 
         Callers must authorize the change; this only checks that the selection belongs to
         the workflow's organization.
         """
-        self.definition.trigger.set_scope(self, selection)
+        self.definition.trigger.set_scope(self, selection, new_workflow or BackingWorkflowFields())

@@ -35,6 +35,7 @@ from sentry.seer.workflows.base import (
     AutomationAction,
     AutomationDefinition,
     AutomationTrigger,
+    BackingWorkflowFields,
     ConfigUpdate,
     NoSettings,
     RejectionReason,
@@ -107,14 +108,21 @@ class MetricAlertTrigger(AutomationTrigger[MetricBreachInputs]):
             ).values("detector__project_id")
         )
 
-    def set_scope(self, update: ConfigUpdate, selection: ScopeSelection) -> None:
+    def set_scope(
+        self,
+        update: ConfigUpdate,
+        selection: ScopeSelection,
+        new_workflow: BackingWorkflowFields,
+    ) -> None:
         """Callers must authorize and audit the change."""
         if not isinstance(selection, SelectedMonitors):
             raise WorkflowUpdateError(
                 "Breached metric projects are selected by connecting monitors"
             )
         config = update.config
-        change = _set_monitor_selection(config.organization_id, config, selection.monitor_ids)
+        change = _set_monitor_selection(
+            config.organization_id, config, selection.monitor_ids, new_workflow
+        )
         if change is None:
             return
         update.mark("backing_workflow")
@@ -132,17 +140,6 @@ class MetricAlertTrigger(AutomationTrigger[MetricBreachInputs]):
             ),
             using=router.db_for_write(SeerWorkflowConfig),
         )
-
-    def create_backing_workflow(
-        self, update: ConfigUpdate, *, name: str | None, created_by_id: int | None, enabled: bool
-    ) -> None:
-        update.config.backing_workflow = _create_backing_workflow(
-            update.config,
-            name=name or "Seer automation",
-            created_by_id=created_by_id,
-            enabled=enabled,
-        )
-        update.mark("backing_workflow")
 
     def teardown(self, config: SeerWorkflowConfig) -> None:
         if config.backing_workflow_id is None:
@@ -450,7 +447,10 @@ def get_monitor_project_ids(monitor_ids: Sequence[int], organization: Organizati
 
 
 def _set_monitor_selection(
-    organization_id: int, config: SeerWorkflowConfig, monitor_ids: Sequence[int]
+    organization_id: int,
+    config: SeerWorkflowConfig,
+    monitor_ids: Sequence[int],
+    new_workflow: BackingWorkflowFields,
 ) -> MonitorSelectionChange | None:
     """
     Creates a backing workflow if one does not exist and sets/replaces its connected monitors.
@@ -458,7 +458,7 @@ def _set_monitor_selection(
     """
     selected = set(monitor_ids)
     _validate_monitors(organization_id, selected)
-    workflow, created = _get_or_create_backing_workflow(organization_id, config)
+    workflow, created = _get_or_create_backing_workflow(organization_id, config, new_workflow)
     existing = set(
         DetectorWorkflow.objects.filter(workflow=workflow).values_list("detector_id", flat=True)
     )
@@ -493,7 +493,7 @@ def _validate_monitors(organization_id: int, monitor_ids: set[int]) -> None:
 
 
 def _get_or_create_backing_workflow(
-    organization_id: int, config: SeerWorkflowConfig
+    organization_id: int, config: SeerWorkflowConfig, new_workflow: BackingWorkflowFields
 ) -> tuple[Workflow, bool]:
     """Replace a missing or deleted backing workflow; returns whether one was created."""
     workflow = (
@@ -506,7 +506,7 @@ def _get_or_create_backing_workflow(
     if workflow is not None and workflow.status == ObjectStatus.ACTIVE:
         return workflow, False
     config.backing_workflow = workflow = _create_backing_workflow(
-        config, name="Seer automation", created_by_id=None, enabled=True
+        organization_id, config, new_workflow
     )
     return workflow, True
 
@@ -524,9 +524,8 @@ def _replace_monitor_connections(
 
 
 def _create_backing_workflow(
-    config: SeerWorkflowConfig, *, name: str, created_by_id: int | None, enabled: bool
+    organization_id: int, config: SeerWorkflowConfig, fields: BackingWorkflowFields
 ) -> Workflow:
-    organization_id = config.organization_id
     triggers = DataConditionGroup.objects.create(
         organization_id=organization_id,
         logic_type=DataConditionGroup.Type.ANY_SHORT_CIRCUIT,
@@ -539,9 +538,9 @@ def _create_backing_workflow(
     )
     workflow = Workflow.objects.create(
         organization_id=organization_id,
-        name=name,
-        enabled=enabled,
-        created_by_id=created_by_id,
+        name=fields.name,
+        enabled=fields.enabled,
+        created_by_id=fields.created_by_id,
         config={"frequency": 0},
         when_condition_group=triggers,
     )

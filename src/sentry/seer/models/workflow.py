@@ -41,10 +41,6 @@ MAX_WORKFLOW_CONFIGS_PER_ORG = 50
 class SeerWorkflowConfigExtras(BaseModel):
     # The default strategy that seeded this config; unset for user-created configs.
     seeded_default: SeerWorkflowStrategy | None = None
-    # Optional user-supplied name
-    name: str | None = None
-    # The user who created this config; unset for seeded defaults and non-user callers.
-    created_by: int | None = None
     # The user who most recently updated this config through the API, or "bot" for
     # non-user callers. Unset until the first update.
     updated_by: int | Literal["bot"] | None = None

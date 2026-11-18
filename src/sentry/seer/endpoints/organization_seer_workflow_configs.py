@@ -450,10 +450,6 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
 
         grant: SeerServiceAccountGrant = data["serviceAccount"]
         check_can_grant_service_account(grant, request, organization, self)
-        extras = SeerWorkflowConfigExtras(
-            name=data.get("name"),
-            created_by=acting_user_id(request.user),
-        )
         try:
             if strategy is SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
                 workflow = SeerWorkflow.create(
@@ -462,7 +458,8 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
                     enabled=data["enabled"],
                     scope=SelectedMonitors(tuple(monitor_ids)),
                     environments=data["environments"],
-                    extras=extras,
+                    name=data.get("name"),
+                    created_by_id=acting_user_id(request.user),
                     service_account_grant=grant,
                 )
             elif strategy is SeerWorkflowStrategy.AGENTIC_TRIAGE_V2:
@@ -477,7 +474,8 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
                         else SelectedProjects(tuple(project_ids))
                     ),
                     environments=data["environments"],
-                    extras=extras,
+                    name=data.get("name"),
+                    created_by_id=acting_user_id(request.user),
                     service_account_grant=grant,
                 )
             else:
@@ -729,9 +727,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                         applied_grant = grant
 
                 if name is not None:
-                    extras = SeerWorkflowConfigExtras.parse_obj(update.config.extras)
-                    extras.name = name
-                    update.set_extras(extras)
+                    update.set_workflow_fields(name=name)
 
                 if update.changed:
                     user_id = acting_user_id(request.user)
@@ -957,14 +953,12 @@ def serialize_workflow_config(
     if last_run is not None and last_run.last_run_at is not None:
         result["dateLastRun"] = last_run.last_run_at
         result["lastRunStatus"] = last_run.last_run_status
+    workflow = config.backing_workflow
+    if workflow is not None:
+        result["name"] = workflow.name
+        if workflow.created_by_id is not None:
+            result["createdBy"] = str(workflow.created_by_id)
     extras = SeerWorkflowConfigExtras.parse_obj(config.extras)
-    if config.backing_workflow is not None:
-        extras.name = config.backing_workflow.name
-        extras.created_by = config.backing_workflow.created_by_id
-    if extras.name is not None:
-        result["name"] = extras.name
-    if extras.created_by is not None:
-        result["createdBy"] = str(extras.created_by)
     if extras.updated_by is not None:
         result["updatedBy"] = str(extras.updated_by)
     return result
