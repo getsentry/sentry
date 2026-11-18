@@ -7,13 +7,13 @@ import {IconTelescope} from '@sentry/icons/telescope';
 import {parseAsString, useQueryState} from 'nuqs';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {getFormat, formatDateTime} from '@sentry/scraps/dateTime';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   getBuildNumber,
@@ -59,13 +59,10 @@ function BuildButton({
   const platform = buildDetails.app_info?.platform ?? null;
 
   const dateToShow = dateBuilt || dateAdded;
-  const formattedDate = getFormattedDate(
-    dateToShow,
-    getFormat({timeZone: true, year: true}),
-    {
-      local: true,
-    }
-  );
+  const formattedDate = formatDateTime(dateToShow, {
+    format: getFormat({timeZone: true, year: true}),
+    utc: false,
+  });
 
   // Build metadata parts for the second line
   const metadataParts = [formattedDate];

@@ -1,13 +1,14 @@
 import {useMemo} from 'react';
 
+import {getFormat, formatDateTime} from '@sentry/scraps/dateTime';
+import {getDuration} from '@sentry/scraps/duration';
+
 import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group, KeyValueListData} from 'sentry/types/group';
 import {IssueType} from 'sentry/types/group';
-import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
@@ -108,17 +109,16 @@ function formatDurationChange(
 ) {
   return t(
     '%s to %s (%s%s)',
-    getDuration(before, 0, true),
-    getDuration(after, 0, true),
+    getDuration(before, {style: 'short'}),
+    getDuration(after, {style: 'short'}),
     difference > 0 ? '+' : difference < 0 ? '-' : '',
     formatPercentage(percentage - 1)
   );
 }
 
 function formatBreakpoint(breakpoint: number) {
-  return getFormattedDate(
-    breakpoint * 1000,
-    getFormat({year: true, seconds: true, timeZone: true}),
-    {local: true}
-  );
+  return formatDateTime(breakpoint * 1000, {
+    format: getFormat({year: true, seconds: true, timeZone: true}),
+    utc: false,
+  });
 }

@@ -3,8 +3,8 @@ import moment from 'moment-timezone';
 import {parseAsString, useQueryStates} from 'nuqs';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {DateTime} from '@sentry/scraps/dateTime';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {t} from 'sentry/locale';
 import type {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {

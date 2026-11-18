@@ -6,11 +6,11 @@ import {useQuery} from '@tanstack/react-query';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {Duration} from 'sentry/components/duration/duration';
 import {useStacktraceLink} from 'sentry/components/events/interfaces/frame/useStacktraceLink';
 import {ALL_DATE_TIME_QUERY_KEYS} from 'sentry/components/pageFilters/constants';

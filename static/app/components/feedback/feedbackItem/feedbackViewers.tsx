@@ -2,8 +2,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {AvatarList} from '@sentry/scraps/avatar';
+import {DateTime} from '@sentry/scraps/dateTime';
 
-import {DateTime} from 'sentry/components/dateTime';
 import type {AvatarUser} from 'sentry/types/user';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {userDisplayName} from 'sentry/utils/formatters';

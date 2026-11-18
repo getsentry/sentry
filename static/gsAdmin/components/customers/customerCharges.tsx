@@ -1,8 +1,8 @@
 import {Tag} from '@sentry/scraps/badge';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {ResultGrid} from 'sentry/components/resultGrid';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 

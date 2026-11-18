@@ -2,13 +2,12 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {useTimezone} from '@sentry/scraps/datetime';
+import {useTimezone, DateTime} from '@sentry/scraps/dateTime';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Container, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {Duration} from 'sentry/components/duration';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';

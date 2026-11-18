@@ -3,9 +3,10 @@ import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
 import {parseAsString, useQueryStates} from 'nuqs';
 
+import {DateTime} from '@sentry/scraps/dateTime';
+
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
 import {ChartLayersControl} from 'sentry/components/charts/chartLayersControl';
-import {DateTime} from 'sentry/components/dateTime';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
   isWidgetViewerPath,

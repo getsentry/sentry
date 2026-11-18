@@ -1,6 +1,9 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {getDuration} from '@sentry/scraps/duration';
+import {getRelativeDate} from '@sentry/scraps/relativeTime';
+
 import {DEFAULT_LOCALE_DATA, pgettext, setLocale, t, tct} from './locale';
 
 describe('locale.gettextComponentTemplate', () => {
@@ -118,5 +121,30 @@ describe('locale.pgettext', () => {
     const result = pgettext('abbreviated minutes', 'm');
 
     expect(result).toBe('m');
+  });
+});
+
+describe('shared formatter translations', () => {
+  beforeEach(() => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-01-01T00:00:02Z'));
+  });
+  afterEach(() => {
+    try {
+      jest.runOnlyPendingTimers();
+    } finally {
+      jest.useRealTimers();
+      setLocale(DEFAULT_LOCALE_DATA);
+    }
+  });
+
+  it('uses the active locale for duration and relative-date formatting', () => {
+    expect(getDuration(2)).toBe('2 seconds');
+    setLocale({...DEFAULT_LOCALE_DATA, second: ['seconde', 'secondes']});
+    expect(getDuration(2)).toBe('2 secondes');
+    expect(getRelativeDate('2026-01-01T00:00:00Z', undefined, undefined, 'regular')).toBe(
+      '2 secondes'
+    );
+    setLocale(DEFAULT_LOCALE_DATA);
+    expect(getDuration(2)).toBe('2 seconds');
   });
 });

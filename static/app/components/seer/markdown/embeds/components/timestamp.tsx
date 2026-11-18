@@ -1,13 +1,12 @@
 import moment from 'moment-timezone';
 
-import {useClockDisplay, useTimezone} from '@sentry/scraps/datetime';
+import {useClockDisplay, useTimezone, DateTime, getFormat} from '@sentry/scraps/dateTime';
+import {getRelativeDate} from '@sentry/scraps/relativeTime';
 
-import {DateTime} from 'sentry/components/dateTime';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
-import {TimeSince, getRelativeDate} from 'sentry/components/timeSince';
+import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
-import {getFormat} from 'sentry/utils/dates';
 
 /**
  * Formatted the way `DateTime` draws it, so a copied date matches the one on

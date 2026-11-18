@@ -1,7 +1,6 @@
-import isNumber from 'lodash/isNumber';
 import moment from 'moment-timezone';
 
-import {getDuration} from 'sentry/utils/duration/getDuration';
+import {getDuration} from '@sentry/scraps/duration';
 
 export type RelaxedDateType = string | number | Date;
 
@@ -26,7 +25,7 @@ export type RelaxedDateType = string | number | Date;
 export type UnitStyle = 'human' | 'regular' | 'short' | 'extraShort';
 
 export function getDateObj(date: RelaxedDateType): Date {
-  return typeof date === 'string' || isNumber(date) ? new Date(date) : date;
+  return typeof date === 'string' || typeof date === 'number' ? new Date(date) : date;
 }
 
 /**
@@ -50,13 +49,15 @@ export function getRelativeDate(
     // Moment provides a nice human relative date that uses "a few" for various units
     deltaText = momentDate.fromNow(true);
   } else {
-    deltaText = getDuration(
-      moment().diff(momentDate, 'seconds'),
-      0,
-      unitStyle === 'short',
-      unitStyle === 'extraShort',
-      isFuture
-    );
+    deltaText = getDuration(moment().diff(momentDate, 'seconds'), {
+      style:
+        unitStyle === 'short'
+          ? 'short'
+          : unitStyle === 'extraShort'
+            ? 'narrow'
+            : 'regular',
+      absolute: isFuture,
+    });
   }
 
   // Only one of the two is used, so the other being absent is not a reason to

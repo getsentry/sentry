@@ -1,8 +1,22 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import type * as React from 'react';
+import {render, screen} from '@testing-library/react';
 
-import {type DateTimeContextValue, DateTimeProvider} from '@sentry/scraps/datetime';
+import {
+  DateTime,
+  type DateTimeContextValue,
+  DateTimeProvider,
+} from '@sentry/scraps/dateTime';
 
-import {DateTime} from './dateTime';
+beforeEach(() => {
+  jest.useFakeTimers().setSystemTime(new Date('2017-10-17T02:41:20.000Z'));
+});
+afterEach(() => {
+  try {
+    jest.runOnlyPendingTimers();
+  } finally {
+    jest.useRealTimers();
+  }
+});
 
 describe('DateTime', () => {
   function renderPDT(
@@ -16,16 +30,26 @@ describe('DateTime', () => {
     );
   }
 
+  it.each([
+    ['12', '7:41:20.123 PM'],
+    ['24', '19:41:20.123'],
+  ] as const)(
+    'renders milliseconds with a %s-hour time-only display',
+    (clockDisplay, expected) => {
+      renderPDT(<DateTime date="2017-10-17T02:41:20.123Z" timeOnly milliseconds />, {
+        clockDisplay,
+      });
+      expect(screen.getByText(expected)).toBeInTheDocument();
+    }
+  );
+
   it('renders a date', () => {
     renderPDT(<DateTime date={new Date()} />);
     expect(screen.getByText('Oct 16, 7:41 PM')).toBeInTheDocument();
   });
 
   it('renders a date and shows the year if it is outside the current year', () => {
-    const date = new Date();
-    date.setFullYear(2016);
-    date.setMonth(11);
-    date.setDate(31);
+    const date = new Date('2017-01-01T03:41:20.000Z');
 
     renderPDT(<DateTime date={date} />);
     expect(screen.getByText('Dec 31, 2016 7:41 PM')).toBeInTheDocument();

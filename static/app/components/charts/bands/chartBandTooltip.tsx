@@ -2,11 +2,10 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
+import {getFormat} from '@sentry/scraps/dateTime';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
-
-import {getFormat} from 'sentry/utils/dates';
 
 import type {BandBucket} from './bandShapes';
 

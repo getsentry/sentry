@@ -1,6 +1,8 @@
 import moment from 'moment-timezone';
 import {createStore} from 'zustand/vanilla';
 
+import {configureDateTime} from '@sentry/scraps/dateTime';
+
 import type {Config} from 'sentry/types/system';
 
 // When the app is booted we will _immediately_ hydrate the config store,
@@ -46,3 +48,11 @@ export const ConfigStore = {
     store.setState(state, true);
   },
 };
+
+configureDateTime({
+  getTimezone: () =>
+    ConfigStore.get('user')?.options.timezone ??
+    Intl.DateTimeFormat().resolvedOptions().timeZone,
+  getClockDisplay: () => (ConfigStore.get('user')?.options.clock24Hours ? '24' : '12'),
+  subscribe: onChange => ConfigStore.subscribe(onChange),
+});
