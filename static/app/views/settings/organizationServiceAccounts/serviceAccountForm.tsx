@@ -223,7 +223,7 @@ export function ServiceAccountForm({
         </form.AppField>
         <Stack gap="md">
           <Stack gap="xs">
-            <Text bold>{t('Permissions')}</Text>
+            <Text>{t('Permissions')}</Text>
             <Text size="sm" variant="muted">
               {t(
                 'What this permission level grants. To change it, pick a different level above.'
