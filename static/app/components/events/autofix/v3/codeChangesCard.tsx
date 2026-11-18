@@ -15,6 +15,7 @@ import {
   getAutofixArtifactFromSection,
   getOutOfCreditsStep,
   getPrIterationWaitingAction,
+  hasSingleRunOutOfCreditsRetry,
   isCodeChangesArtifact,
   isPrIterationBlock,
   isPrIterationPaused,
@@ -96,10 +97,9 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
   const isSingleRun = isSingleRunAutofix(autofix.runState);
   const stoppedStep = getOutOfCreditsStep(section);
   const isOutOfCredits = defined(stoppedStep);
-  // Single runs take PR feedback in the chat, so the card offers no retry for a
-  // PR update that stopped for credits.
-  const hasOutOfCreditsRetry =
-    isOutOfCredits && !(isSingleRun && stoppedStep === 'pr_iteration');
+  const hasOutOfCreditsRetry = isSingleRun
+    ? hasSingleRunOutOfCreditsRetry(section)
+    : isOutOfCredits;
   const outOfCreditsRetry = useOutOfCreditsRetry(
     // A single run is retried with a new one, which starts at the root cause.
     isSingleRun ? 'root_cause' : (stoppedStep ?? 'code_changes'),

@@ -743,6 +743,16 @@ export function getOutOfCreditsStep(section: AutofixSection): AutofixExplorerSte
   return marker && isPrIterationBlock(marker) ? 'pr_iteration' : 'code_changes';
 }
 
+/**
+ * Whether a single run that stopped for credits in this section is retried
+ * from its card, with a new run. Single runs take PR feedback in the chat, so
+ * a PR update that stopped gets no retry.
+ */
+export function hasSingleRunOutOfCreditsRetry(section: AutofixSection): boolean {
+  const stoppedStep = getOutOfCreditsStep(section);
+  return defined(stoppedStep) && stoppedStep !== 'pr_iteration';
+}
+
 export function isPrIterationPaused(runState: ExplorerAutofixState | null): boolean {
   return runState?.pr_iteration_paused === true;
 }

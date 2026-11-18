@@ -8,6 +8,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {
+  CodingAgentProvider,
+  CodingAgentStatus,
+  DiffFileType,
+} from 'sentry/components/events/autofix/types';
+import {
   useExplorerAutofix,
   type ExplorerAutofixState,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
@@ -489,40 +494,148 @@ describe('SeerDrawerContent', () => {
       ).toBeEnabled();
     });
 
-    it('shows the continue alert for a single run that stopped for credits', async () => {
-      mockCreditCheck('autofix_root_cause');
+    describe('single runs that stopped', () => {
+      const stoppedSingleRun: ExplorerAutofixState = {
+        run_id: 776,
+        feature_id: 'autofix_single_run',
+        status: 'error',
+        failure_reason: 'out_of_credits',
+        updated_at: '2026-01-01T00:00:00Z',
+        blocks: [
+          {
+            id: 'b1',
+            timestamp: '2026-01-01T00:00:00Z',
+            message: {
+              role: 'assistant',
+              content: 'Reading the handler.',
+              metadata: {step: 'single_run'},
+            },
+          },
+        ],
+      };
 
-      render(
-        <SeerDrawerContent
-          aiConfig={makeAiConfig()}
-          autofix={makeAutofix({
-            runState: {
-              run_id: 776,
-              feature_id: 'autofix_single_run',
-              status: 'error',
-              failure_reason: 'out_of_credits',
-              updated_at: '2026-01-01T00:00:00Z',
-              blocks: [
-                {
-                  id: 'b1',
-                  timestamp: '2026-01-01T00:00:00Z',
-                  message: {
-                    role: 'assistant',
-                    content: 'Reading the handler.',
-                    metadata: {step: 'single_run'},
+      const rootCauseBlock: ExplorerAutofixState['blocks'][number] = {
+        id: 'b1',
+        timestamp: '2026-01-01T00:00:00Z',
+        message: {
+          role: 'assistant',
+          content: 'Found the cause.',
+          metadata: {step: 'single_run'},
+        },
+        artifacts: [
+          {
+            key: 'single_run_root_cause',
+            reason: 'found',
+            data: {headline: 'Divides by zero', cause: 'Empty weights.'},
+          },
+        ],
+      };
+
+      it('shows the continue alert', async () => {
+        mockCreditCheck('autofix_root_cause');
+
+        render(
+          <SeerDrawerContent
+            aiConfig={makeAiConfig()}
+            autofix={makeAutofix({runState: stoppedSingleRun})}
+            group={GroupFixture()}
+          />,
+          {organization}
+        );
+
+        expect(await screen.findByTestId('seer-out-of-credits-cta')).toHaveTextContent(
+          'warning autofix-continue'
+        );
+      });
+
+      it('shows the continue alert after a hand-off to a coding agent', async () => {
+        mockCreditCheck('autofix_root_cause');
+
+        render(
+          <SeerDrawerContent
+            aiConfig={makeAiConfig()}
+            autofix={makeAutofix({
+              runState: {
+                ...stoppedSingleRun,
+                blocks: [rootCauseBlock],
+                coding_agents: {
+                  'agent-1': {
+                    id: 'agent-1',
+                    name: 'Fix the division',
+                    provider: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
+                    started_at: '2026-01-01T00:00:00Z',
+                    status: CodingAgentStatus.RUNNING,
                   },
                 },
-              ],
-            },
-          })}
-          group={GroupFixture()}
-        />,
-        {organization}
-      );
+              },
+            })}
+            group={GroupFixture()}
+          />,
+          {organization}
+        );
 
-      expect(await screen.findByTestId('seer-out-of-credits-cta')).toHaveTextContent(
-        'warning autofix-continue'
-      );
+        expect(await screen.findByTestId('seer-out-of-credits-cta')).toHaveTextContent(
+          'warning autofix-continue'
+        );
+      });
+
+      it('checks nothing for a PR update, since the chat takes PR feedback', async () => {
+        const creditCheck = MockApiClient.addMockResponse({
+          url: creditCheckUrl,
+          body: {hasEnoughCredits: false},
+        });
+
+        render(
+          <SeerDrawerContent
+            aiConfig={makeAiConfig()}
+            autofix={makeAutofix({
+              runState: {
+                ...stoppedSingleRun,
+                blocks: [
+                  {
+                    ...rootCauseBlock,
+                    merged_file_patches: [
+                      {
+                        repo_name: 'org/repository',
+                        diff: '',
+                        patch: {
+                          path: 'src/weights.py',
+                          added: 1,
+                          removed: 0,
+                          hunks: [],
+                          source_file: 'src/weights.py',
+                          target_file: 'src/weights.py',
+                          type: DiffFileType.MODIFIED,
+                        },
+                      },
+                    ],
+                  },
+                  {
+                    id: 'b2',
+                    timestamp: '2026-01-01T00:01:00Z',
+                    message: {
+                      role: 'user',
+                      content: 'Add a regression test',
+                      metadata: {step: 'pr_iteration', iteration_index: '0'},
+                    },
+                  },
+                ],
+                repo_pr_states: {'org/repository': AutofixRepoPRStateFixture()},
+              },
+            })}
+            group={GroupFixture()}
+          />,
+          {organization}
+        );
+
+        expect(
+          await screen.findByText(
+            'Seer stopped before updating the pull request because your organization is out of credits.'
+          )
+        ).toBeInTheDocument();
+        expect(screen.queryByTestId('seer-out-of-credits-cta')).not.toBeInTheDocument();
+        expect(creditCheck).not.toHaveBeenCalled();
+      });
     });
 
     it('does not check credits while a step is running', () => {

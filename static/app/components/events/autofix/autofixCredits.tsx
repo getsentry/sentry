@@ -11,7 +11,7 @@ import {
 import {getAutofixNextStep, type AutofixNextStep} from './getAutofixNextStep';
 import {
   getAutofixArtifactFromSection,
-  isOutOfCreditsSection,
+  hasSingleRunOutOfCreditsRetry,
   isPullRequestsSection,
   isSingleRunAutofix,
   type AutofixSection,
@@ -103,9 +103,10 @@ export function getAutofixContinueAction({
 
   // A single run offers no next step; its only follow-up is opening the chat.
   // One that stopped for credits is retried with a new run, which starts at
-  // the root cause.
+  // the root cause. Its PR and coding agent sections come after the one it
+  // stopped in, so every section is checked, not just the last.
   if (isSingleRunAutofix(runState)) {
-    return isOutOfCreditsSection(section) ? 'root_cause' : null;
+    return sections.some(hasSingleRunOutOfCreditsRetry) ? 'root_cause' : null;
   }
 
   // An open PR takes feedback even while a run is going, and a failed create is
