@@ -433,7 +433,7 @@ describe('Tour Components', () => {
       expect(handleClickOutside).toHaveBeenCalledTimes(1);
     });
 
-    it('reports keyboard clicks outside the guide', async () => {
+    it('ignores keyboard clicks outside the guide', async () => {
       Element.prototype.scrollIntoView = jest.fn();
       const handleClickOutside = jest.fn();
 
@@ -454,7 +454,7 @@ describe('Tour Components', () => {
       expect(await screen.findByText('Test Title')).toBeInTheDocument();
       screen.getByRole('button', {name: 'Page Button'}).focus();
       await userEvent.keyboard('{Enter}');
-      expect(handleClickOutside).toHaveBeenCalledTimes(1);
+      expect(handleClickOutside).not.toHaveBeenCalled();
     });
 
     it('reports an outside click when the page re-renders during the press', async () => {
