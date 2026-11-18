@@ -12,6 +12,10 @@ import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {MAX_PICKABLE_DAYS} from 'sentry/views/explore/conversations/settings';
+import type {TraceItemDetailsMeta} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {markScrubbedValue} from 'sentry/views/insights/pages/agents/components/scrubbedText';
+import {isEvaluationOperation} from 'sentry/views/insights/pages/agents/utils/evaluation';
+import {isExtractionOperation} from 'sentry/views/insights/pages/agents/utils/extraction';
 import {getGenAiOperationTypeFromSpanName} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -75,6 +79,8 @@ export interface ConversationApiSpan {
   'gen_ai.usage.output_tokens.reasoning'?: number;
   'gen_ai.usage.reasoning.output_tokens'?: number;
   'gen_ai.usage.total_tokens'?: number;
+  /** How PII scrubbing changed the span's string attributes, keyed by attribute. */
+  meta?: TraceItemDetailsMeta;
   occurrences?: TraceTree.EAPOccurrence[];
   'span.description'?: string;
   'span.op'?: string;
@@ -147,6 +153,29 @@ interface UseConversationResult {
   nodes: AITraceSpanNode[];
   stats: ConversationStats | null;
   title: string | null;
+}
+
+/** Marks where PII scrubbing changed the span's values, see `markScrubbedValue`. */
+function markScrubbedSpan(apiSpan: ConversationApiSpan): ConversationApiSpan {
+  const {meta} = apiSpan;
+  const operationName = apiSpan['gen_ai.operation.name'];
+  // Evaluations and extractions are parsed into their own views, which render
+  // their values as plain text.
+  if (
+    !meta ||
+    isEvaluationOperation(operationName) ||
+    isExtractionOperation(operationName)
+  ) {
+    return apiSpan;
+  }
+  const marked: Record<string, unknown> = {...apiSpan};
+  for (const attribute of Object.keys(meta)) {
+    const value = marked[attribute];
+    if (typeof value === 'string') {
+      marked[attribute] = markScrubbedValue(attribute, value, meta, apiSpan.project);
+    }
+  }
+  return marked as unknown as ConversationApiSpan;
 }
 
 /**
@@ -422,7 +451,18 @@ function buildConversationQueryParams(
   return {project, ...datetimeParams};
 }
 
-export function buildConversationNodes(allSpans: ConversationApiSpan[]): {
+export function buildConversationNodes(
+  allSpans: ConversationApiSpan[],
+  {
+    markScrubbed = false,
+  }: {
+    /**
+     * Marks where PII scrubbing changed the spans' values, see `markScrubbedValue`.
+     * Only for nodes that are rendered by components that show the marks.
+     */
+    markScrubbed?: boolean;
+  } = {}
+): {
   nodeTraceMap: Map<string, string>;
   nodes: AITraceSpanNode[];
 } {
@@ -435,7 +475,10 @@ export function buildConversationNodes(allSpans: ConversationApiSpan[]): {
   const nodeMap = new Map<string, AITraceSpanNode>();
 
   const transformedNodes = genAiSpans.map(apiSpan => {
-    const node = createNodeFromApiSpan(apiSpan, nodeMap);
+    const node = createNodeFromApiSpan(
+      markScrubbed ? markScrubbedSpan(apiSpan) : apiSpan,
+      nodeMap
+    );
     nodeMap.set(node.id, node);
     traceMap.set(node.id, apiSpan.trace);
     return node;
@@ -519,7 +562,7 @@ export function useConversation(
   const stats = firstPage?.stats ?? null;
 
   const {nodes, nodeTraceMap} = useMemo(
-    () => buildConversationNodes(allSpans),
+    () => buildConversationNodes(allSpans, {markScrubbed: true}),
     [allSpans]
   );
 

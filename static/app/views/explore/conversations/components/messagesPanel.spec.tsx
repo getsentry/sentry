@@ -1,5 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {annotate, hasAnnotations} from '@sentry/scraps/markdown/annotation';
+
 import {EMPTY_TEXT_CONTENT} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import {SpanFields} from 'sentry/views/insights/types';
 
@@ -332,6 +334,38 @@ describe('MessagesPanel', () => {
 
     expect(screen.getByText('Hello there')).toBeInTheDocument();
     expect(screen.getByText('Assistant response text')).toBeInTheDocument();
+  });
+
+  it('marks the values PII scrubbing changed without showing their marks', async () => {
+    const rule = (ruleId: string) => JSON.stringify({ruleId, remark: 's'});
+    const email = annotate('[email]', rule('@email:replace'));
+    const node = createMockNode({
+      id: 'span-1',
+      attributes: {
+        [SpanFields.GEN_AI_INPUT_MESSAGES]: annotate(
+          '[Filtered]',
+          rule('@password:filter')
+        ),
+        [SpanFields.GEN_AI_OUTPUT_MESSAGES]: JSON.stringify([
+          {role: 'assistant', content: `Mail ${email} now`},
+        ]),
+      },
+    });
+
+    const {container} = render(
+      <MessagesPanel
+        nodes={[node] as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    expect(screen.getByText('[Filtered]')).toBeInTheDocument();
+    expect(hasAnnotations(container.textContent ?? '')).toBe(false);
+
+    await userEvent.hover(screen.getByText('[email]'));
+
+    expect(await screen.findByText(/Replaced because of/)).toBeInTheDocument();
   });
 
   it('does not render an agent header (name/model/email)', () => {
