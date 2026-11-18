@@ -29,7 +29,7 @@ from sentry.objectstore import (
     UsecaseId,
     default_attachment_retention,
     get_download_redirect_url,
-    get_session,
+    get_project_session,
 )
 from sentry.objectstore.metrics import measure_storage_operation
 from sentry.options.rollout import in_random_rollout
@@ -154,9 +154,9 @@ class EventAttachmentBase(Model):
         elif self.blob_path.startswith(V2_PREFIX):
             key = self.blob_path.removeprefix(V2_PREFIX)
             organization_id = _get_organization(self.project_id)
-            response = get_session(UsecaseId.ATTACHMENTS, self.project_id, org=organization_id).get(
-                key
-            )
+            response = get_project_session(
+                UsecaseId.ATTACHMENTS, self.project_id, org=organization_id
+            ).get(key)
             if response is None:
                 raise FileNotFoundError("Attachment does not exist in objectstore")
             return response.payload
@@ -188,9 +188,9 @@ class EventAttachmentBase(Model):
             # explicit delete to avoid unnecessary load on the objectstore service.
             if self.final_expiry_date() > (timezone.now() + timedelta(days=1)):
                 organization_id = _get_organization(self.project_id)
-                get_session(UsecaseId.ATTACHMENTS, self.project_id, org=organization_id).delete(
-                    self.blob_path.removeprefix(V2_PREFIX)
-                )
+                get_project_session(
+                    UsecaseId.ATTACHMENTS, self.project_id, org=organization_id
+                ).delete(self.blob_path.removeprefix(V2_PREFIX))
 
         else:
             raise NotImplementedError()
@@ -257,7 +257,7 @@ class EventAttachment(EventAttachmentBase):
         assert self.blob_path is not None
 
         organization_id = _get_organization(self.project_id)
-        session = get_session(UsecaseId.ATTACHMENTS, self.project_id, org=organization_id)
+        session = get_project_session(UsecaseId.ATTACHMENTS, self.project_id, org=organization_id)
         return get_download_redirect_url(
             request, session, organization_id, self.blob_path.removeprefix(V2_PREFIX)
         )
@@ -272,7 +272,7 @@ class EventAttachment(EventAttachmentBase):
         if self.uses_objectstore():
             assert self.blob_path is not None
             key = self.blob_path.removeprefix(V2_PREFIX)
-            session = get_session(
+            session = get_project_session(
                 UsecaseId.ATTACHMENTS, self.project_id, org=_get_organization(self.project_id)
             )
             response = session.get(key, accept_encoding=accept_encoding or None)
@@ -315,7 +315,7 @@ class EventAttachment(EventAttachmentBase):
 
         else:
             organization_id = _get_organization(project_id)
-            session = get_session(UsecaseId.ATTACHMENTS, project_id, org=organization_id)
+            session = get_project_session(UsecaseId.ATTACHMENTS, project_id, org=organization_id)
             key = session.put(
                 data,
                 content_type=content_type,

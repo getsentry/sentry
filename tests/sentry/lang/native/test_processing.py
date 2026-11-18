@@ -41,7 +41,7 @@ from sentry.lang.native.processing import (
 from sentry.lang.native.symbolicator import SymbolicatorFunction
 from sentry.models.eventerror import EventErrorType
 from sentry.models.project import Project
-from sentry.objectstore import UsecaseId, get_session
+from sentry.objectstore import UsecaseId, get_project_session
 from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.tasks import store
 from sentry.tasks.symbolication import SymbolicationTimeout, symbolicate_event
@@ -1119,7 +1119,7 @@ def test_flamegraph_large_payload_is_not_duplicated(
 @requires_objectstore
 def test_flamegraph_objectstore_attachment(cached_flamegraph: CachedFlamegraph) -> None:
     data, payload, symbolicator = cached_flamegraph
-    session = get_session(UsecaseId.ATTACHMENTS, symbolicator.project)
+    session = get_project_session(UsecaseId.ATTACHMENTS, symbolicator.project)
     stored_id = session.put(orjson.dumps(payload))
     store_attachments_for_event(
         symbolicator.project,
@@ -1212,7 +1212,7 @@ def test_flamegraph_checkpoints_do_not_rewrite_processed_objects(
     multiple_flamegraphs: MultipleFlamegraphs,
 ) -> None:
     data, first, second, symbolicator = multiple_flamegraphs
-    session = get_session(UsecaseId.ATTACHMENTS, symbolicator.project)
+    session = get_project_session(UsecaseId.ATTACHMENTS, symbolicator.project)
     first_id = session.put(orjson.dumps(first))
     second_id = session.put(orjson.dumps(second))
     store_attachments_for_event(
@@ -1226,7 +1226,7 @@ def test_flamegraph_checkpoints_do_not_rewrite_processed_objects(
     )
     with (
         Feature({"organizations:flamegraph-attachments": True}),
-        mock.patch("sentry.attachments.base.get_session", return_value=session),
+        mock.patch("sentry.attachments.base.get_project_session", return_value=session),
         mock.patch.object(session, "put", wraps=session.put) as put,
     ):
         assert process_native_stacktraces(symbolicator, data) is data

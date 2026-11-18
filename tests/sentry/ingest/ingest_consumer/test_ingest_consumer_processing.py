@@ -48,7 +48,7 @@ from sentry.models.debugfile import create_files_from_dif_zip
 from sentry.models.eventattachment import V2_PREFIX, EventAttachment, PendingEventAttachment
 from sentry.models.project import Project
 from sentry.models.userreport import UserReport
-from sentry.objectstore import UsecaseId, get_session
+from sentry.objectstore import UsecaseId, get_project_session
 from sentry.services import eventstore
 from sentry.services.eventstore.processing import (
     event_processing_store,
@@ -831,7 +831,7 @@ def do_process_flamegraph(
         "size": len(raw),
     }
     if use_objectstore:
-        session = get_session(UsecaseId.ATTACHMENTS, default_project)
+        session = get_project_session(UsecaseId.ATTACHMENTS, default_project)
         stored_id = session.put(raw)
         attachment_metadata["stored_id"] = stored_id
     else:
@@ -940,7 +940,7 @@ def do_process_view_hierarchy(
         )
         attachment_metadata["chunks"] = 1
     else:
-        session = get_session(UsecaseId.ATTACHMENTS, project)
+        session = get_project_session(UsecaseId.ATTACHMENTS, project)
         stored_id = session.put(attachment_payload)
         attachment_metadata["stored_id"] = stored_id
 
@@ -1008,7 +1008,9 @@ def test_process_stored_attachment(
         with open(get_fixture_path("native", "threadnames.dmp"), "rb") as f:
             attachment_payload = f.read()
 
-        stored_id = get_session(UsecaseId.ATTACHMENTS, default_project).put(attachment_payload)
+        stored_id = get_project_session(UsecaseId.ATTACHMENTS, default_project).put(
+            attachment_payload
+        )
 
         with task_runner():
             process_event(

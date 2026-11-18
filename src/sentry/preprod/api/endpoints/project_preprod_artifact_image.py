@@ -15,7 +15,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.models.project import Project
-from sentry.objectstore import UsecaseId, get_session
+from sentry.objectstore import UsecaseId, get_project_session
 from sentry.preprod.snapshots.storage import get_snapshot_storage
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -99,10 +99,10 @@ class ProjectPreprodArtifactImageEndpoint(ProjectEndpoint):
 
         try:
             if is_app_icon:
-                result = get_session(UsecaseId.PREPROD_SIZE, project).get(object_key)
+                result = get_project_session(UsecaseId.PREPROD_SIZE, project).get(object_key)
                 if result is None:
                     # TODO: On January 1, 2027, remove the preprod fallback for app icons.
-                    result = get_session(UsecaseId.PREPROD, project).get(object_key)
+                    result = get_project_session(UsecaseId.PREPROD, project).get(object_key)
                     logger.info(
                         "preprod.objectstore.fallback",
                         extra={

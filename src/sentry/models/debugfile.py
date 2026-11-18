@@ -52,7 +52,7 @@ from sentry.db.models.fields.jsonfield import LegacyTextJSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.files.file import File
 from sentry.models.files.utils import clear_cached_files
-from sentry.objectstore import UsecaseId, get_download_redirect_url, get_session
+from sentry.objectstore import UsecaseId, get_download_redirect_url, get_project_session
 from sentry.objectstore.metrics import measure_storage_operation
 from sentry.utils import json, metrics
 from sentry.utils.retries import ConditionalRetryPolicy
@@ -323,7 +323,7 @@ class ProjectDebugFile(Model):
 
         try:
             project = Project.objects.get_from_cache(id=self.project_id)
-            return get_session(UsecaseId.DEBUG_FILES, project)
+            return get_project_session(UsecaseId.DEBUG_FILES, project)
         except Project.DoesNotExist:
             logger.exception("Project doesn't exist, probably deleted")
             raise
@@ -577,7 +577,7 @@ def create_dif_from_file(
     session: Session | None = None
     storage_path: str | None = None
     if features.has("organizations:objectstore-debugfiles-write", project.organization):
-        session = get_session(UsecaseId.DEBUG_FILES, project)
+        session = get_project_session(UsecaseId.DEBUG_FILES, project)
         try:
             with file.getfile() as source:
                 storage_path = session.put(
@@ -647,7 +647,7 @@ def create_dif_from_fileobj(
 
     object_name = _get_dif_object_name(meta)
     content_type = DIF_MIMETYPES[meta.file_format]
-    session = get_session(UsecaseId.DEBUG_FILES, project)
+    session = get_project_session(UsecaseId.DEBUG_FILES, project)
     storage_path: str | None = None
 
     def upload() -> str:

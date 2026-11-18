@@ -616,7 +616,7 @@ def test_discard_event_cleans_up_attachments_with_optional_cache_key(
 
     with (
         mock.patch.object(EventManager, "save", side_effect=HashDiscarded("discarded")),
-        mock.patch("sentry.attachments.get_session") as get_session,
+        mock.patch("sentry.attachments.get_project_session") as get_project_session,
         mock.patch.object(event_processing_store, "delete_by_key") as delete,
     ):
         save_event_attachments(
@@ -626,7 +626,7 @@ def test_discard_event_cleans_up_attachments_with_optional_cache_key(
             start_time=time(),
         )
 
-    get_session.return_value.delete.assert_called_once_with("stored-attachment")
+    get_project_session.return_value.delete.assert_called_once_with("stored-attachment")
     delete.assert_called_once_with(cache_key or cache_key_for_event(data))
     assert "_attachments" not in data
 

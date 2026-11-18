@@ -8,7 +8,7 @@ import zstandard
 from django.core.files.uploadedfile import UploadedFile
 from objectstore_client import TimeToLive
 
-from sentry.objectstore import UsecaseId, default_attachment_retention, get_session
+from sentry.objectstore import UsecaseId, default_attachment_retention, get_project_session
 from sentry.utils import metrics
 from sentry.utils.json import prune_empty_keys
 
@@ -107,7 +107,7 @@ class CachedAttachment:
     def load_data(self, project: Project | None = None) -> bytes:
         if self.stored_id:
             assert project
-            session = get_session(UsecaseId.ATTACHMENTS, project)
+            session = get_project_session(UsecaseId.ATTACHMENTS, project)
             response = session.get(self.stored_id)
             if response is None:
                 raise FileNotFoundError("Attachment does not exist in objectstore")
@@ -182,7 +182,7 @@ class BaseAttachmentCache:
             # the attachment is stored, but has updated data, so we need to overwrite:
             if attachment.stored_id is not None and attachment._data is not UNINITIALIZED_DATA:
                 assert project
-                session = get_session(UsecaseId.ATTACHMENTS, project)
+                session = get_project_session(UsecaseId.ATTACHMENTS, project)
                 # A keyed `put` replaces the object wholesale, so metadata that is not
                 # sent here is lost rather than preserved from the previous write.
                 session.put(

@@ -7,7 +7,7 @@ from objectstore_client import Compression, GetResponse, Metadata, RequestError,
 from urllib3.exceptions import HTTPError
 
 from sentry.models.project import Project
-from sentry.objectstore import UsecaseId, get_session
+from sentry.objectstore import UsecaseId, get_project_session
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -80,6 +80,6 @@ class SnapshotStorage:
 
 def get_snapshot_storage(project: Project | int, *, org: int | None = None) -> SnapshotStorage:
     return SnapshotStorage(
-        primary=get_session(UsecaseId.PREPROD_SNAPSHOTS, project, org=org),
-        fallback=get_session(UsecaseId.PREPROD, project, org=org),
+        primary=get_project_session(UsecaseId.PREPROD_SNAPSHOTS, project, org=org),
+        fallback=get_project_session(UsecaseId.PREPROD, project, org=org),
     )

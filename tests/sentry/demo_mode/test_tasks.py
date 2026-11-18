@@ -19,7 +19,7 @@ from sentry.models.artifactbundle import (
 from sentry.models.debugfile import ProguardArtifactRelease, ProjectDebugFile
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.objectstore import UsecaseId, get_session
+from sentry.objectstore import UsecaseId, get_project_session
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_objectstore
 
@@ -251,7 +251,7 @@ class SyncArtifactBundlesTest(TestCase):
         content = b"objectstore-backed-debug-file"
         content_type = "application/x-mach-binary"
         date_created = timezone.now()
-        source_storage_path = get_session(UsecaseId.DEBUG_FILES, self.source_proj_foo).put(
+        source_storage_path = get_project_session(UsecaseId.DEBUG_FILES, self.source_proj_foo).put(
             content, compress="none", content_type=content_type
         )
         source_project_debug_file = ProjectDebugFile.objects.create(
@@ -287,7 +287,7 @@ class SyncArtifactBundlesTest(TestCase):
         assert target_project_debug_file.file_size == len(content)
         assert target_project_debug_file.date_created == date_created
         assert target_project_debug_file.get_file().read() == content
-        target_metadata = get_session(UsecaseId.DEBUG_FILES, self.target_proj_foo).head(
+        target_metadata = get_project_session(UsecaseId.DEBUG_FILES, self.target_proj_foo).head(
             target_project_debug_file.storage_path
         )
         assert target_metadata is not None
@@ -303,7 +303,7 @@ class SyncArtifactBundlesTest(TestCase):
     @requires_objectstore
     def test_sync_dual_written_project_debug_files(self) -> None:
         source_project_debug_file = self.create_dif_file(self.source_proj_foo)
-        source_storage_path = get_session(UsecaseId.DEBUG_FILES, self.source_proj_foo).put(
+        source_storage_path = get_project_session(UsecaseId.DEBUG_FILES, self.source_proj_foo).put(
             b"objectstore-backed-debug-file", compress="none"
         )
         assert source_project_debug_file.file is not None

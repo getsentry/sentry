@@ -39,7 +39,7 @@ class ProjectPreprodArtifactImageTest(APITestCase):
         return mock_session
 
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.logger")
-    @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_session")
+    @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_project_session")
     def test_explicit_app_icon_type_does_not_require_prefix(
         self, mock_get_session: MagicMock, mock_logger: MagicMock
     ) -> None:
@@ -77,7 +77,7 @@ class ProjectPreprodArtifactImageTest(APITestCase):
         fallback.get.assert_called_once_with(object_key)
 
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_snapshot_storage")
-    @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_session")
+    @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_project_session")
     def test_rejects_unknown_image_type(
         self, mock_get_session: MagicMock, mock_get_snapshot_storage: MagicMock
     ) -> None:
@@ -106,7 +106,7 @@ class ProjectPreprodArtifactImageTest(APITestCase):
         session.get.assert_called_once_with(f"{self.org.id}/{self.project.id}/{image_id}")
 
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.logger")
-    @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_session")
+    @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_project_session")
     def test_app_icon_falls_back_to_preprod(
         self, mock_get_session: MagicMock, mock_logger: MagicMock
     ) -> None:
@@ -134,7 +134,7 @@ class ProjectPreprodArtifactImageTest(APITestCase):
         )
 
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.logger")
-    @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_session")
+    @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_project_session")
     def test_app_icon_missing_from_both_usecases(
         self, mock_get_session: MagicMock, mock_logger: MagicMock
     ) -> None:
@@ -158,7 +158,7 @@ class ProjectPreprodArtifactImageTest(APITestCase):
         )
 
     @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.logger")
-    @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_session")
+    @patch("sentry.preprod.api.endpoints.project_preprod_artifact_image.get_project_session")
     def test_app_icon_storage_error_does_not_fall_back(
         self, mock_get_session: MagicMock, mock_logger: MagicMock
     ) -> None:

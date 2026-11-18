@@ -19,7 +19,7 @@ from sentry.models.debugfile import ProguardArtifactRelease, ProjectDebugFile
 from sentry.models.files import FileBlobOwner
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.objectstore import UsecaseId, get_session
+from sentry.objectstore import UsecaseId, get_project_session
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import demomode_tasks
 from sentry.utils.db import atomic_transaction
@@ -251,7 +251,9 @@ def _sync_project_debug_file(
                     raise FileNotFoundError("Debug file does not exist in objectstore")
                 source_fileobj = response.payload
                 try:
-                    target_storage_path = get_session(UsecaseId.DEBUG_FILES, target_project).put(
+                    target_storage_path = get_project_session(
+                        UsecaseId.DEBUG_FILES, target_project
+                    ).put(
                         source_fileobj,
                         content_type=source_project_debug_file.get_content_type(),
                     )

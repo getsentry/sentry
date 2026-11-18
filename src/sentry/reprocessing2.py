@@ -107,7 +107,7 @@ from sentry.ingest.event_payload import get_event_payload_transport
 from sentry.models.eventattachment import V1_PREFIX, V2_PREFIX, EventAttachment
 from sentry.models.files.utils import get_storage
 from sentry.models.project import Project
-from sentry.objectstore import UsecaseId, default_attachment_retention, get_session
+from sentry.objectstore import UsecaseId, default_attachment_retention, get_project_session
 from sentry.options.rollout import in_random_rollout
 from sentry.search.eap.occurrences.common_queries import count_occurrences
 from sentry.search.eap.occurrences.rollout_utils import EAPOccurrencesComparator
@@ -461,7 +461,7 @@ def _maybe_copy_attachment_into_cache(
         )
         # move the attachment into objectstore and update the record
         with attachment.getfile() as fp:
-            stored_id = get_session(UsecaseId.ATTACHMENTS, project).put(
+            stored_id = get_project_session(UsecaseId.ATTACHMENTS, project).put(
                 fp,
                 content_type=attachment.content_type,
                 filename=attachment.name,

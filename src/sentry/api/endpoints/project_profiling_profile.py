@@ -29,7 +29,7 @@ from sentry.constants import ATTACHMENTS_ROLE_DEFAULT
 from sentry.models.profilechunkattachment import ProfileChunkAttachment
 from sentry.models.project import Project
 from sentry.models.release import Release
-from sentry.objectstore import UsecaseId, get_session, parse_accept_encoding
+from sentry.objectstore import UsecaseId, get_project_session, parse_accept_encoding
 from sentry.profiles.utils import get_from_profiling_service, proxy_profiling_service
 
 
@@ -227,7 +227,7 @@ class ProjectProfilingChunkAttachmentEndpoint(ProjectProfilingBaseEndpoint):
         name = posixpath.basename(" ".join(attachment.name.split()))
         accept_encoding = parse_accept_encoding(request.headers.get("Accept-Encoding", ""))
 
-        session = get_session(UsecaseId.PROFILE_ATTACHMENTS, project)
+        session = get_project_session(UsecaseId.PROFILE_ATTACHMENTS, project)
         blob = session.get(attachment.stored_id, accept_encoding=accept_encoding or None)
         if blob is None:
             raise ResourceDoesNotExist

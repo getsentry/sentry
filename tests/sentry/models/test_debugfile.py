@@ -28,7 +28,7 @@ from sentry.models.debugfile import (
     get_debug_id_from_dif_request,
 )
 from sentry.models.files.file import File
-from sentry.objectstore import UsecaseId, get_session
+from sentry.objectstore import UsecaseId, get_project_session
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.objectstore import debug_files_test_both_backends
 from sentry.testutils.skips import requires_objectstore
@@ -257,7 +257,7 @@ class DebugFileObjectstoreTest(TestCase):
     """Tests for Objectstore-backed debug files."""
 
     def _get_session(self) -> Session:
-        return get_session(UsecaseId.DEBUG_FILES, self.project)
+        return get_project_session(UsecaseId.DEBUG_FILES, self.project)
 
     def _create_objectstore_dif(
         self, content: bytes = b"test-content", **kwargs: object
@@ -438,10 +438,10 @@ class CreateDebugFileTest(APITestCase):
         assert dif.file_size == len(content)
         assert dif.get_file().read() == content
 
-    @patch("sentry.models.debugfile.get_session")
-    def test_exclusive_objectstore_dif_is_idempotent(self, get_session: MagicMock) -> None:
+    @patch("sentry.models.debugfile.get_project_session")
+    def test_exclusive_objectstore_dif_is_idempotent(self, get_project_session: MagicMock) -> None:
         content = b"objectstore-dif-content"
-        get_session.return_value.put.return_value = "storage-path"
+        get_project_session.return_value.put.return_value = "storage-path"
 
         with self.feature("organizations:objectstore-debugfiles-exclusive-write"):
             first, first_created = self.create_dif_from_fileobj(BytesIO(content))
@@ -450,14 +450,14 @@ class CreateDebugFileTest(APITestCase):
         assert first_created
         assert not second_created
         assert first.id == second.id
-        get_session.return_value.put.assert_called_once()
+        get_project_session.return_value.put.assert_called_once()
 
     @patch("sentry.models.debugfile.ProjectDebugFile.objects.create")
-    @patch("sentry.models.debugfile.get_session")
+    @patch("sentry.models.debugfile.get_project_session")
     def test_exclusive_objectstore_dif_cleans_up_after_database_error(
-        self, get_session: MagicMock, create: MagicMock
+        self, get_project_session: MagicMock, create: MagicMock
     ) -> None:
-        get_session.return_value.put.return_value = "storage-path"
+        get_project_session.return_value.put.return_value = "storage-path"
         create.side_effect = RuntimeError
 
         with (
@@ -466,22 +466,22 @@ class CreateDebugFileTest(APITestCase):
         ):
             self.create_dif_from_fileobj(BytesIO(b"objectstore-dif-content"))
 
-        get_session.return_value.delete.assert_called_once_with("storage-path")
+        get_project_session.return_value.delete.assert_called_once_with("storage-path")
 
     @requires_objectstore
     @patch("sentry.utils.retries.time.sleep")
-    @patch("sentry.models.debugfile.get_session")
+    @patch("sentry.models.debugfile.get_project_session")
     def test_exclusive_objectstore_write_failure_does_not_create_file(
-        self, get_session: MagicMock, sleep: MagicMock
+        self, get_project_session: MagicMock, sleep: MagicMock
     ) -> None:
-        get_session.return_value.put.side_effect = RuntimeError
+        get_project_session.return_value.put.side_effect = RuntimeError
         with (
             self.feature("organizations:objectstore-debugfiles-exclusive-write"),
             pytest.raises(RuntimeError),
         ):
             self.create_dif_from_fileobj(BytesIO(b"objectstore-dif-content"))
 
-        assert get_session.return_value.put.call_count == 3
+        assert get_project_session.return_value.put.call_count == 3
         assert sleep.call_count == 2
         assert not ProjectDebugFile.objects.filter(project_id=self.project.id).exists()
         assert not File.objects.filter(type="project.dif").exists()
@@ -522,7 +522,7 @@ class CreateDebugFileTest(APITestCase):
         with (
             self.feature("organizations:objectstore-debugfiles-write"),
             patch(
-                "sentry.models.debugfile.get_session",
+                "sentry.models.debugfile.get_project_session",
                 return_value=MagicMock(put=MagicMock(side_effect=RuntimeError)),
             ),
         ):
@@ -549,7 +549,7 @@ class CreateDebugFileTest(APITestCase):
         dif.delete()
 
         assert not File.objects.filter(id=file_id).exists()
-        session = get_session(UsecaseId.DEBUG_FILES, self.project)
+        session = get_project_session(UsecaseId.DEBUG_FILES, self.project)
         assert session.get(storage_path) is None
 
     @requires_objectstore
@@ -562,7 +562,7 @@ class CreateDebugFileTest(APITestCase):
         assert created
         storage_path = dif.storage_path
         assert storage_path is not None
-        session = get_session(UsecaseId.DEBUG_FILES, self.project)
+        session = get_project_session(UsecaseId.DEBUG_FILES, self.project)
         session.delete(storage_path)
         replacement_storage_path = session.put(objectstore_content, compress="none")
         dif.storage_path = replacement_storage_path
@@ -578,8 +578,10 @@ class CreateDebugFileTest(APITestCase):
             dif, created = self.create_dif_from_content(b"legacy-content")
 
         assert created
-        with patch.object(dif, "get_objectstore_session") as get_session:
-            get_session.return_value.get.side_effect = RuntimeError("Objectstore unavailable")
+        with patch.object(dif, "get_objectstore_session") as get_project_session:
+            get_project_session.return_value.get.side_effect = RuntimeError(
+                "Objectstore unavailable"
+            )
             with pytest.raises(RuntimeError):
                 dif.get_file()
 

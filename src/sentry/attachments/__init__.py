@@ -15,7 +15,7 @@ from typing import TYPE_CHECKING, Any
 from django.conf import settings
 from sentry_sdk import traces
 
-from sentry.objectstore import UsecaseId, get_session
+from sentry.objectstore import UsecaseId, get_project_session
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.imports import import_string
 
@@ -75,7 +75,7 @@ def delete_cached_and_ratelimited_attachments(
     for attachment in attachments:
         # deletes from objectstore if no long-term storage is desired
         if attachment.rate_limited and attachment.stored_id:
-            get_session(UsecaseId.ATTACHMENTS, project).delete(attachment.stored_id)
+            get_project_session(UsecaseId.ATTACHMENTS, project).delete(attachment.stored_id)
 
         # unconditionally deletes any payloads from the attachment cache
         attachment.delete()

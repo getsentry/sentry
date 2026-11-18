@@ -102,7 +102,7 @@ class DebugFileObjectstoreMigrationUtilsTest(TestCase):
 
         with (
             patch(
-                "sentry.debug_files.objectstore_migration.utils.get_session",
+                "sentry.debug_files.objectstore_migration.utils.get_project_session",
                 return_value=session,
             ),
             patch("sentry.utils.retries.time.sleep"),
@@ -186,7 +186,7 @@ class DebugFileObjectstoreMigrationUtilsTest(TestCase):
 
         with (
             patch(
-                "sentry.debug_files.objectstore_migration.utils.get_session",
+                "sentry.debug_files.objectstore_migration.utils.get_project_session",
                 return_value=session,
             ),
             self.captureOnCommitCallbacks(execute=True),

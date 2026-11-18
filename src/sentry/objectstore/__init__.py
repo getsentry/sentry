@@ -32,7 +32,7 @@ from sentry.utils.env import in_test_environment
 if TYPE_CHECKING:
     from sentry.models.project import Project
 
-__all__ = ["UsecaseId", "get_session", "parse_accept_encoding"]
+__all__ = ["UsecaseId", "get_project_session", "parse_accept_encoding"]
 
 
 # Default validity of the token used for redirecting to Objectstore. This is a
@@ -81,7 +81,7 @@ class SentryMetricsBackend(MetricsBackend):
 class UsecaseId(Enum):
     """Objectstore workloads and their default configuration.
 
-    Use this enum with ``get_session`` instead of constructing a client usecase
+    Use this enum with ``get_project_session`` instead of constructing a client usecase
     directly. This configures the correct expiration policy and other usecase
     settings.
     """
@@ -166,12 +166,14 @@ def _get_client() -> Client:
 _USECASES: dict[UsecaseId, ObjectstoreClientUsecase] = {}
 
 
-def get_session(usecase: UsecaseId, project: Project | int, *, org: int | None = None) -> Session:
+def get_project_session(
+    usecase: UsecaseId, project: Project | int, *, org: int | None = None
+) -> Session:
     """Return an Objectstore session scoped to a project.
 
     There are two ways to construct a session:
-    - Project model: ``get_session(UsecaseId.ATTACHMENTS, project)``
-    - Project and org IDs: ``get_session(UsecaseId.ATTACHMENTS, project_id, org=org_id)``
+    - Project model: ``get_project_session(UsecaseId.ATTACHMENTS, project)``
+    - Project and org IDs: ``get_project_session(UsecaseId.ATTACHMENTS, project_id, org=org_id)``
 
     When passing a project model, ``org`` is optional and must match the
     project's organization. It is required when passing a project ID.

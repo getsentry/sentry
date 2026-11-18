@@ -118,7 +118,7 @@ def test_fallback_records_metric_and_log(
 
 
 @django_db_all
-@patch("sentry.preprod.snapshots.storage.get_session")
+@patch("sentry.preprod.snapshots.storage.get_project_session")
 def test_factory_uses_snapshots_primary_with_preprod_fallback(
     mock_get_session: MagicMock,
 ) -> None:

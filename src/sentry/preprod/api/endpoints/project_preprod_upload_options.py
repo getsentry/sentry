@@ -14,7 +14,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.utils import generate_locality_url
 from sentry.models.project import Project
-from sentry.objectstore import UsecaseId, get_session
+from sentry.objectstore import UsecaseId, get_project_session
 from sentry.objectstore.types import ObjectstoreUploadOptions
 from sentry.utils.http import absolute_uri
 
@@ -37,7 +37,7 @@ class ProjectPreprodUploadOptionsEndpoint(ProjectEndpoint):
             return Response({"detail": "Invalid usecase"}, status=400)
 
         organization = project.organization
-        session = get_session(usecase, project)
+        session = get_project_session(usecase, project)
 
         path = reverse(
             "sentry-api-0-organization-objectstore",
