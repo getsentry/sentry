@@ -256,7 +256,7 @@ class SeerAutofixOperator[CachePayloadT]:
                     get_autofix_agent_state(
                         group.organization, group.id, sources=(SINGLE_RUN_FEATURE_ID,)
                     )
-                    if existing_state is None and run_id is None
+                    if run_id is None
                     else None
                 )
             except Exception as e:
@@ -269,38 +269,39 @@ class SeerAutofixOperator[CachePayloadT]:
                     )
                 lifecycle.record_failure(failure_reason=e)
                 return
-            # Slack can't continue a single run, so an existing one blocks a new kickoff.
-            if single_run_state is not None:
+            blocking_state = existing_state
+            has_complete_stage = (
+                get_autofix_explorer_status(stopping_point, existing_state)
+                if existing_state
+                else None
+            )
+            if (
+                has_complete_stage is None
+                and single_run_state is not None
+                and single_run_state.status != "error"
+            ):
+                blocking_state = single_run_state
+                has_complete_stage = single_run_state.status != "processing"
+            if blocking_state:
+                lifecycle.add_extras(
+                    {
+                        "existing_run_id": str(blocking_state.run_id),
+                        "existing_run_status": str(blocking_state.status),
+                    }
+                )
+
+            # For now, we don't support re-runs over slack -- it causes a confusing UX without
+            # reliably being able to edit messages.
+            if blocking_state and has_complete_stage is not None:
                 with SeerOperatorEventLifecycleMetric(
                     interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_ALREADY_EXISTS,
                     entrypoint_key=self.entrypoint.key,
                 ).capture():
                     self.entrypoint.on_trigger_autofix_already_exists(
-                        run_id=single_run_state.run_id,
-                        has_complete_stage=single_run_state.status != "processing",
+                        run_id=blocking_state.run_id,
+                        has_complete_stage=has_complete_stage,
                     )
                 return
-            if existing_state:
-                has_complete_stage = get_autofix_explorer_status(stopping_point, existing_state)
-                lifecycle.add_extras(
-                    {
-                        "existing_run_id": str(existing_state.run_id),
-                        "existing_run_status": str(existing_state.status),
-                    }
-                )
-
-                # For now, we don't support re-runs over slack -- it causes a confusing UX without
-                # reliably being able to edit messages.
-                if has_complete_stage is not None:
-                    with SeerOperatorEventLifecycleMetric(
-                        interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_ALREADY_EXISTS,
-                        entrypoint_key=self.entrypoint.key,
-                    ).capture():
-                        self.entrypoint.on_trigger_autofix_already_exists(
-                            run_id=existing_state.run_id,
-                            has_complete_stage=has_complete_stage,
-                        )
-                    return
 
             try:
                 if not run_id:

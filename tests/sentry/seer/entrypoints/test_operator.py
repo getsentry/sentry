@@ -225,8 +225,37 @@ class SeerOperatorTest(TestCase):
     ) -> None:
         run = self.create_seer_run(organization=self.organization, seer_run_state_id=2)
         self.create_seer_agent_run(run=run, source=SINGLE_RUN_FEATURE_ID, group=self.group)
-        mock_get_run.return_value = SeerRunState(
-            run_id=2, blocks=[], status="processing", updated_at="2024-01-01T00:00:00Z"
+
+        for status, has_complete_stage in (("processing", False), ("completed", True)):
+            self.entrypoint.autofix_already_exists_states = []
+            mock_get_run.return_value = SeerRunState(
+                run_id=2, blocks=[], status=status, updated_at="2024-01-01T00:00:00Z"
+            )
+
+            self.operator.trigger_autofix(
+                group=self.group, user=self.user, stopping_point=AutofixStoppingPoint.ROOT_CAUSE
+            )
+
+            assert self.entrypoint.autofix_already_exists_states == [(2, has_complete_stage)]
+        mock_trigger_autofix.assert_not_called()
+
+    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_agent")
+    @patch("sentry.seer.agent.client.SeerAgentClient.get_run")
+    def test_slack_blocks_on_a_single_run_when_a_step_run_never_reached_the_step(
+        self, mock_get_run: MagicMock, mock_trigger_autofix: MagicMock
+    ) -> None:
+        for state_id, source, minutes_ago in ((1, "autofix", 10), (2, SINGLE_RUN_FEATURE_ID, 1)):
+            run = self.create_seer_run(
+                organization=self.organization,
+                seer_run_state_id=state_id,
+                last_triggered_at=timezone.now() - timedelta(minutes=minutes_ago),
+            )
+            self.create_seer_agent_run(run=run, source=source, group=self.group)
+        mock_get_run.side_effect = lambda run_id, **_: SeerRunState(
+            run_id=run_id,
+            blocks=[],
+            status="error" if run_id == 1 else "processing",
+            updated_at="2024-01-01T00:00:00Z",
         )
 
         self.operator.trigger_autofix(
@@ -235,6 +264,27 @@ class SeerOperatorTest(TestCase):
 
         assert self.entrypoint.autofix_already_exists_states == [(2, False)]
         mock_trigger_autofix.assert_not_called()
+
+    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_agent")
+    @patch("sentry.seer.agent.client.SeerAgentClient.get_run")
+    def test_slack_starts_a_new_run_when_the_single_run_failed(
+        self, mock_get_run: MagicMock, mock_trigger_autofix: MagicMock
+    ) -> None:
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=2)
+        self.create_seer_agent_run(run=run, source=SINGLE_RUN_FEATURE_ID, group=self.group)
+        mock_get_run.return_value = SeerRunState(
+            run_id=2, blocks=[], status="error", updated_at="2024-01-01T00:00:00Z"
+        )
+        mock_trigger_autofix.return_value = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=3
+        )
+
+        self.operator.trigger_autofix(
+            group=self.group, user=self.user, stopping_point=AutofixStoppingPoint.ROOT_CAUSE
+        )
+
+        assert self.entrypoint.autofix_already_exists_states == []
+        mock_trigger_autofix.assert_called_once()
 
     @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_agent")
     @patch("sentry.seer.agent.client.SeerAgentClient.get_run")
