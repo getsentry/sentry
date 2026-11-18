@@ -54,7 +54,12 @@ export type InfiniteApiQueryKey = readonly [
   ...unknown[],
 ];
 
-export function isApiQueryKey(
+/**
+ * The request params of an api query key, as `parseQueryKey` returns them.
+ */
+export type ParsedQueryKey = ApiQueryKeyParams | InfiniteApiQueryKeyParams;
+
+function isApiQueryKey(
   queryKey: readonly unknown[]
 ): queryKey is ApiQueryKey | InfiniteApiQueryKey {
   return queryKey[0] === API_QUERY_KEY_MARKER;
@@ -72,7 +77,9 @@ export function parseQueryKey<TQueryKey extends ApiQueryKey | InfiniteApiQueryKe
 /**
  * Like `parseQueryKey`, but for keys that may not be api query keys.
  */
-export function safeParseQueryKey(queryKey: readonly unknown[]) {
+export function safeParseQueryKey(
+  queryKey: readonly unknown[]
+): ParsedQueryKey | undefined {
   return isApiQueryKey(queryKey) ? parseQueryKey(queryKey) : undefined;
 }
 

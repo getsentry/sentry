@@ -1,7 +1,7 @@
 import {QueryClient} from '@tanstack/react-query';
 
 import {apiOptions} from './apiOptions';
-import {isApiQueryKey, parseQueryKey, safeParseQueryKey} from './apiQueryKey';
+import {parseQueryKey, safeParseQueryKey} from './apiQueryKey';
 
 function issuesOptions(organizationIdOrSlug: string, query?: Record<string, string>) {
   return apiOptions.as<unknown>()('/organizations/$organizationIdOrSlug/issues/', {
@@ -52,23 +52,6 @@ function seedCache() {
 }
 
 describe('apiQueryKey', () => {
-  describe('isApiQueryKey', () => {
-    it('accepts keys from apiOptions, also with trailing elements', () => {
-      const {queryKey} = issuesOptions('acme');
-      expect(isApiQueryKey(queryKey)).toBe(true);
-      expect(isApiQueryKey([...queryKey, {sessionKey: 'session'}])).toBe(true);
-      expect(isApiQueryKey(issuesInfiniteOptions('acme').queryKey)).toBe(true);
-    });
-
-    it('rejects keys that are not api keys', () => {
-      expect(isApiQueryKey([])).toBe(false);
-      expect(isApiQueryKey(['bootstrap-projects'])).toBe(false);
-      expect(isApiQueryKey(['/organizations/acme/issues/', {}, {infinite: false}])).toBe(
-        false
-      );
-    });
-  });
-
   describe('parseQueryKey', () => {
     it('returns the request params of an api key', () => {
       expect(
@@ -90,11 +73,17 @@ describe('apiQueryKey', () => {
       expect(safeParseQueryKey([...queryKey, {sessionKey: 'session'}])?.fullUrl).toBe(
         '/organizations/acme/issues/'
       );
+      expect(safeParseQueryKey(issuesInfiniteOptions('acme').queryKey)?.infinite).toBe(
+        true
+      );
     });
 
     it('returns undefined for keys that are not api keys', () => {
       expect(safeParseQueryKey([])).toBeUndefined();
       expect(safeParseQueryKey(['bootstrap-projects'])).toBeUndefined();
+      expect(
+        safeParseQueryKey(['/organizations/acme/issues/', {}, {infinite: false}])
+      ).toBeUndefined();
     });
   });
 
