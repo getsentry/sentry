@@ -10,7 +10,7 @@ from sentry_redis_tools.clients import RedisCluster
 from sentry import options
 from sentry.exceptions import InvalidConfiguration
 from sentry.utils import redis
-from sentry.utils.locking import LockNotOwned
+from sentry.utils.locking import LockHeld, LockNotOwned
 from sentry.utils.locking.backends import LockBackend
 
 delete_lock = redis.load_redis_script("utils/locking/delete_lock.lua")
@@ -54,7 +54,7 @@ class BaseRedisLockBackend(LockBackend):
         # An empty token is a real value and must stay empty.
         value = self.uuid if token is None else token
         if client.set(full_key, value, ex=duration, nx=True) is not True:
-            raise Exception(f"Could not set key: {full_key!r}")
+            raise LockHeld(f"Could not set key: {full_key!r}")
 
     def release(self, key: str, token: str | None = None) -> None:
         client = self.get_client(key)

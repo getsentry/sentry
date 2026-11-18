@@ -5,6 +5,14 @@ class UnableToAcquireLock(Exception):
     """Exception raised when a lock cannot be acquired."""
 
 
+class LockHeld(UnableToAcquireLock):
+    """Raised when another holder has the lock key.
+
+    A plain ``UnableToAcquireLock`` means the backend failed, such as Redis
+    being down. Only this subclass means waiting can help.
+    """
+
+
 class LockNotOwned(ResponseError):
     """Raised when a release does not own the lock key.
 
