@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import TypedDict
+from urllib.parse import urlsplit
 
 from sentry.inbox.event_data import InboxEventData
 from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
@@ -49,6 +50,9 @@ class IssueAssignedData(InboxEventData):
     def serialize(self) -> IssueAssignedDataResponse:
         return {"assignmentSource": self.assignment_source, "activityId": str(self.activity_id)}
 
+    def get_url(self, subject_url: str) -> str:
+        return urlsplit(subject_url)._replace(fragment=f"activity-{self.activity_id}").geturl()
+
 
 class IssueMentionedDataResponse(TypedDict):
     commentId: str
@@ -56,10 +60,13 @@ class IssueMentionedDataResponse(TypedDict):
 
 @dataclass(frozen=True, kw_only=True)
 class IssueMentionedData(InboxEventData):
-    comment_id: int  # Comment reference exposed as commentId by the activity API.
+    comment_id: int  # ID of the note activity, exposed as commentId by the activity API.
 
     def serialize(self) -> IssueMentionedDataResponse:
         return {"commentId": str(self.comment_id)}
+
+    def get_url(self, subject_url: str) -> str:
+        return urlsplit(subject_url)._replace(fragment=f"activity-{self.comment_id}").geturl()
 
 
 class IssuePRReadyForReviewDataResponse(TypedDict):
