@@ -18,7 +18,7 @@ from sentry.seer.models.run import SeerRun
 
 def get_seer_run(*, run_id: int, organization_id: int) -> SeerRun | None:
     """The run's ``SeerRun`` row. None for legacy runs from before SeerRun mirroring."""
-    return SeerRun.objects.filter(seer_run_state_id=run_id, organization_id=organization_id).first()
+    return SeerRun.objects.filter(seer_run_state_id=run_id, organization_id=organization_id).first()  # noqa: S035
 
 
 def get_run_marker(seer_run: SeerRun, extra_key: str, repo_name: str) -> dict[str, Any] | None:

@@ -9,7 +9,7 @@
 // -------------------------
 */
 
-/* .nav, .container, .row and .form-horizontal .form-group used Less's :extend(.clearfix all) */
+/* .nav, .container and .row used Less's :extend(.clearfix all) */
 .clearfix:before,
 .clearfix:after,
 .nav:before,
@@ -17,17 +17,14 @@
 .container:before,
 .container:after,
 .row:before,
-.row:after,
-.form-horizontal .form-group:before,
-.form-horizontal .form-group:after {
+.row:after {
   display: table; /* 2 */
   content: ' '; /* 1 */
 }
 .clearfix:after,
 .nav:after,
 .container:after,
-.row:after,
-.form-horizontal .form-group:after {
+.row:after {
   clear: both;
 }
 .pull-right {

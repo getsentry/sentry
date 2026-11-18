@@ -143,13 +143,15 @@ function IngestionBar({
   totals,
   totalIngested,
   outcomeToBarColor,
+  outcomesShown,
 }: {
   outcomeToBarColor: Record<(typeof OUTCOMES_SHOWN)[number], string>;
+  outcomesShown: string[];
   totalIngested: number;
   totals: BillingStatTotal;
 }) {
   const displayTotals = Object.entries(totals).filter(
-    ([outcome, total]) => OUTCOMES_SHOWN.includes(outcome) && total > 0
+    ([outcome, total]) => outcomesShown.includes(outcome) && total > 0
   );
 
   return (
@@ -168,6 +170,7 @@ function IngestionBar({
               hasRightBorderRadius={isLastBar}
               barColor={barColor}
               key={outcome}
+              data-test-id={`ingestion-bar-${outcome}`}
             />
           );
         })
@@ -182,13 +185,15 @@ function IngestionSummary({
   category,
   totals,
   outcomeToBarColor,
+  outcomesShown,
 }: {
   category: DataCategory;
   outcomeToBarColor: Record<(typeof OUTCOMES_SHOWN)[number], string>;
+  outcomesShown: string[];
   totals: BillingStatTotal;
 }) {
   const totalIngested = Object.entries(totals)
-    .filter(([key]) => OUTCOMES_SHOWN.includes(key))
+    .filter(([key]) => outcomesShown.includes(key))
     .reduce((acc, [_, value]) => acc + value, 0);
 
   return (
@@ -206,6 +211,7 @@ function IngestionSummary({
           totals={totals}
           totalIngested={totalIngested}
           outcomeToBarColor={outcomeToBarColor}
+          outcomesShown={outcomesShown}
         />
       </Flex>
     </Stack>
@@ -293,6 +299,10 @@ export function UsageTotalsTable({
     : t('Total Dropped');
 
   const hasSpikeProtection = categoryInfo?.hasSpikeProtection ?? false;
+  // the bar and the rows below it must agree on which outcomes exist for this category
+  const outcomesShown = hasSpikeProtection
+    ? OUTCOMES_SHOWN
+    : OUTCOMES_SHOWN.filter(outcome => outcome !== 'droppedSpikeProtection');
 
   return (
     <Stack gap="md" padding="md">
@@ -300,6 +310,7 @@ export function UsageTotalsTable({
         category={category}
         totals={totals}
         outcomeToBarColor={outcomeToBarColor}
+        outcomesShown={outcomesShown}
       />
 
       <OutcomeTable

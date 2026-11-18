@@ -13,6 +13,7 @@ import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
 import {usePrevious} from 'sentry/utils/usePrevious';
+import type {Release} from 'sentry/views/dashboards/widgets/common/types';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
@@ -40,6 +41,10 @@ interface ChartVisualizationProps {
    * aggregates are plotted on the same chart.
    */
   plottables?: Plottable[];
+  /**
+   * Releases drawn as a band under the plot.
+   */
+  releases?: Release[];
   /**
    * Maximum number of series listed in the tooltip, see
    * `TimeSeriesWidgetVisualization`.
@@ -107,6 +112,7 @@ export function ChartVisualization({
   droppedData,
   isDroppedDataLoading = false,
   plottables: plottablesOverride,
+  releases,
   tooltipLimit,
 }: ChartVisualizationProps) {
   const defaultPlottables = useChartVisualizationPlottables(chartInfo);
@@ -164,6 +170,8 @@ export function ChartVisualization({
         plottables={activePlottables}
         chartXRangeSelection={chartXRangeSelection}
         droppedData={activeDroppedData}
+        releases={releases}
+        showReleaseAs="band"
         renderTooltipSeriesDetails={renderTooltipSeriesDetails}
         tooltipLimit={tooltipLimit}
       />

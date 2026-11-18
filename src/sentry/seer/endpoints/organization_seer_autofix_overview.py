@@ -44,7 +44,6 @@ from sentry.seer.agent.client_models import AgentFilePatch, FilePatch
 from sentry.seer.agent.client_utils import fetch_run_statuses
 from sentry.seer.autofix.utils import (
     get_token_based_billing_repo_filter,
-    is_seer_token_based_billing_onboarding_enabled,
 )
 from sentry.seer.constants import SEER_GITHUB_SCM_PROVIDERS
 from sentry.seer.endpoints.organization_seer_autofix_overview_types import (
@@ -254,7 +253,7 @@ def _coding_agent_repo_eligibility(
     github_providers = set(SEER_GITHUB_SCM_PROVIDERS)
     eligibility = {pid: _RepoEligibility(False, False) for pid in project_ids}
     rows: Iterable[tuple[int, str | None]]
-    if is_seer_token_based_billing_onboarding_enabled(organization):
+    if features.has("organizations:token-billed-seer-enabled", organization):
         rows = (
             ProjectRepository.objects.filter(
                 get_token_based_billing_repo_filter(organization, prefix="repository__"),

@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import logging
 import re
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass
+from enum import Enum
 from typing import TYPE_CHECKING, Any, cast
 
 from rest_framework.exceptions import PermissionDenied
@@ -24,8 +26,11 @@ from sentry.analytics.events.autofix_events import (
     AiAutofixSolutionStartedEvent,
 )
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.group import Group
+from sentry.models.grouplink import GroupLink
 from sentry.seer.agent.client import SeerAgentClient
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.analytics import record_autofix_event
@@ -288,7 +293,7 @@ def _group_and_referrer_from_run(
             source__in=(FEATURE_ID, LEGACY_FEATURE_ID),
         )
         .values("group_id", "extras")
-        .first()
+        .first()  # noqa: S035
     )
     if run_context is None:
         return None, None
@@ -593,6 +598,7 @@ def generate_autofix_handoff_prompt(
     short_id: str | None = None,
     issue_url: str | None = None,
     pr_description_links: Sequence[str] = (),
+    issue_keys_for_branch_commits_and_title: Sequence[str] = (),
 ) -> str:
     """
     Generate a prompt for coding agents from autofix run state.
@@ -617,6 +623,15 @@ def generate_autofix_handoff_prompt(
             )
         else:
             parts.append(f"Include 'Fixes {short_id}' in the commit message.")
+
+    if issue_keys_for_branch_commits_and_title:
+        keys = ", ".join(issue_keys_for_branch_commits_and_title)
+        parts.append(
+            f"This issue is linked to these external issues: {keys}. Their issue trackers"
+            " link work to an issue only through its key in the branch name, a commit"
+            " message, or the pull request title, so include each key in the name of any"
+            " branch you create, in every commit message, and in the pull request title."
+        )
 
     parts.append(
         " ".join(
@@ -793,11 +808,15 @@ def trigger_coding_agent_handoff(
     short_id = group.qualified_short_id
     issue_url = group.get_absolute_url() if short_id else None
 
+    linked_issues = get_linked_issues(group)
     prompt = generate_autofix_handoff_prompt(
         state,
         short_id=short_id,
         issue_url=issue_url,
-        pr_description_links=_build_issue_reference_lines(group),
+        pr_description_links=_build_issue_reference_lines(group, linked_issues),
+        issue_keys_for_branch_commits_and_title=_issue_keys_for_branch_commits_and_title(
+            linked_issues
+        ),
     )
 
     coding_agents = client.launch_coding_agents(
@@ -890,7 +909,7 @@ def trigger_push_changes(
 
     seer_run = SeerRun.objects.filter(
         organization_id=group.organization.id, seer_run_state_id=run_id
-    ).first()
+    ).first()  # noqa: S035
 
     # Draft when review-request/CI-green is enabled; mark ready once green fires.
     client.push_changes(
@@ -929,7 +948,112 @@ AUTOMATED_AUTOFIX_REFERRERS = frozenset(
 SEER_FIXES_SENTRY_ISSUE_MARKER = "SEER_FIXES_SENTRY_ISSUE"
 
 
-def _build_issue_reference_lines(group: Group) -> list[str]:
+class LinkedIssuePlacement(Enum):
+    PR_DESCRIPTION = "pr_description"
+    BRANCH_COMMITS_AND_PR_TITLE = "branch_commits_and_pr_title"
+
+
+@dataclass(frozen=True)
+class LinkedIssueRule:
+    placement: LinkedIssuePlacement
+    stored_key_pattern: re.Pattern[str]
+    to_display_key: Callable[[str], str] = lambda key: key
+
+
+_JIRA_RULE = LinkedIssueRule(
+    placement=LinkedIssuePlacement.BRANCH_COMMITS_AND_PR_TITLE,
+    stored_key_pattern=re.compile(r"^[A-Z][A-Z0-9_]*-\d+$"),
+)
+
+# Keyed by Sentry App service type or integration provider.
+LINKED_ISSUE_RULES: dict[str, LinkedIssueRule] = {
+    # The Linear Sentry App stores keys as `PROJ#123`.
+    "linear": LinkedIssueRule(
+        placement=LinkedIssuePlacement.PR_DESCRIPTION,
+        stored_key_pattern=re.compile(r"^[A-Z0-9]+#\d+$"),
+        to_display_key=lambda key: key.replace("#", "-"),
+    ),
+    IntegrationProviderSlug.JIRA.value: _JIRA_RULE,
+    IntegrationProviderSlug.JIRA_SERVER.value: _JIRA_RULE,
+}
+
+
+@dataclass(frozen=True)
+class LinkedIssue:
+    provider: str
+    key: str
+    url: str | None
+    placement: LinkedIssuePlacement
+
+
+def get_linked_issues(group: Group, *, include_integrations: bool = True) -> list[LinkedIssue]:
+    candidates: list[tuple[str, str, str | None]] = [
+        (issue.service_type, issue.display_name, issue.web_url)
+        for issue in PlatformExternalIssue.objects.filter(group_id=group.id)
+    ]
+
+    external_issues = (
+        list(
+            ExternalIssue.objects.filter(
+                id__in=GroupLink.objects.filter(
+                    project_id=group.project_id,
+                    group_id=group.id,
+                    linked_type=GroupLink.LinkedType.issue,
+                ).values_list("linked_id", flat=True),
+                organization_id=group.organization.id,
+            )
+        )
+        if include_integrations
+        else []
+    )
+    if external_issues:
+        provider_by_integration_id = {
+            integration.id: integration.provider
+            for integration in integration_service.get_integrations(
+                organization_id=group.organization.id,
+                integration_ids=list({issue.integration_id for issue in external_issues}),
+            )
+        }
+        candidates.extend(
+            (provider_by_integration_id[issue.integration_id], issue.key, None)
+            for issue in external_issues
+            if issue.integration_id in provider_by_integration_id
+        )
+
+    linked_issues: dict[tuple[str, str], LinkedIssue] = {}
+    for provider, stored_key, url in candidates:
+        rule = LINKED_ISSUE_RULES.get(provider)
+        if rule is None:
+            continue
+        if not rule.stored_key_pattern.match(stored_key):
+            logger.warning(
+                "autofix.linked_issue.unknown-key",
+                extra={
+                    "group": group.id,
+                    "project": group.project_id,
+                    "provider": provider,
+                    "key": stored_key,
+                },
+            )
+            continue
+        key = rule.to_display_key(stored_key)
+        linked_issues.setdefault(
+            (provider, key),
+            LinkedIssue(provider=provider, key=key, url=url, placement=rule.placement),
+        )
+
+    return sorted(linked_issues.values(), key=lambda issue: issue.key)
+
+
+def _issue_keys_for_branch_commits_and_title(linked_issues: Sequence[LinkedIssue]) -> list[str]:
+    return [
+        issue.key
+        for issue in linked_issues
+        if issue.placement is LinkedIssuePlacement.BRANCH_COMMITS_AND_PR_TITLE
+    ]
+
+
+def _build_issue_reference_lines(group: Group, linked_issues: Sequence[LinkedIssue]) -> list[str]:
     lines = []
 
     if group.qualified_short_id:
@@ -945,27 +1069,18 @@ def _build_issue_reference_lines(group: Group) -> list[str]:
             extra={"group": group.id, "project": group.project_id},
         )
 
-    for external_issue in PlatformExternalIssue.objects.filter(group_id=group.id):
-        if external_issue.service_type == "linear":
-            is_valid = bool(re.match(r"^[A-Z0-9]+#\d+$", external_issue.display_name))
-            if not is_valid:
-                logger.warning(
-                    "autofix.linear.unknown-id",
-                    extra={
-                        "group": group.id,
-                        "project": group.project_id,
-                        "linear_id": external_issue.display_name,
-                    },
-                )
-                continue
-            linear_id = external_issue.display_name.replace("#", "-")
-            lines.append(f"Fixes [{linear_id}]({external_issue.web_url})")
+    for issue in linked_issues:
+        if issue.placement is LinkedIssuePlacement.PR_DESCRIPTION:
+            lines.append(f"Fixes [{issue.key}]({issue.url})" if issue.url else f"Fixes {issue.key}")
 
     return lines
 
 
 def build_pr_description_suffix(group: Group, referrer: str | None) -> str | None:
-    lines = _build_issue_reference_lines(group)
+    # Only description-placed links (Sentry Apps) are used here, so skip the integration lookup.
+    lines = _build_issue_reference_lines(
+        group, get_linked_issues(group, include_integrations=False)
+    )
     lines.append(
         # One command per line, and one `<sub>` tag per line: a blank line
         # would close the tag and leave the next line full size.

@@ -39,7 +39,12 @@ import {useProjects} from 'sentry/utils/useProjects';
 
 import {sourceMapSdkDocsMap} from './crashContent/exception/utils';
 
-const SOURCE_MAP_SCRAPING_REASON_MAP = {
+type ScrapingReasonText = {explanation: string; shortName: string};
+type ScrapingReasonMap = Partial<Record<string, ScrapingReasonText>> & {
+  other: ScrapingReasonText;
+};
+
+const SOURCE_MAP_SCRAPING_REASON_MAP: ScrapingReasonMap = {
   not_found: {
     shortName: t('Not Found'),
     explanation: t('The source map could not be found at its defined location.'),
@@ -72,9 +77,9 @@ const SOURCE_MAP_SCRAPING_REASON_MAP = {
     shortName: t('Unknown'),
     explanation: t('Fetching the source map failed for an unknown reason.'),
   },
-} as const;
+};
 
-const SOURCE_FILE_SCRAPING_REASON_MAP = {
+const SOURCE_FILE_SCRAPING_REASON_MAP: ScrapingReasonMap = {
   not_found: {
     shortName: t('Not Found'),
     explanation: t('The source file could not be found at its defined location.'),
@@ -107,7 +112,7 @@ const SOURCE_FILE_SCRAPING_REASON_MAP = {
     shortName: t('Unknown'),
     explanation: t('Fetching the source file failed for an unknown reason.'),
   },
-} as const;
+};
 
 export interface FrameSourceMapDebuggerData {
   debugIdProgress: number;
@@ -1836,7 +1841,7 @@ function ScrapingSourceFileAvailableChecklistItem({
   }
 
   const failureReasonTexts =
-    (SOURCE_FILE_SCRAPING_REASON_MAP as any)[
+    SOURCE_FILE_SCRAPING_REASON_MAP[
       sourceResolutionResults.sourceFileScrapingStatus.reason
     ] ?? SOURCE_FILE_SCRAPING_REASON_MAP.other;
 
@@ -1906,7 +1911,6 @@ function ScrapingSourceMapAvailableChecklistItem({
   }
 
   const failureReasonTexts =
-    // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
     SOURCE_MAP_SCRAPING_REASON_MAP[
       sourceResolutionResults.sourceMapScrapingStatus.reason
     ] ?? SOURCE_MAP_SCRAPING_REASON_MAP.other;
