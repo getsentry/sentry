@@ -1113,36 +1113,11 @@ describe('Onboarding', () => {
       });
     });
 
-    it('preserves SCM context when going back from setup-docs', async () => {
+    describe('going back from setup-docs', () => {
       const nextJsProject = ProjectFixture({
         platform: 'javascript-nextjs',
         id: '2',
         slug: 'javascript-nextjs',
-      });
-
-      jest
-        .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
-        .mockImplementation(() => ({
-          project: nextJsProject,
-          isProjectActive: false,
-        }));
-
-      MockApiClient.addMockResponse({
-        url: `/organizations/${scmOrganization.slug}/sdks/`,
-        body: {},
-      });
-      MockApiClient.addMockResponse({
-        url: `/projects/${scmOrganization.slug}/${nextJsProject.slug}/keys/`,
-        body: [ProjectKeysFixture()[0]],
-      });
-      MockApiClient.addMockResponse({
-        url: `/projects/${scmOrganization.slug}/${nextJsProject.slug}/issues/`,
-        body: [],
-      });
-
-      const deleteProjectMock = MockApiClient.addMockResponse({
-        url: `/projects/${scmOrganization.slug}/${nextJsProject.slug}/`,
-        method: 'DELETE',
       });
 
       const initialContext = {
@@ -1155,37 +1130,95 @@ describe('Onboarding', () => {
         messagingSetup: selectedMessagingSetup,
       };
 
-      // Seed sessionStorage directly so we can verify it's preserved after back
-      sessionStorage.setItem('onboarding', JSON.stringify(initialContext));
+      let deleteProjectMock: ReturnType<typeof MockApiClient.addMockResponse>;
+      let keysMock: ReturnType<typeof MockApiClient.addMockResponse>;
 
-      render(
-        <OnboardingContextProvider initialValue={initialContext}>
-          <OnboardingWithoutContext />
-        </OnboardingContextProvider>,
-        {
-          organization: scmOrganization,
-          initialRouterConfig: {
-            location: {
-              pathname: `/onboarding/${scmOrganization.slug}/setup-docs/`,
-            },
-            route: '/onboarding/:orgId/:step/',
-          },
-        }
-      );
+      beforeEach(() => {
+        // An empty project under an hour old: the case Back used to delete.
+        jest
+          .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
+          .mockImplementation(() => ({
+            project: nextJsProject,
+            isProjectActive: false,
+          }));
 
-      await userEvent.click(screen.getByRole('button', {name: 'Back'}));
+        MockApiClient.addMockResponse({
+          url: `/organizations/${scmOrganization.slug}/sdks/`,
+          body: {},
+        });
+        keysMock = MockApiClient.addMockResponse({
+          url: `/projects/${scmOrganization.slug}/${nextJsProject.slug}/keys/`,
+          body: [ProjectKeysFixture()[0]],
+        });
+        MockApiClient.addMockResponse({
+          url: `/projects/${scmOrganization.slug}/${nextJsProject.slug}/issues/`,
+          body: [],
+        });
+        deleteProjectMock = MockApiClient.addMockResponse({
+          url: `/projects/${scmOrganization.slug}/${nextJsProject.slug}/`,
+          method: 'DELETE',
+        });
 
-      await waitFor(() => {
-        expect(deleteProjectMock).toHaveBeenCalled();
+        sessionStorage.setItem('onboarding', JSON.stringify(initialContext));
       });
 
-      // Context should be preserved — selectedPlatform should not be cleared
-      const stored = JSON.parse(sessionStorage.getItem('onboarding') ?? '{}');
-      expect(stored.selectedPlatform).toBeDefined();
-      expect(stored.selectedFeatures).toBeDefined();
-      // createdProject should be cleared so the user can re-create
-      expect(stored.createdProject).toBeUndefined();
-      expect(stored.messagingSetup).toEqual(initialContext.messagingSetup);
+      afterEach(() => {
+        jest.restoreAllMocks();
+      });
+
+      it('keeps the project and SCM context on in-app Back', async () => {
+        const {router} = renderOnboarding('setup-docs', {initialContext});
+
+        await userEvent.click(screen.getByRole('button', {name: 'Back'}));
+
+        await waitFor(() => {
+          expect(router.location.pathname).toBe(
+            `/onboarding/${scmOrganization.slug}/scm-platform-features/`
+          );
+        });
+        expect(deleteProjectMock).not.toHaveBeenCalled();
+
+        // Continue reuses this project, so the DSN the user saw stays valid.
+        const stored = JSON.parse(sessionStorage.getItem('onboarding') ?? '{}');
+        expect(stored.createdProject).toEqual(initialContext.createdProject);
+        expect(stored.selectedPlatform).toBeDefined();
+        expect(stored.selectedFeatures).toBeDefined();
+        expect(stored.messagingSetup).toEqual(initialContext.messagingSetup);
+      });
+
+      it('keeps the project on browser Back, so Forward shows the same DSN', async () => {
+        const {router} = renderOnboarding('scm-platform-features', {initialContext});
+
+        act(() => {
+          router.navigate(`/onboarding/${scmOrganization.slug}/setup-docs/`);
+        });
+        await waitFor(() => expect(keysMock).toHaveBeenCalled());
+
+        act(() => {
+          router.navigate(-1);
+        });
+        await waitFor(() => {
+          expect(router.location.pathname).toBe(
+            `/onboarding/${scmOrganization.slug}/scm-platform-features/`
+          );
+        });
+
+        act(() => {
+          router.navigate(1);
+        });
+        await waitFor(() => {
+          expect(router.location.pathname).toBe(
+            `/onboarding/${scmOrganization.slug}/setup-docs/`
+          );
+        });
+        // Forward renders the same project's DSN; any other project's keys
+        // request would be unmocked.
+        expect(await screen.findByText('Configure Next.js SDK')).toBeInTheDocument();
+
+        expect(deleteProjectMock).not.toHaveBeenCalled();
+        const stored = JSON.parse(sessionStorage.getItem('onboarding') ?? '{}');
+        expect(stored.createdProject).toEqual(initialContext.createdProject);
+      });
     });
 
     describe('setup-docs analytics', () => {

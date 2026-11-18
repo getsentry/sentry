@@ -822,7 +822,7 @@ describe('ScmPlatformFeatures', () => {
       expect(createRequest).not.toHaveBeenCalled();
     });
 
-    it('creates a new project when the platform changed from the existing one', async () => {
+    it('replaces the existing empty project when the platform changed', async () => {
       const stalePythonProject = ProjectFixture({
         slug: 'python',
         platform: 'python',
@@ -836,6 +836,14 @@ describe('ScmPlatformFeatures', () => {
         url: `/teams/${organization.slug}/${adminTeam.slug}/projects/`,
         method: 'POST',
         body: newProject,
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${stalePythonProject.slug}/overview/`,
+        body: stalePythonProject,
+      });
+      const deleteRequest = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${stalePythonProject.slug}/`,
+        method: 'DELETE',
       });
 
       const props = defaultProps({
@@ -851,11 +859,12 @@ describe('ScmPlatformFeatures', () => {
       await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
       await waitFor(() => {
-        expect(createRequest).toHaveBeenCalled();
+        expect(props.onComplete).toHaveBeenCalledWith(nextJsPlatform, {
+          product: [ProductSolution.ERROR_MONITORING],
+        });
       });
-      expect(props.onComplete).toHaveBeenCalledWith(nextJsPlatform, {
-        product: [ProductSolution.ERROR_MONITORING],
-      });
+      expect(createRequest).toHaveBeenCalled();
+      expect(deleteRequest).toHaveBeenCalled();
     });
 
     it('forwards the detected platform to onComplete when the user did not click a card', async () => {

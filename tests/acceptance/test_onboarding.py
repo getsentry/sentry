@@ -75,9 +75,8 @@ class OnboardingTest(AcceptanceTestCase):
         """Mark newly-created Projects as active so useRecentCreatedProject sees
         isProjectActive=true on the first render of setup-docs.
 
-        Without this, tests must write first_event after setup-docs mounts, then
-        wait for the hook's 1s poll to observe it — racing the test's click on
-        Back. Mutating the returned instance lets ProjectSummarySerializer
+        Without this, tests must write first_event after setup-docs mounts and
+        race the frontend's next read of the project. Mutating the returned instance lets ProjectSummarySerializer
         surface firstEvent in the create response, so the frontend never sees
         the inactive state.
         """
@@ -716,41 +715,37 @@ class OnboardingTest(AcceptanceTestCase):
             )
 
     def test_scm_back_from_setup_docs_control_non_active_project(self) -> None:
-        """Control path: non-active project is deleted on back-nav; Continue creates a fresh one
-        that survives Skip setup. Guards the regression fixed in
-        https://github.com/getsentry/sentry/pull/87869."""
+        """Control path: Back keeps a non-active project, and Continue with the same
+        platform reuses it, so its DSN keeps working and it survives Skip setup."""
         self.start_onboarding()
         self.continue_past_platform_features("React", "React")
 
         self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
-        project1 = Project.objects.get(organization=self.org)
-        assert project1.platform == "javascript-react"
+        project = Project.objects.get(organization=self.org)
+        assert project.platform == "javascript-react"
 
-        # Back from setup-docs lands on scm-platform-features; project has no
-        # events, so useBackActions deletes it.
         self.browser.click('[aria-label="Back"]')
         self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
+        assert_existing_projects_status(
+            self.org, active_project_ids=[project.id], deleted_project_ids=[]
+        )
         self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
         self.browser.click(xpath='//button[contains(., "Continue")]')
 
         self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
-        project2 = Project.objects.get(organization=self.org, slug="javascript-react", status=0)
-        assert project2.id != project1.id
-
         self.browser.click(xpath='//button[contains(., "Skip setup")]')
         self.browser.click('[role="dialog"] button[aria-label="I got stuck"]')
         self.browser.wait_until_not('[data-test-id="onboarding-step-setup-docs"]')
         self.browser.get(f"/organizations/{self.org.slug}/projects/")
         self.browser.wait_until("[data-test-id='javascript-react']")
         assert_existing_projects_status(
-            self.org,
-            active_project_ids=[project2.id],
-            deleted_project_ids=[project1.id],
+            self.org, active_project_ids=[project.id], deleted_project_ids=[]
         )
 
-    def test_skip_after_going_back_deletes_projects(self) -> None:
-        """Projects created during onboarding are deleted when the user goes back
-        from setup-docs and then skips setup."""
+    def test_platform_change_after_back_replaces_non_active_project(self) -> None:
+        """Back keeps the project. Continuing with a different platform replaces the
+        non-active project instead of leaving it behind, and browser Back keeps the
+        replacement."""
         self.start_onboarding()
         self.continue_past_platform_features("Next.js", "Next.js")
 
@@ -771,14 +766,19 @@ class OnboardingTest(AcceptanceTestCase):
         project2 = Project.objects.get(organization=self.org, slug="javascript-react")
         assert project2.platform == "javascript-react"
 
+        assert_existing_projects_status(
+            self.org, active_project_ids=[project2.id], deleted_project_ids=[project1.id]
+        )
+
         self.browser.back()
+        self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
         self.browser.click(xpath='//button[contains(., "Skip setup")]')
         self.browser.click('[role="dialog"] button[aria-label="I got stuck"]')
         self.browser.wait_until_not('[data-test-id="onboarding-step-scm-platform-features"]')
         self.browser.get(f"/organizations/{self.org.slug}/projects/")
-        self.browser.wait_until(xpath='//*[text()="Remain Calm"]')
+        self.browser.wait_until("[data-test-id='javascript-react']")
         assert_existing_projects_status(
-            self.org, active_project_ids=[], deleted_project_ids=[project1.id, project2.id]
+            self.org, active_project_ids=[project2.id], deleted_project_ids=[project1.id]
         )
 
     def test_scm_back_from_setup_docs_control_active_project_no_changes(self) -> None:
@@ -802,7 +802,8 @@ class OnboardingTest(AcceptanceTestCase):
             )
 
     def test_scm_back_from_setup_docs_control_active_project_platform_changed(self) -> None:
-        """Control path: active project survives back-nav; changing platform creates a new project."""
+        """Control path: changing the platform after Back creates a new project and
+        keeps the old one, because it has received data."""
         with self.projects_born_active():
             self.start_onboarding()
             self.continue_past_platform_features("React", "React")
@@ -850,6 +851,48 @@ class OnboardingTest(AcceptanceTestCase):
             assert workflow_action_types(workflow) == [Action.Type.EMAIL]
             assert_existing_projects_status(
                 self.org, active_project_ids=[project.id], deleted_project_ids=[]
+            )
+
+    def test_scm_treatment_browser_back_platform_change_replaces_non_active_project(
+        self,
+    ) -> None:
+        """Treatment path: browser Back keeps the project like in-app Back does.
+        Switching the platform and choosing Set up later replaces the non-active
+        project instead of leaving an empty one behind."""
+        with self.feature(SCM_MESSAGING_TREATMENT):
+            self.start_onboarding()
+            self.continue_past_platform_features("React", "React")
+            self.browser.wait_until_clickable(xpath='//button[contains(., "Set up later")]')
+            self.browser.click(xpath='//button[contains(., "Set up later")]')
+
+            self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
+            project1 = Project.objects.get(organization=self.org)
+            assert project1.platform == "javascript-react"
+
+            self.browser.back()
+            self.browser.wait_until('[data-test-id="onboarding-step-scm-messaging"]')
+            self.browser.back()
+            self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
+            assert_existing_projects_status(
+                self.org, active_project_ids=[project1.id], deleted_project_ids=[]
+            )
+
+            self.browser.wait_until('input[aria-autocomplete="list"]')
+            input_el = self.browser.element('input[aria-autocomplete="list"]')
+            input_el.send_keys("Vue")
+            self.browser.wait_until(xpath='//p[@data-test-id="menu-list-item-label"][text()="Vue"]')
+            self.browser.click(xpath='//p[@data-test-id="menu-list-item-label"][text()="Vue"]')
+            self.browser.wait_until_clickable(xpath='//button[contains(., "Continue")]')
+            self.browser.click(xpath='//button[contains(., "Continue")]')
+
+            self.browser.wait_until('[data-test-id="onboarding-step-scm-messaging"]')
+            self.browser.wait_until_clickable(xpath='//button[contains(., "Set up later")]')
+            self.browser.click(xpath='//button[contains(., "Set up later")]')
+
+            self.browser.wait_until(xpath='//h2[text()="Configure Vue SDK"]')
+            project2 = Project.objects.get(organization=self.org, platform="javascript-vue")
+            assert_existing_projects_status(
+                self.org, active_project_ids=[project2.id], deleted_project_ids=[project1.id]
             )
 
     def test_scm_treatment_slack_destination_creates_messaging_workflow(self) -> None:

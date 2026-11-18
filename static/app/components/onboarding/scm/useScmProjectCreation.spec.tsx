@@ -128,26 +128,115 @@ describe('useScmProjectCreation', () => {
     );
   });
 
-  it('creates a new project when the platform changed', async () => {
-    const createRequest = mockCreateProject();
-    ProjectsStore.loadInitialData([
-      ProjectFixture({slug: 'old-project', platform: 'javascript'}),
-    ]);
-    const {result} = renderCreation({
-      createdProject: {
-        slug: 'old-project',
-        messagingSelection: undefined,
-      },
+  describe('replacing the created project', () => {
+    const oldProject = ProjectFixture({
+      id: '7',
+      slug: 'old-project',
+      platform: 'javascript',
+      firstEvent: null,
+    });
+    const replacedProject = {slug: oldProject.slug, messagingSelection: undefined};
+
+    beforeEach(() => {
+      ProjectsStore.loadInitialData([oldProject]);
     });
 
-    await act(() =>
-      result.current.createOrReuseProject({
-        platform: pythonPlatform,
-        onSuccess: jest.fn(),
-      })
-    );
+    function mockOldProjectDetails(project = oldProject) {
+      return MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${oldProject.slug}/overview/`,
+        body: project,
+      });
+    }
 
-    expect(createRequest).toHaveBeenCalled();
+    function mockDeleteOldProject() {
+      return MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${oldProject.slug}/`,
+        method: 'DELETE',
+      });
+    }
+
+    it('deletes the old project after creating its replacement when it is still empty', async () => {
+      const createRequest = mockCreateProject();
+      mockOldProjectDetails();
+      const deleteRequest = mockDeleteOldProject();
+      const onSuccess = jest.fn();
+      const {result} = renderCreation({createdProject: replacedProject});
+
+      await act(() =>
+        result.current.createOrReuseProject({platform: pythonPlatform, onSuccess})
+      );
+
+      expect(createRequest).toHaveBeenCalledTimes(1);
+      expect(deleteRequest).toHaveBeenCalledTimes(1);
+      expect(createRequest.mock.invocationCallOrder[0]).toBeLessThan(
+        deleteRequest.mock.invocationCallOrder[0]!
+      );
+      expect(ProjectsStore.getBySlug(oldProject.slug)).toBeUndefined();
+      expect(onSuccess).toHaveBeenCalledWith(
+        expect.objectContaining({project: createdProject, reused: false})
+      );
+    });
+
+    it('keeps the old project when a fresh read shows it received an event', async () => {
+      mockCreateProject();
+      // The store copy is still empty; only the fresh read has the event.
+      const detailsRequest = mockOldProjectDetails({
+        ...oldProject,
+        firstEvent: '2026-11-18T00:00:00Z',
+      });
+      const deleteRequest = mockDeleteOldProject();
+      const onSuccess = jest.fn();
+      const {result} = renderCreation({createdProject: replacedProject});
+
+      await act(() =>
+        result.current.createOrReuseProject({platform: pythonPlatform, onSuccess})
+      );
+
+      expect(detailsRequest).toHaveBeenCalledTimes(1);
+      expect(deleteRequest).not.toHaveBeenCalled();
+      expect(onSuccess).toHaveBeenCalled();
+    });
+
+    it('keeps the old project and still completes when it cannot be read', async () => {
+      mockCreateProject();
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${oldProject.slug}/overview/`,
+        statusCode: 500,
+        body: {},
+      });
+      const deleteRequest = mockDeleteOldProject();
+      const onSuccess = jest.fn();
+      const {result} = renderCreation({createdProject: replacedProject});
+
+      await act(() =>
+        result.current.createOrReuseProject({platform: pythonPlatform, onSuccess})
+      );
+
+      expect(deleteRequest).not.toHaveBeenCalled();
+      expect(onSuccess).toHaveBeenCalled();
+    });
+
+    it('keeps the old project when creating its replacement fails', async () => {
+      MockApiClient.addMockResponse({
+        url: `/teams/${organization.slug}/${adminTeam.slug}/projects/`,
+        method: 'POST',
+        statusCode: 400,
+        body: {},
+      });
+      const detailsRequest = mockOldProjectDetails();
+      const deleteRequest = mockDeleteOldProject();
+      const {result} = renderCreation({createdProject: replacedProject});
+
+      await act(() =>
+        result.current.createOrReuseProject({
+          platform: pythonPlatform,
+          onSuccess: jest.fn(),
+        })
+      );
+
+      expect(detailsRequest).not.toHaveBeenCalled();
+      expect(deleteRequest).not.toHaveBeenCalled();
+    });
   });
 
   it('creates at most one project for concurrent submissions', async () => {

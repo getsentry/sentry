@@ -3,14 +3,21 @@ import * as Sentry from '@sentry/react';
 
 import {toast} from '@sentry/scraps/toast';
 
+import {removeProject} from 'sentry/actionCreators/projects';
+import type {Client} from 'sentry/api';
 import {useCreateProjectAndRules} from 'sentry/components/onboarding/useCreateProjectAndRules';
 import type {CreatedProjectWorkflow} from 'sentry/components/onboarding/useCreateProjectWorkflow';
+import {isProjectActive} from 'sentry/components/onboarding/useRecentCreatedProject';
 import {t} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
-import type {Team} from 'sentry/types/organization';
+import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
+import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useTeams} from 'sentry/utils/useTeams';
@@ -101,6 +108,7 @@ export function useScmProjectCreation({
   onCreatedProjectChange,
   selectedRepository,
 }: UseScmProjectCreationOptions) {
+  const api = useApi();
   const organization = useOrganization();
   const {teams, fetching: isLoadingTeams} = useTeams();
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
@@ -131,7 +139,7 @@ export function useScmProjectCreation({
       // back after it received its first event) when nothing that shaped it
       // changed: the same platform and, for a submission that stages a
       // destination, the same destination it was created for. Any other
-      // change abandons the old project and creates a new one, matching the
+      // change creates a new project that replaces the old one, matching the
       // unchanged-return check in useScmProjectDetails.
       const existingProject = createdProject
         ? projects.find(p => p.slug === createdProject.slug)
@@ -196,6 +204,17 @@ export function useScmProjectCreation({
           notification: creation.notificationRule ? 'integration' : 'email_only',
         });
 
+        // The new project replaces the one created earlier in this session.
+        // Removed only after the replacement exists, so a failed create never
+        // leaves the user with neither.
+        if (createdProject && createdProject.slug !== creation.project.slug) {
+          await removeProjectIfEmpty({
+            api,
+            organization,
+            projectSlug: createdProject.slug,
+          });
+        }
+
         if (selectedRepository?.id) {
           await linkProjectToRepository({
             orgSlug: organization.slug,
@@ -219,6 +238,7 @@ export function useScmProjectCreation({
     },
     [
       // oxlint-disable-next-line react/memo-dependencies
+      api,
       createProjectAndRules,
       createdProject,
       onCreatedProjectChange,
@@ -230,6 +250,51 @@ export function useScmProjectCreation({
   );
 
   return {createOrReuseProject, isCreating, isDataPending};
+}
+
+/**
+ * Deletes a project that onboarding has replaced, unless it has started
+ * receiving data. The store copy can be minutes old, so the check re-reads the
+ * project: deleting one that already has events cannot be undone. Any failure
+ * keeps the project, since an orphaned empty project is cheaper than lost data.
+ */
+async function removeProjectIfEmpty({
+  api,
+  organization,
+  projectSlug,
+}: {
+  api: Client;
+  organization: Organization;
+  projectSlug: Project['slug'];
+}) {
+  try {
+    const project: Project = await api.requestPromise(
+      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/overview/', {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug},
+      })
+    );
+    if (isProjectActive(project)) {
+      return;
+    }
+
+    await removeProject({
+      api,
+      orgSlug: organization.slug,
+      projectSlug,
+      origin: 'onboarding',
+    });
+    trackAnalytics('onboarding.scm_data_removed', {
+      organization,
+      date_created: project.dateCreated,
+      platform: project.slug,
+      project_id: project.id,
+    });
+  } catch (error) {
+    handleXhrErrorResponse(
+      'Unable to delete replaced project in onboarding',
+      error as RequestError
+    );
+  }
 }
 
 function isSameSelection(

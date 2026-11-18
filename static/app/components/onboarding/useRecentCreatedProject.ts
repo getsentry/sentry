@@ -16,7 +16,7 @@ type Props = {
   projectSlug?: Project['slug'];
 };
 
-function isProjectActive(project: Project) {
+export function isProjectActive(project: Project) {
   const olderThanOneHour = project
     ? moment.duration(moment().diff(project.dateCreated)).asHours() > 1
     : false;
