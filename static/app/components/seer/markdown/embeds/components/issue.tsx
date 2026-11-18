@@ -2,6 +2,7 @@ import {lazy, useMemo} from 'react';
 import {IconIssues} from '@sentry/icons/issues';
 
 import {LazyLoad} from 'sentry/components/lazyLoad';
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
 import {t} from 'sentry/locale';
 
@@ -72,7 +73,13 @@ function issueQuery({id, shortId}: IssueEmbedProps) {
 
 function SingleIssueBlock({id, shortId}: IssueEmbedProps) {
   const queryParams = useMemo(
-    () => ({query: issueQuery({id, shortId}), limit: '1'}),
+    () => ({
+      query: issueQuery({id, shortId}),
+      // Without a project the endpoint searches only the viewer's team
+      // projects, so an issue in any other project would render as empty.
+      project: ALL_ACCESS_PROJECTS,
+      limit: '1',
+    }),
     [id, shortId]
   );
 

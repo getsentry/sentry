@@ -2,6 +2,8 @@ import {GroupFixture} from 'sentry-fixture/group';
 
 import {screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
+
 import {Issue} from './issue';
 import {
   getEmbedLinkHref,
@@ -83,7 +85,9 @@ describe('issue embed', () => {
         () =>
           expect(issuesRequest).toHaveBeenCalledWith(
             expect.anything(),
-            expect.objectContaining({query: expect.objectContaining({query})})
+            expect.objectContaining({
+              query: expect.objectContaining({query, project: ALL_ACCESS_PROJECTS}),
+            })
           ),
         {timeout: 10_000}
       );
