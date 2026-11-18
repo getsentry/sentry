@@ -119,7 +119,7 @@ function NotebookActivity({runId, notebookId}: {notebookId: string; runId: strin
 function NotebookView() {
   const org = useQuery({
     queryKey: ['organization', slug],
-    queryFn: () => read<Organization>(base),
+    queryFn: () => read<Organization>(base + '?include_feature_flags=1'),
   });
   const id = params.get('id') ?? '';
   const runId = params.get('run');

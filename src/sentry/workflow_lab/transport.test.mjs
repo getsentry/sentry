@@ -100,3 +100,42 @@ test('run snapshots expand map items into independent coordinator and worker sta
   assert.equal(graph.states['notebook/write'].status, 'pending');
   assert.equal(graph.dependencies['notebook/write'].length, 3);
 });
+
+test('the model table charges leaf steps, notebook actions, and unattributed usage once', async t => {
+  globalThis.document = {documentElement: {dataset: {}}};
+  const {getRun} = await import('./assets/transport.js');
+  const group = tokens => ({
+    usages: [{model: 'same-model', region: 'us', total_tokens: tokens}],
+  });
+  const nodes = [
+    {id: 'map', name: 'verify'},
+    {id: 'item', parent: 'map', item: 0},
+    {id: 'child', parent: 'item', role: 'worker', round: 2},
+    {id: 'writer', name: 'notebook/write'},
+    {id: 'meta', name: 'notebook/metadata', kind: 'llm', output: {}, usage: group(7)},
+    {id: 'next', name: 'notebook/next_steps', kind: 'llm', output: {}, usage: group(3)},
+  ];
+  const snapshot = {
+    id: 'run',
+    nodes,
+    workflow: {output: '$verify'},
+    usage: {
+      ...group(35),
+      byNode: {child: group(11), writer: group(9), meta: group(7), next: group(3)},
+      unattributed: group(5),
+    },
+  };
+  t.mock.method(globalThis, 'fetch', () => Response.json(snapshot));
+  const run = await getRun(snapshot.id);
+  assert.equal(run.metrics.totals.total_tokens, 35);
+  assert.deepEqual(
+    run.metrics.models.map(row => [row.step, row.total_tokens]),
+    [
+      ['verify[1].worker[2]', 11],
+      ['notebook/write', 9],
+      ['notebook/metadata', 7],
+      ['notebook/next_steps', 3],
+      [undefined, 5],
+    ]
+  );
+});

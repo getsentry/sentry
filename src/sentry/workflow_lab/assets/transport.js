@@ -142,6 +142,21 @@ function usageMetrics(usage, blocks) {
   };
 }
 
+export function workflowSteps(nodes) {
+  const visit = (id, node) => {
+    if (node.items?.length) {
+      return node.items.flatMap(item => visit(`${id}[${item.item_index + 1}]`, item));
+    }
+    if (node.children?.length) {
+      return node.children.flatMap(child =>
+        visit(`${id}.${child.role}[${child.round}]`, child)
+      );
+    }
+    return [{id, node}];
+  };
+  return Object.entries(nodes || {}).flatMap(([id, node]) => visit(id, node));
+}
+
 function presentRun(run) {
   const nodes = Object.create(null);
   const byId = new Map();
@@ -167,7 +182,9 @@ function presentRun(run) {
     }
     const blocks = attempts.flatMap(attempt => attempt.session.blocks);
     allBlocks.push(...blocks);
-    const usages = attempts.flatMap(attempt => attempt.session.usage?.usages || []);
+    const usages = run.usage.byNode
+      ? run.usage.byNode[node.id]?.usages || []
+      : attempts.flatMap(attempt => attempt.session.usage?.usages || []);
     const value = {
       ...node,
       attempts,
@@ -210,6 +227,13 @@ function presentRun(run) {
     node.metrics = usageMetrics(usages, blocks);
   }
   Object.values(nodes).forEach(aggregate);
+  const metrics = usageMetrics(run.usage.usages, allBlocks);
+  if (run.usage.byNode) {
+    metrics.models = workflowSteps(nodes).flatMap(({id, node}) =>
+      node.metrics.models.map(model => ({...model, step: id}))
+    );
+    metrics.models.push(...run.usage.unattributed.usages);
+  }
   return {
     ...run,
     nodes,
@@ -220,7 +244,7 @@ function presentRun(run) {
     definition: run.workflow,
     output_node: run.workflow.output.slice(1),
     metrics: {
-      ...usageMetrics(run.usage.usages, allBlocks),
+      ...metrics,
       elapsed_ms:
         (run.finishedAt ? Date.parse(run.finishedAt) : Date.now()) -
         Date.parse(run.createdAt),

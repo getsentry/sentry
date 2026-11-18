@@ -1,4 +1,6 @@
 /* eslint-disable boundaries/no-unknown-files, @typescript-eslint/no-extraneous-class -- This standalone Django page serves its JavaScript independently of the Sentry application. */
+import {workflowSteps} from './transport.js';
+
 /* Render the same Explorer activity in the timeline and expanded graph cards. */
 const activityMarkdown = window.markdownit({html: false}).disable('image');
 export class WorkflowActivity {
@@ -44,21 +46,6 @@ export class WorkflowActivity {
     );
   }
 
-  static nodeGroups(snapshot) {
-    const visit = (id, node) => {
-      if (node.items?.length) {
-        return node.items.flatMap(item => visit(`${id}[${item.item_index + 1}]`, item));
-      }
-      if (node.children?.length) {
-        return node.children.flatMap(child =>
-          visit(`${id}.${child.role}[${child.round}]`, child)
-        );
-      }
-      return [{id, node}];
-    };
-    return Object.entries(snapshot.nodes || {}).flatMap(([id, node]) => visit(id, node));
-  }
-
   static timeline(snapshot) {
     const entries = (snapshot.events || []).map((event, index) => ({
       id: 'Run',
@@ -66,7 +53,7 @@ export class WorkflowActivity {
       timestamp: event.timestamp,
       event,
     }));
-    for (const {id, node} of this.nodeGroups(snapshot)) {
+    for (const {id, node} of workflowSteps(snapshot.nodes)) {
       const attempts = node.attempts?.length
         ? node.attempts
         : [{explorer_run_id: node.explorer_run_id, session: node.session}];

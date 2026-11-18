@@ -422,6 +422,7 @@ function renderMetrics(v) {
   $('modelsUsed').innerHTML = rows.length
     ? '<div class="table-scroll"><table><thead><tr>' +
       [
+        ['Workflow step', 'usageStep'],
         ['Actual model', 'actualModel'],
         ['Region', 'region'],
         ['Input', 'inputTokens'],
@@ -440,6 +441,7 @@ function renderMetrics(v) {
           r =>
             '<tr>' +
             [
+              r.step || 'Unattributed',
               r.model || 'Not reported',
               r.region || 'Not reported',
               number(r.prompt_tokens),
@@ -1018,7 +1020,7 @@ const tips = {
   ],
   usage: [
     'Model usage',
-    'Actual model/region usage reported by Explorer. Tokens and cost may appear only when a turn is saved. Recovery tests make no LLM calls.',
+    'Provider usage by workflow step, model, and region. Run totals include notebook generation and its metadata and next-step actions.',
   ],
   proof: [
     'Recovery checks',
@@ -1063,6 +1065,10 @@ const tips = {
   execution: [
     'Execution mode',
     'Real model: Explorer ran the agent. Simulated response: the recovery harness supplied the output without calling a model.',
+  ],
+  usageStep: [
+    'Workflow step',
+    'Map indexes identify branches. Coordinator and worker indexes identify rounds. Unattributed charges have no recoverable step in the saved run.',
   ],
   actualModel: [
     'Actual model',
