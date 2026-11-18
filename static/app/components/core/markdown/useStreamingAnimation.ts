@@ -27,8 +27,8 @@ import {baseTheme} from '@sentry/scraps/theme';
  *
  * Accessibility:
  *   The real character is always the span's text content — assistive tech
- *   reads it normally. The glyph overlay is purely visual (::after with
- *   pointer-events: none). Respects `prefers-reduced-motion: reduce`.
+ *   reads it normally. An `aria-hidden` child span contains the visual glyph
+ *   overlay. Respects `prefers-reduced-motion: reduce`.
  *
  * Cleanup:
  *   Settled characters are progressively collapsed back to plain text nodes
@@ -37,8 +37,7 @@ import {baseTheme} from '@sentry/scraps/theme';
  */
 export function useStreamingAnimation(
   containerRef: RefObject<HTMLElement | null>,
-  enabled: boolean,
-  delay = 0
+  enabled: boolean
 ): void {
   const prefersReducedMotion = useReducedMotion();
   useEffect(() => {
@@ -78,7 +77,7 @@ export function useStreamingAnimation(
       for (const el of newElements) {
         const skip = Number.parseInt(el.dataset.skip ?? '0', 10);
         const totalChars = (el.textContent ?? '').length;
-        activeAnimations.push(animateElement(el, charOffset, delay));
+        activeAnimations.push(animateElement(el, charOffset));
         charOffset += Math.max(0, totalChars - skip);
       }
     });
@@ -92,7 +91,7 @@ export function useStreamingAnimation(
       }
       activeAnimations = [];
     };
-  }, [containerRef, enabled, delay, prefersReducedMotion]);
+  }, [containerRef, enabled, prefersReducedMotion]);
 }
 
 /**
@@ -139,6 +138,7 @@ const STAGGER_MS = 8;
 const FADE_LEAD_MS = 120;
 const MAX_DURATION_MS = 1280;
 const CYCLE_DURATION_MS = 160;
+const MONO_GLYPH_ADVANCE_EM = 0.6;
 
 const ATTR = 'data-scraps-decode';
 const ATTR_SEL = `[${ATTR}]`;
@@ -207,7 +207,7 @@ export const streamingAnimationStyles = css`
     font: inherit;
     font-family: ${baseTheme.font.family.mono};
     /* shortcut: fallback assumes a 0.6em mono advance; update if the mono font changes. */
-    font-size: min(var(--glyph-font-size, 1em), calc(100cqi / 0.6));
+    font-size: min(var(--glyph-font-size, 1em), calc(100cqi / ${MONO_GLYPH_ADVANCE_EM}));
 
     @supports (transform: scaleX(calc(1px / 1px))) {
       font-size: var(--glyph-font-size, 1em);
@@ -384,7 +384,7 @@ interface Animation {
 
 const NOOP_ANIMATION: Animation = {settle() {}, destroy() {}};
 
-function animateElement(element: HTMLElement, charOffset = 0, delay = 0): Animation {
+function animateElement(element: HTMLElement, charOffset = 0): Animation {
   const skipChars = Number.parseInt(element.dataset.skip ?? '0', 10);
   delete element.dataset.skip;
 
@@ -521,8 +521,8 @@ function animateElement(element: HTMLElement, charOffset = 0, delay = 0): Animat
 
         const globalIdx = run.globalOffset + i;
         const animatedIdx = globalIdx - skipChars;
-        const settleAt = delay + (animatedIdx + charOffset) * STAGGER_MS;
-        const fadeAt = Math.max(0, settleAt - Math.max(delay, FADE_LEAD_MS));
+        const settleAt = (animatedIdx + charOffset) * STAGGER_MS;
+        const fadeAt = Math.max(0, settleAt - FADE_LEAD_MS);
 
         if (elapsed >= fadeAt) {
           span.classList.add('visible');
@@ -545,7 +545,7 @@ function animateElement(element: HTMLElement, charOffset = 0, delay = 0): Animat
 
     scheduleCollapse();
 
-    if (allSettled || elapsed >= delay + MAX_DURATION_MS + charOffset * STAGGER_MS) {
+    if (allSettled || elapsed >= MAX_DURATION_MS + charOffset * STAGGER_MS) {
       settle();
     } else {
       requestAnimationFrame(tick);

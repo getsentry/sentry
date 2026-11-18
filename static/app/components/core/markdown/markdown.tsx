@@ -72,8 +72,6 @@ export type MarkdownComponents = Partial<{
 export interface MarkdownProps {
   raw: string;
   components?: MarkdownComponents;
-  /** Milliseconds to hold the glyph shuffle before decoding streaming content. */
-  delay?: number;
   variant?: 'static' | 'streaming';
 }
 
@@ -129,12 +127,7 @@ function assignTagIndexes(tokens: ExtendedToken[]): void {
   visitAll(tokens);
 }
 
-export function Markdown({
-  raw,
-  components = {},
-  delay = 0,
-  variant = 'static',
-}: MarkdownProps) {
+export function Markdown({raw, components = {}, variant = 'static'}: MarkdownProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const prevTextLensRef = useRef(new Map<number, number>());
   const isStreaming = variant === 'streaming';
@@ -157,7 +150,7 @@ export function Markdown({
     [tokens, components, isStreaming]
   );
 
-  useStreamingAnimation(containerRef, isStreaming, delay);
+  useStreamingAnimation(containerRef, isStreaming);
 
   useLayoutEffect(() => {
     if (!isStreaming) {

@@ -4,10 +4,7 @@ import {Button} from '@sentry/scraps/button';
 import {InlineCode} from '@sentry/scraps/code';
 import {Flex, Stack, Surface} from '@sentry/scraps/layout';
 import {Markdown} from '@sentry/scraps/markdown';
-import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
-
-const STREAMING_DELAY_MS = 500;
 
 const STREAMING_CHUNKS = [
   'Investigating the issue in ',
@@ -29,7 +26,6 @@ const STREAMING_CHUNKS = [
 export function StreamingDemo() {
   const [text, setText] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
-  const [withDelay, setWithDelay] = useState(false);
   const cancelRef = useRef(false);
 
   function startStream() {
@@ -49,7 +45,7 @@ export function StreamingDemo() {
       setText(buffer);
       // oxlint-disable-next-line react/todo
       i++;
-      setTimeout(nextChunk, STREAMING_DELAY_MS + 150 + Math.random() * 200);
+      setTimeout(nextChunk, 150 + Math.random() * 200);
     }
 
     nextChunk();
@@ -63,27 +59,15 @@ export function StreamingDemo() {
 
   return (
     <Stack gap="lg" flexGrow={1} maxWidth="72ch">
-      <Flex gap="md" align="center">
+      <Flex gap="md">
         <Button variant="primary" size="sm" onClick={startStream} disabled={isStreaming}>
           Start Stream
         </Button>
         <Button size="sm" onClick={reset} disabled={!text}>
           Reset
         </Button>
-        <Flex as="label" gap="sm" align="center">
-          <Switch
-            checked={withDelay}
-            onChange={event => setWithDelay(event.target.checked)}
-            disabled={isStreaming}
-          />
-          <Text size="sm">500 ms delay</Text>
-        </Flex>
       </Flex>
-      <Markdown
-        raw={text}
-        variant="streaming"
-        delay={withDelay ? STREAMING_DELAY_MS : 0}
-      />
+      <Markdown raw={text} variant="streaming" />
     </Stack>
   );
 }
