@@ -43,6 +43,20 @@ class AnnotationScope(IntEnum):
         )
 
 
+class Severity(IntEnum):
+    LOW = 25
+    MEDIUM = 50
+    HIGH = 75
+
+    @classmethod
+    def as_choices(cls) -> tuple[tuple[int, str], ...]:
+        return (
+            (cls.LOW, "low"),
+            (cls.MEDIUM, "medium"),
+            (cls.HIGH, "high"),
+        )
+
+
 class AnnotationType(IntEnum):
     INBOUND_FILTER_CHANGE = 0
     INFRASTRUCTURE_CHANGE = 1
@@ -71,6 +85,7 @@ class TimeseriesAnnotation(DefaultFieldsModel):
 
     organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
     project = FlexibleForeignKey("sentry.Project", null=True, on_delete=models.CASCADE)
+    environment = FlexibleForeignKey("sentry.Environment", null=True, on_delete=models.CASCADE)
 
     start_timestamp = models.DateTimeField()
     end_timestamp = models.DateTimeField(null=True)
@@ -81,6 +96,9 @@ class TimeseriesAnnotation(DefaultFieldsModel):
     annotation_type = BoundedPositiveIntegerField(choices=AnnotationType.as_choices())
     scope = BoundedPositiveIntegerField(
         default=AnnotationScope.GLOBAL, choices=AnnotationScope.as_choices()
+    )
+    severity = BoundedPositiveIntegerField(
+        default=Severity.LOW, db_default=Severity.LOW, choices=Severity.as_choices()
     )
 
     description = models.TextField()
