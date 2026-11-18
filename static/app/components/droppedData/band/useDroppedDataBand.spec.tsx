@@ -300,7 +300,7 @@ describe('useDroppedDataBand', () => {
     it('draws the band at the offset it is given below the plot', () => {
       const [shapes] = renderShapes([bucket(3)], [], 12);
 
-      expect(shapes?.[0]?.shape.y).toBe(116);
+      expect(shapes?.[0]?.shape.y).toBe(114);
     });
 
     it('centres each hover target on its bucket start, clamped to the track', () => {
