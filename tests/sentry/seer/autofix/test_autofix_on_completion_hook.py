@@ -1348,9 +1348,7 @@ class TestPrIterationCompletionHook(TestCase):
     def test_a_branch_moved_retry_refused_for_credits_marks_the_run(
         self, mock_check_seer_credits: MagicMock
     ) -> None:
-        with self.feature(
-            ["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"]
-        ):
+        with self.feature("organizations:token-billed-seer-enabled"):
             outcome, retried = self._branch_moved_push(self._branch_moved())
 
         assert outcome == PrIterationOutcome.SENTRY_OUT_OF_CREDITS
