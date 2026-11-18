@@ -162,7 +162,6 @@ class BlockCreateValidator(NotebookVersionValidator[tuple[NotebookBlock, bool]])
     writer_run_id = serializers.IntegerField(
         required=False,
         min_value=1,
-        max_value=2**63 - 1,
         help_text="Registered Seer writer attempt, required for workflow writes.",
     )
     block_version = serializers.IntegerField(
@@ -393,7 +392,6 @@ class BlockDeleteValidator(NotebookVersionValidator):
     writer_run_id = serializers.IntegerField(
         required=False,
         min_value=1,
-        max_value=2**63 - 1,
         help_text="Registered Seer writer attempt.",
     )
     version = serializers.IntegerField(

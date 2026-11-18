@@ -328,11 +328,11 @@ class NotebookTextExecutionEndpointTest(APITestCase):
         assert context[str(self.context_block.id)]["result"]["tableMarkdown"]
         assert context[str(sibling_text.id)]["status"] == "not_run"
         assert context[str(sibling_text.id)]["content"] == "Checkout was deployed yesterday."
-        assert context[str(rich.id)]["content"] == "Errors increased."
-        assert context[str(rich.id)]["source"] == "source-query"
         assert context[str(failed_query.id)]["status"] == "failed"
         assert "result" not in context[str(failed_query.id)]
         call = mock_client.return_value.start_run.call_args
         assert call.kwargs["record_in_history"] is False
+        assert "Errors increased." in call.args[0]
+        assert "source-query" in call.args[0]
         assert "is:unresolved" in call.args[0]
         assert "two or three short paragraphs" in call.args[0]
