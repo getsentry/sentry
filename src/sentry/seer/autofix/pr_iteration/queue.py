@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 drain_list_into = load_redis_script("utils/drain_list_into.lua")
 move_list_items_to_front = load_redis_script("utils/move_list_items_to_front.lua")
+read_lists = load_redis_script("utils/read_lists.lua")
 
 _QUEUE_TTL_SECONDS = 60 * 60 * 24
 # As long as the consume task's processing deadline: Seer has the feedback, or
@@ -177,15 +178,12 @@ def count_queued_autofix_feedback(run_id: int) -> int:
     return redis_clusters.get(_REDIS_CLUSTER).llen(_feedback_queue_key(run_id))
 
 
+def _parse_queued_items(raw_items: Sequence[str]) -> list[QueuedAutofixFeedback]:
+    return [item for item in (_parse_queued_item(raw) for raw in raw_items) if item is not None]
+
+
 def _read_list(key: str) -> list[QueuedAutofixFeedback]:
-    redis = redis_clusters.get(_REDIS_CLUSTER)
-    items: list[QueuedAutofixFeedback] = []
-
-    for raw_item in redis.lrange(key, 0, -1):
-        if (item := _parse_queued_item(raw_item)) is not None:
-            items.append(item)
-
-    return items
+    return _parse_queued_items(redis_clusters.get(_REDIS_CLUSTER).lrange(key, 0, -1))
 
 
 def peek_queued_autofix_feedback(run_id: int) -> list[QueuedAutofixFeedback]:
@@ -198,6 +196,23 @@ def peek_in_flight_autofix_feedback(run_id: int) -> list[QueuedAutofixFeedback]:
     For display only. Nothing consumes this list, so feedback in it can't run twice.
     """
     return _read_list(_in_flight_key(run_id))
+
+
+def peek_queued_and_in_flight_autofix_feedback(
+    run_id: int,
+) -> tuple[list[QueuedAutofixFeedback], list[QueuedAutofixFeedback]]:
+    """Read the queue and the in-flight list, in that order, in one step.
+
+    Items move both ways between the two lists: a drain moves them to the
+    in-flight list, and a requeue moves them back. Two separate reads can miss
+    an item that moves between them, whichever order they run in.
+    """
+    queued, in_flight = read_lists(
+        [_feedback_queue_key(run_id), _in_flight_key(run_id)],
+        [],
+        redis_clusters.get(_REDIS_CLUSTER),
+    )
+    return _parse_queued_items(queued), _parse_queued_items(in_flight)
 
 
 def pop_queued_autofix_feedback(run_id: int) -> list[QueuedAutofixFeedback]:
@@ -220,7 +235,7 @@ def pop_queued_autofix_feedback(run_id: int) -> list[QueuedAutofixFeedback]:
         client,
     )
 
-    return [item for item in (_parse_queued_item(raw) for raw in raw_items) if item is not None]
+    return _parse_queued_items(raw_items)
 
 
 def release_in_flight_autofix_feedback(run_id: int, items: Sequence[QueuedAutofixFeedback]) -> None:

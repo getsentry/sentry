@@ -29,8 +29,7 @@ from sentry.seer.autofix.pr_iteration.out_of_credits import (
 from sentry.seer.autofix.pr_iteration.pause import PAUSED_EXTRA, pause_reason_from_marker
 from sentry.seer.autofix.pr_iteration.queue import (
     QueuedAutofixFeedback,
-    peek_in_flight_autofix_feedback,
-    peek_queued_autofix_feedback,
+    peek_queued_and_in_flight_autofix_feedback,
 )
 from sentry.seer.autofix.pr_iteration.run_markers import get_run_extra
 from sentry.seer.autofix.types import GithubAppPermissionsWarning
@@ -48,7 +47,9 @@ def _feedback_key(feedback: Feedback) -> tuple[str, str]:
 
 
 def _in_flight_items(
-    state: SeerRunState, queued_items: Sequence[QueuedAutofixFeedback]
+    state: SeerRunState,
+    in_flight: Sequence[QueuedAutofixFeedback],
+    queued_items: Sequence[QueuedAutofixFeedback],
 ) -> list[QueuedAutofixFeedback]:
     """Drained feedback that this response would otherwise show nowhere.
 
@@ -56,7 +57,6 @@ def _in_flight_items(
     two reads. Showing the in-flight copy keeps the item on screen; anything
     already in the queue or a block is skipped so it isn't shown twice.
     """
-    in_flight = peek_in_flight_autofix_feedback(state.run_id)
     if not in_flight:
         return []
 
@@ -73,10 +73,9 @@ def get_pr_iteration_state_fields(
 
     ``run`` is the run's SeerRun row, or None for a legacy run that has none.
     """
-    # Read the queue before the in-flight list. A drain moves items from the
-    # queue to the in-flight list in one step, so reading in this order can't
-    # miss an item that a drain moves between the two reads.
-    queued_items = peek_queued_autofix_feedback(state.run_id)
+    # One read for both lists: a drain or a requeue moving items between them
+    # can't land between two reads and hide an item from this poll.
+    queued_items, in_flight = peek_queued_and_in_flight_autofix_feedback(state.run_id)
 
     missing_perms = get_blocked_pr_iteration_permissions(
         organization,
@@ -96,7 +95,8 @@ def get_pr_iteration_state_fields(
     ]
 
     queued_feedback = [
-        item.feedback.dict() for item in [*_in_flight_items(state, queued_items), *queued_items]
+        item.feedback.dict()
+        for item in [*_in_flight_items(state, in_flight, queued_items), *queued_items]
     ]
 
     # Off the fetched row, not is_pr_iteration_paused: polled every second.

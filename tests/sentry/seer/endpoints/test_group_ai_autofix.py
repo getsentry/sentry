@@ -652,7 +652,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         ]
 
     @patch("sentry.seer.autofix.pr_iteration.ui_state.get_blocked_pr_iteration_permissions")
-    @patch("sentry.seer.autofix.pr_iteration.ui_state.peek_queued_autofix_feedback")
+    @patch("sentry.seer.autofix.pr_iteration.ui_state.peek_queued_and_in_flight_autofix_feedback")
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
     def test_actionable_feedback_reads_the_consume_decision(
         self, mock_get_explorer_state: MagicMock, mock_peek: MagicMock, mock_get_perms: MagicMock
@@ -668,14 +668,17 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         )
         mock_get_perms.return_value = {}
         feedback = Feedback(source=UserUIFeedbackSource(user_id=self.user.id, user_feedback="go"))
-        mock_peek.return_value = [
-            QueuedAutofixFeedback(
-                organization_id=self.organization.id,
-                group_id=group.id,
-                feedback=feedback,
-                referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
-            )
-        ]
+        mock_peek.return_value = (
+            [
+                QueuedAutofixFeedback(
+                    organization_id=self.organization.id,
+                    group_id=group.id,
+                    feedback=feedback,
+                    referrer=AutofixReferrer.GROUP_AUTOFIX_ENDPOINT,
+                )
+            ],
+            [],
+        )
         self.login_as(user=self.user)
 
         for ok in (False, True):
@@ -2468,16 +2471,16 @@ class GroupAutofixConditionalGetTest(APITestCase):
         assert response["ETag"] == current
         assert response.data["autofix"]["run_id"] == 888
 
-    @patch("sentry.seer.autofix.pr_iteration.ui_state.peek_queued_autofix_feedback")
+    @patch("sentry.seer.autofix.pr_iteration.ui_state.peek_queued_and_in_flight_autofix_feedback")
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
     def test_queued_feedback_changes_the_etag(
         self, mock_get_explorer_state: MagicMock, mock_peek: MagicMock
     ) -> None:
         mock_get_explorer_state.return_value = self._run_state()
-        mock_peek.return_value = []
+        mock_peek.return_value = ([], [])
         empty = self.client.get(self._get_url(self.group.id), format="json")
 
-        mock_peek.return_value = [self._queued_feedback()]
+        mock_peek.return_value = ([self._queued_feedback()], [])
         queued = self.client.get(self._get_url(self.group.id), format="json")
 
         assert queued.status_code == 200, queued.data

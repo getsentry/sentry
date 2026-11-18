@@ -71,6 +71,7 @@ from sentry.seer.autofix.pr_iteration.queue import (
     peek_in_flight_autofix_feedback,
     peek_queued_autofix_feedback,
     pop_queued_autofix_feedback,
+    requeue_autofix_feedback,
 )
 from sentry.seer.autofix.pr_iteration.run_markers import record_run_extras
 from sentry.seer.autofix.pr_iteration.ui_state import get_pr_iteration_state_fields
@@ -1925,6 +1926,25 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         ]
         in_flight_ttl = redis_clusters.get("default").ttl(feedback_queue._in_flight_key(67890))
         assert 0 < in_flight_ttl <= 60
+
+    def test_a_poll_still_shows_feedback_requeued_while_it_runs(self) -> None:
+        # A requeue moves the batch from the in-flight list back to the queue.
+        # Here it lands during the poll's permissions lookup.
+        self._enqueue_ui_feedback("fix it")
+        held = pop_queued_autofix_feedback(67890)
+
+        def requeue_mid_poll(*args: Any, **kwargs: Any) -> dict[str, Any]:
+            requeue_autofix_feedback(67890, held)
+            return {}
+
+        with patch(
+            "sentry.seer.autofix.pr_iteration.ui_state.get_blocked_pr_iteration_permissions",
+            side_effect=requeue_mid_poll,
+        ):
+            fields = get_pr_iteration_state_fields(self.organization, self._state(), None)
+
+        assert [item["text"] for item in fields["queued_feedback"]] == ["fix it"]
+        assert [item.feedback.text for item in peek_queued_autofix_feedback(67890)] == ["fix it"]
 
     @patch(f"{TASK_PATH}.count_queued_autofix_feedback", return_value=3)
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
