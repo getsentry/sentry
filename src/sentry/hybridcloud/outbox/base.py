@@ -40,14 +40,17 @@ class CellOutboxProducingModel(Model):
         abstract = True
 
     default_flush: bool | None = None
+    """The flush flag for outbox writes outside any outbox_context (None flushes)."""
     replication_version: int = 1
 
     @contextlib.contextmanager
     def prepare_outboxes(
         self, *, outbox_before_super: bool, flush: bool | None = None
     ) -> Generator[None]:
-        from sentry.hybridcloud.models.outbox import outbox_context
+        from sentry.hybridcloud.models.outbox import get_outbox_flushing_enabled, outbox_context
 
+        if flush is None:
+            flush = get_outbox_flushing_enabled()
         if flush is None:
             flush = self.default_flush
 
@@ -225,6 +228,7 @@ class ControlOutboxProducingModel(Model):
     """
 
     default_flush: bool | None = None
+    """The flush flag for outbox writes outside any outbox_context (None flushes)."""
     replication_version: int = 1
 
     class Meta:
@@ -232,11 +236,15 @@ class ControlOutboxProducingModel(Model):
 
     @contextlib.contextmanager
     def _maybe_prepare_outboxes(self, *, outbox_before_super: bool) -> Generator[None]:
-        from sentry.hybridcloud.models.outbox import outbox_context
+        from sentry.hybridcloud.models.outbox import get_outbox_flushing_enabled, outbox_context
+
+        flush = get_outbox_flushing_enabled()
+        if flush is None:
+            flush = self.default_flush
 
         with outbox_context(
             transaction.atomic(router.db_for_write(type(self))),
-            flush=self.default_flush,
+            flush=flush,
         ):
             if not outbox_before_super:
                 yield
