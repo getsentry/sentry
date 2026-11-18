@@ -35,7 +35,8 @@ class MetricResponseTypeOptional(TypedDict, total=False):
 class MetricResponseType(MetricResponseTypeOptional):
     name: Annotated[str, ApiDescription("Name of the metric")]
     type: Annotated[
-        Literal["counter", "gauge", "distribution"], ApiDescription("Type of the metric")
+        Literal["counter", "gauge", "distribution", "histogram"],
+        ApiDescription("Type of the metric"),
     ]
 
 

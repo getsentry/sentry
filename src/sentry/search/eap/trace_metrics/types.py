@@ -1,7 +1,11 @@
 from dataclasses import dataclass
 from typing import Literal
 
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
+    AttributeKey,
+    AttributeValue,
+    HistogramMode,
+)
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     AndFilter,
     ComparisonFilter,
@@ -11,7 +15,9 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     TraceItemFilter,
 )
 
-TraceMetricType = Literal["counter", "gauge", "distribution"]
+from sentry.search.eap.types import SearchResolverConfig
+
+TraceMetricType = Literal["counter", "gauge", "distribution", "histogram"]
 
 # Represents "any unit" — no unit filter is applied
 ANY_UNIT = "-"
@@ -89,3 +95,16 @@ class TraceMetric:
             )
 
         return TraceItemFilter(and_filter=AndFilter(filters=filters))
+
+
+def get_histogram_mode(
+    search_config: SearchResolverConfig, trace_metric: TraceMetric | None
+) -> HistogramMode.ValueType:
+    # Only OTLP histograms are stored as bucket rows, every other metric is aggregated as is
+    if (
+        search_config.otlp_histograms
+        and trace_metric is not None
+        and trace_metric.metric_type == "histogram"
+    ):
+        return HistogramMode.HISTOGRAM_MODE_BUCKETS
+    return HistogramMode.HISTOGRAM_MODE_UNSPECIFIED

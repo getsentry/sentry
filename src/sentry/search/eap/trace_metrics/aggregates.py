@@ -33,6 +33,7 @@ TRACE_METRIC_DEFAULT_ARGUMENTS = [
                 "counter",
                 "gauge",
                 "distribution",
+                "histogram",
             ]
         ),
         default_arg="",

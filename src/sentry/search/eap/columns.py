@@ -15,6 +15,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeKey,
     ExtrapolationMode,
     Function,
+    HistogramMode,
     RankedBy,
     VirtualColumnContext,
 )
@@ -24,7 +25,11 @@ from sentry.api.event_search import SearchFilter
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap import constants
 from sentry.search.eap.extrapolation_mode import resolve_extrapolation_mode
-from sentry.search.eap.trace_metrics.types import TraceMetric, TraceMetricType
+from sentry.search.eap.trace_metrics.types import (
+    TraceMetric,
+    TraceMetricType,
+    get_histogram_mode,
+)
 from sentry.search.eap.types import EAPResponse, SearchResolverConfig
 from sentry.search.events.constants import NUMERIC_FIELD_TYPES
 from sentry.search.events.types import SnubaParams
@@ -361,6 +366,7 @@ class ResolvedTraceMetricAggregate(ResolvedFunction):
     is_aggregate: bool = field(default=True, init=False)
     trace_metric: TraceMetric | None
     trace_filter: TraceItemFilter | None
+    histogram_mode: HistogramMode.ValueType = HistogramMode.HISTOGRAM_MODE_UNSPECIFIED
 
     @property
     def proto_definition(
@@ -409,6 +415,7 @@ class ResolvedTraceMetricAggregate(ResolvedFunction):
                     filter=trace_filter,
                     label=self.public_alias,
                     extrapolation_mode=self.extrapolation_mode,
+                    histogram_mode=self.histogram_mode,
                     default_value_int64=int(self.default_value),
                 )
             else:
@@ -418,6 +425,7 @@ class ResolvedTraceMetricAggregate(ResolvedFunction):
                     filter=trace_filter,
                     label=self.public_alias,
                     extrapolation_mode=self.extrapolation_mode,
+                    histogram_mode=self.histogram_mode,
                     default_value_double=self.default_value,
                 )
         else:
@@ -427,6 +435,7 @@ class ResolvedTraceMetricAggregate(ResolvedFunction):
                 filter=trace_filter,
                 label=self.public_alias,
                 extrapolation_mode=self.extrapolation_mode,
+                histogram_mode=self.histogram_mode,
             )
 
 
@@ -703,13 +712,19 @@ class TraceMetricAggregateDefinition(AggregateDefinition):
                 f"Trace metric aggregates expect argument {self.offset} to be of type AttributeArgumentDefinition"
             )
 
-        resolved_attribute = resolved_arguments[self.offset]
-        if self.attribute_resolver is not None:
-            resolved_attribute = self.attribute_resolver(resolved_attribute)
-
         trace_metric = extract_trace_metric_aggregate_arguments(
             resolved_arguments, offset=self.offset
         )
+        histogram_mode = get_histogram_mode(search_config, trace_metric)
+
+        resolved_attribute = resolved_arguments[self.offset]
+        # Snuba only reads histogram buckets when aggregating the value, so skip the
+        # sentry.project_id optimization for count
+        if (
+            self.attribute_resolver is not None
+            and histogram_mode != HistogramMode.HISTOGRAM_MODE_BUCKETS
+        ):
+            resolved_attribute = self.attribute_resolver(resolved_attribute)
 
         # The search type for the first argument is always going to be 'number', but
         # the real unit for the metric is stored in the metric_unit field of the trace metric
@@ -741,6 +756,7 @@ class TraceMetricAggregateDefinition(AggregateDefinition):
                 if isinstance(self, ConditionalTraceMetricAggregateDefinition)
                 else None
             ),
+            histogram_mode=histogram_mode,
             default_value=default_value,
         )
 
