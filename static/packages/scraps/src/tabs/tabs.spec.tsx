@@ -1,12 +1,6 @@
 import type {ReactNode} from 'react';
 import {ThemeProvider} from '@emotion/react';
-import {
-  act,
-  render,
-  screen,
-  waitForElementToBeRemoved,
-  within,
-} from '@testing-library/react';
+import {act, render, screen, within} from '@testing-library/react';
 import {userEvent} from '@testing-library/user-event';
 
 import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
@@ -511,19 +505,14 @@ describe('Tabs overflow', () => {
     expect(screen.getByRole('menuitemradio', {name: 'Attachments'})).toBeInTheDocument();
 
     resizeContainerTo(1000);
-    await waitForElementToBeRemoved(() =>
-      screen.queryByRole('button', {name: 'More tabs'})
-    );
+    expect(screen.queryByRole('button', {name: 'More tabs'})).not.toBeInTheDocument();
   });
 
-  it('recomputes overflow when the resize frame callback runs during a render', async () => {
-    // Firefox can run the ResizeObserver's animation frame callback while a
-    // React render is in progress. The recompute must not throw in that case.
+  it('recomputes overflow when the resize callback runs during a render', async () => {
+    // Firefox can deliver the ResizeObserver callback while a React render is
+    // in progress. The recompute must not throw in that case.
+    // React warns about updating another component during render here.
     jest.spyOn(console, 'error').mockImplementation(() => {});
-    jest.spyOn(window, 'requestAnimationFrame').mockImplementation(callback => {
-      callback(0);
-      return 0;
-    });
 
     function ResizeDuringRender({active}: {active: boolean}) {
       if (active) {

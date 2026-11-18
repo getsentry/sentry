@@ -107,8 +107,8 @@ function useOverflowTabs({
   // Measures the list against the available space and updates the overflow set.
   // This is intentionally a plain function kept in a ref (refreshed after every
   // commit) rather than a useEffectEvent: React throws when a useEffectEvent
-  // function is invoked while a render is in progress, and Firefox can run the
-  // ResizeObserver's animation frame callback below in the middle of a render.
+  // function is invoked while a render is in progress, and Firefox can deliver
+  // the ResizeObserver callback below in the middle of a render.
   const recompute = () => {
     if (disabled) {
       setOverflowTabs(prev => (prev.length === 0 ? prev : []));
@@ -204,7 +204,6 @@ function useOverflowTabs({
 
   // Recompute on container resize (available space changes) and on list resize
   // (tabs added/removed/relabeled change its intrinsic width). Keyed only on the
-  const rafRef = useRef<number | null>(null);
   useEffect(() => {
     if (disabled) {
       return;
@@ -216,21 +215,13 @@ function useOverflowTabs({
       return;
     }
 
-    const resizeObserver = new ResizeObserver(() => {
-      // Defer recompute to the next frame to batch observer notifications.
-      // Called through the ref so it stays safe even if the browser (Firefox)
-      // runs this frame callback while a React render is in progress.
-      rafRef.current = requestAnimationFrame(() => recomputeRef.current?.());
-    });
+    // ResizeObserver already batches notifications once per frame, after
+    // layout, so recompute directly instead of deferring to another frame.
+    const resizeObserver = new ResizeObserver(() => recomputeRef.current?.());
     resizeObserver.observe(outerWrap);
     resizeObserver.observe(tabList);
 
-    return () => {
-      if (rafRef.current !== null) {
-        cancelAnimationFrame(rafRef.current);
-      }
-      resizeObserver.disconnect();
-    };
+    return () => resizeObserver.disconnect();
   }, [disabled, outerWrapRef, tabListRef]);
 
   // Tabs with the `hidden` prop render with display: none; never surface them
