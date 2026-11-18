@@ -77,7 +77,7 @@ class MetricBreachInputs(BaseModel):
     group_short_id: str | None = None
     project_id: int
     invocation_source: Literal["wfe"] = "wfe"
-    binding_id: int
+    binding_id: int | None = None
     workflow_id: int
     action_id: int
 
@@ -253,8 +253,8 @@ class RejectedMetricBreach:
     created: bool
 
 
-@action_handler_registry.register(Action.Type.SEER_WORKFLOW)
-class SeerMetricAlertActionHandler(ActionHandler):
+@action_handler_registry.register(Action.Type.SEER_INVESTIGATION)
+class SeerInvestigationActionHandler(ActionHandler):
     group = ActionHandler.Group.OTHER
     required_features = (FeatureGate("organizations:seer-automations"),)
     config_schema = {"type": "object", "properties": {}, "additionalProperties": False}
@@ -268,6 +268,19 @@ class SeerMetricAlertActionHandler(ActionHandler):
     @staticmethod
     @override
     def execute(invocation: ActionInvocation) -> None:
+        # TODO(telkins): WFE reports an arbitrary workflow when an action is attached to
+        # several. If that becomes possible here, store the config id in Action.data.
+        config_id = (
+            SeerWorkflowConfig.objects.filter(backing_workflow_id=invocation.workflow_id)
+            .values_list("id", flat=True)
+            .get_or_none()
+        )
+        SeerInvestigationActionHandler._handle(invocation, config_id)
+
+    @staticmethod
+    def _handle(
+        invocation: ActionInvocation, config_id: int | None, *, binding_id: int | None = None
+    ) -> None:
         event = invocation.event_data.event
         if not isinstance(event, GroupEvent):
             return
@@ -280,17 +293,18 @@ class SeerMetricAlertActionHandler(ActionHandler):
             "workflow_id": invocation.workflow_id,
             "action_id": invocation.action.id,
         }
-        binding = SeerWorkflowTriggerBinding.objects.get_or_none(
-            workflow_config__organization_id=group.project.organization_id,
-            trigger_action=invocation.action,
-        )
-        if binding is None:
-            _record_trigger_outcome("ignored", extra, reason="missing_binding")
+        if config_id is None:
+            _record_trigger_outcome("ignored", extra, reason="configuration_unavailable")
             return
 
-        extra.update(workflow_config_id=binding.workflow_config_id, binding_id=binding.id)
-        admission = SeerMetricAlertActionHandler.accept(
-            group, event, binding=binding, workflow_id=invocation.workflow_id
+        extra.update(workflow_config_id=config_id, binding_id=binding_id)
+        admission = SeerInvestigationActionHandler._admit(
+            group,
+            event,
+            config_id=config_id,
+            action_id=invocation.action.id,
+            workflow_id=invocation.workflow_id,
+            binding_id=binding_id,
         )
         outcome: Literal["accepted", "rejected", "ignored"]
         reason: str | None = None
@@ -310,12 +324,14 @@ class SeerMetricAlertActionHandler(ActionHandler):
         _record_trigger_outcome(outcome, extra, reason=reason, deduplicated=deduplicated)
 
     @staticmethod
-    def accept(
+    def _admit(
         group: Group,
         event: GroupEvent,
         *,
-        binding: SeerWorkflowTriggerBinding,
+        config_id: int,
+        action_id: int,
         workflow_id: int,
+        binding_id: int | None = None,
     ) -> AcceptedMetricBreach | RejectedMetricBreach | IgnoredMetricBreach:
         """Check eligibility, then record one admission decision per issue and config."""
         if not features.has("organizations:seer-automations", group.organization):
@@ -343,15 +359,15 @@ class SeerMetricAlertActionHandler(ActionHandler):
                 group_id=group.id,
                 group_short_id=group.qualified_short_id,
                 project_id=group.project_id,
-                binding_id=binding.id,
+                binding_id=binding_id,
                 workflow_id=workflow_id,
-                action_id=binding.trigger_action_id,
+                action_id=action_id,
             )
         except ValidationError:
             return IgnoredMetricBreach("invalid_source")
 
         try:
-            with lock_config(group.organization.id, binding.workflow_config_id) as config:
+            with lock_config(group.organization.id, config_id) as config:
                 if not config.enabled:
                     return IgnoredMetricBreach("config_disabled")
                 definition = _definition_for(config)
@@ -370,6 +386,47 @@ class SeerMetricAlertActionHandler(ActionHandler):
                 return AcceptedMetricBreach(run=run.lifecycle.get_run(), created=run.created)
         except SeerWorkflowConfig.DoesNotExist:
             return IgnoredMetricBreach("configuration_unavailable")
+
+
+@action_handler_registry.register(Action.Type.SEER_WORKFLOW)
+class SeerMetricAlertActionHandler(ActionHandler):
+    group = ActionHandler.Group.OTHER
+    required_features = (FeatureGate("organizations:seer-automations"),)
+    config_schema = {"type": "object", "properties": {}, "additionalProperties": False}
+    data_schema = {"type": "object", "properties": {}, "additionalProperties": False}
+
+    @classmethod
+    @override
+    def get_dedup_key(cls, action: Action) -> str:
+        return f"{action.type}:{action.id}"
+
+    @staticmethod
+    @override
+    def execute(invocation: ActionInvocation) -> None:
+        binding = SeerWorkflowTriggerBinding.objects.get_or_none(trigger_action=invocation.action)
+        if binding is None:
+            SeerInvestigationActionHandler._handle(invocation, None)
+        else:
+            SeerInvestigationActionHandler._handle(
+                invocation, binding.workflow_config_id, binding_id=binding.id
+            )
+
+    @staticmethod
+    def accept(
+        group: Group,
+        event: GroupEvent,
+        *,
+        binding: SeerWorkflowTriggerBinding,
+        workflow_id: int,
+    ) -> AcceptedMetricBreach | RejectedMetricBreach | IgnoredMetricBreach:
+        return SeerInvestigationActionHandler._admit(
+            group,
+            event,
+            config_id=binding.workflow_config_id,
+            action_id=binding.trigger_action_id,
+            workflow_id=workflow_id,
+            binding_id=binding.id,
+        )
 
 
 def _record_trigger_outcome(
