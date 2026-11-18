@@ -2,7 +2,7 @@ import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {Markdown, stripAnnotations, type MarkdownProps} from '@sentry/scraps/markdown';
+import {Markdown, type MarkdownProps} from '@sentry/scraps/markdown';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -96,9 +96,8 @@ const markdownComponents: MarkdownProps['components'] = {
         return <JsonTree value={parsed} />;
       }
     }
-    return <Default lang={lang}>{stripAnnotations(children)}</Default>;
+    return <Default lang={lang}>{children}</Default>;
   },
-  InlineCode: ({children, Default}) => <Default>{stripAnnotations(children)}</Default>,
   Annotation: ScrubbedAnnotation,
   Heading: ({children, level}) => (
     <Heading as={`h${level}`} size={HEADING_SIZES[level - 1]}>

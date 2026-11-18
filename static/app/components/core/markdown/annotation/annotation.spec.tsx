@@ -128,6 +128,26 @@ describe('annotations', () => {
     );
   });
 
+  it('drops the marks in code, which is not parsed for annotations', () => {
+    const marked = annotate('[email]', '{"rule":"@email:replace"}');
+    const {container} = render(
+      <Markdown
+        raw={[
+          `Inline \`send(${marked})\` code`,
+          `\`\`\`\nfenced(${marked})\n\`\`\``,
+          `~~~\ntilde(${marked})\n~~~`,
+          `    indented(${marked})`,
+        ].join('\n\n')}
+      />
+    );
+
+    expect(container).toHaveTextContent('send([email])');
+    expect(container).toHaveTextContent('fenced([email])');
+    expect(container).toHaveTextContent('tilde([email])');
+    expect(container).toHaveTextContent('indented([email])');
+    expect(container).not.toHaveTextContent(/[\uFDD0-\uFDD2\uE100-\uE17F]/);
+  });
+
   it('renders annotations as plain text without a component', () => {
     render(<Markdown raw={text} />);
 
