@@ -544,12 +544,12 @@ export function TourGuide({
     }
   }, [isOpen, triggerRef]);
 
-  const isDialog = variant === 'subtle';
+  const isSubtle = variant === 'subtle';
   const [isFocusRingVisible, setIsFocusRingVisible] = useState(false);
   useEffect(() => {
     const overlay = overlayRef.current;
     // The guide's element attaches after it opens, and this runs again then.
-    if (!isOpen || !isDialog || !overlay) {
+    if (!isOpen || !isSubtle || !overlay) {
       return;
     }
     // A guide outside a tour is a scope of its own.
@@ -589,7 +589,7 @@ export function TourGuide({
         returnTarget.focus();
       }
     };
-  }, [isOpen, isDialog, overlayRef, focusScope]);
+  }, [isOpen, isSubtle, overlayRef, focusScope]);
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
     if (event.key === 'Escape' && handleDismiss) {
@@ -615,7 +615,7 @@ export function TourGuide({
   const titleId = useId();
   const descriptionId = useId();
   const dialogProps: HTMLAttributes<HTMLElement> & {'data-focus-ring'?: boolean} =
-    isDialog
+    isSubtle
       ? {
           role: 'dialog',
           tabIndex: -1,
