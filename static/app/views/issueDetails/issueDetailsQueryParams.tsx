@@ -3,10 +3,11 @@ import {parseAsStringLiteral, useQueryStates, type ParserMap} from 'nuqs';
 import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 
 import {DrawerTab} from './groupDistributions/types';
-import {Tab} from './types';
+import {Tab, TabPaths} from './types';
 
 /**
- * Drawers that open on top of the issue details page.
+ * Drawers that open on top of the issue details page. The values are their
+ * path segments.
  */
 export enum IssueDetailsDrawer {
   ACTIVITY = 'activity',
@@ -19,10 +20,20 @@ export enum IssueDetailsDrawer {
  * The `Tab` enum still lists the drawers for the route-based code. They are
  * not page tabs.
  */
-type IssueDetailsPageTab = Exclude<
+export type IssueDetailsPageTab = Exclude<
   Tab,
   Tab.ACTIVITY | Tab.DISTRIBUTIONS | Tab.SIMILAR_ISSUES | Tab.MERGED
 >;
+
+function getPageTabSlug(tab: Tab): string {
+  return TabPaths[tab].replace(/\/$/, '');
+}
+
+const DRAWER_SLUGS = new Set<string>(Object.values(IssueDetailsDrawer));
+
+export function isIssueDetailsPageTab(tab: Tab): tab is IssueDetailsPageTab {
+  return !DRAWER_SLUGS.has(getPageTabSlug(tab));
+}
 
 /**
  * The query params each page tab owns, such as its pagination cursor. Adding a

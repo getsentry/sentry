@@ -1,5 +1,5 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
-import {Navigate, Outlet} from 'react-router';
+import {Navigate} from 'react-router';
 import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
@@ -63,7 +63,6 @@ import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLM
 
 import {hasAutofixPage, makeSeerLocation} from './autofix/utils';
 import {useGroupDistributionsDrawer} from './groupDistributions/useGroupDistributionsDrawer';
-import GroupEventDetails from './groupEventDetails/groupEventDetails';
 import {useAiConfig} from './hooks/useAiConfig';
 import {useIssueActivityDrawer} from './hooks/useIssueActivityDrawer';
 import {useMergedIssuesDrawer} from './hooks/useMergedIssuesDrawer';
@@ -73,6 +72,8 @@ import {ERROR_TYPES} from './constants';
 import {GroupDataContextProvider} from './groupDataContext';
 import {GroupDetailsLayout} from './groupDetailsLayout';
 import {GroupIdProvider, useGroupId} from './groupIdContext';
+import {IssueDetailsPageTabContent} from './issueDetailsPageTabContent';
+import {isIssueDetailsPageTab} from './issueDetailsQueryParams';
 import {
   ISSUE_DETAILS_TOUR_GUIDE_KEY,
   IssueDetailsTourModal,
@@ -85,7 +86,7 @@ import {useEngagedViewTracking} from './useEngagedViewTracking';
 import {groupApiOptions, useGroup} from './useGroup';
 import {useGroupDetailsRoute} from './useGroupDetailsRoute';
 import {RESERVED_EVENT_IDS, useGroupEvent} from './useGroupEvent';
-import {ISSUE_DRAWER_TABS, useIssueDrawerReturnPath} from './useIssueDrawerReturnPath';
+import {useIssueDrawerReturnPath} from './useIssueDrawerReturnPath';
 import {
   getGroupReprocessingStatus,
   markEventSeen,
@@ -129,7 +130,6 @@ type FetchGroupDetailsState = {
 };
 
 interface GroupDetailsContentProps {
-  children: React.ReactNode;
   event: Event | null;
   group: Group;
   project: Project;
@@ -626,12 +626,7 @@ function getIssueDetailContextHint(view: IssueView): string {
   return `${preamble} ${shortIdNote}${tools}`;
 }
 
-function GroupDetailsContentInner({
-  children,
-  group,
-  project,
-  event,
-}: GroupDetailsContentProps) {
+function GroupDetailsContentInner({group, project, event}: GroupDetailsContentProps) {
   const organization = useOrganization();
   const includeFlagDistributions = featureFlagDrawerPlatforms.includes(
     project.platform ?? 'other'
@@ -757,9 +752,6 @@ function GroupDetailsContentInner({
     ...(tagKey ? {tagKey} : {}),
   });
 
-  const isDisplayingEventDetails =
-    currentTab === Tab.DETAILS || ISSUE_DRAWER_TABS.has(currentTab);
-
   if (redirectToAutofixTab) {
     return (
       <Navigate
@@ -778,24 +770,17 @@ function GroupDetailsContentInner({
 
   return (
     <GroupDetailsLayout group={group} event={event ?? undefined} project={project}>
-      {isDisplayingEventDetails ? (
-        // The router displays a loading indicator when switching to any of these tabs
-        // Avoid lazy loading spinner by force rendering the GroupEventDetails component
-        <GroupEventDetails />
-      ) : (
-        children
-      )}
+      {/* Drawers open on top of the details tab */}
+      <IssueDetailsPageTabContent
+        tab={isIssueDetailsPageTab(currentTab) ? currentTab : Tab.DETAILS}
+      />
     </GroupDetailsLayout>
   );
 }
 
 const GroupDetailsContent = registerLLMContext('issue-detail', GroupDetailsContentInner);
 
-interface GroupDetailsPageContentProps extends FetchGroupDetailsState {
-  children: React.ReactNode;
-}
-
-function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
+function GroupDetailsPageContent(props: FetchGroupDetailsState) {
   const projectSlug = props.group?.project?.slug;
   const organization = useOrganization();
   const {
@@ -873,9 +858,7 @@ function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
           project={projectWithFallback}
           group={props.group}
           event={props.event}
-        >
-          {props.children}
-        </GroupDetailsContent>
+        />
       </TourContextProvider>
     </GroupDataContextProvider>
   );
@@ -914,9 +897,7 @@ function GroupDetails() {
         shouldForceProject
       >
         {config?.showFeedbackWidget && <FloatingFeedbackButton />}
-        <GroupDetailsPageContent {...fetchGroupDetailsProps} group={group}>
-          <Outlet />
-        </GroupDetailsPageContent>
+        <GroupDetailsPageContent {...fetchGroupDetailsProps} group={group} />
       </PageFiltersContainer>
     </SentryDocumentTitle>
   );

@@ -2,7 +2,7 @@ import {useCallback, useEffect, useRef} from 'react';
 
 import {Tab} from './types';
 
-export const ISSUE_DRAWER_TABS = new Set([
+const ISSUE_DRAWER_TABS = new Set([
   Tab.ACTIVITY,
   Tab.DISTRIBUTIONS,
   Tab.MERGED,
