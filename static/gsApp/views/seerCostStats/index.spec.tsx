@@ -30,7 +30,7 @@ describe('SeerCostStats', () => {
     ProjectsStore.loadInitialData([ProjectFixture()]);
   });
 
-  it('shows the cost of each product and the total', async () => {
+  it('shows the credits of each product and the total', async () => {
     const request = MockApiClient.addMockResponse({
       url: endpoint,
       body: {
@@ -40,13 +40,13 @@ describe('SeerCostStats', () => {
         groups: [
           {
             by: {feature: 'autofix_web', category: 'billable_seer_credits'},
-            series: {costUsd: [1.004, 2]},
-            totals: {costUsd: 3.004},
+            series: {credits: [100.4, 200]},
+            totals: {credits: 300.4},
           },
           {
             by: {feature: 'seer_agent', category: 'billable_seer_credits'},
-            series: {costUsd: [0, 0.5]},
-            totals: {costUsd: 0.5},
+            series: {credits: [0, 50]},
+            totals: {credits: 50},
           },
         ],
       },
@@ -62,14 +62,14 @@ describe('SeerCostStats', () => {
     render(<SeerCostStats />, {organization, initialRouterConfig});
 
     expect(await screen.findByRole('cell', {name: 'Autofix'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: '$3.00'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '300'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: 'Agent'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: '$0.50'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: '$3.50'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '50'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: '350'})).toBeInTheDocument();
     expect(request).toHaveBeenCalled();
   });
 
-  it('says when there is no cost in the date range', async () => {
+  it('says when no credits were used in the date range', async () => {
     MockApiClient.addMockResponse({
       url: endpoint,
       body: {
@@ -83,7 +83,7 @@ describe('SeerCostStats', () => {
     render(<SeerCostStats />, {organization, initialRouterConfig});
 
     expect(
-      await screen.findByText('No Seer cost in this date range.')
+      await screen.findByText('No Seer credits used in this date range.')
     ).toBeInTheDocument();
   });
 

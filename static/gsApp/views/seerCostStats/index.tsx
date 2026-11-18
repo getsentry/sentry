@@ -27,27 +27,27 @@ import {getDataDatetime} from 'sentry/views/organizationStats';
 import {StatsHeader} from 'sentry/views/organizationStats/header';
 import {makeStatsPathname} from 'sentry/views/organizationStats/pathname';
 
-import {displayPriceWithCents} from 'getsentry/utils/billing';
 import {ContactBillingMembers} from 'getsentry/views/contactBillingMembers';
 
-import type {LlmCostStats, ProductCost} from './utils';
-import {groupCostByProduct, llmCostStatsOptions} from './utils';
+import type {LlmCostStats, ProductCredits} from './utils';
+import {groupCreditsByProduct, llmCostStatsOptions} from './utils';
 
 const COLUMNS: TableColumnConfig[] = [
   {key: 'feature', width: '1fr'},
-  {key: 'cost', width: 'max-content'},
+  {key: 'credits', width: 'max-content'},
 ];
 
-function formatUsd(usd: number) {
-  return displayPriceWithCents({cents: usd * 100});
+// A credit bills one cent, so whole credits keep the precision of a price in cents.
+function formatCredits(credits: number) {
+  return Math.round(credits).toLocaleString();
 }
 
-function CostChart({
+function CreditsChart({
   products,
   stats,
   utc,
 }: {
-  products: ProductCost[];
+  products: ProductCredits[];
   stats: LlmCostStats;
   utc: boolean;
 }) {
@@ -55,7 +55,7 @@ function CostChart({
     seriesName: product.label,
     data: stats.intervals.map((interval, i) => ({
       name: interval,
-      value: product.costUsd[i] ?? 0,
+      value: product.credits[i] ?? 0,
     })),
   }));
 
@@ -67,14 +67,14 @@ function CostChart({
       utc={utc}
       grid={{bottom: '3px', left: '3px', right: '10px', top: '40px'}}
       legend={{right: 10, top: 5}}
-      yAxis={{min: 0, axisLabel: {formatter: (value: number) => formatUsd(value)}}}
-      tooltip={{trigger: 'axis', valueFormatter: (value: number) => formatUsd(value)}}
+      yAxis={{min: 0, axisLabel: {formatter: (value: number) => formatCredits(value)}}}
+      tooltip={{trigger: 'axis', valueFormatter: (value: number) => formatCredits(value)}}
       series={series}
     />
   );
 }
 
-function SeerCost() {
+function SeerCredits() {
   const organization = useOrganization();
   const {selection} = usePageFilters();
   const dataDatetime = getDataDatetime(selection.datetime);
@@ -86,8 +86,8 @@ function SeerCost() {
     return <LoadingError onRetry={refetch} />;
   }
 
-  const products = data ? groupCostByProduct(data) : [];
-  const totalUsd = products.reduce((sum, product) => sum + product.totalUsd, 0);
+  const products = data ? groupCreditsByProduct(data) : [];
+  const totalCredits = products.reduce((sum, product) => sum + product.totalCredits, 0);
   // Buckets of a day or longer start at midnight UTC, so we label them in UTC
   // like the Usage tab does.
   const utc =
@@ -98,11 +98,11 @@ function SeerCost() {
     <Fragment>
       <Panel>
         <ChartContainer>
-          <HeaderTitleLegend>{t('Seer Cost')}</HeaderTitleLegend>
+          <HeaderTitleLegend>{t('Seer Credits')}</HeaderTitleLegend>
           {isPending ? (
             <Placeholder height="200px" />
           ) : (
-            <CostChart products={products} stats={data} utc={utc} />
+            <CreditsChart products={products} stats={data} utc={utc} />
           )}
         </ChartContainer>
       </Panel>
@@ -111,7 +111,7 @@ function SeerCost() {
         header={
           <SimpleTable.HeaderRow>
             <SimpleTable.HeaderCell>{t('Feature')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell align="right">{t('Cost')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell align="right">{t('Credits')}</SimpleTable.HeaderCell>
           </SimpleTable.HeaderRow>
         }
       >
@@ -119,7 +119,7 @@ function SeerCost() {
           <SimpleTable.Loading />
         ) : products.length === 0 ? (
           <SimpleTable.Empty>
-            <Text variant="muted">{t('No Seer cost in this date range.')}</Text>
+            <Text variant="muted">{t('No Seer credits used in this date range.')}</Text>
           </SimpleTable.Empty>
         ) : (
           <Fragment>
@@ -127,7 +127,7 @@ function SeerCost() {
               <SimpleTable.Row key={product.label}>
                 <SimpleTable.RowCell>{product.label}</SimpleTable.RowCell>
                 <SimpleTable.RowCell justify="end">
-                  {formatUsd(product.totalUsd)}
+                  {formatCredits(product.totalCredits)}
                 </SimpleTable.RowCell>
               </SimpleTable.Row>
             ))}
@@ -136,7 +136,7 @@ function SeerCost() {
                 <Text bold>{t('Total')}</Text>
               </SimpleTable.RowCell>
               <SimpleTable.RowCell justify="end">
-                <Text bold>{formatUsd(totalUsd)}</Text>
+                <Text bold>{formatCredits(totalCredits)}</Text>
               </SimpleTable.RowCell>
             </SimpleTable.Row>
           </Fragment>
@@ -165,7 +165,7 @@ export default function SeerCostStats() {
                   <DatePageFilter />
                 </PageFilterBar>
               </Flex>
-              <SeerCost />
+              <SeerCredits />
             </Stack>
           ) : (
             <ContactBillingMembers />

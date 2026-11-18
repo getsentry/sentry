@@ -7,8 +7,8 @@ import {getEndpointQueryDatetime} from 'sentry/views/organizationStats/usageStat
 
 type LlmCostGroup = {
   by: {category: string; feature: string};
-  series: {costUsd: number[]};
-  totals: {costUsd: number};
+  series: {credits: number[]};
+  totals: {credits: number};
 };
 
 export type LlmCostStats = {
@@ -18,13 +18,13 @@ export type LlmCostStats = {
   start: string;
 };
 
-export type ProductCost = {
+export type ProductCredits = {
   /**
-   * Cost in USD per interval of the stats response.
+   * Seer credits per interval of the stats response.
    */
-  costUsd: number[];
+  credits: number[];
   label: string;
-  totalUsd: number;
+  totalCredits: number;
 };
 
 export function llmCostStatsOptions(
@@ -65,27 +65,29 @@ function getProductLabel(feature: string): string {
 }
 
 /**
- * Sums the cost of each billed feature into the product it belongs to. The
+ * Sums the credits of each billed feature into the product it belongs to. The
  * products keep a fixed order so their colors don't change between date ranges.
  */
-export function groupCostByProduct(stats: LlmCostStats): ProductCost[] {
-  const costByLabel = new Map<string, ProductCost>();
+export function groupCreditsByProduct(stats: LlmCostStats): ProductCredits[] {
+  const creditsByLabel = new Map<string, ProductCredits>();
   for (const group of stats.groups) {
     const label = getProductLabel(group.by.feature);
-    const product = costByLabel.get(label) ?? {
+    const product = creditsByLabel.get(label) ?? {
       label,
-      costUsd: stats.intervals.map(() => 0),
-      totalUsd: 0,
+      credits: stats.intervals.map(() => 0),
+      totalCredits: 0,
     };
-    costByLabel.set(label, {
+    creditsByLabel.set(label, {
       label,
-      costUsd: product.costUsd.map((cost, i) => cost + (group.series.costUsd[i] ?? 0)),
-      totalUsd: product.totalUsd + group.totals.costUsd,
+      credits: product.credits.map(
+        (credits, i) => credits + (group.series.credits[i] ?? 0)
+      ),
+      totalCredits: product.totalCredits + group.totals.credits,
     });
   }
 
   const labelOrder = [...getProducts().map(({label}) => label), t('Other')];
-  return [...costByLabel.values()].sort(
+  return [...creditsByLabel.values()].sort(
     (a, b) => labelOrder.indexOf(a.label) - labelOrder.indexOf(b.label)
   );
 }
