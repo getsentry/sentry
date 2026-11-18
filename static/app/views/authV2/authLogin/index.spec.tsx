@@ -498,6 +498,48 @@ describe('AuthLogin', () => {
     );
   });
 
+  it('keeps the loaded organization login when a focus refetch fails', async () => {
+    mockAuthConfig();
+    MockApiClient.addMockResponse({
+      url: '/auth/organizations/acme/config/',
+      body: {
+        authenticated: false,
+        memberAuthenticated: false,
+        canRegister: false,
+        joinRequestUrl: null,
+        loginMethod: 'sso',
+        ssoRequired: true,
+        organization: {avatarUrl: null, name: 'Acme', slug: 'acme'},
+        provider: {key: 'saml2', name: 'SAML'},
+        warnings: [],
+      },
+    });
+
+    render(<AuthLogin />, {
+      initialRouterConfig: {
+        location: {pathname: '/auth/login/acme/'},
+        route: '/auth/login/:orgSlug/',
+      },
+    });
+
+    expect(await screen.findByRole('button', {name: 'SSO'})).toBeVisible();
+    act(() => focusManager.setFocused(false));
+
+    const failedRefetch = MockApiClient.addMockResponse({
+      url: '/auth/organizations/acme/config/',
+      statusCode: 503,
+      body: {detail: 'Provider unavailable'},
+    });
+
+    act(() => focusManager.setFocused(true));
+
+    await waitFor(() => expect(failedRefetch).toHaveBeenCalled());
+    expect(screen.getByRole('button', {name: 'SSO'})).toBeVisible();
+    expect(
+      screen.queryByText('Unable to load organization authentication. Please try again.')
+    ).not.toBeInTheDocument();
+  });
+
   it('redirects when the authenticated user can access the organization', async () => {
     MockApiClient.addMockResponse({
       url: '/auth/config/',
