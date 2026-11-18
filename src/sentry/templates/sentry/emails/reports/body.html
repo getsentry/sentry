@@ -282,7 +282,7 @@
       <span style="font-size: 14px; font-weight: 500; margin-left: 8px; padding: 2px 8px; border-radius: 6px; vertical-align: middle; background-color: {{ trends.error_pct_change.bg_color }}; color: {{ trends.error_pct_change.text_color }};">{{ trends.error_pct_change.arrow }}&nbsp;{{ trends.error_pct_change.pct }}</span>
       {% endif %}
     </h1>
-    <a href="{% org_url organization '/explore/discover/homepage/' query=errors_discover_query %}"
+    <a href="{% org_url organization '/explore/errors/homepage/' query=errors_discover_query %}"
        style="font-size: 12px; margin-bottom: 16px; display: block; font-weight: bold;">View All Errors</a>
 
     <table class="graph">
@@ -424,7 +424,7 @@
 
   {% if enhanced_privacy %}
   <div style="padding: 16px; margin: 16px 0; background-color: #f8f8f9; border-radius: 4px; font-size: 14px;">
-    Details about specific issues and transactions are not shown in this report since enhanced privacy
+    Details about specific issues and spans are not shown in this report since enhanced privacy
     controls are enabled. For more details,
     {% url 'sentry-organization-issue-list' organization.slug as issue_list %}
     {% querystring referrer="weekly_report" notification_uuid=notification_uuid as query %}
