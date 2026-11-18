@@ -10,7 +10,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log, projectoptions
+from sentry import audit_log, features, projectoptions
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -47,7 +47,6 @@ from sentry.seer.autofix.utils import (
     get_token_based_billing_repo_filter,
     get_valid_automated_run_stopping_points,
     is_seer_seat_or_token_billed_enabled,
-    is_token_billed_seer_enabled,
     update_seer_project_settings,
 )
 from sentry.seer.models.project_repository import SeerProjectRepository
@@ -106,7 +105,7 @@ def _get_project_settings(project: Project) -> SeerProjectSettings:
         pr_iteration=get_pr_iteration_setting(project),
         repos_count=(
             get_token_based_billing_project_repos(project.organization, [project.id]).count()
-            if is_token_billed_seer_enabled(project.organization)
+            if features.has("organizations:token-billed-seer-enabled", project.organization)
             else SeerProjectRepository.objects.filter(
                 project_repository__project=project,
                 project_repository__repository__status=ObjectStatus.ACTIVE,
@@ -129,7 +128,7 @@ def _bulk_get_project_settings(
     }
 
     repo_counts: dict[int, int]
-    if is_token_billed_seer_enabled(organization):
+    if features.has("organizations:token-billed-seer-enabled", organization):
         repo_counts = dict(
             ProjectRepository.objects.filter(
                 get_token_based_billing_repo_filter(organization, prefix="repository__"),
@@ -238,7 +237,7 @@ def _annotate_queryset(queryset: Any, organization: Organization) -> Any:
                 organization, prefix="projectrepository__repository__"
             ),
         )
-        if is_token_billed_seer_enabled(organization)
+        if features.has("organizations:token-billed-seer-enabled", organization)
         else Count(
             "projectrepository__seerprojectrepository",
             filter=Q(projectrepository__repository__status=ObjectStatus.ACTIVE),

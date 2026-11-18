@@ -38,7 +38,6 @@ from sentry.seer.autofix.utils import (
     is_free_cohort_org,
     is_seer_autotriggered_autofix_rate_limited,
     is_seer_seat_or_token_billed_enabled,
-    is_token_billed_seer_enabled,
 )
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.models.agentic_triage import SeerAgenticTriageRunErrorType
@@ -669,7 +668,7 @@ def _get_eligible_orgs_from_batch(
     free_cohort_eligible: list[Organization] = []
     for org in eligible:
         has_seat_based_seer = all(features.has(f, org) for f in PER_ORG_FEATURE_NAMES)
-        if has_seat_based_seer or is_token_billed_seer_enabled(org):
+        if has_seat_based_seer or features.has("organizations:token-billed-seer-enabled", org):
             paid_eligible.append(org)
         elif is_free_cohort_org(org):
             free_cohort_eligible.append(org)
