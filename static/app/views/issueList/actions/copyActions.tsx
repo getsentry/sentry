@@ -48,7 +48,7 @@ export function CopyActions({
     ? t('Only available for issues selected on this page')
     : undefined;
 
-  const handleCopy = (copyType: CopyType, trigger: 'button' | 'dropdown') => {
+  const handleCopy = (copyType: CopyType) => {
     setLastCopyType(copyType);
     const text = selectedIssues
       .map(issue => (copyType === 'short_ids' ? issue.shortId : issue.permalink))
@@ -72,14 +72,13 @@ export function CopyActions({
       area,
       copy_type: copyType,
       count: selectedIssues.length,
-      trigger,
     });
   };
 
   const menuItems: MenuItemProps[] = COPY_TYPES.map(copyType => ({
     key: copyType,
     label: COPY_OPTIONS[copyType].menuLabel,
-    onAction: () => handleCopy(copyType, 'dropdown'),
+    onAction: () => handleCopy(copyType),
   }));
 
   return (
@@ -89,7 +88,7 @@ export function CopyActions({
         icon={<IconCopy />}
         disabled={disabled}
         tooltipProps={{title: disabledReason}}
-        onClick={() => handleCopy(lastCopyType, 'button')}
+        onClick={() => handleCopy(lastCopyType)}
       >
         {COPY_OPTIONS[lastCopyType].buttonLabel}
       </Button>

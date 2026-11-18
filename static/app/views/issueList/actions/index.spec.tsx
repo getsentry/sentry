@@ -603,7 +603,7 @@ describe('IssueListActions', () => {
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith('PROJ-1\nPROJ-2');
       expect(analytics.trackAnalytics).toHaveBeenCalledWith(
         'issues_stream.copied',
-        expect.objectContaining({copy_type: 'short_ids', count: 2, trigger: 'button'})
+        expect.objectContaining({copy_type: 'short_ids', count: 2})
       );
     });
 
@@ -620,7 +620,7 @@ describe('IssueListActions', () => {
       );
       expect(analytics.trackAnalytics).toHaveBeenCalledWith(
         'issues_stream.copied',
-        expect.objectContaining({copy_type: 'links', count: 2, trigger: 'dropdown'})
+        expect.objectContaining({copy_type: 'links', count: 2})
       );
     });
 
