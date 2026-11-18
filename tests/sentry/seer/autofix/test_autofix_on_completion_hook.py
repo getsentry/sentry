@@ -1500,9 +1500,9 @@ class TestPrIterationCompletionHook(TestCase):
             )
             self._redo(state, StrandedAction.BRANCH_MOVED_RETRY)
         assert self._branch_moved_results(mock_logger) == []
-        assert get_out_of_credits(run_id=123, organization_id=self.organization.id) == OutOfCredits(
-            stranded_action=StrandedAction.BRANCH_MOVED_RETRY
-        )
+        assert get_out_of_credits(
+            run_id=123, organization_id=self.organization.id
+        ) == OutOfCreditsMarker(stranded_action=StrandedAction.BRANCH_MOVED_RETRY)
 
         with (
             self.feature("organizations:autofix-pr-iteration-pin-to-pr-head"),
