@@ -22,8 +22,9 @@ export function setExploreAttributeBounds(
 
 /**
  * The search grammar has no exponent syntax, so `1e-7` must be written out as
- * `0.0000001`.
+ * `0.0000001`. The locale is pinned since the grammar only accepts `.` as the
+ * decimal separator.
  */
 function formatSearchNumber(value: number): string {
-  return value.toLocaleString(undefined, {useGrouping: false, maximumFractionDigits: 20});
+  return value.toLocaleString('en-US', {useGrouping: false, maximumFractionDigits: 20});
 }
