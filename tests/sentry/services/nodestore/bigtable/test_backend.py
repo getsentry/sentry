@@ -1,89 +1,77 @@
 from __future__ import annotations
 
 import os
-from collections.abc import Generator, Iterable
+from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Any, cast
+from typing import Any
 from unittest import mock
 
 import pytest
-from google.cloud.bigtable import table
-from google.cloud.bigtable.row import PartialRowData
-from google.cloud.bigtable.row import Row as BigtableRow
-from google.cloud.bigtable.row_data import DEFAULT_RETRY_READ_ROWS
-from google.rpc.status_pb2 import Status
+from google.cloud.bigtable.data import (
+    Cell,
+    DeleteAllFromRow,
+    Mutation,
+    ReadRowsQuery,
+    Row,
+    RowMutationEntry,
+    SetCell,
+)
+from google.cloud.bigtable.data import (
+    Table as DataTable,
+)
 
 from sentry.services.nodestore.bigtable.backend import BigtableNodeStorage
 from sentry.utils.kvstore.bigtable import BigtableKVStorage
 
 
 class MockedBigtableKVStorage(BigtableKVStorage):
-    class Cell:
-        def __init__(self, value: bytes, timestamp: int) -> None:
-            self.value = value
-            self.timestamp = timestamp
-
-    class Row:
-        def __init__(self, table: MockedBigtableKVStorage.Table, row_key: str) -> None:
-            self.row_key = row_key.encode("utf8")
-            self.table = table
-
-        def delete(self) -> None:
-            self.table._rows.pop(self.row_key, None)
-
-        def set_cell(self, family: str, col: str, value: bytes, timestamp: int) -> None:
-            assert family == "x"
-            self.table._rows.setdefault(self.row_key, {})[col] = [
-                MockedBigtableKVStorage.Cell(value, timestamp)
-            ]
-
-        def commit(self) -> Status:
-            # commits not implemented, changes are applied immediately
-            return Status(code=0)
-
-        @property
-        def cells(self) -> dict[str, dict[str, list[MockedBigtableKVStorage.Cell]]]:
-            return {"x": dict(self.table._rows.get(self.row_key) or ())}
-
-    class Table(table.Table):
+    class Table(DataTable):
         def __init__(self) -> None:
-            self._rows: dict[bytes, dict[str, list[MockedBigtableKVStorage.Cell]]] = {}
+            self._rows: dict[bytes, dict[bytes, Cell]] = {}
 
-        def direct_row(self, key: str) -> BigtableRow:
-            return cast("BigtableRow", MockedBigtableKVStorage.Row(self, key))
+        def read_row(self, row_key: str | bytes, **kwargs: Any) -> Row | None:
+            if isinstance(row_key, str):
+                row_key = row_key.encode("utf8")
+            cells = self._rows.get(row_key)
+            if not cells:
+                return None
+            return Row(row_key, list(cells.values()))
 
-        def read_row(
-            self, row_key: str, filter_: Any = None, retry: Any = DEFAULT_RETRY_READ_ROWS
-        ) -> PartialRowData | None:
-            return cast("PartialRowData", MockedBigtableKVStorage.Row(self, row_key))
+        def read_rows(self, query: ReadRowsQuery, **kwargs: Any) -> list[Row]:
+            rows = [self.read_row(key) for key in query.row_keys]
+            return [row for row in rows if row is not None]
 
-        def read_rows(
-            self,
-            start_key: str | None = None,
-            end_key: str | None = None,
-            limit: int | None = None,
-            filter_: Any = None,
-            end_inclusive: bool = False,
-            row_set: Any = None,
-            retry: Any = None,
-        ) -> Iterable[PartialRowData]:
-            assert not row_set.row_ranges, "unsupported"
-            return [cast("PartialRowData", self.read_row(key)) for key in row_set.row_keys]
+        def mutate_row(
+            self, row_key: str | bytes, mutations: list[Mutation] | Mutation, **kwargs: Any
+        ) -> None:
+            if isinstance(row_key, str):
+                row_key = row_key.encode("utf8")
+            if not isinstance(mutations, list):
+                mutations = [mutations]
+            for mutation in mutations:
+                if isinstance(mutation, DeleteAllFromRow):
+                    self._rows.pop(row_key, None)
+                elif isinstance(mutation, SetCell):
+                    self._rows.setdefault(row_key, {})[mutation.qualifier] = Cell(
+                        mutation.new_value,
+                        row_key,
+                        mutation.family,
+                        mutation.qualifier,
+                        mutation.timestamp_micros,
+                    )
+                else:
+                    raise NotImplementedError(mutation)
 
-        def mutate_rows(
-            self, rows: Iterable[Any], retry: Any = None, timeout: float | None = None
-        ) -> list[Status]:
-            # commits not implemented, changes are applied immediately
-            return [Status(code=0) for row in rows]
+        def bulk_mutate_rows(self, mutation_entries: list[RowMutationEntry], **kwargs: Any) -> None:
+            for entry in mutation_entries:
+                self.mutate_row(entry.row_key, list(entry.mutations))
 
-    def _get_table(self, admin: bool = False) -> MockedBigtableKVStorage.Table:
-        try:
-            table = self.__table
-        except AttributeError:
-            table = MockedBigtableKVStorage.Table()
-            self.__table = table
-        assert isinstance(table, MockedBigtableKVStorage.Table)
-        return table
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, **kwargs)
+        self._mock_table = MockedBigtableKVStorage.Table()
+
+    def _get_table(self) -> MockedBigtableKVStorage.Table:
+        return self._mock_table
 
     def bootstrap(self, automatic_expiry: bool = True) -> None:
         pass
@@ -147,9 +135,7 @@ def test_cache(ns: BigtableNodeStorage) -> None:
         assert mock_read_rows.call_count == 0
 
     # Manually deleted item should still retrievable from cache
-    row = table.direct_row(node_1[0])
-    row.delete()
-    row.commit()
+    table.mutate_row(node_1[0], DeleteAllFromRow())
     assert ns.get(node_1[0]) == node_1[1]
     assert ns.get_multi([node_1[0], node_2[0]]) == {
         node_1[0]: node_1[1],

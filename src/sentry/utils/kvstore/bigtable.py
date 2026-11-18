@@ -1,18 +1,28 @@
+import calendar
 import enum
 import logging
 import struct
+import threading
+import time
 from collections.abc import Iterator, Mapping, Sequence
-from datetime import timedelta
-from threading import Lock
+from datetime import datetime, timedelta
 from typing import Any
 
 from django.utils import timezone
 from google.api_core import exceptions, retry
 from google.cloud import bigtable
-from google.cloud.bigtable.row import PartialRowData
-from google.cloud.bigtable.row_data import DEFAULT_RETRY_READ_ROWS
-from google.cloud.bigtable.row_set import RowSet
-from google.cloud.bigtable.table import Table
+from google.cloud.bigtable.data import (
+    BigtableDataClient,
+    DeleteAllFromRow,
+    Mutation,
+    MutationsExceptionGroup,
+    ReadRowsQuery,
+    Row,
+    RowMutationEntry,
+    SetCell,
+    Table,
+)
+from google.cloud.bigtable.table import Table as AdminTable
 from sentry_sdk import traces
 
 from sentry.utils import metrics
@@ -21,9 +31,18 @@ from sentry.utils.kvstore.abstract import KVStorage
 
 logger = logging.getLogger(__name__)
 
+# The client default is 600 seconds, much too long for our ingestion pipeline
+GET_OPERATION_TIMEOUT = 5.0
+
 
 class BigtableError(Exception):
     pass
+
+
+def _to_timestamp_micros(dt: datetime) -> int:
+    # Bigtable only stores millisecond precision.
+    micros = calendar.timegm(dt.utctimetuple()) * 1_000_000 + dt.microsecond
+    return micros - micros % 1000
 
 
 class BigtableKVStorage(KVStorage[str, bytes]):
@@ -86,42 +105,61 @@ class BigtableKVStorage(KVStorage[str, bytes]):
         self.compression = compression
         self.app_profile = app_profile
 
-        self.__table: Table
-        self.__table_lock = Lock()
+        self.__client: BigtableDataClient | None = None
+        self.__table: Table | None = None
+        self.__table_lock = threading.Lock()
+        self.__close_registered = False
 
-    def _get_table(self, admin: bool = False) -> Table:
-        if admin is True:
-            return (
-                bigtable.Client(project=self.project, admin=True, **self.client_options)
-                .instance(self.instance)
-                .table(self.table_name, app_profile_id=self.app_profile)
-            )
+    def _get_admin_table(self) -> AdminTable:
+        return (
+            bigtable.Client(project=self.project, admin=True, **self.client_options)
+            .instance(self.instance)
+            .table(self.table_name, app_profile_id=self.app_profile)
+        )
 
-        try:
-            # Fast check for an existing table
-            return self.__table
-        except AttributeError:
-            # If missing, we acquire our lock to initialize a new one
-            with self.__table_lock:
-                # It's possible that the lock was blocked waiting on someone
-                # else who already initialized, so we first check again to make
-                # sure this isn't the case.
-                try:
-                    table = self.__table
-                except AttributeError:
-                    table = self.__table = (
-                        bigtable.Client(project=self.project, **self.client_options)
-                        .instance(self.instance)
-                        .table(self.table_name, app_profile_id=self.app_profile)
-                    )
+    def _get_table(self) -> Table:
+        # Fast check for an existing table
+        table = self.__table
+        if table is not None:
             return table
+
+        # If missing, we acquire our lock to initialize a new one
+        with self.__table_lock:
+            # It's possible that the lock was blocked waiting on someone else
+            # who already initialized, so we first check again to make sure
+            # this isn't the case.
+            if self.__table is None:
+                if not self.__close_registered:
+                    # The client refreshes its gRPC channel on an executor
+                    # thread, which blocks interpreter shutdown until the
+                    # client is closed. ``atexit`` handlers run only after
+                    # executor threads are joined, so use the same hook the
+                    # executor uses.
+                    threading._register_atexit(self._close_client)  # type: ignore[attr-defined]
+                    self.__close_registered = True
+                self.__client = BigtableDataClient(project=self.project, **self.client_options)
+                self.__table = self.__client.get_table(
+                    self.instance,
+                    self.table_name,
+                    app_profile_id=self.app_profile,
+                    # Match the retry budgets of the legacy client; the
+                    # defaults (600s) are much too long for ingestion.
+                    default_read_rows_operation_timeout=60,
+                    default_mutate_rows_operation_timeout=120,
+                )
+            return self.__table
+
+    def _close_client(self) -> None:
+        with self.__table_lock:
+            client = self.__client
+            self.__client = None
+            self.__table = None
+        if client is not None:
+            client.close()
 
     def get(self, key: str) -> bytes | None:
         with traces.start_span(name="bigtable.get", attributes={"sentry.op": "bigtable.get"}):
-            # Default timeout is 60 seconds, much too long for our ingestion pipeline
-            # Modify retry based on https://cloud.google.com/python/docs/reference/storage/latest/retry_timeout#configuring-retries
-            modified_retry = DEFAULT_RETRY_READ_ROWS.with_timeout(5.0)
-            row = self._get_table().read_row(key, retry=modified_retry)
+            row = self._get_table().read_row(key, operation_timeout=GET_OPERATION_TIMEOUT)
         if row is None:
             return None
 
@@ -133,11 +171,8 @@ class BigtableKVStorage(KVStorage[str, bytes]):
             logging.warning("get_many called with empty keys sequence")
             return
 
-        rows = RowSet()
-        for key in keys:
-            rows.add_row_key(key)
-
-        for row in self._get_table().read_rows(row_set=rows):
+        query = ReadRowsQuery(row_keys=list(keys))
+        for row in self._get_table().read_rows(query):
             value = self.__decode_row(row)
 
             # Even though Bigtable in't going to return empty rows, an empty
@@ -146,27 +181,27 @@ class BigtableKVStorage(KVStorage[str, bytes]):
             if value is not None:
                 yield row.row_key.decode("utf-8"), value
 
-    def __decode_row(self, row: PartialRowData) -> bytes | None:
-        columns = row.cells[self.column_family]
-
-        try:
-            cell = columns[self.data_column][0]
-        except KeyError:
+    def __decode_row(self, row: Row) -> bytes | None:
+        if (self.column_family, self.data_column) not in row:
             logger.warning("Retrieved row (%r) which does not contain a data column!", row.row_key)
             return None
 
+        # Cells are ordered newest first.
+        cell = row.get_cells(self.column_family, self.data_column)[0]
+
         # Check if a TTL column exists for this row. If there is, we can use
-        # the `timestamp` property of the cells to see if we should return the
-        # row or not.
-        if self.ttl_column in columns:
+        # the timestamp of the cells to see if we should return the row or
+        # not.
+        if (self.column_family, self.ttl_column) in row:
             # NOTE: If you need the value, it can be unpacked with the struct.
-            if cell.timestamp < timezone.now():
+            if cell.timestamp_micros < time.time_ns() // 1000:
                 return None
 
         value = cell.value
 
-        if self.flags_column in columns:
-            flags = self.Flags(self.flags_struct.unpack(columns[self.flags_column][0].value)[0])
+        if (self.column_family, self.flags_column) in row:
+            [flags_cell, *_] = row.get_cells(self.column_family, self.flags_column)
+            flags = self.Flags(self.flags_struct.unpack(flags_cell.value)[0])
 
             # Check if there is a compression flag set, if so decompress the value.
             # XXX: If no compression flags are matched, we unfortunately can't
@@ -186,21 +221,17 @@ class BigtableKVStorage(KVStorage[str, bytes]):
         try:
             return self._set(key, value, ttl)
         except (exceptions.InternalServerError, exceptions.ServiceUnavailable):
-            # Delete cached client before retry
-            with self.__table_lock:
-                del self.__table
             # Retry once on InternalServerError or ServiceUnavailable
             # 500 Received RST_STREAM with error code 2
             # SENTRY-S6D
+            # Unlike the legacy client, the data client refreshes its own
+            # channels, so the client isn't recreated (closing it would also
+            # break requests in flight on other threads).
             return self._set(key, value, ttl)
 
     def _set(self, key: str, value: bytes, ttl: timedelta | None = None) -> None:
-        # XXX: There is a type mismatch here -- ``direct_row`` expects
-        # ``bytes`` but we are providing it with ``str``.
-        row = self._get_table().direct_row(key)
-
-        # Call to delete is just a state mutation, and in this case is just
-        # used to clear all columns so the entire row will be replaced.
+        # Deleting the row first clears all columns so the entire row will be
+        # replaced.
         # Otherwise, if an existing row were mutated, and it took up more than
         # one column, it'd be possible to overwrite beginning columns and still
         # retain the end ones. This also ensures old data is collected during
@@ -208,7 +239,7 @@ class BigtableKVStorage(KVStorage[str, bytes]):
         # particularly if the TTL is reduced (if the prior state was retained,
         # cell values would persist using the longest TTL, not the most
         # recently set TTL.)
-        row.delete()
+        mutations: list[Mutation] = [DeleteAllFromRow()]
 
         # If we are setting a TTL on this row, we want to set the timestamp of
         # the cells into the future. This allows our GC policy to delete them
@@ -219,17 +250,21 @@ class BigtableKVStorage(KVStorage[str, bytes]):
         ttl = ttl or self.default_ttl
         if ttl is None:
             # XXX: If ``automatic_expiry`` is enabled and no TTL (default or
-            # row-level TTL) is provided, this will default to the Bigtable
-            # server timestamp and this row will be immediately evicted per the
-            # garbage collection policy.
-            ts = None
+            # row-level TTL) is provided, this will default to the current
+            # time and this row will be immediately evicted per the garbage
+            # collection policy. (An explicit client timestamp, rather than a
+            # server-assigned one, keeps the mutation idempotent so the client
+            # can retry it.)
+            ts_micros = _to_timestamp_micros(timezone.now())
         else:
-            ts = timezone.now() + ttl
-            row.set_cell(
-                self.column_family,
-                self.ttl_column,
-                self.ttl_struct.pack(int(ttl.total_seconds())),
-                timestamp=ts,
+            ts_micros = _to_timestamp_micros(timezone.now() + ttl)
+            mutations.append(
+                SetCell(
+                    self.column_family,
+                    self.ttl_column,
+                    self.ttl_struct.pack(int(ttl.total_seconds())),
+                    timestamp_micros=ts_micros,
+                )
             )
 
         # Track flags for metadata about this row. This only flag we're
@@ -251,52 +286,39 @@ class BigtableKVStorage(KVStorage[str, bytes]):
         # Only need to write the column at all if any flags are enabled. And if
         # so, pack it into a single byte.
         if flags:
-            row.set_cell(
-                self.column_family,
-                self.flags_column,
-                self.flags_struct.pack(flags),
-                timestamp=ts,
+            mutations.append(
+                SetCell(
+                    self.column_family,
+                    self.flags_column,
+                    self.flags_struct.pack(flags),
+                    timestamp_micros=ts_micros,
+                )
             )
 
         assert len(value) <= self.max_size
 
-        row.set_cell(self.column_family, self.data_column, value, timestamp=ts)
+        mutations.append(
+            SetCell(self.column_family, self.data_column, value, timestamp_micros=ts_micros)
+        )
 
-        status = row.commit()
-        if status.code != 0:
-            raise BigtableError(status.code, status.message)
+        self._get_table().mutate_row(key, mutations)
 
     def delete(self, key: str) -> None:
-        # XXX: There is a type mismatch here -- ``direct_row`` expects
-        # ``bytes`` but we are providing it with ``str``.
-        row = self._get_table().direct_row(key)
-        row.delete()
-
-        status = row.commit()
-        if status.code != 0:
-            raise BigtableError(status.code, status.message)
+        self._get_table().mutate_row(key, DeleteAllFromRow())
 
     def delete_many(self, keys: Sequence[str]) -> None:
-        table = self._get_table()
+        if not keys:
+            return
 
-        rows = []
-        for key in keys:
-            # XXX: There is a type mismatch here -- ``direct_row`` expects
-            # ``bytes`` but we are providing it with ``str``.
-            row = table.direct_row(key)
-            row.delete()
-            rows.append(row)
-
-        errors = []
-        for status in table.mutate_rows(rows):
-            if status.code != 0:
-                errors.append(BigtableError(status.code, status.message))
-
-        if errors:
-            raise BigtableError(errors)
+        try:
+            self._get_table().bulk_mutate_rows(
+                [RowMutationEntry(key, DeleteAllFromRow()) for key in keys]
+            )
+        except MutationsExceptionGroup as e:
+            raise BigtableError(list(e.exceptions)) from e
 
     def bootstrap(self, automatic_expiry: bool = True) -> None:
-        table = self._get_table(admin=True)
+        table = self._get_admin_table()
         if table.exists():
             return
 
@@ -318,7 +340,7 @@ class BigtableKVStorage(KVStorage[str, bytes]):
         retry_504(table.create)(column_families={self.column_family: gc_rule})
 
     def destroy(self) -> None:
-        table = self._get_table(admin=True)
+        table = self._get_admin_table()
         if not table.exists():
             return
 
