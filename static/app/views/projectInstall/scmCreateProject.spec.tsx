@@ -1649,6 +1649,75 @@ describe('ScmCreateProject', () => {
       }
     );
 
+    describe('member with project creation off', () => {
+      const memberOrganization = OrganizationFixture({
+        features: ['onboarding-agentic-setup'],
+        access: ['org:read', 'project:read'],
+        allowMemberProjectCreation: false,
+      });
+      const notice =
+        'Your organization only lets members create projects on teams they administer: #member-team. Tell your agent to use one of these teams, or ask an owner or manager to create the project for you.';
+
+      const memberTeams = [
+        TeamFixture({slug: 'member-team', teamRole: 'admin', access: ['team:admin']}),
+        TeamFixture({id: '2', slug: 'other-team', access: ['team:read']}),
+      ];
+
+      beforeEach(() => {
+        TeamStore.reset();
+        TeamStore.loadInitialData(memberTeams);
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/user-teams/',
+          body: memberTeams,
+        });
+      });
+
+      it('names the teams they administer before the prompt is copied', async () => {
+        mockAgentRun();
+        render(<ScmCreateProject />, {organization: memberOrganization});
+
+        expect(
+          await screen.findByRole('heading', {name: 'Let your agent set up Sentry'})
+        ).toBeInTheDocument();
+        expect(screen.getByText(notice)).toBeInTheDocument();
+        // The setup card's own link is still visible, so the notice adds none.
+        expect(screen.getAllByRole('button', {name: /Set up manually/})).toHaveLength(1);
+      });
+
+      it('keeps the notice and offers manual setup while the agent runs', async () => {
+        mockAgentRun(
+          AgenticProgressRunFixture({
+            stages: [
+              {stage: 'connect_mcp', status: 'completed', eventNote: null, extra: null},
+            ],
+          })
+        );
+        render(<ScmCreateProject />, {organization: memberOrganization});
+
+        expect(
+          await screen.findByRole('heading', {name: 'Your Agent Is Setting Up Sentry'})
+        ).toBeInTheDocument();
+        expect(screen.getByText(notice)).toBeInTheDocument();
+
+        await userEvent.click(screen.getByRole('button', {name: 'Set up manually'}));
+        expect(
+          await screen.findByRole('textbox', {name: 'Project name'})
+        ).toBeInTheDocument();
+      });
+
+      it('shows no notice when the organization lets members create projects', async () => {
+        mockAgentRun();
+        render(<ScmCreateProject />, {
+          organization: {...memberOrganization, allowMemberProjectCreation: true},
+        });
+
+        expect(
+          await screen.findByRole('heading', {name: 'Let your agent set up Sentry'})
+        ).toBeInTheDocument();
+        expect(screen.queryByText(notice)).not.toBeInTheDocument();
+      });
+    });
+
     it('does not initialize a run for a user who cannot create projects', async () => {
       const teamsRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/user-teams/',

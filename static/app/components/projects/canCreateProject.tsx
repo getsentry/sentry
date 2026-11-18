@@ -1,6 +1,13 @@
 import type {Organization, Team} from 'sentry/types/organization';
 
 /**
+ * Team admins can still create projects for their teams when member creation is disabled
+ */
+export function isTeamAdminForProjectCreation(team: Team) {
+  return team.teamRole === 'admin' && team.access.includes('team:admin');
+}
+
+/**
  * Used to determine if viewer can see project creation button
  */
 export function canCreateProject(organization: Organization, teams?: Team[]) {
@@ -13,8 +20,5 @@ export function canCreateProject(organization: Organization, teams?: Team[]) {
     return true;
   }
 
-  // Team admins can still create projects for their teams when member creation is disabled
-  return Boolean(
-    teams?.some(team => team.teamRole === 'admin' && team.access.includes('team:admin'))
-  );
+  return Boolean(teams?.some(isTeamAdminForProjectCreation));
 }
