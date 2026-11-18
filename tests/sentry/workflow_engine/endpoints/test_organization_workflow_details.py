@@ -3,6 +3,8 @@ from unittest import mock
 
 import responses
 from django.test import override_settings
+from django.urls import reverse
+from rest_framework.response import Response
 from rest_framework.test import APIClient
 
 from sentry import audit_log
@@ -17,9 +19,10 @@ from sentry.models.rule import Rule
 from sentry.seer import agent_token
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import TaskRunner
+from sentry.testutils.helpers import TaskRunner, with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, cell_silo_test
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 from sentry.workflow_engine.defaults.detectors import ensure_default_all_projects_detector
 from sentry.workflow_engine.endpoints.validators.base.workflow import WorkflowValidator
 from sentry.workflow_engine.models import (
@@ -141,6 +144,54 @@ class OrganizationWorkflowProjectScopeTest(APITestCase):
         workflow = self.create_workflow(organization_id=self.organization.id)
 
         self.get_error_response(self.organization.slug, workflow.id, method="post", status_code=405)
+
+    def get_as_service_account(self, workflow: Workflow, project_ids: list[int]) -> Response:
+        service_account = self.create_service_account(
+            organization=self.organization, scope_list=["org:read"], project_ids=project_ids
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+        return self.client.get(
+            reverse(self.endpoint, args=[self.organization.slug, workflow.id]),
+            HTTP_X_VIEWER_CONTEXT=viewer_context,
+        )
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_cannot_read_workflow_on_unlinked_projects(self) -> None:
+        workflow = self.create_workflow(organization_id=self.organization.id)
+        unlinked = self.create_project(organization=self.organization)
+        detector = self.create_detector(project=unlinked)
+        self.create_detector_workflow(workflow=workflow, detector=detector)
+
+        response = self.get_as_service_account(workflow, project_ids=[self.project.id])
+
+        assert response.status_code == 403, response.content
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_sees_every_project_id_on_a_shared_workflow(self) -> None:
+        # Same as members: access to one connected project returns every connected project ID.
+        workflow = self.create_workflow(organization_id=self.organization.id)
+        unlinked = self.create_project(organization=self.organization)
+        for project in (self.project, unlinked):
+            detector = self.create_detector(project=project)
+            self.create_detector_workflow(workflow=workflow, detector=detector)
+
+        response = self.get_as_service_account(workflow, project_ids=[self.project.id])
+
+        assert response.status_code == 200, response.content
+        assert response.data == {
+            "projectIds": [
+                str(project_id) for project_id in sorted([self.project.id, unlinked.id])
+            ],
+            "includesAllProjects": False,
+        }
 
 
 @cell_silo_test

@@ -1,11 +1,17 @@
 import sys
 
+import pytest
+from django.test import override_settings
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry.constants import DataCategory
+from sentry.models.project import Project
 from sentry.testutils.cases import APITestCase, OutcomesSnubaTest
 from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.helpers.features import with_feature
 from sentry.utils.outcomes import Outcome
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
 @freeze_time(before_now(days=1).replace(hour=1, minute=10))
@@ -136,3 +142,77 @@ class OrganizationStatsTest(APITestCase, OutcomesSnubaTest):
         assert response.status_code == 200, response.content
         assert project.id in response.data
         assert project2.id not in response.data
+
+
+@freeze_time(before_now(days=1).replace(hour=1, minute=10))
+@override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+@with_feature("organizations:service-accounts")
+class OrganizationStatsServiceAccountTest(APITestCase, OutcomesSnubaTest):
+    endpoint = "sentry-api-0-organization-stats"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.linked = self.create_project(organization=self.organization, teams=[self.team])
+        self.unlinked = self.create_project(organization=self.organization, teams=[self.team])
+        self.store_accepted_errors(self.linked, 2)
+        self.store_accepted_errors(self.unlinked, 3)
+        self.service_account = self.create_service_account(
+            organization=self.organization, scope_list=["org:read"], project_ids=[self.linked.id]
+        )
+
+    def store_accepted_errors(self, project: Project, quantity: int) -> None:
+        self.store_outcomes(
+            {
+                "org_id": self.organization.id,
+                "timestamp": before_now(minutes=1),
+                "project_id": project.id,
+                "key_id": self.create_project_key(project=project).id,
+                "outcome": Outcome.ACCEPTED,
+                "reason": "none",
+                "category": DataCategory.ERROR,
+                "quantity": 1,
+            },
+            quantity,
+        )
+
+    def get_as_service_account(self, params: dict[str, str]) -> Response:
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=self.service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+        return self.client.get(
+            reverse(self.endpoint, args=[self.organization.slug]),
+            params,
+            HTTP_X_VIEWER_CONTEXT=viewer_context,
+        )
+
+    @pytest.mark.xfail(
+        strict=True,
+        reason="Known gap: group=organization returns org-wide totals, including unlinked projects.",
+    )
+    def test_organization_totals_count_only_linked_projects(self) -> None:
+        response = self.get_as_service_account({"group": "organization"})
+
+        assert response.status_code == 200, response.content
+        assert response.data[-1][1] == 2
+
+    @pytest.mark.xfail(
+        strict=True,
+        reason="Known gap: group=project picks projects by the caller's teams, and a service account has none.",
+    )
+    def test_project_group_returns_only_linked_projects(self) -> None:
+        response = self.get_as_service_account({"group": "project"})
+
+        assert response.status_code == 200, response.content
+        assert set(response.data) == {self.linked.id}
+
+    def test_project_group_never_returns_unlinked_projects(self) -> None:
+        response = self.get_as_service_account(
+            {"group": "project", "projectID": str(self.unlinked.id)},
+        )
+
+        assert response.status_code == 200, response.content
+        assert self.unlinked.id not in response.data
