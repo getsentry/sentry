@@ -5,7 +5,7 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
-import {textWithMarkupMatcher} from 'sentry-test/utils';
+import {resetMockDate, setMockDate, textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {IssueCategory, IssueType} from 'sentry/types/group';
@@ -14,6 +14,7 @@ import {
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
 import type {MetricCondition} from 'sentry/types/workflowEngine/detectors';
+import {useLocation} from 'sentry/utils/useLocation';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
 import {InvestigationOrchestrationFixture} from 'sentry/views/investigations/fixtures';
 import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
@@ -31,6 +32,18 @@ function MetricDetectorTriggeredSectionWithProvider(
       <MetricDetectorTriggeredSection {...props} />
     </GroupIdProvider>
   );
+}
+
+// Issue details refetches the event after the zoom navigation and remounts the event
+// content about a second later.
+function RemountOnLocationChange(
+  props: ComponentProps<typeof MetricDetectorTriggeredSection>
+) {
+  const location = useLocation();
+  if (location.search) {
+    setMockDate(new Date('2024-01-01T00:20:01.456Z'));
+  }
+  return <MetricDetectorTriggeredSectionWithProvider key={location.search} {...props} />;
 }
 
 describe('MetricDetectorTriggeredSection', () => {
@@ -663,7 +676,9 @@ describe('MetricDetectorTriggeredSection', () => {
         body: {items},
       });
 
-      render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {organization});
+      render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {
+        organization,
+      });
 
       await waitFor(() => expect(candidatesMock).toHaveBeenCalled());
       expect(
@@ -1342,6 +1357,10 @@ describe('MetricDetectorTriggeredSection', () => {
   });
 
   describe('zoom to open period', () => {
+    afterEach(() => {
+      resetMockDate();
+    });
+
     it('applies detector zoom range when URL has no time period', async () => {
       const {router} = render(
         <MetricDetectorTriggeredSectionWithProvider {...defaultProps} />,
@@ -1367,6 +1386,82 @@ describe('MetricDetectorTriggeredSection', () => {
         );
       });
       expect(router.location.query.statsPeriod).toBeDefined();
+    });
+
+    it('requests ranked attributes once, after zooming to an ongoing open period', async () => {
+      const spansEvent = EventFixture({
+        ...defaultEvent,
+        occurrence: {
+          ...defaultEvent.occurrence!,
+          evidenceData: {
+            conditions: [condition],
+            dataSources: [
+              SnubaQueryDataSourceFixture({
+                queryObj: {
+                  ...dataSource.queryObj!,
+                  snubaQuery: {
+                    ...dataSource.queryObj!.snubaQuery,
+                    aggregate: 'p95(span.duration)',
+                    dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
+                    eventTypes: [EventTypes.TRACE_ITEM_SPAN],
+                    query: '',
+                  },
+                },
+              }),
+            ],
+            value: 150,
+          },
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/open-periods/',
+        body: [
+          {
+            id: '101',
+            start: openPeriodStartDate,
+            end: null,
+            isOpen: true,
+            eventId: 'event-1',
+            activities: [],
+          },
+        ],
+      });
+      const rankedAttributesRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/trace-items/attributes/ranked/',
+        body: {cohort1Total: 0, cohort2Total: 0, rankedAttributes: []},
+      });
+
+      setMockDate(new Date('2024-01-01T00:20:00.123Z'));
+
+      const {router} = render(
+        <RemountOnLocationChange {...defaultProps} event={spansEvent} />,
+        {
+          initialRouterConfig: {
+            location: {
+              pathname: `/organizations/org-slug/issues/${defaultGroup.id}/`,
+              query: {},
+            },
+            routes: [
+              '/organizations/:orgId/issues/:groupId/',
+              '/organizations/:orgId/issues/:groupId/events/:eventId/',
+            ],
+          },
+        }
+      );
+
+      await waitFor(() => {
+        expect(router.location.query.statsPeriod).toBeDefined();
+      });
+      await waitFor(() => {
+        expect(rankedAttributesRequest).toHaveBeenCalled();
+      });
+      expect(rankedAttributesRequest).toHaveBeenCalledTimes(1);
+      expect(rankedAttributesRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({end: '2024-01-01T00:20:01.000'}),
+        })
+      );
     });
 
     it('does not apply detector zoom range when URL already has a time period', async () => {
