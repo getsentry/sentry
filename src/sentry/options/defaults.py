@@ -15,7 +15,7 @@ from sentry.options.manager import (
     FLAG_SCALAR,
 )
 from sentry.quotas.base import build_metric_abuse_quotas
-from sentry.utils.types import Any, Bool, Dict, Float, Int, Sequence, String
+from sentry.utils.types import Any, Bool, Dict, Float, Int, NonNegativeInt, Sequence, String
 
 # Cache
 # register('cache.backend', flags=FLAG_NOSTORE)
@@ -676,6 +676,15 @@ register(
     "replay.consumer.msgspec_recording_parser",
     type=Bool,
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Maximum number of bytes a single recording segment may decompress to at ingest. Segments
+# which inflate past this limit are dropped instead of stored. Negative values are rejected
+# because zlib treats a `max_length` of 0 as unlimited.
+register(
+    "replay.consumer.max-segment-decompressed-size",
+    type=NonNegativeInt,
+    default=100 * 1024 * 1024,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Enable new database query caching.
