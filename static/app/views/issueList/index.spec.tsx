@@ -11,7 +11,9 @@ import {IssueSortOptions} from './utils';
 describe('IssueListContainer', () => {
   const defaultProps = {children: <div>Foo</div>};
 
-  const organization = OrganizationFixture();
+  const organization = OrganizationFixture({
+    access: ['org:read', 'project:read', 'event:read'],
+  });
 
   const initialRouterConfig = {
     location: {pathname: '/organizations/org-slug/issues/views/100/'},
@@ -19,6 +21,17 @@ describe('IssueListContainer', () => {
   };
 
   const mockGroupSearchView = GroupSearchViewFixture({id: '100'});
+
+  it('shows a permission message to billing-only users', () => {
+    PageFiltersStore.init();
+
+    render(<IssueListContainer {...defaultProps} />, {
+      organization: OrganizationFixture({access: ['org:billing']}),
+      initialRouterConfig: {location: {pathname: '/organizations/org-slug/issues/'}},
+    });
+
+    expect(screen.getByText("You don't have access to this feature")).toBeInTheDocument();
+  });
 
   describe('issue views', () => {
     beforeEach(() => {
