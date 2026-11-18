@@ -78,6 +78,20 @@ embed_widget_codegen:
 nav_snapshot_codegen:
   - added|modified: 'src/sentry/seer/nav_snapshot.generated.json'
 
+# What tools/seer_nav parses, kept broad: nav files also import constants from elsewhere.
+seer_nav_sources:
+  - 'static/app/views/navigation/**'
+  - 'static/app/views/settings/**'
+  - 'static/app/views/issueList/taxonomies.tsx'
+  - 'static/app/views/dashboards/utils/prebuiltConfigs/**'
+  - 'static/app/views/explore/tables/index.tsx'
+  - 'static/app/utils/seer/**'
+  - 'static/app/router/**'
+  - 'static/app/**/routes.{ts,tsx}'
+  - 'static/gsApp/overrides/useBillingNavigationConfig.tsx'
+  - 'tools/seer_nav/**'
+  - 'src/sentry/seer/nav_snapshot.generated.json'
+
 test_utility_only_paths:
   - 'src/sentry/replays/testutils.py'
   - 'fixtures/search-syntax/**/*'
