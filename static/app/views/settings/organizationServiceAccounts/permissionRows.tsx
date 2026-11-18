@@ -1,7 +1,4 @@
-import {Fragment} from 'react';
-
-import {Tag} from '@sentry/scraps/badge';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
@@ -11,7 +8,6 @@ import {t} from 'sentry/locale';
 import {
   getCategoryResources,
   getGrantedScopes,
-  isLimitedByDataAccess,
   SCOPE_CATEGORIES,
   type Bundle,
   type ScopeResource,
@@ -28,29 +24,9 @@ export function getResourceLevel(bundle: Bundle, resource: ScopeResource): Acces
   return granted.length > 0 ? 'read' : 'none';
 }
 
-function WriteNotes({bundle, resource}: {bundle: Bundle; resource: ScopeResource}) {
-  const written = getGrantedScopes(bundle, resource).filter(
-    scope => scope.action !== 'read'
-  );
-  if (written.length === 0) {
-    return null;
-  }
-  const ownDataOnly =
-    bundle.dataAccess === 'own' &&
-    !resource.ownerless &&
-    written.some(isLimitedByDataAccess);
-  return (
-    <Fragment>
-      {ownDataOnly && <Tag variant="muted">{t('Own data only')}</Tag>}
-      {written.some(scope => scope.irreversible) && (
-        <Tag variant="danger">{t('Irreversible')}</Tag>
-      )}
-      {written.some(scope => scope.costImpact) && (
-        <Tag variant="warning">{t('Cost impact')}</Tag>
-      )}
-    </Fragment>
-  );
-}
+const ALL_RESOURCES = SCOPE_CATEGORIES.flatMap(category =>
+  getCategoryResources(category.id)
+);
 
 const COLUMNS: TableColumnConfig[] = [
   {key: 'resource', width: 'minmax(0, 1fr)'},
@@ -70,9 +46,9 @@ function getLevelLabel(resource: ScopeResource, level: AccessLevel) {
 }
 
 /**
- * A read-only table of what a bundle grants: one row per resource, grouped by category.
- * Follows the permission table on the Seer automation form (`seerWorkflows/automations/
- * serviceAccountAccess.tsx`), using the proposed granular scopes instead.
+ * A read-only table of what a bundle grants, one row per resource. Matches the
+ * permission table on the Seer automation form (`seerWorkflows/automations/
+ * serviceAccountAccess.tsx`), with the level as text instead of a dropdown.
  */
 export function PermissionTable({bundle}: {bundle: Bundle}) {
   return (
@@ -85,52 +61,29 @@ export function PermissionTable({bundle}: {bundle: Bundle}) {
         </SimpleTable.HeaderRow>
       }
     >
-      {SCOPE_CATEGORIES.map(category => (
-        <Fragment key={category.id}>
-          <SimpleTable.Row>
-            <SimpleTable.RowCell column="1 / -1" background="secondary" gap="sm">
-              <Text bold uppercase size="xs">
-                {category.label}
-              </Text>
-              <Text size="xs" variant="muted">
-                {category.appliesTo === 'projects'
-                  ? t('Applies to the selected projects')
-                  : t('Applies to the whole organization')}
+      {ALL_RESOURCES.map(resource => {
+        const level = getResourceLevel(bundle, resource);
+        return (
+          <SimpleTable.Row key={resource.id}>
+            <SimpleTable.RowCell>
+              <Stack gap="xs">
+                <Text bold>{resource.label}</Text>
+                <Text size="sm" variant="muted">
+                  {resource.help}
+                </Text>
+              </Stack>
+            </SimpleTable.RowCell>
+            <SimpleTable.RowCell justify="end">
+              <Text variant={level === 'none' ? 'muted' : 'primary'}>
+                {getLevelLabel(resource, level)}
               </Text>
             </SimpleTable.RowCell>
           </SimpleTable.Row>
-          {getCategoryResources(category.id).map(resource => {
-            const level = getResourceLevel(bundle, resource);
-            return (
-              <SimpleTable.Row key={resource.id}>
-                <SimpleTable.RowCell>
-                  <Stack gap="xs">
-                    <Flex gap="sm" align="center" wrap="wrap">
-                      <Text bold>{resource.label}</Text>
-                      <WriteNotes bundle={bundle} resource={resource} />
-                    </Flex>
-                    <Text size="sm" variant="muted">
-                      {resource.help}
-                    </Text>
-                  </Stack>
-                </SimpleTable.RowCell>
-                <SimpleTable.RowCell justify="end">
-                  <Text variant={level === 'none' ? 'muted' : 'primary'}>
-                    {getLevelLabel(resource, level)}
-                  </Text>
-                </SimpleTable.RowCell>
-              </SimpleTable.Row>
-            );
-          })}
-        </Fragment>
-      ))}
+        );
+      })}
     </SimpleTable>
   );
 }
-
-const ALL_RESOURCES = SCOPE_CATEGORIES.flatMap(category =>
-  getCategoryResources(category.id)
-);
 
 /** e.g. "Read 23 · Write 5 · 2 irreversible · 1 cost impacting" */
 export function PermissionSummary({bundle}: {bundle: Bundle}) {
