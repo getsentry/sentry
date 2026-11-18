@@ -78,6 +78,65 @@ describe('useAgentHandoff', () => {
     expect(mint).toHaveBeenCalledTimes(2);
   });
 
+  it.each([false, true])(
+    'mints a fresh code after window refocus (mint in progress: %s)',
+    async mintInProgress => {
+      const {promise, resolve} = Promise.withResolvers<void>();
+      const expiresAt = new Date(Date.now() + 300_000).toISOString();
+      const mint = MockApiClient.addMockResponse({
+        url,
+        method: 'POST',
+        body: {code, handoffId, expiresAt},
+        asyncDelay: promise,
+      });
+      const {result} = renderHookWithProviders(
+        () => useAgentHandoff(AgentHandoffFlow.ONBOARDING, context),
+        {organization}
+      );
+
+      let firstCopy!: Promise<string>;
+      act(() => {
+        firstCopy = result.current.copyPrompt(options);
+      });
+      expect(mint).toHaveBeenCalledTimes(1);
+
+      if (!mintInProgress) {
+        await act(async () => {
+          resolve();
+          await firstCopy;
+        });
+      }
+
+      window.dispatchEvent(new FocusEvent('focus'));
+
+      if (mintInProgress) {
+        await act(async () => {
+          resolve();
+          await firstCopy;
+        });
+      }
+
+      const freshCode = 'sntryh_fresh';
+      const freshHandoffId = 'b'.repeat(32);
+      const mintFresh = MockApiClient.addMockResponse({
+        url,
+        method: 'POST',
+        body: {code: freshCode, handoffId: freshHandoffId, expiresAt},
+      });
+      await act(async () => {
+        await expect(result.current.copyPrompt(options)).resolves.toBe(freshHandoffId);
+      });
+
+      expect(mintFresh).toHaveBeenCalledTimes(1);
+      const item = write.mock.calls.at(-1)![0][0] as {
+        data: Record<string, Promise<Blob>>;
+      };
+      await expect(item.data['text/plain']!.then(blob => blob.text())).resolves.toBe(
+        prompt.replace(code, freshCode)
+      );
+    }
+  );
+
   it('reports a safe error when minting fails', async () => {
     MockApiClient.addMockResponse({
       url,
