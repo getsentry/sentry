@@ -28,8 +28,8 @@ class ConditionOperator(StrEnum):
     value literally and match a field that equals, starts with, contains or ends with
     any value, or one that does none of that, case-insensitively. ``cidr`` matches an IP
     address against each value as an address or a CIDR range, and ``not_cidr`` matches
-    one that no value covers. The ordered operators compare one value as a release
-    version, also when the field is a browser version.
+    one that no value covers. The ordered operators compare one value as either a release or browser
+    version (depending on which one(s) were selected).
 
     A stored condition without an operator holds raw values, as with ``glob`` or ``cidr``:
     a row written before operators existed.

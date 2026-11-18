@@ -233,14 +233,15 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
             raise serializers.ValidationError(
                 {"value": f"The {attrs['operator']} operator takes exactly one value."}
             )
-        # Relay never matches a comparison against a release without a version, so the
-        # condition would silently match nothing.
-        if ConditionType(attrs["type"]) is ConditionType.BROWSER_VERSION:
+        condition_type = ConditionType(attrs["type"])
+        if condition_type is ConditionType.BROWSER_VERSION:
             if not _is_browser_version(attrs["value"][0]):
                 raise serializers.ValidationError(
                     {"value": f"{attrs['value'][0]} is not a version such as 120 or 120.0.6099."}
                 )
-        elif not _is_release_version(attrs["value"][0]):
+        # Relay never matches a comparison against a release without a version, so the
+        # condition would silently match nothing.
+        elif condition_type is ConditionType.RELEASE and not _is_release_version(attrs["value"][0]):
             raise serializers.ValidationError(
                 {
                     "value": (
