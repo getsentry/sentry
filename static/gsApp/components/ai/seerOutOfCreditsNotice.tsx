@@ -242,26 +242,49 @@ function SeerOutOfCreditsAction({
     );
   }
 
-  if (escalation === 'request' && hasRequestedCredits) {
+  if (escalation === 'request' && onRequestCredits) {
     return (
-      <Button size={size} icon={<IconMail />} disabled>
+      <SeerContactAdminButton
+        size={size}
+        onRequestCredits={onRequestCredits}
+        isRequestingCredits={isRequestingCredits}
+        hasRequestedCredits={hasRequestedCredits}
+      />
+    );
+  }
+
+  return null;
+}
+
+/**
+ * "Contact Admin" emails the org's admins to ask for Seer credits, and shows
+ * "Admins emailed" once the viewer has.
+ */
+export function SeerContactAdminButton({
+  onRequestCredits,
+  isRequestingCredits,
+  hasRequestedCredits,
+  ...buttonProps
+}: Pick<ButtonProps, 'size' | 'variant'> &
+  Pick<SeerOutOfCreditsNoticeProps, 'isRequestingCredits' | 'hasRequestedCredits'> & {
+    onRequestCredits: () => void;
+  }) {
+  if (hasRequestedCredits) {
+    return (
+      <Button {...buttonProps} icon={<IconMail />} disabled>
         {t('Admins emailed')}
       </Button>
     );
   }
 
-  if (escalation === 'request' && onRequestCredits) {
-    return (
-      <Button
-        size={size}
-        icon={<IconMail />}
-        busy={isRequestingCredits}
-        onClick={onRequestCredits}
-      >
-        {t('Contact Admin')}
-      </Button>
-    );
-  }
-
-  return null;
+  return (
+    <Button
+      {...buttonProps}
+      icon={<IconMail />}
+      busy={isRequestingCredits}
+      onClick={onRequestCredits}
+    >
+      {t('Contact Admin')}
+    </Button>
+  );
 }

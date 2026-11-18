@@ -23,6 +23,8 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {seerCreditChecksFilter} from 'sentry/utils/seer/useSeerCreditCheck';
 
+import {SeerContactAdminButton} from 'getsentry/components/ai/seerOutOfCreditsNotice';
+import {useSeerTopUpRequest} from 'getsentry/components/ai/useSeerTopUpRequest';
 import {AuthenticatePayment} from 'getsentry/components/authenticatePayment';
 import {CreditCardForm} from 'getsentry/components/creditCardEdit/form';
 import {StripeWrapper} from 'getsentry/components/stripeWrapper';
@@ -97,11 +99,81 @@ function getInitialAmount(autoTopUp: SeerWalletAutoTopUp, creditPriceCents: numb
 }
 
 /**
- * Seer auto-reload settings. The modal loads the wallet itself so it can be
- * opened from anywhere; on the billing page the wallet card has already loaded
- * it, so it shows straight from the cache.
+ * Seer auto-reload settings. Only billing members can change them, so everyone
+ * else is asked to contact their admins instead.
  */
 function AutoTopUpModal(props: AutoTopUpModalProps) {
+  if (!props.organization.access.includes('org:billing')) {
+    return <AutoTopUpContactAdmin {...props} />;
+  }
+  return <AutoTopUpSettingsLoader {...props} />;
+}
+
+function AutoTopUpHeader({Header}: Pick<ModalRenderProps, 'Header'>) {
+  return (
+    <Header closeButton>
+      <Stack gap="xs">
+        <Heading as="h2" size="xl">
+          {t('Auto-reload credits')}
+        </Heading>
+        <Text size="lg" variant="muted">
+          {t(
+            'Automatically purchase credits when your balance is low, for uninterrupted Seer usage'
+          )}
+        </Text>
+      </Stack>
+    </Header>
+  );
+}
+
+/**
+ * Members without billing access can't read or change auto-reload. Members of
+ * self-serve orgs can email their admins to ask; members of orgs that buy
+ * through an account team only see who to ask.
+ */
+function AutoTopUpContactAdmin({
+  Header,
+  Body,
+  Footer,
+  closeModal,
+  organization,
+}: AutoTopUpModalProps) {
+  const {escalation, isLoading, hasRequested, isRequesting, requestCredits} =
+    useSeerTopUpRequest(organization);
+
+  return (
+    <Fragment>
+      <AutoTopUpHeader Header={Header} />
+      <Body>
+        <Text as="p" size="lg">
+          {t(
+            'Only owners and billing members can manage auto-reload. Ask your admin to turn it on or increase your daily usage limit.'
+          )}
+        </Text>
+      </Body>
+      <Footer>
+        <Grid flow="column" align="center" gap="md">
+          <Button onClick={closeModal}>{t('Close')}</Button>
+          {escalation === 'request' && !isLoading && (
+            <SeerContactAdminButton
+              variant="primary"
+              onRequestCredits={() => requestCredits()}
+              isRequestingCredits={isRequesting}
+              hasRequestedCredits={hasRequested}
+            />
+          )}
+        </Grid>
+      </Footer>
+    </Fragment>
+  );
+}
+
+/**
+ * Loads the wallet itself so the modal can be opened from anywhere; on the
+ * billing page the wallet card has already loaded it, so it shows straight from
+ * the cache.
+ */
+function AutoTopUpSettingsLoader(props: AutoTopUpModalProps) {
   const {Header, Body, organization} = props;
   const balanceQuery = useQuery(seerWalletBalanceOptions(organization));
   const autoTopUpQuery = useQuery(seerWalletAutoTopUpOptions(organization));
@@ -329,18 +401,7 @@ function AutoTopUpForm({
 
   return (
     <Fragment>
-      <Header closeButton>
-        <Stack gap="xs">
-          <Heading as="h2" size="xl">
-            {t('Auto-reload credits')}
-          </Heading>
-          <Text size="lg" variant="muted">
-            {t(
-              'Automatically purchase credits when your balance is low, for uninterrupted Seer usage'
-            )}
-          </Text>
-        </Stack>
-      </Header>
+      <AutoTopUpHeader Header={Header} />
       <Body>
         <Stack gap="2xl">
           {error && (

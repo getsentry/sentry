@@ -1,7 +1,15 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {
+  act,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {openSeerAutoTopUpModal} from 'getsentry/views/subscriptionPage/seerWallet/autoTopUpModal';
 import type {SeerWalletAutoTopUp} from 'getsentry/views/subscriptionPage/seerWallet/seerWalletOptions';
 
@@ -771,5 +779,59 @@ describe('openSeerAutoTopUpModal', () => {
       await screen.findByText('Unable to load your Seer credits.')
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Retry'})).toBeInTheDocument();
+  });
+
+  describe('without billing access', () => {
+    const member = OrganizationFixture({access: ['org:read']});
+    const message =
+      'Only owners and billing members can manage auto-reload. Ask your admin to turn it on or increase your daily usage limit.';
+
+    function openForMember({canSelfServe}: {canSelfServe: boolean}) {
+      act(() =>
+        SubscriptionStore.set(
+          member.slug,
+          // Tests run with the clock frozen at 2017-10-17, inside this period.
+          SubscriptionFixture({
+            organization: member,
+            canSelfServe,
+            onDemandPeriodStart: '2017-10-01',
+          })
+        )
+      );
+      renderGlobalModal({organization: member});
+      act(() => openSeerAutoTopUpModal({organization: member}));
+    }
+
+    it('lets members of self-serve orgs email their admins', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${member.slug}/prompts-activity/`,
+        body: {},
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${member.slug}/prompts-activity/`,
+        method: 'PUT',
+      });
+      const request = MockApiClient.addMockResponse({
+        url: `/organizations/${member.slug}/seer-top-up-request/`,
+        method: 'POST',
+      });
+      openForMember({canSelfServe: true});
+
+      expect(await screen.findByText(message)).toBeInTheDocument();
+      await userEvent.click(await screen.findByRole('button', {name: 'Contact Admin'}));
+
+      await waitFor(() => expect(request).toHaveBeenCalled());
+      expect(await screen.findByRole('button', {name: 'Admins emailed'})).toBeDisabled();
+    });
+
+    it('gives members of orgs that cannot self-serve no Contact Admin', () => {
+      openForMember({canSelfServe: false});
+
+      expect(screen.getByText(message)).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Close'})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Contact Admin'})
+      ).not.toBeInTheDocument();
+    });
   });
 });

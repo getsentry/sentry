@@ -4,6 +4,7 @@ import {css, Global} from '@emotion/react';
 import type {Organization} from 'sentry/types/organization';
 
 import GSBanner from 'getsentry/components/gsBanner';
+import {useSeerAutoReloadModalLink} from 'getsentry/views/subscriptionPage/seerWallet/useSeerAutoReloadModalLink';
 
 /**
  * Pendo gives embedded guides a fixed pixel height when they render and only
@@ -23,6 +24,8 @@ interface Props {
 }
 
 export function OrganizationHeader({organization}: Props) {
+  useSeerAutoReloadModalLink(organization);
+
   return (
     <Fragment>
       <Global styles={pendoEmbeddedGuideStyles} />
