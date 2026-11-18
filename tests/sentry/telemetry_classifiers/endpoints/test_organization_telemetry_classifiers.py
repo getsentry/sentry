@@ -321,7 +321,7 @@ class OrganizationTelemetryClassifiersCreateTest(APITestCase):
             "status": "enabled",
             "prebuiltClassifierKey": "conversation_user_frustration",
             "naturalLanguagePrompt": None,
-            "outputType": None,
+            "outputType": "binary",
             "dateAdded": classifier.date_added,
             "dateUpdated": classifier.date_updated,
         }
