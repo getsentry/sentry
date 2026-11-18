@@ -29,8 +29,8 @@ import {makeStatsPathname} from 'sentry/views/organizationStats/pathname';
 
 import {ContactBillingMembers} from 'getsentry/views/contactBillingMembers';
 
-import type {LlmCostStats, ProductCredits} from './utils';
-import {groupCreditsByProduct, llmCostStatsOptions} from './utils';
+import type {LlmUsageStats, ProductCredits} from './utils';
+import {groupCreditsByProduct, llmUsageStatsOptions} from './utils';
 
 const COLUMNS: TableColumnConfig[] = [
   {key: 'feature', width: '1fr'},
@@ -48,7 +48,7 @@ function CreditsChart({
   utc,
 }: {
   products: ProductCredits[];
-  stats: LlmCostStats;
+  stats: LlmUsageStats;
   utc: boolean;
 }) {
   const series: BarChartSeries[] = products.map(product => ({
@@ -79,7 +79,7 @@ function SeerCredits() {
   const {selection} = usePageFilters();
   const dataDatetime = getDataDatetime(selection.datetime);
   const {data, isPending, isError, refetch} = useQuery(
-    llmCostStatsOptions(organization, dataDatetime)
+    llmUsageStatsOptions(organization, dataDatetime)
   );
 
   if (isError) {
@@ -146,7 +146,7 @@ function SeerCredits() {
   );
 }
 
-export default function SeerCostStats() {
+export default function SeerUsageStats() {
   const organization = useOrganization();
 
   if (!organization.features.includes('token-billed-seer-enabled')) {

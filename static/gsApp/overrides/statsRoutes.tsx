@@ -3,5 +3,5 @@ import type {SentryRouteObject} from 'sentry/router/types';
 
 export const statsRoutes = (): SentryRouteObject => ({
   path: 'seer/',
-  component: make(() => import('getsentry/views/seerCostStats')),
+  component: make(() => import('getsentry/views/seerUsageStats')),
 });

@@ -6,14 +6,14 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 
-import SeerCostStats from '.';
+import SeerUsageStats from '.';
 
-describe('SeerCostStats', () => {
+describe('SeerUsageStats', () => {
   const organization = OrganizationFixture({
     features: ['token-billed-seer-enabled'],
     access: ['org:read', 'org:billing'],
   });
-  const endpoint = `/customers/${organization.slug}/llm-cost-stats/`;
+  const endpoint = `/customers/${organization.slug}/llm-usage-stats/`;
   const initialRouterConfig = {
     location: {pathname: `/settings/${organization.slug}/stats/seer/`},
     route: '/settings/:orgId/stats/seer/',
@@ -59,7 +59,7 @@ describe('SeerCostStats', () => {
       ],
     });
 
-    render(<SeerCostStats />, {organization, initialRouterConfig});
+    render(<SeerUsageStats />, {organization, initialRouterConfig});
 
     expect(await screen.findByRole('cell', {name: 'Autofix'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '300'})).toBeInTheDocument();
@@ -80,7 +80,7 @@ describe('SeerCostStats', () => {
       },
     });
 
-    render(<SeerCostStats />, {organization, initialRouterConfig});
+    render(<SeerUsageStats />, {organization, initialRouterConfig});
 
     expect(
       await screen.findByText('No Seer credits used in this date range.')
@@ -98,14 +98,14 @@ describe('SeerCostStats', () => {
     });
     const request = MockApiClient.addMockResponse({url: endpoint, body: {}});
 
-    render(<SeerCostStats />, {organization: member, initialRouterConfig});
+    render(<SeerUsageStats />, {organization: member, initialRouterConfig});
 
     expect(await screen.findByText('Insufficient Access')).toBeInTheDocument();
     expect(request).not.toHaveBeenCalled();
   });
 
   it('redirects orgs without token-billed Seer to the Usage tab', async () => {
-    const {router} = render(<SeerCostStats />, {
+    const {router} = render(<SeerUsageStats />, {
       organization: OrganizationFixture({access: ['org:read', 'org:billing']}),
       initialRouterConfig,
     });
