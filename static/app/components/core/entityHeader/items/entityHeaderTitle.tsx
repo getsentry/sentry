@@ -15,7 +15,7 @@ import type {AvatarUser} from 'sentry/types/user';
 import {defined} from 'sentry/utils/defined';
 import {unreachable} from 'sentry/utils/unreachable';
 
-import {EntityHeaderDestinationLink} from './entityHeaderLink';
+import {EntityHeaderDestinationLink, toLinkDestination} from './entityHeaderText';
 
 /**
  * Either the graphic is named, in which case it may also elaborate on hover, or
@@ -209,7 +209,7 @@ export function EntityHeaderTitle(props: EntityHeaderTitleProps & {isLoading?: b
             // Named like the heading, so a links list reads "Replay user,
             // anonymous@example.com" rather than a bare address.
             <EntityHeaderDestinationLink
-              destination={props}
+              destination={toLinkDestination(props)}
               aria-label={accessibleName}
               {...containerProps}
             >

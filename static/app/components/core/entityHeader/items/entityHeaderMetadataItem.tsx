@@ -12,8 +12,12 @@ import {Text} from '@sentry/scraps/text';
 
 import {Placeholder} from 'sentry/components/placeholder';
 
-import type {EntityHeaderTextStyles} from './entityHeaderLink';
-import {EntityHeaderTextLink} from './entityHeaderLink';
+import type {
+  EntityHeaderTextBehavior,
+  EntityHeaderTextStyles,
+  EntityHeaderTextVariant,
+} from './entityHeaderText';
+import {EntityHeaderText, toLinkDestination} from './entityHeaderText';
 
 const TEXT_STYLES = {
   size: 'md',
@@ -65,12 +69,9 @@ export type EntityHeaderMetadataItemProps = EntityHeaderMetadataItemBase &
         type: 'text';
         value: React.ReactNode;
         /**
-         * Colours the value. Narrower than `ContentVariant`, because a
-         * tooltipped value also colours its underline and `Tooltip` takes a
-         * smaller set. `muted` stands in for `secondary`; left out are
-         * `accent`, which would read as a link, and `promotion`.
+         * Colours the value, to call out a problem or a state.
          */
-        variant?: 'primary' | 'muted' | 'danger' | 'success' | 'warning';
+        variant?: EntityHeaderTextVariant;
       }
     | ({
         type: 'link';
@@ -90,31 +91,17 @@ export function EntityHeaderMetadataItemSkeleton() {
   );
 }
 
-function MetadataValue(props: EntityHeaderMetadataItemProps) {
-  const {label, tooltip} = props;
-
-  if (props.type === 'link') {
-    return (
-      <EntityHeaderTextLink
-        {...TEXT_STYLES}
-        destination={props}
-        aria-label={`${label} ${props.value}`}
-        tooltip={tooltip}
-      >
-        {props.value}
-      </EntityHeaderTextLink>
-    );
-  }
-
-  return tooltip ? (
-    <InfoText title={tooltip} variant={props.variant} {...TEXT_STYLES}>
-      {props.value}
-    </InfoText>
-  ) : (
-    <Text variant={props.variant} {...TEXT_STYLES}>
-      {props.value}
-    </Text>
-  );
+function getValueBehavior(
+  props: EntityHeaderMetadataItemProps
+): EntityHeaderTextBehavior {
+  return props.type === 'link'
+    ? {
+        type: 'link',
+        ...toLinkDestination(props),
+        'aria-label': `${props.label} ${props.value}`,
+        tooltip: props.tooltip,
+      }
+    : {type: 'text', variant: props.variant, tooltip: props.tooltip};
 }
 
 export function EntityHeaderMetadataItem(
@@ -158,7 +145,9 @@ export function EntityHeaderMetadataItem(
             ) : (
               <VisuallyHidden>{label}</VisuallyHidden>
             ))}
-          <MetadataValue {...props} />
+          <EntityHeaderText behavior={getValueBehavior(props)} styles={TEXT_STYLES}>
+            {props.value}
+          </EntityHeaderText>
           {secondary && (
             <Fragment>
               {/*
