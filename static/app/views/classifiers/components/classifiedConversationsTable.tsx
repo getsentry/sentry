@@ -1,7 +1,8 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Stack} from '@sentry/scraps/layout';
+import {Tag} from '@sentry/scraps/badge';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 import {COL_WIDTH_MINIMUM, COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
@@ -15,8 +16,6 @@ import {TableNoDataPanel} from 'sentry/components/tables/tableNoDataPanel';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
-import {formatFloat} from 'sentry/utils/number/formatFloat';
-import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {getPaginationProps} from 'sentry/utils/pagination';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -25,8 +24,9 @@ import {
   type ClassifiedConversation,
   type ClassifiedConversationSortKey,
 } from 'sentry/views/classifiers/hooks/useClassifiedConversations';
+import {useClassifierResultFilter} from 'sentry/views/classifiers/hooks/useClassifierResultFilter';
 import type {TelemetryClassifier} from 'sentry/views/classifiers/types';
-import {getResultAttributeKey} from 'sentry/views/classifiers/utils';
+import {getResultAttributeKey, isClassifierMatch} from 'sentry/views/classifiers/utils';
 import {ConversationCell} from 'sentry/views/explore/conversations/components/conversationsTable';
 import {getConversationDetailUrl} from 'sentry/views/explore/conversations/utils/urlParams';
 
@@ -45,18 +45,32 @@ const FLEXIBLE_CONVERSATION_COLUMN = {
 };
 
 function ClassifierResult({
-  outputType,
+  classifier,
+  isBinary,
   value,
 }: {
-  outputType: TelemetryClassifier['outputType'];
+  classifier: TelemetryClassifier;
+  isBinary: boolean;
   value: number | null;
 }) {
   if (value === null) {
-    return <Text variant="muted">&mdash;</Text>;
+    return (
+      <Text variant="muted" align="right">
+        &mdash;
+      </Text>
+    );
+  }
+  if (isBinary) {
+    const isMatch = isClassifierMatch(classifier, value);
+    return (
+      <Flex justify="end">
+        <Tag variant={isMatch ? 'info' : 'muted'}>{isMatch ? t('True') : t('False')}</Tag>
+      </Flex>
+    );
   }
   return (
-    <Text tabular>
-      {outputType === 'binary' ? formatPercentage(value, 0) : formatFloat(value, 2)}
+    <Text tabular align="right">
+      {value}
     </Text>
   );
 }
@@ -72,12 +86,15 @@ export function ClassifiedConversationsTable({
   const navigate = useNavigate();
   const {data, isFetching, error, pageLinks, setCursor, sort, setSort} =
     useClassifiedConversations(classifier);
+  const {isBinary, resultFilter} = useClassifierResultFilter(classifier);
   const [highlightedRowKey, setHighlightedRowKey] = useState<number | undefined>();
   const [columnWidths, setColumnWidths] = useState<Partial<Record<ColumnKey, number>>>(
     {}
   );
 
   const projects = useMemo(() => [Number(classifier.projectId)], [classifier.projectId]);
+
+  const showResultColumn = resultFilter === 'all';
 
   const columnOrder = useMemo<Array<GridColumnOrder<ColumnKey>>>(
     () => [
@@ -86,18 +103,22 @@ export function ClassifiedConversationsTable({
         name: t('Conversation'),
         width: columnWidths.conversation ?? DEFAULT_COLUMN_WIDTHS.conversation,
       },
-      {
-        key: 'result',
-        name: getResultAttributeKey(classifier.resultAttribute),
-        width: columnWidths.result ?? DEFAULT_COLUMN_WIDTHS.result,
-      },
+      ...(showResultColumn
+        ? [
+            {
+              key: 'result' as const,
+              name: getResultAttributeKey(classifier.resultAttribute),
+              width: columnWidths.result ?? DEFAULT_COLUMN_WIDTHS.result,
+            },
+          ]
+        : []),
       {
         key: 'age',
         name: t('Age'),
         width: columnWidths.age ?? DEFAULT_COLUMN_WIDTHS.age,
       },
     ],
-    [classifier.resultAttribute, columnWidths]
+    [classifier.resultAttribute, columnWidths, showResultColumn]
   );
 
   const handleResizeColumn = useCallback(
@@ -126,7 +147,7 @@ export function ClassifiedConversationsTable({
         direction = 'desc';
       }
       return {
-        align: sortKey === 'age' ? 'right' : undefined,
+        align: 'right',
         direction,
         onSort: () => setSort(direction === 'desc' ? sortKey : `-${sortKey}`),
       };
@@ -151,7 +172,11 @@ export function ClassifiedConversationsTable({
           return <ConversationCell conversation={row.conversation} />;
         case 'result':
           return (
-            <ClassifierResult outputType={classifier.outputType} value={row.result} />
+            <ClassifierResult
+              classifier={classifier}
+              isBinary={isBinary}
+              value={row.result}
+            />
           );
         case 'age':
           return (
@@ -167,7 +192,7 @@ export function ClassifiedConversationsTable({
           return null;
       }
     },
-    [classifier.outputType]
+    [classifier, isBinary]
   );
 
   const handleRowClick = useCallback(

@@ -12,7 +12,7 @@ from sentry.seer.autofix.pr_iteration.run_markers import (
     record_run_extras,
 )
 from sentry.seer.autofix.types import PrIterationUnfinishedAction
-from sentry.seer.credits import OUT_OF_CREDITS
+from sentry.seer.credits import OUT_OF_CREDITS, SeerCreditDenialReason
 from sentry.seer.models.run import SeerRun
 
 # Run-level SeerRun.extras key. Set when Seer credits refuse the run's next step, which holds
@@ -30,27 +30,40 @@ class StrandedAction(StrEnum):
 @dataclass(frozen=True)
 class OutOfCreditsMarker:
     stranded_action: StrandedAction | None
+    denial_reason: SeerCreditDenialReason | None = None
 
 
 @dataclass(frozen=True)
 class PrIterationOutOfCredits:
-    # What the latest PR iteration left unfinished, if anything.
+    # What the latest PR iteration left unfinished, if anything, and why.
     unfinished_action: PrIterationUnfinishedAction | None
+    denial_reason: SeerCreditDenialReason | None = None
 
 
 def _parse(marker: Any | None) -> OutOfCreditsMarker | None:
     if marker is None:
         return None
-    try:
-        return OutOfCreditsMarker(stranded_action=StrandedAction(marker["stranded_action"]))
-    except (KeyError, TypeError, ValueError):
+    if not isinstance(marker, dict):
         return OutOfCreditsMarker(stranded_action=None)
+
+    try:
+        stranded_action: StrandedAction | None = StrandedAction(marker["stranded_action"])
+    except (KeyError, TypeError, ValueError):
+        stranded_action = None
+    return OutOfCreditsMarker(
+        stranded_action=stranded_action, denial_reason=marker.get("denial_reason")
+    )
 
 
 def mark_out_of_credits(
-    *, run_id: int, organization_id: int, stranded_action: StrandedAction | None = None
+    *,
+    run_id: int,
+    organization_id: int,
+    stranded_action: StrandedAction | None = None,
+    denial_reason: SeerCreditDenialReason | None = None,
 ) -> bool:
-    """Mark the run stopped on credits, keeping any stranded action already recorded."""
+    """Mark the run stopped on credits, keeping any stranded action already recorded.
+    The denial reason is always the latest refusal's."""
     seer_run = get_seer_run(run_id=run_id, organization_id=organization_id)
     if seer_run is None:
         return False
@@ -60,8 +73,10 @@ def mark_out_of_credits(
             previous = _parse(extras.get(OUT_OF_CREDITS_EXTRA))
             if stranded_action is None and previous is not None:
                 stranded_action = previous.stranded_action
+
             extras[OUT_OF_CREDITS_EXTRA] = {
-                "stranded_action": stranded_action.value if stranded_action else None
+                "stranded_action": stranded_action.value if stranded_action else None,
+                "denial_reason": denial_reason,
             }
     except SeerRun.DoesNotExist:
         return False
@@ -118,7 +133,10 @@ def pr_iteration_out_of_credits(
     marker = out_of_credits_marker(run) if run is not None else None
     if marker is None or state.status == "processing":
         return None
-    return PrIterationOutOfCredits(unfinished_action=_unfinished_action(state, marker))
+    return PrIterationOutOfCredits(
+        unfinished_action=_unfinished_action(state, marker),
+        denial_reason=marker.denial_reason,
+    )
 
 
 def take_out_of_credits(*, run_id: int, organization_id: int) -> OutOfCreditsMarker | None:

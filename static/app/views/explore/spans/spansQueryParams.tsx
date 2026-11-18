@@ -35,6 +35,7 @@ import {
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
+import {isHeatMapAggregate} from 'sentry/views/explore/utils/heatMapAggregate';
 import {SpanFields} from 'sentry/views/insights/types';
 
 import {canShareChart} from './sharedChartAggregates';
@@ -280,7 +281,7 @@ function getSpansAggregateFields(values: SpansQueryValues): AggregateField[] {
 
 function defaultAggregateSortBys(aggregateFields: AggregateField[]): Sort[] {
   for (const aggregateField of aggregateFields) {
-    if (isVisualize(aggregateField)) {
+    if (isVisualize(aggregateField) && !isHeatMapAggregate(aggregateField.yAxis)) {
       return [
         {
           field: aggregateField.yAxis,
