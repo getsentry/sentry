@@ -5,10 +5,8 @@ import type {QueryStatus} from '@tanstack/react-query';
 import type {mat3} from 'gl-matrix';
 import {vec2} from 'gl-matrix';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {ContinuousFlamegraphContextMenu} from 'sentry/components/profiling/flamegraph/flamegraphContextMenu';
-import {FlamegraphWarnings} from 'sentry/components/profiling/flamegraph/flamegraphOverlays/FlamegraphWarnings';
-import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
+import {toast} from '@sentry/scraps/toast';
+
 import {t} from 'sentry/locale';
 import type {
   AggregateProfileSource,
@@ -36,9 +34,12 @@ import {FlamegraphRenderer2D} from 'sentry/utils/profiling/renderers/flamegraphR
 import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useFlamegraph} from 'sentry/views/explore/profiling/flamegraphProvider';
 import {useProfileGroup} from 'sentry/views/explore/profiling/profileGroupProvider';
+
+import {FlamegraphWarnings} from './flamegraphOverlays/FlamegraphWarnings';
+import {ContinuousFlamegraphContextMenu} from './flamegraphContextMenu';
+import {FlamegraphZoomView} from './flamegraphZoomView';
 
 interface AggregateFlamegraphProps {
   canvasPoolManager: CanvasPoolManager;
@@ -47,7 +48,7 @@ interface AggregateFlamegraphProps {
   profileType: ProfileSource | AggregateProfileSource;
   scheduler: CanvasScheduler;
   status: QueryStatus;
-  queryError?: RequestError | null;
+  queryError?: Error | null;
 }
 
 export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactElement {
@@ -189,7 +190,7 @@ export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactEleme
 
     if (renderer === null) {
       Sentry.captureException('Failed to initialize a flamegraph renderer');
-      addErrorMessage('Failed to initialize renderer');
+      toast.error('Failed to initialize renderer');
       return null;
     }
 

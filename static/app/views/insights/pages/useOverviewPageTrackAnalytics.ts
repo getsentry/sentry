@@ -6,7 +6,8 @@ import {EventView} from 'sentry/utils/discover/eventView';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+
+import {useDomainViewFilters} from './useFilters';
 
 export function useOverviewPageTrackPageload() {
   const organization = useOrganization();

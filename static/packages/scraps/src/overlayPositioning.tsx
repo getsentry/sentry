@@ -8,10 +8,19 @@ import type {
   MiddlewareState,
   Padding,
   Placement,
+  Platform,
   ShiftOptions,
   Strategy,
 } from '@floating-ui/react-dom';
-import {arrow, autoPlacement, flip, limitShift, shift} from '@floating-ui/react-dom';
+import {
+  arrow,
+  autoPlacement,
+  flip,
+  getOverflowAncestors,
+  limitShift,
+  platform,
+  shift,
+} from '@floating-ui/react-dom';
 
 /**
  * Where to place an overlay relative to its trigger. The `auto` positions
@@ -228,3 +237,34 @@ function tetherLimiter(origin: Coords, arrowElement: HTMLElement | null) {
     },
   };
 }
+
+/**
+ * Floating UI's platform, except that the default `clippingAncestors` boundary
+ * only includes ancestors that contain the overlay's offset parent, as Popper
+ * did. Floating UI treats a positioned `display: contents` element as the
+ * overlay's containing block, even though it has no box. Overflow ancestors
+ * between it and the real containing block then clamp the overlay's size
+ * without clipping it, e.g. a `DropdownMenu` inside a `ButtonBar`.
+ */
+export const overlayPlatform: Platform = {
+  ...platform,
+  getClippingRect(args) {
+    const {element, boundary, strategy} = args;
+    const offsetParent =
+      element instanceof HTMLElement && strategy === 'absolute'
+        ? element.offsetParent
+        : null;
+
+    if (boundary !== 'clippingAncestors' || !offsetParent) {
+      return platform.getClippingRect.call(this, args);
+    }
+
+    const clippingAncestors = getOverflowAncestors(element, [], false).filter(
+      (ancestor): ancestor is Element =>
+        ancestor instanceof Element &&
+        ancestor !== element.ownerDocument.body &&
+        ancestor.contains(offsetParent)
+    );
+    return platform.getClippingRect.call(this, {...args, boundary: clippingAncestors});
+  },
+};

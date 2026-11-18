@@ -12,7 +12,8 @@ import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
-import TeamStatsIssues from 'sentry/views/organizationStats/teamInsights/issues';
+
+import TeamStatsIssues from './issues';
 
 jest.mock('sentry/utils/localStorage');
 jest.mock('sentry/utils/isActiveSuperuser', () => ({
@@ -193,7 +194,8 @@ describe('TeamStatsIssues', () => {
   it('can filter by environment', async () => {
     const {router} = createWrapper();
 
-    // For some reason the "Environment:" is rendered via css :before
+    expect(screen.getByText('Team:')).toBeInTheDocument();
+    expect(screen.getByText('Environment:')).toBeInTheDocument();
     expect(screen.getByText('All')).toBeInTheDocument();
     await userEvent.type(screen.getByText('All'), '{mouseDown}');
     expect(screen.getByText(env1)).toBeInTheDocument();

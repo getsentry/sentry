@@ -4,7 +4,7 @@ import omit from 'lodash/omit';
 
 import {FeatureBadge, type FeatureBadgeProps} from '@sentry/scraps/badge';
 import {Stack} from '@sentry/scraps/layout';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import type {TabsComponents} from '@sentry/scraps/tabs';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
@@ -16,11 +16,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
-import {PlatformizedAppStartsOverview} from 'sentry/views/insights/mobile/screens/views/platformizedAppStartsOverview';
-import {PlatformizedScreenLoadsOverview} from 'sentry/views/insights/mobile/screens/views/platformizedScreenLoadsOverview';
-import {PlatformizedScreenRenderingOverview} from 'sentry/views/insights/mobile/screens/views/platformizedScreenRenderingOverview';
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {ModuleName} from 'sentry/views/insights/types';
+
+import {PlatformizedAppStartsOverview} from './platformizedAppStartsOverview';
+import {PlatformizedScreenLoadsOverview} from './platformizedScreenLoadsOverview';
+import {PlatformizedScreenRenderingOverview} from './platformizedScreenRenderingOverview';
 
 type Query = {
   project: string;
@@ -73,8 +74,8 @@ function ScreenDetailsPage() {
   const [selectedTabKey, setSelectedTabKey] = useState(getTabKeyFromQuery());
   const moduleURL = useModuleURL(moduleName);
 
-  function handleTabChange(tabKey: string) {
-    setSelectedTabKey(tabKey as TabKey);
+  function handleTabChange(tabKey: TabKey) {
+    setSelectedTabKey(tabKey);
 
     const newQuery = {...location.query, tab: tabKey};
 
@@ -84,7 +85,7 @@ function ScreenDetailsPage() {
     });
   }
 
-  const tabList = (
+  const renderTabList = (TabList: TabsComponents<TabKey>['TabList']) => (
     <TabList>
       {tabs.map(tab => {
         return (
@@ -102,21 +103,17 @@ function ScreenDetailsPage() {
       <SentryDocumentTitle title={t('Mobile Vitals')} orgSlug={organization.slug} />
       <Stack flex={1}>
         <PageAlertProvider>
-          <Tabs value={selectedTabKey} onChange={tabKey => handleTabChange(tabKey)}>
+          <Stack flexGrow={1} minWidth="0" flexBasis="0" alignSelf="stretch">
             <MobileHeader
               module={moduleName}
               hideDefaultTabs
-              tabs={{tabList, value: selectedTabKey, onTabChange: handleTabChange}}
+              tabs={{
+                renderTabList,
+                value: selectedTabKey,
+                onTabChange: handleTabChange,
+              }}
               headerTitle={transactionName}
-              breadcrumbs={[
-                {
-                  label: t('Mobile Vitals'),
-                  to: moduleURL,
-                },
-                {
-                  label: t('Screen Summary'),
-                },
-              ]}
+              breadcrumbs={[{type: 'link', label: t('Mobile Vitals'), to: moduleURL}]}
             />
             <Layout.Body>
               <Layout.Main width="full">
@@ -124,7 +121,7 @@ function ScreenDetailsPage() {
                 {tabs.filter(tab => tab.key === selectedTabKey).map(tab => tab.content())}
               </Layout.Main>
             </Layout.Body>
-          </Tabs>
+          </Stack>
         </PageAlertProvider>
       </Stack>
     </PageFiltersContainer>

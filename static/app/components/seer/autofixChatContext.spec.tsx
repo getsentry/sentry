@@ -8,11 +8,12 @@ import {
   usePictureInPicture,
 } from '@sentry/scraps/pictureInPicture';
 
-import {useAutofixChat} from 'sentry/components/seer/autofixChatContext';
 import {SeerExplorerSidebarLayout} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerSidebarLayout';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/seerExplorerContextProvider';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
+
+import {useAutofixChat} from './autofixChatContext';
 
 /**
  * A button elsewhere in the app. It renders outside the chat, so it only sees
@@ -215,6 +216,31 @@ describe('AutofixChatProvider', () => {
       await waitFor(() => expect(askSeer).toBeDisabled());
       expect(postChat).not.toHaveBeenCalled();
     });
+  });
+
+  it('leaves the message in the composer when the organization is out of credits', async () => {
+    const creditsOrganization = OrganizationFixture({
+      ...organization,
+      features: [
+        ...organization.features,
+        'seer-credit-checks',
+        'token-billed-seer-enabled',
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/credit-check/`,
+      match: [MockApiClient.matchQuery({operation: 'agent_chat_message'})],
+      body: {hasEnoughCredits: false},
+    });
+
+    render(tree('Why is this issue spiking?'), {organization: creditsOrganization});
+    await userEvent.click(await screen.findByRole('button', {name: 'ask-seer'}));
+
+    expect(await screen.findByTestId('seer-explorer-out-of-credits')).toBeInTheDocument();
+    expect(
+      await screen.findByRole('combobox', {name: 'Ask Seer a question'})
+    ).toHaveTextContent('Why is this issue spiking?');
+    expect(postChat).not.toHaveBeenCalled();
   });
 
   it('leaves the entry point disabled with no provider above it', () => {

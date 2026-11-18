@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import dataclasses
+from collections.abc import Iterator
+from contextlib import contextmanager
 from contextvars import ContextVar
 from typing import TYPE_CHECKING
 
@@ -26,7 +28,7 @@ class WorkflowEventContextData:
 
     Attributes:
     - detector: The detector responsible for creating the workflow event that is being processed.
-    - organization: The organization that owns the detector.
+    - organization: The organization that owns the source event.
     - environment: The environment associated with the workflow event. If the workflow is set
     for all environments, this will be the specific environment where the detection occurred.
 
@@ -42,3 +44,12 @@ class WorkflowEventContextData:
 WorkflowEventContext: ContextVar[WorkflowEventContextData] = ContextVar(
     "workflow_context", default=WorkflowEventContextData()
 )
+
+
+@contextmanager
+def isolated_workflow_event_context() -> Iterator[None]:
+    token = WorkflowEventContext.set(WorkflowEventContextData())
+    try:
+        yield
+    finally:
+        WorkflowEventContext.reset(token)

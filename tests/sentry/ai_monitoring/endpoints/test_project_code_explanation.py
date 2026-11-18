@@ -32,7 +32,7 @@ class ProjectCodeExplanationEndpointTest(APITestCase):
 
         assert response.data == cached.data == {"summary": "Add two numbers"}
         self.mock_seer.assert_called_once_with(
-            "code_explanation", PAYLOAD, self.organization, user_id=self.user.id, timeout=10
+            "code_explanation", PAYLOAD, self.organization, timeout=10
         )
 
     def test_cache_is_scoped_to_project(self) -> None:

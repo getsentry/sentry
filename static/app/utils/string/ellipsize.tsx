@@ -1,4 +1,4 @@
-import {ELLIPSIS} from 'sentry/utils/string/unicode';
+import {ELLIPSIS} from './unicode';
 
 /**
  * Truncates a string to a maximum length and adds an ellipsis character (…) if truncated. Similar to the Python `truncatechars`. Does not trim the string, please trim before calling this function. Does right-trim the string before output to avoid having whitespace followed by an ellipsis, unless the string is only whitespace.

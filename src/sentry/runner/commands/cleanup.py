@@ -23,7 +23,7 @@ from sentry_sdk.scope import Scope
 
 from sentry.runner.decorators import log_options
 from sentry.silo.base import SiloLimit, SiloMode
-from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
+from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 logger = logging.getLogger(__name__)
 
@@ -242,7 +242,7 @@ def task_execution(
             ViewerContext(
                 organization_id=organization_id,
                 project_id=project_id,
-                actor_type=ActorType.SYSTEM,
+                actor=Actor(type=ActorType.SYSTEM),
             )
         )
         if organization_id is not None and project_id is not None
@@ -583,10 +583,12 @@ def _run_specialized_cleanups(
         raise CleanupExecutionAborted()
 
     remove_expired_values_for_lost_passwords(is_filtered, models_attempted)
+    remove_expired_timeseries_annotations(is_filtered, days, models_attempted)
     remove_expired_values_for_org_members(is_filtered, days, models_attempted)
     delete_api_models(is_filtered, models_attempted)
     exported_data(is_filtered, models_attempted)
     remove_old_notification_messages(is_filtered, models_attempted)
+    remove_inactive_notification_threads(is_filtered, models_attempted)
 
 
 def _handle_project_organization_cleanup(
@@ -669,6 +671,30 @@ def remove_expired_values_for_lost_passwords(
         ).delete()
 
 
+@continue_on_error("specialized_cleanup_timeseries_annotations")
+def remove_expired_timeseries_annotations(
+    is_filtered: Callable[[type[BaseModel]], bool], days: int, models_attempted: set[str]
+) -> None:
+    from django.db.models import F
+    from django.db.models.functions import Coalesce
+
+    from sentry.timeseries_annotations.models import TimeseriesAnnotation
+
+    if is_filtered(TimeseriesAnnotation):
+        debug_output(">> Skipping TimeseriesAnnotation")
+        return
+
+    debug_output("Removing expired values for TimeseriesAnnotation")
+    models_attempted.add(TimeseriesAnnotation.__name__.lower())
+    cutoff = timezone.now() - timedelta(days=days)
+    # effective end: end_timestamp for a resolved range, else start_timestamp.
+    # Keying on start alone would delete a resolved range whose end is still inside the
+    # read window
+    TimeseriesAnnotation.objects.annotate(
+        _effective_end=Coalesce(F("end_timestamp"), F("start_timestamp"))
+    ).filter(_effective_end__lt=cutoff).delete()
+
+
 @continue_on_error("specialized_cleanup_org_members")
 def remove_expired_values_for_org_members(
     is_filtered: Callable[[type[BaseModel]], bool], days: int, models_attempted: set[str]
@@ -690,6 +716,7 @@ def delete_api_models(
 ) -> None:
     from sentry.models.apidevicecode import ApiDeviceCode
     from sentry.models.apigrant import ApiGrant
+    from sentry.models.apisetupcode import ApiSetupCode
     from sentry.models.apitoken import ApiToken
 
     for model_tp in (ApiGrant, ApiToken):
@@ -711,14 +738,15 @@ def delete_api_models(
 
             queryset.delete()
 
-    # Device codes have short expiration times (10 minutes), so clean up
+    # Device and setup codes have short expiration times (minutes), so clean up
     # any that have expired immediately without additional TTL buffer.
-    if is_filtered(ApiDeviceCode):
-        debug_output(">> Skipping ApiDeviceCode")
-    else:
-        debug_output("Removing expired values for ApiDeviceCode")
-        models_attempted.add(ApiDeviceCode.__name__.lower())
-        ApiDeviceCode.objects.filter(expires_at__lt=timezone.now()).delete()
+    for code_model in (ApiDeviceCode, ApiSetupCode):
+        if is_filtered(code_model):
+            debug_output(f">> Skipping {code_model.__name__}")
+        else:
+            debug_output(f"Removing expired values for {code_model.__name__}")
+            models_attempted.add(code_model.__name__.lower())
+            code_model.objects.filter(expires_at__lt=timezone.now()).delete()
 
 
 @continue_on_error("specialized_cleanup_exported_data")
@@ -769,7 +797,7 @@ def models_which_use_deletions_code_path() -> list[tuple[type[BaseModel], str, s
         (PullRequestActivityLog, "date_updated", "date_updated"),
         (Release, "date_added", "date_added"),
         (File, "timestamp", "id"),
-        (Commit, "date_added", "id"),
+        (Commit, "date_added", "date_added"),
         (UptimeResponseCapture, "date_added", "date_added"),
         (SeerRun, "last_triggered_at", "last_triggered_at"),
     ]
@@ -1313,3 +1341,112 @@ def remove_old_notification_messages(
             break
 
         NotificationMessage.objects.filter(id__in=ids).delete()
+
+
+@continue_on_error("specialized_cleanup_notification_threads")
+def remove_inactive_notification_threads(
+    is_filtered: Callable[[type[BaseModel]], bool], models_attempted: set[str]
+) -> None:
+    """
+    Delete NotificationThreads with no successful send within the retention window.
+
+    A thread is kept with all of its records while it is active, and expires as a
+    whole once it goes quiet. Deleting a thread cascades to its NotificationRecords,
+    and the next notification for that thread key starts a new provider thread.
+    """
+    from sentry import options
+    from sentry.notifications.models.notificationrecord import NotificationRecord
+    from sentry.notifications.models.notificationthread import NotificationThread
+    from sentry.utils import metrics
+
+    if is_filtered(NotificationThread):
+        debug_output(">> Skipping NotificationThread")
+        return
+
+    debug_output("Removing inactive NotificationThread and NotificationRecord rows")
+    models_attempted.add(NotificationThread.__name__.lower())
+    models_attempted.add(NotificationRecord.__name__.lower())
+
+    retention_days = options.get("cleanup.notification-thread.retention-days")
+    batch_size = options.get("cleanup.notification-thread.batch-size")
+    dry_run = options.get("cleanup.notification-thread.dry-run")
+    cutoff = timezone.now() - timedelta(days=retention_days)
+
+    # Failed sends are stored with error_details; they must not keep a thread alive.
+    recent_successful_send = NotificationRecord.objects.filter(
+        thread_id=OuterRef("id"),
+        date_added__gte=cutoff,
+        error_details__isnull=True,
+    )
+
+    threads_deleted = 0
+    records_deleted = 0
+    last_id = 0
+    # Reported in finally so aborted and failed runs are visible too; the deleted
+    # counts below are only sent for runs that complete.
+    outcome = "failed"
+    try:
+        while True:
+            if options.get("cleanup.abort_execution"):
+                raise CleanupExecutionAborted()
+
+            # Walking the primary key keeps each query bounded without an index on date_added.
+            candidate_ids = list(
+                NotificationThread.objects.filter(id__gt=last_id, date_added__lt=cutoff)
+                .order_by("id")
+                .values_list("id", flat=True)[:batch_size]
+            )
+            if not candidate_ids:
+                break
+            last_id = candidate_ids[-1]
+
+            eligible = NotificationThread.objects.filter(id__in=candidate_ids).filter(
+                ~Exists(recent_successful_send)
+            )
+
+            if dry_run:
+                eligible_ids = list(eligible.values_list("id", flat=True))
+                threads_deleted += len(eligible_ids)
+                records_deleted += NotificationRecord.objects.filter(
+                    thread_id__in=eligible_ids
+                ).count()
+                continue
+
+            # Eligibility is re-evaluated in the delete itself so a reply recorded after
+            # candidates were selected keeps its thread.
+            _, deleted_by_model = eligible.delete()
+            threads_deleted += deleted_by_model.get(NotificationThread._meta.label, 0)
+            records_deleted += deleted_by_model.get(NotificationRecord._meta.label, 0)
+        outcome = "completed"
+    except CleanupExecutionAborted:
+        outcome = "aborted"
+        raise
+    finally:
+        metrics.incr(
+            "cleanup.notification_thread.run",
+            tags={"outcome": outcome, "dry_run": str(dry_run).lower()},
+            sample_rate=1.0,
+        )
+
+    tags = {"dry_run": str(dry_run).lower()}
+    metrics.incr(
+        "cleanup.notification_thread.threads_deleted",
+        amount=threads_deleted,
+        tags=tags,
+        sample_rate=1.0,
+    )
+    metrics.incr(
+        "cleanup.notification_thread.records_deleted",
+        amount=records_deleted,
+        tags=tags,
+        sample_rate=1.0,
+    )
+    logger.info(
+        "cleanup.notification_thread.complete",
+        extra={
+            "dry_run": dry_run,
+            "retention_days": retention_days,
+            "threads_deleted": threads_deleted,
+            "records_deleted": records_deleted,
+        },
+    )

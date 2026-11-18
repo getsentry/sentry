@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import re
 from collections.abc import Mapping
 from datetime import UTC, datetime
 from typing import Any
@@ -15,27 +14,28 @@ from sentry.api.event_search import (
     parse_search_query,
 )
 from sentry.exceptions import InvalidSearchQuery
-from sentry.investigations.models import (
-    Investigation,
-    InvestigationBlock,
-    InvestigationBlockKind,
-    InvestigationOrchestrationRun,
-)
+from sentry.investigations.models import InvestigationOrchestrationRun
 from sentry.investigations.models.orchestration import (
     InvestigationOrchestrationPhase,
     InvestigationOrchestrationStatus,
 )
 from sentry.investigations.services.orchestration_events import _report_revision
 from sentry.issues.issue_search import issue_search_config
+from sentry.notebooks.models import Notebook, NotebookActionRequest
+from sentry.notebooks.services.action_requests import LIVE_STATES
 from sentry.notifications.platform.templates.seer import (
     SeerInvestigationConclusion,
     SeerInvestigationHypothesis,
+    SeerInvestigationNextStep,
     SeerInvestigationProgress,
     SeerInvestigationStatus,
 )
 
 MAX_STATUS_HYPOTHESES = 10
 MAX_STATUS_TEXT_LENGTH = 300
+# Slack caps a section's text at 3,000 characters.
+MAX_SUMMARY_DESCRIPTION_LENGTH = 2_500
+MAX_NEXT_STEP_RATIONALE_LENGTH = 2_500
 
 VERIFYING_LABEL = "● Verifying"
 SUPPORTED_LABEL = "● Supported"
@@ -52,11 +52,6 @@ STEP_DETAIL_PREFIXES = {
 }
 # Alert queries can use AND and OR, which the issue search config rejects.
 ENDPOINT_SEARCH_CONFIG = SearchConfig.create_from(issue_search_config, allow_boolean=True)
-MAX_CONCLUSION_MARKDOWN_LENGTH = 11_000
-CONCLUSION_TRUNCATED_NOTE = "_The rest of the report is in the full investigation._"
-_EMBED_TAG = r"\{%\s+([\w-]+)(?:\s+[\w-]+=\"[^\"]*\")*\s+(?:/%\}|%\}[\s\S]*?\{%\s+/\1\s+%\})"
-EMBED_TAG_LINE_PATTERN = re.compile(rf"^[ \t]*{_EMBED_TAG}[ \t]*(?:\n|$)", re.MULTILINE)
-EMBED_TAG_PATTERN = re.compile(_EMBED_TAG)
 
 HYPOTHESIS_LABELS = {
     "pending": VERIFYING_LABEL,
@@ -95,7 +90,8 @@ def _format_window(start: datetime, end: datetime) -> str:
 
 
 def get_status_title(source: Mapping[str, Any]) -> str:
-    return source["snapshot"]["monitor"]["name"]
+    name = source["snapshot"]["monitor"]["name"]
+    return name
 
 
 def _get_endpoint(query: str) -> str | None:
@@ -218,7 +214,7 @@ def _get_progress(
 
 def build_investigation_status(
     *,
-    investigation: Investigation,
+    investigation: Notebook,
     projection: Mapping[str, Any] | None,
     phase: str | None = None,
     status: str | None = None,
@@ -274,50 +270,36 @@ def build_investigation_status(
     return data, fingerprint
 
 
-def _cut_at_paragraph(text: str, limit: int) -> str:
-    cut = text.rfind("\n\n", 0, limit + 1)
-    return text[:cut].rstrip() if cut > 0 else ""
-
-
-def strip_embed_tags(markdown: str) -> str:
-    """Removes the embed tags the investigation page renders as widgets, since Slack can't."""
-    markdown = EMBED_TAG_LINE_PATTERN.sub("", markdown)
-    markdown = EMBED_TAG_PATTERN.sub("", markdown)
-    return re.sub(r"\n{3,}", "\n\n", markdown)
+def _build_next_step(run: InvestigationOrchestrationRun) -> SeerInvestigationNextStep | None:
+    """The step Seer suggests after the current report, if it still stands."""
+    request = NotebookActionRequest.objects.filter(
+        notebook_id=run.investigation_id,
+        producer_revision=_report_revision(run),
+        primary=True,
+        state__in=LIVE_STATES,
+    ).first()
+    if request is None:
+        return None
+    return SeerInvestigationNextStep(
+        title=request.title,
+        rationale=_truncate(request.rationale, MAX_NEXT_STEP_RATIONALE_LENGTH),
+    )
 
 
 def build_investigation_conclusion(
     run: InvestigationOrchestrationRun,
 ) -> SeerInvestigationConclusion | None:
-    """Builds the conclusion from the text of the current report, or None if there is no text."""
+    """Builds the conclusion from the investigation's summary, or None if there is no summary."""
     investigation = run.investigation
-    contents = (
-        InvestigationBlock.objects.filter(
-            investigation_id=investigation.id,
-            report_revision=_report_revision(run),
-            kind=InvestigationBlockKind.TEXT,
-            deleted_at__isnull=True,
-        )
-        .order_by("position", "id")
-        .values_list("content", flat=True)
-    )
-    sections: list[str] = []
-    remaining = MAX_CONCLUSION_MARKDOWN_LENGTH
-    for content in contents:
-        content = strip_embed_tags(content).strip()
-        if not content:
-            continue
-        if len(content) > remaining:
-            if cut := _cut_at_paragraph(content, remaining):
-                sections.append(cut)
-            sections.append(CONCLUSION_TRUNCATED_NOTE)
-            break
-        sections.append(content)
-        remaining -= len(content)
-    if not sections:
+    if not investigation.summary:
         return None
+    description = investigation.summary_description
     return SeerInvestigationConclusion(
         organization_id=investigation.organization_id,
-        sections=sections,
+        summary=investigation.summary,
+        summary_description=(
+            _truncate(description, MAX_SUMMARY_DESCRIPTION_LENGTH) if description else None
+        ),
+        next_step=_build_next_step(run),
         investigation_url=investigation.get_absolute_url(),
     )

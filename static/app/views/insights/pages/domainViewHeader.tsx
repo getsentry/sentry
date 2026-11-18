@@ -1,17 +1,18 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {IconBusiness} from '@sentry/icons/business';
+import noop from 'lodash/noop';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
-import type {BreadcrumbTitleItem} from '@sentry/scraps/breadcrumbList';
-import type {TabListItemProps} from '@sentry/scraps/tabs';
-import {TabList} from '@sentry/scraps/tabs';
+import type {
+  BreadcrumbListProps,
+  BreadcrumbTitleItem,
+} from '@sentry/scraps/breadcrumbList';
+import {Container} from '@sentry/scraps/layout';
+import {Tabs, type TabListItemProps, type TabsComponents} from '@sentry/scraps/tabs';
 
-import {Breadcrumbs, type Crumb} from 'sentry/components/breadcrumbs';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
-import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useModuleTitles} from 'sentry/views/insights/common/utils/useModuleTitle';
@@ -19,32 +20,37 @@ import {
   useModuleURLBuilder,
   type RoutableModuleNames,
 } from 'sentry/views/insights/common/utils/useModuleURL';
-import {useIsLaravelInsightsAvailable} from 'sentry/views/insights/pages/platform/laravel/features';
-import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform/nextjs/features';
-import {OVERVIEW_PAGE_TITLE} from 'sentry/views/insights/pages/settings';
-import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
+import {ModuleName} from 'sentry/views/insights/types';
+import {TopBar} from 'sentry/views/navigation/topBar';
+
+import {useIsLaravelInsightsAvailable} from './platform/laravel/features';
+import {useIsNextJsInsightsAvailable} from './platform/nextjs/features';
+import {OVERVIEW_PAGE_TITLE} from './settings';
+import {useDomainViewFilters} from './useFilters';
 import {
   isModuleConsideredNew,
   isModuleEnabled,
   isModuleInBeta,
   isModuleVisible,
-} from 'sentry/views/insights/pages/utils';
-import {ModuleName} from 'sentry/views/insights/types';
-import {TopBar} from 'sentry/views/navigation/topBar';
+} from './utils';
 
-export type Props = {
+export type Props<T extends string = string> = {
   domainBaseUrl: string;
   domainTitle: string;
   modules: ModuleName[];
   selectedModule: ModuleName | undefined;
-  additionalBreadCrumbs?: Crumb[];
+  additionalBreadCrumbs?: BreadcrumbListProps['items'];
   additonalHeaderActions?: React.ReactNode;
   headerTitle?: string | BreadcrumbTitleItem;
   hideDefaultTabs?: boolean;
-  tabs?: {onTabChange: (key: string) => void; tabList: React.ReactNode; value: string};
+  tabs?: {
+    onTabChange: (key: T) => void;
+    renderTabList: (TabList: TabsComponents<T>['TabList']) => React.ReactNode;
+    value: T;
+  };
 };
 
-export function DomainViewHeader({
+export function DomainViewHeader<T extends string = string>({
   modules,
   headerTitle,
   domainTitle,
@@ -54,7 +60,7 @@ export function DomainViewHeader({
   additionalBreadCrumbs = [],
   domainBaseUrl,
   tabs,
-}: Props) {
+}: Props<T>) {
   const organization = useOrganization();
   const location = useLocation();
   const moduleURLBuilder = useModuleURLBuilder();
@@ -67,23 +73,25 @@ export function DomainViewHeader({
   const isAgentMonitoring = view === 'ai-agents';
   const isSessionsInsights = selectedModule === ModuleName.SESSIONS;
 
-  const crumbs: Crumb[] = [
-    {
-      label: domainTitle,
-      to: domainBaseUrl,
-      preservePageFilters: true,
-    },
-    ...additionalBreadCrumbs,
-  ];
-
-  const tabValue =
-    hideDefaultTabs && tabs?.value ? tabs.value : (selectedModule ?? OVERVIEW_PAGE_TITLE);
-
   const globalQuery = {
     ...extractSelectionParameters(location?.query),
   };
 
-  const tabList: TabListItemProps[] = [
+  // The domain link is only useful when there is a deeper page below it;
+  // otherwise the domain itself is the current page title.
+  const breadcrumbItems: BreadcrumbListProps['items'] | undefined =
+    additionalBreadCrumbs.length > 0
+      ? [
+          {
+            type: 'link',
+            label: domainTitle,
+            to: {pathname: domainBaseUrl, query: globalQuery},
+          },
+          ...additionalBreadCrumbs,
+        ]
+      : undefined;
+
+  const tabList = [
     {
       key: OVERVIEW_PAGE_TITLE,
       children: OVERVIEW_PAGE_TITLE,
@@ -100,7 +108,7 @@ export function DomainViewHeader({
           query: globalQuery,
         },
       })),
-  ];
+  ] satisfies TabListItemProps[];
 
   const feedbackConfig: Array<[boolean, {owner: string; source: string}]> = [
     [isAgentMonitoring, {owner: 'telemetry-experience', source: 'agent-monitoring'}],
@@ -122,11 +130,6 @@ export function DomainViewHeader({
   return (
     <Fragment>
       <Layout.Header>
-        {crumbs.length > 1 && (
-          <Layout.HeaderContent>
-            <Breadcrumbs crumbs={crumbs} />
-          </Layout.HeaderContent>
-        )}
         <TopBar.Slot
           name="breadcrumbs"
           title={
@@ -134,29 +137,37 @@ export function DomainViewHeader({
               ? headerTitle
               : {type: 'page-title', label: headerTitle || domainTitle}
           }
+          items={breadcrumbItems}
         />
         {additonalHeaderActions && (
           <TopBar.Slot name="actions">{additonalHeaderActions}</TopBar.Slot>
         )}
-        <TopBar.Slot name="feedback">
-          <FeedbackButton
-            feedbackOptions={feedbackOptions}
-            aria-label={t('Give Feedback')}
-            tooltipProps={{title: t('Give Feedback')}}
-          >
-            {null}
-          </FeedbackButton>
-        </TopBar.Slot>
-        <Layout.HeaderTabs value={tabValue} onChange={tabs?.onTabChange}>
-          {!hideDefaultTabs && (
-            <TabList>
-              {tabList.map(tab => (
-                <TabList.Item {...tab} key={tab.key} />
-              ))}
-            </TabList>
-          )}
-          {hideDefaultTabs && tabs?.tabList}
-        </Layout.HeaderTabs>
+        <TopBar.Slot name="feedback" feedbackOptions={feedbackOptions} />
+        <Container column="1 / -1">
+          {tabsRootProps =>
+            hideDefaultTabs && tabs ? (
+              <Tabs value={tabs.value} onChange={tabs.onTabChange} {...tabsRootProps}>
+                {({TabList}) => tabs.renderTabList(TabList)}
+              </Tabs>
+            ) : (
+              <Tabs
+                onChange={noop}
+                value={selectedModule ?? OVERVIEW_PAGE_TITLE}
+                {...tabsRootProps}
+              >
+                {({TabList}) =>
+                  !hideDefaultTabs && (
+                    <TabList>
+                      {tabList.map(tab => (
+                        <TabList.Item {...tab} key={tab.key} />
+                      ))}
+                    </TabList>
+                  )
+                }
+              </Tabs>
+            )
+          }
+        </Container>
       </Layout.Header>
     </Fragment>
   );

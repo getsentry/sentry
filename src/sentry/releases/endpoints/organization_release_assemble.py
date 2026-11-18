@@ -20,6 +20,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import GlobalParams, ReleaseParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.models.organization import Organization
 from sentry.models.release import Release
 from sentry.tasks.assemble import (
     AssembleTask,
@@ -76,7 +77,7 @@ class OrganizationReleaseAssembleEndpoint(OrganizationReleasesBaseEndpoint):
         },
     )
     def post(
-        self, request: Request, organization, version
+        self, request: Request, organization: Organization, version: str
     ) -> Response[ReleaseAssembleResponse] | Response[_AssembleErrorResponse]:
         """
         Assemble an artifact bundle from previously uploaded chunks and merge it into the

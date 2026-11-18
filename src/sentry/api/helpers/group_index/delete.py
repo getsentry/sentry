@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import Generator, Sequence
+from contextlib import contextmanager
 from dataclasses import replace
 from typing import Literal
 from uuid import uuid4
@@ -18,6 +19,7 @@ from sentry.api.utils import to_valid_int_id_list
 from sentry.apidocs.response_types import ValidationErrorResponse
 from sentry.deletions.defaults.group import GROUP_CHUNK_SIZE
 from sentry.deletions.tasks.groups import delete_groups_for_project
+from sentry.exceptions import InvalidSearchQuery
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import GroupInbox
 from sentry.models.project import Project
@@ -91,18 +93,25 @@ def delete_group_list(
     GroupInbox.objects.filter(project_id=project.id, group_id__in=group_ids).delete()
 
     # Schedule a task per GROUP_CHUNK_SIZE batch of groups
+    with project_viewer_context(project):
+        schedule_group_deletion_tasks(project.id, group_ids, transaction_id)
+
+
+@contextmanager
+def project_viewer_context(project: Project) -> Generator[None]:
+    """Scope the request's viewer context to `project` so that tasks scheduled inside inherit it."""
     viewer_context = get_viewer_context()
     if viewer_context is None:
-        schedule_group_deletion_tasks(project.id, group_ids, transaction_id)
-    else:
-        with viewer_context_scope(
-            replace(
-                viewer_context,
-                organization_id=project.organization_id,
-                project_id=project.id,
-            )
-        ):
-            schedule_group_deletion_tasks(project.id, group_ids, transaction_id)
+        yield
+        return
+    with viewer_context_scope(
+        replace(
+            viewer_context,
+            organization_id=project.organization_id,
+            project_id=project.id,
+        )
+    ):
+        yield
 
 
 def schedule_group_deletion_tasks(
@@ -187,6 +196,8 @@ def schedule_tasks_to_delete_groups(
             )
         except ValidationError as exc:
             return Response({"detail": str(exc)}, status=400)
+        except InvalidSearchQuery:
+            return Response({"detail": "Invalid search query."}, status=400)
 
         group_list = list(cursor_result)
 

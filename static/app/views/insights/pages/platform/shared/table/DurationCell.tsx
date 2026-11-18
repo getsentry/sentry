@@ -1,7 +1,8 @@
 import {Duration} from 'sentry/components/duration';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
-import type {CellThreshold} from 'sentry/views/insights/pages/platform/shared/table/ThresholdCell';
-import {ThresholdCell} from 'sentry/views/insights/pages/platform/shared/table/ThresholdCell';
+
+import type {CellThreshold} from './ThresholdCell';
+import {ThresholdCell} from './ThresholdCell';
 
 export function DurationCell({
   milliseconds,

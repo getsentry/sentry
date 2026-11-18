@@ -2,9 +2,9 @@ import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -51,7 +51,7 @@ export function RelocationUnpauseModal({
         options: {host: relocation.region.url},
       }),
     onSuccess: rawRelocation => {
-      addSuccessMessage(
+      toast.success(
         'All current or future pauses for this relocation have been removed.'
       );
       onSuccess?.(rawRelocation);
@@ -60,12 +60,12 @@ export function RelocationUnpauseModal({
     onError: (error: unknown) => {
       const fallback = 'Failed to unpause relocation.';
       if (!(error instanceof RequestError)) {
-        addErrorMessage(fallback);
+        toast.error(fallback);
         return;
       }
       const detail = error.responseJSON?.detail;
       const message = typeof detail === 'string' ? detail : detail?.message;
-      addErrorMessage(message ?? fallback);
+      toast.error(message ?? fallback);
     },
   });
 

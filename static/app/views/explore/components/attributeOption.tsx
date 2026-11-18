@@ -2,9 +2,10 @@ import type {SelectOption} from '@sentry/scraps/compactSelect';
 
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {classifyTagKey, FieldKind, prettifyTagKey} from 'sentry/utils/fields';
-import {AttributeDetails} from 'sentry/views/explore/components/attributeDetails';
-import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
+
+import {AttributeDetails} from './attributeDetails';
+import {TypeBadge} from './typeBadge';
 
 export function optionFromTag(tag: Tag, traceItemType: TraceItemDataset) {
   return {

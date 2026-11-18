@@ -3,11 +3,15 @@ from __future__ import annotations
 import urllib.parse
 from collections.abc import Collection
 from typing import Any
+from unittest import mock
 
 import pytest
 from django.conf import settings
 from django.core.cache import cache
+from django.db import connections, router
+from django.http import HttpRequest
 from django.test import override_settings
+from django.test.utils import CaptureQueriesContext
 from django.urls import get_resolver
 
 from sentry import options
@@ -37,18 +41,23 @@ from sentry.testutils.silo import (
     no_silo_test,
 )
 from sentry.types import cell
+from sentry.users.models.user import User
 from sentry.web.client_config import get_client_config
 
 
 @request_factory
-def make_user_request_from_non_existant_org(org=None):
+def make_user_request_from_non_existant_org(
+    org: Organization | None = None,
+) -> tuple[HttpRequest, User]:
     request, user = make_user_request_from_org(org)
     # This is a non existant value that will fail lookup.
     request.session["activeorg"] = 47381
     return request, user
 
 
-def make_user_request_from_org_with_auth_identities(org=None):
+def make_user_request_from_org_with_auth_identities(
+    org: Organization | None = None,
+) -> tuple[HttpRequest, User]:
     request, user = make_user_request_from_org(org)
     with assume_test_silo_mode_of(Organization):
         org = Organization.objects.get_for_user_ids({user.id})[0]
@@ -96,7 +105,7 @@ def test_client_config_default() -> None:
 @multiregion_client_config_test
 @django_db_all(transaction=True)
 def test_client_config_in_silo_modes(subtests: pytest.Subtests) -> None:
-    def normalize(value: dict[str, Any]):
+    def normalize(value: dict[str, Any]) -> None:
         # Removing the region lists as it varies based on silo mode.
         # See Locality.to_url()
         value.pop("localities")
@@ -287,7 +296,7 @@ def test_client_config_with_staff_session_fills_cells_and_cells_are_sorted() -> 
     # Simulate an active staff session
     staff = Staff(request)
     staff.set_logged_in(user)
-    request.staff = staff
+    setattr(request, "staff", staff)
 
     result = get_client_config(request)
 
@@ -317,7 +326,7 @@ def test_client_config_with_staff_session_includes_hidden_cells() -> None:
     # Simulate an active staff session
     staff = Staff(request)
     staff.set_logged_in(user)
-    request.staff = staff
+    setattr(request, "staff", staff)
 
     result = get_client_config(request)
 
@@ -430,6 +439,7 @@ def test_client_config_no_preload_data_if_accept_invitation_view() -> None:
         role="owner",
     )
     invite_url = member.get_invite_link()
+    assert invite_url is not None
     invite_path = urllib.parse.urlparse(invite_url).path
     resolver = get_resolver()
     request.path = invite_path
@@ -438,3 +448,74 @@ def test_client_config_no_preload_data_if_accept_invitation_view() -> None:
     client_config = get_client_config(request)
 
     assert client_config["shouldPreloadData"] is False
+
+
+@no_silo_test
+@django_db_all
+@pytest.mark.parametrize("path", ["/auth/login/", "/auth/login/test-org/"])
+def test_client_config_no_preload_data_on_login_views(path: str) -> None:
+    request, user = make_user_request_from_org()
+    request.user = user
+    request.path = path
+    request.resolver_match = get_resolver().resolve(path)
+
+    client_config = get_client_config(request)
+
+    assert client_config["shouldPreloadData"] is False
+
+
+# Option lookups are excluded from query counts as they are generally cached in production
+# but might not be in tests.
+_OPTION_TABLES = ('"sentry_option"', '"sentry_controloption"')
+
+
+def count_non_option_queries(queries: CaptureQueriesContext) -> int:
+    return sum(
+        not any(f"FROM {table}" in query["sql"] for table in _OPTION_TABLES)
+        for query in queries.captured_queries
+    )
+
+
+def get_client_config_query_counts() -> tuple[int, int]:
+    """
+    Render the client config for a superuser with an active organization, and return
+    the number of (control, cell) queries made.
+    """
+    request, user = make_user_request_from_org()
+    user.update(is_superuser=True)
+    request.user = user
+
+    # Give the superuser org resources so that loading them shows up in the query count.
+    superuser_org = Factories.create_organization()
+    superuser_team = Factories.create_team(superuser_org)
+    Factories.create_project(superuser_org, teams=[superuser_team])
+    cache.clear()
+
+    with (
+        mock.patch("sentry.auth.superuser.SUPERUSER_ORG_ID", superuser_org.id),
+        CaptureQueriesContext(connections[router.db_for_read(User)]) as control_queries,
+        CaptureQueriesContext(connections[router.db_for_read(Organization)]) as cell_queries,
+    ):
+        result = get_client_config(request)
+
+    # Ensure the code paths that issue queries were exercised.
+    assert result["lastOrganization"] == request.session["activeorg"]
+    assert result["links"]["superuserUrl"] == f"http://{superuser_org.slug}.testserver"
+    assert result["user"] is not None
+
+    return count_non_option_queries(control_queries), count_non_option_queries(cell_queries)
+
+
+@no_silo_test
+@django_db_all
+def test_client_config_query_count_monolith() -> None:
+    # Adding queries to client_config adds them to every HTML page that is rendered.
+    # Be careful adding more queries here.
+    assert get_client_config_query_counts() == (10, 6)
+
+
+@control_silo_test(cells=create_test_cells("us", "eu"))
+@django_db_all
+def test_client_config_query_count_control() -> None:
+    # Control mode additionally reads OrganizationMapping to route RPC calls to the cell.
+    assert get_client_config_query_counts() == (12, 6)

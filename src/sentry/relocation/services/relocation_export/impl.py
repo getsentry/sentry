@@ -6,6 +6,7 @@
 import logging
 from datetime import UTC, datetime
 from io import BytesIO
+from uuid import UUID
 
 from django.db import router
 from django.db.utils import IntegrityError
@@ -153,7 +154,7 @@ class ProxyingRelocationExportService(ControlRelocationExportService):
         }
         logger.info("SaaS -> SaaS request received on proxy", extra=logger_data)
         transfer = ControlRelocationTransfer.objects.create(
-            relocation_uuid=relocation_uuid,
+            relocation_uuid=UUID(relocation_uuid),
             org_slug=org_slug,
             requesting_cell=requesting_region_name,
             exporting_cell=replying_region_name,
@@ -199,7 +200,7 @@ class ProxyingRelocationExportService(ControlRelocationExportService):
 
         # Save transfer record so we can push state to the requesting cell
         transfer = ControlRelocationTransfer.objects.create(
-            relocation_uuid=relocation_uuid,
+            relocation_uuid=UUID(relocation_uuid),
             org_slug=org_slug,
             requesting_cell=requesting_region_name,
             exporting_cell=replying_region_name,

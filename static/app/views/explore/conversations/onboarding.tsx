@@ -1,8 +1,11 @@
+import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconBot} from '@sentry/icons/bot';
 import {IconCopy} from '@sentry/icons/copy';
 import {IconUser} from '@sentry/icons/user';
+import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import agentTracingEmptyStateImg from 'sentry-images/spot/agent-tracing-empty-state.svg';
 
@@ -11,7 +14,7 @@ import {Image} from '@sentry/scraps/image';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
-import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 import {Heading, Prose, Text} from '@sentry/scraps/text';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
@@ -44,7 +47,6 @@ import {agentMonitoringPlatforms} from 'sentry/data/platformCategories';
 import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {decodeInteger} from 'sentry/utils/queryString';
@@ -53,7 +55,6 @@ import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {Referrer} from 'sentry/views/explore/conversations/utils/referrers';
 import {
   CopyLLMPromptButton,
   getAgentSetupPrompt,
@@ -73,6 +74,8 @@ import {
   useOnboardingProject,
   useSpanWaiter,
 } from 'sentry/views/insights/pages/onboardingUtils';
+
+import {Referrer} from './utils/referrers';
 
 function ConversationWaitingIndicator({
   project,
@@ -294,7 +297,7 @@ function ConversationOnboardingPanel({
                     key={defaultTab}
                     defaultValue={defaultTab}
                     aria-label={t('Setup instructions')}
-                    onChange={tab => {
+                    onChange={(tab: typeof defaultTab) => {
                       trackAnalytics('conversations.onboarding.interaction', {
                         organization,
                         action: 'switch_tab',
@@ -302,56 +305,60 @@ function ConversationOnboardingPanel({
                       });
                     }}
                   >
-                    <TabList variant="floating">
-                      <TabList.Item
-                        key="agent"
-                        textValue={t('For your agent')}
-                        disabled={!prompt}
-                        tooltip={
-                          prompt
-                            ? undefined
-                            : {
-                                title: t(
-                                  'A project DSN is required to copy a setup prompt.'
-                                ),
-                              }
-                        }
-                      >
-                        <IconBot />
-                        {t('For your agent')}
-                      </TabList.Item>
-                      <TabList.Item
-                        key="human"
-                        textValue={t('For you')}
-                        disabled={isHumanTabDisabled}
-                        tooltip={
-                          isHumanTabDisabled
-                            ? {
-                                title: t(
-                                  "Step-by-step instructions aren't available for this platform."
-                                ),
-                              }
-                            : undefined
-                        }
-                      >
-                        <IconUser />
-                        {t('For you')}
-                      </TabList.Item>
-                    </TabList>
-                    <TabPanels>
-                      <TabPanels.Item key="agent">
-                        {prompt && (
-                          <AgentSetupInstructions
-                            project={project}
-                            prompt={prompt}
-                            onDismiss={onDismiss}
-                          />
-                        )}
-                      </TabPanels.Item>
-                      <TabPanels.Item key="human">
-                        <Container paddingTop="md">{children}</Container>
-                      </TabPanels.Item>
-                    </TabPanels>
+                    {({TabList, TabPanels}) => (
+                      <Fragment>
+                        <TabList variant="floating">
+                          <TabList.Item
+                            key="agent"
+                            textValue={t('For your agent')}
+                            disabled={!prompt}
+                            tooltip={
+                              prompt
+                                ? undefined
+                                : {
+                                    title: t(
+                                      'A project DSN is required to copy a setup prompt.'
+                                    ),
+                                  }
+                            }
+                          >
+                            <IconBot />
+                            {t('For your agent')}
+                          </TabList.Item>
+                          <TabList.Item
+                            key="human"
+                            textValue={t('For you')}
+                            disabled={isHumanTabDisabled}
+                            tooltip={
+                              isHumanTabDisabled
+                                ? {
+                                    title: t(
+                                      "Step-by-step instructions aren't available for this platform."
+                                    ),
+                                  }
+                                : undefined
+                            }
+                          >
+                            <IconUser />
+                            {t('For you')}
+                          </TabList.Item>
+                        </TabList>
+                        <TabPanels>
+                          <TabPanels.Item key="agent">
+                            {prompt && (
+                              <AgentSetupInstructions
+                                project={project}
+                                prompt={prompt}
+                                onDismiss={onDismiss}
+                              />
+                            )}
+                          </TabPanels.Item>
+                          <TabPanels.Item key="human">
+                            <Container paddingTop="md">{children}</Container>
+                          </TabPanels.Item>
+                        </TabPanels>
+                      </Fragment>
+                    )}
                   </Tabs>
                 </Setup>
                 <Container padding="xl" paddingTop="3xl">
@@ -532,7 +539,10 @@ const INTEGRATIONS_WITH_AUTOMATIC_CONVERSATION_IDS = new Set<string>([
 
 export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
   const api = useApi();
-  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const {isSelfHosted, urlPrefix} = useStore(
+    ConfigStore,
+    useShallow(state => ({isSelfHosted: state.isSelfHosted, urlPrefix: state.urlPrefix}))
+  );
   const project = useOnboardingProject();
   const organization = useOrganization();
   const location = useLocation();
@@ -551,12 +561,12 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
   const {
     deploymentTarget,
     integrationDeploymentTarget,
-    isCloudflareTarget,
     isPhpPlatform,
     isPythonPlatform,
     platformOptions,
     projectAgentIntegration,
     selectedPlatformOptions,
+    showPlatformOptions,
   } = useAgentOnboardingOptions({
     platform: project?.platform,
     platformInfo: currentPlatform,
@@ -615,7 +625,8 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
 
   const selectedIntegration =
     selectedPlatformOptions.integration ?? AgentIntegration.VERCEL_AI;
-  const jsPackageName = isCloudflareTarget ? '@sentry/cloudflare' : '@sentry/node';
+  const jsPackageName =
+    agentMonitoringDocs.sdkImportSpecifier?.(docParams) ?? '@sentry/node';
 
   const setsConversationIdAutomatically =
     INTEGRATIONS_WITH_AUTOMATIC_CONVERSATION_IDS.has(selectedIntegration);
@@ -643,13 +654,17 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
   return (
     <ConversationOnboardingPanel project={project} dsn={dsn.public} onDismiss={onDismiss}>
       <Stack gap="xl">
-        {!projectAgentIntegration && (
+        {showPlatformOptions && (
           <Flex gap="lg" align="center" justify="between" wrap="wrap">
             <Flex gap="sm" align="center" wrap="wrap">
               <Text>{t('Set up')}</Text>
               <PlatformOptionDropdown
                 platformOptions={platformOptions}
-                connectors={{deploymentTarget: t('on')}}
+                // Framework projects only render the runtime selector, which then
+                // directly follows "with".
+                connectors={
+                  projectAgentIntegration ? undefined : {deploymentTarget: t('on')}
+                }
                 onChange={(option, value) => {
                   trackAnalytics('conversations.onboarding.interaction', {
                     organization,
@@ -667,10 +682,12 @@ export function ConversationOnboarding({onDismiss}: {onDismiss: () => void}) {
             </Flex>
           </Flex>
         )}
-        {!projectAgentIntegration && <Separator orientation="horizontal" />}
+        {showPlatformOptions && <Separator orientation="horizontal" />}
         {introduction && <Prose>{introduction}</Prose>}
         <GuidedSteps
-          key={selectedIntegration}
+          // Remount when the integration or runtime changes so the stepper doesn't
+          // carry over stale per-step state from the previous selection.
+          key={`${selectedIntegration}-${deploymentTarget}`}
           initialStep={decodeInteger(location.query.guidedStep)}
           onStepChange={step => {
             navigate({

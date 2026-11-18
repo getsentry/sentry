@@ -2,6 +2,7 @@ class error(Exception): ...
 
 class Options:
     log_errors: bool
+    max_mem: int
 
 class _Regexp: ...
 

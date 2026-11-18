@@ -6,10 +6,10 @@ import weakref
 from collections.abc import Callable, Collection, Generator, Mapping, MutableMapping, Sequence
 from contextlib import contextmanager
 from enum import IntEnum, auto
-from typing import Any
+from typing import Any, cast
 
 from django.conf import settings
-from django.db import models, router
+from django.db import models, router, transaction
 from django.db.models import Model
 from django.db.models.fields import Field
 from django.db.models.manager import Manager as DjangoBaseManager
@@ -18,6 +18,7 @@ from django.db.models.signals import class_prepared, post_delete, post_init, pos
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.db.models.manager.types import M
 from sentry.db.postgres.transactions import django_test_transaction_water_mark
+from sentry.signals import post_update
 from sentry.silo.base import SiloLimit
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
@@ -74,7 +75,7 @@ class BaseManager(_base_manager_base[M]):
     lookup_handlers = {"iexact": lambda x: x.upper()}
     use_for_related_fields = True
 
-    _queryset_class = BaseQuerySet
+    _queryset_class: type[BaseQuerySet[M, Any]] = BaseQuerySet
 
     def __init__(
         self,
@@ -169,6 +170,7 @@ class BaseManager(_base_manager_base[M]):
 
         post_init.connect(self.__post_init, sender=sender, weak=False)
         post_save.connect(self.__post_save, sender=sender, weak=False)
+        post_update.connect(self.__post_update, sender=sender, weak=False)
         post_delete.connect(self.__post_delete, sender=sender, weak=False)
 
     def __cache_state(self, instance: M) -> None:
@@ -199,12 +201,15 @@ class BaseManager(_base_manager_base[M]):
                 continue
             # store pointers
             value = self.__value_for_field(instance, key)
-            cache.set(
-                key=self.__get_lookup_cache_key(**{key: value}),
-                value=pk_val,
-                timeout=self.cache_ttl,
-                version=self.cache_version,
-            )
+            try:
+                cache.set(
+                    key=self.__get_lookup_cache_key(**{key: value}),
+                    value=pk_val,
+                    timeout=self.cache_ttl,
+                    version=self.cache_version,
+                )
+            except Exception as e:
+                logger.exception(str(e))
 
         # Ensure we don't serialize the database into the cache
         db = instance._state.db
@@ -236,6 +241,28 @@ class BaseManager(_base_manager_base[M]):
         self.__cache_state(instance)
 
         self._execute_triggers(ModelManagerTriggerCondition.SAVE)
+
+    def __post_update(self, model_ids: Sequence[Any], **kwargs: Any) -> None:
+        """
+        Since `post_update` only provides the ids of the updated instances,
+        we can't cache the updated instances. Instead, invalidate the cache
+        so that readers of `get_from_cache` do not read stale data.
+        Only the entries keyed by primary key are invalidated.
+        Entries are invalidated on transaction commit, or immediately outside
+        of a transaction, to prevent simultaneous reads from reading stale data
+        """
+        pk_name = self.model._meta.pk.name
+
+        cache_keys = [self.__get_lookup_cache_key(**{pk_name: model_id}) for model_id in model_ids]
+
+        def delete_cache_keys() -> None:
+            try:
+                cache.delete_many(cache_keys, version=self.cache_version)
+            except Exception as e:
+                logger.exception(str(e))
+
+        # if we are not in a transaction context this runs immediately
+        transaction.on_commit(delete_cache_keys, using=router.db_for_write(self.model))
 
     def __post_delete(self, instance: M, **kwargs: Any) -> None:
         """
@@ -572,7 +599,7 @@ def create_silo_limited_copy(self: BaseManager[M], limit: SiloLimit) -> BaseMana
             else None
         ),
     }
-    manager_subclass = type(cls.__name__, (cls,), overrides)
+    manager_subclass = cast("type[BaseManager[M]]", type(cls.__name__, (cls,), overrides))
     manager_instance = manager_subclass()
 
     # Ordinarily a pointer to the model class is set after the class is defined,
@@ -589,7 +616,7 @@ def create_silo_limited_copy(self: BaseManager[M], limit: SiloLimit) -> BaseMana
 
     # Dynamically extend and replace the queryset class. This will affect all
     # queryset objects later returned from the new manager.
-    qs_cls = manager_instance._queryset_class
+    qs_cls: type[object] = manager_instance._queryset_class
     assert issubclass(qs_cls, BaseQuerySet) or issubclass(qs_cls, models.QuerySet)
     queryset_overrides = {
         "bulk_create": limit.create_override(qs_cls.bulk_create),
@@ -600,7 +627,9 @@ def create_silo_limited_copy(self: BaseManager[M], limit: SiloLimit) -> BaseMana
         "update": limit.create_override(qs_cls.update),
         "update_or_create": limit.create_override(qs_cls.update_or_create),
     }
-    queryset_subclass = type(qs_cls.__name__, (qs_cls,), queryset_overrides)
+    queryset_subclass = cast(
+        "type[BaseQuerySet[M, Any]]", type(qs_cls.__name__, (qs_cls,), queryset_overrides)
+    )
     manager_instance._queryset_class = queryset_subclass
 
     return manager_instance

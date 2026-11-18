@@ -6,7 +6,8 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {PlatformKey} from 'sentry/types/platform';
-import {ProjectCharts} from 'sentry/views/projectDetail/projectCharts';
+
+import {ProjectCharts} from './projectCharts';
 
 function renderProjectCharts(platform?: PlatformKey, chartDisplay?: string) {
   const {organization, project} = initializeOrg({

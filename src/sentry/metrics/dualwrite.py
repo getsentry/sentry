@@ -39,8 +39,8 @@ class DualWriteMetricsBackend(MetricsBackend):
 
     Additionally, an `experimental_backend` can be configured with `experimental_args`.
     Metrics will always be sent to the experimental backend (in addition to primary/secondary)
-    unless they match the `deny_list` prefixes in `experimental_args`. If `allow_list` is set in
-    `experimental_args`, the `deny_list` is ignored and only metrics matching `allow_list` are sent.
+    unless `allow_list` is set in `experimental_args`, in which case only metrics matching its
+    prefixes are sent.
 
     """
 

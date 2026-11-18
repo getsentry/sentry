@@ -15,6 +15,8 @@ from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventTy
 from sentry.snuba.subscriptions import create_snuba_query
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.workflow_engine.models.data_source import DataSource
+from sentry.workflow_engine.models.detector import Detector
 
 pytestmark = pytest.mark.sentry_metrics
 
@@ -42,7 +44,9 @@ class AM1MetricsToTransactionsTestCase(TestCase, SnubaTestCase):
             resolution=timedelta(minutes=1),
         )
 
-    def _setup_detector(self, snuba_query: SnubaQuery):
+    def _setup_detector(
+        self, snuba_query: SnubaQuery
+    ) -> tuple[QuerySubscription, DataSource, Detector]:
         """Creates a QuerySubscription, DataSource, and Detector linked to the given snuba_query."""
         query_subscription = QuerySubscription.objects.create(
             project=self.project,

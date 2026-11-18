@@ -1,7 +1,8 @@
 import type {GroupStatus} from 'sentry/types/group';
-import type {ProjectCreationVariant} from 'sentry/utils/analytics/projectCreationAnalyticsEvents';
 import type {CommonGroupAnalyticsData} from 'sentry/utils/events';
 import type {Tab} from 'sentry/views/issueDetails/types';
+
+import type {ProjectCreationVariant} from './projectCreationAnalyticsEvents';
 
 type RuleViewed = {
   alert_type: 'issue' | 'metric';
@@ -33,6 +34,7 @@ export type BaseEventAnalyticsParams = {
   has_source_maps: boolean;
   has_trace: boolean;
   is_symbolicated: boolean;
+  num_breadcrumbs: number;
   num_commits: number;
   num_event_tags: number;
   num_in_app_stack_frames: number;

@@ -8,16 +8,17 @@ import {NumberField} from 'sentry/components/forms/fields/numberField';
 import {RadioField} from 'sentry/components/forms/fields/radioField';
 import {t} from 'sentry/locale';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
-import type {MetricDetectorFormData} from 'sentry/views/detectors/components/forms/metric/metricFormFields';
-import {
-  METRIC_DETECTOR_FORM_FIELDS,
-  useMetricDetectorFormField,
-} from 'sentry/views/detectors/components/forms/metric/metricFormFields';
 import {getResolutionDescription} from 'sentry/views/detectors/utils/getDetectorResolutionDescription';
 import {
   getStaticDetectorThresholdPlaceholder,
   getStaticDetectorThresholdSuffix,
 } from 'sentry/views/detectors/utils/metricDetectorSuffix';
+
+import type {MetricDetectorFormData} from './metricFormFields';
+import {
+  METRIC_DETECTOR_FORM_FIELDS,
+  useMetricDetectorFormField,
+} from './metricFormFields';
 
 function validateThresholdOrder(
   value: number,

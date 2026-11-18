@@ -20,12 +20,10 @@ import {
   comparePermissionLevels,
   toResourcePermissions,
 } from 'sentry/utils/consolidatedScopes';
-import type {WebhookSubscription} from 'sentry/views/settings/organizationDeveloperSettings/constants';
-import {
-  PermissionSelection,
-  permissionStateToList,
-} from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
-import {Subscriptions} from 'sentry/views/settings/organizationDeveloperSettings/resourceSubscriptions';
+
+import type {WebhookSubscription} from './constants';
+import {PermissionSelection, permissionStateToList} from './permissionSelection';
+import {Subscriptions} from './resourceSubscriptions';
 
 type Props = {
   events: WebhookSubscription[];

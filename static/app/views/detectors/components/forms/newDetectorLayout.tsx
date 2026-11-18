@@ -1,6 +1,8 @@
 import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import omitBy from 'lodash/omitBy';
 import orderBy from 'lodash/orderBy';
+import {useQueryStates} from 'nuqs';
 
 import type {FormProps} from 'sentry/components/forms/form';
 import {FormModel} from 'sentry/components/forms/model';
@@ -11,14 +13,16 @@ import type {
   BaseDetectorUpdatePayload,
   DetectorType,
 } from 'sentry/types/workflowEngine/detectors';
-import {useLocation} from 'sentry/utils/useLocation';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {DetectorFormBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
-import {NewDetectorFooter} from 'sentry/views/detectors/components/forms/common/footer';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {useCreateDetectorFormSubmit} from 'sentry/views/detectors/hooks/useCreateDetectorFormSubmit';
 import {hasDetectorWriteAccess} from 'sentry/views/detectors/utils/permissions';
+
+import {DetectorFormBreadcrumbs} from './common/breadcrumbs';
+import {useDetectorDraft, type DetectorDraftSchema} from './common/detectorDraft';
+import {NewDetectorFooter} from './common/footer';
 
 type NewDetectorLayoutProps<TFormData, TUpdatePayload> = {
   children: React.ReactNode;
@@ -26,6 +30,7 @@ type NewDetectorLayoutProps<TFormData, TUpdatePayload> = {
   formDataToEndpointPayload: (formData: TFormData) => TUpdatePayload;
   initialFormData: Partial<TFormData>;
   disabledCreate?: string;
+  draftSchema?: DetectorDraftSchema<TFormData>;
   extraFooterButton?: React.ReactNode;
   mapFormErrors?: (error: any) => any;
   previewChart?: React.ReactNode;
@@ -43,23 +48,30 @@ export function NewDetectorLayout<
   extraFooterButton,
   previewChart,
   detectorType,
+  draftSchema,
 }: NewDetectorLayoutProps<TFormData, TUpdatePayload>) {
-  const location = useLocation();
+  const [{project: urlProjectIds, environment: urlEnvironments}] =
+    useQueryStates(pageFilterParsers);
   const theme = useTheme();
   const maxWidth = theme.breakpoints.xl;
   const organization = useOrganization();
   const {projects} = useProjects();
 
+  const [formModel] = useState(() => new FormModel());
+  const {initialValues: draftFormData, onFieldChange: syncDraftToUrl} = useDetectorDraft(
+    formModel,
+    draftSchema
+  );
+
   const initialProjectId = useMemo(() => {
     const writableProjects = projects.filter(project =>
       hasDetectorWriteAccess({organization, project})
     );
-    const queryProjectId = location.query.project as string | undefined;
-    if (queryProjectId) {
-      const match = writableProjects.find(p => p.id === queryProjectId);
-      if (match) {
-        return match.id;
-      }
+    const requestedProjectId = [draftFormData?.projectId, urlProjectIds[0]].find(id =>
+      writableProjects.some(p => p.id === id)
+    );
+    if (requestedProjectId) {
+      return requestedProjectId;
     }
     const sorted = orderBy(
       writableProjects,
@@ -67,38 +79,42 @@ export function NewDetectorLayout<
       ['desc', 'desc']
     );
     return sorted[0]?.id ?? '';
-  }, [location.query.project, organization, projects]);
+  }, [draftFormData, urlProjectIds, organization, projects]);
 
   const formSubmitHandler = useCreateDetectorFormSubmit({
     detectorType,
     formDataToEndpointPayload,
   });
 
-  const [formModel] = useState(() => new FormModel());
-  const {onFieldChange} = useFormEagerValidation(formModel);
+  const {onFieldChange: validateEagerly} = useFormEagerValidation(formModel);
 
+  const initialEnvironment = urlEnvironments[0] ?? '';
   const initialData = useMemo(() => {
+    // Only keep the draft's project if it passed the write-access check above.
+    const draftProjectId =
+      draftFormData?.projectId === initialProjectId ? initialProjectId : undefined;
     return {
       projectId: initialProjectId,
-      environment: (location.query.environment as string | undefined) || '',
-      name: (location.query.name as string | undefined) || '',
-      owner: (location.query.owner as string | undefined) || '',
+      environment: initialEnvironment,
+      name: '',
+      owner: '',
       workflowIds: [],
       ...initialFormData,
+      ...omitBy(
+        {...draftFormData, projectId: draftProjectId},
+        value => value === undefined
+      ),
     };
-  }, [
-    initialProjectId,
-    initialFormData,
-    location.query.environment,
-    location.query.name,
-    location.query.owner,
-  ]);
+  }, [initialProjectId, initialEnvironment, initialFormData, draftFormData]);
 
   const formProps: FormProps = {
     model: formModel,
     initialData,
     onSubmit: formSubmitHandler,
-    onFieldChange,
+    onFieldChange: id => {
+      validateEagerly();
+      syncDraftToUrl(id);
+    },
     mapFormErrors,
   };
 

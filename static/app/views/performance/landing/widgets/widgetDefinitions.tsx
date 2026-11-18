@@ -1,4 +1,4 @@
-import type {Theme} from '@emotion/react';
+import {useTheme, type Theme} from '@emotion/react';
 
 import {t} from 'sentry/locale';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/discover/fields';
@@ -27,10 +27,6 @@ export interface ChartDefinition {
 }
 
 export enum PerformanceWidgetSetting {
-  DURATION_HISTOGRAM = 'duration_histogram',
-  LCP_HISTOGRAM = 'lcp_histogram',
-  FCP_HISTOGRAM = 'fcp_histogram',
-  FID_HISTOGRAM = 'fid_histogram',
   APDEX_AREA = 'apdex_area',
   P50_DURATION_AREA = 'p50_duration_area',
   P75_DURATION_AREA = 'p75_duration_area',
@@ -66,39 +62,25 @@ export enum PerformanceWidgetSetting {
   HIGHEST_CACHE_MISS_RATE_TRANSACTIONS = 'highest_cache__miss_rate_transactions',
 }
 
-export const WIDGET_DEFINITIONS: ({
+export function useWidgetDefinitions(): Record<
+  PerformanceWidgetSetting,
+  ChartDefinition
+> {
+  const theme = useTheme();
+  const useEap = useInsightsEap();
+  return getWidgetDefinitions({theme, useEap});
+}
+
+function getWidgetDefinitions({
   theme,
+  useEap,
 }: {
   theme: Theme;
-}) => Record<PerformanceWidgetSetting, ChartDefinition> = ({theme}: {theme: Theme}) => {
-  const useEap = useInsightsEap();
+  useEap: boolean;
+}): Record<PerformanceWidgetSetting, ChartDefinition> {
   const durationField = useEap ? 'span.duration' : 'transaction.duration';
 
   return {
-    [PerformanceWidgetSetting.DURATION_HISTOGRAM]: {
-      title: t('Duration Distribution'),
-      fields: [durationField],
-      dataType: GenericPerformanceWidgetDataType.HISTOGRAM,
-      chartColor: theme.chart.getColorPalette(0)[0],
-    },
-    [PerformanceWidgetSetting.LCP_HISTOGRAM]: {
-      title: t('LCP Distribution'),
-      fields: ['measurements.lcp'],
-      dataType: GenericPerformanceWidgetDataType.HISTOGRAM,
-      chartColor: theme.chart.getColorPalette(0)[0],
-    },
-    [PerformanceWidgetSetting.FCP_HISTOGRAM]: {
-      title: t('FCP Distribution'),
-      fields: ['measurements.fcp'],
-      dataType: GenericPerformanceWidgetDataType.HISTOGRAM,
-      chartColor: theme.chart.getColorPalette(0)[0],
-    },
-    [PerformanceWidgetSetting.FID_HISTOGRAM]: {
-      title: t('FID Distribution'),
-      fields: ['measurements.fid'],
-      dataType: GenericPerformanceWidgetDataType.HISTOGRAM,
-      chartColor: theme.chart.getColorPalette(0)[0],
-    },
     [PerformanceWidgetSetting.TPM_AREA]: {
       title: t('Transactions Per Minute'),
       fields: ['epm()'],
@@ -316,4 +298,4 @@ export const WIDGET_DEFINITIONS: ({
       dataType: GenericPerformanceWidgetDataType.SLOW_SCREENS_BY_WARM_START,
     },
   };
-};
+}

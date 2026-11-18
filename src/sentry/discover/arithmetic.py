@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Iterable, Literal, Union, overload
+from typing import Any, Iterable, Literal, Union, cast, overload
 
 from parsimonious.exceptions import ParseError
 from parsimonious.grammar import Grammar
-from parsimonious.nodes import NodeVisitor
+from parsimonious.nodes import Node, NodeVisitor
 
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.eap.columns import ColumnDefinitions
@@ -87,7 +88,7 @@ class ParsedEquation:
     contains_functions: bool
 
 
-def flatten(remaining):
+def flatten(remaining: list[Operation]) -> Operation:
     """Take all the remaining terms and reduce them to a single tree"""
     term = remaining.pop(0)
     while remaining:
@@ -148,7 +149,7 @@ spaces               = " "*
 )
 
 
-class ArithmeticVisitor(NodeVisitor):
+class ArithmeticVisitor(NodeVisitor[Operation | float | str]):
     DEFAULT_MAX_OPERATORS = 10
 
     # Don't wrap in VisitationErrors
@@ -261,7 +262,7 @@ class ArithmeticVisitor(NodeVisitor):
         self.fields: set[str] = set()
         self.functions: set[str] = set()
 
-    def visit_term(self, _, children):
+    def visit_term(self, node: Node, children: Sequence[Any]) -> Operation:
         maybe_factor, remaining_adds = children
         maybe_factor = maybe_factor[0]
         # remaining_adds is either a list containing an Operation, or a Node
@@ -273,70 +274,70 @@ class ArithmeticVisitor(NodeVisitor):
             # if remaining is a node lhs contains a factor so just return that
             return maybe_factor
 
-    def visit_factor(self, _, children):
+    def visit_factor(self, node: Node, children: Sequence[Any]) -> Operation:
         primary, remaining_muls = children
         remaining_muls[0].lhs = primary
         return flatten(remaining_muls)
 
-    def visited_operator(self):
+    def visited_operator(self) -> None:
         """We visited an operator, increment the count and error if we exceed max"""
         self.operators += 1
         if self.operators > self.max_operators:
             raise MaxOperatorError("Exceeded maximum number of operations")
 
-    def visit_add_sub(self, _, children):
+    def visit_add_sub(self, node: Node, children: Sequence[Any]) -> Operation:
         add_sub_operator, maybe_factor = children
         self.visited_operator()
         return Operation(add_sub_operator, rhs=maybe_factor[0])
 
-    def visit_mul_div(self, _, children):
+    def visit_mul_div(self, node: Node, children: Sequence[Any]) -> Operation:
         mul_div_operator, primary = children
         self.visited_operator()
         return Operation(mul_div_operator, rhs=primary)
 
     @staticmethod
-    def strip_spaces(children):
+    def strip_spaces(children: Sequence[Any]) -> Any:
         """Visitor for a `spaces foo spaces` node"""
         _, value, _ = children
 
         return value
 
-    def visit_maybe_factor(self, _, children):
+    def visit_maybe_factor(self, node: Node, children: Sequence[Any]) -> Any:
         return self.strip_spaces(children)
 
-    def visit_primary(self, _, children):
+    def visit_primary(self, node: Node, children: Sequence[Any]) -> Any:
         # Return the 0th element since this is a (numeric/function/field)
         self.terms += 1
         return self.strip_spaces(children)[0]
 
-    def visit_parens(self, _, children):
+    def visit_parens(self, node: Node, children: Sequence[Any]) -> Any:
         # Strip brackets
         _, term, _ = children
 
         return term
 
     @staticmethod
-    def parse_operator(operator):
+    def parse_operator(operator: Sequence[Any]) -> str:
         # operator is a list since the pattern is (a/b) but we'll only ever want the first value
         return operator[0].expr_name
 
-    def visit_add_sub_operator(self, _, children):
+    def visit_add_sub_operator(self, node: Node, children: Sequence[Any]) -> str:
         return self.parse_operator(self.strip_spaces(children))
 
-    def visit_mul_div_operator(self, _, children):
+    def visit_mul_div_operator(self, node: Node, children: Sequence[Any]) -> str:
         return self.parse_operator(self.strip_spaces(children))
 
-    def visit_numeric_value(self, node, _):
+    def visit_numeric_value(self, node: Node, _: Sequence[Any]) -> float:
         return float(node.text)
 
-    def visit_field_value(self, node, _):
+    def visit_field_value(self, node: Node, _: Sequence[Any]) -> str:
         field = node.text
         if field not in self.field_allowlist:
             raise ArithmeticValidationError(f"{field} not allowed in arithmetic")
         self.fields.add(field)
         return field
 
-    def visit_function_value(self, node, children):
+    def visit_function_value(self, node: Node, children: Sequence[Any]) -> str:
         function_node, *_ = children
         function_name = function_node.text
         field = node.text
@@ -345,7 +346,7 @@ class ArithmeticVisitor(NodeVisitor):
         self.functions.add(field)
         return field
 
-    def generic_visit(self, node, children):
+    def generic_visit(self, node: Node, children: Sequence[Any]) -> Any:
         return children or node
 
 
@@ -393,7 +394,7 @@ def parse_arithmetic(
     return result, list(visitor.fields), list(visitor.functions)
 
 
-def resolve_arithmetic(parsed: Operation | float | str):
+def resolve_arithmetic(parsed: Operation | float | str) -> float:
     """Given a parsed arithmetic string, assume that its resolveable to a single value and return that
 
     will error if this is not possible
@@ -415,9 +416,9 @@ def resolve_arithmetic(parsed: Operation | float | str):
             case _:
                 raise InvalidSearchQuery("Unknown operator")
     elif parsed.lhs is not None:
-        return parsed.lhs
+        return cast(float, parsed.lhs)
     elif parsed.rhs is not None:
-        return parsed.rhs
+        return cast(float, parsed.rhs)
     else:
         raise InvalidSearchQuery("Poorly formed arithmetic an operator without sides was found")
 
@@ -486,7 +487,7 @@ def strip_equation(field: str) -> str:
     return field[len(EQUATION_PREFIX) :]
 
 
-def categorize_columns(columns) -> tuple[list[str], list[str]]:
+def categorize_columns(columns: Iterable[str]) -> tuple[list[str], list[str]]:
     """equations have a prefix so that they can be easily included alongside our existing fields"""
     equations = []
     fields = []

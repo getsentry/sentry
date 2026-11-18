@@ -15,6 +15,7 @@ import type {Repository} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -116,7 +117,7 @@ function FilesChangedList({organization, releaseRepos, projectSlug}: FilesChange
                   </Panel>
                 );
               })}
-              <Pagination pageLinks={fileListPageLinks} />
+              <Pagination {...getPaginationProps(fileListPageLinks)} />
             </Fragment>
           ) : (
             <EmptyState>

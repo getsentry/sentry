@@ -21,21 +21,44 @@ const coreComponentFiles = [
 
 const testFiles = ['**/*.spec.{ts,js,tsx,jsx}', 'tests/js/**/*.{ts,js,tsx,jsx}'];
 
+const tableComponentFiles = [
+  'static/app/components/core/table/**/*.{ts,tsx}',
+  'static/app/components/tables/**/*.{ts,tsx}',
+];
+
 // incubator rules disallow new violations from being introduced
 // but suppress pre-existing violations on `master`
 export const incubator = defineConfig({
   rules: {
+    '@sentry/prefer-nuqs': 'error',
+    '@sentry/scraps/no-dom-coupling': 'error',
+    '@sentry/scraps/no-manual-table': 'error',
     '@sentry/scraps/prefer-primitives': 'error',
     '@sentry/scraps/prefer-container-responsive-props': 'error',
   },
   overrides: [
     {
       files: coreComponentFiles,
-      rules: {'@sentry/scraps/prefer-primitives': 'off'},
+      rules: {
+        '@sentry/scraps/no-dom-coupling': 'off',
+        '@sentry/scraps/prefer-primitives': 'off',
+      },
+    },
+    {
+      files: [
+        ...tableComponentFiles,
+        ...testFiles,
+        '**/*.stories.{ts,tsx}',
+        'static/app/stories/**/*.{ts,tsx}',
+      ],
+      rules: {'@sentry/scraps/no-manual-table': 'off'},
     },
     {
       files: testFiles,
-      rules: fakeTimerRules,
+      rules: {
+        ...fakeTimerRules,
+        '@sentry/scraps/prefer-primitives': 'off',
+      },
     },
   ],
 });
@@ -132,6 +155,17 @@ const config = defineConfig({
       {
         type: 'icons',
         pattern: 'static/packages/icons/src',
+        partialMatch: false,
+      },
+      {
+        type: 'search-syntax',
+        pattern: 'static/packages/search-syntax/src',
+        partialMatch: false,
+      },
+      // Domain badges stay in the app after the generic badge primitives move.
+      {
+        type: 'sentry',
+        pattern: 'static/app/components/core/badge',
         partialMatch: false,
       },
       // Keep core stories inside Scraps; story-files still classifies them as stories.
@@ -266,8 +300,10 @@ const config = defineConfig({
     'boundaries/legacy-warnings': false,
   },
   ignorePatterns: [
+    'static/packages/api/**/*',
     'static/packages/icons/**/*',
     'static/packages/scraps/**/*',
+    'static/packages/search-syntax/**/*',
     '.devenv/**/*',
     '.agents/**/*',
     '.github/**/*',
@@ -298,6 +334,7 @@ const config = defineConfig({
   ],
   rules: {
     ...base.rules,
+    '@sentry/no-relative-api-url': 'error',
     'no-restricted-imports': [
       'error',
       {
@@ -305,6 +342,7 @@ const config = defineConfig({
         paths: restrictedImportPaths,
       },
     ],
+    '@sentry/prefer-relative-child-imports': 'error',
     '@sentry/no-relative-import-paths': [
       'error',
       {
@@ -330,7 +368,13 @@ const config = defineConfig({
                 to: {
                   element: {
                     types: {
-                      anyOf: ['sentry*', 'getsentry', 'gsAdmin', 'icons'],
+                      anyOf: [
+                        'sentry*',
+                        'getsentry',
+                        'gsAdmin',
+                        'icons',
+                        'search-syntax',
+                      ],
                     },
                   },
                 },
@@ -583,19 +627,11 @@ const config = defineConfig({
   overrides: [
     {
       files: [
-        'tests/js/jestReactRouterResolver.cjs',
-        'tests/js/jestReactRouterResolver.spec.ts',
+        'tests/js/jestWorkspaceResolver.cjs',
+        'tests/js/jestWorkspaceResolver.spec.ts',
       ],
       env: {node: true},
       rules: {'import/no-nodejs-modules': 'off'},
-    },
-    {
-      files: [
-        'static/app/utils/reactRouterV6/index.ts',
-        'static/app/utils/reactRouterV6/dom.ts',
-        'static/app/utils/reactRouterV6/types.d.ts',
-      ],
-      rules: {'@sentry/no-legacy-router-imports': 'off'},
     },
     typescriptOverride,
     {
@@ -700,23 +736,19 @@ const config = defineConfig({
       rules: {'boundaries/no-unknown-files': 'off'},
     },
     {
-      files: ['static/packages/*/oxlint.config.ts'],
+      files: ['static/packages/*/jest.config.mjs'],
+      // Package test configs can import the shared root CI helper.
       rules: {
-        'boundaries/no-unknown-files': 'off',
         'import/no-relative-parent-imports': 'off',
         'import-js/no-relative-packages': 'off',
       },
     },
     {
-      files: ['static/packages/scraps/scripts/*.mjs'],
+      files: ['static/packages/*/oxlint.config.ts'],
       rules: {
         'boundaries/no-unknown-files': 'off',
-        'import-js/no-extraneous-dependencies': 'off',
-        'import/no-nodejs-modules': 'off',
-        'no-console': 'off',
-      },
-      env: {
-        node: true,
+        'import/no-relative-parent-imports': 'off',
+        'import-js/no-relative-packages': 'off',
       },
     },
     {
@@ -811,10 +843,16 @@ const config = defineConfig({
       },
     },
     {
+      // Build and dev server config proxies /api/0 rather than requesting it.
+      files: ['**/*.config.{js,mjs,ts}'],
+      rules: {'@sentry/no-relative-api-url': 'off'},
+    },
+    {
       files: testFiles,
       rules: {
         // Tests sometimes contain intentionally unusual hard-coded numbers.
         'no-loss-of-precision': 'off',
+        '@sentry/no-relative-api-url': 'off',
         '@sentry/prefer-react-component': 'off',
         'no-restricted-imports': [
           'error',

@@ -1,8 +1,8 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 
-import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {TeamStore} from 'sentry/stores/teamStore';
+import {ProjectsStore} from './projectsStore';
+import {TeamStore} from './teamStore';
 
 describe('ProjectsStore', () => {
   const teamFoo = TeamFixture({

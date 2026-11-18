@@ -2,7 +2,7 @@ import {EventFixture} from 'sentry-fixture/event';
 
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import {useEventLogsUrl} from 'sentry/components/events/ourlogs/useEventLogsUrl';
+import {useEventLogsUrl} from './useEventLogsUrl';
 
 describe('useEventLogsUrl', () => {
   it('returns null when there is no context trace_id', () => {

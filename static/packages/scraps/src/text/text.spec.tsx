@@ -29,6 +29,11 @@ describe('Text', () => {
     expect(screen.getByText('Hello World')).not.toHaveAttribute('align');
   });
 
+  it('does not forward trim to the DOM element', () => {
+    render(<Text trim={false}>Hello World</Text>, {wrapper: ThemeWrapper});
+    expect(screen.getByText('Hello World')).not.toHaveAttribute('trim');
+  });
+
   it('forwards data-test-id', () => {
     render(<Text data-test-id="test-id">Hello World</Text>, {wrapper: ThemeWrapper});
     expect(screen.getByText('Hello World')).toHaveAttribute('data-test-id', 'test-id');
@@ -114,6 +119,22 @@ describe('Text', () => {
       </Text>,
       {wrapper: ThemeWrapper}
     );
+  });
+
+  describe('density', () => {
+    it.each(
+      (
+        Object.keys(theme.font.lineHeight) as Array<keyof typeof theme.font.lineHeight>
+      ).filter(
+        // jsdom does not resolve rem-based line-heights, so only numeric tokens are asserted here
+        density => typeof theme.font.lineHeight[density] === 'number'
+      )
+    )('sets line-height from the %s token', density => {
+      render(<Text density={density}>Hello World</Text>, {wrapper: ThemeWrapper});
+      expect(screen.getByText('Hello World')).toHaveStyle({
+        lineHeight: String(theme.font.lineHeight[density]),
+      });
+    });
   });
 
   describe('display', () => {

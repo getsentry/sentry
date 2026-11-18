@@ -3,25 +3,30 @@ import styled from '@emotion/styled';
 import {IconClock} from '@sentry/icons/clock';
 import {IconContract} from '@sentry/icons/contract';
 import {IconExpand} from '@sentry/icons/expand';
+import {IconFilter} from '@sentry/icons/filter';
 import {IconGraph} from '@sentry/icons/graph';
 
 import {Button} from '@sentry/scraps/button';
-import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Container, type ContainerProps} from '@sentry/scraps/layout';
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {Container, Flex, type ContainerProps} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {hasDroppedData} from 'sentry/components/droppedData/buckets';
-import {useDroppedDataDrawer} from 'sentry/components/droppedData/drawer/useDroppedDataDrawer';
-import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
+import {ChartLayersControl} from 'sentry/components/charts/chartLayersControl';
+import {useChartLayers} from 'sentry/components/charts/useChartLayers';
+import {DroppedDataFilterNote} from 'sentry/components/droppedData/droppedDataFilterNote';
 import {DroppedDataLLMContext} from 'sentry/components/droppedData/droppedDataLLMContext';
-import {useDroppedData} from 'sentry/components/droppedData/useDroppedData';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
+import {getDuration} from 'sentry/utils/duration/getDuration';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
+import {getTimeSeriesForQuery} from 'sentry/utils/timeSeries/getTimeSeriesForQuery';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {WidgetSyncContextProvider} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
@@ -31,19 +36,31 @@ import {CHART_SELECTION_ALERT_KEY} from 'sentry/views/explore/components/attribu
 import {FloatingTrigger} from 'sentry/views/explore/components/attributeBreakdowns/floatingTrigger';
 import {
   ChartVisualization,
-  useChartVisualizationPlottables,
+  useChartInfosPlottables,
 } from 'sentry/views/explore/components/chart/chartVisualization';
+import {ExtrapolationConfidenceFooter} from 'sentry/views/explore/components/chart/extrapolationConfidenceFooter';
 import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
+import {useHasExtrapolationConfidenceFooter} from 'sentry/views/explore/components/chart/useHasExtrapolationConfidenceFooter';
 import {ChartContextMenu} from 'sentry/views/explore/components/chartContextMenu';
+import {
+  AddTransformationButton,
+  VisualizeTransformationRows,
+} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeTransformations';
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {type SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
-import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
-import {CHART_HEIGHT} from 'sentry/views/explore/settings';
-import {ConfidenceFooter} from 'sentry/views/explore/spans/charts/confidenceFooter';
+import {useQueryParamsGroupBys} from 'sentry/views/explore/queryParams/context';
+import {
+  groupVisualizes,
+  serializeVisualizes,
+  type Visualize,
+} from 'sentry/views/explore/queryParams/visualize';
+import {CHART_HEIGHT, DEV_CHART_HEIGHT} from 'sentry/views/explore/settings';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
+import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {RawCounts} from 'sentry/views/explore/useRawCounts';
 import {
   combineConfidenceForSeries,
@@ -59,6 +76,16 @@ import {
   useSynchronizeCharts,
 } from 'sentry/views/insights/common/components/chart';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+
+import {ConfidenceFooter} from './confidenceFooter';
+import {getSpansHeatMapYAxis, isSpansHeatMap, SpansHeatMap} from './spansHeatMap';
+import {
+  OUTLIER_CUTOFFS,
+  useSpansHeatMapOutlierBound,
+  type OutlierCutoff,
+} from './useSpansHeatMapOutlierBound';
+
+const OUTLIERS_OFF = 'off';
 
 interface ExploreChartsProps {
   extrapolate: boolean;
@@ -85,7 +112,18 @@ export const EXPLORE_CHART_TYPE_OPTIONS = [
   },
 ];
 
+const CHART_TYPE_TO_ICON: Record<ChartType, 'line' | 'area' | 'bar' | 'heatmap'> = {
+  [ChartType.LINE]: 'line',
+  [ChartType.AREA]: 'area',
+  [ChartType.BAR]: 'bar',
+  [ChartType.HEATMAP]: 'heatmap',
+};
+
 const EXPLORE_CHART_GROUP = 'explore-charts_group';
+
+// Several aggregates over the top groups can share a chart, which can put
+// dozens of series in one tooltip.
+const MAX_TOOLTIP_SERIES = 10;
 
 export function ExploreCharts({
   query,
@@ -98,28 +136,28 @@ export function ExploreCharts({
 }: ExploreChartsProps) {
   const topEvents = useTopEvents();
 
-  function handleChartTypeChange(index: number, chartType: ChartType) {
+  function updateVisualizes(
+    indices: number[],
+    options: {
+      chartType?: ChartType;
+      transformations?: readonly string[];
+      visible?: boolean;
+    }
+  ) {
     const newVisualizes = visualizes.map((visualize, i) => {
-      if (i === index) {
-        visualize = visualize.replace({chartType});
+      if (indices.includes(i)) {
+        visualize = visualize.replace(options);
       }
-      return visualize.serialize();
+      return visualize;
     });
-    setVisualizes(newVisualizes);
+    setVisualizes(serializeVisualizes(newVisualizes));
   }
 
-  function handleChartVisibilityChange(index: number, visible: boolean) {
-    const newVisualizes = visualizes.map((visualize, i) => {
-      if (i === index) {
-        visualize = visualize.replace({visible});
-      }
-      return visualize.serialize();
-    });
-    setVisualizes(newVisualizes);
-  }
+  // Aggregates selected together in the toolbar share a chart and Y axis.
+  const chartGroups = useMemo(() => groupVisualizes(visualizes), [visualizes]);
 
   useSynchronizeCharts(
-    visualizes.length,
+    chartGroups.length,
     !timeseriesResult.isPending,
     EXPLORE_CHART_GROUP
   );
@@ -130,19 +168,21 @@ export function ExploreCharts({
     <ChartList>
       <DroppedDataLLMContext dataset={dataset} />
       <WidgetSyncContextProvider groupName={EXPLORE_CHART_GROUP}>
-        {visualizes.map((visualize, index) => {
+        {chartGroups.map(group => {
+          const indices = group.visualizes.map((_, i) => group.index + i);
           return (
             <Chart
-              key={`${index}`}
+              key={`${group.index}-${group.visualizes.map(v => v.yAxis).join(',')}`}
               extrapolate={extrapolate}
-              index={index}
-              onChartTypeChange={chartType => handleChartTypeChange(index, chartType)}
-              onChartVisibilityChange={visible =>
-                handleChartVisibilityChange(index, visible)
+              index={group.index}
+              onChartTypeChange={chartType => updateVisualizes(indices, {chartType})}
+              onChartVisibilityChange={visible => updateVisualizes(indices, {visible})}
+              onTransformationsChange={transformations =>
+                updateVisualizes(indices, {transformations})
               }
               query={query}
               timeseriesResult={timeseriesResult}
-              visualize={visualize}
+              visualizes={group.visualizes}
               samplingMode={samplingMode}
               topEvents={topEvents}
               rawSpanCounts={rawSpanCounts}
@@ -154,15 +194,103 @@ export function ExploreCharts({
   );
 }
 
+function getChartInfo({
+  samplingMode,
+  timeseriesResult,
+  topEvents,
+  visualize,
+}: {
+  timeseriesResult: SortedTimeSeries;
+  visualize: Visualize;
+  samplingMode?: SamplingMode;
+  topEvents?: number;
+}): ChartInfo {
+  const isTopN = defined(topEvents) && topEvents > 0;
+  const series = getTimeSeriesForQuery(
+    timeseriesResult.data,
+    visualize.yAxis,
+    visualize.transformations
+  );
+
+  let confidenceSeries = series;
+
+  let samplingMeta = determineSeriesSampleCountAndIsSampled(confidenceSeries, isTopN);
+
+  // This implies that the sampling meta data is not available.
+  // When this happens, we override it with the sampling meta
+  // data from the DEFAULT_VISUALIZATION.
+  if (samplingMeta.sampleCount === 0 && !defined(samplingMeta.isSampled)) {
+    confidenceSeries = getTimeSeriesForQuery(
+      timeseriesResult.data,
+      DEFAULT_VISUALIZATION,
+      []
+    );
+    samplingMeta = determineSeriesSampleCountAndIsSampled(confidenceSeries, isTopN);
+  }
+
+  // Invalid `_if` filters skip the backend request; surface that as a chart error
+  // instead of an empty/no-data state.
+  const hasValidConditionalFilter = isConditionalAggregateYAxisValid(visualize.yAxis);
+  const resultForChart = (
+    hasValidConditionalFilter
+      ? timeseriesResult
+      : {
+          ...timeseriesResult,
+          error: new Error(
+            getConditionalFilterInvalidSeriesMessageForYAxis(visualize.yAxis)
+          ),
+          isError: true,
+          isPending: false,
+          isLoading: false,
+          isFetching: false,
+          isSuccess: false,
+          status: 'error' as const,
+        }
+  ) as SortedTimeSeries;
+
+  return {
+    chartType: visualize.chartType,
+    confidence: combineConfidenceForSeries(confidenceSeries),
+    series: hasValidConditionalFilter ? series : [],
+    timeseriesResult: resultForChart,
+    yAxis: visualize.yAxis,
+    dataScanned: samplingMeta.dataScanned,
+    isSampled: samplingMeta.isSampled,
+    sampleCount: samplingMeta.sampleCount,
+    samplingMode,
+  };
+}
+
+/**
+ * Merges the chart info of several visualizes plotted on the same chart. All
+ * visualizes come from the same timeseries request, so the sampling metadata
+ * of the first one is representative of the whole chart.
+ */
+function combineChartInfos(chartInfos: ChartInfo[]): ChartInfo {
+  const first = chartInfos[0]!;
+  return {
+    ...first,
+    series: chartInfos.flatMap(chartInfo => chartInfo.series),
+    // Only surface an error when none of the visualizes can be plotted.
+    timeseriesResult:
+      chartInfos.find(chartInfo => !chartInfo.timeseriesResult.error)?.timeseriesResult ??
+      first.timeseriesResult,
+  };
+}
+
 interface ChartProps {
   extrapolate: boolean;
   index: number;
   onChartTypeChange: (chartType: ChartType) => void;
   onChartVisibilityChange: (visible: boolean) => void;
+  onTransformationsChange: (transformations: readonly string[]) => void;
   query: string;
   rawSpanCounts: RawCounts;
   timeseriesResult: SortedTimeSeries;
-  visualize: Visualize;
+  /**
+   * The visualizes plotted on this chart.
+   */
+  visualizes: readonly Visualize[];
   samplingMode?: SamplingMode;
   topEvents?: number;
 }
@@ -172,21 +300,27 @@ function Chart({
   index,
   onChartTypeChange,
   onChartVisibilityChange,
+  onTransformationsChange,
   query,
   rawSpanCounts,
-  visualize,
+  visualizes,
   timeseriesResult,
   samplingMode,
   topEvents,
 }: ChartProps) {
+  // Every visualize in a chart shares the chart type and visibility, so the
+  // first one is used to read them.
+  const visualize = visualizes[0]!;
+
+  const organization = useOrganization();
+
   const {chartSelection, setChartSelection} = useChartSelection();
-  const [interval, setInterval, intervalOptions] = useChartInterval();
+  const [tab] = useTab();
+  const isAttributeBreakdown = tab === Tab.ATTRIBUTE_BREAKDOWNS;
+  const {selection} = usePageFilters();
+  const groupBys = useQueryParamsGroupBys();
+  const [chartInterval, setChartInterval, intervalOptions] = useChartInterval();
   const dataset = useSpansDataset();
-  const {droppedEvents, acceptedEvents} = useDroppedData({dataset, interval});
-  const [isDroppedDataLayerOn, setIsDroppedDataLayerOn] = useState(true);
-  const openDroppedDataDrawer = useDroppedDataDrawer({dataset});
-  const canShowDroppedData = hasDroppedData(droppedEvents, acceptedEvents);
-  const showDroppedDataBand = canShowDroppedData && isDroppedDataLayerOn;
 
   const {
     dismiss: dismissChartSelectionAlert,
@@ -195,65 +329,55 @@ function Chart({
     key: CHART_SELECTION_ALERT_KEY,
   });
 
-  const chartHeight = visualize.visible ? CHART_HEIGHT : 50;
-
   const chartRef = useRef<ReactEchartsRef>(null);
   const chartWrapperRef = useRef<HTMLDivElement | null>(null);
 
-  const chartType = visualize.chartType;
-  const chartIcon =
-    chartType === ChartType.LINE ? 'line' : chartType === ChartType.AREA ? 'area' : 'bar';
+  const isCombinedChart = visualizes.length > 1;
+  const heatMapYAxis = getSpansHeatMapYAxis(visualize);
+  const isHeatMap = !isCombinedChart && isSpansHeatMap(visualize, organization);
+  const {droppedData, layerControl} = useChartLayers({
+    dataset,
+    interval: chartInterval,
+    source: 'explore',
+    enabled: !isHeatMap,
+  });
+  const showTransformationControls =
+    visualize.visible &&
+    organization.features.includes('explore-interpolation-and-smoothing');
+  const heatMapOutlierBound = useSpansHeatMapOutlierBound({
+    enabled: isHeatMap && visualize.visible,
+    query,
+    yAxis: heatMapYAxis,
+  });
+  const [outlierCutoff, setOutlierCutoff] = useState<OutlierCutoff | typeof OUTLIERS_OFF>(
+    OUTLIER_CUTOFFS[0]
+  );
+  const chartHeight = visualize.visible
+    ? organization.features.includes('explore-dev-features')
+      ? DEV_CHART_HEIGHT
+      : CHART_HEIGHT
+    : 50;
+  const chartType = isHeatMap ? ChartType.HEATMAP : visualize.chartType;
+  const chartIcon = CHART_TYPE_TO_ICON[chartType];
 
-  const chartInfo: ChartInfo = useMemo(() => {
-    const isTopN = defined(topEvents) && topEvents > 0;
-    const series = timeseriesResult.data[visualize.yAxis] ?? [];
+  const chartInfos = useMemo(
+    () =>
+      visualizes.map(v => ({
+        ...getChartInfo({visualize: v, timeseriesResult, topEvents, samplingMode}),
+        // A combined chart has a single chart type control, so every
+        // visualize is drawn with the type it shows.
+        chartType,
+      })),
+    [timeseriesResult, visualizes, samplingMode, topEvents, chartType]
+  );
 
-    let confidenceSeries = series;
+  const chartInfo: ChartInfo = useMemo(
+    () => (chartInfos.length === 1 ? chartInfos[0]! : combineChartInfos(chartInfos)),
+    [chartInfos]
+  );
 
-    let samplingMeta = determineSeriesSampleCountAndIsSampled(confidenceSeries, isTopN);
-
-    // This implies that the sampling meta data is not available.
-    // When this happens, we override it with the sampling meta
-    // data from the DEFAULT_VISUALIZATION.
-    if (samplingMeta.sampleCount === 0 && !defined(samplingMeta.isSampled)) {
-      confidenceSeries = timeseriesResult.data[DEFAULT_VISUALIZATION] ?? [];
-      samplingMeta = determineSeriesSampleCountAndIsSampled(confidenceSeries, isTopN);
-    }
-
-    // Invalid `_if` filters skip the backend request; surface that as a chart error
-    // instead of an empty/no-data state.
-    const hasValidConditionalFilter = isConditionalAggregateYAxisValid(visualize.yAxis);
-    const resultForChart = (
-      hasValidConditionalFilter
-        ? timeseriesResult
-        : {
-            ...timeseriesResult,
-            error: new Error(
-              getConditionalFilterInvalidSeriesMessageForYAxis(visualize.yAxis)
-            ),
-            isError: true,
-            isPending: false,
-            isLoading: false,
-            isFetching: false,
-            isSuccess: false,
-            status: 'error' as const,
-          }
-    ) as SortedTimeSeries;
-
-    return {
-      chartType,
-      confidence: combineConfidenceForSeries(confidenceSeries),
-      series: hasValidConditionalFilter ? series : [],
-      timeseriesResult: resultForChart,
-      yAxis: visualize.yAxis,
-      dataScanned: samplingMeta.dataScanned,
-      isSampled: samplingMeta.isSampled,
-      sampleCount: samplingMeta.sampleCount,
-      samplingMode,
-    };
-  }, [chartType, timeseriesResult, visualize, samplingMode, topEvents]);
-
-  const plottables = useChartVisualizationPlottables(chartInfo);
+  const plottables = useChartInfosPlottables(chartInfos);
+  const hasExtrapolationConfidenceFooter = useHasExtrapolationConfidenceFooter();
 
   const Title = (
     <Widget.WidgetTitle
@@ -267,32 +391,90 @@ function Chart({
           />
         ) : null
       }
-      title={prettifyAggregation(visualize.yAxis) ?? visualize.yAxis}
+      title={visualizes.map(v => prettifyAggregation(v.yAxis) ?? v.yAxis).join(', ')}
     />
   );
 
-  const samplingWarningReason = getSamplingWarningReason(
-    visualize.yAxis,
-    chartInfo.series,
-    chartInfo.dataScanned
-  );
-  const TitleBadges = samplingWarningReason ? (
-    <SamplingWarning yAxis={visualize.yAxis} reason={samplingWarningReason} />
+  const samplingWarnings = chartInfos.flatMap(info => {
+    const reason = getSamplingWarningReason(info.yAxis, info.series, info.dataScanned);
+    return reason ? [{yAxis: info.yAxis, reason}] : [];
+  });
+  const appliedOutlierCutoff =
+    outlierCutoff === OUTLIERS_OFF ||
+    heatMapOutlierBound.isPending ||
+    defined(heatMapOutlierBound.bounds[outlierCutoff])
+      ? outlierCutoff
+      : OUTLIERS_OFF;
+  const heatMapYBounds =
+    isHeatMap && appliedOutlierCutoff !== OUTLIERS_OFF
+      ? heatMapOutlierBound.bounds[appliedOutlierCutoff]
+      : undefined;
+  const outlierCutoffOptions: Array<SelectOption<OutlierCutoff | typeof OUTLIERS_OFF>> = [
+    {value: OUTLIERS_OFF, label: t('Show all')},
+    ...OUTLIER_CUTOFFS.map(cutoff => {
+      const bounds = heatMapOutlierBound.bounds[cutoff];
+      const isClippable = heatMapOutlierBound.isPending || defined(bounds);
+      return {
+        value: cutoff,
+        label: cutoff,
+        trailingItems: bounds ? (
+          <Text size="xs" variant="muted" wrap="nowrap">
+            {`> ${getDuration(bounds.yMax / 1000, 2, true)}`}
+          </Text>
+        ) : undefined,
+        disabled: !isClippable,
+        tooltip: isClippable
+          ? undefined
+          : t('No spans are far enough above %s to be worth hiding.', cutoff),
+      };
+    }),
+  ];
+  const outlierCutoffSelect =
+    isHeatMap && visualize.visible ? (
+      <CompactSelect
+        value={appliedOutlierCutoff}
+        options={outlierCutoffOptions}
+        onChange={option => setOutlierCutoff(option.value)}
+        trigger={triggerProps => (
+          <OverlayTrigger.Button
+            {...triggerProps}
+            variant="transparent"
+            size="zero"
+            icon={<IconFilter />}
+          >
+            {appliedOutlierCutoff === OUTLIERS_OFF
+              ? t('Outliers: shown')
+              : t('Outliers: %s', appliedOutlierCutoff)}
+          </OverlayTrigger.Button>
+        )}
+      />
+    ) : null;
+  const TitleBadges = samplingWarnings.length ? (
+    <Fragment>
+      {samplingWarnings.map(({yAxis, reason}, i) => (
+        <SamplingWarning key={`${yAxis}-${i}`} yAxis={yAxis} reason={reason} />
+      ))}
+    </Fragment>
   ) : null;
 
   const Actions = visualize.visible ? (
     <Fragment>
-      {canShowDroppedData ? (
-        <DroppedDataLayerControl
-          showDroppedData={isDroppedDataLayerOn}
-          onChange={setIsDroppedDataLayerOn}
-        />
-      ) : null}
-      <Tooltip title={t('Type of chart displayed in this visualization (ex. line)')}>
+      {layerControl ? <ChartLayersControl {...layerControl} /> : null}
+      <Tooltip
+        title={
+          isHeatMap
+            ? t('Heatmaps are always displayed as heatmaps')
+            : isCombinedChart
+              ? t('Charts with multiple aggregates are always displayed as line charts')
+              : t('Type of chart displayed in this visualization (ex. line)')
+        }
+      >
         <CompactSelect
+          disabled={isCombinedChart || isHeatMap}
           trigger={triggerProps => (
             <OverlayTrigger.Button
               {...triggerProps}
+              aria-label={t('Chart type')}
               icon={<IconGraph type={chartIcon} />}
               variant="transparent"
               showChevron={false}
@@ -307,8 +489,9 @@ function Chart({
       </Tooltip>
       <Tooltip title={t('Time interval displayed in this visualization (ex. 5m)')}>
         <CompactSelect
-          value={interval}
-          onChange={option => setInterval(option.value)}
+          value={chartInterval}
+          disabled={isHeatMap}
+          onChange={option => setChartInterval(option.value)}
           trigger={triggerProps => (
             <OverlayTrigger.Button
               {...triggerProps}
@@ -324,9 +507,9 @@ function Chart({
       </Tooltip>
       <ChartContextMenu
         key="context"
-        visualizeYAxes={[visualize]}
+        visualizeYAxes={visualizes}
         query={query}
-        interval={interval}
+        interval={chartInterval}
         visualizeIndex={index}
       />
       <Button
@@ -348,84 +531,160 @@ function Chart({
   const initialChartSelection =
     chartSelection?.chartIndex === index ? chartSelection.selection : undefined;
 
+  // ECharts keeps its toolbox zoom window and brush across option merges, so
+  // the chart needs a fresh instance whenever the queried range or data changes.
+  const {period, start, end} = selection.datetime;
+  const chartRemountKey = `${isAttributeBreakdown ? 'attribute-breakdown' : 'zoom'}|${period}|${start}|${end}|${query}|${chartType}|${chartInterval}|${topEvents}|${groupBys.join(',')}`;
+
   return (
-    <ChartWrapper ref={chartWrapperRef}>
+    <ChartWrapper ref={chartWrapperRef} border="primary" radius="md" background="primary">
       <Widget
         Title={Title}
         TitleBadges={TitleBadges}
         Actions={Actions}
         Visualization={
-          visualize.visible && (
+          visualize.visible &&
+          (isHeatMap && defined(heatMapYAxis) ? (
+            <SpansHeatMap
+              chartIndex={index}
+              query={query}
+              yAxis={heatMapYAxis}
+              yBounds={heatMapYBounds}
+              isYBoundsPending={
+                outlierCutoff !== OUTLIERS_OFF && heatMapOutlierBound.isPending
+              }
+              samplingMode={samplingMode}
+            />
+          ) : (
             <ChartVisualization
+              key={chartRemountKey}
               chartInfo={chartInfo}
               chartRef={chartRef}
-              droppedData={
-                showDroppedDataBand
+              plottables={plottables}
+              tooltipLimit={MAX_TOOLTIP_SERIES}
+              droppedData={droppedData.band}
+              isDroppedDataLoading={droppedData.isLoading}
+              chartXRangeSelection={
+                isAttributeBreakdown
                   ? {
-                      droppedEvents,
-                      acceptedEvents,
-                      onClick: openDroppedDataDrawer,
+                      initialSelection: initialChartSelection,
+                      onSelectionEnd: () => {
+                        if (!isChartSelectionAlertDismissed) {
+                          dismissChartSelectionAlert();
+                        }
+                      },
+                      onInsideSelectionClick: params => {
+                        if (!params.selectionState) {
+                          return;
+                        }
+
+                        params.setSelectionState({
+                          ...params.selectionState,
+                          isActionMenuVisible: true,
+                        });
+                      },
+                      onOutsideSelectionClick: params => {
+                        if (!params.selectionState?.isActionMenuVisible) {
+                          return;
+                        }
+
+                        params.setSelectionState({
+                          ...params.selectionState,
+                          isActionMenuVisible: false,
+                        });
+                      },
+                      onClearSelection: () => {
+                        setChartSelection(null);
+                      },
+                      disabled: false,
+                      actionMenuRenderer: params => {
+                        return <FloatingTrigger chartIndex={index} params={params} />;
+                      },
                     }
                   : undefined
               }
-              chartXRangeSelection={{
-                initialSelection: initialChartSelection,
-                onSelectionEnd: () => {
-                  if (!isChartSelectionAlertDismissed) {
-                    dismissChartSelectionAlert();
-                  }
-                },
-                onInsideSelectionClick: params => {
-                  if (!params.selectionState) {
-                    return;
-                  }
-
-                  params.setSelectionState({
-                    ...params.selectionState,
-                    isActionMenuVisible: true,
-                  });
-                },
-                onOutsideSelectionClick: params => {
-                  if (!params.selectionState?.isActionMenuVisible) {
-                    return;
-                  }
-
-                  params.setSelectionState({
-                    ...params.selectionState,
-                    isActionMenuVisible: false,
-                  });
-                },
-                onClearSelection: () => {
-                  setChartSelection(null);
-                },
-                disabled: false,
-                actionMenuRenderer: params => {
-                  return <FloatingTrigger chartIndex={index} params={params} />;
-                },
-              }}
             />
-          )
+          ))
         }
         Footer={
           visualize.visible && (
-            <ConfidenceFooter
-              extrapolate={extrapolate}
-              sampleCount={chartInfo.sampleCount}
-              isLoading={chartInfo.timeseriesResult?.isPending || false}
-              isSampled={chartInfo.isSampled}
-              confidence={chartInfo.confidence}
-              topEvents={
-                topEvents ? Math.min(topEvents, chartInfo.series.length) : undefined
-              }
-              dataScanned={chartInfo.dataScanned}
-              rawSpanCounts={rawSpanCounts}
-              userQuery={query.trim()}
-            />
+            <Container containerType="inline-size">
+              <Flex align="center" justify="between" gap="md">
+                <Flex
+                  flex="1"
+                  minWidth="0"
+                  direction={{zero: 'column', xl: 'row'}}
+                  align={{zero: 'start', xl: 'center'}}
+                  justify="between"
+                  gap={{zero: 'xs', xl: 'md'}}
+                >
+                  {hasExtrapolationConfidenceFooter ? (
+                    !chartInfo.timeseriesResult?.isPending && (
+                      <ExtrapolationConfidenceFooter plottables={plottables} />
+                    )
+                  ) : (
+                    <ConfidenceFooter
+                      extrapolate={extrapolate}
+                      sampleCount={chartInfo.sampleCount}
+                      isLoading={chartInfo.timeseriesResult?.isPending || false}
+                      isSampled={chartInfo.isSampled}
+                      confidence={chartInfo.confidence}
+                      topEvents={
+                        topEvents
+                          ? Math.min(topEvents, chartInfos[0]!.series.length)
+                          : undefined
+                      }
+                      dataScanned={chartInfo.dataScanned}
+                      rawSpanCounts={rawSpanCounts}
+                      userQuery={query.trim()}
+                    />
+                  )}
+                  {droppedData.filterNote ? (
+                    <DroppedDataFilterNote
+                      {...droppedData.filterNote}
+                      hasUserQuery={!!query.trim()}
+                      showIcon={{zero: false, xl: true}}
+                    />
+                  ) : null}
+                </Flex>
+                {outlierCutoffSelect || showTransformationControls ? (
+                  <Flex align="center" gap="lg" flexShrink={0}>
+                    {outlierCutoffSelect}
+                    {showTransformationControls ? (
+                      <Tooltip
+                        title={t('Heatmaps do not support transformations.')}
+                        disabled={!isHeatMap}
+                      >
+                        <AddTransformationButton
+                          traceItemDataset={TraceItemDataset.SPANS}
+                          transformations={visualize.transformations}
+                          onChange={onTransformationsChange}
+                          disabled={isHeatMap}
+                        />
+                      </Tooltip>
+                    ) : null}
+                  </Flex>
+                ) : null}
+              </Flex>
+            </Container>
           )
         }
         height={chartHeight}
         revealActions="always"
+        borderless
       />
+      {showTransformationControls &&
+      !isHeatMap &&
+      visualize.transformations.length > 0 ? (
+        <Container padding="xl" paddingTop="0" paddingBottom="md">
+          <VisualizeTransformationRows
+            traceItemDataset={TraceItemDataset.SPANS}
+            transformations={visualize.transformations}
+            layout="inline"
+            onChange={onTransformationsChange}
+          />
+        </Container>
+      ) : null}
     </ChartWrapper>
   );
 }

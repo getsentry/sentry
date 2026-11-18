@@ -34,6 +34,10 @@ export type NavigationItem = {
    */
   description?: string;
   /**
+   * Icon shown next to the page in the command palette.
+   */
+  icon?: ReactElement;
+  /**
    * A string identifier for the navigation item. May be used in hooks to
    * augment navigation items.
    */
@@ -66,4 +70,16 @@ export type NavigationSection = {
    * Heading of the navigation section
    */
   name: string;
+};
+
+/**
+ * Settings metadata a route can declare on its `handle`.
+ */
+export type SettingsRouteHandle = {
+  /**
+   * Where to go when the user picks a different project while on this route.
+   * Drops entity-specific params (e.g. `:keyId`) so the destination exists for
+   * every project. Shared by the sidebar project selector and breadcrumbs.
+   */
+  settingsProjectSwitch?: {switchTo: string};
 };

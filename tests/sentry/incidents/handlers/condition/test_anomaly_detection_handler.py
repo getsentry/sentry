@@ -3,6 +3,7 @@ from typing import Any, Literal
 from unittest import mock
 
 import orjson
+from django.test import override_settings
 from urllib3.response import HTTPResponse
 
 from sentry.conf.server import SEER_ANOMALY_DETECTION_ENDPOINT_URL
@@ -27,13 +28,14 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
 
     def setUp(self) -> None:
         super().setUp()
+        self.enterContext(override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret"))
         self.snuba_query = self.create_snuba_query()
         self.subscription = create_snuba_subscription(self.project, "test", self.snuba_query)
 
         (self.workflow, self.detector, self.detector_workflow, self.workflow_triggers) = (
             self.create_detector_and_workflow()
         )
-        self.detector.update(config={"detection_type": "dynamic", "comparison_delta": None})
+        self.detector.update(config={"detection_type": "dynamic"})
         self.detector.save()
 
         packet = AnomalyDetectionUpdate(

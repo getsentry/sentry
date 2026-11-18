@@ -11,12 +11,12 @@ from sentry.digests.types import Notification, Record
 from sentry.models.project import Project
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.redis import use_redis_cluster
-from sentry.utils.locking.backends.redis import RedisBlasterLockBackend, RedisClusterLockBackend
+from sentry.utils.locking.backends.redis import RedisClusterLockBackend
 
 
 class RedisBackendTestCase(TestCase):
     """
-    Runs on the "default" redis-blaster cluster. The subclass below runs the
+    Runs on the "default" single host Redis cluster. The subclass below runs the
     same tests on redis-cluster.
     """
 
@@ -24,7 +24,7 @@ class RedisBackendTestCase(TestCase):
         return RedisBackend(**options)
 
     def get_all_keys(self, backend: RedisBackend) -> list[bytes]:
-        return backend._get_connection("timeline").keys(f"{backend.namespace}:*")
+        return backend.cluster.keys(f"{backend.namespace}:*")
 
     def get_schedule_key(self, backend: RedisBackend, timeline: str, state: str) -> str:
         return f"{backend._get_timeline_namespace(timeline)}:s:{state}"
@@ -160,9 +160,7 @@ class RedisBackendTestCase(TestCase):
 
         record_1 = Record("record:1", self.notification, time.time())
         backend.add("timeline", record_1)
-        backend._get_connection("timeline").delete(
-            f"{backend._get_timeline_key('timeline')}:r:record:1"
-        )
+        backend.cluster.delete(f"{backend._get_timeline_key('timeline')}:r:record:1")
 
         record_2 = Record("record:2", self.notification, time.time())
         backend.add("timeline", record_2)
@@ -185,7 +183,7 @@ class RedisBackendTestCase(TestCase):
 
     def test_schedule_sets_have_an_expiry(self) -> None:
         backend = self.get_backend()
-        connection = backend._get_connection("timeline")
+        connection = backend.cluster
         ready_key = self.get_schedule_key(backend, "timeline", "r")
         waiting_key = self.get_schedule_key(backend, "timeline", "w")
 
@@ -229,7 +227,7 @@ class RedisBackendTestCase(TestCase):
         because Redis counts time to live on the server.
         """
         backend = self.get_backend()
-        connection = backend._get_connection("timeline")
+        connection = backend.cluster
 
         timeline_key = backend._get_timeline_key("timeline")
 
@@ -248,12 +246,12 @@ class RedisBackendTestCase(TestCase):
 
     def test_key_names(self) -> None:
         """
-        The blaster key names must not change, so that existing data stays
-        readable.
+        The key names on a single host must be the same as the old redis-blaster
+        key names, so that existing data stays readable.
         """
         backend = self.get_backend()
-        connection = backend._get_connection("timeline")
-        assert isinstance(backend.locks.backend, RedisBlasterLockBackend)
+        connection = backend.cluster
+        assert isinstance(backend.locks.backend, RedisClusterLockBackend)
 
         backend.add("timeline", Record("record:1", self.notification, time.time()))
 

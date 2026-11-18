@@ -6,11 +6,12 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {defined} from 'sentry/utils/defined';
 import {useApi} from 'sentry/utils/useApi';
+
 import {
   SAMPLING_MODE,
   useProgressiveQuery,
   type SamplingMode,
-} from 'sentry/views/explore/hooks/useProgressiveQuery';
+} from './useProgressiveQuery';
 
 function useMockHookImpl({
   enabled,

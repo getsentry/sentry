@@ -122,7 +122,9 @@ class JavaScriptProcessingTest(TestCase):
         self.assertIsNone(NODE_MODULES_RE.search("node_modules"))
         self.assertIsNone(NODE_MODULES_RE.search("mynode_modules"))
 
-    def _get_test_data_and_symbolicator(self, in_app_frames: bool, symbolicated_in_app=True):
+    def _get_test_data_and_symbolicator(
+        self, in_app_frames: bool, symbolicated_in_app: bool = True
+    ) -> tuple[dict[str, object], Mock]:
         """Helper method to create test data and mock symbolicator
 
         Args:
@@ -221,7 +223,7 @@ class JavaScriptProcessingTest(TestCase):
                 },
             ]
 
-        data = {
+        data: dict[str, object] = {
             "platform": "javascript",
             "exception": {
                 "values": [

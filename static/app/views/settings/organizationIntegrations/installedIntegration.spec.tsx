@@ -7,7 +7,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
-import {InstalledIntegration} from 'sentry/views/settings/organizationIntegrations/installedIntegration';
+
+import {InstalledIntegration} from './installedIntegration';
 
 describe('InstalledIntegration', () => {
   const organization = OrganizationFixture();

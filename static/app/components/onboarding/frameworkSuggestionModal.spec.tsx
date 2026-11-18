@@ -13,9 +13,9 @@ import {
   makeCloseButton,
   ModalBody,
   ModalFooter,
+  openModal,
 } from '@sentry/scraps/modal';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {allPlatforms as platforms} from 'sentry/data/platforms';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
 import * as analytics from 'sentry/utils/analytics';

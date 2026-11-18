@@ -13,9 +13,9 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import type {RequestOptions} from 'sentry/api';
-import {useEventColumns} from 'sentry/views/issueDetails/allEventsTable';
 import {MOCK_EVENTS_TABLE_DATA} from 'sentry/views/performance/transactionSummary/transactionEvents/testUtils';
 
+import {useEventColumns} from './allEventsTable';
 import {EventList} from './eventList';
 
 describe('EventList', () => {
@@ -24,7 +24,7 @@ describe('EventList', () => {
     environments: ['production', 'staging', 'development'],
   });
   const group = GroupFixture();
-  const persistantQuery = `issue:${group.shortId}`;
+  const persistantQuery = `issue.id:${group.id}`;
   const totalCount = 100;
 
   const initialRouterConfig = {

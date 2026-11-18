@@ -1,4 +1,4 @@
-import {getPeriod} from 'sentry/utils/duration/getPeriod';
+import {getPeriod} from './getPeriod';
 
 describe('getPeriod()', () => {
   const start = new Date('2017-10-03T02:41:20.000Z');

@@ -57,7 +57,6 @@ class ExternalTeamDetailsTest(APITestCase):
         self.external_team.refresh_from_db()
         assert self.external_team.team_id == self.team.id
 
-    @with_feature(["organizations:team-roles", "organizations:integrations-codeowners"])
     def _assert_other_team_rejected(self, method: str, status_code: int) -> None:
         other_team = self.create_team(organization=self.organization)
         other_external_team = self.create_external_team(other_team, external_name="@org/other")
@@ -92,9 +91,11 @@ class ExternalTeamDetailsTest(APITestCase):
             externalName="@org/changed",
         )
 
+    @with_feature(["organizations:team-roles", "organizations:integrations-codeowners"])
     def test_update_another_teams_external_team(self) -> None:
         self._assert_other_team_rejected("put", status_code=403)
 
+    @with_feature(["organizations:team-roles", "organizations:integrations-codeowners"])
     def test_delete_another_teams_external_team(self) -> None:
         self._assert_other_team_rejected("delete", status_code=404)
 

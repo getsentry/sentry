@@ -207,5 +207,5 @@ def test_sanitize_periods_breaks_url_scheme() -> None:
         ("not a number", "0ms"),
     ),
 )
-def test_format_duration_ms(value: object, expected: str) -> None:
+def test_format_duration_ms(value: int | float | str | None, expected: str) -> None:
     assert format_duration_ms(value) == expected

@@ -1,7 +1,7 @@
 import type {QueryClient} from '@tanstack/react-query';
 
-import {getInvestigationDetailQueryOptions} from 'sentry/views/investigations/api';
-import type {InvestigationDetail} from 'sentry/views/investigations/types';
+import {getInvestigationDetailQueryOptions} from './api';
+import type {InvestigationDetail} from './types';
 
 export function updateInvestigationCache(
   queryClient: QueryClient,

@@ -99,15 +99,15 @@ export function SpanItemDetails({
     dateSelection,
   });
 
-  const visibleAttributes = useMemo(
-    () =>
-      sortAttributes(
-        (data?.attributes ?? []).filter(
-          attribute => !HIDDEN_SPAN_DETAIL_ATTRIBUTES.has(attribute.name)
-        )
-      ),
-    [data?.attributes]
+  const useRawAttributeNames = organization.features.includes(
+    'trace-item-details-raw-attribute-names'
   );
+  const visibleAttributes = useMemo(() => {
+    const attributes = (data?.attributes ?? []).filter(
+      attribute => !HIDDEN_SPAN_DETAIL_ATTRIBUTES.has(attribute.name)
+    );
+    return sortAttributes(attributes, useRawAttributeNames);
+  }, [data?.attributes, useRawAttributeNames]);
 
   if (isLoading) {
     return (

@@ -1,9 +1,9 @@
-from collections.abc import Mapping, MutableMapping, Sequence
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, NotRequired, TypedDict, cast
 
-from django.db.models import Count, Max, OuterRef, Subquery
+from django.db.models import Count, Max, Model, OuterRef, QuerySet, Subquery
 from rest_framework.exceptions import ParseError
 
 from sentry.api.paginator import OffsetPaginator
@@ -19,7 +19,6 @@ class WorkflowGroupHistory:
     group: Group
     count: int
     last_triggered: datetime
-    event_id: str
     detector: Detector | None
 
 
@@ -27,7 +26,6 @@ class WorkflowFireHistoryResponse(TypedDict):
     group: BaseGroupSerializerResponse
     count: int
     lastTriggered: datetime
-    eventId: str
     detector: NotRequired[dict[str, Any]]
 
 
@@ -35,7 +33,6 @@ class _Result(TypedDict):
     group: int
     count: int
     last_triggered: datetime
-    event_id: str
     group_detector_id: int | None
 
 
@@ -52,7 +49,6 @@ def convert_results(results: Sequence[_Result]) -> Sequence[WorkflowGroupHistory
             group=group_lookup[r["group"]],
             count=r["count"],
             last_triggered=r["last_triggered"],
-            event_id=r["event_id"],
             detector=(
                 detector_lookup.get(r["group_detector_id"])
                 if r["group_detector_id"] is not None
@@ -97,7 +93,6 @@ class WorkflowGroupHistorySerializer(Serializer[WorkflowFireHistoryResponse]):
             "group": attrs["group"],
             "count": obj.count,
             "lastTriggered": obj.last_triggered,
-            "eventId": obj.event_id,
         }
 
         if "detector" in attrs:
@@ -150,10 +145,6 @@ def fetch_workflow_groups_paginated(
     )
     filtered_history = history.filter(group__project_id__in=project_ids)
 
-    # The outer query checks project access for this same group, so the latest-event
-    # subquery can avoid repeating the project join.
-    group_max_dates = history.filter(group=OuterRef("group")).order_by("-date_added")[:1]
-
     # Subquery to get the detector_id from DetectorGroup.
     # The detector does not currently need to be connected to the workflow.
     detector_subquery = DetectorGroup.objects.filter(
@@ -163,7 +154,6 @@ def fetch_workflow_groups_paginated(
     qs = (
         filtered_history.values("group")
         .annotate(count=Count("group"))
-        .annotate(event_id=Subquery(group_max_dates.values("event_id")))
         .annotate(last_triggered=Max("date_added"))
         .annotate(group_detector_id=Subquery(detector_subquery))
     )
@@ -175,8 +165,8 @@ def fetch_workflow_groups_paginated(
     return cast(
         CursorResult[WorkflowGroupHistory],
         OffsetPaginator(
-            qs,
+            cast("QuerySet[Model]", qs),
             order_by=order_by,
-            on_results=convert_results,
+            on_results=cast("Callable[[Sequence[Model]], Sequence[Model]]", convert_results),
         ).get_result(per_page, cursor, known_hits=group_count),
     )

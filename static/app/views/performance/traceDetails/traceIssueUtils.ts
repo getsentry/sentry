@@ -1,5 +1,5 @@
-import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
-import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
+import type {TraceTree} from './traceModels/traceTree';
+import type {BaseNode} from './traceModels/traceTreeNode/baseNode';
 
 export const TRACE_ICON_WIDTH = 18;
 // Keep these in sync with the `.TraceIconGroup` CSS in trace.tsx.

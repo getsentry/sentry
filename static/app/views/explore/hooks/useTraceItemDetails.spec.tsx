@@ -12,12 +12,13 @@ import {
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import {TraceItemDataset} from 'sentry/views/explore/types';
+
 import {
   useTraceItemDetails,
   usePrefetchTraceItemDetailsOnHover,
   usePrefetchTraceItemDetailsOnMount,
-} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {TraceItemDataset} from 'sentry/views/explore/types';
+} from './useTraceItemDetails';
 
 const HOVER_TIMEOUT = 150;
 

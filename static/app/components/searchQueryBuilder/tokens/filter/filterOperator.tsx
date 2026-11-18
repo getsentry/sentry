@@ -13,9 +13,6 @@ import {
   useSearchQueryBuilderConfig,
   useSearchQueryBuilderState,
 } from 'sentry/components/searchQueryBuilder/context';
-import {getOperatorInfo} from 'sentry/components/searchQueryBuilder/tokens/filter/getOperatorInfo';
-import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
-import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
 import {recentSearchTypeToLabel} from 'sentry/components/searchQueryBuilder/utils';
 import {
   FilterType,
@@ -27,6 +24,10 @@ import {getKeyName, isRegexOperator} from 'sentry/components/searchSyntax/utils'
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {getOperatorInfo} from './getOperatorInfo';
+import {UnstyledButton} from './unstyledButton';
+import {useFilterButtonProps} from './useFilterButtonProps';
 
 interface FilterOperatorProps {
   item: Node<ParseResultToken>;

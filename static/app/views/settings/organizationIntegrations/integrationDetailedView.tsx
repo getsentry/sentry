@@ -1,15 +1,20 @@
 import {Fragment, useCallback, useMemo} from 'react';
-import {mutationOptions, useMutation, useQueryClient} from '@tanstack/react-query';
-import {parseAsStringLiteral, useQueryState} from 'nuqs';
+import {
+  mutationOptions,
+  useMutation,
+  useQueryClient,
+  useQuery,
+} from '@tanstack/react-query';
+import {parseAsString, parseAsStringLiteral, useQueryState} from 'nuqs';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {updateOrganization} from 'sentry/actionCreators/organizations';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -25,7 +30,7 @@ import type {
   OrganizationIntegration,
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getSlackUpgradeModalParams} from 'sentry/utils/integrations/slackUpgradeModalParams';
 import {
@@ -40,26 +45,18 @@ import {
   isScmProvider,
   trackIntegrationAnalytics,
 } from 'sentry/utils/integrationUtil';
-import {
-  fetchMutation,
-  getApiQueryData,
-  setApiQueryData,
-  useApiQuery,
-} from 'sentry/utils/queryClient';
-import {useLocation} from 'sentry/utils/useLocation';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
-import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
-import type {
-  AlertType,
-  IntegrationTab,
-} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
-import {IntegrationLayout} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
-import {InstalledIntegration} from 'sentry/views/settings/organizationIntegrations/installedIntegration';
-import {IntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationButton';
-import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
+
+import type {AlertType, IntegrationTab} from './detailedView/integrationLayout';
+import {IntegrationLayout} from './detailedView/integrationLayout';
+import {AddIntegrationButton} from './addIntegrationButton';
+import {InstalledIntegration} from './installedIntegration';
+import {IntegrationButton} from './integrationButton';
+import {IntegrationContext} from './integrationContext';
 
 // Show the features tab if the org has features for the integration
 const integrationFeatures = ['slack'];
@@ -158,24 +155,24 @@ export type IntegrationInformation = {
   providers: IntegrationProvider[];
 };
 
-function makeIntegrationQueryKey({
+function makeIntegrationApiOptions({
   orgSlug,
   integrationSlug,
 }: {
   integrationSlug: string;
   orgSlug: string;
-}): ApiQueryKey {
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
-      path: {organizationIdOrSlug: orgSlug},
-    }),
+}) {
+  return apiOptions.as<OrganizationIntegration[]>()(
+    '/organizations/$organizationIdOrSlug/integrations/',
     {
+      path: {organizationIdOrSlug: orgSlug},
       query: {
         provider_key: integrationSlug,
         includeConfig: 0,
       },
-    },
-  ];
+      staleTime: 0,
+    }
+  );
 }
 
 const tabs: IntegrationTab[] = ['overview', 'configurations', 'features'];
@@ -192,8 +189,8 @@ export default function IntegrationDetailedView() {
     'tab',
     parseAsStringLiteral(tabs).withDefault('overview').withOptions({history: 'push'})
   );
+  const [referrer] = useQueryState('referrer', parseAsString);
   const navigate = useNavigate();
-  const location = useLocation();
   const organization = useOrganization();
   const {integrationSlug} = useParams<{integrationSlug: string}>();
 
@@ -201,35 +198,30 @@ export default function IntegrationDetailedView() {
     data: information,
     isPending: isInformationPending,
     isError: isInformationError,
-  } = useApiQuery<IntegrationInformation>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/config/integrations/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
+  } = useQuery({
+    ...apiOptions.as<IntegrationInformation>()(
+      '/organizations/$organizationIdOrSlug/config/integrations/',
       {
+        path: {organizationIdOrSlug: organization.slug},
         query: {
           provider_key: integrationSlug,
         },
-      },
-    ],
-    {
-      staleTime: Infinity,
-      retry: false,
-    }
-  );
+        staleTime: Infinity,
+      }
+    ),
+
+    retry: false,
+  });
 
   const {
     data: configurations = [],
     isPending: isConfigurationsPending,
     isFetching: isConfigurationsFetching,
     isError: isConfigurationsError,
-  } = useApiQuery<OrganizationIntegration[]>(
-    makeIntegrationQueryKey({orgSlug: organization.slug, integrationSlug}),
-    {
-      staleTime: 0,
-      retry: false,
-    }
-  );
+  } = useQuery({
+    ...makeIntegrationApiOptions({orgSlug: organization.slug, integrationSlug}),
+    retry: false,
+  });
 
   const integrationType = 'first_party';
   const provider = information?.providers[0];
@@ -329,10 +321,10 @@ export default function IntegrationDetailedView() {
     (integration: Integration) => {
       if (provider?.features.includes('coding-agent')) {
         queryClient.invalidateQueries({
-          queryKey: makeIntegrationQueryKey({
+          queryKey: makeIntegrationApiOptions({
             orgSlug: organization.slug,
             integrationSlug,
-          }),
+          }).queryKey,
         });
         queryClient.invalidateQueries({
           queryKey: [
@@ -359,45 +351,48 @@ export default function IntegrationDetailedView() {
         ),
       }),
     onMutate: async integration => {
-      const queryKey = makeIntegrationQueryKey({
+      const queryKey = makeIntegrationApiOptions({
         orgSlug: organization.slug,
         integrationSlug,
-      });
+      }).queryKey;
       // Cancel in-flight refetches so they can't clobber the optimistic update.
       await queryClient.cancelQueries({queryKey});
 
-      const previousConfigurations = getApiQueryData<OrganizationIntegration[]>(
-        queryClient,
-        queryKey
-      );
+      const previousConfigurations = queryClient.getQueryData(queryKey);
 
-      setApiQueryData<OrganizationIntegration[]>(queryClient, queryKey, current =>
-        (current ?? []).map(config =>
-          config.id === integration.id
-            ? {
-                ...config,
-                organizationIntegrationStatus: 'pending_deletion',
-              }
-            : config
-        )
-      );
+      queryClient.setQueryData(queryKey, previous => {
+        const current = previous?.json;
+        return {
+          ...previous,
+          headers: previous?.headers ?? {},
+          json: (current ?? []).map((config): OrganizationIntegration =>
+            config.id === integration.id
+              ? {
+                  ...config,
+                  organizationIntegrationStatus: 'pending_deletion',
+                }
+              : config
+          ),
+        };
+      });
 
       return {previousConfigurations};
     },
     onError: (_error, _integration, context) => {
       if (context?.previousConfigurations) {
-        setApiQueryData<OrganizationIntegration[]>(
-          queryClient,
-          makeIntegrationQueryKey({orgSlug: organization.slug, integrationSlug}),
+        queryClient.setQueryData(
+          makeIntegrationApiOptions({orgSlug: organization.slug, integrationSlug})
+            .queryKey,
           context.previousConfigurations
         );
       }
-      addErrorMessage(t('Failed to remove Integration'));
+      toast.error(t('Failed to remove Integration'));
     },
     onSettled: () => {
       // Resync with the server once the delete settles.
       queryClient.invalidateQueries({
-        queryKey: makeIntegrationQueryKey({orgSlug: organization.slug, integrationSlug}),
+        queryKey: makeIntegrationApiOptions({orgSlug: organization.slug, integrationSlug})
+          .queryKey,
       });
     },
   });
@@ -421,9 +416,6 @@ export default function IntegrationDetailedView() {
 
   const renderTopButton = useCallback(
     (disabledFromFeatures: boolean, userHasAccess: boolean) => {
-      const queryParams = new URLSearchParams(location.search);
-      const referrer = queryParams.get('referrer');
-
       const buttonProps = {
         size: 'sm',
         priority: 'primary',
@@ -477,7 +469,7 @@ export default function IntegrationDetailedView() {
       onInstall,
       organization,
       integrationSlug,
-      location.search,
+      referrer,
       configurations,
       isConfigurationsFetching,
     ]

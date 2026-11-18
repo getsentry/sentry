@@ -2,7 +2,7 @@ import {
   EMPTY_TEXT_CONTENT,
   extractAssistantOutput,
   normalizeToMessages,
-} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
+} from './aiMessageNormalizer';
 
 describe('normalizeToMessages', () => {
   describe('parts-format array', () => {
@@ -87,6 +87,32 @@ describe('normalizeToMessages', () => {
       expect(messages?.[0]?.content).toEqual([
         {type: 'tool_call', name: 'lookup', arguments: {q: 'foo'}},
       ]);
+    });
+
+    it('reads the response field of tool_call_response parts', () => {
+      const input = JSON.stringify([
+        {
+          role: 'tool',
+          parts: [{type: 'tool_call_response', id: 'tc1', response: 'rainy, 57°F'}],
+        },
+      ]);
+
+      const {messages} = normalizeToMessages(input, {defaultRole: 'user'});
+
+      expect(messages).toEqual([{role: 'tool', content: 'rainy, 57°F'}]);
+    });
+
+    it('falls back to the result field of tool_call_response parts', () => {
+      const input = JSON.stringify([
+        {
+          role: 'tool',
+          parts: [{type: 'tool_call_response', id: 'tc1', result: 'rainy, 57°F'}],
+        },
+      ]);
+
+      const {messages} = normalizeToMessages(input, {defaultRole: 'user'});
+
+      expect(messages).toEqual([{role: 'tool', content: 'rainy, 57°F'}]);
     });
   });
 

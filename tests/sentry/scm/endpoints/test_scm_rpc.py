@@ -1,28 +1,33 @@
 from __future__ import annotations
 
 import unittest.mock
+from collections.abc import Mapping
+from typing import Any
 
 import requests
 import responses
-from django.test import override_settings
+from django.test import Client, override_settings
 from django.urls import reverse
+from scm import Secret
 from scm.actions import create_branch
 from scm.manager import SourceCodeManager
 from scm.rpc.helpers import sign_get, sign_post
 
 from sentry.constants import ObjectStatus
+from sentry.integrations.services.integration import integration_service
 from sentry.models.repository import Repository
+from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.testutils.cases import APITestCase
 from sentry.utils import json
 
 
-def assert_coded_error(response, status_code: int, code: str):
+def assert_coded_error(response: Any, status_code: int, code: str) -> None:
     assert response.headers["Content-Type"] == "application/json"
     assert response.status_code == status_code, response.content
     assert response.json()["errors"][0]["code"] == code
 
 
-def assert_streaming_coded_error(response, status_code: int, code: str):
+def assert_streaming_coded_error(response: Any, status_code: int, code: str) -> None:
     assert response.headers["Content-Type"] == "application/json"
     assert response.status_code == status_code, response.content
     assert json.loads(b"".join(response.streaming_content))["errors"][0]["code"] == code
@@ -37,10 +42,10 @@ class DjangoTestClientSessionAdapter:
     Django responses to requests.Response objects.
     """
 
-    def __init__(self, client):
+    def __init__(self, client: Client) -> None:
         self._client = client
 
-    def _convert(self, django_response):
+    def _convert(self, django_response: Any) -> requests.Response:
         resp = requests.Response()
         resp.status_code = django_response.status_code
         if hasattr(django_response, "streaming_content"):
@@ -52,10 +57,17 @@ class DjangoTestClientSessionAdapter:
         resp.encoding = "utf-8"
         return resp
 
-    def get(self, url, headers=None):
+    def get(self, url: str, headers: Mapping[str, str] | None = None) -> requests.Response:
         return self._convert(self._client.get(url, headers=headers))
 
-    def post(self, url, data=None, headers=None):
+    def post(
+        self,
+        url: str,
+        data: object = None,
+        headers: Mapping[str, str] | None = None,
+        stream: bool = False,
+    ) -> requests.Response:
+        # `stream` is accepted to match the Session protocol; _convert reads the whole body either way.
         h = dict(headers) if headers else {}
         content_type = h.pop("Content-Type", "application/octet-stream")
         return self._convert(
@@ -88,17 +100,17 @@ class TestScmRpc(APITestCase):
                 self.organization.id,
                 self.repo.id,
                 base_url="",
-                signing_secret="a-long-value-that-is-hard-to-guess",
+                signing_secret=Secret("a-long-value-that-is-hard-to-guess"),
             )
 
         self.default_headers = {
-            "Authorization": f"rpcsignature {sign_get('a-long-value-that-is-hard-to-guess', self.organization.id, self.repo.id)}",
+            "Authorization": f"rpcsignature {sign_get(Secret('a-long-value-that-is-hard-to-guess'), self.organization.id, self.repo.id)}",
             "X-Organization-Id": str(self.organization.id),
             "X-Repository-Id": str(self.repo.id),
         }
 
     @responses.activate
-    def test_end_to_end(self):
+    def test_end_to_end(self) -> None:
         responses.add(
             responses.POST,
             "https://api.github.com/repos/test-org/test-repo/git/refs",
@@ -111,30 +123,107 @@ class TestScmRpc(APITestCase):
         assert result["data"]["sha"] == "123"
         assert len(responses.calls) == 1
 
-    def test_get(self):
+    def test_does_not_retry_integration_proxy_get_requests(self) -> None:
+        self._assert_does_not_retry_integration_proxy_requests("GET")
+
+    def test_does_not_retry_integration_proxy_post_requests(self) -> None:
+        self._assert_does_not_retry_integration_proxy_requests("POST")
+
+    @responses.activate
+    @unittest.mock.patch.object(IntegrationProxyClient, "_use_proxy_url_for_tests", True)
+    def _assert_does_not_retry_integration_proxy_requests(self, method: str) -> None:
+        responses.add(
+            method,
+            "http://controlserver/api/0/internal/integration-proxy/",
+            status=503,
+        )
+        body = json.dumps(
+            {
+                "type": "action",
+                "data": {
+                    "method": method,
+                    "path": "/repos/test-org/test-repo",
+                    "headers": None,
+                    "data": None,
+                    "params": None,
+                    "allow_redirects": None,
+                    "stream": True,
+                },
+            }
+        ).encode()
+
+        with self.options({"hybridcloud.integrationproxy.retries": 5}):
+            response = self.client.post(
+                self.url,
+                data=body,
+                content_type="application/json",
+                headers={
+                    **self.default_headers,
+                    "Authorization": f"rpcsignature {sign_post(Secret('a-long-value-that-is-hard-to-guess'), body)}",
+                },
+            )
+
+        assert_streaming_coded_error(response, 503, "resource_service_unavailable")
+        assert len(responses.calls) == 1
+
+    def test_get(self) -> None:
         response = self.client.get(self.url, headers=self.default_headers)
         assert response.status_code == 200, response.content
 
+    def test_get_fetches_the_integration_once_per_request(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            provider="github_enterprise",
+            name="GHE Acme",
+            external_id="ghe-rpc-1",
+            metadata={
+                "domain_name": "github.acme.com",
+                "installation_id": "1",
+                "installation": {"id": "1", "private_key": "x", "verify_ssl": True},
+            },
+        )
+        repo = self.create_repo(
+            project=self.project,
+            name="acme/widget",
+            provider="integrations:github_enterprise",
+            external_id="9001",
+            integration_id=integration.id,
+        )
+        headers = {
+            "Authorization": f"rpcsignature {sign_get(Secret('a-long-value-that-is-hard-to-guess'), self.organization.id, repo.id)}",
+            "X-Organization-Id": str(self.organization.id),
+            "X-Repository-Id": str(repo.id),
+        }
+
+        with unittest.mock.patch(
+            "sentry.scm.private.helpers.integration_service", wraps=integration_service
+        ) as service:
+            assert self.client.get(self.url, headers=headers).status_code == 200
+            assert self.client.get(self.url, headers=headers).status_code == 200
+
+        # Once per request: the repository and provider lookups share it, but requests do not.
+        assert service.get_integration.call_count == 2
+
     @override_settings(SCM_RPC_SHARED_SECRET=[])
-    def test_get_no_secrets_set(self):
+    def test_get_no_secrets_set(self) -> None:
         response = self.client.get(self.url, headers=self.default_headers)
         assert response.status_code == 401, response.content
 
-    def test_get_invalid_headers(self):
+    def test_get_invalid_headers(self) -> None:
         assert_coded_error(
             self.client.get(self.url, headers={}), 400, "rpc_malformed_request_headers"
         )
 
-    def test_get_missing_auth(self):
+    def test_get_missing_auth(self) -> None:
         assert_coded_error(
             self.client.get(self.url, headers={**self.default_headers, "Authorization": ""}),
             401,
             "rpc_invalid_grant",
         )
 
-    def test_get_invalid_secret(self):
-        def sig(secret):
-            return f"rpcsignature {sign_get(secret, self.organization.id, self.repo.id)}"
+    def test_get_invalid_secret(self) -> None:
+        def sig(secret: str) -> str:
+            return f"rpcsignature {sign_get(Secret(secret), self.organization.id, self.repo.id)}"
 
         # Succeeds with correct secret.
         headers = {
@@ -147,26 +236,26 @@ class TestScmRpc(APITestCase):
         response = self.client.get(self.url, headers={**headers, "Authorization": sig("s")})
         assert_coded_error(response, 401, "rpc_invalid_grant")
 
-    def test_post_invalid_headers(self):
+    def test_post_invalid_headers(self) -> None:
         assert_streaming_coded_error(
             self.client.post(self.url, headers={}), 400, "rpc_malformed_request_headers"
         )
 
-    def test_post_missing_auth(self):
+    def test_post_missing_auth(self) -> None:
         assert_streaming_coded_error(
             self.client.post(self.url, headers={**self.default_headers, "Authorization": ""}),
             401,
             "rpc_invalid_grant",
         )
 
-    def test_post_invalid_secret(self):
+    def test_post_invalid_secret(self) -> None:
         assert_streaming_coded_error(
             self.client.post(
                 self.url,
                 data=b"test",
                 headers={
                     **self.default_headers,
-                    "Authorization": f"rpcsignature {sign_post('s', b'test')}",
+                    "Authorization": f"rpcsignature {sign_post(Secret('s'), b'test')}",
                 },
             ),
             401,

@@ -57,6 +57,11 @@ class SentryAppDetailsTest(APITestCase):
             popularity=self.popularity,
         )
         self.internal_integration = self.create_internal_integration(organization=self.organization)
+        application = self.published_app.application
+        assert application is not None
+        assert application.client_secret is not None
+        self.published_application = application
+        self.published_client_secret = application.client_secret
 
 
 @control_silo_test
@@ -143,8 +148,8 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             "isAlertable": True,
             "isDisabled": False,
             "verifyInstall": self.published_app.verify_install,
-            "clientId": self.published_app.application.client_id,
-            "clientSecret": self.published_app.application.client_secret,
+            "clientId": self.published_application.client_id,
+            "clientSecret": self.published_client_secret,
             "overview": self.published_app.overview,
             "allowedOrigins": [],
             "webhookHeaders": [],
@@ -755,7 +760,10 @@ class UpdateSentryAppDetailsTest(SentryAppDetailsTest):
             allowedOrigins=["google.com", "sentry.io"],
             status_code=200,
         )
-        assert self.published_app.application.get_allowed_origins() == ["google.com", "sentry.io"]
+        published_app = SentryApp.objects.get(id=self.published_app.id)
+        application = published_app.application
+        assert application is not None
+        assert application.get_allowed_origins() == ["google.com", "sentry.io"]
 
     @override_options({"staff.ga-rollout": True})
     def test_allowed_origins_with_star(self) -> None:

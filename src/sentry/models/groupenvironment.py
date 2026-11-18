@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any
+
 from django.db.models import DO_NOTHING, DateTimeField, Index
 from django.db.models.signals import post_delete
 from django.utils import timezone
@@ -35,11 +39,17 @@ class GroupEnvironment(Model):
     __repr__ = sane_repr("group_id", "environment_id")
 
     @classmethod
-    def _get_cache_key(self, group_id, environment_id) -> str:
+    def _get_cache_key(self, group_id: int, environment_id: int) -> str:
         return f"groupenv:1:{group_id}:{environment_id}"
 
     @classmethod
-    def get_or_create(cls, group_id, environment_id, defaults=None, metrics_tags=None):
+    def get_or_create(
+        cls,
+        group_id: int,
+        environment_id: int,
+        defaults: dict[str, Any] | None = None,
+        metrics_tags: dict[str, str | int] | None = None,
+    ) -> tuple[GroupEnvironment, bool]:
         cache_key = cls._get_cache_key(group_id, environment_id)
         instance = cache.get(cache_key)
         if instance is None:

@@ -1,8 +1,9 @@
 import {makeFlamegraph} from 'sentry-test/profiling/utils';
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {FlamegraphTreeTable} from 'sentry/components/profiling/flamegraph/flamegraphDrawer/flamegraphTreeTable';
 import {CanvasPoolManager, CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
+
+import {FlamegraphTreeTable} from './flamegraphTreeTable';
 
 const flamegraph = makeFlamegraph(
   {

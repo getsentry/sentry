@@ -9,7 +9,8 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {MAX_TEAM_KEY_TRANSACTIONS} from 'sentry/utils/performance/constants';
-import TeamKeyTransactionButton from 'sentry/views/performance/transactionSummary/teamKeyTransactionButton';
+
+import {TeamKeyTransactionButton} from './teamKeyTransactionButton';
 
 async function clickTeamKeyTransactionDropdown() {
   await waitFor(() =>
@@ -19,7 +20,7 @@ async function clickTeamKeyTransactionDropdown() {
 }
 
 describe('TeamKeyTransactionButton', () => {
-  const organization = OrganizationFixture({features: ['performance-view']});
+  const organization = OrganizationFixture();
   const teams = [
     TeamFixture({id: '1', slug: 'team1', name: 'Team 1'}),
     TeamFixture({id: '2', slug: 'team2', name: 'Team 2'}),

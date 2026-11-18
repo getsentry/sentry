@@ -54,7 +54,7 @@ function renderToken(token: TokenResult<Token>, cursor: number) {
       return <NumberToken token={token} />;
 
     case Token.VALUE_BOOLEAN:
-      return <Boolean>{token.text}</Boolean>;
+      return <BooleanText>{token.text}</BooleanText>;
 
     case Token.VALUE_ISO_8601_DATE:
       return <DateTime>{token.text}</DateTime>;
@@ -440,7 +440,7 @@ const LogicBoolean = styled('span')<{invalid: boolean}>`
   ${p => p.invalid && `color: ${p.theme.colors.red500}`}
 `;
 
-const Boolean = styled('span')`
+const BooleanText = styled('span')`
   color: ${p => p.theme.colors.pink500};
 `;
 

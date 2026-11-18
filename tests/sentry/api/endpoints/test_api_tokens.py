@@ -1,14 +1,21 @@
 from collections.abc import Generator
+from unittest.mock import patch
 
+from django.db import IntegrityError
 from django.urls import reverse
 from pytest import fixture
 from rest_framework import status
 
+from sentry.hybridcloud.models import ApiTokenReplica
+from sentry.hybridcloud.models.outbox import ControlOutbox
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.models.apitoken import ApiToken
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.impersonation import simulate_impersonation
 from sentry.testutils.helpers.options import override_options
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
 @control_silo_test
@@ -134,6 +141,43 @@ class ApiTokensCreateTest(APITestCase):
         assert len(response.data) == 1
 
         assert response.data[0]["name"] is None
+
+    def test_outbox_flush_failure_returns_token(self) -> None:
+        self.login_as(self.user)
+        url = reverse("sentry-api-0-api-tokens")
+
+        with patch.object(
+            ApiToken, "handle_async_replication", side_effect=Exception("replication failed")
+        ) as mock_replication:
+            response = self.client.post(url, data={"scopes": ["event:read"]})
+
+        mock_replication.assert_called()
+        assert response.status_code == 201, response.content
+        token = ApiToken.objects.get(user=self.user)
+        assert response.data["token"] == token.token
+        assert ControlOutbox.objects.filter(
+            category=OutboxCategory.API_TOKEN_UPDATE, object_identifier=token.id
+        ).exists()
+
+        # At this point, the token change has been committed, but the outbox
+        # has not been processed, so there should be no replica.
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert not ApiTokenReplica.objects.filter(apitoken_id=token.id).exists()
+
+        with outbox_runner():
+            pass
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert ApiTokenReplica.objects.filter(apitoken_id=token.id).exists()
+
+    def test_non_outbox_failure_still_raises(self) -> None:
+        self.login_as(self.user)
+        url = reverse("sentry-api-0-api-tokens")
+
+        with patch.object(ApiToken.objects, "create", side_effect=IntegrityError("conflict")):
+            response = self.client.post(url, data={"scopes": ["event:read"]})
+
+        assert response.status_code == 500
 
 
 @control_silo_test

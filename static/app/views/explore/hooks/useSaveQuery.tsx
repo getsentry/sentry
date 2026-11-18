@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useMemo} from 'react';
 import {useMutation} from '@tanstack/react-query';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -7,21 +7,21 @@ import type {DateString} from 'sentry/types/core';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {encodeSort} from 'sentry/utils/queryString';
-import {useApi} from 'sentry/utils/useApi';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {serializeAggregateFields} from 'sentry/views/explore/queryParams/aggregateField';
+import {useQueryParams} from 'sentry/views/explore/queryParams/context';
+import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
+import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
+import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
+
 import {
   isExploreSavedQuery,
   useInvalidateSavedQueries,
   useInvalidateSavedQuery,
   type CombinedSavedQuery,
-} from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {useQueryParams} from 'sentry/views/explore/queryParams/context';
-import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
-import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
-import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
-import {isVisualize} from 'sentry/views/explore/queryParams/visualize';
+} from './useGetSavedQueries';
 
 export type ExploreQueryChangedReason = {
   columns: string[];
@@ -136,78 +136,68 @@ function useSavedQueryForDataset(dataset: 'spans' | 'logs' | 'replays') {
  * For updating or duplicating queries, agnostic to dataset since it's operating on existing data
  */
 export function useFromSavedQuery() {
-  const api = useApi();
   const organization = useOrganization();
   const invalidateSavedQueries = useInvalidateSavedQueries();
 
-  const saveQueryFromSavedQuery = useCallback(
-    async (savedQuery: CombinedSavedQuery) => {
-      const response = isExploreSavedQuery(savedQuery)
-        ? await api.requestPromise(
-            getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/', {
+  const {mutateAsync: saveQueryFromSavedQuery} = useMutation({
+    mutationFn: (savedQuery: CombinedSavedQuery) =>
+      isExploreSavedQuery(savedQuery)
+        ? fetchMutation<{id: string}>({
+            url: getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/', {
               path: {organizationIdOrSlug: organization.slug},
             }),
-            {
-              method: 'POST',
-              data: {
-                ...savedQuery,
-                // we want to make sure no new queries are saved with the segment_spans dataset
-                dataset:
-                  savedQuery.dataset === 'segment_spans' ? 'spans' : savedQuery.dataset,
-              },
-            }
-          )
-        : await api.requestPromise(
-            getApiUrl('/organizations/$organizationIdOrSlug/discover/saved/', {
+            method: 'POST',
+            data: {
+              ...savedQuery,
+              // we want to make sure no new queries are saved with the segment_spans dataset
+              dataset:
+                savedQuery.dataset === 'segment_spans' ? 'spans' : savedQuery.dataset,
+            },
+          })
+        : fetchMutation<{id: string}>({
+            url: getApiUrl('/organizations/$organizationIdOrSlug/discover/saved/', {
               path: {organizationIdOrSlug: organization.slug},
             }),
-            {
-              method: 'POST',
-              data: savedQuery,
-            }
-          );
-
+            method: 'POST',
+            data: {...savedQuery},
+          }),
+    onSuccess: () => {
       invalidateSavedQueries();
-      return response;
     },
-    [api, organization.slug, invalidateSavedQueries]
-  );
+  });
 
-  const updateQueryFromSavedQuery = useCallback(
-    async (savedQuery: CombinedSavedQuery) => {
-      const response = isExploreSavedQuery(savedQuery)
-        ? await api.requestPromise(
-            getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/$id/', {
+  const {mutateAsync: updateQueryFromSavedQuery} = useMutation({
+    mutationFn: (savedQuery: CombinedSavedQuery) =>
+      isExploreSavedQuery(savedQuery)
+        ? fetchMutation<{id: string}>({
+            url: getApiUrl('/organizations/$organizationIdOrSlug/explore/saved/$id/', {
               path: {organizationIdOrSlug: organization.slug, id: String(savedQuery.id)},
             }),
-            {
-              method: 'PUT',
-              data: {
-                ...savedQuery,
-                // we want to make sure queries are locked in as spans once they're updated
-                dataset:
-                  savedQuery.dataset === 'segment_spans' ? 'spans' : savedQuery.dataset,
-              },
-            }
-          )
-        : await api.requestPromise(
-            getApiUrl('/organizations/$organizationIdOrSlug/discover/saved/$queryId/', {
-              path: {
-                organizationIdOrSlug: organization.slug,
-                queryId: String(savedQuery.id),
-              },
-            }),
-            {
-              method: 'PUT',
-              data: savedQuery,
-            }
-          );
-
+            method: 'PUT',
+            data: {
+              ...savedQuery,
+              // we want to make sure queries are locked in as spans once they're updated
+              dataset:
+                savedQuery.dataset === 'segment_spans' ? 'spans' : savedQuery.dataset,
+            },
+          })
+        : fetchMutation<{id: string}>({
+            url: getApiUrl(
+              '/organizations/$organizationIdOrSlug/discover/saved/$queryId/',
+              {
+                path: {
+                  organizationIdOrSlug: organization.slug,
+                  queryId: String(savedQuery.id),
+                },
+              }
+            ),
+            method: 'PUT',
+            data: {...savedQuery},
+          }),
+    onSuccess: () => {
       invalidateSavedQueries();
-      return response;
     },
-    [api, organization.slug, invalidateSavedQueries]
-  );
+  });
 
   return {saveQueryFromSavedQuery, updateQueryFromSavedQuery};
 }
@@ -246,28 +236,22 @@ function convertQueryParamsToRequest({
   const {sortBys, fields, search, mode, crossEvents} = queryParams;
   const query = search?.formatString() ?? '';
 
-  const aggregateFields = queryParams.aggregateFields
-    .filter(aggregateField => {
+  const aggregateFields = serializeAggregateFields(
+    queryParams.aggregateFields.filter(aggregateField => {
       if (isGroupBy(aggregateField)) {
         return Boolean(aggregateField.groupBy);
       }
       return true;
     })
-    .map(aggregateField => {
-      if (isGroupBy(aggregateField)) {
-        return {groupBy: aggregateField.groupBy};
-      }
-
-      if (isVisualize(aggregateField)) {
-        const serialized = aggregateField.serialize();
-        return {
-          ...serialized,
-          yAxes: [...serialized.yAxes],
-        };
-      }
-
-      throw new Error(`Unknown aggregate field: ${JSON.stringify(aggregateField)}`);
-    });
+  ).map(aggregateField => {
+    if (isGroupBy(aggregateField)) {
+      return {groupBy: aggregateField.groupBy};
+    }
+    return {
+      ...aggregateField,
+      yAxes: [...aggregateField.yAxes],
+    };
+  });
 
   return {
     name: title,

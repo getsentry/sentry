@@ -18,12 +18,10 @@ import {
   type Subfilter,
   type TagSubfilter,
 } from 'sentry/types/workflowEngine/dataConditions';
-import {
-  Attribute,
-  MatchType,
-} from 'sentry/views/automations/components/actionFilters/constants';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodeContext';
+
+import {Attribute, MatchType} from './constants';
 
 function isAttributeSubfilter(subfilter: Subfilter): subfilter is AttributeSubfilter {
   return 'attribute' in subfilter;
@@ -182,7 +180,7 @@ function ComparisonTypeField() {
     <AutomationBuilderSelect
       name={`${subfilter_id}.type`}
       aria-label={t('Comparison type')}
-      value=""
+      value={null}
       placeholder={t('Select value type')}
       options={[
         {

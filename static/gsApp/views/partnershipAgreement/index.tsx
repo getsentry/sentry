@@ -4,8 +4,8 @@ import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
@@ -30,7 +30,7 @@ export default function PartnershipAgreement({
       }),
     onSuccess: onSubmitSuccess,
     onError: error => {
-      addErrorMessage(
+      toast.error(
         getRequestErrorUserMessage(
           error,
           t('Unable to accept the partnership agreement.')

@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import type {Location} from 'history';
-import * as qs from 'query-string';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ThemeFixture} from 'sentry-fixture/theme';
@@ -12,13 +11,12 @@ import {DateTimeProvider} from '@sentry/scraps/datetime';
 
 import {getDefaultPageFilterSelection} from 'sentry/components/pageFilters/constants';
 import {ConfigStore} from 'sentry/stores/configStore';
+import * as qs from 'sentry/utils/url/qs';
 import type {AttributesFieldRendererProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
-import type {RendererExtra} from 'sentry/views/explore/logs/fieldRenderers';
-import {
-  LogAttributesRendererMap,
-  SpanIDRenderer,
-} from 'sentry/views/explore/logs/fieldRenderers';
-import {OurLogKnownFieldKey, type LogRowItem} from 'sentry/views/explore/logs/types';
+
+import type {RendererExtra} from './fieldRenderers';
+import {LogAttributesRendererMap, SpanIDRenderer} from './fieldRenderers';
+import {OurLogKnownFieldKey, type LogRowItem} from './types';
 
 const TimestampRenderer = LogAttributesRendererMap[OurLogKnownFieldKey.TIMESTAMP];
 const TraceIDRenderer = LogAttributesRendererMap[OurLogKnownFieldKey.TRACE_ID];

@@ -2,17 +2,18 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from typing import Any
+from typing import Any, cast
 from urllib.parse import quote
 
 from sentry import features
 from sentry.integrations.gitlab.types import GitLabIssueAction, GitLabIssueStatus
-from sentry.integrations.mixins.issues import IssueSyncIntegration, ResolveSyncAction
+from sentry.integrations.mixins.issues import IssuePayload, IssueSyncIntegration, ResolveSyncAction
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import EXTERNAL_PROVIDERS_REVERSE, ExternalProviderEnum
+from sentry.models.activity import Activity
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
@@ -276,7 +277,7 @@ class GitlabIssueSyncSpec(IssueSyncIntegration):
 
         return ResolveSyncAction.NOOP
 
-    def get_config_data(self):
+    def get_config_data(self) -> dict[str, Any]:
         config = self.org_integration.config
         project_mappings = IntegrationExternalProject.objects.filter(
             organization_integration_id=self.org_integration.id
@@ -291,7 +292,7 @@ class GitlabIssueSyncSpec(IssueSyncIntegration):
         config["sync_status_forward"] = sync_status_forward
         return config
 
-    def create_comment_attribution(self, user_id, comment_text):
+    def create_comment_attribution(self, user_id: int, comment_text: str) -> str:
         user = user_service.get_user(user_id)
         username = "Unknown User" if user is None else user.name
 
@@ -299,7 +300,9 @@ class GitlabIssueSyncSpec(IssueSyncIntegration):
         quoted_text = "\n".join(f"> {line}" for line in comment_text.split("\n"))
         return f"{attribution}{quoted_text}"
 
-    def update_comment(self, issue_id, user_id, group_note):
+    def update_comment(
+        self, issue_id: str, user_id: int, group_note: Activity
+    ) -> IssuePayload | None:
         quoted_comment = self.create_comment_attribution(user_id, group_note.data["text"])
 
         project_id, parsed_issue_id = self.split_external_issue_key(issue_id)
@@ -316,14 +319,17 @@ class GitlabIssueSyncSpec(IssueSyncIntegration):
 
         encoded_project_id = quote(project_id, safe="")
 
-        return self.get_client().update_comment(
-            encoded_project_id,
-            parsed_issue_id,
-            group_note.data["external_id"],
-            {"body": quoted_comment},
+        return cast(
+            "Mapping[str, Any] | None",
+            self.get_client().update_comment(
+                encoded_project_id,
+                parsed_issue_id,
+                group_note.data["external_id"],
+                {"body": quoted_comment},
+            ),
         )
 
-    def create_comment(self, issue_id, user_id, group_note):
+    def create_comment(self, issue_id: str, user_id: int, group_note: Activity) -> IssuePayload:
         comment = group_note.data["text"]
         quoted_comment = self.create_comment_attribution(user_id, comment)
 
@@ -337,10 +343,13 @@ class GitlabIssueSyncSpec(IssueSyncIntegration):
                     "external_issue_key": parsed_issue_id,
                 },
             )
-            return None
+            return cast("IssuePayload", None)
 
         encoded_project_id = quote(project_id, safe="")
 
-        return self.get_client().create_comment(
-            encoded_project_id, parsed_issue_id, {"body": quoted_comment}
+        return cast(
+            "Mapping[str, Any]",
+            self.get_client().create_comment(
+                encoded_project_id, parsed_issue_id, {"body": quoted_comment}
+            ),
         )

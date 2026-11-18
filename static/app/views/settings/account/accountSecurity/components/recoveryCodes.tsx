@@ -4,10 +4,10 @@ import {IconDownload} from '@sentry/icons/download';
 import {IconPrint} from '@sentry/icons/print';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
+import {Confirm} from '@sentry/scraps/confirm';
 import {Grid} from '@sentry/scraps/layout';
 
-import {Confirm} from 'sentry/components/confirm';
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelAlert} from 'sentry/components/panels/panelAlert';

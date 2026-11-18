@@ -11,7 +11,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import MergeAccounts from 'sentry/views/settings/account/mergeAccounts';
+import MergeAccounts from './mergeAccounts';
 
 const ENDPOINT = '/auth-v2/merge-accounts/';
 const VERIFICATION_CODE_ENDPOINT = '/auth-v2/user-merge-verification-codes/';

@@ -1,3 +1,5 @@
+from collections.abc import Mapping, Sequence
+
 from django.test.utils import override_settings
 from django.urls import reverse
 
@@ -82,9 +84,12 @@ class SetupWizard(PermissionTestCase):
         self.assertTemplateUsed(resp, "sentry/setup-wizard.html")
         assert resp.context["enableProjectSelection"] is False
         cached = default_cache.get(key)
-
-        assert len(cached.get("projects")) == 1
-        cached_project = cached.get("projects")[0]
+        assert isinstance(cached, Mapping)
+        projects = cached.get("projects")
+        assert isinstance(projects, Sequence)
+        assert len(projects) == 1
+        cached_project = projects[0]
+        assert isinstance(cached_project, Mapping)
         assert cached_project.get("id") == self.project.id
 
     def test_renders_selection_when_given_only_org_slug(self) -> None:
@@ -186,16 +191,31 @@ class SetupWizard(PermissionTestCase):
 
         assert resp.status_code == 200
         cached = default_cache.get(key)
-        assert cached.get("apiKeys").get("scopes")[0] == "org:ci"
+        assert isinstance(cached, Mapping)
+        api_keys = cached.get("apiKeys")
+        assert isinstance(api_keys, Mapping)
+        scopes = api_keys.get("scopes")
+        assert isinstance(scopes, Sequence)
+        assert scopes[0] == "org:ci"
 
         # The submitted project should be the only one in the cache
-        assert len(cached.get("projects")) == 1
-        cached_project = cached.get("projects")[0]
+        projects = cached.get("projects")
+        assert isinstance(projects, Sequence)
+        assert len(projects) == 1
+        cached_project = projects[0]
+        assert isinstance(cached_project, Mapping)
         assert cached_project.get("id") == self.project.id
 
         assert cached_project.get("status") == "active"
-        assert cached_project.get("keys")[0].get("isActive")
-        assert cached_project.get("organization").get("status").get("id") == "active"
+        keys = cached_project.get("keys")
+        assert isinstance(keys, Sequence)
+        assert isinstance(keys[0], Mapping)
+        assert keys[0].get("isActive")
+        organization = cached_project.get("organization")
+        assert isinstance(organization, Mapping)
+        status = organization.get("status")
+        assert isinstance(status, Mapping)
+        assert status.get("id") == "active"
 
     def test_post_bad_request(self) -> None:
         self.login_as(self.user)

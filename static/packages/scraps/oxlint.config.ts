@@ -10,6 +10,9 @@ const SCRAPS_PROCESS_MESSAGE =
   'Scraps runs in browsers without `process`. Only `process.env.NODE_ENV` is allowed; let the app pass other configuration in.';
 
 export default createPackageConfig(import.meta.dirname, {
+  rules: {
+    eqeqeq: ['error', 'always', {null: 'ignore'}],
+  },
   overrides: [
     {
       files: ['src/**/*.{ts,tsx}'],
@@ -55,15 +58,6 @@ export default createPackageConfig(import.meta.dirname, {
     {
       files: ['src/**/*.spec.{ts,tsx}', 'test/**/*.{ts,tsx,mjs}'],
       rules: {'import/no-relative-parent-imports': 'off'},
-    },
-    {
-      files: ['scripts/*.mjs'],
-      env: {node: true},
-      rules: {
-        'import-js/no-extraneous-dependencies': 'off',
-        'import/no-nodejs-modules': 'off',
-        'no-console': 'off',
-      },
     },
   ],
 });

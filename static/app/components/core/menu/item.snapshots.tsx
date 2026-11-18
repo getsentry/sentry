@@ -1,6 +1,12 @@
 import {IconCircle} from '@sentry/icons/circle';
 
-import {ListItem, type ListItemProps} from '@sentry/scraps/menu';
+import {Tag} from '@sentry/scraps/badge';
+import {
+  ListItem,
+  ReserveLeadingSlot,
+  SectionList,
+  type ListItemProps,
+} from '@sentry/scraps/menu';
 
 const sizes: Array<NonNullable<ListItemProps['size']>> = ['xs', 'sm', 'md'];
 const variants = ['plain', 'leading', 'details', 'leading-details'] as const;
@@ -14,14 +20,14 @@ describe('ListItem', () => {
         const hasDetails = variant === 'details' || variant === 'leading-details';
 
         return (
-          <ul style={{padding: 8, width: 300, listStyle: 'none'}}>
+          <SectionList padding="md" width="300px">
             <ListItem
               size={size}
               label="Option"
               leadingItems={hasLeading ? <IconCircle aria-hidden /> : undefined}
               details={hasDetails ? 'Additional information about the option' : undefined}
             />
-          </ul>
+          </SectionList>
         );
       },
       variant => ({
@@ -32,6 +38,40 @@ describe('ListItem', () => {
           details: String(variant === 'details' || variant === 'leading-details'),
         },
       })
+    );
+
+    it.snapshot(
+      'rich-label',
+      () => (
+        <SectionList padding="md" width="300px">
+          <ListItem
+            size={size}
+            label={
+              <Tag variant="muted" icon={<IconCircle />}>
+                Option
+              </Tag>
+            }
+          />
+        </SectionList>
+      ),
+      {tags: {area: 'core', size}}
+    );
+
+    it.snapshot(
+      'reserved-leading-slot',
+      () => (
+        <SectionList padding="md" width="300px">
+          <ReserveLeadingSlot reserve>
+            <ListItem
+              size={size}
+              label="With icon"
+              leadingItems={<IconCircle aria-hidden />}
+            />
+            <ListItem size={size} label="Without icon" />
+          </ReserveLeadingSlot>
+        </SectionList>
+      ),
+      {tags: {area: 'core', size}}
     );
   });
 });

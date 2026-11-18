@@ -3,10 +3,10 @@ import {z} from 'zod';
 
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {Organization, Team} from 'sentry/types/organization';
@@ -42,7 +42,7 @@ function CreateTeamModal({
       }),
     onSuccess: team => {
       TeamStore.onCreateSuccess(team);
-      addSuccessMessage(
+      toast.success(
         tct('[team] has been added to the [organization] organization', {
           team: `#${team.slug}`,
           organization: organization.slug,
@@ -52,7 +52,7 @@ function CreateTeamModal({
       onClose?.(team);
     },
     onError: (_err, variables) => {
-      addErrorMessage(
+      toast.error(
         tct('Unable to create [team] in the [organization] organization', {
           team: `#${variables.slug}`,
           organization: organization.slug,

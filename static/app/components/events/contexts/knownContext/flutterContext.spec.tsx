@@ -3,10 +3,8 @@ import {EventFixture} from 'sentry-fixture/event';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ContextCard} from 'sentry/components/events/contexts/contextCard';
-import {
-  getFlutterContextData,
-  type FlutterContext,
-} from 'sentry/components/events/contexts/knownContext/flutterContext';
+
+import {getFlutterContextData, type FlutterContext} from './flutterContext';
 
 const MOCK_FLUTTER_CONTEXT: FlutterContext = {
   default_route_name: '/',
