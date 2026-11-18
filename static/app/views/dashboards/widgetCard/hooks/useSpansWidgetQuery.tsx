@@ -4,7 +4,6 @@ import trimStart from 'lodash/trimStart';
 
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {toArray} from 'sentry/utils/array/toArray';
 import {defined} from 'sentry/utils/defined';
 import type {
@@ -42,7 +41,6 @@ import {
   getValidAggregatesForRequest,
   hasNoValidAggregatesForRequest,
 } from 'sentry/views/explore/utils/conditionalAggregate';
-import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 import {SpanFields} from 'sentry/views/insights/types';
 
@@ -445,12 +443,8 @@ export function useSpansTableQuery(
         }
       );
 
-      const baseQueryKey: ApiQueryKey = baseOptions.queryKey;
-
-      // eslint-disable-next-line @tanstack/query/exhaustive-deps
       return queryOptions({
         ...baseOptions,
-        queryKey: [...baseQueryKey, ...STARRED_SEGMENT_TABLE_QUERY_KEY] as const,
         queryFn: (context): Promise<ApiResponse<SpansTableResponse>> => {
           if (queue) {
             return new Promise((resolve, reject) => {

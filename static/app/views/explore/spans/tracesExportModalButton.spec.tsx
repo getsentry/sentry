@@ -13,7 +13,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import type {ResponseMeta} from 'sentry/types/api';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
@@ -47,20 +47,18 @@ function makeQueryResult(
       .build(queryClient, {queryKey})
       .setState({status: 'error', error, fetchStatus: 'idle'});
   } else {
-    queryClient.setQueryData(queryKey, [{data: []}, undefined, undefined]);
+    queryClient.setQueryData(queryKey, {json: {data: []}, headers: {}});
   }
 
-  const base = new QueryObserver<
-    [TableData, string | undefined, ResponseMeta<TableData> | undefined],
-    QueryError
-  >(queryClient, {queryKey, enabled: false}).getCurrentResult();
+  const base = new QueryObserver<ApiResponse<TableData>>(queryClient, {
+    queryKey,
+    enabled: false,
+  }).getCurrentResult();
 
   return {
     ...base,
     data: error ? undefined : data,
     error,
-    statusCode: undefined,
-    response: undefined,
     meta: undefined,
     pageLinks,
   };
