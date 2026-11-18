@@ -39,7 +39,7 @@ class CellOutboxProducingModel(Model):
     class Meta:
         abstract = True
 
-    # Applies only when no enclosing outbox_context has set a flush flag.
+    # Ignored inside an enclosing outbox_context, whose flush flag is inherited instead.
     default_flush: bool | None = None
     replication_version: int = 1
 
@@ -47,15 +47,13 @@ class CellOutboxProducingModel(Model):
     def prepare_outboxes(
         self, *, outbox_before_super: bool, flush: bool | None = None
     ) -> Generator[None]:
-        from sentry.hybridcloud.models.outbox import _outbox_context, outbox_context
+        from sentry.hybridcloud.models.outbox import model_outbox_flush, outbox_context
 
-        caller_set_flush = _outbox_context.flushing_enabled is not None
-        if flush is None and not caller_set_flush:
-            flush = self.default_flush
+        resolved_flush = model_outbox_flush(flush, self.default_flush)
 
         with outbox_context(
             transaction.atomic(router.db_for_write(type(self))),
-            flush=flush,
+            flush=resolved_flush,
         ):
             if not outbox_before_super:
                 yield
@@ -226,7 +224,7 @@ class ControlOutboxProducingModel(Model):
     to support bulk operations that respect outbox creation.
     """
 
-    # Applies only when no enclosing outbox_context has set a flush flag.
+    # Ignored inside an enclosing outbox_context, whose flush flag is inherited instead.
     default_flush: bool | None = None
     replication_version: int = 1
 
@@ -235,16 +233,13 @@ class ControlOutboxProducingModel(Model):
 
     @contextlib.contextmanager
     def _maybe_prepare_outboxes(self, *, outbox_before_super: bool) -> Generator[None]:
-        from sentry.hybridcloud.models.outbox import _outbox_context, outbox_context
+        from sentry.hybridcloud.models.outbox import model_outbox_flush, outbox_context
 
-        caller_set_flush = _outbox_context.flushing_enabled is not None
-        flush: bool | None = None
-        if not caller_set_flush:
-            flush = self.default_flush
+        resolved_flush = model_outbox_flush(None, self.default_flush)
 
         with outbox_context(
             transaction.atomic(router.db_for_write(type(self))),
-            flush=flush,
+            flush=resolved_flush,
         ):
             if not outbox_before_super:
                 yield

@@ -121,11 +121,11 @@ class ControlOutboxTest(TestCase):
             (OutboxScope.USER_SCOPE.value, user2.id, expected_region_name),
         }
 
+    @patch.object(UserEmail, "default_flush", False)
     def test_default_flush_yields_to_caller_flush(self) -> None:
         user = self.create_user()
         with assume_test_silo_mode(SiloMode.CELL):
             self.create_organization(owner=user)
-        assert UserEmail.default_flush is False
 
         with patch.object(ControlOutbox, "drain_shard") as mock_drain_shard:
             with self.captureOnCommitCallbacks(execute=True):

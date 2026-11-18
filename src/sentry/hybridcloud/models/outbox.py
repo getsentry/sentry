@@ -702,6 +702,18 @@ class OutboxContext(threading.local):
 _outbox_context = OutboxContext()
 
 
+def model_outbox_flush(flush: bool | None, default_flush: bool | None) -> bool | None:
+    """The flush flag for a model's outbox write: the explicit one, else the enclosing
+    outbox_context's (None inherits it), else the model's default_flush."""
+    if flush is not None:
+        return flush
+
+    in_outbox_context = _outbox_context.flushing_enabled is not None
+    if in_outbox_context:
+        return None
+    return default_flush
+
+
 @contextlib.contextmanager
 def outbox_context(
     inner: Atomic | None = None, flush: bool | None = None
