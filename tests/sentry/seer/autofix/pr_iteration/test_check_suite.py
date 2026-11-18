@@ -1,12 +1,13 @@
 from inspect import signature
 from typing import Any
-from unittest.mock import ANY, MagicMock, patch
+from unittest.mock import ANY, MagicMock, call, patch
 
 import orjson
 import pytest
 from scm.helpers import iter_all_pages
 from scm.types import BuildConclusion, CheckSuiteAction
 
+from sentry.models.repository import Repository
 from sentry.scm.types import CheckSuiteEvent
 from sentry.seer.agent.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
 from sentry.seer.autofix.constants import AutofixReferrer
@@ -1428,6 +1429,121 @@ class ResolveCheckSuiteAutofixRunTest(TestCase):
 
         assert result is not None
         assert result.pr_id == 111
+
+    def _repo_for_pr(self, *, pr_number: int, linked: bool) -> Repository:
+        repo = self.create_repo(self.project, provider="integrations:github")
+        if linked:
+            pull_request = self.create_pull_request(
+                repository_id=repo.id, organization_id=self.organization.id, key=str(pr_number)
+            )
+            run = self.create_seer_run(seer_run_state_id=111)
+            self.create_seer_run_pull_request(run=run, pull_request=pull_request)
+        return repo
+
+    def _numbered_pr(self, *, pr_id: int, number: int) -> dict[str, Any]:
+        return {**own_repo_pr(pr_id), "number": number}
+
+    @override_options({"autofix.pr-iteration.check-suite-local-prefilter.enabled": True})
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
+    def test_prefilter_skips_seer_for_pr_without_link(
+        self, mock_resolve: MagicMock, mock_get_state: MagicMock
+    ) -> None:
+        mock_resolve.return_value = [self._repo_for_pr(pr_number=7, linked=False)]
+
+        result = resolve_check_suite_autofix_run(
+            self._event(
+                repository_id=OWN_REPO_ID, pull_requests=[self._numbered_pr(pr_id=111, number=7)]
+            )
+        )
+
+        assert result is None
+        assert mock_get_state.call_count == 0
+
+    @override_options({"autofix.pr-iteration.check-suite-local-prefilter.enabled": True})
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
+    def test_prefilter_asks_seer_for_linked_pr(
+        self, mock_resolve: MagicMock, mock_get_state: MagicMock
+    ) -> None:
+        mock_resolve.return_value = [self._repo_for_pr(pr_number=7, linked=True)]
+        mock_get_state.return_value = self._agent_state(run_id=111)
+
+        result = resolve_check_suite_autofix_run(
+            self._event(
+                repository_id=OWN_REPO_ID, pull_requests=[self._numbered_pr(pr_id=111, number=7)]
+            )
+        )
+
+        assert result is not None
+        assert result.run_state.run_id == 111
+        mock_get_state.assert_called_once_with(self.organization.id, "integrations:github", 111)
+
+    @override_options({"autofix.pr-iteration.check-suite-local-prefilter.enabled": True})
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
+    def test_prefilter_asks_seer_when_entry_has_no_number(
+        self, mock_resolve: MagicMock, mock_get_state: MagicMock
+    ) -> None:
+        mock_resolve.return_value = [self._repo_for_pr(pr_number=7, linked=False)]
+        mock_get_state.return_value = self._agent_state(run_id=111)
+
+        result = resolve_check_suite_autofix_run(
+            self._event(repository_id=OWN_REPO_ID, pull_requests=[own_repo_pr(111)])
+        )
+
+        assert result is not None
+        assert mock_get_state.call_count == 1
+
+    @override_options(
+        {
+            "autofix.pr-iteration.check-suite-local-prefilter.enabled": True,
+            "seer.pull-request-linking.killswitch.enabled": True,
+        }
+    )
+    @patch(f"{CHECK_SUITES_PATH}.metrics")
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
+    def test_prefilter_off_while_linking_is_killed(
+        self, mock_resolve: MagicMock, mock_get_state: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        mock_resolve.return_value = [self._repo_for_pr(pr_number=7, linked=False)]
+        mock_get_state.return_value = self._agent_state(run_id=111)
+
+        result = resolve_check_suite_autofix_run(
+            self._event(
+                repository_id=OWN_REPO_ID, pull_requests=[self._numbered_pr(pr_id=111, number=7)]
+            )
+        )
+
+        assert result is not None
+        assert mock_get_state.call_count == 1
+        assert (
+            call(
+                "autofix.pr_iteration.check_suite.local_prefilter", tags={"outcome": "missed_link"}
+            )
+            not in mock_metrics.incr.call_args_list
+        )
+
+    @patch(f"{CHECK_SUITES_PATH}.metrics")
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
+    def test_prefilter_disabled_counts_run_found_without_link(
+        self, mock_resolve: MagicMock, mock_get_state: MagicMock, mock_metrics: MagicMock
+    ) -> None:
+        mock_resolve.return_value = [self._repo_for_pr(pr_number=7, linked=False)]
+        mock_get_state.return_value = self._agent_state(run_id=111)
+
+        result = resolve_check_suite_autofix_run(
+            self._event(
+                repository_id=OWN_REPO_ID, pull_requests=[self._numbered_pr(pr_id=111, number=7)]
+            )
+        )
+
+        assert result is not None
+        mock_metrics.incr.assert_any_call(
+            "autofix.pr_iteration.check_suite.local_prefilter", tags={"outcome": "missed_link"}
+        )
 
 
 def _run_state(*, blocks: list[MemoryBlock] | None = None) -> SeerRunState:

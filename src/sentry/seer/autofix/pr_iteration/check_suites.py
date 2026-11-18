@@ -31,7 +31,7 @@ from scm.types import (
 )
 from sentry_sdk import traces
 
-from sentry import features
+from sentry import features, options
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.types import IntegrationProviderSlug
@@ -47,7 +47,7 @@ from sentry.seer.autofix.pr_iteration.constants import (
 )
 from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
 from sentry.seer.models import SeerApiError, SeerUnavailableError
-from sentry.seer.models.run import SeerRun
+from sentry.seer.models.run import SeerRun, SeerRunPullRequest
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -101,6 +101,7 @@ class GithubCheckSuitePullRequestBase(BaseModel):
 
 class GithubCheckSuitePullRequest(BaseModel):
     id: int
+    number: int | None = None
     # Optional so feedback serialized before this field existed still parses. Such
     # an entry is skipped, which strands nothing: these models used to keep
     # undeclared fields, so older feedback carries `base` and parses back in here.
@@ -209,6 +210,16 @@ def resolve_check_suite_repositories(event: GithubCheckSuiteEvent) -> list[Repos
     return repos
 
 
+def _has_seer_pr_link(repository: Repository, pr: GithubCheckSuitePullRequest) -> bool:
+    if pr.number is None:
+        return True
+    return SeerRunPullRequest.objects.filter(
+        pull_request__organization_id=repository.organization_id,
+        pull_request__repository_id=repository.id,
+        pull_request__key=str(pr.number),
+    ).exists()
+
+
 @dataclass(frozen=True)
 class CheckSuiteAutofixRun:
     """The Autofix run tied to a check-suite PR, plus the Sentry repo used to find it."""
@@ -265,9 +276,22 @@ def resolve_check_suite_autofix_run(
     if not pull_requests:
         return None
 
+    linking_killed = options.get("seer.pull-request-linking.killswitch.enabled")
+    prefilter_enabled = (
+        options.get("autofix.pr-iteration.check-suite-local-prefilter.enabled")
+        and not linking_killed
+    )
     matches: list[CheckSuiteAutofixRun] = []
-    for pr_id in (pr.id for pr in pull_requests):
+    for pr in pull_requests:
+        pr_id = pr.id
         for candidate in repos:
+            if prefilter_enabled and not _has_seer_pr_link(candidate, pr):
+                metrics.incr(
+                    "autofix.pr_iteration.check_suite.local_prefilter",
+                    tags={"outcome": "skipped"},
+                )
+                continue
+
             try:
                 # SCM stream webhooks carry no viewer, and each candidate is a different org.
                 with webhook_viewer_context(candidate.organization_id):
@@ -283,6 +307,25 @@ def resolve_check_suite_autofix_run(
 
             if state is None or not state.repo_pr_states:
                 continue
+
+            if (
+                not prefilter_enabled
+                and not linking_killed
+                and not _has_seer_pr_link(candidate, pr)
+            ):
+                metrics.incr(
+                    "autofix.pr_iteration.check_suite.local_prefilter",
+                    tags={"outcome": "missed_link"},
+                )
+                logger.warning(
+                    "autofix.pr_iteration.check_suite.local_prefilter.missed_link",
+                    extra={
+                        "organization_id": candidate.organization_id,
+                        "repo_id": candidate.id,
+                        "pr_id": pr_id,
+                        "run_id": state.run_id,
+                    },
+                )
 
             group_id = state.metadata.get("group_id") if state.metadata else None
             if not group_id:
