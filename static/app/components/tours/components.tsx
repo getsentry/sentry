@@ -615,14 +615,6 @@ export function TourGuide({
   };
   const titleId = useId();
   const descriptionId = useId();
-  const stepId = useId();
-  // Screen readers hear the step, such as "Step 1 of 2", before the description.
-  const describedBy = [
-    isStepCountVisible ? stepId : undefined,
-    description ? descriptionId : undefined,
-  ]
-    .filter(defined)
-    .join(' ');
   const dialogProps: HTMLAttributes<HTMLElement> & {'data-focus-ring'?: boolean} =
     isSubtle
       ? {
@@ -631,7 +623,7 @@ export function TourGuide({
           onKeyDown: handleKeyDown,
           'data-focus-ring': isFocusRingVisible || undefined,
           'aria-labelledby': title ? titleId : undefined,
-          'aria-describedby': describedBy || undefined,
+          'aria-describedby': description ? descriptionId : undefined,
         }
       : {};
 
@@ -689,11 +681,6 @@ export function TourGuide({
                             <Text size="sm" variant="muted" bold aria-hidden>
                               {countText}
                             </Text>
-                            {isStepCountVisible && (
-                              <VisuallyHidden id={stepId}>
-                                {t('Step %s of %s', stepCount, stepTotal)}
-                              </VisuallyHidden>
-                            )}
                             {isDismissVisible && (
                               <Button
                                 variant="transparent"
@@ -726,6 +713,12 @@ export function TourGuide({
                               size="md"
                               density="comfortable"
                             >
+                              {/* Screen readers hear the step here instead of the visible "1/2". */}
+                              {isStepCountVisible && (
+                                <VisuallyHidden>
+                                  {t('Step %s of %s.', stepCount, stepTotal)}{' '}
+                                </VisuallyHidden>
+                              )}
                               {description}
                             </Text>
                           </Container>
