@@ -10,23 +10,23 @@ DEFAULT_WORKFLOW_NAME = "Seer automation"
 SEER_INVESTIGATION_WORKFLOW_TYPE = "seer_investigation"
 
 
-def convert_seer_workflow_actions(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
+def migrate_seer_automations(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     Action = apps.get_model("workflow_engine", "Action")
-    SeerWorkflowTriggerBinding = apps.get_model("seer", "SeerWorkflowTriggerBinding")
-    # Action.type isn't indexed, so find the actions through their bindings rather than scanning
-    # the whole table. Every seer_workflow action was created with a binding.
-    action_ids = SeerWorkflowTriggerBinding.objects.values_list("trigger_action_id", flat=True)
-    Action.objects.filter(id__in=list(action_ids), type="seer_workflow").update(
-        type="seer_investigation"
-    )
-
-
-def update_backing_workflows(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     SeerWorkflowConfig = apps.get_model("seer", "SeerWorkflowConfig")
+    SeerWorkflowTriggerBinding = apps.get_model("seer", "SeerWorkflowTriggerBinding")
     Workflow = apps.get_model("workflow_engine", "Workflow")
     for config in RangeQuerySetWrapperWithProgressBar(
         SeerWorkflowConfig.objects.filter(backing_workflow__isnull=False)
     ):
+        # Action.type isn't indexed, so reach the actions through the config's bindings rather
+        # than filtering the whole table. Every seer_workflow action was created with a binding.
+        action_ids = SeerWorkflowTriggerBinding.objects.filter(
+            workflow_config_id=config.id
+        ).values_list("trigger_action_id", flat=True)
+        Action.objects.filter(id__in=list(action_ids), type="seer_workflow").update(
+            type="seer_investigation"
+        )
+
         workflow = Workflow.objects.get(id=config.backing_workflow_id)
         name = config.extras.get("name")
         created_by = config.extras.get("created_by")
@@ -61,13 +61,15 @@ class Migration(CheckedMigration):
 
     operations = [
         migrations.RunPython(
-            convert_seer_workflow_actions,
+            migrate_seer_automations,
             reverse_code=migrations.RunPython.noop,
-            hints={"tables": ["seer_workflowtriggerbinding", "workflow_engine_action"]},
-        ),
-        migrations.RunPython(
-            update_backing_workflows,
-            reverse_code=migrations.RunPython.noop,
-            hints={"tables": ["seer_workflowconfig", "workflow_engine_workflow"]},
+            hints={
+                "tables": [
+                    "seer_workflowconfig",
+                    "seer_workflowtriggerbinding",
+                    "workflow_engine_action",
+                    "workflow_engine_workflow",
+                ]
+            },
         ),
     ]
