@@ -1,9 +1,10 @@
-import {useCallback, useEffect, useMemo, type ReactNode} from 'react';
+import {useCallback, useEffect, useMemo, useState, type ReactNode} from 'react';
 import {parseAsString, parseAsStringLiteral, useQueryStates} from 'nuqs';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Tabs} from '@sentry/scraps/tabs';
 
+import type {CollapsibleExpandAll} from 'sentry/components/ai/chat/collapsibleContent';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseAsUtcDateTime} from 'sentry/utils/url/parseAsUtcDateTime';
@@ -22,7 +23,6 @@ import {
 import {ExpandAllButton} from './components/expandAllButton';
 import {ExportTranscriptButton} from './components/exportTranscriptButton';
 import {useConversation} from './hooks/useConversation';
-import {useTranscriptExpandAll} from './hooks/useTranscriptExpandAll';
 import {extractMessagesFromNodes} from './utils/conversationMessages';
 
 function useConversationDetailQueryState() {
@@ -53,26 +53,16 @@ function ConversationDetailPage() {
     () => ({conversationId, startTimestamp, endTimestamp}),
     [conversationId, startTimestamp, endTimestamp]
   );
-  const {
-    stats,
-    nodes,
-    nodeTraceMap,
-    isLoading,
-    hasNextPage,
-    canAutoFetchNextPage,
-    isFetchingNextPage,
-    loadNextPage,
-    title,
-  } = useConversation({
+  const {stats, nodes, nodeTraceMap, isLoading, hasNextPage, title} = useConversation({
     ...conversation,
     autoFetchAll: false,
   });
-  const transcriptExpandAll = useTranscriptExpandAll({
-    canLoadMore: canAutoFetchNextPage,
-    hasMorePages: hasNextPage,
-    isLoadingMore: isLoading || isFetchingNextPage,
-    loadMore: loadNextPage,
-  });
+  const [expandAll, setExpandAll] = useState<CollapsibleExpandAll | null>(null);
+  const toggleExpandAll = () =>
+    setExpandAll(previous => ({
+      generation: (previous?.generation ?? 0) + 1,
+      open: !previous?.open,
+    }));
 
   const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
   const isInitialLoading = isLoading && nodes.length === 0;
@@ -150,12 +140,8 @@ function ConversationDetailPage() {
           {queryState.tab === 'transcript' && messages.length > 0 && (
             <Flex align="center" gap="sm">
               <ExpandAllButton
-                isExpanded={transcriptExpandAll.isExpanded}
-                isLoadingAll={transcriptExpandAll.isLoadingAll}
-                isPartial={transcriptExpandAll.isPartial}
-                onExpand={transcriptExpandAll.expand}
-                onCollapse={transcriptExpandAll.collapse}
-                onCancel={transcriptExpandAll.cancel}
+                isExpanded={expandAll?.open ?? false}
+                onToggle={toggleExpandAll}
               />
               <ExportTranscriptButton conversation={conversation} />
             </Flex>
@@ -170,7 +156,7 @@ function ConversationDetailPage() {
             onDeselectSpan={handleDeselectSpan}
             onViewTimeline={handleViewTimeline}
             focusedTool={queryState.focusedTool}
-            expandAll={transcriptExpandAll.expandAll}
+            expandAll={expandAll}
           />
         </ConversationViewContainer>
       </Stack>
