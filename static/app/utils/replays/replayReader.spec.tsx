@@ -440,6 +440,19 @@ describe('ReplayReader', () => {
       });
 
       expect(replay?.processingErrors()).toEqual(['Missing Full Snapshot Frame']);
+      expect(replay?.isOnlyMissingFullSnapshot()).toBe(true);
+    });
+
+    it('reports more than a missing full snapshot when the meta frame is also missing', () => {
+      const replay = ReplayReader.factory({
+        attachments: [],
+        errors: [],
+        fetching: false,
+        replayRecord,
+      });
+
+      expect(replay?.processingErrors()).toContain('Missing Meta Frame');
+      expect(replay?.isOnlyMissingFullSnapshot()).toBe(false);
     });
 
     it('reports no missing full snapshot when the replay is a video replay', () => {

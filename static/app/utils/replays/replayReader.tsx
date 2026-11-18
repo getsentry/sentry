@@ -205,6 +205,8 @@ function removeDuplicateNavCrumbs(
   return otherBreadcrumbFrames.concat(uniqueNavCrumbs);
 }
 
+const MISSING_FULL_SNAPSHOT_ERROR = 'Missing Full Snapshot Frame';
+
 export class ReplayReader {
   static factory({
     attachments,
@@ -553,11 +555,20 @@ export class ReplayReader {
       this.isVideoReplay() ||
       this.getRRWebFrames().some(frame => frame.type === EventType.FullSnapshot)
         ? null
-        : 'Missing Full Snapshot Frame',
+        : MISSING_FULL_SNAPSHOT_ERROR,
     ].filter(defined);
   });
   hasProcessingErrors = () => {
     return this.processingErrors().length;
+  };
+
+  /**
+   * The SDK sent events but never a DOM snapshot, so the player has nothing
+   * to draw. Breadcrumbs, network requests, and console logs are still usable.
+   */
+  isOnlyMissingFullSnapshot = () => {
+    const errors = this.processingErrors();
+    return errors.length === 1 && errors[0] === MISSING_FULL_SNAPSHOT_ERROR;
   };
 
   domQuery = () => {

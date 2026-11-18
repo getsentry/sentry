@@ -17,14 +17,34 @@ export function ReplayProcessingError({className}: Props) {
   const {sdk} = replay?.getReplay() || {};
 
   useEffect(() => {
-    Sentry.withScope(scope => {
-      scope.setLevel('warning');
-      scope.setFingerprint(['replay-processing-error']);
-      if (sdk) {
-        scope.setTag('sdk.version', sdk.version);
-      }
+    replay?.processingErrors().forEach(error => {
+      Sentry.metrics.count('replay.processing-error', 1, {
+        attributes: {
+          error,
+          sdkName: sdk?.name ?? 'unknown',
+          sdkVersion: sdk?.version ?? 'unknown',
+        },
+      });
     });
-  }, [sdk]);
+  }, [replay, sdk]);
+
+  if (replay?.isOnlyMissingFullSnapshot()) {
+    return (
+      <StyledAlert variant="info" className={className}>
+        <Heading>{t('No Screen Recording')}</Heading>
+        <p>
+          {t(
+            'The SDK sent events for this replay but never captured the page itself, so there is nothing to play back.'
+          )}
+        </p>
+        <p>
+          {t(
+            'You can still look through the activity, network requests, and console logs for this replay.'
+          )}
+        </p>
+      </StyledAlert>
+    );
+  }
 
   return (
     <StyledAlert variant="info" className={className}>

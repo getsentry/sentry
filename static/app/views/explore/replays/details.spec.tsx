@@ -310,6 +310,52 @@ describe('ReplayDetails', () => {
     expect(await screen.findByRole('button', {name: 'Play'})).toBeInTheDocument();
   });
 
+  it('keeps the replay tabs when the recording has no full snapshot', async () => {
+    const startedAt = new Date('2023-12-25T00:00:00');
+    const replayRecord = ReplayRecordFixture({
+      id: 'test-replay-id',
+      duration: duration(60_000),
+      finished_at: new Date(startedAt.getTime() + 60_000),
+      has_viewed: true,
+      started_at: startedAt,
+    });
+    const replay = ReplayReader.factory({
+      attachments: RRWebInitFrameEventsFixture({timestamp: startedAt}),
+      errors: [],
+      fetching: false,
+      replayRecord,
+    });
+    mockUseLoadReplayReader.mockReturnValue({
+      ...defaultReaderResult,
+      replay,
+      replayRecord,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/seer/setup-check/',
+      body: AutofixSetupFixture({}),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sdk-updates/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/replays/',
+      body: {data: []},
+    });
+
+    // jsdom gives every element a zero size, and the player area only renders
+    // once the layout has measured some space for it
+    jest.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(1000);
+    jest.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(800);
+
+    renderDetails();
+
+    expect(await screen.findByText('No Screen Recording')).toBeInTheDocument();
+    expect(screen.queryByText('Replay Not Found')).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'Console'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'Network'})).toBeInTheDocument();
+  });
+
   it('should show access denied and not fetch data when user does not have granular replay permissions', () => {
     const organization = OrganizationFixture({
       features: ['session-replay'],
