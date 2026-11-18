@@ -751,12 +751,8 @@ export function TextTourAction(props: React.ComponentProps<typeof Button>) {
 const GuidePositionWrapper = styled(PositionWrapper)`
   outline: none;
 
-  /* Like a focused button, the ring wraps the box's bottom edge too. */
   &[data-focus-ring]:focus > [data-overlay] {
-    box-shadow:
-      0 2px 0 0 ${darkTheme.tokens.border.primary},
-      0 2px 0 2px ${p => p.theme.tokens.focus.default},
-      0 0 0 2px ${p => p.theme.tokens.focus.default};
+    ${p => p.theme.focusRing()};
   }
 `;
 
