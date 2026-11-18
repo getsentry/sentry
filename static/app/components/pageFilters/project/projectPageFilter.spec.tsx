@@ -12,10 +12,11 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {updateProjects} from 'sentry/components/pageFilters/actions';
-import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+
+import {ProjectPageFilter} from './projectPageFilter';
 
 const organization = OrganizationFixture({features: ['open-membership']});
 const projects = [
@@ -46,8 +47,6 @@ describe('ProjectPageFilter', () => {
     OrganizationStore.onUpdate(organization, {replace: true});
     ProjectsStore.loadInitialData(projects);
   });
-
-  afterEach(() => PageFiltersStore.reset());
 
   it('renders & handles single selection', async () => {
     const {router} = render(<ProjectPageFilter />, {

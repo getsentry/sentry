@@ -1,8 +1,9 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
+import {useQueryState} from 'nuqs';
 
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Flex} from '@sentry/scraps/layout';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
@@ -11,8 +12,6 @@ import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
 import {releaseApiOptions} from 'sentry/utils/releaseApiOptions';
 import {SQLishFormatter} from 'sentry/utils/sqlish';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
@@ -43,8 +42,6 @@ export function DatabaseSpanDescription({
   showBorder = true,
   shouldClipHeight = true,
 }: Props) {
-  const navigate = useNavigate();
-  const location = useLocation();
   const {projects} = useProjects();
   const organization = useOrganization();
 
@@ -98,16 +95,11 @@ export function DatabaseSpanDescription({
   // isExpanded is a query param that is meant to be accessed only when clicking on the
   // "View full query" button from the hover tooltip. It is removed from the query params
   // on the initial load so the value is not persisted through the link
-  const [isExpanded] = useState<boolean>(() => Boolean(location.query.isExpanded));
+  const [isExpandedParam, setIsExpandedParam] = useQueryState('isExpanded');
+  const [isExpanded] = useState<boolean>(() => Boolean(isExpandedParam));
   useEffect(() => {
-    navigate(
-      {...location, query: {...location.query, isExpanded: undefined}},
-      {replace: true}
-    );
-    // Skip the `location` dependency because it will cause this effect to trigger infinitely, since
-    // `navigate` will update the location within this effect
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [navigate]);
+    setIsExpandedParam(null);
+  }, [setIsExpandedParam]);
 
   const system = getAttributeValue(
     indexedSpan ?? {},

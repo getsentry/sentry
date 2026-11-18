@@ -2,9 +2,10 @@ import {EventFixture} from 'sentry-fixture/event';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {DeprecatedLine} from 'sentry/components/events/interfaces/frame/deprecatedLine';
 import type {Frame} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
+
+import {DeprecatedLine} from './deprecatedLine';
 
 describe('Frame - Line', () => {
   beforeEach(() => {

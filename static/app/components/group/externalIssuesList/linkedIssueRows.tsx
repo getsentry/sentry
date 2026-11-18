@@ -7,9 +7,10 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import type {GroupIntegrationIssueResult} from 'sentry/components/group/externalIssuesList/hooks/types';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {t} from 'sentry/locale';
+
+import type {GroupIntegrationIssueResult} from './hooks/types';
 
 interface LinkedIssueRowsProps {
   linkedIssues: GroupIntegrationIssueResult['linkedIssues'];

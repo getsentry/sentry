@@ -4,7 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
-import {RelatedIssues} from 'sentry/views/performance/transactionSummary/transactionOverview/relatedIssues';
+import {RelatedIssues} from './relatedIssues';
 
 describe('RelatedIssues', () => {
   const organization = OrganizationFixture();

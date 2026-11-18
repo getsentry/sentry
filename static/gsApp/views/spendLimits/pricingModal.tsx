@@ -1,9 +1,9 @@
 import {css, type Theme} from '@emotion/react';
 
 import {Stack} from '@sentry/scraps/layout';
+import {openModal} from '@sentry/scraps/modal';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {openModal} from 'sentry/actionCreators/modal';
 import {tct} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';

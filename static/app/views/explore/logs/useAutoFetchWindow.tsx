@@ -2,11 +2,12 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
+
 import {
   LOGS_HIGH_FIDELITY_INITIAL_AUTO_FETCH_WINDOW_MS,
   LOGS_HIGH_FIDELITY_RESUMED_AUTO_FETCH_WINDOW_MS,
-} from 'sentry/views/explore/logs/constants';
-import type {LogsInfiniteQueryKey} from 'sentry/views/explore/logs/useLogsApiOptions';
+} from './constants';
+import type {LogsInfiniteQueryKey} from './useLogsApiOptions';
 
 interface AutoFetchWindowOptions {
   canAutoFetchNextPage: boolean;

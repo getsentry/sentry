@@ -2,11 +2,12 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {SeerEnableNotifications} from 'sentry/components/events/autofix/v3/seerEnableNotifications';
 import {AutofixChatProvider} from 'sentry/components/seer/autofixChatContext';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 
 jest.mock('sentry/utils/demoMode');
+
+import {SeerEnableNotifications} from './seerEnableNotifications';
 
 // Service workers and the Notification API do not exist in jsdom, and
 // `supportsNotifications` is read once at module scope, so there is no store or
@@ -65,10 +66,10 @@ describe('SeerEnableNotifications', () => {
         <SeerEnableNotifications status="processing" />
       </AutofixChatProvider>,
       {
-        // Code mode needs the Explorer's own prerequisites, and a chat that can
+        // Code mode needs the Explorer's own prerequisites and a chat that can
         // take the run.
         organization: OrganizationFixture({
-          features: ['seer-explorer-code-mode-tools', 'seer-explorer'],
+          features: ['seer-explorer'],
           openMembership: true,
           hideAiFeatures: false,
         }),

@@ -5,12 +5,15 @@ import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {
   render,
+  renderGlobalModal,
+  renderHookWithProviders,
   screen,
   userEvent,
   waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import * as modal from 'sentry/actionCreators/modal';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
@@ -27,13 +30,16 @@ import {
   LOGS_SORT_BYS_KEY,
 } from 'sentry/views/explore/contexts/logs/sortBys';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {AlwaysPresentLogFields} from 'sentry/views/explore/logs/constants';
-import {LOGS_AGGREGATE_FIELD_KEY} from 'sentry/views/explore/logs/logsQueryParams';
-import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import {LogsTabContent} from 'sentry/views/explore/logs/logsTab';
-import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import * as QueryParamsContext from 'sentry/views/explore/queryParams/context';
 import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
+import type {LLMContextSnapshot} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
+import {usePageContextCapture} from 'sentry/views/seerExplorer/hooks/usePageContextCapture';
+
+import {AlwaysPresentLogFields} from './constants';
+import {LOGS_AGGREGATE_FIELD_KEY} from './logsQueryParams';
+import {LogsQueryParamsProvider} from './logsQueryParamsProvider';
+import {LogsTabContent} from './logsTab';
+import {OurLogKnownFieldKey} from './types';
 
 function LogsTabContentHarness({
   datePageFilterProps,
@@ -72,6 +78,15 @@ describe('LogsTabContent', () => {
       >
         <LogsPageDataProvider>{children}</LogsPageDataProvider>
       </LogsQueryParamsProvider>
+    );
+  }
+
+  function PageContextWrapper({children}: {children: React.ReactNode}) {
+    return (
+      <ProviderWrapper>
+        <LogsTabContent datePageFilterProps={datePageFilterProps} />
+        {children}
+      </ProviderWrapper>
     );
   }
 
@@ -211,6 +226,57 @@ describe('LogsTabContent', () => {
     });
   });
 
+  it('captures per-axis transformations and the default chart interval', async () => {
+    const visualizes = [
+      {yAxes: ['count(message)'], transformations: ['fill(zero)', 'smooth(sma,5)']},
+      {yAxes: ['count(message)'], transformations: ['fill(locf)']},
+      {yAxes: ['count(message)']},
+    ];
+    const {result} = renderHookWithProviders(usePageContextCapture, {
+      organization,
+      additionalWrapper: PageContextWrapper,
+      initialRouterConfig: {
+        ...initialRouterConfig,
+        location: {
+          ...initialRouterConfig.location,
+          query: {
+            ...initialRouterConfig.location.query,
+            aggregateField: [
+              JSON.stringify({groupBy: 'severity'}),
+              ...visualizes.map(visualize => JSON.stringify(visualize)),
+            ],
+          },
+        },
+      },
+    });
+
+    await waitFor(() => {
+      const captured = result.current({route: '/explore/logs/', allowStructured: true});
+      expect(captured.isStructured).toBe(true);
+      const snapshot: LLMContextSnapshot = JSON.parse(captured.screenshot!);
+      expect(
+        snapshot.nodes.find(node => node.nodeType === 'logs-explorer')?.data
+      ).toEqual(
+        expect.objectContaining({
+          visualizes,
+          interval: '1h',
+          searchQuery: 'severity:error',
+          groupBys: ['severity'],
+          fields: ['message', 'sentry.message.parameters.0'],
+          projectIds: [project.id],
+          projectSlugs: [project.slug],
+          projectSelectionMode: 'explicit',
+          currentSelectedDateRange: {
+            period: '14d',
+            start: null,
+            end: null,
+            utc: null,
+          },
+        })
+      );
+    });
+  });
+
   it('edits per-series transformations beneath the charts through the log URL', async () => {
     const {router} = render(
       <LogsTabContentHarness datePageFilterProps={datePageFilterProps} />,
@@ -279,7 +345,8 @@ describe('LogsTabContent', () => {
     );
   });
 
-  it('disables saving when any log series has transformations', async () => {
+  it('allows query saves when a hidden log series has transformations', async () => {
+    renderGlobalModal({organization, additionalWrapper: ProviderWrapper});
     render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
       initialRouterConfig: {
         location: {
@@ -301,11 +368,76 @@ describe('LogsTabContent', () => {
       additionalWrapper: ProviderWrapper,
     });
 
-    expect(screen.getByRole('button', {name: 'Save as'})).toHaveAttribute(
+    await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
+    expect(screen.getByRole('menuitemradio', {name: 'New Query'})).toBeEnabled();
+    expect(screen.getByRole('menuitem', {name: 'Dashboard widget'})).not.toHaveAttribute(
       'aria-disabled',
       'true'
     );
+    expect(screen.getByRole('menuitemradio', {name: 'Monitor for'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'New Query'}));
+    expect(
+      await screen.findByPlaceholderText('Enter a name for your new query')
+    ).toBeVisible();
     expect(await screen.findByText('some log message1')).toBeInTheDocument();
+  });
+
+  it('saves a transformed log chart as a widget while keeping its monitor disabled', async () => {
+    const openAddToDashboard = jest
+      .spyOn(modal, 'openAddToDashboardModal')
+      .mockResolvedValue(undefined);
+
+    try {
+      render(<LogsTabContentHarness datePageFilterProps={datePageFilterProps} />, {
+        initialRouterConfig: {
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              ...initialRouterConfig.location.query,
+              aggregateField: [
+                JSON.stringify({
+                  yAxes: ['count(message)'],
+                  transformations: ['fill(locf)', 'smooth(sma,5)'],
+                }),
+              ],
+            },
+          },
+        },
+        organization: OrganizationFixture({
+          ...organization,
+          features: [...organization.features],
+        }),
+        additionalWrapper: ProviderWrapper,
+      });
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Chart actions'}));
+      expect(
+        screen.getByRole('menuitemradio', {name: 'Create a Monitor'})
+      ).toHaveAttribute('aria-disabled', 'true');
+      await userEvent.click(
+        screen.getByRole('menuitemradio', {name: 'Add to Dashboard'})
+      );
+
+      expect(openAddToDashboard).toHaveBeenCalledWith(
+        expect.objectContaining({
+          widgets: [
+            expect.objectContaining({
+              queries: [
+                expect.objectContaining({
+                  aggregates: ['count(message)'],
+                  transformations: {0: ['fill(locf)', 'smooth(sma,5)']},
+                }),
+              ],
+            }),
+          ],
+        })
+      );
+    } finally {
+      openAddToDashboard.mockRestore();
+    }
   });
 
   it('should call APIs as expected', async () => {

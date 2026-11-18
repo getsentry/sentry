@@ -1,5 +1,7 @@
 import {useEffect} from 'react';
 import {useTheme} from '@emotion/react';
+import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
@@ -8,26 +10,9 @@ import {Image} from '@sentry/scraps/image';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
-import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
-import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
-import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
-import {
-  StepIndexProvider,
-  TabSelectionScope,
-} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
-import {StepTitles} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import type {
-  DocsParams,
-  OnboardingStep,
-} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
-import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -37,6 +22,20 @@ import {useEventWaiter} from 'sentry/utils/useEventWaiter';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {GuidedSteps} from './guidedSteps/guidedSteps';
+import ProjectBadge from './idBadge/projectBadge';
+import {AuthTokenGeneratorProvider} from './onboarding/gettingStartedDoc/authTokenGenerator';
+import {ContentBlocksRenderer} from './onboarding/gettingStartedDoc/contentBlocks/renderer';
+import {OnboardingCopyMarkdownButton} from './onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
+import {
+  StepIndexProvider,
+  TabSelectionScope,
+} from './onboarding/gettingStartedDoc/selectedCodeTabContext';
+import {StepTitles} from './onboarding/gettingStartedDoc/step';
+import type {DocsParams, OnboardingStep} from './onboarding/gettingStartedDoc/types';
+import {useSourcePackageRegistries} from './onboarding/gettingStartedDoc/useSourcePackageRegistries';
+import {useLoadGettingStarted} from './onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 
 export function SetupTitle({project}: {project: Project}) {
   return (
@@ -92,7 +91,10 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
 
-  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const {isSelfHosted, urlPrefix} = useStore(
+    ConfigStore,
+    useShallow(state => ({isSelfHosted: state.isSelfHosted, urlPrefix: state.urlPrefix}))
+  );
 
   const currentPlatformKey = project?.platform ?? 'other';
   const currentPlatform = platforms.find(p => p.id === currentPlatformKey)!;

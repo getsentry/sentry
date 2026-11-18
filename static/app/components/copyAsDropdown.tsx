@@ -18,7 +18,11 @@ export function CopyAsDropdown(props: CopyAsDropdownProps) {
     <DropdownMenu
       size={props.size}
       trigger={triggerProps => (
-        <OverlayTrigger.Button {...triggerProps} icon={<IconCopy />} size="xs">
+        <OverlayTrigger.Button
+          {...triggerProps}
+          icon={<IconCopy />}
+          size={props.size ?? 'xs'}
+        >
           {t('Copy as')}
         </OverlayTrigger.Button>
       )}

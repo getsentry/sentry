@@ -1,6 +1,6 @@
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
-import {transformPerformanceScoreBreakdownTimeSeries} from 'sentry/views/dashboards/widgetBuilder/utils/transformPerformanceScoreBreakdownSeries';
+import {transformPerformanceScoreBreakdownTimeSeries} from './transformPerformanceScoreBreakdownSeries';
 
 const WEB_VITALS = ['lcp', 'fcp', 'cls', 'inp', 'ttfb'];
 

@@ -1,3 +1,5 @@
+from collections.abc import Mapping
+
 from rest_framework import serializers
 
 from sentry.api.fields.empty_integer import EmptyIntegerField
@@ -52,16 +54,17 @@ class DynamicSdkLoaderOptionSerializer(serializers.Serializer):
     hasFeedback = serializers.BooleanField(required=False)
     hasLogsAndMetrics = serializers.BooleanField(required=False)
 
-    def to_internal_value(self, data):
+    def to_internal_value(self, data: Mapping[str, object]) -> dict[str, object]:
         # Drop any fields that are not specified as a `DynamicSdkLoaderOption`.
         allowed = {option.value for option in DynamicSdkLoaderOption}
         existing = set(data)
 
-        new_data = {}
+        new_data: dict[str, object] = {}
         for field_name in existing.intersection(allowed):
             new_data[field_name] = data[field_name]
 
-        return super().to_internal_value(new_data)
+        validated: dict[str, object] = super().to_internal_value(new_data)
+        return validated
 
 
 @sentry_schema_serializer(

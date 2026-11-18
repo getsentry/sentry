@@ -20,7 +20,7 @@ class OrganizationInvestigationBaseTest(APITestCase):
         super().setUp()
         self.login_as(self.user)
         self.collection_url = reverse(
-            "sentry-api-0-organization-investigations",
+            "sentry-api-0-organization-notebooks",
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
@@ -44,10 +44,10 @@ class OrganizationInvestigationBaseTest(APITestCase):
         self.organization.flags.allow_joinleave = False
         self.organization.save()
         url = reverse(
-            "sentry-api-0-organization-investigation-details",
+            "sentry-api-0-organization-notebook-details",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": investigation.id,
+                "notebook_id": investigation.id,
             },
         )
 
@@ -58,7 +58,7 @@ class OrganizationInvestigationBaseTest(APITestCase):
         self.login_as(self.user)
         response = self.client.get(
             reverse(
-                "sentry-api-0-organization-investigations",
+                "sentry-api-0-organization-notebooks",
                 kwargs={"organization_id_or_slug": self.organization.slug},
             )
         )
@@ -73,7 +73,7 @@ class OrganizationInvestigationBaseTest(APITestCase):
             "sentry-api-0-organization-investigation-orchestration",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": investigation.id,
+                "notebook_id": investigation.id,
             },
         )
 
@@ -86,7 +86,7 @@ class OrganizationInvestigationsEndpointTest(APITestCase):
         super().setUp()
         self.login_as(self.user)
         self.collection_url = reverse(
-            "sentry-api-0-organization-investigations",
+            "sentry-api-0-organization-notebooks",
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
@@ -106,7 +106,7 @@ class OrganizationInvestigationsEndpointTest(APITestCase):
             "sentry-api-0-organization-investigation-orchestration",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": investigation.id,
+                "notebook_id": investigation.id,
             },
         )
 
@@ -132,7 +132,7 @@ class OrganizationInvestigationsEndpointTest(APITestCase):
             "sentry-api-0-organization-investigation-orchestration",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": investigation.id,
+                "notebook_id": investigation.id,
             },
         )
 
@@ -140,7 +140,7 @@ class OrganizationInvestigationsEndpointTest(APITestCase):
             "sentry-api-0-organization-investigation-orchestration-commands",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": investigation.id,
+                "notebook_id": investigation.id,
             },
         )
 
@@ -166,10 +166,10 @@ class OrganizationInvestigationsEndpointTest(APITestCase):
         self.create_member(organization=self.organization, user=viewer, role="member")
         self.login_as(viewer)
         detail_url = reverse(
-            "sentry-api-0-organization-investigation-details",
+            "sentry-api-0-organization-notebook-details",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": investigation.id,
+                "notebook_id": investigation.id,
             },
         )
 
@@ -206,10 +206,10 @@ class OrganizationInvestigationsEndpointTest(APITestCase):
         block.save(update_fields=["current_execution", "result_execution"])
 
         detail_url = reverse(
-            "sentry-api-0-organization-investigation-details",
+            "sentry-api-0-organization-notebook-details",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": investigation.id,
+                "notebook_id": investigation.id,
             },
         )
         response = self.client.get(detail_url)

@@ -8,7 +8,7 @@ from sentry.utils.sdk_crashes.path_replacer import (
 
 
 @pytest.mark.parametrize("path", ["path", "another"])
-def test_fixed_path_replacer(path) -> None:
+def test_fixed_path_replacer(path: str) -> None:
     fixed_path_replacer = FixedPathReplacer(path="fixed_path")
 
     assert fixed_path_replacer.replace_path("filename", path) == "fixed_path"
@@ -39,7 +39,7 @@ def test_fixed_path_replacer(path) -> None:
         "multiple_patterns_one_matches_path",
     ],
 )
-def test_keep_after_pattern(patterns, path, expected_path) -> None:
+def test_keep_after_pattern(patterns: set[str], path: str, expected_path: str) -> None:
     path_replacer = KeepAfterPatternMatchPathReplacer(
         patterns=patterns, fallback_path="fallback_path"
     )
@@ -83,7 +83,9 @@ def test_keep_after_pattern(patterns, path, expected_path) -> None:
     ],
     ids=["one_field", "no_fields", "not_matching_field", "multiple_matching_fields", "empty_paths"],
 )
-def test_keep_field_path_replacer(fields, path_field, path_value, expected_path) -> None:
+def test_keep_field_path_replacer(
+    fields: set[str], path_field: str, path_value: str, expected_path: str
+) -> None:
     path_replacer = KeepFieldPathReplacer(fields=fields)
 
     assert path_replacer.replace_path(path_field, path_value) == expected_path

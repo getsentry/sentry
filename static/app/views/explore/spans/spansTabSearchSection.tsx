@@ -37,15 +37,16 @@ import {
   useQueryParamsQuery,
   useSetQueryParams,
 } from 'sentry/views/explore/queryParams/context';
-import {CrossEventQueryingDropdown} from 'sentry/views/explore/spans/crossEvents/crossEventQueryingDropdown';
-import {SpansTabCrossEventSearchBars} from 'sentry/views/explore/spans/crossEvents/crossEventSearchBars';
-import {useValidateSpansTab} from 'sentry/views/explore/spans/hooks/useValidateSpansTab';
-import {SamplesModeAggregateFilterWarning} from 'sentry/views/explore/spans/samplesModeAggregateFilterWarning';
-import {SPANS_BREAKDOWN_CURSOR_KEY} from 'sentry/views/explore/spans/spansQueryParams';
-import {SpansTabSeerComboBox} from 'sentry/views/explore/spans/spansTabSeerComboBox';
-import {ExploreSpansTour, ExploreSpansTourContext} from 'sentry/views/explore/spans/tour';
 import {ToolbarSaveAs} from 'sentry/views/explore/toolbar/toolbarSaveAs';
 import {findSuggestedColumns} from 'sentry/views/explore/utils';
+
+import {CrossEventQueryingDropdown} from './crossEvents/crossEventQueryingDropdown';
+import {SpansTabCrossEventSearchBars} from './crossEvents/crossEventSearchBars';
+import {useValidateSpansTab} from './hooks/useValidateSpansTab';
+import {SamplesModeAggregateFilterWarning} from './samplesModeAggregateFilterWarning';
+import {SPANS_BREAKDOWN_CURSOR_KEY} from './spansQueryParams';
+import {SpansTabSeerComboBox} from './spansTabSeerComboBox';
+import {ExploreSpansTour, ExploreSpansTourContext} from './tour';
 
 function SpansSearchBar({
   spanSearchQueryBuilderProps,

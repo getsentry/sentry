@@ -3,8 +3,8 @@ import {z} from 'zod';
 
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
 import {ExternalLink} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {CONTEXT_DOCS_LINK} from 'sentry/components/events/contexts/utils';
 import {t, tct} from 'sentry/locale';
@@ -62,7 +62,7 @@ function LoadedHighlightsSettingsForm({project}: LoadedHighlightsSettingsFormPro
 
   const handleSubmitSuccess = () => {
     trackAnalytics('highlights.project_settings.updated_manually', {organization});
-    addSuccessMessage(`Successfully updated highlights for '${project.name}'`);
+    toast.success(`Successfully updated highlights for '${project.name}'`);
   };
 
   const highlightTagsMutationOptions = mutationOptions({

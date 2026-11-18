@@ -50,7 +50,7 @@ class DiscordIssueAlertTest(RuleTestCase):
         self.identity = self.create_identity(
             user=self.user, identity_provider=self.provider, external_id=self.discord_user_id
         )
-        self.event = self.store_event(
+        event = self.store_event(
             data={
                 "event_id": "a" * 32,
                 "message": "Event message",
@@ -58,6 +58,8 @@ class DiscordIssueAlertTest(RuleTestCase):
             },
             project_id=self.project.id,
         )
+        assert event.group is not None
+        self.group_event = event.for_group(event.group)
         self.tags = "environment, user"
         self.rule = self.get_rule(
             data={
@@ -77,7 +79,7 @@ class DiscordIssueAlertTest(RuleTestCase):
     @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def assert_lifecycle_metrics(self, mock_record_event: mock.MagicMock) -> None:
         notification_uuid = str(uuid4())
-        self.rule.after(self.event, notification_uuid=notification_uuid)
+        self.rule.after(self.group_event, notification_uuid=notification_uuid)
 
         assert_slo_metric(mock_record_event)
 
@@ -88,7 +90,7 @@ class DiscordIssueAlertTest(RuleTestCase):
     def assert_lifecycle_metrics_failure(
         self, mock_record_event: mock.MagicMock, mock_send_message: mock.MagicMock
     ) -> None:
-        self.rule.after(self.event)
+        self.rule.after(self.group_event)
         assert_slo_metric(mock_record_event, EventLifecycleOutcome.FAILURE)
 
     @mock.patch(
@@ -99,7 +101,7 @@ class DiscordIssueAlertTest(RuleTestCase):
     def assert_lifecycle_metrics_halt_for_rate_limit(
         self, mock_record_event: mock.MagicMock, mock_send_message: mock.MagicMock
     ) -> None:
-        self.rule.after(self.event)
+        self.rule.after(self.group_event)
         assert_slo_metric(mock_record_event, EventLifecycleOutcome.HALTED)
 
     @mock.patch(
@@ -110,7 +112,7 @@ class DiscordIssueAlertTest(RuleTestCase):
     def assert_lifecycle_metrics_halt_for_missing_access(
         self, mock_record_event: mock.MagicMock, mock_send_message: mock.MagicMock
     ) -> None:
-        self.rule.after(self.event)
+        self.rule.after(self.group_event)
         assert_slo_metric(mock_record_event, EventLifecycleOutcome.HALTED)
 
     @mock.patch(
@@ -121,40 +123,46 @@ class DiscordIssueAlertTest(RuleTestCase):
     def assert_lifecycle_metrics_failure_for_other_api_error(
         self, mock_record_event: mock.MagicMock, mock_send_message: mock.MagicMock
     ) -> None:
-        self.rule.after(self.event)
+        self.rule.after(self.group_event)
         assert_slo_metric(mock_record_event, EventLifecycleOutcome.FAILURE)
 
     @responses.activate
     @mock.patch("sentry.analytics.record")
     def test_basic(self, mock_record: mock.MagicMock) -> None:
         notification_uuid = str(uuid4())
-        results = list(self.rule.after(self.event, notification_uuid=notification_uuid))
+        results = list(self.rule.after(self.group_event, notification_uuid=notification_uuid))
         assert len(results) == 1
 
-        results[0].callback(self.event, futures=[])
+        results[0].callback(self.group_event, futures=[])
 
         body = responses.calls[0].request.body
         data = orjson.loads(body)
 
         embed = data["embeds"][0]
         assert embed == {
-            "title": build_attachment_title(self.event.group),
+            "title": build_attachment_title(self.group_event.group),
             "color": LEVEL_TO_COLOR["error"],
-            "footer": {"text": build_footer(self.event.group, self.event.project, "{text}", None)},
+            "footer": {
+                "text": build_footer(
+                    self.group_event.group, self.group_event.project, "{text}", None
+                )
+            },
             "fields": [],
-            "timestamp": self.event.timestamp,
+            "timestamp": self.group_event.timestamp,
         }
 
         buttons = data["components"][0]["components"]
         assert (
-            buttons[0]["custom_id"] == f"{DiscordComponentCustomIds.RESOLVE}:{self.event.group.id}"
+            buttons[0]["custom_id"]
+            == f"{DiscordComponentCustomIds.RESOLVE}:{self.group_event.group.id}"
         )
         assert (
-            buttons[1]["custom_id"] == f"{DiscordComponentCustomIds.ARCHIVE}:{self.event.group.id}"
+            buttons[1]["custom_id"]
+            == f"{DiscordComponentCustomIds.ARCHIVE}:{self.group_event.group.id}"
         )
         assert (
             buttons[2]["custom_id"]
-            == f"{DiscordComponentCustomIds.ASSIGN_DIALOG}:{self.event.group.id}"
+            == f"{DiscordComponentCustomIds.ASSIGN_DIALOG}:{self.group_event.group.id}"
         )
         assert_any_analytics_event(
             mock_record,
@@ -162,7 +170,7 @@ class DiscordIssueAlertTest(RuleTestCase):
                 category="issue_alert",
                 organization_id=self.organization.id,
                 project_id=self.project.id,
-                group_id=self.event.group_id,
+                group_id=self.group_event.group_id,
                 notification_uuid=notification_uuid,
                 alert_id=None,
             ),
@@ -188,10 +196,10 @@ class DiscordIssueAlertTest(RuleTestCase):
         )
         release.add_project(self.project)
 
-        results = list(self.rule.after(self.event))
+        results = list(self.rule.after(self.group_event))
         assert len(results) == 1
 
-        results[0].callback(self.event, futures=[])
+        results[0].callback(self.group_event, futures=[])
 
         body = responses.calls[0].request.body
         data = orjson.loads(body)
@@ -199,14 +207,15 @@ class DiscordIssueAlertTest(RuleTestCase):
         buttons = data["components"][0]["components"]
         assert (
             buttons[0]["custom_id"]
-            == f"{DiscordComponentCustomIds.RESOLVE_DIALOG}:{self.event.group.id}"
+            == f"{DiscordComponentCustomIds.RESOLVE_DIALOG}:{self.group_event.group.id}"
         )
         assert (
-            buttons[1]["custom_id"] == f"{DiscordComponentCustomIds.ARCHIVE}:{self.event.group.id}"
+            buttons[1]["custom_id"]
+            == f"{DiscordComponentCustomIds.ARCHIVE}:{self.group_event.group.id}"
         )
         assert (
             buttons[2]["custom_id"]
-            == f"{DiscordComponentCustomIds.ASSIGN_DIALOG}:{self.event.group.id}"
+            == f"{DiscordComponentCustomIds.ASSIGN_DIALOG}:{self.group_event.group.id}"
         )
 
     @responses.activate
@@ -215,10 +224,10 @@ class DiscordIssueAlertTest(RuleTestCase):
         return_value=GroupStatus.RESOLVED,
     )
     def test_resolved(self, mock_get_status: mock.MagicMock) -> None:
-        results = list(self.rule.after(self.event))
+        results = list(self.rule.after(self.group_event))
         assert len(results) == 1
 
-        results[0].callback(self.event, futures=[])
+        results[0].callback(self.group_event, futures=[])
 
         body = responses.calls[0].request.body
         data = orjson.loads(body)
@@ -226,14 +235,15 @@ class DiscordIssueAlertTest(RuleTestCase):
         buttons = data["components"][0]["components"]
         assert (
             buttons[0]["custom_id"]
-            == f"{DiscordComponentCustomIds.UNRESOLVE}:{self.event.group.id}"
+            == f"{DiscordComponentCustomIds.UNRESOLVE}:{self.group_event.group.id}"
         )
         assert (
-            buttons[1]["custom_id"] == f"{DiscordComponentCustomIds.ARCHIVE}:{self.event.group.id}"
+            buttons[1]["custom_id"]
+            == f"{DiscordComponentCustomIds.ARCHIVE}:{self.group_event.group.id}"
         )
         assert (
             buttons[2]["custom_id"]
-            == f"{DiscordComponentCustomIds.ASSIGN_DIALOG}:{self.event.group.id}"
+            == f"{DiscordComponentCustomIds.ASSIGN_DIALOG}:{self.group_event.group.id}"
         )
 
     @responses.activate
@@ -242,39 +252,40 @@ class DiscordIssueAlertTest(RuleTestCase):
         return_value=GroupStatus.IGNORED,
     )
     def test_ignored(self, mock_get_status: mock.MagicMock) -> None:
-        results = list(self.rule.after(self.event))
+        results = list(self.rule.after(self.group_event))
         assert len(results) == 1
 
-        results[0].callback(self.event, futures=[])
+        results[0].callback(self.group_event, futures=[])
 
         body = responses.calls[0].request.body
         data = orjson.loads(body)
 
         buttons = data["components"][0]["components"]
         assert (
-            buttons[0]["custom_id"] == f"{DiscordComponentCustomIds.RESOLVE}:{self.event.group.id}"
+            buttons[0]["custom_id"]
+            == f"{DiscordComponentCustomIds.RESOLVE}:{self.group_event.group.id}"
         )
         assert (
             buttons[1]["custom_id"]
-            == f"{DiscordComponentCustomIds.MARK_ONGOING}:{self.event.group.id}"
+            == f"{DiscordComponentCustomIds.MARK_ONGOING}:{self.group_event.group.id}"
         )
         assert (
             buttons[2]["custom_id"]
-            == f"{DiscordComponentCustomIds.ASSIGN_DIALOG}:{self.event.group.id}"
+            == f"{DiscordComponentCustomIds.ASSIGN_DIALOG}:{self.group_event.group.id}"
         )
 
     @responses.activate
     def test_feature_flag_disabled(self) -> None:
-        results = list(self.rule.after(self.event))
+        results = list(self.rule.after(self.group_event))
         assert len(results) == 1
-        results[0].callback(self.event, futures=[])
+        results[0].callback(self.group_event, futures=[])
 
         responses.assert_call_count(f"{MESSAGE_URL.format(channel_id=self.channel_id)}", 0)
 
     @responses.activate
     def test_integration_removed(self) -> None:
         integration_service.delete_integration(integration_id=self.discord_integration.id)
-        results = list(self.rule.after(self.event))
+        results = list(self.rule.after(self.group_event))
         assert len(results) == 0
 
     @responses.activate

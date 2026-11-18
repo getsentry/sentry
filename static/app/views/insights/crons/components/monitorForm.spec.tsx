@@ -16,8 +16,9 @@ import {selectEvent} from 'sentry-test/selectEvent';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useOwners} from 'sentry/utils/useOwners';
-import {MonitorForm} from 'sentry/views/insights/crons/components/monitorForm';
 import {ScheduleType} from 'sentry/views/insights/crons/types';
+
+import {MonitorForm} from './monitorForm';
 
 jest.mock('sentry/utils/useOwners');
 

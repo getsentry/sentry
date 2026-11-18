@@ -6,6 +6,7 @@ from django.db import models
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, DefaultFieldsModel, cell_silo_model, sane_repr
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.notifications.platform.types import NotificationSource
 
 
@@ -13,6 +14,7 @@ class NotificationThreadObjectType(StrEnum):
     """The kind of object a NotificationThread is about, which object_id points to."""
 
     GROUP = "group"
+    INVESTIGATION = "investigation"
 
 
 @cell_silo_model
@@ -61,6 +63,10 @@ class NotificationThread(DefaultFieldsModel):
         ],
     )
     object_id = BoundedBigIntegerField(null=True)
+
+    integration_id = HybridCloudForeignKey(
+        "sentry.Integration", blank=True, null=True, on_delete="CASCADE"
+    )
 
     provider_data = models.JSONField(default=dict)
 

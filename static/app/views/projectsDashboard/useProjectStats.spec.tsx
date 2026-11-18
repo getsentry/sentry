@@ -12,7 +12,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import type {ProjectStats} from 'sentry/types/project';
-import {useProjectStats} from 'sentry/views/projectsDashboard/useProjectStats';
+
+import {useProjectStats} from './useProjectStats';
 
 describe('useProjectStats', () => {
   const organization = OrganizationFixture();
@@ -43,10 +44,9 @@ describe('useProjectStats', () => {
       })),
     });
 
-    const {result} = renderHookWithProviders(
-      () => useProjectStats({organization, hasPerformance: true}),
-      {organization}
-    );
+    const {result} = renderHookWithProviders(() => useProjectStats({organization}), {
+      organization,
+    });
 
     act(() => {
       expect(result.current.getOne(projectWithInitialStats).stats).toEqual(initialStats);
@@ -79,7 +79,7 @@ describe('useProjectStats', () => {
     const project = ProjectFixture({id: '1', slug: 'm'});
 
     function TestComponent() {
-      const {getOne} = useProjectStats({organization, hasPerformance: false});
+      const {getOne} = useProjectStats({organization});
       const {stats} = getOne(project);
       return <div>{stats ? 'loaded' : 'missing'}</div>;
     }
@@ -102,6 +102,7 @@ describe('useProjectStats', () => {
         {
           ...project,
           stats: responseStats,
+          transactionStats: responseStats,
         },
       ],
     });

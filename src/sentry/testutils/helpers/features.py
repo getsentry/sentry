@@ -1,7 +1,9 @@
 import logging
-from collections.abc import Generator, Iterable, Mapping, Sequence
-from contextlib import contextmanager
+from collections.abc import Callable, Generator, Iterable, Mapping, Sequence
+from contextlib import AbstractContextManager, contextmanager
 from functools import wraps
+from types import TracebackType
+from typing import Any, cast
 from unittest.mock import patch
 
 import pytest
@@ -25,7 +27,9 @@ logger = logging.getLogger(__name__)
 
 
 @contextmanager
-def Feature(names: str | Iterable[str] | dict[str, bool]) -> Generator[None]:
+def Feature(
+    names: str | Iterable[str] | dict[str, bool | list[str]],
+) -> Generator[None]:
     """
     Control whether a feature is enabled.
 
@@ -61,12 +65,14 @@ def Feature(names: str | Iterable[str] | dict[str, bool]) -> Generator[None]:
     default_batch_has = sentry.features.batch_has
     default_batch_has_for_organizations = sentry.features.batch_has_for_organizations
 
-    def resolve_feature_name_value_for_org(organization, feature_name_value):
+    def resolve_feature_name_value_for_org(
+        organization: Organization, feature_name_value: bool | list[str] | None
+    ) -> bool | None:
         if isinstance(feature_name_value, list):
             return organization.slug in feature_name_value
         return feature_name_value
 
-    def features_override(name, *args, **kwargs):
+    def features_override(name: str, *args: Any, **kwargs: Any) -> object:
         if name in names:
             try:
                 feature = features.get(name, None)
@@ -85,7 +91,7 @@ def Feature(names: str | Iterable[str] | dict[str, bool]) -> Generator[None]:
                     ),
                 ):
                     raise ValueError("Must provide organization to check feature")
-                return resolve_feature_name_value_for_org(org, names[name])
+                return resolve_feature_name_value_for_org(cast(Organization, org), names[name])
 
             if isinstance(feature, ProjectFeature):
                 project = args[0] if len(args) > 0 else kwargs.get("project", None)
@@ -105,9 +111,15 @@ def Feature(names: str | Iterable[str] | dict[str, bool]) -> Generator[None]:
             return default_value
 
     def batch_features_override(
-        _feature_names: Sequence[str], projects=None, organization=None, *args, **kwargs
-    ):
-        feature_results = {name: names[name] for name in _feature_names if name in names}
+        _feature_names: Sequence[str],
+        projects: Sequence[Project] | None = None,
+        organization: Organization | None = None,
+        *args: Any,
+        **kwargs: Any,
+    ) -> dict[str, dict[str, bool | list[str] | None]] | None:
+        feature_results: dict[str, bool | list[str]] = {
+            name: names[name] for name in _feature_names if name in names
+        }
         default_feature_names = [name for name in _feature_names if name not in names]
         default_feature_results: dict[str, dict[str, bool | None]] = {}
         if default_feature_names:
@@ -118,7 +130,7 @@ def Feature(names: str | Iterable[str] | dict[str, bool]) -> Generator[None]:
                 default_feature_results.update(defaults)
 
         if projects:
-            results = {}
+            results: dict[str, dict[str, bool | list[str] | None]] = {}
             for project in projects:
                 result_key = f"project:{project.id}"
                 proj_results = {**feature_results, **default_feature_results.get(result_key, {})}
@@ -135,10 +147,14 @@ def Feature(names: str | Iterable[str] | dict[str, bool]) -> Generator[None]:
                 if name.startswith("organization")
             }
             return {result_key: results_for_org}
+        return None
 
     def batch_features_override_for_organizations(
-        _feature_name: str, organizations: Sequence[Organization], *args, **kwargs
-    ):
+        _feature_name: str,
+        organizations: Sequence[Organization],
+        *args: Any,
+        **kwargs: Any,
+    ) -> dict[str, bool | None] | None:
         if _feature_name in names:
             return {
                 f"organization:{organization.id}": resolve_feature_name_value_for_org(
@@ -147,7 +163,10 @@ def Feature(names: str | Iterable[str] | dict[str, bool]) -> Generator[None]:
                 for organization in organizations
             }
         else:
-            return default_batch_has_for_organizations(_feature_name, organizations, **kwargs)
+            return cast(
+                dict[str, bool | None],
+                default_batch_has_for_organizations(_feature_name, organizations, **kwargs),
+            )
 
     with (
         patch("sentry.features.has") as features_has,
@@ -161,19 +180,27 @@ def Feature(names: str | Iterable[str] | dict[str, bool]) -> Generator[None]:
 
 
 class FeatureContextManagerOrDecorator:
-    def __init__(self, feature_names):
+    def __init__(self, feature_names: str | Iterable[str] | dict[str, bool | list[str]]) -> None:
         self.feature_names = feature_names
-        self._context_manager = None
+        self._context_manager: AbstractContextManager[None] | None = None
 
-    def __enter__(self):
+    def __enter__(self) -> None:
         self._context_manager = Feature(self.feature_names)
         return self._context_manager.__enter__()
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> bool | None:
         if self._context_manager:
             return self._context_manager.__exit__(exc_type, exc_val, exc_tb)
+        return None
 
-    def __call__(self, func_or_cls):
+    def __call__(
+        self, func_or_cls: Callable[..., object] | type[object]
+    ) -> Callable[..., object] | type[object]:
         # Check if we're decorating a class
         if isinstance(func_or_cls, type):
             # Apply feature flag to the entire class
@@ -208,9 +235,11 @@ class FeatureContextManagerOrDecorator:
                     # Check if already wrapped to avoid double-wrapping
                     if not getattr(attr, "_feature_wrapped", False):
 
-                        def create_wrapped_method(method):
+                        def create_wrapped_method(
+                            method: Callable[..., object],
+                        ) -> Callable[..., object]:
                             @wraps(method)
-                            def wrapped_method(*args, **kwargs):
+                            def wrapped_method(*args: object, **kwargs: object) -> object:
                                 with Feature(feature_names):
                                     return method(*args, **kwargs)
 
@@ -225,14 +254,16 @@ class FeatureContextManagerOrDecorator:
 
         # Decorating a function - wrap it with the feature context
         @wraps(func_or_cls)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: object, **kwargs: object) -> object:
             with Feature(self.feature_names):
                 return func_or_cls(*args, **kwargs)
 
         return wrapper
 
 
-def with_feature(names: str | Iterable[str] | dict[str, bool]):
+def with_feature(
+    names: str | Iterable[str] | dict[str, bool | list[str]],
+) -> FeatureContextManagerOrDecorator:
     """
     Control whether a feature is enabled.
 

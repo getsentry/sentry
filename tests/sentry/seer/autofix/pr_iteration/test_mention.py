@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
@@ -19,9 +20,9 @@ class HandleIssueCommentForAutofixIterationTest(TestCase):
             external_id="123",
             name="owner/repo",
         )
-        self.integration = MagicMock(id=42, provider="github")
+        self.integration: Any = MagicMock(id=42, provider="github")
 
-    def _event(self, body: str = "@sentry fix it", action: str = "created") -> dict:
+    def _event(self, body: str = "@sentry fix it", action: str = "created") -> dict[str, Any]:
         return {
             "action": action,
             "comment": {
@@ -33,7 +34,7 @@ class HandleIssueCommentForAutofixIterationTest(TestCase):
             "issue": {"number": 7, "pull_request": {"url": "https://example.com/pulls/7"}},
         }
 
-    def _call(self, event: dict):
+    def _call(self, event: dict[str, Any]) -> None:
         return handle_issue_comment_for_autofix_iteration(
             event=event,
             organization=self.organization,

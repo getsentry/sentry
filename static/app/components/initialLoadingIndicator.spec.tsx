@@ -1,7 +1,8 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {InitialLoadingIndicator} from 'sentry/components/initialLoadingIndicator';
 import {ROOT_ELEMENT} from 'sentry/constants';
+
+import {InitialLoadingIndicator} from './initialLoadingIndicator';
 
 describe('InitialLoadingIndicator', () => {
   let root: HTMLElement;

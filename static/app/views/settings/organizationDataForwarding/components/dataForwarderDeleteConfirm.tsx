@@ -1,5 +1,6 @@
+import {Confirm} from '@sentry/scraps/confirm';
+
 import {Access} from 'sentry/components/acl/access';
-import {Confirm} from 'sentry/components/confirm';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useNavigate} from 'sentry/utils/useNavigate';

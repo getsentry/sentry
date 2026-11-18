@@ -9,24 +9,17 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
-import {Dashboard} from 'sentry/views/dashboards/dashboard';
-import {FiltersBar} from 'sentry/views/dashboards/filtersBar';
-import {useDashboardChartInterval} from 'sentry/views/dashboards/hooks/useDashboardChartInterval';
-import type {
-  DashboardDetails,
-  DashboardFilters,
-  Widget,
-} from 'sentry/views/dashboards/types';
-import {
-  DashboardFilterKeys,
-  DisplayType,
-  WidgetType,
-} from 'sentry/views/dashboards/types';
-import {getSavedFiltersAsPageFilters} from 'sentry/views/dashboards/utils';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import type {LLMContextSnapshot} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
 
+import {useDashboardChartInterval} from './hooks/useDashboardChartInterval';
+import {Dashboard} from './dashboard';
+import {FiltersBar} from './filtersBar';
+import type {DashboardDetails, DashboardFilters, Widget} from './types';
+import {DashboardFilterKeys, DisplayType, WidgetType} from './types';
+import {getSavedFiltersAsPageFilters} from './utils';
 import {WidgetLegendSelectionState} from './widgetLegendSelectionState';
 
 // Widgets only render and fetch once they intersect the viewport
@@ -58,9 +51,7 @@ describe('Dashboards > Dashboard', () => {
     window.IntersectionObserver = originalIntersectionObserver;
   });
 
-  const organization = OrganizationFixture({
-    features: ['dashboards-basic', 'dashboards-edit'],
-  });
+  const organization = OrganizationFixture();
   const mockDashboard = {
     dateCreated: '2021-08-10T21:20:46.798237Z',
     id: '1',
@@ -693,11 +684,7 @@ describe('Dashboards > Dashboard', () => {
     });
 
     it('triggers the edit widget callback', async () => {
-      const testData = initializeOrg({
-        organization: {
-          features: ['dashboards-basic', 'dashboards-edit'],
-        },
-      });
+      const testData = initializeOrg();
       const dashboardWithOneWidget = {
         ...mockDashboard,
         widgets: [newWidget],
@@ -719,11 +706,7 @@ describe('Dashboards > Dashboard', () => {
     });
 
     it('does not show the add widget button if dashboard is in preview mode', async () => {
-      const testData = initializeOrg({
-        organization: {
-          features: ['dashboards-basic', 'dashboards-edit'],
-        },
-      });
+      const testData = initializeOrg();
       const dashboardWithOneWidget = {
         ...mockDashboard,
         widgets: [newWidget],
@@ -843,6 +826,112 @@ describe('Dashboards > Dashboard', () => {
           widgetCount: 0,
         })
       );
+    });
+  });
+
+  describe('dropped data in the LLM context', () => {
+    function timeseriesWidget(id: string, widgetType: WidgetType): Widget {
+      return {
+        id,
+        title: `${widgetType} widget ${id}`,
+        displayType: DisplayType.LINE,
+        widgetType,
+        interval: '',
+        queries: [
+          {
+            name: '',
+            conditions: '',
+            fields: ['count()'],
+            aggregates: ['count()'],
+            columns: [],
+            orderby: '',
+          },
+        ],
+      };
+    }
+
+    const dashboardWithWidgets: DashboardDetails = {
+      ...mockDashboard,
+      widgets: [
+        timeseriesWidget('1', WidgetType.SPANS),
+        timeseriesWidget('2', WidgetType.SPANS),
+        timeseriesWidget('3', WidgetType.LOGS),
+        {...timeseriesWidget('4', WidgetType.ERRORS), displayType: DisplayType.TABLE},
+      ],
+    };
+
+    function renderWithSnapshot(features: string[]) {
+      const snapshotRef: {current: (() => LLMContextSnapshot) | null} = {current: null};
+
+      function SnapshotCapture() {
+        const {getLLMContext} = useLLMContext();
+        // oxlint-disable-next-line react/immutability
+        snapshotRef.current = getLLMContext;
+        return null;
+      }
+
+      render(
+        <div>
+          <Dashboard
+            dashboard={dashboardWithWidgets}
+            onUpdate={() => {}}
+            handleUpdateWidgetList={() => {}}
+            handleAddCustomWidget={() => {}}
+            widgetLimitReached={false}
+            isEditingDashboard={false}
+            widgetLegendState={widgetLegendState}
+            widgetInterval="1h"
+          />
+          <SnapshotCapture />
+        </div>,
+        {organization: OrganizationFixture({features})}
+      );
+
+      return () => snapshotRef.current!().nodes[0]!.children;
+    }
+
+    let droppedDataMock: jest.Mock;
+
+    beforeEach(() => {
+      droppedDataMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-dropped/',
+        body: {
+          meta: {dataset: 'spans', start: 0, end: 0, interval: 0},
+          droppedEvents: [],
+          acceptedEvents: [],
+        },
+        match: [MockApiClient.matchQuery({interval: '1h'})],
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        body: {data: [], meta: {}},
+      });
+    });
+
+    it('adds one node per timeseries dataset under the dashboard', async () => {
+      const getChildren = renderWithSnapshot([
+        'explore-data-fidelity-annotations',
+        'dashboards-data-fidelity-annotations',
+      ]);
+
+      await waitFor(() =>
+        expect(
+          getChildren()
+            .filter(node => node.nodeType === 'dropped-data')
+            .map(node => (node.data as {dataset: DiscoverDatasets}).dataset)
+            .sort()
+        ).toEqual([DiscoverDatasets.OURLOGS, DiscoverDatasets.SPANS].sort())
+      );
+      expect(droppedDataMock).toHaveBeenCalled();
+    });
+
+    it('adds no nodes without the dashboards flag', async () => {
+      const getChildren = renderWithSnapshot(['explore-data-fidelity-annotations']);
+
+      await waitFor(() =>
+        expect(getChildren().some(node => node.nodeType === 'widget')).toBe(true)
+      );
+      expect(getChildren().some(node => node.nodeType === 'dropped-data')).toBe(false);
     });
   });
 });

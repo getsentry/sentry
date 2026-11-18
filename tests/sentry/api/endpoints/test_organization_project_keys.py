@@ -1,3 +1,6 @@
+from rest_framework.response import Response
+
+from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus
 from sentry.testutils.cases import APITestCase
 
@@ -11,10 +14,10 @@ class OrganizationProjectKeysTest(APITestCase):
         self.organization = self.create_organization(owner=self.user)
         self.login_as(user=self.user)
 
-    def _get_public_keys(self, response):
+    def _get_public_keys(self, response: Response) -> set[str]:
         return {item["public"] for item in response.data}
 
-    def _create_key(self, project):
+    def _create_key(self, project: Project) -> ProjectKey:
         return ProjectKey.objects.get_or_create(project=project)[0]
 
     def test_retrieving_all_keys(self) -> None:

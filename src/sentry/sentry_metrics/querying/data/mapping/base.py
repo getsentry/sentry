@@ -10,11 +10,11 @@ class Mapper(abc.ABC):
     to_key: str = ""
     applied_on_groupby: bool = False
 
-    def __init__(self):
+    def __init__(self) -> None:
         # This exists to satisfy mypy, which complains otherwise
         self.map: dict[Any, Any] = {}
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash((self.from_key, self.to_key))
 
     @abc.abstractmethod
@@ -27,7 +27,7 @@ class Mapper(abc.ABC):
 
 
 class MapperConfig:
-    def __init__(self):
+    def __init__(self) -> None:
         self.mappers: set[type[Mapper]] = set()
 
     def add(self, mapper: type[Mapper]) -> "MapperConfig":

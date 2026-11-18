@@ -1,7 +1,7 @@
 import time
 from datetime import datetime, timedelta, timezone
 from random import Random
-from typing import Any
+from typing import Any, cast
 
 from django.utils.decorators import method_decorator
 from django.utils.text import slugify
@@ -114,11 +114,11 @@ class DebugWeeklyReportView(MailPreviewView):
             )
             project_context = ProjectContext(project)
             project_context.error_count_by_day = {
-                start_timestamp + (i * ONE_DAY): random.randint(0, daily_maximum)
+                cast(int, start_timestamp + (i * ONE_DAY)): random.randint(0, daily_maximum)
                 for i in range(0, 7)
             }
             project_context.issue_count_by_day = {
-                start_timestamp + (i * ONE_DAY): random.randint(0, daily_maximum // 10)
+                cast(int, start_timestamp + (i * ONE_DAY)): random.randint(0, daily_maximum // 10)
                 for i in range(0, 7)
             }
 

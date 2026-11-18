@@ -1,5 +1,6 @@
-import {platforms} from 'sentry/data/platforms';
 import type {PlatformKey} from 'sentry/types/platform';
+
+import {platforms} from './platforms';
 
 export enum PlatformCategory {
   FRONTEND = 0,
@@ -51,6 +52,7 @@ export const mobile: PlatformKey[] = [
   'javascript-capacitor',
   'javascript-cordova',
   'react-native',
+  'expo',
   'unity',
   'unreal',
   // Old platforms
@@ -183,35 +185,9 @@ export const gaming: PlatformKey[] = ['godot', 'native', 'unity', 'unreal', ...c
 export const sourceMaps: PlatformKey[] = [
   ...frontend,
   'react-native',
+  'expo',
   'cordova',
   'electron',
-];
-
-export const performance: PlatformKey[] = [
-  'bun',
-  'deno',
-  'javascript',
-  'javascript-ember',
-  'javascript-react',
-  'javascript-vue',
-  'php',
-  'php-laravel',
-  'python',
-  'python-django',
-  'python-flask',
-  'python-fastapi',
-  'python-starlette',
-  'python-sanic',
-  'python-celery',
-  'python-bottle',
-  'python-pylons',
-  'python-pyramid',
-  'python-tornado',
-  'python-rq',
-  'node',
-  'node-express',
-  'node-koa',
-  'node-connect',
 ];
 
 // List of platforms that have tracing custom instrumentation guide docs for its nested frameworks
@@ -407,6 +383,7 @@ export const withLoggingOnboarding = new Set<PlatformKey>([
   'python-wsgi',
   'elixir',
   'react-native',
+  'expo',
   'ruby',
   'ruby-rack',
   'ruby-rails',
@@ -436,6 +413,7 @@ export const withMetricsOnboarding = new Set<PlatformKey>([
   'dotnet-winforms',
   'dotnet-wpf',
   'react-native',
+  'expo',
   'go',
   'go-echo',
   'go-fasthttp',
@@ -586,6 +564,7 @@ export const profiling: PlatformKey[] = [
   'python-tryton',
   'python-wsgi',
   'react-native',
+  'expo',
   'ruby-rack',
   'ruby-rails',
   'ruby',
@@ -615,6 +594,7 @@ export const releaseHealth: PlatformKey[] = [
   'cordova',
   'javascript-cordova',
   'react-native',
+  'expo',
   'flutter',
   'dart-flutter',
   'bun',
@@ -639,7 +619,6 @@ export const releaseHealth: PlatformKey[] = [
   'python-pymongo',
   'rust',
   'apple-macos',
-  'native',
   'native-crashpad',
   'native-breakpad',
   'native-qt',
@@ -657,6 +636,10 @@ export const releaseHealth: PlatformKey[] = [
   'dotnet-winforms',
   'dotnet-xamarin',
   'unity',
+  'unreal',
+  'nintendo-switch',
+  'playstation',
+  'xbox',
   'java',
   'kotlin',
 ];
@@ -729,6 +712,7 @@ export const replayMobilePlatforms: PlatformKey[] = [
   'android',
   'apple-ios',
   'react-native',
+  'expo',
   'flutter',
   // Old platforms
   'java-android',
@@ -777,6 +761,7 @@ export const replayJsLoaderInstructionsPlatformList: readonly PlatformKey[] = [
 export const feedbackNpmPlatforms: readonly PlatformKey[] = [
   'ionic',
   'react-native',
+  'expo',
   'flutter',
   ...replayFrontendPlatforms,
 ];
@@ -873,6 +858,7 @@ export const featureFlagDrawerPlatforms: readonly PlatformKey[] = [
   'dart',
   'deno',
   'react-native',
+  'expo',
 ];
 
 const javascriptMetaFrameworks: readonly PlatformKey[] = [

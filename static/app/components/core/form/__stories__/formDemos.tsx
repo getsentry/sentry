@@ -453,18 +453,20 @@ export function FullAutoSaveDemo() {
         mutationOptions={fullMutationOptions}
       >
         {field => (
-          <field.Radio.Group
-            value={field.state.value ?? ''}
-            onChange={field.handleChange}
-          >
-            <field.Layout.Row label={t('Priority')} hintText={t('Select issue priority')}>
-              <Flex gap="lg">
-                <field.Radio.Item value="low">{t('Low')}</field.Radio.Item>
-                <field.Radio.Item value="medium">{t('Medium')}</field.Radio.Item>
-                <field.Radio.Item value="high">{t('High')}</field.Radio.Item>
-              </Flex>
-            </field.Layout.Row>
-          </field.Radio.Group>
+          <field.RadioGroup value={field.state.value ?? ''} onChange={field.handleChange}>
+            {({Item}) => (
+              <field.Layout.Row
+                label={t('Priority')}
+                hintText={t('Select issue priority')}
+              >
+                <Flex gap="lg">
+                  <Item value="low">{t('Low')}</Item>
+                  <Item value="medium">{t('Medium')}</Item>
+                  <Item value="high">{t('High')}</Item>
+                </Flex>
+              </field.Layout.Row>
+            )}
+          </field.RadioGroup>
         )}
       </AutoSaveForm>
 

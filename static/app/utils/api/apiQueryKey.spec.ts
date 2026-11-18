@@ -1,16 +1,30 @@
 import {
-  normalizeQueryKey,
   parseQueryKey,
   safeParseQueryKey,
-  type CanonicalApiQueryKey,
+  type ApiQueryKey,
   type InfiniteApiQueryKey,
-} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+} from './apiQueryKey';
+import {getApiUrl} from './getApiUrl';
 
 describe('apiQueryKey', () => {
+  it.each<{baseKey: ApiQueryKey | InfiniteApiQueryKey}>([
+    {baseKey: [getApiUrl('/api-tokens/'), {}, {infinite: false}]},
+    {baseKey: [getApiUrl('/api-tokens/'), {}, {infinite: true}]},
+  ])('parses trailing metadata after the required API key fields (%#)', ({baseKey}) => {
+    const queryKey = [...baseKey, {sessionKey: 'session'}, 'revision'] as const;
+    const expected = {
+      url: '/api-tokens/',
+      options: {},
+      isInfinite: baseKey[2].infinite,
+    };
+
+    expect(parseQueryKey(queryKey)).toEqual(expected);
+    expect(safeParseQueryKey(queryKey)).toEqual(expected);
+  });
+
   describe('parseQueryKey', () => {
     it('parses a canonical non-infinite key', () => {
-      const queryKey: CanonicalApiQueryKey = [
+      const queryKey: ApiQueryKey = [
         getApiUrl('/api-tokens/'),
         {query: {filter: 'red'}},
         {infinite: false},
@@ -89,27 +103,6 @@ describe('apiQueryKey', () => {
 
     it('returns undefined for a [string, object] tuple missing the marker', () => {
       expect(safeParseQueryKey(['filter', {scope: 'feedback'}])).toBeUndefined();
-    });
-  });
-
-  describe('normalizeQueryKey', () => {
-    const url = getApiUrl('/api-tokens/');
-
-    it('returns canonical keys unchanged', () => {
-      const key: CanonicalApiQueryKey = [url, {query: {}}, {infinite: false}];
-      expect(normalizeQueryKey(key)).toEqual(key);
-    });
-
-    it('expands [url] to [url, {}, {infinite: false}]', () => {
-      expect(normalizeQueryKey([url])).toEqual([url, {}, {infinite: false}]);
-    });
-
-    it('expands [url, opts] to [url, opts, {infinite: false}]', () => {
-      expect(normalizeQueryKey([url, {query: {filter: 'red'}}])).toEqual([
-        url,
-        {query: {filter: 'red'}},
-        {infinite: false},
-      ]);
     });
   });
 });

@@ -19,7 +19,10 @@ FIXTURE = Path(__file__).parents[2] / "fixtures" / "investigation_query_result_v
 
 
 def golden_payload() -> dict[str, Any]:
-    return json.loads(FIXTURE.read_text())
+    payload = json.loads(FIXTURE.read_text())
+    if not isinstance(payload, dict):
+        raise TypeError("Golden payload is not a JSON object")
+    return payload
 
 
 def test_query_result_accepts_the_versioned_wire_shape() -> None:

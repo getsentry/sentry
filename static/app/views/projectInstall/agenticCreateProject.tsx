@@ -6,6 +6,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {Access} from 'sentry/components/acl/access';
+import {AgentHandoffFlow} from 'sentry/components/agentHandoff/types';
 import {AgenticSetup} from 'sentry/components/onboarding/agenticProgress/agenticSetup';
 import type {AgentSetupCopySource} from 'sentry/components/onboarding/agenticProgress/agentSetupCard';
 import type {AgenticRunSession} from 'sentry/components/onboarding/agenticProgress/types';
@@ -76,23 +77,19 @@ export function AgenticCreateProject({
     refreshRun,
     restartRun,
   } = useAgenticSetupRun({
+    createOnboardingCode: false,
+    origin: 'project_creation',
     enabled: canCreateProject && setupMethod === 'agent',
     session,
     onSessionChange: setSession,
   });
 
-  const prompt = [
-    t('Help me create and set up Sentry projects for this application.'),
-    '',
-    t('org slug: %s', organization.slug),
-    ...(onboardingCode ? [t('run code: %s', onboardingCode)] : []),
-  ].join('\n');
-
-  const handleCopyCommand = (source: AgentSetupCopySource) => {
+  const handleCopyCommand = (source: AgentSetupCopySource, handoffId: string) => {
     trackAnalytics('project_creation.agent_setup_command_copied', {
       organization,
       variant: 'scm',
       source,
+      handoff_id: handoffId,
       run_id: run?.runId,
     });
   };
@@ -121,9 +118,9 @@ export function AgenticCreateProject({
                 </Text>
               </Stack>
               <AgenticSetup
+                handoffFlow={AgentHandoffFlow.CREATE_PROJECT}
                 run={run}
                 onboardingCode={onboardingCode}
-                prompt={prompt}
                 isAgentConnected={isAgentConnected}
                 hasInitFailed={hasInitFailed}
                 hasProgressFailed={hasProgressFailed}

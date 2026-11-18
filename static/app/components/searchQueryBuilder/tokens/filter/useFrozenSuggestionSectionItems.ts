@@ -6,7 +6,7 @@ import type {
   SuggestionItem,
   SuggestionSection,
   SuggestionSectionItem,
-} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/types';
+} from './valueSuggestions/types';
 
 type FrozenSuggestionOrder = Array<{sectionText: string; values: string[]}>;
 

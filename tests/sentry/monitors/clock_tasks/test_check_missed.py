@@ -98,7 +98,6 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         assert missed_checkin.date_added == next_checkin
         assert missed_checkin.date_updated == next_checkin
         assert missed_checkin.expected_time == next_checkin
-        assert missed_checkin.monitor_config is None
         assert (
             MonitorCheckInConfig.objects.get(id=missed_checkin.checkin_config_id).config
             == monitor.config
@@ -263,7 +262,6 @@ class MonitorClockTasksCheckMissingTest(TestCase):
         assert missed_checkin.date_added == checkin_date
         assert missed_checkin.date_updated == checkin_date
         assert missed_checkin.expected_time == checkin_date
-        assert missed_checkin.monitor_config is None
         assert (
             MonitorCheckInConfig.objects.get(id=missed_checkin.checkin_config_id).config
             == monitor.config
@@ -448,11 +446,11 @@ class MonitorClockTasksCheckMissingTest(TestCase):
     @mock.patch("sentry.monitors.clock_tasks.check_missed.produce_task")
     def assert_state_does_not_change_for_status(
         self,
-        state,
-        mock_produce_task,
-        is_muted=False,
-        environment_is_muted=False,
-    ):
+        state: int,
+        mock_produce_task: mock.MagicMock,
+        is_muted: bool = False,
+        environment_is_muted: bool = False,
+    ) -> None:
         org = self.create_organization()
         project = self.create_project(organization=org)
 
@@ -528,7 +526,7 @@ class MonitorClockTasksCheckMissingTest(TestCase):
             status=MonitorStatus.OK,
         )
         # Last checkin was a minute ago
-        MonitorCheckIn.objects.create(
+        self.create_monitor_checkin(
             monitor_environment=env,
             status=CheckInStatus.OK,
             date_added=last_checkin_ts,

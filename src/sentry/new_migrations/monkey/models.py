@@ -8,8 +8,8 @@ from sentry.utils.env import in_test_environment
 
 
 class SafeDeleteModel(DeleteModel):
-    def __init__(self, *args, deletion_action: DeletionAction, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, name: str, deletion_action: DeletionAction) -> None:
+        super().__init__(name)
         self.deletion_action = deletion_action
 
     def state_forwards(self, app_label: str, state: SentryProjectState) -> None:  # type: ignore[override]

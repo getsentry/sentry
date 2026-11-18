@@ -1,9 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {
-  formatStoreCrashReports,
-  getStoreCrashReportsValues,
-} from 'sentry/utils/crashReports';
+import {formatStoreCrashReports, getStoreCrashReportsValues} from './crashReports';
 
 describe('crashReportsUtils', () => {
   it('returns correct values for organization scope', () => {

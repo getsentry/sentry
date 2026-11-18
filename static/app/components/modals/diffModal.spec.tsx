@@ -4,7 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import DiffModal from 'sentry/components/modals/diffModal';
+import DiffModal from './diffModal';
 
 describe('DiffModal', () => {
   it('renders', () => {

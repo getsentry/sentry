@@ -14,14 +14,15 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {getShortEventId} from 'sentry/utils/events';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {UptimeCheck} from 'sentry/views/detectors/components/uptime/types';
-import {CheckStatus} from 'sentry/views/detectors/components/uptime/types';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
   reasonToText,
   statusToText,
   tickStyle,
 } from 'sentry/views/insights/uptime/timelineConfig';
+
+import type {UptimeCheck} from './types';
+import {CheckStatus} from './types';
 
 type Props = {
   traceSampling: boolean;

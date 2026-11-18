@@ -3,10 +3,8 @@ import {EventFixture} from 'sentry-fixture/event';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ContextCard} from 'sentry/components/events/contexts/contextCard';
-import {
-  getBrowserContextData,
-  type BrowserContext,
-} from 'sentry/components/events/contexts/knownContext/browser';
+
+import {getBrowserContextData, type BrowserContext} from './browser';
 
 const MOCK_BROWSER_CONTEXT: BrowserContext = {
   version: '83.0.4103',

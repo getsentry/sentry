@@ -2,7 +2,8 @@
   "get": {
     "tags": ["Releases"],
     "description": "Retrieve files changed in a release's commits",
-    "operationId": "Retrieve Files Changed in a Release's Commits",
+    "operationId": "listOrganizationReleaseCommitfiles",
+    "summary": "Retrieve Files Changed in a Release's Commits",
     "parameters": [
       {
         "name": "organization_id_or_slug",

@@ -8,12 +8,13 @@ import {t} from 'sentry/locale';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
 import {
   providerDetails,
   type IntegrationChannel,
   type IssueAlertNotificationProps,
-} from 'sentry/views/projectInstall/messagingIntegrationTypes';
-import {useMessagingChannel} from 'sentry/views/projectInstall/useMessagingChannel';
+} from './messagingIntegrationTypes';
+import {useMessagingChannel} from './useMessagingChannel';
 
 /**
  * Shared data + handlers for the messaging-integration alert rule. Owns the

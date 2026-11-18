@@ -18,6 +18,7 @@ from sentry.integrations.github.repository import GitHubRepositoryProvider
 from sentry.integrations.models.integration import Integration
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_commit_shape
@@ -94,7 +95,10 @@ class GitHubAppsProviderTest(TestCase):
             "external_id": "654321",
             "integration_id": integration.id,
         }
-        repo_config_data = self.provider.build_repository_config(organization, data)
+        repo_config_data = self.provider.build_repository_config(
+            serialize_rpc_organization(organization, include_projects=False, include_teams=False),
+            data,
+        )
         assert repo_config_data == {
             "config": {"name": "getsentry/example-repo"},
             "external_id": "654321",

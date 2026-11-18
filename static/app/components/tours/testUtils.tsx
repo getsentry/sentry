@@ -1,6 +1,6 @@
 import {createContext} from 'react';
 
-import type {TourContextType} from 'sentry/components/tours/tourContext';
+import type {TourContextType} from './tourContext';
 
 export const enum TestTour {
   NAME = 'test-tour-name',

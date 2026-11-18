@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Container, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 

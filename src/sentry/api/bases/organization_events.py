@@ -56,6 +56,7 @@ from sentry.search.eap.types import AdditionalQueries, SupportedTraceItemType
 from sentry.search.events.constants import DURATION_UNITS, SIZE_UNITS
 from sentry.search.events.fields import get_function_alias, is_function
 from sentry.search.events.types import SAMPLING_MODES, SnubaParams
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import MetricSpecType
@@ -161,6 +162,11 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             and not self._occurrences_dataset_allowed(request, organization)
         ):
             raise ParseError(detail=f"{dataset_label} is not supported currently")
+        elif (
+            dataset_label == SupportedTraceItemType.ENRICHMENT_ATTRIBUTES.value
+            and not features.has("organizations:classifiers-ui", organization, actor=request.user)
+        ):
+            raise ParseError(detail=f"dataset must be one of: {', '.join(PUBLIC_DATASET_LABELS)}")
         elif dataset_label == SupportedTraceItemType.REPLAYS.value:
             raise ParseError(detail=f"dataset must be one of: {', '.join(PUBLIC_DATASET_LABELS)}")
         result = get_dataset(dataset_label)
@@ -290,7 +296,7 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
         has_errors: bool,
         has_transactions_data: bool,
         organization: Organization,
-        user: User | AnonymousUser,
+        user: User | AnonymousUser | ServiceAccountPrincipal,
     ) -> int | None:
         """This can be removed once the discover dataset has been fully split"""
         source = DashboardDatasetSourcesTypes.INFERRED.value

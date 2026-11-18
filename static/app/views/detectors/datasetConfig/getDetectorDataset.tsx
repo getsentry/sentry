@@ -1,6 +1,7 @@
 import {unreachable} from 'sentry/utils/unreachable';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
-import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
+
+import {DetectorDataset} from './types';
 
 /**
  * Convert backend dataset to our form dataset

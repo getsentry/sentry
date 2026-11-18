@@ -7,7 +7,10 @@ from sentry.utils.groupreference import find_fix_statements
 
 class FindFixStatementsTest(TestCase):
     def _url_prefix(self) -> str:
-        return options.get("system.url-prefix")
+        url_prefix = options.get("system.url-prefix")
+        if not isinstance(url_prefix, str):
+            raise TypeError("system.url-prefix is not configured")
+        return url_prefix
 
     def _sentry_host(self) -> str:
         return urlparse(self._url_prefix()).netloc

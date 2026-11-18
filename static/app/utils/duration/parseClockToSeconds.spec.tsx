@@ -1,9 +1,10 @@
-import {parseClockToSeconds} from 'sentry/utils/duration/parseClockToSeconds';
 import {
   DAY, // ms in day
   MONTH, // ms in month
   WEEK, // ms in week
 } from 'sentry/utils/formatters';
+
+import {parseClockToSeconds} from './parseClockToSeconds';
 
 describe('parseClockToSeconds', () => {
   it('should format durations', () => {

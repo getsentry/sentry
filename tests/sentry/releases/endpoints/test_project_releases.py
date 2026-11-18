@@ -1,8 +1,10 @@
+from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime, timedelta
 from functools import cached_property
 
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
+from rest_framework.response import Response
 
 from sentry.api.serializers.rest_framework.release import ReleaseWithVersionSerializer
 from sentry.constants import BAD_RELEASE_CHARS, MAX_VERSION_LENGTH
@@ -190,12 +192,12 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
         self.env2 = env2
         self.env3 = env3
 
-    def make_environment(self, name, project):
+    def make_environment(self, name: str, project: Project) -> Environment:
         env = Environment.objects.create(organization_id=project.organization_id, name=name)
         env.add_project(project)
         return env
 
-    def assert_releases(self, response, releases):
+    def assert_releases(self, response: Response, releases: Sequence[Release]) -> None:
         assert response.status_code == 200, response.content
         assert len(response.data) == len(releases)
 
@@ -203,7 +205,13 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
         releases_versions = sorted(r.version for r in releases)
         assert response_versions == releases_versions
 
-    def assert_release_details(self, release, new_issues_count, first_seen, last_seen):
+    def assert_release_details(
+        self,
+        release: Mapping[str, object],
+        new_issues_count: int,
+        first_seen: object,
+        last_seen: object,
+    ) -> None:
         assert release["newGroups"] == new_issues_count
         assert release["firstEvent"] == first_seen
         assert release["lastEvent"] == last_seen
@@ -257,7 +265,9 @@ class ProjectReleaseListEnvironmentsTest(APITestCase):
         self.assert_releases(response, [])
 
     def test_new_issues_last_seen_first_seen(self) -> None:
-        def sort_releases_by_version(releases):
+        def sort_releases_by_version(
+            releases: Sequence[Mapping[str, str]],
+        ) -> list[Mapping[str, str]]:
             return sorted(releases, key=lambda release: release["version"])
 
         url = reverse(
@@ -670,7 +680,7 @@ class ProjectReleaseCreateTest(APITestCase):
 
 class ProjectReleaseCreateCommitPatch(ReleaseCommitPatchTest):
     @cached_property
-    def url(self):
+    def url(self) -> str:
         return reverse(
             "sentry-api-0-project-releases",
             kwargs={

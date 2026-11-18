@@ -3,11 +3,7 @@
 // that do not hold any value as they cannot be evaluated and then evaluate
 // the postfix notation.
 
-import {
-  BooleanOperator,
-  Token,
-  type TokenResult,
-} from 'sentry/components/searchSyntax/parser';
+import {BooleanOperator, Token, type TokenResult} from './parser';
 
 export type ProcessedTokenResult =
   | TokenResult<Token>

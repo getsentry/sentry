@@ -3,10 +3,11 @@ import {EventFixture} from 'sentry-fixture/event';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ContextCard} from 'sentry/components/events/contexts/contextCard';
+
 import {
   getMissingInstrumentationContextData,
   type MissingInstrumentationContext,
-} from 'sentry/components/events/contexts/knownContext/missingInstrumentation';
+} from './missingInstrumentation';
 
 const MOCK_MISSING_INSTRUMENTATION_CONTEXT: MissingInstrumentationContext = {
   package: 'express',

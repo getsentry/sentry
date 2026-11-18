@@ -2,8 +2,9 @@ import {useContext, useEffect} from 'react';
 
 import {FormContext} from 'sentry/components/forms/formContext';
 import {useAutomationBuilderContext} from 'sentry/views/automations/components/automationBuilderContext';
-import {getAutomationName} from 'sentry/views/automations/components/forms/automationNameUtils';
-import {useAutomationFormContext} from 'sentry/views/automations/components/forms/context';
+
+import {getAutomationName} from './automationNameUtils';
+import {useAutomationFormContext} from './context';
 
 /**
  * Hook to automatically set the automation name based on automation builder state.

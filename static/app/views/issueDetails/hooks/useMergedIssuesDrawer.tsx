@@ -11,17 +11,17 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {MergedIssuesDrawer} from 'sentry/views/issueDetails/groupMerged/mergedIssuesDrawer';
 import {MERGED_CURSOR_QUERY_KEY} from 'sentry/views/issueDetails/groupMerged/useGroupMerged';
-import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 export function useMergedIssuesDrawer({
+  getReturnPath,
   group,
   project,
 }: {
+  getReturnPath: () => string;
   group: Group;
   project: Project;
 }) {
   const {openDrawer} = useDrawer();
-  const {baseUrl} = useGroupDetailsRoute();
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
@@ -40,7 +40,7 @@ export function useMergedIssuesDrawer({
         // Remove drawer state from URL
         navigate(
           {
-            pathname: baseUrl,
+            pathname: getReturnPath(),
             query: {
               ...location.query,
               [MERGED_CURSOR_QUERY_KEY]: undefined,
@@ -50,7 +50,7 @@ export function useMergedIssuesDrawer({
         );
       },
     });
-  }, [openDrawer, group, project, baseUrl, navigate, location.query, organization]);
+  }, [openDrawer, group, project, getReturnPath, navigate, location.query, organization]);
 
   return {openMergedIssuesDrawer};
 }

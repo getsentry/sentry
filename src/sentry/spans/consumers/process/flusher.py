@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 import multiprocessing
 import multiprocessing.context
@@ -7,6 +9,7 @@ import time
 from collections.abc import Callable
 from concurrent.futures import Future
 from functools import partial
+from multiprocessing.sharedctypes import Synchronized
 from typing import Any
 
 import orjson
@@ -93,7 +96,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         for process_index in self.process_to_shards_map.keys():
             self._wait_for_process_to_become_healthy(process_index)
 
-    def _wait_for_process_to_become_healthy(self, process_index: int):
+    def _wait_for_process_to_become_healthy(self, process_index: int) -> None:
         start_time = time.time()
         max_unhealthy_seconds = options.get("spans.buffer.flusher.max-unhealthy-seconds") * 2
 
@@ -117,12 +120,12 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
 
             time.sleep(0.1)
 
-    def _create_processes(self):
+    def _create_processes(self) -> None:
         # Create processes based on shard mapping
         for process_index, shards in self.process_to_shards_map.items():
             self._create_process_for_shards(process_index, shards)
 
-    def _create_process_for_shards(self, process_index: int, shards: list[int]):
+    def _create_process_for_shards(self, process_index: int, shards: list[int]) -> None:
         use_stuck_detector = options.get("spans.buffer.flusher.use-stuck-detector")
         self.process_healthy_since[process_index].value = 0
 
@@ -166,7 +169,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         self.processes[process_index] = process
         self.buffers[process_index] = shard_buffer
 
-    def _create_process_for_shard(self, shard: int):
+    def _create_process_for_shard(self, shard: int) -> None:
         # Find which process this shard belongs to and restart that process
         for process_index, shards in self.process_to_shards_map.items():
             if shard in shards:
@@ -177,10 +180,10 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
     def main(
         buffer: SpansBuffer,
         shards: list[int],
-        stopped,
-        current_drift,
-        backpressure_since,
-        healthy_since,
+        stopped: Synchronized[int],
+        current_drift: Synchronized[int],
+        backpressure_since: Synchronized[int],
+        healthy_since: Synchronized[int],
         produce_to_pipe: ProduceToPipe | None,
     ) -> None:
         logger.info("Flusher process main started for shards %s", shards)
@@ -446,7 +449,7 @@ class SpanFlusher(ProcessingStrategy[FilteredPayload | int]):
         # memory spike in redis
         self.next_step.close()
 
-    def join(self, timeout: float | None = None):
+    def join(self, timeout: float | None = None) -> None:
         # set stopped flag first so we can "flush" the background threads while
         # next_step is also shutting down. we can do two things at once!
         self.stopped.value = True

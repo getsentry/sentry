@@ -7,7 +7,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import AdminRelays from 'sentry/views/admin/adminRelays';
+import AdminRelays from './adminRelays';
 
 describe('AdminRelays', () => {
   const ENDPOINT = '/relays/';

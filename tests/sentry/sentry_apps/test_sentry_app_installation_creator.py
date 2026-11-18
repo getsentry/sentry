@@ -1,3 +1,4 @@
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import responses
@@ -9,6 +10,7 @@ from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.apigrant import ApiGrant
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.sentry_apps.installations import SentryAppInstallationCreator
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.models.servicehook import ServiceHook, ServiceHookProject
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_count_of_metric, assert_success_metric
@@ -35,8 +37,11 @@ class TestCreator(TestCase):
             scopes=("project:read",),
             events=("issue.created",),
         )
+        application = self.sentry_app.application
+        assert application is not None
+        self.application = application
 
-    def run_creator(self, **kwargs):
+    def run_creator(self, **kwargs: Any) -> SentryAppInstallation:
         return SentryAppInstallationCreator(
             organization_id=self.org.id, slug="nulldb", **kwargs
         ).run(user=self.user, request=kwargs.pop("request", None))
@@ -82,7 +87,7 @@ class TestCreator(TestCase):
         with assume_test_silo_mode(SiloMode.CELL):
             hook = ServiceHook.objects.get(organization_id=self.org.id)
 
-        assert hook.application_id == self.sentry_app.application.id
+        assert hook.application_id == self.application.id
         assert hook.actor_id == install.id
         assert hook.organization_id == self.org.id
         assert hook.events == self.sentry_app.events
@@ -163,5 +168,5 @@ class TestCreator(TestCase):
     def test_placeholder_email(self) -> None:
         responses.add(responses.POST, "https://example.com/webhook")
         install = self.run_creator()
-        proxy_user = User.objects.get(id=install.sentry_app.proxy_user.id)
+        proxy_user = User.objects.get(id=cast(User, install.sentry_app.proxy_user).id)
         assert proxy_user.email == f"{proxy_user.username}@proxy-user.sentry.io"

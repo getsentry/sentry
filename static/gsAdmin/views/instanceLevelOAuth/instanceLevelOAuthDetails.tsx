@@ -7,8 +7,8 @@ import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -109,7 +109,7 @@ function ClientDetailsForm({clientDetails}: {clientDetails: ClientDetails}) {
       ) {
         return;
       }
-      addErrorMessage('Unable to update client settings.');
+      toast.error('Unable to update client settings.');
     },
   });
   const form = useScrapsForm({

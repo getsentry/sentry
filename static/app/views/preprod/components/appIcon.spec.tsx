@@ -3,7 +3,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {AppIcon} from 'sentry/views/preprod/components/appIcon';
+import {AppIcon} from './appIcon';
 
 describe('AppIcon', () => {
   it('explicitly requests a preprod size app icon', () => {

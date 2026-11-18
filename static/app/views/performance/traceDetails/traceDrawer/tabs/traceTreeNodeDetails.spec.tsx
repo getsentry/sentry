@@ -2,7 +2,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {TraceTreeNodeDetails} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
 import {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/eapSpanNode';
 import {ErrorNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/errorNode';
@@ -12,6 +11,8 @@ import {
   makeParentAutogroup,
   makeTraceError,
 } from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
+
+import {TraceTreeNodeDetails} from './traceTreeNodeDetails';
 
 // Mock every panel that nodeDetails imports, not just the ones under test. Any
 // real panel left in gets loaded by the first test's lazy import, which is too
@@ -35,7 +36,9 @@ jest.mock('sentry/views/performance/traceDetails/traceDrawer/details/span', () =
 jest.mock(
   'sentry/views/performance/traceDetails/traceDrawer/details/span/aiSpanDetails',
   () => ({
-    AiSpanDetails: () => <div>ai span details</div>,
+    AiSpanNodeDetails: ({operationType}: {operationType: string}) => (
+      <div>ai span details for {operationType}</div>
+    ),
   })
 );
 jest.mock('sentry/views/performance/traceDetails/traceDrawer/details/autogroup', () => ({
@@ -77,7 +80,7 @@ describe('TraceTreeNodeDetails', () => {
     });
     render(renderDetails(new EapSpanNode(null, value, extra)));
 
-    expect(await screen.findByText('ai span details')).toBeInTheDocument();
+    expect(await screen.findByText('ai span details for ai_client')).toBeInTheDocument();
   });
 
   it('renders the autogroup panel for an autogroup node', async () => {

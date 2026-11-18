@@ -60,7 +60,7 @@ class ReleaseFilesListTest(APITestCase):
         assert response.status_code == 200, response.content
         assert len(response.data) == 0
 
-        def create_release_file(**kwargs):
+        def create_release_file(**kwargs: object) -> ReleaseFile:
             name = uuid.uuid4().hex
             return ReleaseFile.objects.create(
                 organization_id=project.organization_id,

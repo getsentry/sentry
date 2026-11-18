@@ -80,6 +80,7 @@ describe('EventNavigation', () => {
       eventNavigationHeight: 0,
       isSidebarOpen: true,
       navScrollMargin: 0,
+      scrollContext: 'page',
       dispatch: jest.fn(),
     });
     MockApiClient.addMockResponse({
@@ -214,6 +215,13 @@ describe('EventNavigation', () => {
       hideAiFeatures: false,
     });
 
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${seerOrganization.slug}/issues/${group.id}/autofix/`,
+        body: {autofix: null},
+      });
+    });
+
     function renderNav(
       org: typeof organization,
       {navGroup = group, tab = Tab.EVENTS}: {navGroup?: typeof group; tab?: Tab} = {}
@@ -244,9 +252,8 @@ describe('EventNavigation', () => {
         within(screen.getByRole('tab', {name: 'Autofix'})).queryByText('0')
       ).not.toBeInTheDocument();
 
-      // The tab is the <li role="tab">; the anchor it navigates through is nested.
       const autofixTab = screen.getByRole('tab', {name: 'Autofix'});
-      expect(within(autofixTab).getByRole('link')).toHaveAttribute(
+      expect(autofixTab).toHaveAttribute(
         'href',
         expect.stringContaining(
           `/organizations/${seerOrganization.slug}/issues/${group.id}/${

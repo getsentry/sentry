@@ -1,3 +1,5 @@
+import {stripAnnotations} from '@sentry/scraps/markdown/annotation';
+
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {
   EMPTY_TEXT_CONTENT,
@@ -37,6 +39,14 @@ import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/typ
 import {SpanFields} from 'sentry/views/insights/types';
 
 const FILTERED = '[Filtered]';
+
+/**
+ * Whether PII scrubbing replaced the whole value. In the conversation view the
+ * placeholder carries marks that name the rule, see `markScrubbedValue`.
+ */
+function isFiltered(value: string): boolean {
+  return stripAnnotations(value) === FILTERED;
+}
 
 /**
  * Placeholder for message content the SDK didn't record, used when a
@@ -254,7 +264,7 @@ export function enrichAgentMessages(nodes: AITraceSpanNode[]): AITraceSpanNode[]
     }
 
     const rawOutput = getStringAttr(node, SpanFields.GEN_AI_OUTPUT_MESSAGES);
-    if (!rawOutput || rawOutput === FILTERED) {
+    if (!rawOutput || isFiltered(rawOutput)) {
       continue;
     }
 
@@ -642,7 +652,7 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
 
     if (
       turn.userContent &&
-      (turn.userContent === FILTERED ||
+      (isFiltered(turn.userContent) ||
         turn.userContent === EMPTY_TEXT_CONTENT ||
         turn.userContent === NOT_REPORTED ||
         !hasHistory ||
@@ -662,7 +672,7 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
 
     const hasAssistantContent =
       turn.assistantContent &&
-      (turn.assistantContent === FILTERED ||
+      (isFiltered(turn.assistantContent) ||
         turn.assistantContent === EMPTY_TEXT_CONTENT ||
         turn.assistantContent === NOT_REPORTED ||
         !seenAssistantContent.has(turn.assistantContent));
@@ -727,8 +737,8 @@ export function parseUserContent(node: AITraceSpanNode): string | null {
   if (!raw) {
     return null;
   }
-  if (raw === FILTERED) {
-    return FILTERED;
+  if (isFiltered(raw)) {
+    return raw;
   }
 
   const {messages} = normalizeToMessages(raw, {defaultRole: 'user'});
@@ -757,7 +767,7 @@ export function getInputMessageStats(node: AITraceSpanNode): InputMessageStats {
     getStringAttr(node, SpanFields.GEN_AI_INPUT_MESSAGES) ||
     getStringAttr(node, SpanFields.GEN_AI_REQUEST_MESSAGES);
 
-  if (!raw || raw === FILTERED) {
+  if (!raw || isFiltered(raw)) {
     return {totalMessageCount: 0, userMessageCount: 0};
   }
 
@@ -787,8 +797,8 @@ export function parseAssistantContent(node: AITraceSpanNode): {
   const outputMessages = getStringAttr(node, SpanFields.GEN_AI_OUTPUT_MESSAGES);
 
   if (outputMessages) {
-    if (outputMessages === FILTERED) {
-      return {content: FILTERED, reasoning: null};
+    if (isFiltered(outputMessages)) {
+      return {content: outputMessages, reasoning: null};
     }
     const extracted = extractAssistantOutput(outputMessages, {
       defaultRole: 'assistant',

@@ -11,7 +11,6 @@ import {onboarding as eveFrameworkOnboarding} from 'sentry/gettingStartedDocs/no
 import {onboarding as flueFrameworkOnboarding} from 'sentry/gettingStartedDocs/node-flue/onboarding';
 import {onboarding as mastraFrameworkOnboarding} from 'sentry/gettingStartedDocs/node-mastra/onboarding';
 import {onboarding as piFrameworkOnboarding} from 'sentry/gettingStartedDocs/node-pi-durable/onboarding';
-import {getImport, getInstallCodeBlock} from 'sentry/gettingStartedDocs/node/utils';
 import {t, tct} from 'sentry/locale';
 import {SdkUpdateAlert} from 'sentry/views/insights/pages/agents/components/sdkUpdateAlert';
 import {ManualInstrumentationNote} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
@@ -23,6 +22,8 @@ import {
   getSdkImportSpecifier,
 } from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 import {AI_INSTRUMENTATION_DOCS_LINKS} from 'sentry/views/insights/pages/agents/utils/docsLinks';
+
+import {getImport, getInstallCodeBlock} from './utils';
 
 // Bumped to 10.67.0 so the install step also satisfies Workers AI, which
 // auto-instruments the `env.AI` binding only from that version.

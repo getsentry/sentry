@@ -2,8 +2,8 @@ import {useCallback, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 
 type Props = {
@@ -32,7 +32,7 @@ export function SplitInstallationIdModal(props: Props) {
 
   const handleContinue = () => {
     onCopy();
-    addSuccessMessage('Copied to clipboard');
+    toast.success('Copied to clipboard');
 
     window.clearTimeout(openAdminIntegrationTimeoutRef.current);
 

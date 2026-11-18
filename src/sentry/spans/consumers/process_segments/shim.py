@@ -6,7 +6,7 @@ and thus cannot (yet) be refactored to use the new span schema.
 
 import logging
 import uuid
-from typing import Any
+from typing import Any, cast
 from urllib.parse import parse_qsl
 
 from sentry_conventions.attributes import ATTRIBUTE_NAMES
@@ -159,12 +159,15 @@ def make_compatible(span: SpanEvent) -> CompatibleSpan:
     # logic.
     sentry_tags = _extract_attribute_values(span, SPAN_SENTRY_TAGS_FIELDS_BY_ATTRIBUTE_NAME)
 
-    ret: CompatibleSpan = {
-        **span,
-        "sentry_tags": {key: str(value) for key, value in sentry_tags.items()},
-        "op": get_span_op(span),
-        "exclusive_time": attribute_value(span, "sentry.exclusive_time_ms"),
-    }
+    ret = cast(
+        "CompatibleSpan",
+        {
+            **span,
+            "sentry_tags": {key: str(value) for key, value in sentry_tags.items()},
+            "op": get_span_op(span),
+            "exclusive_time": attribute_value(span, "sentry.exclusive_time_ms"),
+        },
+    )
 
     return ret
 

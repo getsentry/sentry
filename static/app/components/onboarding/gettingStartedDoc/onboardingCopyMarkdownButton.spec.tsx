@@ -2,10 +2,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import type {OnboardingStep} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
-
 import {OnboardingCopyMarkdownButton} from './onboardingCopyMarkdownButton';
+import type {OnboardingStep} from './types';
+import {StepType} from './types';
 
 describe('OnboardingCopyMarkdownButton', () => {
   const steps: OnboardingStep[] = [

@@ -7,6 +7,7 @@ import shutil
 import string
 import sys
 import time
+from collections.abc import Generator
 from datetime import datetime
 from hashlib import sha256
 from pathlib import Path
@@ -159,7 +160,7 @@ def _forbid_single_host_flushall() -> None:
 
     flushall = Redis.flushall
 
-    def guarded_flushall(self: Redis, *args: Any, **kwargs: Any) -> Any:
+    def guarded_flushall(self: Redis[str], *args: Any, **kwargs: Any) -> Any:
         # Prefixed cluster clients only delete the keys of this worker.
         if isinstance(self, RedisCluster):
             return flushall(self, *args, **kwargs)
@@ -319,7 +320,7 @@ def pytest_configure(config: pytest.Config) -> None:
                 "default": {"hosts": {0: {"db": xdist.get_redis_db()}}},
                 "cluster": {
                     "is_redis_cluster": True,
-                    "hosts": [{"host": "0.0.0.0", "port": port} for port in range(7000, 7006)],
+                    "hosts": [{"host": "0.0.0.0", "port": port} for port in range(7000, 7003)],
                     "key_prefix": xdist.get_redis_cluster_key_prefix(),
                 },
             },
@@ -417,10 +418,9 @@ def pytest_configure(config: pytest.Config) -> None:
     register_extensions()
 
     if not SENTRY_SKIP_SERVICE_VALIDATION:
-        from sentry.utils.redis import clusters
+        from sentry.utils.redis import redis_clusters
 
-        with clusters.get("default").all() as client:
-            client.flushdb()
+        redis_clusters.get("default").flushdb()
 
 
 def register_extensions() -> None:
@@ -480,10 +480,9 @@ def pytest_runtest_teardown(item: pytest.Item) -> None:
 
     newsletter.backend.test_only__downcast_to(DummyNewsletter).clear()
 
-    from sentry.utils.redis import clusters, pop_used_key_prefix_clients
+    from sentry.utils.redis import pop_used_key_prefix_clients, redis_clusters
 
-    with clusters.get("default").all() as client:
-        client.flushdb()
+    redis_clusters.get("default").flushdb()
 
     for cluster_client in pop_used_key_prefix_clients():
         try:
@@ -491,6 +490,7 @@ def pytest_runtest_teardown(item: pytest.Item) -> None:
         except (RedisError, RedisClusterException):
             pass
 
+    from sentry import options
     from sentry.models.options.organization_option import OrganizationOption
     from sentry.models.options.project_option import ProjectOption
     from sentry.users.models.user_option import UserOption
@@ -498,12 +498,66 @@ def pytest_runtest_teardown(item: pytest.Item) -> None:
     OrganizationOption.objects.clear_local_cache()
     ProjectOption.objects.clear_local_cache()
     UserOption.objects.clear_local_cache()
+    # options.set() caches values in-process, which outlives the test's DB
+    # rollback and would leak them into later tests on the same worker.
+    options.default_store.flush_local_cache()
 
     from sentry.monitors.logic.checkin_config import clear_checkin_config_cache
 
     clear_checkin_config_cache()
 
     sentry_sdk.get_global_scope().set_client(None)
+
+
+@pytest.hookimpl(wrapper=True, specname="pytest_runtest_teardown")
+def pytest_runtest_teardown_redis_transaction_violations(
+    item: pytest.Item,
+) -> Generator[None, object, object]:
+    # Our Redis test utils checks for Redis calls in DB transactions. When a call is found inside
+    # a transaction, we raise an error. Often, however, the code under test catches that error
+    # before it makes it to the top-level test. In this wrapper, we record each violation, which has
+    # the end result of failing the test when the problem scenario occurs.
+    from sentry.utils.redis import pop_redis_transaction_violations
+
+    try:
+        result = yield
+    except BaseException as error:
+        violations = pop_redis_transaction_violations()
+        if violations:
+            error.add_note(_format_redis_transaction_violations(violations))
+        raise
+
+    violations = pop_redis_transaction_violations()
+    if violations:
+        pytest.fail(_format_redis_transaction_violations(violations), pytrace=False)
+    return result
+
+
+def _format_redis_transaction_violations(violations: list[tuple[str, tuple[str, ...]]]) -> str:
+    from sentry.utils.redis import _REDIS_LOCK_BACKEND_CALLERS
+
+    stacks: dict[tuple[str, ...], str] = {}
+    for message, callers in violations:
+        stacks.setdefault(callers, message)
+
+    lines = [
+        "Redis calls ran inside a database transaction. The check raises an AssertionError at "
+        "the call, but the code under test can catch it, so the check also fails the test here.",
+    ]
+    for callers, message in stacks.items():
+        if callers and callers[0] in _REDIS_LOCK_BACKEND_CALLERS:
+            kind = "lock call (_REDIS_TRANSACTION_LOCK_ALLOWLIST_RATCHET)"
+        else:
+            kind = "plain call (_REDIS_TRANSACTION_CALLSTACK_ALLOWLIST_RATCHET)"
+        lines.append("")
+        lines.append(f"{kind}: {message}")
+        lines.extend(f"    {caller}" for caller in callers or ("unknown",))
+    lines.append("")
+    lines.append(
+        "Move the Redis call out of the transaction. If the test causes the violation on "
+        "purpose, call sentry.utils.redis.pop_redis_transaction_violations() in the test."
+    )
+    return "\n".join(lines)
 
 
 def _shuffle(items: list[pytest.Item], r: random.Random) -> None:

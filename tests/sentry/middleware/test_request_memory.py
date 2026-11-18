@@ -4,7 +4,7 @@ from unittest import mock
 
 import pytest
 from django.core.exceptions import MiddlewareNotUsed
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpRequest, HttpResponse, StreamingHttpResponse
 from django.http.response import HttpResponseBase
 from django.test import RequestFactory
 from django.urls import ResolverMatch
@@ -111,6 +111,7 @@ def test_large_rpc_growth_is_reported(distribution: mock.MagicMock, enabled: Non
             "url_name": "sentry-api-0-rpc-service",
             "rpc_method": "organization.get_organization",
             "concurrent": "false",
+            "warmup": "true",
         },
         sample_rate=1.0,
         unit="megabyte",
@@ -123,6 +124,124 @@ def test_large_rpc_growth_is_reported(distribution: mock.MagicMock, enabled: Non
     assert extra["rss_after_mb"] == 1100
     assert extra["rpc_method"] == "organization.get_organization"
     assert extra["overlapping_requests"] == 0
+    assert extra["status_code"] == 200
+    assert extra["response_bytes"] == len(b"ok")
+    assert extra["request_bytes"] == int(request.META["CONTENT_LENGTH"])
+    assert extra["duration_ms"] >= 0
+    assert extra["worker_request_number"] == 1
+    assert extra["worker_uptime_s"] >= 0
+    assert extra["webhook_event"] is None
+    assert extra["organization"] is None
+    assert not any(key.startswith("param_") for key in extra)
+    assert "field_count" not in extra
+    assert "query_length" not in extra
+
+
+@mock.patch("sentry.middleware.request_memory.metrics.distribution")
+def test_logs_request_context(distribution: mock.MagicMock, enabled: None) -> None:
+    middleware = _middleware([400 * MB, 600 * MB])
+    request = RequestFactory().get(
+        "/api/0/organizations/org-slug/issues/1/events/",
+        {
+            "per_page": "100",
+            "full": "true",
+            "query": "user.email:user@example.com",
+            "field": ["title", "timestamp"],
+            "cursor": "0:100:0",
+        },
+        HTTP_USER_AGENT="sentry-mcp/1.0",
+        HTTP_X_GITHUB_EVENT="push",
+    )
+    request.resolver_match = ResolverMatch(
+        lambda r: None,
+        (),
+        {"organization_id_or_slug": "org-slug", "issue_id": "1"},
+        url_name="sentry-api-0-organization-group-group-events",
+    )
+    with mock.patch("sentry.middleware.request_memory.logger") as logger:
+        middleware(request)
+
+    extra = logger.info.call_args.kwargs["extra"]
+    # Allowlisted parameters keep their values; the search query only its length.
+    assert extra["param_per_page"] == "100"
+    assert extra["param_full"] == "true"
+    assert extra["field_count"] == 2
+    assert extra["query_length"] == len("user.email:user@example.com")
+    assert "param_query" not in extra
+    assert "param_cursor" not in extra
+    assert "user@example.com" not in str(extra)
+    assert extra["user_agent"] == "sentry-mcp/1.0"
+    assert extra["webhook_event"] == "push"
+    assert extra["organization"] == "org-slug"
+
+
+@mock.patch("sentry.middleware.request_memory.metrics.distribution")
+def test_failed_report_does_not_fail_the_request(
+    distribution: mock.MagicMock, enabled: None
+) -> None:
+    middleware = _middleware([400 * MB, 600 * MB])
+    with (
+        mock.patch("sentry.middleware.request_memory.logger") as logger,
+        mock.patch(
+            "sentry.middleware.request_memory._query_context", side_effect=RuntimeError("bad")
+        ),
+    ):
+        response = middleware(_request("sentry-api-0-organization-details"))
+    assert response.status_code == 200
+    logger.exception.assert_called_once_with("request.rss_growth.report_failed")
+
+
+@mock.patch("sentry.middleware.request_memory.metrics.distribution")
+def test_counts_requests_served_by_the_worker(distribution: mock.MagicMock, enabled: None) -> None:
+    middleware = _middleware([400 * MB, 410 * MB, 410 * MB, 600 * MB])
+    with mock.patch("sentry.middleware.request_memory.logger") as logger:
+        middleware(_request("first"))
+        middleware(_request("second"))
+    logger.info.assert_called_once()
+    assert logger.info.call_args.kwargs["extra"]["worker_request_number"] == 2
+
+
+def _report_warmup(middleware: RequestMemoryMiddleware) -> tuple[str, bool]:
+    with (
+        mock.patch("sentry.middleware.request_memory.metrics.distribution") as distribution,
+        mock.patch("sentry.middleware.request_memory.logger") as logger,
+    ):
+        middleware(_request("sentry-api-0-organization-details"))
+    return (
+        distribution.call_args.kwargs["tags"]["warmup"],
+        logger.info.call_args.kwargs["extra"]["warmup"],
+    )
+
+
+def test_warm_worker_is_not_warmup(enabled: None) -> None:
+    middleware = _middleware([400 * MB, 600 * MB])
+    # Past both limits: many requests served and well over a minute old.
+    middleware._started = 50
+    middleware._created_at -= 120
+    assert _report_warmup(middleware) == ("false", False)
+
+
+def test_early_request_is_warmup_even_on_an_old_worker(enabled: None) -> None:
+    middleware = _middleware([400 * MB, 600 * MB])
+    middleware._created_at -= 120
+    assert _report_warmup(middleware) == ("true", True)
+
+
+def test_young_worker_is_warmup_even_after_many_requests(enabled: None) -> None:
+    middleware = _middleware([400 * MB, 600 * MB])
+    middleware._started = 50
+    assert _report_warmup(middleware) == ("true", True)
+
+
+@mock.patch("sentry.middleware.request_memory.metrics.distribution")
+def test_streaming_response_has_no_size(distribution: mock.MagicMock, enabled: None) -> None:
+    values = _fake_rss([400 * MB, 600 * MB])
+    middleware = RequestMemoryMiddleware(
+        lambda request: StreamingHttpResponse(iter([b"chunk"])), read_rss=lambda: next(values)
+    )
+    with mock.patch("sentry.middleware.request_memory.logger") as logger:
+        middleware(_request("sentry-api-0-organization-details"))
+    assert logger.info.call_args.kwargs["extra"]["response_bytes"] is None
 
 
 @mock.patch("sentry.middleware.request_memory.metrics.distribution")
@@ -143,10 +262,16 @@ def test_reports_when_the_view_raises(distribution: mock.MagicMock, enabled: Non
         raise RuntimeError("boom")
 
     middleware = RequestMemoryMiddleware(boom, read_rss=lambda: next(values))
-    with mock.patch("sentry.middleware.request_memory.logger"), pytest.raises(RuntimeError):
+    with (
+        mock.patch("sentry.middleware.request_memory.logger") as logger,
+        pytest.raises(RuntimeError),
+    ):
         middleware(_request("sentry-api-0-organization-details"))
     distribution.assert_called_once()
     assert distribution.call_args.args[1] == 400
+    extra = logger.info.call_args.kwargs["extra"]
+    assert extra["status_code"] is None
+    assert extra["response_bytes"] is None
 
 
 @mock.patch("sentry.middleware.request_memory.metrics.distribution")

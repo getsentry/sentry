@@ -6,10 +6,10 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
-import type {SettingsBreadcrumbSelectorProps} from 'sentry/views/settings/components/settingsBreadcrumb/types';
 import {useSettingsProjectSwitchTemplate} from 'sentry/views/settings/useSettingsProjectSwitchTemplate';
 
 import {SettingsBreadcrumbSelector} from './settingsBreadcrumbSelector';
+import type {SettingsBreadcrumbSelectorProps} from './types';
 
 export function ProjectCrumb({
   to,

@@ -17,17 +17,19 @@ import {Text} from '@sentry/scraps/text';
 import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
 import {t} from 'sentry/locale';
 import {storyFrontmatterIndex, storyHeadingIndex} from 'sentry/stories/storyManifest';
-import type {StoryTreeNode} from 'sentry/stories/view/storyTree';
-import {
-  COMPONENT_SUBCATEGORY_CONFIG,
-  SECTION_CONFIG,
-  SECTION_ORDER,
-  useStoryHierarchy,
-} from 'sentry/stories/view/storyTree';
 import {fzf} from 'sentry/utils/search/fzf';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import type {StoryTreeNode} from './storyTree';
+import {
+  COMPONENT_SUBCATEGORY_CONFIG,
+  isTreeSection,
+  SECTION_CONFIG,
+  SECTION_ORDER,
+  useStoryHierarchy,
+} from './storyTree';
 
 interface SearchItem {
   key: string;
@@ -202,7 +204,7 @@ export function StorySearch() {
             options: searchItems(allCoreNodes, deferredInputValue),
           });
         }
-      } else if (section === 'product' && data.stories.length > 0) {
+      } else if (isTreeSection(section) && data.stories.length > 0) {
         const flattenedStories = data.stories.flatMap(tree => tree.flat());
         sections.push({
           key: section,

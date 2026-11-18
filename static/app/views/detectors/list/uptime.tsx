@@ -12,11 +12,6 @@ import {WorkflowEngineListLayout} from 'sentry/components/workflowEngine/layout/
 import {t} from 'sentry/locale';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import {DetectorListActions} from 'sentry/views/detectors/list/common/detectorListActions';
-import {DetectorListContent} from 'sentry/views/detectors/list/common/detectorListContent';
-import {DetectorListHeader} from 'sentry/views/detectors/list/common/detectorListHeader';
-import {InsightsRedirectNotice} from 'sentry/views/detectors/list/common/insightsRedirectNotice';
-import {useDetectorListQuery} from 'sentry/views/detectors/list/common/useDetectorListQuery';
 import {
   MonitorViewContext,
   type MonitorViewContextValue,
@@ -28,6 +23,12 @@ import {
   tickStyle,
 } from 'sentry/views/insights/uptime/timelineConfig';
 import {useUptimeMonitorStats} from 'sentry/views/insights/uptime/utils/useUptimeMonitorStats';
+
+import {DetectorListActions} from './common/detectorListActions';
+import {DetectorListContent} from './common/detectorListContent';
+import {DetectorListHeader} from './common/detectorListHeader';
+import {InsightsRedirectNotice} from './common/insightsRedirectNotice';
+import {useDetectorListQuery} from './common/useDetectorListQuery';
 
 function VisualizationCell({detector}: {detector: UptimeDetector}) {
   const uptimeDetectorId = detector.id;

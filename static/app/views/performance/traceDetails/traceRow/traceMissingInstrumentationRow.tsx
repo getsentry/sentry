@@ -1,12 +1,9 @@
 import {t} from 'sentry/locale';
 import {TraceIcons} from 'sentry/views/performance/traceDetails/traceIcons';
 import type {NoInstrumentationNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/noInstrumentationNode';
-import {MissingInstrumentationTraceBar} from 'sentry/views/performance/traceDetails/traceRow/traceBar';
-import {
-  maybeFocusTraceRow,
-  TraceRowConnectors,
-  type TraceRowProps,
-} from 'sentry/views/performance/traceDetails/traceRow/traceRow';
+
+import {MissingInstrumentationTraceBar} from './traceBar';
+import {maybeFocusTraceRow, TraceRowConnectors, type TraceRowProps} from './traceRow';
 
 export function TraceMissingInstrumentationRow(
   props: TraceRowProps<NoInstrumentationNode>

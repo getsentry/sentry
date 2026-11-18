@@ -9,7 +9,17 @@ from yaml.scanner import ScannerError
 
 from sentry.utils.yaml import safe_load
 
-__all__ = ("InvalidTypeError", "Any", "Bool", "Int", "Float", "String", "Dict", "Sequence")
+__all__ = (
+    "InvalidTypeError",
+    "Any",
+    "Bool",
+    "Int",
+    "NonNegativeInt",
+    "Float",
+    "String",
+    "Dict",
+    "Sequence",
+)
 
 T = typing.TypeVar("T")
 
@@ -43,7 +53,7 @@ class Type(typing.Generic[T]):
         raise InvalidTypeError(f"{value!r} is not a valid {self!r}")
 
     def convert(self, value: TAny) -> T | None:
-        return value
+        return typing.cast("T | None", value)
 
     def _default(self) -> T:
         return self.default
@@ -99,6 +109,15 @@ class IntType(Type[int]):
             return None
 
 
+class NonNegativeIntType(IntType):
+    """Coerce an integer from a string, rejecting negative values"""
+
+    name = "non-negative integer"
+
+    def test(self, value: object) -> TypeGuard[int]:
+        return isinstance(value, int) and value >= 0
+
+
 class FloatType(Type[float]):
     """Coerce a float from a string or integer"""
 
@@ -123,7 +142,7 @@ class StringType(Type[str]):
     compatible_types = (str,)
 
 
-class DictType(Type[dict]):
+class DictType(Type[dict[str, TAny]]):
     """Coerce a dict out of a json/yaml string"""
 
     name = "dictionary"
@@ -135,12 +154,13 @@ class DictType(Type[dict]):
 
     def convert(self, value: TAny) -> dict[str, TAny] | None:
         try:
-            return safe_load(value)
+            data = safe_load(value)
         except (AttributeError, ParserError, ScannerError):
             return None
+        return data
 
 
-class SequenceType(Type[list]):
+class SequenceType(Type[list[TAny]]):
     """Coerce a list out of a json/yaml string or a list"""
 
     name = "sequence"
@@ -166,13 +186,14 @@ class SequenceType(Type[list]):
 Any = AnyType()
 Bool = BoolType()
 Int = IntType()
+NonNegativeInt = NonNegativeIntType()
 Float = FloatType()
 String = StringType()
 Dict = DictType()
 Sequence = SequenceType()
 
 # Mapping for basic types into what their Type is
-_type_mapping: dict[type[object], Type] = {
+_type_mapping: dict[type[object], Type[TAny]] = {
     bool: Bool,
     int: Int,
     float: Float,
@@ -204,14 +225,18 @@ def type_from_value(value: str) -> StringType: ...
 
 
 @typing.overload
-def type_from_value(value: dict) -> DictType: ...
+def type_from_value(value: dict[TAny, TAny]) -> DictType: ...
 
 
 @typing.overload
-def type_from_value(value: list) -> SequenceType: ...
+def type_from_value(value: list[TAny]) -> SequenceType: ...
 
 
-def type_from_value(value):
+@typing.overload
+def type_from_value(value: object) -> Type[TAny]: ...
+
+
+def type_from_value(value: object) -> Type[TAny]:
     """Fetch Type based on a primitive value"""
     return _type_mapping[type(value)]
 

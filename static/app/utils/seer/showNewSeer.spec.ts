@@ -1,12 +1,30 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {showNewSeer} from 'sentry/utils/seer/showNewSeer';
+import {showNewSeer} from './showNewSeer';
 
 describe('showNewSeer', () => {
   describe('new seat-based Seer plan', () => {
     it('returns true when seat-based-seer-enabled is present', () => {
       const organization = OrganizationFixture({
         features: ['seat-based-seer-enabled'],
+      });
+
+      expect(showNewSeer(organization)).toBe(true);
+    });
+  });
+
+  describe('new token-billed Seer plan', () => {
+    it('returns true when token-billed-seer-enabled is present', () => {
+      const organization = OrganizationFixture({
+        features: ['token-billed-seer-enabled'],
+      });
+
+      expect(showNewSeer(organization)).toBe(true);
+    });
+
+    it('returns true even when seer-added is present', () => {
+      const organization = OrganizationFixture({
+        features: ['token-billed-seer-enabled', 'seer-added'],
       });
 
       expect(showNewSeer(organization)).toBe(true);

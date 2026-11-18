@@ -1,4 +1,5 @@
 import {Fragment, useCallback, useState} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -11,20 +12,15 @@ import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {
-  makeFetchSecretQueryKey,
-  type Secret,
-} from 'sentry/views/settings/featureFlags/changeTracking';
-import {NewProviderForm} from 'sentry/views/settings/featureFlags/changeTracking/newProviderForm';
-import {NewSecretHandler} from 'sentry/views/settings/featureFlags/changeTracking/newSecretHandler';
+import {makeFetchSecretOptions} from 'sentry/views/settings/featureFlags/changeTracking';
 
-type FetchSecretResponse = {data: Secret[]};
+import {NewProviderForm} from './newProviderForm';
+import {NewSecretHandler} from './newSecretHandler';
 
 function OrganizationFeatureFlagsNewSecret() {
   const [newSecret, setNewSecret] = useState<string | null>(null);
@@ -35,11 +31,8 @@ function OrganizationFeatureFlagsNewSecret() {
   const navigate = useNavigate();
 
   // get existing secrets so we can check if the provider is already configured
-  const {data: secretList} = useApiQuery<FetchSecretResponse>(
-    makeFetchSecretQueryKey({orgSlug: organization.slug}),
-    {
-      staleTime: Infinity,
-    }
+  const {data: secretList} = useQuery(
+    makeFetchSecretOptions({orgSlug: organization.slug})
   );
 
   const handleGoBack = useCallback(() => {

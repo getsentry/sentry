@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo} from 'react';
+import {Fragment, useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {
@@ -9,24 +9,21 @@ import {
 import {Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
 
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import {t} from 'sentry/locale';
 import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {SearchButton} from 'sentry/views/navigation/searchButton';
-import {TopBarSlots} from 'sentry/views/navigation/topBarSlot';
-import {useTopBarActionDisplay} from 'sentry/views/navigation/useTopBarActionDisplay';
-import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 import {AskSeerButton} from 'sentry/views/seerExplorer/components/askSeerButton';
-import {useSeerExplorerChatState} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
-import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
-import {getExplorerFeedbackOptions} from 'sentry/views/seerExplorer/utils';
 
 import {
   PRIMARY_HEADER_HEIGHT,
   PRIMARY_HEADER_TITLE_MIN_WIDTH,
   TOP_BAR_HEIGHT_CSS_VAR,
 } from './constants';
+import {
+  TopBarFeedbackButton,
+  type TopBarFeedbackButtonProps,
+} from './topBarFeedbackButton';
+import {TopBarSlots} from './topBarSlot';
+import {useTopOffset} from './useTopOffset';
 
 type TopBarSlotProps =
   | {
@@ -35,9 +32,14 @@ type TopBarSlotProps =
       children?: never;
       items?: BreadcrumbListProps['items'];
     }
+  | ({
+      name: 'feedback';
+      children?: never;
+      title?: never;
+    } & TopBarFeedbackButtonProps)
   | {
       children: React.ReactNode;
-      name: 'search' | 'actions' | 'feedback';
+      name: 'search' | 'actions';
       title?: never;
     };
 
@@ -57,6 +59,17 @@ function TopBarSlot(props: TopBarSlotProps) {
     );
   }
 
+  if (props.name === 'feedback') {
+    return (
+      <TopBarSlots name="feedback">
+        <TopBarFeedbackButton
+          feedbackOptions={props.feedbackOptions}
+          aria-label={props['aria-label']}
+        />
+      </TopBarSlots>
+    );
+  }
+
   return <TopBarSlots name={props.name}>{props.children}</TopBarSlots>;
 }
 
@@ -65,7 +78,6 @@ function TopBarContent() {
   const {topBarTop, pageContentTop} = useTopOffset();
 
   const organization = useOrganization({allowNull: true});
-  const {isSearchInMobileRow} = useTopBarActionDisplay();
 
   useEffect(() => {
     document.documentElement.style.setProperty(TOP_BAR_HEIGHT_CSS_VAR, pageContentTop);
@@ -73,16 +85,6 @@ function TopBarContent() {
       document.documentElement.style.removeProperty(TOP_BAR_HEIGHT_CSS_VAR);
     };
   }, [pageContentTop]);
-
-  const {isOpen: isSeerExplorerOpen} = useSeerExplorerContext();
-  const {runId: seerExplorerRunId} = useSeerExplorerChatState();
-
-  const feedbackOptions = useMemo(() => {
-    if (isSeerExplorerOpen) {
-      return getExplorerFeedbackOptions(seerExplorerRunId);
-    }
-    return {tags: {'feedback.source': 'top_navigation'}};
-  }, [isSeerExplorerOpen, seerExplorerRunId]);
 
   return (
     <Flex
@@ -147,20 +149,13 @@ function TopBarContent() {
           </TopBarSlots.Outlet>
 
           {isSeerExplorerEnabled(organization) ? <AskSeerButton /> : null}
-          {isSearchInMobileRow ? null : <SearchButton />}
 
           <TopBarSlots.Outlet name="feedback">
             {props => (
               <Flex {...props}>
                 {/* If no component registers a feedback button, show the default one */}
                 <TopBarSlots.Fallback>
-                  <FeedbackButton
-                    aria-label={t('Give Feedback')}
-                    feedbackOptions={feedbackOptions}
-                    tooltipProps={{title: t('Give Feedback')}}
-                  >
-                    {null}
-                  </FeedbackButton>
+                  <TopBarFeedbackButton />
                 </TopBarSlots.Fallback>
               </Flex>
             )}

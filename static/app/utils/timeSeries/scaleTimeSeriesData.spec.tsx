@@ -1,4 +1,9 @@
-import {DurationUnit, RateUnit, SizeUnit} from 'sentry/utils/discover/fields';
+import {
+  DurationUnit,
+  FractionUnit,
+  RateUnit,
+  SizeUnit,
+} from 'sentry/utils/discover/fields';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 import {scaleTimeSeriesData} from './scaleTimeSeriesData';
@@ -106,6 +111,38 @@ describe('scaleTimeSeriesData', () => {
       meta: {
         valueType: 'size',
         valueUnit: SizeUnit.BYTE,
+        interval: 800,
+      },
+    });
+  });
+
+  it('scales fraction units from percent to ratio', () => {
+    const timeSeries: TimeSeries = {
+      yAxis: 'cache.hit_rate',
+      values: [
+        {
+          timestamp: 1735707600000, // '2025-01-01T00:00:00'
+          value: 75,
+        },
+      ],
+      meta: {
+        valueType: 'percentage',
+        valueUnit: FractionUnit.PERCENT,
+        interval: 800,
+      },
+    };
+
+    expect(scaleTimeSeriesData(timeSeries, FractionUnit.RATIO)).toEqual({
+      yAxis: 'cache.hit_rate',
+      values: [
+        {
+          timestamp: 1735707600000, // '2025-01-01T00:00:00'
+          value: 0.75,
+        },
+      ],
+      meta: {
+        valueType: 'percentage',
+        valueUnit: FractionUnit.RATIO,
         interval: 800,
       },
     });

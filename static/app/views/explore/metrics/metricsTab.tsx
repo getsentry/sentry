@@ -26,23 +26,6 @@ import {
 import {ToolbarVisualizeAddChart} from 'sentry/views/explore/components/toolbar/toolbarVisualize';
 import {useMetricsAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
-import {
-  MAX_METRIC_ALLOWED_LABEL_VALUE,
-  METRICS_CHART_GROUP,
-} from 'sentry/views/explore/metrics/constants';
-import {useEquationReferencedLabels} from 'sentry/views/explore/metrics/hooks/useEquationReferencedLabels';
-import {useMetricReferences} from 'sentry/views/explore/metrics/hooks/useMetricReferences';
-import {useRefetchOutdatedTimeseries} from 'sentry/views/explore/metrics/hooks/useRefetchOutdatedTimeseries';
-import {useSortableMetricQueries} from 'sentry/views/explore/metrics/hooks/useSortableMetricQueries';
-import {SortableMetricPanel} from 'sentry/views/explore/metrics/metricPanel/sortableMetricPanel';
-import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
-import {MetricSaveAs} from 'sentry/views/explore/metrics/metricToolbar/metricSaveAs';
-import {
-  MAX_METRICS_ALLOWED,
-  useAddMetricQuery,
-  useMultiMetricsQueryParams,
-} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
-import {StyledPageFilterBar} from 'sentry/views/explore/metrics/styles';
 import {isVisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
@@ -50,6 +33,21 @@ import {
   toLLMContextProjectFields,
   useSelectedProjectsForLLMContext,
 } from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
+
+import {useEquationReferencedLabels} from './hooks/useEquationReferencedLabels';
+import {useMetricReferences} from './hooks/useMetricReferences';
+import {useRefetchOutdatedTimeseries} from './hooks/useRefetchOutdatedTimeseries';
+import {useSortableMetricQueries} from './hooks/useSortableMetricQueries';
+import {SortableMetricPanel} from './metricPanel/sortableMetricPanel';
+import {MetricSaveAs} from './metricToolbar/metricSaveAs';
+import {MAX_METRIC_ALLOWED_LABEL_VALUE, METRICS_CHART_GROUP} from './constants';
+import {MetricsQueryParamsProvider} from './metricsQueryParams';
+import {
+  MAX_METRICS_ALLOWED,
+  useAddMetricQuery,
+  useMultiMetricsQueryParams,
+} from './multiMetricsQueryParams';
+import {StyledPageFilterBar} from './styles';
 
 type MetricsTabProps = {
   datePageFilterProps: DatePageFilterProps;
@@ -179,6 +177,7 @@ function MetricsTabBodySection({
       metric: q.metric?.name,
       label: q.label,
       query: q.queryParams.search.formatString(),
+      visualizes: q.queryParams.visualizes.map(v => v.serialize()),
     })),
     interval,
     currentSelectedDateRange: pageFilters.selection.datetime,

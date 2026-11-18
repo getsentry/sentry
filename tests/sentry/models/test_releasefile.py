@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from datetime import datetime, timezone
 from io import BytesIO
 from threading import Thread
@@ -10,6 +11,7 @@ from sentry.models.distribution import Distribution
 from sentry.models.files.file import File
 from sentry.models.releasefile import (
     ARTIFACT_INDEX_FILENAME,
+    ArtifactIndex,
     ReleaseFile,
     _ArtifactIndexGuard,
     delete_from_artifact_index,
@@ -72,7 +74,12 @@ class ReleaseFileTestCase(TestCase):
 
 
 class ReleaseArchiveTestCase(TestCase):
-    def create_archive(self, fields, files, dist=None):
+    def create_archive(
+        self,
+        fields: dict[str, object],
+        files: dict[str, str],
+        dist: Distribution | None = None,
+    ) -> ReleaseFile | None:
         manifest = dict(
             fields, files={filename: {"url": f"fake://{filename}"} for filename in files}
         )
@@ -103,6 +110,7 @@ class ReleaseArchiveTestCase(TestCase):
                 "baz": "bazaa",
             },
         )
+        assert archive1 is not None
 
         assert read_artifact_index(self.release, None) == {
             "files": {
@@ -144,9 +152,10 @@ class ReleaseArchiveTestCase(TestCase):
                 "zap": "zapz",
             },
         )
+        assert archive2 is not None
 
         # Two files were overwritten, one was added
-        expected = {
+        expected: ArtifactIndex = {
             "files": {
                 "fake://bar": {
                     "archive_ident": archive2.ident,
@@ -202,10 +211,13 @@ class ReleaseArchiveTestCase(TestCase):
 class ArtifactIndexGuardTestCase(TransactionTestCase):
     tick = 0.1  # seconds
 
-    def _create_update_fn(self, initial_delay, locked_delay, files, create):
-        def f():
+    def _create_update_fn(
+        self, initial_delay: float, locked_delay: float, files: dict[str, object], create: bool
+    ) -> Callable[[], None]:
+        def f() -> None:
             sleep(initial_delay * self.tick)
             with _ArtifactIndexGuard(self.release, None).writable_data(create=create) as data:
+                assert data is not None
                 sleep(locked_delay * self.tick)
                 data.update_files(files)
 
@@ -232,7 +244,7 @@ class ArtifactIndexGuardTestCase(TransactionTestCase):
         # Only one `File` was created:
         assert File.objects.filter(name=ARTIFACT_INDEX_FILENAME).count() == 1
 
-        def delete():
+        def delete() -> None:
             sleep(2 * self.tick)
             delete_from_artifact_index(release, dist, "foo")
 
@@ -254,6 +266,7 @@ class ArtifactIndexGuardTestCase(TransactionTestCase):
         dist = None
 
         with _ArtifactIndexGuard(release, dist).writable_data(create=True) as data:
+            assert data is not None
             data.update_files({"0": 0})
 
         update1 = self._create_update_fn(0, 2, {"foo": "bar"}, create=False)
@@ -270,7 +283,7 @@ class ArtifactIndexGuardTestCase(TransactionTestCase):
         assert index is not None
         assert index["files"].keys() == {"0", "foo", "123"}
 
-        def delete():
+        def delete() -> None:
             sleep(2 * self.tick)
             delete_from_artifact_index(release, dist, "foo")
 

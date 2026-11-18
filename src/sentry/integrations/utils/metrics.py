@@ -214,7 +214,7 @@ class EventLifecycle:
                     logger.warning(key, **log_params)
 
     @staticmethod
-    def _report_flow_error(message) -> None:
+    def _report_flow_error(message: str) -> None:
         logger.warning("EventLifecycle flow error: %s", message)
 
     def _terminate(
@@ -244,7 +244,7 @@ class EventLifecycle:
     def record_failure(
         self,
         failure_reason: BaseException | str | None = None,
-        extra: dict[str, Any] | None = None,
+        extra: Mapping[str, object] | None = None,
         create_issue: bool = True,
         sample_log_rate: float | None = None,
     ) -> None:
@@ -334,7 +334,13 @@ class EventLifecycle:
             # The context called record_success or record_failure being closing,
             # so we can just exit quietly.
             return
-        if exc_value is not None:
+        if exc_value is not None and not isinstance(exc_value, Exception):
+            # Non-Exception BaseExceptions (ProcessingDeadlineExceeded, KeyboardInterrupt,
+            # GeneratorExit, etc.) signal interruption rather than a defect in this
+            # operation. They keep propagating, so we leave Sentry reporting to the outer
+            # handler, which can group them appropriately.
+            self.record_halt(exc_value)
+        elif exc_value is not None:
             # We were forced to exit the context by a raised exception.
             # Default to creating a Sentry issue for unhandled exceptions
             self.record_failure(exc_value, create_issue=True)

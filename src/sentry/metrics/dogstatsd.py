@@ -1,13 +1,16 @@
 import atexit
-from typing import Any
+from typing import Any, cast
 
 from datadog import initialize
-from datadog.dogstatsd.base import statsd
+from datadog.dogstatsd.base import statsd as _statsd
 from datadog.util.hostname import get_hostname
 
 from .base import MetricsBackend, Tags
+from .datadog_stats import DatadogStats
 
 __all__ = ["DogStatsdMetricsBackend"]
+
+statsd = cast("DatadogStats", _statsd)
 
 # Set the maximum number of packets to queue for the sender.
 # How may packets to queue before blocking or dropping the packet if the packet queue is already full.

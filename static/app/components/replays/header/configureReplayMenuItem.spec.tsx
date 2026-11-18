@@ -4,7 +4,7 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import {useConfigureReplayMenuItem} from 'sentry/components/replays/header/configureReplayMenuItem';
+import {useConfigureReplayMenuItem} from './configureReplayMenuItem';
 
 function renderMenuItem({sdkName, isMobile}: {isMobile: boolean; sdkName: string}) {
   const {result} = renderHookWithProviders(useConfigureReplayMenuItem, {

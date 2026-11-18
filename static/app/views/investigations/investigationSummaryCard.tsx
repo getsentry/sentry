@@ -2,7 +2,8 @@ import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
-import {ensureSentenceEnd} from 'sentry/views/investigations/sentence';
+
+import {ensureSentenceEnd} from './sentence';
 
 type InvestigationSummaryCardProps = {
   summary: string | null;

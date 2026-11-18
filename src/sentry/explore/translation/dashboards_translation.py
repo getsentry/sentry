@@ -4,7 +4,11 @@ from django.db import router
 
 from sentry.api.serializers.base import serialize
 from sentry.discover.arithmetic import is_equation, is_equation_alias
-from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_eap
+from sentry.discover.translation.mep_to_eap import (
+    DroppedFields,
+    QueryParts,
+    translate_mep_to_eap,
+)
 from sentry.explore.translation.discover_translation import _format_orderby_for_translation
 from sentry.models.dashboard_widget import (
     DashboardWidget,
@@ -16,7 +20,7 @@ from sentry.search.events.fields import is_function
 from sentry.utils.db import atomic_transaction
 
 
-def snapshot_widget(widget: DashboardWidget):
+def snapshot_widget(widget: DashboardWidget) -> None:
     if (
         widget.widget_type == DashboardWidgetTypes.TRANSACTION_LIKE
         or (
@@ -36,18 +40,18 @@ def snapshot_widget(widget: DashboardWidget):
 
 
 def translate_dashboard_widget_queries(
-    widget,
-    q_index,
-    name,
-    original_fields,
-    original_columns,
-    original_aggregates,
-    orderby,
-    conditions,
-    field_aliases,
-    is_hidden,
-    selected_aggregate,
-):
+    widget: DashboardWidget,
+    q_index: int,
+    name: str,
+    original_fields: list[str],
+    original_columns: list[str],
+    original_aggregates: list[str],
+    orderby: str,
+    conditions: str,
+    field_aliases: list[str],
+    is_hidden: bool,
+    selected_aggregate: int | None,
+) -> tuple[DashboardWidgetQuery, DroppedFields]:
     original_fields_length = len(original_fields)
     # some widgets have fields that are not columns + aggregates.
     # we want to combine all of these into a single list but still preserve order the way we would in the frontend.
@@ -78,6 +82,7 @@ def translate_dashboard_widget_queries(
     dropped_cols = dropped_fields["selected_columns"]
     dropped_equations = [dropped["equation"] for dropped in dropped_fields["equations"]]
 
+    eap_equations = eap_query_parts["equations"] or []
     new_conditions = eap_query_parts["query"] or ""
     new_orderby = eap_query_parts["orderby"][0] if eap_query_parts["orderby"] else ""
 
@@ -106,8 +111,8 @@ def translate_dashboard_widget_queries(
 
         if is_equation_field:
             if old_index < original_fields_length:
-                new_fields.append(eap_query_parts["equations"][equation_index])
-            new_aggregates.append(eap_query_parts["equations"][equation_index])
+                new_fields.append(eap_equations[equation_index])
+            new_aggregates.append(eap_equations[equation_index])
             equation_index += 1
 
         elif is_function_field:
@@ -202,7 +207,7 @@ def translate_dashboard_widget(widget: DashboardWidget) -> DashboardWidget:
     return widget
 
 
-def restore_transaction_widget(widget):
+def restore_transaction_widget(widget: DashboardWidget) -> DashboardWidget:
     snapshot = widget.widget_snapshot
 
     if not snapshot or widget.widget_type != DashboardWidgetTypes.SPANS:

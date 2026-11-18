@@ -7,8 +7,8 @@ import {
   isInferredAnswer,
   parseExtractionInput,
   parseExtractionOutput,
-} from 'sentry/views/insights/pages/agents/utils/extraction';
-import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
+} from './extraction';
+import type {AITraceSpanNode} from './types';
 
 function makeNode(attributes: Record<string, string>): AITraceSpanNode {
   return {errors: new Set(), attributes} as unknown as AITraceSpanNode;

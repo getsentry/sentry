@@ -1,7 +1,11 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from typing import Any
 from unittest import mock
+from unittest.mock import MagicMock
+
+from rest_framework.response import Response
 
 from sentry.integrations.source_code_management.status_check import (
     AggregateChecksStatus,
@@ -11,7 +15,11 @@ from sentry.integrations.source_code_management.status_check import (
     PullRequestStatusRequest,
     PullRequestStatusResult,
 )
-from sentry.models.pullrequest import PullRequestLifecycleState
+from sentry.models.group import Group
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.models.pullrequest import PullRequest, PullRequestLifecycleState
+from sentry.seer.models.run import SeerRun
 from sentry.testutils.cases import APITestCase
 
 _INTEGRATION_SERVICE = (
@@ -38,11 +46,13 @@ class PullRequestStatusClientFake(PullRequestStatusClient):
 class OrganizationSeerAutofixScmInfoTest(APITestCase):
     endpoint = "sentry-api-0-organization-seer-autofix-scm-info"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
-    def _set_provider_client(self, mock_get_integration, client):
+    def _set_provider_client(
+        self, mock_get_integration: MagicMock, client: PullRequestStatusClientFake
+    ) -> PullRequestStatusClientFake:
         installation = mock.Mock()
         installation.get_client.return_value = client
         integration = mock.Mock()
@@ -50,7 +60,13 @@ class OrganizationSeerAutofixScmInfoTest(APITestCase):
         mock_get_integration.return_value = integration
         return client
 
-    def _run(self, *, organization=None, project=None, source="autofix"):
+    def _run(
+        self,
+        *,
+        organization: Organization | None = None,
+        project: Project | None = None,
+        source: str = "autofix",
+    ) -> tuple[SeerRun, Group]:
         organization = organization or self.organization
         project = project or self.project
         group = self.create_group(project=project)
@@ -58,7 +74,14 @@ class OrganizationSeerAutofixScmInfoTest(APITestCase):
         self.create_seer_agent_run(run, source=source, group=group, project=project)
         return run, group
 
-    def _add_pr(self, run, group, *, key="123", updates=None):
+    def _add_pr(
+        self,
+        run: SeerRun,
+        group: Group,
+        *,
+        key: str = "123",
+        updates: dict[str, Any] | None = None,
+    ) -> PullRequest:
         repo = self.create_repo(
             project=group.project,
             name="getsentry/sentry",
@@ -73,11 +96,11 @@ class OrganizationSeerAutofixScmInfoTest(APITestCase):
         self.create_seer_run_pull_request(run=run, pull_request=pr)
         return pr
 
-    def _get(self, run_ids):
+    def _get(self, run_ids: str | list[str]) -> Response:
         return self.get_success_response(self.organization.slug, qs_params={"runIds": run_ids})
 
     @mock.patch(_INTEGRATION_SERVICE)
-    def test_returns_scm_info_for_run(self, mock_get_integration):
+    def test_returns_scm_info_for_run(self, mock_get_integration: MagicMock) -> None:
         run, group = self._run()
         pr = self._add_pr(run, group)
         client = self._set_provider_client(
@@ -128,21 +151,21 @@ class OrganizationSeerAutofixScmInfoTest(APITestCase):
             }
         }
 
-    def test_run_without_prs_returns_empty_list(self):
+    def test_run_without_prs_returns_empty_list(self) -> None:
         run, _ = self._run()
         resp = self._get(str(run.uuid))
         assert resp.data["scmInfoByRunId"] == {str(run.uuid): {"pullRequests": []}}
 
-    def test_no_run_ids_returns_empty(self):
+    def test_no_run_ids_returns_empty(self) -> None:
         resp = self._get([])
         assert resp.data == {"scmInfoByRunId": {}}
 
-    def test_invalid_run_ids_returns_400(self):
+    def test_invalid_run_ids_returns_400(self) -> None:
         self.get_error_response(
             self.organization.slug, qs_params={"runIds": "not-a-uuid"}, status_code=400
         )
 
-    def test_omits_runs_from_other_orgs(self):
+    def test_omits_runs_from_other_orgs(self) -> None:
         other_org = self.create_organization(owner=self.create_user())
         other_project = self.create_project(organization=other_org)
         other_run, other_group = self._run(organization=other_org, project=other_project)
@@ -150,7 +173,7 @@ class OrganizationSeerAutofixScmInfoTest(APITestCase):
         resp = self._get(str(other_run.uuid))
         assert resp.data["scmInfoByRunId"] == {}
 
-    def test_omits_runs_from_inaccessible_same_org_projects(self):
+    def test_omits_runs_from_inaccessible_same_org_projects(self) -> None:
         org = self.create_organization(owner=self.create_user())
         member = self.create_user()
         my_team = self.create_team(organization=org)
@@ -165,7 +188,7 @@ class OrganizationSeerAutofixScmInfoTest(APITestCase):
         resp = self.get_success_response(org.slug, qs_params={"runIds": str(run.uuid)})
         assert resp.data["scmInfoByRunId"] == {}
 
-    def test_omits_non_autofix_source_runs(self):
+    def test_omits_non_autofix_source_runs(self) -> None:
         run, group = self._run(source="explorer")
         self._add_pr(run, group)
         resp = self._get(str(run.uuid))

@@ -6,11 +6,11 @@ import {
   getDataCollectionStep,
   getUploadSourceMapsStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils';
-import {AwsLambdaArn} from 'sentry/gettingStartedDocs/node-awslambda/awslambdaArnSelector';
-import {InstallationMethod} from 'sentry/gettingStartedDocs/node-awslambda/utils';
 import {getInstallCodeBlock} from 'sentry/gettingStartedDocs/node/utils';
 import {t, tct} from 'sentry/locale';
 
+import {AwsLambdaArn} from './awslambdaArnSelector';
+import {InstallationMethod} from './utils';
 import type {Params, PlatformOptions} from './utils';
 
 const getEnvSetupSnippet = (params: Params) => `
@@ -92,7 +92,7 @@ const installationMethodOnboarding: Record<
   [InstallationMethod.LAMBDA_LAYER]: {
     introduction: () =>
       tct(
-        "In this quick guide you'll use set up Sentry for your AWS Lambda function. For more information visit [link:docs].",
+        "In this quick guide you'll set up Sentry for your AWS Lambda Event Function. For more information visit [link:docs].",
         {
           link: (
             <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/aws-lambda/install/layer/" />
@@ -130,7 +130,7 @@ const installationMethodOnboarding: Record<
   [InstallationMethod.NPM_PACKAGE]: {
     introduction: () =>
       tct(
-        'In this quick guide you’ll use set up Sentry for your AWS Lambda function. For more information visit [link:docs].',
+        'In this quick guide you’ll set up Sentry for your AWS Lambda Event Function. For more information visit [link:docs].',
         {
           link: (
             <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/aws-lambda/install/npm/" />

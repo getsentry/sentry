@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import Any
 from unittest import mock
 
 from django.conf import settings
@@ -183,7 +184,7 @@ class CustomerDomainMiddlewareTest(TestCase):
 class OrganizationTestEndpoint(Endpoint):
     permission_classes = (AllowAny,)
 
-    def get(self, request, organization_id_or_slug):
+    def get(self, request: HttpRequest, organization_id_or_slug: str) -> Response:
         return Response(
             {
                 "organization_id_or_slug": organization_id_or_slug,
@@ -192,7 +193,7 @@ class OrganizationTestEndpoint(Endpoint):
             }
         )
 
-    def post(self, request, organization_id_or_slug):
+    def post(self, request: HttpRequest, organization_id_or_slug: str) -> Response:
         request.session["activeorg"] = organization_id_or_slug
         return Response(
             {
@@ -206,7 +207,7 @@ class OrganizationTestEndpoint(Endpoint):
 class OrganizationIdOrSlugTestEndpoint(Endpoint):
     permission_classes = (AllowAny,)
 
-    def get(self, request, organization_id_or_slug):
+    def get(self, request: HttpRequest, organization_id_or_slug: str) -> Response:
         return Response(
             {
                 "organization_id_or_slug": organization_id_or_slug,
@@ -235,7 +236,7 @@ urlpatterns = [
 ]
 
 
-def provision_middleware():
+def provision_middleware() -> Any:
     middleware = list(settings.MIDDLEWARE)
     if "sentry.middleware.customer_domain.CustomerDomainMiddleware" not in middleware:
         index = middleware.index("sentry.middleware.auth.AuthenticationMiddleware")

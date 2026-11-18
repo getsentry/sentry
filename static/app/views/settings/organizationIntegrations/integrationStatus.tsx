@@ -5,13 +5,8 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {CircleIndicator} from 'sentry/components/circleIndicator';
 import type {IntegrationInstallationStatus} from 'sentry/types/integrations';
-import {
-  DISABLED,
-  INSTALLED,
-  NOT_INSTALLED,
-  PENDING,
-  PENDING_DELETION,
-} from 'sentry/views/settings/organizationIntegrations/constants';
+
+import {DISABLED, INSTALLED, NOT_INSTALLED, PENDING, PENDING_DELETION} from './constants';
 
 const LEARN_MORE = 'Learn More';
 const COLORS = {

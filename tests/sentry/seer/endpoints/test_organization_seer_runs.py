@@ -1,6 +1,6 @@
 from collections.abc import Mapping
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 from django.test import override_settings
@@ -465,7 +465,9 @@ class OrganizationSeerRunsEndpointTest(APITestCase):
     @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
     @with_feature("organizations:seer-run-questions")
     @patch("sentry.seer.signed_seer_api.seer_autofix_default_connection_pool.urlopen")
-    def test_user_question_propagates_request_context_to_seer(self, mock_urlopen) -> None:
+    def test_user_question_propagates_request_context_to_seer(
+        self, mock_urlopen: MagicMock
+    ) -> None:
         run = self.create_seer_run(
             organization=self.organization,
             user_id=self.user.id,

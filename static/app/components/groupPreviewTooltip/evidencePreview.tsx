@@ -1,17 +1,15 @@
 import {useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import {GroupPreviewHovercard} from 'sentry/components/groupPreviewTooltip/groupPreviewHovercard';
-import {
-  useDelayedLoadingState,
-  usePreviewEvent,
-} from 'sentry/components/groupPreviewTooltip/utils';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {
   KeyValueTableCard,
   KeyValueTableCardPanel,
 } from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
+
+import {GroupPreviewHovercard} from './groupPreviewHovercard';
+import {useDelayedLoadingState, usePreviewEvent} from './utils';
 
 type SpanEvidencePreviewProps = {
   children: React.ReactNode;

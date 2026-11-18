@@ -1,18 +1,20 @@
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {useMutation} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {closeModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {closeModal} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import {
   OnboardingDrawerKey,
   OnboardingDrawerStore,
 } from 'sentry/stores/onboardingDrawerStore';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
@@ -41,26 +43,33 @@ export function ActionButtons({
   subscription,
   surface,
 }: Props) {
-  const api = useApi();
   const navigate = useNavigate();
 
-  const onUpdatePlan = async () => {
-    try {
-      await api.requestPromise(`/customers/${organization.slug}/subscription/`, {
+  const {mutateAsync: updateSubscription} = useMutation({
+    mutationFn: () =>
+      fetchMutation({
+        url: getApiUrl('/customers/$organizationIdOrSlug/subscription/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         method: 'PUT',
         data: {
           ...reservations,
           plan: plan?.id,
           referrer: 'replay-am2-update-modal',
         },
-      });
+      }),
+  });
+
+  const onUpdatePlan = async () => {
+    try {
+      await updateSubscription();
 
       SubscriptionStore.loadData(organization.slug, () => {
         if (onComplete) {
           onComplete();
         }
         closeModal();
-        addSuccessMessage(t('Subscription Updated!'));
+        toast.success(t('Subscription Updated!'));
 
         window.location.hash = 'replay-sidequest';
         OnboardingDrawerStore.open(OnboardingDrawerKey.REPLAYS_ONBOARDING);

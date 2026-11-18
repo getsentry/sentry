@@ -5,13 +5,14 @@ import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
-import {EmptySpanTab} from 'sentry/views/explore/conversations/components/spanTabContent';
 import {
   EvaluatedContent,
   EvaluationResults,
 } from 'sentry/views/insights/pages/agents/components/evaluationContent';
 import type {Evaluation} from 'sentry/views/insights/pages/agents/utils/evaluation';
 import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
+
+import {EmptySpanTab} from './spanTabContent';
 
 export interface SectionProps {
   children: React.ReactNode;

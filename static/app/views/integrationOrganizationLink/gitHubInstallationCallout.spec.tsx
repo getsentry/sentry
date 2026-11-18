@@ -1,6 +1,6 @@
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import * as indicators from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
 
 import {GitHubInstallationCallout} from './gitHubInstallationCallout';
 
@@ -36,7 +36,7 @@ describe('GitHubInstallationCallout', () => {
   });
 
   it('renders the warning callout and surfaces an error toast when the lookup fails', async () => {
-    const errorSpy = jest.spyOn(indicators, 'addErrorMessage');
+    const errorSpy = jest.spyOn(toast, 'error');
     MockApiClient.addMockResponse({
       url: INSTALLATION_URL,
       statusCode: 500,

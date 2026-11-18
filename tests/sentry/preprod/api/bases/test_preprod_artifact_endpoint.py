@@ -8,7 +8,7 @@ class PreprodArtifactEndpointTest(APITestCase):
         self.login_as(self.user)
         self.artifact = self.create_preprod_artifact(project=self.project)
 
-    def _get_url(self, org_slug, artifact_id):
+    def _get_url(self, org_slug: str, artifact_id: int) -> str:
         return f"/api/0/organizations/{org_slug}/preprodartifacts/{artifact_id}/build-details/"
 
     def test_extracts_project_from_artifact(self) -> None:

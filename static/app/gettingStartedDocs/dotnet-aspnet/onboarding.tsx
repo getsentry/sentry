@@ -186,10 +186,6 @@ export const onboarding: OnboardingConfig = {
                 strong: <strong />,
               }
             ),
-            tct('[link:Basic F# sample] [strong:(F#)]', {
-              link: <ExternalLink href="https://github.com/sentry-demos/fsharp" />,
-              strong: <strong />,
-            }),
           ],
         },
       ],
