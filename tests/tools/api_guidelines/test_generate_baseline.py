@@ -560,7 +560,7 @@ def test_files_warns_about_a_renamed_file_that_was_not_listed(
     assert paths == {OTHER_PATH}
     out, err = capsys.readouterr()
     assert "0 new, 3 fixed, 0 with a changed count" in out
-    assert f"Removed 3 entries for {PATH}: it's not in" in err
+    assert f"Removed 3 entries for {PATH}: the file is gone" in err
 
 
 def test_files_skips_a_missing_path_with_no_entries(
@@ -640,6 +640,26 @@ def test_root_scans_another_checkout(
     entry = _find(entries, "ExampleEndpoint.get", "query:id")
     assert entry is not None
     assert entry["owner"] == "issues-feed"
+
+
+def test_files_with_an_older_root_keeps_entries_for_files_it_does_not_have(
+    fake_repo: Path, tmp_path_factory: pytest.TempPathFactory, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (fake_repo / OTHER_PATH).write_text(OTHER_ENDPOINT)
+    assert _run_main(fake_repo) == 0
+    before = _find(_entries(fake_repo / "out.json"), "OtherEndpoint.get", "query:q")
+    assert before is not None
+
+    # an older checkout that has example.py but not other.py yet
+    older = tmp_path_factory.mktemp("older")
+    endpoint = older / PATH
+    endpoint.parent.mkdir(parents=True)
+    endpoint.write_text(EXAMPLE_ENDPOINT)
+    assert _run_main(fake_repo, "--root", str(older), "--files", PATH) == 0
+
+    # other.py still exists in this checkout so its entry stays
+    assert _find(_entries(fake_repo / "out.json"), "OtherEndpoint.get", "query:q") == before
+    assert "Removed" not in capsys.readouterr().err
 
 
 def test_root_without_a_src_folder_stops(

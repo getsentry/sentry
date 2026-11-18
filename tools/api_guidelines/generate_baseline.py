@@ -322,10 +322,12 @@ def main(argv: list[str] | None = None) -> int:
         for entry in old_entries:
             if entry["path"] in rescan_paths:
                 continue
-            # a file that's gone from the checkout has no findings left, i.e it was renamed and only
-            # its new path was listed. Keeping its entries would leave them next to the new ones
-            if not (args.root / str(entry["path"])).exists():
-                unlisted_gone[str(entry["path"])] += 1
+            # a file that's gone has no findings left, i.e it was renamed and only its new path was
+            # listed. Keeping its entries would leave them next to the new ones. It has to be gone
+            # from this checkout too: an older --root may not have a file that exists here yet
+            path = str(entry["path"])
+            if not (args.root / path).exists() and not (_REPO_ROOT / path).exists():
+                unlisted_gone[path] += 1
                 continue
             kept_entries.append(entry)
 
@@ -384,8 +386,8 @@ def main(argv: list[str] | None = None) -> int:
         for path in sorted(unlisted_gone):
             if path not in moved_from:
                 print(
-                    f"Removed {unlisted_gone[path]} entries for {path}: it's not in {args.root} and wasn't "
-                    "in --files. If it was renamed, rescan its new path too.",
+                    f"Removed {unlisted_gone[path]} entries for {path}: the file is gone and it "
+                    "wasn't in --files. If it was renamed, rescan its new path too.",
                     file=sys.stderr,
                 )
     else:
