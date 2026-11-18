@@ -144,13 +144,15 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
   const isPaused = isPrIterationPaused(autofix.runState);
 
   const outOfCredits = autofix.runState?.pr_iteration_out_of_credits;
-  const outOfCreditsMessage = outOfCredits
-    ? getPrIterationOutOfCreditsMessage(
-        getPrIterationWaitingAction(autofix.runState),
-        autofix.runState?.queued_feedback?.length ?? 0,
-        outOfCredits.denial_reason
-      )
-    : null;
+  // A stopped step says so itself, below.
+  const outOfCreditsMessage =
+    outOfCredits && !isOutOfCredits
+      ? getPrIterationOutOfCreditsMessage(
+          getPrIterationWaitingAction(autofix.runState),
+          autofix.runState?.queued_feedback?.length ?? 0,
+          outOfCredits.denial_reason
+        )
+      : null;
 
   // Once a PR exists, reset opens the PR iteration form, so it stays available
   // while an iteration is processing.

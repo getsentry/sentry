@@ -3010,6 +3010,39 @@ describe('out of credits', () => {
     }
   );
 
+  it('shows only the stop line when a stopped PR iteration has queued feedback', () => {
+    mockCreditCheck('autofix_pr_iteration', false);
+    render(
+      <CodeChangesCard
+        autofix={{
+          ...mockAutofix,
+          runState: {
+            ...stoppedRunState,
+            repo_pr_states: {'org/repo': makePR()},
+            pr_iteration_out_of_credits: {
+              unfinished_action: 'agent_turn',
+              denial_reason: null,
+            },
+            queued_feedback: [{text: 'Also log it', source: {type: 'user-ui'}}],
+          },
+        }}
+        groupId="1"
+        section={makeOutOfCreditsSection('code_changes', [
+          makePrIterationBlock(0, {text: 'Please add a test'}),
+          seerErrorBlock,
+        ])}
+      />,
+      {organization}
+    );
+
+    expect(
+      screen.getByText(
+        'Seer stopped before updating the pull request because your organization is out of credits.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Seer couldn't start on/)).not.toBeInTheDocument();
+  });
+
   it.each([
     [
       null,
