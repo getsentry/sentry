@@ -131,7 +131,6 @@ export function NewWelcomeUI(props: StepProps) {
   const showAgentSetup = organization.features.includes('onboarding-agentic-setup');
   const {
     run,
-    onboardingCode,
     isAgentConnected,
     isSetupComplete,
     hasRunFailed,
@@ -220,7 +219,6 @@ export function NewWelcomeUI(props: StepProps) {
                   hasProgressFailed={hasProgressFailed}
                   onRefresh={() => void refreshRun()}
                   isAgentConnected={isAgentConnected}
-                  onboardingCode={onboardingCode}
                   onCopyCommand={handleCopyCommand}
                   onRetry={restartRun}
                   onSelectSnippet={handleSelectSnippet}
