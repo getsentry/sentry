@@ -34,8 +34,18 @@ import {useOverlay} from '@sentry/scraps/useOverlay';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {usePrevious} from 'sentry/utils/usePrevious';
+import {
+  AwaitingDataTag,
+  FREEFORM_METRIC_TYPES,
+  FREEFORM_METRIC_UNITS,
+  FreeformName,
+  FreeformNewTag,
+  FreeformOptionLabel,
+  FreeformTypeDescription,
+  getFreeformName,
+} from 'sentry/views/explore/components/freeform';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {NONE_UNIT} from 'sentry/views/explore/metrics/constants';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
@@ -62,6 +72,10 @@ const METRIC_SELECTOR_OPTION_HEIGHT = 42;
 const METRIC_SELECTOR_DROPDOWN_MAX_HEIGHT = 400;
 const METRIC_SELECTOR_DROPDOWN_MIN_HEIGHT = 0;
 const FIELD_OPTION_VALUE = '__field__';
+const FREEFORM_OPTION_VALUE = '__freeform__';
+const FREEFORM_METRIC_TYPE_OPTION_PREFIX = '__freeform_metric_type__:';
+const FREEFORM_METRIC_UNIT_OPTION_PREFIX = '__freeform_metric_unit__:';
+
 function maybePortal(element: React.ReactElement, portal?: boolean) {
   return portal ? createPortal(element, document.body) : element;
 }
@@ -101,9 +115,11 @@ export function MetricSelector({
   usePortal,
   fieldOption,
   getDisabledOptionReason,
+  allowFreeformMetric,
 }: {
   onChange: (traceMetric: TraceMetric) => void;
   traceMetric: TraceMetric;
+  allowFreeformMetric?: boolean;
   environments?: string[];
   // A field option is a special option that is injected and used to select a field from the dataset.
   fieldOption?: {
@@ -138,6 +154,21 @@ export function MetricSelector({
     projectIds,
     environments,
   });
+
+  // Looked up separately from the search results so the "Awaiting data" state
+  // doesn't flicker while the user types in the search input.
+  const {data: selectedMetricData} = useMetricOptions({
+    search: traceMetric.name,
+    projectIds,
+    environments,
+    enabled: Boolean(allowFreeformMetric && traceMetric.name),
+  });
+  const isAwaitingData =
+    Boolean(allowFreeformMetric && traceMetric.name) &&
+    selectedMetricData !== undefined &&
+    !selectedMetricData.data?.some(
+      row => row[TraceMetricKnownFieldKey.METRIC_NAME] === traceMetric.name
+    );
 
   const traceMetricDisplayUnit =
     traceMetric.unit && traceMetric.unit !== '-' ? traceMetric.unit : NONE_UNIT;
@@ -265,9 +296,18 @@ export function MetricSelector({
     // Prefer the API version of the selected metric (it has count/lastSeen),
     // falling back to the bare optionFromTraceMetric when the API hasn't
     // returned it (e.g. filtered by search or still loading).
+    const selectedApiOption = selectedApiOptions.find(
+      o => o.value === traceMetricSelectValue
+    );
+    const fallbackOption =
+      optionFromTraceMetric && isAwaitingData
+        ? {
+            ...optionFromTraceMetric,
+            trailingItems: () => <AwaitingDataTag />,
+          }
+        : optionFromTraceMetric;
     const selectedOption = traceMetric.name
-      ? (selectedApiOptions.find(o => o.value === traceMetricSelectValue) ??
-        optionFromTraceMetric)
+      ? (selectedApiOption ?? fallbackOption)
       : null;
 
     const options = [
@@ -291,6 +331,7 @@ export function MetricSelector({
       ...options,
     ];
   }, [
+    isAwaitingData,
     fieldOption,
     metricOptionsData,
     optionFromTraceMetric,
@@ -339,10 +380,78 @@ export function MetricSelector({
   // Show the previous options while a new search is loading so the list
   // doesn't flash empty during debounced re-fetches.
   const previousOptions = usePrevious(metricOptions);
-  const displayedOptions = useMemo(
-    () => (isFetching ? previousOptions : metricOptions),
-    [isFetching, previousOptions, metricOptions]
-  );
+  // Set after "Add freeform metric" is picked; the list then asks for a metric
+  // type, and once that's picked, a unit.
+  const [pendingFreeformName, setPendingFreeformName] = useState<string | null>(null);
+  const [pendingFreeformType, setPendingFreeformType] =
+    useState<TraceMetricTypeValue | null>(null);
+  const displayedOptions = useMemo((): MetricSelectorItem[] => {
+    if (pendingFreeformName && pendingFreeformType) {
+      const unitSearch = searchInputValue.trim().toLowerCase();
+      return FREEFORM_METRIC_UNITS.filter(({label, description}) =>
+        `${label} ${description}`.toLowerCase().includes(unitSearch)
+      ).map(({value: metricUnit, label, description}) => ({
+        kind: 'freeformMetricUnit',
+        metricUnit,
+        label,
+        textValue: label,
+        value: `${FREEFORM_METRIC_UNIT_OPTION_PREFIX}${metricUnit}`,
+        trailingItems: () => (
+          <FreeformTypeDescription>{description}</FreeformTypeDescription>
+        ),
+      }));
+    }
+    if (pendingFreeformName) {
+      const metricTypeSearch = searchInputValue.trim().toLowerCase();
+      return FREEFORM_METRIC_TYPES.filter(({label}) =>
+        label.toLowerCase().includes(metricTypeSearch)
+      ).map(({value: metricType, label, description}) => ({
+        kind: 'freeformMetricType',
+        metricType,
+        label,
+        textValue: label,
+        value: `${FREEFORM_METRIC_TYPE_OPTION_PREFIX}${metricType}`,
+        trailingItems: () => (
+          <FreeformTypeDescription>{description}</FreeformTypeDescription>
+        ),
+      }));
+    }
+    const options = isFetching ? previousOptions : metricOptions;
+    const freeformName = allowFreeformMetric
+      ? getFreeformName(
+          searchInputValue,
+          options.filter(isMetricSelectorOption).map(option => option.metricName)
+        )
+      : null;
+    if (!freeformName) {
+      return options;
+    }
+    return [
+      {
+        kind: 'freeform',
+        metricName: freeformName,
+        label: (
+          <FreeformOptionLabel>
+            {tct('Add freeform metric [name]', {
+              name: <FreeformName name={freeformName} />,
+            })}
+          </FreeformOptionLabel>
+        ),
+        textValue: freeformName,
+        value: FREEFORM_OPTION_VALUE,
+        trailingItems: () => <FreeformNewTag />,
+      },
+      ...options,
+    ];
+  }, [
+    allowFreeformMetric,
+    isFetching,
+    searchInputValue,
+    pendingFreeformName,
+    pendingFreeformType,
+    previousOptions,
+    metricOptions,
+  ]);
 
   // Find the option with the longest label to render as a hidden element.
   // This reserves enough width for the overlay so it doesn't resize as
@@ -380,8 +489,11 @@ export function MetricSelector({
     return new Set(
       displayedOptions
         .filter(option => {
-          if (!isMetricSelectorOption(option)) {
+          if (option.kind === 'field') {
             return Boolean(fieldOption?.disabledReason);
+          }
+          if (!isMetricSelectorOption(option)) {
+            return false;
           }
           return Boolean(getDisabledOptionReason?.(option));
         })
@@ -407,6 +519,8 @@ export function MetricSelector({
     }
 
     setSearchInputValue('');
+    setPendingFreeformName(null);
+    setPendingFreeformType(null);
     comboBoxState.selectionManager.setFocused(false);
     comboBoxState.selectionManager.setFocusedKey(null);
     nextFrameCallback(() => {
@@ -450,6 +564,37 @@ export function MetricSelector({
       }
       if (String(key) === FIELD_OPTION_VALUE && fieldOption) {
         fieldOption.onSelect();
+        comboBoxState.toggle();
+        return;
+      }
+      const freeformOption = displayedOptionsMap.get(String(key));
+      if (freeformOption?.kind === 'freeform') {
+        setPendingFreeformName(freeformOption.metricName);
+        setSearchInputValue('');
+        return;
+      }
+      if (
+        String(key).startsWith(FREEFORM_METRIC_TYPE_OPTION_PREFIX) &&
+        pendingFreeformName
+      ) {
+        const metricType = String(key).slice(FREEFORM_METRIC_TYPE_OPTION_PREFIX.length);
+        if (!isTraceMetricTypeValue(metricType)) {
+          return;
+        }
+        setPendingFreeformType(metricType);
+        setSearchInputValue('');
+        return;
+      }
+      if (
+        String(key).startsWith(FREEFORM_METRIC_UNIT_OPTION_PREFIX) &&
+        pendingFreeformName &&
+        pendingFreeformType
+      ) {
+        onChange({
+          name: pendingFreeformName,
+          type: pendingFreeformType,
+          unit: String(key).slice(FREEFORM_METRIC_UNIT_OPTION_PREFIX.length),
+        });
         comboBoxState.toggle();
         return;
       }
@@ -611,6 +756,11 @@ export function MetricSelector({
           <Text ellipsis italic>
             {t('field')}
           </Text>
+        ) : isAwaitingData ? (
+          <Flex gap="sm" align="center" minWidth="0">
+            <Text ellipsis>{traceMetric.name}</Text>
+            <AwaitingDataTag />
+          </Flex>
         ) : (
           <Text ellipsis>{traceMetric.name || t('None')}</Text>
         )}
@@ -653,8 +803,16 @@ export function MetricSelector({
                     width="100%"
                   >
                     <Flex align="center" justify="between" padding="sm lg">
-                      <Text size="sm" bold wrap="nowrap">
-                        {t('Application Metrics')}
+                      <Text size="sm" bold ellipsis>
+                        {pendingFreeformName && pendingFreeformType
+                          ? tct('Choose a unit for [name]', {
+                              name: <Text monospace>{pendingFreeformName}</Text>,
+                            })
+                          : pendingFreeformName
+                            ? tct('Choose a metric type for [name]', {
+                                name: <Text monospace>{pendingFreeformName}</Text>,
+                              })
+                            : t('Application Metrics')}
                       </Text>
                       {isFetching ? (
                         <LoadingIndicator size={12} style={{margin: 0}} />
@@ -676,7 +834,13 @@ export function MetricSelector({
                         </InputGroup.LeadingItems>
                         <InputGroup.Input
                           {...comboBoxInputProps}
-                          placeholder={t('Search application metrics\u2026')}
+                          placeholder={
+                            pendingFreeformName && pendingFreeformType
+                              ? t('Search units\u2026')
+                              : pendingFreeformName
+                                ? t('Search metric types\u2026')
+                                : t('Search application metrics\u2026')
+                          }
                           size="xs"
                           ref={searchRef}
                         />

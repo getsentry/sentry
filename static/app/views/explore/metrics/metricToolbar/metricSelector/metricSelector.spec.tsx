@@ -708,4 +708,69 @@ describe('MetricSelector', () => {
       });
     });
   });
+
+  describe('freeform metrics', () => {
+    it('adds a freeform metric after choosing its metric type and unit', async () => {
+      const onChange = jest.fn();
+      render(
+        <MetricSelector
+          traceMetric={DEFAULT_TRACE_METRIC}
+          onChange={onChange}
+          allowFreeformMetric
+        />,
+        {organization}
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+      await userEvent.type(
+        await screen.findByPlaceholderText('Search application metrics\u2026'),
+        'checkout.latency'
+      );
+      // The option is named by the typed metric name and labelled as an add.
+      const freeformOption = await screen.findByRole('option', {
+        name: 'checkout.latency',
+      });
+      expect(freeformOption).toHaveTextContent('Add freeform metric "checkout.latency"');
+      await userEvent.click(freeformOption);
+
+      // The second step asks for a metric type before anything is selected.
+      expect(onChange).not.toHaveBeenCalled();
+      expect(screen.getByText(/Choose a metric type for/)).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: /Counter/})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: /Gauge/})).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('option', {name: /Distribution/}));
+
+      // The third step asks for the unit the app will send the metric with.
+      expect(onChange).not.toHaveBeenCalled();
+      expect(screen.getByText(/Choose a unit for/)).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'none'})).toBeInTheDocument();
+      await userEvent.type(screen.getByPlaceholderText('Search units\u2026'), 'milli');
+      await userEvent.click(screen.getByRole('option', {name: 'millisecond'}));
+
+      expect(onChange).toHaveBeenCalledWith({
+        name: 'checkout.latency',
+        type: 'distribution',
+        unit: 'millisecond',
+      });
+    });
+
+    it('does not offer a freeform metric unless allowFreeformMetric is set', async () => {
+      render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={jest.fn()} />, {
+        organization,
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'bar'}));
+      await userEvent.type(
+        await screen.findByPlaceholderText('Search application metrics\u2026'),
+        'checkout.latency'
+      );
+
+      await screen.findByRole('listbox');
+      expect(
+        screen.queryByRole('option', {name: 'checkout.latency'})
+      ).not.toBeInTheDocument();
+      expect(screen.queryByText(/Add freeform metric/)).not.toBeInTheDocument();
+    });
+  });
 });
