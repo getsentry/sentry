@@ -13,6 +13,7 @@ import unescape from 'lodash/unescape';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
 import type {BandBucket} from 'sentry/components/charts/bands/bandShapes';
+import {useBandTooltips} from 'sentry/components/charts/bands/bandTooltip';
 import {mergeChartBands} from 'sentry/components/charts/bands/mergeChartBands';
 import {useReleaseBand} from 'sentry/components/charts/bands/useReleaseBand';
 import {BaseChart} from 'sentry/components/charts/baseChart';
@@ -507,11 +508,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     releases: hasReleaseBand ? props.releases : undefined,
   });
 
-  const droppedDataBand = useDroppedDataBand({
-    chartRef,
-    droppedData: props.droppedData,
-    utc,
-  });
+  const droppedDataBand = useDroppedDataBand({droppedData: props.droppedData});
+  const bands = useBandTooltips([droppedDataBand, releaseBand], {chartRef, utc});
 
   const showYAxisProp = props.showYAxis ?? 'auto';
   const showYAxis = showYAxisProp === 'auto';
@@ -794,7 +792,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       series: allSeries,
       onClick: handleClick,
     },
-    [droppedDataBand, releaseBand],
+    bands,
     {offset: releaseBubblesHeight}
   );
 

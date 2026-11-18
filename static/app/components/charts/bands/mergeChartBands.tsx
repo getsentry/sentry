@@ -9,16 +9,18 @@ import type {
 import type {EChartClickHandler} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
 
-import {BAND_Y_AXIS} from './bandShapes';
+import {BAND_Y_AXIS, type BandBucket} from './bandShapes';
 
 /**
  * A strip of per-bucket markers drawn under a chart's plot.
  */
 export interface ChartBand {
+  buckets: BandBucket[];
   height: number;
   id: string;
   series: (offset: number) => CustomSeriesOption;
   onClick?: () => void;
+  tooltipSection?: (start: number) => React.ReactElement | null;
 }
 
 interface ChartBandsOptions {

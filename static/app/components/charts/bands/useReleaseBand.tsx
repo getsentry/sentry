@@ -2,6 +2,10 @@ import {useMemo} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import type {CustomSeriesRenderItem} from 'echarts';
 
+import {Container} from '@sentry/scraps/layout';
+
+import {t} from 'sentry/locale';
+
 import {
   BAND_HEIGHT,
   bandLayout,
@@ -17,6 +21,7 @@ import {
   type BucketableRelease,
   type ReleaseBucket,
 } from './bucketReleases';
+import {ChartBandTooltipHeading} from './chartBandTooltip';
 import type {ChartBand} from './mergeChartBands';
 
 export const RELEASE_BAND_SERIES_ID = '__release_band__';
@@ -95,9 +100,23 @@ export function useReleaseBand({
       value: [bucket.start, 0],
     }));
 
+    const bucketsByStart = new Map(releaseBuckets.map(bucket => [bucket.start, bucket]));
+
     return {
       id: RELEASE_BAND_SERIES_ID,
+      buckets: releaseBuckets,
       height: BAND_HEIGHT,
+      tooltipSection: start => {
+        const bucket = bucketsByStart.get(start);
+        return bucket ? (
+          <Container as="section">
+            <ChartBandTooltipHeading
+              label={t('Releases')}
+              value={bucket.releases.length}
+            />
+          </Container>
+        ) : null;
+      },
       series: bandOffset => ({
         type: 'custom',
         renderItem: releaseBandRenderItem(data, bandOffset, theme),
@@ -106,7 +125,6 @@ export function useReleaseBand({
         color: theme.tokens.graphics.accent.vibrant,
         animation: false,
         legendHoverLink: false,
-        tooltip: {show: false},
       }),
     };
   }, [buckets, releases, theme]);
