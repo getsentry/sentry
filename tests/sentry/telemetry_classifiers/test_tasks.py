@@ -184,6 +184,7 @@ class ClassifyEntityTest(ClassifierTaskTestCase):
             client_sample_rate=1.0,
             conversation_id="conversation",
             environment="production",
+            user=None,
         )
         self.dataset.load.return_value = self.source
         self.classify.return_value = {"type": "predicate", "name": "match", "probability": 0.8}

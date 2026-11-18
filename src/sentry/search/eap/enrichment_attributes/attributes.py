@@ -16,5 +16,6 @@ ENRICHMENT_ATTRIBUTE_DEFINITIONS = {
             search_type="string",
         ),
         simple_sentry_field("environment"),
+        simple_sentry_field("user"),
     ]
 }

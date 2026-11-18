@@ -15,6 +15,7 @@ SOURCE = TelemetryInput(
     client_sample_rate=0.5,
     conversation_id="conversation",
     environment="production",
+    user="id:42",
 )
 
 
@@ -49,6 +50,7 @@ class WriteResultTest(TestCase):
             attributes={
                 "sentry.enrichment.frustration": 0.9,
                 "sentry.environment": "production",
+                "sentry.user": "id:42",
             },
             conversation_id="conversation",
             client_sample_rate=0.5,
@@ -63,11 +65,11 @@ class WriteResultTest(TestCase):
 
         assert produce.call_args.kwargs["retention_days"] == 30
 
-    def test_skips_missing_environment(self, produce: MagicMock) -> None:
+    def test_skips_missing_environment_and_user(self, produce: MagicMock) -> None:
         write_result(
             self.classifier,
             "conversation",
-            replace(SOURCE, environment=None),
+            replace(SOURCE, environment=None, user=None),
             {"sentry.enrichment.frustration": 0.9},
             DataCategory.SPAN,
         )

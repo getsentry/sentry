@@ -122,6 +122,7 @@ class LoadConversationTest(BaseAIConversationsTestCase):
             client_sample_rate=1.0,
             conversation_id="conversation",
             environment=None,
+            user=None,
         )
 
     def test_keeps_newest_spans_and_cuts_long_messages(self) -> None:
@@ -166,6 +167,23 @@ class LoadConversationTest(BaseAIConversationsTestCase):
 
         assert loaded is not None
         assert loaded.environment == "production"
+
+    def test_takes_user_from_newest_span(self) -> None:
+        for index, user in enumerate(["id:1", "email:user@example.com"]):
+            span = self.store_ai_span(
+                "conversation",
+                self.start + timedelta(seconds=index),
+                operation_type="ai_client",
+                input_messages=[{"role": "user", "content": user}],
+                store=False,
+            )
+            span["data"]["sentry.user"] = user
+            self.store_spans([span])
+
+        loaded = DATASET.load(self.project, "conversation")
+
+        assert loaded is not None
+        assert loaded.user == "email:user@example.com"
 
     def test_returns_none_without_message_spans(self) -> None:
         self.store_ai_span("conversation", self.start, operation_type="tool")

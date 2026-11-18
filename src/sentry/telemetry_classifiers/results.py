@@ -14,6 +14,7 @@ from sentry.telemetry_classifiers.types import TelemetryInput
 # Used when the organization's retention for the category isn't limited.
 _DEFAULT_RETENTION_DAYS = 30
 _ENVIRONMENT_ATTRIBUTE = "sentry.environment"
+_USER_ATTRIBUTE = "sentry.user"
 
 
 def write_result(
@@ -35,6 +36,8 @@ def write_result(
     )
     if source.environment:
         attributes = {**attributes, _ENVIRONMENT_ATTRIBUTE: source.environment}
+    if source.user:
+        attributes = {**attributes, _USER_ATTRIBUTE: source.user}
     produce_enrichment_attributes(
         project,
         idempotency_key=f"{classifier.id}:{entity_id}:{source.timestamp.isoformat()}",

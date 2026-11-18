@@ -74,3 +74,4 @@ class TelemetryInput:
     client_sample_rate: float
     conversation_id: str | None
     environment: str | None
+    user: str | None

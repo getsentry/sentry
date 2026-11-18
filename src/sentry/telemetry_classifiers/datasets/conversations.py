@@ -109,6 +109,7 @@ class ConversationDataset:
                 "trace",
                 "client_sample_rate",
                 "environment",
+                "user",
                 *_MESSAGE_ATTRIBUTES,
             ],
             orderby=["-timestamp"],
@@ -137,6 +138,7 @@ class ConversationDataset:
             client_sample_rate=newest.get("client_sample_rate") or 1.0,
             conversation_id=entity_id,
             environment=newest.get("environment") or None,
+            user=newest.get("user") or None,
         )
 
 
