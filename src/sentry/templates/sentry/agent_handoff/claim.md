@@ -12,14 +12,9 @@ logs, and conversation output. Opening this page leaves the handoff code availab
 Replace HANDOFF_CODE with the handoff code and run the command for the current shell
 once. Follow the instructions printed after setup succeeds.
 
-```bash
-curl -fsSL https://cli.sentry.dev/install | {{ unix_host }}SENTRY_HANDOFF=HANDOFF_CODE bash
-```
+{{ unix_installer }}
 
-```powershell
-{{ windows_host }}$env:SENTRY_HANDOFF = 'HANDOFF_CODE'
-irm https://cli.sentry.dev/install.ps1 | iex
-```
+{{ windows_installer }}
 
 If the user's message does not include a handoff code, ask them to copy the prompt from
 Sentry. If setup fails after using the handoff code, follow the CLI's recovery guidance.
