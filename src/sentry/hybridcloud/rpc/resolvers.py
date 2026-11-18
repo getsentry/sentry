@@ -28,7 +28,7 @@ class CellResolutionStrategy(ABC):
         from sentry.models.organizationmapping import OrganizationMapping
 
         try:
-            mapping = OrganizationMapping.objects.get_from_cache(**query)
+            mapping = OrganizationMapping.objects.get_from_cache(**query, use_replica=True)
         except OrganizationMapping.DoesNotExist as e:
             raise CellMappingNotFound from e
 
