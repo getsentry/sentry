@@ -674,11 +674,7 @@ function CreditsChat({
           access: isBillingMember
             ? [...organization.access, 'org:billing']
             : organization.access.filter(scope => scope !== 'org:billing'),
-          features: [
-            ...organization.features,
-            'seer-credit-checks',
-            'token-billed-seer-enabled',
-          ],
+          features: [...organization.features, 'token-billed-seer-enabled'],
         }}
       >
         <QueryClientProvider client={queryClient}>

@@ -53,6 +53,9 @@ const stateDirectory = path.join(root, '.artifacts/lint-incubator/transactions')
 const lock = path.join(stateDirectory, 'owner.json');
 const require = createRequire(path.join(root, 'package.json'));
 const nativeCLI = path.join(path.dirname(require.resolve('oxlint')), 'cli.js');
+const typeAwareBackend = fileURLToPath(
+  new URL('bin/tsrs-lint', import.meta.resolve('tsrs/package.json'))
+);
 
 function record(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -395,7 +398,11 @@ async function nativeScan(directory: string, allowed: Set<string>, policy: strin
       ],
       {
         cwd: directory,
-        env: {...process.env, SENTRY_OXLINT_TYPEAWARE: 'true'},
+        env: {
+          ...process.env,
+          OXLINT_TSGOLINT_PATH: typeAwareBackend,
+          SENTRY_OXLINT_TYPEAWARE: 'true',
+        },
         stdio: ['ignore', 'pipe', 'pipe'],
       }
     );

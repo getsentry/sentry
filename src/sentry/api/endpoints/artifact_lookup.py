@@ -94,7 +94,7 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
                     projectartifactbundle__project_id=project.id,
                 )
                 .select_related("file")
-                .first()
+                .first()  # noqa: S035
             )
             metrics.incr("sourcemaps.download.artifact_bundle")
         elif ty == "release_file":
