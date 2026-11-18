@@ -705,9 +705,13 @@ class OutboxContext(threading.local):
         """Whether outbox saves drain on commit; None outside any outbox_context."""
         if not self.in_outbox_context:
             return None
-        if self.flush_override is None:
-            return True
-        return self.flush_override
+
+        # 1. A flag was passed to this context, or 2. to an enclosing one: use it
+        if self.flush_override is not None:
+            return self.flush_override
+
+        # 3. No caller passed a flag: flush
+        return True
 
 
 _outbox_context = OutboxContext()
