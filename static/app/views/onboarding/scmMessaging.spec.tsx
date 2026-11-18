@@ -932,7 +932,7 @@ describe('ScmMessaging', () => {
     expect(onComplete).not.toHaveBeenCalled();
   });
 
-  describe('project reuse on back-navigation', () => {
+  describe('existing project on back-navigation', () => {
     // The destination selectedMessagingSetup stages, as the snapshot records it.
     const stagedSelection = {provider: 'slack', integrationId: '15', channel: '#alerts'};
 
@@ -988,6 +988,59 @@ describe('ScmMessaging', () => {
       expect(trackAnalyticsSpy).not.toHaveBeenCalledWith(
         'onboarding.scm_messaging_completed',
         expect.anything()
+      );
+    });
+
+    it('swaps the alert workflow on the same project when the destination changed', async () => {
+      mockIntegration();
+      mockChannelValidate(true);
+      const createProjectRequest = mockCreateProject();
+      const createWorkflowRequest = mockCreateWorkflow();
+      const detector = IssueStreamDetectorFixture({projectId: createdProject.id});
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/workflows/`,
+        body: [
+          AutomationFixture({
+            id: 'old-workflow',
+            name: 'Send a notification for high priority issues',
+            detectorIds: [detector.id],
+          }),
+        ],
+      });
+      const deleteWorkflowRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/workflows/old-workflow/`,
+        method: 'DELETE',
+      });
+      const onComplete = jest.fn();
+      const onCreatedProjectChange = jest.fn();
+      renderMessaging({
+        createdProject: {
+          slug: createdProject.slug,
+          messagingSelection: {...stagedSelection, channel: '#ops'},
+        },
+        onComplete,
+        onCreatedProjectChange,
+      });
+
+      const continueButton = screen.getByRole('button', {name: 'Continue'});
+      await waitFor(() => expect(continueButton).toBeEnabled());
+      await userEvent.click(continueButton);
+
+      await waitFor(() =>
+        expect(onComplete).toHaveBeenCalledWith(selectedPlatform, {
+          product: selectedFeatures,
+        })
+      );
+      expect(createProjectRequest).not.toHaveBeenCalled();
+      expect(createWorkflowRequest).toHaveBeenCalledTimes(1);
+      expect(deleteWorkflowRequest).toHaveBeenCalledTimes(1);
+      expect(onCreatedProjectChange).toHaveBeenCalledWith({
+        slug: createdProject.slug,
+        messagingSelection: stagedSelection,
+      });
+      expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+        'onboarding.scm_messaging_completed',
+        expect.objectContaining({notification: 'integration'})
       );
     });
 

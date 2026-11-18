@@ -9,6 +9,7 @@ from sentry.integrations.github.integration import GitHubOAuthLoginResult
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.project import Project
+from sentry.models.projectkey import ProjectKey
 from sentry.models.rule import Rule
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.asserts import assert_existing_projects_status
@@ -742,16 +743,17 @@ class OnboardingTest(AcceptanceTestCase):
             self.org, active_project_ids=[project.id], deleted_project_ids=[]
         )
 
-    def test_platform_change_after_back_replaces_non_active_project(self) -> None:
-        """Back keeps the project. Continuing with a different platform replaces the
-        non-active project instead of leaving it behind, and browser Back keeps the
-        replacement."""
+    def test_platform_change_after_back_edits_project(self) -> None:
+        """Back keeps the project. Continuing with a different platform edits that
+        project instead of creating another, so its DSN stays valid, and browser
+        Back keeps it."""
         self.start_onboarding()
         self.continue_past_platform_features("Next.js", "Next.js")
 
         self.browser.wait_until(xpath='//h2[text()="Configure Next.js SDK"]')
-        project1 = Project.objects.get(organization=self.org, slug="javascript-nextjs")
-        assert project1.platform == "javascript-nextjs"
+        project = Project.objects.get(organization=self.org, slug="javascript-nextjs")
+        assert project.platform == "javascript-nextjs"
+        key = ProjectKey.objects.get(project=project)
 
         self.browser.click('[aria-label="Back"]')
         self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
@@ -763,11 +765,13 @@ class OnboardingTest(AcceptanceTestCase):
         self.browser.click(xpath='//button[contains(., "Continue")]')
 
         self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
-        project2 = Project.objects.get(organization=self.org, slug="javascript-react")
-        assert project2.platform == "javascript-react"
-
+        project.refresh_from_db()
+        assert project.platform == "javascript-react"
+        # The name came from the platform, so it follows it.
+        assert project.slug == "javascript-react"
+        assert ProjectKey.objects.get(project=project).public_key == key.public_key
         assert_existing_projects_status(
-            self.org, active_project_ids=[project2.id], deleted_project_ids=[project1.id]
+            self.org, active_project_ids=[project.id], deleted_project_ids=[]
         )
 
         self.browser.back()
@@ -778,7 +782,7 @@ class OnboardingTest(AcceptanceTestCase):
         self.browser.get(f"/organizations/{self.org.slug}/projects/")
         self.browser.wait_until("[data-test-id='javascript-react']")
         assert_existing_projects_status(
-            self.org, active_project_ids=[project2.id], deleted_project_ids=[project1.id]
+            self.org, active_project_ids=[project.id], deleted_project_ids=[]
         )
 
     def test_scm_back_from_setup_docs_control_active_project_no_changes(self) -> None:
@@ -802,14 +806,14 @@ class OnboardingTest(AcceptanceTestCase):
             )
 
     def test_scm_back_from_setup_docs_control_active_project_platform_changed(self) -> None:
-        """Control path: changing the platform after Back creates a new project and
-        keeps the old one, because it has received data."""
+        """Control path: changing the platform after Back edits the project even
+        when it has received data, instead of creating a second one."""
         with self.projects_born_active():
             self.start_onboarding()
             self.continue_past_platform_features("React", "React")
 
             self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
-            project1 = Project.objects.get(organization=self.org)
+            project = Project.objects.get(organization=self.org)
 
             self.browser.click('[aria-label="Back"]')
             self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
@@ -822,12 +826,10 @@ class OnboardingTest(AcceptanceTestCase):
             self.browser.click(xpath='//button[contains(., "Continue")]')
 
             self.browser.wait_until(xpath='//h2[text()="Configure Vue SDK"]')
-            project2 = Project.objects.get(organization=self.org, platform="javascript-vue")
-            assert project2.id != project1.id
+            project.refresh_from_db()
+            assert project.platform == "javascript-vue"
             assert_existing_projects_status(
-                self.org,
-                active_project_ids=[project1.id, project2.id],
-                deleted_project_ids=[],
+                self.org, active_project_ids=[project.id], deleted_project_ids=[]
             )
 
     def test_scm_treatment_set_up_later_creates_email_only_project(self) -> None:
@@ -853,12 +855,11 @@ class OnboardingTest(AcceptanceTestCase):
                 self.org, active_project_ids=[project.id], deleted_project_ids=[]
             )
 
-    def test_scm_treatment_browser_back_platform_change_replaces_non_active_project(
+    def test_scm_treatment_browser_back_platform_change_edits_project(
         self,
     ) -> None:
         """Treatment path: browser Back keeps the project like in-app Back does.
-        Switching the platform and choosing Set up later replaces the non-active
-        project instead of leaving an empty one behind."""
+        Switching the platform and choosing Set up later edits that project."""
         with self.feature(SCM_MESSAGING_TREATMENT):
             self.start_onboarding()
             self.continue_past_platform_features("React", "React")
@@ -866,15 +867,15 @@ class OnboardingTest(AcceptanceTestCase):
             self.browser.click(xpath='//button[contains(., "Set up later")]')
 
             self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
-            project1 = Project.objects.get(organization=self.org)
-            assert project1.platform == "javascript-react"
+            project = Project.objects.get(organization=self.org)
+            assert project.platform == "javascript-react"
 
             self.browser.back()
             self.browser.wait_until('[data-test-id="onboarding-step-scm-messaging"]')
             self.browser.back()
             self.browser.wait_until('[data-test-id="onboarding-step-scm-platform-features"]')
             assert_existing_projects_status(
-                self.org, active_project_ids=[project1.id], deleted_project_ids=[]
+                self.org, active_project_ids=[project.id], deleted_project_ids=[]
             )
 
             self.browser.wait_until('input[aria-autocomplete="list"]')
@@ -890,9 +891,35 @@ class OnboardingTest(AcceptanceTestCase):
             self.browser.click(xpath='//button[contains(., "Set up later")]')
 
             self.browser.wait_until(xpath='//h2[text()="Configure Vue SDK"]')
-            project2 = Project.objects.get(organization=self.org, platform="javascript-vue")
+            project.refresh_from_db()
+            assert project.platform == "javascript-vue"
             assert_existing_projects_status(
-                self.org, active_project_ids=[project2.id], deleted_project_ids=[project1.id]
+                self.org, active_project_ids=[project.id], deleted_project_ids=[]
+            )
+
+    def test_scm_treatment_destination_change_after_back_swaps_workflow(self) -> None:
+        """Treatment path: Set up later, then Back and pick a Slack channel. The
+        same project gets one workflow for email and the channel, replacing the
+        default email-only one."""
+        self.create_slack_integration(self.org, user=self.user)
+
+        with self.feature(SCM_MESSAGING_TREATMENT), self.slack_resolves_alerts_channel():
+            self.start_onboarding()
+            self.continue_past_platform_features("React", "React")
+            self.browser.wait_until_clickable(xpath='//button[contains(., "Set up later")]')
+            self.browser.click(xpath='//button[contains(., "Set up later")]')
+
+            self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
+            project = Project.objects.get(organization=self.org)
+
+            self.browser.click('[aria-label="Back"]')
+            self.confirm_slack_destination()
+
+            self.browser.wait_until(xpath='//h2[text()="Configure React SDK"]')
+            workflow = Workflow.objects.get(organization=self.org)
+            assert workflow_action_types(workflow) == [Action.Type.EMAIL, Action.Type.SLACK]
+            assert_existing_projects_status(
+                self.org, active_project_ids=[project.id], deleted_project_ids=[]
             )
 
     def test_scm_treatment_slack_destination_creates_messaging_workflow(self) -> None:

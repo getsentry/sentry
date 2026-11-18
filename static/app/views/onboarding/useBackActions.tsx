@@ -14,8 +14,8 @@ import type {StepDescriptor} from './types';
  *
  * Back never deletes the project created earlier in the session: the user may
  * already have copied its DSN, and browser Forward must still land on a live
- * project. Continue reuses that project when nothing changed, and
- * useScmProjectCreation cleans it up if Continue replaces it.
+ * project. Continue then edits that project to match the user's new choices
+ * (see useScmProjectCreation), so its DSN never changes.
  */
 export function useBackActions({
   stepIndex,

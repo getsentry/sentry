@@ -55,15 +55,6 @@ export type OnboardingEventParameters = {
     repo: string;
   };
   'onboarding.scm_connect_step_viewed': Record<string, unknown>;
-  'onboarding.scm_data_removal_modal_confirm_button_clicked': {
-    platform: string;
-    project_id: string;
-  };
-  'onboarding.scm_data_removed': {
-    date_created: string;
-    platform: string;
-    project_id: string;
-  };
   'onboarding.scm_dsn_copied': {
     platform: string;
   };
@@ -120,6 +111,12 @@ export type OnboardingEventParameters = {
   'onboarding.scm_project_created': {
     notification: ScmMessagingNotification;
     platform: string;
+    project_id: string;
+  };
+  'onboarding.scm_project_updated': {
+    notification_changed: boolean;
+    platform: string;
+    platform_changed: boolean;
     project_id: string;
   };
   'onboarding.scm_select_framework_modal_rendered': {
@@ -208,9 +205,6 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
     'Onboarding: SCM Connect Integration Selected',
   'onboarding.scm_connect_repo_selected': 'Onboarding: SCM Connect Repo Selected',
   'onboarding.scm_connect_step_viewed': 'Onboarding: SCM Connect Step Viewed',
-  'onboarding.scm_data_removal_modal_confirm_button_clicked':
-    'Onboarding: SCM Data Removal Modal Confirm Button Clicked',
-  'onboarding.scm_data_removed': 'Onboarding: SCM Data Removed',
   'onboarding.scm_dsn_copied': 'Onboarding: SCM DSN Copied',
   'onboarding.scm_js_loader_npm_docs_shown':
     'Onboarding: SCM JS Loader Switch to npm Instructions',
@@ -258,6 +252,7 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
     'Onboarding: SCM Platform Features Step Viewed',
   'onboarding.scm_platform_selected': 'Onboarding: SCM Platform Selected',
   'onboarding.scm_project_created': 'Onboarding: SCM Project Created',
+  'onboarding.scm_project_updated': 'Onboarding: SCM Project Updated',
   'onboarding.scm_skip_detection_clicked': 'Onboarding: SCM Skip Detection Clicked',
   'onboarding.scm_setup_platform_later_clicked':
     'Onboarding: SCM Setup Platform Later Clicked',

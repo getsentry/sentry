@@ -1,3 +1,5 @@
+import {AutomationFixture} from 'sentry-fixture/automations';
+import {IssueStreamDetectorFixture} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RepositoryFixture} from 'sentry-fixture/repository';
@@ -8,6 +10,8 @@ import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
+import {getRequestDataFragment} from 'sentry/views/projectInstall/issueAlertOptions';
+import {buildIntegrationAction} from 'sentry/views/projectInstall/messagingIntegrationTypes';
 
 import {useScmProjectCreation} from './useScmProjectCreation';
 
@@ -97,7 +101,11 @@ describe('useScmProjectCreation', () => {
       messagingSelection: undefined,
     });
     expect(onSuccess).toHaveBeenCalledWith(
-      expect.objectContaining({project: createdProject, reused: false, workflowIds: []})
+      expect.objectContaining({
+        project: createdProject,
+        outcome: 'created',
+        workflowIds: [],
+      })
     );
     // The created project must be persisted before completion so the
     // duplicate-prevention handoff to SDK setup survives a failure later in
@@ -107,7 +115,7 @@ describe('useScmProjectCreation', () => {
     );
   });
 
-  it('reuses the created project when the platform is unchanged', async () => {
+  it('reuses the created project as-is when nothing changed', async () => {
     const createRequest = mockCreateProject();
     ProjectsStore.loadInitialData([createdProject]);
     const onSuccess = jest.fn();
@@ -124,108 +132,76 @@ describe('useScmProjectCreation', () => {
 
     expect(createRequest).not.toHaveBeenCalled();
     expect(onSuccess).toHaveBeenCalledWith(
-      expect.objectContaining({project: createdProject, reused: true})
+      expect.objectContaining({project: createdProject, outcome: 'unchanged'})
     );
   });
 
-  describe('replacing the created project', () => {
+  describe('editing the created project when the platform changed', () => {
     const oldProject = ProjectFixture({
       id: '7',
-      slug: 'old-project',
+      slug: 'javascript',
+      name: 'javascript',
       platform: 'javascript',
       firstEvent: null,
     });
-    const replacedProject = {slug: oldProject.slug, messagingSelection: undefined};
+    const existing = {slug: oldProject.slug, messagingSelection: undefined};
 
     beforeEach(() => {
       ProjectsStore.loadInitialData([oldProject]);
     });
 
-    function mockOldProjectDetails(project = oldProject) {
-      return MockApiClient.addMockResponse({
-        url: `/projects/${organization.slug}/${oldProject.slug}/overview/`,
-        body: project,
-      });
-    }
-
-    function mockDeleteOldProject() {
+    function mockUpdateProject(body: Partial<typeof oldProject> = {}) {
       return MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${oldProject.slug}/`,
-        method: 'DELETE',
+        method: 'PUT',
+        body: {...oldProject, platform: 'python', ...body},
       });
     }
 
-    it('deletes the old project after creating its replacement when it is still empty', async () => {
+    it('sets the new platform on the same project instead of creating one', async () => {
       const createRequest = mockCreateProject();
-      mockOldProjectDetails();
-      const deleteRequest = mockDeleteOldProject();
+      const updateRequest = mockUpdateProject({slug: 'python', name: 'python'});
+      const onCreatedProjectChange = jest.fn();
       const onSuccess = jest.fn();
-      const {result} = renderCreation({createdProject: replacedProject});
+      const {result} = renderCreation({createdProject: existing, onCreatedProjectChange});
 
       await act(() =>
         result.current.createOrReuseProject({platform: pythonPlatform, onSuccess})
       );
 
-      expect(createRequest).toHaveBeenCalledTimes(1);
-      expect(deleteRequest).toHaveBeenCalledTimes(1);
-      expect(createRequest.mock.invocationCallOrder[0]).toBeLessThan(
-        deleteRequest.mock.invocationCallOrder[0]!
+      expect(createRequest).not.toHaveBeenCalled();
+      // The name came from the old platform, so it follows the new one.
+      expect(updateRequest).toHaveBeenCalledWith(
+        `/projects/${organization.slug}/${oldProject.slug}/`,
+        expect.objectContaining({
+          method: 'PUT',
+          data: {platform: 'python', name: 'python', slug: 'python'},
+        })
       );
-      expect(ProjectsStore.getBySlug(oldProject.slug)).toBeUndefined();
+      expect(onCreatedProjectChange).toHaveBeenCalledWith({
+        slug: 'python',
+        messagingSelection: undefined,
+      });
+      expect(ProjectsStore.getById(oldProject.id)).toEqual(
+        expect.objectContaining({slug: 'python', platform: 'python'})
+      );
       expect(onSuccess).toHaveBeenCalledWith(
-        expect.objectContaining({project: createdProject, reused: false})
+        expect.objectContaining({
+          outcome: 'updated',
+          project: expect.objectContaining({id: oldProject.id, platform: 'python'}),
+          workflowIds: [],
+        })
       );
     });
 
-    it('keeps the old project when a fresh read shows it received an event', async () => {
-      mockCreateProject();
-      // The store copy is still empty; only the fresh read has the event.
-      const detailsRequest = mockOldProjectDetails({
-        ...oldProject,
-        firstEvent: '2026-11-18T00:00:00Z',
+    it('keeps a name that came from the repository', async () => {
+      const repoProject = {...oldProject, name: 'my-repo'};
+      ProjectsStore.loadInitialData([repoProject]);
+      const updateRequest = mockUpdateProject({name: 'my-repo'});
+      const {result} = renderCreation({
+        createdProject: existing,
+        selectedRepository: RepositoryFixture({name: 'getsentry/my-repo'}),
       });
-      const deleteRequest = mockDeleteOldProject();
-      const onSuccess = jest.fn();
-      const {result} = renderCreation({createdProject: replacedProject});
-
-      await act(() =>
-        result.current.createOrReuseProject({platform: pythonPlatform, onSuccess})
-      );
-
-      expect(detailsRequest).toHaveBeenCalledTimes(1);
-      expect(deleteRequest).not.toHaveBeenCalled();
-      expect(onSuccess).toHaveBeenCalled();
-    });
-
-    it('keeps the old project and still completes when it cannot be read', async () => {
-      mockCreateProject();
-      MockApiClient.addMockResponse({
-        url: `/projects/${organization.slug}/${oldProject.slug}/overview/`,
-        statusCode: 500,
-        body: {},
-      });
-      const deleteRequest = mockDeleteOldProject();
-      const onSuccess = jest.fn();
-      const {result} = renderCreation({createdProject: replacedProject});
-
-      await act(() =>
-        result.current.createOrReuseProject({platform: pythonPlatform, onSuccess})
-      );
-
-      expect(deleteRequest).not.toHaveBeenCalled();
-      expect(onSuccess).toHaveBeenCalled();
-    });
-
-    it('keeps the old project when creating its replacement fails', async () => {
-      MockApiClient.addMockResponse({
-        url: `/teams/${organization.slug}/${adminTeam.slug}/projects/`,
-        method: 'POST',
-        statusCode: 400,
-        body: {},
-      });
-      const detailsRequest = mockOldProjectDetails();
-      const deleteRequest = mockDeleteOldProject();
-      const {result} = renderCreation({createdProject: replacedProject});
 
       await act(() =>
         result.current.createOrReuseProject({
@@ -234,9 +210,89 @@ describe('useScmProjectCreation', () => {
         })
       );
 
-      expect(detailsRequest).not.toHaveBeenCalled();
-      expect(deleteRequest).not.toHaveBeenCalled();
+      expect(updateRequest).toHaveBeenCalledTimes(1);
+      expect(updateRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({data: {platform: 'python'}})
+      );
     });
+
+    it('still sets the platform when the rename is rejected', async () => {
+      const renameRequest = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${oldProject.slug}/`,
+        method: 'PUT',
+        statusCode: 400,
+        body: {slug: ['Another project (python) is already using that slug']},
+        match: [MockApiClient.matchData({slug: 'python'})],
+      });
+      const platformRequest = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${oldProject.slug}/`,
+        method: 'PUT',
+        body: {...oldProject, platform: 'python'},
+        match: [(_url, options) => !('slug' in (options.data ?? {}))],
+      });
+      const onCreatedProjectChange = jest.fn();
+      const onSuccess = jest.fn();
+      const {result} = renderCreation({createdProject: existing, onCreatedProjectChange});
+
+      await act(() =>
+        result.current.createOrReuseProject({platform: pythonPlatform, onSuccess})
+      );
+
+      expect(renameRequest).toHaveBeenCalledTimes(1);
+      expect(platformRequest).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({data: {platform: 'python'}})
+      );
+      expect(onCreatedProjectChange).toHaveBeenCalledWith({
+        slug: oldProject.slug,
+        messagingSelection: undefined,
+      });
+      expect(onSuccess).toHaveBeenCalledWith(
+        expect.objectContaining({outcome: 'updated'})
+      );
+    });
+
+    it('does not complete when the project cannot be updated', async () => {
+      const createRequest = mockCreateProject();
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${oldProject.slug}/`,
+        method: 'PUT',
+        statusCode: 500,
+        body: {},
+      });
+      const onCreatedProjectChange = jest.fn();
+      const onSuccess = jest.fn();
+      const {result} = renderCreation({createdProject: existing, onCreatedProjectChange});
+
+      let outcome: unknown;
+      await act(async () => {
+        outcome = await result.current.createOrReuseProject({
+          platform: pythonPlatform,
+          onSuccess,
+        });
+      });
+
+      expect(outcome).toBeUndefined();
+      expect(createRequest).not.toHaveBeenCalled();
+      expect(onCreatedProjectChange).not.toHaveBeenCalled();
+      expect(onSuccess).not.toHaveBeenCalled();
+    });
+  });
+
+  it('creates a new project when the created one no longer exists', async () => {
+    const createRequest = mockCreateProject();
+    const onSuccess = jest.fn();
+    const {result} = renderCreation({
+      createdProject: {slug: 'deleted-project', messagingSelection: undefined},
+    });
+
+    await act(() =>
+      result.current.createOrReuseProject({platform: pythonPlatform, onSuccess})
+    );
+
+    expect(createRequest).toHaveBeenCalledTimes(1);
+    expect(onSuccess).toHaveBeenCalledWith(expect.objectContaining({outcome: 'created'}));
   });
 
   it('creates at most one project for concurrent submissions', async () => {
@@ -315,21 +371,71 @@ describe('useScmProjectCreation', () => {
     expect(onSuccess).not.toHaveBeenCalled();
   });
 
-  describe('messaging destination on reuse', () => {
+  describe('messaging destination', () => {
     const savedSelection = {provider: 'slack', integrationId: '15', channel: '#alerts'};
-    const reusableProject = {
+    const existing = {
       slug: createdProject.slug,
       messagingSelection: savedSelection,
     };
+    const detector = IssueStreamDetectorFixture({
+      id: 'detector-1',
+      projectId: createdProject.id,
+    });
+    const getIntegrationAction = () =>
+      buildIntegrationAction({provider: 'slack', integrationId: '15', channel: '#ops'});
+    const alertRuleConfig = getRequestDataFragment();
 
     beforeEach(() => {
       ProjectsStore.loadInitialData([createdProject]);
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/detectors/`,
+        body: [detector],
+      });
     });
 
-    it('reuses the project when the staged destination is the one it was created for', async () => {
+    function mockWorkflows() {
+      const onboardingWorkflow = AutomationFixture({
+        id: 'old-workflow',
+        name: 'Send a notification for high priority issues',
+        detectorIds: [detector.id],
+      });
+      // Same name, but shared with other detectors: never onboarding's.
+      const sharedWorkflow = AutomationFixture({
+        id: 'shared-workflow',
+        name: 'Send a notification for high priority issues',
+        detectorIds: [detector.id, 'other-detector'],
+      });
+      const handMadeWorkflow = AutomationFixture({
+        id: 'hand-made-workflow',
+        name: 'My alert',
+        detectorIds: [detector.id],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/workflows/`,
+        body: [onboardingWorkflow, sharedWorkflow, handMadeWorkflow],
+      });
+      const createWorkflowRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/workflows/`,
+        method: 'POST',
+        body: AutomationFixture({id: 'new-workflow'}),
+      });
+      const deleteRequests = [
+        'old-workflow',
+        'shared-workflow',
+        'hand-made-workflow',
+      ].map(id =>
+        MockApiClient.addMockResponse({
+          url: `/organizations/${organization.slug}/workflows/${id}/`,
+          method: 'DELETE',
+        })
+      );
+      return {createWorkflowRequest, deleteRequests};
+    }
+
+    it('reuses the project as-is when the staged destination is the one it was created for', async () => {
       const createRequest = mockCreateProject();
       const onSuccess = jest.fn();
-      const {result} = renderCreation({createdProject: reusableProject});
+      const {result} = renderCreation({createdProject: existing});
 
       await act(() =>
         result.current.createOrReuseProject({
@@ -341,16 +447,18 @@ describe('useScmProjectCreation', () => {
 
       expect(createRequest).not.toHaveBeenCalled();
       expect(onSuccess).toHaveBeenCalledWith(
-        expect.objectContaining({project: createdProject, reused: true})
+        expect.objectContaining({project: createdProject, outcome: 'unchanged'})
       );
     });
 
-    it('creates a new project when the staged destination changed', async () => {
+    it('replaces the onboarding workflow on the same project when the destination changed', async () => {
       const createRequest = mockCreateProject();
+      const {createWorkflowRequest, deleteRequests} = mockWorkflows();
+      const [oldDelete, sharedDelete, handMadeDelete] = deleteRequests;
       const onCreatedProjectChange = jest.fn();
       const onSuccess = jest.fn();
       const {result} = renderCreation({
-        createdProject: reusableProject,
+        createdProject: existing,
         onCreatedProjectChange,
       });
       const stagedSelection = {...savedSelection, channel: '#ops'};
@@ -358,55 +466,121 @@ describe('useScmProjectCreation', () => {
       await act(() =>
         result.current.createOrReuseProject({
           platform: pythonPlatform,
+          alertRuleConfig,
+          getIntegrationAction,
           stagedSelection,
           onSuccess,
         })
       );
 
-      expect(createRequest).toHaveBeenCalledTimes(1);
+      expect(createRequest).not.toHaveBeenCalled();
+      expect(createWorkflowRequest).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/workflows/`,
+        expect.objectContaining({
+          data: expect.objectContaining({
+            name: 'Send a notification for high priority issues',
+            detectorIds: [detector.id],
+            actionFilters: [
+              expect.objectContaining({
+                actions: [
+                  expect.objectContaining({type: 'email'}),
+                  expect.objectContaining({type: 'slack', integrationId: '15'}),
+                ],
+              }),
+            ],
+          }),
+        })
+      );
+      // Created before the old one is removed, so the project is never
+      // without alerts.
+      expect(oldDelete).toHaveBeenCalledTimes(1);
+      expect(createWorkflowRequest.mock.invocationCallOrder[0]).toBeLessThan(
+        oldDelete!.mock.invocationCallOrder[0]!
+      );
+      expect(sharedDelete).not.toHaveBeenCalled();
+      expect(handMadeDelete).not.toHaveBeenCalled();
       expect(onCreatedProjectChange).toHaveBeenCalledWith({
         slug: createdProject.slug,
         messagingSelection: stagedSelection,
       });
-      expect(onSuccess).toHaveBeenCalledWith(expect.objectContaining({reused: false}));
+      expect(onSuccess).toHaveBeenCalledWith(
+        expect.objectContaining({
+          outcome: 'updated',
+          project: createdProject,
+          workflowIds: ['new-workflow'],
+          notificationRule: expect.objectContaining({id: 'new-workflow'}),
+        })
+      );
     });
 
-    it('creates a new project when a destination is staged after Set up later', async () => {
-      const createRequest = mockCreateProject();
-      const onCreatedProjectChange = jest.fn();
+    it('replaces the default email workflow when a destination is staged after Set up later', async () => {
+      mockCreateProject();
+      const {createWorkflowRequest, deleteRequests} = mockWorkflows();
       const onSuccess = jest.fn();
       const {result} = renderCreation({
         createdProject: {slug: createdProject.slug, messagingSelection: undefined},
+      });
+
+      await act(() =>
+        result.current.createOrReuseProject({
+          platform: pythonPlatform,
+          alertRuleConfig,
+          getIntegrationAction,
+          stagedSelection: savedSelection,
+          onSuccess,
+        })
+      );
+
+      expect(createWorkflowRequest).toHaveBeenCalledTimes(1);
+      expect(deleteRequests[0]).toHaveBeenCalledTimes(1);
+      expect(onSuccess).toHaveBeenCalledWith(
+        expect.objectContaining({outcome: 'updated'})
+      );
+    });
+
+    it('keeps the old workflow and does not complete when the new one cannot be created', async () => {
+      const {deleteRequests} = mockWorkflows();
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/workflows/`,
+        method: 'POST',
+        statusCode: 400,
+        body: {},
+      });
+      const onCreatedProjectChange = jest.fn();
+      const onSuccess = jest.fn();
+      const {result} = renderCreation({
+        createdProject: existing,
         onCreatedProjectChange,
       });
 
       await act(() =>
         result.current.createOrReuseProject({
           platform: pythonPlatform,
-          stagedSelection: savedSelection,
+          alertRuleConfig,
+          getIntegrationAction,
+          stagedSelection: {...savedSelection, channel: '#ops'},
           onSuccess,
         })
       );
 
-      expect(createRequest).toHaveBeenCalledTimes(1);
-      expect(onCreatedProjectChange).toHaveBeenCalledWith({
-        slug: createdProject.slug,
-        messagingSelection: savedSelection,
-      });
-      expect(onSuccess).toHaveBeenCalledWith(expect.objectContaining({reused: false}));
+      expect(deleteRequests[0]).not.toHaveBeenCalled();
+      expect(onCreatedProjectChange).not.toHaveBeenCalled();
+      expect(onSuccess).not.toHaveBeenCalled();
     });
 
     it('Set up later reuses the project whatever destination it was created for', async () => {
       const createRequest = mockCreateProject();
       const onSuccess = jest.fn();
-      const {result} = renderCreation({createdProject: reusableProject});
+      const {result} = renderCreation({createdProject: existing});
 
       await act(() =>
         result.current.createOrReuseProject({platform: pythonPlatform, onSuccess})
       );
 
       expect(createRequest).not.toHaveBeenCalled();
-      expect(onSuccess).toHaveBeenCalledWith(expect.objectContaining({reused: true}));
+      expect(onSuccess).toHaveBeenCalledWith(
+        expect.objectContaining({outcome: 'unchanged'})
+      );
     });
   });
 });
