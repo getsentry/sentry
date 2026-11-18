@@ -122,35 +122,6 @@ class NoSettings(BaseModel):
         extra = "forbid"
 
 
-class AutomationTrigger[Inputs: BaseModel](Protocol):
-    """How an automation's runs start, and which projects those runs cover."""
-
-    # What a firing hands to the automation's action; recorded in the run's snapshot.
-    inputs_type: type[Inputs]
-    settings_type: type[BaseModel]
-    scoped_by: Literal["projects", "monitors"]
-
-    def projects(self, config: SeerWorkflowConfig) -> QuerySet[Project]:
-        """Return the active projects in the config's scope."""
-        ...
-
-    def setup(self, update: ConfigUpdate, workflow: Workflow) -> None:
-        """Attach anything the trigger needs to a new automation's backing workflow."""
-        return None
-
-    def set_scope(self, update: ConfigUpdate, selection: ScopeSelection) -> None:
-        """Replace the config's scope, marking ``update`` only when something changed."""
-        ...
-
-    def sync(self, config: SeerWorkflowConfig) -> None:
-        """Bring anything the trigger keeps outside the config in line with it."""
-        return None
-
-    def teardown(self, config: SeerWorkflowConfig) -> None:
-        """Remove anything the trigger keeps outside the config, before it is deleted."""
-        return None
-
-
 RejectionReason = Literal["quota_exceeded"]
 
 
@@ -181,14 +152,36 @@ class AdmittedRun:
     rejection: RejectionReason | None = None
 
 
-@dataclass(frozen=True)
-class AutomationDefinition[Inputs: BaseModel]:
-    """An automation: the trigger that starts its runs and decides which projects they cover."""
+class AutomationDefinition[Inputs: BaseModel](Protocol):
+    """An automation: how its runs start, and which projects those runs cover."""
 
-    trigger: AutomationTrigger[Inputs]
+    # What a firing hands to the automation's action; recorded in the run's snapshot.
+    inputs_type: type[Inputs]
+    settings_type: type[BaseModel]
+    scoped_by: Literal["projects", "monitors"]
+
+    def projects(self, config: SeerWorkflowConfig) -> QuerySet[Project]:
+        """Return the active projects in the config's scope."""
+        ...
+
+    def setup(self, update: ConfigUpdate, workflow: Workflow) -> None:
+        """Attach anything the trigger needs to a new automation's backing workflow."""
+        return None
+
+    def set_scope(self, update: ConfigUpdate, selection: ScopeSelection) -> None:
+        """Replace the config's scope, marking ``update`` only when something changed."""
+        ...
+
+    def sync(self, config: SeerWorkflowConfig) -> None:
+        """Bring anything the trigger keeps outside the config in line with it."""
+        return None
+
+    def teardown(self, config: SeerWorkflowConfig) -> None:
+        """Remove anything the trigger keeps outside the config, before it is deleted."""
+        return None
 
     def project_ids(self, config: SeerWorkflowConfig) -> list[int]:
-        return list(self.trigger.projects(config).order_by("id").values_list("id", flat=True))
+        return list(self.projects(config).order_by("id").values_list("id", flat=True))
 
     @staticmethod
     def is_enabled(config: SeerWorkflowConfig) -> bool:
@@ -203,14 +196,14 @@ class AutomationDefinition[Inputs: BaseModel]:
         return (
             self.is_enabled(config)
             and (not filters.environments or environment in filters.environments)
-            and self.trigger.projects(config).filter(id=project_id).exists()
+            and self.projects(config).filter(id=project_id).exists()
         )
 
     def validate_settings(self, extras: SeerWorkflowConfigExtras) -> tuple[BaseModel, BaseModel]:
         """Return the parsed trigger and action settings."""
         try:
             return (
-                self.trigger.settings_type.parse_obj(extras.trigger_settings or {}),
+                self.settings_type.parse_obj(extras.trigger_settings or {}),
                 NoSettings.parse_obj(extras.action_settings or {}),
             )
         except ValidationError as e:
@@ -327,7 +320,7 @@ class ConfigUpdate:
         )
         self.config.backing_workflow = workflow
         self.mark("backing_workflow")
-        self.definition.trigger.setup(self, workflow)
+        self.definition.setup(self, workflow)
 
     def set_enabled(self, enabled: bool) -> None:
         workflow = self._backing_workflow()
@@ -417,4 +410,4 @@ class ConfigUpdate:
         Callers must authorize the change; this only checks that the selection belongs to
         the workflow's organization.
         """
-        self.definition.trigger.set_scope(self, selection)
+        self.definition.set_scope(self, selection)
