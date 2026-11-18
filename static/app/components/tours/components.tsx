@@ -502,16 +502,17 @@ export function TourGuide({
     }
     // A browser can open the guide while the click that opened it, such as
     // "Next" on the previous step, is still on its way to the document. That
-    // click is skipped; every later click counts, including keyboard clicks.
-    const openingEvent = window.event;
-    // Runs after the page handles the click, so the click still goes through.
-    const handleClick = (event: MouseEvent) => {
-      if (event !== openingEvent) {
-        handleClickOutside(event);
-      }
+    // dispatch ends within the current task, so listening from the next one
+    // skips it; every later click counts, including keyboard clicks. The
+    // listener runs after the page handles the click, so the click goes through.
+    const handleClick = (event: MouseEvent) => handleClickOutside(event);
+    const timeoutId = window.setTimeout(() => {
+      document.addEventListener('click', handleClick);
+    });
+    return () => {
+      window.clearTimeout(timeoutId);
+      document.removeEventListener('click', handleClick);
     };
-    document.addEventListener('click', handleClick);
-    return () => document.removeEventListener('click', handleClick);
   }, [isOpen, hasClickOutside]);
 
   // Scroll the highlighted element rather than the guide. The element may live in
