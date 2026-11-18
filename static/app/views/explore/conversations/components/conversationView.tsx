@@ -8,12 +8,14 @@ import {Flex} from '@sentry/scraps/layout';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   useConversation,
   type UseConversationsOptions,
 } from 'sentry/views/explore/conversations/hooks/useConversation';
 import {useConversationScrollRestoration} from 'sentry/views/explore/conversations/hooks/useConversationScrollRestoration';
 import {useConversationSelection} from 'sentry/views/explore/conversations/hooks/useConversationSelection';
+import {hasConversationTranscriptSearchFeature} from 'sentry/views/explore/conversations/utils/features';
 import {AiSpanTimeline} from 'sentry/views/insights/pages/agents/components/aiSpanTimeline';
 import {getDefaultSelectedNode} from 'sentry/views/insights/pages/agents/utils/getDefaultSelectedNode';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
@@ -26,6 +28,7 @@ import {
   ConversationSpanDetail,
 } from './conversationSpanDetail';
 import {MessagesPanel} from './messagesPanel';
+import {TranscriptSearch} from './transcriptSearch';
 
 export type ConversationViewTab = 'transcript' | 'timeline';
 
@@ -53,6 +56,7 @@ export function ConversationViewContent({
   onViewTimeline,
   focusedTool,
 }: ConversationViewContentProps) {
+  const organization = useOrganization();
   const isTimeline = activeTab === 'timeline';
 
   const {
@@ -185,6 +189,17 @@ export function ConversationViewContent({
         leftPadding={isTranscript ? '0' : 'md'}
         left={
           <Fragment>
+            {isTranscript &&
+              onSelectSpan &&
+              hasConversationTranscriptSearchFeature(organization) && (
+                <TranscriptSearch
+                  rootRef={contentRef}
+                  canLoadMore={canAutoFetchNextPage}
+                  isLoadingMore={isLoading || isFetchingNextPage}
+                  loadMore={loadNextPage}
+                  onSelectSpan={onSelectSpan}
+                />
+              )}
             {isTranscript ? (
               <MessagesPanel
                 isLoading={isLoading}

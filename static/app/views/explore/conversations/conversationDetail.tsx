@@ -1,5 +1,4 @@
-import {useCallback, useEffect, useMemo, useRef, type ReactNode, type Ref} from 'react';
-import {css, Global, useTheme} from '@emotion/react';
+import {useCallback, useEffect, useMemo, type ReactNode} from 'react';
 import {parseAsString, parseAsStringLiteral, useQueryStates} from 'nuqs';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
@@ -14,7 +13,6 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {ViewportConstrainedPage} from 'sentry/views/explore/components/viewportConstrainedPage';
 
 import {ConversationsBreadcrumbs} from './components/conversationsBreadcrumbs';
-import {ConversationSearchInput} from './components/conversationSearchInput';
 import {ConversationSummary} from './components/conversationSummary';
 import {
   CONVERSATION_VIEW_TABS,
@@ -23,10 +21,7 @@ import {
 } from './components/conversationView';
 import {ExportTranscriptButton} from './components/exportTranscriptButton';
 import {useConversation} from './hooks/useConversation';
-import {useConversationSpanSearch} from './hooks/useConversationSpanSearch';
-import {useTranscriptSearchHighlight} from './hooks/useTranscriptSearchHighlight';
 import {extractMessagesFromNodes} from './utils/conversationMessages';
-import {hasConversationTranscriptSearchFeature} from './utils/features';
 
 function useConversationDetailQueryState() {
   return useQueryStates(
@@ -56,16 +51,7 @@ function ConversationDetailPage() {
     () => ({conversationId, startTimestamp, endTimestamp}),
     [conversationId, startTimestamp, endTimestamp]
   );
-  const {
-    stats,
-    nodes,
-    nodeTraceMap,
-    isLoading,
-    hasNextPage,
-    canAutoFetchNextPage,
-    isFetchingNextPage,
-    title,
-  } = useConversation({
+  const {stats, nodes, nodeTraceMap, isLoading, hasNextPage, title} = useConversation({
     ...conversation,
     autoFetchAll: false,
   });
@@ -95,47 +81,6 @@ function ConversationDetailPage() {
     },
     [setQueryState]
   );
-
-  const spanSearch = useConversationSpanSearch({
-    conversation,
-    onMatch: handleSelectSpan,
-  });
-
-  const theme = useTheme();
-  const searchRootRef = useRef<HTMLDivElement>(null);
-  useTranscriptSearchHighlight({
-    rootRef: searchRootRef,
-    query: spanSearch.state.status === 'match' ? spanSearch.state.query : null,
-    currentSpanId:
-      spanSearch.state.status === 'match'
-        ? (spanSearch.state.spanIds[spanSearch.state.index] ?? null)
-        : null,
-  });
-
-  const getSearchStatus = (): string | null => {
-    const {state} = spanSearch;
-    switch (state.status) {
-      case 'idle':
-        return null;
-      case 'searching':
-        return t('Searching…');
-      case 'no-match':
-        return t('No results');
-      case 'error':
-        return t('Search failed');
-      case 'match': {
-        const spanId = state.spanIds[state.index];
-        if (!nodes.some(node => node.id === spanId)) {
-          return isLoading || canAutoFetchNextPage || isFetchingNextPage
-            ? t('Loading match…')
-            : t('Match is beyond the loaded spans');
-        }
-        return null;
-      }
-      default:
-        return null;
-    }
-  };
 
   const handleDeselectSpan = useCallback(() => {
     setQueryState({spanId: null, focusedTool: null});
@@ -188,33 +133,7 @@ function ConversationDetailPage() {
             <ExportTranscriptButton conversation={conversation} />
           )}
         </Flex>
-        {hasConversationTranscriptSearchFeature(organization) && (
-          <Global
-            styles={css`
-              ::highlight(conversation-search-match) {
-                background-color: ${theme.colors.yellow100};
-              }
-              ::highlight(conversation-search-current) {
-                background-color: ${theme.colors.yellow300};
-              }
-            `}
-          />
-        )}
-        {hasConversationTranscriptSearchFeature(organization) && (
-          <ConversationSearchInput
-            onSubmit={spanSearch.submit}
-            onClear={spanSearch.clear}
-            onNext={spanSearch.next}
-            onPrevious={spanSearch.previous}
-            status={getSearchStatus()}
-            counter={
-              spanSearch.state.status === 'match'
-                ? `${spanSearch.state.index + 1}/${spanSearch.state.total}`
-                : null
-            }
-          />
-        )}
-        <ConversationViewContainer ref={searchRootRef}>
+        <ConversationViewContainer>
           <ConversationViewContent
             conversation={conversation}
             activeTab={queryState.tab}
@@ -230,16 +149,9 @@ function ConversationDetailPage() {
   );
 }
 
-function ConversationViewContainer({
-  children,
-  ref,
-}: {
-  children: ReactNode;
-  ref?: Ref<HTMLDivElement>;
-}) {
+function ConversationViewContainer({children}: {children: ReactNode}) {
   return (
     <Container
-      ref={ref}
       flex={1}
       minHeight="0"
       overflow="hidden"

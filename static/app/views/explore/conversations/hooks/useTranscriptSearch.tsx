@@ -1,0 +1,205 @@
+import {useCallback, useEffect, useRef, useState, type RefObject} from 'react';
+
+const MATCH_HIGHLIGHT = 'conversation-search-match';
+const CURRENT_HIGHLIGHT = 'conversation-search-current';
+
+type TranscriptSearchStatus = 'idle' | 'searching' | 'found' | 'no-results';
+
+interface TranscriptMatch {
+  range: Range;
+  spanId: string;
+}
+
+interface UseTranscriptSearchOptions {
+  canLoadMore: boolean;
+  isLoadingMore: boolean;
+  loadMore: () => void;
+  onSelectSpan: (spanId: string) => void;
+  rootRef: RefObject<HTMLElement | null>;
+}
+
+function findMatches(root: HTMLElement, query: string): TranscriptMatch[] {
+  const pattern = new RegExp(RegExp.escape(query), 'gi');
+  const matches: TranscriptMatch[] = [];
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+    // Only text inside transcript blocks, which carry the span they render.
+    const spanId = node.parentElement
+      ?.closest('[data-node-id]')
+      ?.getAttribute('data-node-id');
+    if (!spanId) {
+      continue;
+    }
+    for (const match of (node.nodeValue ?? '').matchAll(pattern)) {
+      const range = document.createRange();
+      range.setStart(node, match.index);
+      range.setEnd(node, match.index + match[0].length);
+      matches.push({range, spanId});
+    }
+  }
+  return matches;
+}
+
+// Scrolls only the nearest scrolling ancestor; `scrollIntoView` would also move the
+// page around the transcript.
+function scrollToCenter(element: HTMLElement) {
+  let scroller = element.parentElement;
+  while (scroller && !/(auto|scroll)/.test(getComputedStyle(scroller).overflowY)) {
+    scroller = scroller.parentElement;
+  }
+  if (!scroller) {
+    return;
+  }
+  const elementRect = element.getBoundingClientRect();
+  const scrollerRect = scroller.getBoundingClientRect();
+  scroller.scrollTop +=
+    elementRect.top - scrollerRect.top - (scroller.clientHeight - elementRect.height) / 2;
+}
+
+function supportsHighlights() {
+  return typeof CSS !== 'undefined' && 'highlights' in CSS;
+}
+
+function highlight(matches: TranscriptMatch[], current: TranscriptMatch | null) {
+  if (!supportsHighlights()) {
+    return;
+  }
+  CSS.highlights.set(MATCH_HIGHLIGHT, new Highlight(...matches.map(m => m.range)));
+  CSS.highlights.set(
+    CURRENT_HIGHLIGHT,
+    current ? new Highlight(current.range) : new Highlight()
+  );
+}
+
+function clearHighlights() {
+  if (!supportsHighlights()) {
+    return;
+  }
+  CSS.highlights.delete(MATCH_HIGHLIGHT);
+  CSS.highlights.delete(CURRENT_HIGHLIGHT);
+}
+
+/**
+ * Searches the text the transcript shows, like browser find. When the loaded pages
+ * don't have the wanted occurrence yet, it loads the next page and searches again.
+ * The occurrence found is marked, collapsed blocks holding it open, its span is
+ * selected and it's scrolled into view. Submitting the same query again goes to the
+ * next occurrence.
+ */
+export function useTranscriptSearch({
+  rootRef,
+  canLoadMore,
+  isLoadingMore,
+  loadMore,
+  onSelectSpan,
+}: UseTranscriptSearchOptions) {
+  const [search, setSearch] = useState<{index: number; query: string} | null>(null);
+  const [status, setStatus] = useState<TranscriptSearchStatus>('idle');
+  const revealedRef = useRef<string | null>(null);
+  const loadMoreRef = useRef(loadMore);
+  const onSelectSpanRef = useRef(onSelectSpan);
+
+  useEffect(() => {
+    loadMoreRef.current = loadMore;
+    onSelectSpanRef.current = onSelectSpan;
+  });
+
+  const submit = useCallback(
+    (query: string) => {
+      if (search?.query === query) {
+        if (status === 'found') {
+          setSearch({query, index: search.index + 1});
+        }
+        return;
+      }
+      revealedRef.current = null;
+      setSearch({query, index: 0});
+    },
+    [search, status]
+  );
+
+  const clear = useCallback(() => {
+    revealedRef.current = null;
+    setSearch(null);
+    setStatus('idle');
+  }, []);
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root || !search) {
+      clearHighlights();
+      return;
+    }
+    const {query, index} = search;
+
+    let frame: number | null = null;
+    const apply = () => {
+      frame = null;
+      const matches = findMatches(root, query);
+      const current = matches[index];
+
+      if (!current) {
+        highlight(matches, null);
+        if (canLoadMore) {
+          setStatus('searching');
+          if (!isLoadingMore) {
+            loadMoreRef.current();
+          }
+        } else if (matches.length === 0) {
+          setStatus('no-results');
+        } else {
+          // Past the last occurrence with nothing left to load: start over, like
+          // browser find.
+          revealedRef.current = null;
+          setSearch({query, index: 0});
+        }
+        return;
+      }
+
+      setStatus('found');
+      highlight(matches, current);
+      const revealKey = `${query}\u0000${index}`;
+      if (revealedRef.current === revealKey) {
+        return;
+      }
+      revealedRef.current = revealKey;
+      let details = current.range.startContainer.parentElement?.closest('details');
+      while (details) {
+        details.open = true;
+        details = details.parentElement?.closest('details');
+      }
+      onSelectSpanRef.current(current.spanId);
+      // Selecting opens the span details beside the transcript, which reflows it.
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          const element = current.range.startContainer.parentElement;
+          if (element) {
+            scrollToCenter(element);
+          }
+        })
+      );
+    };
+
+    // Pages load and blocks open while searching, so search again when the
+    // transcript changes.
+    const schedule = () => {
+      if (frame === null) {
+        frame = requestAnimationFrame(apply);
+      }
+    };
+    const observer = new MutationObserver(schedule);
+    observer.observe(root, {childList: true, subtree: true, characterData: true});
+    schedule();
+
+    return () => {
+      observer.disconnect();
+      if (frame !== null) {
+        cancelAnimationFrame(frame);
+      }
+    };
+  }, [rootRef, search, canLoadMore, isLoadingMore]);
+
+  useEffect(() => clearHighlights, []);
+
+  return {status, submit, clear};
+}

@@ -467,33 +467,6 @@ export function getConversationQueryOptions(
   );
 }
 
-interface ConversationSpanSearchResponse {
-  matches: Array<{spanId: string; startTimestamp: number; traceId: string}>;
-  total: number;
-}
-
-export function getConversationSpanSearchQueryOptions(
-  organization: Organization,
-  conversation: UseConversationsOptions,
-  selection: PageFilters,
-  query: string,
-  now = Date.now()
-) {
-  return apiOptions.as<ConversationSpanSearchResponse>()(
-    '/organizations/$organizationIdOrSlug/agents/conversations/$conversationId/spans/search/',
-    {
-      path: conversation.conversationId
-        ? {
-            organizationIdOrSlug: organization.slug,
-            conversationId: conversation.conversationId,
-          }
-        : skipToken,
-      query: {...buildConversationQueryParams(conversation, selection, now), query},
-      staleTime: Infinity,
-    }
-  );
-}
-
 export function useConversation(
   conversation: UseConversationsOptions
 ): UseConversationResult {
