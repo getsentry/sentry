@@ -1,6 +1,7 @@
 import {useEffect} from 'react';
 import {IconBot} from '@sentry/icons/bot';
 import {IconGraph} from '@sentry/icons/graph';
+import {IconNext} from '@sentry/icons/next';
 import {IconProfiling} from '@sentry/icons/profiling';
 import {IconSeer} from '@sentry/icons/seer';
 import {IconSpan} from '@sentry/icons/span';
@@ -208,8 +209,7 @@ export function NewWelcomeUI(props: StepProps) {
               // itself rather than inheriting the step's.
               <MotionStack
                 key="agent-setup"
-                align="center"
-                gap="2xl"
+                gap="md"
                 width="100%"
                 initial="initial"
                 animate="animate"
@@ -227,13 +227,17 @@ export function NewWelcomeUI(props: StepProps) {
                   onSetupInBrowser={handleComplete}
                   run={run}
                 />
-                {showAgentHeading && (
-                  <LinkButton
-                    variant="primary"
-                    to={`/organizations/${organization.slug}/issues/`}
-                  >
-                    {t("I'm finished")}
-                  </LinkButton>
+                {showAgentHeading && !isSetupComplete && (
+                  <Flex justify="end">
+                    <LinkButton
+                      variant="transparent"
+                      size="xs"
+                      icon={<IconNext size="xs" />}
+                      to={`/organizations/${organization.slug}/issues/`}
+                    >
+                      {t("I'm finished")}
+                    </LinkButton>
+                  </Flex>
                 )}
               </MotionStack>
             ) : (
