@@ -2,6 +2,7 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {toast} from '@sentry/scraps/toast';
 
+import {getWorkflowEngineResponseErrorMessage} from 'sentry/components/workflowEngine/getWorkflowEngineResponseErrorMessage';
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -41,9 +42,10 @@ export function useUpdateDetectorsMutation() {
       });
       toast.success(variables.enabled ? t('Monitors enabled') : t('Monitors disabled'));
     },
-    onError: (_, variables) => {
+    onError: (error, variables) => {
       toast.error(
-        t('Unable to %s monitors', variables.enabled ? t('enable') : t('disable'))
+        getWorkflowEngineResponseErrorMessage(error.responseJSON) ??
+          t('Unable to %s monitors', variables.enabled ? t('enable') : t('disable'))
       );
     },
   });

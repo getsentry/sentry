@@ -15,6 +15,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {toast} from '@sentry/scraps/toast';
+
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {
@@ -526,6 +528,41 @@ describe('DetectorsList', () => {
           })
         );
       });
+    });
+
+    it.each([
+      [
+        'the reason from the response',
+        {detail: "You don't have enough budget available to create a new seat"},
+        "You don't have enough budget available to create a new seat",
+      ],
+      [
+        'the generic message for a response without a reason',
+        {},
+        'Unable to enable monitors',
+      ],
+    ])('shows %s when enabling fails', async (_, body, message) => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/detectors/',
+        method: 'PUT',
+        statusCode: 400,
+        body,
+      });
+      const errorToast = jest.spyOn(toast, 'error');
+
+      render(<AllMonitors />, {organization});
+      renderGlobalModal();
+      await screen.findByText('Disabled Detector');
+
+      const rows = screen.getAllByTestId('detector-list-row');
+      const disabledRow = rows.find(row => within(row).queryByText('Disabled Detector'));
+      await userEvent.click(within(disabledRow!).getByRole('checkbox'));
+      await userEvent.click(screen.getByRole('button', {name: 'Enable'}));
+      await userEvent.click(
+        within(screen.getByRole('dialog')).getByRole('button', {name: 'Enable'})
+      );
+
+      await waitFor(() => expect(errorToast).toHaveBeenCalledWith(message));
     });
 
     it('can disable selected detectors with confirmation', async () => {
