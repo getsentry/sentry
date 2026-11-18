@@ -2,8 +2,8 @@ import {ReplayErrorFrameFixture} from 'sentry-fixture/replay/error';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {getFrameDetails} from 'sentry/utils/replays/getFrameDetails';
-import type {ReplayFrame} from 'sentry/utils/replays/types';
+import {getFrameDetails} from './getFrameDetails';
+import type {ReplayFrame} from './types';
 
 describe('getFrameDetails', () => {
   describe('issue frames', () => {

@@ -4,6 +4,7 @@ from cronsim import CronSim
 from django.http.request import HttpRequest
 from django.http.response import HttpResponse
 from django.urls import ResolverMatch
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.status import HTTP_200_OK, HTTP_410_GONE
 
@@ -30,26 +31,26 @@ class DummyEndpoint(Endpoint):
     permission_classes = ()
 
     @deprecated(test_date, suggested_api=replacement_api)
-    def get(self, request):
+    def get(self, request: Request) -> Response:
         return Response({"ok": True})
 
-    def head(self, request):
+    def head(self, request: Request) -> Response:
         return Response({"ok": True})
 
     @deprecated(test_date, suggested_api=replacement_api, key="override")
-    def post(self, request):
+    def post(self, request: Request) -> Response:
         return Response({"ok": True})
 
     @deprecated(test_date, url_names=["sentry-dummy-delete-deprecated"])
-    def delete(self, request):
+    def delete(self, request: Request) -> Response:
         return Response({"ok": True})
 
     @deprecated(test_date, suggested_api="sentry-api-0-organization-projects")
-    def put(self, request):
+    def put(self, request: Request) -> Response:
         return Response({"ok": True})
 
     @deprecated(test_date, suggested_api="sentry-api-0-organization-workflow-details")
-    def patch(self, request):
+    def patch(self, request: Request) -> Response:
         return Response({"ok": True})
 
 
@@ -67,14 +68,14 @@ class TestDeprecationDecorator(APITestCase):
         assert response["X-Sentry-Deprecation-Date"] == test_date.isoformat()
         assert response["X-Sentry-Replacement-Endpoint"] == replacement_api_resolved
 
-    def assert_not_deprecated(self, method):
+    def assert_not_deprecated(self, method: str) -> None:
         request = self.make_request(method=method)
         resp = dummy_endpoint(request)
         assert resp.status_code == HTTP_200_OK
         assert "X-Sentry-Deprecation-Date" not in resp
         assert "X-Sentry-Replacement-Endpoint" not in resp
 
-    def assert_allowed_request(self, method):
+    def assert_allowed_request(self, method: str) -> None:
         request = self.make_request(method=method)
         request.META["HTTP_ORIGIN"] = "http://example.com"
         resp = dummy_endpoint(request)
@@ -82,7 +83,7 @@ class TestDeprecationDecorator(APITestCase):
         assert resp.status_code == HTTP_200_OK
         self.assert_deprecation_metadata(request, resp)
 
-    def assert_denied_request(self, method):
+    def assert_denied_request(self, method: str) -> None:
         request = self.make_request(method=method)
         resp = dummy_endpoint(request)
         assert resp.status_code == HTTP_410_GONE
@@ -344,7 +345,7 @@ class TestDeprecationDecorator(APITestCase):
                 permission_classes = ()
 
                 @deprecated(test_date, suggested_api="nonexistent-route-name")
-                def get(self, request):
+                def get(self, request: Request) -> Response:
                     return Response({"ok": True})
 
             endpoint = UnknownRouteEndpoint.as_view()

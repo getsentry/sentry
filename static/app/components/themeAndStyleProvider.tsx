@@ -2,13 +2,13 @@ import {Fragment, lazy, useRef} from 'react';
 import {createPortal} from 'react-dom';
 import createCache from '@emotion/cache';
 import {CacheProvider, ThemeProvider} from '@emotion/react';
+import {useStore} from 'zustand';
 
 import {darkTheme, lightTheme} from '@sentry/scraps/theme';
 
 import {printConsoleBanner} from 'sentry/bootstrap/printConsoleBanner';
 import {NODE_ENV} from 'sentry/constants';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {GlobalStyles} from 'sentry/styles/global';
 
 const SentryComponentInspector =
@@ -39,9 +39,9 @@ cache.compat = true;
  * Also injects the sentry GlobalStyles .
  */
 export function ThemeAndStyleProvider({children}: Props) {
-  const config = useLegacyStore(ConfigStore);
+  const colorMode = useStore(ConfigStore, state => state.theme);
 
-  const theme = config.theme === 'dark' ? darkTheme : lightTheme;
+  const theme = colorMode === 'dark' ? darkTheme : lightTheme;
 
   const didPrintBanner = useRef(false);
   // oxlint-disable-next-line react/refs
@@ -56,7 +56,7 @@ export function ThemeAndStyleProvider({children}: Props) {
       <CacheProvider value={cache}>{children}</CacheProvider>
       {createPortal(
         <Fragment>
-          <meta name="color-scheme" content={config.theme} />
+          <meta name="color-scheme" content={colorMode} />
           <meta name="theme-color" content={theme.tokens.background.primary} />
         </Fragment>,
         document.head

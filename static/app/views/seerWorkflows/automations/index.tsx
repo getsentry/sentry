@@ -4,29 +4,42 @@ import {IconAllProjects} from '@sentry/icons/allProjects';
 import {IconClock} from '@sentry/icons/clock';
 import {IconFire} from '@sentry/icons/fire';
 import {IconSentry} from '@sentry/icons/sentry';
-import {skipToken, useQuery} from '@tanstack/react-query';
+import {IconSiren} from '@sentry/icons/siren';
 
+import {UserAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
+import {EmptyState} from '@sentry/scraps/emptyState';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {NotFound} from 'sentry/components/errors/notFound';
+import {LoadingError} from 'sentry/components/loadingError';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {ProjectList} from 'sentry/components/projectList';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct, tn} from 'sentry/locale';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
+import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import {userDisplayName} from 'sentry/utils/formatters';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {useUserFromId} from 'sentry/utils/useUserFromId';
+import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 import {STRATEGY_META} from 'sentry/views/seerWorkflows/strategies';
 import type {
   SeerWorkflowConfigResponse,
-  SeerWorkflowConfigsResponse,
   WorkflowStrategy,
 } from 'sentry/views/seerWorkflows/types';
-import {useAutomationsEnabled} from 'sentry/views/seerWorkflows/utils';
+import {
+  getAutomationDetailPath,
+  useAutomationsEnabled,
+} from 'sentry/views/seerWorkflows/utils';
+
+import {useFetchConfigs} from './hooks/configs';
+import {useMonitorsById} from './hooks/useMonitorsById';
 
 /**
  * The narrowest a card may get before the grid drops to fewer columns per row.
@@ -44,18 +57,14 @@ const DAILY_SCHEDULE_HOURS = [10, 22];
  */
 const MAX_VISIBLE_PROJECTS = 3;
 
+/**
+ * The most bullets the monitor tooltip shows. Lists that reach it show one
+ * fewer monitor and end with a "+N more" bullet.
+ */
+const MAX_TOOLTIP_MONITORS = 6;
+
 // TODO: Missing fields from backend - to add to configs API
-type AdditionalConfigProps = {
-  /**
-   * Estimated cost of a single run, in US dollars
-   */
-  costPerRun?: number;
-  description?: string;
-  title?: string;
-  /**
-   * Estimated tokens used per month
-   */
-  tokensPerMonth?: number;
+type AdditionalConfig = {
   /**
    * What triggers the automation, shown in place of its schedule
    */
@@ -63,66 +72,32 @@ type AdditionalConfigProps = {
 };
 
 // TODO: can just be Response type once API updated
-type AutomationConfig = SeerWorkflowConfigResponse & AdditionalConfigProps;
-
-function makePlaceholderConfig(
-  id: string,
-  overrides: Partial<AutomationConfig>
-): AutomationConfig {
-  return {
-    id,
-    dateAdded: '',
-    dateUpdated: '',
-    enabled: true,
-    environments: [],
-    filters: {},
-    outputPolicy: {},
-    projects: [ALL_ACCESS_PROJECTS],
-    schedule: '',
-    seededDefault: null,
-    strategy: id,
-    version: 0,
-    ...overrides,
-  };
-}
+export type AutomationConfig = SeerWorkflowConfigResponse & AdditionalConfig;
 
 export default function AutomationsList() {
-  const organization = useOrganization();
   const automationsEnabled = useAutomationsEnabled();
 
-  const {data} = useQuery(
-    apiOptions.as<SeerWorkflowConfigsResponse>()(
-      '/organizations/$organizationIdOrSlug/seer/workflows/configs/',
-      {
-        path: automationsEnabled ? {organizationIdOrSlug: organization.slug} : skipToken,
-        staleTime: 0,
-      }
-    )
-  );
+  const {data, isPending, isLoadingError, refetch} = useFetchConfigs();
 
-  const configs: AutomationConfig[] = [
-    // Placeholders for automations the configs endpoint doesn't return yet
-    makePlaceholderConfig('placeholder-agentic-triage', {
-      title: 'Agentic Triage',
-      description: 'Automatically triage and fix the most fixable issues.',
-      schedule: 'daily',
-      tokensPerMonth: 85_400_000,
-      costPerRun: 2.5,
-    }),
-    makePlaceholderConfig('placeholder-breached-metrics', {
-      title: 'Breached Metrics',
-      description:
-        'Monitors backend metrics and investigates why certain key metrics were breached.',
-      projects: [6178942, 11276, 4511418012073984],
-      trigger: 'Triggered by metric exceptions',
-      tokensPerMonth: 341_000,
-      costPerRun: 0.052,
-    }),
-    ...(data?.configs ?? []),
-  ];
+  const configs = data ?? [];
+  const {data: monitorsById} = useMonitorsById(
+    configs.flatMap(config => config.monitorIds)
+  );
 
   if (!automationsEnabled) {
     return <NotFound />;
+  }
+
+  if (isPending) {
+    return <LoadingIndicator />;
+  }
+
+  if (isLoadingError) {
+    return <LoadingError onRetry={refetch} />;
+  }
+
+  if (configs.length === 0) {
+    return <EmptyState title={t('No automations yet.')} />;
   }
 
   return (
@@ -134,22 +109,33 @@ export default function AutomationsList() {
       padding="0"
     >
       {configs.map(config => (
-        <AutomationCard key={config.id} config={config} />
+        <AutomationCard key={config.id} config={config} monitorsById={monitorsById} />
       ))}
     </Grid>
   );
 }
 
-function AutomationCard({config}: {config: AutomationConfig}) {
+function AutomationCard({
+  config,
+  monitorsById,
+}: {
+  config: AutomationConfig;
+  monitorsById: Map<string, Detector> | undefined;
+}) {
+  const organization = useOrganization();
   const {projects} = useProjects();
+  const {data: createdByUser} = useUserFromId({
+    id: config.createdBy ? Number(config.createdBy) : undefined,
+  });
   const strategyMeta = Object.hasOwn(STRATEGY_META, config.strategy)
     ? STRATEGY_META[config.strategy as WorkflowStrategy]
     : undefined;
 
-  const {enabled, trigger, tokensPerMonth, costPerRun} = config;
-  const title = config.title ?? strategyMeta?.label ?? config.strategy;
-  const description =
-    config.description ?? strategyMeta?.description ?? t('No description');
+  const {enabled} = config;
+  const isMetricStrategy = config.strategy === 'breached_metric_investigation';
+  const trigger = isMetricStrategy ? t('Triggered by metric monitors') : config.trigger;
+  const title = config.name ?? strategyMeta?.label ?? config.strategy;
+  const description = strategyMeta?.description ?? t('No description');
   const projectSlugs = config.projects.includes(ALL_ACCESS_PROJECTS)
     ? ['all']
     : config.projects
@@ -157,117 +143,169 @@ function AutomationCard({config}: {config: AutomationConfig}) {
         .filter((slug): slug is string => slug !== undefined);
   const nextUpdate = getNextUpdate(config.schedule);
 
-  const usage = [
-    tokensPerMonth === undefined
-      ? null
-      : tct('[tokens] tokens/month', {
-          tokens: formatAbbreviatedNumber(tokensPerMonth, undefined, true),
-        }),
-    costPerRun === undefined
-      ? null
-      : tct('[cost]/run', {
-          cost: costPerRun.toLocaleString(undefined, {
-            style: 'currency',
-            currency: 'USD',
-            minimumFractionDigits: 2,
-            maximumFractionDigits: 3,
-          }),
-        }),
-  ].filter(part => part !== null);
-
   return (
     <Container as="li" display="grid">
-      {/* TODO(aliu): Link to the automation's page once it exists */}
-      <CardStack
-        gap="lg"
-        height="100%"
-        padding="xl"
-        border="primary"
-        radius="md"
-        background="primary"
-      >
-        <Stack gap="lg" flex="1">
-          <Flex align="center" gap="lg">
-            <Heading as="h3" size="md">
-              {title}
-            </Heading>
-            <IconSentry size="xs" variant="muted" />
-          </Flex>
-          {enabled ? (
-            trigger ? (
-              <Flex>
-                <Tag variant="muted" icon={<IconFire />}>
-                  {trigger}
-                </Tag>
-              </Flex>
-            ) : (
-              nextUpdate && (
-                <Flex>
-                  <Tag variant="muted" icon={<IconClock />}>
-                    {tct('Next run [time]', {
-                      time: <TimeSince date={nextUpdate} tooltipPrefix={t('Next run')} />,
-                    })}
+      <CardLink to={getAutomationDetailPath(organization.slug, config.id)}>
+        <CardStack
+          gap="lg"
+          height="100%"
+          minWidth="0"
+          padding="xl"
+          border="primary"
+          radius="md"
+          background="primary"
+        >
+          <Stack gap="lg" flex="1">
+            <Tooltip title={title} showOnlyOnOverflow skipWrapper>
+              <Heading as="h3" size="md" ellipsis>
+                {title}
+              </Heading>
+            </Tooltip>
+            <Flex align="center" gap="sm">
+              {enabled ? (
+                trigger ? (
+                  <Tag variant="muted" icon={<IconFire />}>
+                    {trigger}
                   </Tag>
-                </Flex>
-              )
-            )
+                ) : (
+                  nextUpdate && (
+                    <Tag variant="muted" icon={<IconClock />}>
+                      {tct('Next run [time]', {
+                        time: (
+                          <TimeSince date={nextUpdate} tooltipPrefix={t('Next run')} />
+                        ),
+                      })}
+                    </Tag>
+                  )
+                )
+              ) : (
+                <Tag variant="warning">{t('Paused')}</Tag>
+              )}
+              {config.createdBy ? (
+                createdByUser && (
+                  <UserAvatar
+                    user={createdByUser}
+                    size={16}
+                    hasTooltip
+                    tooltip={t('Created by %s', userDisplayName(createdByUser))}
+                  />
+                )
+              ) : (
+                <Tooltip title={t('Built and maintained by Sentry')}>
+                  <IconSentry size="xs" variant="muted" />
+                </Tooltip>
+              )}
+            </Flex>
+            {description && <Text as="p">{description}</Text>}
+          </Stack>
+          {/* TODO: Replace mock values with real usage totals */}
+          <Text size="sm" variant="muted">
+            {t('Total cost: $(mock) | (mock)m tokens')}
+          </Text>
+          {isMetricStrategy ? (
+            <Tooltip
+              disabled={!monitorsById || config.monitorIds.length === 0}
+              title={
+                <Text as="div" align="left">
+                  <Stack gap="xs" align="start">
+                    {(config.monitorIds.length >= MAX_TOOLTIP_MONITORS
+                      ? config.monitorIds.slice(0, MAX_TOOLTIP_MONITORS - 1)
+                      : config.monitorIds
+                    ).map(monitorId => {
+                      const id = String(monitorId);
+                      return (
+                        <Container key={id}>
+                          <MonitorLink
+                            to={makeMonitorDetailsPathname(organization.slug, id)}
+                            onClick={event => event.stopPropagation()}
+                          >
+                            {monitorsById?.get(id)?.name ?? id}
+                          </MonitorLink>
+                        </Container>
+                      );
+                    })}
+                    {config.monitorIds.length >= MAX_TOOLTIP_MONITORS && (
+                      <Container>
+                        {tn(
+                          '+%s more',
+                          '+%s more',
+                          config.monitorIds.length - (MAX_TOOLTIP_MONITORS - 1)
+                        )}
+                      </Container>
+                    )}
+                  </Stack>
+                </Text>
+              }
+            >
+              <Flex align="center" gap="sm">
+                <IconSiren size="sm" variant="muted" />
+                <Text size="sm" variant="muted">
+                  {config.monitorIds.length === 0
+                    ? t('No monitors')
+                    : tn('%s monitor', '%s monitors', config.monitorIds.length)}
+                </Text>
+              </Flex>
+            </Tooltip>
+          ) : projectSlugs[0] === 'all' ? (
+            <Flex align="center" gap="sm">
+              <IconAllProjects size="sm" variant="muted" />
+              <Text size="sm" variant="muted">
+                {t('All projects')}
+              </Text>
+            </Flex>
+          ) : projectSlugs.length === 0 ? (
+            <Text size="sm" variant="muted">
+              {t('No projects')}
+            </Text>
           ) : (
-            <Flex>
-              <Tag variant="warning">{t('Paused')}</Tag>
+            <Flex align="center" gap="sm">
+              <ProjectList
+                projectSlugs={projectSlugs}
+                maxVisibleProjects={MAX_VISIBLE_PROJECTS}
+                disableLinks
+              />
+              <Container flex="1" minWidth={0}>
+                <Text size="sm" variant="muted" wordBreak="break-word">
+                  {projectSlugs.slice(0, MAX_VISIBLE_PROJECTS).join(', ')}
+                  {projectSlugs.length > MAX_VISIBLE_PROJECTS && (
+                    <Fragment>
+                      {' '}
+                      <InfoText
+                        title={projectSlugs.slice(MAX_VISIBLE_PROJECTS).join(', ')}
+                      >
+                        {tn(
+                          '+%s more',
+                          '+%s more',
+                          projectSlugs.length - MAX_VISIBLE_PROJECTS
+                        )}
+                      </InfoText>
+                    </Fragment>
+                  )}
+                </Text>
+              </Container>
             </Flex>
           )}
-          {description && <Text as="p">{description}</Text>}
-          {usage.length > 0 && (
-            <Text size="sm" variant="muted">
-              {usage.map((part, index) => (
-                <Fragment key={index}>
-                  {index > 0 && ' | '}
-                  {part}
-                </Fragment>
-              ))}
-            </Text>
-          )}
-        </Stack>
-        {projectSlugs[0] === 'all' ? (
-          <Flex align="center" gap="sm">
-            <IconAllProjects size="sm" variant="muted" />
-            <Text size="sm" variant="muted">
-              {t('All projects')}
-            </Text>
-          </Flex>
-        ) : projectSlugs.length === 0 ? (
-          <Text size="sm" variant="muted">
-            {t('No projects')}
-          </Text>
-        ) : (
-          <Flex align="center" gap="sm">
-            <ProjectList
-              projectSlugs={projectSlugs}
-              maxVisibleProjects={MAX_VISIBLE_PROJECTS}
-            />
-            <Container flex="1" minWidth={0}>
-              <Text size="sm" variant="muted" wordBreak="break-word">
-                {projectSlugs.slice(0, MAX_VISIBLE_PROJECTS).join(', ')}
-                {projectSlugs.length > MAX_VISIBLE_PROJECTS && (
-                  <Fragment>
-                    {' '}
-                    <InfoText title={projectSlugs.slice(MAX_VISIBLE_PROJECTS).join(', ')}>
-                      {tn(
-                        '+%s more',
-                        '+%s more',
-                        projectSlugs.length - MAX_VISIBLE_PROJECTS
-                      )}
-                    </InfoText>
-                  </Fragment>
-                )}
-              </Text>
-            </Container>
-          </Flex>
-        )}
-      </CardStack>
+        </CardStack>
+      </CardLink>
     </Container>
   );
 }
+
+const MonitorLink = styled(Link)`
+  &:hover {
+    text-decoration: underline;
+  }
+`;
+
+const CardLink = styled(Link)`
+  display: grid;
+  min-width: 0;
+  color: inherit;
+
+  &:hover {
+    color: inherit;
+  }
+`;
 
 const CardStack = styled(Stack)`
   &:hover {

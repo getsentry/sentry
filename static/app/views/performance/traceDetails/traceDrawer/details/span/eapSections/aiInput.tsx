@@ -26,10 +26,11 @@ import {
 } from 'sentry/views/insights/pages/agents/utils/codeMode';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
-import {tryParsePythonDict} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentDetection';
-import {AIContentRenderer} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
 import type {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/eapSpanNode';
+
+import {tryParsePythonDict} from './aiContentDetection';
+import {AIContentRenderer} from './aiContentRenderer';
 
 const ALLOWED_MESSAGE_ROLES = new Set(['system', 'user', 'assistant', 'tool']);
 

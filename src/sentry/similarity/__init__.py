@@ -1,12 +1,17 @@
+from __future__ import annotations
+
 import logging
+from collections.abc import Callable, Mapping
+from typing import TYPE_CHECKING, cast
 
 from django.conf import settings
 
 from sentry import features as feature_flags
 from sentry.interfaces.stacktrace import Frame
+from sentry.similarity.backends.abstract import AbstractIndexBackend
 from sentry.similarity.backends.dummy import DummyIndexBackend
 from sentry.similarity.backends.metrics import MetricsWrapper
-from sentry.similarity.backends.redis import RedisScriptMinHashIndexBackend
+from sentry.similarity.backends.redis import Cluster, RedisScriptMinHashIndexBackend
 from sentry.similarity.encoder import Encoder
 from sentry.similarity.features import (
     ExceptionFeature,
@@ -20,10 +25,13 @@ from sentry.utils import redis
 from sentry.utils.datastructures import BidirectionalMapping
 from sentry.utils.iterators import shingle
 
+if TYPE_CHECKING:
+    from sentry.models.project import Project
+
 logger = logging.getLogger(__name__)
 
 
-def text_shingle(n, value):
+def text_shingle(n: int, value: str) -> list[str]:
     return ["".join(part) for part in shingle(n, value)]
 
 
@@ -31,8 +39,8 @@ class FrameEncodingError(ValueError):
     pass
 
 
-def get_frame_attributes(frame):
-    attributes = {}
+def get_frame_attributes(frame: Frame) -> dict[str, object]:
+    attributes: dict[str, object] = {}
 
     if frame.function in {"<lambda>", None}:
         if frame.context_line is None:
@@ -57,7 +65,7 @@ def get_frame_attributes(frame):
     return attributes
 
 
-def _make_index_backend(cluster, namespace="sim:1"):
+def _make_index_backend(cluster: object, namespace: str = "sim:1") -> AbstractIndexBackend:
     if isinstance(cluster, str):
         cluster_id = cluster
 
@@ -70,7 +78,13 @@ def _make_index_backend(cluster, namespace="sim:1"):
 
     return MetricsWrapper(
         RedisScriptMinHashIndexBackend(
-            cluster, namespace, MinHashSignatureBuilder(16, 0xFFFF), 8, 60 * 60 * 24 * 30, 3, 5000
+            cast("Cluster", cluster),
+            namespace,
+            MinHashSignatureBuilder(16, 0xFFFF),
+            8,
+            60 * 60 * 24 * 30,
+            3,
+            5000,
         ),
         scope_tag_name=None,
     )
@@ -82,13 +96,16 @@ features = FeatureSet(
         namespace="sim:1",
     ),
     Encoder({Frame: get_frame_attributes}),
-    BidirectionalMapping(
-        {
-            "exception:message:character-shingles": "a",
-            "exception:stacktrace:application-chunks": "b",
-            "exception:stacktrace:pairs": "c",
-            "message:message:character-shingles": "d",
-        }
+    cast(
+        "Mapping[str, str]",
+        BidirectionalMapping(
+            {
+                "exception:message:character-shingles": "a",
+                "exception:stacktrace:application-chunks": "b",
+                "exception:stacktrace:pairs": "c",
+                "message:message:character-shingles": "d",
+            }
+        ),
     ),
     {
         "exception:message:character-shingles": ExceptionFeature(
@@ -109,10 +126,10 @@ features = FeatureSet(
 )
 
 
-def _build_dispatcher(methodname):
+def _build_dispatcher(methodname: str) -> Callable[..., None]:
     v1_method = getattr(features, methodname)
 
-    def inner(project, *args, **kwargs):
+    def inner(project: Project | None, *args: object, **kwargs: object) -> None:
         if project is None or feature_flags.has("projects:similarity-indexing", project):
             v1_method(*args, **kwargs)
 

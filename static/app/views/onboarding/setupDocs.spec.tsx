@@ -19,7 +19,8 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
-import {SetupDocs} from 'sentry/views/onboarding/setupDocs';
+
+import {SetupDocs} from './setupDocs';
 
 const PROJECT_KEY = ProjectKeysFixture()[0];
 
@@ -277,7 +278,7 @@ describe('Onboarding Setup Docs', () => {
   describe('JS Loader Script', () => {
     it('renders Loader Script setup', async () => {
       const organization = OrganizationFixture({
-        features: ['session-replay', 'performance-view'],
+        features: ['session-replay'],
       });
       const project = ProjectFixture({
         slug: 'javascript',
@@ -397,7 +398,7 @@ describe('Onboarding Setup Docs', () => {
 
   it('syncs product toggles into onboarding context for SCM onboarding', async () => {
     const organization = OrganizationFixture({
-      features: ['session-replay', 'performance-view'],
+      features: ['session-replay'],
     });
     const project = ProjectFixture({
       slug: 'javascript-react',

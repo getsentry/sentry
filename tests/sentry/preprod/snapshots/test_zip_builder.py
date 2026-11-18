@@ -20,7 +20,7 @@ def _meta(content_hash: str) -> ImageMetadata:
 
 
 def _session(data_by_key: dict[str, bytes]) -> MagicMock:
-    def _get(key):
+    def _get(key: str) -> MagicMock:
         result = MagicMock()
         if key in data_by_key:
             result.payload.read.return_value = data_by_key[key]

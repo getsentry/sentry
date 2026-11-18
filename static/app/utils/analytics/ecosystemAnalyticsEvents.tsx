@@ -1,9 +1,10 @@
 import type {PlatformKey} from 'sentry/types/platform';
-import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import type {DataForwarderProviderSlug} from 'sentry/views/settings/organizationDataForwarding/util/types';
 
+import type {BaseEventAnalyticsParams} from './workflowAnalyticsEvents';
+
 type SetupType = 'automatic' | 'manual';
-type StackTraceView = 'stacktrace_issue_details' | 'integration_configuration_detail';
+type StackTraceView = 'stacktrace_issue_details';
 
 export type EcosystemEventParameters = {
   'data_forwarding.add_forwarder_clicked': Record<string, unknown>;
@@ -42,10 +43,6 @@ export type EcosystemEventParameters = {
     setup_type: SetupType;
     view: StackTraceView;
     is_suggestion?: boolean;
-  };
-  'integrations.stacktrace_docs_clicked': {
-    provider: string;
-    view: StackTraceView;
   };
   'integrations.stacktrace_link_clicked': {
     group_id: number;
@@ -88,7 +85,6 @@ export const ecosystemEventMap: Record<EcosystemEventKeys, string | null> = {
   'data_forwarding.onboarding_cta_clicked': 'Data Forwarding: Onboarding CTA Clicked',
   'data_forwarding.setup_complete': 'Data Forwarding: Setup Complete',
   'integrations.stacktrace_complete_setup': 'Integrations: Stacktrace Complete Setup',
-  'integrations.stacktrace_docs_clicked': 'Integrations: Stacktrace Docs Clicked',
   'integrations.stacktrace_link_clicked': 'Integrations: Stacktrace Link Clicked',
   'integrations.stacktrace_link_cta_dismissed':
     'Integrations: Stacktrace Link CTA Dismissed',

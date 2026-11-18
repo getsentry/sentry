@@ -1,0 +1,84 @@
+#!/usr/bin/env python
+"""Print a fresh Linear MCP bearer token for an org's "Linear for Seer" integration.
+
+Mirrors what `LinearOrgMonitoringProvider.build_connection` hands Seer, minus the
+Fernet encryption. `integration_service.get_access_token` guarantees at least five
+minutes of remaining validity (refreshing in control when needed), so the printed
+token is immediately usable against https://mcp.linear.app/mcp/readonly.
+
+The bare token goes to stdout so it can be piped; everything else goes to stderr:
+
+    bin/seer/linear-mcp-token --org 1
+    bin/seer/linear-mcp-token --org my-org --force-refresh
+    bin/seer/linear-mcp-token --org 1 | pbcopy
+"""
+
+from sentry.runner import configure
+
+configure()
+
+import argparse
+import sys
+
+from sentry.constants import ObjectStatus
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.types import IntegrationProviderSlug
+from sentry.models.organization import Organization
+
+
+def _resolve_org(value: str) -> Organization:
+    try:
+        if value.isdigit():
+            return Organization.objects.get(id=int(value))
+        return Organization.objects.get(slug=value)
+    except Organization.DoesNotExist:
+        sys.exit(f"error: organization {value!r} not found")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    parser.add_argument("--org", default="1", help="Organization id or slug (default: 1)")
+    parser.add_argument(
+        "--force-refresh",
+        action="store_true",
+        help="Force Linear to mint a replacement token (use when the current one was rejected)",
+    )
+    args = parser.parse_args()
+
+    org = _resolve_org(args.org)
+    provider = IntegrationProviderSlug.LINEAR.value
+
+    ctx = integration_service.organization_context(organization_id=org.id, provider=provider)
+    integration = ctx.integration
+    org_integration = ctx.organization_integration
+    if (
+        integration is None
+        or org_integration is None
+        or integration.status != ObjectStatus.ACTIVE
+        or org_integration.status != ObjectStatus.ACTIVE
+    ):
+        sys.exit(
+            f"error: org {org.slug!r} (id={org.id}) has no active 'Linear for Seer' integration"
+        )
+
+    token = integration_service.get_access_token(
+        integration_id=integration.id,
+        organization_id=org.id,
+        force_refresh=args.force_refresh,
+    )
+    if token is None:
+        sys.exit(
+            "error: Linear returned no access token "
+            "(try --force-refresh, or reconnect the integration)"
+        )
+
+    expires = token.expires_at.isoformat() if token.expires_at else "never"
+    print(  # noqa: S002, T201
+        f"org={org.slug} integration_id={integration.id} ({integration.name}) expires_at={expires}",
+        file=sys.stderr,
+    )
+    print(token.token)  # noqa: S002, T201
+
+
+if __name__ == "__main__":
+    main()

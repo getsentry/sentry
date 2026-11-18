@@ -17,3 +17,7 @@ export function useInvestigationsEnabled() {
     !!organization?.openMembership && organization.features.includes('investigations')
   );
 }
+
+export function getActorName(user: {email: string; name: string}) {
+  return user.name || user.email;
+}

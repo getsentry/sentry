@@ -2,6 +2,7 @@ import type {ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {InvoiceFixture} from 'getsentry-test/fixtures/invoice';
+import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ModalBody} from '@sentry/scraps/modal';
@@ -38,7 +39,7 @@ describe('InvoiceDetails > Payment Form', () => {
   beforeEach(() => {
     organization.features = [];
     MockApiClient.clearMockResponses();
-    SubscriptionStore.set(organization.slug, {});
+    SubscriptionStore.set(organization.slug, SubscriptionFixture({organization}));
   });
 
   const modalDummy = ({children}: {children?: ReactNode}) => <div>{children}</div>;

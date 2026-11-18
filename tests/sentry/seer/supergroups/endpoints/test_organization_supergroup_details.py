@@ -18,14 +18,14 @@ def mock_seer_response(data: dict[str, Any]) -> MagicMock:
 class OrganizationSupergroupDetailsEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-supergroup-details"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
     @patch(
         "sentry.seer.supergroups.endpoints.organization_supergroup_details.make_supergroups_get_request"
     )
-    def test_get_supergroup_details(self, mock_seer):
+    def test_get_supergroup_details(self, mock_seer: MagicMock) -> None:
         mock_seer.return_value = mock_seer_response(
             {"id": 1, "title": "NullPointerException in auth", "group_ids": [10, 20]}
         )

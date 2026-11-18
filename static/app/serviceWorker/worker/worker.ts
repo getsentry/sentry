@@ -1,11 +1,12 @@
 import * as Sentry from '@sentry/browser';
 
 import type {ResponseMessage} from 'sentry/serviceWorker/types';
-import {fetchClientConfig} from 'sentry/serviceWorker/worker/clientConfig';
-import {DEBUG_LOGGING, log} from 'sentry/serviceWorker/worker/constants';
-import {handleInboundEvent} from 'sentry/serviceWorker/worker/handleInboundEvent';
-import {handleInboundRequest} from 'sentry/serviceWorker/worker/handleInboundRequest';
-import {initializeSentry} from 'sentry/serviceWorker/worker/initializeSentry';
+
+import {fetchClientConfig} from './clientConfig';
+import {DEBUG_LOGGING, log} from './constants';
+import {handleInboundEvent} from './handleInboundEvent';
+import {handleInboundRequest} from './handleInboundRequest';
+import {initializeSentry} from './initializeSentry';
 
 const sw = self as unknown as ServiceWorkerGlobalScope;
 

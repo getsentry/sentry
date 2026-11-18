@@ -3,16 +3,18 @@ from __future__ import annotations
 import functools
 from abc import abstractmethod
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any, NamedTuple, NotRequired, Protocol, TypedDict
+from typing import Annotated, Any, NamedTuple, NotRequired, Protocol, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 
 from sentry import features, release_health, tsdb
+from sentry.api.event_search import SearchFilter
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.actor import ActorSerializerResponse
+from sentry.api.serializers.models.event_metadata import EventMetadataResponse
 from sentry.api.serializers.models.group import (
     BaseGroupSerializerResponse,
     GroupAnnotation,
@@ -23,12 +25,17 @@ from sentry.api.serializers.models.group import (
     GroupStatusDetailsResponseOptional,
     GroupStatusStr,
     SeenStats,
+    _SeenStatsQueryResult,
     is_seen_stats,
     snuba_tsdb,
 )
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.constants import StatsPeriod
 from sentry.eventtypes import EventTypeStr
-from sentry.integrations.api.serializers.models.external_issue import ExternalIssueSerializer
+from sentry.integrations.api.serializers.models.external_issue import (
+    ExternalIssueResponse,
+    ExternalIssueSerializer,
+)
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.derived.serialization import GroupDerivedDataResponse
 from sentry.issues.grouptype import GroupCategory
@@ -61,6 +68,12 @@ class GroupStatsQueryArgs(NamedTuple):
     stats_period_end: datetime | None = None
 
 
+class _TSDBQueryParams(TypedDict):
+    start: datetime
+    end: datetime
+    rollup: int
+
+
 class GroupStatsMixin:
     STATS_PERIOD_CHOICES = {
         "14d": StatsPeriod(14, timedelta(hours=24)),
@@ -83,21 +96,25 @@ class GroupStatsMixin:
     def query_tsdb(
         self,
         groups: Sequence[Group],
-        query_params,
-        conditions=None,
-        environment_ids=None,
-        user=None,
-        **kwargs,
-    ):
-        pass
+        query_params: _TSDBQueryParams,
+        conditions: Sequence[Sequence[object]] | None = None,
+        environment_ids: list[int] | None = None,
+        user: User | RpcUser | AnonymousUser | None = None,
+        aggregation_override: str | None = None,
+        **kwargs: object,
+    ) -> dict[int, list[tuple[int, int]]] | None:
+        return None
 
     def get_stats(
         self,
         item_list: Sequence[Group],
-        user,
+        user: User | RpcUser | AnonymousUser,
         stats_query_args: GroupStatsQueryArgs,
-        **kwargs,
-    ):
+        conditions: Sequence[Sequence[object]] | None = None,
+        environment_ids: list[int] | None = None,
+        aggregation_override: str | None = None,
+        **kwargs: object,
+    ) -> dict[int, list[tuple[int, int]]] | None:
         if stats_query_args and stats_query_args.stats_period:
             # we need to compute stats at 1d (1h resolution), and 14d or a custom given period
             if stats_query_args.stats_period == "auto":
@@ -126,7 +143,7 @@ class GroupStatsMixin:
                     delta_day = self.CUSTOM_ROLLUP_CHOICES["24h"]
                     rollup = round(total_period / (self.CUSTOM_SEGMENTS * delta_day)) * delta_day
 
-                query_params = {
+                query_params: _TSDBQueryParams = {
                     "start": stats_query_args.stats_period_start,
                     "end": stats_query_args.stats_period_end,
                     "rollup": max(int(rollup), 1),  # Zero is a bad thing to divide by
@@ -143,13 +160,18 @@ class GroupStatsMixin:
             return self.query_tsdb(
                 item_list,
                 query_params,
+                conditions=conditions,
+                environment_ids=environment_ids,
                 user=user,
+                aggregation_override=aggregation_override,
                 **kwargs,
             )
 
+        return None
+
 
 class _MaybeStats(TypedDict, total=False):
-    stats: dict[str, dict[int, list[tuple[int, int]]]]
+    stats: dict[str, list[tuple[int, int]]]
 
 
 class StreamGroupSerializerResponse(BaseGroupSerializerResponse, _MaybeStats):
@@ -157,7 +179,11 @@ class StreamGroupSerializerResponse(BaseGroupSerializerResponse, _MaybeStats):
 
 
 class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
-    def __init__(self, environment_func=None, stats_period=None):
+    def __init__(
+        self,
+        environment_func: Callable[[], Environment | None] | None = None,
+        stats_period: str | None = None,
+    ) -> None:
         super().__init__(environment_func=environment_func)
 
         assert (
@@ -183,7 +209,7 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
                 GroupStatsQueryArgs(self.stats_period, None, None),
             )
             for item in item_list:
-                attrs[item]["stats"] = stats[item.id]
+                attrs[item]["stats"] = cast("dict[int, list[tuple[int, int]]]", stats)[item.id]
 
         return attrs
 
@@ -197,7 +223,9 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
         base = super().serialize(obj, attrs, user)
 
         if self.stats_period:
-            extra: _MaybeStats = {"stats": {self.stats_period: attrs["stats"]}}
+            extra: _MaybeStats = {
+                "stats": {self.stats_period: cast("list[tuple[int, int]]", attrs["stats"])}
+            }
         else:
             extra = {}
 
@@ -206,12 +234,13 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
     def query_tsdb(
         self,
         groups: Sequence[Group],
-        query_params,
-        conditions=None,
-        environment_ids=None,
-        user=None,
-        **kwargs,
-    ):
+        query_params: _TSDBQueryParams,
+        conditions: Sequence[Sequence[object]] | None = None,
+        environment_ids: list[int] | None = None,
+        user: User | RpcUser | AnonymousUser | None = None,
+        aggregation_override: str | None = None,
+        **kwargs: object,
+    ) -> dict[int, list[tuple[int, int]]] | None:
         try:
             environment = self.environment_func()
         except Environment.DoesNotExist:
@@ -232,93 +261,300 @@ class StreamGroupSerializer(GroupSerializer, GroupStatsMixin):
 class _SeenStatsFunc(Protocol):
     def __call__(
         self,
-        item_list,
-        start=None,
-        end=None,
-        conditions=None,
-        environment_ids=None,
-    ) -> Mapping[str, Any]: ...
+        item_list: Sequence[Group],
+        start: datetime | None = None,
+        end: datetime | None = None,
+        conditions: Sequence[Sequence[object]] | None = None,
+        environment_ids: list[int] | None = None,
+    ) -> _SeenStatsQueryResult: ...
 
 
 class _Filtered(TypedDict):
-    count: str
-    userCount: int
-    firstSeen: datetime | None
-    lastSeen: datetime | None
-    stats: NotRequired[dict[str, Any]]
+    count: Annotated[
+        str, ApiDescription("Number of the issue's events that match the search query")
+    ]
+    userCount: Annotated[
+        int,
+        ApiDescription(
+            "Number of users affected by the issue's events that match the search query"
+        ),
+    ]
+    firstSeen: Annotated[
+        datetime | None,
+        ApiDescription("When an event matching the search query was first seen (ISO 8601)"),
+    ]
+    lastSeen: Annotated[
+        datetime | None,
+        ApiDescription("When an event matching the search query was last seen (ISO 8601)"),
+    ]
+    stats: NotRequired[
+        Annotated[
+            dict[str, list[list[float]]],
+            ApiDescription(
+                "Counts of matching events over the requested stats period, keyed by the period, as [timestamp, count] pairs"
+            ),
+        ]
+    ]
+
+
+class _Lifetime(TypedDict):
+    count: Annotated[str, ApiDescription("Number of events in the issue")]
+    userCount: Annotated[int, ApiDescription("Number of users affected by the issue")]
+    firstSeen: Annotated[
+        datetime | None, ApiDescription("When the issue was first seen (ISO 8601)")
+    ]
+    lastSeen: Annotated[datetime | None, ApiDescription("When the issue was last seen (ISO 8601)")]
+    stats: NotRequired[
+        Annotated[
+            None,
+            ApiDescription("Always null. Only included when a stats period is requested"),
+        ]
+    ]
 
 
 class StreamGroupSerializerSnubaResponse(TypedDict):
-    id: str
+    id: Annotated[str, ApiDescription("ID of the issue")]
     # from base response
-    shareId: NotRequired[str | None]
-    shortId: NotRequired[str]
-    title: NotRequired[str]
-    culprit: NotRequired[str | None]
-    permalink: NotRequired[str]
-    logger: NotRequired[str | None]
-    level: NotRequired[GroupLevelStr]
-    status: NotRequired[GroupStatusStr]
-    statusDetails: NotRequired[GroupStatusDetailsResponseOptional]
-    substatus: NotRequired[GroupSubStatusStr | None]
-    isPublic: NotRequired[bool]
-    platform: NotRequired[str | None]
-    priority: NotRequired[GroupPriorityStr | None]
-    priorityLockedAt: NotRequired[datetime | None]
-    seerFixabilityScore: NotRequired[float | None]
-    seerAutofixLastTriggered: NotRequired[datetime | None]
-    seerExplorerAutofixLastTriggered: NotRequired[datetime | None]
-    project: NotRequired[GroupProjectResponse]
-    type: NotRequired[EventTypeStr]
-    issueType: NotRequired[str]
-    issueCategory: NotRequired[str]
-    metadata: NotRequired[dict[str, Any]]
-    numComments: NotRequired[int]
-    assignedTo: NotRequired[ActorSerializerResponse | None]
-    isBookmarked: NotRequired[bool]
-    isSubscribed: NotRequired[bool]
-    subscriptionDetails: NotRequired[SubscriptionDetails | None]
-    hasSeen: NotRequired[bool]
-    annotations: NotRequired[list[GroupAnnotation]]
+    shareId: NotRequired[
+        Annotated[
+            str | None,
+            ApiDescription(
+                "ID used in the issue's public share URL. Null when the issue isn't shared"
+            ),
+        ]
+    ]
+    shortId: NotRequired[
+        Annotated[str | None, ApiDescription("Short ID of the issue, such as PROJECT-1A")]
+    ]
+    title: NotRequired[Annotated[str, ApiDescription("Title of the issue")]]
+    culprit: NotRequired[
+        Annotated[str | None, ApiDescription("Function or module where the issue occurs")]
+    ]
+    permalink: NotRequired[Annotated[str, ApiDescription("URL of the issue in Sentry")]]
+    logger: NotRequired[Annotated[str | None, ApiDescription("Logger of the issue's events")]]
+    level: NotRequired[Annotated[GroupLevelStr, ApiDescription("Severity level of the issue")]]
+    status: NotRequired[Annotated[GroupStatusStr, ApiDescription("Issue status")]]
+    statusDetails: NotRequired[
+        Annotated[
+            GroupStatusDetailsResponseOptional,
+            ApiDescription(
+                "Details of the issue's status, such as when an ignore expires or which release resolves it"
+            ),
+        ]
+    ]
+    substatus: NotRequired[
+        Annotated[
+            GroupSubStatusStr | None,
+            ApiDescription("Substatus of the issue, such as ongoing, regressed or escalating"),
+        ]
+    ]
+    isPublic: NotRequired[Annotated[bool, ApiDescription("Whether the issue is shared publicly")]]
+    platform: NotRequired[Annotated[str | None, ApiDescription("Platform of the issue's events")]]
+    priority: NotRequired[
+        Annotated[
+            GroupPriorityStr | None, ApiDescription("Priority of the issue: high, medium or low")
+        ]
+    ]
+    priorityLockedAt: NotRequired[
+        Annotated[
+            datetime | None,
+            ApiDescription(
+                "When the priority was last set manually, which stops automatic priority updates (ISO 8601)"
+            ),
+        ]
+    ]
+    seerFixabilityScore: NotRequired[
+        Annotated[
+            float | None, ApiDescription("Seer's score for how likely the issue is to be fixable")
+        ]
+    ]
+    seerAutofixLastTriggered: NotRequired[
+        Annotated[
+            datetime | None,
+            ApiDescription("When Seer Autofix was last triggered for the issue (ISO 8601)"),
+        ]
+    ]
+    seerExplorerAutofixLastTriggered: NotRequired[
+        Annotated[
+            datetime | None,
+            ApiDescription(
+                "When the Seer explorer agent last completed an Autofix step for the issue (ISO 8601)"
+            ),
+        ]
+    ]
+    project: NotRequired[
+        Annotated[GroupProjectResponse, ApiDescription("Project the issue belongs to")]
+    ]
+    type: NotRequired[
+        Annotated[EventTypeStr, ApiDescription("Event type of the issue, such as error or default")]
+    ]
+    issueType: NotRequired[
+        Annotated[
+            str, ApiDescription("Issue type, such as error or performance_n_plus_one_db_queries")
+        ]
+    ]
+    issueCategory: NotRequired[
+        Annotated[str, ApiDescription("Issue category, such as error or performance")]
+    ]
+    metadata: NotRequired[Annotated[EventMetadataResponse, ApiDescription("Issue metadata")]]
+    numComments: NotRequired[Annotated[int, ApiDescription("Number of comments on the issue")]]
+    assignedTo: NotRequired[
+        Annotated[
+            ActorSerializerResponse | None, ApiDescription("User or team the issue is assigned to")
+        ]
+    ]
+    isBookmarked: NotRequired[
+        Annotated[bool, ApiDescription("Whether the requesting user bookmarked the issue")]
+    ]
+    isSubscribed: NotRequired[
+        Annotated[bool, ApiDescription("Whether the requesting user is subscribed to the issue")]
+    ]
+    subscriptionDetails: NotRequired[
+        Annotated[
+            SubscriptionDetails | None,
+            ApiDescription("Why the requesting user is subscribed to the issue"),
+        ]
+    ]
+    hasSeen: NotRequired[
+        Annotated[
+            bool,
+            ApiDescription("Whether the requesting user has seen the issue since it last occurred"),
+        ]
+    ]
+    annotations: NotRequired[
+        Annotated[list[GroupAnnotation], ApiDescription("External issues linked to the issue")]
+    ]
     # from base response optional
-    isUnhandled: NotRequired[bool]
-    count: NotRequired[str]
-    userCount: NotRequired[int]
-    firstSeen: NotRequired[datetime | None]
-    lastSeen: NotRequired[datetime | None]
-    derivedData: NotRequired[GroupDerivedDataResponse]
+    isUnhandled: NotRequired[
+        Annotated[bool, ApiDescription("Whether the issue includes unhandled events")]
+    ]
+    count: NotRequired[Annotated[str, ApiDescription("Total number of events in the issue")]]
+    userCount: NotRequired[Annotated[int, ApiDescription("Number of users affected by the issue")]]
+    firstSeen: NotRequired[
+        Annotated[datetime | None, ApiDescription("When the issue was first seen (ISO 8601)")]
+    ]
+    lastSeen: NotRequired[
+        Annotated[datetime | None, ApiDescription("When the issue was last seen (ISO 8601)")]
+    ]
+    derivedData: NotRequired[
+        Annotated[
+            GroupDerivedDataResponse,
+            ApiDescription(
+                "Additional data derived for the issue. Only included when requested with expand"
+            ),
+        ]
+    ]
 
     # from the serializer itself
-    stats: NotRequired[dict[str, Any]]
-    lifetime: NotRequired[dict[str, Any]]
-    filtered: NotRequired[_Filtered | None]
-    sessionCount: NotRequired[int]
-    inbox: NotRequired[InboxDetails]
-    owners: NotRequired[OwnersSerialized]
-    integrationIssues: NotRequired[list[dict[str, Any]]]
-    sentryAppIssues: NotRequired[list[dict[str, Any]]]
-    latestEventHasAttachments: NotRequired[bool]
+    stats: NotRequired[
+        Annotated[
+            dict[str, list[list[float]]],
+            ApiDescription(
+                "Event counts over the requested stats period, keyed by the period, as [timestamp, count] pairs. Omitted when stats is collapsed"
+            ),
+        ]
+    ]
+    lifetime: NotRequired[
+        Annotated[
+            _Lifetime,
+            ApiDescription(
+                "Event count, user count, and first and last seen times over the issue's lifetime. Omitted when stats or lifetime is collapsed"
+            ),
+        ]
+    ]
+    filtered: NotRequired[
+        Annotated[
+            _Filtered | None,
+            ApiDescription(
+                "Event count, user count, and first and last seen times for events that match the search query. Null when there's no query; omitted when stats or filtered is collapsed"
+            ),
+        ]
+    ]
+    sessionCount: NotRequired[
+        Annotated[
+            int | None,
+            ApiDescription(
+                "Number of sessions in the issue's project over the query time range. "
+                "Null when session data is unavailable. Only included with expand=sessions "
+                "when a stats period is enabled and stats is not collapsed"
+            ),
+        ]
+    ]
+    inbox: NotRequired[
+        Annotated[
+            InboxDetails,
+            ApiDescription(
+                "Why the issue is in the inbox. Only included when requested with expand"
+            ),
+        ]
+    ]
+    owners: NotRequired[
+        Annotated[
+            list[OwnersSerialized] | None,
+            ApiDescription(
+                "Suggested owners of the issue. Only included when requested with expand"
+            ),
+        ]
+    ]
+    integrationIssues: NotRequired[
+        Annotated[
+            list[ExternalIssueResponse],
+            ApiDescription(
+                "External issues linked through integrations. Only included when requested with expand"
+            ),
+        ]
+    ]
+    sentryAppIssues: NotRequired[
+        Annotated[
+            list[PlatformExternalIssueSerializerResponse],
+            ApiDescription(
+                "External issues linked through Sentry apps. Only included when requested with expand"
+            ),
+        ]
+    ]
+    latestEventHasAttachments: NotRequired[
+        Annotated[
+            bool,
+            ApiDescription(
+                "Whether the issue's latest event has attachments. Only included when requested with expand"
+            ),
+        ]
+    ]
     # Added post-serialize at the direct-hit path in OrganizationGroupIndexEndpoint /
     # ProjectGroupIndexEndpoint when a query resolves to a specific event.
-    matchingEventId: NotRequired[str | None]
-    matchingEventEnvironment: NotRequired[str | None]
+    matchingEventId: NotRequired[
+        Annotated[
+            str | None,
+            ApiDescription(
+                "ID of the event the search query matched. Only included when the query matches an event ID"
+            ),
+        ]
+    ]
+    matchingEventEnvironment: NotRequired[
+        Annotated[
+            str | None,
+            ApiDescription(
+                "Environment of the event the search query matched. Only included when the query matches an event ID"
+            ),
+        ]
+    ]
 
 
 class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
     def __init__(
         self,
         environment_ids: list[int] | None = None,
-        stats_period=None,
-        stats_period_start=None,
-        stats_period_end=None,
-        start=None,
-        end=None,
-        search_filters=None,
-        collapse=None,
-        expand=None,
-        organization_id=None,
-        project_ids=None,
-    ):
+        stats_period: str | None = None,
+        stats_period_start: datetime | None = None,
+        stats_period_end: datetime | None = None,
+        start: datetime | None = None,
+        end: datetime | None = None,
+        search_filters: Sequence[SearchFilter] | None = None,
+        collapse: Sequence[str] | None = None,
+        expand: Sequence[str] | None = None,
+        organization_id: int | None = None,
+        project_ids: list[int] | None = None,
+    ) -> None:
         super().__init__(
             environment_ids,
             start,
@@ -385,7 +621,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             for item in item_list:
                 if filtered_stats:
                     attrs[item]["filtered_stats"] = filtered_stats[item.id]
-                attrs[item]["stats"] = stats[item.id]
+                attrs[item]["stats"] = cast("dict[int, list[tuple[int, int]]]", stats)[item.id]
 
             if self._expand("sessions"):
                 uniq_project_ids = list({item.project_id for item in item_list})
@@ -447,7 +683,9 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             serialized_external_issues = serialize(
                 external_issues, serializer=ExternalIssueSerializer()
             )
-            integration_issues_by_group_id: dict[int, list[dict[str, Any]]] = defaultdict(list)
+            integration_issues_by_group_id: dict[int, list[ExternalIssueResponse]] = defaultdict(
+                list
+            )
             for external_issue, serialized_external_issue in zip(
                 external_issues, serialized_external_issues
             ):
@@ -511,11 +749,13 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         **kwargs: Any,
     ) -> StreamGroupSerializerSnubaResponse:
         if not self._collapse("base"):
-            result: StreamGroupSerializerSnubaResponse = {**super().serialize(obj, attrs, user)}
+            result = cast(
+                "StreamGroupSerializerSnubaResponse", {**super().serialize(obj, attrs, user)}
+            )
         else:
             result = {"id": str(obj.id)}
             if is_seen_stats(attrs):
-                result.update(self._convert_seen_stats(attrs))
+                cast("dict[str, Any]", result).update(self._convert_seen_stats(attrs))
             if "is_unhandled" in attrs:
                 result["isUnhandled"] = attrs["is_unhandled"]
 
@@ -550,7 +790,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
                 else:
                     result["filtered"] = None
 
-            if self._expand("sessions"):
+            if self.stats_period and self._expand("sessions"):
                 result["sessionCount"] = attrs["sessionCount"]
 
         if self._expand("inbox"):
@@ -573,15 +813,15 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
     def query_tsdb(
         self,
         groups: Sequence[Group],
-        query_params,
-        conditions=None,
-        environment_ids=None,
-        user=None,
+        query_params: _TSDBQueryParams,
+        conditions: Sequence[Sequence[object]] | None = None,
+        environment_ids: Sequence[int] | None = None,
+        user: User | RpcUser | AnonymousUser | None = None,
         aggregation_override: str | None = None,
-        **kwargs,
-    ):
+        **kwargs: object,
+    ) -> dict[int, list[tuple[int, int]]] | None:
         if not groups:
-            return
+            return None
 
         error_issue_ids, generic_issue_ids = [], []
         for group in groups:
@@ -599,12 +839,12 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         get_range = functools.partial(
             snuba_tsdb.get_range,
             environment_ids=environment_ids,
-            tenant_ids={"organization_id": self.organization_id},
+            tenant_ids={"organization_id": cast(int, self.organization_id)},
             project_ids=self.project_ids,
             **query_params,
         )
 
-        results = {}
+        results: dict[int, list[tuple[int, int]]] = {}
 
         if error_issue_ids:
             results.update(
@@ -621,12 +861,12 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         return results
 
     def _seen_stats_error(
-        self, error_issue_list: Sequence[Group], user
+        self, error_issue_list: Sequence[Group], user: User | RpcUser | AnonymousUser
     ) -> Mapping[Group, SeenStats]:
         return self.__seen_stats_impl(error_issue_list, self._execute_error_seen_stats_query)
 
     def _seen_stats_generic(
-        self, generic_issue_list: Sequence[Group], user
+        self, generic_issue_list: Sequence[Group], user: User | RpcUser | AnonymousUser
     ) -> Mapping[Group, SeenStats]:
         return self.__seen_stats_impl(generic_issue_list, self._execute_generic_seen_stats_query)
 
@@ -645,14 +885,14 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
         time_range_result = self._parse_seen_stats_results(
             partial_execute_seen_stats_query(),
             error_issue_list,
-            self.start or self.end or self.conditions,
+            cast(bool, self.start or self.end or self.conditions),
             self.environment_ids,
         )
         filtered_result = (
             self._parse_seen_stats_results(
                 partial_execute_seen_stats_query(conditions=self.conditions),
                 error_issue_list,
-                self.start or self.end or self.conditions,
+                cast(bool, self.start or self.end or self.conditions),
                 self.environment_ids,
             )
             if self.conditions and not self._collapse("filtered")
@@ -682,7 +922,7 @@ class StreamGroupSerializerSnuba(GroupSerializerSnuba, GroupStatsMixin):
             )
         return time_range_result
 
-    def _build_session_cache_key(self, project_id):
+    def _build_session_cache_key(self, project_id: int) -> str:
         start_key_dt = end_key_dt = None
         env_key = ""
         if self.start:

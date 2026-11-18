@@ -16,7 +16,7 @@ class ProcessIncrTest(TestCase):
     @mock.patch("sentry.buffer.backend.process")
     def test_calls_process_with_model_name(self, process: mock.MagicMock) -> None:
         columns = {"times_seen": 1}
-        filters = {"pk": 1}
+        filters: dict[str, object] = {"pk": 1}
         process_incr(model_name="sentry.Group", columns=columns, filters=filters)
         process.assert_called_once_with(
             model=Group, columns=columns, filters=filters, extra=None, signal_only=None

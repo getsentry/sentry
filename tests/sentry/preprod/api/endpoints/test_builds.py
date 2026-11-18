@@ -1,4 +1,5 @@
-from unittest.mock import ANY, patch
+from typing import Any
+from unittest.mock import ANY, MagicMock, patch
 
 import pytest
 from django.urls import reverse
@@ -15,13 +16,13 @@ from sentry.testutils.helpers.datetime import before_now
 
 class BuildsEndpointTest(APITestCase):
     @cached_property
-    def user_auth_token(self):
+    def user_auth_token(self) -> str:
         auth_token = self.create_user_auth_token(
             self.user, scope_list=["org:admin", "project:admin"]
         )
         return auth_token.token
 
-    def _request(self, query, token=None):
+    def _request(self, query: dict[str, object], token: str | None = None) -> Any:
         token = self.user_auth_token if token is None else token
         url = reverse(
             "sentry-api-0-organization-builds",
@@ -30,7 +31,7 @@ class BuildsEndpointTest(APITestCase):
         )
         return self.client.get(url, format="json", HTTP_AUTHORIZATION=f"Bearer {token}")
 
-    def _assert_is_successful(self, response):
+    def _assert_is_successful(self, response: Any) -> None:
         assert response.status_code == 200, f"status {response.status_code} body {response.json()}"
 
     def test_invalid_token(self) -> None:
@@ -865,7 +866,7 @@ class BuildsEndpointTest(APITestCase):
         assert self._request({"query": "distribution_error_code:bogus"}).status_code == 400
 
     @patch("sentry.preprod.builds_query.get_size_retention_cutoff")
-    def test_excludes_expired_artifacts(self, mock_cutoff) -> None:
+    def test_excludes_expired_artifacts(self, mock_cutoff: MagicMock) -> None:
         mock_cutoff.return_value = before_now(days=30)
         self.create_preprod_artifact(app_id="recent.app", date_added=before_now(days=10))
         self.create_preprod_artifact(app_id="expired.app", date_added=before_now(days=60))

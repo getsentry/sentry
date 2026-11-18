@@ -1,7 +1,10 @@
-from datetime import timedelta
+from collections.abc import Sequence
+from datetime import datetime, timedelta
+from typing import Any
 
 import pytest
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry.testutils.helpers.datetime import before_now
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
@@ -14,14 +17,32 @@ pytestmark = pytest.mark.sentry_metrics
 
 
 def build_expected_transformed_timeseries(
-    *args,
-    filled=None,
-    smoothed=None,
-    comparison_filled=None,
-    comparison_smoothed=None,
-    **kwargs,
-):
-    expected = build_expected_timeseries(*args, **kwargs)
+    start: datetime,
+    interval: int,
+    expected_values: object,
+    expected_comparison: object = None,
+    ignore_accuracy: bool = False,
+    sample_count: Sequence[object] | None = None,
+    sample_rate: Sequence[object] | None = None,
+    confidence: Sequence[object] | None = None,
+    *,
+    filled: Sequence[bool] | None = None,
+    smoothed: Sequence[bool] | None = None,
+    comparison_filled: Sequence[bool] | None = None,
+    comparison_smoothed: Sequence[bool] | None = None,
+) -> list[dict[str, object]]:
+    assert isinstance(expected_values, Sequence)
+    assert expected_comparison is None or isinstance(expected_comparison, Sequence)
+    expected = build_expected_timeseries(
+        start,
+        interval,
+        expected_values,
+        expected_comparison,
+        ignore_accuracy,
+        sample_count,
+        sample_rate,
+        confidence,
+    )
     for index, point in enumerate(expected):
         point["filled"] = filled[index] if filled is not None else False
         point["smoothed"] = smoothed[index] if smoothed is not None else False
@@ -49,7 +70,9 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
             kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
 
-    def _do_request(self, data, features=None):
+    def _do_request(
+        self, data: dict[str, Any], features: dict[str, bool] | None = None
+    ) -> Response:
         with self.feature(
             {
                 "organizations:discover-basic": True,
@@ -70,7 +93,11 @@ class OrganizationTimeseriesTransformationsTest(OrganizationEventsEndpointTestBa
             )
 
     def _store_spans_in_buckets(
-        self, counts, start, description="foo", interval_seconds=3600
+        self,
+        counts: list[int],
+        start: datetime,
+        description: str = "foo",
+        interval_seconds: int = 3600,
     ) -> None:
         self.store_spans(
             [

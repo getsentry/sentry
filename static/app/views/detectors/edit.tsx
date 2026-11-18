@@ -1,11 +1,13 @@
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
-import {EditExistingDetectorForm} from 'sentry/views/detectors/components/forms';
-import {DetectorFormProvider} from 'sentry/views/detectors/components/forms/context';
-import {useDetectorQuery} from 'sentry/views/detectors/hooks';
+
+import {EditExistingDetectorForm} from './components/forms';
+import {DetectorFormProvider} from './components/forms/context';
+import {useDetectorQuery} from './hooks';
 
 export default function DetectorEdit() {
   const params = useParams<{detectorId: string}>();
@@ -26,7 +28,11 @@ export default function DetectorEdit() {
   if (isError) {
     return (
       <LoadingError
-        message={error.status === 404 ? t('The monitor could not be found.') : undefined}
+        message={
+          error instanceof RequestError && error.status === 404
+            ? t('The monitor could not be found.')
+            : undefined
+        }
         onRetry={refetch}
       />
     );

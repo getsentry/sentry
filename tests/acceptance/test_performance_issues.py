@@ -40,6 +40,8 @@ class PerformanceIssuesTest(AcceptanceTestCase, SnubaTestCase, PerformanceIssueT
 
     def create_sample_event(self, fixture: str, start_timestamp: float) -> dict[str, Any]:
         event = json.loads(self.load_fixture(f"events/issue_detection/{fixture}.json"))
+        if not isinstance(event, dict):
+            raise TypeError("Issue detection fixture is not a JSON object")
 
         for key in ["datetime", "location", "title"]:
             del event[key]

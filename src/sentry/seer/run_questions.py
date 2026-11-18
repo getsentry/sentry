@@ -17,7 +17,7 @@ import logging
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import TypedDict
+from typing import TypedDict, cast
 
 from sentry.cache import default_cache
 from sentry.models.organization import Organization
@@ -116,7 +116,7 @@ def _get_answer(
     cache_key = _answer_cache_key(organization, run_id, question)
     cached = default_cache.get(cache_key)
     if cached is not None:
-        return cached
+        return cast(str, cached)
 
     try:
         result = run_oneshot(

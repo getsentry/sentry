@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Sequence
-from typing import Any
+from collections.abc import Callable, Sequence
+from typing import Any, TypeAlias
 
 from snuba_sdk import Column, Function
 
@@ -19,8 +19,12 @@ from sentry.snuba.metrics.naming_layer.public import (
     TransactionTagsKey,
 )
 
+SnqlValue: TypeAlias = Function | Column | str | float | int
 
-def _aggregation_on_session_status_func_factory(aggregate) -> Function:
+
+def _aggregation_on_session_status_func_factory(
+    aggregate: str,
+) -> Callable[[int, str, Sequence[int], str | None], Function]:
     def _snql_on_session_status_factory(
         org_id: int, session_status: str, metric_ids: Sequence[int], alias: str | None = None
     ) -> Function:
@@ -271,15 +275,17 @@ def http_error_count_span(
     )
 
 
-def subtraction(arg1_snql, arg2_snql, alias: str | None = None) -> Function:
+def subtraction(arg1_snql: SnqlValue, arg2_snql: SnqlValue, alias: str | None = None) -> Function:
     return Function("minus", [arg1_snql, arg2_snql], alias)
 
 
-def addition(arg1_snql, arg2_snql, alias: str | None = None) -> Function:
+def addition(arg1_snql: SnqlValue, arg2_snql: SnqlValue, alias: str | None = None) -> Function:
     return Function("plus", [arg1_snql, arg2_snql], alias)
 
 
-def division_float(arg1_snql, arg2_snql, alias: str | None = None) -> Function:
+def division_float(
+    arg1_snql: SnqlValue, arg2_snql: SnqlValue, alias: str | None = None
+) -> Function:
     return Function(
         "divide",
         # Clickhouse can manage divisions by 0, see:
@@ -289,12 +295,12 @@ def division_float(arg1_snql, arg2_snql, alias: str | None = None) -> Function:
     )
 
 
-def complement(arg1_snql, alias: str | None = None) -> Function:
+def complement(arg1_snql: SnqlValue, alias: str | None = None) -> Function:
     """(x) -> (1 - x)"""
     return Function("minus", [1.0, arg1_snql], alias=alias)
 
 
-def session_duration_filters(org_id) -> Function:
+def session_duration_filters(org_id: int) -> list[Function]:
     return [
         Function(
             "equals",
@@ -347,7 +353,7 @@ def rate_snql_factory(
 
 
 def count_web_vitals_snql_factory(
-    aggregate_filter: Function, org_id: int, measurement_rating, alias: str | None = None
+    aggregate_filter: Function, org_id: int, measurement_rating: str, alias: str | None = None
 ) -> Function:
     return Function(
         "countIf",
@@ -376,13 +382,15 @@ def count_web_vitals_snql_factory(
 
 
 def count_transaction_name_snql_factory(
-    aggregate_filter: Function, org_id: int, transaction_name, alias: str | None = None
+    aggregate_filter: Function, org_id: int, transaction_name: str, alias: str | None = None
 ) -> Function:
     is_unparameterized = "is_unparameterized"
     is_null = "is_null"
     has_value = "has_value"
 
-    def generate_transaction_name_filter(operation, transaction_name_identifier) -> Function:
+    def generate_transaction_name_filter(
+        operation: str, transaction_name_identifier: str
+    ) -> Function:
         if transaction_name_identifier == is_unparameterized:
             inner_tag_value = resolve_tag_value(
                 UseCaseID.TRANSACTIONS, org_id, "<< unparameterized >>"
@@ -436,7 +444,7 @@ def count_transaction_name_snql_factory(
 
 
 def team_key_transaction_snql(
-    org_id: int, team_key_condition_rhs, alias: str | None = None
+    org_id: int, team_key_condition_rhs: Sequence[tuple[int | str, str]], alias: str | None = None
 ) -> Function:
     team_key_conditions = set()
     for elem in team_key_condition_rhs:

@@ -3,7 +3,8 @@ import {GroupFixture} from 'sentry-fixture/group';
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import type {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
-import {useAutoTriggerAutofix} from 'sentry/components/events/autofix/v3/useAutoTriggerAutofix';
+
+import {useAutoTriggerAutofix} from './useAutoTriggerAutofix';
 
 function makeAutofix(
   overrides: Partial<ReturnType<typeof useExplorerAutofix>> = {}

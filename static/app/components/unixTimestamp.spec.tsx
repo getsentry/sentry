@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {UnixTimestamp} from 'sentry/components/unixTimestamp';
+import {UnixTimestamp} from './unixTimestamp';
 
 describe('UnixTimestamp', () => {
   it('shows the raw Unix value and reveals a human-readable card on hover', async () => {

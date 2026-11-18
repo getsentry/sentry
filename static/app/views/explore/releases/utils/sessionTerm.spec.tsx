@@ -4,7 +4,7 @@ import {
   getSessionTermDescription,
   mobileTermsDescription,
   SessionTerm,
-} from 'sentry/views/explore/releases/utils/sessionTerm';
+} from './sessionTerm';
 
 describe('Release Health Session Term', () => {
   it('dotnet terms', () => {
@@ -304,6 +304,14 @@ describe('Release Health Session Term', () => {
       'cordova'
     );
     expect(unhandledSessionTerm).toEqual(mobileTermsDescription.unhandled);
+  });
+
+  it('expo terms match react-native terms', () => {
+    for (const term of Object.values(SessionTerm)) {
+      expect(getSessionTermDescription(term, 'expo')).toEqual(
+        getSessionTermDescription(term, 'react-native')
+      );
+    }
   });
 
   it('react-native terms', () => {

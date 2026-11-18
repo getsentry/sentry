@@ -8,15 +8,15 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {ConfigStore} from 'sentry/stores/configStore';
 
 import {GiftRecurringCredits} from 'admin/views/giftRecurringCredits';
 
-jest.mock('sentry/actionCreators/indicator');
-
 describe('GiftRecurringCredits', () => {
   beforeEach(() => {
+    jest.spyOn(toast, 'error').mockClear();
     ConfigStore.set(
       'user',
       UserFixture({isSuperuser: true, permissions: new Set(['billing.admin'])})
@@ -197,7 +197,7 @@ describe('GiftRecurringCredits', () => {
 
     // The raw file is held; there is no client-side parse or org count.
     expect(await screen.findByText(/ids\.csv/)).toBeInTheDocument();
-    expect(addErrorMessage).not.toHaveBeenCalled();
+    expect(toast.error).not.toHaveBeenCalled();
 
     await userEvent.click(screen.getByTestId('gift-submit'));
 
@@ -233,7 +233,7 @@ describe('GiftRecurringCredits', () => {
     await userEvent.click(screen.getByTestId('gift-submit'));
 
     await waitFor(() =>
-      expect(addErrorMessage).toHaveBeenCalledWith(
+      expect(toast.error).toHaveBeenCalledWith(
         'Ensure this field has no more than 10000 elements.'
       )
     );
@@ -271,7 +271,7 @@ describe('GiftRecurringCredits', () => {
     });
 
     await waitFor(() =>
-      expect(addErrorMessage).toHaveBeenCalledWith('Please upload a .csv file.')
+      expect(toast.error).toHaveBeenCalledWith('Please upload a .csv file.')
     );
     expect(screen.queryByText(/orgs\.txt/)).not.toBeInTheDocument();
   });
@@ -388,7 +388,7 @@ describe('GiftRecurringCredits', () => {
     // The rejected reselection clears the earlier file rather than leaving it
     // staged for the request.
     await waitFor(() =>
-      expect(addErrorMessage).toHaveBeenCalledWith('Please upload a .csv file.')
+      expect(toast.error).toHaveBeenCalledWith('Please upload a .csv file.')
     );
     expect(screen.queryByText(/ids\.csv/)).not.toBeInTheDocument();
 
@@ -413,7 +413,7 @@ describe('GiftRecurringCredits', () => {
     const form = screen.getByTestId('gift-submit').closest('form')!;
     fireEvent.submit(form);
 
-    await waitFor(() => expect(addErrorMessage).not.toHaveBeenCalled());
+    await waitFor(() => expect(toast.error).not.toHaveBeenCalled());
     expect(postMock).not.toHaveBeenCalled();
   });
 
@@ -529,7 +529,7 @@ describe('GiftRecurringCredits', () => {
     await userEvent.click(screen.getByTestId('gift-submit'));
 
     await waitFor(() =>
-      expect(addErrorMessage).toHaveBeenCalledWith('Something went wrong.')
+      expect(toast.error).toHaveBeenCalledWith('Something went wrong.')
     );
     expect(screen.queryByTestId('results')).not.toBeInTheDocument();
   });

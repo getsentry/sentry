@@ -160,15 +160,6 @@ class UserService(RpcService):
 
     @rpc_method
     @abstractmethod
-    def get_member_cell_names(self, *, user_id: int) -> list[str]:
-        """
-        Get a list of cell names where the user is a member of at least one org.
-
-        :param user_id: The user to fetch cell names for.
-        """
-
-    @rpc_method
-    @abstractmethod
     def update_user(self, *, user_id: int, attrs: UserUpdateArgs) -> Any:
         """
         Update a user and return the API serialized form

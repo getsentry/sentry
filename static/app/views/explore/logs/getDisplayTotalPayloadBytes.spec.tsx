@@ -1,5 +1,4 @@
-import {LOGS_LARGE_SEARCH_TOTAL_THRESHOLD_BYTES} from 'sentry/views/explore/logs/constants';
-
+import {LOGS_LARGE_SEARCH_TOTAL_THRESHOLD_BYTES} from './constants';
 import {getDisplayTotalPayloadBytes} from './getDisplayTotalPayloadBytes';
 
 const ONE_TIB = LOGS_LARGE_SEARCH_TOTAL_THRESHOLD_BYTES; // 1 TiB exactly

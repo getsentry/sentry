@@ -9,7 +9,7 @@ from sentry.spans.log_analyzer.fetchers import LogEntry, TraceSpans
 
 
 @pytest.fixture
-def sample_log_entries():
+def sample_log_entries() -> list[LogEntry]:
     """Create sample log entries for testing."""
     return [
         LogEntry(
@@ -31,7 +31,7 @@ def sample_log_entries():
     ]
 
 
-def test_aggregate_traces(sample_log_entries):
+def test_aggregate_traces(sample_log_entries: list[LogEntry]) -> None:
     """Test aggregating traces across log entries."""
     analyzer = LogAnalyzer(sample_log_entries)
     traces = analyzer.aggregate_traces()
@@ -46,7 +46,7 @@ def test_aggregate_traces(sample_log_entries):
     assert trace_a.log_entries == 2
 
 
-def test_filter_by_project(sample_log_entries):
+def test_filter_by_project(sample_log_entries: list[LogEntry]) -> None:
     """Test filtering by project ID."""
     analyzer = LogAnalyzer(sample_log_entries)
     filtered = analyzer.filter_by_project("4505130643619840")
@@ -57,7 +57,7 @@ def test_filter_by_project(sample_log_entries):
     )
 
 
-def test_filter_by_trace(sample_log_entries):
+def test_filter_by_trace(sample_log_entries: list[LogEntry]) -> None:
     """Test filtering by trace ID."""
     analyzer = LogAnalyzer(sample_log_entries)
     filtered = analyzer.filter_by_trace("trace-a")
@@ -66,7 +66,7 @@ def test_filter_by_trace(sample_log_entries):
     assert all(op.trace_id == "trace-a" for entry in filtered.log_entries for op in entry.traces)
 
 
-def test_get_top_traces(sample_log_entries):
+def test_get_top_traces(sample_log_entries: list[LogEntry]) -> None:
     """Test getting top traces by latency."""
     analyzer = LogAnalyzer(sample_log_entries)
     top_traces = analyzer.get_top_traces(limit=2)
@@ -76,7 +76,7 @@ def test_get_top_traces(sample_log_entries):
     assert top_traces[0].total_latency_ms == 1000
 
 
-def test_get_summary_stats(sample_log_entries):
+def test_get_summary_stats(sample_log_entries: list[LogEntry]) -> None:
     """Test getting summary statistics."""
     analyzer = LogAnalyzer(sample_log_entries)
     stats = analyzer.get_summary_stats()

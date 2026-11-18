@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
+import {useStore} from 'zustand';
 
 import {t} from 'sentry/locale';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Scope} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -15,14 +15,18 @@ type NavProps = NavigationProps & {
 
 export function useBillingNavigationConfig(): NavigationSection | null {
   const organization = useOrganization();
-  const subscription = useLegacyStore(SubscriptionStore)[organization.slug] ?? null;
+  // null until the subscription has loaded
+  const canSelfServe = useStore(SubscriptionStore, state => {
+    const subscription = state[organization.slug];
+    return subscription ? subscription.canSelfServe : null;
+  });
 
   return useMemo(() => {
-    if (!subscription) {
+    if (canSelfServe === null) {
       return null;
     }
-    return buildBillingNavigationConfig(organization, subscription.canSelfServe);
-  }, [organization, subscription]);
+    return buildBillingNavigationConfig(organization, canSelfServe);
+  }, [organization, canSelfServe]);
 }
 
 function buildBillingNavigationConfig(

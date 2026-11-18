@@ -1,12 +1,11 @@
 import {useCallback, useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType, EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -116,7 +115,7 @@ export function useMetricSamplesQueryString(
   }, [frozenSearch, requiredQuery, traceMetric, userSearch]);
 }
 
-function useMetricsQueryKey({
+function useMetricsQueryOptions({
   limit,
   traceMetric,
   fields,
@@ -208,15 +207,17 @@ function useMetricsQueryKey({
     eventView,
   };
 
-  const queryKey: ApiQueryKey = [
-    getApiUrl('/organizations/$organizationIdOrSlug/events/', {
-      path: {organizationIdOrSlug: organization.slug},
-    }),
-    params,
-  ];
+  const queryOptions = apiOptions.as<{
+    data: TraceMetricEventsResponseItem[];
+    meta?: EventsMetaType;
+  }>()('/organizations/$organizationIdOrSlug/events/', {
+    path: {organizationIdOrSlug: organization.slug},
+    ...params,
+    staleTime: 0,
+  });
 
   return {
-    queryKey,
+    queryOptions,
     other: {
       eventView,
       pageFiltersReady,
@@ -271,7 +272,7 @@ function useMetricSamplesTableImpl({
   requiredQuery,
   staleTime,
 }: UseMetricSamplesTableOptions & {enabled: boolean}): MetricSamplesTableResult {
-  const {queryKey, other} = useMetricsQueryKey({
+  const {queryOptions, other} = useMetricsQueryOptions({
     limit,
     traceMetric,
     fields,
@@ -281,7 +282,8 @@ function useMetricSamplesTableImpl({
     requiredQuery,
   });
 
-  const result = useApiQuery<{data: any[]; meta?: EventsMetaType}>(queryKey, {
+  const result = useQuery({
+    ...queryOptions,
     enabled,
     staleTime: staleTime ?? getStaleTimeForEventView(other.eventView),
   });

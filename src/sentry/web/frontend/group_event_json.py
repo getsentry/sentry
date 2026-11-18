@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 from django.http import Http404, HttpRequest, HttpResponse
 
 from sentry.models.group import Group, get_group_with_redirect
 from sentry.models.groupmeta import GroupMeta
+from sentry.models.organization import Organization
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.utils import json
@@ -12,7 +15,13 @@ from sentry.web.frontend.base import OrganizationView, cell_silo_view
 class GroupEventJsonView(OrganizationView):
     required_scope = "event:read"
 
-    def get(self, request: HttpRequest, organization, group_id, event_id_or_latest) -> HttpResponse:
+    def get(
+        self,
+        request: HttpRequest,
+        organization: Organization,
+        group_id: str,
+        event_id_or_latest: str,
+    ) -> HttpResponse:
         try:
             # TODO(tkaemming): This should *actually* redirect, see similar
             # comment in ``GroupEndpoint.convert_args``.

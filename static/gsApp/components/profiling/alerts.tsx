@@ -12,9 +12,9 @@ import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 import {getProfileDurationCategoryForPlatform} from 'sentry/utils/profiling/platforms';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
+import {AddEventsCTA, type EventType} from 'getsentry/components/addEventsCTA';
 import {StartTrialButton} from 'getsentry/components/startTrialButton';
-import UpgradeOrTrialButton from 'getsentry/components/upgradeOrTrialButton';
+import {UpgradeOrTrialButton} from 'getsentry/components/upgradeOrTrialButton';
 import {useSubscription} from 'getsentry/hooks/useSubscription';
 import type {BilledDataCategoryInfo, ProductTrial, Subscription} from 'getsentry/types';
 import {displayBudgetName, getProductTrial, UsageAction} from 'getsentry/utils/billing';

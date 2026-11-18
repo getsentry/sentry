@@ -7,9 +7,22 @@ description: Write and review React/TypeScript tests for Sentry's frontend using
 
 ## Testing Philosophy
 
-- **User-centric testing**: Write tests that resemble how users interact with the app.
-- **Avoid implementation details**: Focus on behavior, not internal component structure.
-- **Do not share state between tests**: Behavior should not be influenced by other tests in the test suite.
+- **Test user workflows**: Set up preconditions with fixtures, props, router state, and `MockApiClient`. Drive the behavior under test with `userEvent` clicks, typing, and keyboard navigation, then assert what the user sees or can do afterward, rather than component state, internal calls, or render counts.
+- **Make assertions specific**: Name tests after the behavior they protect. Assert the expected content, validation message, destination, or submitted value; avoid vague checks such as “renders correctly” or “an error exists.”
+- **Cover relevant failures**: Alongside successful behavior, cover validation failures, rejected requests, or permission restrictions when the changed behavior depends on them. Verify the specific feedback and recovery path where supported.
+- **Choose coverage by what can regress**: Use RTL for user behavior and accessibility; use visual snapshots for appearance. Apply the selection rules below before adding assertions.
+- **Keep tests independent**: Set up each test's fixtures, API responses, and store state explicitly. Clean up mutable state using the existing test helpers; never rely on test execution order. Prefer deterministic fixture overrides to random data unless uniqueness is part of the behavior under test.
+
+## Choose RTL or Visual Snapshots Before Writing Tests
+
+- Use RTL in `*.spec.tsx` for interactions, validation, submitted values, routing, network effects, and accessible names, roles, or states. Assert the observable outcome.
+- Use unit tests for pure calculations or data transformations.
+- Do not add RTL assertions using `toHaveStyle`, `toHaveStyleRule`, computed styles, CSS class names, or DOM structure solely to verify appearance. Do not mock a child component to inspect the styling props passed to it.
+- Cover colors, typography, spacing, alignment, dimensions, responsive layout, and visual variants in colocated `*.snapshots.tsx` files with the repository's `it.snapshot` / `it.snapshot.each` API, not Jest DOM snapshots (`toMatchSnapshot` / `toMatchInlineSnapshot`). Use the **`generate-snapshot-tests`** skill for themes, variants, and container widths.
+- Visual snapshots render with `renderToString`, so they have no `document`, effects, or API responses. If the styled element only appears after fetching data or running effects, snapshot the presentational component that renders it with props. If no such component exists, extract one or note in the PR that the change has no automated visual coverage. Do not fall back to appearance assertions in RTL.
+- Distinguish CSS constraints from behavior: `min-width` / `max-width` belong in visual snapshots; an input's numeric limits need RTL coverage of validation or clamping after user input.
+- For mixed changes, snapshot appearance and test behavior separately. For a disabled button, snapshot its appearance and use RTL to verify it cannot trigger an action. Do not duplicate its CSS in RTL.
+- Before finishing, review each new assertion: replace appearance-only RTL checks with visual cases. Do not add an RTL smoke test merely to accompany a styling change.
 
 ## Imports
 
@@ -53,6 +66,22 @@ import {
    ```
 
 ## Best Practices
+
+### Assert the outcome of the interaction
+
+Use the real component and its providers with `MockApiClient` responses. When a request payload is part of the behavior, assert it as well as the resulting UI; a request being called alone does not prove the workflow succeeded.
+
+```tsx
+// ❌ A generic error check does not establish which failure was handled
+expect(screen.getByRole('alert')).toBeInTheDocument();
+
+// ✅ After submitting invalid input, check the specific validation feedback
+await userEvent.clear(screen.getByRole('textbox', {name: 'Name'}));
+await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+expect(await screen.findByText('Name is required')).toBeInTheDocument();
+```
+
+For a successful save, assert the saved content or destination. For a rejected request, configure its error response with `MockApiClient` and assert the specific error feedback; if retry is supported, exercise it and verify success.
 
 ### Avoid mocking hooks, functions, or components
 

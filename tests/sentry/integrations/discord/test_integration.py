@@ -30,6 +30,7 @@ from sentry.notifications.platform.types import (
     NotificationProviderKey,
     NotificationTargetResourceType,
 )
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.shared_integrations.exceptions import (
     ApiError,
     IntegrationConfigurationError,
@@ -235,7 +236,9 @@ class DiscordIntegrationTest(IntegrationTestCase):
         )
 
         provider.post_install(
-            integration=self.integration, organization=self.organization, extra={}
+            integration=self.integration,
+            organization=serialize_rpc_organization(self.organization),
+            extra={},
         )
         assert mock_set_application_command.call_count == 3  # one for each command
 
@@ -246,7 +249,9 @@ class DiscordIntegrationTest(IntegrationTestCase):
         provider = self.provider()
         provider.application_id = None
         provider.post_install(
-            integration=self.integration, organization=self.organization, extra={}
+            integration=self.integration,
+            organization=serialize_rpc_organization(self.organization),
+            extra={},
         )
         assert mock_set_application_command.call_count == 0
 
@@ -268,7 +273,9 @@ class DiscordIntegrationTest(IntegrationTestCase):
         )
         with pytest.raises(ApiError):
             provider.post_install(
-                integration=self.integration, organization=self.organization, extra={}
+                integration=self.integration,
+                organization=serialize_rpc_organization(self.organization),
+                extra={},
             )
 
     @responses.activate
@@ -283,7 +290,9 @@ class DiscordIntegrationTest(IntegrationTestCase):
         )
         with pytest.raises(ApiError):
             provider.post_install(
-                integration=self.integration, organization=self.organization, extra={}
+                integration=self.integration,
+                organization=serialize_rpc_organization(self.organization),
+                extra={},
             )
 
     def test_build_integration_invalid_guild_id(self) -> None:
@@ -376,7 +385,10 @@ class DiscordApiPipelineTest(APITestCase):
         return self.client.post(self._get_pipeline_url(), data=data, format="json")
 
     def _get_pipeline_signature(self, resp: Any) -> str:
-        return resp.data["data"]["oauthUrl"].split("state=")[1].split("&")[0]
+        oauth_url = resp.data["data"]["oauthUrl"]
+        if not isinstance(oauth_url, str):
+            raise TypeError("Discord pipeline response carries no OAuth URL")
+        return oauth_url.split("state=")[1].split("&")[0]
 
     @responses.activate
     def test_initialize_pipeline(self) -> None:

@@ -131,7 +131,6 @@
     "./pullRequest": "./src/iconPullRequest.tsx",
     "./pullRequestClosed": "./src/iconPullRequestClosed.tsx",
     "./pullRequestDraft": "./src/iconPullRequestDraft.tsx",
-    "./question": "./src/iconQuestion.tsx",
     "./receipt": "./src/iconReceipt.tsx",
     "./refresh": "./src/iconRefresh.tsx",
     "./releases": "./src/iconReleases.tsx",
@@ -663,10 +662,6 @@
         "types": "./dist/iconPullRequestDraft.d.ts",
         "import": "./dist/iconPullRequestDraft.js"
       },
-      "./question": {
-        "types": "./dist/iconQuestion.d.ts",
-        "import": "./dist/iconQuestion.js"
-      },
       "./receipt": {
         "types": "./dist/iconReceipt.d.ts",
         "import": "./dist/iconReceipt.js"
@@ -879,8 +874,8 @@
     "@jest/environment": "30.5.1",
     "@jest/environment-jsdom-abstract": "30.5.1",
     "@rsbuild/plugin-react": "2.1.1",
-    "@rslib/core": "1.0.3",
-    "@swc/core": "1.16.13",
+    "@rslib/core": "1.0.6",
+    "@swc/core": "1.16.22",
     "@swc/jest": "0.2.39",
     "@testing-library/dom": "10.4.1",
     "@testing-library/jest-dom": "7.0.1",
@@ -892,8 +887,8 @@
     "expect-type": "1.4.0",
     "jest": "30.5.1",
     "jsdom": "30.1.1",
-    "oxlint": "1.88.0",
-    "oxlint-tsgolint": "7.0.2004",
+    "oxlint": "1.90.0",
+    "oxlint-tsgolint": "7.0.2005",
     "react-dom": "19.3.0",
     "stylelint": "16.26.1",
     "typescript": "npm:@typescript/typescript6@6.0.2"

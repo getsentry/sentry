@@ -126,7 +126,7 @@ class NonApiPipeline(Pipeline[Never, PipelineSessionStore]):
         return HttpResponse("done")
 
 
-class InitialDataSerializer(CamelSnakeSerializer):
+class InitialDataSerializer(CamelSnakeSerializer[dict[str, object]]):
     external_id = CharField(required=False)
 
 
@@ -191,8 +191,10 @@ class OrganizationPipelineEndpointTest(APITestCase):
         )
 
     def _init_pipeline_in_session(
-        self, pipeline_cls: type[Pipeline], provider_key: str = "dummy"
-    ) -> Pipeline:
+        self,
+        pipeline_cls: type[Pipeline[Never, PipelineSessionStore]],
+        provider_key: str = "dummy",
+    ) -> Pipeline[Never, PipelineSessionStore]:
         """Create and initialize a pipeline, storing it in the test client's session."""
         with assume_test_silo_mode(SiloMode.CELL):
             rpc_org = serialize_rpc_organization(self.organization)

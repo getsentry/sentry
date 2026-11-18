@@ -10,6 +10,7 @@ AUTHORIZATION = "authorization_code"
 REFRESH = "refresh_token"
 CLIENT_SECRET_JWT = "urn:sentry:params:oauth:grant-type:jwt-bearer"
 DEVICE_CODE = "urn:ietf:params:oauth:grant-type:device_code"
+SETUP_CODE = "urn:sentry:params:oauth:grant-type:setup_code"
 
 
 class GrantTypes:
@@ -17,6 +18,7 @@ class GrantTypes:
     REFRESH = REFRESH
     CLIENT_SECRET_JWT = CLIENT_SECRET_JWT
     DEVICE_CODE = DEVICE_CODE
+    SETUP_CODE = SETUP_CODE
 
 
 def token_expiration() -> datetime:

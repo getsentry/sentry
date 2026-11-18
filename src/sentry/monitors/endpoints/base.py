@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from typing import cast
 from uuid import UUID
 
 from rest_framework.permissions import BasePermission
@@ -32,9 +33,9 @@ class MonitorEndpoint(Endpoint):
         organization_id_or_slug: int | str,
         monitor_id_or_slug: str,
         environment: str | None = None,
-        *args,
-        **kwargs,
-    ):
+        *args: object,
+        **kwargs: object,
+    ) -> tuple[tuple[object, ...], dict[str, object]]:
         try:
             if str(organization_id_or_slug).isdigit():
                 organization = Organization.objects.get_from_cache(id=organization_id_or_slug)
@@ -91,15 +92,15 @@ class ProjectMonitorEndpoint(ProjectEndpoint):
         self,
         request: Request,
         monitor_id_or_slug: str,
-        *args,
-        **kwargs,
-    ):
+        *args: object,
+        **kwargs: object,
+    ) -> tuple[tuple[object, ...], dict[str, object]]:
         args, kwargs = super().convert_args(request, *args, **kwargs)
 
         # Try lookup by slug
         try:
             kwargs["monitor"] = Monitor.objects.get(
-                project_id=kwargs["project"].id, slug=monitor_id_or_slug
+                project_id=cast("Project", kwargs["project"]).id, slug=monitor_id_or_slug
             )
             return args, kwargs
         except Monitor.DoesNotExist:
@@ -109,7 +110,7 @@ class ProjectMonitorEndpoint(ProjectEndpoint):
         try:
             UUID(monitor_id_or_slug, version=4)
             kwargs["monitor"] = Monitor.objects.get(
-                project_id=kwargs["project"].id, guid=monitor_id_or_slug
+                project_id=cast("Project", kwargs["project"]).id, guid=monitor_id_or_slug
             )
             return args, kwargs
         except (ValueError, Monitor.DoesNotExist):
@@ -131,12 +132,12 @@ class ProjectMonitorEnvironmentEndpoint(ProjectMonitorEndpoint):
         self,
         request: Request,
         monitor_id_or_slug: str,
-        environment: str,
-        *args,
-        **kwargs,
-    ):
+        *args: object,
+        **kwargs: object,
+    ) -> tuple[tuple[object, ...], dict[str, object]]:
         args, kwargs = super().convert_args(request, monitor_id_or_slug, *args, **kwargs)
-        monitor = kwargs["monitor"]
+        environment = cast("str", kwargs.pop("environment"))
+        monitor = cast("Monitor", kwargs["monitor"])
         try:
             environment_object = Environment.objects.get(
                 organization_id=monitor.organization_id, name=environment

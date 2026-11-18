@@ -2,8 +2,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {DisplayType} from 'sentry/views/dashboards/types';
-import {useSeerDashboardSession} from 'sentry/views/dashboards/useSeerDashboardSession';
+import {DisplayType} from './types';
+import {useSeerDashboardSession} from './useSeerDashboardSession';
 
 const SEER_RUN_ID = 456;
 

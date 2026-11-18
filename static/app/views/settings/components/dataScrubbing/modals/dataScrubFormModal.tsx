@@ -14,9 +14,9 @@ import {
   useStore,
 } from '@sentry/scraps/form';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
@@ -152,7 +152,7 @@ export function DataScrubFormModal({
             });
             break;
           default:
-            addErrorMessage(parsedError.message);
+            toast.error(parsedError.message);
         }
       }
     },
@@ -233,28 +233,30 @@ export function DataScrubFormModal({
           {traceItemDatasetsEnabled && (
             <form.AppField name="dataset">
               {field => (
-                <field.Radio.Group
+                <field.RadioGroup
                   value={field.state.value}
                   onChange={value => {
-                    field.handleChange(value as AllowedDataScrubbingDatasets);
-                    setDataset(value as AllowedDataScrubbingDatasets);
+                    field.handleChange(value);
+                    setDataset(value);
                     form.setFieldValue('source', '');
                   }}
                 >
-                  <field.Layout.Stack
-                    label={t('Dataset')}
-                    hintText={t('The dataset targeted by the scrubbing rule')}
-                    variant="compact"
-                  >
-                    <Stack gap="lg">
-                      {sortBy(enabledDatasets).map(value => (
-                        <field.Radio.Item key={value} value={value}>
-                          {getDatasetLabelLong(value)}
-                        </field.Radio.Item>
-                      ))}
-                    </Stack>
-                  </field.Layout.Stack>
-                </field.Radio.Group>
+                  {({Item}) => (
+                    <field.Layout.Stack
+                      label={t('Dataset')}
+                      hintText={t('The dataset targeted by the scrubbing rule')}
+                      variant="compact"
+                    >
+                      <Stack gap="lg">
+                        {sortBy(enabledDatasets).map(value => (
+                          <Item key={value} value={value}>
+                            {getDatasetLabelLong(value)}
+                          </Item>
+                        ))}
+                      </Stack>
+                    </field.Layout.Stack>
+                  )}
+                </field.RadioGroup>
               )}
             </form.AppField>
           )}
@@ -288,7 +290,7 @@ export function DataScrubFormModal({
                         options={methodOptions}
                         value={methodField.state.value}
                         onChange={methodField.handleChange}
-                        isSearchable={false}
+                        searchable={false}
                       />
                     </methodField.Layout.Stack>
                   )}
@@ -343,7 +345,7 @@ export function DataScrubFormModal({
                     options={typeOptions}
                     value={typeField.state.value}
                     onChange={typeField.handleChange}
-                    isSearchable={false}
+                    searchable={false}
                   />
                 </typeField.Layout.Stack>
               )}

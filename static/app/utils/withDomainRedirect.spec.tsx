@@ -5,10 +5,11 @@ import {setWindowLocation} from 'sentry-test/utils';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
-import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-import {useParams} from 'sentry/utils/useParams';
-import {useRoutes} from 'sentry/utils/useRoutes';
-import {withDomainRedirect} from 'sentry/utils/withDomainRedirect';
+
+import {testableWindowLocation} from './testableWindowLocation';
+import {useParams} from './useParams';
+import {useRoutes} from './useRoutes';
+import {withDomainRedirect} from './withDomainRedirect';
 
 jest.unmock('sentry/utils/recreateRoute');
 jest.mock('sentry/utils/useRoutes');

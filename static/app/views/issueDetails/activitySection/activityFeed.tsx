@@ -1,14 +1,17 @@
 import type {TimeSince} from 'sentry/components/timeSince';
 import type {NoteType} from 'sentry/types/alerts';
 import type {Group, GroupActivityNote} from 'sentry/types/group';
-import {ActivityLine} from 'sentry/views/issueDetails/activitySection/activityLineItem';
-import type {DisplayedActivityFeedItem} from 'sentry/views/issueDetails/activitySection/activityLineItem/activityFeedItem';
-import {CollapsedStatusActivityRow} from 'sentry/views/issueDetails/activitySection/activityLineItem/collapsedStatusActivityRow';
+
+import type {DisplayedActivityFeedItem} from './activityLineItem/activityFeedItem';
+import {CollapsedStatusActivityRow} from './activityLineItem/collapsedStatusActivityRow';
+import {ActivityLineImpact, isImpactActivity} from './activityLineItem/impact';
 import {
-  ActivityLineNote,
-  isActivityNote,
-} from 'sentry/views/issueDetails/activitySection/activityLineItem/note';
-import {Timeline} from 'sentry/views/issueDetails/activitySection/timeline';
+  ActivityLineInvestigationLinked,
+  isInvestigationLinkedActivity,
+} from './activityLineItem/investigationLinked';
+import {ActivityLineNote, isActivityNote} from './activityLineItem/note';
+import {ActivityLine} from './activityLineItem';
+import {Timeline} from './timeline';
 
 interface ActivityFeedProps {
   group: Group;
@@ -51,6 +54,28 @@ export function ActivityFeed({
           inputVariant={inputVariant}
           onDelete={() => onCommentDelete(activity)}
           onUpdate={data => onCommentUpdate(activity, data)}
+          timestampUnitStyle={timestampUnitStyle}
+        />
+      );
+    }
+
+    if (isImpactActivity(activity)) {
+      return (
+        <ActivityLineImpact
+          key={key}
+          activity={activity}
+          group={group}
+          timestampUnitStyle={timestampUnitStyle}
+        />
+      );
+    }
+
+    if (isInvestigationLinkedActivity(activity)) {
+      return (
+        <ActivityLineInvestigationLinked
+          key={key}
+          activity={activity}
+          variant={inputVariant}
           timestampUnitStyle={timestampUnitStyle}
         />
       );

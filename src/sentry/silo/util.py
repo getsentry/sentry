@@ -16,6 +16,10 @@ PROXY_KEYID_HEADER = "X-Sentry-Subnet-Keyid"
 PROXY_TIMEOUT_HEADER = "X-Sentry-Subnet-Timeout"
 PROXY_DIRECT_LOCATION_HEADER = "X-Sentry-Proxy-URL"
 PROXY_APIGATEWAY_HEADER = "X-Apigateway"
+WEBHOOK_DELIVERY_SIGNATURE_HEADER = "X-Sentry-Webhook-Delivery-Signature"
+# Delivery signatures use their own key, derived from the subnet secret with this label,
+# so no message can be both a valid delivery signature and a valid proxy signature.
+_WEBHOOK_DELIVERY_KEY_LABEL = b"sentry-webhook-delivery-signature-v1"
 
 INVALID_PROXY_HEADERS = {"Host", "X-Forwarded-Proto", "Content-Length", "Content-Encoding"}
 INVALID_OUTBOUND_HEADERS = INVALID_PROXY_HEADERS | {
@@ -142,3 +146,41 @@ def verify_subnet_signature(
     return hmac.compare_digest(
         assembled_signature.encode("utf-8"), provided_signature.encode("utf-8")
     )
+
+
+def _webhook_delivery_key() -> bytes | None:
+    secret = getattr(settings, "SENTRY_SUBNET_SECRET")
+    if not secret:
+        return None
+    return hmac.new(secret.encode("utf-8"), _WEBHOOK_DELIVERY_KEY_LABEL, sha256).digest()
+
+
+def _webhook_delivery_digest(key: bytes, path: str, authorization: str, request_body: bytes) -> str:
+    # A path or header value can't contain a newline and the body comes last, so the
+    # fields can't be re-split into different ones.
+    message = b"\n".join([path.encode("utf-8"), authorization.encode("utf-8"), request_body])
+    return "v1=" + hmac.new(key, message, sha256).hexdigest()
+
+
+def encode_webhook_delivery_signature(
+    path: str, authorization: str, request_body: bytes
+) -> str | None:
+    """Signs a webhook that control verified on arrival, for the cell it is queued for.
+
+    Covers the path, Authorization header and body, so the cell can trust all three came
+    from the original request.
+    """
+    key = _webhook_delivery_key()
+    if key is None:
+        return None
+    return _webhook_delivery_digest(key, path, authorization, request_body)
+
+
+def verify_webhook_delivery_signature(
+    path: str, authorization: str | None, request_body: bytes, provided_signature: str | None
+) -> bool:
+    key = _webhook_delivery_key()
+    if key is None or not authorization or not provided_signature:
+        return False
+    expected = _webhook_delivery_digest(key, path, authorization, request_body)
+    return hmac.compare_digest(expected.encode("utf-8"), provided_signature.encode("utf-8"))

@@ -19,7 +19,7 @@ from sentry.workflow_engine.models.data_source import DataSource
 logger = logging.getLogger(__name__)
 
 
-def snapshot_snuba_query(snuba_query: SnubaQuery):
+def snapshot_snuba_query(snuba_query: SnubaQuery) -> SnubaQuery:
     if not snuba_query.query_snapshot and snuba_query.dataset in [
         Dataset.PerformanceMetrics.value,
     ]:
@@ -32,7 +32,9 @@ def snapshot_snuba_query(snuba_query: SnubaQuery):
     return snuba_query
 
 
-def translate_am1_metrics_detector_and_update_subscription_in_snuba(snuba_query: SnubaQuery):
+def translate_am1_metrics_detector_and_update_subscription_in_snuba(
+    snuba_query: SnubaQuery,
+) -> None:
     query_subscription_qs = QuerySubscription.objects.filter(
         snuba_query_id=snuba_query.id,
         status__in=[QuerySubscription.Status.ACTIVE.value, QuerySubscription.Status.UPDATING.value],
@@ -101,7 +103,9 @@ def translate_am1_metrics_detector_and_update_subscription_in_snuba(snuba_query:
     return
 
 
-def rollback_am1_metrics_detector_query_and_update_subscription_in_snuba(snuba_query: SnubaQuery):
+def rollback_am1_metrics_detector_query_and_update_subscription_in_snuba(
+    snuba_query: SnubaQuery,
+) -> None:
     # querying for updating as well just in case the subscription gets stuck in updating
     query_subscription_qs = QuerySubscription.objects.filter(
         snuba_query_id=snuba_query.id,

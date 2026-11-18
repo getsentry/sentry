@@ -2,13 +2,10 @@ import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {
-  BuilderStateAction,
-  type WidgetBuilderState,
-} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 
 import {useCacheBuilderState} from './useCacheBuilderState';
+import {BuilderStateAction, type WidgetBuilderState} from './useWidgetBuilderState';
 
 jest.mock('sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext', () => ({
   useWidgetBuilderContext: jest.fn(),

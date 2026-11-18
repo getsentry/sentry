@@ -16,12 +16,11 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import type {IntegrationTab} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
-import {IntegrationLayout} from 'sentry/views/settings/organizationIntegrations/detailedView/integrationLayout';
+
+import {IntegrationLayout} from './detailedView/integrationLayout';
 
 export default function DocIntegrationDetailsView() {
   const theme = useTheme();
-  const tabs: IntegrationTab[] = ['overview'];
   const organization = useOrganization();
   const {integrationSlug} = useParams<{integrationSlug: string}>();
 
@@ -119,7 +118,7 @@ export default function DocIntegrationDetailsView() {
           additionalCTA={null}
         />
       }
-      tabs={<IntegrationLayout.Tabs tabs={tabs} activeTab="overview" />}
+      tabs={null}
       content={
         <IntegrationLayout.InformationCard
           integrationSlug={integrationSlug}

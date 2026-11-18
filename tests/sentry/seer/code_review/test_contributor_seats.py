@@ -210,6 +210,27 @@ class ShouldIncrementContributorSeatTest(TestCase):
 
     @patch(
         "sentry.seer.code_review.contributor_seats.quotas.backend.check_seer_quota",
+        return_value=True,
+    )
+    def test_returns_false_for_token_billed_organization(self, mock_quota: MagicMock) -> None:
+        self.create_repository_settings(repository=self.repo, enabled_code_review=True)
+        self.create_seer_project_repository(project=self.project, repository=self.repo)
+
+        with self.feature(
+            [
+                "organizations:seat-based-seer-enabled",
+                "organizations:token-billed-seer-enabled",
+            ]
+        ):
+            result = should_increment_contributor_seat(
+                self.organization, self.repo, self.contributor
+            )
+
+        assert result is False
+        mock_quota.assert_not_called()
+
+    @patch(
+        "sentry.seer.code_review.contributor_seats.quotas.backend.check_seer_quota",
         return_value=False,
     )
     def test_returns_false_when_quota_not_available(self, mock_quota: MagicMock) -> None:
@@ -459,6 +480,60 @@ class RecordContributorActionTest(TestCase):
 
         contributor = self._contributor()
         assert contributor.num_actions == ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD + 1
+        mock_assign.delay.assert_called_once_with(contributor.id)
+
+    @patch("sentry.seer.code_review.contributor_seats.assign_seat_to_organization_contributor")
+    @patch(
+        "sentry.seer.code_review.contributor_seats.quotas.backend.check_seer_quota",
+        return_value=True,
+    )
+    def test_token_billed_org_does_not_record_action_or_assign_seat(
+        self, mock_quota: MagicMock, mock_assign: MagicMock
+    ) -> None:
+        self.create_repository_settings(repository=self.repo, enabled_code_review=True)
+        self.create_organization_contributor(
+            organization=self.organization,
+            integration=self.integration,
+            external_identifier="123",
+            alias="alice",
+            num_actions=ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD - 1,
+        )
+
+        with self.feature(
+            [
+                "organizations:seat-based-seer-enabled",
+                "organizations:token-billed-seer-enabled",
+            ]
+        ):
+            self._call()
+
+        assert self._contributor().num_actions == ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD - 1
+        assert self._action_count() == 0
+        mock_assign.delay.assert_not_called()
+
+    @patch("sentry.seer.code_review.contributor_seats.assign_seat_to_organization_contributor")
+    @patch(
+        "sentry.seer.code_review.contributor_seats.quotas.backend.check_seer_quota",
+        return_value=True,
+    )
+    def test_seat_based_org_records_action_and_assigns_seat(
+        self, mock_quota: MagicMock, mock_assign: MagicMock
+    ) -> None:
+        self.create_repository_settings(repository=self.repo, enabled_code_review=True)
+        self.create_organization_contributor(
+            organization=self.organization,
+            integration=self.integration,
+            external_identifier="123",
+            alias="alice",
+            num_actions=ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD - 1,
+        )
+
+        with self.feature("organizations:seat-based-seer-enabled"):
+            self._call()
+
+        contributor = self._contributor()
+        assert contributor.num_actions == ORGANIZATION_CONTRIBUTOR_ACTIVATION_THRESHOLD
+        assert self._action_count() == 1
         mock_assign.delay.assert_called_once_with(contributor.id)
 
     @patch("sentry.seer.code_review.contributor_seats.sentry_sdk.capture_exception")

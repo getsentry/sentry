@@ -42,7 +42,9 @@ from sentry.testutils.cases import TestCase
         ),
     ],
 )
-def test_parse_github_blob_url(repo_url, source_url, expected_branch, expected_path):
+def test_parse_github_blob_url(
+    repo_url: str, source_url: str, expected_branch: str, expected_path: str
+) -> None:
     branch, path = parse_github_blob_url(repo_url, source_url)
     assert branch == expected_branch
     assert path == expected_path

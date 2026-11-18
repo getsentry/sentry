@@ -6,8 +6,6 @@ import {Container, Stack} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {FlamegraphAttachment} from 'sentry/components/events/flamegraphAttachment';
-import {parseFlamegraphAttachment} from 'sentry/components/events/flamegraphAttachment/utils';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -19,6 +17,9 @@ import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestEr
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+
+import {parseFlamegraphAttachment} from './flamegraphAttachment/utils';
+import {FlamegraphAttachment} from './flamegraphAttachment';
 
 type Props = {event: Event; project: Project};
 
@@ -93,7 +94,7 @@ function EventFlamegraphContent({event, project}: Props) {
               value={attachment.id}
               options={attachments.map(item => ({value: item.id, label: item.name}))}
               onChange={option => setSelectedAttachment(option.value)}
-              isClearable={false}
+              clearable={false}
             />
           </Container>
         )}

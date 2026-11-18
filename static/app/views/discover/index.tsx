@@ -1,9 +1,10 @@
 import {Outlet} from 'react-router';
+import {createLoader, parseAsString} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Stack} from '@sentry/scraps/layout';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {Redirect} from 'sentry/components/redirect';
@@ -12,13 +13,20 @@ import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
-import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
 import {useRedirectNavigationV2Routes} from 'sentry/views/navigation/useRedirectNavigationV2Routes';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
+
+import {makeDiscoverPathname} from './pathnames';
+
+const loadDatasetParams = createLoader({
+  dataset: parseAsString,
+  queryDataset: parseAsString,
+});
 
 function DiscoverContainer() {
   const organization = useOrganization();
   const location = useLocation();
+  const {dataset, queryDataset} = loadDatasetParams(location.search);
   const redirectPath = useRedirectNavigationV2Routes({
     oldPathPrefix: '/discover/',
     newPathPrefix: '/explore/errors/',
@@ -30,8 +38,8 @@ function DiscoverContainer() {
     // /explore/errors/ — which doesn't support transactions. Intercept that
     // case here and send them to /explore/traces/ instead.
     if (
-      location.query.queryDataset === SavedQueryDatasets.TRANSACTIONS ||
-      location.query.dataset === Dataset.TRANSACTIONS
+      queryDataset === SavedQueryDatasets.TRANSACTIONS ||
+      dataset === Dataset.TRANSACTIONS
     ) {
       return <Redirect to={makeTracesPathname({organization, path: '/'})} />;
     }
@@ -42,8 +50,8 @@ function DiscoverContainer() {
   if (location.pathname.includes('/explore/discover')) {
     // errors dataset (or no dataset specified) redirects to errors url and keeps the same query params
     if (
-      location.query.queryDataset !== SavedQueryDatasets.TRANSACTIONS &&
-      location.query.dataset !== Dataset.TRANSACTIONS
+      queryDataset !== SavedQueryDatasets.TRANSACTIONS &&
+      dataset !== Dataset.TRANSACTIONS
     ) {
       const match = location.pathname.match(/\/explore\/discover\/([^/]+)\//);
       const discoverPath = match?.[1];

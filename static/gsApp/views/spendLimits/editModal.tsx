@@ -5,10 +5,10 @@ import {useMutation} from '@tanstack/react-query';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Container, Grid} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Heading} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -124,9 +124,9 @@ export function SpendLimitsEditModal({
       );
 
       if (getTotalBudget(newOnDemandBudget) > 0) {
-        addSuccessMessage(t('Budget updated'));
+        toast.success(t('Budget updated'));
       } else {
-        addSuccessMessage(t('Budget turned off'));
+        toast.success(t('Budget turned off'));
       }
 
       closeModal();
@@ -138,7 +138,7 @@ export function SpendLimitsEditModal({
           ? (error.responseJSON as Record<string, string[]>)
           : saveError
       );
-      addErrorMessage(saveError);
+      toast.error(saveError);
     },
   });
 
@@ -148,7 +148,7 @@ export function SpendLimitsEditModal({
     if (exceedsInvoicedBudgetLimit(subscription, newOnDemandBudget)) {
       const message = getBudgetExceededInvoicedLimitError(subscription.planDetails);
       setUpdateError(message);
-      addErrorMessage(message);
+      toast.error(message);
       return;
     }
 

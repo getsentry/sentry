@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import {Fragment, type ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -31,6 +31,8 @@ import {
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
 
+import {ToolbarSaveAs} from './toolbarSaveAs';
+
 /**
  * Returns the y axes of each chart written to the URL, one entry per chart.
  */
@@ -56,9 +58,7 @@ function Wrapper({children}: {children: ReactNode}) {
 jest.mock('sentry/actionCreators/modal');
 
 describe('ExploreToolbar', () => {
-  const organization = OrganizationFixture({
-    features: ['dashboards-edit'],
-  });
+  const organization = OrganizationFixture();
 
   beforeEach(() => {
     const project = ProjectFixture({
@@ -286,6 +286,79 @@ describe('ExploreToolbar', () => {
     expect(visualizes).toEqual([new VisualizeFunction('count_unique(span.op)')]);
   });
 
+  it('only offers heatmap with explore-dev-features', async () => {
+    render(<ExploreToolbar />, {additionalWrapper: Wrapper});
+
+    const section = screen.getByTestId('section-visualizes');
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    expect(
+      within(section).queryByRole('option', {name: 'heatmap'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps the duration field when switching to heatmap', async () => {
+    let visualizes: readonly Visualize[] = [];
+    function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
+      visualizes = useQueryParamsVisualizes();
+      return <ExploreToolbar />;
+    }
+
+    render(<Component />, {
+      organization: OrganizationFixture({
+        ...organization,
+        features: [...organization.features, 'explore-dev-features'],
+      }),
+      additionalWrapper: Wrapper,
+    });
+
+    const section = screen.getByTestId('section-visualizes');
+
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
+    await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
+
+    await userEvent.click(within(section).getByRole('button', {name: 'avg'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'heatmap'}));
+
+    expect(visualizes).toEqual([new VisualizeFunction('heatmap(span.self_time)')]);
+
+    await userEvent.click(within(section).getByRole('button', {name: 'span.self_time'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'span.duration'}));
+
+    expect(visualizes).toEqual([new VisualizeFunction('heatmap(span.duration)')]);
+  });
+
+  it('keeps the heatmap field when switching away from heatmap', async () => {
+    let visualizes: readonly Visualize[] = [];
+    function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
+      visualizes = useQueryParamsVisualizes();
+      return <ExploreToolbar />;
+    }
+
+    render(<Component />, {
+      organization: OrganizationFixture({
+        ...organization,
+        features: [...organization.features, 'explore-dev-features'],
+      }),
+      additionalWrapper: Wrapper,
+    });
+
+    const section = screen.getByTestId('section-visualizes');
+
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'heatmap'}));
+    await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
+
+    await userEvent.click(within(section).getByRole('button', {name: 'heatmap'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'p95'}));
+
+    expect(visualizes).toEqual([new VisualizeFunction('p95(span.self_time)')]);
+  });
+
   it('allows changing visualizes', async () => {
     let fields!: readonly string[];
     let visualizes: any;
@@ -429,26 +502,8 @@ describe('ExploreToolbar', () => {
     expect(visualizes).toEqual([new VisualizeFunction('avg(span.duration)')]);
   });
 
-  it('picks one aggregate per chart without multi aggregate charts', async () => {
-    const {router} = render(<ExploreToolbar />, {additionalWrapper: Wrapper});
-
-    const section = screen.getByTestId('section-visualizes');
-
-    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
-    expect(within(section).queryByText('Percentiles')).not.toBeInTheDocument();
-    await userEvent.click(within(section).getByRole('option', {name: 'p50'}));
-    await waitFor(() =>
-      expect(chartYAxesFromRouter(router)).toEqual([['p50(span.duration)']])
-    );
-    expect(within(section).queryByRole('option')).not.toBeInTheDocument();
-  });
-
   it('plots aggregates selected together on one chart', async () => {
     const {router} = render(<ExploreToolbar />, {
-      organization: OrganizationFixture({
-        ...organization,
-        features: [...organization.features, 'explore-multi-aggregate-charts'],
-      }),
       additionalWrapper: Wrapper,
     });
 
@@ -507,10 +562,6 @@ describe('ExploreToolbar', () => {
 
   it('resets the aggregates when the selection is cleared', async () => {
     const {router} = render(<ExploreToolbar />, {
-      organization: OrganizationFixture({
-        ...organization,
-        features: [...organization.features, 'explore-multi-aggregate-charts'],
-      }),
       additionalWrapper: Wrapper,
     });
 
@@ -1224,7 +1275,7 @@ describe('ExploreToolbar', () => {
 
   describe('conditional aggregates', () => {
     const organizationWithDashboardFeatures = OrganizationFixture({
-      features: ['dashboards-edit', 'incidents'],
+      features: ['incidents'],
     });
 
     const SERIES_FILTER_PLACEHOLDER = 'Filter spans for this series';
@@ -1426,59 +1477,6 @@ describe('ExploreToolbar', () => {
       });
     });
 
-    it('opens compare queries with series filters moved into the query filter', async () => {
-      const {router} = render(<ExploreToolbar />, {
-        additionalWrapper: Wrapper,
-        organization: organizationWithDashboardFeatures,
-        initialRouterConfig: {
-          location: {
-            pathname: '/traces/',
-            query: {
-              query: 'span.status:ok',
-              aggregateField: [
-                JSON.stringify({groupBy: ''}),
-                JSON.stringify({
-                  yAxes: ['count_if(`span.op:db`,span.duration)'],
-                  chartType: 1,
-                }),
-                JSON.stringify({
-                  yAxes: ['avg_if(`span.op:http`,span.duration)'],
-                  chartType: 1,
-                }),
-              ],
-            },
-          },
-        },
-      });
-
-      const section = screen.getByTestId('section-save-as');
-      await userEvent.click(within(section).getByText(/Compare Queries/));
-
-      expect(router.location.pathname).toBe(
-        '/organizations/org-slug/explore/traces/compare/'
-      );
-      expect(router.location.query.queries).toEqual([
-        JSON.stringify({
-          chartType: 1,
-          caseInsensitive: false,
-          fields: ['id', 'span.duration', 'timestamp'],
-          groupBys: [],
-          query: 'span.status:ok span.op:db',
-          sortBys: ['-timestamp'],
-          yAxes: ['count(span.duration)'],
-        }),
-        JSON.stringify({
-          chartType: 1,
-          caseInsensitive: false,
-          fields: ['id', 'span.duration', 'timestamp'],
-          groupBys: [],
-          query: 'span.status:ok span.op:http',
-          sortBys: ['-timestamp'],
-          yAxes: ['avg(span.duration)'],
-        }),
-      ]);
-    });
-
     it('expands the equation editor on click', async () => {
       render(<ExploreToolbar extras={['equations']} />, {
         additionalWrapper: Wrapper,
@@ -1511,74 +1509,9 @@ describe('ExploreToolbar', () => {
     });
   });
 
-  it('disables compare queries when only one chart is available', async () => {
-    function Component() {
-      return <ExploreToolbar />;
-    }
-    act(() => {
-      render(<Component />, {
-        additionalWrapper: Wrapper,
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: '/traces/',
-            query: {
-              visualize: encodeURIComponent(
-                '{"chartType":1,"yAxes":["p95(span.duration)"]}'
-              ),
-            },
-          },
-        },
-      });
-    });
-
-    const section = screen.getByTestId('section-save-as');
-    await userEvent.hover(within(section).getByText(/Compare Queries/));
-
-    const compareButton = within(section).getByRole('button', {name: 'Compare'});
-    expect(compareButton).toHaveAttribute('aria-disabled', 'true');
-  });
-
-  it('opens compare queries when multiple charts are added and Compare Queries link is clicked', async () => {
-    function Component() {
-      return <ExploreToolbar />;
-    }
-    const {router} = render(<Component />, {
-      additionalWrapper: Wrapper,
-      organization,
-      initialRouterConfig: {
-        location: {
-          pathname: '/traces/',
-          query: {
-            visualize: encodeURIComponent(
-              '{"chartType":1,"yAxes":["p95(span.duration)"]}'
-            ),
-          },
-        },
-      },
-    });
-
-    await userEvent.click(screen.getByRole('button', {name: 'Add Chart'}));
-
-    const section = screen.getByTestId('section-save-as');
-
-    await userEvent.click(within(section).getByText(/Compare Queries/));
-    expect(router.location.pathname).toBe(
-      '/organizations/org-slug/explore/traces/compare/'
-    );
-    expect(router.location.query).toEqual(
-      expect.objectContaining({
-        queries: [
-          '{"chartType":0,"caseInsensitive":false,"fields":["id","span.duration","timestamp"],"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["count(span.duration)"]}',
-          '{"chartType":0,"caseInsensitive":false,"fields":["id","span.duration","timestamp"],"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["count(span.duration)"]}',
-        ],
-      })
-    );
-  });
-
   it('opens the right alert', async () => {
     function Component() {
-      return <ExploreToolbar />;
+      return <ToolbarSaveAs />;
     }
     const {router} = render(<Component />, {
       additionalWrapper: Wrapper,
@@ -1595,14 +1528,10 @@ describe('ExploreToolbar', () => {
       },
     });
 
-    const section = screen.getByTestId('section-save-as');
-
-    await userEvent.click(within(section).getByRole('button', {name: /save as/i}));
-    await userEvent.hover(
-      within(section).getByRole('menuitemradio', {name: 'Monitor for'})
-    );
+    await userEvent.click(screen.getByRole('button', {name: /save as/i}));
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Monitor for'}));
     await userEvent.click(
-      await within(section).findByRole('menuitemradio', {name: 'count(spans)'})
+      await screen.findByRole('menuitemradio', {name: 'count(spans)'})
     );
     expect(router.location.pathname).toBe(
       '/organizations/org-slug/monitors/new/settings'
@@ -1618,7 +1547,7 @@ describe('ExploreToolbar', () => {
 
   it('add to dashboard options correctly', async () => {
     function Component() {
-      return <ExploreToolbar />;
+      return <ToolbarSaveAs />;
     }
     render(<Component />, {
       additionalWrapper: Wrapper,
@@ -1635,10 +1564,8 @@ describe('ExploreToolbar', () => {
       },
     });
 
-    const section = screen.getByTestId('section-save-as');
-
-    await userEvent.click(within(section).getByRole('button', {name: /save as/i}));
-    await userEvent.click(within(section).getByText('Dashboard widget'));
+    await userEvent.click(screen.getByRole('button', {name: /save as/i}));
+    await userEvent.click(screen.getByText('Dashboard widget'));
     await waitFor(() =>
       expect(openAddToDashboardModal).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -1692,7 +1619,12 @@ describe('ExploreToolbar', () => {
     });
 
     function Component() {
-      return <ExploreToolbar />;
+      return (
+        <Fragment>
+          <ExploreToolbar />
+          <ToolbarSaveAs />
+        </Fragment>
+      );
     }
 
     const {router} = render(<Component />, {
@@ -1727,8 +1659,8 @@ describe('ExploreToolbar', () => {
     expect(await screen.findByText(/^save$/i)).toBeInTheDocument();
   });
 
-  it('allows save as when cross events are present', async () => {
-    render(<ExploreToolbar />, {
+  it('allows save as when cross events are present', () => {
+    render(<ToolbarSaveAs />, {
       organization,
       additionalWrapper: Wrapper,
       initialRouterConfig: {
@@ -1741,34 +1673,6 @@ describe('ExploreToolbar', () => {
       },
     });
 
-    const section = await screen.findByTestId('section-save-as');
-
-    expect(within(section).getByRole('button', {name: 'Save as'})).toBeEnabled();
-  });
-
-  it('disables compare when cross events are present', async () => {
-    render(<ExploreToolbar />, {
-      organization,
-      additionalWrapper: Wrapper,
-      initialRouterConfig: {
-        location: {
-          pathname: '/traces/',
-          query: {
-            crossEvents: JSON.stringify([{query: '', type: 'spans'}]),
-            visualize: [
-              '{"chartType":1,"yAxes":["p95(span.duration)"]}',
-              '{"chartType":1,"yAxes":["count(span.duration)"]}',
-            ],
-          },
-        },
-      },
-    });
-
-    const section = await screen.findByTestId('section-save-as');
-
-    expect(within(section).getByRole('button', {name: 'Compare'})).toHaveAttribute(
-      'aria-disabled',
-      'true'
-    );
+    expect(screen.getByRole('button', {name: 'Save as'})).toBeEnabled();
   });
 });

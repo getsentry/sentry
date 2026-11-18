@@ -30,6 +30,7 @@ describe('InvitationAuthentication', () => {
     expect(screen.getByRole('textbox', {name: 'Email'})).toHaveValue(
       'invitee@example.com'
     );
+    expect(screen.getByRole('textbox', {name: 'Email'})).toHaveAttribute('readonly');
     expect(
       screen.getByText('Create a new account to accept this invite.')
     ).toAppearBefore(screen.getByRole('textbox', {name: 'Name'}));
@@ -48,6 +49,8 @@ describe('InvitationAuthentication', () => {
     expect(
       screen.getByText('Sign in to your account to accept this invite.')
     ).toAppearBefore(screen.getByRole('textbox', {name: 'Email'}));
+    // Signing in with an existing account may use any address.
+    expect(screen.getByRole('textbox', {name: 'Email'})).not.toHaveAttribute('readonly');
     expect(
       screen.queryByText('Create a new account to accept this invite.')
     ).not.toBeInTheDocument();

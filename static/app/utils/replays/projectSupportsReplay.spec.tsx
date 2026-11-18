@@ -2,10 +2,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import type {PlatformKey} from 'sentry/types/platform';
 import type {MinimalProject} from 'sentry/types/project';
-import {
-  projectCanLinkToReplay,
-  projectSupportsReplay,
-} from 'sentry/utils/replays/projectSupportsReplay';
+
+import {projectCanLinkToReplay, projectSupportsReplay} from './projectSupportsReplay';
 
 function mockProjectFixture(platform: PlatformKey): MinimalProject {
   return {

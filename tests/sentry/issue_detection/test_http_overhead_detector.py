@@ -12,6 +12,7 @@ from sentry.issue_detection.performance_detection import (
 )
 from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issues.grouptype import PerformanceHTTPOverheadGroupType
+from sentry.spans.grouping.strategy.base import Span
 from sentry.testutils.cases import TestCase
 from sentry.testutils.issue_detection.event_generators import (
     PROJECT_ID,
@@ -26,7 +27,7 @@ def overhead_span(
     url: str,
     span_start: float = 1.0,
     span_id: str = "b" * 16,
-) -> dict[str, Any]:
+) -> Span:
     span = create_span(
         "http.client",
         desc=url,
@@ -184,6 +185,7 @@ class HTTPOverheadDetectorTest(TestCase):
 
         assert len(self.find_problems(event)) == 1
 
+        assert trigger_span["data"] is not None
         trigger_span["data"]["network.protocol.version"] = "h3"
 
         assert len(self.find_problems(event)) == 0

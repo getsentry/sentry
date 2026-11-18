@@ -31,7 +31,7 @@ class ReleaseThresholdType:
     CRASH_FREE_USER_RATE_STR: Final = "crash_free_user_rate"
 
     @classmethod
-    def as_choices(cls):
+    def as_choices(cls) -> tuple[tuple[str, int], ...]:
         return (
             (cls.TOTAL_ERROR_COUNT_STR, cls.TOTAL_ERROR_COUNT),
             (cls.NEW_ISSUE_COUNT_STR, cls.NEW_ISSUE_COUNT),
@@ -43,7 +43,7 @@ class ReleaseThresholdType:
         )
 
     @classmethod
-    def as_str_choices(cls):
+    def as_str_choices(cls) -> tuple[tuple[str, str], ...]:
         return (
             (cls.TOTAL_ERROR_COUNT_STR, cls.TOTAL_ERROR_COUNT_STR),
             (cls.NEW_ISSUE_COUNT_STR, cls.NEW_ISSUE_COUNT_STR),
@@ -63,14 +63,14 @@ class TriggerType:
     UNDER_STR: Final = "under"
 
     @classmethod
-    def as_choices(cls):  # choices for model column
+    def as_choices(cls) -> tuple[tuple[str, int], ...]:  # choices for model column
         return (
             (cls.OVER_STR, cls.OVER),
             (cls.UNDER_STR, cls.UNDER),
         )
 
     @classmethod
-    def as_str_choices(cls):  # choices for serializer
+    def as_str_choices(cls) -> tuple[tuple[str, str], ...]:  # choices for serializer
         return (
             (cls.OVER_STR, cls.OVER_STR),
             (cls.UNDER_STR, cls.UNDER_STR),

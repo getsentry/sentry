@@ -1,6 +1,4 @@
-import {MemoryRouter} from 'react-router';
-
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 
 const TABS = [
   {key: 'details', label: 'Details'},
@@ -14,15 +12,7 @@ const allSizes = ['md', 'sm', 'xs'] as const;
 
 describe('TabList', () => {
   function Wrapper({children}: {children: React.ReactNode}) {
-    return (
-      // TabList renders tab links and calls useNavigate(), which needs a
-      // router in context even under SSR.
-      <MemoryRouter>
-        {/* Padding so selection indicators / focus rings aren't clipped by
-          rootElement.screenshot()'s border-box crop. */}
-        <div style={{padding: 8}}>{children}</div>
-      </MemoryRouter>
-    );
+    return <div style={{padding: 8}}>{children}</div>;
   }
 
   describe.each(allVariants)('variant %s', variant => {
@@ -32,11 +22,13 @@ describe('TabList', () => {
         () => (
           <Wrapper>
             <Tabs size={size} defaultValue="activity">
-              <TabList variant={variant}>
-                {TABS.map(tab => (
-                  <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
-                ))}
-              </TabList>
+              {({TabList}) => (
+                <TabList variant={variant}>
+                  {TABS.map(tab => (
+                    <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
+                  ))}
+                </TabList>
+              )}
             </Tabs>
           </Wrapper>
         ),
@@ -53,11 +45,13 @@ describe('TabList', () => {
       () => (
         <Wrapper>
           <Tabs orientation="vertical" defaultValue="activity">
-            <TabList variant={variant}>
-              {TABS.map(tab => (
-                <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
-              ))}
-            </TabList>
+            {({TabList}) => (
+              <TabList variant={variant}>
+                {TABS.map(tab => (
+                  <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
+                ))}
+              </TabList>
+            )}
           </Tabs>
         </Wrapper>
       ),
@@ -72,11 +66,13 @@ describe('TabList', () => {
     () => (
       <Wrapper>
         <Tabs disabled defaultValue="activity">
-          <TabList>
-            {TABS.map(tab => (
-              <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
-            ))}
-          </TabList>
+          {({TabList}) => (
+            <TabList>
+              {TABS.map(tab => (
+                <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
+              ))}
+            </TabList>
+          )}
         </Tabs>
       </Wrapper>
     ),
@@ -90,13 +86,15 @@ describe('TabList', () => {
     () => (
       <Wrapper>
         <Tabs defaultValue="details">
-          <TabList>
-            {TABS.map(tab => (
-              <TabList.Item key={tab.key} disabled={tab.key === 'user-feedback'}>
-                {tab.label}
-              </TabList.Item>
-            ))}
-          </TabList>
+          {({TabList}) => (
+            <TabList>
+              {TABS.map(tab => (
+                <TabList.Item key={tab.key} disabled={tab.key === 'user-feedback'}>
+                  {tab.label}
+                </TabList.Item>
+              ))}
+            </TabList>
+          )}
         </Tabs>
       </Wrapper>
     ),

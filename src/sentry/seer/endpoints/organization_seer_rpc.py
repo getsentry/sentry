@@ -65,7 +65,6 @@ from sentry.seer.autofix.autofix_tools import get_error_event_details, get_profi
 from sentry.seer.endpoints.registry import SeerRpcMethod, seer_rpc
 from sentry.seer.endpoints.seer_rpc import (
     get_attributes_for_span,
-    get_github_enterprise_integration_config,
     get_organization_features,
     get_organization_projects,
     get_organization_slug,
@@ -91,9 +90,9 @@ logger = logging.getLogger(__name__)
 #      the registered function's return type and reject any `Any`. Without
 #      this, `-> Any` would slip past the structural check because `Any` is
 #      bidirectionally compatible with everything.
-# To add a method, define a Pydantic response model in
-# `sentry.seer.sentry_data_models`, annotate the handler with it, and register
-# the handler as `"name": seer_rpc(handler)`.
+# DEPRECATED: The Sentry<>Seer RPC surface is being removed. Seer now reads
+# Sentry data through the public Sentry API via codemode. Do not add new methods
+# here; add or extend a public API endpoint instead.
 
 
 # Registry of read-only telemetry methods that are safe to expose
@@ -107,7 +106,6 @@ public_org_seer_method_registry: dict[str, SeerRpcMethod] = {
     "get_organization_projects": seer_rpc(map_org_id_param(get_organization_projects)),
     "get_organization_slug": seer_rpc(map_org_id_param(get_organization_slug)),
     "get_organization_features": seer_rpc(map_org_id_param(get_organization_features)),
-    "get_github_enterprise_integration_config": seer_rpc(get_github_enterprise_integration_config),
     #
     # Bug prediction
     "has_repo_code_mappings": seer_rpc(has_repo_code_mappings),
@@ -217,6 +215,10 @@ def _serialize_result(result: Any) -> Any:
 @cell_silo_endpoint
 class OrganizationSeerRpcEndpoint(OrganizationEndpoint):
     """
+    DEPRECATED: The Sentry<>Seer RPC surface is being removed. Seer now reads
+    Sentry data through the public Sentry API via codemode. Do not add new methods;
+    add or extend a public API endpoint instead.
+
     Public RPC endpoint for organization members to call read-only seer methods.
 
     This endpoint supports both organization-level and project-level methods:

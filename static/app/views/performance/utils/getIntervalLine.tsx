@@ -6,11 +6,9 @@ import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import {tooltipFormatter} from 'sentry/utils/discover/charts';
-import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
-import {
-  transformTransaction,
-  type BreakpointTransaction,
-} from 'sentry/views/performance/utils/transformTransaction';
+
+import {getPerformanceDuration} from './getPerformanceDuration';
+import {transformTransaction, type BreakpointTransaction} from './transformTransaction';
 
 const DEFAULT_CHART_HEIGHT = 200;
 const X_AXIS_MARGIN_OFFSET = 23;
@@ -21,7 +19,8 @@ export function getIntervalLine(
   intervalRatio: number,
   label: boolean,
   transaction?: BreakpointTransaction,
-  useRegressionFormat?: boolean
+  useRegressionFormat?: boolean,
+  regressionEndMs?: number
 ): LineChartSeries[] {
   if (!transaction || !series.length || !series[0]!.data?.length) {
     return [];
@@ -83,6 +82,10 @@ export function getIntervalLine(
   const {breakpoint} = transformedTransaction;
 
   const divider = breakpoint || seriesLine;
+  const hasRegressionEnd = regressionEndMs !== undefined && regressionEndMs > divider;
+  const regressionEnd = hasRegressionEnd
+    ? Math.min(regressionEndMs, seriesEnd)
+    : seriesEnd;
 
   previousPeriod.markLine.data = [
     [
@@ -107,7 +110,7 @@ export function getIntervalLine(
   currentPeriod.markLine.data = [
     [
       {value: 'Present', coord: [divider, transformedTransaction.aggregate_range_2]},
-      {coord: [seriesEnd, transformedTransaction.aggregate_range_2]},
+      {coord: [regressionEnd, transformedTransaction.aggregate_range_2]},
     ],
   ];
   currentPeriod.markLine.tooltip = {
@@ -199,7 +202,7 @@ export function getIntervalLine(
             {
               xAxis: divider,
             },
-            {xAxis: seriesEnd},
+            {xAxis: regressionEnd},
           ],
         ],
       }),
@@ -243,7 +246,10 @@ export function getIntervalLine(
             // the lowest y-value is dynamic and 'min' doesn't work here
             [
               {xAxis: breakpoint, y: DEFAULT_CHART_HEIGHT - X_AXIS_MARGIN_OFFSET},
-              {xAxis: 'max', y: DEFAULT_CHART_HEIGHT - X_AXIS_MARGIN_OFFSET},
+              {
+                xAxis: hasRegressionEnd ? regressionEnd : 'max',
+                y: DEFAULT_CHART_HEIGHT - X_AXIS_MARGIN_OFFSET,
+              },
             ],
           ],
         }) ?? {},

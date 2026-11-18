@@ -2,6 +2,7 @@ import {useState} from 'react';
 import styled from '@emotion/styled';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -10,7 +11,6 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Card} from 'sentry/components/card';
-import {openConfirmModal} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
 import {ImageVisualization} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/imageVisualization';
 import {
@@ -24,6 +24,7 @@ import {t} from 'sentry/locale';
 import type {IssueAttachment} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 import {getShortEventId} from 'sentry/utils/events';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -49,7 +50,9 @@ export function ScreenshotCard({
   const organization = useOrganization();
   const [loadingImage, setLoadingImage] = useState(true);
 
-  const downloadUrl = `/api/0/projects/${organization.slug}/${projectSlug}/events/${eventId}/attachments/${eventAttachment.id}/?download=1`;
+  const downloadUrl = resolveHostname(
+    `/api/0/projects/${organization.slug}/${projectSlug}/events/${eventId}/attachments/${eventAttachment.id}/?download=1`
+  );
 
   function handleDelete() {
     trackAnalytics('issue_details.attachment_tab.screenshot_modal_deleted', {

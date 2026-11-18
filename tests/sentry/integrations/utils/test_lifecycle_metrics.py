@@ -1,6 +1,8 @@
 from unittest import TestCase, mock
+from unittest.mock import MagicMock
 
 import pytest
+from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.types import EventLifecycleOutcome
@@ -45,7 +47,7 @@ class IntegrationEventLifecycleMetricTest(TestCase):
         }
 
     @staticmethod
-    def _check_metrics_call_args(mock_metrics, expected_termination: str):
+    def _check_metrics_call_args(mock_metrics: MagicMock, expected_termination: str) -> None:
         assert mock_metrics.incr.call_args_list == [
             mock.call(
                 "integrations.slo.started",
@@ -183,9 +185,36 @@ class IntegrationEventLifecycleMetricTest(TestCase):
     @mock.patch("sentry.integrations.utils.metrics.sentry_sdk")
     @mock.patch("sentry.integrations.utils.metrics.logger")
     @mock.patch("sentry.integrations.utils.metrics.metrics")
+    def test_processing_deadline_exceeded_records_halt_without_issue(
+        self,
+        mock_metrics: mock.MagicMock,
+        mock_logger: mock.MagicMock,
+        mock_sentry_sdk: mock.MagicMock,
+    ) -> None:
+        metric_obj = self.TestLifecycleMetric()
+        with pytest.raises(ProcessingDeadlineExceeded):
+            with metric_obj.capture():
+                raise ProcessingDeadlineExceeded("deadline exceeded")
+
+        self._check_metrics_call_args(mock_metrics, "halted")
+        mock_sentry_sdk.capture_exception.assert_not_called()
+        mock_logger.warning.assert_called_once_with(
+            "integrations.slo.halted",
+            extra={
+                "integration_domain": "messaging",
+                "integration_name": "my_integration",
+                "interaction_type": "my_interaction",
+                "integration_id": "123",
+                "exception_summary": repr(ProcessingDeadlineExceeded("deadline exceeded")),
+            },
+        )
+
+    @mock.patch("sentry.integrations.utils.metrics.sentry_sdk")
+    @mock.patch("sentry.integrations.utils.metrics.logger")
+    @mock.patch("sentry.integrations.utils.metrics.metrics")
     def test_recording_explicit_failure_with_exception(
-        self, mock_metrics, mock_logger, mock_sentry_sdk
-    ):
+        self, mock_metrics: MagicMock, mock_logger: MagicMock, mock_sentry_sdk: MagicMock
+    ) -> None:
         mock_sentry_sdk.capture_exception.return_value = "test-event-id"
 
         metric_obj = self.TestLifecycleMetric()
@@ -240,8 +269,8 @@ class IntegrationEventLifecycleMetricTest(TestCase):
     @mock.patch("sentry.integrations.utils.metrics.logger")
     @mock.patch("sentry.integrations.utils.metrics.metrics")
     def test_recording_halt_with_create_issue_true(
-        self, mock_metrics, mock_logger, mock_sentry_sdk
-    ):
+        self, mock_metrics: MagicMock, mock_logger: MagicMock, mock_sentry_sdk: MagicMock
+    ) -> None:
         """
         Test that halt can create Sentry issues when create_issue=True
         """
@@ -297,8 +326,8 @@ class IntegrationEventLifecycleMetricTest(TestCase):
     @mock.patch("sentry.integrations.utils.metrics.logger")
     @mock.patch("sentry.integrations.utils.metrics.metrics")
     def test_sample_log_rate_always_logs_when_rate_is_one(
-        self, mock_metrics, mock_logger, mock_random
-    ):
+        self, mock_metrics: MagicMock, mock_logger: MagicMock, mock_random: MagicMock
+    ) -> None:
         """Test that sample_log_rate=1.0 always logs (default behavior)"""
         metric_obj = self.TestLifecycleMetric()
 
@@ -373,8 +402,8 @@ class IntegrationEventLifecycleMetricTest(TestCase):
     @mock.patch("sentry.integrations.utils.metrics.logger")
     @mock.patch("sentry.integrations.utils.metrics.metrics")
     def test_per_call_sample_log_rate_overrides_instance_rate(
-        self, mock_metrics, mock_logger, mock_random
-    ):
+        self, mock_metrics: MagicMock, mock_logger: MagicMock, mock_random: MagicMock
+    ) -> None:
         """Test that per-call sample_log_rate overrides instance default"""
         mock_random.random.return_value = 0.15  # Between 0.1 and 0.3
 
@@ -393,8 +422,8 @@ class IntegrationEventLifecycleMetricTest(TestCase):
     @mock.patch("sentry.integrations.utils.metrics.logger")
     @mock.patch("sentry.integrations.utils.metrics.metrics")
     def test_per_call_sample_log_rate_skips_when_below_threshold(
-        self, mock_metrics, mock_logger, mock_random
-    ):
+        self, mock_metrics: MagicMock, mock_logger: MagicMock, mock_random: MagicMock
+    ) -> None:
         """Test that per-call sample_log_rate can cause skipping even with higher instance rate"""
         mock_random.random.return_value = 0.15  # Between 0.05 and 1.0
 
@@ -454,8 +483,8 @@ class IntegrationEventLifecycleMetricTest(TestCase):
     @mock.patch("sentry.integrations.utils.metrics.logger")
     @mock.patch("sentry.integrations.utils.metrics.metrics")
     def test_sample_log_rate_on_assume_success_false_exit(
-        self, mock_metrics, mock_logger, mock_random
-    ):
+        self, mock_metrics: MagicMock, mock_logger: MagicMock, mock_random: MagicMock
+    ) -> None:
         """Test that sample rate is respected when exiting context with assume_success=False"""
         mock_random.random.return_value = 0.25  # Above 0.2 threshold
 

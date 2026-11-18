@@ -190,7 +190,7 @@ def dispatch_explorer_index_projects(
     processing_deadline_duration=60,
 )
 def run_explorer_index_for_projects(
-    projects: list[tuple[int, int]], start: str, *args, **kwargs
+    projects: list[tuple[int, int]], start: str, *args: object, **kwargs: object
 ) -> None:
     """
     Call the seer /v1/automation/explorer/index endpoint to schedule indexing tasks

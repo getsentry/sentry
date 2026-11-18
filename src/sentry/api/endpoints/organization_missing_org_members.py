@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import timedelta
 from email.headerregistry import Address
 from functools import reduce
 from typing import Any
 
+from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q
 from django.utils import timezone
 from rest_framework import status
@@ -21,10 +22,12 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.api.serializers import Serializer, serialize
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationFeatures
-from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.organization import Organization
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 
 FILTERED_EMAILS = {
     "%%@gmail.com",
@@ -39,13 +42,19 @@ FILTERED_EMAILS = {
 
 
 class MissingOrgMemberSerializer(Serializer):
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(
+        self,
+        obj: CommitAuthor,
+        attrs: Mapping[str, object],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: object,
+    ) -> dict[str, object]:
         formatted_external_id = _format_external_id(obj.external_id)
 
         return {
             "email": obj.email,
             "externalId": formatted_external_id,
-            "commitCount": obj.commit__count,
+            "commitCount": getattr(obj, "commit__count"),
         }
 
 
@@ -163,7 +172,9 @@ class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
             organization_id=organization.id, status=ObjectStatus.ACTIVE
         )
 
-        def provider_reducer(dict, integration):
+        def provider_reducer(
+            dict: dict[str, list[int]], integration: RpcIntegration
+        ) -> dict[str, list[int]]:
             if not integration.has_feature(feature=IntegrationFeatures.COMMITS):
                 return dict
             if dict.get(integration.provider):
@@ -173,7 +184,7 @@ class OrganizationMissingMembersEndpoint(OrganizationEndpoint):
 
             return dict
 
-        integration_provider_to_ids: dict[str, Sequence[int]] = reduce(
+        integration_provider_to_ids: dict[str, list[int]] = reduce(
             provider_reducer, integrations, defaultdict(list)
         )
 

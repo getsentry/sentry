@@ -3,7 +3,7 @@ import {RouterProvider} from 'react-router/dom';
 
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
-import {useRoutes} from 'sentry/utils/useRoutes';
+import {useRoutes} from './useRoutes';
 
 describe('useRoutes', () => {
   it('returns the current routes object', () => {

@@ -5,7 +5,7 @@ import {tct} from 'sentry/locale';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 import type {Subscription} from 'getsentry/types';
-import {BillingType} from 'getsentry/types';
+import {isSalesAccount} from 'getsentry/utils/billing';
 
 /**
  * Message templates for different subscription scenarios.
@@ -71,13 +71,6 @@ export function ManagedNote({subscription}: Props) {
     return null;
   }
 
-  // Determine which message to display based on subscription type and partner status
-  const isSalesAccount =
-    // Invoiced subscriptions are managed by sales
-    subscription.type === BillingType.INVOICED ||
-    // Custom-priced subscriptions (price > 0) are managed by sales
-    (subscription.customPrice !== null && subscription.customPrice > 0);
-
   return (
     <Container
       data-test-id="managed-note"
@@ -87,7 +80,7 @@ export function ManagedNote({subscription}: Props) {
     >
       <PanelBody withPadding>
         <TextBlock noMargin>
-          {isSalesAccount
+          {isSalesAccount(subscription)
             ? // Sales-managed accounts are directed to the sales team
               SALES_MESSAGE
             : ((subscription.partner &&

@@ -14,10 +14,7 @@ import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDisc
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {WidgetQueryParams} from 'sentry/views/dashboards/datasetConfig/base';
 import {eventsResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/eventsResponseTransforms';
-import {
-  getSeriesRequestData,
-  convertEventStatsRequestDataToEventTimeseriesQueryParams,
-} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
+import {getTimeseriesRequestQuery} from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import {eventViewFromWidget} from 'sentry/views/dashboards/utils';
 import {
   combineIngestionMeta,
@@ -29,14 +26,15 @@ import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
+import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
+
 import {
   combineWidgetJsonQueryResults,
   combineWidgetQueryResults,
-} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
-import {getSeriesConfidenceInformation} from 'sentry/views/dashboards/widgetCard/hooks/utils/getSeriesConfidenceInformation';
-import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
-import {getTimeseriesWidgetQueryOptions} from 'sentry/views/dashboards/widgetCard/hooks/utils/getTimeseriesWidgetQueryOptions';
-import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
+} from './utils/combineWidgetQueryResults';
+import {getSeriesConfidenceInformation} from './utils/getSeriesConfidenceInformation';
+import {getWidgetStaleTime} from './utils/getStaleTime';
+import {getTimeseriesWidgetQueryOptions} from './utils/getTimeseriesWidgetQueryOptions';
 
 type LogsTableResponse = TableData | EventsTableData;
 
@@ -64,31 +62,25 @@ export function useLogsSeriesQuery(
     [widget, dashboardFilters, skipDashboardFilterParens]
   );
 
-  const seriesRequestData = filteredWidget.queries.map((_, queryIndex) => {
-    const requestData = getSeriesRequestData(
-      filteredWidget,
-      queryIndex,
-      organization,
-      pageFilters,
-      DiscoverDatasets.OURLOGS,
-      getReferrer(filteredWidget.displayType),
-      widgetInterval
-    );
-
-    if (samplingMode) {
-      requestData.sampling = samplingMode;
-    }
-    return requestData;
-  });
-
   const {results: queryResults, data: rawData} = useQueries({
-    queries: seriesRequestData.map(requestData =>
+    queries: filteredWidget.queries.map((_, queryIndex) =>
       getTimeseriesWidgetQueryOptions({
         organization,
         pageFilters,
         queue,
         enabled,
-        query: convertEventStatsRequestDataToEventTimeseriesQueryParams(requestData),
+        query: getTimeseriesRequestQuery(
+          filteredWidget,
+          queryIndex,
+          pageFilters,
+          DiscoverDatasets.OURLOGS,
+          {
+            organization,
+            referrer: getReferrer(filteredWidget.displayType),
+            widgetInterval,
+            sampling: samplingMode,
+          }
+        ),
       })
     ),
     combine: combineWidgetQueryResults,

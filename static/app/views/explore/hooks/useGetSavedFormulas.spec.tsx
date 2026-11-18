@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useDatasetFormulas} from 'sentry/views/explore/hooks/useGetSavedFormulas';
+import {useDatasetFormulas} from './useGetSavedFormulas';
 
 const organization = OrganizationFixture({features: ['explore-saved-formulas']});
 

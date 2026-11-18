@@ -10,11 +10,12 @@ import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent
 import {getTimeSeriesForQuery} from 'sentry/utils/timeSeries/getTimeSeriesForQuery';
 import {LOGS_AUTO_REFRESH_KEY} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {LOGS_GROUP_BY_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
-import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
-import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import type {UseInfiniteLogsQueryResult} from 'sentry/views/explore/logs/useLogsQuery';
-import {useStreamingTimeseriesResult} from 'sentry/views/explore/logs/useStreamingTimeseriesResult';
+
+import {LogsQueryParamsProvider} from './logsQueryParamsProvider';
+import type {OurLogsResponseItem} from './types';
+import {OurLogKnownFieldKey} from './types';
+import type {UseInfiniteLogsQueryResult} from './useLogsQuery';
+import {useStreamingTimeseriesResult} from './useStreamingTimeseriesResult';
 
 function preciseTimestampFromMillis(timestamp: number) {
   return String(BigInt(timestamp) * 1_000_000n);

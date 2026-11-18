@@ -1,10 +1,8 @@
 import {act, screen, waitFor, within} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {
-  getEmbedLinkHref,
-  renderEmbed,
-} from 'sentry/components/seer/markdown/embeds/components/resourceEmbedTestUtils';
+
+import {getEmbedLinkHref, renderEmbed} from './resourceEmbedTestUtils';
 
 const LIST_URL = '/organizations/org-slug/agents/conversations/';
 

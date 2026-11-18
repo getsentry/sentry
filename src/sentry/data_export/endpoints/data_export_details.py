@@ -16,6 +16,7 @@ from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import is_owned_by_acting_user
 from sentry.data_export.models import ExportedData
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -76,7 +77,7 @@ class DataExportDetailsEndpoint(OrganizationEndpoint):
         """
         try:
             data_export = ExportedData.objects.get(
-                id=data_export_id, organization=organization, user_id=request.user.id
+                is_owned_by_acting_user(request.user), id=data_export_id, organization=organization
             )
         except ExportedData.DoesNotExist:
             if ExportedData.objects.filter(id=data_export_id, organization=organization).exists():
@@ -104,6 +105,6 @@ class DataExportDetailsEndpoint(OrganizationEndpoint):
         response = StreamingHttpResponse(
             iter(lambda: raw_file.read(4096), b""), content_type=content_type
         )
-        response["Content-Length"] = file.size
+        response["Content-Length"] = str(file.size)
         response["Content-Disposition"] = f'attachment; filename="{file.name}"'
         return response

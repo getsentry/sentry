@@ -1,3 +1,5 @@
+from typing import Any
+
 import responses
 
 from fixtures.integrations.stub_service import StubService
@@ -5,6 +7,7 @@ from sentry.integrations.jira import JiraCreateTicketAction
 from sentry.integrations.jira.actions.form import JiraNotifyServiceForm
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.grouplink import GroupLink
+from sentry.services.eventstore.models import GroupEvent
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.helpers.notifications import (
@@ -38,7 +41,7 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
         self.installation = self.integration.get_installation(self.organization.id)
 
         rule = self.create_project_rule(project=self.project)
-        self.jira_rule = self.get_rule(
+        self.jira_rule = self.get_jira_rule(
             data={
                 "issuetype": "1",
                 "labels": "bunnies",
@@ -52,11 +55,14 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
             },
             context=create_notification_action_context(rule),
         )
-        self.jira_rule.rule = self.create_project_rule(name="test rule")
-
         self.jira_rule.data["key"] = "APP-123"
 
-    def create_issue_base(self, event):
+    def get_jira_rule(self, **kwargs: Any) -> JiraCreateTicketAction:
+        rule = self.get_rule(**kwargs)
+        assert isinstance(rule, JiraCreateTicketAction)
+        return rule
+
+    def create_issue_base(self, event: GroupEvent) -> dict[str, Any]:
         responses.add(
             responses.GET,
             "https://example.atlassian.net/rest/api/2/project",
@@ -92,11 +98,14 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
         # Trigger rule callback
         rule_future = RuleFuture(context=self.jira_rule.action_context, kwargs=results[0].kwargs)
         results[0].callback(event, futures=[rule_future])
-        return json.loads(responses.calls[1].request.body)
+        body = json.loads(responses.calls[1].request.body)
+        if not isinstance(body, dict):
+            raise TypeError("Jira notification request is not a JSON object")
+        return body
 
     @responses.activate
     def test_creates_issue(self) -> None:
-        event = self.get_event()
+        event = self.get_group_event()
         data = self.create_issue_base(event)
 
         # Make assertions about what would be POSTed to api/2/issue.
@@ -111,7 +120,9 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
     def test_creates_performance_issue(self) -> None:
         """Test that a performance issue properly creates a Jira ticket"""
         event = self.create_performance_issue()
-        data = self.create_issue_base(event)
+        assert event.group is not None
+        group_event = event if isinstance(event, GroupEvent) else event.for_group(event.group)
+        data = self.create_issue_base(group_event)
 
         # Make assertions about what would be POSTed to api/2/issue.
         assert data["fields"]["summary"] == "N+1 Query"
@@ -128,13 +139,14 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         occurrence = TEST_ISSUE_OCCURRENCE
         event = self.get_event()
-        event = event.for_group(event.groups[0])
-        event.occurrence = occurrence
-        data = self.create_issue_base(event)
+        group_event = event.for_group(event.groups[0])
+        group_event.occurrence = occurrence
+        data = self.create_issue_base(group_event)
 
         # Make assertions about what would be POSTed to api/2/issue.
-        assert data["fields"]["summary"] == event.occurrence.issue_title
-        assert event.occurrence.evidence_display[0].value in data["fields"]["description"]
+        assert group_event.occurrence is not None
+        assert data["fields"]["summary"] == group_event.occurrence.issue_title
+        assert group_event.occurrence.evidence_display[0].value in data["fields"]["description"]
         assert data["fields"]["issuetype"]["id"] == "1"
 
         external_issue = ExternalIssue.objects.get(key="APP-123")
@@ -144,7 +156,7 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
     def test_doesnt_create_issue(self) -> None:
         """Don't create an issue if one already exists on the event for the given integration"""
 
-        event = self.get_event()
+        event = self.get_group_event()
         external_issue = ExternalIssue.objects.create(
             organization_id=self.organization.id,
             integration_id=self.integration.id,
@@ -169,7 +181,7 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
         assert len(responses.calls) == 0
 
     def test_render_label(self) -> None:
-        rule = self.get_rule(
+        rule = self.get_jira_rule(
             data={
                 "integration": self.integration.id,
                 "issuetype": 1,
@@ -187,20 +199,20 @@ class JiraCreateTicketActionTest(RuleTestCase, PerformanceIssueTestCase):
             deleted_id = self.integration.id
             self.integration.delete()
 
-        rule = self.get_rule(data={"integration": deleted_id})
+        rule = self.get_jira_rule(data={"integration": deleted_id})
 
         assert rule.render_label() == "Create a Jira issue in [removed] with these "
 
     @responses.activate
     def test_invalid_integration(self) -> None:
-        rule = self.get_rule(data={"integration": self.integration.id})
+        rule = self.get_jira_rule(data={"integration": self.integration.id})
 
         form = JiraNotifyServiceForm(rule.data, integrations=rule.get_integrations())
         assert form.is_valid()
 
     @responses.activate
     def test_invalid_project(self) -> None:
-        rule = self.get_rule(data={"integration": self.integration.id})
+        rule = self.get_jira_rule(data={"integration": self.integration.id})
 
         form = JiraNotifyServiceForm(rule.data, integrations=rule.get_integrations())
         assert form.is_valid()

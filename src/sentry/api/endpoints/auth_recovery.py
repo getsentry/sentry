@@ -17,6 +17,7 @@ from sentry.api.serializers.models.auth import (
     AuthRecoveryAcceptedSerializer,
 )
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_TOO_MANY_REQUESTS
 from sentry.auth import password_validation
 from sentry.auth.twofactor import reset_2fa_rate_limits
 from sentry.security.utils import capture_security_activity
@@ -81,7 +82,7 @@ class AuthRecoveryEndpoint(Endpoint):
     @extend_schema(
         operation_id="Request account password recovery",
         request=AuthRecoveryRequestSerializer,
-        responses={202: AuthRecoveryAcceptedSerializer},
+        responses={202: AuthRecoveryAcceptedSerializer, 429: RESPONSE_TOO_MANY_REQUESTS},
     )
     def post(self, request: Request) -> Response:
         if is_rate_limited(request, "request"):
@@ -120,7 +121,7 @@ class AuthRecoveryConfirmEndpoint(Endpoint):
     @extend_schema(
         operation_id="Validate account password recovery token",
         parameters=[AuthRecoveryTokenRequestSerializer],
-        responses={200: AuthRecoveryTokenResponseSerializer},
+        responses={200: AuthRecoveryTokenResponseSerializer, 429: RESPONSE_TOO_MANY_REQUESTS},
     )
     def get(self, request: Request) -> Response:
         if is_rate_limited(request, "validate"):
@@ -134,7 +135,7 @@ class AuthRecoveryConfirmEndpoint(Endpoint):
                 user_id=serializer.validated_data["user_id"],
                 hash=serializer.validated_data["token"],
             )
-            .first()
+            .get_or_none()
         )
         valid = bool(
             password_hash is not None
@@ -148,7 +149,7 @@ class AuthRecoveryConfirmEndpoint(Endpoint):
     @extend_schema(
         operation_id="Complete account password recovery",
         request=AuthRecoveryConfirmRequestSerializer,
-        responses={204: None},
+        responses={204: None, 400: RESPONSE_BAD_REQUEST, 429: RESPONSE_TOO_MANY_REQUESTS},
     )
     def post(self, request: Request) -> Response:
         if is_rate_limited(request, "confirm"):
@@ -164,7 +165,7 @@ class AuthRecoveryConfirmEndpoint(Endpoint):
         password_hash = (
             LostPasswordHash.objects.select_related("user")
             .filter(user_id=user_id, hash=token)
-            .first()
+            .get_or_none()
         )
         if password_hash is None:
             return Response({"detail": "Invalid or expired recovery token"}, status=400)
@@ -188,7 +189,7 @@ class AuthRecoveryConfirmEndpoint(Endpoint):
                 LostPasswordHash.objects.select_for_update()
                 .select_related("user")
                 .filter(user_id=user_id, hash=token)
-                .first()
+                .get_or_none()
             )
             if password_hash is None:
                 return Response({"detail": "Invalid or expired recovery token"}, status=400)

@@ -1,17 +1,15 @@
 import {useMemo} from 'react';
 
 import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
-import {MetricDetectorChart} from 'sentry/views/detectors/components/forms/metric/metricDetectorChart';
-import {
-  createConditions,
-  getBackendDataset,
-} from 'sentry/views/detectors/components/forms/metric/metricFormData';
+import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
+import {percentThresholdDeltaToAbsolute} from 'sentry/views/detectors/utils/percentThreshold';
+
+import {MetricDetectorChart} from './metricDetectorChart';
+import {createConditions, getBackendDataset} from './metricFormData';
 import {
   METRIC_DETECTOR_FORM_FIELDS,
   useMetricDetectorFormField,
-} from 'sentry/views/detectors/components/forms/metric/metricFormFields';
-import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
-import {percentThresholdDeltaToAbsolute} from 'sentry/views/detectors/utils/percentThreshold';
+} from './metricFormFields';
 
 interface MetricDetectorPreviewChartProps {
   detector?: MetricDetector;

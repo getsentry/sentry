@@ -4,7 +4,7 @@ import {TeamResolutionTimeFixture} from 'sentry-fixture/teamResolutionTime';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import {TeamResolutionTime} from 'sentry/views/organizationStats/teamInsights/teamResolutionTime';
+import {TeamResolutionTime} from './teamResolutionTime';
 
 describe('TeamResolutionTime', () => {
   it('should render graph of issue time to resolution', () => {

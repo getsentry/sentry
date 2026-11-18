@@ -1,5 +1,5 @@
-import {outcomeLabel} from 'sentry/components/droppedData/outcomes';
-import type {OutcomeRow} from 'sentry/components/droppedData/types';
+import {outcomeLabel} from './outcomes';
+import type {OutcomeRow} from './types';
 
 export interface ReasonRow {
   events: number;

@@ -12,8 +12,8 @@ import {
   RRWebInitFrameEventsFixture,
 } from 'sentry-fixture/replay/rrweb';
 
-import {hydrateFrames} from 'sentry/utils/replays/hydrateFrames';
-import {IncrementalSource} from 'sentry/utils/replays/types';
+import {hydrateFrames} from './hydrateFrames';
+import {IncrementalSource} from './types';
 
 describe('hydrateFrames', () => {
   it('should split breadcrumbs, spans, option and rrweb frames apart', () => {

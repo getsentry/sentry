@@ -562,7 +562,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
   margin: 0;
   transform: translateX(-2px);
 
-  .loading-indicator {
+  .scraps-spinner-ring {
     border: 2px solid ${p => p.theme.colors.gray100} !important;
     border-left-color: ${p => p.theme.colors.gray200} !important;
   }

@@ -6,7 +6,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
-import UpgradeOrTrialButton from 'getsentry/components/upgradeOrTrialButton';
+import {UpgradeOrTrialButton} from 'getsentry/components/upgradeOrTrialButton';
 import type {Subscription} from 'getsentry/types';
 import {getFriendlyPlanName, isTrial} from 'getsentry/utils/billing';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';

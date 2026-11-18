@@ -18,13 +18,20 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import DataWidgetViewerModal from 'sentry/components/modals/dataWidgetViewerModal';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import type {DashboardFilters, Widget, WidgetQuery} from 'sentry/views/dashboards/types';
+import type {
+  DashboardFilters,
+  DashboardQueryPriority,
+  Widget,
+  WidgetQuery,
+} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {WidgetLegendSelectionState} from 'sentry/views/dashboards/widgetLegendSelectionState';
+
+import DataWidgetViewerModal from './dataWidgetViewerModal';
 
 jest.mock('echarts-for-react/lib/core', () => {
   return jest.fn(({style}) => {
@@ -52,10 +59,12 @@ async function renderModal({
   initialData: {organization, initialRouterConfig},
   widget,
   dashboardFilters,
+  queryPriority,
 }: {
   initialData: InitialData;
   widget: any;
   dashboardFilters?: DashboardFilters;
+  queryPriority?: DashboardQueryPriority;
 }) {
   const routerLocation = initialRouterConfig.location;
   const routerConfig: RouterConfig = {
@@ -86,6 +95,7 @@ async function renderModal({
       widget={widget}
       onEdit={() => {}}
       dashboardFilters={dashboardFilters}
+      queryPriority={queryPriority}
       widgetLegendState={widgetLegendState}
     />,
     {
@@ -105,6 +115,7 @@ describe('Modals -> DataWidgetViewerModal', () => {
   let initialData: InitialData;
   let initialDataWithFlag: InitialData;
   beforeEach(() => {
+    ProjectsStore.reset();
     const projects = [ProjectFixture()];
     const organization = OrganizationFixture({
       features: ['discover-query'],
@@ -155,7 +166,113 @@ describe('Modals -> DataWidgetViewerModal', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    ProjectsStore.reset();
+  });
+
+  it('uses a saved faster priority when the url does not set one', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: []},
+    });
+    const lowPriorityMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {
+        timeSeries: [
+          TimeSeriesFixture({
+            yAxis: 'count()',
+            values: [
+              {timestamp: 1646100000000, value: 1},
+              {timestamp: 1646120000000, value: 1},
+            ],
+          }),
+        ],
+      },
+      match: [
+        function (_url: string, options: Record<string, any>) {
+          return options.query?.sampling === 'LOW_PRIORITY';
+        },
+      ],
+    });
+    const widget = WidgetFixture({
+      title: 'Spans Widget',
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.SPANS,
+      queries: [
+        {
+          name: '',
+          conditions: '',
+          fields: ['count()'],
+          aggregates: ['count()'],
+          columns: [],
+          orderby: '',
+        },
+      ],
+    });
+
+    await renderModal({
+      initialData: {
+        ...initialData,
+        organization: OrganizationFixture({
+          features: ['discover-query', 'low-priority-queries'],
+        }),
+      },
+      widget,
+      queryPriority: 'faster',
+    });
+
+    await waitFor(() => {
+      expect(lowPriorityMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-timeseries/',
+        expect.objectContaining({
+          query: expect.objectContaining({sampling: 'LOW_PRIORITY'}),
+        })
+      );
+    });
+  });
+
+  it('toggles Releases from the Layers menu', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: []},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {
+        timeSeries: [
+          TimeSeriesFixture({
+            yAxis: 'count()',
+            values: [
+              {timestamp: 1646100000000, value: 1},
+              {timestamp: 1646120000000, value: 1},
+            ],
+          }),
+        ],
+      },
+    });
+    const widget = WidgetFixture({
+      title: 'Spans Widget',
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.SPANS,
+      queries: [
+        {
+          name: '',
+          conditions: '',
+          fields: ['count()'],
+          aggregates: ['count()'],
+          columns: [],
+          orderby: '',
+        },
+      ],
+    });
+
+    await renderModal({initialData, widget});
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Chart layers'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Releases'}));
+
+    expect(screen.getByRole('option', {name: 'Releases'})).toHaveAttribute(
+      'aria-selected',
+      'false'
+    );
   });
 
   describe('Errors Widgets', () => {
@@ -1255,6 +1372,59 @@ describe('Modals -> DataWidgetViewerModal', () => {
       });
       await renderModal({initialData, widget: mockWidget});
       expect(await screen.findByText('Open in Explore')).toBeInTheDocument();
+    });
+
+    it.each([
+      {widgetType: WidgetType.SPANS, aggregate: 'count(span.duration)'},
+      {widgetType: WidgetType.LOGS, aggregate: 'count(message)'},
+    ])(
+      'disables Open in Explore for multi-query $widgetType widgets',
+      async ({widgetType, aggregate}) => {
+        const widget = WidgetFixture({
+          widgetType,
+          queries: ['http.status_code:200', 'http.status_code:500'].map(conditions => ({
+            fields: [],
+            aggregates: [aggregate],
+            columns: [],
+            conditions,
+            orderby: '',
+            name: '',
+          })),
+        });
+        await renderModal({initialData, widget});
+
+        const action = screen.getByRole('button', {name: 'Open in Explore'});
+        expect(action).toBeDisabled();
+        expect(action).not.toHaveAttribute('href');
+        await userEvent.hover(action);
+        expect(
+          await screen.findByText(
+            'Explore does not support multiple queries for this dataset'
+          )
+        ).toBeInTheDocument();
+      }
+    );
+
+    it('links multi-query metrics widgets to the metrics explorer', async () => {
+      const widget = WidgetFixture({
+        widgetType: WidgetType.TRACEMETRICS,
+        queries: ['http.status_code:200', 'http.status_code:500'].map(conditions => ({
+          fields: [],
+          aggregates: ['avg(value,duration,d,none)'],
+          columns: [],
+          conditions,
+          orderby: '',
+          name: '',
+        })),
+      });
+      await renderModal({initialData, widget});
+
+      const action = screen.getByRole('button', {name: 'Open in Explore'});
+      const url = new URL(action.getAttribute('href')!, 'https://example.com');
+      expect(url.pathname).toBe('/organizations/org-slug/explore/metrics/');
+      expect(
+        url.searchParams.getAll('metric').map(metric => JSON.parse(metric).query)
+      ).toEqual(['http.status_code:200', 'http.status_code:500']);
     });
 
     it('does not make an events-timeseries request with an arbitrary table sort as a y-axis', async () => {

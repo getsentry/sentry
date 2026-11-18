@@ -1,4 +1,4 @@
-import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
+import type {DropdownMenuProps, MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
@@ -9,21 +9,28 @@ export interface BreadcrumbMenuActionProps {
   triggerIcon: NonNullable<React.ReactNode>;
   /** Accessible name for the trigger button. */
   triggerLabel: string;
+  /**
+   * Size of the menu items. The trigger is always zero-sized.
+   * @default 'md'
+   */
+  menuSize?: DropdownMenuProps['size'];
 }
 
 /**
- * A dropdown-menu trailing action for the page-title crumb — e.g. a page-level
- * actions (…) menu. Renders an icon-only transparent trigger that opens a
+ * A dropdown-menu trailing action for the page-title or current crumb — e.g. a
+ * page-level actions (…) menu. Renders an icon-only transparent trigger that opens a
  * `DropdownMenu` of `items`.
  */
 export function BreadcrumbMenuAction({
   items,
   triggerLabel,
   triggerIcon,
+  menuSize,
 }: BreadcrumbMenuActionProps) {
   return (
     <DropdownMenu
       items={items}
+      size={menuSize}
       trigger={(triggerProps, isOpen) => (
         <OverlayTrigger.IconButton
           {...triggerProps}

@@ -14,12 +14,13 @@ from sentry.api.serializers.rest_framework.base import camel_to_snake_case, conv
 from sentry.issues.grouptype import GroupType
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.types.actor import Actor
+from sentry.utils import metrics
 from sentry.workflow_engine.caches.data_source import (
     get_data_sources_by_detector_and_source_id,
 )
 from sentry.workflow_engine.handlers.detector_outcome import DetectorOutcome
 from sentry.workflow_engine.models import DataPacket, Detector
-from sentry.workflow_engine.processors import DataConditionGroupEvaluation, DetectorEvaluation
+from sentry.workflow_engine.processors import DetectorEvaluation
 from sentry.workflow_engine.types import (
     DetectorGroupKey,
     DetectorId,
@@ -100,18 +101,26 @@ class DetectorOccurrence:
 
 
 @dataclass(frozen=True)
-class GroupedDetectorEvaluationResult:
-    result: dict[DetectorGroupKey, DetectorEvaluation]
+class DetectorEvaluations:
+    """
+    The evaluations `evaluate` decided on, keyed by group, and whether any condition errored.
+    """
+
+    evaluations: dict[DetectorGroupKey, DetectorEvaluation]
     tainted: bool
 
 
 class BaseDetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationType]):
     """
-    Abstract base class defining the public interface for detector handlers.
+    Base class for detector handlers.
 
     DataPacketType is what we've embedded within the data packet.
-    DataPacketEvaluationType is the type of the value to be extracted from the data packet and
-    used to evaluate the conditions on the detector.
+    DataPacketEvaluationType is the type of the value extracted from the data packet and
+    evaluated by the detector.
+
+    Subclasses implement `extract_value`, `evaluate`, and `create_occurrence`. The platform
+    composes them in `_evaluate`, and builds the issue occurrence for every evaluation that
+    `evaluate` returned from `DetectorEvaluation.create_issue`.
     """
 
     def __init__(self, detector: Detector):
@@ -122,39 +131,51 @@ class BaseDetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationT
     )
 
     @abc.abstractmethod
-    def _evaluate(
-        self, data_packet: DataPacket[DataPacketType]
-    ) -> dict[DetectorGroupKey, DetectorEvaluation]:
-        pass
-
-    @abc.abstractmethod
-    def evaluate(self, data_packet: DataPacket[DataPacketType]) -> GroupedDetectorEvaluationResult:
-        """
-        This method is used to evaluate the data packet's value against the conditions on the detector.
-        """
-        pass
-
-    @abc.abstractmethod
     def extract_value(
         self, data_packet: DataPacket[DataPacketType]
     ) -> DataPacketEvaluationType | DetectorGroupValues[DataPacketEvaluationType]:
         """
-        Extracts the evaluation value from the data packet to be processed.
+        Extracts the value to evaluate from the data packet.
 
-        Return `DetectorGroupValues` to evaluate each group independently.
+        Return `DetectorGroupValues` to evaluate each group independently. An empty
+        `DetectorGroupValues` skips evaluation, e.g. for packets the detector filters out.
+        """
+        pass
+
+    @abc.abstractmethod
+    def evaluate(
+        self,
+        data_packet: DataPacket[DataPacketType],
+        values: Mapping[DetectorGroupKey, DataPacketEvaluationType],
+    ) -> DetectorEvaluations:
+        """
+        Decides the outcome for each group's extracted value. Ungrouped detectors receive a single
+        value keyed by `None`.
+
+        Return at most one `DetectorEvaluation` per group key in `values`, built with its named
+        constructors so the outcome is explicit:
+
+        1. Triggered: `DetectorEvaluation.create_issue(group_key, priority, trigger_group_evaluation)`.
+           The platform calls `create_occurrence` and sets the built `IssueOccurrence` as the result.
+        2. Already built: `evaluation.with_result(result)`, where `result` is an `IssueOccurrence` or
+           `StatusChangeMessage`, e.g. a resolution from a stateful detector. It is kept as-is.
+        3. Nothing to do: leave the group out, or return `DetectorEvaluation.ok(group_key, ...)`.
+           OK evaluations carry no result and are dropped, unless a subclass acts on them.
+
+        Every evaluation with a result is then passed to the handler's `on_complete`, which decides
+        what to do with it. The default, `DetectorOutcome.ISSUE_PLATFORM`, sends it to the Issue Platform.
         """
         pass
 
     @abc.abstractmethod
     def create_occurrence(
         self,
-        evaluation: DataConditionGroupEvaluation,
+        evaluation: DetectorEvaluation,
         data_packet: DataPacket[DataPacketType],
-        priority: DetectorPriorityLevel,
     ) -> tuple[DetectorOccurrence, EventData]:
         """
-        This method provides the value that was evaluated against, the data packet that was
-        used to get the data, and the condition(s) that are failing.
+        This method provides the triggered evaluation and the data packet that was used to get the data.
+        `evaluation.priority` is the priority the detector triggered at.
 
         To implement this, you will need to create a new `DetectorOccurrence` object,
         to represent the issue that was detected. Additionally, you can return any
@@ -191,6 +212,60 @@ class BaseDetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationT
 
         return [f"detector:{self.detector.id}:{group_key}"]
 
+    def _evaluate(
+        self, data_packet: DataPacket[DataPacketType]
+    ) -> dict[DetectorGroupKey, DetectorEvaluation]:
+        """
+        This method is the entry point for evaluating detectors.
+
+        Life-cycle:
+        - extract_value
+        - evaluate, skipped when there are no groups to evaluate
+        - create_occurrence, for each `DetectorEvaluation.create_issue` evaluation
+
+        Once this is complete, `process_detectors` will use `on_complete` to determine
+        where to deliver / how to handle the results.
+        """
+        tags = {
+            "detector_type": self.detector.type,
+            "result": "unknown",
+        }
+
+        try:
+            values = self._extract_value(data_packet)
+            evaluations = (
+                self.evaluate(data_packet, values)
+                if values
+                else DetectorEvaluations(evaluations={}, tainted=False)
+            )
+            results: dict[DetectorGroupKey, DetectorEvaluation] = {}
+
+            for group_key, evaluation in evaluations.evaluations.items():
+                if evaluation.needs_occurrence:
+                    if group_key not in values:
+                        raise ValueError(
+                            f"Detector {self.detector.id} `evaluate` returned group key "
+                            f"{group_key!r}, which is not one of the extracted values"
+                        )
+
+                    results[group_key] = self._create_occurrence(
+                        evaluation, data_packet, values[group_key]
+                    )
+                elif evaluation.result is not None:
+                    results[group_key] = evaluation
+        except Exception:
+            tags["result"] = "failure"
+
+            metrics.incr("workflow_engine_detector.evaluation", tags=tags, sample_rate=1.0)
+
+            raise
+
+        tags["result"] = "tainted" if evaluations.tainted else "success"
+
+        metrics.incr("workflow_engine_detector.evaluation", tags=tags, sample_rate=1.0)
+
+        return results
+
     def _extract_value(
         self,
         data_packet: DataPacket[DataPacketType],
@@ -207,22 +282,68 @@ class BaseDetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationT
 
         return {None: value}
 
+    def _create_occurrence(
+        self,
+        evaluation: DetectorEvaluation,
+        data_packet: DataPacket[DataPacketType],
+        evaluation_value: DataPacketEvaluationType,
+        *,
+        fingerprint: list[str] | None = None,
+    ) -> DetectorEvaluation:
+        """
+        This is the platform method that wraps `create_occurrence`.
+
+        The occurrence from the hook is decorated with the platform's identifiers, fingerprint,
+        evidence data, and event data, then set as the result of the evaluation.
+
+        `fingerprint` defaults to `get_issue_fingerprint` for the evaluation's group key.
+        """
+        detector_occurrence, event_data = self.create_occurrence(evaluation, data_packet)
+
+        group_key = evaluation.data["group_key"]
+        event_id = self.get_event_id(event_data)
+        evidence_data = self._build_workflow_engine_evidence_data(
+            evaluation, data_packet, evaluation_value
+        )
+
+        issue_occurrence = detector_occurrence.to_issue_occurrence(
+            occurrence_id=self.get_occurrence_id(group_key, event_id),
+            event_id=event_id,
+            project_id=self.detector.project_id,
+            status=evaluation.priority,
+            additional_evidence_data=dataclasses.asdict(evidence_data),
+            fingerprint=(
+                fingerprint if fingerprint is not None else self.get_issue_fingerprint(group_key)
+            ),
+        )
+
+        return evaluation.with_result(
+            issue_occurrence,
+            event_data=self._build_event_data(event_data, issue_occurrence),
+        )
+
     def _build_workflow_engine_evidence_data(
         self,
-        group_evaluation: DataConditionGroupEvaluation,
+        evaluation: DetectorEvaluation,
         data_packet: DataPacket[DataPacketType],
         evaluation_value: DataPacketEvaluationType,
     ) -> EvidenceData[DataPacketEvaluationType]:
         """
-        Build the workflow engine specific evidence data.
-        This is data that is common to all detectors.
-        """
+        Build the workflow engine evidence data, common to all detectors.
 
-        triggered_conditions = [
-            dict(condition_evaluation.condition.get_snapshot())
-            for condition_evaluation in group_evaluation.data["condition_evaluations"]
-            if condition_evaluation.triggered
-        ]
+        `conditions` are the triggered conditions of the evaluation's trigger group, and are empty
+        for detectors that don't evaluate a data condition group. `data_sources` are empty when
+        the packet's source is not connected to the detector.
+        """
+        trigger_evaluation = evaluation.data["trigger_group_evaluation"]
+        triggered_conditions: list[dict[str, Any]] = []
+
+        if trigger_evaluation is not None:
+            triggered_conditions = [
+                dict(condition_evaluation.condition.get_snapshot())
+                for condition_evaluation in trigger_evaluation.data["condition_evaluations"]
+                if condition_evaluation.triggered
+            ]
 
         return EvidenceData(
             detector_id=self.detector.id,
