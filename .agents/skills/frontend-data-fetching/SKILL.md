@@ -34,7 +34,7 @@ Key rules:
 - **`staleTime` is required** — you must choose a value (`0`, a number in ms, `Infinity`, or `'static'`).
 - **Build abstractions over `apiOptions`**, not over `useQuery`. Return the options object so consumers can pass it to `useQuery`, `useQueries`, `prefetchQuery`, etc.
 - **Cache stores `{json, headers}`**, not just the body. `apiOptions` uses `select` to extract `.json` by default, but `getQueryData`, `setQueryData`, `retry` functions, and `predicate` callbacks all receive the raw `ApiResponse<T>` shape.
-- **never** use `api.requestPromise` for a Query - it returns the wrong structure. If you must make a manual `queryFn`, use `apiFetch`.
+- **never** use `api.requestPromise` for a Query - it returns the wrong structure. If you must make a manual `queryFn`, use `apiFetch`, and give it the `queryKey` of an `apiOptions(...)` call.
 - **Path params are strings.** Convert numeric ids with `String(id)`.
 
 ## Query keys and cache filters

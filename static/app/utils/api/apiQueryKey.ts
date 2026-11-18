@@ -40,7 +40,7 @@ type InfiniteApiQueryKeyParams = Omit<ApiQueryKeyParams, 'infinite'> & {
   infinite: true;
 };
 
-const API_QUERY_KEY_MARKER = '_api';
+export const API_QUERY_KEY_MARKER = '_api';
 
 export type ApiQueryKey = readonly [
   typeof API_QUERY_KEY_MARKER,
@@ -81,23 +81,4 @@ export function safeParseQueryKey(
   queryKey: readonly unknown[]
 ): ParsedQueryKey | undefined {
   return isApiQueryKey(queryKey) ? parseQueryKey(queryKey) : undefined;
-}
-
-export function createApiQueryKey(params: ApiQueryKeyParams): ApiQueryKey;
-export function createApiQueryKey(params: InfiniteApiQueryKeyParams): InfiniteApiQueryKey;
-export function createApiQueryKey(
-  params: ParsedQueryKey
-): readonly [typeof API_QUERY_KEY_MARKER, ParsedQueryKey, ...unknown[]] {
-  return [API_QUERY_KEY_MARKER, params];
-}
-
-type ApiQueryKeyFilterParams = Partial<
-  Pick<ApiQueryKeyParams, 'url' | 'options' | 'urlParts'>
-> & {infinite?: true};
-
-/**
- * A partial api query key, only meant for query filters like `invalidateQueries`.
- */
-export function createApiQueryKeyFilter(params: ApiQueryKeyFilterParams) {
-  return [API_QUERY_KEY_MARKER, params] as const;
 }

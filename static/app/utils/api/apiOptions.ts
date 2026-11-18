@@ -6,8 +6,10 @@ import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {apiFetch, apiFetchInfinite} from './apiFetch';
 import type {ApiResponse} from './apiFetch';
 import {
-  createApiQueryKey,
-  createApiQueryKeyFilter,
+  API_QUERY_KEY_MARKER,
+  type ApiQueryKey,
+  type InfiniteApiQueryKey,
+  type ParsedQueryKey,
   type QueryKeyEndpointOptions,
 } from './apiQueryKey';
 import {getApiUrl} from './getApiUrl';
@@ -106,8 +108,13 @@ function _apiOptions<
     ? [Options & {path?: never}]
     : [Options & PathParamOptions<TApiPath>]
 ) {
+  const queryKey: ApiQueryKey = [
+    API_QUERY_KEY_MARKER,
+    getQueryKeyParams(path, pathParams, options),
+  ];
+
   return queryOptions({
-    queryKey: createApiQueryKey(getQueryKeyParams(path, pathParams, options)),
+    queryKey,
     queryFn: pathParams === skipToken ? skipToken : apiFetch<TActualData>,
     enabled: pathParams !== skipToken,
     staleTime,
@@ -134,13 +141,15 @@ function _queryKey(
     path: exact ? undefined : path,
   });
 
-  return createApiQueryKeyFilter({
+  const params: Partial<ParsedQueryKey> = {
     ...(exact
       ? {url: getApiUrl(url, ...([{path}] as OptionalPathParams<KnownApiUrl>))}
       : {urlParts: url.slice(0, -1).split('/').filter(Boolean)}),
     ...(Object.keys(keyOptions).length > 0 ? {options: keyOptions} : {}),
     ...(infinite ? {infinite} : {}),
-  });
+  };
+
+  return [API_QUERY_KEY_MARKER, params] as const;
 }
 
 function parsePageParam<TQueryFnData = unknown>(dir: 'previous' | 'next') {
@@ -165,11 +174,13 @@ function _apiOptionsInfinite<
     ? [Options & {path?: never}]
     : [Options & PathParamOptions<TApiPath>]
 ) {
+  const queryKey: InfiniteApiQueryKey = [
+    API_QUERY_KEY_MARKER,
+    {...getQueryKeyParams(path, pathParams, options), infinite: true},
+  ];
+
   return infiniteQueryOptions({
-    queryKey: createApiQueryKey({
-      ...getQueryKeyParams(path, pathParams, options),
-      infinite: true,
-    }),
+    queryKey,
     queryFn: pathParams === skipToken ? skipToken : apiFetchInfinite<TActualData>,
     getPreviousPageParam: parsePageParam('previous'),
     getNextPageParam: parsePageParam('next'),
