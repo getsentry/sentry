@@ -553,7 +553,7 @@ describe('SeerExplorerContent', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('shows the request error above a pending question', async () => {
+    it('shows a pending question instead of the request error', async () => {
       jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
         ...defaultHookReturn,
         requestError: {},
@@ -602,12 +602,10 @@ describe('SeerExplorerContent', () => {
       expect(screen.getByTestId('seer-explorer-pending-input')).toContainElement(
         question
       );
-      const alert = screen.getByText(
-        'There was an error sending your message, wait and try again.'
-      );
+      // One alert at a time, and the question bar needs its prompt on screen.
       expect(
-        alert.compareDocumentPosition(question) & Node.DOCUMENT_POSITION_FOLLOWING
-      ).toBeTruthy();
+        screen.queryByText('There was an error sending your message, wait and try again.')
+      ).not.toBeInTheDocument();
     });
 
     it('pins a pending write approval above the composer', async () => {
@@ -1945,6 +1943,52 @@ describe('SeerExplorerContent', () => {
       expect(screen.queryByText(/Want to chat in Slack/)).not.toBeInTheDocument();
     });
 
+    it('shows a send error in place of the reminder', async () => {
+      const integrations = [OrganizationIntegrationsFixture()];
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/integrations/`,
+        method: 'GET',
+        body: integrations,
+      });
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        requestError: {query: 'Failed message'},
+      });
+      // Loaded up front, so the reminder would already be on screen without the error.
+      const queryClient = makeTestQueryClient();
+      await queryClient.fetchQuery(
+        apiOptions.as<typeof integrations>()(
+          '/organizations/$organizationIdOrSlug/integrations/',
+          {
+            path: {organizationIdOrSlug: organization.slug},
+            query: {providerKey: 'slack', includeConfig: 0},
+            staleTime: 0,
+          }
+        )
+      );
+
+      render(
+        <QueryClientProvider client={queryClient}>
+          <PictureInPictureProvider>
+            <SeerExplorerSessionsProvider>
+              <SeerExplorerContent
+                getPageReferrer={mockGetPageReferrer}
+                onClose={() => {}}
+              />
+            </SeerExplorerSessionsProvider>
+          </PictureInPictureProvider>
+        </QueryClientProvider>,
+        {organization}
+      );
+
+      expect(
+        await screen.findByText(
+          'There was an error sending your message, wait and try again.'
+        )
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/Want to chat in Slack/)).not.toBeInTheDocument();
+    });
+
     it('keeps the reminder for an empty read-only conversation', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/integrations/`,
@@ -2006,8 +2050,13 @@ describe('SeerExplorerContent', () => {
         {organization}
       );
 
-      expect(await screen.findByText(upgradeNudgeText)).toBeInTheDocument();
+      const nudge = await screen.findByText(upgradeNudgeText);
       expect(screen.getByRole('button', {name: 'Update Now'})).toBeInTheDocument();
+      // Shares the alert slot above the composer.
+      expect(
+        nudge.compareDocumentPosition(screen.getByTestId('seer-explorer-input')) &
+          Node.DOCUMENT_POSITION_FOLLOWING
+      ).toBeTruthy();
     });
 
     it('hides the reinstall nudge when the user cannot manage integrations', async () => {
@@ -2633,7 +2682,7 @@ describe('SeerExplorerContent', () => {
       });
     });
 
-    it('disables retrying a timed out message', async () => {
+    it('shows the credits notice instead of retrying a timed out message', async () => {
       mockCreditCheck(false);
       const sendMessage = jest.fn();
       jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
@@ -2658,7 +2707,9 @@ describe('SeerExplorerContent', () => {
       renderContent();
 
       await screen.findByTestId('seer-explorer-out-of-credits');
-      expect(screen.getByRole('button', {name: 'Retry'})).toBeDisabled();
+      // One alert at a time, and a retry can't be afforded anyway.
+      expect(screen.queryByText('Response timed out.')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Retry'})).not.toBeInTheDocument();
     });
 
     it('does not start an investigation', async () => {
