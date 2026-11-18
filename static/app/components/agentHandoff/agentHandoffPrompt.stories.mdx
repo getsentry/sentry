@@ -5,7 +5,7 @@ category: components
 source: sentry/components/agentHandoff/agentHandoffPrompt
 ---
 
-import {Container} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 
 import * as Storybook from 'sentry/stories';
 import {AgentHandoffProductPrompt} from './agentHandoffProductPrompt';
@@ -25,9 +25,9 @@ export function ClipboardBlockedExample() {
     )
   );
   return (
-    <Container maxWidth="700px">
+    <Stack width="100%" maxWidth="700px" gap="md">
       <HandoffPromptAlerts useIpPinning error={error} fallbackPrompt={error.prompt} />
-    </Container>
+    </Stack>
   );
 }
 
