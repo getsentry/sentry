@@ -65,7 +65,6 @@ export type TeamInsightsEventParameters = {
   'issue_details.action_clicked': IssueDetailsWithAlert & {
     action_type:
       | 'deleted'
-      | 'mark_reviewed'
       | 'bookmarked'
       | 'subscribed'
       | 'shared'

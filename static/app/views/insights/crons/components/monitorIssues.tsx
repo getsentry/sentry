@@ -90,7 +90,6 @@ export function MonitorIssues({monitor, monitorEnvs}: Props) {
         canSelectGroups={false}
         withPagination={false}
         withChart={false}
-        useTintRow={false}
         source="monitors"
         numPlaceholderRows={20}
       />
