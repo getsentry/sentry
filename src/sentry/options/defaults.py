@@ -1417,6 +1417,13 @@ register(
     default=True,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Killswitch for bounding Bigtable (nodestore) operations while saving events.
+register(
+    "store.save-event.bigtable-operation-timeout.disabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 
 # Enable sending the flag to the microservice to tell it to purposefully take longer than our

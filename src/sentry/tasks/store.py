@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import contextlib
 import logging
 import random
 from collections.abc import Mapping, MutableMapping
@@ -653,7 +654,12 @@ def _do_save_event(
 
                 # Bound nodestore calls so a stuck write is retried, or fails,
                 # before the task's processing deadline is exceeded.
-                with bigtable_operation_timeout(SAVE_EVENT_NODESTORE_TIMEOUT):
+                nodestore_timeout = (
+                    contextlib.nullcontext()
+                    if options.get("store.save-event.bigtable-operation-timeout.disabled")
+                    else bigtable_operation_timeout(SAVE_EVENT_NODESTORE_TIMEOUT)
+                )
+                with nodestore_timeout:
                     # event.project.organization is populated after this statement.
                     EventManager(data).save(
                         project=project,
