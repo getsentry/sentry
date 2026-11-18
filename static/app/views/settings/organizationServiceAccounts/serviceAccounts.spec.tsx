@@ -108,10 +108,13 @@ describe('Service accounts prototype', () => {
     expect(await screen.findByText('Name is required')).toBeInTheDocument();
 
     await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'triage-agent');
-    // Changing one permission turns the preset into Custom.
-    await userEvent.click(screen.getByRole('button', {name: 'Teams permission'}));
-    await userEvent.click(await screen.findByRole('option', {name: 'No Access'}));
-    expect(screen.getByRole('button', {name: 'Start from'})).toHaveTextContent('Custom');
+    // The read-only table only lists telemetry and CI resources.
+    expect(screen.getByRole('cell', {name: /^Source Maps/})).toBeInTheDocument();
+    expect(screen.queryByRole('cell', {name: /^Teams/})).not.toBeInTheDocument();
+    // Picking a permission level updates the table.
+    await userEvent.click(screen.getByRole('button', {name: 'Permission level'}));
+    await userEvent.click(await screen.findByRole('option', {name: /Read Only/}));
+    expect(screen.queryByText('Read & Write')).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Create Service Account'}));
     expect(
       await screen.findByText('A service account with this name already exists.')
