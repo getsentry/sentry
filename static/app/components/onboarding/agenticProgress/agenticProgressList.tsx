@@ -5,7 +5,7 @@ import {IconCircleCheckmark} from '@sentry/icons/circleCheckmark';
 import {IconCircleDashed} from '@sentry/icons/circleDashed';
 import {IconFatal} from '@sentry/icons/fatal';
 import {IconNot} from '@sentry/icons/not';
-import {IconWarning} from '@sentry/icons/warning';
+import {IconTerminal} from '@sentry/icons/terminal';
 import {AnimatePresence, motion, type MotionProps} from 'framer-motion';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -42,7 +42,9 @@ const STAGE_LABELS: Record<AgenticProgressStage, string> = {
 
 const STATUS_LABELS: Record<AgenticProgressStageStatus, string> = {
   active: t('In progress'),
-  waiting: t('Awaiting Input'),
+  // The page has nothing to fill in; the agent is waiting on a reply in the
+  // user's editor or terminal, so point them there.
+  waiting: t('Check your agent'),
   completed: t('Done'),
   skipped: t('Skipped'),
   bypassed: t('Bypassed'),
@@ -51,7 +53,7 @@ const STATUS_LABELS: Record<AgenticProgressStageStatus, string> = {
 
 const STATUS_VARIANTS = {
   active: 'info',
-  waiting: 'warning',
+  waiting: 'info',
   completed: 'success',
   skipped: 'muted',
   bypassed: 'muted',
@@ -76,7 +78,7 @@ function StageSymbol({status}: {status: AgenticProgressStageStatus | null}) {
   }
 
   if (status === 'waiting') {
-    return <IconWarning size="md" variant="warning" />;
+    return <IconTerminal size="md" variant="accent" />;
   }
 
   if (status === 'active') {
@@ -165,7 +167,7 @@ function ProgressItem({
 }) {
   const label = STAGE_LABELS[stage.stage];
   const variant =
-    stage.status === 'active'
+    stage.status === 'active' || stage.status === 'waiting'
       ? 'primary'
       : stage.status
         ? STATUS_VARIANTS[stage.status]
