@@ -1146,6 +1146,13 @@ class UptimeParams:
         type=str,
         description="The owner of the uptime alert, in the format `user:id` or `team:id`. May be specified multiple times.",
     )
+    CHECKS_PER_PAGE = OpenApiParameter(
+        name="per_page",
+        location="query",
+        required=False,
+        type=int,
+        description="The number of checks to return per page. Defaults to 10, maximum 100.",
+    )
     STATS_DETECTOR_ID = OpenApiParameter(
         name="uptimeDetectorId",
         location="query",
