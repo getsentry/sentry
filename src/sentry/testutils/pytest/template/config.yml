@@ -25,6 +25,11 @@ aggregator:
   debounce_delay: 0
 auth:
   signature_max_age: 300
+cache:
+  # A reused Relay fetches its global config once, at startup inside a test. Relay
+  # refetches every 10s by default, and a refetch can land in the next test's setup
+  # before that test has database access, where the endpoint returns a 500.
+  global_config_fetch_interval: 3600
 health:
   # The readiness probe reports a cached status that is refreshed on this interval
   # (default 3s), so a fresh Relay otherwise looks unready for up to 3s after it has

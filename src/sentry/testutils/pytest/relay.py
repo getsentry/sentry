@@ -269,7 +269,8 @@ def _relay_module_settings() -> Generator[None]:
     # flakiness. These tests cover the ingestion pipeline, not the endpoint-fetch path,
     # so turn it off.
     # It is served to the test Relay via the upstream global config, which Relay fetches
-    # at startup and again every 10s, hence the override must last as long as Relay does.
+    # when it starts. Any test in the module may (re)start Relay, hence the override must
+    # last for the whole module.
     with (
         relay_test_settings(),
         override_options({"relay.endpoint-fetch-config.enabled": False}),
