@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import type {CustomSeriesRenderItem} from 'echarts';
 
-import {Container} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
 import type {
   AnnotationItem,
@@ -131,15 +131,16 @@ export function useAnnotationBand({
       tooltipSection: start => {
         const bucket = bucketsByStart.get(start);
         return bucket ? (
-          <Container as="section">
+          <Stack as="section" gap="md" padding="lg 0">
             {kindsInBand.map(kind => (
               <ChartBandTooltipHeading
                 key={kind}
                 label={ANNOTATION_KIND_LABELS[kind]}
                 value={bucket.items.filter(item => item.kind === kind).length}
+                padding="0 xl"
               />
             ))}
-          </Container>
+          </Stack>
         ) : null;
       },
       series: bandOffset => ({
