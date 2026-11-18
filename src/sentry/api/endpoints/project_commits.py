@@ -9,7 +9,6 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.models.commit import Commit
 from sentry.models.project import Project
-from sentry.models.releasecommit import ReleaseCommit
 
 
 @cell_silo_endpoint
@@ -37,22 +36,27 @@ class ProjectCommitsEndpoint(ProjectEndpoint):
         """
         query = request.GET.get("query")
 
-        # Filter on a subquery instead of joining, so a commit in several of the
-        # project's releases is returned once.
         queryset = Commit.objects.filter(
             organization_id=project.organization_id,
-            id__in=ReleaseCommit.objects.filter(
-                release__releaseproject__project_id=project.id
-            ).values("commit_id"),
+            releasecommit__release__releaseproject__project_id=project.id,
         )
 
+        # A commit in several of the project's releases joins once per release.
+        # DISTINCT ON over the sort keys drops the repeats and keeps Postgres
+        # on the (organization_id, date_added) index walk; an id__in subquery
+        # hashes every ReleaseCommit row of the project first, which is slow
+        # for projects with long release history.
         if query:
-            queryset = queryset.filter(key__istartswith=query)
+            queryset = queryset.filter(key__istartswith=query).distinct("key", "date_added", "id")
+            order_by: tuple[str, ...] = ("key", "-date_added", "-id")
+        else:
+            queryset = queryset.distinct("date_added", "id")
+            order_by = ("-date_added", "-id")
 
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by=("key", "-date_added") if query else "-date_added",
+            order_by=order_by,
             on_results=lambda x: serialize(x, request.user),
             paginator_cls=OffsetPaginator,
         )

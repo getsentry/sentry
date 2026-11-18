@@ -1,6 +1,7 @@
 from django.urls import reverse
 
 from sentry.models.commit import Commit
+from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releases.release_project import ReleaseProject
@@ -56,11 +57,11 @@ class ProjectCommitListTest(APITestCase):
         response = self.get_success_response(project.organization.slug, project.slug)
         assert len(response.data) == 1
 
-    def test_commit_in_multiple_project_releases(self) -> None:
+    def _commit_in_two_project_releases(self, key: str) -> tuple[Project, Commit]:
         project = self.create_project(name="komal")
         repo = Repository.objects.create(organization_id=project.organization_id, name=project.name)
         commit = Commit.objects.create(
-            organization_id=project.organization_id, repository_id=repo.id, key="a" * 40
+            organization_id=project.organization_id, repository_id=repo.id, key=key
         )
         for version in ("1.1", "1.2"):
             release = Release.objects.create(
@@ -74,10 +75,22 @@ class ProjectCommitListTest(APITestCase):
                 order=0,
                 project_id=project.id,
             )
+        return project, commit
 
+    def test_commit_in_multiple_project_releases(self) -> None:
+        project, commit = self._commit_in_two_project_releases("a" * 40)
         self.login_as(user=self.user)
 
         response = self.get_success_response(project.organization.slug, project.slug)
+        assert [r["id"] for r in response.data] == [commit.key]
+
+    def test_query_commit_in_multiple_project_releases(self) -> None:
+        project, commit = self._commit_in_two_project_releases("a" * 40)
+        self.login_as(user=self.user)
+
+        response = self.get_success_response(
+            project.organization.slug, project.slug, qs_params={"query": "aaa"}
+        )
         assert [r["id"] for r in response.data] == [commit.key]
 
     def test_query_filter(self) -> None:
