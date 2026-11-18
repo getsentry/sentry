@@ -24,13 +24,8 @@ type PathParamOptions<TApiPath extends string> =
     ? {path?: never}
     : {path: Record<ExtractPathParams<TApiPath>, string> | SkipToken};
 
-type SegmentPrefixes<
-  TUrl extends string,
-  TPrefix extends string = '/',
-> = TUrl extends `${TPrefix}${infer Segment}/${infer Rest}`
-  ?
-      | `${TPrefix}${Segment}/`
-      | SegmentPrefixes<`${TPrefix}${Segment}/${Rest}`, `${TPrefix}${Segment}/`>
+type SegmentPrefixes<TUrl extends string> = TUrl extends `/${infer Segment}/${infer Rest}`
+  ? `/${Segment}/` | `/${Segment}${SegmentPrefixes<`/${Rest}`>}`
   : never;
 
 /**
