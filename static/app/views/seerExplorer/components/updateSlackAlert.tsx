@@ -35,7 +35,7 @@ export function UpdateSlackAlert({num_configurations}: UpdateSlackAlertProps) {
     (num_configurations === 1 ? '&showInstallModal=1' : '');
 
   return (
-    <Container padding="lg">
+    <Container padding="0 xl">
       <Alert
         variant="muted"
         trailingItems={

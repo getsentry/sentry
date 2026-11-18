@@ -529,6 +529,7 @@ const DraftExtras = styled(Stack)<{
   }
 `;
 
+// eslint-disable-next-line @sentry/scraps/prefer-primitives -- The offset scales with the beam SVG's aspect ratio.
 const SuggestionContent = styled(Stack)`
   padding-top: calc(237.4 / 170.58 * 43%);
 `;

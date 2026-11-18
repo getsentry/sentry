@@ -1,9 +1,6 @@
-import {css} from '@emotion/react';
-
 import {Stack} from '@sentry/scraps/layout';
 
 import type {Organization} from 'sentry/types/organization';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import type {PendingUserInputState} from 'sentry/views/seerExplorer/hooks/usePendingUserInput';
 import type {
   PendingUserInput,
@@ -39,20 +36,15 @@ export function PendingUserInputDock({children}: {children: React.ReactNode}) {
       overflowY="auto"
       gap="md"
       paddingTop="md"
-      // Takes no space when there is no prompt to show.
-      css={css`
-        &:empty {
-          display: none;
-        }
-      `}
     >
       {children}
     </Stack>
   );
 }
 
-interface PendingUserInputPickerProps {
+interface PendingUserInputPromptOptions {
   isAwaitingUserInput: boolean;
+  organization: Organization | null;
   pendingInput: PendingUserInput | null;
   /** From `usePendingUserInput`, which the composer shares for its question and diff controls. */
   pendingUserInputState: PendingUserInputState;
@@ -65,17 +57,20 @@ interface PendingUserInputPickerProps {
   runId: SeerExplorerRunId | null;
 }
 
-/** The prompt for the input the run is waiting on. A run waits on one input at a time. */
-export function PendingUserInputPicker({
+/**
+ * The prompt for the input the run is waiting on, or `null` when there is none to show. A run
+ * waits on one input at a time. Returned rather than rendered so the chat can tell whether a
+ * prompt takes the single alert slot above the composer.
+ */
+export function getPendingUserInputPrompt({
   isAwaitingUserInput,
+  organization,
   pendingInput,
   pendingUserInputState: state,
   readOnly,
   respondToUserInput,
   runId,
-}: PendingUserInputPickerProps) {
-  const organization = useOrganization({allowNull: true});
-
+}: PendingUserInputPromptOptions): React.ReactNode {
   if (!isAwaitingUserInput || !pendingInput) {
     return null;
   }
