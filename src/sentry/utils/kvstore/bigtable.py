@@ -27,6 +27,10 @@ logger = logging.getLogger(__name__)
 # Default timeout is 60 seconds, much too long for our ingestion pipeline
 DEFAULT_GET_TIMEOUT = 5.0
 
+# google-cloud-bigtable caps each mutation attempt at 5s (and rounds down to
+# whole seconds), whatever larger timeout is passed.
+_CLIENT_MAX_ATTEMPT_TIMEOUT = 5.0
+
 
 class BigtableError(Exception):
     pass
@@ -51,8 +55,8 @@ def bigtable_operation_timeout(timeout: float) -> Generator[None]:
     ``get_many`` (retry budget), and ``set``, ``delete`` and ``delete_many``
     (retry budget). ``bootstrap`` and ``destroy`` are unaffected.
 
-    For mutations, each attempt times out after ``min(5, floor(timeout))``
-    seconds (see ``_mutate_rows``). ``timeout`` only decides whether to start
+    For mutations, each attempt times out after 5s, or less if ``timeout`` is
+    shorter (see ``_mutate_rows``). ``timeout`` only decides whether to start
     another attempt; it doesn't shorten one already running, so a mutation can
     overrun ``timeout`` by up to one attempt.
 
@@ -326,11 +330,10 @@ class BigtableKVStorage(KVStorage[str, bytes]):
             table.mutate_rows(
                 rows,
                 retry=DEFAULT_RETRY_MUTATE_ROWS.with_timeout(context_timeout),
-                # Without this, each attempt may wait up to the client default
-                # of 600s. The client wraps this in an ``ExponentialTimeout``
-                # whose defaults bound each attempt to min(5, floor(timeout))
-                # seconds, so keep it >= 1 to avoid a 0s attempt deadline.
-                timeout=max(context_timeout, 1.0),
+                # Per-attempt limit. Without it, each attempt may wait up to
+                # the client default of 600s. At least 1s, since the client
+                # would round anything less down to 0.
+                timeout=max(1.0, min(context_timeout, _CLIENT_MAX_ATTEMPT_TIMEOUT)),
             )
         )
 

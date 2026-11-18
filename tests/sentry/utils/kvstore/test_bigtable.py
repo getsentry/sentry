@@ -164,8 +164,22 @@ def test_set_uses_context_timeout() -> None:
 
     _, kwargs = mock_table.mutate_rows.call_args
     assert kwargs["retry"]._timeout == 20.0
-    assert kwargs["timeout"] == 20.0
+    assert kwargs["timeout"] == 5.0
     mock_table.direct_row.return_value.clear.assert_called_once_with()
+
+
+def test_attempt_timeout_follows_short_context_timeout() -> None:
+    store = BigtableKVStorage("test", "test", "test")
+    mock_table = mock.Mock()
+    mock_table.direct_row.return_value.table = mock_table
+    mock_table.mutate_rows.return_value = [Status(code=0)]
+    with mock.patch.object(store, "_get_table", return_value=mock_table):
+        with bigtable_operation_timeout(3.0):
+            store.set("some-key", b"value")
+
+    _, kwargs = mock_table.mutate_rows.call_args
+    assert kwargs["retry"]._timeout == 3.0
+    assert kwargs["timeout"] == 3.0
 
 
 def test_delete_attempt_timeout_is_at_least_one_second() -> None:
