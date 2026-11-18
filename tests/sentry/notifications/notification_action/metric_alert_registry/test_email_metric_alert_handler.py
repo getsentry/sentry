@@ -236,6 +236,35 @@ class TestEmailMetricAlertHandler(MetricAlertHandlerBase):
             "notification_uuid": [notification_uuid],
         }
 
+    def test_send_rendered_email_with_enhanced_privacy(self) -> None:
+        self.organization.flags.enhanced_privacy = True
+        self.organization.save()
+        invocation = ActionInvocation(
+            event_data=self.event_data,
+            action=self.action,
+            detector=self.detector,
+            notification_uuid=str(uuid.uuid4()),
+            workflow_id=self.workflow.id,
+        )
+
+        with self.tasks():
+            self.handler.invoke_legacy_registry(invocation)
+
+        assert len(mail.outbox) == 1
+        message = mail.outbox[0]
+        assert isinstance(message, EmailMultiAlternatives)
+        assert isinstance(message.alternatives[0][0], str)
+        html = BeautifulSoup(message.alternatives[0][0], "html.parser")
+        title_link = html.select_one("a.alert-title-link")
+        assert title_link is not None
+        link = str(title_link["href"])
+
+        assert html.select_one("table.alert-details") is None
+        assert "enhanced privacy" in html.get_text()
+        assert "enhanced privacy" in message.body
+        assert link in message.body
+        assert "Threshold:" not in message.body
+
     @mock.patch(
         "sentry.notifications.notification_action.metric_alert_registry.EmailMetricAlertHandler.send_alert"
     )
