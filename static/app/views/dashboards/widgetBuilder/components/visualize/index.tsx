@@ -14,7 +14,7 @@ import type {SelectValue} from '@sentry/scraps/select';
 
 import {RadioLineItem} from 'sentry/components/forms/controls/radioGroup';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
-import {t, tct, tn} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {WidgetBuilderVersion} from 'sentry/utils/analytics/dashboardsAnalyticsEvents';
 import {generateFieldAsString, type QueryFieldValue} from 'sentry/utils/discover/fields';
@@ -458,8 +458,7 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
         field.kind as FieldValueKind
       )
     )?.length ?? 0) >= MAX_METRICS_ALLOWED;
-  const maxMetricsTooltip = tn(
-    'A widget can have up to %s metric or equation.',
+  const maxMetricsTooltip = t(
     'A widget can have up to %s metrics and equations.',
     MAX_METRICS_ALLOWED
   );
