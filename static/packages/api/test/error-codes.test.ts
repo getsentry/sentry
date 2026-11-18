@@ -38,8 +38,27 @@ describe("Sentry error codes", () => {
     });
   });
 
+  test.each([
+    { detail: "The requested resource does not exist" },
+    { detail: { message: "The requested resource does not exist" } },
+  ])("exposes response detail without an error code", async (body) => {
+    const sentry = createSentryClient({
+      baseUrl: "https://sentry.example.com",
+      fetch: async () => Response.json(body, { status: 404 }),
+    });
+    const { error } = await sentry.getOrganization({ path });
+    expect(error).toBeInstanceOf(SentryApiError);
+    expect(error).toMatchObject({
+      message: "Sentry API request failed with status 404",
+      detailMessage: "The requested resource does not exist",
+      body,
+    });
+    expect(error).not.toHaveProperty("code");
+    expect(error).not.toHaveProperty("extra");
+  });
+
   test("leaves the fields off other bodies", () => {
-    for (const body of [{ detail: "The requested resource does not exist" }, { name: ["This field is required."] }, "Bad gateway", { detail: { code: "" } }]) {
+    for (const body of [{ name: ["This field is required."] }, "Bad gateway", { detail: { code: "", message: 42 } }]) {
       const error = errorWith(400, body);
       expect(error).not.toHaveProperty("code");
       expect(error).not.toHaveProperty("detailMessage");

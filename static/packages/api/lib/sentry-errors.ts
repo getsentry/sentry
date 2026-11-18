@@ -102,6 +102,23 @@ function readTopLevelCode(body: unknown): SentryErrorDetail | undefined {
   return { code: body.code, message: "detail" in body && typeof body.detail === "string" ? body.detail : "", extra: {} };
 }
 
+function readDetailMessage(body: unknown): string | undefined {
+  if (typeof body !== "object" || body === null || !("detail" in body)) {
+    return undefined;
+  }
+
+  const { detail } = body;
+  if (typeof detail === "string") {
+    return detail;
+  }
+
+  if (typeof detail === "object" && detail !== null && "message" in detail && typeof detail.message === "string") {
+    return detail.message;
+  }
+
+  return undefined;
+}
+
 /** An API failure with its parsed body and raw response. */
 export class SentryApiError<
   TStatus extends number | undefined = number | undefined,
@@ -115,14 +132,14 @@ export class SentryApiError<
   readonly request?: Request;
   /** Original response text, captured during the same read as the parsed body. */
   readonly rawBody?: string;
-  // `declare`: errors from other bodies keep their shape, without these keys.
+  // `declare`: omit fields the response does not provide.
   /**
    * The `code` of a `{"detail": {"code", "message", "extra"}}` body, which the
    * backend's `SentryAPIException` sends, or else a top-level string `code`,
    * such as Seer's `{"detail", "code", "denialReason"}` 402.
    */
   declare readonly code?: SentryErrorCode;
-  /** That body's `message`, or a top-level body's string `detail`. `message` stays this error's own. */
+  /** The response's string `detail` or `detail.message`. `message` stays this error's own. */
   declare readonly detailMessage?: string;
   /** That body's `extra`, such as `loginUrl` for `sso-required`; empty for a top-level `code`. */
   declare readonly extra?: Record<string, unknown>;
@@ -148,8 +165,12 @@ export class SentryApiError<
     const detail = readSentryErrorDetail(body) ?? readTopLevelCode(body);
     if (detail) {
       this.code = detail.code;
-      this.detailMessage = detail.message;
       this.extra = detail.extra;
+    }
+
+    const detailMessage = readDetailMessage(body) ?? detail?.message;
+    if (detailMessage !== undefined) {
+      this.detailMessage = detailMessage;
     }
   }
 }

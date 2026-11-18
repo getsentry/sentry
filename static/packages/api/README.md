@@ -508,7 +508,9 @@ if ("error" in result) {
 
 ### Error codes
 
-Many Sentry errors have a `{"detail": {"code", "message", "extra"}}` body. For those, `SentryApiError` and its subclasses also have `code`, `detailMessage` (the body's `message`; `message` stays the error's own), and `extra`. Some endpoints put a string `code` at the top level instead, such as Seer's 402 `{"detail", "code", "denialReason"}`. Then `code` and `detailMessage` come from the body's `code` and `detail`, `extra` is empty, and the other fields stay on `body`. Other bodies leave the three fields unset. `code` is a `SentryErrorCode`: one of the `KnownSentryErrorCode` values, or any other string the server sends. The known codes come from the spec: the `SentryApiErrorBody` component, such as `sudo-required` or `sso-required`, and the `code` values operations document in their error responses, such as `seer_out_of_credits`. Map codes to your own copy with a `switch`, and fall back for codes you don't handle:
+`SentryApiError.detailMessage` exposes a server-provided string `detail` or `detail.message`, including responses without an error code. The error's own `message` and the original `body` remain available separately.
+
+Many Sentry errors have a `{"detail": {"code", "message", "extra"}}` body. For those, `SentryApiError` and its subclasses also expose `code` and `extra`. Some endpoints put a string `code` at the top level, such as Seer's 402 `{"detail", "code", "denialReason"}`. For a top-level `code`, `extra` is empty. `code` is a `SentryErrorCode`, which accepts the `KnownSentryErrorCode` values and any other string the server sends. The known codes come from the spec's `SentryApiErrorBody` component, such as `sudo-required` or `sso-required`, and from documented operation error responses, such as `seer_out_of_credits`. Map codes to your own copy with a `switch`, and fall back for codes you don't handle:
 
 ```ts
 import { isSentryErrorCode, SentryApiError } from "@sentry/api";
