@@ -5,7 +5,6 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {ContentBlocksRenderer} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/renderer';
-import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
 import {
   StepIndexProvider,
   TabSelectionScope,
@@ -24,16 +23,11 @@ const EMPTY_STATE_STEP_TITLES: Record<StepType, string> = {
 };
 
 interface ManualSetupStepsProps {
-  copyMarkdownSource: string;
   project: Project;
   steps: OnboardingStep[];
 }
 
-export function ManualSetupSteps({
-  project,
-  steps,
-  copyMarkdownSource,
-}: ManualSetupStepsProps) {
+export function ManualSetupSteps({project, steps}: ManualSetupStepsProps) {
   const theme = useTheme();
 
   return (
@@ -54,17 +48,10 @@ export function ManualSetupSteps({
                 <Text as="div" size="lg" bold variant="accent">
                   {index + 1}
                 </Text>
-                <Flex align="center" justify="between" gap="md">
+                <Flex align="center" minHeight={theme.form.xs.height}>
                   <Heading as="h4" size="lg">
                     {title}
                   </Heading>
-                  {index === 0 && (
-                    <OnboardingCopyMarkdownButton
-                      borderless
-                      steps={steps}
-                      source={copyMarkdownSource}
-                    />
-                  )}
                 </Flex>
                 <Container column="2">
                   <StepIndexProvider index={index}>
