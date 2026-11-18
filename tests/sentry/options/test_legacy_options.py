@@ -1,3 +1,6 @@
+import pytest
+from django.test import override_settings
+
 from sentry import options
 from sentry.options import FLAG_AUTOMATOR_MODIFIABLE
 
@@ -6,40 +9,8 @@ from sentry.options import FLAG_AUTOMATOR_MODIFIABLE
 # this list only shrinks as they move to Django settings.
 LEGACY_OPTIONS = frozenset(
     {
-        # Deployment configuration, moving to Django settings.
-        "auth-fly.client-id",
-        "auth-fly.client-secret",
-        "auth-google.client-id",
-        "auth-google.client-secret",
-        "aws-lambda.secret-access-key",
-        "cursor-origin-app.private-key",
-        "discord.bot-token",
-        "discord.client-secret",
-        "gcp.client-secret",
-        "github-app.client-secret",
-        "github-app.private-key",
-        "github-app.webhook-secret",
-        "github-console-sdk-app.client-secret",
-        "github-console-sdk-app.installation-id",
-        "github-console-sdk-app.private-key",
-        "github-login.client-secret",
-        "mail.backend",
-        "msteams.app-id",
-        "msteams.client-secret",
-        "slack-staging.client-secret",
-        "slack-staging.signing-secret",
-        "slack.client-secret",
-        "slack.signing-secret",
-        "slack.verification-token",
-        "sms.backend",
-        "sms.twilio-token",
-        "system.databases",
-        "system.region",
+        # Bootstrap input; credentials are read from SECRET_KEY.
         "system.secret-key",
-        "vercel.client-secret",
-        "vsts-limited.client-secret",
-        "vsts.client-secret",
-        "vsts_new.client-secret",
         # Edited in the self-hosted setup wizard and admin UI.
         "auth.allow-registration",
         "beacon.anonymous",
@@ -55,8 +26,6 @@ LEGACY_OPTIONS = frozenset(
         "system.url-prefix",
         # Backs the options cache itself.
         "redis.clusters",
-        # Admin-only; awaiting an owner decision.
-        "seer.similarity.token_count_metrics_enabled",
     }
 )
 
@@ -75,3 +44,30 @@ def test_no_new_legacy_options() -> None:
 
     removed = sorted(LEGACY_OPTIONS - legacy)
     assert not removed, f"Remove these from LEGACY_OPTIONS: {removed}"
+
+
+def test_seer_token_metrics_remains_runtime_and_admin_modifiable() -> None:
+    from sentry.options import UpdateChannel
+
+    key = "seer.similarity.token_count_metrics_enabled"
+    assert options.lookup_key(key).flags & FLAG_AUTOMATOR_MODIFIABLE
+    with override_settings(SENTRY_SELF_HOSTED=True):
+        assert options.can_update(key, UpdateChannel.ADMIN) is None
+    with override_settings(SENTRY_SELF_HOSTED=False):
+        assert options.can_update(key, UpdateChannel.ADMIN) == options.NotWritableReason.READONLY
+    assert options.lookup_key(key).default() is True
+
+
+@pytest.mark.parametrize(
+    "key",
+    [
+        "flags:options-audit-log-is-enabled",
+        "flags:options-audit-log-organization-id",
+        "options_automator_slack_webhook_enabled",
+    ],
+)
+def test_retired_presenter_options_are_unknown(key: str) -> None:
+    with pytest.raises(options.UnknownOption):
+        options.get(key)
+    with pytest.raises(options.UnknownOption):
+        options.set(key, True)
