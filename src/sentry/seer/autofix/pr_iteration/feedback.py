@@ -7,7 +7,7 @@ from typing import Annotated, Any
 from django.utils import timezone
 from pydantic import BaseModel, Field, ValidationError, root_validator
 
-from sentry import options
+from sentry import features, options
 from sentry.models.organization import Organization
 from sentry.seer.agent.client_models import MemoryBlock, SeerRunState
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import Decision
@@ -20,7 +20,6 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
 from sentry.seer.autofix.pr_iteration.iterations import Iteration, get_iterations
 from sentry.seer.autofix.pr_iteration.project_setting import pr_iteration_enabled_for_group
-from sentry.seer.autofix.utils import is_seer_token_based_billing_onboarding_enabled
 from sentry.utils import json
 
 FeedbackSource = Annotated[
@@ -206,7 +205,7 @@ def feedback_allowed_by_project(
     except Organization.DoesNotExist:
         return Decision(ok=True, reason="organization_not_found")
 
-    if not is_seer_token_based_billing_onboarding_enabled(organization):
+    if not features.has("organizations:token-billed-seer-enabled", organization):
         return Decision(ok=True, reason="flag_disabled")
 
     if pr_iteration_enabled_for_group(group_id):

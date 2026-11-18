@@ -11,7 +11,7 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import audit_log, projectoptions
+from sentry import audit_log, features, projectoptions
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -47,7 +47,6 @@ from sentry.seer.autofix.utils import (
     get_token_based_billing_repo_filter,
     get_valid_automated_run_stopping_points,
     is_seer_seat_or_token_billed_enabled,
-    is_seer_token_based_billing_onboarding_enabled,
     update_seer_project_settings,
 )
 from sentry.seer.models.project_repository import SeerProjectRepository
@@ -114,7 +113,7 @@ def _get_seer_repo_stats(organization: Organization, project_ids: Sequence[int])
     (for example, PR iteration only runs on github.com).
     """
     rows: Iterable[tuple[int, str | None, int]]
-    if is_seer_token_based_billing_onboarding_enabled(organization):
+    if features.has("organizations:token-billed-seer-enabled", organization):
         rows = (
             ProjectRepository.objects.filter(
                 get_token_based_billing_repo_filter(organization, prefix="repository__"),
@@ -273,7 +272,7 @@ def _annotate_queryset(queryset: Any, organization: Organization) -> Any:
                 organization, prefix="projectrepository__repository__"
             ),
         )
-        if is_seer_token_based_billing_onboarding_enabled(organization)
+        if features.has("organizations:token-billed-seer-enabled", organization)
         else Count(
             "projectrepository__seerprojectrepository",
             filter=Q(projectrepository__repository__status=ObjectStatus.ACTIVE),

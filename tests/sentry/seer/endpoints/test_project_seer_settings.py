@@ -459,12 +459,7 @@ class ProjectSeerSettingsEndpointSeatBasedBillingTest(ProjectSeerSettingsEndpoin
         assert response.data["repoProviders"] == []
 
 
-@with_feature(
-    {
-        "organizations:seer-token-based-billing-onboarding": True,
-        "organizations:token-billed-seer-enabled": True,
-    }
-)
+@with_feature("organizations:token-billed-seer-enabled")
 class ProjectSeerSettingsEndpointTokenBasedBillingTest(ProjectSeerSettingsEndpointBaseTest):
     __test__ = True
     pr_iteration_default = False
@@ -1118,12 +1113,7 @@ class OrganizationSeerProjectSettingsEndpointSeatBasedBillingTest(
         assert response.data == []
 
 
-@with_feature(
-    {
-        "organizations:seer-token-based-billing-onboarding": True,
-        "organizations:token-billed-seer-enabled": True,
-    }
-)
+@with_feature("organizations:token-billed-seer-enabled")
 class OrganizationSeerProjectSettingsEndpointTokenBasedBillingTest(
     OrganizationSeerProjectSettingsEndpointBaseTest
 ):
