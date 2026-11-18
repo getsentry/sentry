@@ -3122,19 +3122,15 @@ function buildRoutes(): RouteObject[] {
     path: '/inbox/',
     withOrgPath: true,
     component: make(() => import('sentry/views/inbox')),
-    // The parent renders the selected preview using the child route's params.
     children: [
       {
         index: true,
-        component: NoOp,
       },
       {
         path: 'issue/:id/',
-        component: NoOp,
       },
       {
         path: 'notebook/:id/',
-        component: NoOp,
       },
     ],
   };
