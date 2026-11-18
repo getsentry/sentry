@@ -31,7 +31,7 @@ describe('formatTimeSeriesLabelForWidgetQuery', () => {
         widget,
         widgetQuery
       )
-    ).toBe('count(spans)');
+    ).toBe('count()');
   });
 
   it('prefixes the alias when the widget query has a name', () => {
@@ -50,7 +50,7 @@ describe('formatTimeSeriesLabelForWidgetQuery', () => {
         widget,
         widgetQuery
       )
-    ).toBe('DB spans : count(spans)');
+    ).toBe('DB spans : count()');
   });
 
   it('uses only the query name when requested', () => {
@@ -116,14 +116,14 @@ describe('formatTimeSeriesLabelForWidgetQuery', () => {
         widget,
         dbQuery
       )
-    ).toBe('span.op:db : count(spans)');
+    ).toBe('span.op:db : count()');
     expect(
       formatTimeSeriesLabelForWidgetQuery(
         makeTimeSeries('count(span.duration)'),
         widget,
         httpQuery
       )
-    ).toBe('span.op:http.client : count(spans)');
+    ).toBe('span.op:http.client : count()');
   });
 
   it('does not prefix with conditions for a single-query widget', () => {
@@ -142,7 +142,7 @@ describe('formatTimeSeriesLabelForWidgetQuery', () => {
         widget,
         widgetQuery
       )
-    ).toBe('count(spans)');
+    ).toBe('count()');
   });
 
   it('uses the field alias when there are multiple aggregates and no group by', () => {

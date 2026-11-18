@@ -13,6 +13,11 @@ export function useAggregateParamVisual({token}: UseAggregateParamVisualOptions)
 
   return useMemo(() => {
     const aggregateDefinition = getFieldDefinition(token.key.name.text);
+    // Saved queries can carry an argument the function no longer takes, such as
+    // `count(span.duration)`; render those as `count()`.
+    if (aggregateDefinition?.parameters?.length === 0) {
+      return '';
+    }
 
     const params =
       token.key.args?.args?.map((arg, i) => {

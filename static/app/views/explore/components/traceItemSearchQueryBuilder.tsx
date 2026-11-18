@@ -19,6 +19,7 @@ import {
   ATTRIBUTE_SEARCH_SECONDARY_ALIASES,
   FieldKind,
   getFieldDefinition,
+  withoutTraceItemCountArgument,
 } from 'sentry/utils/fields';
 import {getHasTag} from 'sentry/utils/tag';
 import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
@@ -98,13 +99,21 @@ function getTraceItemFieldDefinitionFunction(
     // Array membership keys carry a `[*]` suffix (eg. `foo[*]`); strip it so the
     // field definition resolves to the attribute's stored backend key.
     const baseKey = stripArrayMembershipOperator(key);
-    return getFieldDefinition(
+    const definition = getFieldDefinition(
       baseKey,
       typeMap[itemType],
       options?.kind ?? tags[baseKey]?.kind
     );
+    return COUNT_WITHOUT_ARGUMENT_DATASETS.has(itemType)
+      ? withoutTraceItemCountArgument(baseKey, definition)
+      : definition;
   };
 }
+
+const COUNT_WITHOUT_ARGUMENT_DATASETS = new Set([
+  TraceItemDataset.SPANS,
+  TraceItemDataset.LOGS,
+]);
 
 const CONVENTION_ALIAS_DATASETS = new Set([
   TraceItemDataset.SPANS,

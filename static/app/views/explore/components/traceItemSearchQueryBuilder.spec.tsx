@@ -200,6 +200,18 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     expect(getFieldDefinition('tags[csv_headers[*],array]')?.kind).toBe(FieldKind.ARRAY);
   });
 
+  it.each([TraceItemDataset.SPANS, TraceItemDataset.LOGS])(
+    'offers count without an argument for %s',
+    itemType => {
+      const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
+        initialProps: {...defaultInitialProps, itemType},
+        organization,
+      });
+
+      expect(result.current.fieldDefinitionGetter('count')?.parameters).toEqual([]);
+    }
+  );
+
   it('wires string attributes into filter keys and aliases', () => {
     const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
       initialProps: {
