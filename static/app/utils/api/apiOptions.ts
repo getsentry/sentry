@@ -15,7 +15,7 @@ import type {ExtractPathParams, OptionalPathParams} from './getApiUrl';
 import type {KnownGetsentryApiUrls} from './knownGetsentryApiUrls';
 import type {KnownSentryApiUrls} from './knownSentryApiUrls.generated';
 
-type KnownApiUrls = KnownGetsentryApiUrls | KnownSentryApiUrls;
+type KnownApiUrl = KnownGetsentryApiUrls | KnownSentryApiUrls;
 
 type Options = QueryKeyEndpointOptions & {staleTime: number | 'static'};
 
@@ -36,7 +36,7 @@ type SegmentPrefixes<
 /**
  * A known url, or a known url prefix that ends in `/*` to also match every url below it.
  */
-type KnownApiUrlPattern = KnownApiUrls | `${SegmentPrefixes<KnownApiUrls>}*`;
+type KnownApiUrlPattern = KnownApiUrl | `${SegmentPrefixes<KnownApiUrl>}*`;
 
 /**
  * Exact urls need every path param. Prefixes may leave params open, but still need
@@ -77,14 +77,14 @@ function stripUndefinedValues<T extends Record<string, unknown>>(obj: T): T {
 }
 
 function getQueryKeyParams(
-  path: KnownApiUrls,
+  path: KnownApiUrl,
   pathParams: Record<string, string> | SkipToken | undefined,
   options: QueryKeyEndpointOptions
 ) {
   return {
     fullUrl: getApiUrl(
       path,
-      ...([{path: pathParams}] as OptionalPathParams<KnownApiUrls>)
+      ...([{path: pathParams}] as OptionalPathParams<KnownApiUrl>)
     ),
     urlParts: path.split('/').filter(Boolean),
     options: stripUndefinedValues({
@@ -103,7 +103,7 @@ export const selectJsonWithHeaders = <TData>(
 function _apiOptions<
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
   TManualData = never,
-  TApiPath extends KnownApiUrls = KnownApiUrls,
+  TApiPath extends KnownApiUrl = KnownApiUrl,
   // todo: infer the actual data type from the ApiMapping
   TActualData = TManualData,
 >(
@@ -123,8 +123,10 @@ function _apiOptions<
   });
 }
 
+const isExactMatch = (url: KnownApiUrlPattern): url is KnownApiUrl => !url.endsWith('*');
+
 function _queryKey(
-  url: string,
+  url: KnownApiUrlPattern,
   {
     path,
     infinite,
@@ -134,21 +136,16 @@ function _queryKey(
     path?: Record<string, string>;
   } = {}
 ) {
-  const isPrefix = url.endsWith('*');
+  const exact = isExactMatch(url);
   const keyOptions = stripUndefinedValues({
     ...options,
-    path: isPrefix ? path : undefined,
+    path: exact ? undefined : path,
   });
 
   return createApiQueryKeyFilter({
-    ...(isPrefix
-      ? {urlParts: url.slice(0, -1).split('/').filter(Boolean)}
-      : {
-          fullUrl: getApiUrl(
-            url as KnownApiUrls,
-            ...([{path}] as OptionalPathParams<KnownApiUrls>)
-          ),
-        }),
+    ...(exact
+      ? {fullUrl: getApiUrl(url, ...([{path}] as OptionalPathParams<KnownApiUrl>))}
+      : {urlParts: url.slice(0, -1).split('/').filter(Boolean)}),
     ...(Object.keys(keyOptions).length > 0 ? {options: keyOptions} : {}),
     ...(infinite ? {infinite} : {}),
   });
@@ -165,7 +162,7 @@ function parsePageParam<TQueryFnData = unknown>(dir: 'previous' | 'next') {
 function _apiOptionsInfinite<
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-parameters
   TManualData = never,
-  TApiPath extends KnownApiUrls = KnownApiUrls,
+  TApiPath extends KnownApiUrl = KnownApiUrl,
   // todo: infer the actual data type from the ApiMapping
   TActualData = TManualData,
 >(
@@ -237,7 +234,7 @@ function _apiOptionsInfinite<
 export const apiOptions = {
   as:
     <TManualData>() =>
-    <TApiPath extends KnownApiUrls = KnownApiUrls>(
+    <TApiPath extends KnownApiUrl = KnownApiUrl>(
       path: TApiPath,
       options: Options & PathParamOptions<TApiPath>
     ) =>
@@ -245,7 +242,7 @@ export const apiOptions = {
 
   asInfinite:
     <TManualData>() =>
-    <TApiPath extends KnownApiUrls = KnownApiUrls>(
+    <TApiPath extends KnownApiUrl = KnownApiUrl>(
       path: TApiPath,
       options: Options & PathParamOptions<TApiPath>
     ) =>
