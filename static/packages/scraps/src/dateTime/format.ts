@@ -1,6 +1,7 @@
-import moment from 'moment-timezone';
+import {Temporal} from '@js-temporal/polyfill';
 
 import {getSnapshot, type DateTimePreferences, type FormattingSnapshot} from './config';
+import {getIntlFormatter} from './intlFormatter';
 import {parseDate} from './parseDate';
 
 /** Numbers are epoch milliseconds; strings must be ISO timestamps with an offset. */
@@ -24,6 +25,26 @@ export function formatDateTime(
   return formatDateTimeWithSnapshot(date, options, getSnapshot());
 }
 
+export function formatTimezone(
+  epochMilliseconds: number,
+  timezone: string,
+  snapshot: Readonly<FormattingSnapshot> = getSnapshot()
+) {
+  if (timezone === 'UTC') {
+    return 'UTC';
+  }
+  return (
+    snapshot.getTimezoneAbbreviation?.(epochMilliseconds, timezone, snapshot.locale) ??
+    getIntlFormatter(Intl.DateTimeFormat, snapshot.locale, {
+      timeZone: timezone,
+      timeZoneName: 'short',
+    })
+      .formatToParts(epochMilliseconds)
+      .find(part => part.type === 'timeZoneName')?.value ??
+    ''
+  );
+}
+
 export function formatDateTimeWithSnapshot(
   date: DateTimeInput,
   options: DateTimeOptions,
@@ -38,33 +59,49 @@ export function formatDateTimeWithSnapshot(
   const timezone = options.timezone ?? snapshot.timezone;
   const showTimezone = options.showTimezone ?? options.timezone === 'UTC';
 
-  const value = parseDate(date, timezone, snapshot.locale);
+  const value = parseDate(date, timezone);
   if (!value) {
     return 'Invalid date';
   }
 
-  const showYear =
-    year === 'always' || (year === 'auto' && value.year() !== moment.tz(timezone).year());
-  const dateFormat = showYear ? 'MMM D, YYYY' : 'MMM D';
-  let timeFormat = clock === '24' ? 'HH:mm' : 'h:mm';
-  if (precision !== 'minute') {
-    timeFormat += ':ss';
-  }
-  if (precision === 'millisecond') {
-    timeFormat += '.SSS';
-  }
-  if (clock === '12') {
-    timeFormat += ' A';
-  }
-
-  let format =
+  const currentYear = Temporal.Instant.fromEpochMilliseconds(
+    Date.now()
+  ).toZonedDateTimeISO(timezone).year;
+  const showYear = year === 'always' || (year === 'auto' && value.year !== currentYear);
+  const dateParts = getIntlFormatter(Intl.DateTimeFormat, snapshot.locale, {
+    calendar: 'gregory',
+    timeZone: timezone,
+    year: showYear ? 'numeric' : undefined,
+    month: 'short',
+    day: 'numeric',
+  }).formatToParts(value.epochMilliseconds);
+  const dateText = dateParts
+    .map(part =>
+      part.type === 'year' && value.year < 1000
+        ? getIntlFormatter(Intl.NumberFormat, snapshot.locale, {
+            minimumIntegerDigits: 4,
+            useGrouping: false,
+          }).format(value.year)
+        : part.value
+    )
+    .join('');
+  const timeText = getIntlFormatter(Intl.DateTimeFormat, snapshot.locale, {
+    timeZone: timezone,
+    hour: clock === '24' ? '2-digit' : 'numeric',
+    minute: '2-digit',
+    second: precision === 'minute' ? undefined : '2-digit',
+    fractionalSecondDigits: precision === 'millisecond' ? 3 : undefined,
+    hourCycle: clock === '24' ? 'h23' : 'h12',
+  })
+    .format(value.epochMilliseconds)
+    .replaceAll('\u202F', ' ');
+  const text =
     mode === 'date'
-      ? dateFormat
+      ? dateText
       : mode === 'time'
-        ? timeFormat
-        : `${dateFormat}${showYear ? ' ' : ', '}${timeFormat}`;
-  if (showTimezone) {
-    format += ' z';
-  }
-  return value.format(format);
+        ? timeText
+        : `${dateText}${showYear ? ' ' : ', '}${timeText}`;
+  return showTimezone
+    ? `${text} ${formatTimezone(value.epochMilliseconds, timezone, snapshot)}`
+    : text;
 }

@@ -76,6 +76,17 @@ Use `mode` to choose `dateTime`, `date`, or `time`. Time precision is
 `'24'`. UTC output includes its timezone label by default; `showTimezone`
 controls the label explicitly. Formatting-engine types and patterns are private.
 
+Parsing and timezone conversion use a private Temporal ponyfill, without changing
+browser globals. Rendering preserves Intl's locale-specific date order, literal
+characters, and time punctuation while honoring the configured clock. French
+output includes `1 janv. 2025` and `1:05:06,123 PM`; Japanese output includes
+`2025年1月1日` and `午後1:05`. These locale conventions replace Moment's fixed
+month-first layout. Timezone labels use Intl by default. An application can supply
+`getTimezoneAbbreviation(epochMilliseconds, timezone, locale)` in its formatting snapshot
+to retain its existing labels. Returning `undefined` uses the Intl fallback.
+Sentry supplies its already-loaded timezone lookup, preserving labels such as
+`AEDT`, `AEST`, and `+0545` without adding Moment or a timezone dataset to Scraps.
+
 Without configuration, dates use UTC and a 12-hour clock. Applications call
 `configureFormatting` before rendering with one source. Its `getSnapshot`
 returns the same object until preferences change, and `subscribe` notifies

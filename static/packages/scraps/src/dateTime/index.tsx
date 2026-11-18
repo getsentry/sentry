@@ -8,8 +8,10 @@ export {
 } from './config';
 export {
   formatDateTime,
+  formatTimezone,
   type DateTimeInput,
   type DateTimeOptions,
   type TimePrecision,
   type YearDisplay,
 } from './format';
+export {getIntlFormatter} from './intlFormatter';
