@@ -24,7 +24,6 @@ import {ExportTranscriptButton} from './components/exportTranscriptButton';
 import {useConversation} from './hooks/useConversation';
 import {useTranscriptExpandAll} from './hooks/useTranscriptExpandAll';
 import {extractMessagesFromNodes} from './utils/conversationMessages';
-import {hasConversationTranscriptSearchFeature} from './utils/features';
 
 function useConversationDetailQueryState() {
   return useQueryStates(
@@ -150,16 +149,14 @@ function ConversationDetailPage() {
           </Tabs>
           {queryState.tab === 'transcript' && messages.length > 0 && (
             <Flex align="center" gap="sm">
-              {hasConversationTranscriptSearchFeature(organization) && (
-                <ExpandAllButton
-                  isExpanded={transcriptExpandAll.isExpanded}
-                  isLoadingAll={transcriptExpandAll.isLoadingAll}
-                  isPartial={transcriptExpandAll.isPartial}
-                  onExpand={transcriptExpandAll.expand}
-                  onCollapse={transcriptExpandAll.collapse}
-                  onCancel={transcriptExpandAll.cancel}
-                />
-              )}
+              <ExpandAllButton
+                isExpanded={transcriptExpandAll.isExpanded}
+                isLoadingAll={transcriptExpandAll.isLoadingAll}
+                isPartial={transcriptExpandAll.isPartial}
+                onExpand={transcriptExpandAll.expand}
+                onCollapse={transcriptExpandAll.collapse}
+                onCancel={transcriptExpandAll.cancel}
+              />
               <ExportTranscriptButton conversation={conversation} />
             </Flex>
           )}
