@@ -41,7 +41,7 @@
 
 ### Frontend API Calls
 
-Use `apiOptions` with `useQuery` from TanStack Query; **never** use the deprecated `useApiQuery`/`getApiQueryData`/`setApiQueryData`. `staleTime` is required. For the full guide (conditional fetching, no call-site generics, response headers/pagination) → use the **`frontend-data-fetching`** skill.
+Use `apiOptions` with `useQuery` from TanStack Query; `staleTime` is required. Never build or index api query keys by hand: use `apiOptions.queryKey` for cache filters, and `parseQueryKey`/`safeParseQueryKey` to read a key. For the full guide (conditional fetching, no call-site generics, response headers/pagination) → use the **`frontend-data-fetching`** skill.
 
 ### API URLs the Browser Loads Directly
 

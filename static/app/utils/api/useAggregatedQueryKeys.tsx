@@ -5,7 +5,12 @@ import {uniq} from 'sentry/utils/array/uniq';
 import {defined} from 'sentry/utils/defined';
 
 import {type ApiResponse} from './apiFetch';
-import {type ApiQueryKey, type InfiniteApiQueryKey, isApiQueryKey} from './apiQueryKey';
+import {
+  type ApiQueryKey,
+  type InfiniteApiQueryKey,
+  isApiQueryKey,
+  parseQueryKey,
+} from './apiQueryKey';
 
 const BUFFER_WAIT_MS = 20;
 
@@ -101,7 +106,7 @@ export function useAggregatedQueryKeys<AggregatableQueryKey, Data, ResponseData 
   const queryClient = useQueryClient();
   const cache = queryClient.getQueryCache();
 
-  const url = getQueryOptions([]).queryKey[1].fullUrl;
+  const url = parseQueryKey(getQueryOptions([]).queryKey).fullUrl;
 
   // Sentinels live in the shared query cache, rather than in this hook, so
   // every instance can see what is already queued or in flight.
@@ -113,7 +118,7 @@ export function useAggregatedQueryKeys<AggregatableQueryKey, Data, ResponseData 
     (queryKey: readonly unknown[]): boolean => {
       return (
         isApiQueryKey(queryKey) &&
-        queryKey[1].fullUrl === url &&
+        parseQueryKey(queryKey).fullUrl === url &&
         (queryFilter?.(queryKey) ?? true)
       );
     },

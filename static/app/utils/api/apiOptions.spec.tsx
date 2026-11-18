@@ -5,6 +5,7 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 
 import type {ApiResponse} from './apiFetch';
 import {apiOptions, selectJsonWithHeaders} from './apiOptions';
+import {parseQueryKey} from './apiQueryKey';
 
 type Promisable<T> = T | Promise<T>;
 type QueryFunctionResult<T> = Promisable<ApiResponse<T>>;
@@ -16,7 +17,7 @@ describe('apiOptions', () => {
       {staleTime: 0, path: {organizationIdOrSlug: 'my-org', version: 'v 1.0.0'}}
     );
 
-    const {fullUrl, options: keyOptions} = options.queryKey[1];
+    const {fullUrl, options: keyOptions} = parseQueryKey(options.queryKey);
     expect(fullUrl).toBe('/organizations/my-org/releases/v%201.0.0/');
     expect(keyOptions.path).toEqual({organizationIdOrSlug: 'my-org', version: 'v 1.0.0'});
   });
@@ -98,7 +99,7 @@ describe('apiOptions', () => {
       path: {id: '123', id1: '456'},
     });
 
-    expect(options.queryKey[1].fullUrl).toBe('/projects/456/123');
+    expect(parseQueryKey(options.queryKey).fullUrl).toBe('/projects/456/123');
   });
 
   it('should allow skipToken as path', () => {

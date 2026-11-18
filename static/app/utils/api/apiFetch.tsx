@@ -5,7 +5,7 @@ import {Client} from 'sentry/api';
 import type {ResponseMeta} from 'sentry/types/api';
 import type {ParsedHeader} from 'sentry/utils/parseLinkHeader';
 
-import type {ApiQueryKey, InfiniteApiQueryKey} from './apiQueryKey';
+import {parseQueryKey, type ApiQueryKey, type InfiniteApiQueryKey} from './apiQueryKey';
 
 export const QUERY_API_CLIENT = new Client();
 
@@ -46,7 +46,7 @@ export async function apiFetch<TQueryFnData = unknown>({
 }: {
   queryKey: ApiQueryKey;
 }): Promise<ApiResponse<TQueryFnData>> {
-  const {fullUrl, options} = queryKey[1];
+  const {fullUrl, options} = parseQueryKey(queryKey);
 
   const [json, , response] = await QUERY_API_CLIENT.requestPromise(fullUrl, {
     includeAllArgs: true,
@@ -72,7 +72,7 @@ export async function apiFetchInfinite<TQueryFnData = unknown>({
   pageParam: null | undefined | ParsedHeader;
   queryKey: InfiniteApiQueryKey;
 }): Promise<ApiResponse<TQueryFnData>> {
-  const {fullUrl, options} = queryKey[1];
+  const {fullUrl, options} = parseQueryKey(queryKey);
 
   const [json, , response] = await QUERY_API_CLIENT.requestPromise(fullUrl, {
     includeAllArgs: true,
