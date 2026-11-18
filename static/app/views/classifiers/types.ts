@@ -4,6 +4,8 @@ export const CLASSIFIER_DATASETS = ['conversation', 'trace_spans'] as const;
 
 export type ClassifierDataset = (typeof CLASSIFIER_DATASETS)[number];
 
+export type ClassifierOutputType = 'binary' | 'choice' | 'score';
+
 export interface TelemetryClassifier {
   createdBy: User | null;
   dataset: ClassifierDataset;
@@ -13,7 +15,7 @@ export interface TelemetryClassifier {
   id: string;
   name: string;
   naturalLanguagePrompt: string | null;
-  outputType: 'binary' | 'choice' | 'score' | null;
+  outputType: ClassifierOutputType | null;
   prebuiltClassifierKey: string | null;
   projectId: string;
   resultAttribute: string;
@@ -25,5 +27,6 @@ export interface PrebuiltClassifier {
   description: string;
   key: string;
   name: string;
+  outputType: ClassifierOutputType;
   resultAttribute: string;
 }

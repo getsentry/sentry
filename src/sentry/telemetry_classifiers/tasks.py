@@ -201,7 +201,7 @@ def _get_enabled_classifier(classifier_id: int) -> TelemetryClassifier | None:
             id=classifier_id, status=TelemetryClassifierStatus.ENABLED
         )
         .select_related("project__organization")
-        .first()
+        .get_or_none()
     )
 
 

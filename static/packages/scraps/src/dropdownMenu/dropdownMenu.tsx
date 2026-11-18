@@ -197,6 +197,7 @@ function DropdownMenu({
           },
         }}
         overlayState={overlayState}
+        isDismissable={isDismissable}
         items={items}
       />
     );

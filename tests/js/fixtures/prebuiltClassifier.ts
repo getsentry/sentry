@@ -8,6 +8,7 @@ export function PrebuiltClassifierFixture(
     dataset: 'conversation',
     name: 'User frustration',
     description: 'When your users become frustrated.',
+    outputType: 'binary',
     resultAttribute: 'user_frustration',
     ...params,
   };

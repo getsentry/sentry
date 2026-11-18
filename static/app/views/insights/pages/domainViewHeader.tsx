@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {IconBusiness} from '@sentry/icons/business';
-import noop from 'lodash/noop';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import type {
@@ -9,7 +8,12 @@ import type {
   BreadcrumbTitleItem,
 } from '@sentry/scraps/breadcrumbList';
 import {Container} from '@sentry/scraps/layout';
-import {Tabs, type TabListItemProps, type TabsComponents} from '@sentry/scraps/tabs';
+import {
+  LinkTabs,
+  Tabs,
+  type LinkTabListItemProps,
+  type TabsComponents,
+} from '@sentry/scraps/tabs';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
@@ -108,7 +112,7 @@ export function DomainViewHeader<T extends string = string>({
           query: globalQuery,
         },
       })),
-  ] satisfies TabListItemProps[];
+  ] satisfies LinkTabListItemProps[];
 
   const feedbackConfig: Array<[boolean, {owner: string; source: string}]> = [
     [isAgentMonitoring, {owner: 'telemetry-experience', source: 'agent-monitoring'}],
@@ -150,11 +154,7 @@ export function DomainViewHeader<T extends string = string>({
                 {({TabList}) => tabs.renderTabList(TabList)}
               </Tabs>
             ) : (
-              <Tabs
-                onChange={noop}
-                value={selectedModule ?? OVERVIEW_PAGE_TITLE}
-                {...tabsRootProps}
-              >
+              <LinkTabs value={selectedModule ?? OVERVIEW_PAGE_TITLE} {...tabsRootProps}>
                 {({TabList}) =>
                   !hideDefaultTabs && (
                     <TabList>
@@ -164,7 +164,7 @@ export function DomainViewHeader<T extends string = string>({
                     </TabList>
                   )
                 }
-              </Tabs>
+              </LinkTabs>
             )
           }
         </Container>

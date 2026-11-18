@@ -72,7 +72,7 @@ function cssColor(color: string) {
 }
 
 describe('SeerCreditUsageMeter', () => {
-  const settingsUrl = `/settings/${billingOrganization.slug}/billing/overview/`;
+  const settingsUrl = `/settings/${billingOrganization.slug}/billing/overview/#open-seer-auto-reload-modal`;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();

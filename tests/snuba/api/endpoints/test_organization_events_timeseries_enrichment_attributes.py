@@ -15,7 +15,7 @@ from tests.snuba.api.endpoints.test_organization_events_timeseries_spans import 
 
 any_confidence = AnyConfidence()
 
-FRUSTRATION = "sentry.enrichment.poc_user_frustration"
+FRUSTRATION = "sentry.enrichment.user_frustration"
 
 
 class OrganizationEventsTimeseriesEnrichmentAttributesEndpointTest(

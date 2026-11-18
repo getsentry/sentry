@@ -93,7 +93,7 @@ class DatabaseBackedIdentityService(IdentityService):
             ai.delete()
 
     def update_data(self, *, identity_id: int, data: Any) -> RpcIdentity | None:
-        identity: Identity | None = Identity.objects.filter(id=identity_id).first()
+        identity: Identity | None = Identity.objects.get_or_none(id=identity_id)
         if identity is None:
             return None
         identity.update(data=data)

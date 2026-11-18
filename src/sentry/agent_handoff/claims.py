@@ -98,7 +98,7 @@ def claim_handoff_context(code: str, *, ip_address: str | None) -> ClaimedHandof
 
 @sensitive_variables()
 def _claim(handoff: AgentHandoff) -> ClaimedHandoff | None:
-    user = User.objects.filter(id=handoff.user_id, is_active=True, is_suspended=False).first()
+    user = User.objects.get_or_none(id=handoff.user_id, is_active=True, is_suspended=False)
     application = get_handoff_application(handoff.scope_list)
     if user is None or application is None or application.id != handoff.application_id:
         return None
