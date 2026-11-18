@@ -1688,21 +1688,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Conversation classifiers PoC.
-register(
-    "classifiers.conversations.project-ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Maximum conversations fetched from each project per scan.
-register(
-    "classifiers.conversations.telemetry-limit",
-    type=Int,
-    default=100,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Kill switch for sentry.cadence: when False, no triggers are claimed or fired.
 register(
     "cadence.tick.enabled",
