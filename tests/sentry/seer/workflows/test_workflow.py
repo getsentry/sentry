@@ -899,7 +899,7 @@ class SeerWorkflowScheduleSyncTest(TestCase):
 
         updated = self.set_enabled(config, True)
 
-        assert updated.enabled
+        assert AutomationDefinition.is_enabled(updated)
         assert updated.version == 2
         assert self.next_scheduled_for(config) == datetime(2024, 3, 10, 10, 0, tzinfo=UTC)
 
@@ -911,7 +911,7 @@ class SeerWorkflowScheduleSyncTest(TestCase):
 
         updated = self.set_enabled(config, False)
 
-        assert not updated.enabled
+        assert not AutomationDefinition.is_enabled(updated)
         assert updated.version == 3
         assert self.next_scheduled_for(config) is None
 

@@ -51,7 +51,7 @@ from sentry.testutils.requests import drf_request_from_request
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.user import User
 from sentry.utils import json
-from sentry.workflow_engine.models import Detector, Workflow
+from sentry.workflow_engine.models import Detector, DetectorWorkflow, Workflow
 
 GRANT = SeerServiceAccountGrant(scopes=["event:read"])
 
@@ -116,6 +116,7 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
             "nextRunAt": None,
             "dateAdded": config.date_added,
             "dateUpdated": config.date_updated,
+            "name": "Seer automation",
         }
         assert response.data["configs"][1]["projects"] == []
 
@@ -941,7 +942,7 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         }
         config.refresh_from_db()
         assert config.version == 1
-        assert config.backing_workflow_id is None
+        assert not DetectorWorkflow.objects.filter(workflow_id=config.backing_workflow_id).exists()
 
     def test_put_breached_metric_member_needs_access_to_monitor_projects(self) -> None:
         member, accessible_project = self.create_member_with_project(open_membership=False)
@@ -1235,6 +1236,8 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             "nextRunAt": None,
             "dateAdded": config.date_added,
             "dateUpdated": config.date_updated,
+            "name": "Seer automation",
+            "createdBy": str(self.user.id),
         }
         assert config.extras == {}
 
