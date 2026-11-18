@@ -6,9 +6,10 @@ import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import BackendOverviewPage from 'sentry/views/insights/pages/backend/backendOverviewPage';
 
-const organization = OrganizationFixture({features: ['performance-view']});
+import BackendOverviewPage from './backendOverviewPage';
+
+const organization = OrganizationFixture();
 const pageFilterSelection = PageFiltersFixture({
   projects: [1, 2],
   datetime: {

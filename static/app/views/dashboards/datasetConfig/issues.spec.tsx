@@ -5,7 +5,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import type {Group} from 'sentry/types/group';
 import {GroupStatus} from 'sentry/types/group';
-import {transformIssuesResponseToTable} from 'sentry/views/dashboards/datasetConfig/utils/transformIssuesResponseToTable';
+
+import {transformIssuesResponseToTable} from './utils/transformIssuesResponseToTable';
 
 describe('transformIssuesResponseToTable', () => {
   it('transforms issues response', () => {

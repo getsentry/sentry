@@ -1,6 +1,7 @@
 import type {ComponentProps} from 'react';
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQueryStates} from 'nuqs';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
 import type {TableColumnConfig} from '@sentry/scraps/table';
@@ -24,12 +25,14 @@ import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
 import {t, tn} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useZoomToOpenPeriodRange} from 'sentry/views/detectors/components/details/common/useZoomToOpenPeriodRange';
 import {useOpenPeriods} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {getOpenPeriodDurationSeconds} from 'sentry/views/detectors/utils/getOpenPeriodDurationSeconds';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
+
+import {useZoomToOpenPeriodRange} from './useZoomToOpenPeriodRange';
 
 const OPEN_PERIOD_COLUMNS: TableColumnConfig[] = [
   {key: 'issue', width: '1fr'},
@@ -45,11 +48,12 @@ interface OpenPeriodsSubTableProps {
 
 function OpenPeriodsSubTable({groupId, onZoom}: OpenPeriodsSubTableProps) {
   const [now] = useState(() => new Date());
-  const location = useLocation();
-  const start = location.query?.start as string | undefined;
-  const end = location.query?.end as string | undefined;
-  const statsPeriod = location.query?.statsPeriod as string | undefined;
-  const dateParams = {start, end, statsPeriod};
+  const [{start, end, statsPeriod}] = useQueryStates(pageFilterParsers);
+  const dateParams = {
+    start: start || undefined,
+    end: end || undefined,
+    statsPeriod: statsPeriod || undefined,
+  };
   const {
     data: openPeriods,
     isPending: isOpenPeriodsPending,

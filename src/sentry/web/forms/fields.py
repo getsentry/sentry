@@ -8,7 +8,7 @@ class CustomTypedChoiceField(TypedChoiceField):
     # A patched version of TypedChoiceField which correctly validates a 0
     # as a real input that may be invalid
     # See https://github.com/django/django/pull/3774
-    def validate(self, value):
+    def validate(self, value: object) -> None:
         """
         Validates that the input is in self.choices.
         """
@@ -23,10 +23,9 @@ class CustomTypedChoiceField(TypedChoiceField):
             )
 
 
-def email_address_validator(value):
+def email_address_validator(value: str) -> None:
     if not is_valid_email_address(value):
         raise ValidationError(_("Enter a valid email address."), code="invalid")
-    return value
 
 
 class AllowedEmailField(EmailField):

@@ -1,5 +1,6 @@
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import sentryPattern from 'sentry-images/pattern/sentry-pattern.png';
 
@@ -11,8 +12,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {Field} from 'sentry/views/admin/options';
 import {getForm, getOptionDefault, getOptionField} from 'sentry/views/admin/options';
 
@@ -33,11 +33,11 @@ export default function InstallWizard({onConfigured}: InstallWizardProps) {
     data: options,
     isPending,
     isError,
-  } = useApiQuery<InstallWizardOptions>(
-    [getApiUrl('/internal/options/'), {query: {query: 'is:required'}}],
-    {
+  } = useQuery(
+    apiOptions.as<InstallWizardOptions>()('/internal/options/', {
+      query: {query: 'is:required'},
       staleTime: 0,
-    }
+    })
   );
 
   if (isPending) {

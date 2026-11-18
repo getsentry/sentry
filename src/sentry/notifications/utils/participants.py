@@ -215,7 +215,11 @@ def get_owners(
     else:
         outcome = "everyone"
         users = user_service.get_many_by_id(
-            ids=list(project.member_set.values_list("user_id", flat=True))
+            ids=[
+                user_id
+                for user_id in project.member_set.values_list("user_id", flat=True)
+                if user_id is not None
+            ]
         )
         recipients = Actor.many_from_object(users)
     return (recipients, outcome)
@@ -308,7 +312,7 @@ def determine_eligible_recipients(
         # We're adding the current assignee to the list of suggested assignees because
         # a new issue could have multiple codeowners and one of them got auto-assigned.
         group_assignee = (
-            GroupAssignee.objects.filter(group_id=event.group_id).first()
+            GroupAssignee.objects.get_or_none(group_id=event.group_id)
             if event.group_id is not None
             else None
         )
@@ -384,12 +388,20 @@ def get_fallthrough_recipients(
 
     elif fallthrough_choice == FallthroughChoiceType.ALL_MEMBERS:
         return user_service.get_many_by_id(
-            ids=list(project.member_set.values_list("user_id", flat=True))
+            ids=[
+                user_id
+                for user_id in project.member_set.values_list("user_id", flat=True)
+                if user_id is not None
+            ]
         )
 
     elif fallthrough_choice == FallthroughChoiceType.ACTIVE_MEMBERS:
         member_users = user_service.get_many_by_id(
-            ids=list(project.member_set.values_list("user_id", flat=True)),
+            ids=[
+                user_id
+                for user_id in project.member_set.values_list("user_id", flat=True)
+                if user_id is not None
+            ],
         )
         member_users.sort(
             key=lambda u: u.last_active.isoformat() if u.last_active else "", reverse=True

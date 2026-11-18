@@ -2,10 +2,10 @@ import logging
 from collections.abc import Sequence
 from typing import NotRequired, TypedDict
 
-from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q
 from sentry_sdk import traces
 
+from sentry.auth.principal import RequestPrincipal, has_user
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.types import ExternalProviders
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
@@ -18,8 +18,6 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
 from sentry.seer.utils import get_github_username_for_user
-from sentry.users.models.user import User
-from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils import json, metrics
 
@@ -103,13 +101,13 @@ def _is_github_enterprise_only(user_id: int, organization_id: int) -> bool:
 
 
 def commit_author_for_user(
-    user: User | RpcUser | AnonymousUser | None,
+    user: RequestPrincipal | None,
     organization_id: int,
     *,
     referrer: str,
 ) -> SeerCommitAuthor | None:
     """The acting user's GitHub identity, or ``None`` to let Seer author the commit."""
-    if user is None or isinstance(user, AnonymousUser) or user.id is None:
+    if user is None or not has_user(user) or user.id is None:
         _record_outcome("no_acting_user")
         return None
 

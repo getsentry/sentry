@@ -22,6 +22,7 @@ from sentry.apidocs.examples.environment_examples import EnvironmentExamples
 from sentry.apidocs.parameters import EnvironmentParams, GlobalParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.models.environment import Environment, EnvironmentProject
+from sentry.models.project import Project
 
 
 @extend_schema(tags=["Environments"])
@@ -31,6 +32,7 @@ class ProjectEnvironmentDetailsEndpoint(ProjectEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset({"PUT"})
 
     @extend_schema(
         operation_id="getProjectEnvironment",
@@ -49,7 +51,7 @@ class ProjectEnvironmentDetailsEndpoint(ProjectEndpoint):
         examples=EnvironmentExamples.RETRIEVE_PROJECT_ENVIRONMENT,
     )
     def get(
-        self, request: Request, project, environment
+        self, request: Request, project: Project, environment: str
     ) -> Response[EnvironmentProjectSerializerResponse]:
         """
         Return details on a project environment.
@@ -84,7 +86,7 @@ class ProjectEnvironmentDetailsEndpoint(ProjectEndpoint):
         examples=EnvironmentExamples.RETRIEVE_PROJECT_ENVIRONMENT,
     )
     def put(
-        self, request: Request, project, environment
+        self, request: Request, project: Project, environment: str
     ) -> Response[EnvironmentProjectSerializerResponse] | Response[ValidationErrorResponse]:
         """
         Update the visibility for a project environment.

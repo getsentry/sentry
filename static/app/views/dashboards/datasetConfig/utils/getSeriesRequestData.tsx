@@ -12,8 +12,10 @@ import {
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
 import {DiscoverDatasets, TOP_N} from 'sentry/utils/discover/types';
+import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {DisplayType, type Widget} from 'sentry/views/dashboards/types';
 import {getNumEquations, getWidgetInterval} from 'sentry/views/dashboards/utils';
+import {supportsWidgetTransformations} from 'sentry/views/dashboards/utils/transformations';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 const RPC_DATASETS = [
@@ -145,10 +147,56 @@ export function getSeriesRequestData(
 }
 
 type TimeseriesRequestOptions = {
+  organization?: Organization;
   referrer?: string;
   sampling?: SamplingMode;
   widgetInterval?: string;
 };
+
+type TransformationParams = Record<`transformations[${number}]`, string[]>;
+
+function getAggregateTransformations(
+  widget: Widget,
+  queryIndex: number,
+  organization: Organization | undefined
+): Record<number, string[]> {
+  const widgetQuery = widget.queries[queryIndex]!;
+  if (
+    !organization?.features.includes('explore-interpolation-and-smoothing') ||
+    !supportsWidgetTransformations(widget.widgetType, widget.displayType)
+  ) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(widgetQuery.transformations ?? {}).filter(
+      ([index, axisTransformations]) =>
+        Number(index) < widgetQuery.aggregates.length && axisTransformations.length
+    )
+  );
+}
+
+function getRequestedSeries(
+  yAxis: string[],
+  aggregateTransformations: Record<number, string[]>
+): {transformations: TransformationParams; yAxis: string[]} {
+  const requestedYAxis: string[] = [];
+  const transformations: TransformationParams = {};
+  const seen = new Set<string>();
+  yAxis.forEach((axis, index) => {
+    const axisTransformations = aggregateTransformations[index] ?? [];
+    const key = JSON.stringify([axis, axisTransformations]);
+    if (seen.has(key)) {
+      return;
+    }
+    seen.add(key);
+    if (axisTransformations.length) {
+      transformations[`transformations[${requestedYAxis.length}]`] = axisTransformations;
+    }
+    requestedYAxis.push(axis);
+  });
+  return {yAxis: requestedYAxis, transformations};
+}
 
 /**
  * Builds `/events-timeseries/` query params for a widget query.
@@ -158,7 +206,7 @@ export function getTimeseriesRequestQuery(
   queryIndex: number,
   pageFilters: PageFilters,
   dataset: DiscoverDatasets,
-  {referrer, sampling, widgetInterval}: TimeseriesRequestOptions = {}
+  {organization, referrer, sampling, widgetInterval}: TimeseriesRequestOptions = {}
 ) {
   const widgetQuery = widget.queries[queryIndex]!;
   const {environments, projects} = pageFilters;
@@ -170,8 +218,12 @@ export function getTimeseriesRequestQuery(
     queryIndex,
     dataset
   );
+  const requestedSeries = getRequestedSeries(
+    toArray(yAxis),
+    getAggregateTransformations(widget, queryIndex, organization)
+  );
 
-  return {
+  const params = {
     interval,
     ...(period ? {statsPeriod: period} : {}),
     ...(start ? {start: getUtcDateString(start)} : {}),
@@ -179,7 +231,7 @@ export function getTimeseriesRequestQuery(
     project: projects,
     environment: environments,
     query: widgetQuery.conditions,
-    yAxis: [...new Set(toArray(yAxis))],
+    yAxis: requestedSeries.yAxis,
     groupBy: field,
     field,
     sort: orderby || undefined,
@@ -189,6 +241,36 @@ export function getTimeseriesRequestQuery(
     dataset,
     sampling,
   };
+  const query: typeof params & Partial<TransformationParams> = {
+    ...params,
+    ...requestedSeries.transformations,
+  };
+  return query;
 }
 
 export type TimeseriesRequestQuery = ReturnType<typeof getTimeseriesRequestQuery>;
+
+/**
+ * Tags each response series with the transformations it was requested with, which
+ * the response does not include, so transformed duplicates get distinct names.
+ */
+export function withRequestedTransformations(
+  response: EventsTimeSeriesResponse,
+  query: TimeseriesRequestQuery
+): EventsTimeSeriesResponse {
+  const transformations = query.yAxis.map(
+    (_, index) => query[`transformations[${index}]`] ?? []
+  );
+  if (!transformations.some(axisTransformations => axisTransformations.length)) {
+    return response;
+  }
+
+  return {
+    ...response,
+    // Each response group repeats the requested axes in order, without an axis index.
+    timeSeries: response.timeSeries.map((timeSeries, index) => ({
+      ...timeSeries,
+      requestedTransformations: transformations[index % transformations.length],
+    })),
+  };
+}

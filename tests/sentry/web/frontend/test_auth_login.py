@@ -1,3 +1,4 @@
+from contextlib import AbstractContextManager
 from functools import cached_property
 from unittest import mock
 
@@ -21,7 +22,7 @@ class AuthLoginTest(TestCase, HybridCloudTestMixin):
     def path(self) -> str:
         return reverse("sentry-login")
 
-    def allow_registration(self):
+    def allow_registration(self) -> AbstractContextManager[None]:
         return self.options({"auth.allow-registration": True})
 
     def test_login_post_requires_api(self) -> None:
@@ -125,7 +126,7 @@ class AuthLoginCustomerDomainTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
 
-    def disable_registration(self):
+    def disable_registration(self) -> AbstractContextManager[None]:
         return self.options({"auth.allow-registration": False})
 
     def test_renders_correct_template_nonexistent_org(self) -> None:

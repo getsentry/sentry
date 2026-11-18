@@ -1,8 +1,9 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import type {RequestError} from 'sentry/utils/requestError/requestError';
-import type {TraceQueryResult} from 'sentry/views/performance/traceDetails/traceApi/useTrace';
-import {TraceWaterfallState} from 'sentry/views/performance/traceDetails/traceWaterfallState';
+import {RequestError} from 'sentry/utils/requestError/requestError';
+
+import type {TraceQueryResult} from './traceApi/useTrace';
+import {TraceWaterfallState} from './traceWaterfallState';
 
 const mockUseFeedbackForm = jest.fn();
 
@@ -37,6 +38,12 @@ function createTraceResult(partial: Partial<TraceQueryResult>) {
   } as TraceQueryResult;
 }
 
+function createRequestError(status: number) {
+  const error = new RequestError('GET', '/trace/', new Error('Failed to load trace'));
+  error.status = status;
+  return error;
+}
+
 describe('TraceWaterfallState', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -68,7 +75,7 @@ describe('TraceWaterfallState', () => {
     it.each([400, 500])(
       'shows invalid-request copy when the error status is %s',
       status => {
-        const trace = createTraceResult({error: {status} as RequestError});
+        const trace = createTraceResult({error: createRequestError(status)});
 
         render(<TraceWaterfallState.Error trace={trace} />);
 
@@ -77,7 +84,7 @@ describe('TraceWaterfallState', () => {
     );
 
     it('shows not-found copy when the error status is 404', () => {
-      const trace = createTraceResult({error: {status: 404} as RequestError});
+      const trace = createTraceResult({error: createRequestError(404)});
 
       render(<TraceWaterfallState.Error trace={trace} />);
 
@@ -85,7 +92,7 @@ describe('TraceWaterfallState', () => {
     });
 
     it.each([429, 504])('shows timeout copy when the error status is %s', status => {
-      const trace = createTraceResult({error: {status} as RequestError});
+      const trace = createTraceResult({error: createRequestError(status)});
 
       render(<TraceWaterfallState.Error trace={trace} />);
 
@@ -93,7 +100,7 @@ describe('TraceWaterfallState', () => {
     });
 
     it('shows generic copy when the error status is not handled specially', () => {
-      const trace = createTraceResult({error: {status: 418} as RequestError});
+      const trace = createTraceResult({error: createRequestError(418)});
 
       render(<TraceWaterfallState.Error trace={trace} />);
 
@@ -103,7 +110,7 @@ describe('TraceWaterfallState', () => {
 
     it('uses a mailto feedback link when the feedback form is unavailable', () => {
       mockUseFeedbackForm.mockReturnValue(null);
-      const trace = createTraceResult({error: {status: 418} as RequestError});
+      const trace = createTraceResult({error: createRequestError(418)});
 
       render(<TraceWaterfallState.Error trace={trace} />);
 
@@ -115,7 +122,7 @@ describe('TraceWaterfallState', () => {
 
     it('uses an in-app feedback link when the feedback form is available', () => {
       mockUseFeedbackForm.mockReturnValue(jest.fn());
-      const trace = createTraceResult({error: {status: 418} as RequestError});
+      const trace = createTraceResult({error: createRequestError(418)});
 
       render(<TraceWaterfallState.Error trace={trace} />);
 

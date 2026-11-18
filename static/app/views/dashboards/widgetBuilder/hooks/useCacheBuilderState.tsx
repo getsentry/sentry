@@ -4,10 +4,11 @@ import {createStorage} from 'sentry/utils/createStorage';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import {convertWidgetToBuilderState} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
 import {canUseMetricsDashboardTable} from 'sentry/views/explore/metrics/metricsFlags';
+
+import {BuilderStateAction} from './useWidgetBuilderState';
 
 const WIDGET_BUILDER_DATASET_STATE_KEY = 'dashboards:widget-builder:dataset';
 

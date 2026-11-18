@@ -10,7 +10,8 @@ import {TeamRoleSelect} from 'sentry/components/teamRoleSelect';
 import {t} from 'sentry/locale';
 import type {Organization, Team, TeamMember} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
-import {getButtonHelpText} from 'sentry/views/settings/organizationTeams/utils';
+
+import {getButtonHelpText} from './utils';
 
 interface Props {
   hasWriteAccess: boolean;

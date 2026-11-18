@@ -8,10 +8,11 @@ import {selectEvent} from 'sentry-test/selectEvent';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {addTeamToProject} from 'sentry/actionCreators/projects';
-import {TeamSelector} from 'sentry/components/teamSelector';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {Organization} from 'sentry/types/organization';
+
+import {TeamSelector} from './teamSelector';
 
 jest.mock('sentry/actionCreators/projects', () => ({
   addTeamToProject: jest.fn(),

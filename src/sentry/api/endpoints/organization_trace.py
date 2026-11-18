@@ -120,6 +120,7 @@ class OrganizationTraceEndpoint(OrganizationEventsEndpointBase):
             GlobalParams.START,
             GlobalParams.END,
             REFERRER_QUERY_PARAM,
+            TraceParams.TIMESTAMP,
             ERROR_ID_QUERY_PARAM,
             ADDITIONAL_ATTRIBUTES_PARAM,
             INCLUDE_UPTIME_PARAM,

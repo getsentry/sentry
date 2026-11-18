@@ -1,7 +1,8 @@
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import type {Series} from 'sentry/types/echarts';
-import {useDetectorChartAxisBounds} from 'sentry/views/detectors/components/details/metric/utils/useDetectorChartAxisBounds';
+
+import {useDetectorChartAxisBounds} from './useDetectorChartAxisBounds';
 
 function makeSeries(values: number[]): Series {
   return {

@@ -32,7 +32,7 @@ attachment_cache: BaseAttachmentCache = import_string(settings.SENTRY_ATTACHMENT
 @traces.trace
 def store_attachments_for_event(
     project: Project, event: Any, attachments: list[CachedAttachment], timeout: int
-):
+) -> None:
     """
     Stores the given list of `attachments` belonging to `event` for processing.
 
@@ -64,7 +64,7 @@ def get_attachments_for_event(event: Any) -> Generator[CachedAttachment]:
 @traces.trace
 def delete_cached_and_ratelimited_attachments(
     project: Project, attachments: list[CachedAttachment]
-):
+) -> None:
     """
     This deletes all attachment payloads from the attachment cache
     (if those are stored there), as well as delete all the `rate_limited`

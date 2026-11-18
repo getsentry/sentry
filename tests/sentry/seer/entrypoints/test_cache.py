@@ -1,5 +1,5 @@
 from typing import TypedDict
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from fixtures.seer.webhooks import MOCK_GROUP_ID, MOCK_RUN_ID
 from sentry.seer.entrypoints.cache import (
@@ -38,7 +38,7 @@ class SeerOperatorAutofixCacheTest(TestCase):
         assert self.post_cache_key == f"seer:post_autofix:{self.entrypoint_key}:{MOCK_RUN_ID}"
 
     @patch("sentry.seer.entrypoints.cache.cache.set")
-    def test_populate_pre_autofix_cache(self, mock_cache_set):
+    def test_populate_pre_autofix_cache(self, mock_cache_set: MagicMock) -> None:
         pre_cache_payload = MockCachePayload(thread_id="pre_cache_payload")
         result = SeerOperatorAutofixCache.populate_pre_autofix_cache(
             entrypoint_key=self.entrypoint_key,
@@ -55,7 +55,7 @@ class SeerOperatorAutofixCacheTest(TestCase):
         assert result["payload"] == pre_cache_payload
 
     @patch("sentry.seer.entrypoints.cache.cache.set")
-    def test_populate_post_autofix_cache(self, mock_cache_set):
+    def test_populate_post_autofix_cache(self, mock_cache_set: MagicMock) -> None:
         post_cache_payload = MockCachePayload(thread_id="post_cache_payload")
         result = SeerOperatorAutofixCache.populate_post_autofix_cache(
             entrypoint_key=self.entrypoint_key,
@@ -72,11 +72,11 @@ class SeerOperatorAutofixCacheTest(TestCase):
         assert result["payload"] == post_cache_payload
 
     @patch("sentry.seer.entrypoints.cache.cache.get")
-    def test_get_pre_autofix_cache(self, mock_cache_get):
+    def test_get_pre_autofix_cache(self, mock_cache_get: MagicMock) -> None:
         pre_cache_payload = MockCachePayload(thread_id="pre_cache_payload")
         mock_cache_get.return_value = pre_cache_payload
 
-        result = SeerOperatorAutofixCache._get_pre_autofix_cache(
+        result = SeerOperatorAutofixCache[MockCachePayload]._get_pre_autofix_cache(
             entrypoint_key=self.entrypoint_key, group_id=MOCK_GROUP_ID
         )
 
@@ -87,21 +87,21 @@ class SeerOperatorAutofixCacheTest(TestCase):
         assert result["payload"] == pre_cache_payload
 
     @patch("sentry.seer.entrypoints.cache.cache.get")
-    def test_get_pre_autofix_cache_miss(self, mock_cache_get):
+    def test_get_pre_autofix_cache_miss(self, mock_cache_get: MagicMock) -> None:
         mock_cache_get.return_value = None
 
-        result = SeerOperatorAutofixCache._get_pre_autofix_cache(
+        result = SeerOperatorAutofixCache[MockCachePayload]._get_pre_autofix_cache(
             entrypoint_key=self.entrypoint_key, group_id=MOCK_GROUP_ID
         )
 
         assert result is None
 
     @patch("sentry.seer.entrypoints.cache.cache.get")
-    def test_get_post_autofix_cache(self, mock_cache_get):
+    def test_get_post_autofix_cache(self, mock_cache_get: MagicMock) -> None:
         post_cache_payload = MockCachePayload(thread_id="post_cache_payload")
         mock_cache_get.return_value = post_cache_payload
 
-        result = SeerOperatorAutofixCache._get_post_autofix_cache(
+        result = SeerOperatorAutofixCache[MockCachePayload]._get_post_autofix_cache(
             entrypoint_key=self.entrypoint_key, run_id=MOCK_RUN_ID
         )
 
@@ -112,10 +112,10 @@ class SeerOperatorAutofixCacheTest(TestCase):
         assert result["payload"] == post_cache_payload
 
     @patch("sentry.seer.entrypoints.cache.cache.get")
-    def test_get_post_autofix_cache_miss(self, mock_cache_get):
+    def test_get_post_autofix_cache_miss(self, mock_cache_get: MagicMock) -> None:
         mock_cache_get.return_value = None
 
-        result = SeerOperatorAutofixCache._get_post_autofix_cache(
+        result = SeerOperatorAutofixCache[MockCachePayload]._get_post_autofix_cache(
             entrypoint_key=self.entrypoint_key, run_id=MOCK_RUN_ID
         )
 
@@ -123,14 +123,16 @@ class SeerOperatorAutofixCacheTest(TestCase):
 
     @patch("sentry.seer.entrypoints.cache.cache.delete")
     @patch("sentry.seer.entrypoints.cache.cache.get")
-    def test_get_prefers_post_cache_and_deletes_pre_cache(self, mock_cache_get, mock_cache_delete):
+    def test_get_prefers_post_cache_and_deletes_pre_cache(
+        self, mock_cache_get: MagicMock, mock_cache_delete: MagicMock
+    ) -> None:
         pre_cache_payload = MockCachePayload(thread_id="pre_cache_payload")
         post_cache_payload = MockCachePayload(thread_id="post_cache_payload")
         mock_cache_get.side_effect = lambda k: (
             post_cache_payload if k == self.post_cache_key else pre_cache_payload
         )
 
-        result = SeerOperatorAutofixCache.get(
+        result = SeerOperatorAutofixCache[MockCachePayload].get(
             entrypoint_key=self.entrypoint_key, group_id=MOCK_GROUP_ID, run_id=MOCK_RUN_ID
         )
 
@@ -141,13 +143,15 @@ class SeerOperatorAutofixCacheTest(TestCase):
 
     @patch("sentry.seer.entrypoints.cache.cache.delete")
     @patch("sentry.seer.entrypoints.cache.cache.get")
-    def test_get_falls_back_to_pre_cache(self, mock_cache_get, mock_cache_delete):
+    def test_get_falls_back_to_pre_cache(
+        self, mock_cache_get: MagicMock, mock_cache_delete: MagicMock
+    ) -> None:
         pre_cache_payload = MockCachePayload(thread_id="pre_cache_payload")
         mock_cache_get.side_effect = lambda k: (
             pre_cache_payload if k == self.pre_cache_key else None
         )
 
-        result = SeerOperatorAutofixCache.get(
+        result = SeerOperatorAutofixCache[MockCachePayload].get(
             entrypoint_key=self.entrypoint_key, group_id=MOCK_GROUP_ID, run_id=MOCK_RUN_ID
         )
 
@@ -157,10 +161,10 @@ class SeerOperatorAutofixCacheTest(TestCase):
         mock_cache_delete.assert_not_called()
 
     @patch("sentry.seer.entrypoints.cache.cache.get")
-    def test_get_all_cache_miss(self, mock_cache_get):
+    def test_get_all_cache_miss(self, mock_cache_get: MagicMock) -> None:
         mock_cache_get.return_value = None
 
-        result = SeerOperatorAutofixCache.get(
+        result = SeerOperatorAutofixCache[MockCachePayload].get(
             entrypoint_key=self.entrypoint_key, group_id=MOCK_GROUP_ID, run_id=MOCK_RUN_ID
         )
 
@@ -182,7 +186,7 @@ class SeerOperatorAutofixCacheMigrateTest(TestCase):
         {SeerEntrypointKey.SLACK: None},
     )
     @patch("sentry.seer.entrypoints.cache.cache")
-    def test_migrate(self, mock_cache):
+    def test_migrate(self, mock_cache: MagicMock) -> None:
         pre_cache_payload = MockCachePayload(thread_id="pre_cache_payload")
         mock_cache.get.side_effect = lambda k: (
             pre_cache_payload if k == self.pre_cache_key else None
@@ -200,7 +204,7 @@ class SeerOperatorAutofixCacheMigrateTest(TestCase):
         {SeerEntrypointKey.SLACK: None},
     )
     @patch("sentry.seer.entrypoints.cache.cache")
-    def test_migrate_full_miss(self, mock_cache):
+    def test_migrate_full_miss(self, mock_cache: MagicMock) -> None:
         mock_cache.get.side_effect = lambda k: None
         SeerOperatorAutofixCache.migrate(from_group_id=MOCK_GROUP_ID, to_run_id=MOCK_RUN_ID)
         mock_cache.set.assert_not_called()
@@ -210,7 +214,7 @@ class SeerOperatorAutofixCacheMigrateTest(TestCase):
         {SeerEntrypointKey.SLACK: None},
     )
     @patch("sentry.seer.entrypoints.cache.cache")
-    def test_migrate_overwrite(self, mock_cache):
+    def test_migrate_overwrite(self, mock_cache: MagicMock) -> None:
         pre_cache_payload = MockCachePayload(thread_id="pre_cache_payload")
         post_cache_payload = MockCachePayload(thread_id="post_cache_payload")
         mock_cache.get.side_effect = lambda k: (
@@ -242,7 +246,7 @@ class SeerOperatorAgentCacheTest(TestCase):
         assert self.cache_key == f"seer:agent:{self.entrypoint_key}:{MOCK_RUN_ID}"
 
     @patch("sentry.seer.entrypoints.cache.cache.set")
-    def test_set(self, mock_cache_set):
+    def test_set(self, mock_cache_set: MagicMock) -> None:
         payload = MockCachePayload(thread_id="agent_payload")
         SeerOperatorAgentCache.set(
             entrypoint_key=self.entrypoint_key,
@@ -256,7 +260,7 @@ class SeerOperatorAgentCacheTest(TestCase):
         )
 
     @patch("sentry.seer.entrypoints.cache.cache.get")
-    def test_get(self, mock_cache_get):
+    def test_get(self, mock_cache_get: MagicMock) -> None:
         payload = MockCachePayload(thread_id="agent_payload")
         mock_cache_get.side_effect = lambda k: payload if k == self.cache_key else None
 
@@ -266,7 +270,7 @@ class SeerOperatorAgentCacheTest(TestCase):
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt")
     @patch("sentry.seer.entrypoints.cache.cache.get")
-    def test_get_cache_miss(self, mock_cache_get, mock_record_halt):
+    def test_get_cache_miss(self, mock_cache_get: MagicMock, mock_record_halt: MagicMock) -> None:
         mock_cache_get.return_value = None
 
         result = SeerOperatorAgentCache.get(entrypoint_key=self.entrypoint_key, run_id=MOCK_RUN_ID)
@@ -294,7 +298,7 @@ class SeerOperatorPendingMentionCacheTest(TestCase):
         )
 
     @patch("sentry.seer.entrypoints.cache.cache.set")
-    def test_set(self, mock_cache_set):
+    def test_set(self, mock_cache_set: MagicMock) -> None:
         payload = MockCachePayload(thread_id="pending_payload")
         SeerOperatorPendingMentionCache.set(
             entrypoint_key=self.entrypoint_key,
@@ -310,7 +314,7 @@ class SeerOperatorPendingMentionCacheTest(TestCase):
 
     @patch("sentry.seer.entrypoints.cache.cache.delete")
     @patch("sentry.seer.entrypoints.cache.cache.get")
-    def test_pop_hit(self, mock_cache_get, mock_cache_delete):
+    def test_pop_hit(self, mock_cache_get: MagicMock, mock_cache_delete: MagicMock) -> None:
         payload = MockCachePayload(thread_id="pending_payload")
         mock_cache_get.return_value = payload
 
@@ -327,7 +331,9 @@ class SeerOperatorPendingMentionCacheTest(TestCase):
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt")
     @patch("sentry.seer.entrypoints.cache.cache.delete")
     @patch("sentry.seer.entrypoints.cache.cache.get")
-    def test_pop_miss(self, mock_cache_get, mock_cache_delete, mock_record_halt):
+    def test_pop_miss(
+        self, mock_cache_get: MagicMock, mock_cache_delete: MagicMock, mock_record_halt: MagicMock
+    ) -> None:
         mock_cache_get.return_value = None
 
         result = SeerOperatorPendingMentionCache[MockCachePayload].pop(
@@ -343,7 +349,7 @@ class SeerOperatorPendingMentionCacheTest(TestCase):
 
 class SeerOperatorInvestigationCacheTest(TestCase):
     @patch("sentry.seer.entrypoints.cache.cache.set")
-    def test_set_uses_investigation_key_and_ttl(self, mock_cache_set):
+    def test_set_uses_investigation_key_and_ttl(self, mock_cache_set: MagicMock) -> None:
         payload = MockCachePayload(thread_id="thread")
 
         SeerOperatorInvestigationCache.set(

@@ -7,6 +7,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.api.permissions import SuperuserPermission
+from sentry.auth.principal import require_user
 from sentry.utils.email import send_mail
 
 
@@ -30,13 +31,14 @@ class InternalMailEndpoint(Endpoint):
             "mailUseSsl": options.get("mail.use-ssl"),
             "mailFrom": options.get("mail.from"),
             "mailListNamespace": settings.SENTRY_MAIL_LIST_NAMESPACE,
-            "testMailEmail": request.user.email,
+            "testMailEmail": require_user(request).email,
         }
 
         return Response(data)
 
     def post(self, request: Request) -> Response:
         assert request.user.is_authenticated
+        email = require_user(request).email
         error = None
 
         body = (
@@ -47,7 +49,7 @@ class InternalMailEndpoint(Endpoint):
                 "{} Test Email".format(options.get("mail.subject-prefix")),
                 body,
                 options.get("mail.from"),
-                [request.user.email],
+                [email],
                 fail_silently=False,
             )
         except Exception as e:

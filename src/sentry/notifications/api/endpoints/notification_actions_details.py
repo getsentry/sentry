@@ -43,6 +43,7 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PUBLIC,
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
 
     """
     Manages a single NotificationAction via the action_id passed in the path.
@@ -53,7 +54,9 @@ class NotificationActionsDetailsEndpoint(OrganizationEndpoint):
 
     permission_classes = (NotificationActionsPermission,)
 
-    def convert_args(self, request: Request, action_id: str, *args, **kwargs):
+    def convert_args(
+        self, request: Request, action_id: str, *args: object, **kwargs: object
+    ) -> tuple[tuple[object, ...], dict[str, object]]:
         parsed_args, parsed_kwargs = super().convert_args(request, *args, **kwargs)
         organization = parsed_kwargs["organization"]
 

@@ -1,11 +1,14 @@
 from datetime import datetime
 from unittest.mock import Mock
 
+from django.contrib.auth.models import AnonymousUser
 from django.contrib.sessions.backends.base import SessionBase
 from rest_framework.request import Request
 
 from sentry.auth_v2.utils.session import SessionBuilder, SessionSerializer
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.testutils.cases import TestCase
+from sentry.users.models.user import User
 
 EXPIRY_DATE = datetime(2023, 12, 31)
 
@@ -13,22 +16,22 @@ EXPIRY_DATE = datetime(2023, 12, 31)
 class MockSession(SessionBase):
     """Mock session class for testing."""
 
-    def __init__(self):
-        self.data = {}
+    def __init__(self) -> None:
+        self.data: dict[str, object] = {}
 
-    def get(self, key, default=None):
+    def get(self, key: str, default: object = None) -> object:
         return self.data.get(key, default)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> object:
         return self.data[key]
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value: object) -> None:
         self.data[key] = value
 
-    def __contains__(self, key):
+    def __contains__(self, key: object) -> bool:
         return key in self.data
 
-    def get_expiry_date(self, **kwargs):
+    def get_expiry_date(self, **kwargs: object) -> datetime:
         return EXPIRY_DATE
 
 
@@ -87,7 +90,7 @@ class SessionBuilderTest(TestCase):
         self.request.session = MockSession()
         self.session_builder = SessionBuilder(self.request)
 
-    def create_mock_user(self, **kwargs):
+    def create_mock_user(self, **kwargs: bool) -> Mock:
         # Default attributes that should all evaluate to False
         attributes = {
             "has_verified_primary_email": True,
@@ -114,7 +117,7 @@ class SessionBuilderTest(TestCase):
         for key, value in properties.items():
             mock_attributes[key] = value
 
-        self.request.user = Mock(**mock_attributes)
+        self.request.user = Mock(spec=User, **mock_attributes)
         return self.request.user
 
     def test_initialize_does_not_override_flags(self) -> None:
@@ -152,7 +155,14 @@ class SessionBuilderTest(TestCase):
         assert len(self.request.session.data) == 0
 
     def test_initialize_anonymous_user(self) -> None:
-        self.create_mock_user(is_anonymous=True)
+        self.request.user = AnonymousUser()
+        self.session_builder.initialize_auth_flags()
+        assert len(self.request.session.data) == 0
+
+    def test_initialize_service_account(self) -> None:
+        self.request.user = ServiceAccountPrincipal(
+            service_account_id=1, organization_id=1, name="sa"
+        )
         self.session_builder.initialize_auth_flags()
         assert len(self.request.session.data) == 0
 

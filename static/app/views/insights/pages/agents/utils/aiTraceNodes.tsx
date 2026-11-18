@@ -1,21 +1,24 @@
 import type {Theme} from '@emotion/react';
 
+import {stripAnnotations, truncateAnnotated} from '@sentry/scraps/markdown/annotation';
+
 import type {EventTransaction} from 'sentry/types/event';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import {
   getScalarAttributeValue,
   type TraceItemResponseAttribute,
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {SpanFields} from 'sentry/views/insights/types';
+import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
+
 import {
   GenAiOperationType,
   getGenAiOperationTypeFromSpanName,
   getIsAiAgentSpan,
   getIsAiGenerationSpan,
   getIsExecuteToolSpan,
-} from 'sentry/views/insights/pages/agents/utils/query';
-import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
-import {SpanFields} from 'sentry/views/insights/types';
-import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
+} from './query';
+import type {AITraceSpanNode} from './types';
 
 // TODO(aknaus): Remove the special handling for tags once the endpoint returns the correct type
 function getAttributeValue(
@@ -151,8 +154,9 @@ const MAX_TOOL_INPUT_VALUE_LENGTH = 48;
 const MAX_TOOL_INPUT_PREVIEW_KEYS = 4;
 
 function truncateText(value: string, maxLength: number): string {
-  return value.length > maxLength
-    ? `${value.slice(0, Math.max(0, maxLength - 3))}...`
+  // Scrubbed values are annotated, see `markScrubbedValue`.
+  return stripAnnotations(value).length > maxLength
+    ? `${truncateAnnotated(value, Math.max(0, maxLength - 3))}...`
     : value;
 }
 

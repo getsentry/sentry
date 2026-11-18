@@ -1,6 +1,6 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import AutomationsLayout from 'sentry/views/seerWorkflows';
 
@@ -24,12 +24,14 @@ describe('AutomationsLayout', () => {
   it('links the Automations and Runs tabs', () => {
     renderLayout('/organizations/org-slug/seer/automations/');
 
-    expect(
-      within(screen.getByRole('tab', {name: 'Automations'})).getByRole('link')
-    ).toHaveAttribute('href', '/organizations/org-slug/seer/automations/');
-    expect(
-      within(screen.getByRole('tab', {name: 'Runs'})).getByRole('link')
-    ).toHaveAttribute('href', '/organizations/org-slug/seer/automations/runs/');
+    expect(screen.getByRole('tab', {name: 'Automations'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/seer/automations/'
+    );
+    expect(screen.getByRole('tab', {name: 'Runs'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/seer/automations/runs/'
+    );
   });
 
   it.each([

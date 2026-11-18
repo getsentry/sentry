@@ -11,7 +11,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import IssueViewsList from 'sentry/views/issueList/issueViews/issueViewsList/issueViewsList';
+import IssueViewsList from './issueViewsList';
 
 const organization = OrganizationFixture({
   features: ['issue-views'],
@@ -125,15 +125,13 @@ describe('IssueViewsList', () => {
     await userEvent.click(screen.getByRole('option', {name: 'Recently Viewed'}));
 
     await waitFor(() => {
-      expect(mockViewsEndpoint).toHaveBeenCalledTimes(2);
+      expect(mockViewsEndpoint).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: expect.objectContaining({sort: ['-visited', '-popularity', '-created']}),
+        })
+      );
     });
-
-    expect(mockViewsEndpoint).toHaveBeenLastCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({sort: ['-visited', '-popularity', '-created']}),
-      })
-    );
   });
 
   it('can unstar views', async () => {

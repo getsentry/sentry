@@ -31,7 +31,7 @@ class RobotsTxtTest(TestCase):
         return reverse("sentry-robots-txt")
 
     def test_robots(self) -> None:
-        resp = self.client.get(self.path)
+        resp = self.client.get(self.path, HTTP_ACCEPT="text/markdown")
         assert resp.status_code == 200
         assert resp["Content-Type"] == "text/plain"
 
@@ -210,7 +210,7 @@ class ClientConfigViewTest(TestCase):
         assert data["features"] == ["organizations:create"]
         assert data["customerDomain"] is None
 
-    def _run_test_with_privileges(self, is_superuser: bool, is_staff: bool):
+    def _run_test_with_privileges(self, is_superuser: bool, is_staff: bool) -> None:
         user = self.create_user("foo@example.com", is_superuser=is_superuser, is_staff=is_staff)
         self.create_organization(owner=user)
         self.login_as(user, superuser=is_superuser, staff=is_staff)
@@ -686,7 +686,7 @@ class McpJsonTest(TestCase):
 
     def test_mcp_json_saas_mode(self) -> None:
         with override_settings(SENTRY_MODE="saas"):
-            response = self.client.get("/.well-known/mcp.json")
+            response = self.client.get("/.well-known/mcp.json", HTTP_ACCEPT="text/markdown")
 
         assert response.status_code == 200
         assert response["Content-Type"] == "application/json"
@@ -715,7 +715,7 @@ class McpJsonTest(TestCase):
 class ApiCatalogTest(TestCase):
     def test_saas_mode(self) -> None:
         with override_settings(SENTRY_MODE="saas"):
-            response = self.client.get("/.well-known/api-catalog")
+            response = self.client.get("/.well-known/api-catalog", HTTP_ACCEPT="text/markdown")
 
         assert response.status_code == 200
         assert response["Content-Type"] == "application/linkset+json"
@@ -753,7 +753,9 @@ class ApiCatalogTest(TestCase):
 class OauthAuthorizationServerTest(TestCase):
     def test_saas_mode(self) -> None:
         with override_settings(SENTRY_MODE="saas"):
-            response = self.client.get("/.well-known/oauth-authorization-server")
+            response = self.client.get(
+                "/.well-known/oauth-authorization-server", HTTP_ACCEPT="text/markdown"
+            )
 
         assert response.status_code == 200
         assert response["Content-Type"] == "application/json"
@@ -788,7 +790,9 @@ class OauthAuthorizationServerTest(TestCase):
 class OauthProtectedResourceTest(TestCase):
     def test_saas_mode(self) -> None:
         with override_settings(SENTRY_MODE="saas"):
-            response = self.client.get("/.well-known/oauth-protected-resource")
+            response = self.client.get(
+                "/.well-known/oauth-protected-resource", HTTP_ACCEPT="text/markdown"
+            )
 
         assert response.status_code == 200
         assert response["Content-Type"] == "application/json"
@@ -821,7 +825,9 @@ class OauthProtectedResourceTest(TestCase):
 class McpServerCardTest(TestCase):
     def test_saas_mode(self) -> None:
         with override_settings(SENTRY_MODE="saas"):
-            response = self.client.get("/.well-known/mcp/server-card.json")
+            response = self.client.get(
+                "/.well-known/mcp/server-card.json", HTTP_ACCEPT="text/markdown"
+            )
 
         assert response.status_code == 200
         assert response["Content-Type"] == "application/json"
@@ -853,7 +859,9 @@ class McpServerCardTest(TestCase):
 class AgentSkillsIndexTest(TestCase):
     def test_saas_mode(self) -> None:
         with override_settings(SENTRY_MODE="saas"):
-            response = self.client.get("/.well-known/agent-skills/index.json")
+            response = self.client.get(
+                "/.well-known/agent-skills/index.json", HTTP_ACCEPT="text/markdown"
+            )
 
         assert response.status_code == 200
         assert response["Content-Type"] == "application/json"
@@ -895,7 +903,7 @@ class AgentDiscoveryMiddlewareTest(TestCase):
 
         inner_response = HttpResponse("ok", content_type="text/html")
 
-        def get_response(request):
+        def get_response(request: HttpRequest) -> HttpResponse:
             return inner_response
 
         middleware = AgentDiscoveryMiddleware(get_response)

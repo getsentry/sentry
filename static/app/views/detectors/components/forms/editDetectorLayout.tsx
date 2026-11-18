@@ -20,13 +20,14 @@ import {
   DeleteDetectorAction,
   DisableDetectorAction,
 } from 'sentry/views/detectors/components/details/common/actions';
-import {DetectorFormBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
-import {getSubmitButtonTitle} from 'sentry/views/detectors/components/forms/common/getSubmitButtonTitle';
-import {MonitorBuilderNode} from 'sentry/views/detectors/components/forms/common/monitorBuilderLLMContext';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {useEditDetectorFormSubmit} from 'sentry/views/detectors/hooks/useEditDetectorFormSubmit';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 import {useCanEditDetector} from 'sentry/views/detectors/utils/useCanEditDetector';
+
+import {DetectorFormBreadcrumbs} from './common/breadcrumbs';
+import {getSubmitButtonTitle} from './common/getSubmitButtonTitle';
+import {MonitorBuilderNode} from './common/monitorBuilderLLMContext';
 
 type EditDetectorLayoutProps<TDetector, TFormData, TUpdatePayload> = {
   children: React.ReactNode;

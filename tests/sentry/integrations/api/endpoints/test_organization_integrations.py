@@ -1,10 +1,8 @@
 from unittest.mock import patch
 
 from sentry.hybridcloud.rpc.service import RpcRemoteException
-from sentry.integrations.api.endpoints.organization_integrations_index import (
-    OrganizationIntegrationsEndpoint,
-)
 from sentry.organizations.services.organization import organization_service
+from sentry.testutils.asserts import assert_no_organization_resource_hydration
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
@@ -49,7 +47,11 @@ class OrganizationIntegrationsListTest(APITestCase):
         assert "configOrganization" in response.data[0]
 
     def test_no_config(self) -> None:
-        with patch.object(organization_service, "get", wraps=organization_service.get) as get_org:
+        self.create_project(organization=self.organization)
+        with (
+            assert_no_organization_resource_hydration(),
+            patch.object(organization_service, "get", wraps=organization_service.get) as get_org,
+        ):
             response = self.get_success_response(
                 self.organization.slug, qs_params={"includeConfig": 0}
             )
@@ -73,7 +75,11 @@ class OrganizationIntegrationsListTest(APITestCase):
         ):
             response = self.get_success_response(self.organization.slug)
 
-        assert response.data == expected
+        unaffected = [i for i in response.data if i["provider"]["key"] != "github"]
+        assert unaffected == expected
+        github = next(i for i in response.data if i["provider"]["key"] == "github")
+        assert github["externalId"] == "github:1"
+        assert "configOrganization" not in github
 
     def test_config_shares_full_organization_for_github(self) -> None:
         for number in range(30):
@@ -92,12 +98,6 @@ class OrganizationIntegrationsListTest(APITestCase):
         assert len(response.data) == 30
         assert all(item["configOrganization"] for item in response.data)
         get_org.assert_called_once_with(id=self.organization.id)
-
-    def test_opts_out_of_organization_projects_and_teams(self) -> None:
-        # This endpoint only needs the organization id, so it skips serializing every
-        # project and team into the cross silo RPC payload.
-        assert OrganizationIntegrationsEndpoint.include_organization_projects is False
-        assert OrganizationIntegrationsEndpoint.include_organization_teams is False
 
     def test_feature_filters(self) -> None:
         response = self.get_success_response(

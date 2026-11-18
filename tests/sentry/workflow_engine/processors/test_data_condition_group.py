@@ -55,7 +55,7 @@ class TestEvaluateConditionGroupTypeAny(TestEvaluationConditionCase):
 
         result = evaluate_data_conditions(
             self.get_conditions_to_evaluate(input_value),
-            self.data_condition_group.logic_type,
+            DataConditionGroup.Type(self.data_condition_group.logic_type),
         )
 
         assert result.triggered is True
@@ -79,7 +79,7 @@ class TestEvaluateConditionGroupTypeAny(TestEvaluationConditionCase):
 
         result = evaluate_data_conditions(
             self.get_conditions_to_evaluate(input_value),
-            self.data_condition_group.logic_type,
+            DataConditionGroup.Type(self.data_condition_group.logic_type),
         )
 
         assert result.triggered is True
@@ -95,14 +95,16 @@ class TestEvaluateConditionGroupTypeAny(TestEvaluationConditionCase):
     def test_evaluate_data_conditions__fails_all(self) -> None:
         result = evaluate_data_conditions(
             self.get_conditions_to_evaluate(1),
-            self.data_condition_group.logic_type,
+            DataConditionGroup.Type(self.data_condition_group.logic_type),
         )
 
         assert result.triggered is False
         assert result.data["condition_evaluations"] == []
 
     def test_evaluate_data_conditions__passes_without_conditions(self) -> None:
-        result = evaluate_data_conditions([], self.data_condition_group.logic_type)
+        result = evaluate_data_conditions(
+            [], DataConditionGroup.Type(self.data_condition_group.logic_type)
+        )
 
         assert result.triggered is True
         assert result.data["condition_evaluations"] == []
@@ -117,7 +119,8 @@ class TestEvaluateConditionGroupTypeAnyShortCircuit(TestEvaluationConditionCase)
         input_value = 10
 
         result = evaluate_data_conditions(
-            self.get_conditions_to_evaluate(input_value), self.data_condition_group.logic_type
+            self.get_conditions_to_evaluate(input_value),
+            DataConditionGroup.Type(self.data_condition_group.logic_type),
         )
 
         assert result.triggered is True
@@ -134,7 +137,7 @@ class TestEvaluateConditionGroupTypeAnyShortCircuit(TestEvaluationConditionCase)
         input_value = 4
         result = evaluate_data_conditions(
             self.get_conditions_to_evaluate(input_value),
-            self.data_condition_group.logic_type,
+            DataConditionGroup.Type(self.data_condition_group.logic_type),
         )
 
         assert result.triggered is True
@@ -150,13 +153,15 @@ class TestEvaluateConditionGroupTypeAnyShortCircuit(TestEvaluationConditionCase)
     def test_evaluate_data_conditions__fails_all(self) -> None:
         result = evaluate_data_conditions(
             self.get_conditions_to_evaluate(1),
-            self.data_condition_group.logic_type,
+            DataConditionGroup.Type(self.data_condition_group.logic_type),
         )
         assert result.triggered is False
         assert result.data["condition_evaluations"] == []
 
     def test_evaluate_data_conditions__passes_without_conditions(self) -> None:
-        result = evaluate_data_conditions([], self.data_condition_group.logic_type)
+        result = evaluate_data_conditions(
+            [], DataConditionGroup.Type(self.data_condition_group.logic_type)
+        )
         assert result.triggered is True
         assert result.data["condition_evaluations"] == []
 
@@ -170,7 +175,8 @@ class TestEvaluateConditionGroupTypeAll(TestEvaluationConditionCase):
         input_value = 10
 
         result = evaluate_data_conditions(
-            self.get_conditions_to_evaluate(input_value), self.data_condition_group.logic_type
+            self.get_conditions_to_evaluate(input_value),
+            DataConditionGroup.Type(self.data_condition_group.logic_type),
         )
 
         assert result.triggered is True
@@ -191,7 +197,8 @@ class TestEvaluateConditionGroupTypeAll(TestEvaluationConditionCase):
 
     def test_evaluate_data_conditions__passes_one(self) -> None:
         result = evaluate_data_conditions(
-            self.get_conditions_to_evaluate(4), self.data_condition_group.logic_type
+            self.get_conditions_to_evaluate(4),
+            DataConditionGroup.Type(self.data_condition_group.logic_type),
         )
         assert result.triggered is False
         assert result.data["condition_evaluations"] == []
@@ -199,13 +206,15 @@ class TestEvaluateConditionGroupTypeAll(TestEvaluationConditionCase):
     def test_evaluate_data_conditions__fails_all(self) -> None:
         result = evaluate_data_conditions(
             self.get_conditions_to_evaluate(1),
-            self.data_condition_group.logic_type,
+            DataConditionGroup.Type(self.data_condition_group.logic_type),
         )
         assert result.triggered is False
         assert result.data["condition_evaluations"] == []
 
     def test_evaluate_data_conditions__passes_without_conditions(self) -> None:
-        result = evaluate_data_conditions([], self.data_condition_group.logic_type)
+        result = evaluate_data_conditions(
+            [], DataConditionGroup.Type(self.data_condition_group.logic_type)
+        )
         assert result.triggered is True
         assert result.data["condition_evaluations"] == []
 
@@ -218,7 +227,7 @@ class TestEvaluateConditionGroupTypeNone(TestEvaluationConditionCase):
     def test_evaluate_data_conditions__all_conditions_pass__fails(self) -> None:
         result = evaluate_data_conditions(
             self.get_conditions_to_evaluate(10),
-            self.data_condition_group.logic_type,
+            DataConditionGroup.Type(self.data_condition_group.logic_type),
         )
 
         assert result.triggered is False
@@ -226,7 +235,8 @@ class TestEvaluateConditionGroupTypeNone(TestEvaluationConditionCase):
 
     def test_evaluate_data_conditions__one_condition_pass__fails(self) -> None:
         result = evaluate_data_conditions(
-            self.get_conditions_to_evaluate(4), self.data_condition_group.logic_type
+            self.get_conditions_to_evaluate(4),
+            DataConditionGroup.Type(self.data_condition_group.logic_type),
         )
 
         assert result.triggered is False
@@ -234,7 +244,7 @@ class TestEvaluateConditionGroupTypeNone(TestEvaluationConditionCase):
     def test_evaluate_data_conditions__no_conditions_pass__passes(self) -> None:
         result = evaluate_data_conditions(
             self.get_conditions_to_evaluate(1),
-            self.data_condition_group.logic_type,
+            DataConditionGroup.Type(self.data_condition_group.logic_type),
         )
 
         assert result.triggered is True
@@ -268,7 +278,7 @@ class TestEvaluateConditionGroupTypeNone(TestEvaluationConditionCase):
         ):
             result = evaluate_data_conditions(
                 self.get_conditions_to_evaluate(10),
-                self.data_condition_group.logic_type,
+                DataConditionGroup.Type(self.data_condition_group.logic_type),
             )
 
         assert result.triggered is True

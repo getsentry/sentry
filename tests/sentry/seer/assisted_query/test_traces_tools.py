@@ -1,11 +1,17 @@
+from collections.abc import Mapping
 from unittest.mock import MagicMock, patch
 
 from sentry.seer.assisted_query.traces_tools import get_attribute_names
 from sentry.testutils.cases import TestCase
 
 
-def _attribute(name, attr_type="string", source="user", context=None):
-    attribute = {
+def _attribute(
+    name: str,
+    attr_type: str = "string",
+    source: str = "user",
+    context: Mapping[str, object] | None = None,
+) -> dict[str, object]:
+    attribute: dict[str, object] = {
         "key": name,
         "name": name,
         "attributeType": attr_type,
@@ -22,7 +28,12 @@ class TestGetAttributeNames(TestCase):
         self.org = self.create_organization()
         self.project = self.create_project(organization=self.org)
 
-    def _mock_responses(self, mock_client_cls, string_attrs, number_attrs=None):
+    def _mock_responses(
+        self,
+        mock_client_cls: MagicMock,
+        string_attrs: list[dict[str, object]],
+        number_attrs: list[dict[str, object]] | None = None,
+    ) -> MagicMock:
         """Stub the two per-type calls get_attribute_names makes (string, then number)."""
         mock_client = mock_client_cls.return_value
         string_response, number_response = MagicMock(), MagicMock()
@@ -128,6 +139,44 @@ class TestGetAttributeNames(TestCase):
 
         assert "span.description" in {field.key for field in result.built_in_fields}
         assert result.custom_fields == []
+
+    @patch("sentry.seer.assisted_query.traces_tools.ApiClient")
+    def test_unit_only_context_is_not_forwarded(self, mock_client_cls: MagicMock) -> None:
+        self._mock_responses(
+            mock_client_cls,
+            [],
+            [
+                _attribute(
+                    "payload_size",
+                    "number",
+                    source="sentry",
+                    context={"unit": "byte"},
+                ),
+                _attribute(
+                    "cache.item_size",
+                    "number",
+                    source="sentry",
+                    context={"isConvention": True, "brief": "Cache item size", "unit": "byte"},
+                ),
+            ],
+        )
+
+        result = get_attribute_names(
+            org_id=self.org.id,
+            project_ids=[self.project.id],
+            stats_period="7d",
+            include_context=True,
+        )
+
+        contexts_by_key = {field.key: field.context for field in result.built_in_fields}
+        assert "payload_size" not in contexts_by_key
+        assert contexts_by_key["cache.item_size"] == {
+            "isConvention": True,
+            "brief": "Cache item size",
+            "unit": "byte",
+        }
+        assert result.custom_fields == []
+        assert result.fields["number"] == ["payload_size", "cache.item_size"]
 
     @patch("sentry.seer.assisted_query.traces_tools.ApiClient")
     def test_no_context_requested(self, mock_client_cls: MagicMock) -> None:

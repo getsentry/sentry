@@ -4,10 +4,10 @@ import {
 } from 'sentry-fixture/replay/replaySpanFrameData';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
-import {getCurrentUrl} from 'sentry/utils/replays/getCurrentUrl';
-import {replayInitBreadcrumb} from 'sentry/utils/replays/hydrateBreadcrumbs';
-import {hydrateSpans} from 'sentry/utils/replays/hydrateSpans';
-import type {SpanFrame} from 'sentry/utils/replays/types';
+import {getCurrentUrl} from './getCurrentUrl';
+import {replayInitBreadcrumb} from './hydrateBreadcrumbs';
+import {hydrateSpans} from './hydrateSpans';
+import type {SpanFrame} from './types';
 
 const START_DATE = new Date('2022-06-15T00:40:00.111Z');
 const NAVIGATION_DATE = new Date('2022-06-15T00:46:00.333Z');

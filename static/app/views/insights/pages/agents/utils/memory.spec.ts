@@ -6,8 +6,8 @@ import {
   isMemoryNode,
   isMemoryOperation,
   type Memory,
-} from 'sentry/views/insights/pages/agents/utils/memory';
-import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
+} from './memory';
+import type {AITraceSpanNode} from './types';
 
 function makeNode(attributes: Record<string, string | number>): AITraceSpanNode {
   return {errors: new Set(), attributes} as unknown as AITraceSpanNode;

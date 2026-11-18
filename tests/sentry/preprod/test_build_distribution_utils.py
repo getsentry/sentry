@@ -1,3 +1,5 @@
+from typing import cast
+
 from sentry.preprod.build_distribution_utils import is_installable_artifact
 from sentry.preprod.models import (
     PreprodArtifact,
@@ -12,10 +14,10 @@ from sentry.testutils.silo import cell_silo_test
 class IsInstallableArtifactTest(TestCase):
     def _create_artifact(
         self,
-        artifact_type=PreprodArtifact.ArtifactType.XCARCHIVE,
-        installable_app_file_id=1,
-        build_number="456",
-        extras=None,
+        artifact_type: int = PreprodArtifact.ArtifactType.XCARCHIVE,
+        installable_app_file_id: int | None = 1,
+        build_number: str = "456",
+        extras: dict[str, object] | None = None,
     ) -> PreprodArtifact:
         build_config = PreprodBuildConfiguration.objects.create(
             project=self.project, name="Release"
@@ -26,14 +28,14 @@ class IsInstallableArtifactTest(TestCase):
             artifact_type=artifact_type,
             app_id="com.example.app",
             build_configuration=build_config,
-            installable_app_file_id=installable_app_file_id,
+            installable_app_file_id=cast("int", installable_app_file_id),
             extras=extras,
         )
         PreprodArtifactMobileAppInfo.objects.create(
             preprod_artifact=artifact,
             app_name="TestApp",
             build_version="1.0.0",
-            build_number=build_number,
+            build_number=cast("int", build_number),
         )
         return PreprodArtifact.objects.select_related("mobile_app_info").get(id=artifact.id)
 

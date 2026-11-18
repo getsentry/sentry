@@ -9,7 +9,6 @@ import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {IssueTrackingSignals} from 'sentry/components/feedback/list/issueTrackingSignals';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {TextOverflow} from 'sentry/components/textOverflow';
@@ -25,6 +24,8 @@ import {useReplayCountForFeedbacks} from 'sentry/utils/replayCount/useReplayCoun
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeFeedbackPathname} from 'sentry/views/feedback/pathnames';
+
+import {IssueTrackingSignals} from './issueTrackingSignals';
 
 interface Props {
   feedbackItem: FeedbackIssueListItem;

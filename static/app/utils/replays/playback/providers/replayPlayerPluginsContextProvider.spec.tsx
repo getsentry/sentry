@@ -5,10 +5,11 @@ import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
+
 import {
   ReplayPlayerPluginsContextProvider,
   useReplayPlayerPlugins,
-} from 'sentry/utils/replays/playback/providers/replayPlayerPluginsContext';
+} from './replayPlayerPluginsContext';
 
 function makeWrapper(organization: Organization) {
   return function ({children}: {children?: ReactNode}) {

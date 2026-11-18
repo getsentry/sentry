@@ -1,7 +1,7 @@
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
-from typing import Any
+from typing import Any, TypedDict
 from unittest import mock
 
 import pytest
@@ -18,12 +18,12 @@ from sentry.utils.sdk import get_trace_id
 
 
 @pytest.fixture
-def handler():
+def handler() -> StructLogHandler:
     return StructLogHandler()
 
 
 @pytest.fixture
-def logger():
+def logger() -> mock.MagicMock:
     return mock.MagicMock()
 
 
@@ -39,7 +39,7 @@ def snafu() -> Any:
 @contextmanager
 def filter_context(
     logger: logging.Logger, filters: list[logging.Filter | Callable[[logging.LogRecord], bool]]
-):
+) -> Iterator[None]:
     """Manages adding and cleaning up log filters"""
     for f in filters:
         logger.addFilter(f)
@@ -51,7 +51,7 @@ def filter_context(
 
 
 @contextmanager
-def level_context(level: int):
+def level_context(level: int) -> Iterator[None]:
     curr_level = logging.getLogger().level
     logging.basicConfig(level=level)
     try:
@@ -61,9 +61,15 @@ def level_context(level: int):
 
 
 @pytest.fixture
-def set_level_debug():
+def set_level_debug() -> Iterator[None]:
     with level_context(logging.DEBUG):
         yield
+
+
+class _LogRecordOverrides(TypedDict, total=False):
+    msg: str
+    args: tuple[object, ...]
+    exc_info: bool
 
 
 def make_logrecord(
@@ -98,11 +104,16 @@ def make_logrecord(
         ({"exc_info": True}, {"exc_info": True}),
     ),
 )
-def test_emit(record, out, handler, logger) -> None:
-    record = make_logrecord(**record)
+def test_emit(
+    record: _LogRecordOverrides,
+    out: dict[str, object],
+    handler: StructLogHandler,
+    logger: mock.MagicMock,
+) -> None:
+    log_record = make_logrecord(**record)
     with reset_trace_context():
-        handler.emit(record, logger=logger)
-    expected = {
+        handler.emit(log_record, logger=logger)
+    expected: dict[str, object] = {
         "level": logging.INFO,
         "event": "msg",
         "name": "name",
@@ -121,11 +132,16 @@ def test_emit(record, out, handler, logger) -> None:
         ({"exc_info": True}, {"exc_info": True}),
     ),
 )
-def test_emit_with_trace_id(record, out, handler, logger) -> None:
+def test_emit_with_trace_id(
+    record: _LogRecordOverrides,
+    out: dict[str, object],
+    handler: StructLogHandler,
+    logger: mock.MagicMock,
+) -> None:
     with sentry_sdk.traces.start_span(name="test_emit_with_trace_id"):
-        record = make_logrecord(**record)
-        handler.emit(record, logger=logger)
-        expected = {
+        log_record = make_logrecord(**record)
+        handler.emit(log_record, logger=logger)
+        expected: dict[str, object] = {
             "level": logging.INFO,
             "event": "msg",
             "name": "name",
@@ -166,17 +182,19 @@ def test_emit_invalid_keys_prod(handler: mock.MagicMock) -> None:
 def test_JSONRenderer_nonprod() -> None:
     renderer = JSONRenderer()
     with pytest.raises(TypeError):
-        renderer(None, None, {"foo": {mock.Mock(): "foo"}})
+        renderer(None, "test", {"foo": {mock.Mock(): "foo"}})
 
 
 @mock.patch("logging.raiseExceptions", False)
 def test_JSONRenderer_prod() -> None:
     renderer = JSONRenderer()
-    renderer(None, None, {"foo": {mock.Mock(): "foo"}})
+    renderer(None, "test", {"foo": {mock.Mock(): "foo"}})
 
 
 @mock.patch("logging.raiseExceptions", True)
-def test_logging_raiseExcpetions_enabled_generic_logging(caplog, snafu) -> None:
+def test_logging_raiseExcpetions_enabled_generic_logging(
+    caplog: pytest.LogCaptureFixture, snafu: object
+) -> None:
     logger = logging.getLogger(__name__)
 
     with pytest.raises(Exception) as exc_info:
@@ -185,7 +203,9 @@ def test_logging_raiseExcpetions_enabled_generic_logging(caplog, snafu) -> None:
 
 
 @mock.patch("logging.raiseExceptions", False)
-def test_logging_raiseExcpetions_disabled_generic_logging(caplog, snafu) -> None:
+def test_logging_raiseExcpetions_disabled_generic_logging(
+    caplog: pytest.LogCaptureFixture, snafu: object
+) -> None:
     logger = logging.getLogger(__name__)
     logger.log(logging.INFO, snafu)
 
@@ -206,7 +226,7 @@ def test_gke_emit() -> None:
 
 
 @mock.patch("random.random", lambda: 0.1)
-def test_sampling_filter(caplog, set_level_debug) -> None:
+def test_sampling_filter(caplog: pytest.LogCaptureFixture, set_level_debug: object) -> None:
     logger = logging.getLogger(__name__)
     with filter_context(logger, [SamplingFilter(0.2)]):
         logger.info("msg1")
@@ -221,7 +241,7 @@ def test_sampling_filter(caplog, set_level_debug) -> None:
 
 
 @mock.patch("random.random", lambda: 0.1)
-def test_sampling_filter_level(caplog, set_level_debug) -> None:
+def test_sampling_filter_level(caplog: pytest.LogCaptureFixture, set_level_debug: object) -> None:
     logger = logging.getLogger(__name__)
     with filter_context(logger, [SamplingFilter(0.05, level=logging.WARNING)]):
         logger.debug("debug")
@@ -235,7 +255,9 @@ def test_sampling_filter_level(caplog, set_level_debug) -> None:
 
 
 @mock.patch("random.random", lambda: 0.1)
-def test_sampling_filter_level_default(caplog, set_level_debug) -> None:
+def test_sampling_filter_level_default(
+    caplog: pytest.LogCaptureFixture, set_level_debug: object
+) -> None:
     logger = logging.getLogger(__name__)
     with filter_context(logger, [SamplingFilter(0.05)]):
         logger.debug("debug")

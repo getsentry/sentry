@@ -1,4 +1,4 @@
-import {UPTIME_DETECTOR_DRAFT_SCHEMA} from 'sentry/views/detectors/components/forms/uptime/uptimeDraftConfig';
+import {UPTIME_DETECTOR_DRAFT_SCHEMA} from './uptimeDraftConfig';
 
 const statusCheck = {
   id: 'status',

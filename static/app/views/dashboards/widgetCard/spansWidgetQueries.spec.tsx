@@ -7,6 +7,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
+import {SavedDashboardQueryPriorityProvider} from 'sentry/views/dashboards/hooks/useDashboardQueryPriority';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 
 import {SpansWidgetQueries} from './spansWidgetQueries';
@@ -315,6 +316,61 @@ describe('spansWidgetQueries', () => {
         organization: OrganizationFixture({features: ['low-priority-queries']}),
         initialRouterConfig: {
           location: {pathname: '/', query: {queryPriority: 'faster'}},
+        },
+      }
+    );
+
+    expect(await screen.findByText('1')).toBeInTheDocument();
+    expect(lowPriorityMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-timeseries/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          sampling: 'LOW_PRIORITY',
+        }),
+      })
+    );
+  });
+
+  it('sends low priority sampling for a saved faster priority without a url param', async () => {
+    widget = WidgetFixture({
+      queries: [
+        {
+          name: '',
+          aggregates: ['a'],
+          fields: ['a'],
+          columns: [],
+          conditions: '',
+          orderby: '',
+        },
+      ],
+      displayType: DisplayType.LINE,
+    });
+
+    const lowPriorityMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: [TimeSeriesFixture({yAxis: 'a'})]},
+      match: [
+        function (_url: string, options: Record<string, any>) {
+          return options.query.sampling === 'LOW_PRIORITY';
+        },
+      ],
+    });
+
+    PageFiltersStore.onInitializeUrlState({
+      ...selection,
+      datetime: {period: '24hr', end: null, start: null, utc: null},
+    });
+
+    render(
+      <SavedDashboardQueryPriorityProvider priority="faster">
+        <SpansWidgetQueries widget={widget} dashboardFilters={{}}>
+          {({timeseriesResults}) => <div>{timeseriesResults?.length}</div>}
+        </SpansWidgetQueries>
+      </SavedDashboardQueryPriorityProvider>,
+      {
+        organization: OrganizationFixture({features: ['low-priority-queries']}),
+        initialRouterConfig: {
+          location: {pathname: '/', query: {}},
         },
       }
     );

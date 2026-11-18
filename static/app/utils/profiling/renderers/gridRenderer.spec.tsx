@@ -2,11 +2,9 @@ import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {makeLightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {transformMatrixBetweenRect} from 'sentry/utils/profiling/gl/utils';
-import {
-  getIntervalTimeAtX,
-  GridRenderer,
-} from 'sentry/utils/profiling/renderers/gridRenderer';
 import {computeInterval, Rect} from 'sentry/utils/profiling/speedscope';
+
+import {getIntervalTimeAtX, GridRenderer} from './gridRenderer';
 
 const theme = makeLightFlamegraphTheme(ThemeFixture());
 

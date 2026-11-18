@@ -22,6 +22,11 @@ export type TracingEventParameters = {
   'trace.explorer.cross_event_removed': {
     type: CrossEventType;
   };
+  'trace.explorer.extrapolation_toggled': {
+    enabled: boolean;
+    organization_id: string;
+    source: 'settings_dropdown' | 'enabled_alert';
+  };
   'trace.explorer.metadata': {
     columns: readonly string[];
     columns_count: number;
@@ -231,6 +236,7 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.explorer.cross_event_added': 'Trace Explorer: Cross Event Added',
   'trace.explorer.cross_event_changed': 'Trace Explorer: Cross Event Changed',
   'trace.explorer.cross_event_removed': 'Trace Explorer: Cross Event Removed',
+  'trace.explorer.extrapolation_toggled': 'Trace Explorer: Extrapolation Toggled',
   'trace.explorer.table_pagination': 'Trace Explorer Table Pagination',
   'trace.explorer.table_tab_changed': 'Trace Explorer: Table Tab Changed',
   'trace.trace_layout.change': 'Changed Trace Layout',

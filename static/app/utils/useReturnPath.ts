@@ -1,8 +1,8 @@
 import {useEffect} from 'react';
 import {matchPath} from 'react-router';
 
-import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
-import {useLocation} from 'sentry/utils/useLocation';
+import {sessionStorageWrapper} from './sessionStorage';
+import {useLocation} from './useLocation';
 
 interface CaptureReturnPathOptions {
   /**

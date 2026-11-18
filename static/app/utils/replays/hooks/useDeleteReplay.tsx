@@ -1,12 +1,14 @@
 import {useCallback} from 'react';
 import * as Sentry from '@sentry/react';
+import {useMutation} from '@tanstack/react-query';
 import {parseAsString, useQueryState} from 'nuqs';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {openConfirmModal} from 'sentry/components/confirm';
+import {openConfirmModal} from '@sentry/scraps/confirm';
+import {toast} from '@sentry/scraps/toast';
+
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApi} from 'sentry/utils/useApi';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
@@ -17,7 +19,6 @@ interface DeleteButtonProps {
 }
 
 export function useDeleteReplay({projectSlug, replayId}: DeleteButtonProps) {
-  const api = useApi();
   const navigate = useNavigate();
   const organization = useOrganization();
 
@@ -26,24 +27,26 @@ export function useDeleteReplay({projectSlug, replayId}: DeleteButtonProps) {
 
   const issueReferrer = Boolean(referrer?.includes('issues') && groupId);
 
+  const {mutateAsync: deleteReplay} = useMutation({
+    mutationFn: (path: {projectIdOrSlug: string; replayId: string}) =>
+      fetchMutation({
+        url: getApiUrl(
+          '/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/$replayId/',
+          {
+            path: {organizationIdOrSlug: organization.slug, ...path},
+          }
+        ),
+        method: 'DELETE',
+      }),
+  });
+
   const handleDelete = useCallback(async () => {
     if (!projectSlug || !replayId) {
       return;
     }
 
     try {
-      await api.requestPromise(
-        getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/$replayId/', {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: projectSlug,
-            replayId,
-          },
-        }),
-        {
-          method: 'DELETE',
-        }
-      );
+      await deleteReplay({projectIdOrSlug: projectSlug, replayId});
       navigate(
         issueReferrer
           ? {pathname: `/organizations/${organization.slug}/issues/${groupId}/replays/`}
@@ -54,10 +57,18 @@ export function useDeleteReplay({projectSlug, replayId}: DeleteButtonProps) {
         {replace: true}
       );
     } catch (err) {
-      addErrorMessage(t('Failed to delete replay'));
+      toast.error(t('Failed to delete replay'));
       Sentry.captureException(err);
     }
-  }, [api, navigate, organization, projectSlug, replayId, issueReferrer, groupId]);
+  }, [
+    deleteReplay,
+    navigate,
+    organization,
+    projectSlug,
+    replayId,
+    issueReferrer,
+    groupId,
+  ]);
 
   const confirmDelete = useCallback(() => {
     if (!projectSlug || !replayId) {

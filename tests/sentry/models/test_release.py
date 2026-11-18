@@ -1,8 +1,11 @@
 from datetime import timedelta
+from typing import Any
 from unittest.mock import MagicMock, call, patch
 
 import pytest
 from django.core.exceptions import ValidationError
+from django.db import connection
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from sentry.analytics.events.issue_resolved import IssueResolvedEvent
@@ -41,12 +44,12 @@ from sentry.models.releaseactivity import ReleaseActivity
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
-from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment, ReleaseStages
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
 from sentry.search.events.filter import parse_semver
 from sentry.signals import receivers_raise_on_send
-from sentry.testutils.cases import SetRefsTestCase, TestCase
+from sentry.testutils.cases import SetRefsTestCase, TestCase, TransactionTestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.action_log import capture_action_log
 from sentry.testutils.helpers.analytics import assert_any_analytics_event
@@ -171,7 +174,7 @@ class NextReleaseOrderingTest(TestCase):
         "fake_package@1.0.0.0-beta+exp.sha.5114f85",  # major, minor, patch, revision, pre-release, and build
     ],
 )
-def test_version_is_semver_valid(release_version) -> None:
+def test_version_is_semver_valid(release_version: str) -> None:
     assert Release.is_semver_version(release_version) is True
 
 
@@ -198,7 +201,7 @@ def test_version_is_semver_valid(release_version) -> None:
         "package@1.0.0-alpha.1+1..2",  # Empty build component
     ],
 )
-def test_version_is_semver_invalid(release_version) -> None:
+def test_version_is_semver_invalid(release_version: str) -> None:
     assert Release.is_semver_version(release_version) is False
 
 
@@ -358,8 +361,6 @@ class MergeReleasesTest(TestCase):
         assert GroupRelease.objects.get(id=group_release.id).release_id == release.id
         assert GroupRelease.objects.get(id=group_release2.id).release_id == release.id
         assert GroupRelease.objects.get(id=group_release3.id).release_id == release.id
-        assert GroupRelease.objects.get(id=group_release2.id).new_release_id == release.id
-        assert GroupRelease.objects.get(id=group_release3.id).new_release_id == release.id
 
         # GroupResolution.release
         assert GroupResolution.objects.get(id=group_resolution.id).release == release
@@ -789,6 +790,7 @@ class SetCommitsTestCase(TestCase):
         release.set_commits([{"id": commit.key, "repository": repo.name}])
 
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+        assert org.default_owner_id is not None
         assert_any_analytics_event(
             mock_record,
             IssueResolvedEvent(
@@ -836,6 +838,7 @@ class SetCommitsTestCase(TestCase):
 
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
         commit = Commit.objects.get(organization_id=org.id, key="a" * 40)
+        assert org.default_owner_id is not None
         assert_any_analytics_event(
             mock_record,
             IssueResolvedEvent(
@@ -904,6 +907,7 @@ class SetCommitsTestCase(TestCase):
         release.set_commits([{"id": commit.key, "repository": repo.name}])
 
         assert Group.objects.get(id=group.id).status == GroupStatus.RESOLVED
+        assert org.default_owner_id is not None
         assert_any_analytics_event(
             mock_record,
             IssueResolvedEvent(
@@ -1160,7 +1164,7 @@ class SetRefsTest(SetRefsTestCase):
     @patch("sentry.tasks.commits.fetch_commits")
     @receivers_raise_on_send()
     def test_simple(self, mock_fetch_commit: MagicMock) -> None:
-        refs = [
+        refs: list[dict[str, Any]] = [
             {
                 "repository": "test/repo",
                 "previousCommit": "previous-commit-id",
@@ -1209,7 +1213,7 @@ class SetRefsTest(SetRefsTestCase):
     @patch("sentry.tasks.commits.fetch_commits")
     @receivers_raise_on_send()
     def test_handle_commit_ranges(self, mock_fetch_commit: MagicMock) -> None:
-        refs = [
+        refs: list[dict[str, Any]] = [
             {
                 "repository": "test/repo",
                 "previousCommit": None,
@@ -1508,7 +1512,14 @@ class ReleaseFilterBySemverTest(TestCase):
         ):
             Release.objects.filter_by_semver(self.organization.id, parse_semver("1.2.hi", ">"))
 
-    def run_test(self, operator, version, expected_releases, organization_id=None, projects=None):
+    def run_test(
+        self,
+        operator: str,
+        version: str,
+        expected_releases: list[Release],
+        organization_id: int | None = None,
+        projects: list[Project] | None = None,
+    ) -> None:
         organization_id = organization_id if organization_id else self.organization.id
         project_ids = [p.id for p in projects] if projects else None
         assert set(
@@ -1599,7 +1610,14 @@ class ReleaseFilterBySemverTest(TestCase):
 
 
 class ReleaseFilterBySemverBuildTest(TestCase):
-    def run_test(self, operator, build, expected_releases, organization_id=None, projects=None):
+    def run_test(
+        self,
+        operator: str,
+        build: str,
+        expected_releases: list[Release],
+        organization_id: int | None = None,
+        projects: list[Project] | None = None,
+    ) -> None:
         organization_id = organization_id if organization_id else self.organization.id
         project_ids = [p.id for p in projects] if projects else None
         assert set(
@@ -1641,6 +1659,118 @@ class ReleaseFilterBySemverBuildTest(TestCase):
         self.run_test("exact", "123a*", [release_3])
         self.run_test("exact", "123ab", [])
         self.run_test("exact", "123abc", [release_3])
+
+
+class ReleaseFilterByStageTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.production = self.create_environment(name="production", project=self.project)
+        self.staging = self.create_environment(name="staging", project=self.project)
+        now = timezone.now()
+
+        # Adopted in production, low adoption in staging.
+        self.adopted_in_production = self.create_release(
+            version="adopted-in-production",
+            environments=[self.production, self.staging],
+            adopted=now,
+        )
+        ReleaseProjectEnvironment.objects.filter(
+            release=self.adopted_in_production, environment=self.staging
+        ).update(adopted=None)
+
+        # Adopted in production, replaced in staging.
+        self.replaced_in_staging = self.create_release(
+            version="replaced-in-staging",
+            environments=[self.production, self.staging],
+            adopted=now,
+        )
+        ReleaseProjectEnvironment.objects.filter(
+            release=self.replaced_in_staging, environment=self.staging
+        ).update(unadopted=now)
+
+    def run_test(
+        self,
+        operator: str,
+        stage: str | list[str],
+        environment: str | int,
+        expected_releases: list[Release],
+    ) -> None:
+        assert set(
+            Release.objects.filter_by_stage(
+                self.organization.id,
+                operator,
+                stage,
+                project_ids=[self.project.id],
+                environments=[environment],
+            )
+        ) == set(expected_releases)
+
+    def test_stage_is_scoped_to_environment(self) -> None:
+        self.run_test(
+            "=",
+            ReleaseStages.ADOPTED,
+            "production",
+            [self.adopted_in_production, self.replaced_in_staging],
+        )
+        self.run_test("=", ReleaseStages.ADOPTED, "staging", [])
+        self.run_test("=", ReleaseStages.LOW_ADOPTION, "production", [])
+        self.run_test("=", ReleaseStages.LOW_ADOPTION, "staging", [self.adopted_in_production])
+        self.run_test("=", ReleaseStages.REPLACED, "production", [])
+        self.run_test("=", ReleaseStages.REPLACED, "staging", [self.replaced_in_staging])
+
+    def test_negated_stage_is_scoped_to_environment(self) -> None:
+        self.run_test("!=", ReleaseStages.ADOPTED, "production", [])
+        self.run_test(
+            "!=",
+            ReleaseStages.ADOPTED,
+            "staging",
+            [self.adopted_in_production, self.replaced_in_staging],
+        )
+
+    def test_multiple_stages_are_scoped_to_environment(self) -> None:
+        self.run_test(
+            "IN",
+            [ReleaseStages.ADOPTED, ReleaseStages.REPLACED],
+            "staging",
+            [self.replaced_in_staging],
+        )
+
+    def test_environment_id(self) -> None:
+        self.run_test(
+            "=",
+            ReleaseStages.ADOPTED,
+            self.production.id,
+            [self.adopted_in_production, self.replaced_in_staging],
+        )
+        self.run_test("=", ReleaseStages.ADOPTED, self.staging.id, [])
+        self.run_test(
+            "=", ReleaseStages.LOW_ADOPTION, self.staging.id, [self.adopted_in_production]
+        )
+
+    def test_unknown_environment(self) -> None:
+        self.run_test("=", ReleaseStages.ADOPTED, "does-not-exist", [])
+
+    def test_requires_single_environment(self) -> None:
+        with pytest.raises(InvalidSearchQuery, match="Choose a single environment"):
+            Release.objects.filter_by_stage(
+                self.organization.id, "=", ReleaseStages.ADOPTED, environments=None
+            )
+        with pytest.raises(InvalidSearchQuery, match="Choose a single environment"):
+            Release.objects.filter_by_stage(
+                self.organization.id,
+                "=",
+                ReleaseStages.ADOPTED,
+                environments=["production", "staging"],
+            )
+
+    def test_rejects_environment_that_is_not_a_name_or_id(self) -> None:
+        with pytest.raises(TypeError, match="Expected an environment name or id"):
+            Release.objects.filter_by_stage(
+                self.organization.id,
+                "=",
+                ReleaseStages.ADOPTED,
+                environments=[self.production],  # type: ignore[list-item]
+            )
 
 
 class FollowsSemverVersioningSchemeTestCase(TestCase):
@@ -2486,3 +2616,74 @@ class ReleaseGetUnusedFilterTestCase(TestCase):
         unused_filter = Release.get_unused_filter(self.cutoff_date)
         unused_releases = Release.objects.filter(unused_filter)
         assert old_release not in unused_releases
+
+
+class WorkerKilled(BaseException):
+    pass
+
+
+class SetCommitsTransactionTest(TransactionTestCase):
+    def _swap_transaction(self, statements: list[str]) -> list[str]:
+        delete_index = None
+        for index, statement in enumerate(statements):
+            if statement.startswith('DELETE FROM "sentry_releasecommit"'):
+                delete_index = index
+                break
+        assert delete_index is not None
+        begin_index = delete_index
+        while statements[begin_index] != "BEGIN":
+            begin_index -= 1
+        commit_index = delete_index
+        while statements[commit_index] != "COMMIT":
+            commit_index += 1
+        return statements[begin_index:commit_index]
+
+    def test_swap_transaction_opens_no_subtransactions(self) -> None:
+        repo = self.create_repo(project=self.project, name="example/repo")
+        groups = [self.create_group(project=self.project) for _ in range(3)]
+        messages = [f"fixes {group.qualified_short_id}" for group in groups]
+        messages += [f"commit {i}" for i in range(len(groups), 70)]
+        commit_list: list[dict[str, Any]] = [
+            {"id": f"{i:040x}", "repository": repo.name, "message": message}
+            for i, message in enumerate(messages)
+        ]
+        commit_list.append(dict(commit_list[-1]))
+        release = self.create_release(project=self.project, version="1.0")
+
+        with CaptureQueriesContext(connection) as ctx:
+            release.set_commits(commit_list)
+
+        statements = [query["sql"] for query in ctx.captured_queries]
+        swap_statements = self._swap_transaction(statements)
+        savepoints = [s for s in swap_statements if s.startswith("SAVEPOINT")]
+        commit_upserts = [
+            s for s in swap_statements if s.startswith('INSERT INTO "sentry_commit" ')
+        ]
+        assert savepoints == []
+        assert commit_upserts == []
+        orders = ReleaseCommit.objects.filter(release=release).values_list("order", flat=True)
+        assert sorted(orders) == list(range(70))
+
+    def test_commit_update_and_issue_links_commit_together(self) -> None:
+        repo = self.create_repo(project=self.project, name="example/repo")
+        group = self.create_group(project=self.project)
+        release = self.create_release(project=self.project, version="1.0")
+        sha = "a" * 40
+        self.create_commit(repo=repo, key=sha, message="placeholder")
+        commit_list = [
+            {"id": sha, "repository": repo.name, "message": f"fixes {group.qualified_short_id}"}
+        ]
+
+        with patch.object(GroupLink.objects, "create", side_effect=WorkerKilled()):
+            with pytest.raises(WorkerKilled):
+                release.set_commits([dict(data) for data in commit_list])
+
+        commit = Commit.objects.get(repository_id=repo.id, key=sha)
+        assert commit.message == "placeholder"
+        assert not GroupLink.objects.filter(linked_id=commit.id).exists()
+
+        release.set_commits([dict(data) for data in commit_list])
+
+        commit = Commit.objects.get(repository_id=repo.id, key=sha)
+        assert commit.message == f"fixes {group.qualified_short_id}"
+        assert GroupLink.objects.filter(group_id=group.id, linked_id=commit.id).exists()

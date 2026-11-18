@@ -1,9 +1,10 @@
 import {Fragment} from 'react';
 import {useQuery, useMutation} from '@tanstack/react-query';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {useModal} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -17,8 +18,6 @@ import type {Member} from 'sentry/types/organization';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {IntegrationExternalMappingForm} from './integrationExternalMappingForm';
@@ -33,7 +32,7 @@ export function IntegrationExternalUserMappings(props: Props) {
 
   const {integration} = props;
   const organization = useOrganization();
-  const location = useLocation();
+  const [cursor] = useQueryState('cursor', parseAsString);
 
   // An existing mapping is updated in place, so the id belongs in the path.
   const getBaseFormEndpoint = (mapping?: ExternalActorMappingOrSuggestion) => {
@@ -61,7 +60,7 @@ export function IntegrationExternalUserMappings(props: Props) {
       {
         path: {organizationIdOrSlug: organization.slug},
         query: {
-          cursor: decodeScalar(location.query.cursor),
+          cursor: cursor || undefined,
           query: 'hasExternalUsers:true',
           expand: 'externalUsers',
         },
@@ -99,11 +98,11 @@ export function IntegrationExternalUserMappings(props: Props) {
         method: 'DELETE',
       }),
     onSuccess: () => {
-      addSuccessMessage(t('Deletion successful'));
+      toast.success(t('Deletion successful'));
       fetchData();
     },
     onError: () => {
-      addErrorMessage(t('An error occurred'));
+      toast.error(t('An error occurred'));
     },
   });
 

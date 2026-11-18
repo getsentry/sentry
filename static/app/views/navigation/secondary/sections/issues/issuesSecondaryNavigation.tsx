@@ -1,17 +1,16 @@
 import {Fragment} from 'react';
 
-import {FeatureBadge} from '@sentry/scraps/badge';
-
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useInboxIssueCount} from 'sentry/views/issueList/pages/inbox/useInboxIssueCount';
 import {ISSUE_TAXONOMY_CONFIG} from 'sentry/views/issueList/taxonomies';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
-import {IssueCount} from 'sentry/views/navigation/secondary/sections/issues/issueCount';
-import {IssueViews} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViews';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
+
+import {IssueViews} from './issueViews/issueViews';
+import {IssueCount} from './issueCount';
 
 function InboxCountBadgeImpl() {
   const {data: count} = useInboxIssueCount();
@@ -81,11 +80,15 @@ function IssuesSecondaryNavigationImpl() {
                   to={`${baseUrl}/inbox/`}
                   end
                   analyticsItemName="issues_inbox"
-                  leadingItems={settingsV3 ? <FeatureBadge type="new" /> : null}
+                  leadingItems={
+                    settingsV3 ? <SecondaryNavigation.FeatureBadge type="new" /> : null
+                  }
                   trailingItems={
                     <Fragment>
                       <InboxCountBadge />
-                      {settingsV3 ? null : <FeatureBadge type="new" />}
+                      {settingsV3 ? null : (
+                        <SecondaryNavigation.FeatureBadge type="new" />
+                      )}
                     </Fragment>
                   }
                 >
@@ -105,10 +108,14 @@ function IssuesSecondaryNavigationImpl() {
                   end
                   analyticsItemName={`issues_types_${key}`}
                   leadingItems={
-                    settingsV3 && badge ? <FeatureBadge type={badge} /> : null
+                    settingsV3 && badge ? (
+                      <SecondaryNavigation.FeatureBadge type={badge} />
+                    ) : null
                   }
                   trailingItems={
-                    !settingsV3 && badge ? <FeatureBadge type={badge} /> : null
+                    !settingsV3 && badge ? (
+                      <SecondaryNavigation.FeatureBadge type={badge} />
+                    ) : null
                   }
                 >
                   {label}
@@ -136,8 +143,16 @@ function IssuesSecondaryNavigationImpl() {
                       to={`${baseUrl}/autofix/`}
                       analyticsItemName="issues_autofix_overview"
                       end
-                      leadingItems={settingsV3 ? <FeatureBadge type="new" /> : null}
-                      trailingItems={settingsV3 ? null : <FeatureBadge type="new" />}
+                      leadingItems={
+                        settingsV3 ? (
+                          <SecondaryNavigation.FeatureBadge type="new" />
+                        ) : null
+                      }
+                      trailingItems={
+                        settingsV3 ? null : (
+                          <SecondaryNavigation.FeatureBadge type="new" />
+                        )
+                      }
                     >
                       {t('Overview')}
                     </SecondaryNavigation.Link>

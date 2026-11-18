@@ -1,14 +1,11 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
+import {useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import type {
@@ -16,7 +13,8 @@ import type {
   ServerlessFunction,
 } from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useApi} from 'sentry/utils/useApi';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface IntegrationServerlessRowProps {
@@ -30,10 +28,20 @@ export function IntegrationServerlessRow({
   onUpdate,
   serverlessFunction,
 }: IntegrationServerlessRowProps) {
-  const api = useApi();
   const organization = useOrganization();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const endpoint = `/organizations/${organization.slug}/integrations/${integration.id}/serverless-functions/`;
+
+  const {mutateAsync: updateServerlessFunction} = useMutation({
+    mutationFn: (data: {action: string; target: string}) =>
+      fetchMutation<ServerlessFunction>({
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/integrations/$integrationId/serverless-functions/',
+          {path: {organizationIdOrSlug: organization.slug, integrationId: integration.id}}
+        ),
+        method: 'POST',
+        data,
+      }),
+  });
 
   const {version} = serverlessFunction;
   // during optimistic update, we might be enabled without a version
@@ -63,22 +71,20 @@ export function IntegrationServerlessRow({
       setIsSubmitting(true);
       // don't know the latest version but at least optimistically remove the update button
       onUpdate({outOfDate: false});
-      addLoadingMessage();
+      toast.loading(t('Saving changes...'));
       recordAction('updateVersion');
-      const resp = await api.requestPromise(endpoint, {
-        method: 'POST',
-        data,
-      });
+      const resp = await updateServerlessFunction(data);
       // update remaining after response
       onUpdate(resp);
-      addSuccessMessage(t('Success'));
+      toast.success(t('Success'));
     } catch (err: any) {
       // restore original on failure
       onUpdate(serverlessFunction);
-      addErrorMessage(err.responseJSON?.detail ?? t('Error occurred'));
+      const detail: unknown = err.responseJSON?.detail;
+      toast.error(typeof detail === 'string' ? detail : t('Error occurred'));
     }
     setIsSubmitting(false);
-  }, [api, endpoint, onUpdate, recordAction, serverlessFunction]);
+  }, [onUpdate, recordAction, serverlessFunction, updateServerlessFunction]);
 
   const handleToggle = async () => {
     const action = serverlessFunction.enabled ? 'disable' : 'enable';
@@ -87,22 +93,20 @@ export function IntegrationServerlessRow({
       target: serverlessFunction.name,
     };
     try {
-      addLoadingMessage();
+      toast.loading(t('Saving changes...'));
       setIsSubmitting(true);
       // optimistically update enable state
       onUpdate({enabled: !serverlessFunction.enabled});
       recordAction(action);
-      const resp = await api.requestPromise(endpoint, {
-        method: 'POST',
-        data,
-      });
+      const resp = await updateServerlessFunction(data);
       // update remaining after response
       onUpdate(resp);
-      addSuccessMessage(t('Success'));
+      toast.success(t('Success'));
     } catch (err: any) {
       // restore original on failure
       onUpdate(serverlessFunction);
-      addErrorMessage(err.responseJSON?.detail ?? t('Error occurred'));
+      const detail: unknown = err.responseJSON?.detail;
+      toast.error(typeof detail === 'string' ? detail : t('Error occurred'));
     }
     setIsSubmitting(false);
   };

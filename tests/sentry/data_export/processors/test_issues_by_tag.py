@@ -40,6 +40,7 @@ class IssuesByTagProcessorTest(TestCase, SnubaTestCase):
             },
             project_id=self.project.id,
         )
+        assert self.event.group is not None
         self.group = self.event.group
         self.euser = EventUser(
             project_id=self.project.id,

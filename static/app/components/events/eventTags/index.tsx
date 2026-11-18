@@ -1,9 +1,6 @@
 import {Fragment, useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {EventTagCustomBanner} from 'sentry/components/events/eventTags/eventTagCustomBanner';
-import {EventTagsTree} from 'sentry/components/events/eventTags/eventTagsTree';
-import {associateTagsWithMeta, TagFilter} from 'sentry/components/events/eventTags/util';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import type {Event, EventTagWithMeta} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
@@ -11,6 +8,10 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
 import {isMobilePlatform} from 'sentry/utils/platform';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {EventTagCustomBanner} from './eventTagCustomBanner';
+import {EventTagsTree} from './eventTagsTree';
+import {associateTagsWithMeta, TagFilter} from './util';
 
 type Props = {
   event: Event;

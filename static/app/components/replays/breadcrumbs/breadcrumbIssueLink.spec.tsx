@@ -2,8 +2,9 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {BreadcrumbIssueLink} from 'sentry/components/replays/breadcrumbs/breadcrumbIssueLink';
 import type {ErrorFrame, FeedbackFrame} from 'sentry/utils/replays/types';
+
+import {BreadcrumbIssueLink} from './breadcrumbIssueLink';
 
 describe('BreadcrumbIssueLink', () => {
   beforeEach(() => {

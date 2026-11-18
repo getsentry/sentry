@@ -5,7 +5,8 @@ import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {TeamStore} from 'sentry/stores/teamStore';
-import {useTeams} from 'sentry/utils/useTeams';
+
+import {useTeams} from './useTeams';
 
 describe('useTeams', () => {
   const org = OrganizationFixture();

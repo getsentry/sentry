@@ -10,25 +10,26 @@ import {
 
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {
-  decodeMetricsQueryParams,
-  defaultMetricQuery,
-  encodeMetricQueryParams,
-  type MetricQuery,
-} from 'sentry/views/explore/metrics/metricQuery';
-import {
-  LocalMultiMetricsQueryParamsProvider,
-  MultiMetricsQueryParamsProvider,
-  useAddMetricQuery,
-  useMultiMetricsQueryParams,
-  useReorderMetricQueries,
-} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {
   VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+
+import {
+  decodeMetricsQueryParams,
+  defaultMetricQuery,
+  encodeMetricQueryParams,
+  type MetricQuery,
+} from './metricQuery';
+import {
+  LocalMultiMetricsQueryParamsProvider,
+  MultiMetricsQueryParamsProvider,
+  useAddMetricQuery,
+  useMultiMetricsQueryParams,
+  useReorderMetricQueries,
+} from './multiMetricsQueryParams';
 
 function canonicalMetricQueryParam(name: string) {
   return encodeMetricQueryParams(

@@ -2,9 +2,10 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 
-import {PathMappingList} from 'sentry/components/connectRepository/pathMappingList';
-import type {PathMappingValue} from 'sentry/components/connectRepository/type';
 import type {RepositoryProjectPathConfig} from 'sentry/types/integrations';
+
+import {PathMappingList} from './pathMappingList';
+import type {PathMappingValue} from './type';
 
 const MAPPINGS: PathMappingValue[] = [
   {id: '1', stackRoot: 'app/', sourceRoot: 'static/app/', branch: 'main'},

@@ -13,20 +13,29 @@ from sentry.integrations.source_code_management.tasks import pr_comment_workflow
 from sentry.models.commit import Commit
 from sentry.models.group import Group
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
+from sentry.models.project import Project
 from sentry.models.pullrequest import (
     CommentType,
     PullRequest,
     PullRequestComment,
     PullRequestCommit,
 )
+from sentry.models.repository import Repository
+from sentry.services.eventstore.models import Event
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.commit_context import DEBOUNCE_PR_COMMENT_CACHE_KEY
 from sentry.testutils.cases import SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import assume_test_silo_mode_of
+from sentry.users.models.user import User
 from sentry.utils import json
 from sentry.utils.cache import cache
+
+
+def event_group_id(event: Event) -> int:
+    assert event.group is not None
+    return event.group.id
 
 
 class GitlabCommentTestCase(GitLabTestCase):
@@ -61,10 +70,10 @@ class GitlabCommentTestCase(GitLabTestCase):
         self.commit_sha = 1
         self.fingerprint = 1
 
-    def add_commit_to_repo(self, repo, user, project):
+    def add_commit_to_repo(self, repo: Repository, user: User, project: Project) -> Commit:
         if user not in self.user_to_commit_author_map:
             self.user_to_commit_author_map[user] = self.create_commit_author(
-                project=repo.project, user=user
+                project=project, user=user
             )
         commit = self.create_commit(
             project=project,
@@ -76,7 +85,7 @@ class GitlabCommentTestCase(GitLabTestCase):
         self.commit_sha += 1
         return commit
 
-    def add_pr_to_commit(self, commit: Commit, date_added=None):
+    def add_pr_to_commit(self, commit: Commit, date_added: datetime | None = None) -> PullRequest:
         if date_added is None:
             date_added = before_now(minutes=1)
         pr = PullRequest.objects.create(
@@ -93,11 +102,11 @@ class GitlabCommentTestCase(GitLabTestCase):
         self.add_branch_commit_to_pr(commit, pr)
         return pr
 
-    def add_branch_commit_to_pr(self, commit: Commit, pr: PullRequest):
+    def add_branch_commit_to_pr(self, commit: Commit, pr: PullRequest) -> PullRequestCommit:
         pr_commit = PullRequestCommit.objects.create(pull_request=pr, commit=commit)
         return pr_commit
 
-    def add_groupowner_to_commit(self, commit: Commit, project, user):
+    def add_groupowner_to_commit(self, commit: Commit, project: Project, user: User) -> GroupOwner:
         event = self.store_event(
             data={
                 "message": f"issue {self.fingerprint}",
@@ -118,7 +127,7 @@ class GitlabCommentTestCase(GitLabTestCase):
         )
         return groupowner
 
-    def create_pr_issues(self, repo=None):
+    def create_pr_issues(self, repo: Repository | None = None) -> PullRequest:
         if repo is None:
             repo = self.repo
 
@@ -182,45 +191,49 @@ class TestPrToIssueQuery(GitlabCommentTestCase):
 
 class TestTop5IssuesByCount(SnubaTestCase, GitlabCommentTestCase):
     def test_simple(self) -> None:
-        group1 = [
+        group1_events = [
             self.store_event(
                 {"fingerprint": ["group-1"], "timestamp": before_now(days=1).isoformat()},
                 project_id=self.project.id,
             )
             for _ in range(3)
-        ][0].group.id
-        group2 = [
+        ]
+        group1 = event_group_id(group1_events[0])
+        group2_events = [
             self.store_event(
                 {"fingerprint": ["group-2"], "timestamp": before_now(days=1).isoformat()},
                 project_id=self.project.id,
             )
             for _ in range(6)
-        ][0].group.id
-        group3 = [
+        ]
+        group2 = event_group_id(group2_events[0])
+        group3_events = [
             self.store_event(
                 {"fingerprint": ["group-3"], "timestamp": before_now(days=1).isoformat()},
                 project_id=self.project.id,
             )
             for _ in range(4)
-        ][0].group.id
+        ]
+        group3 = event_group_id(group3_events[0])
         res = self.pr_comment_workflow.get_top_5_issues_by_count(
             [group1, group2, group3], self.project
         )
         assert [issue["group_id"] for issue in res] == [group2, group3, group1]
 
     def test_over_5_issues(self) -> None:
-        issue_ids = [
+        events = [
             self.store_event(
                 {"fingerprint": [f"group-{idx}"], "timestamp": before_now(days=1).isoformat()},
                 project_id=self.project.id,
-            ).group.id
+            )
             for idx in range(6)
         ]
+        issue_ids = [event_group_id(event) for event in events]
         res = self.pr_comment_workflow.get_top_5_issues_by_count(issue_ids, self.project)
         assert len(res) == 5
 
     def test_ignore_info_level_issues(self) -> None:
-        group1 = [
+        group1_events = [
             self.store_event(
                 {
                     "fingerprint": ["group-1"],
@@ -230,15 +243,17 @@ class TestTop5IssuesByCount(SnubaTestCase, GitlabCommentTestCase):
                 project_id=self.project.id,
             )
             for _ in range(3)
-        ][0].group.id
-        group2 = [
+        ]
+        group1 = event_group_id(group1_events[0])
+        group2_events = [
             self.store_event(
                 {"fingerprint": ["group-2"], "timestamp": before_now(days=1).isoformat()},
                 project_id=self.project.id,
             )
             for _ in range(6)
-        ][0].group.id
-        group3 = [
+        ]
+        group2 = event_group_id(group2_events[0])
+        group3_events = [
             self.store_event(
                 {
                     "fingerprint": ["group-3"],
@@ -248,14 +263,15 @@ class TestTop5IssuesByCount(SnubaTestCase, GitlabCommentTestCase):
                 project_id=self.project.id,
             )
             for _ in range(4)
-        ][0].group.id
+        ]
+        group3 = event_group_id(group3_events[0])
         res = self.pr_comment_workflow.get_top_5_issues_by_count(
             [group1, group2, group3], self.project
         )
         assert [issue["group_id"] for issue in res] == [group2]
 
     def test_do_not_ignore_other_issues(self) -> None:
-        group1 = [
+        group1_events = [
             self.store_event(
                 {
                     "fingerprint": ["group-1"],
@@ -265,8 +281,9 @@ class TestTop5IssuesByCount(SnubaTestCase, GitlabCommentTestCase):
                 project_id=self.project.id,
             )
             for _ in range(3)
-        ][0].group.id
-        group2 = [
+        ]
+        group1 = event_group_id(group1_events[0])
+        group2_events = [
             self.store_event(
                 {
                     "fingerprint": ["group-2"],
@@ -276,8 +293,9 @@ class TestTop5IssuesByCount(SnubaTestCase, GitlabCommentTestCase):
                 project_id=self.project.id,
             )
             for _ in range(6)
-        ][0].group.id
-        group3 = [
+        ]
+        group2 = event_group_id(group2_events[0])
+        group3_events = [
             self.store_event(
                 {
                     "fingerprint": ["group-3"],
@@ -287,7 +305,8 @@ class TestTop5IssuesByCount(SnubaTestCase, GitlabCommentTestCase):
                 project_id=self.project.id,
             )
             for _ in range(4)
-        ][0].group.id
+        ]
+        group3 = event_group_id(group3_events[0])
         res = self.pr_comment_workflow.get_top_5_issues_by_count(
             [group1, group2, group3], self.project
         )

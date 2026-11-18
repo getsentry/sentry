@@ -158,7 +158,7 @@ def relocate_reclaim(request: HttpRequest, user_id: int) -> HttpResponse:
 
     # Verify that the user is unclaimed. If they are already claimed, tell the requester that this
     # is the case, since of course claiming this account would be impossible.
-    user = User.objects.filter(id=user_id).first()
+    user = User.objects.get_or_none(id=user_id)
     if user is None:
         logger.warning("reclaim.user_not_found", extra=extra)
         return render_to_response(get_template("relocate", "error"), {}, request)

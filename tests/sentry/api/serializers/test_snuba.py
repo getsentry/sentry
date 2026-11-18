@@ -1,5 +1,5 @@
 import unittest
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from django.utils import timezone
 
@@ -7,15 +7,24 @@ from sentry.api.serializers.snuba import zerofill
 
 
 class ZeroFillTest(unittest.TestCase):
-    def run_test(self, filled_buckets, irregular_buckets, start, end, rollup, zerofilled_buckets):
-        filled_buckets = [(start + (rollup * bucket), val) for bucket, val in filled_buckets]
-        buckets = [(date.timestamp(), val) for date, val in filled_buckets + irregular_buckets]
+    def run_test(
+        self,
+        filled_buckets: list[tuple[int, list[int]]],
+        irregular_buckets: list[tuple[datetime, list[int]]],
+        start: datetime,
+        end: datetime,
+        rollup: timedelta,
+        zerofilled_buckets: list[int],
+    ) -> None:
+        filled = [(start + (rollup * bucket), val) for bucket, val in filled_buckets]
+        buckets = [(date.timestamp(), val) for date, val in filled]
+        buckets.extend((date.timestamp(), val) for date, val in irregular_buckets)
         sort_key = lambda row: row[0]
         buckets.sort(key=sort_key)
-        zerofilled_buckets = [
+        zerofilled: list[tuple[float, list[int]]] = [
             ((start + (rollup * bucket)).timestamp(), []) for bucket in zerofilled_buckets
         ]
-        expected = buckets + zerofilled_buckets
+        expected = buckets + zerofilled
         expected.sort(key=sort_key)
         assert zerofill(buckets, start, end, int(rollup.total_seconds())) == expected
 

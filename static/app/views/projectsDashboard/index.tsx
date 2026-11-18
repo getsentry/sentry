@@ -5,6 +5,7 @@ import {IconUser} from '@sentry/icons/user';
 import {withProfiler} from '@sentry/react';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import uniqBy from 'lodash/uniqBy';
+import {createMultiParser, useQueryState} from 'nuqs';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -21,6 +22,7 @@ import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
 import type {Project, TeamWithProjects} from 'sentry/types/project';
+import {toArray} from 'sentry/utils/array/toArray';
 import {
   onRenderCallback,
   Profiler,
@@ -29,8 +31,6 @@ import {
 import {sortProjects} from 'sentry/utils/project/sortProjects';
 import {useIsSeerExplorerSidebarEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
@@ -139,14 +139,19 @@ function getFilteredProjectsBasedOnTeams({
   );
 }
 
+// `team=` (all teams) must stay distinct from no param (my teams).
+const parseAsTeam = createMultiParser({
+  parse: values => (values.length > 1 ? [...values] : (values[0] ?? null)),
+  serialize: (value: string | string[]) => toArray(value),
+});
+
 function Dashboard() {
-  const navigate = useNavigate();
-  const location = useLocation();
   const organization = useOrganization();
+  const [teamParam, setTeamParam] = useQueryState('team', parseAsTeam);
 
   const {teams: userTeams, isLoading: loadingTeams, isError} = useUserTeams();
-  const isAllTeams = location.query.team === '';
-  const selectedTeams = getTeamParams(location.query.team ?? 'myteams');
+  const isAllTeams = teamParam === '';
+  const selectedTeams = getTeamParams(teamParam ?? 'myteams');
   const {teams: allTeams} = useTeamsById({
     ids: selectedTeams.filter(team => team !== 'myteams'),
   });
@@ -192,13 +197,7 @@ function Dashboard() {
   const canJoinTeam = organization.access.includes('team:read');
 
   function handleChangeFilter(activeFilters: string[]) {
-    navigate({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        team: activeFilters.length > 0 ? activeFilters : '',
-      },
-    });
+    setTeamParam(activeFilters.length > 0 ? activeFilters : '', {history: 'push'});
   }
 
   return (

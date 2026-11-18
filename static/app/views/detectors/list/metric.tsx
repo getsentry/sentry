@@ -4,10 +4,11 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {WorkflowEngineListLayout} from 'sentry/components/workflowEngine/layout/list';
 import {t, tct} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {DetectorListActions} from 'sentry/views/detectors/list/common/detectorListActions';
-import {DetectorListContent} from 'sentry/views/detectors/list/common/detectorListContent';
-import {DetectorListHeader} from 'sentry/views/detectors/list/common/detectorListHeader';
-import {useDetectorListQuery} from 'sentry/views/detectors/list/common/useDetectorListQuery';
+
+import {DetectorListActions} from './common/detectorListActions';
+import {DetectorListContent} from './common/detectorListContent';
+import {DetectorListHeader} from './common/detectorListHeader';
+import {useDetectorListQuery} from './common/useDetectorListQuery';
 
 const TITLE = t('Metric Monitors');
 const DOCS_URL =

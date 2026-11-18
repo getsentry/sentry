@@ -1,13 +1,17 @@
 from __future__ import annotations
 
 import time
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from datetime import timezone as dt_timezone
+from typing import Any
 from unittest import mock
 
 import pytest
 from django.utils import timezone
 
+from sentry.models.project import Project
+from sentry.models.release import Release
 from sentry.release_health.base import OverviewStat
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
 from sentry.testutils.cases import BaseMetricsTestCase, TestCase
@@ -15,7 +19,7 @@ from sentry.testutils.cases import BaseMetricsTestCase, TestCase
 pytestmark = pytest.mark.sentry_metrics
 
 
-def format_timestamp(dt):
+def format_timestamp(dt: datetime | float) -> str:
     if not isinstance(dt, datetime):
         dt = datetime.fromtimestamp(dt)
     return dt.strftime("%Y-%m-%dT%H:%M:%S+00:00")
@@ -33,7 +37,7 @@ class ReleaseHealthBaseTestCase(BaseMetricsTestCase):
     user_2 = "39887d89-13b2-4c84-8c23-5d13d2102667"
     user_3 = "39887d89-13b2-4c84-8c23-5d13d2102668"
 
-    def create_sessions__v2_crashed(self) -> list[dict]:
+    def create_sessions__v2_crashed(self) -> list[dict[str, Any]]:
         self.received = time.time()
         self.session_started = time.time() // 60 * 60
 
@@ -78,7 +82,7 @@ class ReleaseHealthBaseTestCase(BaseMetricsTestCase):
             ),
         ]
 
-    def create_sessions__v1(self) -> list[dict]:
+    def create_sessions__v1(self) -> list[dict[str, Any]]:
         self.received = time.time()
         self.session_started = time.time() // 60 * 60
 
@@ -629,7 +633,9 @@ class GetProjectReleaseStatsTestCase(TestCase, ReleaseHealthBaseTestCase):
     backend = MetricsReleaseHealthBackend()
 
     @staticmethod
-    def _add_timestamps_to_series(series, start: datetime):
+    def _add_timestamps_to_series(
+        series: Sequence[Mapping[str, Any]], start: datetime
+    ) -> list[tuple[int, Mapping[str, Any]]]:
         one_day = 24 * 60 * 60
         day0 = one_day * int(start.timestamp() / one_day)
 
@@ -639,8 +645,12 @@ class GetProjectReleaseStatsTestCase(TestCase, ReleaseHealthBaseTestCase):
         return [(ts(i + 1), data) for i, data in enumerate(series)]
 
     def _test_get_project_release_stats(
-        self, stat: OverviewStat, release: str, expected_series, expected_totals
-    ):
+        self,
+        stat: OverviewStat,
+        release: str,
+        expected_series: Sequence[Mapping[str, Any]],
+        expected_totals: Mapping[str, Any],
+    ) -> None:
         end = timezone.now()
         start = end - timedelta(days=4)
         stats, totals = self.backend.get_project_release_stats(
@@ -1274,7 +1284,14 @@ class GetProjectReleasesCountTest(TestCase, BaseMetricsTestCase):
 class CheckReleasesHaveHealthDataTest(TestCase, BaseMetricsTestCase):
     backend = MetricsReleaseHealthBackend()
 
-    def run_test(self, expected, projects, releases, start=None, end=None):
+    def run_test(
+        self,
+        expected: Sequence[Release],
+        projects: Sequence[Project],
+        releases: Sequence[Release],
+        start: datetime | None = None,
+        end: datetime | None = None,
+    ) -> None:
         if not start:
             start = datetime.now() - timedelta(days=1)
         if not end:

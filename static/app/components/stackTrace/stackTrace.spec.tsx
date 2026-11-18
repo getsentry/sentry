@@ -9,16 +9,17 @@ import {DetailedProjectFixture} from 'sentry-fixture/project';
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {DisplayOptions} from 'sentry/components/stackTrace/displayOptions';
-import {FrameContent} from 'sentry/components/stackTrace/frame/frameContent';
-import {IssueFrameActions} from 'sentry/components/stackTrace/issueStackTrace/issueFrameActions';
-import {StackTraceViewStateProvider} from 'sentry/components/stackTrace/stackTraceContext';
-import {StackTraceFrames} from 'sentry/components/stackTrace/stackTraceFrames';
-import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
-import type {StackTraceViewStateProviderProps} from 'sentry/components/stackTrace/types';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
+
+import {FrameContent} from './frame/frameContent';
+import {IssueFrameActions} from './issueStackTrace/issueFrameActions';
+import {DisplayOptions} from './displayOptions';
+import {StackTraceViewStateProvider} from './stackTraceContext';
+import {StackTraceFrames} from './stackTraceFrames';
+import {StackTraceProvider} from './stackTraceProvider';
+import type {StackTraceViewStateProviderProps} from './types';
 
 type StacktraceWithFrames = StacktraceType & {
   frames: NonNullable<StacktraceType['frames']>;
@@ -549,6 +550,56 @@ describe('Core StackTrace', () => {
     expect(
       await screen.findByRole('button', {name: 'Unminify Code'})
     ).toBeInTheDocument();
+  });
+
+  it('skips the source map debug request when no frame can show the unminify action', async () => {
+    const {event, stacktrace} = makeStackTraceData();
+    const javascriptEvent = EventFixture({
+      ...event,
+      sdk: {name: 'sentry.javascript.react', version: '10.0.0'},
+    });
+    const organization = OrganizationFixture({slug: 'org-slug'});
+    const project = DetailedProjectFixture({
+      id: javascriptEvent.projectID,
+      slug: 'project-slug',
+      platform: 'javascript',
+    });
+    const frame = stacktrace.frames[stacktrace.frames.length - 1]!;
+    ProjectsStore.loadInitialData([project]);
+    const sourceMapDebugRequest = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/events/${javascriptEvent.id}/source-map-debug/`,
+      body: {},
+    });
+
+    render(
+      <TestStackTraceProvider
+        event={javascriptEvent}
+        stacktrace={{
+          ...stacktrace,
+          frames: [
+            {
+              ...frame,
+              filename: 'runner.js',
+              absPath: '/home/ubuntu/runner.js',
+              context: [[1, 'const x = 1;']],
+              inApp: true,
+            },
+          ],
+        }}
+        exceptionIndex={0}
+      >
+        <DisplayOptions />
+        <StackTraceFrames
+          frameContextComponent={FrameContent}
+          frameActionsComponent={IssueFrameActions}
+        />
+      </TestStackTraceProvider>,
+      {organization}
+    );
+
+    expect(await screen.findByText('runner.js')).toBeInTheDocument();
+    expect(sourceMapDebugRequest).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', {name: 'Unminify Code'})).not.toBeInTheDocument();
   });
 
   it('renders sentry app frame links with line context', async () => {

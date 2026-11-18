@@ -69,7 +69,9 @@ class ExternalActor(Model):
             ),
         ]
 
-    def delete(self, *args, **kwargs):
+    def delete(
+        self, using: str | None = None, keep_parents: bool = False
+    ) -> tuple[int, dict[str, int]]:
         from sentry.integrations.services.integration import integration_service
 
         # TODO: Extract this out of the delete method into the endpoint / controller instead.
@@ -85,14 +87,14 @@ class ExternalActor(Model):
                     team_id=team.id, provider=ExternalProviders(self.provider)
                 )
 
-        return super().delete(*args, **kwargs)
+        return super().delete(using=using, keep_parents=keep_parents)
 
 
-def process_resource_change(instance: ExternalActor, **kwargs):
+def process_resource_change(instance: ExternalActor, **kwargs: object) -> None:
     from sentry.models.project import Project
     from sentry.tasks.codeowners import update_code_owners_schema
 
-    def _spawn_task():
+    def _spawn_task() -> None:
         update_code_owners_schema.apply_async(
             kwargs={
                 "organization": instance.organization_id,

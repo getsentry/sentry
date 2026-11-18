@@ -1,4 +1,4 @@
-import {PlatformizedCachesOverview} from 'sentry/views/insights/cache/views/platformizedOverview';
+import {PlatformizedCachesOverview} from './platformizedOverview';
 
 function PageWithProviders() {
   return <PlatformizedCachesOverview />;

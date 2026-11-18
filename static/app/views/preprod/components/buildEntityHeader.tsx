@@ -10,7 +10,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {DateTime} from 'sentry/components/dateTime';
 import {t} from 'sentry/locale';
-import {AppIcon} from 'sentry/views/preprod/components/appIcon';
 import type {BuildDetailsAppInfo} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {getBuildNumber} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
@@ -19,6 +18,8 @@ import {
   getReadableArtifactTypeTooltip,
   getReadablePlatformLabel,
 } from 'sentry/views/preprod/utils/labelUtils';
+
+import {AppIcon} from './appIcon';
 
 interface BuildEntityHeaderProps {
   projectSlug: string;

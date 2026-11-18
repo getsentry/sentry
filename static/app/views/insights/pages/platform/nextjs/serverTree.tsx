@@ -7,13 +7,14 @@ import {IconCopy} from '@sentry/icons/copy';
 import {IconFile} from '@sentry/icons/file';
 import {IconProject} from '@sentry/icons/project';
 import {IconSearch} from '@sentry/icons/search';
+import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import type {TableColumnConfig} from '@sentry/scraps/table';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {Hovercard} from 'sentry/components/hovercard';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -21,8 +22,7 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import type {EventsStats} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
@@ -175,30 +175,26 @@ export function BaseServerTree({query}: {query?: string}) {
     finalQuery += ` ${query}`;
   }
 
-  const treeRequest = useApiQuery<TreeResponse>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/insights/tree/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        query: {
-          ...pageFilterChartParams,
-          interval: undefined,
-          noPagination: true,
-          useRpc: true,
-          dataset: 'spans',
-          query: finalQuery,
-          field: [
-            'count()',
-            'span.description',
-            'failure_rate()',
-            'avg(span.duration)',
-            'p95(span.duration)',
-          ],
-        },
+  const treeRequest = useQuery(
+    apiOptions.as<TreeResponse>()('/organizations/$organizationIdOrSlug/insights/tree/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {
+        ...pageFilterChartParams,
+        interval: undefined,
+        noPagination: true,
+        useRpc: true,
+        dataset: 'spans',
+        query: finalQuery,
+        field: [
+          'count()',
+          'span.description',
+          'failure_rate()',
+          'avg(span.duration)',
+          'p95(span.duration)',
+        ],
       },
-    ],
-    {staleTime: 0}
+      staleTime: 0,
+    })
   );
 
   const treeData = useMemo(() => treeRequest.data?.data ?? [], [treeRequest.data]);
@@ -351,7 +347,7 @@ function TreeNodeRenderer({
                         aria-label={t('Copy')}
                         onClick={() => {
                           navigator.clipboard.writeText(itemPath.join('/'));
-                          addSuccessMessage(t('Copied to clipboard'));
+                          toast.success(t('Copied to clipboard'));
                         }}
                       />
                     </OneLineCodeBlock>

@@ -11,18 +11,16 @@ import {t} from 'sentry/locale';
 import {
   OnboardingDrawerKey,
   OnboardingDrawerStore,
+  useIsOnboardingDrawerOpen,
 } from 'sentry/stores/onboardingDrawerStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {OnboardingTask} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  PrimaryNavigation,
-  usePrimaryNavigationButtonOverlay,
-} from 'sentry/views/navigation/primary/components';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
+
+import {PrimaryNavigation, usePrimaryNavigationButtonOverlay} from './components';
 
 function OnboardingItem({
   allTasks,
@@ -112,8 +110,7 @@ function OnboardingItem({
 }
 
 export function PrimaryNavigationOnboarding() {
-  const currentPanel = useLegacyStore(OnboardingDrawerStore);
-  const isActive = currentPanel === OnboardingDrawerKey.ONBOARDING_WIZARD;
+  const isActive = useIsOnboardingDrawerOpen(OnboardingDrawerKey.ONBOARDING_WIZARD);
   const organization = useOrganization();
   const [quickStartCompleted, setQuickStartCompleted] = useLocalStorageState(
     `quick-start:${organization.slug}:completed`,

@@ -5,8 +5,9 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilterDatetime} from 'sentry/types/core';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {transformStatsResponse} from 'sentry/utils/profiling/hooks/utils';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {transformStatsResponse} from './utils';
 
 interface UseProfileEventsStatsOptions<F> {
   dataset: 'discover' | 'profiles' | 'profileFunctions';

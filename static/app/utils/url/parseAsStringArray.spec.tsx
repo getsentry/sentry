@@ -2,7 +2,7 @@ import {useQueryState} from 'nuqs';
 
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
+import {parseAsStringArray} from './parseAsStringArray';
 
 describe('parseAsStringArray', () => {
   function renderParam(query: Record<string, string | string[]>) {

@@ -142,7 +142,7 @@ class QuotaTest(TestCase):
         ),
     ],
 )
-def test_quotas_to_json(obj, json) -> None:
+def test_quotas_to_json(obj: QuotaConfig, json: dict[str, object]) -> None:
     assert obj.to_json() == json
 
 

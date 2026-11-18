@@ -1,6 +1,6 @@
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, type UseApiQueryOptions} from 'sentry/utils/queryClient';
+import {useQuery} from '@tanstack/react-query';
+
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {areAiFeaturesAllowed as computeAreAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -12,32 +12,35 @@ interface OrganizationSeerSetupResponse {
   hasFreeAutofixAccess: boolean;
 }
 
-export function makeOrganizationSeerSetupQueryKey(orgSlug: string): ApiQueryKey {
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/seer/setup-check/', {
-      path: {organizationIdOrSlug: orgSlug},
-    }),
-  ];
+function organizationSeerSetupApiOptions(orgSlug: string) {
+  return apiOptions.as<OrganizationSeerSetupResponse>()(
+    '/organizations/$organizationIdOrSlug/seer/setup-check/',
+    {path: {organizationIdOrSlug: orgSlug}, staleTime: 0}
+  );
 }
 
-export function useOrganizationSeerSetup(
-  options: Omit<UseApiQueryOptions<OrganizationSeerSetupResponse>, 'staleTime'> = {}
-) {
+export function makeOrganizationSeerSetupQueryKey(orgSlug: string) {
+  return organizationSeerSetupApiOptions(orgSlug).queryKey;
+}
+
+export function useOrganizationSeerSetup(options: {enabled?: boolean} = {}) {
   const organization = useOrganization();
   const orgSlug = organization.slug;
   const areAiFeaturesAllowed = computeAreAiFeaturesAllowed(organization);
 
-  const queryData = useApiQuery<OrganizationSeerSetupResponse>(
-    makeOrganizationSeerSetupQueryKey(orgSlug),
-    {
-      staleTime: 0,
-      retry: false,
-      ...options,
-    }
-  );
+  const queryData = useQuery({
+    ...organizationSeerSetupApiOptions(orgSlug),
+    staleTime: 0,
+    retry: false,
+    ...options,
+  });
 
   return {
-    ...queryData,
+    data: queryData.data,
+    isLoading: queryData.isLoading,
+    isError: queryData.isError,
+    isPending: queryData.isPending,
+    refetch: queryData.refetch,
     billing: {
       hasAutofixQuota: Boolean(queryData.data?.billing?.hasAutofixQuota),
       hasScannerQuota: Boolean(queryData.data?.billing?.hasScannerQuota),

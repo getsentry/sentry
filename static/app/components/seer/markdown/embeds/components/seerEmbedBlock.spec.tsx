@@ -4,7 +4,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Tag} from '@sentry/scraps/badge';
 
-import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
+import {SeerEmbedBlock} from './seerEmbedBlock';
 
 function renderBlock(props: Partial<Parameters<typeof SeerEmbedBlock>[0]> = {}) {
   return render(

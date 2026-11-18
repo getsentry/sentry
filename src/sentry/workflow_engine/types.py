@@ -10,11 +10,13 @@ from typing import (
     Any,
     ClassVar,
     Generic,
+    Protocol,
     Sequence,
     TypeAlias,
     TypedDict,
     TypeVar,
 )
+from uuid import UUID
 
 from django.db.models import Q
 
@@ -65,6 +67,21 @@ class DetectorException(Exception):
     pass
 
 
+class DetectorType(StrEnum):
+    """Detector implementation identities. Values are persisted and used by the API."""
+
+    ERROR = "error"
+    ISSUE_STREAM = "issue_stream"
+    METRIC_ISSUE = "metric_issue"
+    MONITOR_CHECK_IN_FAILURE = "monitor_check_in_failure"
+    UPTIME_DOMAIN_FAILURE = "uptime_domain_failure"
+    PREPROD_SIZE_ANALYSIS = "preprod_size_analysis"
+    SOURCEMAP_CONFIGURATION = "sourcemap_configuration"
+    PERFORMANCE_SLOW_DB_QUERY = "performance_slow_db_query"
+    PERFORMANCE_LARGE_HTTP_PAYLOAD = "performance_large_http_payload"
+    QUERY_INJECTION_VULNERABILITY = "query_injection_vulnerability"
+
+
 class DetectorPriorityLevel(IntEnum):
     OK = 0
     LOW = PriorityLevel.LOW
@@ -102,14 +119,25 @@ class _WorkflowEventLocalCache(TypedDict, total=False):
     activity_environment: Environment | None
 
 
+class OrganizationWorkflowEvent(Protocol):
+    """Source identity for organization events, independent of issue/project models."""
+
+    @property
+    def organization_id(self) -> int: ...
+
+    @property
+    def event_id(self) -> UUID: ...
+
+
 @dataclass(frozen=True)
 class WorkflowEventData:
-    event: GroupEvent | Activity
-    group: Group
+    event: GroupEvent | Activity | OrganizationWorkflowEvent
+    group: Group | None = None
     group_state: GroupState | None = None
     # True when an issue transitions to the ESCALATING substatus for any reason.
     has_escalated: bool | None = None
     workflow_env: Environment | None = None
+    organization: Organization | None = field(default=None, kw_only=True)
 
     # The cache field is used to deduplicate repeated work within the context
     # of a single event. This field violates the "frozen" requirement of the
@@ -118,6 +146,60 @@ class WorkflowEventData:
     _cache: _WorkflowEventLocalCache = field(
         default_factory=lambda: _WorkflowEventLocalCache(), repr=False, compare=False, hash=False
     )
+
+    def get_organization(self) -> Organization:
+        from sentry.models.activity import Activity
+        from sentry.services.eventstore.models import GroupEvent
+
+        if isinstance(self.event, (GroupEvent, Activity)):
+            source_organization_id = self.event.project.organization_id
+            organization = self.organization or self.event.project.organization
+        else:
+            if self.organization is None:
+                raise ValueError(
+                    "Organization workflow events require explicit organization context"
+                )
+            source_organization_id = self.event.organization_id
+            organization = self.organization
+        if source_organization_id != organization.id:
+            raise ValueError("Workflow event and organization must belong to the same organization")
+        if self.group is not None and self.group.project_id != self.project_id:
+            if self.group.project.organization_id != organization.id:
+                raise ValueError("Workflow group and event must belong to the same organization")
+        return organization
+
+    @property
+    def event_id(self) -> str:
+        from sentry.models.activity import Activity
+        from sentry.services.eventstore.models import GroupEvent
+
+        if isinstance(self.event, GroupEvent):
+            return self.event.event_id
+        if isinstance(self.event, Activity):
+            return str(self.event.id)
+        return self.event.event_id.hex
+
+    @property
+    def project_id(self) -> int | None:
+        from sentry.models.activity import Activity
+        from sentry.services.eventstore.models import GroupEvent
+
+        if isinstance(self.event, (GroupEvent, Activity)):
+            return self.event.project_id
+        return None
+
+    @property
+    def group_id(self) -> int | None:
+        return self.group.id if self.group is not None else None
+
+    def require_group(self) -> Group:
+        if self.group is None:
+            from sentry.workflow_engine.processors.evaluations import (
+                DataConditionEvaluationException,
+            )
+
+            raise DataConditionEvaluationException("This operation requires an issue group")
+        return self.group
 
 
 @dataclass(frozen=True)
@@ -140,6 +222,8 @@ class ConfigTransformer(ABC):
     """
     A ConfigTransformer is used to transform the config between API and internal representations.
     """
+
+    api_schema: dict[str, Any]
 
     @abstractmethod
     def from_api(self, config: dict[str, Any]) -> dict[str, Any]:
@@ -325,6 +409,7 @@ class SnubaQueryDataSourceType(TypedDict, total=False):
 
 class DetectorAPIOperation(StrEnum):
     LIST = "list"
+    DISCOVER = "discover"
     GET = "GET"
     POST = "POST"
     PUT = "PUT"
@@ -347,7 +432,8 @@ class DetectorSettings:
     api_availability: ClassVar[Mapping[DetectorAPIOperation, APIGate]] = DEFAULT_API_AVAILABILITY
     handler: ClassVar[type[BaseDetectorHandler[Any, Any]] | None] = None
     validator: ClassVar[type[BaseDetectorTypeValidator] | None] = None
-    config_schema: ClassVar[dict[str, Any]] = {}
+    # None preserves legacy detectors whose configuration is validated outside this model.
+    config_schema: ClassVar[dict[str, Any] | None] = {}
     filter: ClassVar[Q | None] = None
 
 

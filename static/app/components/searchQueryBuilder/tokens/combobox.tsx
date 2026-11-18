@@ -26,6 +26,7 @@ import type {SelectKey, SelectOptionOrSectionWithKey} from '@sentry/scraps/compa
 import {matchesKeyboardEvent} from '@sentry/scraps/hotkey';
 import {Input, useAutosizeInput} from '@sentry/scraps/input';
 import {Flex, Container} from '@sentry/scraps/layout';
+import {focusMenuItemDetails} from '@sentry/scraps/menu';
 import {Overlay} from '@sentry/scraps/overlay';
 import {flipOverlay, shiftOverlay} from '@sentry/scraps/overlayPositioning';
 import {useOverlay} from '@sentry/scraps/useOverlay';
@@ -39,11 +40,6 @@ import {
   useSearchQueryBuilderLayout,
   useSearchQueryBuilderState,
 } from 'sentry/components/searchQueryBuilder/context';
-import {useSearchTokenCombobox} from 'sentry/components/searchQueryBuilder/tokens/useSearchTokenCombobox';
-import {
-  findItemInSections,
-  itemIsSection,
-} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {Token, type TokenResult} from 'sentry/components/searchSyntax/parser';
 import {
   isQueryBuilderPanelChrome,
@@ -51,6 +47,9 @@ import {
 } from 'sentry/components/tokenizedInput/token/comboBoxLayout';
 import {defined} from 'sentry/utils/defined';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
+
+import {useSearchTokenCombobox} from './useSearchTokenCombobox';
+import {findItemInSections, itemIsSection} from './utils';
 
 type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<string>> = {
   children: CollectionChildren<T>;
@@ -441,7 +440,7 @@ export function SearchQueryBuilderCombobox<
       onBlur: e => {
         if (
           e.relatedTarget &&
-          (popoverRef.current?.contains(e.relatedTarget) ||
+          (getPopoverRoot(popoverRef.current)?.contains(e.relatedTarget) ||
             !shouldCloseOnInteractOutside?.(e.relatedTarget))
         ) {
           return;
@@ -598,7 +597,7 @@ export function SearchQueryBuilderCombobox<
       return ariaHideOutside(
         [
           inputRef.current,
-          popoverRef.current,
+          getPopoverRoot(popoverRef.current),
           descriptionRef.current,
           keepVisibleRef?.current,
         ].filter(defined)
@@ -632,6 +631,20 @@ export function SearchQueryBuilderCombobox<
       onPaste={onPaste}
       disabled={disabled}
       onKeyDownCapture={e => {
+        if (
+          e.key === 'ArrowRight' &&
+          isOpen &&
+          e.currentTarget.selectionStart === inputValue.length &&
+          e.currentTarget.selectionEnd === inputValue.length
+        ) {
+          const activeId = e.currentTarget.getAttribute('aria-activedescendant');
+          if (activeId && focusMenuItemDetails(document.getElementById(activeId))) {
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+          }
+        }
+
         if (isCtrlKeyPressed(e) && (e.key === 'Backspace' || e.key === 'Delete')) {
           if (token.type === Token.FREE_TEXT) {
             e.preventDefault();
@@ -756,6 +769,10 @@ const HighlightedValue = styled('div')`
   font-kerning: none;
   font-variant-ligatures: none;
 `;
+
+function getPopoverRoot(popover: HTMLElement | null) {
+  return popover?.closest('[data-overlay-root]') ?? popover;
+}
 
 const StyledPositionWrapper = styled('div')<{visible?: boolean}>`
   display: ${p => (p.visible ? 'block' : 'none')};

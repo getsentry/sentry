@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import orjson
@@ -41,7 +42,7 @@ def _pull_request_result(
     draft: bool = True,
     state: str = "open",
     merged: bool = False,
-) -> dict:
+) -> dict[str, Any]:
     return {
         "data": {"state": state, "merged": merged, "head": {"sha": head_sha}},
         "raw": {"headers": None, "data": {"draft": draft}},
@@ -50,7 +51,7 @@ def _pull_request_result(
     }
 
 
-def _green_event(raw: dict | None = None) -> CheckSuiteEvent:
+def _green_event(raw: dict[str, Any] | None = None) -> CheckSuiteEvent:
     if raw is None:
         raw = {
             "check_suite": {
@@ -228,9 +229,10 @@ class MarkReadyForReviewTest(TestCase):
             repository=self.repo, run_state=run_state, pr_id=555, group_id=group_id
         )
 
-    def _marker(self) -> dict | None:
+    def _marker(self) -> dict[str, Any] | None:
         self.seer_run.refresh_from_db()
-        return (self.seer_run.extras or {}).get(READY_FOR_REVIEW_EXTRA, {}).get(REPO_NAME)
+        marker = (self.seer_run.extras or {}).get(READY_FOR_REVIEW_EXTRA, {}).get(REPO_NAME)
+        return marker if isinstance(marker, dict) else None
 
     @patch(f"{READY_FOR_REVIEW_PATH}.MarkPullRequestDraftStateProtocol", object)
     @patch(f"{READY_FOR_REVIEW_PATH}.scm_actions")
