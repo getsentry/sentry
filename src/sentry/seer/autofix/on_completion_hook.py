@@ -847,7 +847,13 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             return
 
         stopping_point = AutofixStoppingPoint(raw_stopping_point)
-        if current_step == STOPPING_POINT_TO_STEP.get(stopping_point):
+        stopping_step = STOPPING_POINT_TO_STEP.get(stopping_point)
+        # A user can continue a run past its stopping point, which never changes.
+        if (
+            stopping_step is not None
+            and current_step in PIPELINE_ORDER
+            and PIPELINE_ORDER.index(current_step) >= PIPELINE_ORDER.index(stopping_step)
+        ):
             return
 
         # Check if we should trigger coding agent handoff instead of continuing
