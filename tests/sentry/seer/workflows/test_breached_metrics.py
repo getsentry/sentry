@@ -507,7 +507,11 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
         assert not SeerWorkflowRunExecution.objects.exists()
         incr.assert_any_call(
             "seer.workflow.trigger",
-            tags={"outcome": "ignored", "reason": "missing_binding", "deduplicated": "false"},
+            tags={
+                "outcome": "ignored",
+                "reason": "configuration_unavailable",
+                "deduplicated": "false",
+            },
             sample_rate=1.0,
         )
 
@@ -523,6 +527,19 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
             )
         ) == {f"issue_created:{self.group.id}", f"issue_created:{event.group_id}"}
         assert SeerWorkflowRunExecution.objects.count() == 2
+
+    def test_investigation_action_routes_through_backing_workflow(self) -> None:
+        self.action.seer_workflow_binding.delete()
+        self.action.update(type=Action.Type.SEER_INVESTIGATION)
+
+        self.process_breach_workflow(self.breach_event(detector_id=self.detector.id))
+
+        run = SeerWorkflowRun.objects.get(workflow_config=self.config)
+        inputs = MetricBreachInputs.parse_obj(
+            AdmittedRunExtras.parse_obj(run.extras).snapshot.inputs
+        )
+        assert inputs.binding_id is None
+        assert inputs.action_id == self.action.id
 
     def test_disconnected_monitor_does_not_start_a_run(self) -> None:
         DetectorWorkflow.objects.filter(detector=self.detector, workflow=self.workflow).delete()
