@@ -24,7 +24,6 @@ from sentry.models.project import Project
 from sentry.notebooks.models import Notebook, NotebookSourceType
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
-    SeerWorkflowConfigExtras,
     SeerWorkflowExecutionStatus,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
@@ -252,7 +251,8 @@ class BreachedMetricWorkflowAdmissionTest(BreachedMetricWorkflowTestCase):
         assert all("FOR UPDATE" in query for query in config_reads)
 
     def test_ignored_configuration_reports_reason_without_starting_work(self) -> None:
-        self.config.update(enabled=False)
+        assert self.config.backing_workflow is not None
+        self.config.backing_workflow.update(enabled=False)
 
         rejected = SeerMetricAlertActionHandler.accept(
             self.group,
@@ -507,7 +507,11 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
         assert not SeerWorkflowRunExecution.objects.exists()
         incr.assert_any_call(
             "seer.workflow.trigger",
-            tags={"outcome": "ignored", "reason": "missing_binding", "deduplicated": "false"},
+            tags={
+                "outcome": "ignored",
+                "reason": "configuration_unavailable",
+                "deduplicated": "false",
+            },
             sample_rate=1.0,
         )
 
@@ -523,6 +527,19 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
             )
         ) == {f"issue_created:{self.group.id}", f"issue_created:{event.group_id}"}
         assert SeerWorkflowRunExecution.objects.count() == 2
+
+    def test_investigation_action_routes_through_backing_workflow(self) -> None:
+        self.action.seer_workflow_binding.delete()
+        self.action.update(type=Action.Type.SEER_INVESTIGATION)
+
+        self.process_breach_workflow(self.breach_event(detector_id=self.detector.id))
+
+        run = SeerWorkflowRun.objects.get(workflow_config=self.config)
+        inputs = MetricBreachInputs.parse_obj(
+            AdmittedRunExtras.parse_obj(run.extras).snapshot.inputs
+        )
+        assert inputs.binding_id is None
+        assert inputs.action_id == self.action.id
 
     def test_disconnected_monitor_does_not_start_a_run(self) -> None:
         DetectorWorkflow.objects.filter(detector=self.detector, workflow=self.workflow).delete()
@@ -795,6 +812,7 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
         workflow = updated.backing_workflow
         assert workflow is not None
         assert workflow.name == "Seer automation"
+        assert workflow.type == Workflow.Type.SEER_INVESTIGATION
         assert list(
             workflow.detectorworkflow_set.order_by("detector_id").values_list(
                 "detector_id", flat=True
@@ -840,26 +858,15 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
 
         assert self.project_ids() == {self.monitors[2].project_id}
 
-    def test_deleted_backing_workflow_empties_scope_and_is_replaced(self) -> None:
+    def test_deleted_backing_workflow_empties_scope_and_blocks_monitor_changes(self) -> None:
         original = self.select_monitors(self.monitor_ids)
         backing = original.backing_workflow
         assert backing is not None
         backing.update(status=ObjectStatus.PENDING_DELETION)
         assert self.project_ids() == set()
 
-        replaced = self.select_monitors(self.monitor_ids[:1])
-
-        assert replaced.backing_workflow is not None
-        assert replaced.backing_workflow_id != backing.id
-        assert replaced.backing_workflow.status == ObjectStatus.ACTIVE
-        assert replaced.version == original.version + 1
-        assert self.project_ids() == {self.monitors[0].project_id}
-        assert SeerWorkflowTriggerBinding.objects.filter(workflow_config=self.config).count() == 2
-
-        Workflow.objects_for_deletion.filter(id=replaced.backing_workflow_id).delete()
-        self.config.refresh_from_db()
-        assert self.config.backing_workflow is None
-        assert self.project_ids() == set()
+        with pytest.raises(ValueError, match="alert workflow was deleted"):
+            self.select_monitors(self.monitor_ids[:1])
 
     def test_has_all_projects_with_monitors_in_some_projects(self) -> None:
         assert self.has_all_projects() is False
@@ -881,17 +888,17 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
             enabled=True,
             environments=["production"],
             monitor_ids=self.monitor_ids,
-            extras=SeerWorkflowConfigExtras(name="Latency breaches"),
+            name="Latency breaches",
             service_account_grant=GRANT,
         )
 
         config = workflow.get_config()
         assert config.strategy == SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
-        assert config.enabled is True
         assert config.filters == {"all_projects": False, "environments": ["production"]}
-        assert workflow.extras.name == "Latency breaches"
         assert config.version == 1
         assert config.backing_workflow is not None
+        assert config.backing_workflow.enabled is True
+        assert config.backing_workflow.name == "Latency breaches"
         assert set(
             config.backing_workflow.detectorworkflow_set.values_list("detector_id", flat=True)
         ) == set(self.monitor_ids)
@@ -913,7 +920,7 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
         assert list(SeerWorkflowConfig.objects.filter(organization=self.organization)) == [
             self.config
         ]
-        assert not Workflow.objects.exists()
+        assert list(Workflow.objects.all()) == [self.config.backing_workflow]
 
     @mock.patch("sentry.seer.workflows.workflow.MAX_WORKFLOW_CONFIGS_PER_ORG", 2)
     def test_create_with_monitors_caps_configs_per_organization(self) -> None:
@@ -928,7 +935,7 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
             )
 
         assert SeerWorkflowConfig.objects.filter(organization=self.organization).count() == 2
-        assert not Workflow.objects.exists()
+        assert Workflow.objects.count() == 2
 
     @mock.patch("sentry.seer.workflows.workflow.MAX_WORKFLOW_CONFIGS_PER_ORG", 3)
     def test_metric_and_triage_automations_share_the_org_limit(self) -> None:
@@ -981,8 +988,7 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
 
         self.config.refresh_from_db()
         assert self.config.version == 1
-        assert not Workflow.objects.exists()
-        assert not SeerWorkflowTriggerBinding.objects.exists()
+        assert not DetectorWorkflow.objects.exists()
 
     def test_rejects_foreign_config_and_non_metric_strategy(self) -> None:
         other = Factories.create_seer_workflow_config(
@@ -995,7 +1001,7 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
         self.config.update(strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2)
         with pytest.raises(ValueError, match="does not support monitor selection"):
             self.select_monitors(self.monitor_ids)
-        assert not Workflow.objects.exists()
+        assert not DetectorWorkflow.objects.exists()
 
     def test_connected_breach_starts_run_and_disconnect_stops_it(self) -> None:
         self.create_project()

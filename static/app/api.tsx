@@ -1,6 +1,5 @@
 import * as Sentry from '@sentry/react';
 import Cookies from 'js-cookie';
-import * as qs from 'query-string';
 
 import {redirectToProject} from './actionCreators/redirectToProject';
 import {openSudo} from './actionCreators/sudoModal';
@@ -20,6 +19,7 @@ import {uniqueId} from './utils/guid';
 import {RequestError} from './utils/requestError/requestError';
 import {sanitizePath} from './utils/requestError/sanitizePath';
 import {testableWindowLocation} from './utils/testableWindowLocation';
+import * as qs from './utils/url/qs';
 import type {ReactRouter3Navigate} from './utils/useNavigate';
 import {EXPERIMENTAL_SPA} from './constants';
 
@@ -170,7 +170,7 @@ export const initApiClientErrorHandling = () =>
 function buildRequestUrl(baseUrl: string, path: string, options: RequestOptions) {
   let params: string;
   try {
-    params = qs.stringify(options.query ?? []);
+    params = qs.stringify(options.query);
   } catch (err) {
     Sentry.withScope(scope => {
       scope.setExtra('path', path);
@@ -314,6 +314,7 @@ export class Client {
   };
 
   constructor(options: ClientOptions = {}) {
+    // eslint-disable-next-line @sentry/no-relative-api-url -- buildRequestUrl() resolves the host
     this.baseUrl = options.baseUrl ?? '/api/0';
     this.headers = options.headers ?? Client.JSON_HEADERS;
     this.activeRequests = {};

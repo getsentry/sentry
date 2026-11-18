@@ -33,12 +33,12 @@ class DeleteMonitorEnvironmentTest(APITestCase, TransactionTestCase, HybridCloud
             monitor=monitor,
             environment_id=env_2.id,
         )
-        checkin = MonitorCheckIn.objects.create(
+        checkin = self.create_monitor_checkin(
             monitor_environment=monitor_env,
             date_added=monitor.date_added,
             status=CheckInStatus.OK,
         )
-        checkin_2 = MonitorCheckIn.objects.create(
+        checkin_2 = self.create_monitor_checkin(
             monitor_environment=monitor_env_2,
             date_added=monitor.date_added,
             status=CheckInStatus.OK,

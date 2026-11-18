@@ -1,6 +1,5 @@
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
-import * as qs from 'query-string';
 
 import {openConfirmModal} from '@sentry/scraps/confirm';
 
@@ -29,6 +28,7 @@ import {determineTimeSeriesConfidence} from 'sentry/utils/timeSeries/determineSe
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import * as qs from 'sentry/utils/url/qs';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {isChartType} from 'sentry/views/insights/common/components/chart';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
@@ -86,6 +86,7 @@ export interface GetExploreUrlArgs {
   interval?: string;
   mode?: Mode;
   query?: string;
+  queryPriority?: 'normal' | 'faster';
   referrer?: string;
   selection?: PageFilters;
   sort?: string;
@@ -110,6 +111,7 @@ export function getExploreUrl({
   chartSelection,
   visualize,
   query,
+  queryPriority,
   groupBy,
   sort,
   aggregateSort,
@@ -133,6 +135,7 @@ export function getExploreUrl({
     interval,
     mode,
     query,
+    queryPriority,
     aggregateField: aggregateField?.map(v => JSON.stringify(v)),
     visualize: visualize?.map(v => JSON.stringify(v)),
     groupBy,

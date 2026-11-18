@@ -30,7 +30,7 @@ export async function fetchTeamKeyTransactions(
   });
 
   const datas: TeamKeyTransactions[] = [];
-  let cursor: string | undefined = undefined;
+  let cursor: string | undefined;
   let hasMore = true;
 
   while (hasMore) {

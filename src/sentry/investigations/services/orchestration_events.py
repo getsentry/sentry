@@ -14,7 +14,7 @@ from rest_framework.exceptions import APIException
 
 from sentry.db.models.fields.bounded import I32_MAX, I64_MAX
 from sentry.inbox.notebook import NOTEBOOK_COMPLETED, NotebookCompletedData
-from sentry.inbox.types import SYSTEM_ACTOR, InboxEventSummary
+from sentry.inbox.types import SYSTEM_ACTOR
 from sentry.investigations.contracts import (
     EVENT_PAYLOAD_SERIALIZERS,
     OrchestrationProjectionSerializer,
@@ -316,7 +316,8 @@ def _record_completed_inbox_event(run: InvestigationOrchestrationRun) -> None:
         event_type=NOTEBOOK_COMPLETED,
         subject=notebook,
         data=NotebookCompletedData(
-            summary=InboxEventSummary.NOTEBOOK_COMPLETED, seer_run_id=seer_run.seer_run_state_id
+            seer_run_id=seer_run.seer_run_state_id,
+            generation=run.generation,
         ),
         user_ids=[notebook.created_by_id],
         actor=SYSTEM_ACTOR,
@@ -1102,10 +1103,10 @@ def _apply_available_events(
             projection_applied = True
         else:
             while True:
-                next_event = InvestigationOrchestrationEvent.objects.filter(
+                next_event = InvestigationOrchestrationEvent.objects.get_or_none(
                     orchestration_run=run,
                     sequence=run.last_event_sequence + 1,
-                ).first()
+                )
                 if next_event is None:
                     break
                 if next_event.application_status != InvestigationOrchestrationEventStatus.PENDING:
@@ -1242,9 +1243,9 @@ def deliver_orchestration_event(
                     "Run ID is already in use."
                 ) from error
 
-        existing = InvestigationOrchestrationEvent.objects.filter(
+        existing = InvestigationOrchestrationEvent.objects.get_or_none(
             orchestration_run=run, event_id=event["event_id"]
-        ).first()
+        )
         if existing is not None:
             if (
                 existing.sequence != event["sequence"]

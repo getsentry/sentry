@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
 import {IconSpan} from '@sentry/icons/span';
-import * as qs from 'query-string';
 
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
@@ -15,6 +14,7 @@ import {t, tn} from 'sentry/locale';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import * as qs from 'sentry/utils/url/qs';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 

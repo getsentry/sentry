@@ -38,6 +38,7 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
+from sentry.workflow_engine.models import Workflow
 
 SCHEDULED_FOR = datetime(2024, 3, 10, 10, 0, tzinfo=UTC)
 
@@ -228,7 +229,8 @@ class RecordScheduledAutomationRunTest(TestCase):
 
     def test_disabled_config_clears_its_stale_schedule(self) -> None:
         # Disabled without going through update_config, so the schedule was left behind.
-        SeerWorkflowConfig.objects.filter(id=self.config.id).update(enabled=False)
+        assert self.config.backing_workflow is not None
+        Workflow.objects.filter(id=self.config.backing_workflow_id).update(enabled=False)
 
         self.run_task()
 
@@ -349,6 +351,7 @@ class SyncScheduleTest(TestCase):
         sync_schedule(config)
         assert self.next_run(config) == datetime(2024, 3, 10, 10, 0, tzinfo=UTC)
 
-        config.enabled = False
+        assert config.backing_workflow is not None
+        config.backing_workflow.enabled = False
         sync_schedule(config)
         assert self.next_run(config) is None

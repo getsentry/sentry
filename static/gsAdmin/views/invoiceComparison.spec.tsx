@@ -9,7 +9,11 @@ const COMPARISON_URL = '/_admin/cells/us/invoice-comparison/';
 const DE_URL = 'https://de.example.com/api/0/';
 const DE_COMPARISON_URL = '/_admin/cells/de/invoice-comparison/';
 
-function comparisonBody({rowsPage = 1, rowsTotalPages = 1} = {}) {
+function comparisonBody({
+  rowsPage = 1,
+  rowsTotalPages = 1,
+  hiddenSmallMismatchCount = 0,
+} = {}) {
   return {
     rows: [
       {
@@ -34,7 +38,10 @@ function comparisonBody({rowsPage = 1, rowsTotalPages = 1} = {}) {
       over_threshold_count: 1,
       over_threshold_pct: 1,
       queried_at: '2026-01-02T00:00:00+00:00',
-      row_count: 1,
+      row_count: 1 + hiddenSmallMismatchCount,
+      listed_row_count: 1,
+      hidden_small_mismatch_count: hiddenSmallMismatchCount,
+      min_listed_mismatch_cents: 100,
       rows_page: rowsPage,
       rows_page_size: 25,
       rows_total_pages: rowsTotalPages,
@@ -81,6 +88,41 @@ describe('InvoiceComparison', () => {
     expect(screen.getByLabelText('Last day (UTC)')).toHaveValue('2026-11-09');
   });
 
+  it('notes how many small mismatches are hidden', async () => {
+    MockApiClient.addMockResponse({
+      url: COMPARISON_URL,
+      body: comparisonBody({hiddenSmallMismatchCount: 3}),
+    });
+
+    renderComparison({start: '2026-11-09', end: '2026-11-09'});
+
+    expect(
+      await screen.findByText(
+        'Hiding 3 mismatches under $1.00. The summary still counts them.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByText('1 row')).toBeInTheDocument();
+  });
+
+  it('does not say a range is empty when every row is a hidden small mismatch', async () => {
+    MockApiClient.addMockResponse({
+      url: COMPARISON_URL,
+      body: {
+        ...comparisonBody({hiddenSmallMismatchCount: 2}),
+        rows: [],
+      },
+    });
+
+    renderComparison({start: '2026-11-09', end: '2026-11-09'});
+
+    expect(
+      await screen.findByText('Every compared org is a hidden small mismatch.')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('No invoices in this range on either side.')
+    ).not.toBeInTheDocument();
+  });
+
   it('ignores a URL window that is not days', async () => {
     jest.spyOn(Date, 'now').mockReturnValue(Date.parse('2026-11-10T05:25:00.000Z'));
     const mock = MockApiClient.addMockResponse({
@@ -119,6 +161,66 @@ describe('InvoiceComparison', () => {
 
     expect(router.location.query.start).toBe('2026-11-02');
     expect(router.location.query.end).toBe('2026-11-03');
+  });
+
+  describe('mismatch cutoff', () => {
+    it('hides mismatches under $1 by default', async () => {
+      const mock = MockApiClient.addMockResponse({
+        url: COMPARISON_URL,
+        body: comparisonBody(),
+      });
+
+      renderComparison({start: '2026-11-09', end: '2026-11-09'});
+
+      expect(await screen.findByRole('link', {name: 'org-slug'})).toBeInTheDocument();
+      expect(mock.mock.calls[0][1].query).toEqual(
+        expect.objectContaining({min_mismatch_cents: 100})
+      );
+      expect(screen.getByLabelText('Hide mismatches under ($)')).toHaveValue(1);
+    });
+
+    it('queries the cutoff from the URL', async () => {
+      const mock = MockApiClient.addMockResponse({
+        url: COMPARISON_URL,
+        body: comparisonBody(),
+      });
+
+      renderComparison({start: '2026-11-09', end: '2026-11-09', min_mismatch: '2.5'});
+
+      expect(await screen.findByRole('link', {name: 'org-slug'})).toBeInTheDocument();
+      expect(mock.mock.calls[0][1].query).toEqual(
+        expect.objectContaining({min_mismatch_cents: 250})
+      );
+      expect(screen.getByLabelText('Hide mismatches under ($)')).toHaveValue(2.5);
+    });
+
+    it('writes a typed cutoff to the URL on Run', async () => {
+      MockApiClient.addMockResponse({
+        url: COMPARISON_URL,
+        body: comparisonBody(),
+      });
+
+      const {router} = renderComparison({start: '2026-11-09', end: '2026-11-09'});
+      const input = screen.getByLabelText('Hide mismatches under ($)');
+      await userEvent.clear(input);
+      await userEvent.type(input, '0');
+      await userEvent.click(screen.getByRole('button', {name: 'Run comparison'}));
+
+      expect(router.location.query.min_mismatch).toBe('0');
+      expect(router.location.query.rows_page).toBe('1');
+    });
+
+    it('disables Run while the cutoff is empty', async () => {
+      MockApiClient.addMockResponse({
+        url: COMPARISON_URL,
+        body: comparisonBody(),
+      });
+
+      renderComparison({start: '2026-11-09', end: '2026-11-09'});
+      await userEvent.clear(screen.getByLabelText('Hide mismatches under ($)'));
+
+      expect(screen.getByRole('button', {name: 'Run comparison'})).toBeDisabled();
+    });
   });
 
   it('queries the whole UTC days from the URL', async () => {

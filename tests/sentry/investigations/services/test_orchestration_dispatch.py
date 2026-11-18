@@ -925,11 +925,18 @@ class InvestigationOrchestrationDispatchTest(TestCase):
         self.investigation.update(created_by_id=None, created_by_service_account_id=account.id)
         # Individual grants cover every current project, but not the empty selection's future ones.
         assert list(self.organization.project_set.values_list("id", flat=True)) == [self.project.id]
-        with mock.patch.object(
-            ServiceAccountReplica.objects, "filter", wraps=ServiceAccountReplica.objects.filter
-        ) as account_lookup:
+        with (
+            mock.patch.object(
+                ServiceAccountReplica.objects, "filter", wraps=ServiceAccountReplica.objects.filter
+            ) as account_filter,
+            mock.patch.object(
+                ServiceAccountReplica.objects,
+                "get_or_none",
+                wraps=ServiceAccountReplica.objects.get_or_none,
+            ) as account_get,
+        ):
             dispatch_investigation_orchestration_create(self.orchestration_run.id)
-        assert account_lookup.call_count == 2
+        assert account_filter.call_count + account_get.call_count == 2
         create_run.assert_not_called()
         self.orchestration_run.refresh_from_db()
         assert self.orchestration_run.error is not None

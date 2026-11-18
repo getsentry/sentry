@@ -4,9 +4,9 @@ import {PlatformIcon} from 'platformicons';
 
 import {OrganizationAvatar, ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Link} from '@sentry/scraps/link';
 
-import {DateTime} from 'sentry/components/dateTime';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {Version} from 'sentry/components/version';
 import {t} from 'sentry/locale';
@@ -40,11 +40,11 @@ function renderValue(
   if (key === 'threads' && value === undefined) {
     return profileGroup?.profiles.length;
   }
-  if (key === 'received') {
-    return <DateTime date={value} />;
-  }
   if (value === undefined || value === '') {
     return t('ø');
+  }
+  if (key === 'received') {
+    return <DateTime date={value} />;
   }
 
   return value;

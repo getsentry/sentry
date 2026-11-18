@@ -4,11 +4,11 @@ import styled from '@emotion/styled';
 
 import {AvatarList, TeamAvatar, UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Flex} from '@sentry/scraps/layout';
 import {Overlay, PositionWrapper} from '@sentry/scraps/overlay';
 import {useOverlay} from '@sentry/scraps/useOverlay';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {t, tn} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
 import type {AvatarUser, User} from 'sentry/types/user';
@@ -38,17 +38,20 @@ export function ParticipantList({users, teams, hideTimestamp}: DropdownListProps
           users={users}
           avatarSize={24}
           maxVisibleAvatars={3}
-          renderTooltip={user => (
-            <Fragment>
-              {userDisplayName(user)}
-              {!hideTimestamp && (
-                <Fragment>
-                  <br />
-                  <LastSeen date={(user as AvatarUser).lastSeen} />
-                </Fragment>
-              )}
-            </Fragment>
-          )}
+          renderTooltip={user => {
+            const lastSeen = (user as AvatarUser).lastSeen;
+            return (
+              <Fragment>
+                {userDisplayName(user)}
+                {!hideTimestamp && lastSeen && (
+                  <Fragment>
+                    <br />
+                    <LastSeen date={lastSeen} />
+                  </Fragment>
+                )}
+              </Fragment>
+            );
+          }}
         />
       </Button>
       {isOpen && (
@@ -72,18 +75,21 @@ export function ParticipantList({users, teams, hideTimestamp}: DropdownListProps
               {showHeaders && (
                 <ListTitle>{t('Individuals (%s)', users.length)}</ListTitle>
               )}
-              {users.map(user => (
-                <UserRow key={user.id}>
-                  <UserAvatar user={user} size={20} />
-                  <NameWrapper>
-                    <div>{user.name}</div>
-                    {user.email === user.name ? null : (
-                      <SmallText>{user.email}</SmallText>
-                    )}
-                    {!hideTimestamp && <LastSeen date={(user as AvatarUser).lastSeen} />}
-                  </NameWrapper>
-                </UserRow>
-              ))}
+              {users.map(user => {
+                const lastSeen = (user as AvatarUser).lastSeen;
+                return (
+                  <UserRow key={user.id}>
+                    <UserAvatar user={user} size={20} />
+                    <NameWrapper>
+                      <div>{user.name}</div>
+                      {user.email === user.name ? null : (
+                        <SmallText>{user.email}</SmallText>
+                      )}
+                      {!hideTimestamp && lastSeen && <LastSeen date={lastSeen} />}
+                    </NameWrapper>
+                  </UserRow>
+                );
+              })}
             </ParticipantListWrapper>
           </StyledOverlay>
         </PositionWrapper>

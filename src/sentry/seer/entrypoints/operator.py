@@ -1,13 +1,17 @@
 import logging
 from typing import Any, NotRequired, TypedDict
 
+from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_AUTOFIX_INTEGRATIONS,
+    SEER_BILLING_FEATURE_SEER_AGENT_SLACK,
+)
 from taskbroker_client.retry import Retry
 
 from sentry import features, options
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT
 from sentry.inbox.issue import ISSUE_PR_READY_FOR_REVIEW, IssuePRReadyForReviewData
 from sentry.inbox.types import SYSTEM_ACTOR as INBOX_SYSTEM_ACTOR
-from sentry.inbox.types import InboxActor, InboxEventSummary
+from sentry.inbox.types import InboxActor
 from sentry.investigations.models import InvestigationOrchestrationRun
 from sentry.investigations.services import create_agentic_breached_metric_investigation
 from sentry.investigations.services.breached_metrics import BreachedMetricSource
@@ -19,6 +23,7 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.notebooks.access import has_notebooks_access
 from sentry.notebooks.models import Notebook
+from sentry.notebooks.models.notebook import NotebookSourceType
 from sentry.notebooks.telemetry import record_notebook_started
 from sentry.notifications.platform.inbox import create_inbox_items
 from sentry.notifications.platform.strategies.issue_owners import IssueOwnersActivityAlertStrategy
@@ -30,7 +35,7 @@ from sentry.seer.agent.on_completion_hook import AgentOnCompletionHook
 from sentry.seer.autofix.commit_author import commit_author_for_user
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException, SeerOutOfCreditsException
-from sentry.seer.autofix.feature.dispatch import check_autofix_billing
+from sentry.seer.autofix.feature.dispatch import check_autofix_billing, get_run_billing_feature
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     get_automation_handoff,
@@ -179,6 +184,7 @@ class SeerAutofixOperator[CachePayloadT]:
         try:
             check_autofix_billing(
                 group.organization,
+                SEER_BILLING_FEATURE_AUTOFIX_INTEGRATIONS,
                 SeerOperation.AUTOFIX_ROOT_CAUSE,
                 is_new_run=True,
                 # Free cohort orgs have no subscription, so the quota check always fails for them.
@@ -216,6 +222,7 @@ class SeerAutofixOperator[CachePayloadT]:
     ) -> None:
         from sentry.seer.autofix.autofix_agent import (
             get_autofix_agent_state,
+            get_autofix_run_state,
             trigger_autofix_agent,
             trigger_push_changes,
         )
@@ -240,6 +247,10 @@ class SeerAutofixOperator[CachePayloadT]:
                 existing_state = get_autofix_agent_state(
                     group.organization, group.id, sources=(AUTOFIX_FEATURE_ID,)
                 )
+                if run_id is not None and (
+                    existing_state is None or existing_state.run_id != run_id
+                ):
+                    existing_state = get_autofix_run_state(group, run_id)
             except Exception as e:
                 with SeerOperatorEventLifecycleMetric(
                     interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_ERROR,
@@ -281,6 +292,7 @@ class SeerAutofixOperator[CachePayloadT]:
                             referrer=AutofixReferrer.SLACK,
                             run_id=None,
                             user=user,
+                            billing_feature=SEER_BILLING_FEATURE_AUTOFIX_INTEGRATIONS,
                         )
                         run_id = run.seer_run_state_id
                         Activity.objects.create_group_activity(
@@ -300,8 +312,10 @@ class SeerAutofixOperator[CachePayloadT]:
                             group.organization.id,
                             referrer="autofix_open_pr_slack",
                         ),
+                        state=existing_state,
                     )
                 else:
+                    assert existing_state is not None
                     # NOTE: Stopping point here is really just what
                     # step to run next. Not the same as the stopping_point
                     # argument supported by `trigger_autofix_agent` which allows one
@@ -311,6 +325,7 @@ class SeerAutofixOperator[CachePayloadT]:
                         step=AutofixStep.from_autofix_stopping_point(stopping_point),
                         referrer=AutofixReferrer.SLACK,
                         run_id=run_id,
+                        billing_feature=get_run_billing_feature(existing_state),
                         user=user,
                     )
             except NoSeerQuotaException:
@@ -324,12 +339,10 @@ class SeerAutofixOperator[CachePayloadT]:
                 return
             except SeerOutOfCreditsException:
                 with SeerOperatorEventLifecycleMetric(
-                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_ERROR,
+                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_OUT_OF_CREDITS,
                     entrypoint_key=self.entrypoint.key,
                 ).capture():
-                    self.entrypoint.on_trigger_autofix_error(
-                        error="Your organization does not have enough Seer credits"
-                    )
+                    self.entrypoint.on_trigger_autofix_out_of_credits(started=run_id is not None)
                 lifecycle.record_halt(halt_reason="not_enough_seer_credits")
                 return
             except Exception as e:
@@ -586,6 +599,8 @@ class SeerAgentOperator[CachePayloadT]:
                     category_key=category_key,
                     category_value=category_value,
                     on_completion_hook=SeerOperatorCompletionHook,
+                    # A failed run still owes the entrypoint a reply.
+                    hook_call_on_failure=True,
                     is_interactive=True,
                     enable_coding=enable_coding,
                     enable_bash_mode=enable_coding,
@@ -620,6 +635,11 @@ class SeerAgentOperator[CachePayloadT]:
                     run_id = client.start_run(
                         prompt=prompt,
                         on_page_context=on_page_context,
+                        billing_feature=(
+                            SEER_BILLING_FEATURE_SEER_AGENT_SLACK
+                            if self.entrypoint.key == SeerEntrypointKey.SLACK
+                            else None
+                        ),
                     ).seer_run_state_id
                     lifecycle.add_extra("continued", "false")
             except Exception as e:
@@ -815,7 +835,6 @@ def _create_seer_activity(
                     event_type=ISSUE_PR_READY_FOR_REVIEW,
                     subject=group,
                     data=IssuePRReadyForReviewData(
-                        summary=InboxEventSummary.ISSUE_PR_READY_FOR_REVIEW,
                         pr_url=pr_url,
                         seer_run_id=event_payload["run_id"],
                     ),
@@ -980,6 +999,7 @@ def process_autofix_updates(
 def process_investigation_updates(*, investigation_id: int) -> None:
     """
     Sends the latest orchestration run to each entrypoint with a cache for it.
+    Metric open period runs go to each entrypoint, also without a cache.
     """
     with SeerOperatorEventLifecycleMetric(
         interaction_type=SeerOperatorInteractionType.OPERATOR_PROCESS_INVESTIGATION_UPDATE
@@ -1016,16 +1036,18 @@ def process_investigation_updates(*, investigation_id: int) -> None:
                 continue
 
             # TODO: Use a provider-agnostic payload type once there are more investigation entrypoints.
-            from sentry.seer.entrypoints.slack.entrypoint import SlackInvestigationCachePayload
+            from sentry.seer.entrypoints.slack.investigation import SlackInvestigationCachePayload
 
             cache_payload = SeerOperatorInvestigationCache[SlackInvestigationCachePayload].get(
                 entrypoint_key=str(entrypoint_key),
                 investigation_id=investigation_id,
             )
-            if not cache_payload:
-                continue
-
-            if cache_payload["organization_id"] != organization.id:
+            if cache_payload is None:
+                # Metric investigations started outside Slack have no entrypoint cache, but their
+                # conclusions still need to reach the Slack alert threads found via NotificationThread.
+                if run.investigation.source_type != NotebookSourceType.METRIC_OPEN_PERIOD:
+                    continue
+            elif cache_payload["organization_id"] != organization.id:
                 lifecycle.record_failure(failure_reason="org_mismatch")
                 return
 
@@ -1189,7 +1211,7 @@ def _refresh_agent_run(organization: Organization, run_id: int) -> None:
 class SeerOperatorCompletionHook(AgentOnCompletionHook):
     """Completion hook that queues a refresh of every entrypoint for a Seer Agent run.
 
-    Seer calls it when an invocation yields and when a PR push the agent queued finishes.
+    Seer calls it when an invocation yields or fails, and when a PR push the agent queued finishes.
     It only queues the work, so Seer gets a quick success; the task does the refresh and retries.
     """
 

@@ -66,7 +66,6 @@ describe('Inbox', () => {
 
   const issueItem = InboxItemFixture({
     id: '1',
-    subjectType: 'issue',
     subjectId: '7656018581',
     title: "TypeError: Cannot read properties of undefined (reading 'id')",
   });
@@ -146,6 +145,21 @@ describe('Inbox', () => {
     render(<Inbox />, {organization});
 
     expect(await screen.findByText('Your inbox is empty')).toBeInTheDocument();
+  });
+
+  it('links to the Inbox notification settings', async () => {
+    render(<Inbox />, {organization});
+
+    const settingsButton = await screen.findByRole('button', {
+      name: 'Inbox notification settings',
+    });
+    expect(settingsButton).toHaveAttribute(
+      'href',
+      '/settings/account/notifications/inbox/'
+    );
+
+    await userEvent.hover(settingsButton);
+    expect(await screen.findByText('Go to Inbox settings')).toBeInTheDocument();
   });
 
   it('shows an error state when items fail to load', async () => {
@@ -825,8 +839,8 @@ describe('Inbox', () => {
       ).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('button', {name: 'Filter'}));
-      await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Recipient'}));
-      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Team'}));
+      await userEvent.hover(screen.getByRole('menuitem', {name: 'Recipient'}));
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Team'}));
       await userEvent.keyboard('{Escape}');
       await userEvent.keyboard('{Escape}');
 
@@ -869,8 +883,10 @@ describe('Inbox', () => {
       ).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('button', {name: 'Filter'}));
-      await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Subject'}));
-      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Investigation'}));
+      await userEvent.hover(screen.getByRole('menuitem', {name: 'Subject'}));
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Investigation'})
+      );
 
       await waitFor(() => expect(filteredRequest).toHaveBeenCalled());
       expect(
@@ -909,9 +925,9 @@ describe('Inbox', () => {
       });
 
       await userEvent.click(await screen.findByRole('button', {name: 'Filter'}));
-      await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Type'}));
+      await userEvent.hover(screen.getByRole('menuitem', {name: 'Type'}));
       await userEvent.click(
-        screen.getByRole('menuitemradio', {name: 'Issue assigned to you'})
+        await screen.findByRole('menuitemradio', {name: 'Issue assigned to you'})
       );
       await userEvent.click(
         screen.getByRole('menuitemradio', {name: 'Investigation mentioned you'})
@@ -985,8 +1001,10 @@ describe('Inbox', () => {
       expect(screen.getAllByTestId('unread-inbox-item-indicator')).toHaveLength(2);
 
       await userEvent.click(screen.getByRole('button', {name: 'Filter'}));
-      await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Subject'}));
-      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Investigation'}));
+      await userEvent.hover(screen.getByRole('menuitem', {name: 'Subject'}));
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Investigation'})
+      );
       await waitFor(() =>
         expect(
           screen.queryByRole('link', {name: /TypeError: Cannot read properties/})
@@ -1040,16 +1058,21 @@ describe('Inbox', () => {
       expect(router.location.query).toEqual({});
     });
 
-    it('keeps filters in item links', async () => {
+    it('keeps filters when following an item URL with a query and fragment', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/inbox/',
         match: [
           MockApiClient.matchQuery({subject_type: ['notebook'], recipient: ['team']}),
         ],
-        body: [notebookItem],
+        body: [
+          {
+            ...notebookItem,
+            url: `${notebookItem.url}?comment=1#comment-1`,
+          },
+        ],
       });
 
-      render(<Inbox />, {
+      const {router} = render(<Inbox />, {
         organization,
         initialRouterConfig: {
           location: {
@@ -1060,14 +1083,23 @@ describe('Inbox', () => {
         },
       });
 
-      expect(
-        await screen.findByRole('link', {
-          name: /OperationalError: could not connect to server/,
-        })
-      ).toHaveAttribute(
+      const item = await screen.findByRole('link', {
+        name: /OperationalError: could not connect to server/,
+      });
+      expect(item).toHaveAttribute(
         'href',
-        '/organizations/org-slug/inbox/notebook/1000210/?recipient=team&subjectType=notebook'
+        '/organizations/org-slug/inbox/notebook/1000210/?comment=1&recipient=team&subjectType=notebook#comment-1'
       );
+
+      await userEvent.click(item);
+
+      expect(router.location.hash).toBe('#comment-1');
+      expect(router.location.query).toEqual({
+        comment: '1',
+        recipient: 'team',
+        subjectType: 'notebook',
+      });
+      await expectMarkedRead(notebookItem);
     });
 
     it('ignores unknown filter values in the url', async () => {

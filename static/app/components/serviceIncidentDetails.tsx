@@ -8,6 +8,7 @@ import {IconWarning} from '@sentry/icons/warning';
 import sortBy from 'lodash/sortBy';
 import startCase from 'lodash/startCase';
 
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {sanitizedMarked} from '@sentry/scraps/markdown';
@@ -22,7 +23,6 @@ import type {
   StatusPageServiceStatus,
 } from 'sentry/types/system';
 
-import {DateTime} from './dateTime';
 import {TimeSince} from './timeSince';
 
 interface Props {
@@ -53,7 +53,11 @@ export function ServiceIncidentDetails({incident}: Props) {
             ),
             end: (
               <strong>
-                <DateTime date={incident.resolved_at} />
+                {incident.resolved_at ? (
+                  <DateTime date={incident.resolved_at} />
+                ) : (
+                  t('Unknown')
+                )}
               </strong>
             ),
           }
@@ -66,7 +70,11 @@ export function ServiceIncidentDetails({incident}: Props) {
           ),
           end: (
             <strong>
-              <DateTime date={incident.resolved_at} />
+              {incident.resolved_at ? (
+                <DateTime date={incident.resolved_at} />
+              ) : (
+                t('Unknown')
+              )}
             </strong>
           ),
         })

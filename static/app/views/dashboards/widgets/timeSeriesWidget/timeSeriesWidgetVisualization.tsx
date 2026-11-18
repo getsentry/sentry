@@ -10,8 +10,13 @@ import type {
 import sum from 'lodash/sum';
 import unescape from 'lodash/unescape';
 
-import {Container, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
+import type {AnnotationItem} from 'sentry/components/charts/annotations/types';
+import type {BandBucket} from 'sentry/components/charts/bands/bandShapes';
+import {useBandTooltips} from 'sentry/components/charts/bands/bandTooltip';
+import {mergeChartBands} from 'sentry/components/charts/bands/mergeChartBands';
+import {useAnnotationBand} from 'sentry/components/charts/bands/useAnnotationBand';
 import {BaseChart} from 'sentry/components/charts/baseChart';
 import type {LegendItem} from 'sentry/components/charts/chartLegend';
 import {ChartLegend} from 'sentry/components/charts/chartLegend';
@@ -22,7 +27,6 @@ import {
 } from 'sentry/components/charts/useChartXRangeSelection';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
-import {mergeDroppedDataBand} from 'sentry/components/droppedData/band/mergeDroppedDataBand';
 import {useDroppedDataBand} from 'sentry/components/droppedData/band/useDroppedDataBand';
 import type {DroppedDataProps} from 'sentry/components/droppedData/types';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -54,17 +58,17 @@ import type {
 import {WidgetLoadingPanel} from 'sentry/views/dashboards/widgets/common/widgetLoadingPanel';
 import {WidgetNoDataPanel} from 'sentry/views/dashboards/widgets/common/widgetNoDataPanel';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
-import {
-  RELEASE_BUBBLE_SERIES_NAME,
-  useReleaseBubbles,
-} from 'sentry/views/explore/releases/releaseBubbles/useReleaseBubbles';
+import {useReleaseBubbles} from 'sentry/views/explore/releases/releaseBubbles/useReleaseBubbles';
 import {makeReleaseDrawerPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/components/widgets/types';
 
 import {formatTooltipValue} from './formatters/formatTooltipValue';
 import {formatXAxisTimestamp} from './formatters/formatXAxisTimestamp';
 import {formatYAxisValue} from './formatters/formatYAxisValue';
-import {isLowConfidenceDataPoint} from './plottables/continuousTimeSeries';
+import {
+  ContinuousTimeSeries,
+  isLowConfidenceDataPoint,
+} from './plottables/continuousTimeSeries';
 import type {Plottable} from './plottables/plottable';
 import {assignPlottablesToYAxes} from './assignPlottablesToYAxes';
 import {createReleaseSeriesOptions} from './createReleaseSeriesOptions';
@@ -79,6 +83,12 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
    * An array of `Plottable` objects. This can be any object that implements the `Plottable` interface.
    */
   plottables: Plottable[];
+
+  /**
+   * Releases, flag changes, and other annotations, drawn as a band under the
+   * plot that marks each chart bucket with annotations.
+   */
+  annotations?: AnnotationItem[];
 
   /**
    * Sets the range of the Y axis.
@@ -109,6 +119,11 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
    * highlight. `onClick` is called when the band is clicked.
    */
   droppedData?: DroppedDataProps;
+
+  /**
+   * Controls rendered at the end of the legend row. They render even when the legend is hidden.
+   */
+  legendActions?: React.ReactNode;
 
   /**
    * A mapping of time series field name to boolean. If the value is `false`, the series is hidden from view
@@ -468,7 +483,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
 
   const {
     connectReleaseBubbleChartRef,
-    onReleaseBubbleLegendSelectChanged,
     releaseBubbleSeries,
     releaseBubbleXAxis,
     releaseBubbleGrid,
@@ -478,7 +492,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     minTime: earliestTimeStamp,
     maxTime: latestTimeStamp,
     releases: bubbleReleases,
-    legendSelected: legendSelection[RELEASE_BUBBLE_SERIES_NAME] !== false,
+    legendSelected: true,
     yAxisIndex: yAxes.length,
   });
 
@@ -487,16 +501,22 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   }
 
   // `useReleaseBubbles` returns an empty object when there are no bubbles to draw.
-  const releaseBandHeight =
+  const releaseBubblesHeight =
     'offset' in releaseBubbleXAxis ? releaseBubbleXAxis.offset : 0;
   const releaseGridBottom = 'bottom' in releaseBubbleGrid ? releaseBubbleGrid.bottom : 0;
 
-  const droppedDataBand = useDroppedDataBand({
-    chartRef,
-    droppedData: props.droppedData,
-    bandOffset: releaseBandHeight,
-    utc,
+  const hasAnnotations = (props.annotations?.length ?? 0) > 0;
+  const bandBuckets = useMemo(
+    () => (hasAnnotations ? getBandBuckets(props.plottables) : []),
+    [hasAnnotations, props.plottables]
+  );
+  const annotationBand = useAnnotationBand({
+    buckets: bandBuckets,
+    items: props.annotations,
   });
+
+  const droppedDataBand = useDroppedDataBand({droppedData: props.droppedData});
+  const bands = useBandTooltips([droppedDataBand, annotationBand], {chartRef, utc});
 
   const showYAxisProp = props.showYAxis ?? 'auto';
   const showYAxis = showYAxisProp === 'auto';
@@ -541,11 +561,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   );
 
   const handleLegendSelectChanged = useCallback<EChartLegendSelectChangeHandler>(
-    (event, instance) => {
-      onReleaseBubbleLegendSelectChanged(event, instance);
+    event => {
       handleLegendSelectionChange(event.selected);
     },
-    [onReleaseBubbleLegendSelectChanged, handleLegendSelectionChange]
+    [handleLegendSelectionChange]
   );
 
   const handleChartReady = useCallback(
@@ -600,8 +619,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         // When customValues are provided, suppress auto-tick generation
         // so ECharts only renders our timezone-aligned ticks.
         splitNumber: hasCustomTicks ? 0 : X_AXIS_SPLIT_NUMBER,
-        axisLine: {onZero: releaseBandHeight === 0},
-        offset: releaseBandHeight,
+        axisLine: {onZero: releaseBubblesHeight === 0},
+        offset: releaseBubblesHeight,
       }
     : HIDDEN_AXIS;
 
@@ -610,8 +629,12 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // that label, add some grid padding.
   const xAxisGrid = showXAxis ? {} : {bottom: 5};
 
+  // Release bubbles are toggled from outside the chart (e.g., a dashboard
+  // widget's Layers menu), so only release lines get a legend item.
+  const releaseLegendSeries = hasReleaseBubbles ? null : releaseSeries;
+
   let visibleSeriesCount = props.plottables.length;
-  if (releaseSeries) {
+  if (releaseLegendSeries) {
     visibleSeriesCount += 1;
   }
 
@@ -686,13 +709,14 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     };
   });
 
-  if (releaseSeries) {
-    const releaseName = typeof releaseSeries.name === 'string' ? releaseSeries.name : '';
+  if (releaseLegendSeries) {
+    const releaseName =
+      typeof releaseLegendSeries.name === 'string' ? releaseLegendSeries.name : '';
     const releaseColor =
-      typeof releaseSeries.color === 'string' ? releaseSeries.color : '';
+      typeof releaseLegendSeries.color === 'string' ? releaseLegendSeries.color : '';
     chartLegendItems.push({
       name: releaseName,
-      label: hasReleaseBubbles ? t('Releases') : releaseName,
+      label: releaseName,
       color: releaseColor,
     });
   }
@@ -701,7 +725,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // This ensures that when the legend is clicked, none of the series are permanently hidden.
   const normalizedLegendSelection = chartLegendItems.reduce<Record<string, boolean>>(
     (acc, item) => {
-      acc[item.name] = legendSelection[item.name] !== false;
+      acc[item.name] = !showLegend || legendSelection[item.name] !== false;
       return acc;
     },
     {}
@@ -758,7 +782,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     }
   };
 
-  const band = mergeDroppedDataBand(
+  const band = mergeChartBands(
     {
       grid: {
         // NOTE: Adding a few pixels of left padding prevents ECharts from
@@ -775,20 +799,31 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       series: allSeries,
       onClick: handleClick,
     },
-    droppedDataBand,
-    props.droppedData?.onClick
+    bands,
+    {offset: releaseBubblesHeight}
   );
+
+  const legend = showLegend ? (
+    <ChartLegend
+      items={chartLegendItems}
+      selected={normalizedLegendSelection}
+      onSelectionChange={handleLegendSelectionChange}
+      truncateMenuLabels={props.truncateLegendMenuLabels}
+    />
+  ) : null;
 
   return (
     <Stack height="100%">
       {ActionMenu}
-      {showLegend && (
-        <ChartLegend
-          items={chartLegendItems}
-          selected={normalizedLegendSelection}
-          onSelectionChange={handleLegendSelectionChange}
-          truncateMenuLabels={props.truncateLegendMenuLabels}
-        />
+      {props.legendActions ? (
+        <Flex align="center" gap="sm">
+          <Container flex="1" minWidth="0">
+            {legend}
+          </Container>
+          {props.legendActions}
+        </Flex>
+      ) : (
+        legend
       )}
       <Container flex="1 1 0%" minHeight="0">
         <BaseChart
@@ -797,14 +832,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           renderer="canvas"
           series={band.series}
           grid={{...band.grid, ...xAxisGrid}}
-          legend={
-            showLegend
-              ? {
-                  show: false,
-                  selected: normalizedLegendSelection,
-                }
-              : undefined
-          }
+          legend={{show: false, selected: normalizedLegendSelection}}
           onLegendSelectChanged={handleLegendSelectChanged}
           tooltip={{
             appendToBody: true,
@@ -865,6 +893,18 @@ function getPlottableEventDataIndex(
   );
 
   return dataIndexOffset + dataIndex;
+}
+
+function getBandBuckets(plottables: Plottable[]): BandBucket[] {
+  const plottable = plottables.find(item => item instanceof ContinuousTimeSeries);
+  if (!plottable) {
+    return [];
+  }
+
+  const {meta, values} = plottable.timeSeries;
+  return values
+    .map(({timestamp}) => ({start: timestamp, end: timestamp + meta.interval}))
+    .toSorted((a, b) => a.start - b.start);
 }
 
 // Hide every part of the axis so ECharts will remove those elements and also

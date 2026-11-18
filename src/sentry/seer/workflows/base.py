@@ -12,6 +12,7 @@ from django.db.models import QuerySet
 from django.utils import timezone
 from pydantic import BaseModel, Field, ValidationError
 
+from sentry.constants import ObjectStatus
 from sentry.models.project import Project
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
@@ -25,13 +26,15 @@ from sentry.seer.models.workflow import (
 )
 from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
 from sentry.service_accounts.models import (
+    GrantableScope,
     InvalidScopeError,
     ServiceAccountProjectReplica,
     ServiceAccountReplica,
-    validate_grantable_scopes,
+    parse_grantable_scopes,
 )
 from sentry.service_accounts.outbox import service_account_grant_update_outbox
 from sentry.utils import json
+from sentry.workflow_engine.models import Workflow
 
 logger = logging.getLogger(__name__)
 
@@ -87,11 +90,13 @@ class SeerServiceAccountGrant:
         )
 
 
-def validate_service_account_grant(organization_id: int, grant: SeerServiceAccountGrant) -> None:
+def validate_service_account_grant(
+    organization_id: int, grant: SeerServiceAccountGrant
+) -> list[GrantableScope]:
     if not grant.all_projects:
         validate_project_ids(organization_id, set(grant.project_ids))
     try:
-        validate_grantable_scopes(grant.scopes)
+        return parse_grantable_scopes(grant.scopes)
     except InvalidScopeError as e:
         raise WorkflowUpdateError(" ".join(e.messages)) from e
 
@@ -129,17 +134,21 @@ class AutomationTrigger[Inputs: BaseModel](Protocol):
         """Return the active projects in the config's scope."""
         ...
 
+    def setup(self, update: ConfigUpdate, workflow: Workflow) -> None:
+        """Attach anything the trigger needs to a new automation's backing workflow."""
+        return None
+
     def set_scope(self, update: ConfigUpdate, selection: ScopeSelection) -> None:
         """Replace the config's scope, marking ``update`` only when something changed."""
         ...
 
     def sync(self, config: SeerWorkflowConfig) -> None:
         """Bring anything the trigger keeps outside the config in line with it."""
-        ...
+        return None
 
     def teardown(self, config: SeerWorkflowConfig) -> None:
         """Remove anything the trigger keeps outside the config, before it is deleted."""
-        ...
+        return None
 
 
 class AutomationAction[Inputs: BaseModel](Protocol):
@@ -198,10 +207,18 @@ class AutomationDefinition[Inputs: BaseModel]:
     def project_ids(self, config: SeerWorkflowConfig) -> list[int]:
         return list(self.trigger.projects(config).order_by("id").values_list("id", flat=True))
 
+    @staticmethod
+    def is_enabled(config: SeerWorkflowConfig) -> bool:
+        workflow = config.backing_workflow
+        if workflow is None:
+            # TODO(telkins): Cascade a deleted backing workflow to its automation.
+            raise ValueError(f"Automation {config.id} has no backing workflow")
+        return workflow.enabled and workflow.status == ObjectStatus.ACTIVE
+
     def covers(self, config: SeerWorkflowConfig, project_id: int, environment: str | None) -> bool:
         filters = SeerWorkflowFilters.parse_obj(config.filters)
         return (
-            config.enabled
+            self.is_enabled(config)
             and (not filters.environments or environment in filters.environments)
             and self.trigger.projects(config).filter(id=project_id).exists()
         )
@@ -302,25 +319,58 @@ class ConfigUpdate:
     config: LockedConfig
     definition: AutomationDefinition[Any]
     dirty_fields: set[str] = field(default_factory=set)
+    workflow_dirty_fields: set[str] = field(default_factory=set)
     related_changed: bool = False
 
     @property
     def changed(self) -> bool:
-        return bool(self.dirty_fields) or self.related_changed
+        return bool(self.dirty_fields) or bool(self.workflow_dirty_fields) or self.related_changed
 
     def mark(self, *fields: str) -> None:
         """Record changed columns on the config row."""
         self.dirty_fields.update(fields)
 
+    def mark_workflow(self, *fields: str) -> None:
+        """Record changed columns on the backing workflow, saved once with the config."""
+        self.workflow_dirty_fields.update(fields)
+
     def mark_related_changed(self) -> None:
         """Record changes outside the row, like project links, that still bump the version."""
         self.related_changed = True
 
+    def setup_backing_workflow(
+        self, *, name: str | None, created_by_id: int | None, enabled: bool
+    ) -> None:
+        """Give a new automation the backing workflow that holds its name and enabled state."""
+        workflow = Workflow.objects.create(
+            organization_id=self.config.organization_id,
+            name=name or "Seer automation",
+            type=Workflow.Type.SEER_INVESTIGATION,
+            enabled=enabled,
+            created_by_id=created_by_id,
+            config={"frequency": 0},
+        )
+        self.config.backing_workflow = workflow
+        self.mark("backing_workflow")
+        self.definition.trigger.setup(self, workflow)
+
     def set_enabled(self, enabled: bool) -> None:
-        if self.config.enabled == enabled:
-            return
-        self.config.enabled = enabled
-        self.mark("enabled")
+        workflow = self._backing_workflow()
+        if workflow.enabled != enabled:
+            workflow.enabled = enabled
+            self.mark_workflow("enabled")
+
+    def set_name(self, name: str) -> None:
+        workflow = self._backing_workflow()
+        if workflow.name != name:
+            workflow.name = name
+            self.mark_workflow("name")
+
+    def _backing_workflow(self) -> Workflow:
+        workflow = self.config.backing_workflow
+        if workflow is None:
+            raise WorkflowUpdateError("The automation has no backing workflow")
+        return workflow
 
     def set_extras(self, extras: SeerWorkflowConfigExtras) -> None:
         self.definition.validate_settings(extras)
@@ -350,14 +400,14 @@ class ConfigUpdate:
         Returns whether the grant differs from the replicated one. Callers must authorize
         the grant and audit a change.
         """
-        validate_service_account_grant(self.config.organization_id, grant)
+        scopes = validate_service_account_grant(self.config.organization_id, grant)
         replica = self._service_account_replica()
         # Sent even when the replica already matches: it can lag control, and applying the
         # same grant twice changes nothing.
         service_account_grant_update_outbox(
             organization_id=self.config.organization_id,
             service_account_id=replica.service_account_id,
-            scope_list=grant.scopes,
+            scope_list=scopes,
             project_ids=grant.project_ids,
             all_projects=grant.all_projects,
         ).save()
@@ -369,11 +419,11 @@ class ConfigUpdate:
     def _service_account_replica(self) -> ServiceAccountReplica:
         if self.config.service_account_id is None:
             raise WorkflowUpdateError("The automation doesn't have a service account")
-        replica = ServiceAccountReplica.objects.filter(
+        replica = ServiceAccountReplica.objects.get_or_none(
             service_account_id=self.config.service_account_id,
             organization_id=self.config.organization_id,
             is_active=True,
-        ).first()
+        )
         if replica is None:
             logger.warning(
                 "seer.workflow.service_account_missing",

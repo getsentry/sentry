@@ -52,6 +52,10 @@ type Summary = {
   rows_page_size: number;
   rows_total_pages: number;
   start: string;
+  // Absent from backends that list every row, including small mismatches.
+  hidden_small_mismatch_count?: number;
+  listed_row_count?: number;
+  min_listed_mismatch_cents?: number;
 };
 
 type ComparisonResponse = {
@@ -168,6 +172,19 @@ function parsePageSizeParam(value: unknown): number {
   return PAGE_SIZE_OPTIONS.includes(n) ? n : DEFAULT_PAGE_SIZE;
 }
 
+const DEFAULT_MIN_MISMATCH_DOLLARS = 1;
+
+// A non-negative dollar amount, or undefined. `Number('')` is 0, so an
+// empty field would otherwise silently mean "show every mismatch".
+function parseDollars(value: unknown): number | undefined {
+  const raw = firstQueryValue(value)?.trim();
+  if (!raw) {
+    return undefined;
+  }
+  const n = Number(raw);
+  return Number.isFinite(n) && n >= 0 ? n : undefined;
+}
+
 export function InvoiceComparison() {
   const cells = getCells();
   const location = useLocation();
@@ -183,6 +200,8 @@ export function InvoiceComparison() {
   const queryEnd = parseDayParam(location.query.end);
   const rowsPage = parsePageParam(location.query.rows_page);
   const pageSize = parsePageSizeParam(location.query.page_size);
+  const minMismatch =
+    parseDollars(location.query.min_mismatch) ?? DEFAULT_MIN_MISMATCH_DOLLARS;
 
   // Without a window in the URL (first visit, or a link that only carries
   // pagination params) query yesterday, the last complete UTC day, so the
@@ -200,6 +219,8 @@ export function InvoiceComparison() {
 
   const [startInput, setStartInput] = useState(startDay);
   const [endInput, setEndInput] = useState(endDay);
+  const [minMismatchInput, setMinMismatchInput] = useState(String(minMismatch));
+  const minMismatchInputValue = parseDollars(minMismatchInput);
 
   // Keep the date inputs in sync with the window being shown on back/forward
   // and in-app navigation (e.g. opening a shared link). Keyed on the shown
@@ -214,6 +235,11 @@ export function InvoiceComparison() {
     if (endDay) {
       setEndInput(endDay);
     }
+  }
+  const [shownMinMismatch, setShownMinMismatch] = useState(minMismatch);
+  if (shownMinMismatch !== minMismatch) {
+    setShownMinMismatch(minMismatch);
+    setMinMismatchInput(String(minMismatch));
   }
 
   // Written into every URL this page rewrites, so a refresh or shared link
@@ -233,6 +259,7 @@ export function InvoiceComparison() {
         end: hasWindow ? endDay : undefined,
         rows_page: rowsPage,
         rows_page_size: pageSize,
+        min_mismatch_cents: Math.round(minMismatch * 100),
       },
       staleTime: 0,
     }),
@@ -323,7 +350,7 @@ export function InvoiceComparison() {
   };
 
   const onSubmit = () => {
-    if (!startInput || !endInput) {
+    if (!startInput || !endInput || minMismatchInputValue === undefined) {
       return;
     }
     // Re-running the comparison persists the chosen window to the URL and
@@ -337,6 +364,7 @@ export function InvoiceComparison() {
         end: endInput,
         rows_page: '1',
         page_size: String(pageSize),
+        min_mismatch: String(minMismatchInputValue),
       },
     });
   };
@@ -393,6 +421,18 @@ export function InvoiceComparison() {
               />
             </Stack>
             <Stack gap="xs">
+              <FieldLabel htmlFor="min_mismatch">Hide mismatches under ($)</FieldLabel>
+              <Input
+                id="min_mismatch"
+                type="number"
+                min={0}
+                step="0.01"
+                value={minMismatchInput}
+                aria-invalid={minMismatchInputValue === undefined}
+                onChange={e => setMinMismatchInput(e.target.value)}
+              />
+            </Stack>
+            <Stack gap="xs">
               <FieldLabel>Results per page</FieldLabel>
               <CompactSelect
                 trigger={triggerProps => (
@@ -406,7 +446,11 @@ export function InvoiceComparison() {
                 onChange={opt => setPageSize(Number(opt.value))}
               />
             </Stack>
-            <Button variant="primary" onClick={onSubmit} disabled={!cell}>
+            <Button
+              variant="primary"
+              onClick={onSubmit}
+              disabled={!cell || minMismatchInputValue === undefined}
+            >
               Run comparison
             </Button>
           </Flex>
@@ -475,10 +519,23 @@ export function InvoiceComparison() {
               <Paginator
                 page={data.summary.rows_page}
                 totalPages={data.summary.rows_total_pages}
-                total={data.summary.row_count}
+                total={data.summary.listed_row_count ?? data.summary.row_count}
                 pageSize={data.summary.rows_page_size}
                 onChange={setRowsPage}
               />
+              {!!data.summary.hidden_small_mismatch_count &&
+                data.summary.min_listed_mismatch_cents !== undefined && (
+                  <Flex padding="md lg" borderBottom="primary">
+                    <Text size="sm" variant="muted">
+                      Hiding {data.summary.hidden_small_mismatch_count.toLocaleString()}{' '}
+                      {data.summary.hidden_small_mismatch_count === 1
+                        ? 'mismatch'
+                        : 'mismatches'}{' '}
+                      under {formatDollars(data.summary.min_listed_mismatch_cents)}. The
+                      summary still counts them.
+                    </Text>
+                  </Flex>
+                )}
               <Table>
                 <thead>
                   <tr>
@@ -494,7 +551,11 @@ export function InvoiceComparison() {
                   {rows.length === 0 && (
                     <tr>
                       <td colSpan={6}>
-                        <em>No invoices in this range on either side.</em>
+                        <em>
+                          {data.summary.hidden_small_mismatch_count
+                            ? 'Every compared org is a hidden small mismatch.'
+                            : 'No invoices in this range on either side.'}
+                        </em>
                       </td>
                     </tr>
                   )}

@@ -149,10 +149,13 @@ export type OnboardingEventParameters = {
     platform?: string;
   };
   'onboarding.scm_welcome_agent_command_copied': {
+    handoff_id: string;
     source: 'install_command' | 'prompt';
+    run_id?: string;
   };
   'onboarding.scm_welcome_agent_snippet_selected': {
     source: 'install_command' | 'prompt';
+    run_id?: string;
   };
   'onboarding.scm_welcome_agentic_setup_viewed': Record<string, unknown>;
   'onboarding.scm_welcome_continue_clicked': Record<string, unknown>;

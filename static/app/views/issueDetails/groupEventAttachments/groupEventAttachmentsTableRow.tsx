@@ -1,10 +1,10 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {EventAttachmentActions} from 'sentry/components/events/eventAttachmentActions';
 import {FileSize} from 'sentry/components/fileSize';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
