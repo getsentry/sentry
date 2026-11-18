@@ -54,6 +54,9 @@ declare global {
      */
     __sentryGlobalStaticPrefix: string;
 
+    /** Query parameters supplied by the demo sandbox. */
+    SandboxData?: {extraQueryString?: string};
+
     /**
      * Is the UI running as dev-ui proxy.
      * Used by webpack-devserver + html-webpack
