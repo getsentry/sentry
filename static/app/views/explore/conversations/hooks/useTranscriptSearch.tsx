@@ -23,11 +23,12 @@ function findMatches(root: HTMLElement, query: string): TranscriptMatch[] {
   const matches: TranscriptMatch[] = [];
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
   for (let node = walker.nextNode(); node; node = walker.nextNode()) {
-    // Only text inside transcript blocks, which carry the span they render.
-    const spanId = node.parentElement
-      ?.closest('[data-node-id]')
-      ?.getAttribute('data-node-id');
-    if (!spanId) {
+    // Only text inside transcript blocks, which carry the span they render. Skip
+    // collapsed blocks' titles: they preview the block's own text, so it would count
+    // twice until the block opens.
+    const element = node.parentElement;
+    const spanId = element?.closest('[data-node-id]')?.getAttribute('data-node-id');
+    if (!spanId || element?.closest('summary')) {
       continue;
     }
     for (const match of (node.nodeValue ?? '').matchAll(pattern)) {
