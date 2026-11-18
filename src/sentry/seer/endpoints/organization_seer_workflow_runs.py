@@ -363,15 +363,10 @@ def serialize_workflow_run(
     config = run.workflow_config
     if config is None:
         raise ValueError("Workflow runs are listed only for their automation")
-    config_name: str | None
-    if config.backing_workflow is not None:
-        config_name = config.backing_workflow.name
-    else:
-        config_name = config.extras.get("name") if isinstance(config.extras, dict) else None
     result: SeerWorkflowRunResponseBase = {
         "id": str(run.id),
         "configId": str(run.workflow_config_id),
-        "configName": config_name if isinstance(config_name, str) else None,
+        "configName": config.backing_workflow.name if config.backing_workflow else None,
         "strategy": config.strategy,
         "trigger": serialize_trigger(
             run,

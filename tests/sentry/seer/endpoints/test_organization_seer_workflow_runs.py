@@ -506,7 +506,11 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
         }
 
     def test_returns_the_config_name(self) -> None:
-        self.config.update(extras={"name": "Checkout latency"})
+        self.config.update(
+            backing_workflow=self.create_workflow(
+                organization=self.organization, name="Checkout latency"
+            )
+        )
         self.create_run()
 
         response = self.get_success_response(self.organization.slug)
