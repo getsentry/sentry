@@ -467,8 +467,11 @@ export default Storybook.story('SeerDrawerContent', story => {
 
   story('Out of credits: a step that stopped', () => (
     <DrawerStory
-      description="The plan step failed after the root cause. The autofix-continue alert covers the retry (autofix_solution); the card's own retry is left to the failure handling."
-      runState={makeRun([ROOT_CAUSE, SOLUTION], {status: 'error'})}
+      description="The plan step stopped for credits after the root cause. The autofix-continue alert sits at the top (autofix_solution), and the plan card says why it stopped, with Re-run disabled."
+      runState={makeRun([ROOT_CAUSE, SOLUTION], {
+        status: 'error',
+        failure_reason: 'out_of_credits',
+      })}
     />
   ));
 
