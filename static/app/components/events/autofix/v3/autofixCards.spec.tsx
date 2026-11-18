@@ -2645,7 +2645,7 @@ describe('ArtifactCard', () => {
     });
 
     // `makePR`'s `commit_sha`, so by default the diff includes Seer's last push.
-    function mockPullRequestFiles(headSha = 'abc123') {
+    function mockPullRequestFiles(headSha: string | null = 'abc123') {
       return MockApiClient.addMockResponse({
         url: filesUrl,
         match: [MockApiClient.matchQuery({repo: 'org/repo', number: 42})],
@@ -2727,6 +2727,43 @@ describe('ArtifactCard', () => {
       const calls = filesRequest.mock.calls.length;
       await act(() => jest.advanceTimersByTimeAsync(60_000));
       expect(filesRequest).toHaveBeenCalledTimes(calls);
+    });
+
+    it('keeps waiting when the head moved while the files were read', async () => {
+      jest.useFakeTimers();
+      // The endpoint can't say which commit the diff is from if a push lands mid-read.
+      const movedRequest = mockPullRequestFiles(null);
+      await renderThroughPush();
+      expect(movedRequest).toHaveBeenCalledTimes(2);
+      expect(screen.queryByTestId('file-diff-viewer')).not.toBeInTheDocument();
+      expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument();
+
+      MockApiClient.clearMockResponses();
+      const newDiffRequest = mockPullRequestFiles();
+
+      await act(() => jest.advanceTimersByTimeAsync(2_100));
+      expect(newDiffRequest).toHaveBeenCalledTimes(1);
+      expect(screen.getByTestId('file-diff-viewer')).toBeInTheDocument();
+    });
+
+    it('shows the diff it has if a recheck fails', async () => {
+      jest.useFakeTimers();
+      mockPullRequestFiles('older-sha');
+      await renderThroughPush();
+      expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument();
+
+      MockApiClient.clearMockResponses();
+      const failedRequest = MockApiClient.addMockResponse({
+        url: filesUrl,
+        statusCode: 500,
+      });
+
+      await act(() => jest.advanceTimersByTimeAsync(2_100));
+      expect(failedRequest).toHaveBeenCalled();
+      expect(screen.getByTestId('file-diff-viewer')).toBeInTheDocument();
+      expect(
+        screen.queryByText("We couldn't load the pull request's changes.")
+      ).not.toBeInTheDocument();
     });
 
     it("doesn't wait for a push it didn't see, even when the run updates", async () => {

@@ -70,23 +70,26 @@ function toFilePatch(file: PullRequestFileDiff, repoName: string): ExplorerFileP
 }
 
 /**
- * Whether the diff is from before a push this page saw, because the provider hasn't caught
- * up. If the page didn't see the push, a different SHA means someone else pushed, so there's
- * nothing to wait for.
+ * Whether the diff may be from before a push this page saw, because the provider hasn't
+ * caught up. If the page didn't see the push, a different SHA means someone else pushed, so
+ * there's nothing to wait for.
+ *
+ * A null SHA counts as behind too: the endpoint returns null when the head moved while it
+ * read the files, which is likely while the provider catches up. A provider that never
+ * says which commit it read just waits out the window.
  */
 function isBehindPush(
   data: PullRequestFilesResponse | undefined,
   state: RepoPRState,
   pushesSeen: Map<string, number>
 ): boolean {
-  const headSha = data?.headSha;
   const seenAt = defined(state.commit_sha) ? pushesSeen.get(state.commit_sha) : undefined;
   return (
     state.pr_creation_status === 'completed' &&
     defined(seenAt) &&
     Date.now() - seenAt < DIFF_CATCH_UP_WINDOW_MS &&
-    defined(headSha) &&
-    headSha !== state.commit_sha
+    defined(data) &&
+    data.headSha !== state.commit_sha
   );
 }
 
@@ -182,7 +185,11 @@ export function usePullRequestPatches({
       const result = results[index];
       if (pushing.has(state.repo_name)) {
         patches.set(state.repo_name, {status: 'pushing'});
-      } else if (result?.data && !isBehindPush(result.data, state, pushesSeen)) {
+      } else if (
+        result?.data &&
+        // If a recheck fails, show the diff we have rather than an error.
+        (result.isError || !isBehindPush(result.data, state, pushesSeen))
+      ) {
         patches.set(state.repo_name, {
           status: 'success',
           pushFailed: state.pr_creation_status === 'error',
