@@ -1,12 +1,12 @@
 import {Fragment} from 'react';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {InfoText} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
-import {DateTime} from 'sentry/components/dateTime';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -154,7 +154,7 @@ function ClassifierDetails({
         )}
         <DescriptionList.Term>{t('Date created')}</DescriptionList.Term>
         <DescriptionList.Details>
-          <DateTime date={classifier.dateAdded} dateOnly year />
+          <DateTime date={classifier.dateAdded} mode="date" year="always" />
         </DescriptionList.Details>
         <DescriptionList.Term>{t('Last modified')}</DescriptionList.Term>
         <DescriptionList.Details>

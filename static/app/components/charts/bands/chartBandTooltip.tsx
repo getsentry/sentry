@@ -1,25 +1,29 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import moment from 'moment-timezone';
 
+import {formatDateTime, type DateTimeOptions} from '@sentry/scraps/dateTime';
 import {Container, Flex, type FlexProps} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 
-import {getFormat} from 'sentry/utils/dates';
+import {parseChartDateTime} from 'sentry/components/charts/formatChartDateTime';
 
 import type {BandBucket} from './bandShapes';
 
 function formatBucketRange(start: number, end: number, timezone: string): string {
-  const startMoment = moment.tz(start, timezone);
-  const endMoment = moment.tz(end, timezone);
-  const showYear = startMoment.year() !== moment().year();
+  const startDate = parseChartDateTime(start, timezone);
+  const endDate = parseChartDateTime(end, timezone);
+  const now = parseChartDateTime(Date.now(), timezone);
+  if (!startDate || !endDate || !now) {
+    return 'Invalid date';
+  }
+  const showYear = startDate.year !== now.year;
 
-  const endFormat = startMoment.isSame(endMoment, 'day')
-    ? getFormat({timeOnly: true, timeZone: true})
-    : getFormat({year: showYear, timeZone: true});
-
-  return `${startMoment.format(getFormat({year: showYear}))} - ${endMoment.format(endFormat)}`;
+  const year = showYear ? 'always' : 'never';
+  const endOptions = startDate.toPlainDate().equals(endDate.toPlainDate())
+    ? ({mode: 'time', showTimezone: true, timezone} satisfies DateTimeOptions)
+    : ({year, showTimezone: true, timezone} satisfies DateTimeOptions);
+  return `${formatDateTime(start, {year, showTimezone: false, timezone})} - ${formatDateTime(end, endOptions)}`;
 }
 
 interface ChartBandTooltipHeadingProps {
