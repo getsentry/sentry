@@ -196,7 +196,8 @@ class OrganizationTraceItemStatsEndpoint(OrganizationEventsEndpointBase):
     owner = ApiOwner.DATA_BROWSING
 
     @extend_schema(
-        operation_id="Retrieve Trace Item Statistics",
+        operation_id="listOrganizationTraceItemsStats",
+        summary="Retrieve Trace Item Statistics",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             OrganizationParams.PROJECT,

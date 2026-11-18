@@ -1,6 +1,8 @@
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 
+export const SEER_AUTO_RELOAD_MODAL_HASH = '#open-seer-auto-reload-modal';
+
 export type SeerWalletBalance = {
   /**
    * Remaining included plus purchased credits. Can go negative.
@@ -27,8 +29,12 @@ export type SeerWalletBalance = {
 };
 
 export type SeerWalletAutoTopUp = {
-  dailySpendCapCents: number;
+  /**
+   * Null means no daily usage limit.
+   */
+  dailySpendCapCents: number | null;
   enabled: boolean;
+  minTopUpCredits: number;
   thresholdCredits: number;
   topUpCredits: number;
 };

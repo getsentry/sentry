@@ -87,6 +87,10 @@ function timeseriesResultFixture(overrides: Partial<SortedTimeSeries> = {}) {
 }
 
 describe('ExploreCharts', () => {
+  beforeEach(() => {
+    PageFiltersStore.reset();
+  });
+
   describe('range selection', () => {
     const timeseriesResult = timeseriesResultFixture({
       data: {
@@ -126,10 +130,6 @@ describe('ExploreCharts', () => {
 
     beforeEach(() => {
       PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
-    });
-
-    afterEach(() => {
-      PageFiltersStore.reset();
     });
 
     it.each<Record<string, string>>([
@@ -653,74 +653,65 @@ describe('ExploreCharts', () => {
       expect(screen.queryByRole('option', {name: 'Heatmap'})).not.toBeInTheDocument();
     });
 
-    it('defaults count to a heatmap', async () => {
+    function mockOutlierBound(count: number) {
+      PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        match: [
+          MockApiClient.matchQuery({referrer: 'api.explore.spans-heatmap-outlier-bound'}),
+        ],
+        body: {
+          data: [
+            {
+              'min(span.duration)': 1,
+              'p95(span.duration)': 100,
+              'p99(span.duration)': 200,
+              'max(span.duration)': 100_000,
+              'count()': count,
+            },
+          ],
+        },
+      });
+    }
+
+    it('shows outliers when the selected cutoff has no bounds', async () => {
+      mockOutlierBound(10);
       render(
         <ControlledExploreCharts
-          initialVisualizes={[{yAxes: ['count(span.duration)']}]}
+          initialVisualizes={[{yAxes: ['heatmap(span.duration)']}]}
         />,
         {organization: OrganizationFixture({features: ['explore-dev-features']})}
       );
 
-      await userEvent.click(await screen.findByRole('button', {name: 'Chart type'}));
-      expect(screen.getByRole('option', {name: 'Heatmap'})).toHaveAttribute(
-        'aria-selected',
-        'true'
-      );
+      expect(
+        await screen.findByRole('button', {name: 'Outliers: shown'})
+      ).toBeInTheDocument();
     });
 
-    it('switches count back to a heatmap', async () => {
-      const onSetVisualizes = jest.fn();
+    it('lets outliers be turned off for heatmap', async () => {
+      mockOutlierBound(5_000);
       render(
         <ControlledExploreCharts
-          initialVisualizes={[
-            {yAxes: ['count(span.duration)'], chartType: ChartType.BAR},
-          ]}
-          onSetVisualizes={onSetVisualizes}
+          initialVisualizes={[{yAxes: ['heatmap(span.duration)']}]}
         />,
         {organization: OrganizationFixture({features: ['explore-dev-features']})}
       );
 
-      await userEvent.click(await screen.findByRole('button', {name: 'Chart type'}));
-      await userEvent.click(screen.getByRole('option', {name: 'Heatmap'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Outliers: p99.9'}));
+      await userEvent.click(screen.getByRole('option', {name: 'Show all'}));
 
-      expect(onSetVisualizes).toHaveBeenLastCalledWith([
-        {yAxes: ['count(span.duration)'], chartType: ChartType.HEATMAP},
-      ]);
+      expect(screen.getByRole('button', {name: 'Outliers: shown'})).toBeInTheDocument();
     });
 
-    it('disables the heatmap chart type for percentiles', async () => {
-      render(
-        <ControlledExploreCharts initialVisualizes={[{yAxes: ['p75(span.duration)']}]} />,
-        {
-          organization: OrganizationFixture({features: ['explore-dev-features']}),
-        }
-      );
-
-      await userEvent.click(await screen.findByRole('button', {name: 'Chart type'}));
-      expect(screen.getByRole('option', {name: 'Heatmap'})).toHaveAttribute(
-        'aria-disabled',
-        'true'
-      );
-    });
-
-    it('draws unsupported heatmaps as line charts', async () => {
-      const useChartInfosPlottables = jest.spyOn(
-        chartVisualization,
-        'useChartInfosPlottables'
-      );
+    it('locks the chart type for heatmap', async () => {
       render(
         <ControlledExploreCharts
-          initialVisualizes={[
-            {yAxes: ['p75(span.duration)'], chartType: ChartType.HEATMAP},
-          ]}
+          initialVisualizes={[{yAxes: ['heatmap(span.duration)']}]}
         />,
         {organization: OrganizationFixture({features: ['explore-dev-features']})}
       );
 
-      expect(await screen.findByLabelText('Collapse chart')).toBeInTheDocument();
-      const chartInfos = useChartInfosPlottables.mock.lastCall![0];
-      expect(chartInfos.map(info => info.chartType)).toEqual([ChartType.LINE]);
-      useChartInfosPlottables.mockRestore();
+      expect(await screen.findByRole('button', {name: 'Chart type'})).toBeDisabled();
     });
 
     it('keeps the aggregates together when the chart is collapsed', async () => {
@@ -750,10 +741,6 @@ describe('ExploreCharts', () => {
 
     beforeEach(() => {
       PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
-    });
-
-    afterEach(() => {
-      PageFiltersStore.reset();
     });
 
     function renderCharts({

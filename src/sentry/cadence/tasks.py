@@ -20,7 +20,7 @@ from sentry.cadence.schedule import MAX_MISSED_CRON_FIRINGS, advance, missed_bet
 from sentry.cadence.spread import offset_of
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.taskworker.namespaces import issues_tasks
+from sentry.taskworker.namespaces import cadence_tasks, issues_tasks
 from sentry.utils import metrics
 from sentry.utils.registry import NoRegistrationExistsError
 
@@ -57,11 +57,11 @@ class _Cursor:
     id: int
 
 
-# TODO: Pick a more appropriate namespace. A backlog of unrelated issues tasks delays the
-# tick, and with it every trigger.
+# Accept the cadence namespace before producers switch to it in a later deploy.
 @instrumented_task(
     name="sentry.cadence.tasks.cadence_tick",
     namespace=issues_tasks,
+    alias_namespace=cadence_tasks,
     processing_deadline_duration=60,
     silo_mode=SiloMode.CELL,
 )
@@ -85,6 +85,7 @@ def cadence_tick() -> None:
 @instrumented_task(
     name="sentry.cadence.tasks.cadence_sweep",
     namespace=issues_tasks,
+    alias_namespace=cadence_tasks,
     processing_deadline_duration=60,
     silo_mode=SiloMode.CELL,
 )
@@ -107,6 +108,7 @@ def cadence_sweep() -> None:
 @instrumented_task(
     name="sentry.cadence.tasks.cadence_sweep_worker",
     namespace=issues_tasks,
+    alias_namespace=cadence_tasks,
     processing_deadline_duration=60,
     silo_mode=SiloMode.CELL,
 )

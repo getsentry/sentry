@@ -2619,6 +2619,7 @@ class Factories:
         actor: User | RpcUser | None = None,
         **kwargs: Any,
     ) -> InboxItemEvent:
+        kwargs.setdefault("idempotency_key", uuid4().hex)
         return InboxItemEvent.objects.create(
             inbox_item=inbox_item,
             type=type,

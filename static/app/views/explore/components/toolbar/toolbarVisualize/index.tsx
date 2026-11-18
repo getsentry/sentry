@@ -43,6 +43,10 @@ import {
   findFormula,
   getFormulaArgumentParams,
 } from 'sentry/views/explore/utils/formulaAggregate';
+import {
+  HEATMAP_AGGREGATE,
+  HEATMAP_FIELD_DEFINITION,
+} from 'sentry/views/explore/utils/heatMapAggregate';
 import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
 
 import {ExpandableFilterSearchBar} from './expandableFilterSearchBar';
@@ -120,7 +124,11 @@ export function ToolbarVisualizeDropdown({
   const aggregateFunc = parsedFunction?.name;
   const formula = findFormula(formulas, aggregateFunc);
   const aggregateDefinition =
-    aggregateFunc && !formula ? getFieldDefinition(aggregateFunc, 'span') : undefined;
+    aggregateFunc && !formula
+      ? aggregateFunc === HEATMAP_AGGREGATE
+        ? HEATMAP_FIELD_DEFINITION
+        : getFieldDefinition(aggregateFunc, 'span')
+      : undefined;
 
   const functionOptions = aggregateOptions.map(option => ({
     ...option,

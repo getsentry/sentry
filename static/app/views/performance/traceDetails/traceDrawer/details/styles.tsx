@@ -14,7 +14,12 @@ import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
-import {Markdown, markdownRendersVisibleContent} from '@sentry/scraps/markdown';
+import {
+  Markdown,
+  markdownRendersVisibleContent,
+  stripAnnotations,
+  type MarkdownProps,
+} from '@sentry/scraps/markdown';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Separator} from '@sentry/scraps/separator';
@@ -38,6 +43,7 @@ import type {KeyValueListData} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -532,7 +538,9 @@ function NodeActions(props: {
         <Tooltip title={t('JSON')} skipWrapper>
           <ActionLinkButton
             onClick={() => traceAnalytics.trackViewEventJSON(props.organization)}
-            href={`/api/0/projects/${props.organization.slug}/${props.node.projectSlug}/trace-items/${props.node.id}/?item_type=spans&trace_id=${params.traceSlug}`}
+            href={resolveHostname(
+              `/api/0/projects/${props.organization.slug}/${props.node.projectSlug}/trace-items/${props.node.id}/?item_type=spans&trace_id=${params.traceSlug}`
+            )}
             size="zero"
             aria-label={t('JSON')}
             icon={<IconJson />}
@@ -542,7 +550,9 @@ function NodeActions(props: {
       {user.isSuperuser && isEAPSpanNode(props.node) && params.traceSlug ? (
         <Tooltip title={t('Span JSON (Superuser Only)')} skipWrapper>
           <ActionLinkButton
-            href={`/api/0/projects/${props.organization.slug}/${props.node.projectSlug}/trace-items/${props.node.id}/?item_type=spans&trace_id=${params.traceSlug}&debug=true`}
+            href={resolveHostname(
+              `/api/0/projects/${props.organization.slug}/${props.node.projectSlug}/trace-items/${props.node.id}/?item_type=spans&trace_id=${params.traceSlug}&debug=true`
+            )}
             size="zero"
             aria-label={t('Span JSON (Superuser Only)')}
             icon={<IconTerminal />}
@@ -633,6 +643,7 @@ function SectionCard({
 function MultilineText({
   children,
   renderFormatted,
+  markdownComponents,
   clip = true,
   mode,
 }: {
@@ -642,6 +653,8 @@ function MultilineText({
    * scrolls on its own, so content flows instead of being clipped and hidden.
    */
   clip?: boolean;
+  /** Overrides how the default markdown rendering renders tokens, like annotations. */
+  markdownComponents?: MarkdownProps['components'];
   /**
    * Forces the pretty or raw view and hides the hover toggle, for callers that
    * control the format themselves.
@@ -677,8 +690,10 @@ function MultilineText({
         )}
       </Container>
       {showRaw || defaultFormattingIsBlank
-        ? children.trim()
-        : (renderFormatted?.(children) ?? <Markdown raw={children} />)}
+        ? stripAnnotations(children.trim())
+        : (renderFormatted?.(children) ?? (
+            <Markdown raw={children} components={markdownComponents} />
+          ))}
     </MultilineTextWrapper>
   );
 
@@ -723,6 +738,7 @@ function MultilineJSON({
   maxDefaultDepth = 2,
   autoCollapseLimit,
   clip = false,
+  meta,
   mode,
 }: {
   value: any;
@@ -733,6 +749,11 @@ function MultilineJSON({
    */
   clip?: boolean;
   maxDefaultDepth?: number;
+  /**
+   * Meta of the parsed value, in the shape Relay reports for events. The pretty
+   * (tree) view highlights the values it marks as redacted.
+   */
+  meta?: Record<string, any>;
   /**
    * Forces the pretty (tree) or raw (JSON text) view and hides the hover toggle,
    * for callers that control the format themselves.
@@ -786,6 +807,7 @@ function MultilineJSON({
             isNumber: v => typeof v === 'number',
           }}
           value={json}
+          meta={meta}
           maxDefaultDepth={maxDefaultDepth}
           autoCollapseLimit={autoCollapseLimit}
           initialExpandedPaths={computedExpandedPaths}

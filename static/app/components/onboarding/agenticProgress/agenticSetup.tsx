@@ -6,7 +6,7 @@ import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {AgentHandoffFlow} from 'sentry/components/agentHandoff/useAgentHandoff';
+import {AgentHandoffFlow} from 'sentry/components/agentHandoff/types';
 import {ScmCollapsibleReveal} from 'sentry/components/onboarding/scm/scmCollapsibleReveal';
 import {t, tct} from 'sentry/locale';
 
@@ -24,7 +24,7 @@ interface AgenticSetupProps {
   hasProgressFailed: boolean;
   isAgentConnected: boolean;
   issueLinkReferrer: string;
-  onCopyCommand: (source: AgentSetupCopySource) => void;
+  onCopyCommand: (source: AgentSetupCopySource, handoffId: string) => void;
   onRefresh: () => void;
   onRetry: () => void;
   onSelectSnippet: (source: AgentSetupCopySource) => void;

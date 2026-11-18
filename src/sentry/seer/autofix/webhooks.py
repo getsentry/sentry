@@ -177,9 +177,7 @@ def _update_autofix_issue_data_for_pr(
     if not features.has("organizations:seer-fixability-training-data", org):
         return
 
-    issue_data = SeerAutofixIssueData.objects.filter(
-        group_id=group_id, organization_id=org.id
-    ).first()
+    issue_data = SeerAutofixIssueData.objects.get_or_none(group_id=group_id, organization_id=org.id)
     number = pull_request.get("number")
     if issue_data is None or number is None:
         return
