@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {CollapsibleContent} from './collapsibleContent';
+import {CollapsibleContent, CollapsibleExpandAllContext} from './collapsibleContent';
 
 describe('CollapsibleContent', () => {
   it('renders the title and keeps content in the DOM when collapsed', () => {
@@ -40,6 +40,39 @@ describe('CollapsibleContent', () => {
     await userEvent.click(screen.getByText('Thinking...'));
 
     expect(onToggle).toHaveBeenCalledWith(true);
+  });
+
+  it('follows expand and collapse all, keeping a hand toggle until the next one', async () => {
+    const {rerender} = render(
+      <CollapsibleExpandAllContext value={{generation: 1, open: true}}>
+        <CollapsibleContent title="Thinking...">
+          <span>body</span>
+        </CollapsibleContent>
+      </CollapsibleExpandAllContext>
+    );
+    const details = screen.getByText('body').closest('details');
+    expect(details).toHaveAttribute('open');
+
+    await userEvent.click(screen.getByText('Thinking...'));
+    expect(details).not.toHaveAttribute('open');
+
+    rerender(
+      <CollapsibleExpandAllContext value={{generation: 2, open: true}}>
+        <CollapsibleContent title="Thinking...">
+          <span>body</span>
+        </CollapsibleContent>
+      </CollapsibleExpandAllContext>
+    );
+    expect(details).toHaveAttribute('open');
+
+    rerender(
+      <CollapsibleExpandAllContext value={{generation: 3, open: false}}>
+        <CollapsibleContent title="Thinking...">
+          <span>body</span>
+        </CollapsibleContent>
+      </CollapsibleExpandAllContext>
+    );
+    expect(details).not.toHaveAttribute('open');
   });
 
   it('stops summary clicks from propagating to a wrapping handler', async () => {

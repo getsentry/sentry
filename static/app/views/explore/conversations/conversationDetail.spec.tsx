@@ -180,20 +180,22 @@ describe('ConversationDetailPage span default selection', () => {
     );
   });
 
-  it('shows the export transcript button only on the transcript tab', async () => {
+  it('shows the export and expand all buttons only on the transcript tab', async () => {
     renderPage();
 
     // The transcript tab exposes the export control once messages have loaded.
     expect(
       await screen.findByRole('button', {name: 'Export transcript'})
     ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Expand all'})).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('tab', {name: 'Timeline'}));
 
-    // The timeline tab has no transcript to export.
+    // The timeline tab has no transcript to export or expand.
     expect(
       screen.queryByRole('button', {name: 'Export transcript'})
     ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Expand all'})).not.toBeInTheDocument();
   });
 
   it('downloads the full conversation transcript as a markdown file', async () => {
