@@ -51,7 +51,6 @@ from sentry.issues.action_log.types import (
     UnresolveAction,
 )
 from sentry.types.activity import ActivityType
-from sentry.utils.env import in_test_environment
 from sentry.utils.strings import strip_lone_surrogates
 
 if TYPE_CHECKING:
@@ -209,31 +208,29 @@ def _sanitize_for_jsonb(value: Any) -> Any:
     return value
 
 
-def activity_to_action(activity: "Activity") -> GroupAction | None:
-    """
-    Translates an Activity to a GroupAction. None is returned in the error case.
-    Does not publish the GroupAction to a GroupActionLogEntry.
-    """
+class UnknownActivityType(ValueError):
+    pass
 
-    if activity.type == ActivityType.NOTE.value:
-        return CommentAction(comment_id=activity.id)
 
-    # Ignore certain Activities that don't make sense to translate to GroupActions.
-    if activity.type in ACTIVITY_TYPES_WITH_NO_ACTION:
+def activity_data_to_action(
+    *, activity_id: int, activity_type: int, data: Mapping[str, Any] | None
+) -> GroupAction | None:
+    """Translate Activity fields, raising on unknown types or invalid data."""
+
+    if activity_type == ActivityType.NOTE.value:
+        return CommentAction(comment_id=activity_id)
+
+    if activity_type in ACTIVITY_TYPES_WITH_NO_ACTION:
         return None
 
-    # Get the related type[GroupAction]
-    group_action_type = ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE.get(activity.type)
+    group_action_type = ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE.get(activity_type)
 
     if group_action_type is None:
-        message = f"Failed to find group action type equivalent of activity type {activity.type}"
-        if in_test_environment():
-            raise Exception(message)
-        logger.warning(message)
-        return None
+        raise UnknownActivityType(
+            f"Failed to find group action type equivalent of activity type {activity_type}"
+        )
 
-    # Instantiate & return
-    kwargs = activity.data or {}  # Sometimes None
+    kwargs = data or {}
 
     # Activity data is stored in a text JSON column that tolerates NUL bytes
     # and lone surrogates, but the resulting action payload is written to a
@@ -243,28 +240,41 @@ def activity_to_action(activity: "Activity") -> GroupAction | None:
     if _needs_jsonb_sanitize(kwargs):
         kwargs = _sanitize_for_jsonb(kwargs)
 
-    if activity.type in ACTIVITY_TYPE_TO_ARG_TRANSLATIONS.keys():
+    if activity_type in ACTIVITY_TYPE_TO_ARG_TRANSLATIONS:
         kwargs = {
-            ACTIVITY_TYPE_TO_ARG_TRANSLATIONS[activity.type].get(k, k): v for k, v in kwargs.items()
+            ACTIVITY_TYPE_TO_ARG_TRANSLATIONS[activity_type].get(k, k): v for k, v in kwargs.items()
         }
 
-    if activity.type == ActivityType.MERGE.value:
-        # Translate from Activity data structure to GroupAction data structure.
-        kwargs = kwargs.copy()  # Avoid mutating existing dict
-        kwargs["counterpart_group_ids"] = [datum["id"] for datum in kwargs.get("issues", [])]
+        # Live Activity.__init__ does this too; historical models have no custom init.
+        if activity_type == ActivityType.ASSIGNED.value and "assignee" in kwargs:
+            kwargs["assignee"] = str(kwargs["assignee"])
 
-    # Pydantic lets you pass in whatever kwargs you want. If a kwarg matches some field,
-    # Pydantic will set it - else Pydantic just ignores it.
-    # The only risk is missing a required field, which throws a ValidationError.
+    if activity_type == ActivityType.MERGE.value:
+        kwargs = {
+            **kwargs,
+            "counterpart_group_ids": [datum["id"] for datum in kwargs.get("issues", [])],
+        }
+
+    return group_action_type(**kwargs)
+
+
+def activity_to_action(activity: "Activity") -> GroupAction | None:
+    """Log and skip unknown types or invalid data."""
     try:
-        return group_action_type(**kwargs)
+        return activity_data_to_action(
+            activity_id=activity.id, activity_type=activity.type, data=activity.data
+        )
+    except UnknownActivityType as error:
+        logger.warning("%s", error)
+        return None
     except ValidationError:
         logger.exception(
             "Failed to create group action in activity_translator.",
-            extra={"group_action_type": group_action_type, "activity_type": activity.type},
+            extra={
+                "group_action_type": ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE[activity.type],
+                "activity_type": activity.type,
+            },
         )
-        if in_test_environment():
-            raise
         return None
 
 
