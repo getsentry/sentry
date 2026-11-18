@@ -5,6 +5,8 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 import {
+  explodeFieldString,
+  generateFieldAsString,
   type AggregationKeyWithAlias,
   type Column,
   type QueryFieldValue,
@@ -79,7 +81,7 @@ export function MetricSelectRow({
   index,
   onFieldChange,
   disabledAggregates,
-  excludeDefaultMetrics,
+  excludeDefaultAggregates,
 }: {
   disabled: boolean;
   field: QueryFieldValue;
@@ -90,9 +92,11 @@ export function MetricSelectRow({
    */
   disabledAggregates?: Record<string, string>;
   /**
-   * Metrics a new, empty row should not default to. They stay selectable.
+   * Aggregates a new, empty row must not land on when the selector picks a
+   * default metric. A metric is skipped only if picking it would produce one of
+   * these exact aggregates; every metric stays selectable by hand.
    */
-  excludeDefaultMetrics?: TraceMetric[];
+  excludeDefaultAggregates?: string[];
   fieldSelector?: (autoSelectFirstColumn: boolean) => ReactNode;
   /**
    * When set, changes are reported here instead of being dispatched to the
@@ -194,14 +198,29 @@ export function MetricSelectRow({
     };
   }, [field.kind, hasOnlyAggregate, onSelectField]);
 
-  const skipDefaultOption = useCallback(
-    (option: MetricSelectorOption) =>
-      Boolean(
-        excludeDefaultMetrics?.some(
-          metric => metric.name === option.metricName && metric.type === option.metricType
+  const excludedAggregateKeys = useMemo(
+    () =>
+      new Set(
+        excludeDefaultAggregates?.map(aggregate =>
+          generateFieldAsString(explodeFieldString(aggregate))
         )
       ),
-    [excludeDefaultMetrics]
+    [excludeDefaultAggregates]
+  );
+
+  // Skip a metric when selecting it would produce an excluded aggregate.
+  const skipDefaultOption = useCallback(
+    (option: MetricSelectorOption) => {
+      const candidate = getUpdatedAggregateField(field, {
+        name: option.metricName,
+        type: option.metricType,
+        unit: option.metricUnit,
+      });
+      return Boolean(
+        candidate && excludedAggregateKeys.has(generateFieldAsString(candidate))
+      );
+    },
+    [excludedAggregateKeys, field]
   );
 
   return (
@@ -210,7 +229,7 @@ export function MetricSelectRow({
         <MetricSelector
           traceMetric={traceMetric}
           usePortal
-          skipDefaultOption={excludeDefaultMetrics ? skipDefaultOption : undefined}
+          skipDefaultOption={excludeDefaultAggregates ? skipDefaultOption : undefined}
           getDisabledOptionReason={
             state.displayType === DisplayType.HEATMAP
               ? getDisabledOptionReason
