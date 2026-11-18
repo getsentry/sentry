@@ -10,7 +10,7 @@ from pathlib import Path
 from tools.api_guidelines.owners import owner_for
 from tools.api_guidelines.rules import BASELINED_RULES
 from tools.api_guidelines.scan import collect_findings
-from tools.api_guidelines.signature import BaselineSignature, normalize_path
+from tools.api_guidelines.signature import BaselineSignature
 from tools.flake8_plugin import ApiInputViolation
 
 EXCEPTIONS_PATH = Path("api_exceptions/exceptions.json")
@@ -184,6 +184,46 @@ def diff_entries(
     return added, removed, changed
 
 
+def _possible_moves(
+    removed: list[dict[str, object]], added: list[dict[str, object]]
+) -> list[tuple[dict[str, object], dict[str, object]]]:
+    """Finds entries that look like they moved to another file, i.e because the file was renamed
+    `removed` the entries a run removed
+    `added` the entries a run added
+    Returns (removed, added) pairs with the same rule, scope and key in different files. A moved
+    entry starts over with the defaults, so its old status and reason need copying by hand
+    """
+    # {(rule, scope, key) -> [added entries]}
+    added_by_finding: dict[tuple[object, object, object], list[dict[str, object]]] = {}
+    for entry in added:
+        added_by_finding.setdefault((entry["rule"], entry["scope"], entry["key"]), []).append(entry)
+
+    moves: list[tuple[dict[str, object], dict[str, object]]] = []
+    for old in removed:
+        for new in added_by_finding.get((old["rule"], old["scope"], old["key"]), []):
+            moves.append((old, new))
+    return moves
+
+
+def _rescan_path(path: str, root: Path) -> str | None:
+    """A `--files` path as a repo-relative path in `root`
+    `path` the path as given, i.e "src/sentry/a.py", "./src/sentry/a.py" or an absolute path inside `root`
+    `root` the checkout being scanned
+    Returns the path like "src/sentry/a.py", or None when it isn't a Python file under root/src
+    """
+    path = path.replace("\\", "/")
+    if path.startswith("/"):
+        try:
+            path = Path(path).resolve().relative_to(root.resolve()).as_posix()
+        except ValueError:
+            return None
+
+    path = path.removeprefix("./")
+    if not (path.startswith("src/") and path.endswith(".py")):
+        return None
+    return path
+
+
 def _describe(entry: dict[str, object]) -> str:
     """One line naming an entry for the printed summary: rule, path, scope, key and owner"""
     return (
@@ -248,18 +288,46 @@ def main(argv: list[str] | None = None) -> int:
     old_entries: list[dict[str, object]] = []
     kept_entries: list[dict[str, object]] = []
 
+    # {path of a file that's gone but wasn't in --files -> how many entries it had}
+    unlisted_gone: Counter[str] = Counter()
+
     if args.files:
+        old_entries = json.loads(args.output.read_text())["entries"]
+        paths_with_entries: set[object] = set()
+        for entry in old_entries:
+            paths_with_entries.add(entry["path"])
+
         rescan_paths = []
-        for path in args.files:
-            path = normalize_path(path)
-            # skip repeats too i.e a.py and ./a.py, so the "Rescanned N files" count is right
-            if path.startswith("src/") and path.endswith(".py") and path not in rescan_paths:
+        for given in args.files:
+            path = _rescan_path(given, args.root)
+            if path is None:
+                print(f"Skipped {given}: not a .py file under {args.root}/src", file=sys.stderr)
+            # a missing file with entries was deleted so rescanning it removes them. Without
+            # entries there's nothing to remove and it's often a typo like exampel.py
+            elif not (args.root / path).exists() and path not in paths_with_entries:
+                print(
+                    f"Skipped {given}: it's not in {args.root} and has no entries (a typo, or a deleted file with no findings)",
+                    file=sys.stderr,
+                )
+            # skip repeats too i.e file.py and ./file.py, so the "Rescanned N files" count is right
+            elif path not in rescan_paths:
                 rescan_paths.append(path)
 
-        old_entries = json.loads(args.output.read_text())["entries"]
+        if not rescan_paths:
+            print(
+                "None of the --files paths can be rescanned. Nothing was changed.", file=sys.stderr
+            )
+            return 1
+
         for entry in old_entries:
-            if entry["path"] not in rescan_paths:
-                kept_entries.append(entry)
+            if entry["path"] in rescan_paths:
+                continue
+            # a file that's gone from the checkout has no findings left, i.e it was renamed and only
+            # its new path was listed. Keeping its entries would leave them next to the new ones
+            if not (args.root / str(entry["path"])).exists():
+                unlisted_gone[str(entry["path"])] += 1
+                continue
+            kept_entries.append(entry)
 
     # the scan returns every rule's findings, and only the rules with a baseline are kept. This
     # happens before build_entries so the count check below still adds up
@@ -304,6 +372,22 @@ def main(argv: list[str] | None = None) -> int:
             print(f"    fixed  {_describe(entry)}")
         for old, new in changed:
             print(f"    count  {_describe(new)}: {old['count']} -> {new['count']}")
+        moved_from: set[object] = set()
+        for old, new in _possible_moves(removed, added):
+            moved_from.add(old["path"])
+            print(
+                f"Possibly moved: {_describe(old)} -> {new['path']}. Its status and reason were not "
+                "carried over, so copy them by hand if they were reviewed.",
+                file=sys.stderr,
+            )
+        # a renamed file whose new path wasn't listed: its findings show up as new on the next run
+        for path in sorted(unlisted_gone):
+            if path not in moved_from:
+                print(
+                    f"Removed {unlisted_gone[path]} entries for {path}: it's not in {args.root} and wasn't "
+                    "in --files. If it was renamed, rescan its new path too.",
+                    file=sys.stderr,
+                )
     else:
         print(f"Wrote {len(entries)} entries ({len(finding)} findings) to {args.output}")
 

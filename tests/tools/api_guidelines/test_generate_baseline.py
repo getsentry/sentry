@@ -450,7 +450,7 @@ def test_files_leaves_unlisted_files_alone(fake_repo: Path) -> None:
     assert before is not None
 
     # other.py's finding is fixed on disk but it isn't in `--files` so its entry stays
-    (fake_repo / OTHER_PATH).unlink()
+    (fake_repo / OTHER_PATH).write_text(OTHER_ENDPOINT.replace('request.GET.get("q")', "None"))
     assert _run_main(fake_repo, "--files", PATH) == 0
 
     assert _find(_entries(output), "OtherEndpoint.get", "query:q") == before
@@ -466,12 +466,117 @@ def test_files_skips_paths_outside_src_and_non_python_files(
 
     # PATH is deleted so if it were rescanned its entries would go away
     (fake_repo / PATH).unlink()
-    assert (
-        _run_main(fake_repo, "--files", "README.md", "tests/example.py", "src/sentry/foo.txt") == 0
-    )
+    bad = ["README.md", "tests/example.py", "src/sentry/foo.txt", "sentry/api/endpoints/example.py"]
+    assert _run_main(fake_repo, "--files", *bad) == 1
 
     assert output.read_text() == before
-    assert "Rescanned 0 files" in capsys.readouterr().out
+    err = capsys.readouterr().err
+    for path in bad:
+        assert f"Skipped {path}:" in err
+    assert "None of the --files paths can be rescanned" in err
+
+
+def test_files_rescans_the_usable_paths_and_reports_the_rest(
+    fake_repo: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert _run_main(fake_repo) == 0
+
+    _edit_endpoint(fake_repo, '        b = request.GET.get("id") # line 6\n', "")
+    assert _run_main(fake_repo, "--files", "README.md", PATH) == 0
+
+    entry = _find(_entries(fake_repo / "out.json"), "ExampleEndpoint.get", "query:id")
+    assert entry is not None
+    assert entry["count"] == 1
+    out, err = capsys.readouterr()
+    assert "Rescanned 1 files" in out
+    assert "Skipped README.md:" in err
+
+
+def test_files_takes_absolute_paths_inside_root(
+    fake_repo: Path, tmp_path_factory: pytest.TempPathFactory, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # another checkout, i.e an older commit's worktree, where get reads id once
+    other = tmp_path_factory.mktemp("other")
+    endpoint = other / PATH
+    endpoint.parent.mkdir(parents=True)
+    endpoint.write_text(
+        EXAMPLE_ENDPOINT.replace('        b = request.GET.get("id") # line 6\n', "")
+    )
+    assert _run_main(fake_repo) == 0
+
+    outside = fake_repo / "src" / "sentry" / "outside.py"
+    assert _run_main(fake_repo, "--root", str(other), "--files", str(endpoint), str(outside)) == 0
+
+    entry = _find(_entries(fake_repo / "out.json"), "ExampleEndpoint.get", "query:id")
+    assert entry is not None
+    assert entry["count"] == 1
+    # a path in another checkout is reported instead of crashing
+    assert f"Skipped {outside}:" in capsys.readouterr().err
+
+
+RENAMED_PATH = "src/sentry/api/endpoints/renamed.py"
+
+
+def test_files_with_a_renamed_file_drops_the_old_entries_and_warns(
+    fake_repo: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert _run_main(fake_repo) == 0
+    output = fake_repo / "out.json"
+
+    # a plain `git diff --name-only` lists only the new path of a renamed file
+    (fake_repo / PATH).rename(fake_repo / RENAMED_PATH)
+    assert _run_main(fake_repo, "--files", RENAMED_PATH) == 0
+
+    paths = set()
+    for entry in _entries(output):
+        paths.add(entry["path"])
+    assert paths == {RENAMED_PATH}
+    assert _counted_findings(output) == 4
+
+    out, err = capsys.readouterr()
+    assert "3 new, 3 fixed, 0 with a changed count" in out
+    assert (
+        f"Possibly moved: S026 {PATH} ExampleEndpoint.get query:id (issues-feed) -> {RENAMED_PATH}"
+        in err
+    )
+    assert err.count("Possibly moved:") == 3
+    # the move is already reported, so there's no second warning for the old path
+    assert "Removed" not in err
+
+
+def test_files_warns_about_a_renamed_file_that_was_not_listed(
+    fake_repo: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    (fake_repo / OTHER_PATH).write_text(OTHER_ENDPOINT)
+    assert _run_main(fake_repo) == 0
+
+    # example.py is renamed but only other.py is listed, so the new path isn't scanned
+    (fake_repo / PATH).rename(fake_repo / RENAMED_PATH)
+    assert _run_main(fake_repo, "--files", OTHER_PATH) == 0
+
+    paths = set()
+    for entry in _entries(fake_repo / "out.json"):
+        paths.add(entry["path"])
+    assert paths == {OTHER_PATH}
+    out, err = capsys.readouterr()
+    assert "0 new, 3 fixed, 0 with a changed count" in out
+    assert f"Removed 3 entries for {PATH}: it's not in" in err
+
+
+def test_files_skips_a_missing_path_with_no_entries(
+    fake_repo: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert _run_main(fake_repo) == 0
+    output = fake_repo / "out.json"
+    before = output.read_text()
+
+    typo = "src/sentry/api/endpoints/exampel.py"
+    assert _run_main(fake_repo, "--files", typo) == 1
+
+    assert output.read_text() == before
+    err = capsys.readouterr().err
+    assert f"Skipped {typo}: it's not in" in err
+    assert "None of the --files paths can be rescanned" in err
 
 
 def test_files_normalizes_dot_slash_paths(fake_repo: Path) -> None:
