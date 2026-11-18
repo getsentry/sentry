@@ -197,6 +197,10 @@ def get_project_session(
     return _get_client().session(objectstore_usecase, org=org_id, project=project_id)
 
 
+# Remove once GetSentry's attachment cleanup job uses get_project_session.
+get_session = get_project_session
+
+
 _IS_SYMBOLICATOR_CONTAINER: bool | None = None
 
 
