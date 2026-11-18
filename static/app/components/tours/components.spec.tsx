@@ -433,6 +433,59 @@ describe('Tour Components', () => {
       expect(handleClickOutside).toHaveBeenCalledTimes(1);
     });
 
+    it('reports keyboard clicks outside the guide', async () => {
+      Element.prototype.scrollIntoView = jest.fn();
+      const handleClickOutside = jest.fn();
+
+      render(
+        <div>
+          <button>Page Button</button>
+          <TourGuide
+            isOpen
+            title="Test Title"
+            description="Test Description"
+            onClickOutside={handleClickOutside}
+          >
+            {props => <div {...props}>Child Element</div>}
+          </TourGuide>
+        </div>
+      );
+
+      expect(await screen.findByText('Test Title')).toBeInTheDocument();
+      screen.getByRole('button', {name: 'Page Button'}).focus();
+      await userEvent.keyboard('{Enter}');
+      expect(handleClickOutside).toHaveBeenCalledTimes(1);
+    });
+
+    it('reports an outside click when the page re-renders during the press', async () => {
+      Element.prototype.scrollIntoView = jest.fn();
+      const handleClickOutside = jest.fn();
+
+      function RerenderOnPress() {
+        const [, setPressCount] = useState(0);
+        return (
+          <div>
+            <button onPointerDown={() => setPressCount(count => count + 1)}>
+              Page Button
+            </button>
+            <TourGuide
+              isOpen
+              title="Test Title"
+              description="Test Description"
+              onClickOutside={() => handleClickOutside()}
+            >
+              {props => <div {...props}>Child Element</div>}
+            </TourGuide>
+          </div>
+        );
+      }
+      render(<RerenderOnPress />);
+
+      expect(await screen.findByText('Test Title')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Page Button'}));
+      expect(handleClickOutside).toHaveBeenCalledTimes(1);
+    });
+
     it('blocks clicks outside a guide without onClickOutside', async () => {
       Element.prototype.scrollIntoView = jest.fn();
       const handlePageClick = jest.fn();

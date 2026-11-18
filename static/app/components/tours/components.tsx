@@ -1,5 +1,5 @@
 import type {HTMLAttributes} from 'react';
-import {Fragment, useContext, useEffect, useMemo, useRef} from 'react';
+import {Fragment, useContext, useEffect, useEffectEvent, useMemo, useRef} from 'react';
 import {createPortal} from 'react-dom';
 import {ClassNames, ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -490,34 +490,29 @@ export function TourGuide({
     isDismissable: !onClickOutside,
   });
 
+  const handleClickOutside = useEffectEvent((event: MouseEvent) => {
+    if (event.target instanceof Node && !overlayRef.current?.contains(event.target)) {
+      onClickOutside?.();
+    }
+  });
+  const hasClickOutside = defined(onClickOutside);
   useEffect(() => {
-    if (!isOpen || !onClickOutside) {
+    if (!isOpen || !hasClickOutside) {
       return;
     }
-    const isOutside = (event: Event) =>
-      event.target instanceof Node && !overlayRef.current?.contains(event.target);
-    // Only a click whose press started outside while the guide was open counts,
-    // so the click that opened it, such as "Next" on the previous step, does not
-    // dismiss it.
-    let isPressedOutside = false;
-    const handlePointerDown = (event: Event) => {
-      isPressedOutside = isOutside(event);
-    };
+    // A browser can open the guide while the click that opened it, such as
+    // "Next" on the previous step, is still on its way to the document. That
+    // click is skipped; every later click counts, including keyboard clicks.
+    const openingEvent = window.event;
     // Runs after the page handles the click, so the click still goes through.
-    const handleClick = (event: Event) => {
-      if (isPressedOutside && isOutside(event)) {
-        onClickOutside();
+    const handleClick = (event: MouseEvent) => {
+      if (event !== openingEvent) {
+        handleClickOutside(event);
       }
-      isPressedOutside = false;
     };
-    // Captured, since the page may stop the press from bubbling.
-    document.addEventListener('pointerdown', handlePointerDown, true);
     document.addEventListener('click', handleClick);
-    return () => {
-      document.removeEventListener('pointerdown', handlePointerDown, true);
-      document.removeEventListener('click', handleClick);
-    };
-  }, [isOpen, onClickOutside, overlayRef]);
+    return () => document.removeEventListener('click', handleClick);
+  }, [isOpen, hasClickOutside]);
 
   // Scroll the highlighted element rather than the guide. The element may live in
   // a nested scroll container (e.g. the issue details sidebar, which stacks below
