@@ -3,6 +3,7 @@ from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
 
 from sentry.new_migrations.migrations import CheckedMigration
+from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 
 DEFAULT_WORKFLOW_NAME = "Seer automation"
@@ -23,7 +24,9 @@ def convert_seer_workflow_actions(apps: StateApps, schema_editor: BaseDatabaseSc
 def update_backing_workflows(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     SeerWorkflowConfig = apps.get_model("seer", "SeerWorkflowConfig")
     Workflow = apps.get_model("workflow_engine", "Workflow")
-    for config in SeerWorkflowConfig.objects.filter(backing_workflow__isnull=False):
+    for config in RangeQuerySetWrapperWithProgressBar(
+        SeerWorkflowConfig.objects.filter(backing_workflow__isnull=False)
+    ):
         workflow = Workflow.objects.get(id=config.backing_workflow_id)
         name = config.extras.get("name")
         created_by = config.extras.get("created_by")
@@ -49,7 +52,6 @@ class Migration(CheckedMigration):
     # Once deployed, run these manually via: https://develop.sentry.dev/database-migrations/#migration-deployment
 
     # Post deployment so it also converts actions that pods still running the old code create.
-    # Only a handful of automations exist, so the per-row loop below is fine.
     is_post_deployment = True
 
     dependencies = [
