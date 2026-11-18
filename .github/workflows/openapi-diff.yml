@@ -122,3 +122,43 @@ jobs:
       # working with callers built from the merge-base.
       - name: Check RPC schema for breaking changes
         run: .github/workflows/scripts/openapi-diff.sh rpc-breaking "$BASELINE_DIR/rpc_method_schema.json" "$RPC_SCHEMA"
+
+  # Craft builds the @sentry/api changelog from commits to static/packages/api
+  # and from pull requests with this label (.craft.yml). A pull request that
+  # only changes the backend can change the spec the package ships, so this
+  # job labels it, and unlabels it once a later push undoes that change.
+  api-changelog-label:
+    name: Label for the @sentry/api changelog
+    needs: build
+    # A pull request that no longer touches api_docs paths cannot change the
+    # schemas, so it only needs this job to take an earlier label away. The
+    # label matches api_changelog_label in openapi-diff.sh.
+    if: >-
+      needs.build.outputs.api_docs == 'true' ||
+      contains(github.event.pull_request.labels.*.name, 'changelog: @sentry/api')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+      pull-requests: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+      HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          sparse-checkout: .github/workflows/scripts
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        if: needs.build.outputs.api_docs == 'true'
+        with:
+          name: ${{ env.DIFF_ARTIFACT }}
+
+      - name: Label the pull request if it changes the API schemas
+        if: needs.build.outputs.api_docs == 'true'
+        run: .github/workflows/scripts/openapi-diff.sh label-api-changelog "$BASELINE_DIR" tests/apidocs/openapi-derefed.json "$RPC_SCHEMA"
+
+      - name: Remove the label
+        if: needs.build.outputs.api_docs != 'true'
+        run: .github/workflows/scripts/openapi-diff.sh unlabel-api-changelog
