@@ -101,6 +101,15 @@ class OrganizationAgenticOnboardingRunDetailsEndpointTest(APITestCase):
             user_id=self.user.id,
             organization_id=self.organization.id,
             update=ProgressUpdate(
+                stage=Stage.RECEIVE_VERIFICATION_ERROR,
+                status=StageStatus.COMPLETED,
+            ),
+        )
+        self.service.update(
+            token=token,
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            update=ProgressUpdate(
                 stage=Stage.CHECK_STACK_TRACE_QUALITY,
                 status=StageStatus.SKIPPED,
                 run_status=RunStatus.COMPLETED,

@@ -594,6 +594,18 @@ def apply_update(run: OnboardingRun, update: ProgressUpdate[Any], now: datetime)
         if update.run_status is run.run_status:
             return run
         raise OnboardingRunTerminal("Onboarding run is terminal")
+    # Earlier stages are normally bypassed when an agent jumps ahead, but the received test
+    # error is the proof that setup works, so the run cannot finish without it.
+    if (
+        update.stage is STAGE_DEFINITIONS[-1].stage
+        and update.status in {StageStatus.COMPLETED, StageStatus.SKIPPED}
+        and run.stages[STAGE_INDEX[Stage.RECEIVE_VERIFICATION_ERROR]].status
+        is not StageStatus.COMPLETED
+    ):
+        raise InvalidProgressUpdate(
+            ProgressUpdateField.STATUS,
+            "The receive_verification_error stage must be completed before setup can finish",
+        )
 
     stages = {state.stage: state for state in run.stages}
     current_index = STAGE_INDEX[update.stage]

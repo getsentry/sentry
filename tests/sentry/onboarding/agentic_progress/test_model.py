@@ -46,6 +46,14 @@ def make_run(now: datetime) -> OnboardingRun:
     )
 
 
+def make_verified_run(now: datetime) -> OnboardingRun:
+    return apply_update(
+        make_run(now),
+        ProgressUpdate(stage=Stage.RECEIVE_VERIFICATION_ERROR, status=StageStatus.COMPLETED),
+        now,
+    )
+
+
 def test_stage_definitions_are_ordered_and_complete() -> None:
     assert [definition.stage for definition in STAGE_DEFINITIONS] == list(Stage)
     assert STAGE_DEFINITIONS[-1].optional is True
@@ -105,7 +113,7 @@ def test_from_dict_bypasses_stages_added_after_run_started() -> None:
 def test_from_dict_bypasses_trailing_stage_added_after_run_completed() -> None:
     now = datetime(2020, 1, 1, tzinfo=timezone.utc)
     run = apply_update(
-        make_run(now),
+        make_verified_run(now),
         ProgressUpdate(
             stage=Stage.CHECK_STACK_TRACE_QUALITY,
             status=StageStatus.SKIPPED,
@@ -286,7 +294,7 @@ def test_later_stage_bypasses_all_earlier_unreported_stages() -> None:
 def test_optional_stage_can_be_explicitly_skipped() -> None:
     now = datetime(2020, 1, 1, tzinfo=timezone.utc)
     result = apply_update(
-        make_run(now),
+        make_verified_run(now),
         ProgressUpdate(
             stage=Stage.CHECK_STACK_TRACE_QUALITY,
             status=StageStatus.SKIPPED,
@@ -297,6 +305,63 @@ def test_optional_stage_can_be_explicitly_skipped() -> None:
 
     assert result.run_status is RunStatus.COMPLETED
     assert result.stages[-1].status is StageStatus.SKIPPED
+
+
+@pytest.mark.parametrize(
+    "verification_status", [None, StageStatus.ACTIVE, StageStatus.WAITING, StageStatus.FAILED]
+)
+@pytest.mark.parametrize(
+    "update",
+    [
+        ProgressUpdate(
+            stage=Stage.CHECK_STACK_TRACE_QUALITY,
+            status=StageStatus.COMPLETED,
+            run_status=RunStatus.COMPLETED,
+        ),
+        ProgressUpdate(
+            stage=Stage.CHECK_STACK_TRACE_QUALITY,
+            status=StageStatus.SKIPPED,
+            run_status=RunStatus.COMPLETED,
+        ),
+        ProgressUpdate(stage=Stage.CHECK_STACK_TRACE_QUALITY, status=StageStatus.COMPLETED),
+    ],
+)
+def test_final_stage_requires_received_verification_error(
+    verification_status: StageStatus | None, update: ProgressUpdate[Any]
+) -> None:
+    now = datetime(2020, 1, 1, tzinfo=timezone.utc)
+    run = make_run(now)
+    if verification_status is not None:
+        run = apply_update(
+            run,
+            ProgressUpdate(
+                stage=Stage.RECEIVE_VERIFICATION_ERROR,
+                status=verification_status,
+                event_note="No error yet." if verification_status is StageStatus.FAILED else None,
+            ),
+            now,
+        )
+
+    with pytest.raises(InvalidProgressUpdate, match="receive_verification_error") as error:
+        apply_update(run, update, now)
+
+    assert error.value.field is ProgressUpdateField.STATUS
+
+
+def test_final_stage_can_fail_without_received_verification_error() -> None:
+    now = datetime(2020, 1, 1, tzinfo=timezone.utc)
+    result = apply_update(
+        make_run(now),
+        ProgressUpdate(
+            stage=Stage.CHECK_STACK_TRACE_QUALITY,
+            status=StageStatus.FAILED,
+            event_note="Stack traces are unreadable.",
+            run_status=RunStatus.FAILED,
+        ),
+        now,
+    )
+
+    assert result.run_status is RunStatus.FAILED
 
 
 def test_run_cannot_complete_before_final_stage() -> None:
@@ -331,7 +396,7 @@ def test_completed_stage_never_regresses() -> None:
 def test_skipped_stage_never_regresses() -> None:
     now = datetime(2020, 1, 1, tzinfo=timezone.utc)
     skipped = apply_update(
-        make_run(now),
+        make_verified_run(now),
         ProgressUpdate(
             stage=Stage.CHECK_STACK_TRACE_QUALITY,
             status=StageStatus.SKIPPED,

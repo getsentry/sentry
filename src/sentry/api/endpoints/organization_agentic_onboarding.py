@@ -323,6 +323,9 @@ class OrganizationAgenticOnboardingStatusEndpoint(OrganizationEndpoint):
             return Response({"detail": "Onboarding run has expired"}, status=410)
         except OnboardingRunTerminal:
             return Response({"detail": "Onboarding run is terminal"}, status=409)
+        except InvalidProgressUpdate as error:
+            # These messages are written for the agent, which needs them to recover.
+            return Response({"detail": str(error)}, status=400)
         except ValueError:
             return Response({"detail": INVALID_PROGRESS_UPDATE_DETAIL}, status=400)
 
