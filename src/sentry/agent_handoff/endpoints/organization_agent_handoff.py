@@ -34,7 +34,9 @@ from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger(__name__)
 
-# Match OAUTH_SCOPES in getsentry/toolkit's packages/cli/src/lib/oauth.ts.
+# OAUTH_SCOPES in getsentry/toolkit's packages/cli/src/lib/oauth.ts, plus `org:ci` and
+# `org:tokens` so the agent can run `sentry token create` for source map uploads. The CLI
+# would otherwise re-authorize to add them, which an agent's non-interactive shell can't do.
 HANDOFF_SCOPES = (
     "project:read",
     "project:write",
@@ -49,6 +51,8 @@ HANDOFF_SCOPES = (
     "team:admin",
     "alerts:read",
     "alerts:write",
+    "org:ci",
+    "org:tokens",
 )
 
 
