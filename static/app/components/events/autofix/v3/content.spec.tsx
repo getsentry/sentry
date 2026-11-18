@@ -531,13 +531,15 @@ describe('SeerDrawerContent', () => {
         ],
       };
 
-      it('shows the continue alert', async () => {
+      it('shows the continue alert, checking credits for a new run', async () => {
         mockCreditCheck('autofix_root_cause');
+        // SeerBillingFeature.AUTOFIX_AGENTIC_TRIAGE, which a new run isn't.
+        const stoppedRunCheck = mockCreditCheck('autofix_root_cause', true, 4);
 
         render(
           <SeerDrawerContent
             aiConfig={makeAiConfig()}
-            autofix={makeAutofix({runState: stoppedSingleRun})}
+            autofix={makeAutofix({runState: {...stoppedSingleRun, billing_feature: 4}})}
             group={GroupFixture()}
           />,
           {organization}
@@ -546,6 +548,7 @@ describe('SeerDrawerContent', () => {
         expect(await screen.findByTestId('seer-out-of-credits-cta')).toHaveTextContent(
           'warning autofix-continue'
         );
+        expect(stoppedRunCheck).not.toHaveBeenCalled();
       });
 
       it('shows the continue alert after a hand-off to a coding agent', async () => {

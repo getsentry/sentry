@@ -103,7 +103,8 @@ export function SeerDrawerContent({
           runState: autofix.runState,
           sections,
         })}
-        billingFeature={autofix.runState?.billing_feature}
+        // A single run is retried with a new run, which is priced as one.
+        billingFeature={singleRun ? undefined : autofix.runState?.billing_feature}
         reason="autofix-continue"
       />
       <SeerDrawerArtifacts autofix={autofix} sections={sections} groupId={group.id} />
