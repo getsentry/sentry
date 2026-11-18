@@ -470,8 +470,10 @@ class ProjectSeerSettingsEndpointTokenBasedBillingTest(ProjectSeerSettingsEndpoi
     pr_iteration_default = False
 
     def test_get_repos_count_includes_repos_without_seer_config(self) -> None:
+        # The GitLab repo has no Seer config, so it's listed only if token
+        # billing really reads ProjectRepository rather than Seer's config.
         self.create_project_repository(
-            repository=self.create_seer_eligible_repo(self.project, "owner/repo-1")
+            repository=self.create_seer_eligible_gitlab_repo(self.project, "owner/repo-1")
         )
         self.create_seer_project_repository(
             repository=self.create_seer_eligible_repo(self.project, "owner/repo-2")
@@ -481,7 +483,7 @@ class ProjectSeerSettingsEndpointTokenBasedBillingTest(ProjectSeerSettingsEndpoi
 
         assert response.status_code == 200
         assert response.data["reposCount"] == 2
-        assert response.data["repoProviders"] == ["integrations:github"]
+        assert response.data["repoProviders"] == ["integrations:github", "integrations:gitlab"]
 
     def test_get_repos_count_excludes_repos_seer_cannot_use(self) -> None:
         self.create_project_repository(

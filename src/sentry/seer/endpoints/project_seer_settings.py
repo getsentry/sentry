@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from functools import partial
-from typing import Any, TypedDict
+from typing import Any, NamedTuple, TypedDict
 
 from django.db.models import Case, Count, F, IntegerField, OuterRef, Q, Subquery, Value, When
 from django.db.models.functions import Coalesce
@@ -44,7 +44,6 @@ from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     AutomationCodingAgent,
     get_automation_handoff,
-    get_token_based_billing_project_repos,
     get_token_based_billing_repo_filter,
     get_valid_automated_run_stopping_points,
     is_seer_seat_or_token_billed_enabled,
@@ -100,26 +99,33 @@ class SeerProjectSettingsResponse(TypedDict):
     repoProviders: list[str]
 
 
-def _get_repo_providers(
-    organization: Organization, project_ids: Sequence[int]
-) -> dict[int, list[str]]:
-    """The distinct providers of the repos Seer can use, by project, sorted.
+class SeerRepoStats(NamedTuple):
+    """Seer's usable repos, summarized by project ID."""
 
-    Counts the same repos as ``reposCount``, so the UI can tell what a project's
-    repos support (for example, PR iteration only runs on github.com).
+    repos_count: dict[int, int]
+    repo_providers: dict[int, list[str]]
+
+
+def _get_seer_repo_stats(organization: Organization, project_ids: Sequence[int]) -> SeerRepoStats:
+    """``reposCount`` and ``repoProviders`` by project, from the same repos.
+
+    One grouped query feeds both, so the count and the providers can't drift
+    apart. The UI uses the providers to tell what a project's repos support
+    (for example, PR iteration only runs on github.com).
     """
-    provider_rows: Iterable[tuple[int, str | None]]
+    rows: Iterable[tuple[int, str | None, int]]
     if is_seer_token_based_billing_onboarding_enabled(organization):
-        provider_rows = (
+        rows = (
             ProjectRepository.objects.filter(
                 get_token_based_billing_repo_filter(organization, prefix="repository__"),
                 project_id__in=project_ids,
             )
             .values_list("project_id", "repository__provider")
-            .distinct()
+            .annotate(count=Count("id"))
+            .values_list("project_id", "repository__provider", "count")
         )
     else:
-        provider_rows = (
+        rows = (
             SeerProjectRepository.objects.filter(
                 project_repository__project_id__in=project_ids,
                 project_repository__repository__status=ObjectStatus.ACTIVE,
@@ -127,34 +133,39 @@ def _get_repo_providers(
             .values_list(
                 "project_repository__project_id", "project_repository__repository__provider"
             )
-            .distinct()
+            .annotate(count=Count("id"))
+            .values_list(
+                "project_repository__project_id",
+                "project_repository__repository__provider",
+                "count",
+            )
         )
 
-    providers_by_project_id: defaultdict[int, set[str]] = defaultdict(set)
-    for project_id, provider in provider_rows:
+    counts: defaultdict[int, int] = defaultdict(int)
+    providers: defaultdict[int, set[str]] = defaultdict(set)
+    for project_id, provider, count in rows:
+        counts[project_id] += count
         if provider:
-            providers_by_project_id[project_id].add(provider)
-    return {
-        project_id: sorted(providers) for project_id, providers in providers_by_project_id.items()
-    }
+            providers[project_id].add(provider)
+    return SeerRepoStats(
+        repos_count=dict(counts),
+        repo_providers={
+            project_id: sorted(project_providers)
+            for project_id, project_providers in providers.items()
+        },
+    )
 
 
 def _get_project_settings(project: Project) -> SeerProjectSettings:
+    repo_stats = _get_seer_repo_stats(project.organization, [project.id])
     return SeerProjectSettings(
         automation_tuning=project.get_option("sentry:autofix_automation_tuning"),
         scanner_automation=project.get_option("sentry:seer_scanner_automation"),
         stopping_point=project.get_option("sentry:seer_automated_run_stopping_point"),
         handoff=get_automation_handoff(project.get_option),
         pr_iteration=get_pr_iteration_setting(project),
-        repo_providers=_get_repo_providers(project.organization, [project.id]).get(project.id, []),
-        repos_count=(
-            get_token_based_billing_project_repos(project.organization, [project.id]).count()
-            if is_seer_token_based_billing_onboarding_enabled(project.organization)
-            else SeerProjectRepository.objects.filter(
-                project_repository__project=project,
-                project_repository__repository__status=ObjectStatus.ACTIVE,
-            ).count()
-        ),
+        repo_providers=repo_stats.repo_providers.get(project.id, []),
+        repos_count=repo_stats.repos_count.get(project.id, 0),
     )
 
 
@@ -171,30 +182,8 @@ def _bulk_get_project_settings(
         for key in SEER_PROJECT_PREFERENCE_OPTION_KEYS
     }
 
-    repo_counts: dict[int, int]
-    if is_seer_token_based_billing_onboarding_enabled(organization):
-        repo_counts = dict(
-            ProjectRepository.objects.filter(
-                get_token_based_billing_repo_filter(organization, prefix="repository__"),
-                project_id__in=project_ids,
-            )
-            .values_list("project_id")
-            .annotate(count=Count("id"))
-            .values_list("project_id", "count")
-        )
-    else:
-        repo_counts = dict(
-            SeerProjectRepository.objects.filter(
-                project_repository__project_id__in=project_ids,
-                project_repository__repository__status=ObjectStatus.ACTIVE,
-            )
-            .values_list("project_repository__project_id")
-            .annotate(count=Count("id"))
-            .values_list("project_repository__project_id", "count")
-        )
-
     pr_iteration_by_project_id = get_pr_iteration_settings(organization, projects)
-    repo_providers_by_project_id = _get_repo_providers(organization, project_ids)
+    repo_stats = _get_seer_repo_stats(organization, project_ids)
 
     settings_by_project_id: dict[int, SeerProjectSettings] = {}
     for project in projects:
@@ -211,8 +200,8 @@ def _bulk_get_project_settings(
             stopping_point=_get_option("sentry:seer_automated_run_stopping_point"),
             handoff=get_automation_handoff(_get_option),
             pr_iteration=pr_iteration_by_project_id[project.id],
-            repo_providers=repo_providers_by_project_id.get(project.id, []),
-            repos_count=repo_counts.get(project.id, 0),
+            repo_providers=repo_stats.repo_providers.get(project.id, []),
+            repos_count=repo_stats.repos_count.get(project.id, 0),
         )
 
     return settings_by_project_id
