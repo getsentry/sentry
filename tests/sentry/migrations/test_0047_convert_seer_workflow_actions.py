@@ -40,7 +40,7 @@ class ConvertSeerWorkflowActionsTest(TestMigrations):
         self.renamed = config_with_workflow("Already renamed", {"name": "Old name"})
         self.unnamed = config_with_workflow("Seer automation", {})
 
-    def test_converts_actions_and_copies_names(self) -> None:
+    def test_converts_actions_and_updates_backing_workflows(self) -> None:
         assert Action.objects.get(id=self.seer_action.id).type == "seer_investigation"
         assert Action.objects.get(id=self.email_action.id).type == "email"
 
@@ -49,3 +49,8 @@ class ConvertSeerWorkflowActionsTest(TestMigrations):
         assert Workflow.objects.get(id=self.renamed).name == "Already renamed"
         unnamed = Workflow.objects.get(id=self.unnamed)
         assert (unnamed.name, unnamed.created_by_id) == ("Seer automation", None)
+        assert set(
+            Workflow.objects.filter(
+                id__in=[self.defaulted, self.renamed, self.unnamed]
+            ).values_list("type", flat=True)
+        ) == {Workflow.Type.SEER_INVESTIGATION}
