@@ -63,17 +63,30 @@ function isHandoffStale<Flow extends AgentHandoffFlow>(
   );
 }
 
-function clipboardError() {
-  return new Error(
-    t('Unable to copy your agent prompt. Allow clipboard access and try again.')
-  );
+/**
+ * Carries the minted prompt so the UI can let the user copy it by hand when the
+ * browser blocks clipboard writes.
+ */
+class ClipboardBlockedError extends Error {
+  readonly prompt: string;
+
+  constructor(prompt: string) {
+    super(
+      t(
+        'Unable to copy your agent prompt. Allow clipboard access and try again, or show the prompt and copy it yourself.'
+      )
+    );
+    this.name = 'ClipboardBlockedError';
+    this.prompt = prompt;
+  }
 }
 
 /**
  * Mints short-lived handoff codes and copies a prompt containing them without exposing
- * the code in the UI. Valid codes are cached until their context changes or they approach
- * expiration, and concurrent copy requests share the same operation. Call copyPrompt
- * directly from the user gesture that authorizes clipboard access.
+ * the code in the UI unless the clipboard write fails. Valid codes are cached until their
+ * context changes or they approach expiration, and concurrent copy requests share the same
+ * operation. Call copyPrompt directly from the user gesture that authorizes clipboard
+ * access.
  */
 export function useAgentHandoff<Flow extends AgentHandoffFlow>(
   flow: Flow,
@@ -137,17 +150,14 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
     );
     let clipboardWrite: Promise<void>;
     try {
-      clipboardWrite = navigator.clipboard
-        .write([
-          new ClipboardItem({
-            'text/plain': clipboardPayload,
-          }),
-        ])
-        .catch(() => {
-          throw clipboardError();
-        });
+      clipboardWrite = navigator.clipboard.write([
+        new ClipboardItem({
+          'text/plain': clipboardPayload,
+        }),
+      ]);
     } catch {
-      clipboardWrite = Promise.reject(clipboardError());
+      // Insecure contexts and older browsers lack the async clipboard API entirely.
+      clipboardWrite = Promise.reject(new Error('Clipboard API unavailable'));
     }
 
     return Promise.allSettled([preparedPrompt, clipboardPayload, clipboardWrite]).then(
@@ -157,7 +167,7 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
         }
 
         if (clipboardResult.status === 'rejected') {
-          throw clipboardResult.reason;
+          throw new ClipboardBlockedError(promptResult.value.text);
         }
 
         return promptResult.value.handoffId;
@@ -186,6 +196,9 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
   return {
     copyPrompt,
     error: mutation.error,
+    /** The full prompt, available only after the browser refused the clipboard write. */
+    fallbackPrompt:
+      mutation.error instanceof ClipboardBlockedError ? mutation.error.prompt : null,
     isPending: mutation.isPending,
     isSuccess: mutation.isSuccess,
     reset: mutation.reset,

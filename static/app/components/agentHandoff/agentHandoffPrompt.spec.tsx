@@ -176,6 +176,78 @@ describe('AgentHandoffPrompt', () => {
     ).toBeInTheDocument();
   });
 
+  it('lets the user reveal and copy the prompt when clipboard access is blocked', async () => {
+    MockApiClient.addMockResponse({
+      url,
+      method: 'POST',
+      body: {code, handoffId, expiresAt: new Date(Date.now() + 300_000).toISOString()},
+    });
+    write.mockRejectedValue(
+      new DOMException('Write permission denied.', 'NotAllowedError')
+    );
+    const onCopySuccess = jest.fn();
+    render(
+      <AgentHandoffPrompt
+        context={context}
+        feedbackSource={feedbackSource}
+        flow={AgentHandoffFlow.ONBOARDING}
+        onCopySuccess={onCopySuccess}
+      />,
+      {organization}
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Copy agent prompt'}));
+
+    expect(
+      await screen.findByText(/Unable to copy your agent prompt/)
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('textbox', {name: 'Agent prompt'})).not.toBeInTheDocument();
+    expect(onCopySuccess).not.toHaveBeenCalled();
+
+    screen.getByRole('button', {name: 'Show prompt'}).focus();
+    await userEvent.keyboard('{Enter}');
+
+    const fallback = screen.getByRole('textbox', {name: 'Agent prompt'});
+    expect(fallback).toHaveValue(prompt);
+    expect(fallback).toHaveAttribute('readonly');
+    expect(fallback).toHaveFocus();
+    expect(screen.queryByRole('button', {name: 'Show prompt'})).not.toBeInTheDocument();
+  });
+
+  it('hides the revealed prompt when the copy is retried', async () => {
+    MockApiClient.addMockResponse({
+      url,
+      method: 'POST',
+      body: {code, handoffId, expiresAt: new Date(Date.now() + 300_000).toISOString()},
+    });
+    write.mockRejectedValueOnce(
+      new DOMException('Write permission denied.', 'NotAllowedError')
+    );
+    render(
+      <AgentHandoffPrompt
+        context={context}
+        feedbackSource={feedbackSource}
+        flow={AgentHandoffFlow.ONBOARDING}
+      />,
+      {organization}
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Copy agent prompt'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Show prompt'}));
+    expect(screen.getByRole('textbox', {name: 'Agent prompt'})).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Copy agent prompt'}));
+
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('textbox', {name: 'Agent prompt'})
+      ).not.toBeInTheDocument()
+    );
+    expect(
+      screen.queryByText(/Unable to copy your agent prompt/)
+    ).not.toBeInTheDocument();
+  });
+
   it('explains when a selected prompt is copied before its context is ready', async () => {
     render(
       <AgentHandoffPrompt

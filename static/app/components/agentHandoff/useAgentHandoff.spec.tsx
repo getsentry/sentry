@@ -78,6 +78,26 @@ describe('useAgentHandoff', () => {
     expect(mint).toHaveBeenCalledTimes(2);
   });
 
+  it('exposes the prompt when the clipboard API is unavailable', async () => {
+    MockApiClient.addMockResponse({
+      url,
+      method: 'POST',
+      body: {code, handoffId, expiresAt: new Date(Date.now() + 300_000).toISOString()},
+    });
+    Reflect.deleteProperty(globalThis, 'ClipboardItem');
+    const {result} = renderHookWithProviders(
+      () => useAgentHandoff(AgentHandoffFlow.ONBOARDING, context),
+      {organization}
+    );
+    expect(result.current.fallbackPrompt).toBeNull();
+
+    await act(async () => {
+      await expect(result.current.copyPrompt(options)).rejects.toThrow('Unable to copy');
+    });
+
+    await waitFor(() => expect(result.current.fallbackPrompt).toBe(prompt));
+  });
+
   it('reports a safe error when minting fails', async () => {
     MockApiClient.addMockResponse({
       url,

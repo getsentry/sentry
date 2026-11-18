@@ -4,11 +4,13 @@ import styled from '@emotion/styled';
 import {IconSettings} from '@sentry/icons/settings';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {InfoText} from '@sentry/scraps/info';
 import {Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
+import {TextArea} from '@sentry/scraps/textarea';
 import {darkTheme} from '@sentry/scraps/theme';
 
 import {t} from 'sentry/locale';
@@ -70,10 +72,15 @@ export function HandoffAdvancedMenu({
 
 interface HandoffPromptAlertsProps {
   error: Error | null;
+  fallbackPrompt: string | null;
   useIpPinning: boolean;
 }
 
-export function HandoffPromptAlerts({useIpPinning, error}: HandoffPromptAlertsProps) {
+export function HandoffPromptAlerts({
+  useIpPinning,
+  error,
+  fallbackPrompt,
+}: HandoffPromptAlertsProps) {
   return (
     <Fragment>
       {!useIpPinning && (
@@ -83,7 +90,53 @@ export function HandoffPromptAlerts({useIpPinning, error}: HandoffPromptAlertsPr
           )}
         </Alert>
       )}
-      {error && <Alert variant="danger">{error.message}</Alert>}
+      {error &&
+        (fallbackPrompt ? (
+          <ClipboardBlockedAlert message={error.message} prompt={fallbackPrompt} />
+        ) : (
+          <Alert variant="danger">{error.message}</Alert>
+        ))}
+    </Fragment>
+  );
+}
+
+interface ClipboardBlockedAlertProps {
+  message: string;
+  prompt: string;
+}
+
+/**
+ * The prompt holds a live handoff code, so it stays hidden until the user asks for it.
+ */
+function ClipboardBlockedAlert({message, prompt}: ClipboardBlockedAlertProps) {
+  const [isRevealed, setIsRevealed] = useState(false);
+
+  return (
+    <Fragment>
+      <Alert
+        variant="danger"
+        trailingItems={
+          isRevealed ? null : (
+            <Button size="xs" onClick={() => setIsRevealed(true)}>
+              {t('Show prompt')}
+            </Button>
+          )
+        }
+      >
+        {message}
+      </Alert>
+      {isRevealed && (
+        <TextArea
+          aria-label={t('Agent prompt')}
+          autosize
+          // Focus moves here from the button that just unmounted, and selecting the
+          // whole prompt leaves only the copy shortcut for the user.
+          autoFocus
+          readOnly
+          value={prompt}
+          onFocus={event => event.currentTarget.select()}
+        />
+      )}
     </Fragment>
   );
 }
