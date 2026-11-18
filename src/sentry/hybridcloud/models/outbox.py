@@ -696,9 +696,18 @@ def outbox_silo_modes() -> list[SiloMode]:
 
 
 class OutboxContext(threading.local):
-    flushing_enabled: bool | None = None
+    active: bool = False
     flush_override: bool | None = None
     """The flush flag a caller passed to an enclosing outbox_context, or None if none did."""
+
+    @property
+    def flushing_enabled(self) -> bool | None:
+        """Whether outbox saves drain on commit; None outside any outbox_context."""
+        if not self.active:
+            return None
+        if self.flush_override is None:
+            return True
+        return self.flush_override
 
 
 _outbox_context = OutboxContext()
@@ -713,38 +722,24 @@ def get_outbox_flush_override() -> bool | None:
 def outbox_context(
     inner: Atomic | None = None, flush: bool | None = None
 ) -> Generator[Atomic | None]:
-    original = _outbox_context.flushing_enabled
+    original_active = _outbox_context.active
     original_override = _outbox_context.flush_override
 
+    # Without a flag of our own, keep the one an enclosing caller passed
     if flush is None:
-        override = original_override
-    else:
-        override = flush
+        flush = original_override
 
-    # If we don't specify our flush, use the outer specified override
-    if flush is None:
-        flush = _outbox_context.flushing_enabled
-        # But if there is no outer override, default to True
-        if flush is None:
-            flush = True
+    assert flush is False or inner, "Must either set a transaction or flush=False"
 
-    assert not flush or inner, "Must either set a transaction or flush=False"
-
-    if inner:
-        assert inner.using is not None
-        with unguarded_write(using=inner.using), enforce_constraints(inner):
-            _outbox_context.flushing_enabled = flush
-            _outbox_context.flush_override = override
-            try:
-                yield inner
-            finally:
-                _outbox_context.flushing_enabled = original
-                _outbox_context.flush_override = original_override
-    else:
-        _outbox_context.flushing_enabled = flush
-        _outbox_context.flush_override = override
+    with contextlib.ExitStack() as stack:
+        if inner:
+            assert inner.using is not None
+            stack.enter_context(unguarded_write(using=inner.using))
+            stack.enter_context(enforce_constraints(inner))
+        _outbox_context.active = True
+        _outbox_context.flush_override = flush
         try:
-            yield None
+            yield inner
         finally:
-            _outbox_context.flushing_enabled = original
+            _outbox_context.active = original_active
             _outbox_context.flush_override = original_override
