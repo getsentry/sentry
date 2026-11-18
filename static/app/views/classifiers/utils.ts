@@ -13,7 +13,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import type {ClassifierDataset, TelemetryClassifier} from './types';
+import type {ClassifierDataset, ClassifierOutputType} from './types';
 
 export const CLASSIFIER_PREVIEW_PER_PAGE = 10;
 
@@ -192,9 +192,7 @@ export function getDatasetLabel(dataset: ClassifierDataset) {
   return dataset === 'conversation' ? t('Conversations') : t('Spans');
 }
 
-export function getOutputTypeLabel(
-  outputType: NonNullable<TelemetryClassifier['outputType']>
-) {
+export function getOutputTypeLabel(outputType: ClassifierOutputType) {
   switch (outputType) {
     case 'binary':
       return t('Binary');

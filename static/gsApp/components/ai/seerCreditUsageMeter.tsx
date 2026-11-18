@@ -12,6 +12,7 @@ import {t, tct} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {
+  SEER_AUTO_RELOAD_MODAL_HASH,
   seerWalletAutoTopUpOptions,
   seerWalletBalanceOptions,
 } from 'getsentry/views/subscriptionPage/seerWallet/seerWalletOptions';
@@ -61,9 +62,7 @@ export function SeerCreditUsageMeter({hasEnoughCredits}: SeerCreditUsageMeterPro
       total={wallet.included.total + wallet.purchased.total}
       autoReloadEnabled={autoTopUp?.enabled ?? null}
       hasEnoughCredits={hasEnoughCredits}
-      // The Seer wallet card on the billing overview is where auto-reload is
-      // configured until there is an in-place modal.
-      configureAutoReloadTo={`/settings/${organization.slug}/billing/overview/`}
+      configureAutoReloadTo={`/settings/${organization.slug}/billing/overview/${SEER_AUTO_RELOAD_MODAL_HASH}`}
     />
   );
 }

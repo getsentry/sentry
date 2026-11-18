@@ -13,7 +13,7 @@ export function TelemetryClassifierFixture(
     status: 'enabled',
     prebuiltClassifierKey: 'user_frustration',
     naturalLanguagePrompt: null,
-    outputType: null,
+    outputType: 'binary',
     createdBy: null,
     dateAdded: '2026-10-01T00:00:00Z',
     dateUpdated: '2026-10-01T00:00:00Z',

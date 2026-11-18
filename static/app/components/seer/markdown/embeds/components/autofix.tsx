@@ -312,6 +312,7 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
   // A read-only conversation offers no retry to pay for.
   const stoppedStep = section ? getOutOfCreditsStep(section) : null;
   const stepRetry = useOutOfCreditsRetry(stoppedStep ?? step, {
+    billingFeature: runState?.billing_feature,
     enabled: defined(stoppedStep) && !!sendMessage,
   });
   // Draft a pull request retries a create that failed for credits. The credit
@@ -323,6 +324,7 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
   const showsNextAction =
     section?.status === 'completed' && (canCreatePR || !!pendingNextStep);
   const creditCheck = useAutofixCreditCheck(canCreatePR ? 'create_pr' : pendingNextStep, {
+    billingFeature: runState?.billing_feature,
     // A read-only conversation offers nothing to pay for.
     enabled: showsNextAction && !!sendMessage,
   });

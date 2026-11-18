@@ -583,6 +583,7 @@ def _run_specialized_cleanups(
         raise CleanupExecutionAborted()
 
     remove_expired_values_for_lost_passwords(is_filtered, models_attempted)
+    remove_expired_timeseries_annotations(is_filtered, days, models_attempted)
     remove_expired_values_for_org_members(is_filtered, days, models_attempted)
     delete_api_models(is_filtered, models_attempted)
     exported_data(is_filtered, models_attempted)
@@ -668,6 +669,30 @@ def remove_expired_values_for_lost_passwords(
         LostPasswordHash.objects.filter(
             date_added__lte=timezone.now() - timedelta(hours=48)
         ).delete()
+
+
+@continue_on_error("specialized_cleanup_timeseries_annotations")
+def remove_expired_timeseries_annotations(
+    is_filtered: Callable[[type[BaseModel]], bool], days: int, models_attempted: set[str]
+) -> None:
+    from django.db.models import F
+    from django.db.models.functions import Coalesce
+
+    from sentry.timeseries_annotations.models import TimeseriesAnnotation
+
+    if is_filtered(TimeseriesAnnotation):
+        debug_output(">> Skipping TimeseriesAnnotation")
+        return
+
+    debug_output("Removing expired values for TimeseriesAnnotation")
+    models_attempted.add(TimeseriesAnnotation.__name__.lower())
+    cutoff = timezone.now() - timedelta(days=days)
+    # effective end: end_timestamp for a resolved range, else start_timestamp.
+    # Keying on start alone would delete a resolved range whose end is still inside the
+    # read window
+    TimeseriesAnnotation.objects.annotate(
+        _effective_end=Coalesce(F("end_timestamp"), F("start_timestamp"))
+    ).filter(_effective_end__lt=cutoff).delete()
 
 
 @continue_on_error("specialized_cleanup_org_members")

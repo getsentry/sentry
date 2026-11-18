@@ -147,7 +147,7 @@ function IntegrationAction({
 }) {
   const {startFlow} = useAddIntegration();
 
-  if (provider.key === 'linear') {
+  if (provider.key === 'linear' || provider.key === 'supabase') {
     return (
       <Button
         onClick={() =>
@@ -155,7 +155,7 @@ function IntegrationAction({
             provider,
             organization,
             // The default toast says the integration was "added", but this
-            // flow refreshes an existing workspace connection.
+            // flow refreshes an existing organization connection.
             suppressSuccessMessage: true,
             onInstall: () => {
               toast.success(t('%s reconnected', provider.name));
@@ -166,7 +166,7 @@ function IntegrationAction({
         disabled={!canManageIntegrations(organization)}
         size="sm"
       >
-        {t('Reconnect Linear')}
+        {provider.key === 'linear' ? t('Reconnect Linear') : t('Reconnect Supabase')}
       </Button>
     );
   }

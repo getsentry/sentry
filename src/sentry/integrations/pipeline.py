@@ -303,11 +303,11 @@ class IntegrationPipeline(Pipeline[Never, PipelineSessionStore]):
         if "expect_exists" in data:
             # Created by the provider's install webhook, and it may have been uninstalled
             # since the link was opened.
-            integration = Integration.objects.filter(
+            integration = Integration.objects.get_or_none(
                 provider=self.provider.integration_key,
                 external_id=data["external_id"],
                 status=ObjectStatus.ACTIVE,
-            ).first()
+            )
             if integration is None:
                 raise IntegrationError(
                     "This installation no longer exists. Reinstall the app and try again."

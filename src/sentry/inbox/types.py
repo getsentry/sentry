@@ -232,4 +232,10 @@ class InboxEventType[SubjectT, DataT: InboxEventData]:
                 lambda: metrics.incr("inbox.events.processed", amount=len(recipients), tags=tags),
                 using=using,
             )
+            transaction.on_commit(
+                partial(
+                    metrics.distribution, "inbox.record.events_created", len(events), tags=tags
+                ),
+                using=using,
+            )
         return events

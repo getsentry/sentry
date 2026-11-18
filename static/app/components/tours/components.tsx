@@ -3,6 +3,7 @@ import {
   Fragment,
   useContext,
   useEffect,
+  useEffectEvent,
   useId,
   useLayoutEffect,
   useMemo,
@@ -494,20 +495,37 @@ export function TourGuide({
     isDismissable: !onClickOutside,
   });
 
+  const handleClickOutside = useEffectEvent(() => onClickOutside?.());
+  const hasClickOutside = defined(onClickOutside);
   useEffect(() => {
-    if (!isOpen || !onClickOutside) {
+    if (!isOpen || !hasClickOutside) {
       return;
     }
-    const handleClick = (event: MouseEvent) => {
-      const target = event.target;
-      if (target instanceof Node && !overlayRef.current?.contains(target)) {
-        onClickOutside();
-      }
+    const isOutside = (event: Event) =>
+      event.target instanceof Node && !overlayRef.current?.contains(event.target);
+    // Only a click whose press started outside while the guide was open counts,
+    // so the click that opened it, such as "Next" on the previous step, does not
+    // dismiss it. Keyboard clicks don't count, as in react-aria's
+    // useInteractOutside.
+    let isPressedOutside = false;
+    const handlePointerDown = (event: Event) => {
+      isPressedOutside = isOutside(event);
     };
     // Runs after the page handles the click, so the click still goes through.
+    const handleClick = (event: Event) => {
+      if (isPressedOutside && isOutside(event)) {
+        handleClickOutside();
+      }
+      isPressedOutside = false;
+    };
+    // Captured, since the page may stop the press from bubbling.
+    document.addEventListener('pointerdown', handlePointerDown, true);
     document.addEventListener('click', handleClick);
-    return () => document.removeEventListener('click', handleClick);
-  }, [isOpen, onClickOutside, overlayRef]);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown, true);
+      document.removeEventListener('click', handleClick);
+    };
+  }, [isOpen, hasClickOutside, overlayRef]);
 
   // Scroll the highlighted element rather than the guide. The element may live in
   // a nested scroll container (e.g. the issue details sidebar, which stacks below
