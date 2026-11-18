@@ -147,8 +147,10 @@ class OrganizationTimeseriesAnnotationEndpointTest(APITestCase):
 
     def test_excludes_expired_past_retention(self) -> None:
         # Request window reaches back a year, but 30d retention is what gates visibility.
+        # Effective end is end_timestamp for a resolved range, else start_timestamp; an open
+        # range dangling past retention is deleted, so it reads as expired too.
         fresh_point = self._annotation(start_timestamp=before_now(days=10))
-        self._annotation(start_timestamp=before_now(days=40))  # point expired on its start
+        self._annotation(start_timestamp=before_now(days=40))  # expired on its start
         live_range = self._annotation(
             interval_type=IntervalType.RANGE,
             start_timestamp=before_now(days=40),
@@ -159,10 +161,15 @@ class OrganizationTimeseriesAnnotationEndpointTest(APITestCase):
             start_timestamp=before_now(days=60),
             end_timestamp=before_now(days=40),  # ended before retention: expired
         )
-        ongoing = self._annotation(
+        open_fresh = self._annotation(
+            interval_type=IntervalType.RANGE,
+            start_timestamp=before_now(days=5),
+            end_timestamp=None,  # open, started inside retention
+        )
+        self._annotation(
             interval_type=IntervalType.RANGE,
             start_timestamp=before_now(days=50),
-            end_timestamp=None,  # open range never expires
+            end_timestamp=None,  # open and dangling past retention: expired
         )
         with self.options({"system.event-retention-days": 30}):
             response = self.get_success_response(
@@ -173,5 +180,5 @@ class OrganizationTimeseriesAnnotationEndpointTest(APITestCase):
         assert {row["id"] for row in response.data} == {
             str(fresh_point.id),
             str(live_range.id),
-            str(ongoing.id),
+            str(open_fresh.id),
         }
