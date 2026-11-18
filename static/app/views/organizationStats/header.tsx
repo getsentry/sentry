@@ -51,16 +51,6 @@ export function StatsHeader({organization, activeTab}: Props) {
                   {t('Usage')}
                 </TabList.Item>
                 <TabList.Item
-                  key="seer"
-                  hidden={!showSeerTab}
-                  to={makeStatsPathname({
-                    path: '/seer/',
-                    organization,
-                  })}
-                >
-                  {t('Seer')}
-                </TabList.Item>
-                <TabList.Item
                   key="issues"
                   hidden={!showTeamInsightsTabs}
                   to={makeStatsPathname({
@@ -79,6 +69,16 @@ export function StatsHeader({organization, activeTab}: Props) {
                   })}
                 >
                   {t('Health')}
+                </TabList.Item>
+                <TabList.Item
+                  key="seer"
+                  hidden={!showSeerTab}
+                  to={makeStatsPathname({
+                    path: '/seer/',
+                    organization,
+                  })}
+                >
+                  {t('Seer')}
                 </TabList.Item>
               </TabList>
             )}

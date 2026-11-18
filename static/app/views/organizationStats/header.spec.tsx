@@ -24,6 +24,24 @@ describe('StatsHeader', () => {
     expect(screen.queryByRole('tab', {name: 'Health'})).not.toBeInTheDocument();
   });
 
+  it('puts the Seer tab after the team insights tabs', () => {
+    const organization = OrganizationFixture({
+      features: ['token-billed-seer-enabled', 'team-insights'],
+      access: ['org:read', 'org:billing'],
+    });
+
+    render(<StatsHeader organization={organization} activeTab="stats" />, {
+      organization,
+    });
+
+    expect(screen.getAllByRole('tab').map(tab => tab.textContent)).toEqual([
+      'Usage',
+      'Issues',
+      'Health',
+      'Seer',
+    ]);
+  });
+
   it('hides the Seer tab from members without billing access', () => {
     const organization = OrganizationFixture({
       features: ['token-billed-seer-enabled', 'team-insights'],
