@@ -67,7 +67,7 @@ function isHandoffStale<Flow extends AgentHandoffFlow>(
  * Carries the minted prompt so the UI can let the user copy it by hand when the
  * browser blocks clipboard writes.
  */
-class ClipboardBlockedError extends Error {
+export class ClipboardBlockedError extends Error {
   readonly prompt: string;
 
   constructor(prompt: string) {
