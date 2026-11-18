@@ -63,8 +63,8 @@ jobs:
           echo "::remove-matcher owner=masters::"
           echo "::add-matcher::.github/tsc.json"
 
-      - name: Type check with tsrs
-        id: typecheck
+      - name: tsc
+        id: tsc
         run: pnpm run typecheck
 
   oxlint:

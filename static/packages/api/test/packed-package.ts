@@ -7,11 +7,6 @@ import { fileURLToPath } from "node:url";
 /** The repository root, where the built package lives. */
 export const packageRoot = dirname(fileURLToPath(new URL("../package.json", import.meta.url)));
 
-export function typecheckProject(directory: string): string {
-  const cli = fileURLToPath(new URL("bin/tsrs", import.meta.resolve("tsrs/package.json")));
-  return execFileSync(process.execPath, [cli, "-p", directory], { encoding: "utf8" });
-}
-
 /**
  * `npm pack` the built package and install the tarball, with its runtime
  * dependencies, into a fresh ES module project. The caller removes it.

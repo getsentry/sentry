@@ -330,7 +330,7 @@
   "scripts": {
     "build": "rslib build",
     "test": "NODE_ENV=test jest --config jest.config.mjs",
-    "typecheck": "tsrs --build tsconfig.test.json",
+    "typecheck": "tsc --build tsconfig.test.json",
     "prepack": "pnpm run build",
     "lint": "pnpm run lint:js && pnpm run lint:css",
     "lint:js": "node ../../../scripts/oxlint.ts --type-aware --report-unused-disable-directives",
@@ -408,7 +408,6 @@
     "jsdom": "30.1.1",
     "oxlint": "1.90.0",
     "stylelint": "16.26.1",
-    "tsrs": "7.1.0-beta.tsrs2",
     "typescript": "npm:@typescript/typescript6@6.0.2",
     "zod": "4.6.7"
   },

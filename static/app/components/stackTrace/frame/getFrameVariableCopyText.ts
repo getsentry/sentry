@@ -76,6 +76,7 @@ function getCopyValue(variable: FrameVariable, platform: PlatformKey): unknown {
         // Emit Python numbers as unquoted JSON without converting through Number,
         // which would round large integers.
         // Access JSON directly so SWC detects and injects the required polyfill.
+        // @ts-expect-error The project's TypeScript lib does not yet declare JSON.rawJSON.
         return JSON.rawJSON(variable.value);
       }
       return platform === 'native' ? variable.value : Number(variable.value);

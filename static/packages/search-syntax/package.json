@@ -40,7 +40,7 @@
   "scripts": {
     "build": "rslib build",
     "test": "NODE_ENV=test jest --config jest.config.mjs",
-    "typecheck": "tsrs --build tsconfig.json",
+    "typecheck": "tsc --build tsconfig.json",
     "prepack": "pnpm run build",
     "lint:js": "node ../../../scripts/oxlint.ts --type-aware --report-unused-disable-directives"
   },
@@ -52,7 +52,6 @@
     "@types/node": "26.6.4",
     "jest": "30.5.1",
     "oxlint": "1.90.0",
-    "tsrs": "7.1.0-beta.tsrs2",
     "typescript": "npm:@typescript/typescript6@6.0.2"
   }
 }
