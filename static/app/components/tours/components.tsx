@@ -491,10 +491,6 @@ export function TourGuide({
 }: TourGuideProps) {
   const theme = useTheme();
 
-  const isStepCountVisible = defined(stepCount) && defined(stepTotal) && stepTotal !== 1;
-  const isDismissVisible = defined(handleDismiss);
-  const isTopRowVisible = isStepCountVisible || isDismissVisible;
-  const countText = isStepCountVisible ? `${stepCount}/${stepTotal}` : '';
   const {triggerProps, triggerRef, overlayProps, overlayRef, arrowProps} = useOverlay({
     shouldApplyMinWidth: false,
     isOpen,
@@ -627,17 +623,16 @@ export function TourGuide({
   };
   const titleId = useId();
   const descriptionId = useId();
-  const dialogProps: HTMLAttributes<HTMLElement> & {'data-focus-ring'?: boolean} =
-    isSubtle
-      ? {
-          role: 'dialog',
-          tabIndex: -1,
-          onKeyDown: handleKeyDown,
-          'data-focus-ring': isFocusRingVisible || undefined,
-          'aria-labelledby': title ? titleId : undefined,
-          'aria-describedby': description ? descriptionId : undefined,
-        }
-      : {};
+  const dialogProps: GuidePositionProps = isSubtle
+    ? {
+        role: 'dialog',
+        tabIndex: -1,
+        onKeyDown: handleKeyDown,
+        'data-focus-ring': isFocusRingVisible || undefined,
+        'aria-labelledby': title ? titleId : undefined,
+        'aria-describedby': description ? descriptionId : undefined,
+      }
+    : {};
 
   return (
     <Fragment>
@@ -655,101 +650,135 @@ export function TourGuide({
       </ClassNames>
       {isOpen && defined(title) && defined(description)
         ? createPortal(
-            <GuidePositionWrapper
-              zIndex={zIndex.overlay}
-              {...mergeProps(overlayProps, dialogProps)}
-            >
-              <ThemeProvider theme={darkTheme}>
-                <ClassNames>
-                  {({css, theme: currentTheme}) => (
-                    <Overlay
-                      animated
-                      arrowProps={{
-                        ...arrowProps,
-                        strokeWidth: 0,
-                        className: css`
-                          path.fill {
-                            fill: ${currentTheme.tokens.background.primary};
-                          }
-                          path.stroke {
-                            stroke: transparent;
-                          }
-                        `,
-                      }}
-                    >
-                      <Stack
-                        background="primary"
-                        radius="md"
-                        width="395px"
-                        maxWidth={TOUR_GUIDE_MAX_WIDTH}
-                        padding="md xl"
-                      >
-                        {isTopRowVisible && (
-                          <Flex
-                            justify="between"
-                            align="center"
-                            minHeight={theme.form.sm.height}
-                          >
-                            <Text size="sm" variant="muted" bold aria-hidden>
-                              {countText}
-                            </Text>
-                            {isDismissVisible && (
-                              <Button
-                                variant="transparent"
-                                onClick={handleDismiss}
-                                icon={<IconClose />}
-                                aria-label={t('Close')}
-                                size="zero"
-                              />
-                            )}
-                          </Flex>
-                        )}
-                        {title && (
-                          <Container padding="xs 0">
-                            <Text
-                              as="div"
-                              id={titleId}
-                              size="xl"
-                              bold
-                              density="comfortable"
-                            >
-                              {title}
-                            </Text>
-                          </Container>
-                        )}
-                        {description && (
-                          <Container padding="xs 0">
-                            <Text
-                              as="div"
-                              id={descriptionId}
-                              size="md"
-                              density="comfortable"
-                            >
-                              {/* Screen readers hear the step here instead of the visible "1/2". */}
-                              {isStepCountVisible && (
-                                <VisuallyHidden>
-                                  {t('Step %s of %s.', stepCount, stepTotal)}{' '}
-                                </VisuallyHidden>
-                              )}
-                              {description}
-                            </Text>
-                          </Container>
-                        )}
-                        {actions && (
-                          <Flex justify="end" padding="md 0">
-                            {actions}
-                          </Flex>
-                        )}
-                      </Stack>
-                    </Overlay>
-                  )}
-                </ClassNames>
-              </ThemeProvider>
-            </GuidePositionWrapper>,
+            <TourGuideSurface
+              positionProps={mergeProps(overlayProps, dialogProps)}
+              arrowProps={arrowProps}
+              title={title}
+              titleId={titleId}
+              description={description}
+              descriptionId={descriptionId}
+              actions={actions}
+              stepCount={stepCount}
+              stepTotal={stepTotal}
+              handleDismiss={handleDismiss}
+            />,
             document.body
           )
         : null}
     </Fragment>
+  );
+}
+
+type GuidePositionProps = HTMLAttributes<HTMLElement> & {
+  'data-focus-ring'?: boolean;
+};
+
+interface TourGuideSurfaceProps extends Pick<
+  TourGuideProps,
+  'actions' | 'description' | 'handleDismiss' | 'stepCount' | 'stepTotal' | 'title'
+> {
+  arrowProps: ReturnType<typeof useOverlay>['arrowProps'];
+  descriptionId: string;
+  positionProps: GuidePositionProps;
+  titleId: string;
+}
+
+/**
+ * What the guide looks like, without the positioning and focus handling of
+ * `TourGuide`. Exported for its visual snapshots.
+ */
+export function TourGuideSurface({
+  positionProps,
+  arrowProps,
+  title,
+  titleId,
+  description,
+  descriptionId,
+  actions,
+  stepCount,
+  stepTotal,
+  handleDismiss,
+}: TourGuideSurfaceProps) {
+  const theme = useTheme();
+  const isStepCountVisible = defined(stepCount) && defined(stepTotal) && stepTotal !== 1;
+  const isDismissVisible = defined(handleDismiss);
+  const isTopRowVisible = isStepCountVisible || isDismissVisible;
+  const countText = isStepCountVisible ? `${stepCount}/${stepTotal}` : '';
+
+  return (
+    <GuidePositionWrapper zIndex={zIndex.overlay} {...positionProps}>
+      <ThemeProvider theme={darkTheme}>
+        <ClassNames>
+          {({css, theme: currentTheme}) => (
+            <Overlay
+              animated
+              arrowProps={{
+                ...arrowProps,
+                strokeWidth: 0,
+                className: css`
+                  path.fill {
+                    fill: ${currentTheme.tokens.background.primary};
+                  }
+                  path.stroke {
+                    stroke: transparent;
+                  }
+                `,
+              }}
+            >
+              <Stack
+                background="primary"
+                radius="md"
+                width="395px"
+                maxWidth={TOUR_GUIDE_MAX_WIDTH}
+                padding="md xl"
+              >
+                {isTopRowVisible && (
+                  <Flex justify="between" align="center" minHeight={theme.form.sm.height}>
+                    <Text size="sm" variant="muted" bold aria-hidden>
+                      {countText}
+                    </Text>
+                    {isDismissVisible && (
+                      <Button
+                        variant="transparent"
+                        onClick={handleDismiss}
+                        icon={<IconClose />}
+                        aria-label={t('Close')}
+                        size="zero"
+                      />
+                    )}
+                  </Flex>
+                )}
+                {title && (
+                  <Container padding="xs 0">
+                    <Text as="div" id={titleId} size="xl" bold density="comfortable">
+                      {title}
+                    </Text>
+                  </Container>
+                )}
+                {description && (
+                  <Container padding="xs 0">
+                    <Text as="div" id={descriptionId} size="md" density="comfortable">
+                      {/* Screen readers hear the step here instead of the visible "1/2". */}
+                      {isStepCountVisible && (
+                        <VisuallyHidden>
+                          {t('Step %s of %s.', stepCount, stepTotal)}{' '}
+                        </VisuallyHidden>
+                      )}
+                      {description}
+                    </Text>
+                  </Container>
+                )}
+                {actions && (
+                  <Flex justify="end" padding="md 0">
+                    {actions}
+                  </Flex>
+                )}
+              </Stack>
+            </Overlay>
+          )}
+        </ClassNames>
+      </ThemeProvider>
+    </GuidePositionWrapper>
   );
 }
 

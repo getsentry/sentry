@@ -111,13 +111,16 @@ interface TakeSnapshotOptions {
 }
 
 /**
- * A pointer interaction to perform before capturing, so snapshots can cover
- * `:hover` / `:active` states. Each value is a CSS selector; the first match is
- * used. `:focus-visible` is intentionally unsupported — Chromium only applies it
- * to keyboard-driven focus, so it cannot be forced reliably from a screenshot.
+ * An interaction to perform before capturing, so snapshots can cover `:hover`,
+ * `:active` and `:focus-visible` states. Each value is a CSS selector; the first
+ * match is used.
  */
 export interface SnapshotInteraction {
   active?: string;
+  /**
+   * Focuses the element as keyboard focus would, so `:focus-visible` matches.
+   */
+  focusVisible?: string;
   hover?: string;
 }
 
@@ -151,7 +154,14 @@ export async function takeSnapshot({
     // Wait for fonts to load
     await page.evaluate(() => document.fonts.ready);
 
-    // Drive pointer states (:hover / :active) before capturing, if requested.
+    // Drive interaction states (:focus-visible / :hover / :active) before
+    // capturing, if requested.
+    if (interaction?.focusVisible) {
+      await page
+        .locator(interaction.focusVisible)
+        .first()
+        .evaluate(target => (target as HTMLElement).focus({focusVisible: true}));
+    }
     let releaseActive: (() => Promise<void>) | undefined;
     if (interaction?.hover) {
       await page.locator(interaction.hover).first().hover();
