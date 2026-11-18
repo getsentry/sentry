@@ -918,21 +918,14 @@ SEER_FIXES_SENTRY_ISSUE_MARKER = "SEER_FIXES_SENTRY_ISSUE"
 
 
 class LinkedIssuePlacement(Enum):
-    # The tracker links a pull request to the issue through a `Fixes <key>` line
-    # in its description.
     PR_DESCRIPTION = "pr_description"
-    # The tracker links work to the issue only through its key in the branch
-    # name, a commit message, or the pull request title.
     BRANCH_COMMITS_AND_PR_TITLE = "branch_commits_and_pr_title"
 
 
 @dataclass(frozen=True)
 class LinkedIssueRule:
     placement: LinkedIssuePlacement
-    # Matches the key as stored on the link. Links whose key doesn't match are
-    # skipped, so a malformed key never reaches a pull request.
     stored_key_pattern: re.Pattern[str]
-    # Turns the stored key into the key the tracker shows.
     to_display_key: Callable[[str], str] = lambda key: key
 
 
@@ -941,9 +934,7 @@ _JIRA_RULE = LinkedIssueRule(
     stored_key_pattern=re.compile(r"^[A-Z][A-Z0-9_]*-\d+$"),
 )
 
-# Issue trackers whose linked issues are referenced in coding agent handoffs and
-# Seer pull requests, keyed by Sentry App service type or integration provider.
-# Links to any other tracker are skipped. Supporting a new tracker is one entry.
+# Keyed by Sentry App service type or integration provider.
 LINKED_ISSUE_RULES: dict[str, LinkedIssueRule] = {
     # The Linear Sentry App stores keys as `PROJ#123`.
     "linear": LinkedIssueRule(
@@ -964,33 +955,27 @@ class LinkedIssue:
     placement: LinkedIssuePlacement
 
 
-def get_linked_issues(group: Group) -> list[LinkedIssue]:
-    """
-    Issues in external trackers linked to the group, limited to the trackers in
-    LINKED_ISSUE_RULES.
-
-    Links come from two places: Sentry Apps store them as PlatformExternalIssue
-    rows, and first-party integrations store them as ExternalIssue rows reached
-    through GroupLink.
-    """
-    # (provider, stored key, url)
+def get_linked_issues(group: Group, *, include_integrations: bool = True) -> list[LinkedIssue]:
     candidates: list[tuple[str, str, str | None]] = [
         (issue.service_type, issue.display_name, issue.web_url)
         for issue in PlatformExternalIssue.objects.filter(group_id=group.id)
     ]
 
-    external_issues = list(
-        ExternalIssue.objects.filter(
-            id__in=GroupLink.objects.filter(
-                project_id=group.project_id,
-                group_id=group.id,
-                linked_type=GroupLink.LinkedType.issue,
-            ).values_list("linked_id", flat=True),
-            organization_id=group.organization.id,
+    external_issues = (
+        list(
+            ExternalIssue.objects.filter(
+                id__in=GroupLink.objects.filter(
+                    project_id=group.project_id,
+                    group_id=group.id,
+                    linked_type=GroupLink.LinkedType.issue,
+                ).values_list("linked_id", flat=True),
+                organization_id=group.organization.id,
+            )
         )
+        if include_integrations
+        else []
     )
     if external_issues:
-        # Integrations live in the control silo, so their providers come over RPC.
         provider_by_integration_id = {
             integration.id: integration.provider
             for integration in integration_service.get_integrations(
@@ -1061,9 +1046,10 @@ def _build_issue_reference_lines(group: Group, linked_issues: Sequence[LinkedIss
 
 
 def build_pr_description_suffix(group: Group, referrer: str | None) -> str | None:
-    # Seer opens these pull requests itself and only controls the description,
-    # so issues that need their key in the branch, commits, or title are left out.
-    lines = _build_issue_reference_lines(group, get_linked_issues(group))
+    # Only description-placed links (Sentry Apps) are used here, so skip the integration lookup.
+    lines = _build_issue_reference_lines(
+        group, get_linked_issues(group, include_integrations=False)
+    )
     lines.append(
         # One command per line, and one `<sub>` tag per line: a blank line
         # would close the tag and leave the next line full size.

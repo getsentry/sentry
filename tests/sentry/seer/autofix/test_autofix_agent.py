@@ -1880,8 +1880,12 @@ class TestTriggerPushChanges(TestCase):
         )
         self.create_integration_external_issue(group=self.group, integration=jira, key="APP-123")
 
-        payload = self._push(mock_post)
+        with patch(
+            "sentry.seer.autofix.autofix_agent.integration_service.get_integrations"
+        ) as mock_get_integrations:
+            payload = self._push(mock_post)
 
+        mock_get_integrations.assert_not_called()
         assert payload["pr_description_suffix"] == (
             f"{self._fixes_line()}\n{self._iteration_help()}"
         )
