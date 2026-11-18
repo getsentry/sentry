@@ -264,6 +264,56 @@ describe('ConversationViewContent', () => {
     expect(nextRequest).toHaveBeenCalledTimes(1);
   });
 
+  it('searches the transcript and selects the span with the match', async () => {
+    const onSelectSpan = jest.fn();
+    renderView({onSelectSpan});
+    await screen.findByText('Second answer');
+
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Search in transcript'}),
+      'second answer{Enter}'
+    );
+
+    expect(await screen.findByText('1/1')).toBeInTheDocument();
+    expect(onSelectSpan).toHaveBeenCalledWith('span-b');
+  });
+
+  it('loads later pages until the search finds a match', async () => {
+    MockApiClient.clearMockResponses();
+    mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'next'});
+    const nextRequest = mockConversation([CONVERSATION_BODY[1]!], {cursor: 'next'});
+    const onSelectSpan = jest.fn();
+    renderView({onSelectSpan});
+    await screen.findByText('First answer');
+
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Search in transcript'}),
+      'second answer{Enter}'
+    );
+
+    expect(await screen.findByText('1/1')).toBeInTheDocument();
+    expect(nextRequest).toHaveBeenCalledTimes(1);
+    expect(onSelectSpan).toHaveBeenCalledWith('span-b');
+  });
+
+  it('shows no results once every page is searched', async () => {
+    MockApiClient.clearMockResponses();
+    mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'next'});
+    const nextRequest = mockConversation([CONVERSATION_BODY[1]!], {cursor: 'next'});
+    const onSelectSpan = jest.fn();
+    renderView({onSelectSpan});
+    await screen.findByText('First answer');
+
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Search in transcript'}),
+      'not in this conversation{Enter}'
+    );
+
+    expect(await screen.findByText('No results')).toBeInTheDocument();
+    expect(nextRequest).toHaveBeenCalledTimes(1);
+    expect(onSelectSpan).not.toHaveBeenCalled();
+  });
+
   it('does not show the timeline default while a deep link is unresolved', async () => {
     MockApiClient.clearMockResponses();
     mockConversation([CONVERSATION_BODY[0]!], {nextCursor: 'next'});
