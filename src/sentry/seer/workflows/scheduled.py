@@ -33,7 +33,6 @@ from sentry.cadence.api import (
     set_schedule,
 )
 from sentry.constants import ObjectStatus
-from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.models.project import Project
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
@@ -61,7 +60,6 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
 from sentry.utils import metrics
-from sentry.workflow_engine.models import Workflow
 
 logger = logging.getLogger(__name__)
 
@@ -105,7 +103,7 @@ def _daily() -> CronSchedule:
 
 def schedule_for(config: SeerWorkflowConfig) -> Schedule | None:
     """The schedule a scheduled `config` should run on, or None while it is disabled."""
-    if not AutomationDefinition.is_enabled(config):
+    if not config.enabled:
         return None
     extras = SeerWorkflowConfigExtras.parse_obj(config.extras)
     settings = ScheduleSettings.parse_obj(extras.trigger_settings or {})
@@ -157,19 +155,6 @@ class ScheduleTrigger(AutomationTrigger[ScheduledRunInputs]):
             )
         return projects
 
-    def setup(
-        self, update: ConfigUpdate, *, name: str | None, created_by_id: int | None, enabled: bool
-    ) -> None:
-        # Holds the automation's name and enabled state; the schedule, not WFE, starts its runs.
-        update.config.backing_workflow = Workflow.objects.create(
-            organization_id=update.config.organization_id,
-            name=name or "Seer automation",
-            enabled=enabled,
-            created_by_id=created_by_id,
-            config={"frequency": 0},
-        )
-        update.mark("backing_workflow")
-
     def set_scope(self, update: ConfigUpdate, selection: ScopeSelection) -> None:
         match selection:
             case AllProjects():
@@ -217,14 +202,6 @@ class ScheduleTrigger(AutomationTrigger[ScheduledRunInputs]):
             trigger_type=ScheduledTriggerType.SEER_WORKFLOW,
             target_id=config.id,
         )
-        if config.backing_workflow_id is None:
-            return
-        workflow = Workflow.objects_for_deletion.filter(
-            id=config.backing_workflow_id, organization_id=config.organization_id
-        ).first()
-        if workflow is not None and workflow.status == ObjectStatus.ACTIVE:
-            CellScheduledDeletion.schedule(workflow, days=0)
-            workflow.update(status=ObjectStatus.PENDING_DELETION)
 
 
 class PromptedInvestigationAction(AutomationAction[BaseModel]):
@@ -343,7 +320,7 @@ def _record_scheduled_run(
     """Admit and dispatch the run scheduled for `scheduled_for`, once per config."""
     try:
         with lock_config(organization_id, config_id) as config:
-            if not AutomationDefinition.is_enabled(config):
+            if not config.enabled:
                 return ScheduledRunOutcome("ignored", reason="config_disabled")
 
             run = definition.trigger_run(

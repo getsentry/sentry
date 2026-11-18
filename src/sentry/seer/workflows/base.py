@@ -212,6 +212,9 @@ class AutomationDefinition[Inputs: BaseModel]:
     def is_enabled(config: SeerWorkflowConfig) -> bool:
         workflow = config.backing_workflow
         if workflow is None:
+            # TODO(telkins): Scheduled automations don't have a backing workflow yet.
+            if config.strategy == SeerWorkflowStrategy.AGENTIC_TRIAGE_V2:
+                return config.enabled
             raise ValueError(f"Automation {config.id} has no backing workflow")
         return workflow.enabled and workflow.status == ObjectStatus.ACTIVE
 
@@ -336,7 +339,13 @@ class ConfigUpdate:
     def set_enabled(self, enabled: bool) -> None:
         workflow = self.config.backing_workflow
         if workflow is None:
-            raise WorkflowUpdateError("The automation has no backing workflow")
+            # TODO(telkins): Scheduled automations don't have a backing workflow yet.
+            if self.config.strategy != SeerWorkflowStrategy.AGENTIC_TRIAGE_V2:
+                raise WorkflowUpdateError("The automation has no backing workflow")
+            if self.config.enabled != enabled:
+                self.config.enabled = enabled
+                self.mark("enabled")
+            return
         if workflow.enabled != enabled:
             workflow.update(enabled=enabled)
             self.mark_related_changed()
