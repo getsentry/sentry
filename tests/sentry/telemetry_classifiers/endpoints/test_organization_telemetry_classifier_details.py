@@ -36,6 +36,7 @@ class OrganizationTelemetryClassifierDetailsGetTest(APITestCase):
             "prebuiltClassifierKey": None,
             "naturalLanguagePrompt": "Is the user frustrated?",
             "outputType": "binary",
+            "binaryThreshold": 0.8,
             "dateAdded": self.classifier.date_added,
             "dateUpdated": self.classifier.date_updated,
         }
@@ -125,6 +126,7 @@ class OrganizationTelemetryClassifierDetailsPutTest(APITestCase):
                 "prebuiltClassifierKey": "refusal",
                 "naturalLanguagePrompt": None,
                 "outputType": None,
+                "binaryThreshold": None,
                 "dateAdded": self.classifier.date_added,
                 "dateUpdated": self.classifier.date_updated,
             }

@@ -6,6 +6,8 @@ on:
       - master
   pull_request:
     types: [opened, synchronize, reopened, labeled]
+  merge_group:
+    types: [checks_requested]
   workflow_dispatch:
 
 # Cancel in progress workflows on pull_requests.
@@ -358,19 +360,22 @@ jobs:
             "$PG_IMAGE" postgres \
               -c wal_level=logical -c max_replication_slots=1 -c max_wal_senders=1 \
               -c fsync=off -c synchronous_commit=off -c full_page_writes=off
-          # docker run -d returns 0 even if postgres dies right after — bound the
-          # wait so a crashing postgres surfaces fast instead of hitting the job
-          # timeout silently.
-          for _ in $(seq 1 120); do
-            [ -S "/tmp/pg-sock/.s.PGSQL.5432" ] && break
-            sleep 0.5
+          # On an empty volume, the image's entrypoint runs initdb with a temporary
+          # server that listens only on the socket, then stops it and starts the
+          # real one. The socket alone can vanish a moment after it appears, so also
+          # wait for TCP, which only the real server listens on. docker run -d
+          # returns 0 even if postgres dies right after, so the wait is bounded.
+          for _ in $(seq 1 60); do
+            if [ -S "/tmp/pg-sock/.s.PGSQL.5432" ] &&
+              docker exec postgres-postgres-1 pg_isready --quiet --host 127.0.0.1 --port 5432; then
+              echo "SENTRY_DB_SOCKET=/tmp/pg-sock" >> "$GITHUB_ENV"
+              exit 0
+            fi
+            sleep 1
           done
-          if [ ! -S "/tmp/pg-sock/.s.PGSQL.5432" ]; then
-            echo "::error::postgres unix socket did not appear after 60s"
-            docker logs postgres-postgres-1 2>&1 | tail -30 || true
-            exit 1
-          fi
-          echo "SENTRY_DB_SOCKET=/tmp/pg-sock" >> "$GITHUB_ENV"
+          echo "::error::postgres was not ready on its Unix socket after 60s"
+          docker logs postgres-postgres-1 2>&1 | tail -30 || true
+          exit 1
 
       - name: Download odiff binary
         run: |
@@ -418,6 +423,10 @@ jobs:
           name: selected-tests-${{ github.run_id }}
           path: .artifacts/
 
+      - name: Attribute resource usage to the tests from here
+        continue-on-error: true
+        run: python3 .github/workflows/scripts/monitor-resources.py --phase tests
+
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         env:
           SELECTED_TESTS_FILE: ${{ needs.select-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || '' }}
@@ -439,6 +448,13 @@ jobs:
         if: always()
         continue-on-error: true
         run: python3 .github/workflows/scripts/monitor-resources.py --stop
+
+      # bootstrap-snuba.py turns off ClickHouse's query log for the per-worker
+      # databases, so they should log no queries.
+      - name: ClickHouse queries logged
+        if: ${{ !cancelled() && env.XDIST_PER_WORKER_SNUBA == '1' }}
+        continue-on-error: true
+        run: python3 .github/workflows/scripts/bootstrap-snuba.py --query-log
 
       # pytest-selected.py balances full-run shards with these. See
       # .github/workflows/scripts/backend-test-durations.py to refresh them.
@@ -636,7 +652,7 @@ jobs:
           fi
 
       - name: apply any requirements changes
-        if: steps.token.outcome == 'success' && github.ref != 'refs/heads/master' && always()
+        if: steps.token.outcome == 'success' && github.event_name == 'pull_request' && always()
         uses: getsentry/action-github-commit@31f6706ca1a7b9ad6d22c1b07bf3a92eabb05632 # v2.0.0
         with:
           github-token: ${{ steps.token.outputs.token }}
@@ -667,7 +683,7 @@ jobs:
           python3 -m tools.api_urls_to_typescript
 
       - name: Apply any file changes
-        if: github.ref != 'refs/heads/master' && always()
+        if: github.event_name == 'pull_request' && always()
         uses: getsentry/action-github-commit@31f6706ca1a7b9ad6d22c1b07bf3a92eabb05632 # v2.0.0
         with:
           github-token: ${{ steps.token.outputs.token }}
@@ -814,7 +830,7 @@ jobs:
           steps.token.outcome == 'success' &&
           steps.run.outcome == 'success' &&
           steps.regen-blocklist.outcome == 'success' &&
-          github.ref != 'refs/heads/master' &&
+          github.event_name == 'pull_request' &&
           always()
         uses: getsentry/action-github-commit@31f6706ca1a7b9ad6d22c1b07bf3a92eabb05632 # v2.0.0
         with:

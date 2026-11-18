@@ -11,6 +11,7 @@ import {getRelativeExplorerUrl} from 'sentry/views/seerExplorer/utils';
 
 import {AgentWriteApprovalBlock} from './agentWriteApprovalBlock';
 import {AskUserQuestionBlock} from './askUserQuestionBlock';
+import {ConnectScmBlock} from './connectScmBlock';
 import {FileChangeApprovalBlock} from './fileChangeApprovalBlock';
 import {ReauthMonitoringProviderBlock} from './reauthMonitoringProviderBlock';
 
@@ -112,6 +113,16 @@ export function getPendingUserInputPrompt({
         onSelectOption={state.handleQuestionSelectOption}
         questionIndex={state.questionIndex}
         selectedOption={state.selectedOption}
+      />
+    );
+  }
+
+  if (pendingInput.input_type === 'connect_scm') {
+    return (
+      <ConnectScmBlock
+        key={pendingInput.id}
+        pendingInput={pendingInput}
+        respondToUserInput={respondToUserInput}
       />
     );
   }

@@ -764,6 +764,19 @@ export function useWidgetBuilderState(): {
             }
             setYAxis(nextAggregates, options);
 
+            // Aggregates past the y-axis cap were dropped above, so a sort on
+            // one of them (e.g. a table's `equation[N]`) would point at nothing.
+            const nextTimeseriesSort = getUpdatedTimeseriesSort(
+              nextAggregates,
+              yAxis,
+              columnsWithoutAlias,
+              dataset,
+              sort
+            );
+            if (nextTimeseriesSort) {
+              setSort(nextTimeseriesSort, options);
+            }
+
             // Reset the limit to a valid value, bias towards the current limit or
             // default if possible
             const maxLimit = getResultsLimit(query?.length ?? 1, nextAggregates.length);

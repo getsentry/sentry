@@ -1,5 +1,6 @@
 from unittest.mock import MagicMock, patch
 
+import jwt
 from django.conf import settings
 from django.test import override_settings
 from django.urls import reverse
@@ -42,6 +43,27 @@ class ProjectPreprodUploadOptionsTest(APITestCase):
         assert data["usecase"] == "preprod"
 
         mock_get_session.assert_called_once_with(UsecaseId.PREPROD, self.project)
+
+    @patch("sentry.objectstore._CLIENT", None)
+    def test_token_grants_read_and_write_only(self) -> None:
+        unrestricted_generator = {
+            k: v
+            for k, v in settings.SENTRY_OBJECTSTORE_CONFIG["token_generator"].items()
+            if k != "permissions"
+        }
+        with override_settings(
+            SENTRY_OBJECTSTORE_CONFIG={
+                **settings.SENTRY_OBJECTSTORE_CONFIG,
+                "token_generator": unrestricted_generator,
+            }
+        ):
+            response = self.client.get(self.url)
+
+        assert response.status_code == 200
+        claims = jwt.decode(
+            response.data["objectstore"]["authToken"], options={"verify_signature": False}
+        )
+        assert claims["permissions"] == ["object.read", "object.write"]
 
     @patch("sentry.preprod.api.endpoints.project_preprod_upload_options.get_session")
     def test_auto_returns_preprod_snapshots(self, mock_get_session: MagicMock) -> None:

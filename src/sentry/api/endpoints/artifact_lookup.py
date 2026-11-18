@@ -94,7 +94,7 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
                     projectartifactbundle__project_id=project.id,
                 )
                 .select_related("file")
-                .first()
+                .first()  # noqa: S035
             )
             metrics.incr("sourcemaps.download.artifact_bundle")
         elif ty == "release_file":
@@ -104,7 +104,7 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
                     organization_id=project.organization.id,
                 )
                 .select_related("file")
-                .first()
+                .get_or_none()
             )
             if (
                 file_m is not None

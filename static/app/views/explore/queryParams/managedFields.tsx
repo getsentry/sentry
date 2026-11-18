@@ -77,7 +77,7 @@ export function deriveUpdatedManagedFields(
     fieldsToDelete.delete(field);
   });
 
-  let updatedFields: string[] | undefined = undefined;
+  let updatedFields: string[] | undefined;
 
   if (fieldsToAdd.size || fieldsToDelete.size) {
     updatedFields = fields.filter(field => {

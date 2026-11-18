@@ -75,7 +75,7 @@ describe('AddToDashboardButton', () => {
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
-    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Dashboard widget'}));
+    await userEvent.hover(screen.getByRole('menuitem', {name: 'Dashboard widget'}));
     await userEvent.click(
       (await screen.findAllByRole('menuitemradio', {name: 'avg(span.duration)'}))[1]!
     );

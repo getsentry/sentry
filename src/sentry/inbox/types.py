@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import hashlib
 from abc import ABC, abstractmethod
-from collections.abc import Iterable, Mapping, Sequence
-from dataclasses import asdict, dataclass, fields
+from collections.abc import Iterable, Sequence
+from dataclasses import asdict, dataclass
 from enum import StrEnum
 from functools import partial
 from random import random
-from typing import Any, Literal, Self
+from typing import Literal
 
 import orjson
 from django.db import router, transaction
@@ -16,6 +16,7 @@ from django.utils import timezone
 
 from sentry import features, options
 from sentry.constants import ObjectStatus
+from sentry.inbox.event_data import InboxEventData
 from sentry.inbox.event_retention import cleanup_inbox_item_events
 from sentry.inbox.item_retention import cleanup_inbox_items
 from sentry.models.organization import Organization
@@ -100,29 +101,6 @@ class InboxEventSummary(StrEnum):
     NOTEBOOK_USER_MENTIONED = "Mentioned you"
     NOTEBOOK_TEAM_MENTIONED = "Mentioned your team"
     NOTEBOOK_PARTICIPANT_ADDED = "Added you"
-
-
-@dataclass(frozen=True, kw_only=True)
-class InboxEventData:
-    """
-    Event payload, stored as JSON on each recorded event.
-
-    Give any field added to an existing data class a default. Stored payloads won't have it, and
-    rebuilding them without a value fails, so their URLs fall back to the subject URL.
-    """
-
-    @classmethod
-    def from_payload(cls, payload: Mapping[str, Any]) -> Self:
-        """Rebuild from a stored payload, ignoring keys that are no longer fields."""
-        names = {field.name for field in fields(cls) if field.init}
-        return cls(**{key: value for key, value in payload.items() if key in names})
-
-    def get_url(self, subject_url: str) -> str:
-        """
-        URL for this event, built from the subject URL. Override to point at something on the
-        subject's page, such as the comment that mentioned you.
-        """
-        return subject_url
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -230,6 +208,12 @@ class InboxEventType[SubjectT, DataT: InboxEventData]:
 
             transaction.on_commit(
                 lambda: metrics.incr("inbox.events.processed", amount=len(recipients), tags=tags),
+                using=using,
+            )
+            transaction.on_commit(
+                partial(
+                    metrics.distribution, "inbox.record.events_created", len(events), tags=tags
+                ),
                 using=using,
             )
         return events

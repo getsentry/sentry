@@ -818,7 +818,8 @@ describe('getSavedQueryTraceItemUrl', () => {
 
   function makeSavedQuery(
     dataset: ReadableSavedQuery['dataset'],
-    query: ReadableSavedQuery['query']
+    query: ReadableSavedQuery['query'],
+    queryPriority?: 'normal' | 'faster'
   ) {
     return new SavedQuery({
       id: 1,
@@ -832,6 +833,7 @@ describe('getSavedQueryTraceItemUrl', () => {
       starred: false,
       position: null,
       query,
+      queryPriority,
     });
   }
 
@@ -839,6 +841,12 @@ describe('getSavedQueryTraceItemUrl', () => {
     const url = getSavedQueryTraceItemUrl({savedQuery, organization});
     return qs.parse(new URL(url, 'https://sentry.io').search);
   }
+
+  it('puts a saved query priority on the spans url', () => {
+    const savedQuery = makeSavedQuery('spans', [readableQuery], 'faster');
+
+    expect(parseSavedQueryUrl(savedQuery).queryPriority).toBe('faster');
+  });
 
   function getCaseInsensitiveParam(savedQuery: SavedQuery) {
     return parseSavedQueryUrl(savedQuery).caseInsensitive;

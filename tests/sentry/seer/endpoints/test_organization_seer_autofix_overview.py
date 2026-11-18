@@ -35,10 +35,6 @@ _INTEGRATION_SERVICE = (
     "integration_service.get_integration"
 )
 
-_TOKEN_BILLING_FEATURES = {
-    "organizations:seer-token-based-billing-onboarding": True,
-    "organizations:token-billed-seer-enabled": True,
-}
 
 _ClientT = TypeVar("_ClientT", bound=PullRequestStatusClient)
 
@@ -829,7 +825,7 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         self._run_for_group(group, "boom")
         self._linked_repo(self.project)
 
-        with self.feature(_TOKEN_BILLING_FEATURES):
+        with self.feature("organizations:token-billed-seer-enabled"):
             resp = self.get_success_response(
                 self.organization.slug, qs_params={"expand": ["scmInfo", "projectConfig"]}
             )
@@ -842,7 +838,7 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
     def test_token_billed_linked_non_github_repo_flags_has_non_github(self) -> None:
         self._linked_repo(self.project, provider="integrations:gitlab")
 
-        with self.feature(_TOKEN_BILLING_FEATURES):
+        with self.feature("organizations:token-billed-seer-enabled"):
             resp = self.get_success_response(
                 self.organization.slug, qs_params={"expand": "projectConfig"}
             )
@@ -856,7 +852,7 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         self.create_project_repository(project=self.project, repository=repo)
         self.create_seer_project_repository(project=self.project, repository=repo)
 
-        with self.feature(_TOKEN_BILLING_FEATURES):
+        with self.feature("organizations:token-billed-seer-enabled"):
             resp = self.get_success_response(
                 self.organization.slug, qs_params={"expand": "projectConfig"}
             )

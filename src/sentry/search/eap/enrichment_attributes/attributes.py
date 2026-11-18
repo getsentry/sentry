@@ -15,6 +15,13 @@ ENRICHMENT_ATTRIBUTE_DEFINITIONS = {
             internal_name="sentry.trace_id",
             search_type="string",
         ),
+        # Copied from the classified telemetry, see TelemetryInput.copied_attributes.
         simple_sentry_field("environment"),
+        simple_sentry_field("release"),
+        simple_sentry_field("user"),
+        simple_sentry_field("user.email"),
+        simple_sentry_field("user.id"),
+        simple_sentry_field("user.ip"),
+        simple_sentry_field("user.username"),
     ]
 }
