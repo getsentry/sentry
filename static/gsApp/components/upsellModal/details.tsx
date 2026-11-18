@@ -1,15 +1,11 @@
 import {Fragment, useEffect, useEffectEvent, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {AnimatePresence, motion} from 'framer-motion';
-import incidentsPerformanceImg from 'getsentry-images/features/alert-builder.svg';
 import dataRetentionImg from 'getsentry-images/features/data-retention.svg';
-import tracingImg from 'getsentry-images/features/distributed-tracing.svg';
 import dataVolumeImg from 'getsentry-images/features/event-volume.svg';
 import integrationAlerts from 'getsentry-images/features/integration-alerts.svg';
 import incidentsImg from 'getsentry-images/features/metric-alerts.svg';
-import performanceViewImg from 'getsentry-images/features/perf-summary.svg';
 import ssoImg from 'getsentry-images/features/sso.svg';
-import userMiseryImg from 'getsentry-images/features/user-misery.svg';
 
 import {Grid} from '@sentry/scraps/layout';
 
@@ -22,7 +18,7 @@ import {HighlightedFeature} from 'getsentry/components/upsellModal/highlightedFe
 import type {Feature} from 'getsentry/components/upsellModal/types';
 import {useFeatureRotation} from 'getsentry/components/upsellModal/useFeatureRotation';
 import type {Subscription} from 'getsentry/types';
-import {getTrialLength, hasPerformance, isTrial} from 'getsentry/utils/billing';
+import {getTrialLength, isTrial} from 'getsentry/utils/billing';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
 /**
@@ -94,48 +90,6 @@ const ALL_FEATURE_LIST: Feature[] = [
     ),
   },
   {
-    id: 'incidents-performance',
-    planFeatures: ['incidents', 'performance-view'],
-    name: t('Metric Alerts'),
-    image: incidentsPerformanceImg,
-    desc: tct(
-      'Set metric alerts to detect spikes in error count, latency, apdex, failure rate, throughput and more. Assign them to the most relevant teams.',
-      {strong: <strong />}
-    ),
-  },
-  {
-    id: 'tracing',
-    planFeatures: ['performance-view'],
-    name: t('Distributed Tracing'),
-    image: tracingImg,
-    desc: tct(
-      'Track the performance of your app to identify N+1 queries, associated errors, or any other bottlenecks, from frontend web vitals to backend API calls.',
-      {strong: <strong />}
-    ),
-  },
-  {
-    id: 'performance-view',
-    planFeatures: ['performance-view'],
-    name: t('Transaction Summary'),
-    image: performanceViewImg,
-    desc: tct(
-      "Understand how transactions are doing by percentile, operation, and more. We'll narrow down what's causing slowdowns and link to any related issues.",
-      {strong: <strong />}
-    ),
-  },
-  {
-    id: 'user-misery',
-    planFeatures: ['performance-view'],
-    name: t('User Misery and Apdex'),
-    image: userMiseryImg,
-    desc: tct(
-      "Identify how user misery each transaction is causing in your app and where. Prefer to gauge it by Apdex instead? We've got that too.",
-      {
-        strong: <strong />,
-      }
-    ),
-  },
-  {
     id: 'integration-alerts',
     planFeatures: ['integrations-ticket-rules'],
     name: t('Advanced Integrations'),
@@ -162,18 +116,7 @@ const BUSINESS_FEATURES = selectFeatures([
   'anomaly-detection-alerts',
 ]).filter(Boolean);
 
-const PERFORMANCE_FEATURES = selectFeatures([
-  'tracing',
-  'performance-view',
-  'discover-query',
-  'incidents-performance',
-  'user-misery',
-]).filter(Boolean);
-
 function getFeatures(subscription: Subscription): Feature[] {
-  if (!hasPerformance(subscription.planDetails)) {
-    return PERFORMANCE_FEATURES;
-  }
   return subscription.isFree || subscription.onTrialPlan
     ? [...BUSINESS_FEATURES, ...TEAM_FEATURES]
     : BUSINESS_FEATURES;
@@ -181,66 +124,34 @@ function getFeatures(subscription: Subscription): Feature[] {
 
 function getDefaultMessaging(subscription: Subscription, organization: Organization) {
   const sentences = isTrial(subscription)
-    ? // If the subscription already has performance
-      hasPerformance(subscription.planDetails)
-      ? [
-          t(
-            `With your trial you have access to Sentry’s Power Features, which
+    ? [
+        t(
+          `With your trial you have access to Sentry’s Power Features, which
              offer a macro-level perspective of error trends and application
              health, while also allowing you to drill down into a single
              issue or event with Dashboards and Discover-powered queries.`
-          ),
-          t(
-            `We hope you’re enjoying these new features to create complex
+        ),
+        t(
+          `We hope you’re enjoying these new features to create complex
              queries against event data, see all issues across projects, and
              view dashboards for a comprehensive and holistic view.`
-          ),
-        ]
-      : [
-          t(
-            `With your trial you have access to Sentry’s Performance Monitoring
-             features which give you deeper visibility into your frontend page
-             load times and database queries that are critical toward
-             delivering fast customer experiences.`
-          ),
-          t(
-            `With just five lines of code, you’re now able to highlight your
-             key transactions and set metric alerts to detect latency spikes.
-             You can also dive in and query across multiple projects for a
-             comprehensive view into your application.`
-          ),
-        ]
-    : hasPerformance(subscription.planDetails)
-      ? [
-          t(
-            `We added a bunch of new features that made Sentry a whole lot better.
+        ),
+      ]
+    : [
+        t(
+          `We added a bunch of new features that made Sentry a whole lot better.
            If we do say so ourselves.`
-          ),
-          t(
-            `To get more out of Sentry and life in general, switch over to our new and
+        ),
+        t(
+          `To get more out of Sentry and life in general, switch over to our new and
            improved Business Plan. You'll get transactions, attachments, access to
            Performance, and features that won't be released on our legacy plans.`
-          ),
-          t(
-            `Confusing, we know. Basically, your Sentry organization is perfect just the way it is,
+        ),
+        t(
+          `Confusing, we know. Basically, your Sentry organization is perfect just the way it is,
            but upgrade now if you want it to be even better. `
-          ),
-        ]
-      : [
-          t(
-            `We added a bunch of new features that made Sentry a whole lot better.
-           If we do say so ourselves.`
-          ),
-          t(
-            `To get more out of Sentry and life in general, switch over to our new and
-           improved Performance Plans. You'll get transactions, attachments, access to
-           Performance, and features that won't be released on our legacy plans.`
-          ),
-          t(
-            `Confusing, we know. Basically, your Sentry organization is perfect just the way it is,
-           but upgrade now if you want it to be even better. `
-          ),
-        ];
+        ),
+      ];
 
   const cta =
     subscription.canTrial && !isTrial(subscription)
@@ -248,12 +159,7 @@ function getDefaultMessaging(subscription: Subscription, organization: Organizat
           'Enable all power features by starting your %s day trial',
           getTrialLength(organization)
         )
-      : hasPerformance(subscription.planDetails)
-        ? tct('Upgrade to our [strong:Business Plan] today.', {strong: <strong />})
-        : tct(
-            "You're currently on one of our legacy plans. Upgrade to our newer [strong:Performance Plans].",
-            {strong: <strong />}
-          );
+      : tct('Upgrade to our [strong:Business Plan] today.', {strong: <strong />});
 
   return {sentences, cta};
 }
@@ -367,7 +273,6 @@ export function Details({onCloseModal, organization, source, subscription}: Prop
           onClick={handleFeatureClick}
           withCountdown={hasClickedFeature ? undefined : ROTATE_INTERVAL}
           shouldShowTeamFeatures={subscription.isFree || subscription.onTrialPlan}
-          shouldShowPerformanceFeatures={!hasPerformance(subscription.planDetails)}
         />
       </Grid>
       <Footer

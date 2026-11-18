@@ -7,7 +7,7 @@ import type {Organization} from 'sentry/types/organization';
 
 import PlanFeature from 'getsentry/components/features/planFeature';
 import type {Subscription} from 'getsentry/types';
-import {displayPlanName, hasPerformance, isTrial} from 'getsentry/utils/billing';
+import {displayPlanName, isTrial} from 'getsentry/utils/billing';
 
 import type {Feature} from './types';
 
@@ -25,23 +25,16 @@ export function HighlightedFeature({feature, organization, subscription}: Props)
       <div>{feature.desc}</div>
       {feature.image && <FeatureImg src={feature.image} {...IMAGE_SIZE} />}
       <PlanContext>
-        {hasPerformance(subscription.planDetails)
-          ? tct("You'll need the [plan] or up to enable this feature.", {
-              plan: (
-                <PlanFeature
-                  {...{organization, subscription}}
-                  features={feature.planFeatures}
-                >
-                  {({plan}) => <strong>{t('%s Plan', displayPlanName(plan))}</strong>}
-                </PlanFeature>
-              ),
-            })
-          : tct(
-              "You'll need to migrate to a new plan with [strong:Transactions] to enable this feature.",
-              {
-                strong: <strong />,
-              }
-            )}
+        {tct("You'll need the [plan] or up to enable this feature.", {
+          plan: (
+            <PlanFeature
+              {...{organization, subscription}}
+              features={feature.planFeatures}
+            >
+              {({plan}) => <strong>{t('%s Plan', displayPlanName(plan))}</strong>}
+            </PlanFeature>
+          ),
+        })}
         {!isTrial(subscription) &&
           tct(" You're currently on the [current] plan.", {
             current: subscription.planDetails.name,

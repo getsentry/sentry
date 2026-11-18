@@ -266,7 +266,6 @@ export type FeatureDisabledOverrides = {
   'feature-disabled:issue-views': FeatureDisabledOverride;
   'feature-disabled:open-discover': FeatureDisabledOverride;
   'feature-disabled:performance-new-project': FeatureDisabledOverride;
-  'feature-disabled:performance-page': FeatureDisabledOverride;
   'feature-disabled:profiling-page': FeatureDisabledOverride;
   'feature-disabled:profiling-sidebar-item': FeatureDisabledOverride;
   'feature-disabled:project-performance-score-card': FeatureDisabledOverride;

@@ -15,7 +15,6 @@ import type {Feature} from './types';
 type Props = {
   features: Feature[];
   onClick: (feat: Feature) => void;
-  shouldShowPerformanceFeatures: boolean;
   shouldShowTeamFeatures: boolean;
   selected?: Feature;
   withCountdown?: number;
@@ -27,16 +26,11 @@ export function FeatureList({
   onClick,
   withCountdown,
   shouldShowTeamFeatures,
-  shouldShowPerformanceFeatures,
 }: Props) {
   return (
     <div>
       <Heading>
-        {shouldShowPerformanceFeatures
-          ? t('Features Include')
-          : shouldShowTeamFeatures
-            ? t('Features Include')
-            : t('Business Features Include')}
+        {shouldShowTeamFeatures ? t('Features Include') : t('Business Features Include')}
         <AnimatePresence>
           {selected && withCountdown && (
             <CountdownRing id={selected.id} totalTime={withCountdown} />
