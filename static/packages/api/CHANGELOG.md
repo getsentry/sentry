@@ -1,3 +1,9 @@
+## 2.14.1
+
+### Internal Changes 🔧
+
+- (frontend) Upgrade Oxlint to 1.94.0 by @TkDodo in [#131639](https://github.com/getsentry/sentry/pull/131639)
+
 ## 2.14.0
 
 - No documented changes.
