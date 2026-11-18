@@ -175,7 +175,7 @@ describe('ProjectAddRepoModal', () => {
   it('tells token-billed orgs that Seer uses linked repositories', async () => {
     openAddRepoModal(
       OrganizationFixture({
-        features: ['seer-token-based-billing-onboarding', 'token-billed-seer-enabled'],
+        features: ['token-billed-seer-enabled'],
       })
     );
 
@@ -188,7 +188,7 @@ describe('ProjectAddRepoModal', () => {
   it('starts with Auto-Iterate on PRs off for token-billed orgs', async () => {
     openAddRepoModal(
       OrganizationFixture({
-        features: ['seer-token-based-billing-onboarding', 'token-billed-seer-enabled'],
+        features: ['token-billed-seer-enabled'],
       })
     );
 
