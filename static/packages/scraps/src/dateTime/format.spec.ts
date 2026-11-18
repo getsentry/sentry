@@ -254,3 +254,41 @@ it.each([
     restore();
   }
 });
+
+it.each([
+  ['de_DE', 'de-DE', '1. Jan., 5:06 AM'],
+  ['not a locale', 'en', 'Jan 1, 5:06 AM'],
+])(
+  'formats with the %s locale instead of throwing',
+  (locale, expectedLocale, expected) => {
+    const snapshot = {
+      timezone: 'UTC',
+      clock: '12' as const,
+      locale,
+      messages: {
+        t: (message: string) => message,
+        tn: (singular: string, plural: string, count: number) =>
+          Math.abs(count) === 1 ? singular : plural,
+        pgettext: (_context: string, message: string) => message,
+      },
+    };
+    const restore = configureFormatting({
+      getSnapshot: () => snapshot,
+      subscribe: () => () => {},
+    });
+    try {
+      expect(getSnapshot().locale).toBe(expectedLocale);
+      expect(
+        formatDateTime('2025-01-01T05:06:00Z', {year: 'never', showTimezone: false})
+      ).toBe(expected);
+    } finally {
+      restore();
+    }
+  }
+);
+
+it('reads a lowercase UTC designator', () => {
+  expect(formatDateTime('2025-01-01T05:06:00z', {timezone: 'UTC'})).toBe(
+    formatDateTime('2025-01-01T05:06:00Z', {timezone: 'UTC'})
+  );
+});

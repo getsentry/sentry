@@ -120,7 +120,8 @@ export function formatRelativeDate(
 
   if (isFuture) {
     if (prefix === undefined) {
-      return snapshot.messages.t('in %s', duration);
+      // The catalogs translate "in" but not "in %s" yet.
+      return `${snapshot.messages.t('in')} ${duration}`;
     }
     return prefix ? `${prefix} ${duration}` : duration;
   }

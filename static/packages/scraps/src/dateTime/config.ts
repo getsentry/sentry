@@ -46,10 +46,35 @@ export const formattingStore = {
   subscribe: store.subscribe,
 };
 
+/**
+ * Intl throws a RangeError for a malformed tag such as `en_US`, which would
+ * crash every render that formats a date. Gettext-style tags are converted, and
+ * anything still invalid falls back to the default locale.
+ */
+function toIntlLocale(locale: string): string {
+  try {
+    return Intl.getCanonicalLocales(locale.replaceAll('_', '-'))[0] ?? defaults.locale;
+  } catch (error) {
+    if (error instanceof RangeError) {
+      return defaults.locale;
+    }
+    throw error;
+  }
+}
+
 /** Connect application preferences and locale to the reactive formatting store. */
 export function configureFormatting(source: FormattingSource): () => void {
   const previous = store.getState();
-  const update = () => store.setState(source.getSnapshot(), true);
+  let lastSnapshot: Readonly<FormattingSnapshot> | undefined;
+  const update = () => {
+    const snapshot = source.getSnapshot();
+    if (snapshot === lastSnapshot) {
+      return;
+    }
+    lastSnapshot = snapshot;
+    const locale = toIntlLocale(snapshot.locale);
+    store.setState(locale === snapshot.locale ? snapshot : {...snapshot, locale}, true);
+  };
   const unsubscribe = source.subscribe(update);
   update();
   return () => {

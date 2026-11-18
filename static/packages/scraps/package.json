@@ -330,6 +330,10 @@
     "./dateTime": {
       "types": "./dist/dateTime/index.d.ts",
       "import": "./dist/dateTime/index.js"
+    },
+    "./datetime": {
+      "types": "./dist/legacyDatetime.d.ts",
+      "import": "./dist/legacyDatetime.js"
     }
   },
   "publishConfig": {
