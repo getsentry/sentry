@@ -27,22 +27,18 @@ import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 import {ClassifierSearch} from './components/classifierSearch';
+import {ResultAttributeName} from './components/resultAttributeName';
 import type {TelemetryClassifier} from './types';
-import {
-  getClassifierDetailPath,
-  getDatasetLabel,
-  getEnrichmentAttributeName,
-  getNewClassifierPath,
-} from './utils';
+import {getClassifierDetailPath, getDatasetLabel, getNewClassifierPath} from './utils';
 
 const CLASSIFIERS_PER_PAGE = 25;
 
 const searchParsers = {query: parseAsString.withDefault(''), cursor: parseAsString};
 
 const CLASSIFIER_COLUMNS: TableColumnConfig[] = [
-  {key: 'name', width: 'minmax(0, 1fr)'},
-  {key: 'attribute', visible: {md: true}, width: '300px'},
-  {key: 'data-type', visible: {sm: true}, width: '130px'},
+  {key: 'name', resizable: true, width: 'minmax(0, 1fr)'},
+  {key: 'attribute', resizable: true, visible: {md: true}, width: 300},
+  {key: 'data-type', visible: {sm: true}, width: 130},
 ];
 
 function CreateClassifierMenu() {
@@ -111,15 +107,12 @@ function ClassifierRow({classifier}: {classifier: TelemetryClassifier}) {
         </Stack>
       </SimpleTable.RowCell>
       <SimpleTable.RowCell>
-        <Text
+        <ResultAttributeName
+          resultAttribute={classifier.resultAttribute}
           monospace
           size="sm"
           density="compressed"
-          ellipsis
-          title={getEnrichmentAttributeName(classifier.resultAttribute)}
-        >
-          {getEnrichmentAttributeName(classifier.resultAttribute)}
-        </Text>
+        />
       </SimpleTable.RowCell>
       <SimpleTable.RowCell>
         <Tag variant="muted">{getDatasetLabel(classifier.dataset)}</Tag>
@@ -158,9 +151,15 @@ function ClassifiersTable() {
         columns={CLASSIFIER_COLUMNS}
         header={
           <SimpleTable.HeaderRow>
-            <SimpleTable.HeaderCell>{t('Classifier')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell>{t('Attribute')}</SimpleTable.HeaderCell>
-            <SimpleTable.HeaderCell>{t('Data type')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell columnIndex={0}>
+              {t('Classifier')}
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell columnIndex={1}>
+              {t('Attribute')}
+            </SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell columnIndex={2}>
+              {t('Data type')}
+            </SimpleTable.HeaderCell>
           </SimpleTable.HeaderRow>
         }
       >

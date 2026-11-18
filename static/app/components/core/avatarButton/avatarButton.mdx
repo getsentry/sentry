@@ -125,9 +125,11 @@ You can use normal button props like `size`, `priority`, `disabled`, and `busy`.
 
 ## Image Avatars
 
-Colorful logos pick up their brand color; neutral logos (white, black, grayscale)
-fall back to default button styling. Logos that don't fill the button frame are
-automatically inset with padding.
+Colorful avatars tint the button's chonk with their own hue, the same way the accent,
+danger and warning buttons pair a surface with its chonk: one step darker in light
+mode, and a deep shade in dark mode so it never glows brighter than the button.
+Neutral logos (white, black, grayscale) keep the default button styling. Logos that
+don't fill the button frame are automatically inset with padding.
 
 <Storybook.Demo>
   {[

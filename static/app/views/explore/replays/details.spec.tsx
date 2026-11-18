@@ -162,10 +162,11 @@ describe('ReplayDetails', () => {
       'Share',
       'Download JSON',
       'Delete',
-      'Configure Replay',
     ]) {
       expect(within(menu).getByRole('menuitemradio', {name})).toBeVisible();
     }
+    // Opens a submenu
+    expect(within(menu).getByRole('menuitem', {name: 'Configure Replay'})).toBeVisible();
 
     expect(
       screen.queryByRole('button', {name: 'Copy link to replay at current timestamp'})
@@ -183,9 +184,14 @@ describe('ReplayDetails', () => {
     renderDetails();
     await openReplayActions();
 
-    expect(
-      screen.getAllByRole('menuitemradio').map(el => el.textContent?.trim())
-    ).toEqual([
+    // Submenu triggers are `menuitem`s, the others `menuitemradio`s.
+    const items = [
+      ...screen.getAllByRole('menuitemradio'),
+      ...screen.getAllByRole('menuitem'),
+    ].sort((a, b) =>
+      a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1
+    );
+    expect(items.map(el => el.textContent?.trim())).toEqual([
       'Copy replay ID to clipboard',
       'Share',
       'Download JSON',
@@ -235,7 +241,7 @@ describe('ReplayDetails', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Replay Actions'}));
     await userEvent.hover(
-      await screen.findByRole('menuitemradio', {name: 'Configure Replay'})
+      await screen.findByRole('menuitem', {name: 'Configure Replay'})
     );
 
     expect(

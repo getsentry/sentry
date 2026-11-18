@@ -2904,11 +2904,11 @@ def get_dsn(
         logger.warning("Organization not found", extra={"organization_id": organization_id})
         return None
 
-    project = Project.objects.filter(
+    project = Project.objects.get_or_none(
         organization=organization,
         status=ObjectStatus.ACTIVE,
         slug=project_slug,
-    ).first()
+    )
     if project is None or not caller_can_access_project(project):
         return None
 

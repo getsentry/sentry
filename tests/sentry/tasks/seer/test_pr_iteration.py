@@ -52,7 +52,7 @@ from sentry.seer.autofix.pr_iteration.logs import (
     PrIterationLogContext,
 )
 from sentry.seer.autofix.pr_iteration.out_of_credits import (
-    OutOfCredits,
+    OutOfCreditsMarker,
     StrandedAction,
     get_out_of_credits,
     mark_out_of_credits,
@@ -95,6 +95,12 @@ TASK_PATH = "sentry.tasks.seer.pr_iteration"
 CHECK_SUITE_SOURCE_PATH = "sentry.seer.autofix.pr_iteration.feedback_sources.check_suite"
 PAUSE_PATH = "sentry.seer.autofix.pr_iteration.pause"
 PR_STATE_PATH = "sentry.seer.autofix.pr_iteration.pr_state"
+
+# Both flags behind ``is_seer_token_based_billing_onboarding_enabled``.
+TOKEN_BILLING_FEATURES = {
+    "organizations:seer-token-based-billing-onboarding": True,
+    "organizations:token-billed-seer-enabled": True,
+}
 
 
 class _CommentScmStub:
@@ -1309,7 +1315,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
 
         assert get_out_of_credits(
             run_id=67890, organization_id=self.organization.id
-        ) == OutOfCredits(stranded_action=None)
+        ) == OutOfCreditsMarker(stranded_action=None)
 
     @patch(f"{TASK_PATH}.trigger_autofix_agent")
     @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
@@ -1745,7 +1751,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         assert [item.feedback.text for item in peek_queued_autofix_feedback(67890)] == ["fix it"]
         assert get_out_of_credits(
             run_id=67890, organization_id=self.organization.id
-        ) == OutOfCredits(stranded_action=None)
+        ) == OutOfCreditsMarker(stranded_action=None)
         (row,) = open_iterations(seer_run)
         assert row.triggered is False
         assert row.data[FAILURE_REASON_DATA_KEY] == PrIterationOutcome.SENTRY_OUT_OF_CREDITS.value
@@ -2386,6 +2392,46 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         mock_pop.return_value = [self._queued(self._check_suite_feedback())]
 
         self._call()
+
+        mock_trigger.assert_not_called()
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_opt_in_drops_unrequested_human_review_when_pr_iteration_turned_off(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        # The setting was turned off while the review waited in the queue.
+        self.project.update_option("sentry:seer_pr_iteration", False)
+        mock_fetch.return_value = self._state_on_head()
+        ui = self._ui_queued()
+        mock_pop.return_value = [self._queued(self._review_feedback(777)), ui]
+
+        with self.feature(TOKEN_BILLING_FEATURES):
+            self._call()
+
+        mock_trigger.assert_called_once()
+        _, kwargs = mock_trigger.call_args
+        assert [f.feedback_id for f in kwargs["feedback"]] == [ui.feedback.feedback_id]
+
+    @patch(f"{TASK_PATH}.trigger_autofix_agent")
+    @patch(f"{TASK_PATH}.pop_queued_autofix_feedback")
+    @patch(f"{TASK_PATH}.fetch_run_status")
+    def test_opt_in_runs_nothing_when_only_unrequested_feedback_is_queued(
+        self,
+        mock_fetch: MagicMock,
+        mock_pop: MagicMock,
+        mock_trigger: MagicMock,
+    ) -> None:
+        self.project.update_option("sentry:seer_pr_iteration", False)
+        mock_fetch.return_value = self._state_on_head()
+        mock_pop.return_value = [self._queued(self._review_feedback(777))]
+
+        with self.feature(TOKEN_BILLING_FEATURES):
+            self._call()
 
         mock_trigger.assert_not_called()
 

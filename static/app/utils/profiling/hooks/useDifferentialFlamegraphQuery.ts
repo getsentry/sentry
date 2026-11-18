@@ -11,6 +11,7 @@ interface DifferentialFlamegraphQueryParameters {
   environments: AggregateFlamegraphQueryParameters['environments'];
   fingerprint: string | undefined;
   projectID: number | null;
+  resolvedAt?: number;
 }
 
 export interface DifferentialFlamegraphQueryResult {
@@ -38,6 +39,15 @@ export function useDifferentialFlamegraphQuery(
     relativeDays: RELATIVE_DAYS_WINDOW,
   });
 
+  const resolvedMs =
+    params.resolvedAt && params.resolvedAt > params.breakpoint
+      ? params.resolvedAt * 1000
+      : undefined;
+  const endMs =
+    resolvedMs === undefined
+      ? regressionDateRange.end.getTime()
+      : Math.min(resolvedMs, regressionDateRange.end.getTime());
+
   const beforeAggregateQueryParams: AggregateFlamegraphQueryParameters = useMemo(() => {
     return {
       ...sharedAggregateQueryParams,
@@ -55,12 +65,12 @@ export function useDifferentialFlamegraphQuery(
       ...sharedAggregateQueryParams,
       datetime: {
         start: new Date(params.breakpoint * 1000),
-        end: regressionDateRange.end,
+        end: new Date(endMs),
         period: null,
         utc: null,
       },
     };
-  }, [sharedAggregateQueryParams, regressionDateRange.end, params.breakpoint]);
+  }, [sharedAggregateQueryParams, endMs, params.breakpoint]);
 
   const before = useAggregateFlamegraphQuery(beforeAggregateQueryParams);
   const after = useAggregateFlamegraphQuery(afterAggregateQueryParams);

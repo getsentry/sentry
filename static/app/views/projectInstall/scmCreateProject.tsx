@@ -41,6 +41,7 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import {AgenticCreateProject} from './agenticCreateProject';
+import {FROM_PROJECT_CREATION_STATE} from './gettingStartedLocationState';
 import {useProjectCreationPageOrigin} from './projectCreationOrigin';
 import {WIZARD_STORAGE_KEY, type WizardState} from './scmCreateProjectSession';
 
@@ -251,21 +252,24 @@ function ScmCreateProjectWizard({
         createdProjectSlug: project.slug,
         projectDetailsForm: submittedForm,
       });
-      navigate({
-        pathname: makeProjectsPathname({
-          path: `/${project.slug}/getting-started/`,
-          organization,
-        }),
-        // Carry both the creating flow and upfront product selection into the
-        // setup-docs and getting-started analytics to the SCM variant; the
-        // product query seeds the selected instructions.
-        query: {
-          projectCreationVariant: 'scm',
-          ...(wizardState.selectedFeatures
-            ? {product: wizardState.selectedFeatures}
-            : {}),
+      navigate(
+        {
+          pathname: makeProjectsPathname({
+            path: `/${project.slug}/getting-started/`,
+            organization,
+          }),
+          // Carry both the creating flow and upfront product selection into the
+          // setup-docs and getting-started analytics to the SCM variant; the
+          // product query seeds the selected instructions.
+          query: {
+            projectCreationVariant: 'scm',
+            ...(wizardState.selectedFeatures
+              ? {product: wizardState.selectedFeatures}
+              : {}),
+          },
         },
-      });
+        {state: FROM_PROJECT_CREATION_STATE}
+      );
     },
     [wizardState, navigate, organization]
   );

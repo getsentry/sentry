@@ -194,18 +194,18 @@ class DatabaseBackedAuthService(AuthService):
     def update_provider_config(
         self, organization_id: int, auth_provider_id: int, config: dict[str, Any]
     ) -> None:
-        current_provider = AuthProvider.objects.filter(
+        current_provider = AuthProvider.objects.get_or_none(
             organization_id=organization_id, id=auth_provider_id
-        ).first()
+        )
         if current_provider is None:
             return
         current_provider.config = config
         current_provider.save()
 
     def update_provider(self, organization_id: int, auth_provider_id: int, provider: str) -> None:
-        current_provider = AuthProvider.objects.filter(
+        current_provider = AuthProvider.objects.get_or_none(
             organization_id=organization_id, id=auth_provider_id
-        ).first()
+        )
         if current_provider is None:
             return
         current_provider.provider = provider

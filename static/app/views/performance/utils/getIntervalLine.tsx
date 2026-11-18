@@ -19,7 +19,8 @@ export function getIntervalLine(
   intervalRatio: number,
   label: boolean,
   transaction?: BreakpointTransaction,
-  useRegressionFormat?: boolean
+  useRegressionFormat?: boolean,
+  regressionEndMs?: number
 ): LineChartSeries[] {
   if (!transaction || !series.length || !series[0]!.data?.length) {
     return [];
@@ -81,6 +82,10 @@ export function getIntervalLine(
   const {breakpoint} = transformedTransaction;
 
   const divider = breakpoint || seriesLine;
+  const hasRegressionEnd = regressionEndMs !== undefined && regressionEndMs > divider;
+  const regressionEnd = hasRegressionEnd
+    ? Math.min(regressionEndMs, seriesEnd)
+    : seriesEnd;
 
   previousPeriod.markLine.data = [
     [
@@ -105,7 +110,7 @@ export function getIntervalLine(
   currentPeriod.markLine.data = [
     [
       {value: 'Present', coord: [divider, transformedTransaction.aggregate_range_2]},
-      {coord: [seriesEnd, transformedTransaction.aggregate_range_2]},
+      {coord: [regressionEnd, transformedTransaction.aggregate_range_2]},
     ],
   ];
   currentPeriod.markLine.tooltip = {
@@ -197,7 +202,7 @@ export function getIntervalLine(
             {
               xAxis: divider,
             },
-            {xAxis: seriesEnd},
+            {xAxis: regressionEnd},
           ],
         ],
       }),
@@ -241,7 +246,10 @@ export function getIntervalLine(
             // the lowest y-value is dynamic and 'min' doesn't work here
             [
               {xAxis: breakpoint, y: DEFAULT_CHART_HEIGHT - X_AXIS_MARGIN_OFFSET},
-              {xAxis: 'max', y: DEFAULT_CHART_HEIGHT - X_AXIS_MARGIN_OFFSET},
+              {
+                xAxis: hasRegressionEnd ? regressionEnd : 'max',
+                y: DEFAULT_CHART_HEIGHT - X_AXIS_MARGIN_OFFSET,
+              },
             ],
           ],
         }) ?? {},

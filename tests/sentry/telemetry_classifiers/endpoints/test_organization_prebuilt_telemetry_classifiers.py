@@ -23,6 +23,7 @@ class OrganizationPrebuiltTelemetryClassifiersTest(APITestCase):
         assert response.data[0] == {
             "key": "conversation_user_frustration",
             "dataset": "conversation",
+            "outputType": "binary",
             "name": "User frustration",
             "description": "When your users become frustrated with the agent they are speaking with.",
             "resultAttribute": "user_frustration",

@@ -28,6 +28,7 @@ import {
   someMessageDeep,
 } from 'sentry/views/explore/conversations/utils/conversationMessages';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
+import {ScrubbedText} from 'sentry/views/insights/pages/agents/components/scrubbedText';
 import {EMPTY_TEXT_CONTENT} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import {
   getNumberAttr,
@@ -657,7 +658,7 @@ function ReasoningSection({
       meta={meta}
       title={isOpen => (
         <Text size="sm" variant="muted" ellipsis monospace>
-          {t('Thinking...')} {isOpen ? null : reasoning}
+          {t('Thinking...')} {isOpen ? null : <ScrubbedText>{reasoning}</ScrubbedText>}
         </Text>
       )}
       onToggle={open =>
