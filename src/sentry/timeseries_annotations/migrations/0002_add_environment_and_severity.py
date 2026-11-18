@@ -2,7 +2,7 @@ import django.db.models.deletion
 import sentry.db.models.fields.bounded
 import sentry.db.models.fields.foreignkey
 import sentry.timeseries_annotations.models
-from django.db import migrations, models
+from django.db import migrations
 
 from sentry.new_migrations.migrations import CheckedMigration
 
