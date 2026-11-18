@@ -7,13 +7,20 @@ import {ExternalLink} from '@sentry/scraps/link';
 
 import {t, tct} from 'sentry/locale';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
+import type {ReplayReader} from 'sentry/utils/replays/replayReader';
 
 interface Props {
   className?: string;
+  /**
+   * Pass the replay when rendering outside `ReplayReaderProvider`, such as in
+   * issue previews and loading states.
+   */
+  replay?: ReplayReader | null;
 }
 
-export function ReplayProcessingError({className}: Props) {
-  const replay = useReplayReader();
+export function ReplayProcessingError({className, replay: replayProp}: Props) {
+  const contextReplay = useReplayReader();
+  const replay = replayProp ?? contextReplay;
   const {sdk} = replay?.getReplay() || {};
 
   useEffect(() => {

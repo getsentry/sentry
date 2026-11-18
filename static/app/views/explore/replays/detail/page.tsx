@@ -45,14 +45,14 @@ export function ReplayDetailsPage({readerResult}: Props) {
           // The player shows the error in its place, and the activity,
           // network, and console tabs still work.
           <ReplayLayout
-            isVideoReplay={false}
+            isVideoReplay={replay.isVideoReplay()}
             replayRecord={replay.getReplay()}
             isLoading={false}
           />
         ) : (
           <Stack flex={1} padding="2xl 3xl">
             <Stack>
-              <ReplayProcessingError />
+              <ReplayProcessingError replay={replay} />
             </Stack>
           </Stack>
         )
