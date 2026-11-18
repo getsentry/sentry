@@ -24,11 +24,13 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
+import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 import {ClassifiedConversationsTable} from './components/classifiedConversationsTable';
 import {ClassifierFilters} from './components/classifierFilters';
 import {ClassifierInstancesChart} from './components/classifierInstancesChart';
+import {ClassifierResultFilterSelect} from './components/classifierResultFilterSelect';
 import {
   ClassifierDisabledAlert,
   ClassifierStatusToggle,
@@ -45,6 +47,8 @@ import {
   getDatasetLabel,
   getOutputTypeLabel,
 } from './utils';
+
+const RESET_PARAMS_ON_CHANGE = [TableUrlParams.CURSOR];
 
 function OverflowValue({value}: {value: string}) {
   return (
@@ -197,12 +201,15 @@ function ClassifierDetailContent({classifier}: {classifier: TelemetryClassifier}
       <Layout.Main>
         <Stack gap="xl">
           <Flex align="center" gap="sm" justify="between" wrap="wrap">
-            <PageFilterBar condensed>
-              {showEnvironmentFilter && (
-                <EnvironmentPageFilter resetParamsOnChange={['cursor']} />
-              )}
-              <DatePageFilter resetParamsOnChange={['cursor']} />
-            </PageFilterBar>
+            <Flex align="center" gap="sm" wrap="wrap">
+              <PageFilterBar condensed>
+                {showEnvironmentFilter && (
+                  <EnvironmentPageFilter resetParamsOnChange={RESET_PARAMS_ON_CHANGE} />
+                )}
+                <DatePageFilter resetParamsOnChange={RESET_PARAMS_ON_CHANGE} />
+              </PageFilterBar>
+              <ClassifierResultFilterSelect classifier={classifier} />
+            </Flex>
             <Flex align="center" gap="sm" marginLeft="auto">
               <ClassifierStatusToggle classifier={classifier} />
             </Flex>

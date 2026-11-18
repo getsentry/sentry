@@ -603,6 +603,74 @@ describe('add to dashboard modal', () => {
     });
   });
 
+  it('saves sort when clicking Add + Stay on this Page with a table widget', async () => {
+    const dashboardDetailGetMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/1/',
+      body: {id: '1', widgets: []},
+    });
+    const dashboardDetailPutMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/1/',
+      method: 'PUT',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [], meta: {fields: {}}},
+    });
+    widget = {
+      ...widget,
+      displayType: DisplayType.TABLE,
+      queries: [
+        {
+          conditions: '',
+          fields: ['project', 'count()'],
+          aggregates: ['count()'],
+          fieldAliases: [],
+          columns: ['project'],
+          orderby: 'count()',
+          name: '',
+        },
+      ],
+    };
+    render(
+      <AddToDashboardModal
+        Header={stubEl}
+        Footer={stubEl as ModalRenderProps['Footer']}
+        Body={stubEl as ModalRenderProps['Body']}
+        CloseButton={stubEl}
+        closeModal={() => {}}
+        organization={initialData.organization}
+        widgets={[widget]}
+        selection={defaultSelection}
+        location={LocationFixture()}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Select Dashboard')).toBeEnabled();
+    });
+    await selectEvent.select(screen.getByText('Select Dashboard'), 'Test Dashboard');
+
+    await userEvent.click(screen.getByText('Add + Stay on this Page'));
+    expect(dashboardDetailGetMock).toHaveBeenCalled();
+
+    await waitFor(() => {
+      expect(dashboardDetailPutMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/dashboards/1/',
+        expect.objectContaining({
+          data: expect.objectContaining({
+            widgets: [
+              expect.objectContaining({
+                displayType: 'table',
+                queries: [expect.objectContaining({orderby: 'count()'})],
+              }),
+            ],
+          }),
+        })
+      );
+    });
+  });
+
   it('disables Add + Stay in Discover when a new dashboard is selected', async () => {
     render(
       <AddToDashboardModal
