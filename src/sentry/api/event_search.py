@@ -18,6 +18,7 @@ from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery, Sear
 from sentry.search.events.constants import (
     DURATION_UNITS,
     NOT_HAS_FILTER_ERROR_MESSAGE,
+    NUMERIC_FIELD_TYPES,
     OPERATOR_NEGATION_MAP,
     SEARCH_MAP,
     SEMVER_ALIAS,
@@ -929,7 +930,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
             key in self.config.numeric_keys
             or is_measurement(key)
             or is_span_op_breakdown(key)
-            or self.get_field_type(key) in ["number", "integer", "currency"]
+            or self.get_field_type(key) in NUMERIC_FIELD_TYPES
             or self.is_duration_key(key)
             or self.is_size_key(key)
         )

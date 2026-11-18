@@ -16,6 +16,7 @@ from sentry.api.authentication import (
     AgentTokenAuthentication,
     ApiKeyAuthentication,
     OrgAuthTokenAuthentication,
+    ServiceAccountTokenAuthentication,
     UserAuthTokenAuthentication,
     ViewerContextAuthentication,
 )
@@ -29,6 +30,7 @@ TOKEN_AUTHENTICATION = (
     *map(import_string, settings.SENTRY_EXTRA_API_AUTHENTICATION),
     UserAuthTokenAuthentication,
     OrgAuthTokenAuthentication,
+    ServiceAccountTokenAuthentication,
     AgentTokenAuthentication,
     ApiKeyAuthentication,
 )

@@ -1,5 +1,10 @@
-export {Tabs, TabStateProvider} from './tabs';
-
-export {TabList} from './tabList';
-export {type TabListItemProps} from './item';
-export {TabPanels} from './tabPanels';
+export {
+  Tabs,
+  LinkTabs,
+  type TabKey,
+  type TabsComponents,
+  type TabsProps,
+  type LinkTabsComponents,
+  type LinkTabsProps,
+} from './tabs';
+export type {TabListItemProps, LinkTabListItemProps, TabPanelItemProps} from './item';

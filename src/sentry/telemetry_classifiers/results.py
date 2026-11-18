@@ -26,7 +26,8 @@ def write_result(
 
     Retries for the same entity and newest span replace the same EAP item. When the entity gets
     newer spans, the new result is a separate item. The result keeps the organization's
-    retention for ``category``, the kind of telemetry it was classified from.
+    retention for ``category``, the kind of telemetry it was classified from, and the attributes
+    the dataset copied from that telemetry.
     """
     project = classifier.project
     retention_days = quotas.backend.get_event_retention(
@@ -38,7 +39,7 @@ def write_result(
         trace_id=source.trace_id,
         timestamp=source.timestamp,
         retention_days=retention_days or _DEFAULT_RETENTION_DAYS,
-        attributes=attributes,
+        attributes={**source.copied_attributes, **attributes},
         conversation_id=source.conversation_id,
         client_sample_rate=source.client_sample_rate,
     )

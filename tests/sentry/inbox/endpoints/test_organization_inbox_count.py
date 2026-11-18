@@ -60,11 +60,26 @@ class OrganizationInboxCountTest(APITestCase):
         )
         assert response.data == {"count": 2}
 
+    def test_recipient_filter(self) -> None:
+        team = self.create_inbox_item(subject_id="team")
+        self.create_inbox_item_event(inbox_item=team, type="issue.team_assigned")
+        self.create_inbox_item_event(inbox_item=team, type="issue.team_mentioned")
+        user = self.create_inbox_item(subject_id="user")
+        self.create_inbox_item_event(inbox_item=user, type="issue.pr_ready_for_review")
+
+        response = self.get_success_response(self.organization.slug, recipient="team")
+        assert response.data == {"count": 1}
+        response = self.get_success_response(self.organization.slug, recipient="user")
+        assert response.data == {"count": 1}
+        response = self.get_success_response(self.organization.slug, recipient=["team", "user"])
+        assert response.data == {"count": 2}
+
     def test_invalid_filters(self) -> None:
         for params in (
             {"subject_type": "unknown"},
             {"subject_id": "1"},
             {"event_type": "unknown"},
+            {"recipient": "invalid"},
             {"is_read": "invalid"},
         ):
             with self.subTest(params=params):

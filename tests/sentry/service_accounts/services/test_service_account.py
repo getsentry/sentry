@@ -2,12 +2,14 @@ import pytest
 from django.db import router, transaction
 
 from sentry.hybridcloud.models.outbox import CellOutbox, outbox_context
+from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
 from sentry.hybridcloud.rpc.service import RpcValidationException
 from sentry.service_accounts.models import (
     ServiceAccount,
     ServiceAccountProject,
     ServiceAccountProjectReplica,
     ServiceAccountReplica,
+    parse_grantable_scopes,
 )
 from sentry.service_accounts.outbox import service_account_grant_update_outbox
 from sentry.service_accounts.services.service_account import service_account_service
@@ -54,7 +56,7 @@ class ServiceAccountServiceTest(TestCase):
                 service_account_grant_update_outbox(
                     organization_id=self.organization.id,
                     service_account_id=service_account_id,
-                    scope_list=scope_list,
+                    scope_list=parse_grantable_scopes(scope_list),
                     all_projects=all_projects,
                 ).save()
 
@@ -242,13 +244,34 @@ class ServiceAccountServiceTest(TestCase):
         assert account.all_projects
 
         with outbox_runner():
-            self.queue_grant_update(account_id, ["service_account:write"])
+            with (
+                assume_test_silo_mode(SiloMode.CELL),
+                outbox_context(transaction.atomic(router.db_for_write(CellOutbox))),
+            ):
+                CellOutbox(
+                    shard_scope=OutboxScope.SERVICE_ACCOUNT_SCOPE,
+                    shard_identifier=self.organization.id,
+                    category=OutboxCategory.SERVICE_ACCOUNT_GRANT_UPDATE,
+                    object_identifier=account_id,
+                    payload={
+                        "scope_list": ["service_account:write"],
+                        "project_ids": [],
+                        "all_projects": False,
+                    },
+                ).save()
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert not CellOutbox.objects.filter(
+                category=OutboxCategory.SERVICE_ACCOUNT_GRANT_UPDATE,
+                object_identifier=account_id,
+            ).exists()
 
         account = service_account_service.get_service_account(
             organization_id=self.organization.id, service_account_id=account_id
         )
         assert account is not None
         assert account.scope_list == ["event:read", "project:read"]
+        assert account.all_projects
 
     def test_delete_service_account_only_in_its_organization(self) -> None:
         account_id = self.create()

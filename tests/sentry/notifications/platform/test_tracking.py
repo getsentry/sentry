@@ -11,8 +11,6 @@ from sentry.analytics.events.notification_tracking import (
 from sentry.integrations.types import ExternalProviderEnum
 from sentry.notifications.platform.registry import template_registry
 from sentry.notifications.platform.tracking import (
-    _LEGACY_ALERT_REFERRERS,
-    _LEGACY_METRICS_KEY_SOURCES,
     NotificationEngagementMechanism,
     NotificationLink,
     NotificationLinkDecorator,
@@ -287,45 +285,9 @@ def test_classify_link_logs_unclassified_sentry_pages(url: str) -> None:
             ),
         ),
         (
-            "slack",
+            "issue-slack",
             NotificationReferrer(
                 NotificationSource.ISSUE, NotificationCategory.ISSUE, ExternalProviderEnum.SLACK
-            ),
-        ),
-        (
-            "alert_email",
-            NotificationReferrer(
-                NotificationSource.ISSUE, NotificationCategory.ISSUE, ExternalProviderEnum.EMAIL
-            ),
-        ),
-        (
-            "metric_alert_msteams",
-            NotificationReferrer(
-                NotificationSource.METRIC_ALERT,
-                NotificationCategory.METRIC_ALERT,
-                ExternalProviderEnum.MSTEAMS,
-            ),
-        ),
-        (
-            "issue_alert-email",
-            NotificationReferrer(
-                NotificationSource.ISSUE, NotificationCategory.ISSUE, ExternalProviderEnum.EMAIL
-            ),
-        ),
-        (
-            "assigned_activity-slack-user",
-            NotificationReferrer(
-                NotificationSource.ACTIVITY_ASSIGNED,
-                NotificationCategory.ACTIVITY,
-                ExternalProviderEnum.SLACK,
-            ),
-        ),
-        (
-            "release_activity-email-team",
-            NotificationReferrer(
-                NotificationSource.DEPLOY_RELEASE,
-                NotificationCategory.DEPLOY,
-                ExternalProviderEnum.EMAIL,
             ),
         ),
     ],
@@ -341,21 +303,16 @@ def test_parse_referrer(referrer: str, expected: NotificationReferrer) -> None:
         "activity_notification",
         "unknown-source-email",
         "metric-alert-carrier",
-        "metric_alert_carrier",
-        "assigned_activity-carrier-user",
-        "regression_activity",
-        "resolved_in_pull_request_activity-slack",
+        "issue-slack-user",
+        "slack",
+        "alert_email",
+        "metric_alert_email",
+        "issue_alert-email",
+        "assigned_activity-email-user",
     ],
 )
 def test_parse_referrer_unrecognized(referrer: str) -> None:
     assert parse_referrer(referrer) is None
-
-
-def test_parse_referrer_recognizes_every_legacy_referrer() -> None:
-    for metrics_key in _LEGACY_METRICS_KEY_SOURCES:
-        assert parse_referrer(f"{metrics_key}-email") is not None, metrics_key
-    for referrer in _LEGACY_ALERT_REFERRERS:
-        assert parse_referrer(referrer) is not None, referrer
 
 
 class RegisteredTemplateLinksTest(TestCase):

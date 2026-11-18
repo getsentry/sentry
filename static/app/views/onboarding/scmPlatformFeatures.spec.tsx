@@ -87,7 +87,7 @@ const mockRepository = RepositoryFixture({
 
 describe('ScmPlatformFeatures', () => {
   const organization = OrganizationFixture({
-    features: ['performance-view', 'session-replay', 'profiling-view'],
+    features: ['session-replay', 'profiling-view'],
   });
 
   beforeEach(() => {
@@ -349,7 +349,7 @@ describe('ScmPlatformFeatures', () => {
     render(<ScmPlatformFeatures {...defaultProps()} />, {
       // No enabledConsolePlatforms — all console platforms are blocked
       organization: OrganizationFixture({
-        features: ['performance-view', 'session-replay', 'profiling-view'],
+        features: ['session-replay', 'profiling-view'],
       }),
     });
     renderGlobalModal();

@@ -257,6 +257,7 @@ export function MetricSelector({
               return option;
             }
 
+            // oxlint-disable-next-line react/immutability
             hasMatchedSelectedMetric = true;
             return {...option, value: traceMetricSelectValue};
           })

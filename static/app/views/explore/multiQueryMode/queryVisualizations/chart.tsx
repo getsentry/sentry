@@ -66,7 +66,7 @@ export function MultiQueryModeChart({
   const yAxes = queryParts.yAxes;
   const isTopN = mode === Mode.AGGREGATE;
 
-  const [interval, setInterval, intervalOptions] = useChartInterval();
+  const [chartInterval, setChartInterval, intervalOptions] = useChartInterval();
 
   const formattedYAxes = yAxes.map(yaxis => {
     const func = parseFunction(yaxis);
@@ -145,7 +145,7 @@ export function MultiQueryModeChart({
           aggregate: yAxes[0],
           organization,
           dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
-          interval,
+          interval: chartInterval,
         }),
         onAction: () => {
           trackAnalytics('trace_explorer.save_as', {
@@ -208,8 +208,8 @@ export function MultiQueryModeChart({
           title={t('Time interval displayed in this visualization (ex. 5m)')}
         >
           <CompactSelect
-            value={interval}
-            onChange={({value}) => setInterval(value)}
+            value={chartInterval}
+            onChange={({value}) => setChartInterval(value)}
             trigger={triggerProps => (
               <OverlayTrigger.Button
                 {...triggerProps}

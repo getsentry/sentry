@@ -1,7 +1,6 @@
 import {useMemo, useState, type ReactNode} from 'react';
 import {IconProfiling} from '@sentry/icons/profiling';
 import {useQuery} from '@tanstack/react-query';
-import queryString from 'query-string';
 
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
@@ -30,6 +29,7 @@ import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {formatTo} from 'sentry/utils/profiling/units/units';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import * as qs from 'sentry/utils/url/qs';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 /**
@@ -213,7 +213,7 @@ export default function ProfileBlock({projectSlug, profileId}: EmbedOutput<'prof
         }
       : undefined;
 
-    return queryString.stringifyUrl({
+    return qs.stringifyUrl({
       url: normalizeUrl(
         generateProfileFlamechartRoute({organization, projectSlug, profileId})
       ),

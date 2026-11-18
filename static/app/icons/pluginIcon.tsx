@@ -30,6 +30,7 @@ import segment from 'sentry-logos/logo-segment.svg';
 import sentry from 'sentry-logos/logo-sentry.svg';
 import slack from 'sentry-logos/logo-slack.svg';
 import splunk from 'sentry-logos/logo-splunk.svg';
+import supabase from 'sentry-logos/logo-supabase.svg';
 import trello from 'sentry-logos/logo-trello.svg';
 import twilio from 'sentry-logos/logo-twilio.svg';
 import vercel from 'sentry-logos/logo-vercel.svg';
@@ -84,6 +85,7 @@ const PLUGIN_ICONS = {
   slack,
   slack_staging: slack,
   splunk,
+  supabase,
   trello,
   twilio,
   visualstudio,

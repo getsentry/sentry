@@ -113,6 +113,31 @@ class OrganizationInviteRequestDeleteTest(InviteRequestBase):
 class OrganizationInviteRequestUpdateTest(InviteRequestBase, HybridCloudTestMixin):
     method = "put"
 
+    def test_owner_can_update_team_roles(self) -> None:
+        self.login_as(user=self.user)
+        response = self.get_success_response(
+            self.org.slug,
+            self.invite_request.id,
+            teamRoles=[{"teamSlug": self.team.slug, "role": "admin"}],
+        )
+
+        assert response.data["teams"] == [self.team.slug]
+        assert list(
+            OrganizationMemberTeam.objects.filter(
+                organizationmember=self.invite_request
+            ).values_list("team_id", "role")
+        ) == [(self.team.id, None)]
+
+    def test_owner_can_clear_team_roles(self) -> None:
+        self.create_team_membership(team=self.team, member=self.invite_request)
+        self.login_as(user=self.user)
+
+        self.get_success_response(self.org.slug, self.invite_request.id, teamRoles=[])
+
+        assert not OrganizationMemberTeam.objects.filter(
+            organizationmember=self.invite_request
+        ).exists()
+
     def test_owner_can_update_role(self) -> None:
         self.login_as(user=self.user)
         resp = self.get_response(self.org.slug, self.invite_request.id, role="manager")

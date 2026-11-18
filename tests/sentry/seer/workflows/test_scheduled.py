@@ -4,7 +4,13 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from sentry.cadence.api import ScheduledTriggerType, TriggerFiring, TriggerTarget, get_schedules
+from sentry.cadence.api import (
+    ScheduledTriggerType,
+    TriggerFiring,
+    TriggerTarget,
+    cron,
+    get_schedules,
+)
 from sentry.cadence.registry import trigger_type_registry
 from sentry.cadence.tasks import cadence_tick
 from sentry.seer.models.workflow import (
@@ -14,12 +20,16 @@ from sentry.seer.models.workflow import (
     SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
 )
+from sentry.seer.workflows.base import AutomationDefinition
 from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
 from sentry.seer.workflows.scheduled import (
     SCHEDULED_EXECUTION_FEATURE,
-    ScheduledSeerWorkflow,
+    PromptedInvestigationAction,
+    ScheduledRunInputs,
     SeerWorkflowTriggerHandler,
     record_scheduled_automation_run,
+    schedule_for,
+    sync_schedule,
     trigger_key_for,
 )
 from sentry.seer.workflows.workflow import SeerWorkflow
@@ -118,7 +128,7 @@ class RecordScheduledAutomationRunTest(TestCase):
             target_ids=[config_id],
         )
 
-    @patch.object(ScheduledSeerWorkflow, "_dispatch_run")
+    @patch.object(PromptedInvestigationAction, "dispatch")
     def test_admits_a_cron_run_and_delegates_dispatch(self, mock_dispatch: MagicMock) -> None:
         self.run_task()
 
@@ -128,7 +138,9 @@ class RecordScheduledAutomationRunTest(TestCase):
         assert run.date_completed is None
         assert not run.executions.exists()
         mock_dispatch.assert_called_once_with(
-            SeerWorkflowRunLifecycle(run_id=run.id, organization_id=run.organization_id)
+            self.config,
+            SeerWorkflowRunLifecycle(run_id=run.id, organization_id=run.organization_id),
+            ScheduledRunInputs(scheduled_for=SCHEDULED_FOR),
         )
         snapshot = SeerWorkflowRunLifecycle(
             run_id=run.id, organization_id=run.organization_id
@@ -136,7 +148,7 @@ class RecordScheduledAutomationRunTest(TestCase):
         assert snapshot.strategy == SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
         assert snapshot.inputs == {"source": "cron", "scheduled_for": "2024-03-10T10:00:00+00:00"}
 
-    @patch.object(ScheduledSeerWorkflow, "_dispatch_run")
+    @patch.object(PromptedInvestigationAction, "dispatch")
     def test_duplicate_delivery_records_one_run(self, mock_dispatch: MagicMock) -> None:
         self.run_task()
         self.run_task()
@@ -145,7 +157,7 @@ class RecordScheduledAutomationRunTest(TestCase):
         mock_dispatch.assert_called_once()
 
     @patch("sentry.seer.workflows.scheduled.metrics.incr")
-    @patch.object(ScheduledSeerWorkflow, "_dispatch_run")
+    @patch.object(PromptedInvestigationAction, "dispatch")
     def test_records_outcome(self, mock_dispatch: MagicMock, mock_incr: MagicMock) -> None:
         self.run_task()
         self.run_task()
@@ -175,7 +187,7 @@ class RecordScheduledAutomationRunTest(TestCase):
         ).exists()
         assert self.is_scheduled()
 
-    @patch.object(ScheduledSeerWorkflow, "_dispatch_run")
+    @patch.object(PromptedInvestigationAction, "dispatch")
     def test_failed_dispatch_can_retry_admission(self, mock_dispatch: MagicMock) -> None:
         mock_dispatch.side_effect = RuntimeError("dispatch failed")
         with pytest.raises(RuntimeError, match="dispatch failed"):
@@ -189,7 +201,7 @@ class RecordScheduledAutomationRunTest(TestCase):
         assert run.status == SeerWorkflowRunStatus.RUNNING
         assert mock_dispatch.call_count == 2
 
-    @patch.object(ScheduledSeerWorkflow, "record_run")
+    @patch("sentry.seer.workflows.scheduled._record_scheduled_run")
     def test_execution_disabled_keeps_schedule_without_admitting_a_run(
         self, mock_record_run: MagicMock
     ) -> None:
@@ -201,7 +213,7 @@ class RecordScheduledAutomationRunTest(TestCase):
         assert self.is_scheduled()
 
     def test_quota_exceeded_rejects_the_run(self) -> None:
-        with patch.object(SeerWorkflow, "has_quota_available", return_value=False):
+        with patch.object(AutomationDefinition, "has_quota_available", return_value=False):
             self.run_task()
 
         (run,) = self.runs()
@@ -258,10 +270,16 @@ class ScheduledAutomationEndToEndTest(TestCase):
                 self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
             )
             enable(config)
+        (scheduled,) = get_schedules(
+            organization_id=self.organization.id,
+            trigger_type=ScheduledTriggerType.SEER_WORKFLOW,
+            target_ids=[config.id],
+        ).values()
+        assert scheduled.next_scheduled_for == SCHEDULED_FOR
+        assert scheduled.next_fire_at is not None
 
-        # Past the end of the spread window, so the firing is due whatever its offset.
         with (
-            freeze_time(SCHEDULED_FOR + timedelta(hours=1)),
+            freeze_time(scheduled.next_fire_at),
             override_options({"cadence.tick.enabled": True}),
             self.tasks(),
         ):
@@ -288,3 +306,49 @@ class ScheduledAutomationEndToEndTest(TestCase):
             target_ids=[config.id],
         ).values()
         assert info.next_scheduled_for == SCHEDULED_FOR + timedelta(days=1)
+
+
+class ScheduleForTest(TestCase):
+    def test_enabled_daily_config_runs_daily(self) -> None:
+        config = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2, enabled=True
+        )
+        assert schedule_for(config) == cron("0 10 * * *")
+
+    def test_config_cron_overrides_the_daily_schedule(self) -> None:
+        config = Factories.create_seer_workflow_config(
+            self.organization,
+            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+            enabled=True,
+            extras={"trigger_settings": {"cron": "0 9 * * 1"}},
+        )
+        assert schedule_for(config) == cron("0 9 * * 1")
+
+    def test_disabled_config_is_unscheduled(self) -> None:
+        config = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2, enabled=False
+        )
+        assert schedule_for(config) is None
+
+
+class SyncScheduleTest(TestCase):
+    def next_run(self, config: SeerWorkflowConfig) -> datetime | None:
+        info = get_schedules(
+            organization_id=config.organization_id,
+            trigger_type=ScheduledTriggerType.SEER_WORKFLOW,
+            target_ids=[config.id],
+        ).get(config.id)
+        return info.next_scheduled_for if info else None
+
+    @freeze_time("2024-03-09 12:00:00")
+    def test_sets_and_clears(self) -> None:
+        config = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2, enabled=True
+        )
+
+        sync_schedule(config)
+        assert self.next_run(config) == datetime(2024, 3, 10, 10, 0, tzinfo=UTC)
+
+        config.enabled = False
+        sync_schedule(config)
+        assert self.next_run(config) is None

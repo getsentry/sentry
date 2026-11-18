@@ -160,6 +160,73 @@ const PULL_REQUEST: RepoPRState = {
   title: 'fix(checkout): Total an empty cart to zero',
 };
 
+const OPEN_PR = {[PULL_REQUEST.repo_name]: PULL_REQUEST};
+
+/**
+ * A PR iteration driven by feedback typed in the drawer.
+ */
+function prIterationBlock(iterationIndex: number, text: string): Block {
+  return {
+    id: `pr-iteration-${iterationIndex}`,
+    timestamp: TIMESTAMP,
+    loading: false,
+    message: {
+      role: 'user',
+      content: text,
+      metadata: {
+        step: 'pr_iteration',
+        iteration_index: String(iterationIndex),
+        feedback: JSON.stringify({text, source: {type: 'user-ui'}}),
+      },
+    },
+  };
+}
+
+function replyBlock(id: string, content: string): Block {
+  return {
+    id,
+    timestamp: TIMESTAMP,
+    loading: false,
+    message: {role: 'assistant', content},
+  };
+}
+
+const PR_ITERATION_BLOCKS = [
+  ROOT_CAUSE,
+  SOLUTION,
+  CODE_CHANGES,
+  prIterationBlock(0, 'Add a regression test for an empty cart'),
+  replyBlock('pr-iteration-0-reply', 'Added a test for an empty cart.'),
+];
+
+// The iteration Seer stopped partway, ending with the block it appends for credits.
+const STOPPED_PR_ITERATION_BLOCKS = [
+  ...PR_ITERATION_BLOCKS,
+  prIterationBlock(1, 'Rename total to subtotal'),
+  replyBlock('pr-iteration-1-reply', 'Renaming `total` in `cartService.ts`.'),
+  {
+    id: 'error-out-of-credits-1',
+    timestamp: TIMESTAMP,
+    loading: false,
+    message: {
+      role: 'assistant' as const,
+      content:
+        "Your organization doesn't have enough Seer credits for this, so I stopped here. Add credits to continue.",
+    },
+  },
+];
+
+const STOPPED_RUN: Partial<ExplorerAutofixState> = {
+  status: 'error',
+  failure_reason: 'out_of_credits',
+  repo_pr_states: OPEN_PR,
+  pr_iteration_out_of_credits: {unfinished_action: 'agent_turn', denial_reason: null},
+};
+
+const QUEUED_FEEDBACK = [
+  {text: 'Also cover a cart with one free item', source: {type: 'user-ui' as const}},
+];
+
 function makeAutofix(
   runState: ExplorerAutofixState | null
 ): ReturnType<typeof useExplorerAutofix> {
@@ -322,10 +389,89 @@ export default Storybook.story('SeerDrawerContent', story => {
     />
   ));
 
+  story('Out of credits: PR iteration feedback waiting', () => (
+    <DrawerStory
+      description="Feedback was refused for credits and waits in the queue. It shows as waiting, the card says how many items wait, and the feedback form is disabled."
+      runState={makeRun(PR_ITERATION_BLOCKS, {
+        repo_pr_states: OPEN_PR,
+        queued_feedback: QUEUED_FEEDBACK,
+        pr_iteration_out_of_credits: {unfinished_action: null, denial_reason: null},
+      })}
+    />
+  ));
+
+  story('Out of credits: PR iteration stopped partway', () => (
+    <DrawerStory
+      description="Seer ran out of credits partway through an iteration. The iteration fails with the card's stop line, and Add context & retry and the feedback form are disabled."
+      runState={makeRun(STOPPED_PR_ITERATION_BLOCKS, STOPPED_RUN)}
+    />
+  ));
+
+  story('Out of credits: PR iteration stopped partway with feedback queued', () => (
+    <DrawerStory
+      description="The same stop with feedback queued behind it. The queued feedback shows as waiting, and the card shows only the stop line."
+      runState={makeRun(STOPPED_PR_ITERATION_BLOCKS, {
+        ...STOPPED_RUN,
+        queued_feedback: QUEUED_FEEDBACK,
+      })}
+    />
+  ));
+
+  story('Out of credits: PR iteration push waiting', () => (
+    <DrawerStory
+      description="Sentry refused to push the latest iteration for credits. The iteration shows as waiting instead of pushed, and the next iteration pushes it."
+      runState={makeRun(PR_ITERATION_BLOCKS, {
+        repo_pr_states: OPEN_PR,
+        pr_iteration_out_of_credits: {unfinished_action: 'push', denial_reason: null},
+      })}
+    />
+  ));
+
+  story('Out of credits: PR iteration push failed', () => (
+    <DrawerStory
+      description="Seer's push failed for credits. The iteration shows as waiting, and the Pull Requests card offers Retry PR, disabled until the organization has credits."
+      runState={makeRun(PR_ITERATION_BLOCKS, {
+        repo_pr_states: {
+          [PULL_REQUEST.repo_name]: {
+            ...PULL_REQUEST,
+            pr_creation_status: 'error',
+            pr_creation_error_code: 'out_of_credits',
+            pr_creation_error: "Your organization doesn't have enough Seer credits.",
+          },
+        },
+        pr_iteration_out_of_credits: {unfinished_action: 'push', denial_reason: null},
+      })}
+    />
+  ));
+
+  story('Out of credits: PR iteration retry waiting', () => (
+    <DrawerStory
+      description="New commits landed on the PR, and the retry on top of them was refused for credits. The iteration shows as waiting, and the next iteration redoes it. The Pull Requests card still offers Retry PR, which isn't gated on credits and force-pushes over the newer commits."
+      runState={makeRun(PR_ITERATION_BLOCKS, {
+        repo_pr_states: {
+          [PULL_REQUEST.repo_name]: {
+            ...PULL_REQUEST,
+            pr_creation_status: 'error',
+            pr_creation_error_code: 'branch_moved',
+            pr_creation_error:
+              "The pull request's branch has commits newer than the code Seer edited, so pushing would have to force-push over them.",
+          },
+        },
+        pr_iteration_out_of_credits: {
+          unfinished_action: 'branch_moved_retry',
+          denial_reason: null,
+        },
+      })}
+    />
+  ));
+
   story('Out of credits: a step that stopped', () => (
     <DrawerStory
-      description="The plan step failed after the root cause. The autofix-continue alert covers the retry (autofix_solution); the card's own retry is left to the failure handling."
-      runState={makeRun([ROOT_CAUSE, SOLUTION], {status: 'error'})}
+      description="The plan step stopped for credits after the root cause. The autofix-continue alert sits at the top (autofix_solution), and the plan card says why it stopped, with Re-run disabled."
+      runState={makeRun([ROOT_CAUSE, SOLUTION], {
+        status: 'error',
+        failure_reason: 'out_of_credits',
+      })}
     />
   ));
 
@@ -333,6 +479,26 @@ export default Storybook.story('SeerDrawerContent', story => {
     <DrawerStory
       description="For comparison: no alert, and Start Analysis is enabled."
       runState={null}
+      hasEnoughCredits
+    />
+  ));
+
+  story('With credits: PR iteration feedback waiting', () => (
+    <DrawerStory
+      description="The waiting feedback after a top-up. It still shows as waiting, since nothing has drained yet, but the feedback form is enabled. Sending feedback drains the queue, so the waiting feedback runs with it."
+      runState={makeRun(PR_ITERATION_BLOCKS, {
+        repo_pr_states: OPEN_PR,
+        queued_feedback: QUEUED_FEEDBACK,
+        pr_iteration_out_of_credits: {unfinished_action: null, denial_reason: null},
+      })}
+      hasEnoughCredits
+    />
+  ));
+
+  story('With credits: PR iteration stopped partway', () => (
+    <DrawerStory
+      description="The stopped iteration after a top-up. Add context & retry and the feedback form are enabled. Either sends new feedback; neither resends the stopped feedback."
+      runState={makeRun(STOPPED_PR_ITERATION_BLOCKS, STOPPED_RUN)}
       hasEnoughCredits
     />
   ));

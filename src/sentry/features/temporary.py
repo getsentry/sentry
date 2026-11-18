@@ -38,6 +38,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Organization scoped features that are in development or in customer trials. #
     ###############################################################################
 
+    # Enable the agent handoff prompt in the traces empty state
+    manager.add("organizations:agent-handoff-empty-states-tracing", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Kill switch for the agentic triage free cohort — enabling this flag shuts off agentic triage for all free cohort orgs
     manager.add("organizations:agentic-triage-free-cohort-killswitch", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable AI-based issue detection for an organization
@@ -86,6 +88,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:dashboards-user-last-visited", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Serve the prebuilt Web Vitals dashboards from the trace metrics dataset instead of spans
     manager.add("organizations:dashboards-web-vitals-trace-metrics", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable the unified visualize list (aggregates and equations side by side) for trace metrics widgets
+    manager.add("organizations:dashboards-trace-metrics-unified-visualize", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable data-fidelity annotations (dropped-data heatmap) on dashboard widget charts
     manager.add("organizations:dashboards-data-fidelity-annotations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable low-confidence indicators on data browsing time series charts
@@ -119,6 +123,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:explore-incremental-timeseries", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable interpolation and smoothing for Explore charts
     manager.add("organizations:explore-interpolation-and-smoothing", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable anomaly detection for Explore charts
+    manager.add("organizations:explore-anomaly-detection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable plotting multiple aggregates on one chart in Explore
     manager.add("organizations:explore-multi-aggregate-charts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable returning the migrated discover queries in explore saved queries
@@ -158,8 +164,10 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:measured-ingestion-delay-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:integrations-gcp", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:integrations-grafana", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Show the Linear for Seer integration, which gives Seer read-only access to a Linear workspace
+    # Show the Linear for Seer integration, which gives Seer read and write access to a Linear workspace
     manager.add("organizations:integrations-linear", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Give Seer read-only observability access across a Supabase organization's projects.
+    manager.add("organizations:integrations-supabase", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:integrations-slack-staging", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Lets Vercel builds call the API with Vercel's OIDC token instead of SENTRY_AUTH_TOKEN
     manager.add("organizations:integrations-vercel-oidc-auth", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
@@ -221,8 +229,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:objectstore-debugfiles-exclusive-write", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=False)
     # Double-write newly created debug files to Objectstore.
     manager.add("organizations:objectstore-debugfiles-write", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=False)
-    # Read debug files from Objectstore when an Objectstore copy is available.
-    manager.add("organizations:objectstore-debugfiles-read", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=False)
     # Enable large ownership rule file size limit
     manager.add("organizations:ownership-size-limit-large", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable xlarge ownership rule file size limit
@@ -249,6 +255,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:preprod-size-monitors-frontend", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable duplicating monitors from their details page
     manager.add("organizations:monitor-duplication", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable equation aggregates (equation|...) in span metric monitors
+    manager.add("organizations:spans-monitor-equations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables the Heroku log drain endpoint in relay
     manager.add("organizations:relay-heroku-log-drain-endpoint", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables the playstation ingestion in relay
@@ -318,12 +326,12 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-explorer-context-engine-allow-fe-override", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Agent-created PRs in Ask Seer chat; also gates code editing tools in chat
     manager.add("organizations:ask-seer-create-pr", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Pause Ask Seer chat to ask the user to fix access when a tool can't open a repo
+    manager.add("organizations:ask-seer-scm-connect-prompt", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Accept a chat prompt ("Ask Seer" question) and its context alongside a Seer Agent chat message
     manager.add("organizations:seer-explorer-chat-prompts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable sentry source code search tool
     manager.add("organizations:seer-agent-source-code-search", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable code mode tools (sentry_api_search/execute) in Seer Agent
-    manager.add("organizations:seer-explorer-code-mode-tools", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable LLM-generated suggestions in the Seer Agent chat empty state
     manager.add("organizations:seer-chat-suggestions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable action suggestions (create or edit items) alongside questions in Seer Agent chat suggestions
@@ -334,6 +342,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-explorer-thinking-blocks", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Seer Explorer to generate rich component embeds from an adjusted prompt
     manager.add("organizations:seer-explorer-embeds", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    manager.add("organizations:seer-explorer-transformed-query-embeds", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable thinking + tool-call summaries in Seer Agent
     manager.add("organizations:seer-explorer-thinking-summary", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:seer-explorer-stream", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
@@ -344,12 +353,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:autofix-browser-notifications", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Show the "Open in Seer Agent (debug)" button in the autofix drawer
     manager.add("organizations:autofix-seer-agent-debug", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable the PR iteration feedback flow in the explorer autofix drawer
-    manager.add("organizations:autofix-pr-iteration", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Enable human-triggered PR iteration: the drawer feedback form, `@sentry` PR
-    # comments, and PR reviews. Automated CI iteration stays on
-    # `organizations:autofix-pr-iteration`.
-    manager.add("organizations:autofix-pr-iteration-manual", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # On green CI: mark ready for review and request review from the triggering user.
     # Also opens Autofix PRs as draft until CI is green.
     manager.add("organizations:autofix-pr-iteration-review-request", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
@@ -357,7 +360,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:autofix-pr-iteration-cap-assign", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Keep PR iteration turns on their PR's latest commit, and retry a push the branch moved under
     manager.add("organizations:autofix-pr-iteration-pin-to-pr-head", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    manager.add("organizations:autofix-single-run", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:autofix-single-run", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Expose one-shot question answers on the Seer runs list (?expand=questions)
     manager.add("organizations:seer-run-questions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Show Seer run ID in Slack notification footers
@@ -452,6 +455,10 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:tag-key-sample-n", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Select the most frequent tag values before applying the query limit in Tag Details
     manager.add("organizations:tag-values-sort-before-limit", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enable the timeseries annotations framework
+    manager.add("organizations:timeseries-annotations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable the inbound-filter-change producer for timeseries annotations
+    manager.add("organizations:timeseries-annotations-usecase-filter-change", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable dynamic grouping UI (top issues)
     manager.add("organizations:top-issues-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Extraction metrics for transactions during ingestion.
@@ -568,6 +575,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("projects:relay-minidump-uploads", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables reshaping Nintendo Switch crash events in Relay so issue titles fall back to the crashing function.
     manager.add("projects:relay-nintendo-event-rewrite", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enables building a stack trace from the crash context for Unreal crash reports without a minidump, such as those from Linux.
+    manager.add("projects:relay-unreal-crash-context-stacktrace", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables the uploading of playstation attachments to the objectstore.
     manager.add("projects:relay-playstation-uploads", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables uploading streams to objectstore via multipart uploads.
