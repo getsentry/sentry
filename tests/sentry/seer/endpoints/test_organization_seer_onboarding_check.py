@@ -258,11 +258,7 @@ class TestIsAutofixEnabled(TestCase):
         assert not is_autofix_enabled(org2)
 
 
-@with_feature(
-    {
-        "organizations:token-billed-seer-enabled": True,
-    }
-)
+@with_feature("organizations:token-billed-seer-enabled")
 class TestIsAutofixEnabledTokenBasedBilling(TestCase):
     def setUp(self) -> None:
         super().setUp()

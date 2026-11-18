@@ -1117,11 +1117,7 @@ class TestBuildRepoPins(TestCase):
         }
 
 
-@with_feature(
-    {
-        "organizations:token-billed-seer-enabled": True,
-    }
-)
+@with_feature("organizations:token-billed-seer-enabled")
 class TestBuildRepoPinsEventMatchedRepos(TestCase, SnubaTestCase):
     @patch("sentry.scm.factory.new")
     def test_pins_repo_matching_the_event_past_the_limit(self, mock_scm_new: MagicMock) -> None:

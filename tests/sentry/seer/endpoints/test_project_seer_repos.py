@@ -106,11 +106,7 @@ class ProjectSeerRepoGetSeatBasedBillingTest(ProjectSeerRepoGetBaseTest):
         self.get_error_response(status_code=404)
 
 
-@with_feature(
-    {
-        "organizations:token-billed-seer-enabled": True,
-    }
-)
+@with_feature("organizations:token-billed-seer-enabled")
 class ProjectSeerRepoGetTokenBasedBillingTest(ProjectSeerRepoGetBaseTest):
     __test__ = True
 
@@ -313,11 +309,7 @@ class ProjectSeerRepoPutSeatBasedBillingTest(ProjectSeerRepoPutBaseTest):
         self.get_error_response(branchName="main", status_code=404)
 
 
-@with_feature(
-    {
-        "organizations:token-billed-seer-enabled": True,
-    }
-)
+@with_feature("organizations:token-billed-seer-enabled")
 class ProjectSeerRepoPutTokenBasedBillingTest(ProjectSeerRepoPutBaseTest):
     __test__ = True
 
@@ -417,11 +409,7 @@ class ProjectSeerRepoDeleteSeatBasedBillingTest(APITestCase):
         self.get_error_response(status_code=404)
 
 
-@with_feature(
-    {
-        "organizations:token-billed-seer-enabled": True,
-    }
-)
+@with_feature("organizations:token-billed-seer-enabled")
 class ProjectSeerRepoDeleteTokenBasedBillingTest(APITestCase):
     endpoint = "sentry-api-0-project-seer-repo"
     method = "delete"
@@ -676,11 +664,7 @@ class ProjectSeerReposGetSeatBasedBillingTest(ProjectSeerReposGetBaseTest):
         assert len(response.data) == 0
 
 
-@with_feature(
-    {
-        "organizations:token-billed-seer-enabled": True,
-    }
-)
+@with_feature("organizations:token-billed-seer-enabled")
 class ProjectSeerReposGetTokenBasedBillingTest(ProjectSeerReposGetBaseTest):
     __test__ = True
 
@@ -882,11 +866,7 @@ class ProjectSeerReposPostSeatBasedBillingTest(ProjectSeerReposPostBaseTest):
         self.get_success_response(repos=[{"repositoryId": self.repo1.id}], status_code=204)
 
 
-@with_feature(
-    {
-        "organizations:token-billed-seer-enabled": True,
-    }
-)
+@with_feature("organizations:token-billed-seer-enabled")
 class ProjectSeerReposPostTokenBasedBillingTest(ProjectSeerReposPostBaseTest):
     __test__ = True
 
@@ -1018,11 +998,7 @@ class ProjectSeerReposPutTest(APITestCase):
             == 0
         )
 
-    @with_feature(
-        {
-            "organizations:token-billed-seer-enabled": True,
-        }
-    )
+    @with_feature("organizations:token-billed-seer-enabled")
     def test_token_based_billing_keeps_config_of_repos_left_out(self) -> None:
         integration = self.create_integration(
             organization=self.organization, provider="github", external_id="github:1"
@@ -1061,11 +1037,7 @@ class ProjectSeerReposPutTest(APITestCase):
         )
         assert new_repo.branch_name == "develop"
 
-    @with_feature(
-        {
-            "organizations:token-billed-seer-enabled": True,
-        }
-    )
+    @with_feature("organizations:token-billed-seer-enabled")
     def test_token_based_billing_empty_list_keeps_config(self) -> None:
         self.create_seer_project_repository(self.project, repository=self.repo1)
 

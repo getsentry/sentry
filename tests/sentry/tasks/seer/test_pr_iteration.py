@@ -96,10 +96,6 @@ CHECK_SUITE_SOURCE_PATH = "sentry.seer.autofix.pr_iteration.feedback_sources.che
 PAUSE_PATH = "sentry.seer.autofix.pr_iteration.pause"
 PR_STATE_PATH = "sentry.seer.autofix.pr_iteration.pr_state"
 
-TOKEN_BILLING_FEATURES = {
-    "organizations:token-billed-seer-enabled": True,
-}
-
 
 class _CommentScmStub:
     """Spec for the SCM mock so the ``runtime_checkable`` protocol ``isinstance``
@@ -2408,7 +2404,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         ui = self._ui_queued()
         mock_pop.return_value = [self._queued(self._review_feedback(777)), ui]
 
-        with self.feature(TOKEN_BILLING_FEATURES):
+        with self.feature("organizations:token-billed-seer-enabled"):
             self._call()
 
         mock_trigger.assert_called_once()
@@ -2428,7 +2424,7 @@ class ConsumeQueuedAutofixFeedbackTest(TestCase):
         mock_fetch.return_value = self._state_on_head()
         mock_pop.return_value = [self._queued(self._review_feedback(777))]
 
-        with self.feature(TOKEN_BILLING_FEATURES):
+        with self.feature("organizations:token-billed-seer-enabled"):
             self._call()
 
         mock_trigger.assert_not_called()

@@ -682,11 +682,6 @@ class IsExplicitRequestTest(TestCase):
         assert parsed[0].source.is_explicit_request is True
 
 
-TOKEN_BILLING_FEATURES = {
-    "organizations:token-billed-seer-enabled": True,
-}
-
-
 class FeedbackAllowedByProjectTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -704,25 +699,25 @@ class FeedbackAllowedByProjectTest(TestCase):
 
     def test_opt_in_with_setting_off_rejects_ci(self) -> None:
         self.project.update_option("sentry:seer_pr_iteration", False)
-        with self.feature(TOKEN_BILLING_FEATURES):
+        with self.feature("organizations:token-billed-seer-enabled"):
             decision = self._allowed(Feedback(source=_check_suite_source()))
         assert decision == Decision(ok=False, reason="not_requested")
 
     def test_opt_in_with_setting_off_rejects_human_review_without_mention(self) -> None:
         self.project.update_option("sentry:seer_pr_iteration", False)
-        with self.feature(TOKEN_BILLING_FEATURES):
+        with self.feature("organizations:token-billed-seer-enabled"):
             decision = self._allowed(self._human_review())
         assert decision == Decision(ok=False, reason="not_requested")
 
     def test_opt_in_with_setting_off_allows_explicit_request(self) -> None:
         self.project.update_option("sentry:seer_pr_iteration", False)
-        with self.feature(TOKEN_BILLING_FEATURES):
+        with self.feature("organizations:token-billed-seer-enabled"):
             decision = self._allowed(self._human_review("@sentry rename this"))
         assert decision == Decision(ok=True, reason="explicit_request")
 
     def test_opt_in_with_setting_on_allows_ci(self) -> None:
         self.project.update_option("sentry:seer_pr_iteration", True)
-        with self.feature(TOKEN_BILLING_FEATURES):
+        with self.feature("organizations:token-billed-seer-enabled"):
             decision = self._allowed(Feedback(source=_check_suite_source()))
         assert decision == Decision(ok=True, reason="project_enabled")
 
