@@ -12,7 +12,6 @@ interface WelcomeAgentSetupProps {
   onSelectSnippet: (source: AgentSetupCopySource) => void;
   onSetupInBrowser: () => void;
   run: AgenticProgressRun | undefined;
-  onboardingCode?: string;
 }
 
 export function WelcomeAgentSetup({onSetupInBrowser, ...props}: WelcomeAgentSetupProps) {
