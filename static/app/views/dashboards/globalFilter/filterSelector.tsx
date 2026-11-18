@@ -15,6 +15,7 @@ import {
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -51,6 +52,7 @@ import {getDatasetLabel} from './datasetLabels';
 import {
   FilterSelectorTrigger,
   FilterSelectorTriggerButton,
+  getFilterSummary,
 } from './filterSelectorTrigger';
 import {
   buildNoValueFilterQuery,
@@ -432,6 +434,13 @@ export function FilterSelector({
     </Flex>
   ) : null;
 
+  const triggerFilterProps = {
+    activeFilterValues: stripUnsupportedNoValue(activeFilterValues, stagedOperator),
+    globalFilter,
+    operator: stagedOperator,
+    options: translatedOptions,
+  };
+
   if (!canSelectMultipleValues) {
     return (
       <CompactSelect
@@ -479,17 +488,10 @@ export function FilterSelector({
           <FilterSelectorTriggerButton
             {...triggerProps}
             globalFilter={globalFilter}
+            filterSummary={getFilterSummary(triggerFilterProps)}
             showDatasetLabel={showDatasetLabel}
           >
-            <FilterSelectorTrigger
-              activeFilterValues={stripUnsupportedNoValue(
-                activeFilterValues,
-                stagedOperator
-              )}
-              globalFilter={globalFilter}
-              operator={stagedOperator}
-              options={translatedOptions}
-            />
+            <FilterSelectorTrigger {...triggerFilterProps} />
           </FilterSelectorTriggerButton>
         )}
       />
@@ -546,9 +548,15 @@ export function FilterSelector({
               usePortal
               trigger={(triggerProps, isOpen) => (
                 <WildcardButton gap="xs" align="center">
-                  <FilterValueTruncated>
-                    {prettifyTagKey(globalFilter.tag.key)}
-                  </FilterValueTruncated>
+                  <Tooltip
+                    title={prettifyTagKey(globalFilter.tag.key)}
+                    showOnlyOnOverflow
+                    skipWrapper
+                  >
+                    <FilterValueTruncated>
+                      {prettifyTagKey(globalFilter.tag.key)}
+                    </FilterValueTruncated>
+                  </Tooltip>
                   <OverlayTrigger.Button
                     showChevron={false}
                     {...triggerProps}
@@ -593,17 +601,10 @@ export function FilterSelector({
         <FilterSelectorTriggerButton
           {...triggerProps}
           globalFilter={globalFilter}
+          filterSummary={getFilterSummary(triggerFilterProps)}
           showDatasetLabel={showDatasetLabel}
         >
-          <FilterSelectorTrigger
-            activeFilterValues={stripUnsupportedNoValue(
-              activeFilterValues,
-              stagedOperator
-            )}
-            globalFilter={globalFilter}
-            operator={stagedOperator}
-            options={translatedOptions}
-          />
+          <FilterSelectorTrigger {...triggerFilterProps} />
         </FilterSelectorTriggerButton>
       )}
     />
