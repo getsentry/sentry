@@ -43,7 +43,7 @@ export function SeerAutomationDefault() {
         data,
       }),
     onMutate: data => {
-      const previousOrg = OrganizationStore.get().organization;
+      const previousOrg = OrganizationStore.getState().organization;
       if (previousOrg) {
         OrganizationStore.onUpdate(data);
         return () => {

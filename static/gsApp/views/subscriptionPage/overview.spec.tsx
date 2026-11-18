@@ -51,7 +51,7 @@ describe('Subscription > Overview', () => {
       method: 'GET',
     });
 
-    SubscriptionStore.set(organization.slug, {});
+    SubscriptionStore.set(organization.slug, SubscriptionFixture({organization}));
   });
 
   describe('Pending Changes', () => {

@@ -35,6 +35,10 @@ from sentry.models.projectrepository import ProjectRepository
 from sentry.projectoptions.defaults import SEER_PROJECT_PREFERENCE_OPTION_KEYS
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
 from sentry.seer.autofix.issue_summary import STOPPING_POINT_HIERARCHY
+from sentry.seer.autofix.pr_iteration.project_setting import (
+    get_pr_iteration_setting,
+    get_pr_iteration_settings,
+)
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     AutomationCodingAgent,
@@ -42,7 +46,7 @@ from sentry.seer.autofix.utils import (
     get_token_based_billing_project_repos,
     get_token_based_billing_repo_filter,
     get_valid_automated_run_stopping_points,
-    is_seer_seat_based_tier_enabled,
+    is_seer_seat_or_token_billed_enabled,
     is_seer_token_based_billing_onboarding_enabled,
     update_seer_project_settings,
 )
@@ -99,7 +103,7 @@ def _get_project_settings(project: Project) -> SeerProjectSettings:
         scanner_automation=project.get_option("sentry:seer_scanner_automation"),
         stopping_point=project.get_option("sentry:seer_automated_run_stopping_point"),
         handoff=get_automation_handoff(project.get_option),
-        pr_iteration=project.get_option("sentry:seer_pr_iteration"),
+        pr_iteration=get_pr_iteration_setting(project),
         repos_count=(
             get_token_based_billing_project_repos(project.organization, [project.id]).count()
             if is_seer_token_based_billing_onboarding_enabled(project.organization)
@@ -146,6 +150,8 @@ def _bulk_get_project_settings(
             .values_list("project_repository__project_id", "count")
         )
 
+    pr_iteration_by_project_id = get_pr_iteration_settings(organization, projects)
+
     settings_by_project_id: dict[int, SeerProjectSettings] = {}
     for project in projects:
 
@@ -160,7 +166,7 @@ def _bulk_get_project_settings(
             scanner_automation=_get_option("sentry:seer_scanner_automation"),
             stopping_point=_get_option("sentry:seer_automated_run_stopping_point"),
             handoff=get_automation_handoff(_get_option),
-            pr_iteration=_get_option("sentry:seer_pr_iteration"),
+            pr_iteration=pr_iteration_by_project_id[project.id],
             repos_count=repo_counts.get(project.id, 0),
         )
 
@@ -410,7 +416,7 @@ class _BaseProjectSettingsUpdateSerializer(CamelSnakeSerializer[dict[str, Any]])
 
 
 class ProjectSettingsUpdateSerializer(_BaseProjectSettingsUpdateSerializer):
-    """Seat-based (new) Seer: restricted tuning choices, stopping point sync."""
+    """Seat-based and token-billed (new) Seer: restricted tuning choices, stopping point sync."""
 
     automation_tuning = serializers.ChoiceField(
         choices=[AutofixAutomationTuningSettings.OFF, AutofixAutomationTuningSettings.MEDIUM],
@@ -451,7 +457,7 @@ class ProjectSeerSettingsEndpoint(ProjectEndpoint):
     def put(self, request: Request, project: Project) -> Response:
         serializer_cls = (
             ProjectSettingsUpdateSerializer
-            if is_seer_seat_based_tier_enabled(project.organization)
+            if is_seer_seat_or_token_billed_enabled(project.organization)
             else LegacyProjectSettingsUpdateSerializer
         )
         serializer = serializer_cls(
@@ -521,7 +527,7 @@ class OrganizationSeerProjectSettingsEndpoint(OrganizationEndpoint):
     def put(self, request: Request, organization: Organization) -> Response:
         serializer_cls = (
             BulkProjectSettingsUpdateSerializer
-            if is_seer_seat_based_tier_enabled(organization)
+            if is_seer_seat_or_token_billed_enabled(organization)
             else LegacyBulkProjectSettingsUpdateSerializer
         )
         serializer = serializer_cls(data=request.data, context={"organization": organization})

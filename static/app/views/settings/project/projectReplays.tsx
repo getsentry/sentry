@@ -1,10 +1,11 @@
-import styled from '@emotion/styled';
+import {Fragment} from 'react';
 import {parseAsStringLiteral, useQueryState} from 'nuqs';
 import {z} from 'zod';
 
 import {AutoSaveForm, FieldGroup, FormSearch} from '@sentry/scraps/form';
+import {Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
-import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
@@ -119,33 +120,36 @@ export default function ProjectReplaySettings() {
     <SentryDocumentTitle title={t('Replays')} projectSlug={project.slug}>
       <SettingsPageHeader title={t('Replays')} />
       {hasAccess ? (
-        <TabsWithGap
-          value={tab}
-          onChange={value => setTab(value as 'replay-issues' | 'bulk-delete')}
-        >
-          <TabList>
-            <TabList.Item key="replay-issues">{t('Replay Issues')}</TabList.Item>
-            <TabList.Item key="bulk-delete">{t('Bulk Delete')}</TabList.Item>
-          </TabList>
-          <TabPanels>
-            <TabPanels.Item key="replay-issues">{replayIssuesContent}</TabPanels.Item>
-            <TabPanels.Item key="bulk-delete">
-              <p>
-                {t(
-                  'Deleting replays requires us to remove data from multiple storage locations which can take some time. You can monitor progress and audit requests here.'
-                )}
-              </p>
-              <ReplayBulkDeleteAuditLog projectSlug={project.slug} />
-            </TabPanels.Item>
-          </TabPanels>
-        </TabsWithGap>
+        <Stack gap="xl">
+          {tabsRootProps => (
+            <Tabs value={tab} onChange={value => setTab(value)} {...tabsRootProps}>
+              {({TabList, TabPanels}) => (
+                <Fragment>
+                  <TabList>
+                    <TabList.Item key="replay-issues">{t('Replay Issues')}</TabList.Item>
+                    <TabList.Item key="bulk-delete">{t('Bulk Delete')}</TabList.Item>
+                  </TabList>
+                  <TabPanels>
+                    <TabPanels.Item key="replay-issues">
+                      {replayIssuesContent}
+                    </TabPanels.Item>
+                    <TabPanels.Item key="bulk-delete">
+                      <p>
+                        {t(
+                          'Deleting replays requires us to remove data from multiple storage locations which can take some time. You can monitor progress and audit requests here.'
+                        )}
+                      </p>
+                      <ReplayBulkDeleteAuditLog projectSlug={project.slug} />
+                    </TabPanels.Item>
+                  </TabPanels>
+                </Fragment>
+              )}
+            </Tabs>
+          )}
+        </Stack>
       ) : (
         replayIssuesContent
       )}
     </SentryDocumentTitle>
   );
 }
-
-const TabsWithGap = styled(Tabs)`
-  gap: ${p => p.theme.space.xl};
-`;

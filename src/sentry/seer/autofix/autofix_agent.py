@@ -9,7 +9,7 @@ from rest_framework.exceptions import PermissionDenied
 from scm.types import GetBranchProtocol, GetRepositoryProtocol
 from sentry_sdk import traces
 
-from sentry import features, quotas
+from sentry import features
 from sentry.analytics.events.autofix_events import (
     AiAutofixAgentHandoffEvent,
     AiAutofixCodeChangesCompletedEvent,
@@ -23,7 +23,7 @@ from sentry.analytics.events.autofix_events import (
     AiAutofixSolutionCompletedEvent,
     AiAutofixSolutionStartedEvent,
 )
-from sentry.constants import ENABLE_SEER_CODING_DEFAULT, DataCategory
+from sentry.constants import ENABLE_SEER_CODING_DEFAULT
 from sentry.integrations.services.integration import integration_service
 from sentry.models.group import Group
 from sentry.seer.agent.client import SeerAgentClient
@@ -31,10 +31,12 @@ from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.analytics import record_autofix_event
 from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.autofix.constants import AutofixReferrer
-from sentry.seer.autofix.exceptions import NoSeerQuotaException
+from sentry.seer.autofix.exceptions import NoSeerQuotaException, SeerOutOfCreditsException
 from sentry.seer.autofix.feature.dispatch import (
     AutofixFeatureArgs,
     autofix_run_targets_other_issue,
+    check_autofix_billing,
+    get_run_billing_feature,
     require_autofix_run_for_group,
     trigger_autofix_feature,
 )
@@ -55,14 +57,20 @@ from sentry.seer.autofix.pr_iteration.iterations import (
     PrIterationNoPullRequestException,
     get_open_iteration_index,
 )
-from sentry.seer.autofix.single_run import is_single_run_record
+from sentry.seer.autofix.single_run import (
+    SINGLE_RUN_ROOT_CAUSE_KEY,
+    is_single_run,
+    single_run_relevant_repos,
+)
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.types import AutofixHandoffResponse
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
+    get_event_matched_project_repo_ids,
     is_free_cohort_org,
     read_preference_from_sentry_db,
 )
+from sentry.seer.credits import SeerOperation
 from sentry.seer.entrypoints.operator import (
     SeerActivityAttribution,
     SeerAutofixOperator,
@@ -307,7 +315,7 @@ def resolve_run_group_id(
 
 def fetch_run_group(organization: Organization, run_id: int, group_id: int) -> Group | None:
     """The run's group, scoped to the organization."""
-    group = Group.objects.filter(id=group_id, project__organization_id=organization.id).first()
+    group = Group.objects.get_or_none(id=group_id, project__organization_id=organization.id)
     if group is None:
         logger.warning(
             "autofix.on_completion_hook.group_not_found",
@@ -389,7 +397,11 @@ def _resolve_default_branch(
 
 
 def _build_repo_pins(group: Group, referrer: AutofixReferrer) -> RepoPins | None:
-    preference = read_preference_from_sentry_db(group.project)
+    preference = read_preference_from_sentry_db(
+        group.project,
+        limit_repos=True,
+        priority_project_repo_ids=get_event_matched_project_repo_ids(group),
+    )
     # Imported lazily to avoid a circular import: sentry.scm pulls in the
     # github/slack integrations, which import notifications templates that
     # import back into sentry.seer.autofix.
@@ -436,6 +448,7 @@ def trigger_autofix_agent(
     group: Group,
     step: AutofixStep,
     referrer: AutofixReferrer,
+    *,
     run_id: int | None = None,
     stopping_point: AutofixStoppingPoint | None = None,
     user_context: str | None = None,
@@ -447,6 +460,7 @@ def trigger_autofix_agent(
     iteration_id: int | None = None,
     allow_free_cohort: bool = False,
     single_run: bool = False,
+    billing_feature: int | None = None,
 ) -> SeerRun:
     """
     Start or continue an agent-based autofix run.
@@ -455,26 +469,14 @@ def trigger_autofix_agent(
         group: The Sentry group (issue) to analyze
         step: Which autofix step to run
         run_id: Existing run ID to continue, or None for new run
+        billing_feature: Internal-only. The feature the run is billed to for its whole life.
+            Not exposed via the API.
         stopping_point: Where to stop the automated pipeline (only used for new runs)
         allow_free_cohort: Internal-only flag set by agentic triage to bypass
             quota for free cohort orgs. Not exposed via the API.
     """
     outcome = "success"
     try:
-        # check billing quota for triggering a new autofix run
-        # Free cohort orgs bypass quota only when called from agentic triage
-        # (allow_free_cohort=True). The API endpoint never sets this flag,
-        # so manual triggers still require quota.
-        if run_id is None:
-            skip_quota_check = allow_free_cohort and is_free_cohort_org(group.organization)
-            if not skip_quota_check:
-                has_budget: bool = quotas.backend.check_seer_quota(
-                    org_id=group.organization.id,
-                    data_category=DataCategory.SEER_AUTOFIX,
-                )
-                if not has_budget:
-                    raise NoSeerQuotaException()
-
         if run_id is not None:
             _assert_existing_run_belongs_to_group(group, run_id)
 
@@ -509,14 +511,15 @@ def trigger_autofix_agent(
         args = AutofixFeatureArgs(
             step=step,
             referrer=referrer,
+            step_args=step_args,
             existing_run_id=run_id,
             insert_index=insert_index,
-            step_args=step_args,
             user_context=user_context,
             stopping_point=stopping_point,
             allow_free_cohort=allow_free_cohort,
             user=user,
             single_run=single_run,
+            billing_feature=billing_feature,
         )
         feature_run = trigger_autofix_feature(group, args)
         feature_run_id = feature_run.seer_run_state_id
@@ -535,20 +538,22 @@ def trigger_autofix_agent(
             },
         )
 
-        # TEMPORARY: single runs skip "started" notices until they send completion notices too;
-        # otherwise the issue would look stuck in progress. Remove with AIML-3809.
-        if not is_single_run_record(feature_run):
-            _handle_step_started_events(
-                group,
-                step,
-                feature_run_id,
-                str(feature_run.uuid),
-                referrer,
-                iteration_index,
-                actor_user_id=actor_user_id,
-            )
+        _handle_step_started_events(
+            group,
+            step,
+            feature_run_id,
+            str(feature_run.uuid),
+            referrer,
+            iteration_index,
+            actor_user_id=actor_user_id,
+        )
         return feature_run
-    except (NoSeerQuotaException, SeerPermissionError, PrIterationNoPullRequestException):
+    except (
+        NoSeerQuotaException,
+        SeerOutOfCreditsException,
+        SeerPermissionError,
+        PrIterationNoPullRequestException,
+    ):
         outcome = "declined"
         raise
     except BaseException:
@@ -630,6 +635,13 @@ def generate_autofix_handoff_prompt(
 
     artifacts = state.get_artifacts()
 
+    single_run_root_cause = artifacts.get(SINGLE_RUN_ROOT_CAUSE_KEY)
+    if single_run_root_cause and single_run_root_cause.data:
+        parts.append("## Root Cause Analysis")
+        for field in ("headline", "cause"):
+            if single_run_root_cause.data.get(field):
+                parts.append(single_run_root_cause.data[field])
+
     # Add root cause if present
     root_cause = artifacts.get("root_cause")
     if root_cause and root_cause.data:
@@ -665,22 +677,30 @@ def _get_relevant_repo(
     run_id: int,
     group: Group,
 ) -> SeerRepoDefinition:
-    root_cause_artifact = state.get_artifacts().get("root_cause")
-    relevant_repo: str | None = (
-        (root_cause_artifact.data or {}).get("relevant_repo") if root_cause_artifact else None
-    )
+    # Most relevant first. Coding agents launch against one repo, so take the first the project
+    # has configured.
+    relevant_repos: list[str]
+    if is_single_run(state):
+        relevant_repos = single_run_relevant_repos(state)
+    else:
+        root_cause_artifact = state.get_artifacts().get("root_cause")
+        relevant_repo = (
+            (root_cause_artifact.data or {}).get("relevant_repo") if root_cause_artifact else None
+        )
+        relevant_repos = [relevant_repo] if relevant_repo else []
     warning_extras = {
         "organization_id": group.organization.id,
         "run_id": run_id,
         "project_id": group.project_id,
     }
-    if relevant_repo:
-        match = next((r for r in repo_definitions if f"{r.owner}/{r.name}" == relevant_repo), None)
+    if relevant_repos:
+        repos_by_name = {f"{r.owner}/{r.name}": r for r in repo_definitions}
+        match = next((repos_by_name[n] for n in relevant_repos if n in repos_by_name), None)
         if match:
             return match
         logger.warning(
             "autofix.coding_agent_handoff.relevant_repo_not_found",
-            extra={**warning_extras, "relevant_repo": relevant_repo},
+            extra={**warning_extras, "relevant_repos": relevant_repos},
         )
     else:
         logger.warning(
@@ -745,7 +765,11 @@ def trigger_coding_agent_handoff(
     ):
         raise PermissionDenied("Code generation is disabled for this organization")
 
-    preference = read_preference_from_sentry_db(group.project)
+    preference = read_preference_from_sentry_db(
+        group.project,
+        limit_repos=True,
+        priority_project_repo_ids=get_event_matched_project_repo_ids(group),
+    )
     repo_definitions: list[SeerRepoDefinition] = preference.repositories
     if auto_create_pr is None:
         auto_create_pr = False
@@ -833,6 +857,7 @@ def trigger_push_changes(
     author: SeerCommitAuthor | None = None,
     user: User | RpcUser | AnonymousUser | None = None,
     allow_force_push: bool = True,
+    source: str = "autofix",
 ) -> None:
     if not group.organization.get_option(
         "sentry:enable_seer_coding", default=ENABLE_SEER_CODING_DEFAULT
@@ -845,6 +870,13 @@ def trigger_push_changes(
         state = _get_group_run_state(client, group, run_id)
     else:
         _validate_run_belongs_to_group(state, group)
+
+    check_autofix_billing(
+        group.organization,
+        get_run_billing_feature(state),
+        SeerOperation.AUTOFIX_OPEN_PR,
+        is_new_run=False,
+    )
 
     record_autofix_event(
         AiAutofixPrCreatedStartedEvent(
@@ -872,6 +904,7 @@ def trigger_push_changes(
         blocking=False,
         author=author,
         allow_force_push=allow_force_push,
+        source=source,
     )
 
     metrics.incr(

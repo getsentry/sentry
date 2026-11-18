@@ -826,34 +826,31 @@ class JiraIntegration(IssueSyncIntegration):
     def get_group_description(
         self, group: Group, event: GroupEvent | None, **kwargs: object
     ) -> str:
-        output = []
-        if group.issue_category == GroupCategory.FEEDBACK:
-            output = [
-                "Sentry Feedback: [{}|{}]\n".format(
-                    group.qualified_short_id,
-                    group.get_absolute_url(params={"referrer": "jira_integration"}),
-                )
-            ]
-        else:
-            output = [
-                "Sentry Issue: [{}|{}]".format(
-                    group.qualified_short_id,
-                    group.get_absolute_url(params={"referrer": "jira_integration"}),
-                )
-            ]
+        is_feedback = group.issue_category == GroupCategory.FEEDBACK
+        label = "Sentry Feedback" if is_feedback else "Sentry Issue"
+        issue_link = self.format_link(
+            group.qualified_short_id or "an issue",
+            group.get_absolute_url(params={"referrer": "jira_integration"}),
+        )
+        trailing_newline = "\n" if is_feedback else ""
+        output = [f"{label}: {issue_link}{trailing_newline}"]
 
         if isinstance(event, GroupEvent) and event.occurrence is not None:
-            body = ""
-            if group.issue_category == GroupCategory.FEEDBACK:
-                body = self.get_feedback_issue_body(event.occurrence)
-            else:
-                body = self.get_generic_issue_body(event)
+            body = (
+                self.get_feedback_issue_body(event.occurrence)
+                if is_feedback
+                else self.get_generic_issue_body(event)
+            )
             output.extend([body])
         else:
             body = self.get_group_body(group, event)
             if body:
                 output.extend(["", "{code}", body, "{code}"])
         return "\n".join(output)
+
+    @staticmethod
+    def format_link(text: str, url: str) -> str:
+        return f"[{text}|{url}]"
 
     def get_client(self) -> JiraCloudClient:
         logging_context = {"org_id": self.organization_id}

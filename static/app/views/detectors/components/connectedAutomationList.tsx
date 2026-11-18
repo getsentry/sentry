@@ -5,7 +5,7 @@ import {useQuery} from '@tanstack/react-query';
 import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 import type {CursorHandler} from '@sentry/scraps/pagination';
-import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
+import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
@@ -18,6 +18,7 @@ import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps, useGetPaginationCaption} from 'sentry/utils/pagination';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {automationsApiOptions} from 'sentry/views/automations/hooks';
 import {getAutomationActions} from 'sentry/views/automations/hooks/utils';
@@ -178,7 +179,7 @@ export function ConnectedAutomationsList({
       {limit && (
         <Pagination
           onCursor={onCursor}
-          pageLinks={pageLinks}
+          {...getPaginationProps(pageLinks)}
           caption={paginationCaption}
         />
       )}

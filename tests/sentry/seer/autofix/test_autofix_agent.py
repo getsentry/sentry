@@ -4,11 +4,17 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.test import override_settings
 from rest_framework.exceptions import PermissionDenied
+from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE,
+)
+from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_seer_credits_pb2 import (
+    CheckSeerCreditsResponse,
+)
 
 from sentry.analytics.events.autofix_events import AiAutofixSolutionCompletedEvent
-from sentry.constants import DataCategory
 from sentry.models.activity import Activity
 from sentry.models.group import Group
+from sentry.models.projectrepository import ProjectRepositorySource
 from sentry.seer.agent.client_models import (
     Artifact,
     MemoryBlock,
@@ -27,17 +33,21 @@ from sentry.seer.autofix.autofix_agent import (
 )
 from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.autofix.constants import AutofixReferrer, SeerAutomationSource
-from sentry.seer.autofix.exceptions import NoSeerQuotaException
+from sentry.seer.autofix.exceptions import NoSeerQuotaException, SeerOutOfCreditsException
 from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 from sentry.seer.autofix.issue_summary import referrer_map
 from sentry.seer.autofix.pr_iteration.feedback import Feedback
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
 from sentry.seer.autofix.pr_iteration.iterations import PrIterationNoPullRequestException
 from sentry.seer.autofix.steps import AutofixStep
+from sentry.seer.autofix.utils import MAX_SEER_REPOS_PER_PROJECT
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.seer.models.run import SeerAgentRun, SeerRun
+from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.utils.webhooks import SeerActionType
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import SnubaTestCase, TestCase
+from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
 from sentry.utils import json
 
@@ -704,22 +714,6 @@ class TestTriggerAutofixAgent(TestCase):
 
         mock_feature.assert_not_called()
 
-    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
-    @patch("sentry.quotas.backend.check_seer_quota", return_value=False)
-    def test_when_no_quota(self, mock_check_quota: MagicMock, mock_feature: MagicMock) -> None:
-        with pytest.raises(NoSeerQuotaException):
-            trigger_autofix_agent(
-                group=self.group,
-                step=AutofixStep.CODE_CHANGES,
-                referrer=AutofixReferrer.UNKNOWN,
-                run_id=None,
-            )
-        mock_check_quota.assert_called_once_with(
-            org_id=self.group.organization.id,
-            data_category=DataCategory.SEER_AUTOFIX,
-        )
-        mock_feature.assert_not_called()
-
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
@@ -732,7 +726,7 @@ class TestTriggerAutofixAgent(TestCase):
 
         with (
             patch("sentry.seer.autofix.autofix_agent.features.has", return_value=False),
-            patch("sentry.seer.autofix.autofix_agent.is_free_cohort_org", return_value=True),
+            patch("sentry.seer.autofix.feature.dispatch.is_free_cohort_org", return_value=True),
         ):
             trigger_autofix_agent(
                 group=self.group,
@@ -743,29 +737,6 @@ class TestTriggerAutofixAgent(TestCase):
 
         mock_check_quota.assert_not_called()
         assert mock_feature.call_args.args[1].allow_free_cohort is True
-
-    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
-    @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
-    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
-    def test_allow_free_cohort_still_checks_quota_for_non_cohort_org(
-        self, mock_feature: MagicMock, mock_broadcast: MagicMock, mock_check_quota: MagicMock
-    ) -> None:
-        mock_feature.return_value = self.create_seer_run(
-            organization=self.group.organization, seer_run_state_id=12345
-        )
-
-        with (
-            patch("sentry.seer.autofix.autofix_agent.features.has", return_value=False),
-            patch("sentry.seer.autofix.autofix_agent.is_free_cohort_org", return_value=False),
-        ):
-            trigger_autofix_agent(
-                group=self.group,
-                step=AutofixStep.CODE_CHANGES,
-                referrer=AutofixReferrer.AGENTIC_TRIAGE,
-                allow_free_cohort=True,
-            )
-
-        mock_check_quota.assert_called_once()
 
     @patch("sentry.quotas.backend.check_seer_quota", return_value=False)
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
@@ -975,6 +946,35 @@ class TestTriggerAutofixAgentAttemptMetric(TestCase):
             }
         ]
 
+    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @patch(
+        "sentry.seer_credit.backend.check_seer_credits",
+        return_value=CheckSeerCreditsResponse(has_enough_credits=False),
+    )
+    def test_counts_declined_when_out_of_credits(
+        self,
+        mock_check_seer_credits: MagicMock,
+        mock_client_class: MagicMock,
+        mock_incr: MagicMock,
+        mock_check_quota: MagicMock,
+        mock_record_run: MagicMock,
+        mock_broadcast: MagicMock,
+    ) -> None:
+        with pytest.raises(SeerOutOfCreditsException):
+            trigger_autofix_agent(
+                self.group,
+                AutofixStep.ROOT_CAUSE,
+                AutofixReferrer.ISSUE_SUMMARY_POST_PROCESS_FIXABILITY,
+            )
+
+        assert _trigger_attempts(mock_incr) == [
+            {
+                "referrer": "issue_summary.post_process_fixability",
+                "step": "root_cause",
+                "outcome": "declined",
+            }
+        ]
+
     @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
     def test_counts_error_when_seer_rejects_run(
         self,
@@ -1115,6 +1115,63 @@ class TestBuildRepoPins(TestCase):
                 "base_branch": "main",
             }
         }
+
+
+@with_feature(
+    {
+        "organizations:seer-token-based-billing-onboarding": True,
+        "organizations:token-billed-seer-enabled": True,
+    }
+)
+class TestBuildRepoPinsEventMatchedRepos(TestCase, SnubaTestCase):
+    @patch("sentry.scm.factory.new")
+    def test_pins_repo_matching_the_event_past_the_limit(self, mock_scm_new: MagicMock) -> None:
+        for name in [*(f"filler-{i}" for i in range(MAX_SEER_REPOS_PER_PROJECT + 2)), "billing"]:
+            repo = self.create_repo(
+                project=self.project,
+                provider="integrations:github",
+                integration_id=self.integration.id,
+                external_id=name,
+                name=f"owner/{name}",
+            )
+            project_repo = self.create_project_repository(
+                project=self.project, repository=repo, source=ProjectRepositorySource.AUTO_EVENT
+            )
+        self.create_code_mapping(
+            project=self.project,
+            repo=repo,
+            project_repository=project_repo,
+            stack_root="billing/",
+            source_root="src/billing/",
+        )
+        event = self.store_event(
+            data={
+                "platform": "python",
+                "timestamp": before_now(minutes=1).isoformat(),
+                "exception": {
+                    "values": [
+                        {
+                            "type": "ValueError",
+                            "stacktrace": {
+                                "frames": [{"filename": "billing/charge.py", "in_app": True}]
+                            },
+                        }
+                    ]
+                },
+            },
+            project_id=self.project.id,
+        )
+        assert event.group is not None
+        mock_scm_new.return_value = _make_scm_mock(
+            get_repository={"data": {"default_branch": "main"}},
+            get_branch={"data": {"sha": "abc"}},
+        )
+
+        result = _build_repo_pins(event.group, AutofixReferrer.UNKNOWN)
+
+        assert result is not None
+        assert len(result) == MAX_SEER_REPOS_PER_PROJECT
+        assert "owner/billing" in result
 
 
 class TestTriggerCodingAgentHandoff(TestCase):
@@ -1483,6 +1540,79 @@ class TestTriggerCodingAgentHandoff(TestCase):
         assert len(repos) == 1
         assert repos[0].name == "relevant-repo"
 
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_single_run_handoff_uses_first_relevant_repo_and_root_cause(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        state = self._make_run_state(
+            [
+                Artifact(
+                    key="single_run_root_cause",
+                    data={
+                        "headline": "Checkout crashes on empty carts",
+                        "cause": "The total is read before the cart loads.",
+                        "relevant_repos": ["owner/relevant-repo", "owner/other-repo"],
+                    },
+                    reason="test",
+                )
+            ]
+        )
+        state.metadata = {"group_id": self.group.id, "feature_id": SINGLE_RUN_FEATURE_ID}
+        mock_client.get_run.return_value = state
+        mock_client.launch_coding_agents.return_value = {"successes": [], "failures": []}
+        self._make_repo_and_projectrepo(name="other-repo", external_id="1")
+        self._make_repo_and_projectrepo(name="relevant-repo", external_id="2")
+
+        trigger_coding_agent_handoff(
+            group=self.group,
+            run_id=123,
+            referrer=AutofixReferrer.UNKNOWN,
+            integration_id=456,
+        )
+
+        call_kwargs = mock_client.launch_coding_agents.call_args.kwargs
+        assert [repo.name for repo in call_kwargs["repos"]] == ["relevant-repo"]
+        assert "## Root Cause Analysis" in call_kwargs["prompt"]
+        assert "Checkout crashes on empty carts" in call_kwargs["prompt"]
+        assert "The total is read before the cart loads." in call_kwargs["prompt"]
+
+    @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
+    def test_single_run_handoff_skips_relevant_repos_the_project_lacks(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        mock_client = MagicMock()
+        mock_client_class.return_value = mock_client
+        state = self._make_run_state(
+            [
+                Artifact(
+                    key="single_run_root_cause",
+                    data={
+                        "headline": "Checkout crashes on empty carts",
+                        "cause": "The total is read before the cart loads.",
+                        "relevant_repos": ["owner/unconfigured-repo", "owner/relevant-repo"],
+                    },
+                    reason="test",
+                )
+            ]
+        )
+        state.metadata = {"group_id": self.group.id, "feature_id": SINGLE_RUN_FEATURE_ID}
+        mock_client.get_run.return_value = state
+        mock_client.launch_coding_agents.return_value = {"successes": [], "failures": []}
+        self._make_repo_and_projectrepo(name="other-repo", external_id="1")
+        self._make_repo_and_projectrepo(name="relevant-repo", external_id="2")
+
+        trigger_coding_agent_handoff(
+            group=self.group,
+            run_id=123,
+            referrer=AutofixReferrer.UNKNOWN,
+            integration_id=456,
+        )
+
+        repos = mock_client.launch_coding_agents.call_args.kwargs["repos"]
+        assert [repo.name for repo in repos] == ["relevant-repo"]
+
     @patch("sentry.seer.autofix.autofix_agent.logger")
     @patch("sentry.seer.autofix.autofix_agent.SeerAgentClient")
     def test_trigger_coding_agent_handoff_falls_back_to_first_repo_when_no_relevant_repo(
@@ -1554,7 +1684,7 @@ class TestTriggerCodingAgentHandoff(TestCase):
                 "organization_id": self.group.organization.id,
                 "run_id": 123,
                 "project_id": self.group.project_id,
-                "relevant_repo": "owner/nonexistent-repo",
+                "relevant_repos": ["owner/nonexistent-repo"],
             },
         )
 
@@ -1625,6 +1755,7 @@ class TestTriggerPushChanges(TestCase):
         self,
         mock_post: MagicMock,
         features: dict[str, bool] | None = None,
+        billing_feature: int | None = None,
         **kwargs: Any,
     ) -> dict[str, Any]:
         """Push with a minimal run state and return the payload sent to Seer."""
@@ -1637,6 +1768,7 @@ class TestTriggerPushChanges(TestCase):
             updated_at="2024-01-01T00:00:00Z",
             repo_pr_states={},
             metadata={"group_id": self.group.id},
+            billing_feature=billing_feature,
         )
 
         with self.feature(features or {}):
@@ -1673,6 +1805,40 @@ class TestTriggerPushChanges(TestCase):
                 run_id=123,
                 referrer=AutofixReferrer.UNKNOWN,
             )
+
+    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @patch(
+        "sentry.seer_credit.backend.check_seer_credits",
+        return_value=CheckSeerCreditsResponse(has_enough_credits=False),
+    )
+    @patch("sentry.seer.agent.client.make_agent_update_request")
+    def test_raises_when_out_of_credits(
+        self, mock_post: MagicMock, mock_check_seer_credits: MagicMock
+    ) -> None:
+        with pytest.raises(SeerOutOfCreditsException):
+            self._push(mock_post)
+
+        mock_post.assert_not_called()
+
+    @patch(
+        "sentry.seer_credit.backend.check_seer_credits",
+        return_value=CheckSeerCreditsResponse(has_enough_credits=True),
+    )
+    @patch("sentry.seer.agent.client.make_agent_update_request")
+    def test_checks_credits_under_the_run_billing_feature(
+        self, mock_post: MagicMock, mock_check_seer_credits: MagicMock
+    ) -> None:
+        self._push(
+            mock_post,
+            features={
+                "organizations:seer-credit-checks": True,
+                "organizations:token-billed-seer-enabled": True,
+            },
+            billing_feature=SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE,
+        )
+
+        assert mock_check_seer_credits.call_args.args[0].feature_id == "autofix_agentic_triage"
+        mock_post.assert_called_once()
 
     @patch("sentry.seer.agent.client.make_agent_update_request")
     def test_passes_pr_description_suffix_ready_state_and_author(
@@ -1811,7 +1977,7 @@ class TestSingleRunStartedEvents(TestCase):
     @patch("sentry.seer.autofix.autofix_agent.broadcast_webhooks_for_organization.delay")
     @patch("sentry.seer.autofix.autofix_agent.process_autofix_updates.apply_async")
     @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_feature")
-    def test_single_run_skips_started_events(
+    def test_single_run_sends_root_cause_started(
         self,
         mock_feature: MagicMock,
         mock_process_autofix_updates: MagicMock,
@@ -1833,8 +1999,11 @@ class TestSingleRunStartedEvents(TestCase):
         )
 
         assert mock_feature.call_args.args[1].single_run is True
-        mock_broadcast.assert_not_called()
-        mock_process_autofix_updates.assert_not_called()
-        assert not Activity.objects.filter(
+        assert mock_broadcast.call_args.kwargs["event_name"] == "root_cause_started"
+        assert (
+            mock_process_autofix_updates.call_args.kwargs["kwargs"]["event_type"]
+            == SentryAppEventType.SEER_ROOT_CAUSE_STARTED
+        )
+        assert Activity.objects.filter(
             group=group, type=ActivityType.SEER_RCA_STARTED.value
         ).exists()

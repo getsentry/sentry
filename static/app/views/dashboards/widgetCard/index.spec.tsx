@@ -1,6 +1,7 @@
 import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -346,6 +347,33 @@ describe('Dashboards > WidgetCard', () => {
     await userEvent.click(await screen.findByLabelText('Widget actions'));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Duplicate Widget'}));
     expect(mock).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports the selected context menu item and still runs its action', async () => {
+    const onDuplicate = jest.fn();
+    const onContextMenuAction = jest.fn();
+    renderWithProviders(
+      <WidgetCard
+        widget={{
+          ...multipleQueryWidget,
+          displayType: DisplayType.AREA,
+          queries: [{...multipleQueryWidget.queries[0]!, fields: ['count()']}],
+        }}
+        selection={selection}
+        onDelete={() => {}}
+        onEdit={() => {}}
+        onDuplicate={onDuplicate}
+        onContextMenuAction={onContextMenuAction}
+        showContextMenu
+        widgetLimitReached={false}
+        widgetLegendState={widgetLegendState}
+      />
+    );
+
+    await userEvent.click(await screen.findByLabelText('Widget actions'));
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Duplicate Widget'}));
+    expect(onContextMenuAction).toHaveBeenCalledWith('duplicate-widget');
+    expect(onDuplicate).toHaveBeenCalledTimes(1);
   });
 
   it('does not add duplicate widgets if max widget is reached', async () => {
@@ -1056,6 +1084,71 @@ describe('Dashboards > WidgetCard', () => {
       );
 
       expect(await screen.findByText('Low confidence data')).toBeInTheDocument();
+    });
+  });
+
+  describe('chart layers', () => {
+    const spansWidget: Widget = {
+      title: 'Span Count',
+      interval: '5m',
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.SPANS,
+      queries: [
+        {
+          conditions: '',
+          fields: ['count()'],
+          aggregates: ['count()'],
+          columns: [],
+          name: '',
+          orderby: '',
+        },
+      ],
+    };
+    it('offers only Releases in the Layers menu without the flag', async () => {
+      renderWithProviders(
+        <WidgetCard
+          widget={spansWidget}
+          selection={selection}
+          widgetLimitReached={false}
+          widgetLegendState={widgetLegendState}
+          widgetInterval="5m"
+        />
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Chart layers'}));
+
+      expect(screen.getAllByRole('option').map(option => option.textContent)).toEqual([
+        'Releases',
+      ]);
+    });
+
+    it('adds Dropped data to the Layers menu with the flag', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-dropped/',
+        body: {
+          droppedEvents: [OutcomeRowFixture({count: 10})],
+          acceptedEvents: [OutcomeRowFixture({outcome: 'accepted', count: 90})],
+          meta: {dataset: 'spans', start: 0, end: 0, interval: 0},
+        },
+      });
+
+      renderWithProviders(
+        <WidgetCard
+          widget={spansWidget}
+          selection={selection}
+          widgetLimitReached={false}
+          widgetLegendState={widgetLegendState}
+          widgetInterval="5m"
+        />,
+        ['explore-data-fidelity-annotations', 'dashboards-data-fidelity-annotations']
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Chart layers'}));
+
+      expect(
+        await screen.findByRole('option', {name: 'Dropped Spans'})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Releases'})).toBeInTheDocument();
     });
   });
 });

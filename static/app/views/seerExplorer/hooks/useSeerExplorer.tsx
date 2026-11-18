@@ -5,6 +5,7 @@ import moment from 'moment-timezone';
 import {useTimezone} from '@sentry/scraps/datetime';
 import {toast} from '@sentry/scraps/toast';
 
+import {getOutOfCreditsPRMessage} from 'sentry/components/seer/outOfCredits/messages';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
@@ -13,6 +14,7 @@ import {uniqueId} from 'sentry/utils/guid';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
+import type {SeerCreditDenialReason} from 'sentry/utils/seer/useSeerCreditCheck';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -24,12 +26,13 @@ import {
   useSeerExplorerChatDispatch,
   useSeerExplorerChatState,
 } from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
-import type {
-  Block,
-  RepoPRState,
-  RespondToUserInputOptions,
-  SeerExplorerResponse,
-  SeerExplorerRunId,
+import {
+  isOutOfCreditsPRState,
+  type Block,
+  type RepoPRState,
+  type RespondToUserInputOptions,
+  type SeerExplorerResponse,
+  type SeerExplorerRunId,
 } from 'sentry/views/seerExplorer/types';
 import {
   makeSeerExplorerQueryKey,
@@ -159,6 +162,7 @@ export const useSeerExplorer = () => {
   const [requestError, setRequestError] = useState<{
     runId: SeerExplorerRunId | null;
     chatPrompt?: ChatPrompt;
+    creditDenialReason?: SeerCreditDenialReason;
     isOutOfCredits?: boolean;
     query?: string;
   } | null>(null);
@@ -324,11 +328,16 @@ export const useSeerExplorer = () => {
       // optimistic user/loading blocks. The UI surfaces the failure and restores the draft.
       restoreSessionData(params.orgSlug, params.runId, context);
       if (isCurrentRun(params.runId)) {
+        const denialReason = error.responseJSON?.denialReason;
         setRequestError({
           runId: params.runId,
           query: params.query,
           chatPrompt: params.pendingChatPrompt ?? undefined,
           isOutOfCredits: error.status === 402,
+          creditDenialReason:
+            denialReason === 'not_enough_credits' || denialReason === 'daily_cap_exceeded'
+              ? denialReason
+              : undefined,
         });
       }
     },
@@ -426,6 +435,7 @@ export const useSeerExplorer = () => {
 
   const currentRequestError = useMemo<{
     chatPrompt?: ChatPrompt;
+    creditDenialReason?: SeerCreditDenialReason;
     isOutOfCredits?: boolean;
     query?: string;
   } | null>(
@@ -434,6 +444,7 @@ export const useSeerExplorer = () => {
         ? {
             query: requestError.query,
             chatPrompt: requestError.chatPrompt,
+            creditDenialReason: requestError.creditDenialReason,
             isOutOfCredits: requestError.isOutOfCredits,
           }
         : null,
@@ -640,7 +651,11 @@ export const useSeerExplorer = () => {
         currentState.pr_creation_status === 'error' &&
         currentState.pr_creation_error
       ) {
-        toast.error(currentState.pr_creation_error ?? 'Failed to create PR');
+        toast.error(
+          isOutOfCreditsPRState(currentState)
+            ? getOutOfCreditsPRMessage(currentState)
+            : (currentState.pr_creation_error ?? 'Failed to create PR')
+        );
       }
     }
 

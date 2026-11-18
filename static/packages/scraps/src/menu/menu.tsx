@@ -136,7 +136,7 @@ export function SearchInput({padding = 'xs', ...props}: SearchInputProps) {
             <IconSearch size="xs" variant="muted" />
           </Flex>
         </InputGroup.LeadingItems>
-        <InputGroup.Input size="xs" {...props} />
+        <InputGroup.Input size="xs" type="search" {...props} />
       </InputGroup>
     </Container>
   );
@@ -177,6 +177,9 @@ type Priority = 'primary' | 'danger' | 'default';
 // right edge, and `TRAILING_ACTION_SPACE` keeps the label clear of it.
 const TRAILING_ACTION_INSET = 'lg';
 const TRAILING_ACTION_SPACE = '3xl';
+
+/** Space token between the items of a dropdown menu section. */
+export const SECTION_ITEM_SPACE = '2xs';
 
 const ITEM_PADDING_BY_SIZE = {
   xs: 'xs md xs lg',
@@ -403,8 +406,6 @@ interface OtherProps<T extends React.ElementType> {
   trailingAction?: MenuItemTrailingAction;
   /** Ref to the trailing action's button. */
   trailingActionRef?: React.Ref<HTMLButtonElement>;
-  /** Props for the wrapper around the trailing action. */
-  trailingActionWrapperProps?: React.ComponentPropsWithRef<'div'>;
 }
 
 interface MenuListItemProps<T extends React.ElementType = 'li'>
@@ -435,7 +436,6 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
   tooltipOptions,
   ref,
   trailingActionRef,
-  trailingActionWrapperProps,
   ...props
 }: MenuListItemProps<T>) {
   const [itemElement, setItemElement] = useState<HTMLElement | null>(null);
@@ -608,7 +608,6 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
           top="0"
           height="100%"
           align="center"
-          {...trailingActionWrapperProps}
         >
           <Button
             ref={trailingActionRef}

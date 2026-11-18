@@ -251,6 +251,16 @@ class OrganizationGroupSearchViewsGetTest(GroupSearchViewAPITestCase):
 
         assert len(response.data) == 0
 
+    def test_per_page(self) -> None:
+        self.login_as(user=self.user)
+        response = self.get_success_response(self.organization.slug, per_page=2)
+
+        assert [view["id"] for view in response.data] == [
+            str(self.my_view_2.id),
+            str(self.my_view_3.id),
+        ]
+        assert 'rel="next"; results="true"' in response["Link"]
+
 
 class OrganizationGroupSearchViewsInvalidPostTest(APITestCase):
     endpoint = "sentry-api-0-organization-group-search-views"

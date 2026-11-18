@@ -1,13 +1,18 @@
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
-import {explodeFieldString, isEquation} from 'sentry/utils/discover/fields';
+import {
+  EQUATION_PREFIX,
+  explodeFieldString,
+  isEquation,
+} from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {applyDashboardFilters} from 'sentry/views/dashboards/utils';
 import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
+import {DEFAULT_EQUATION_LABEL} from 'sentry/views/explore/metrics/constants';
 import type {BaseMetricQuery} from 'sentry/views/explore/metrics/metricQuery';
 import {parseAggregateExpression} from 'sentry/views/explore/metrics/parseAggregateExpression';
 import {getMetricsUrl, makeMetricsPathname} from 'sentry/views/explore/metrics/utils';
@@ -19,6 +24,8 @@ import {
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+
+import {isWebVitalScoreFormula} from './webVitalTraceMetricFields';
 
 /**
  * Converts a TRACEMETRICS dashboard widget to a metrics page URL
@@ -55,6 +62,9 @@ export function getWidgetMetricsUrl(
           const parsed = parseAggregateExpression(aggregate, queryString);
           const results: BaseMetricQuery[] = [...parsed.metricQueries];
           if (parsed.equationRow) {
+            const aggregateSortBys = query.orderby
+              ? decodeSorts(query.orderby).filter(sort => sort.field === aggregate)
+              : [];
             results.push({
               ...parsed.equationRow,
               queryParams: parsed.equationRow.queryParams.replace({
@@ -62,6 +72,7 @@ export function getWidgetMetricsUrl(
                   new VisualizeEquation(aggregate, {chartType}),
                   ...groupByFields,
                 ],
+                aggregateSortBys,
               }),
             });
           }
@@ -82,6 +93,34 @@ export function getWidgetMetricsUrl(
         }));
 
         const aggregateSortBys = query.orderby ? decodeSorts(query.orderby) : [];
+
+        // A score formula names no metric, so there is no metric row to put
+        // it on. The metrics page runs it as an equation instead.
+        if (isWebVitalScoreFormula(aggregate)) {
+          const equation = `${EQUATION_PREFIX}${aggregate}`;
+          return {
+            metric: {name: '', type: ''},
+            label: DEFAULT_EQUATION_LABEL,
+            queryParams: new ReadableQueryParams({
+              extrapolate: true,
+              mode: Mode.AGGREGATE,
+              query: queryString,
+              aggregateCursor: '',
+              aggregateFields: [
+                new VisualizeEquation(equation, {chartType}),
+                ...groupByFields,
+              ],
+              aggregateSortBys: aggregateSortBys.map(sort =>
+                sort.field === aggregate ? {...sort, field: equation} : sort
+              ),
+
+              // These fields are not currently used for metrics
+              fields: [],
+              sortBys: [],
+              cursor: '',
+            }),
+          };
+        }
 
         const aggregateFields: AggregateField[] = [
           new VisualizeFunction(aggregate, {chartType}),

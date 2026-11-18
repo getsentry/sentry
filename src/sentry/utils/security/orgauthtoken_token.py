@@ -14,7 +14,9 @@ class SystemUrlPrefixMissingException(Exception):
     pass
 
 
-def generate_token(org_slug: str, region_url: str) -> str:
+def generate_token(
+    org_slug: str, region_url: str, prefix: str = SENTRY_ORG_AUTH_TOKEN_PREFIX
+) -> str:
     sentry_url = options.get("system.url-prefix")
 
     if sentry_url is None:
@@ -31,14 +33,14 @@ def generate_token(org_slug: str, region_url: str) -> str:
     json_str = json.dumps(payload)
     payload_encoded = base64_encode_str(json_str)
 
-    return f"{SENTRY_ORG_AUTH_TOKEN_PREFIX}{payload_encoded}_{secret}"
+    return f"{prefix}{payload_encoded}_{secret}"
 
 
-def parse_token(token: str) -> dict[str, Any] | None:
-    if not token.startswith(SENTRY_ORG_AUTH_TOKEN_PREFIX) or token.count("_") != 2:
+def parse_token(token: str, prefix: str = SENTRY_ORG_AUTH_TOKEN_PREFIX) -> dict[str, Any] | None:
+    if not token.startswith(prefix) or token.count("_") != 2:
         return None
 
-    payload_hashed = token[len(SENTRY_ORG_AUTH_TOKEN_PREFIX) : token.rindex("_")]
+    payload_hashed = token[len(prefix) : token.rindex("_")]
 
     try:
         payload_str = b64decode((payload_hashed).encode("ascii")).decode("ascii")

@@ -19,7 +19,7 @@ import {Disclosure} from '@sentry/scraps/disclosure';
 import {EmptyState} from '@sentry/scraps/emptyState';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -353,10 +353,10 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
       windows.push(ids.slice(start, start + SCM_WINDOW_SIZE));
     }
     const map = new Map<string, string[][]>();
-    windows.forEach((window, index) => {
+    windows.forEach((scmWindow, index) => {
       const nextWindow = windows[index + 1];
-      const toRequest = nextWindow ? [window, nextWindow] : [window];
-      for (const id of window) {
+      const toRequest = nextWindow ? [scmWindow, nextWindow] : [scmWindow];
+      for (const id of scmWindow) {
         map.set(id, toRequest);
       }
     });
@@ -484,14 +484,16 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
                     setQueryParams({view: next === 'all' ? null : next});
                   }}
                 >
-                  <TabList>
-                    <TabList.Item key="all">
-                      {t('All Runs (%s)', assigneeRuns.length)}
-                    </TabList.Item>
-                    <TabList.Item key="in_progress">
-                      {t('In Progress (%s)', inProgressCount)}
-                    </TabList.Item>
-                  </TabList>
+                  {({TabList}) => (
+                    <TabList>
+                      <TabList.Item key="all">
+                        {t('All Runs (%s)', assigneeRuns.length)}
+                      </TabList.Item>
+                      <TabList.Item key="in_progress">
+                        {t('In Progress (%s)', inProgressCount)}
+                      </TabList.Item>
+                    </TabList>
+                  )}
                 </Tabs>
                 <Button
                   size="sm"

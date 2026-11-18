@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {Confirm} from '@sentry/scraps/confirm';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
@@ -41,7 +40,6 @@ type Props = {
   onMerge: () => void;
   onRetry: () => void;
   onToggle: (id: string) => void;
-  pageLinks: string | null;
   project: Project;
 };
 
@@ -50,7 +48,6 @@ export function List({
   project,
   items,
   filteredItems,
-  pageLinks,
   onMerge,
   onToggle,
   checkedIds,
@@ -162,8 +159,6 @@ export function List({
           </Button>
         </Flex>
       )}
-
-      <Pagination pageLinks={pageLinks} />
     </Fragment>
   );
 }

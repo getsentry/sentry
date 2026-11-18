@@ -38,6 +38,7 @@ import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {ListItemSelectCheckbox} from 'sentry/utils/list/listItemSelectCheckbox';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import {useProjectsById} from 'sentry/utils/project/useProjectsById';
+import {isSeerTokenBasedBillingOnboardingEnabled} from 'sentry/utils/seer/isSeerTokenBasedBillingOnboardingEnabled';
 import {
   seerAgentIntegrationsSelectQueryOptions,
   knownAgentIntegrationsQueryOptions,
@@ -45,6 +46,7 @@ import {
   NON_GITHUB_HANDOFF_WARNING,
   seerAgentProviderNameSelectQueryOptions,
 } from 'sentry/utils/seer/preferredAgent';
+import {PR_ITERATION_OPTIONS} from 'sentry/utils/seer/prIteration';
 import {
   fetchProjectHasNonGithubRepo,
   prefetchAllSeerProjectRepos,
@@ -76,11 +78,6 @@ const TABLE_COLUMNS: TableColumnConfig[] = [
   {key: 'fixes', width: '1fr'},
   {key: 'automation_steps', width: '1fr'},
   {key: 'pr_iteration', width: '1fr'},
-];
-
-const PR_ITERATION_OPTIONS = [
-  {value: true, label: t('On')},
-  {value: false, label: t('Off')},
 ];
 
 export function SeerProjectTable() {
@@ -183,9 +180,11 @@ export function SeerProjectTable() {
                 {t('Enable Autofix on a Project')}
               </Heading>
               <Text variant="muted" size="md">
-                {t(
-                  'Add projects here in order to enable Autofix. Each project must be associated with a repository in order for Autofix to work.'
-                )}
+                {isSeerTokenBasedBillingOnboardingEnabled(organization)
+                  ? t('Link a repository to a project so Seer can read your code.')
+                  : t(
+                      'Add projects here in order to enable Autofix. Each project must be associated with a repository in order for Autofix to work.'
+                    )}
               </Text>
               <Flex>
                 <AddProjectButton disabled={!canWrite} />

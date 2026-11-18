@@ -3,7 +3,6 @@ import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {IconIssues} from '@sentry/icons/issues';
 import {IconSettings} from '@sentry/icons/settings';
 import {IconSiren} from '@sentry/icons/siren';
-import pick from 'lodash/pick';
 
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Stack, Container} from '@sentry/scraps/layout';
@@ -23,7 +22,6 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
 import {MissingProjectMembership} from 'sentry/components/projects/missingProjectMembership';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
-import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
@@ -40,7 +38,6 @@ import {makeMonitorCreatePathname} from 'sentry/views/detectors/pathnames';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
-import {ERRORS_BASIC_CHART_PERIODS} from './charts/projectErrorsBasicChart';
 import {ProjectScoreCards} from './projectScoreCards/projectScoreCards';
 import {ProjectCharts} from './projectCharts';
 import {ProjectFilters} from './projectFilters';
@@ -60,16 +57,14 @@ export function ProjectDetail() {
   const project = projects.find(p => p.slug === params.projectId);
   const query = decodeScalar(location.query.query, '');
   const projectQueryParam = decodeScalar(location.query.project);
-  const hasPerformance = organization.features.includes('performance-view');
-  const hasDiscover = organization.features.includes('discover-basic');
-  const hasTransactions = hasPerformance && project?.firstTransactionEvent;
+
+  const hasTransactions = project?.firstTransactionEvent;
   const projectId = project?.id;
   const isProjectStabilized =
     defined(project?.id) &&
     project.id === projectQueryParam &&
     project.id === String(selection.projects[0]);
   const hasSessions = project?.hasSessions ?? null;
-  const hasOnlyBasicChart = !hasPerformance && !hasDiscover && !hasSessions;
   const title = routeTitleGen(
     t('Project %s', params.projectId),
     organization.slug,
@@ -196,11 +191,7 @@ export function ProjectDetail() {
 
   return (
     <SentryDocumentTitle title={title}>
-      <PageFiltersContainer
-        disablePersistence
-        skipLoadLastUsed
-        showAbsolute={!hasOnlyBasicChart}
-      >
+      <PageFiltersContainer disablePersistence skipLoadLastUsed showAbsolute>
         <Stack flex={1}>
           <NoProjectMessage organization={organization}>
             <TopBar.Slot
@@ -237,11 +228,7 @@ export function ProjectDetail() {
                   <ProjectFilters
                     query={query}
                     onSearch={handleSearch}
-                    relativeDateOptions={
-                      hasOnlyBasicChart
-                        ? pick(DEFAULT_RELATIVE_PERIODS, ERRORS_BASIC_CHART_PERIODS)
-                        : undefined
-                    }
+                    relativeDateOptions={undefined}
                     tagValueLoader={tagValueLoader}
                   />
                 </Container>

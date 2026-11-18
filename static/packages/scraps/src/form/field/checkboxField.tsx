@@ -6,7 +6,6 @@ import type {FieldWithValue} from '@sentry/scraps/form/formHelpers';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 
 import {BaseFieldImpl, type BaseFieldProps} from './baseField';
-import {CheckboxGroup, CheckboxGroupItem} from './checkboxGroupField';
 
 type Props = BaseFieldProps<HTMLInputElement> & {
   field: FieldWithValue<unknown>;
@@ -56,6 +55,3 @@ export function CheckboxField({
     </BaseFieldImpl>
   );
 }
-
-CheckboxField.Group = CheckboxGroup;
-CheckboxField.Item = CheckboxGroupItem;

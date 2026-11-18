@@ -4,16 +4,14 @@ import {parseAsBoolean, parseAsInteger, parseAsStringLiteral, useQueryStates} fr
 
 import {Alert} from '@sentry/scraps/alert';
 import {Flex} from '@sentry/scraps/layout';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {RequestSdkAccessButton} from 'sentry/components/gameConsole/RequestSdkAccessButton';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {hasTempestAccess} from 'sentry/utils/tempest/features';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {TopBar} from 'sentry/views/navigation/topBar';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
@@ -83,14 +81,6 @@ export default function TempestSettings() {
     <Fragment>
       <SentryDocumentTitle title={getPageTitle()} />
       <SettingsPageHeader title={getPageTitle()} />
-      <TopBar.Slot name="feedback">
-        <FeedbackButton
-          aria-label={t('Give Feedback')}
-          tooltipProps={{title: t('Give Feedback')}}
-        >
-          {null}
-        </FeedbackButton>
-      </TopBar.Slot>
 
       {!isPS5WarningDismissed && (
         <div>
@@ -117,11 +107,13 @@ export default function TempestSettings() {
 
       <Flex align="center" justify="between" style={{marginBottom: '1rem'}}>
         <Tabs value={tab} onChange={handleTabChange}>
-          <TabList>
-            {Object.entries(TAB_LABELS).map(([key, label]) => (
-              <TabList.Item key={key}>{label}</TabList.Item>
-            ))}
-          </TabList>
+          {({TabList}) => (
+            <TabList>
+              {TABS.map(key => (
+                <TabList.Item key={key}>{TAB_LABELS[key]}</TabList.Item>
+              ))}
+            </TabList>
+          )}
         </Tabs>
         <RequestSdkAccessButton
           gamingPlatform="playstation"

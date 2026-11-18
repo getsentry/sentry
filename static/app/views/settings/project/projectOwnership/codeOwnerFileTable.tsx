@@ -194,6 +194,7 @@ export function CodeOwnerFileTable({
                 },
               ]}
               position="bottom-end"
+              strategy="fixed"
               trigger={triggerProps => (
                 <OverlayTrigger.IconButton
                   {...triggerProps}
@@ -213,7 +214,6 @@ export function CodeOwnerFileTable({
 }
 
 const StyledSimpleTable = styled(SimpleTable)`
-  position: static;
   overflow: auto;
   white-space: nowrap;
 `;

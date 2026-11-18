@@ -13,11 +13,13 @@ function TestForm() {
     <ScrapsForm form={form}>
       <form.Field name="superuserAccessCategory">
         {field => (
-          <field.Radio.Group value={field.value} onChange={field.handleChange}>
-            <field.Layout.Stack label="Categories of Superuser Access" required>
-              <SuperuserAccessCategory RadioItem={field.Radio.Item} />
-            </field.Layout.Stack>
-          </field.Radio.Group>
+          <field.RadioGroup value={field.value} onChange={field.handleChange}>
+            {({Item}) => (
+              <field.Layout.Stack label="Categories of Superuser Access" required>
+                <SuperuserAccessCategory RadioItem={Item} />
+              </field.Layout.Stack>
+            )}
+          </field.RadioGroup>
         )}
       </form.Field>
     </ScrapsForm>

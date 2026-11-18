@@ -48,8 +48,6 @@ describe('ProjectPageFilter', () => {
     ProjectsStore.loadInitialData(projects);
   });
 
-  afterEach(() => PageFiltersStore.reset());
-
   it('renders & handles single selection', async () => {
     const {router} = render(<ProjectPageFilter />, {
       organization,

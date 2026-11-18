@@ -23,6 +23,7 @@ import {
   slackIntegrationPipeline,
   slackStagingIntegrationPipeline,
 } from './integrationSlack';
+import {supabaseIntegrationPipeline} from './integrationSupabase';
 import {vercelIntegrationPipeline} from './integrationVercel';
 import {vstsIntegrationPipeline} from './integrationVsts';
 
@@ -53,6 +54,7 @@ export const PIPELINE_REGISTRY = [
   perforceIntegrationPipeline,
   slackIntegrationPipeline,
   slackStagingIntegrationPipeline,
+  supabaseIntegrationPipeline,
   vstsIntegrationPipeline,
   vercelIntegrationPipeline,
 ] as const;

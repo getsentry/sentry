@@ -61,6 +61,38 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
             {"name": "Some Tag", "key": "some_tag", "totalValues": 1},
         ]
 
+    def test_environment(self) -> None:
+        self.login_as(user=self.user)
+        project = self.create_project()
+        self.store_event(
+            data={
+                "tags": {"fruit": "apple"},
+                "environment": "Production",
+                "timestamp": self.min_ago,
+            },
+            project_id=project.id,
+        )
+        self.store_event(
+            data={
+                "tags": {"some_tag": "some_value"},
+                "environment": "staging",
+                "timestamp": self.min_ago,
+            },
+            project_id=project.id,
+        )
+
+        url = reverse(
+            "sentry-api-0-organization-tags",
+            kwargs={"organization_id_or_slug": project.organization.slug},
+        )
+        response = self.client.get(
+            url, {"statsPeriod": "14d", "environment": "Production"}, format="json"
+        )
+        assert response.status_code == 200, response.content
+        keys = {tag["key"] for tag in response.data}
+        assert "fruit" in keys
+        assert "some_tag" not in keys
+
     def test_simple_flags(self) -> None:
         user = self.create_user()
         org = self.create_organization()

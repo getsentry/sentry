@@ -11,21 +11,25 @@ import {Text} from '@sentry/scraps/text';
 
 import {BaseFieldImpl, type BaseFieldProps} from './baseField';
 
-interface CheckboxGroupProps extends BaseFieldProps<HTMLDivElement> {
-  children: React.ReactNode;
-  field: FieldWithValue<unknown>;
-  onChange: (value: string[]) => void;
-  value: string[];
+/** @public Required by generated form declarations. */
+export interface CheckboxGroupProps<
+  T extends string,
+> extends BaseFieldProps<HTMLDivElement> {
+  children: (components: {
+    Item: (props: CheckboxGroupItemProps<NoInfer<T>>) => React.JSX.Element;
+  }) => React.ReactNode;
+  onChange: (value: Array<NoInfer<T>>) => void;
+  value: T[];
 }
 
-function CheckboxGroupImpl({
+function CheckboxGroup({
   field,
   children,
   value,
   onChange,
   disabled,
   ref,
-}: CheckboxGroupProps) {
+}: CheckboxGroupProps<string> & {field: FieldWithValue<unknown>}) {
   const labelId = getLabelId(field);
   const autoSaveContext = useAutoSaveContext();
 
@@ -67,7 +71,7 @@ function CheckboxGroupImpl({
               }
             }}
           >
-            {children}
+            {children(checkboxGroupComponents)}
           </Stack>
           {indicator}
         </GroupProvider>
@@ -76,15 +80,18 @@ function CheckboxGroupImpl({
   );
 }
 
-export function CheckboxGroupItem({
+/** @public Required by generated form declarations. */
+export interface CheckboxGroupItemProps<T extends string> {
+  children: React.ReactNode;
+  value: T;
+  disabled?: boolean;
+}
+
+function CheckboxGroupItem({
   children,
   value: itemValue,
   disabled,
-}: {
-  children: React.ReactNode;
-  value: string;
-  disabled?: boolean;
-}) {
+}: CheckboxGroupItemProps<string>) {
   const {
     checked,
     onChange,
@@ -108,4 +115,12 @@ export function CheckboxGroupItem({
   );
 }
 
-export const CheckboxGroup = fieldComponent.loose(CheckboxGroupImpl, 'field');
+const checkboxGroupComponents = {Item: CheckboxGroupItem};
+
+// The callback ties the item values to the selected values' type. The runtime
+// components stay shared so that rendering the callback does not remount items.
+export const CheckboxGroupField = fieldComponent.loose(CheckboxGroup, 'field') as <
+  T extends string,
+>(
+  props: CheckboxGroupProps<T>
+) => React.JSX.Element;

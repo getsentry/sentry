@@ -20,11 +20,12 @@ import {
 import {FieldLayout} from '@sentry/scraps/form/layout';
 import {FieldGroup} from '@sentry/scraps/form/layout/fieldGroup';
 
+import {CheckboxGroupField} from './field/checkboxGroupField';
 import {CompactSelectLooseField} from './field/compactSelectField';
 import {InputField} from './field/inputField';
 import {NumberField} from './field/numberField';
 import {PasswordField} from './field/passwordField';
-import {RadioField} from './field/radioField';
+import {RadioGroupField} from './field/radioGroupField';
 import {RangeField} from './field/rangeField';
 import {SelectAsyncLooseField} from './field/selectAsyncField';
 import {SelectLooseField} from './field/selectField';
@@ -92,15 +93,13 @@ function Form({children}: {children: React.ReactNode}) {
 
 const fieldComponents = {
   Base: BaseField,
-  Checkbox: Object.assign(fieldComponent.loose(CheckboxField, 'field'), {
-    Group: CheckboxField.Group,
-    Item: CheckboxField.Item,
-  }),
+  Checkbox: fieldComponent.loose(CheckboxField, 'field'),
+  CheckboxGroup: CheckboxGroupField,
   CompactSelect: CompactSelectLooseField,
   Input: fieldComponent.loose(InputField, 'field'),
   Number: fieldComponent.loose(NumberField, 'field'),
   Password: fieldComponent.loose(PasswordField, 'field'),
-  Radio: RadioField,
+  RadioGroup: RadioGroupField,
   Range: fieldComponent.loose(RangeField, 'field'),
   Select: SelectLooseField,
   SelectAsync: SelectAsyncLooseField,

@@ -237,28 +237,30 @@ export function DataScrubFormModal({
           {traceItemDatasetsEnabled && (
             <form.Field name="dataset">
               {field => (
-                <field.Radio.Group
+                <field.RadioGroup
                   value={field.value}
                   onChange={value => {
-                    field.handleChange(value as AllowedDataScrubbingDatasets);
-                    setDataset(value as AllowedDataScrubbingDatasets);
+                    field.handleChange(value);
+                    setDataset(value);
                     form.setFieldValue('source', '');
                   }}
                 >
-                  <field.Layout.Stack
-                    label={t('Dataset')}
-                    hintText={t('The dataset targeted by the scrubbing rule')}
-                    variant="compact"
-                  >
-                    <Stack gap="lg">
-                      {sortBy(enabledDatasets).map(value => (
-                        <field.Radio.Item key={value} value={value}>
-                          {getDatasetLabelLong(value)}
-                        </field.Radio.Item>
-                      ))}
-                    </Stack>
-                  </field.Layout.Stack>
-                </field.Radio.Group>
+                  {({Item}) => (
+                    <field.Layout.Stack
+                      label={t('Dataset')}
+                      hintText={t('The dataset targeted by the scrubbing rule')}
+                      variant="compact"
+                    >
+                      <Stack gap="lg">
+                        {sortBy(enabledDatasets).map(value => (
+                          <Item key={value} value={value}>
+                            {getDatasetLabelLong(value)}
+                          </Item>
+                        ))}
+                      </Stack>
+                    </field.Layout.Stack>
+                  )}
+                </field.RadioGroup>
               )}
             </form.Field>
           )}

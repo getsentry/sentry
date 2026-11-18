@@ -4,11 +4,10 @@ import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import {DocumentationHint} from 'sentry/components/documentationHint';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
@@ -489,57 +488,59 @@ function ReleasesListInnerPage() {
                   )}
                 </Container>
                 <Tabs value={selectedTab} onChange={handleTabChange}>
-                  <TabList aria-label={t('Releases tab selector')}>
-                    <TabList.Item
-                      key="releases"
-                      to={{
-                        pathname: location.pathname,
-                        query: {
-                          ...location.query,
-                          query: undefined,
-                          tab: undefined,
-                        },
-                      }}
-                      textValue={t('Releases')}
-                    >
-                      {t('Releases')}
-                    </TabList.Item>
-                    <TabList.Item
-                      key="mobile-builds"
-                      hidden={!shouldShowMobileBuildsTab}
-                      to={{
-                        pathname: location.pathname,
-                        query: {
-                          ...location.query,
-                          query: undefined,
-                          tab: 'mobile-builds',
-                        },
-                      }}
-                      textValue={t('Mobile Builds')}
-                    >
-                      <Flex align="center" gap="sm">
-                        {t('Mobile Builds')}
-                        <FeatureBadge type="new" />
-                      </Flex>
-                    </TabList.Item>
-                    <TabList.Item
-                      key="snapshots"
-                      to={{
-                        pathname: location.pathname,
-                        query: {
-                          ...location.query,
-                          query: undefined,
-                          tab: 'snapshots',
-                        },
-                      }}
-                      textValue={t('Snapshots')}
-                    >
-                      <Flex align="center" gap="sm">
-                        {t('Snapshots')}
-                        <FeatureBadge type="beta" />
-                      </Flex>
-                    </TabList.Item>
-                  </TabList>
+                  {({TabList}) => (
+                    <TabList aria-label={t('Releases tab selector')}>
+                      <TabList.Item
+                        key="releases"
+                        to={{
+                          pathname: location.pathname,
+                          query: {
+                            ...location.query,
+                            query: undefined,
+                            tab: undefined,
+                          },
+                        }}
+                        textValue={t('Releases')}
+                      >
+                        {t('Releases')}
+                      </TabList.Item>
+                      <TabList.Item
+                        key="mobile-builds"
+                        hidden={!shouldShowMobileBuildsTab}
+                        to={{
+                          pathname: location.pathname,
+                          query: {
+                            ...location.query,
+                            query: undefined,
+                            tab: 'mobile-builds',
+                          },
+                        }}
+                        textValue={t('Mobile Builds')}
+                      >
+                        <Flex align="center" gap="sm">
+                          {t('Mobile Builds')}
+                          <FeatureBadge type="new" />
+                        </Flex>
+                      </TabList.Item>
+                      <TabList.Item
+                        key="snapshots"
+                        to={{
+                          pathname: location.pathname,
+                          query: {
+                            ...location.query,
+                            query: undefined,
+                            tab: 'snapshots',
+                          },
+                        }}
+                        textValue={t('Snapshots')}
+                      >
+                        <Flex align="center" gap="sm">
+                          {t('Snapshots')}
+                          <FeatureBadge type="beta" />
+                        </Flex>
+                      </TabList.Item>
+                    </TabList>
+                  )}
                 </Tabs>
               </Stack>
             </Layout.Main>
@@ -668,15 +669,7 @@ function ReleasesHeader() {
           ),
         }}
       />
-      <TopBar.Slot name="feedback">
-        <FeedbackButton
-          feedbackOptions={releasesFeedbackOptions}
-          aria-label={t('Give Feedback')}
-          tooltipProps={{title: t('Give Feedback')}}
-        >
-          {null}
-        </FeedbackButton>
-      </TopBar.Slot>
+      <TopBar.Slot name="feedback" feedbackOptions={releasesFeedbackOptions} />
     </Fragment>
   );
 }

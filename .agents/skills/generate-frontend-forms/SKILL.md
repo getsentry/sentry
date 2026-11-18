@@ -33,7 +33,7 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 ```
 
-> **Important**: DO NOT import from deeper paths, like '@sentry/scraps/form/field'. You can only use what is part of the PUBLIC interface in the index file in @sentry/scraps/form. Never import from `@tanstack/react-form` directly — an ESLint rule blocks it. If you need a type that the barrel does not export, add the export to `static/app/components/core/form/index.ts` rather than reaching past it.
+> **Important**: DO NOT import from deeper paths, like '@sentry/scraps/form/field'. You can only use what is part of the PUBLIC interface in the index file in @sentry/scraps/form. Never import from `@tanstack/react-form` directly — an ESLint rule blocks it. If you need a type that the barrel does not export, add the export to `static/packages/scraps/src/form/index.ts` rather than reaching past it.
 
 ---
 
@@ -248,7 +248,7 @@ Loads options from an API as the user types. `queryOptions` receives the current
 
 ### Checkbox Group (Multiple Selections)
 
-Use `field.Checkbox.Group` and `field.Checkbox.Item` for multiple selections stored as one string array. Read the [checkbox group docs](../../../static/app/components/core/form/fields.mdx#checkbox-group) for the example, layout, validation, disabled state, and auto-save behavior.
+Use `field.CheckboxGroup` with a render callback `{({Item}) => ...}` for multiple selections stored as one string array. Pass `field.value` as `value` and `field.handleChange` as `onChange` so that item values use the array's element type. Read the [checkbox group docs](../../../static/app/components/core/form/fields.mdx#checkbox-group) for the example, layout, validation, disabled state, and auto-save behavior.
 
 ### TextArea Field
 
@@ -285,42 +285,11 @@ Use `field.Checkbox.Group` and `field.Checkbox.Item` for multiple selections sto
 </form.Field>
 ```
 
-### Radio Field
+### Radio Group
 
-Radio fields use a composable API with `Radio.Group` and `Radio.Item`. `Radio.Group` provides group context that changes how the label is rendered for proper accessibility semantics.
+Use `field.RadioGroup` with a render callback `{({Item}) => ...}`. Pass `field.value` as `value` and `field.handleChange` as `onChange` so that item values and changes use the field's value type.
 
-> **Important**: The layout (and its label) **must** be rendered _inside_ `Radio.Group`. The group context is provided by `Radio.Group`, so placing the layout outside will result in incorrect accessibility semantics.
-
-```tsx
-<form.Field name="priority">
-  {field => (
-    <field.Radio.Group value={field.value} onChange={field.handleChange}>
-      <field.Layout.Stack label={t('Priority')}>
-        <field.Radio.Item value="low">{t('Low')}</field.Radio.Item>
-        <field.Radio.Item value="medium">{t('Medium')}</field.Radio.Item>
-        <field.Radio.Item value="high" description={t('Urgent issues')}>
-          {t('High')}
-        </field.Radio.Item>
-      </field.Layout.Stack>
-    </field.Radio.Group>
-  )}
-</form.Field>
-```
-
-For horizontal arrangement of radio items, use a `Flex` or `Stack` wrapper inside the layout:
-
-```tsx
-import {Flex} from '@sentry/scraps/layout';
-
-<field.Radio.Group value={field.value} onChange={field.handleChange}>
-  <field.Layout.Row label={t('Priority')}>
-    <Flex gap="lg">
-      <field.Radio.Item value="low">{t('Low')}</field.Radio.Item>
-      <field.Radio.Item value="high">{t('High')}</field.Radio.Item>
-    </Flex>
-  </field.Layout.Row>
-</field.Radio.Group>;
-```
+Render the layout and its label inside the callback to preserve the group's accessibility semantics. Read the [radio group docs](../../../static/app/components/core/form/fields.mdx#radio) for vertical and horizontal examples.
 
 ### Custom Fields with BaseField
 
@@ -1343,7 +1312,7 @@ When creating a new form:
 - [ ] Set `validators: defaultFormValidators(schema)`
 - [ ] Wrap with `<ScrapsForm form={form}>`
 - [ ] Use `<form.Field>` for each field, `<form.ArrayField>` for lists of child fields
-- [ ] Read values with `field.value`, not `field.state.value`
+- [ ] Read values with `field.value`, not `field.value`
 - [ ] Choose appropriate layout (Stack or Row)
 - [ ] For server errors, narrow to `RequestError`, convert with `requestErrorToFieldErrors`, then return `createValidationError({fields})` from `onSubmit`
 - [ ] Add `<form.SubmitButton>` for submission

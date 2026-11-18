@@ -55,14 +55,10 @@ describe('SeerEnableNotifications', () => {
         <SeerEnableNotifications status="processing" />
       </AutofixChatProvider>,
       {
-        // Code mode needs the Explorer's own prerequisites alongside its flag,
-        // and a chat that can take the run.
+        // Code mode needs the Explorer's own prerequisites and a chat that can
+        // take the run.
         organization: OrganizationFixture({
-          features: [
-            'autofix-browser-notifications',
-            'seer-explorer-code-mode-tools',
-            'seer-explorer',
-          ],
+          features: ['autofix-browser-notifications', 'seer-explorer'],
           openMembership: true,
           hideAiFeatures: false,
         }),

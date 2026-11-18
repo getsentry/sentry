@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {useMutation, useQuery} from '@tanstack/react-query';
+import {useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -13,21 +14,19 @@ import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
+import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 
 export default function UnsubscribeProject() {
-  const location = useLocation();
-  const signature = decodeScalar(location.query._);
+  const [signature] = useQueryState('_', parseAsScalar);
   const params = useParams();
   return (
     <SentryDocumentTitle title={t('Unsubscribe')}>
       <NarrowLayout>
         <h3>{t('Unsubscribe')}</h3>
         <UnsubscribeBody
-          signature={signature}
+          signature={signature ?? undefined}
           orgSlug={params.orgId!}
           issueId={params.id!}
         />

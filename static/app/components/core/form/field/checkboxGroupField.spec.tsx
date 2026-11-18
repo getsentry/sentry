@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {expectTypeOf} from 'expect-type';
 import {z} from 'zod';
 
 import {
@@ -23,6 +24,12 @@ const schema = z.object({
   scopes: z.array(z.string()).min(1, 'Select at least one scope'),
 });
 
+const typedSchema = z.object({
+  scopes: z.array(z.enum(['read', 'write'])),
+});
+
+type Scope = z.infer<typeof typedSchema>['scopes'][number];
+
 function TestForm({
   defaultValue = [],
   disabled,
@@ -44,20 +51,22 @@ function TestForm({
     <ScrapsForm form={form}>
       <form.Field name="scopes">
         {field => (
-          <field.Checkbox.Group
+          <field.CheckboxGroup
             value={field.value}
             onChange={field.handleChange}
             disabled={disabled}
           >
-            <field.Layout.Stack label="Scopes" hintText="Select permissions" required>
-              <Grid columns="repeat(2, 1fr)">
-                <field.Checkbox.Item value="read" disabled={disableFirst}>
-                  Read
-                </field.Checkbox.Item>
-                <field.Checkbox.Item value="write">Write</field.Checkbox.Item>
-              </Grid>
-            </field.Layout.Stack>
-          </field.Checkbox.Group>
+            {({Item}) => (
+              <field.Layout.Stack label="Scopes" hintText="Select permissions" required>
+                <Grid columns="repeat(2, 1fr)">
+                  <Item value="read" disabled={disableFirst}>
+                    Read
+                  </Item>
+                  <Item value="write">Write</Item>
+                </Grid>
+              </field.Layout.Stack>
+            )}
+          </field.CheckboxGroup>
         )}
       </form.Field>
       <form.SubmitButton>Save</form.SubmitButton>
@@ -78,12 +87,14 @@ function AutoSaveTestForm({
       mutationOptions={{mutationFn}}
     >
       {field => (
-        <field.Checkbox.Group value={field.value} onChange={field.handleChange}>
-          <field.Layout.Stack label="Scopes">
-            <field.Checkbox.Item value="read">Read</field.Checkbox.Item>
-            <field.Checkbox.Item value="write">Write</field.Checkbox.Item>
-          </field.Layout.Stack>
-        </field.Checkbox.Group>
+        <field.CheckboxGroup value={field.value} onChange={field.handleChange}>
+          {({Item}) => (
+            <field.Layout.Stack label="Scopes">
+              <Item value="read">Read</Item>
+              <Item value="write">Write</Item>
+            </field.Layout.Stack>
+          )}
+        </field.CheckboxGroup>
       )}
     </AutoSaveForm>
   );
@@ -99,7 +110,170 @@ function blurDisabledCheckbox(checkbox: HTMLElement) {
   });
 }
 
-describe('Checkbox.Group', () => {
+describe('CheckboxGroupField types', () => {
+  it('infers the item union and onChange array from a typed field value', () => {
+    function TypeTest({value = []}: {value?: Scope[]}) {
+      const form = useScrapsForm({defaultValues: {scopes: value}});
+
+      return (
+        <form.Field name="scopes">
+          {field => (
+            <field.CheckboxGroup
+              value={field.value}
+              onChange={next => {
+                expectTypeOf(next).toEqualTypeOf<Scope[]>();
+                field.handleChange(next);
+              }}
+            >
+              {({Item}) => {
+                expectTypeOf<
+                  React.ComponentProps<typeof Item>['value']
+                >().toEqualTypeOf<Scope>();
+                return <Item value="write">Write</Item>;
+              }}
+            </field.CheckboxGroup>
+          )}
+        </form.Field>
+      );
+    }
+    void TypeTest;
+  });
+
+  it('infers the schema item union for auto-save fields', () => {
+    function TypeTest() {
+      return (
+        <AutoSaveForm
+          name="scopes"
+          schema={typedSchema}
+          initialValue={[]}
+          mutationOptions={{
+            mutationFn: (data: z.infer<typeof typedSchema>) => Promise.resolve(data),
+          }}
+        >
+          {field => (
+            <field.CheckboxGroup
+              value={field.value}
+              onChange={next => {
+                expectTypeOf(next).toEqualTypeOf<Scope[]>();
+                field.handleChange(next);
+              }}
+            >
+              {({Item}) => {
+                expectTypeOf<
+                  React.ComponentProps<typeof Item>['value']
+                >().toEqualTypeOf<Scope>();
+                return (
+                  // @ts-expect-error Item values must belong to the schema's union.
+                  <Item value="delete">Delete</Item>
+                );
+              }}
+            </field.CheckboxGroup>
+          )}
+        </AutoSaveForm>
+      );
+    }
+    void TypeTest;
+  });
+
+  it('rejects invalid item values even with a wider onChange', () => {
+    function TypeTest({value}: {value: Scope[]}) {
+      const form = useScrapsForm({defaultValues: {scopes: value}});
+
+      return (
+        <form.Field name="scopes">
+          {field => (
+            <field.CheckboxGroup value={field.value} onChange={(_value: string[]) => {}}>
+              {({Item}) => {
+                expectTypeOf<
+                  React.ComponentProps<typeof Item>['value']
+                >().toEqualTypeOf<Scope>();
+                return (
+                  // @ts-expect-error Item values must belong to the field's item union.
+                  <Item value="delete">Delete</Item>
+                );
+              }}
+            </field.CheckboxGroup>
+          )}
+        </form.Field>
+      );
+    }
+    void TypeTest;
+  });
+
+  it('rejects an onChange callback that only accepts part of the item union', () => {
+    function TypeTest({value}: {value: Scope[]}) {
+      const form = useScrapsForm({defaultValues: {scopes: value}});
+
+      return (
+        <form.Field name="scopes">
+          {field => (
+            <field.CheckboxGroup
+              value={field.value}
+              // @ts-expect-error The callback must accept arrays with any allowed item value.
+              onChange={(_value: Array<'read'>) => {}}
+            >
+              {({Item}) => <Item value="write">Write</Item>}
+            </field.CheckboxGroup>
+          )}
+        </form.Field>
+      );
+    }
+    void TypeTest;
+  });
+
+  it('supports an explicit item type with an empty array', () => {
+    function TypeTest() {
+      const defaultValues: z.infer<typeof typedSchema> = {scopes: []};
+      const form = useScrapsForm({defaultValues});
+
+      return (
+        <form.Field name="scopes">
+          {field => (
+            <field.CheckboxGroup<Scope> value={[]} onChange={field.handleChange}>
+              {({Item}) => {
+                expectTypeOf<
+                  React.ComponentProps<typeof Item>['value']
+                >().toEqualTypeOf<Scope>();
+                return <Item value="write">Write</Item>;
+              }}
+            </field.CheckboxGroup>
+          )}
+        </form.Field>
+      );
+    }
+    void TypeTest;
+  });
+
+  it('supports fields with unrestricted string array values', () => {
+    function TypeTest({value}: {value: string[]}) {
+      const form = useScrapsForm({defaultValues: {scopes: value}});
+
+      return (
+        <form.Field name="scopes">
+          {field => (
+            <field.CheckboxGroup
+              value={field.value}
+              onChange={next => {
+                expectTypeOf(next).toEqualTypeOf<string[]>();
+                field.handleChange(next);
+              }}
+            >
+              {({Item}) => {
+                expectTypeOf<
+                  React.ComponentProps<typeof Item>['value']
+                >().toEqualTypeOf<string>();
+                return <Item value="custom">Custom</Item>;
+              }}
+            </field.CheckboxGroup>
+          )}
+        </form.Field>
+      );
+    }
+    void TypeTest;
+  });
+});
+
+describe('CheckboxGroupField', () => {
   it('names the group and associates each checkbox with its label and hint', async () => {
     render(<TestForm />);
 
@@ -114,6 +288,7 @@ describe('Checkbox.Group', () => {
     await userEvent.click(screen.getByText('Read'));
     expect(read).toBeChecked();
     expect(write).not.toBeChecked();
+    expect(read).toHaveFocus();
   });
 
   it('adds and removes selections while preserving values without a rendered item', async () => {

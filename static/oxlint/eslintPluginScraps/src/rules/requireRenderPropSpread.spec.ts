@@ -156,6 +156,17 @@ ruleTester.run('require-render-prop-spread', requireRenderPropSpread, {
       `,
     },
     {
+      name: 'ignores typed tabs component render props',
+      code: `
+        import {Tabs as Sections} from '@sentry/scraps/tabs';
+        import * as Tabs from '@sentry/scraps/tabs';
+        const elements = [
+          <Sections>{({TabList}) => <TabList><TabList.Item key="details">Details</TabList.Item></TabList>}</Sections>,
+          <Tabs.Tabs>{({TabPanels}) => <TabPanels><TabPanels.Item key="details">Content</TabPanels.Item></TabPanels>}</Tabs.Tabs>,
+        ];
+      `,
+    },
+    {
       name: 'ignores form render props',
       code: `
         import {AutoSaveForm} from '@sentry/scraps/form';

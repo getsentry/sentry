@@ -1,3 +1,4 @@
+from datetime import timedelta
 from threading import Barrier
 from unittest.mock import patch
 
@@ -5,12 +6,17 @@ import pytest
 from pydantic import ValidationError
 
 from sentry.agent_handoff.codes import (
+    EXPIRED_HANDOFF_RETENTION,
     HANDOFF_LIFETIME,
+    AddFeatureContext,
+    AddFeatureHandoff,
+    AddFeatureProduct,
     GuidedNextStepsHandoff,
+    HandoffExpired,
     HandoffFlow,
     HandoffIPMismatch,
     IssuedAgentHandoff,
-    OnboardingHandoffContext,
+    ProjectSetupContext,
     _get_redis_client,
     _handoff_key,
     _StoredAgentHandoff,
@@ -19,8 +25,9 @@ from sentry.agent_handoff.codes import (
     revoke_handoff,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import control_silo_test
-from sentry.utils import json
+from sentry.utils import hashlib, json
 from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 
 
@@ -50,14 +57,23 @@ class AgentHandoffTest(TestCase):
         assert issued.code not in key
         assert issued.code.encode() not in raw
         assert issued.code not in repr(issued)
-        assert 0 < client.ttl(key) <= int(HANDOFF_LIFETIME.total_seconds())
+        retention = HANDOFF_LIFETIME + EXPIRED_HANDOFF_RETENTION
+        assert int(HANDOFF_LIFETIME.total_seconds()) < client.ttl(key)
+        assert client.ttl(key) <= int(retention.total_seconds())
         assert json.loads(raw) == {
             "user_id": 1,
             "organization_id": 2,
             "application_id": 3,
             "scope_list": ["org:read", "project:write"],
             "ip_address": "192.0.2.1",
+            "expires_at": issued.expires_at.isoformat(),
+            "handoff_id": issued.handoff_id,
         }
+
+    def test_each_handoff_gets_a_distinct_id(self) -> None:
+        first, second = self.issue(), self.issue()
+        assert len(first.handoff_id) == 32
+        assert first.handoff_id != second.handoff_id
 
     def test_consume_is_single_use(self) -> None:
         issued = self.issue()
@@ -67,13 +83,43 @@ class AgentHandoffTest(TestCase):
             application_id=3,
             scope_list=("org:read", "project:write"),
             ip_address="192.0.2.1",
+            expires_at=issued.expires_at,
+            handoff_id=issued.handoff_id,
         )
         assert consume_handoff(issued.code, ip_address="192.0.2.1") is None
 
-    def test_expired_handoff_is_unavailable(self) -> None:
+    def test_evicted_handoff_is_unavailable(self) -> None:
         issued = self.issue()
         _get_redis_client().expire(_handoff_key(issued.code), 0)
         assert consume_handoff(issued.code, ip_address="192.0.2.1") is None
+
+    def test_expired_handoff_is_retained_for_attribution(self) -> None:
+        issued = self.issue()
+        with freeze_time(issued.expires_at + timedelta(seconds=1)):
+            for _ in range(2):
+                with pytest.raises(HandoffExpired) as error:
+                    consume_handoff(issued.code, ip_address="192.0.2.1")
+                assert error.value.handoff.user_id == 1
+
+    def test_expiry_takes_precedence_over_ip_mismatch(self) -> None:
+        issued = self.issue()
+        with freeze_time(issued.expires_at), pytest.raises(HandoffExpired):
+            consume_handoff(issued.code, ip_address="192.0.2.2")
+
+    def test_handoff_from_previous_key_version_is_unavailable(self) -> None:
+        issued = self.issue()
+        client = _get_redis_client()
+        raw = client.get(_handoff_key(issued.code))
+        assert raw is not None
+        client.delete(_handoff_key(issued.code))
+        client.set(f"agent-handoff:v3:{hashlib.sha256_text(issued.code).hexdigest()}", raw)
+        assert consume_handoff(issued.code, ip_address="192.0.2.1") is None
+
+    def test_ip_mismatch_carries_handoff(self) -> None:
+        issued = self.issue()
+        with pytest.raises(HandoffIPMismatch) as error:
+            consume_handoff(issued.code, ip_address="192.0.2.2")
+        assert error.value.handoff.user_id == 1
 
     def test_revoke_is_idempotent(self) -> None:
         issued = self.issue()
@@ -143,7 +189,7 @@ class AgentHandoffTest(TestCase):
 
 def test_handoff_defaults_to_guided_next_steps() -> None:
     handoff = _StoredAgentHandoff.parse_raw(
-        '{"user_id":1,"organization_id":2,"application_id":3,"scope_list":["org:read"]}',
+        '{"user_id":1,"organization_id":2,"application_id":3,"scope_list":["org:read"],"expires_at":"2026-01-01T00:00:00Z","handoff_id":"h"}',
     ).__root__
     assert handoff.flow is HandoffFlow.GUIDED_NEXT_STEPS
     assert handoff.ip_address is None
@@ -153,7 +199,7 @@ def test_unknown_handoff_flow_is_rejected() -> None:
     with pytest.raises(ValidationError, match="flow"):
         _StoredAgentHandoff.parse_raw(
             '{"flow":"unsupported","user_id":1,"organization_id":2,'
-            '"application_id":3,"scope_list":["org:read"]}',
+            '"application_id":3,"scope_list":["org:read"],"expires_at":"2026-01-01T00:00:00Z","handoff_id":"h"}',
         )
 
 
@@ -161,7 +207,7 @@ def test_guided_next_steps_rejects_onboarding_context() -> None:
     with pytest.raises(ValidationError, match="context"):
         _StoredAgentHandoff.parse_raw(
             '{"flow":"guided_next_steps","user_id":1,"organization_id":2,'
-            '"application_id":3,"scope_list":["org:read"],'
+            '"application_id":3,"scope_list":["org:read"],"expires_at":"2026-01-01T00:00:00Z","handoff_id":"h",'
             '"context":{"run_id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}',
         )
 
@@ -169,16 +215,53 @@ def test_guided_next_steps_rejects_onboarding_context() -> None:
 def test_onboarding_flow_preserves_typed_context() -> None:
     handoff = _StoredAgentHandoff.parse_raw(
         '{"flow":"onboarding","user_id":1,"organization_id":2,'
-        '"application_id":3,"scope_list":["org:read"],'
+        '"application_id":3,"scope_list":["org:read"],"expires_at":"2026-01-01T00:00:00Z","handoff_id":"h",'
         '"context":{"run_id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}',
     ).__root__
     assert handoff.flow is HandoffFlow.ONBOARDING
-    assert handoff.context == OnboardingHandoffContext(run_id="a" * 32)
+    assert handoff.context == ProjectSetupContext(run_id="a" * 32)
 
 
 def test_onboarding_flow_requires_run_context() -> None:
     with pytest.raises(ValidationError, match="context"):
         _StoredAgentHandoff.parse_raw(
             '{"flow":"onboarding","user_id":1,"organization_id":2,'
-            '"application_id":3,"scope_list":["org:read"]}',
+            '"application_id":3,"scope_list":["org:read"],"expires_at":"2026-01-01T00:00:00Z","handoff_id":"h"}',
+        )
+
+
+def test_create_project_flow_preserves_typed_context() -> None:
+    handoff = _StoredAgentHandoff.parse_raw(
+        '{"flow":"create_project","user_id":1,"organization_id":2,'
+        '"application_id":3,"scope_list":["org:read"],"expires_at":"2026-01-01T00:00:00Z","handoff_id":"h",'
+        '"context":{"run_id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}}',
+    ).__root__
+    assert handoff.flow is HandoffFlow.CREATE_PROJECT
+    assert handoff.context == ProjectSetupContext(run_id="a" * 32)
+
+
+def test_create_project_flow_requires_run_context() -> None:
+    with pytest.raises(ValidationError, match="context"):
+        _StoredAgentHandoff.parse_raw(
+            '{"flow":"create_project","user_id":1,"organization_id":2,'
+            '"application_id":3,"scope_list":["org:read"],"expires_at":"2026-01-01T00:00:00Z","handoff_id":"h"}',
+        )
+
+
+def test_add_feature_flow_preserves_typed_context() -> None:
+    handoff = _StoredAgentHandoff.parse_raw(
+        '{"flow":"add_feature","user_id":1,"organization_id":2,'
+        '"application_id":3,"scope_list":["org:read"],"expires_at":"2026-01-01T00:00:00Z","handoff_id":"h",'
+        '"context":{"product":"tracing","project_id":42}}',
+    ).__root__
+    assert isinstance(handoff, AddFeatureHandoff)
+    assert handoff.flow is HandoffFlow.ADD_FEATURE
+    assert handoff.context == AddFeatureContext(product=AddFeatureProduct.TRACING, project_id=42)
+
+
+def test_add_feature_flow_requires_context() -> None:
+    with pytest.raises(ValidationError, match="context"):
+        _StoredAgentHandoff.parse_raw(
+            '{"flow":"add_feature","user_id":1,"organization_id":2,'
+            '"application_id":3,"scope_list":["org:read"],"expires_at":"2026-01-01T00:00:00Z","handoff_id":"h"}',
         )

@@ -33,7 +33,6 @@ import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
 import {t, tn} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -56,6 +55,8 @@ import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 import {NavigationMenuHeader} from './navigationMenuHeader';
 
 const QUICK_ACCESS_PROJECT_LIMIT = 5;
+
+export const ORGANIZATION_MENU_MAX_WIDTH = 258;
 
 type OrgMenuProjectSource = 'quick_access' | 'all_projects';
 
@@ -84,7 +85,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   const [isMenuOpen, setMenuOpen] = useState(false);
   const isProjectTourActive = settingsTour?.currentStepId === 'projects';
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const {organizations} = useLegacyStore(OrganizationsStore);
+  const organizations = useStore(OrganizationsStore, state => state.organizations);
 
   const [activeOrgs, inactiveOrgs] = partition(
     organizations.filter(org => org.slug !== organization.slug),
@@ -156,7 +157,9 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
       id="entry"
       position="bottom-start"
       title={t('Access Settings here')}
-      description={t('Yep. We "moved the cheese", but it\'s for the better...')}
+      description={t(
+        'Consider this a breaking change to your muscle memory. Worth the upgrade, we swear.'
+      )}
     >
       {tourProps => (
         <AvatarButton
@@ -237,7 +240,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
             portalContainerRef={portalContainerRef}
             zIndex={theme.zIndex.modal}
             trigger={trigger}
-            maxWidth={258}
+            maxWidth={ORGANIZATION_MENU_MAX_WIDTH}
             menuTitle={
               <NavigationMenuHeader
                 organization={organization}
@@ -309,7 +312,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                       title: t('All Projects'),
                       emptyMessage: t('No projects found'),
                       search: {placeholder: t('Search')},
-                      maxWidth: 258,
+                      maxWidth: ORGANIZATION_MENU_MAX_WIDTH,
                     },
                     hidden: projects.length === 0,
                     children: [

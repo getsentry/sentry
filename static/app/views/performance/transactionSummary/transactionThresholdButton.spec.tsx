@@ -38,7 +38,7 @@ function ExampleTransactionThresholdButton({
 }
 
 describe('TransactionThresholdButton', () => {
-  const organization = OrganizationFixture({features: ['performance-view']});
+  const organization = OrganizationFixture();
   const project = ProjectFixture();
   const eventView = new EventView({
     id: '1',

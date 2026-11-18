@@ -211,7 +211,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         return [summarize_member(m) for m in members]
 
     def serialize_organization(self, *, id: int, as_user: RpcUser | None = None) -> Any | None:
-        org = Organization.objects.filter(id=id).first()
+        org = Organization.objects.get_or_none(id=id)
         if org is None:
             return None
         return serialize(org, user=as_user)
@@ -378,9 +378,9 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 OrganizationMember.objects.filter(organization_id=org.id), email
             )
         if member is None and organization_member_id is not None:
-            member = OrganizationMember.objects.filter(
+            member = OrganizationMember.objects.get_or_none(
                 organization_id=org.id, id=organization_member_id
-            ).first()
+            )
 
         if member is None:
             return None
@@ -723,9 +723,9 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 OrganizationMemberTeam.objects.filter(
                     organizationmember=from_member, team=team
                 ).delete()
-                to_member_team = OrganizationMemberTeam.objects.filter(
+                to_member_team = OrganizationMemberTeam.objects.get_or_none(
                     organizationmember=to_member, team=team
-                ).first()
+                )
                 if to_member_team is None:
                     OrganizationMemberTeam.objects.create(organizationmember=to_member, team=team)
 
@@ -965,7 +965,7 @@ class ControlOrganizationCheckService(OrganizationCheckService):
 
     def check_organization_by_id(self, *, id: int, only_visible: bool) -> bool:
         # See CellOrganizationCheckService below
-        org_mapping = OrganizationMapping.objects.filter(organization_id=id).first()
+        org_mapping = OrganizationMapping.objects.get_or_none(organization_id=id)
         if org_mapping is None:
             return False
         if only_visible and org_mapping.status != OrganizationStatus.ACTIVE:

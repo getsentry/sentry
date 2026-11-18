@@ -22,6 +22,7 @@ import {
   knownAgentIntegrationsQueryOptions,
   coalesePreferredAgent,
 } from 'sentry/utils/seer/preferredAgent';
+import {PR_ITERATION_OPTIONS} from 'sentry/utils/seer/prIteration';
 import {
   getSeerProjectReposInfiniteQueryOptions,
   isGitHubProvider,
@@ -219,6 +220,33 @@ export function AutofixAgent({canWrite, project}: Props) {
                 value={field.value}
                 onChange={field.handleChange}
                 options={stoppingPointOptions}
+              />
+            </field.Layout.Row>
+          )}
+        </AutoSaveForm>
+
+        <AutoSaveForm
+          name="prIteration"
+          schema={seerProjectSettingsSchema}
+          initialValue={data.prIteration}
+          mutationOptions={getMutateSeerProjectSettingsOptions({
+            organization,
+            project: {slug: project.slug},
+            queryClient,
+          })}
+        >
+          {field => (
+            <field.Layout.Row
+              label={t('Auto-Iterate on PRs')}
+              hintText={t(
+                'After opening a PR, Seer automatically pushes fixes when CI checks fail. You can still ask Seer to iterate on a PR yourself.'
+              )}
+            >
+              <field.Select
+                disabled={!canWrite}
+                value={field.value}
+                onChange={field.handleChange}
+                options={PR_ITERATION_OPTIONS}
               />
             </field.Layout.Row>
           )}

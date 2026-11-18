@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 from abc import abstractmethod
-from collections.abc import Sequence
-from dataclasses import dataclass
+from collections import defaultdict
+from collections.abc import Iterable, Sequence
+from dataclasses import dataclass, replace
 from enum import StrEnum
 from typing import TYPE_CHECKING, Protocol, TypedDict
 
-from sentry.services.eventstore.models import GroupEvent
 from sentry.workflow_engine.types import (
     ActionId,
     DataConditionGroupId,
@@ -82,7 +82,7 @@ class WorkflowEvaluationArtifact(BaseWorkflowEngineEvaluationArtifact):
     evaluation_phase: EvaluationPhase
     evaluation_type: EvaluationType
     filter_evaluations: Sequence[DataConditionGroupEvaluationArtifact]
-    group_id: GroupId
+    group_id: GroupId | None
     outcome: WorkflowEvaluationOutcome
     project_id: int | None
     trigger_evaluation: DataConditionGroupEvaluationArtifact
@@ -142,11 +142,7 @@ class WorkflowEvaluation(
             deferred = None
 
         event_data = self.data["event"]
-        event_id = (
-            event_data.event.event_id
-            if isinstance(event_data.event, GroupEvent)
-            else event_data.event.id
-        )
+        event_id = event_data.event_id
         return WorkflowEvaluationArtifact(
             triggered=triggered,
             error=error,
@@ -159,9 +155,9 @@ class WorkflowEvaluation(
             filter_evaluations=[
                 evaluation.to_artifact() for evaluation in self.data.get("filter_group_evals")
             ],
-            group_id=event_data.group.id,
+            group_id=event_data.group_id,
             outcome=self.outcome,
-            project_id=event_data.event.project_id,
+            project_id=event_data.project_id,
             trigger_evaluation=self.data.get("trigger_group_eval").to_artifact(),
             triggered_action_ids=triggered_action_ids,
             workflow_id=self.workflow_id,
@@ -187,9 +183,34 @@ class ProcessWorkflowsResult(WorkflowEvaluationBatch):
     detector_type: str | None = None
     evaluations: dict[WorkflowId, WorkflowEvaluation]
     event_id: str | None
-    group_id: int
+    group_id: int | None
     outcome: WorkflowEvaluationOutcome
-    project_id: int
+    project_id: int | None
+
+    def with_triggered_actions(
+        self, actions: Iterable[Action], action_to_workflow_id: dict[ActionId, WorkflowId]
+    ) -> ProcessWorkflowsResult:
+        """
+        Return a copy whose non-deferred evaluations carry the actions triggered for them.
+
+        `action_to_workflow_id` attributes each action to a single workflow, so an action
+        shared across workflows is counted once.
+        """
+        actions_by_workflow: dict[WorkflowId, list[Action]] = defaultdict(list)
+        for action in actions:
+            if (workflow_id := action_to_workflow_id.get(action.id)) is not None:
+                actions_by_workflow[workflow_id].append(action)
+        return replace(
+            self,
+            evaluations={
+                workflow_id: (
+                    evaluation
+                    if isinstance(evaluation.result, DeferredWorkflowEvaluationResult)
+                    else replace(evaluation, result=actions_by_workflow.get(workflow_id, []))
+                )
+                for workflow_id, evaluation in self.evaluations.items()
+            },
+        )
 
     def has_triggered_actions(self) -> bool:
         return any(

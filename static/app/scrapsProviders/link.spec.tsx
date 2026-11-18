@@ -1,9 +1,61 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderHookWithProviders,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
-import {Link} from '@sentry/scraps/link';
+import {
+  Link,
+  useLinkQueryString,
+  useResolveLinkHref,
+  type LinkProps,
+} from '@sentry/scraps/link';
 import {TrackingContextProvider} from '@sentry/scraps/trackingContext';
 
+import * as qs from 'sentry/utils/url/qs';
+
 describe('SentryLinkBehaviorProvider', () => {
+  it('exposes the shared query helpers through the context', () => {
+    const {result} = renderHookWithProviders(() => useLinkQueryString());
+    expect(result.current.parse).toBe(qs.parse);
+    expect(result.current.stringify).toBe(qs.stringify);
+    expect(result.current.parse('?flag&tag=one&tag=two')).toEqual({
+      flag: null,
+      tag: ['one', 'two'],
+    });
+    expect(result.current.stringify({q: 'a b+c~*', flag: null})).toBe(
+      'flag&q=a%20b%2Bc~%2A'
+    );
+  });
+
+  it.each<[LinkProps['to'], string]>([
+    [{query: {q: 'a b'}}, '?q=a%20b'],
+    [{hash: 'details'}, '#details'],
+    [{}, ''],
+  ])('keeps destinations without a pathname relative: %j', (to, href) => {
+    const {result} = renderHookWithProviders(() => useResolveLinkHref());
+    expect(result.current(to)).toBe(href);
+  });
+
+  it('resolves collection hrefs with the same query encoding as router links', () => {
+    const to: LinkProps['to'] = {
+      pathname: '/issues/',
+      search: '?old=true',
+      query: {tag: ['one', 'two'], query: 'a b+c~*', flag: null, absent: undefined},
+      hash: 'details',
+    };
+    const href = '/issues/?flag&query=a%20b%2Bc~%2A&tag=one&tag=two#details';
+    render(<Link to={to}>Issues</Link>);
+    expect(screen.getByRole('link', {name: 'Issues'})).toHaveAttribute('href', href);
+
+    const {result} = renderHookWithProviders(() => useResolveLinkHref());
+    expect(result.current(to)).toBe(href);
+    expect(result.current('/issues/?query=a%20b#details')).toBe(
+      '/issues/?query=a%20b#details'
+    );
+  });
+
   it('uses Sentry routing for object destinations without duplicating clicks', async () => {
     const onClick = jest.fn();
     const tracking = jest.fn();
