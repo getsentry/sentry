@@ -212,7 +212,10 @@ export function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
       });
 
       // Note the order of uniqBy: we prioritize project data recently fetched over previously cached data
-      const fetchedProjects = uniqBy([...results, ...store.projects], ({slug}) => slug);
+      const fetchedProjects = uniqBy(
+        [...results, ...ProjectsStore.getState().projects],
+        ({slug}) => slug
+      );
       ProjectsStore.loadInitialData(fetchedProjects);
 
       setState(prev => ({
@@ -259,10 +262,11 @@ export function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
         cursor,
       });
 
-      const fetchedProjects = uniqBy([...store.projects, ...results], ({slug}) => slug);
+      const currentProjects = ProjectsStore.getState().projects;
+      const fetchedProjects = uniqBy([...currentProjects, ...results], ({slug}) => slug);
 
       // Only update the store if we have more items
-      if (fetchedProjects.length > store.projects.length) {
+      if (fetchedProjects.length > currentProjects.length) {
         ProjectsStore.loadInitialData(fetchedProjects);
       }
 
