@@ -484,7 +484,6 @@ jobs:
           path: |
             .artifacts/resource-usage.jsonl
             .artifacts/resource-usage-summary.json
-            .artifacts/relay-timings.jsonl
           retention-days: 30
 
       - name: Report failures

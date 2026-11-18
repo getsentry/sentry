@@ -209,18 +209,8 @@ def _start_relay(relay_server_setup: RelayServerSetup) -> None:
     # Keep the docker client open through the readiness wait so the error paths
     # below can still fetch `container.logs()` for diagnostics.
     with get_docker_client() as docker_client:
-        # TEMPORARY measurement for #131668, reverted before review.
-        t0 = time.monotonic()
         container_name = _relay_server_container_name()
         _remove_container_if_exists(docker_client, container_name)
-        t1 = time.monotonic()
-        try:
-            docker_client.images.get(RELAY_TEST_IMAGE)
-            pulled = False
-        except docker.errors.ImageNotFound:
-            docker_client.images.pull(RELAY_TEST_IMAGE)
-            pulled = True
-        t2 = time.monotonic()
         # Docker may not release the host port binding immediately after
         # container removal; retry to ride out the race window.
         for attempt in range(5):
@@ -248,17 +238,6 @@ def _start_relay(relay_server_setup: RelayServerSetup) -> None:
         readiness_url = f"{url}{_READINESS_PATH}"
         try:
             _wait_until_ready(readiness_url, timeout=25.5)
-            _record_timing(
-                {
-                    "ts": time.time(),
-                    "worker": xdist._worker_id,
-                    "test": environ.get("PYTEST_CURRENT_TEST", ""),
-                    "pulled": pulled,
-                    "remove_s": round(t1 - t0, 3),
-                    "pull_s": round(t2 - t1, 3),
-                    "start_s": round(time.monotonic() - t2, 3),
-                }
-            )
         except TimeoutError as e:
             try:
                 logs = container.logs().decode()
@@ -268,13 +247,6 @@ def _start_relay(relay_server_setup: RelayServerSetup) -> None:
             raise ValueError(
                 f"relay did not become ready in time (now: {datetime.datetime.now().isoformat()}, last result: {e}) {readiness_url}:\n{logs}"
             ) from e
-
-
-def _record_timing(record: dict[str, object]) -> None:
-    import json
-
-    with open(path.join(".artifacts", "relay-timings.jsonl"), "a") as f:
-        f.write(json.dumps(record) + "\n")
 
 
 def _is_ready(url: str) -> bool:
