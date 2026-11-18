@@ -1,6 +1,5 @@
 import {memo, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {IconChevron} from '@sentry/icons/chevron';
 import {IconEdit} from '@sentry/icons/edit';
 import {IconRefresh} from '@sentry/icons/refresh';
 import {useQueryClient} from '@tanstack/react-query';
@@ -35,6 +34,7 @@ import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExploreQuotaExceededAlert} from 'sentry/views/explore/components/exploreQuotaExceededAlert';
 import {ExploreShareButton} from 'sentry/views/explore/components/exploreShareButton';
+import {ExploreSidebarToggle} from 'sentry/views/explore/components/exploreSidebarToggle';
 import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
 import {
   ExploreBodyContent,
@@ -92,7 +92,6 @@ import {LogsToolbar} from './logsToolbar';
 import {
   LogsGraphContainer,
   LogsItemContainer,
-  LogsSidebarCollapseButton,
   LogsTableActionsContainer,
   StyledPageFilterBar,
   TableActionsContainer,
@@ -265,6 +264,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const searchQuery = useQueryParamsSearch().formatString();
   const visualizes = useQueryParamsVisualizes();
+  const [interval] = useChartInterval();
 
   useLLMContext({
     contextHint:
@@ -277,7 +277,8 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
     fields,
     sortBys: sortBys.map(s => (s.kind === 'desc' ? `-${s.field}` : s.field)),
     groupBys: groupBys.filter(g => g !== ''),
-    visualizes: visualizes.map(v => v.yAxis),
+    visualizes: visualizes.map(v => v.serialize()),
+    interval,
     currentSelectedDateRange: pageFilters.selection.datetime,
     ...toLLMContextProjectFields(selectedProjects),
   });
@@ -286,9 +287,6 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
     getMaxIngestDelayTimestamp()
   );
   usePersistentLogsPageParameters(); // persist the columns you chose last time
-
-  // always use the smallest interval possible (the most bars)
-  const [interval] = useChartInterval();
 
   const [sidebarOpen, setSidebarOpen] = useState(mode === Mode.AGGREGATE);
 
@@ -471,32 +469,15 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
       <LogsSearchSection datePageFilterProps={datePageFilterProps} />
       <ViewportConstrainedPage constrained={mode === Mode.SAMPLES} hideFooter>
         <ViewportConstrainedBody>
-          <Container display={{zero: 'none', '3xl': 'block'}}>
-            {controlProps => (
-              <ExploreControlSection {...controlProps} expanded={sidebarOpen}>
-                {sidebarOpen ? <LogsToolbar /> : null}
-              </ExploreControlSection>
-            )}
-          </Container>
+          <ExploreControlSection expanded={sidebarOpen}>
+            {sidebarOpen ? <LogsToolbar /> : null}
+          </ExploreControlSection>
           <ExploreContentSection gap="md">
             <OverChartButtonGroup>
-              <Container display={{zero: 'none', '3xl': 'inline-flex'}}>
-                <LogsSidebarCollapseButton
-                  sidebarOpen={sidebarOpen}
-                  aria-label={sidebarOpen ? t('Collapse sidebar') : t('Expand sidebar')}
-                  size="xs"
-                  icon={
-                    <IconChevron
-                      isDouble
-                      direction={sidebarOpen ? 'left' : 'right'}
-                      size="xs"
-                    />
-                  }
-                  onClick={() => setSidebarOpen(!sidebarOpen)}
-                >
-                  {sidebarOpen ? null : t('Advanced')}
-                </LogsSidebarCollapseButton>
-              </Container>
+              <ExploreSidebarToggle
+                expanded={sidebarOpen}
+                onExpandedChange={setSidebarOpen}
+              />
               <Flex gap="xs">
                 <ExploreShareButton traceItemDataset={TraceItemDataset.LOGS} />
                 {mode === Mode.AGGREGATE ? (
@@ -603,6 +584,5 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
 export const LogsTabContent = registerLLMContext('logs-explorer', LogsTabContentInner);
 
 const ViewportConstrainedBody = styled(ExploreBodyContent)`
-  flex-direction: row;
   min-height: 0;
 `;

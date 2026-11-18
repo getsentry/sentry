@@ -1,11 +1,8 @@
 import {Fragment} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {IconChevron} from '@sentry/icons/chevron';
 import {useQuery} from '@tanstack/react-query';
 
-import {Button} from '@sentry/scraps/button';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Flex} from '@sentry/scraps/layout';
 
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
@@ -29,6 +26,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {ChartSelectionProvider} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
 import {ExploreQuotaExceededAlert} from 'sentry/views/explore/components/exploreQuotaExceededAlert';
 import {ExploreShareButton} from 'sentry/views/explore/components/exploreShareButton';
+import {ExploreSidebarToggle} from 'sentry/views/explore/components/exploreSidebarToggle';
 import {OverChartButtonGroup} from 'sentry/views/explore/components/overChartButtonGroup';
 import {
   ExploreBodyContent,
@@ -211,6 +209,7 @@ function SpanTabContentSectionInner({
   const sortBys = useQueryParamsSortBys();
   const aggregateSortBys = useQueryParamsAggregateSortBys();
   const groupBys = useQueryParamsGroupBys();
+  const [interval] = useChartInterval();
 
   // In aggregate mode the table is driven by aggregateSortBys, not the
   // samples sort (which falls back to `-timestamp`), so pick accordingly.
@@ -226,7 +225,8 @@ function SpanTabContentSectionInner({
       'When projectIds/projectSlugs are empty, that is expected for My/All Projects — follow projectSelectionInstruction.',
     searchQuery: query,
     activeTab: tab,
-    visualizes: visualizes.map(v => v.yAxis),
+    visualizes: visualizes.map(v => v.serialize()),
+    interval,
     groupBys: groupBys.filter(g => g !== ''),
     sortBys: activeSortBys.map(s => (s.kind === 'desc' ? `-${s.field}` : s.field)),
     currentSelectedDateRange: selection.datetime,
@@ -289,8 +289,6 @@ function SpanTabContentSectionInner({
       },
     });
 
-  const [interval] = useChartInterval();
-
   useAnalytics({
     queryType,
     aggregatesTableResult,
@@ -304,23 +302,10 @@ function SpanTabContentSectionInner({
   return (
     <ExploreContentSection gap="md">
       <OverChartButtonGroup>
-        <ChevronButton
-          aria-label={
-            controlSectionExpanded ? t('Collapse sidebar') : t('Expand sidebar')
-          }
+        <ExploreSidebarToggle
           expanded={controlSectionExpanded}
-          size="xs"
-          icon={
-            <IconChevron
-              isDouble
-              direction={controlSectionExpanded ? 'left' : 'right'}
-              size="xs"
-            />
-          }
-          onClick={() => setControlSectionExpanded(!controlSectionExpanded)}
-        >
-          {controlSectionExpanded ? null : t('Advanced')}
-        </ChevronButton>
+          onExpandedChange={setControlSectionExpanded}
+        />
         <Flex gap="xs">
           <ExploreShareButton traceItemDataset={TraceItemDataset.SPANS} />
           <TracesExportModalButton
@@ -394,32 +379,4 @@ const SpanTabContentSection = registerLLMContext(
 
 const OnboardingContentSection = styled('section')`
   grid-column: 1/3;
-`;
-
-export function ChevronButton(
-  props: React.ComponentProps<typeof Button> & {expanded: boolean}
-) {
-  return (
-    <Container as="span" display="inline-flex">
-      <StyledChevronButton {...props} />
-    </Container>
-  );
-}
-
-const StyledChevronButton = styled(Button)<{expanded: boolean}>`
-  ${p =>
-    p.expanded &&
-    css`
-      @container (min-width: ${p.theme.container.xl}) {
-        margin-left: -17px;
-        border-top-left-radius: 0;
-        border-bottom-left-radius: 0;
-
-        &::after {
-          border-left-color: ${p.theme.tokens.border.primary};
-          border-top-left-radius: 0;
-          border-bottom-left-radius: 0;
-        }
-      }
-    `}
 `;

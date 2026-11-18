@@ -148,6 +148,21 @@ describe('Inbox', () => {
     expect(await screen.findByText('Your inbox is empty')).toBeInTheDocument();
   });
 
+  it('links to the Inbox notification settings', async () => {
+    render(<Inbox />, {organization});
+
+    const settingsButton = await screen.findByRole('button', {
+      name: 'Inbox notification settings',
+    });
+    expect(settingsButton).toHaveAttribute(
+      'href',
+      '/settings/account/notifications/inbox/'
+    );
+
+    await userEvent.hover(settingsButton);
+    expect(await screen.findByText('Go to Inbox settings')).toBeInTheDocument();
+  });
+
   it('shows an error state when items fail to load', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/inbox/',
@@ -825,8 +840,8 @@ describe('Inbox', () => {
       ).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('button', {name: 'Filter'}));
-      await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Recipient'}));
-      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Team'}));
+      await userEvent.hover(screen.getByRole('menuitem', {name: 'Recipient'}));
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Team'}));
       await userEvent.keyboard('{Escape}');
       await userEvent.keyboard('{Escape}');
 
@@ -869,8 +884,10 @@ describe('Inbox', () => {
       ).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('button', {name: 'Filter'}));
-      await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Subject'}));
-      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Investigation'}));
+      await userEvent.hover(screen.getByRole('menuitem', {name: 'Subject'}));
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Investigation'})
+      );
 
       await waitFor(() => expect(filteredRequest).toHaveBeenCalled());
       expect(
@@ -909,9 +926,9 @@ describe('Inbox', () => {
       });
 
       await userEvent.click(await screen.findByRole('button', {name: 'Filter'}));
-      await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Type'}));
+      await userEvent.hover(screen.getByRole('menuitem', {name: 'Type'}));
       await userEvent.click(
-        screen.getByRole('menuitemradio', {name: 'Issue assigned to you'})
+        await screen.findByRole('menuitemradio', {name: 'Issue assigned to you'})
       );
       await userEvent.click(
         screen.getByRole('menuitemradio', {name: 'Investigation mentioned you'})
@@ -985,8 +1002,10 @@ describe('Inbox', () => {
       expect(screen.getAllByTestId('unread-inbox-item-indicator')).toHaveLength(2);
 
       await userEvent.click(screen.getByRole('button', {name: 'Filter'}));
-      await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Subject'}));
-      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Investigation'}));
+      await userEvent.hover(screen.getByRole('menuitem', {name: 'Subject'}));
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Investigation'})
+      );
       await waitFor(() =>
         expect(
           screen.queryByRole('link', {name: /TypeError: Cannot read properties/})
