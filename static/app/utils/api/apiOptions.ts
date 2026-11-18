@@ -249,8 +249,10 @@ export const apiOptions = {
       _apiOptionsInfinite<TManualData>(path, options as never),
 
   /**
-   * A query key for query filters like `invalidateQueries`. It can be partial, so it
-   * is not meant for `useQuery`.
+   * A partial query key, only for filters that match partially, like
+   * `invalidateQueries`, `setQueriesData` or `queryCache.findAll`. It never
+   * matches with `exact: true`, `getQueryData`, `setQueryData`, `getQueryState` or
+   * `queryCache.find`, and it can not be used with `useQuery` or `fetchQuery`.
    *
    * A url without `*` matches exactly that url, with any other options. A prefix
    * ending in `/*` matches that url and everything below it, and leaves path
