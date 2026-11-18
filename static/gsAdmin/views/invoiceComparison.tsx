@@ -6,6 +6,7 @@ import {parseAsString, useQueryState} from 'nuqs';
 import {Alert} from '@sentry/scraps/alert';
 import {Tag, type TagProps} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {Checkbox} from '@sentry/scraps/checkbox';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -69,6 +70,23 @@ const STATUS_VARIANT: Record<RowStatus, TagProps['variant']> = {
   legacy_only: 'danger',
   platform_only: 'danger',
 };
+
+const ROW_STATUSES: readonly RowStatus[] = [
+  'mismatch',
+  'match',
+  'legacy_only',
+  'platform_only',
+];
+// Mirrors the endpoint's default, so the checkboxes match what loads first.
+const DEFAULT_STATUSES: readonly RowStatus[] = ['mismatch'];
+
+// Known statuses from the repeated `status` param, in ROW_STATUSES order.
+// None left falls back to DEFAULT_STATUSES.
+function parseStatusParam(value: unknown): RowStatus[] {
+  const raw: unknown[] = Array.isArray(value) ? value : [value];
+  const statuses = ROW_STATUSES.filter(status => raw.includes(status));
+  return statuses.length > 0 ? statuses : [...DEFAULT_STATUSES];
+}
 
 function formatDollars(cents: number | null) {
   if (cents === null) {
@@ -202,6 +220,8 @@ export function InvoiceComparison() {
   const pageSize = parsePageSizeParam(location.query.page_size);
   const minMismatch =
     parseDollars(location.query.min_mismatch) ?? DEFAULT_MIN_MISMATCH_DOLLARS;
+  const statuses = parseStatusParam(location.query.status);
+  const statusesKey = statuses.join(',');
 
   // Without a window in the URL (first visit, or a link that only carries
   // pagination params) query yesterday, the last complete UTC day, so the
@@ -221,6 +241,7 @@ export function InvoiceComparison() {
   const [endInput, setEndInput] = useState(endDay);
   const [minMismatchInput, setMinMismatchInput] = useState(String(minMismatch));
   const minMismatchInputValue = parseDollars(minMismatchInput);
+  const [statusInput, setStatusInput] = useState<RowStatus[]>(statuses);
 
   // Keep the date inputs in sync with the window being shown on back/forward
   // and in-app navigation (e.g. opening a shared link). Keyed on the shown
@@ -241,6 +262,17 @@ export function InvoiceComparison() {
     setShownMinMismatch(minMismatch);
     setMinMismatchInput(String(minMismatch));
   }
+  const [shownStatusesKey, setShownStatusesKey] = useState(statusesKey);
+  if (shownStatusesKey !== statusesKey) {
+    setShownStatusesKey(statusesKey);
+    setStatusInput(statuses);
+  }
+
+  const toggleStatus = (status: RowStatus, checked: boolean) => {
+    setStatusInput(prev =>
+      ROW_STATUSES.filter(s => (s === status ? checked : prev.includes(s)))
+    );
+  };
 
   // Written into every URL this page rewrites, so a refresh or shared link
   // reproduces the window being shown. Left out for a one-sided URL so the
@@ -260,6 +292,7 @@ export function InvoiceComparison() {
         rows_page: rowsPage,
         rows_page_size: pageSize,
         min_mismatch_cents: Math.round(minMismatch * 100),
+        status: statuses,
       },
       staleTime: 0,
     }),
@@ -350,7 +383,12 @@ export function InvoiceComparison() {
   };
 
   const onSubmit = () => {
-    if (!startInput || !endInput || minMismatchInputValue === undefined) {
+    if (
+      !startInput ||
+      !endInput ||
+      minMismatchInputValue === undefined ||
+      statusInput.length === 0
+    ) {
       return;
     }
     // Re-running the comparison persists the chosen window to the URL and
@@ -365,6 +403,7 @@ export function InvoiceComparison() {
         rows_page: '1',
         page_size: String(pageSize),
         min_mismatch: String(minMismatchInputValue),
+        status: statusInput,
       },
     });
   };
@@ -449,10 +488,24 @@ export function InvoiceComparison() {
             <Button
               variant="primary"
               onClick={onSubmit}
-              disabled={!cell || minMismatchInputValue === undefined}
+              disabled={
+                !cell || minMismatchInputValue === undefined || statusInput.length === 0
+              }
             >
               Run comparison
             </Button>
+          </Flex>
+          <Flex gap="lg" align="center" wrap="wrap" paddingTop="md">
+            <FieldLabel as="span">Show statuses</FieldLabel>
+            {ROW_STATUSES.map(status => (
+              <Flex as="label" key={status} align="center" gap="xs">
+                <Checkbox
+                  checked={statusInput.includes(status)}
+                  onChange={e => toggleStatus(status, e.target.checked)}
+                />
+                <Text size="sm">{status}</Text>
+              </Flex>
+            ))}
           </Flex>
         </PanelBody>
       </Panel>
@@ -553,8 +606,10 @@ export function InvoiceComparison() {
                       <td colSpan={6}>
                         <em>
                           {data.summary.hidden_small_mismatch_count
-                            ? 'Every compared org is a hidden small mismatch.'
-                            : 'No invoices in this range on either side.'}
+                            ? 'Every row with the selected statuses is a hidden small mismatch.'
+                            : data.summary.row_count > 0
+                              ? 'No compared org has the selected statuses.'
+                              : 'No invoices in this range on either side.'}
                         </em>
                       </td>
                     </tr>

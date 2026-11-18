@@ -49,7 +49,7 @@ function comparisonBody({
   };
 }
 
-function renderComparison(query: Record<string, string>) {
+function renderComparison(query: Record<string, string | string[]>) {
   return render(<InvoiceComparison />, {
     initialRouterConfig: {
       location: {pathname: '/_admin/billing-platform/', query},
@@ -116,11 +116,107 @@ describe('InvoiceComparison', () => {
     renderComparison({start: '2026-11-09', end: '2026-11-09'});
 
     expect(
-      await screen.findByText('Every compared org is a hidden small mismatch.')
+      await screen.findByText(
+        'Every row with the selected statuses is a hidden small mismatch.'
+      )
     ).toBeInTheDocument();
     expect(
       screen.queryByText('No invoices in this range on either side.')
     ).not.toBeInTheDocument();
+  });
+
+  describe('status filter', () => {
+    it('queries only mismatches by default', async () => {
+      const mock = MockApiClient.addMockResponse({
+        url: COMPARISON_URL,
+        body: comparisonBody(),
+      });
+
+      renderComparison({start: '2026-11-09', end: '2026-11-09'});
+
+      expect(await screen.findByRole('link', {name: 'org-slug'})).toBeInTheDocument();
+      expect(mock.mock.calls[0][1].query).toEqual(
+        expect.objectContaining({status: ['mismatch']})
+      );
+      expect(screen.getByRole('checkbox', {name: 'mismatch'})).toBeChecked();
+      expect(screen.getByRole('checkbox', {name: 'match'})).not.toBeChecked();
+      expect(screen.getByRole('checkbox', {name: 'legacy_only'})).not.toBeChecked();
+      expect(screen.getByRole('checkbox', {name: 'platform_only'})).not.toBeChecked();
+    });
+
+    it('queries the statuses from the URL', async () => {
+      const mock = MockApiClient.addMockResponse({
+        url: COMPARISON_URL,
+        body: comparisonBody(),
+      });
+
+      renderComparison({
+        start: '2026-11-09',
+        end: '2026-11-09',
+        status: ['match', 'mismatch'],
+      });
+
+      expect(await screen.findByRole('link', {name: 'org-slug'})).toBeInTheDocument();
+      expect(mock.mock.calls[0][1].query).toEqual(
+        expect.objectContaining({status: ['mismatch', 'match']})
+      );
+      expect(screen.getByRole('checkbox', {name: 'match'})).toBeChecked();
+    });
+
+    it('writes checked statuses to the URL on Run', async () => {
+      MockApiClient.addMockResponse({
+        url: COMPARISON_URL,
+        body: comparisonBody(),
+      });
+
+      const {router} = renderComparison({
+        start: '2026-11-09',
+        end: '2026-11-09',
+      });
+      await userEvent.click(screen.getByRole('checkbox', {name: 'legacy_only'}));
+      await userEvent.click(screen.getByRole('checkbox', {name: 'platform_only'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Run comparison'}));
+
+      expect(router.location.query.status).toEqual([
+        'mismatch',
+        'legacy_only',
+        'platform_only',
+      ]);
+      expect(router.location.query.rows_page).toBe('1');
+    });
+
+    it('disables Run with no status checked', async () => {
+      MockApiClient.addMockResponse({
+        url: COMPARISON_URL,
+        body: comparisonBody(),
+      });
+
+      renderComparison({start: '2026-11-09', end: '2026-11-09'});
+      await userEvent.click(screen.getByRole('checkbox', {name: 'mismatch'}));
+
+      expect(screen.getByRole('button', {name: 'Run comparison'})).toBeDisabled();
+    });
+
+    it('says when no compared org has the selected statuses', async () => {
+      MockApiClient.addMockResponse({
+        url: COMPARISON_URL,
+        body: {
+          ...comparisonBody(),
+          rows: [],
+          summary: {
+            ...comparisonBody().summary,
+            row_count: 3,
+            listed_row_count: 0,
+          },
+        },
+      });
+
+      renderComparison({start: '2026-11-09', end: '2026-11-09'});
+
+      expect(
+        await screen.findByText('No compared org has the selected statuses.')
+      ).toBeInTheDocument();
+    });
   });
 
   it('ignores a URL window that is not days', async () => {
@@ -185,7 +281,11 @@ describe('InvoiceComparison', () => {
         body: comparisonBody(),
       });
 
-      renderComparison({start: '2026-11-09', end: '2026-11-09', min_mismatch: '2.5'});
+      renderComparison({
+        start: '2026-11-09',
+        end: '2026-11-09',
+        min_mismatch: '2.5',
+      });
 
       expect(await screen.findByRole('link', {name: 'org-slug'})).toBeInTheDocument();
       expect(mock.mock.calls[0][1].query).toEqual(
@@ -200,7 +300,10 @@ describe('InvoiceComparison', () => {
         body: comparisonBody(),
       });
 
-      const {router} = renderComparison({start: '2026-11-09', end: '2026-11-09'});
+      const {router} = renderComparison({
+        start: '2026-11-09',
+        end: '2026-11-09',
+      });
       const input = screen.getByLabelText('Hide mismatches under ($)');
       await userEvent.clear(input);
       await userEvent.type(input, '0');
