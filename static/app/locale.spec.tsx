@@ -210,7 +210,7 @@ describe('shared formatter translations', () => {
         '': {...DEFAULT_LOCALE_DATA[''], lang: 'fr'},
         second: ['seconde', 'secondes'],
         '%s ago': ['il y a %s'],
-        'in %s': ['dans %s'],
+        in: ['dans'],
       });
     });
     expect(screen.getByText('il y a 2 secondes')).toBeInTheDocument();
