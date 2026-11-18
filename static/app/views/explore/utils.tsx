@@ -1,6 +1,5 @@
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
-import qs from 'query-string';
 
 import {openConfirmModal} from '@sentry/scraps/confirm';
 
@@ -29,6 +28,7 @@ import {determineTimeSeriesConfidence} from 'sentry/utils/timeSeries/determineSe
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import * as qs from 'sentry/utils/url/qs';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {isChartType} from 'sentry/views/insights/common/components/chart';
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';

@@ -98,10 +98,13 @@ export abstract class ContinuousTimeSeries<
 
   get confidence(): PlottableConfidence {
     const values = this.timeSeries.values.filter(datum => datum.value !== null);
-    const lowCount = values.filter(isLowConfidenceDataPoint).length;
+    // Incomplete buckets are partial, so they often have few samples. Charts draw
+    // them in the incomplete style, which hides low confidence, so they don't count
+    const completeValues = values.filter(datum => !datum.incomplete);
+    const lowCount = completeValues.filter(isLowConfidenceDataPoint).length;
 
     if (lowCount > 0) {
-      return lowCount === values.length ? 'low' : 'mixed';
+      return lowCount === completeValues.length ? 'low' : 'mixed';
     }
 
     return values.some(isExtrapolated) ? 'high' : 'full';

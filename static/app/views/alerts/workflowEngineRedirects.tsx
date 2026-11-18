@@ -1,7 +1,6 @@
 import {skipToken, useQuery} from '@tanstack/react-query';
 import type {Query} from 'history';
 import {parseAsString, useQueryState, useQueryStates, type inferParserType} from 'nuqs';
-import qs from 'query-string';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Redirect} from 'sentry/components/redirect';
@@ -10,6 +9,7 @@ import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
+import * as qs from 'sentry/utils/url/qs';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';

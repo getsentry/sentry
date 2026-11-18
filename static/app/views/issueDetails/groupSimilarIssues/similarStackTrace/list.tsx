@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import {Button} from '@sentry/scraps/button';
 import {Confirm} from '@sentry/scraps/confirm';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
@@ -12,7 +11,6 @@ import {SimilarSpectrum} from 'sentry/components/similarSpectrum';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
-import {getPaginationProps} from 'sentry/utils/pagination';
 
 import {SimilarStackTraceItem, SimilarStackTraceItemSkeleton} from './item';
 import type {SimilarItem} from './types';
@@ -42,7 +40,6 @@ type Props = {
   onMerge: () => void;
   onRetry: () => void;
   onToggle: (id: string) => void;
-  pageLinks: string | null;
   project: Project;
 };
 
@@ -51,7 +48,6 @@ export function List({
   project,
   items,
   filteredItems,
-  pageLinks,
   onMerge,
   onToggle,
   checkedIds,
@@ -163,8 +159,6 @@ export function List({
           </Button>
         </Flex>
       )}
-
-      <Pagination {...getPaginationProps(pageLinks)} />
     </Fragment>
   );
 }

@@ -7,11 +7,13 @@ import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {TabList, TabPanels, TabStateProvider} from '@sentry/scraps/tabs';
+import {stripAnnotations} from '@sentry/scraps/markdown/annotation';
+import {Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 
 import {CodeModeDetails} from 'sentry/components/ai/toolDetails/codeModeDetails';
 import {ToolOutput} from 'sentry/components/ai/toolDetails/toolOutput';
+import {parseToolOutput} from 'sentry/components/ai/toolDetails/toolOutputData';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {getDuration} from 'sentry/utils/duration/getDuration';
@@ -25,6 +27,10 @@ import {getNodeTimeBounds} from 'sentry/views/insights/pages/agents/components/a
 import {AiSpanStatusIcon} from 'sentry/views/insights/pages/agents/components/aiSpanStatusIcon';
 import {EvaluationResultSummary} from 'sentry/views/insights/pages/agents/components/evaluationContent';
 import {ExtractionResultSummary} from 'sentry/views/insights/pages/agents/components/extractionContent';
+import {
+  markScrubbedAttributes,
+  splitScrubbedJson,
+} from 'sentry/views/insights/pages/agents/components/scrubbedText';
 import {getTraceNodeAttribute} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {
   getCodeModeInput,
@@ -69,8 +75,8 @@ import {MemoryInputTab, MemoryOutputTab} from './memorySpanTabs';
 import {
   EmptySpanTab,
   SPAN_TAB_JSON_AUTO_COLLAPSE_LIMIT,
-  SPAN_TAB_JSON_MAX_DEFAULT_DEPTH,
   SpanTabContent,
+  SpanTabJson,
 } from './spanTabContent';
 
 const AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH = 100;
@@ -178,6 +184,11 @@ export function ConversationSpanDetail({
     enabled: Boolean(eapValue),
   });
   const attributes = data?.attributes;
+  // Only the input and output show where PII scrubbing changed values.
+  const scrubbedAttributes = useMemo(
+    () => markScrubbedAttributes(attributes, data?.meta, node?.projectSlug),
+    [attributes, data?.meta, node?.projectSlug]
+  );
 
   // Memoized so the invalid-evaluation report fires once per span.
   const evaluation = useMemo(
@@ -278,66 +289,75 @@ export function ConversationSpanDetail({
       ) : isError ? (
         <EmptySpanTab message={t('Failed to load span details')} />
       ) : (
-        <TabStateProvider<DetailTab>
-          value={getVisibleTab(activeTab, combinedTab)}
-          onChange={onTabChange}
-        >
-          <TabList>
-            <TabList.Item key="input" hidden={combinedTab !== null}>
-              {t('Input')}
-            </TabList.Item>
-            <TabList.Item key="output" hidden={combinedTab !== null}>
-              {t('Output')}
-            </TabList.Item>
-            <TabList.Item key="decision" hidden={combinedTab !== 'decision'}>
-              {t('Decision')}
-            </TabList.Item>
-            <TabList.Item key="extraction" hidden={combinedTab !== 'extraction'}>
-              {t('Extraction')}
-            </TabList.Item>
-            <TabList.Item key="attributes">{t('Attributes')}</TabList.Item>
-          </TabList>
-
-          <Container
-            flex="0 0 auto"
-            minHeight="0"
-            width="100%"
-            overflowX="visible"
-            overflowY="visible"
-            // Gutter so the scroll container doesn't clip a focused input's focus ring.
-            padding="xs"
-          >
-            <TabPanels
-              css={css`
-                padding-top: 0;
-              `}
+        <Container display="contents">
+          {tabsRootProps => (
+            <Tabs
+              value={getVisibleTab(activeTab, combinedTab)}
+              onChange={onTabChange}
+              {...tabsRootProps}
             >
-              <TabPanels.Item key="input">
-                {memory ? (
-                  <MemoryInputTab memory={memory} />
-                ) : (
-                  <InputTab node={node} attributes={attributes} />
-                )}
-              </TabPanels.Item>
-              <TabPanels.Item key="output">
-                {memory ? (
-                  <MemoryOutputTab memory={memory} />
-                ) : (
-                  <OutputTab node={node} attributes={attributes} />
-                )}
-              </TabPanels.Item>
-              <TabPanels.Item key="decision">
-                {evaluation ? <EvaluationTab evaluation={evaluation} /> : null}
-              </TabPanels.Item>
-              <TabPanels.Item key="extraction">
-                {extraction ? <ExtractionTab extraction={extraction} /> : null}
-              </TabPanels.Item>
-              <TabPanels.Item key="attributes">
-                <AttributesTab node={node} attributes={attributes} />
-              </TabPanels.Item>
-            </TabPanels>
-          </Container>
-        </TabStateProvider>
+              {({TabList, TabPanels}) => (
+                <Fragment>
+                  <TabList>
+                    <TabList.Item key="input" hidden={combinedTab !== null}>
+                      {t('Input')}
+                    </TabList.Item>
+                    <TabList.Item key="output" hidden={combinedTab !== null}>
+                      {t('Output')}
+                    </TabList.Item>
+                    <TabList.Item key="decision" hidden={combinedTab !== 'decision'}>
+                      {t('Decision')}
+                    </TabList.Item>
+                    <TabList.Item key="extraction" hidden={combinedTab !== 'extraction'}>
+                      {t('Extraction')}
+                    </TabList.Item>
+                    <TabList.Item key="attributes">{t('Attributes')}</TabList.Item>
+                  </TabList>
+
+                  <Container
+                    flex="0 0 auto"
+                    minHeight="0"
+                    width="100%"
+                    overflowX="visible"
+                    overflowY="visible"
+                    // Gutter so the scroll container doesn't clip a focused input's focus ring.
+                    padding="xs"
+                  >
+                    <TabPanels
+                      css={css`
+                        padding-top: 0;
+                      `}
+                    >
+                      <TabPanels.Item key="input">
+                        {memory ? (
+                          <MemoryInputTab memory={memory} />
+                        ) : (
+                          <InputTab node={node} attributes={scrubbedAttributes} />
+                        )}
+                      </TabPanels.Item>
+                      <TabPanels.Item key="output">
+                        {memory ? (
+                          <MemoryOutputTab memory={memory} />
+                        ) : (
+                          <OutputTab node={node} attributes={scrubbedAttributes} />
+                        )}
+                      </TabPanels.Item>
+                      <TabPanels.Item key="decision">
+                        {evaluation ? <EvaluationTab evaluation={evaluation} /> : null}
+                      </TabPanels.Item>
+                      <TabPanels.Item key="extraction">
+                        {extraction ? <ExtractionTab extraction={extraction} /> : null}
+                      </TabPanels.Item>
+                      <TabPanels.Item key="attributes">
+                        <AttributesTab node={node} attributes={attributes} />
+                      </TabPanels.Item>
+                    </TabPanels>
+                  </Container>
+                </Fragment>
+              )}
+            </Tabs>
+          )}
+        </Container>
       )}
     </SpanDetailCard>
   );
@@ -419,7 +439,11 @@ function InputTab({
 }) {
   const {messages} = getAIInputMessages(node, attributes);
   const toolArgs = getAIToolInput(node, attributes);
-  const codeInput = isCodeModeNode(node, attributes) ? getCodeModeInput(toolArgs) : null;
+  const codeInput = isCodeModeNode(node, attributes)
+    ? getCodeModeInput(
+        typeof toolArgs === 'string' ? stripAnnotations(toolArgs) : toolArgs
+      )
+    : null;
 
   if (codeInput) {
     return (
@@ -453,14 +477,7 @@ function InputTab({
           />
         </Fragment>
       ))}
-      {toolArgs ? (
-        <TraceDrawerComponents.MultilineJSON
-          key={`${node.id}:tool-input`}
-          value={toolArgs}
-          maxDefaultDepth={SPAN_TAB_JSON_MAX_DEFAULT_DEPTH}
-          autoCollapseLimit={SPAN_TAB_JSON_AUTO_COLLAPSE_LIMIT}
-        />
-      ) : null}
+      {toolArgs ? <SpanTabJson key={`${node.id}:tool-input`} value={toolArgs} /> : null}
       {embeddingsInput ? (
         <TraceDrawerComponents.MultilineText clip={false}>
           {embeddingsInput.toString()}
@@ -481,8 +498,13 @@ function OutputTab({
     node,
     attributes
   );
-  const toolOutput = getAIToolOutput(node, attributes);
-  const hasToolOutput = toolOutput !== undefined;
+  const markedToolOutput = getAIToolOutput(node, attributes);
+  const hasToolOutput = markedToolOutput !== undefined;
+  // Parsed here, like `ToolOutput` does, so the meta matches the parsed output.
+  const toolOutput = useMemo(
+    () => splitScrubbedJson(parseToolOutput(markedToolOutput).value),
+    [markedToolOutput]
+  );
 
   // Reasoning is supplementary to the actual output, so clip it when there is
   // other content; when it is the only output, show it in full.
@@ -549,16 +571,19 @@ function OutputTab({
           <TraceDrawerComponents.MultilineTextLabel>
             {t('Tool Calls')}
           </TraceDrawerComponents.MultilineTextLabel>
-          <TraceDrawerComponents.MultilineJSON
+          <SpanTabJson
             key={`${node.id}:tool-calls`}
             value={toolCalls}
             maxDefaultDepth={AI_SPAN_OUTPUT_JSON_MAX_DEFAULT_DEPTH}
-            autoCollapseLimit={SPAN_TAB_JSON_AUTO_COLLAPSE_LIMIT}
           />
         </Fragment>
       ) : null}
       {hasToolOutput ? (
-        <ToolOutput key={`${node.id}:tool-output`} value={toolOutput} />
+        <ToolOutput
+          key={`${node.id}:tool-output`}
+          value={toolOutput.value}
+          meta={toolOutput.meta}
+        />
       ) : null}
     </Fragment>
   );

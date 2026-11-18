@@ -11,13 +11,12 @@ import type {
   PrebuiltWidgetLayout,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {
-  WEB_VITAL_SCORE_COUNT_FIELDS,
   WEB_VITAL_SCORE_FIELDS,
   webVitalCountField,
   webVitalMetricName,
   webVitalP75Field,
 } from 'sentry/views/dashboards/utils/webVitalTraceMetricFields';
-import {SCORE_BREAKDOWN_WHEEL_WIDGET} from 'sentry/views/dashboards/widgetLibrary/webVitalsWidgets';
+import {SCORE_BREAKDOWN_WHEEL_TRACE_METRICS_WIDGET} from 'sentry/views/dashboards/widgetLibrary/webVitalsWidgets';
 import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 import {ORDER, type WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 
@@ -41,22 +40,7 @@ export const WEB_VITALS_TRACE_METRICS_GLOBAL_FILTERS: GlobalFilter[] = [
 }));
 
 export function scoreBreakdownWheelWidget(layout: PrebuiltWidgetLayout): PrebuiltWidget {
-  const fields = [...WEB_VITAL_SCORE_FIELDS, ...WEB_VITAL_SCORE_COUNT_FIELDS];
-  return {
-    ...SCORE_BREAKDOWN_WHEEL_WIDGET,
-    widgetType: WidgetType.TRACEMETRICS,
-    queries: [
-      {
-        name: '',
-        conditions: '',
-        fields,
-        aggregates: [],
-        columns: fields,
-        orderby: '',
-      },
-    ],
-    layout,
-  };
+  return {...SCORE_BREAKDOWN_WHEEL_TRACE_METRICS_WIDGET, layout};
 }
 
 export function scoreBreakdownChartWidget(

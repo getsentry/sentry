@@ -5,7 +5,6 @@ from unittest import mock
 
 import orjson
 import pytest
-from django.test import override_settings
 
 from sentry.integrations.discord.requests.base import DiscordRequest, DiscordRequestError
 from sentry.integrations.services.integration.model import RpcIntegration
@@ -149,7 +148,6 @@ class DiscordRequestTest(TestCase):
     def test_unlinked_user_without_scope(self) -> None:
         self.assert_validated_request_actor(False, False)
 
-    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     def assert_validated_request_actor(self, linked: bool, scoped: bool) -> None:
         discord_request = self.mock_request()
         current = ViewerContext(
@@ -175,7 +173,6 @@ class DiscordRequestTest(TestCase):
             assert ctx.organization_id == current.organization_id
             assert ctx.project_id == current.project_id
 
-    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     def test_invalid_signature_does_not_set_actor(self) -> None:
         discord_request = self.mock_request()
         current = ViewerContext(actor=Actor(type=ActorType.UNKNOWN))

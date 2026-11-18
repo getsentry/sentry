@@ -7,7 +7,6 @@ from selenium.webdriver.common.keys import Keys
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
-    MonitorCheckIn,
     MonitorEnvironment,
     MonitorStatus,
     ScheduleType,
@@ -122,7 +121,7 @@ class OrganizationMonitorsTest(AcceptanceTestCase):
             status=MonitorStatus.OK,
             last_checkin=ts,
         )
-        MonitorCheckIn.objects.create(
+        self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             status=CheckInStatus.OK,
             date_added=ts,

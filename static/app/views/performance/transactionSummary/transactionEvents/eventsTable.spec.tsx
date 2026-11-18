@@ -16,7 +16,7 @@ type Data = {
 };
 
 function initializeData({features: additionalFeatures = []}: Data = {}) {
-  const features = ['discover-basic', 'performance-view', ...additionalFeatures];
+  const features = ['discover-basic', ...additionalFeatures];
   const organization = OrganizationFixture({
     features,
   });

@@ -1,5 +1,3 @@
-import styled from '@emotion/styled';
-
 import {
   Container,
   Grid,
@@ -7,7 +5,6 @@ import {
   type ContainerProps,
   type GridProps,
 } from '@sentry/scraps/layout';
-import {Tabs} from '@sentry/scraps/tabs';
 
 /**
  * Main container for a page.
@@ -76,13 +73,6 @@ export function HeaderActions(props: {children: React.ReactNode}) {
     />
   );
 }
-
-/**
- * Styled Tabs for use inside a Layout.Header component
- */
-export const HeaderTabs = styled(Tabs)`
-  grid-column: 1 / -1;
-` as typeof Tabs;
 
 /**
  * Base container for 66/33 containers.

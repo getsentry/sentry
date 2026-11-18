@@ -13,6 +13,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.apidocs.api_ownership_allowlist_dont_modify import API_OWNERSHIP_ALLOWLIST_DONT_MODIFY
 from sentry.apidocs.build import OPENAPI_TAGS
+from sentry.apidocs.error_codes import SENTRY_API_ERROR_COMPONENT, sentry_api_error_schema
 from sentry.apidocs.omission_apply import OmissionError
 from sentry.apidocs.omission_guard import (
     check_schema_omissions,
@@ -376,6 +377,7 @@ def custom_postprocessing_hook(
 
     # Fetch schema component references
     schema_components = result["components"]["schemas"]
+    schema_components[SENTRY_API_ERROR_COMPONENT] = sentry_api_error_schema()
 
     # The API docs derive each page's URL slug from its summary, so two public
     # operations sharing a summary would collide on the same docs URL.

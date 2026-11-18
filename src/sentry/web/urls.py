@@ -174,8 +174,6 @@ urlpatterns += [
         name="sentry-js-sdk-loader",
     ),
     re_path(r"^agent-handoff\.md$", AgentHandoffView.as_view(), name="sentry-agent-handoff"),
-    # Prompts copied before the .md URL still point here.
-    re_path(r"^agent-handoff/$", AgentHandoffView.as_view(), name="sentry-agent-handoff-legacy"),
     # docs reference this for acquiring the sentry cli
     re_path(r"^get-cli/$", get_cli, name="get_cli_script"),
     re_path(

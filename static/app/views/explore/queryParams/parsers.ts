@@ -9,9 +9,9 @@ import {
   type inferParserType,
   type ParserMap,
 } from 'nuqs';
-import qs from 'query-string';
 
 import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
+import * as qs from 'sentry/utils/url/qs';
 
 import {Mode} from './mode';
 

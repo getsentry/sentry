@@ -483,12 +483,10 @@ export function GlobalCommandPaletteActions() {
             keywords={[t('release health')]}
             to={`${prefix}/explore/releases/`}
           />
-          {organization.features.includes('gen-ai-conversations') && (
-            <CMDKAction
-              display={{label: t('Agents')}}
-              to={`${prefix}/explore/${EXPLORE_AGENTS_SUB_PATH}/?referrer=cmdk`}
-            />
-          )}
+          <CMDKAction
+            display={{label: t('Agents')}}
+            to={`${prefix}/explore/${EXPLORE_AGENTS_SUB_PATH}/?referrer=cmdk`}
+          />
           <CMDKAction
             display={{label: t('Saved Queries')}}
             to={`${prefix}/explore/saved-queries/`}
@@ -555,7 +553,7 @@ export function GlobalCommandPaletteActions() {
 
         {/* Hide the Insights section once the insights-to-dashboards migration
             is active; Crons and Uptime now live under the Monitors section. */}
-        {organization.features.includes('performance-view') && !hasInsightsRollout && (
+        {!hasInsightsRollout && (
           <CMDKAction
             display={{
               label: t('Insights'),

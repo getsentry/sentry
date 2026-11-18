@@ -209,6 +209,18 @@ class ProjectStacktraceLinkTest(BaseProjectStacktraceLink):
             assert response.data["sourceUrl"] == "https://sourceurl.com/"
             assert response.data["integrations"] == [serialized_integration(self.integration)]
 
+    @patch.object(ExampleIntegration, "get_stacktrace_link", return_value="https://sourceurl.com/")
+    def test_file_revision_takes_precedence_over_commit_id(
+        self, mock_get_stacktrace_link: MagicMock
+    ) -> None:
+        self._create_code_mapping(stack_root="usr/src/getsentry/", source_root="")
+        self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            qs_params={"file": self.filepath, "commitId": "abc123", "fileRevision": "12345"},
+        )
+        assert mock_get_stacktrace_link.call_args.args[3] == "12345"
+
     @patch.object(ExampleIntegration, "get_stacktrace_link")
     def test_file_no_stack_root_match(self, mock_integration: MagicMock) -> None:
         # Pretend that the file was not found in the repository

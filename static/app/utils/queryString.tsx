@@ -1,10 +1,10 @@
 import type {Query} from 'history';
-import qs from 'query-string';
 
 import type {EventTag} from 'sentry/types/event';
 import {escapeDoubleQuotes} from 'sentry/utils';
 
 import type {Sort} from './discover/fields';
+import * as qs from './url/qs';
 import {safeURL} from './url/safeURL';
 import {ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS, type FieldKey} from './fields';
 

@@ -1,6 +1,4 @@
-import type {Query} from 'history';
 import shuffle from 'lodash/shuffle';
-import qs from 'query-string';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
@@ -11,6 +9,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {NewQuery, SavedQuery} from 'sentry/types/organization';
 import type {Config} from 'sentry/types/system';
 import {AggregationKey} from 'sentry/utils/fields';
+import * as qs from 'sentry/utils/url/qs';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 
@@ -29,8 +28,7 @@ import {
   SavedQueryDatasets,
 } from './types';
 
-const locationFromSearch = (search: string) =>
-  LocationFixture({query: qs.parse(search) as Query});
+const locationFromSearch = (search: string) => LocationFixture({query: qs.parse(search)});
 
 const generateFields = (fields: string[]) =>
   fields.map(field => ({

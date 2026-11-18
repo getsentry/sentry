@@ -1,11 +1,11 @@
 import {useEffect} from 'react';
 import type {Query} from 'history';
 import {parseAsInteger, parseAsString, useQueryStates} from 'nuqs';
-import type * as qs from 'query-string';
 
 import type {DeepPartial} from 'sentry/types/utils';
 import {useFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import {Rect} from 'sentry/utils/profiling/speedscope';
+import type * as qs from 'sentry/utils/url/qs';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
 import type {FlamegraphState} from './flamegraphContext';
@@ -14,7 +14,6 @@ import {DEFAULT_FLAMEGRAPH_STATE} from './flamegraphContext';
 // Intersect the types so we can properly guard
 type PossibleQuery =
   | Query
-  | qs.ParsedQuery
   | (Pick<FlamegraphState['preferences'], 'colorCoding' | 'sorting' | 'view'> &
       Pick<FlamegraphState['search'], 'query'>);
 

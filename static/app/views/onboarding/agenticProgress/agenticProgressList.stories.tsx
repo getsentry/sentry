@@ -130,7 +130,6 @@ function AgentConnectionStory() {
             hasProgressFailed={false}
             onRefresh={() => {}}
             isAgentConnected={isAgentConnected}
-            onboardingCode="Lg1iSt2qeQ"
             onCopyCommand={() => {}}
             onRetry={() => setIsAgentConnected(false)}
             onSelectSnippet={() => {}}

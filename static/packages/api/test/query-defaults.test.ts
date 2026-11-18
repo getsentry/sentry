@@ -45,7 +45,7 @@ describe("client-side query defaults", () => {
 
     expect(queries).toEqual([
       "?collapse=adjacentEvents",
-      "?environment=prod&collapse=adjacentEvents",
+      "?collapse=adjacentEvents&environment=prod",
       "?collapse=adjacentEvents",
       "?collapse=adjacentEvents",
       "?collapse=adjacentEvents",
@@ -63,7 +63,7 @@ describe("client-side query defaults", () => {
 
     expect(queries).toEqual([
       "?collapse=adjacentEvents",
-      "?environment=prod&collapse=adjacentEvents",
+      "?collapse=adjacentEvents&environment=prod",
       "?collapse=adjacentEvents",
       "?collapse=adjacentEvents",
       "",

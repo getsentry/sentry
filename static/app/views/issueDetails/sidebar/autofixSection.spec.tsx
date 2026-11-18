@@ -375,35 +375,50 @@ describe('AutofixSection', () => {
       expect(screen.getByText('Seer Autofix')).toBeInTheDocument();
     });
 
-    it('opens the Explorer panel on Open Autofix', async () => {
+    it('opens the Autofix tab and the Explorer panel on Open Autofix', async () => {
+      const autofixPageOrganization = OrganizationFixture({
+        hideAiFeatures: false,
+        features: ['autofix-page'],
+      });
       MockApiClient.addMockResponse({
         url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
         body: singleRunBody,
       });
 
-      render(<AutofixSection group={mockGroup} project={mockProject} />, {organization});
+      const {router} = render(
+        <AutofixSection group={mockGroup} project={mockProject} />,
+        {
+          organization: autofixPageOrganization,
+        }
+      );
 
       expect(await screen.findByText('Divides by zero')).toBeInTheDocument();
       await userEvent.click(screen.getByRole('button', {name: 'Open Autofix'}));
 
       expect(mockOpenSeerExplorer).toHaveBeenCalledWith({runId: 776});
+      expect(router.location.pathname).toBe(
+        `/organizations/${autofixPageOrganization.slug}/issues/${mockGroup.id}/autofix/`
+      );
     });
 
-    it('disables Open Autofix while the Explorer panel shows this run', async () => {
-      mockIsExplorerOpen = true;
-      mockOpenRunId = 776;
+    it('only opens the Explorer panel on Open Autofix without the Autofix tab', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
         body: singleRunBody,
       });
 
-      render(<AutofixSection group={mockGroup} project={mockProject} />, {organization});
-
-      await userEvent.click(await screen.findByRole('button', {name: 'View Section'}));
-      expect(await screen.findByRole('button', {name: 'Open Autofix'})).toHaveAttribute(
-        'aria-disabled',
-        'true'
+      const {router} = render(
+        <AutofixSection group={mockGroup} project={mockProject} />,
+        {
+          organization,
+        }
       );
+
+      expect(await screen.findByText('Divides by zero')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Open Autofix'}));
+
+      expect(mockOpenSeerExplorer).toHaveBeenCalledWith({runId: 776});
+      expect(router.location.query.seerDrawer).toBeUndefined();
     });
 
     it('opens the Explorer panel when Start Analysis starts a single run', async () => {
@@ -849,6 +864,27 @@ describe('AutofixSection', () => {
     expect(screen.getByRole('button', {name: 'Start Analysis'})).toBeInTheDocument();
   });
 
+  it('shows the redesigned start card with autofix-single-run', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      body: {autofix: null},
+    });
+
+    render(<AutofixSection group={mockGroup} project={mockProject} />, {
+      organization: OrganizationFixture({
+        hideAiFeatures: false,
+        features: ['autofix-single-run'],
+      }),
+    });
+
+    expect(
+      await screen.findByText('Let Seer find the root cause and fix it')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Have Seer...')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Add Context'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Start Analysis'})).toBeInTheDocument();
+  });
+
   it('keeps the start card on screen while a run is starting', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
@@ -881,7 +917,6 @@ describe('AutofixSection', () => {
 
     function ContextCapture() {
       const {getLLMContext} = useLLMContext();
-      // oxlint-disable-next-line react/immutability
       snapshotRef.current = getLLMContext;
       return null;
     }

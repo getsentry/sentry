@@ -14,3 +14,7 @@ class UserUIFeedbackSource(FeedbackSourceBase):
     @property
     def text(self) -> str:
         return self.user_feedback
+
+    @property
+    def is_explicit_request(self) -> bool:
+        return True
