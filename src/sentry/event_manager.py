@@ -1639,10 +1639,9 @@ def _create_group(
         group_type = group_creation_kwargs.get("type", None)
         severity = _get_severity_metadata_for_group(event, project.id, group_type)
         group_data["metadata"].update(severity)
-    except Exception as e:
+    except Exception:
         logger.exception(
             "Failed to get severity metadata for group",
-            repr(e),
             extra={"event_id": event.event_id},
         )
 
@@ -2173,7 +2172,7 @@ def _get_severity_metadata_for_group(
             "severity_reason": reason,
         }
     except Exception as e:
-        logger.warning("Failed to calculate severity score for group", repr(e))
+        logger.warning("Failed to calculate severity score for group: %r", e)
         update_severity_error_count()
         metrics.incr("issues.severity.error")
         return {}
@@ -2206,10 +2205,9 @@ def _get_priority_for_group(severity: Mapping[str, Any], kwargs: Mapping[str, An
 
         logger.warning("Unknown log level %s or severity score %s", level, severity_score)
         return PriorityLevel.MEDIUM
-    except Exception as e:
+    except Exception:
         logger.exception(
             "Failed to calculate priority for group",
-            repr(e),
             extra={
                 "severity": severity,
                 "kwargs": kwargs,
