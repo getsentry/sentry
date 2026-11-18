@@ -1320,7 +1320,7 @@ describe('useExplorerAutofix - createPR', () => {
     async (denialReason, message) => {
       const errorSpy = jest.spyOn(toast, 'error');
       const organization = OrganizationFixture({
-        features: ['seer-credit-checks', 'token-billed-seer-enabled'],
+        features: ['token-billed-seer-enabled'],
       });
       const creditCheck = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/seer/credit-check/`,
@@ -1909,7 +1909,7 @@ describe('useExplorerAutofix - startStep errors', () => {
     async (denialReason, message) => {
       const errorSpy = jest.spyOn(toast, 'error');
       const organization = OrganizationFixture({
-        features: ['seer-credit-checks', 'token-billed-seer-enabled'],
+        features: ['token-billed-seer-enabled'],
       });
       const creditCheck = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/seer/credit-check/`,

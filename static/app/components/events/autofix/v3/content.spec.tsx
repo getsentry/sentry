@@ -299,7 +299,7 @@ describe('SeerDrawerContent', () => {
 
   describe('out of Seer credits', () => {
     const organization = OrganizationFixture({
-      features: ['seer-credit-checks', 'token-billed-seer-enabled'],
+      features: ['token-billed-seer-enabled'],
     });
     const creditCheckUrl = `/organizations/${organization.slug}/seer/credit-check/`;
 
@@ -534,7 +534,7 @@ describe('SeerDrawerContent', () => {
       expect(screen.queryByTestId('seer-out-of-credits-cta')).not.toBeInTheDocument();
     });
 
-    it('starts as before without seer-credit-checks', () => {
+    it('starts as before without token-billed Seer', () => {
       const creditCheck = MockApiClient.addMockResponse({
         url: creditCheckUrl,
         body: {hasEnoughCredits: false},

@@ -7,7 +7,7 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {useAutofixCreditsDisabled} from './autofixCredits';
 
 const organization = OrganizationFixture({
-  features: ['seer-credit-checks', 'token-billed-seer-enabled'],
+  features: ['token-billed-seer-enabled'],
 });
 const creditCheckUrl = `/organizations/${organization.slug}/seer/credit-check/`;
 

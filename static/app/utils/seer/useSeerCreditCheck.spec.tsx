@@ -7,7 +7,7 @@ import {useSeerCreditCheck} from './useSeerCreditCheck';
 
 describe('useSeerCreditCheck', () => {
   const organization = OrganizationFixture({
-    features: ['seer-credit-checks', 'token-billed-seer-enabled'],
+    features: ['token-billed-seer-enabled'],
   });
   const url = `/organizations/${organization.slug}/seer/credit-check/`;
 
@@ -79,10 +79,7 @@ describe('useSeerCreditCheck', () => {
     await waitFor(() => expect(request).toHaveBeenCalledTimes(2));
   });
 
-  it.each([
-    ['seer-credit-checks', ['token-billed-seer-enabled']],
-    ['token-billed-seer-enabled', ['seer-credit-checks']],
-  ])('does not call the endpoint without %s', (_missingFeature, features) => {
+  it('does not call the endpoint without token-billed-seer-enabled', () => {
     const request = MockApiClient.addMockResponse({
       url,
       body: {hasEnoughCredits: false},
@@ -90,7 +87,7 @@ describe('useSeerCreditCheck', () => {
 
     const {result} = renderHookWithProviders(
       () => useSeerCreditCheck('autofix_root_cause'),
-      {organization: OrganizationFixture({features})}
+      {organization: OrganizationFixture({features: []})}
     );
 
     expect(result.current).toEqual(

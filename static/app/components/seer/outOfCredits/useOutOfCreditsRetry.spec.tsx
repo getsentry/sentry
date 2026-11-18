@@ -6,7 +6,7 @@ import {useOutOfCreditsRetry} from './useOutOfCreditsRetry';
 
 describe('useOutOfCreditsRetry', () => {
   const organization = OrganizationFixture({
-    features: ['seer-credit-checks', 'token-billed-seer-enabled'],
+    features: ['token-billed-seer-enabled'],
   });
 
   afterEach(() => {

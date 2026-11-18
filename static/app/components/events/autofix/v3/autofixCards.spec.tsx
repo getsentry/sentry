@@ -368,7 +368,7 @@ describe('ArtifactCard', () => {
 
     it('holds Re-run disabled when the org cannot afford a new single run', async () => {
       const creditsOrganization = OrganizationFixture({
-        features: ['seer-credit-checks', 'token-billed-seer-enabled'],
+        features: ['token-billed-seer-enabled'],
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${creditsOrganization.slug}/seer/credit-check/`,
@@ -714,7 +714,7 @@ describe('ArtifactCard', () => {
 
     it('holds Re-run disabled when the org cannot afford a new single run', async () => {
       const creditsOrganization = OrganizationFixture({
-        features: ['seer-credit-checks', 'token-billed-seer-enabled'],
+        features: ['token-billed-seer-enabled'],
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${creditsOrganization.slug}/seer/credit-check/`,
@@ -1238,7 +1238,7 @@ describe('ArtifactCard', () => {
 
     it('holds the PR feedback form disabled when the org cannot afford another iteration', async () => {
       const creditsOrganization = OrganizationFixture({
-        features: ['seer-credit-checks', 'token-billed-seer-enabled'],
+        features: ['token-billed-seer-enabled'],
       });
       const creditCheck = MockApiClient.addMockResponse({
         url: `/organizations/${creditsOrganization.slug}/seer/credit-check/`,
@@ -2705,7 +2705,7 @@ describe('ArtifactCard', () => {
 
 describe('out of credits', () => {
   const organization = OrganizationFixture({
-    features: ['seer-credit-checks', 'token-billed-seer-enabled'],
+    features: ['token-billed-seer-enabled'],
   });
   const retryTooltip = 'Your organization does not have enough Seer credits for this.';
 
@@ -2947,7 +2947,7 @@ describe('out of credits', () => {
     }
   );
 
-  it('leaves the retry to the backend without seer-credit-checks', () => {
+  it('leaves the retry to the backend without token-billed Seer', () => {
     const creditCheck = mockCreditCheck('autofix_code_changes', false);
     render(
       <CodeChangesCard
