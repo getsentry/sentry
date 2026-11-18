@@ -215,11 +215,26 @@ function useOverflowTabs({
       return;
     }
 
-    const resizeObserver = new ResizeObserver(() => recompute());
+    let pendingResize: number | undefined;
+    const resizeObserver = new ResizeObserver(() => {
+      if (pendingResize !== undefined) {
+        return;
+      }
+
+      // Run in a separate task. The effect event has thrown from an animation
+      // frame callback in Firefox.
+      pendingResize = window.setTimeout(() => {
+        pendingResize = undefined;
+        recompute();
+      }, 0);
+    });
     resizeObserver.observe(outerWrap);
     resizeObserver.observe(tabList);
 
-    return () => resizeObserver.disconnect();
+    return () => {
+      resizeObserver.disconnect();
+      window.clearTimeout(pendingResize);
+    };
   }, [disabled, outerWrapRef, tabListRef]);
 
   // Tabs with the `hidden` prop render with display: none; never surface them

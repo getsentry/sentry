@@ -1,6 +1,12 @@
 import {Fragment, type ReactNode} from 'react';
 import {ThemeProvider} from '@emotion/react';
-import {act, render, screen, within} from '@testing-library/react';
+import {
+  act,
+  render,
+  screen,
+  waitForElementToBeRemoved,
+  within,
+} from '@testing-library/react';
 import {userEvent} from '@testing-library/user-event';
 import {expectTypeOf} from 'expect-type';
 
@@ -808,7 +814,7 @@ describe('Tabs overflow', () => {
     expect(screen.queryByRole('button', {name: 'More tabs'})).not.toBeInTheDocument();
   });
 
-  it('does not overflow when the tabs fill the container to a fraction of a pixel', () => {
+  it('does not overflow when the tabs fill the container to a fraction of a pixel', async () => {
     // A shrink-to-fit container is exactly as wide as its tabs, which is not a
     // whole number of pixels. Rounding the container down would push the last
     // tab into the menu, shrink the container around the remaining tabs, and
@@ -834,7 +840,7 @@ describe('Tabs overflow', () => {
     // holds if the gaps are counted.
     resizeContainerTo(tabsWithGaps - 1);
 
-    expect(screen.getByRole('button', {name: 'More tabs'})).toBeInTheDocument();
+    expect(await screen.findByRole('button', {name: 'More tabs'})).toBeInTheDocument();
   });
 
   it('moves tabs that do not fit into an overflow menu', async () => {
@@ -881,14 +887,47 @@ describe('Tabs overflow', () => {
     expect(screen.queryByRole('button', {name: 'More tabs'})).not.toBeInTheDocument();
 
     resizeContainerTo(260);
-    await userEvent.click(screen.getByRole('button', {name: 'More tabs'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'More tabs'}));
     expect(
       screen.getByRole('menuitemradio', {name: 'User Feedback'})
     ).toBeInTheDocument();
     expect(screen.getByRole('menuitemradio', {name: 'Attachments'})).toBeInTheDocument();
 
     resizeContainerTo(1000);
-    expect(screen.queryByRole('button', {name: 'More tabs'})).not.toBeInTheDocument();
+    await waitForElementToBeRemoved(() =>
+      screen.queryByRole('button', {name: 'More tabs'})
+    );
+  });
+
+  describe('scheduled resize work', () => {
+    beforeEach(() => jest.useFakeTimers());
+    afterEach(() => {
+      try {
+        act(() => jest.runOnlyPendingTimers());
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it('coalesces resize notifications and cancels pending work on unmount', () => {
+      const {unmount} = render(<OverflowTabs />, {wrapper: ThemeWrapper});
+      const initialTimerCount = jest.getTimerCount();
+
+      resizeContainerTo(300);
+      resizeContainerTo(260);
+
+      expect(jest.getTimerCount()).toBe(initialTimerCount + 1);
+      expect(screen.queryByRole('button', {name: 'More tabs'})).not.toBeInTheDocument();
+
+      act(() => jest.advanceTimersByTime(0));
+      expect(screen.getByRole('button', {name: 'More tabs'})).toBeInTheDocument();
+
+      const timerCountAfterResize = jest.getTimerCount();
+      resizeContainerTo(1000);
+      expect(jest.getTimerCount()).toBe(timerCountAfterResize + 1);
+      unmount();
+      expect(jest.getTimerCount()).toBeLessThanOrEqual(timerCountAfterResize);
+    });
   });
 
   it.each(['click', 'keyboard'])(
