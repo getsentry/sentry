@@ -34,13 +34,11 @@ interface AgenticSetupProps {
   handoffFlow?: AgentHandoffFlow;
   /** Tilts the setup card and adds the stacked brand border and shadows. */
   layered?: boolean;
-  onboardingCode?: string;
 }
 
 export function AgenticSetup({
   hasInitFailed,
   isAgentConnected,
-  onboardingCode,
   onCopyCommand,
   onRetry,
   onSelectSnippet,
@@ -106,11 +104,7 @@ export function AgenticSetup({
               exit={{opacity: 0}}
               transition={CARD_MORPH_TRANSITION}
             >
-              <AgenticProgress
-                run={run}
-                onboardingCode={onboardingCode}
-                issueLinkReferrer={issueLinkReferrer}
-              />
+              <AgenticProgress run={run} issueLinkReferrer={issueLinkReferrer} />
             </MotionContainer>
           ) : (
             <MotionContainer

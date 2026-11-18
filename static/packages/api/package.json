@@ -1,6 +1,6 @@
 {
   "name": "@sentry/api",
-  "version": "2.14.0",
+  "version": "2.15.0",
   "description": "Official auto-generated TypeScript client for the Sentry public REST API",
   "keywords": [
     "sentry",
@@ -22,7 +22,7 @@
     "build:spec": "node build.mjs --spec-only",
     "lint:js": "oxlint",
     "test:vitest": "vitest run",
-    "typecheck": "tsc6 -p tsconfig.test.json && tsc6 -p tsconfig.browser.json"
+    "typecheck": "tsc -p tsconfig.test.json && tsc -p tsconfig.browser.json"
   },
   "exports": {
     ".": {

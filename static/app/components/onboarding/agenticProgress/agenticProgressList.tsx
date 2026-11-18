@@ -314,49 +314,24 @@ export function AgenticProgressList({
   );
 }
 
-function AgenticProgressMeta({
-  isComplete,
-  onboardingCode,
-  updatedAt,
-}: {
-  isComplete: boolean;
-  onboardingCode: string | undefined;
-  updatedAt: string;
-}) {
-  if (isComplete && !onboardingCode) {
-    return null;
-  }
-
+function AgenticProgressLastUpdate({updatedAt}: {updatedAt: string}) {
   return (
-    <Flex align="center" justify={isComplete ? 'end' : 'between'} gap="md" padding="0 lg">
-      {isComplete ? null : (
-        <Flex align="center" gap="sm">
-          <StatusIndicator variant="accent" />
-          <Text size="sm" variant="muted">
-            {tct('Last update [time]', {
-              time: (
-                <TimeSince
-                  date={updatedAt}
-                  disabledAbsoluteTooltip
-                  liveUpdateInterval="second"
-                />
-              ),
-            })}
-          </Text>
-        </Flex>
-      )}
-      {onboardingCode ? (
-        <RunId size="sm" variant="muted" monospace>
-          {t('ID:%s', onboardingCode)}
-        </RunId>
-      ) : null}
+    <Flex align="center" gap="sm" padding="0 lg">
+      <StatusIndicator variant="accent" />
+      <Text size="sm" variant="muted">
+        {tct('Last update [time]', {
+          time: (
+            <TimeSince
+              date={updatedAt}
+              disabledAbsoluteTooltip
+              liveUpdateInterval="second"
+            />
+          ),
+        })}
+      </Text>
     </Flex>
   );
 }
-
-const RunId = styled(Text)`
-  opacity: 0.6;
-`;
 
 function AgenticProgressSummary({projectSlugs}: {projectSlugs: string[]}) {
   const {projects} = useProjects({slugs: projectSlugs});
@@ -404,13 +379,10 @@ function CreatedProjects({projectSlugs}: {projectSlugs: string[]}) {
 
 export function AgenticProgress({
   run,
-  // oxlint-disable-next-line react/todo
-  onboardingCode = run.onboardingCode,
   issueLinkReferrer = 'onboarding-agentic-first-issue',
 }: {
   run: AgenticProgressRun;
   issueLinkReferrer?: string;
-  onboardingCode?: string;
 }) {
   const createProjectStage = run.stages.find(stage => stage.stage === 'create_project');
   const projectSlugs = createProjectStage?.extra?.projectSlugs ?? [];
@@ -462,11 +434,7 @@ export function AgenticProgress({
           <FirstIssueCard issueId={firstIssueId} referrer={issueLinkReferrer} />
         </MotionContainer>
       ) : null}
-      <AgenticProgressMeta
-        isComplete={isComplete}
-        onboardingCode={onboardingCode}
-        updatedAt={run.updatedAt}
-      />
+      {isComplete ? null : <AgenticProgressLastUpdate updatedAt={run.updatedAt} />}
     </Stack>
   );
 }
