@@ -100,7 +100,7 @@ function TraceEmpty() {
             'Find similar traces in Explore using [crossEventQueryingLink: Cross Event Querying].',
             {
               crossEventQueryingLink: (
-                <ExternalLink href="https://docs.sentry.io/product/explore/trace-explorer/#cross-event-querying-beta" />
+                <ExternalLink href="https://docs.sentry.io/product/trace-explorer/#cross-event-querying" />
               ),
             }
           )}

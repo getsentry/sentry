@@ -41,7 +41,7 @@ export function FeatureFlagCTAContent({
           </Button>
           <LinkButton
             variant="secondary"
-            href="https://docs.sentry.io/product/explore/feature-flags/"
+            href="https://docs.sentry.io/product/issues/issue-details/feature-flags/"
             external
             onClick={() => {
               trackAnalytics('flags.cta_read_more_clicked', {

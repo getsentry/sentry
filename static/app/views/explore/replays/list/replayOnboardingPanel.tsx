@@ -156,7 +156,7 @@ export function SetupReplaysCTA({disabled, primaryAction}: SetupReplaysCTAProps)
               'To learn more about how we’ve optimized our SDK, please visit [link:our docs].',
               {
                 link: (
-                  <ExternalLink href="https://docs.sentry.io/product/explore/session-replay/performance-overhead/" />
+                  <ExternalLink href="https://docs.sentry.io/product/session-replay/web/performance-overhead/" />
                 ),
               }
             )}
@@ -243,8 +243,8 @@ export function SetupReplaysCTA({disabled, primaryAction}: SetupReplaysCTAProps)
         <LinkButton
           href={
             allMobileProj
-              ? 'https://docs.sentry.io/product/explore/session-replay/mobile/'
-              : 'https://docs.sentry.io/product/explore/session-replay/'
+              ? 'https://docs.sentry.io/product/session-replay/mobile/'
+              : 'https://docs.sentry.io/product/session-replay/'
           }
           external
         >

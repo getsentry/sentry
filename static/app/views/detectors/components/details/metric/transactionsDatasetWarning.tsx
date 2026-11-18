@@ -47,7 +47,7 @@ export function MigratedAlertWarning({detector}: {detector: MetricDetector}) {
             code: <code />,
             editLink: <Link to={editLink} disabled={!canEdit} />,
             samplingLink: (
-              <ExternalLink href="https://docs.sentry.io/product/explore/trace-explorer/#how-sampling-affects-queries-in-trace-explorer" />
+              <ExternalLink href="https://docs.sentry.io/product/trace-explorer/#how-sampling-affects-queries-in-trace-explorer" />
             ),
           }
         )}

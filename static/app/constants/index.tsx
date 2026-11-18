@@ -713,7 +713,7 @@ export const DATA_CATEGORY_INFO = {
     uid: 17,
     isBilledCategory: true,
     docsUrl:
-      'https://docs.sentry.io/product/explore/profiling/getting-started/#continuous-profiling',
+      'https://docs.sentry.io/product/profiling/getting-started/#continuous-profiling',
     statsInfo: {
       ...DEFAULT_STATS_INFO,
       showExternalStats: true,
@@ -741,8 +741,7 @@ export const DATA_CATEGORY_INFO = {
     productName: t('UI Profiling'),
     uid: 25,
     isBilledCategory: true,
-    docsUrl:
-      'https://docs.sentry.io/product/explore/profiling/getting-started/#ui-profiling',
+    docsUrl: 'https://docs.sentry.io/product/profiling/getting-started/#ui-profiling',
     statsInfo: {
       ...DEFAULT_STATS_INFO,
       showExternalStats: true,
@@ -802,7 +801,7 @@ export const DATA_CATEGORY_INFO = {
     productName: t('Logging'),
     uid: 24,
     isBilledCategory: true,
-    docsUrl: 'https://docs.sentry.io/product/explore/logs/getting-started/',
+    docsUrl: 'https://docs.sentry.io/product/logs/getting-started/',
     statsInfo: {
       ...DEFAULT_STATS_INFO,
       showExternalStats: true,

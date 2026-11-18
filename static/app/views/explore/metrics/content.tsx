@@ -114,7 +114,7 @@ function MetricsHeader() {
             type: 'page-title',
             label: title || METRICS_TITLE,
             labelTooltip: (
-              <DocumentationHint docsUrl="https://docs.sentry.io/product/explore/metrics/">
+              <DocumentationHint docsUrl="https://docs.sentry.io/product/metrics/">
                 {t(
                   'Track critical application signals using counters, gauges, and distributions.'
                 )}

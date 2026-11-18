@@ -358,7 +358,7 @@ function Onboarding({organization, project}: OnboardingProps) {
         <div>
           <LinkButton
             size="sm"
-            href="https://docs.sentry.io/product/explore/logs/getting-started/"
+            href="https://docs.sentry.io/product/logs/getting-started/"
             external
             onClick={() => {
               trackAnalytics('logs.onboarding_platform_docs_viewed', {

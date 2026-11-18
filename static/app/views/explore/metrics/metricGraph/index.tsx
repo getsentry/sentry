@@ -311,7 +311,7 @@ function Graph({
                 'No application metrics found for this time period. If this is unexpected, try updating your filters or [link:learn more] about how to use application metrics.',
                 {
                   link: (
-                    <ExternalLink href="https://docs.sentry.io/product/explore/metrics/">
+                    <ExternalLink href="https://docs.sentry.io/product/metrics/">
                       {t('learn more')}
                     </ExternalLink>
                   ),

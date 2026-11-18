@@ -560,7 +560,7 @@ function DetectSection({step}: {step?: number}) {
                   'Your thresholds may need to be adjusted to take into account [samplingLink:sampling].',
                   {
                     samplingLink: (
-                      <ExternalLink href="https://docs.sentry.io/product/explore/trace-explorer/#how-sampling-affects-queries-in-trace-explorer" />
+                      <ExternalLink href="https://docs.sentry.io/product/trace-explorer/#how-sampling-affects-queries-in-trace-explorer" />
                     ),
                   }
                 ),
@@ -694,7 +694,7 @@ function MigratedAlertWarningListener() {
             'The thresholds on this chart may look off. This is because, once saved, alerts will now take into account [samplingLink:sampling rate]. Before clicking save, take the time to update your [thresholdsLink:thresholds]. Cancel to continue running this alert in compatibility mode.',
             {
               samplingLink: (
-                <ExternalLink href="https://docs.sentry.io/product/explore/trace-explorer/#how-sampling-affects-queries-in-trace-explorer" />
+                <ExternalLink href="https://docs.sentry.io/product/trace-explorer/#how-sampling-affects-queries-in-trace-explorer" />
               ),
               thresholdsLink: (
                 <Link

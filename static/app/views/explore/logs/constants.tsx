@@ -92,7 +92,7 @@ const LOGS_FILTERS: FilterKeySection = {
 };
 
 export const LOGS_INSTRUCTIONS_URL =
-  'https://docs.sentry.io/product/explore/logs/getting-started/';
+  'https://docs.sentry.io/product/logs/getting-started/';
 
 export const LOGS_FILTER_KEY_SECTIONS: FilterKeySection[] = [LOGS_FILTERS];
 

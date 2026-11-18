@@ -35,7 +35,7 @@ export function SetupLogsButton() {
     <LinkButton
       icon={<IconOpen />}
       variant="primary"
-      href="https://docs.sentry.io/product/explore/logs/getting-started/"
+      href="https://docs.sentry.io/product/logs/getting-started/"
       external
       onClick={() => {
         trackAnalytics('logs.explorer.setup_button_clicked', {

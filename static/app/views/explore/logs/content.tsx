@@ -135,7 +135,7 @@ function LogsHeader() {
             type: 'page-title',
             label: title || t('Logs'),
             labelTooltip: (
-              <DocumentationHint docsUrl="https://docs.sentry.io/product/explore/logs/">
+              <DocumentationHint docsUrl="https://docs.sentry.io/product/logs/">
                 {t(
                   'Detailed structured logs, linked to errors and traces, for debugging and investigation.'
                 )}
