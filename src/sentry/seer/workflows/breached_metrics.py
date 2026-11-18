@@ -119,10 +119,7 @@ class MetricAlertTrigger(AutomationTrigger[MetricBreachInputs]):
         )
         workflow.when_condition_group = triggers
         workflow.save(update_fields=["when_condition_group", "date_updated"])
-        action = Action.objects.create(type=Action.Type.SEER_WORKFLOW, config={}, data={})
-        SeerWorkflowTriggerBinding.objects.create(
-            workflow_config=update.config, trigger_action=action
-        )
+        action = Action.objects.create(type=Action.Type.SEER_INVESTIGATION, config={}, data={})
         action_group = DataConditionGroup.objects.create(
             organization_id=organization_id, logic_type=DataConditionGroup.Type.ALL
         )
