@@ -278,9 +278,9 @@ export interface TourContextType<T extends TourEnumType> extends TourState<T> {
   setStep: (stepId: T) => void;
   startTour: () => void;
   /**
-   * Set by `TourContextProvider` for subtle tours, whose guides take focus.
+   * Set by `TourContextProvider`.
    */
-  focusHandoffRef?: React.RefObject<TourFocusHandoff>;
+  focusScope?: TourFocusScope;
   /**
    * How the tour presents itself. Set by `TourContextProvider`.
    */
@@ -294,14 +294,23 @@ export interface TourContextType<T extends TourEnumType> extends TourState<T> {
  */
 export type TourVariant = 'spotlight' | 'subtle';
 
-export interface TourFocusHandoff {
+/**
+ * Where focus goes back to once a tour's guides close. It is shared by the
+ * tour's guides, so focus returns once the tour ends rather than at each step.
+ */
+export interface TourFocusScope {
   /**
-   * True while a guide hands its focus over to the guide of the next step.
+   * Ends the scope, so the guide closing now returns focus.
    */
-  isHandingOff: boolean;
+  end: () => void;
   /**
-   * What had focus before the tour's first guide took it. Focus goes back
-   * there when the tour's guides close.
+   * Called as a guide takes focus. The scope keeps the first element it gets,
+   * which is what had focus before the tour.
    */
-  returnTarget: Element | null;
+  enter: (previousFocus: Element | null) => void;
+  /**
+   * Where focus goes as a guide closes: nowhere while the scope runs, since
+   * the next guide takes focus over.
+   */
+  exit: () => HTMLElement | null;
 }
