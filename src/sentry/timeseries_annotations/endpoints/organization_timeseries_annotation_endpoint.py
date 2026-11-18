@@ -1,15 +1,16 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from django.db.models import Q
+from django.utils import timezone
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import features, quotas
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -55,6 +56,10 @@ class OrganizationTimeseriesAnnotationEndpoint(OrganizationEndpoint):
             .filter(Q(project_id__in=project_ids) | Q(project_id__isnull=True))
         )
 
+        retention = _within_retention(organization)
+        if retention is not None:
+            queryset = queryset.filter(retention)
+
         scopes = _parse_labels(request.GET.getlist("scope"), AnnotationScope, "scope")
         if scopes:
             queryset = queryset.filter(scope__in=scopes)
@@ -93,6 +98,19 @@ def _window_overlap(start: datetime, end: datetime) -> Q:
         Q(end_timestamp__gte=start) | Q(end_timestamp__isnull=True)
     )
     return point | range_
+
+
+def _within_retention(organization: Organization) -> Q | None:
+    """
+    Query clause to enforce annotations are within the org's retention period
+    """
+    retention_days = quotas.backend.get_event_retention(organization=organization)
+    if not retention_days:
+        return None
+    cutoff = timezone.now() - timedelta(days=retention_days)
+    return Q(interval_type=IntervalType.POINT, start_timestamp__gte=cutoff) | Q(
+        interval_type=IntervalType.RANGE
+    ) & (Q(end_timestamp__isnull=True) | Q(end_timestamp__gte=cutoff))
 
 
 def _parse_labels(
