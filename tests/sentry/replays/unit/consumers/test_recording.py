@@ -103,6 +103,14 @@ def test_decompress_segment_at_max_size() -> None:
         decompress_segment(compressed_data, len(data) - 1)
 
 
+def test_decompress_segment_negative_max_size() -> None:
+    """Test a negative limit is rejected rather than treated as unlimited"""
+    bomb = zlib.compress(b"[" + b" " * (1024 * 1024) + b"]", 9)
+
+    with pytest.raises(ValueError):
+        decompress_segment(bomb, -1)
+
+
 def test_decompress_segment_uncompressed_exceeds_max_size() -> None:
     """Test an uncompressed segment larger than the limit is dropped"""
     data = b"[" + b" " * 1024 + b"]"
