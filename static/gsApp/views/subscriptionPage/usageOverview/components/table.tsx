@@ -15,7 +15,7 @@ import {
   productIsEnabled,
   supportsPayg,
 } from 'getsentry/utils/billing';
-import {sortCategories} from 'getsentry/utils/dataCategory';
+import {sortCategoriesWithKeys} from 'getsentry/utils/dataCategory';
 import {UsageOverviewTableRow} from 'getsentry/views/subscriptionPage/usageOverview/components/tableRow';
 import type {UsageOverviewTableProps} from 'getsentry/views/subscriptionPage/usageOverview/types';
 
@@ -29,15 +29,16 @@ export function UsageOverviewTable({
   const addOnDataCategories = Object.values(subscription.planDetails.addOnCategories)
     .flatMap(addOnInfo => addOnInfo.dataCategories)
     .filter(category => checkIsAddOnChildCategory(subscription, category, true));
-  const sortedCategories = sortCategories(subscription.categories);
+  // Seer Credits are reported on the Seer card, so they get no row.
+  const sortedCategories = sortCategoriesWithKeys(subscription.categories)
+    .filter(([key]) => key !== SEER_CREDITS_LINE_ITEM_UID)
+    .map(([, categoryInfo]) => categoryInfo);
   const showAdditionalSpendColumn =
     subscription.canSelfServe || supportsPayg(subscription);
 
   // Partition regular categories into enabled and disabled (locked) groups
   const filteredCategories = sortedCategories.filter(
-    categoryInfo =>
-      !addOnDataCategories.includes(categoryInfo.category) &&
-      categoryInfo.category !== SEER_CREDITS_LINE_ITEM_UID
+    categoryInfo => !addOnDataCategories.includes(categoryInfo.category)
   );
   const [enabledCategories, disabledCategories] = partition(
     filteredCategories,

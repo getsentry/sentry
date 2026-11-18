@@ -26,11 +26,13 @@ export const MILLISECONDS_IN_HOUR = 3_600_000;
  * (getsentry's `SEER_CREDITS_LINE_ITEM_UID`). The billing page reports them on
  * the Seer card rather than with the other categories.
  *
- * Widened to `string` because callers compare it with `DataCategory` keys, which
- * TypeScript rejects for a literal type outside the enum (TS2367).
+ * The UID is fixed: getsentry also keys each organization's Seer Credits ledger
+ * account by it.
+ *
+ * It is not a `DataCategory`, so match it against the string keys of those
+ * responses, not against `BillingMetricHistory.category`.
  */
-export const SEER_CREDITS_LINE_ITEM_UID =
-  '8ee96181-c10a-4fe1-8e00-08af59522463' as string;
+export const SEER_CREDITS_LINE_ITEM_UID = '8ee96181-c10a-4fe1-8e00-08af59522463';
 
 /**
  * Pseudo-tiers accepted by the customer billing-config endpoint as its `tier`

@@ -16,6 +16,7 @@ import {
   SEER_CREDITS_LINE_ITEM_UID,
 } from 'getsentry/constants';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
+import type {BillingMetricHistory, Subscription} from 'getsentry/types';
 import {UsageAlert} from 'getsentry/views/subscriptionPage/usageAlert';
 
 describe('Subscription > UsageAlert', () => {
@@ -673,6 +674,19 @@ describe('Subscription > UsageAlert', () => {
   });
 
   describe('Seer Credits', () => {
+    // The API keys Seer Credits by their line item UID, which the
+    // DataCategory-keyed categories type has no place for.
+    function seerCredits(
+      params: Partial<BillingMetricHistory>
+    ): Subscription['categories'] {
+      return {
+        [SEER_CREDITS_LINE_ITEM_UID]: {
+          ...MetricHistoryFixture(params),
+          category: SEER_CREDITS_LINE_ITEM_UID,
+        },
+      } as Subscription['categories'];
+    }
+
     it('does not let Seer Credits exceed or project an overage', () => {
       const organization = OrganizationFixture({access: ['org:billing']});
       const subscription = SubscriptionFixture({organization, canTrial: false});
@@ -684,12 +698,7 @@ describe('Subscription > UsageAlert', () => {
             plan: 'am1_f',
             categories: {
               errors: MetricHistoryFixture({prepaid: 5_000, reserved: 5_000}),
-              [SEER_CREDITS_LINE_ITEM_UID]: MetricHistoryFixture({
-                category: SEER_CREDITS_LINE_ITEM_UID as DataCategory,
-                prepaid: 500,
-                reserved: 500,
-                usageExceeded: true,
-              }),
+              ...seerCredits({prepaid: 500, reserved: 500, usageExceeded: true}),
             },
           }}
           usage={CustomerUsageFixture({
@@ -717,10 +726,7 @@ describe('Subscription > UsageAlert', () => {
         canTrial: false,
         categories: {
           errors: MetricHistoryFixture({usageExceeded: true}),
-          [SEER_CREDITS_LINE_ITEM_UID]: MetricHistoryFixture({
-            category: SEER_CREDITS_LINE_ITEM_UID as DataCategory,
-            usageExceeded: true,
-          }),
+          ...seerCredits({usageExceeded: true}),
         },
       });
 
@@ -741,10 +747,7 @@ describe('Subscription > UsageAlert', () => {
         canSelfServe: true,
         categories: {
           errors: MetricHistoryFixture({usageExceeded: false}),
-          [SEER_CREDITS_LINE_ITEM_UID]: MetricHistoryFixture({
-            category: SEER_CREDITS_LINE_ITEM_UID as DataCategory,
-            usageExceeded: true,
-          }),
+          ...seerCredits({usageExceeded: true}),
         },
       });
 
