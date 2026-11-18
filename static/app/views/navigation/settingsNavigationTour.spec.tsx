@@ -188,6 +188,21 @@ describe('Settings navigation tour', () => {
     expect(document.body).toHaveFocus();
   });
 
+  it('leaves focus in a field the user is typing in when the tour starts', async () => {
+    render(
+      <div>
+        <input aria-label="Search" />
+        <Tour />
+      </div>,
+      {organization}
+    );
+    await userEvent.click(screen.getByRole('textbox', {name: 'Search'}));
+    expect(await screen.findByRole('dialog', {name: 'Tour entry'})).not.toHaveFocus();
+    await userEvent.keyboard('issues');
+    expect(screen.getByRole('textbox', {name: 'Search'})).toHaveFocus();
+    expect(screen.getByRole('textbox', {name: 'Search'})).toHaveValue('issues');
+  });
+
   it('takes focus as the guide opens and keeps Tab inside it', async () => {
     render(
       <div>

@@ -434,6 +434,13 @@ interface TourGuideProps extends Omit<
   variant?: TourVariant;
 }
 
+function isEditable(element: Element | null) {
+  return (
+    element instanceof HTMLElement &&
+    (element.isContentEditable || element.matches('input, textarea, select'))
+  );
+}
+
 function createTourFocusScope({isRunning}: {isRunning: boolean}): TourFocusScope {
   let returnTarget: HTMLElement | null = null;
   let hasEntered = false;
@@ -555,8 +562,13 @@ export function TourGuide({
     }
     // A guide outside a tour is a scope of its own.
     const scope = focusScope ?? createTourFocusScope({isRunning: false});
-    // Like a react-aria dialog, the guide takes focus as it opens.
-    if (!overlay.contains(document.activeElement)) {
+    // Like a react-aria dialog, the guide takes focus as it opens. A tour can
+    // start on its own at any time, so it leaves focus with a field the user
+    // may be typing in.
+    if (
+      !overlay.contains(document.activeElement) &&
+      !isEditable(document.activeElement)
+    ) {
       // Only the tour's first guide shows the focus ring, so the user notices
       // the tour start; later steps take focus without it.
       setIsFocusRingVisible(scope.enter(document.activeElement));
