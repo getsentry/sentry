@@ -815,6 +815,12 @@ class MonitorIncident(Model):
     This represents the final OK check-in that we receive
     """
 
+    last_successful_timestamp = models.DateTimeField(null=True)
+    """
+    Time of the newest OK check-in before this incident, or during it while
+    the recovery threshold is not yet met. Shown on the incident's issue.
+    """
+
     grouphash = models.CharField(max_length=32, default=default_grouphash)
     """
     Used for issue occurrences generation. Failed check-ins produce an

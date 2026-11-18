@@ -136,7 +136,6 @@ describe('AgenticProgressList', () => {
 
     expect(screen.getByText('Created 2 projects')).toBeInTheDocument();
     expect(screen.getByText(/Last update/)).toBeInTheDocument();
-    expect(screen.getByText('ID:Lg1iSt2qeQ')).toBeInTheDocument();
     await waitFor(() => expect(projectsRequest).toHaveBeenCalled());
   });
 

@@ -32,6 +32,7 @@ from sentry.seer.workflows.workflow import (
 )
 from sentry.service_accounts.models import (
     ServiceAccount,
+    ServiceAccountOwnerKind,
     ServiceAccountProject,
     ServiceAccountReplica,
 )
@@ -281,7 +282,9 @@ class SeerWorkflowServiceAccountOutboxTest(TestCase):
             category=OutboxCategory.SERVICE_ACCOUNT_CREATE
         ).exists()
         with assume_test_silo_mode(SiloMode.CONTROL):
-            assert ServiceAccount.objects.get(id=account_id).scope_list == ["event:read"]
+            account = ServiceAccount.objects.get(id=account_id)
+        assert account.scope_list == ["event:read"]
+        assert account.owner_kind == ServiceAccountOwnerKind.SEER_WORKFLOW_CONFIG
 
     def test_flush_database_error_keeps_config_for_retry(self) -> None:
         organization, project = self.organization, self.project

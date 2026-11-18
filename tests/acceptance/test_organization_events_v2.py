@@ -14,11 +14,7 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import no_silo_test
 from sentry.utils.samples import load_data
 
-FEATURE_NAMES = [
-    "organizations:discover-basic",
-    "organizations:discover-query",
-    "organizations:performance-view",
-]
+FEATURE_NAMES = ["organizations:discover-basic", "organizations:discover-query"]
 
 
 def all_events_query(**kwargs: str | list[str]) -> str:

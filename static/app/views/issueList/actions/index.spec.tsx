@@ -577,6 +577,8 @@ describe('IssueListActions', () => {
 
   describe('copy', () => {
     beforeEach(() => {
+      localStorage.clear();
+      jest.spyOn(analytics, 'trackAnalytics');
       Object.assign(navigator, {clipboard: {writeText: jest.fn().mockResolvedValue('')}});
       GroupStore.loadInitialData([
         GroupFixture({
@@ -593,24 +595,49 @@ describe('IssueListActions', () => {
       ]);
     });
 
-    it('copies selected issue IDs', async () => {
+    it('copies selected issue IDs from the top level button by default', async () => {
       render(<WrappedComponent selectedIds={['1', '2']} />);
 
-      await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
-      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Copy Issue IDs'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Copy Short-IDs'}));
 
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith('PROJ-1\nPROJ-2');
+      expect(analytics.trackAnalytics).toHaveBeenCalledWith(
+        'issues_stream.copied',
+        expect.objectContaining({copy_type: 'short_ids', count: 2})
+      );
     });
 
-    it('copies selected issue links', async () => {
+    it('copies selected issue links from the dropdown', async () => {
       render(<WrappedComponent selectedIds={['1', '2']} />);
 
-      await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Copy options'}));
       await userEvent.click(
         screen.getByRole('menuitemradio', {name: 'Copy Issue Links'})
       );
 
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+        'https://sentry.io/organizations/org-slug/issues/1/\nhttps://sentry.io/organizations/org-slug/issues/2/'
+      );
+      expect(analytics.trackAnalytics).toHaveBeenCalledWith(
+        'issues_stream.copied',
+        expect.objectContaining({copy_type: 'links', count: 2})
+      );
+    });
+
+    it('remembers the last copy option as the top level action', async () => {
+      const {unmount} = render(<WrappedComponent selectedIds={['1', '2']} />);
+
+      await userEvent.click(screen.getByRole('button', {name: 'Copy options'}));
+      await userEvent.click(
+        screen.getByRole('menuitemradio', {name: 'Copy Issue Links'})
+      );
+      expect(screen.getByRole('button', {name: 'Copy Links'})).toBeInTheDocument();
+
+      unmount();
+      render(<WrappedComponent selectedIds={['1', '2']} />);
+
+      await userEvent.click(screen.getByRole('button', {name: 'Copy Links'}));
+      expect(navigator.clipboard.writeText).toHaveBeenLastCalledWith(
         'https://sentry.io/organizations/org-slug/issues/1/\nhttps://sentry.io/organizations/org-slug/issues/2/'
       );
     });
@@ -622,9 +649,12 @@ describe('IssueListActions', () => {
       await userEvent.click(
         screen.getByText(/Select the first 1,000 issues that match this search query/)
       );
-      await userEvent.click(screen.getByRole('button', {name: 'More issue actions'}));
 
-      expect(screen.getByRole('menuitemradio', {name: /Copy Issue IDs/})).toHaveAttribute(
+      expect(screen.getByRole('button', {name: 'Copy Short-IDs'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+      expect(screen.getByRole('button', {name: 'Copy options'})).toHaveAttribute(
         'aria-disabled',
         'true'
       );

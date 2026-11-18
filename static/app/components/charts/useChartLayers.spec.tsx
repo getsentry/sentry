@@ -86,6 +86,66 @@ describe('useChartLayers', () => {
     expect(result.current.droppedData.band).toBeUndefined();
   });
 
+  describe('releases', () => {
+    const releasesOrganization = OrganizationFixture({
+      features: ['explore-data-fidelity-annotations', 'timeseries-annotations'],
+    });
+
+    function renderReleasesHook(releases: Array<{date: string; version: string}>) {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${releasesOrganization.slug}/releases/stats/`,
+        body: releases,
+      });
+
+      return renderHookWithProviders(
+        () =>
+          useChartLayers({
+            dataset: DiscoverDatasets.SPANS,
+            interval: '1h',
+            source: 'explore',
+          }),
+        {organization: releasesOrganization}
+      );
+    }
+
+    it('toggles the release band from the Releases layer', async () => {
+      const {result} = renderReleasesHook([
+        {date: '2026-11-03T12:00:00Z', version: 'ui@1.0.0'},
+      ]);
+
+      await waitFor(() =>
+        expect(result.current.releases).toEqual([
+          {timestamp: '2026-11-03T12:00:00Z', version: 'ui@1.0.0'},
+        ])
+      );
+      act(() => result.current.layerControl!.onChange('releases', false));
+
+      expect(result.current.releases).toBeUndefined();
+      expect(result.current.layerControl?.layers).toContainEqual(
+        expect.objectContaining({value: 'releases', selected: false})
+      );
+      expect(trackAnalytics).toHaveBeenCalledWith('releases.bubbles_legend', {
+        organization: releasesOrganization,
+        selected: false,
+      });
+    });
+
+    it('disables the Releases layer when the range has no releases', async () => {
+      const {result} = renderReleasesHook([]);
+
+      await waitFor(() =>
+        expect(result.current.layerControl?.layers).toContainEqual({
+          value: 'releases',
+          label: 'Releases',
+          selected: false,
+          disabled: true,
+          tooltip: 'No releases in this time range',
+        })
+      );
+      expect(result.current.releases).toBeUndefined();
+    });
+  });
+
   it('has no layers and requests nothing when disabled', () => {
     const {result} = renderHookWithProviders(
       () =>
