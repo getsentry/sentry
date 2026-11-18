@@ -179,6 +179,7 @@ class DigestNotification(ProjectNotification):
                 notification_uuid=notification_uuid,
             ),
             "show_replay_links": has_session_replay,
+            "show_environments": not organization.flags.enhanced_privacy,
         }
 
     def get_extra_context(

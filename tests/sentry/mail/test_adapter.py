@@ -10,6 +10,7 @@ from unittest import mock
 from unittest.mock import MagicMock
 
 import responses
+from bs4 import BeautifulSoup
 from django.contrib.auth.models import AnonymousUser
 from django.core import mail
 from django.core.mail.message import EmailMultiAlternatives
@@ -1393,18 +1394,30 @@ class MailAdapterGetDigestSubjectTest(BaseMailAdapterTest):
 
 
 class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
-    @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
-    def test_notify_digest(self, notify: MagicMock) -> None:
+    def send_digest_email(self) -> EmailMultiAlternatives:
         project = self.project
         timestamp = before_now(minutes=1).isoformat()
         event = self.store_event(
-            data={"timestamp": timestamp, "fingerprint": ["group-1"]},
+            data={"timestamp": timestamp, "message": "First error", "environment": "production"},
             project_id=project.id,
         )
         event2 = self.store_event(
-            data={"timestamp": timestamp, "fingerprint": ["group-2"]},
+            data={"timestamp": timestamp, "message": "Second error", "environment": "staging"},
             project_id=project.id,
         )
+        event3 = self.store_event(
+            data={"timestamp": timestamp, "message": "Third error"},
+            project_id=project.id,
+        )
+        older_event = self.store_event(
+            data={
+                "timestamp": before_now(minutes=2).isoformat(),
+                "message": "First error",
+                "environment": "development",
+            },
+            project_id=project.id,
+        )
+        assert older_event.group_id == event.group_id
 
         rule = self.create_project_rule(project=project)
         origin = create_workflow_notification_origin_for_rule(rule)
@@ -1414,6 +1427,8 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
             (
                 event_to_record(as_group_event(event), (origin,)),
                 event_to_record(as_group_event(event2), (origin,)),
+                event_to_record(as_group_event(event3), (origin,)),
+                event_to_record(as_group_event(older_event), (origin,)),
             ),
         )
 
@@ -1425,14 +1440,41 @@ class MailAdapterNotifyDigestTest(BaseMailAdapterTest, ReplaysSnubaTestCase):
                 fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
             )
 
-        assert notify.call_count == 0
         assert len(mail.outbox) == 1
-
         message = mail.outbox[0]
-        assert "List-ID" in message.message()
         assert isinstance(message, EmailMultiAlternatives)
+        return message
+
+    @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
+    def test_notify_digest(self, notify: MagicMock) -> None:
+        message = self.send_digest_email()
+        assert notify.call_count == 0
+        assert "List-ID" in message.message()
         assert isinstance(message.alternatives[0][0], str)
         assert "notification_uuid" in message.alternatives[0][0]
+        rows = BeautifulSoup(message.alternatives[0][0], "html.parser").select("td.event-detail")
+        details = {
+            row.select("h3 a")[0].get_text(strip=True): row.get_text(" ", strip=True)
+            for row in rows
+        }
+        assert "Environment: production" in details["First error"]
+        assert "Environment: staging" in details["Second error"]
+        assert "Environment:" not in details["Third error"]
+        assert isinstance(message.body, str)
+        assert re.search(r"\* First error[^\n]*\n\s*Environment: production\n", message.body)
+        assert re.search(r"\* Second error[^\n]*\n\s*Environment: staging\n", message.body)
+        assert message.body.count("Environment:") == 2
+        assert "development" not in message.body
+        assert "development" not in message.alternatives[0][0]
+
+    def test_digest_environments_hidden_with_enhanced_privacy(self) -> None:
+        self.organization.update(flags=F("flags").bitor(Organization.flags.enhanced_privacy))
+        message = self.send_digest_email()
+        assert isinstance(message.alternatives[0][0], str)
+        for content in (message.body, message.alternatives[0][0]):
+            assert "production" not in content
+            assert "staging" not in content
+            assert "Environment:" not in content
 
     @mock.patch.object(mail_adapter, "notify", side_effect=mail_adapter.notify, autospec=True)
     def test_notify_digest_replay_id(self, notify: MagicMock) -> None:

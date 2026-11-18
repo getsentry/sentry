@@ -77,6 +77,8 @@
                           {% else %}
                             {% if timezone %}{{ records.0.datetime|timezone:timezone|date:"N j, Y, g:i:s a e" }}{% else %}{{ records.0.datetime|date:"N j, Y, g:i:s a e" }}{% endif %}
                           {% endif %}
+                          {% digest_environment group records.0.value.event show_environments as environment %}
+                          {% if environment %} · Environment: {{ environment }}{% endif %}
                         </small>
                         {% if show_replay_links and group.has_replays %}
                           <span class="replay-link">
