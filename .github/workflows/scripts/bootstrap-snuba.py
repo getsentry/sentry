@@ -1,14 +1,17 @@
 #!/usr/bin/env python3
 """Bootstrap per-worker Snuba instances for CI.
 
-Phase 1: Create per-worker databases and run ``snuba bootstrap --force``
-  for each of them.
+Before phase 1: Load the CI ClickHouse config (clickhouse/), which stops
+  ClickHouse logging and profiling every query.
+Phase 1: Run ``snuba bootstrap --force`` for the first worker's database,
+  then copy it to the other workers with BACKUP/RESTORE.
 Phase 2: Stop snuba-snuba-1 and start per-worker API containers.
 
 Usage:
-  bootstrap-snuba.py           Run in the foreground, after devservices is up.
-  bootstrap-snuba.py --start   Run in the background.
-  bootstrap-snuba.py --wait    Wait for the background run and exit with its status.
+  bootstrap-snuba.py              Run in the foreground, after devservices is up.
+  bootstrap-snuba.py --start      Run in the background.
+  bootstrap-snuba.py --wait       Wait for the background run and exit with its status.
+  bootstrap-snuba.py --query-log  Print how many queries ClickHouse logged per database.
 
 With DEVSERVICES_STATUS_FILE set (the exit status of a background
 ``devservices up``), phase 1 starts once ClickHouse, Kafka and Redis are
@@ -43,6 +46,20 @@ SNUBA_ENV = {
 
 ENV_ARGS = [flag for k, v in SNUBA_ENV.items() for flag in ("-e", f"{k}={v}")]
 
+SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
+MONITOR = os.path.join(SCRIPTS_DIR, "monitor-resources.py")
+CLICKHOUSE = "snuba-clickhouse-1"
+CLICKHOUSE_URL = "http://localhost:8123/"
+# zz- so they merge after the sentry.xml that Snuba's devservices config mounts.
+CLICKHOUSE_CI_CONFIG = {
+    "clickhouse/ci-profile.xml": "/etc/clickhouse-server/users.d/zz-ci-profile.xml",
+    "clickhouse/ci-logger.xml": "/etc/clickhouse-server/config.d/zz-ci-logger.xml",
+}
+
+
+def worker_db(worker_id: int) -> str:
+    return f"default_gw{worker_id}"
+
 
 def redis_db_args(worker_id: int) -> list[str]:
     # Each test's Snuba reset (/tests/<dataset>/drop) flushes Snuba's Redis DB. On a
@@ -53,7 +70,7 @@ def redis_db_args(worker_id: int) -> list[str]:
 
 
 # What `snuba bootstrap` talks to. In early mode phase 1 only waits for these.
-BOOTSTRAP_DEPENDENCIES = ("snuba-clickhouse-1", "kafka-kafka-1", "redis-redis-1")
+BOOTSTRAP_DEPENDENCIES = (CLICKHOUSE, "kafka-kafka-1", "redis-redis-1")
 
 # Set by the workflow when setup-sentry starts devservices in the background.
 DEVSERVICES_STATUS_FILE = os.environ.get("DEVSERVICES_STATUS_FILE", "")
@@ -95,6 +112,17 @@ def http_ok(url: str) -> bool:
             return True
     except (URLError, OSError):
         return False
+
+
+def clickhouse_query(sql: str, *, session: str | None = None, timeout: int = 30) -> str:
+    url = f"{CLICKHOUSE_URL}?session_id={session}" if session else CLICKHOUSE_URL
+    with urlopen(url, sql.encode(), timeout=timeout) as r:
+        return r.read().decode()
+
+
+def set_monitor_phase(phase: str) -> None:
+    """Attribute resource-monitor samples to a phase. Best effort."""
+    subprocess.run([sys.executable, MONITOR, "--phase", phase], check=False)
 
 
 def docker(
@@ -204,15 +232,52 @@ def wait_for_devservices(timeout: int = PREREQ_TIMEOUT) -> None:
     log(f"devservices up finished ({time.monotonic() - start:.0f}s)")
 
 
+def configure_clickhouse() -> None:
+    """Load the CI ClickHouse config. Best effort, since it only saves CPU.
+
+    Profile settings apply when a session starts, so this runs before any
+    per-worker Snuba connects. snuba-snuba-1 may have connected already, but
+    phase 2 stops it.
+    """
+    try:
+        for src, dest in CLICKHOUSE_CI_CONFIG.items():
+            docker("cp", os.path.join(SCRIPTS_DIR, src), f"{CLICKHOUSE}:{dest}", check=True)
+        clickhouse_query("SYSTEM RELOAD CONFIG")
+        log_queries = clickhouse_query("SELECT getSetting('log_queries')").strip()
+    except (subprocess.CalledProcessError, URLError, OSError) as e:
+        log(f"::warning::Could not load the CI ClickHouse config: {e}")
+        return
+    log(f"Loaded the CI ClickHouse config (log_queries={log_queries})")
+
+
+def clone_databases(source: int, targets: range) -> None:
+    """Copy a bootstrapped worker database, schema and migration state, to others.
+
+    `snuba bootstrap` runs about 700 DDL statements per database, mostly ALTERs
+    of wide tables, for about 15 CPU-seconds of ClickHouse. RESTORE ... AS
+    rewrites the database in materialized views and Merge tables and copies
+    them all in under a second.
+    """
+    src = worker_db(source)
+    # Memory backups only live as long as the session that made them.
+    session = f"bootstrap-snuba-{os.getpid()}"
+    clickhouse_query(f"BACKUP DATABASE {src} TO Memory('{src}')", session=session)
+    for i in targets:
+        clickhouse_query(f"DROP DATABASE IF EXISTS {worker_db(i)} SYNC", session=session)
+        clickhouse_query(
+            f"RESTORE DATABASE {src} AS {worker_db(i)} FROM Memory('{src}')",
+            session=session,
+            timeout=120,
+        )
+        log(f"Copied {src} to {worker_db(i)}")
+
+
 def bootstrap_worker(worker_id: int, *, image: str, network: str) -> None:
     """Create a ClickHouse database and run snuba bootstrap."""
-    db = f"default_gw{worker_id}"
+    db = worker_db(worker_id)
 
     def create_db() -> None:
-        with urlopen(
-            "http://localhost:8123/", f"CREATE DATABASE IF NOT EXISTS {db}".encode(), timeout=30
-        ):
-            pass
+        clickhouse_query(f"CREATE DATABASE IF NOT EXISTS {db}")
 
     retry(create_db, label=f"CREATE DATABASE {db}")
 
@@ -240,7 +305,7 @@ def bootstrap_worker(worker_id: int, *, image: str, network: str) -> None:
 
 def start_worker_container(worker_id: int, *, image: str, network: str) -> None:
     """Start a per-worker Snuba API container and wait for health."""
-    db = f"default_gw{worker_id}"
+    db = worker_db(worker_id)
     port = 1230 + worker_id
     name = f"snuba-gw{worker_id}"
 
@@ -288,9 +353,19 @@ def main() -> None:
 
     wait_for_prerequisites()
     image, network = inspect_snuba_container()
+    configure_clickhouse()
 
     log("Phase 1: bootstrapping ClickHouse databases")
-    run_parallel(partial(bootstrap_worker, image=image, network=network), workers)
+    set_monitor_phase("snuba-bootstrap")
+    bootstrap = partial(bootstrap_worker, image=image, network=network)
+    run_parallel(bootstrap, workers[:1])
+    if len(workers) > 1:
+        try:
+            clone_databases(workers[0], workers[1:])
+        except (URLError, OSError) as e:
+            log(f"::warning::Copying {worker_db(workers[0])} failed ({e}), bootstrapping each")
+            run_parallel(bootstrap, workers[1:])
+    set_monitor_phase("setup")
     log(f"Phase 1 done ({time.monotonic() - start:.0f}s)")
 
     wait_for_devservices()
@@ -310,6 +385,19 @@ def main() -> None:
 
     log(f"Snuba bootstrap complete ({time.monotonic() - start:.0f}s total)")
     sys.exit(rc)
+
+
+def report_query_log() -> None:
+    """Shows whether the CI profile reached Snuba's connections: the
+    default_gw* databases should log no queries."""
+    clickhouse_query("SYSTEM FLUSH LOGS", timeout=60)
+    log(
+        clickhouse_query(
+            "SELECT current_database, count() AS logged_queries FROM system.query_log "
+            "WHERE type = 'QueryFinish' GROUP BY current_database "
+            "ORDER BY current_database FORMAT PrettyCompactMonoBlock"
+        )
+    )
 
 
 def start_background() -> None:
@@ -361,5 +449,7 @@ if __name__ == "__main__":
             run_background()
         case ["--wait"]:
             wait_background()
+        case ["--query-log"]:
+            report_query_log()
         case _:
             fail(f"Unknown arguments: {sys.argv[1:]}")
