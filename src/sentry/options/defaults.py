@@ -1280,16 +1280,6 @@ register(
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# When none of an event's debug IDs were uploaded, the source map debugger checks whether the
-# project has uploaded any file with a debug ID. It checks only the project's newest bundles, up
-# to this many. 0 reads the organization's debug-ID rows instead, until one is in a bundle of the
-# project, which for a project without any means all of them. Capped at 10,000.
-register(
-    "sourcemaps.source-map-debug.debug-id-check-max-bundles",
-    type=Int,
-    default=1000,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # TODO(INFRENG-460): unregister once the sentry-options-automator entries are gone
 register(
@@ -1693,21 +1683,6 @@ register(
 # Most entities one telemetry classifier selection enqueues, and its page size.
 register(
     "telemetry-classifiers.select-limit",
-    type=Int,
-    default=100,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# Conversation classifiers PoC.
-register(
-    "classifiers.conversations.project-ids",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Maximum conversations fetched from each project per scan.
-register(
-    "classifiers.conversations.telemetry-limit",
     type=Int,
     default=100,
     flags=FLAG_AUTOMATOR_MODIFIABLE,

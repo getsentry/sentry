@@ -200,6 +200,7 @@ function DropdownMenu({
           },
         }}
         menuLevel={{type: 'root', state: rootMenuState}}
+        isDismissable={isDismissable}
         items={items}
       />
     );

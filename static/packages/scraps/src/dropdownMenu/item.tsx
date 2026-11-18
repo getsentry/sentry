@@ -304,7 +304,42 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
     // oxlint-disable-next-line react/refs
     {ref: mergeRefs(menuItemRef, innerWrapRef), 'data-test-id': key}
   );
+  const {onPointerEnter, onPointerMove, onPointerLeave, ...menuItemContentProps} =
+    mergedMenuItemContentProps;
   const itemLabel = node.rendered ?? label;
+
+  // The details overlay is portaled out of the row but still bubbles React events
+  // through it. Ignore those, as useHover does, so the row tracks only its own box.
+  const isFromRow = (event: React.PointerEvent<HTMLElement>) =>
+    event.target instanceof Node && event.currentTarget.contains(event.target);
+
+  // The row, not the item, handles pointer and arrow key events, so they cover the
+  // trailing action that sits beside the item.
+  const rowEventProps = {
+    onPointerEnter: (event: React.PointerEvent<HTMLElement>) => {
+      if (isFromRow(event)) {
+        onPointerEnter?.(event);
+      }
+    },
+    onPointerMove: (event: React.PointerEvent<HTMLElement>) => {
+      if (isFromRow(event)) {
+        onPointerMove?.(event);
+      }
+    },
+    onPointerLeave: (event: React.PointerEvent<HTMLElement>) => {
+      if (isFromRow(event)) {
+        onPointerLeave?.(event);
+      }
+    },
+    onKeyDown: (event: React.KeyboardEvent<HTMLElement>) => {
+      // ArrowLeft returns from the trailing action to its item.
+      if (event.key === 'ArrowLeft' && event.target === trailingActionRef.current) {
+        event.preventDefault();
+        event.stopPropagation();
+        innerWrapRef.current?.focus();
+      }
+    },
+  };
 
   return (
     <ListItem
@@ -332,20 +367,11 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
       }
       disabled={isDisabled}
       isFocused={isFocused}
-      innerWrapProps={mergedMenuItemContentProps}
+      innerWrapProps={menuItemContentProps}
       labelProps={labelProps}
       detailsProps={descriptionProps}
       trailingAction={trailingAction}
       trailingActionRef={trailingActionRef}
-      trailingActionWrapperProps={{
-        onKeyDown: event => {
-          if (event.key === 'ArrowLeft') {
-            event.preventDefault();
-            event.stopPropagation();
-            innerWrapRef.current?.focus();
-          }
-        },
-      }}
       trailingItems={
         isSubmenu ? (
           <Fragment>
@@ -357,6 +383,7 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
         )
       }
       size={size}
+      {...rowEventProps}
       {...itemProps}
     />
   );

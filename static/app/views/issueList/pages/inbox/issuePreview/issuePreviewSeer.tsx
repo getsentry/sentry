@@ -130,7 +130,11 @@ function useIssuePreviewSeerState(group: Group, project: Project) {
     : getSeerButtonAction(state, autofix, {
         suppressResultLink: hidesCodingAgentResultLink(pullRequests),
       });
-  const creditCheck = useAutofixCreditCheck(creditAction);
+  const creditCheck = useAutofixCreditCheck(creditAction, {
+    // Find Root Cause and Restart Autofix both start a new run.
+    billingFeature:
+      creditAction === 'root_cause' ? undefined : autofix.runState?.billing_feature,
+  });
 
   return {
     aiConfig,

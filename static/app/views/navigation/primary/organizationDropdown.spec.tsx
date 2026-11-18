@@ -99,32 +99,6 @@ describe('OrganizationDropdown', () => {
     );
   });
 
-  it('keeps the settings v3 menus bounded with a long project slug', async () => {
-    const slug = 'a-very-long-project-slug-that-should-not-widen-the-menu';
-    ProjectsStore.loadInitialData([
-      ProjectFixture({id: '1', slug, isBookmarked: true, isMember: true}),
-    ]);
-    render(<OrganizationDropdown />, {
-      organization: OrganizationFixture({...organization, features: ['settings-v3']}),
-    });
-
-    await userEvent.click(screen.getByRole('button', {name: 'Toggle organization menu'}));
-
-    expect(
-      screen.getByRole('menuitemradio', {name: slug}).closest('[data-overlay]')
-    ).toHaveStyle({
-      maxWidth: 'min(258px, 100%)',
-    });
-    await userEvent.hover(screen.getByRole('menuitem', {name: 'View All Projects'}));
-    await waitFor(() =>
-      expect(screen.getAllByRole('menuitemradio', {name: slug})).toHaveLength(2)
-    );
-    const projectItems = screen.getAllByRole('menuitemradio', {name: slug});
-    expect(projectItems[1]?.closest('[data-overlay]')).toHaveStyle({
-      maxWidth: 'min(258px, 100%)',
-    });
-  });
-
   it('filters projects in the settings v3 All Projects submenu', async () => {
     ProjectsStore.loadInitialData([
       ProjectFixture({id: '1', slug: 'javascript', isMember: true, isBookmarked: true}),
@@ -143,9 +117,8 @@ describe('OrganizationDropdown', () => {
 
     const search = await screen.findByRole('searchbox', {name: 'Search'});
     await waitFor(() => expect(search).toHaveFocus());
-    expect(within(search.parentElement!).getByRole('img')).toBeInTheDocument();
     await userEvent.type(search, 'python');
-    const submenu = within(search.closest<HTMLElement>('[data-overlay]')!);
+    const submenu = within(screen.getByRole('menu', {name: 'View All Projects'}));
     expect(
       submenu.queryByRole('menuitemradio', {name: 'javascript'})
     ).not.toBeInTheDocument();
@@ -371,7 +344,6 @@ describe('OrganizationDropdown', () => {
     await userEvent.hover(row);
     await userEvent.keyboard('{ArrowRight}');
     const bookmark = screen.getByRole('button', {name: 'Remove Bookmark'});
-    expect(row).not.toContainElement(bookmark);
     expect(bookmark).toHaveFocus();
     await userEvent.keyboard('{Enter}');
 

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Annotated, Any, Literal, TypedDict, Union
+from typing import Annotated, Any, Literal, TypedDict
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from sentry.apidocs.descriptions import ApiDescription
 from sentry.issues.formatting.formatter import FormattedResponse
@@ -18,17 +18,11 @@ class GithubAppPermissionsWarning(BaseModel):
     installation_url: str | None = None
 
 
-class PrIterationOutOfCreditsWarning(BaseModel):
-    """PR iteration stopped when the organization ran out of credits."""
-
-    warning_type: Literal["pr_iteration_out_of_credits"] = "pr_iteration_out_of_credits"
+PrIterationUnfinishedAction = Literal["agent_turn", "push", "branch_moved_retry"]
 
 
-# Discriminated on `warning_type`; add new warning models to this union.
-AutofixWarning = Annotated[
-    Union[GithubAppPermissionsWarning, PrIterationOutOfCreditsWarning],
-    Field(discriminator="warning_type"),
-]
+# Make this a union discriminated on `warning_type` when adding a second warning model.
+AutofixWarning = GithubAppPermissionsWarning
 
 
 class AutofixPostResponse(TypedDict):

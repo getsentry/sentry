@@ -4,6 +4,11 @@ import type {RootMenuTriggerState} from '@react-stately/menu';
 
 interface DropdownMenuContextValue {
   /**
+   * `isDismissable` of the root menu. Dismissing a submenu closes the root menu,
+   * so submenus follow it.
+   */
+  isDismissable?: boolean;
+  /**
    * Ref to the menu element (the `ul` with `role="menu"`) that renders the
    * current items. Submenu triggers pass it to `useSubmenuTrigger` as their
    * parent menu.

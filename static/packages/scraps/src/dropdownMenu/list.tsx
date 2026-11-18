@@ -83,6 +83,11 @@ export interface DropdownMenuListProps
   disableTextSelection?: boolean;
   emptyMessage?: React.ReactNode;
   /**
+   * Whether interacting outside the menu closes it. Submenus inherit the
+   * setting of their parent menu.
+   */
+  isDismissable?: boolean;
+  /**
    * Whether only the items near the viewport are rendered. Computed by
    * `DropdownMenuContent` from `virtualizeThreshold`, so it is not part of the
    * public API: consumers set the threshold instead.
@@ -322,7 +327,8 @@ function DropdownMenuList({
   overlayPositionProps,
   zIndex,
   isVirtualized: virtualized = false,
-  // Only provided to submenus through context, which inherit it.
+  // Only provided to submenus through context, which inherit them.
+  isDismissable,
   virtualizeThreshold,
   menuLevel,
   autoFocus,
@@ -406,9 +412,17 @@ function DropdownMenuList({
       parentMenuRef: menuRef,
       portalContainer,
       submenuLevel,
+      isDismissable,
       virtualizeThreshold,
     }),
-    [rootMenuState, menuRef, portalContainer, submenuLevel, virtualizeThreshold]
+    [
+      rootMenuState,
+      menuRef,
+      portalContainer,
+      submenuLevel,
+      isDismissable,
+      virtualizeThreshold,
+    ]
   );
   const searchInput = searchState && (
     <DropdownMenuSearch
@@ -557,15 +571,18 @@ export function DropdownMenuContent({
   disabledKeys,
   size,
   search,
+  isDismissable,
   virtualizeThreshold,
   ...props
 }: DropdownMenuContentProps) {
   // Updated in a transition by the search field, see `DropdownMenuSearch`.
   const [searchValue, setSearchValue] = useState('');
   // A submenu renders inside its parent menu's context, so it inherits the
-  // parent's threshold unless it sets its own.
-  const {virtualizeThreshold: inheritedVirtualizeThreshold} =
-    useContext(DropdownMenuContext);
+  // parent's settings unless it sets its own.
+  const {
+    isDismissable: inheritedIsDismissable,
+    virtualizeThreshold: inheritedVirtualizeThreshold,
+  } = useContext(DropdownMenuContext);
   const resolveHref = useResolveLinkHref();
   const activeItems = useMemo(
     () => removeHiddenItemsAndSetHref(items, resolveHref),
@@ -594,6 +611,7 @@ export function DropdownMenuContent({
       disabledKeys={disabledKeys ?? defaultDisabledKeys}
       items={visibleItems}
       isVirtualized={isVirtualized}
+      isDismissable={isDismissable ?? inheritedIsDismissable}
       virtualizeThreshold={resolvedVirtualizeThreshold}
       searchState={
         search ? {...search, value: searchValue, onChange: setSearchValue} : undefined
@@ -649,7 +667,7 @@ function DropdownSubmenu({
   onClose,
   size,
 }: DropdownSubmenuProps) {
-  const {rootMenuState, parentMenuRef, portalContainer, submenuLevel} =
+  const {rootMenuState, parentMenuRef, portalContainer, submenuLevel, isDismissable} =
     useContext(DropdownMenuContext);
   if (!rootMenuState || !parentMenuRef || submenuLevel === undefined) {
     throw new Error('DropdownSubmenu must be rendered inside a DropdownMenu');
@@ -671,6 +689,7 @@ function DropdownSubmenu({
   } = useOverlay({
     isOpen: submenuState.isOpen,
     onClose: rootMenuState.close,
+    isDismissable,
     disableTrigger: isDisabled,
     // The submenu handles Escape itself, closing only this level.
     isKeyboardDismissDisabled: true,

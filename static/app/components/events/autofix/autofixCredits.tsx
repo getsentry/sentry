@@ -30,17 +30,28 @@ const AUTOFIX_CREDIT_OPERATIONS: Record<AutofixAction, SeerCreditOperation> = {
   pr_iteration: 'autofix_pr_iteration',
 };
 
+interface AutofixCreditCheckOptions {
+  billingFeature?: number | null;
+  enabled?: boolean;
+}
+
 /**
  * Whether the organization can afford the autofix action a surface is about to
  * offer. Without an action nothing is offered, so nothing is checked.
  */
 export function useAutofixCreditCheck(
   action: AutofixAction | null | undefined,
-  {enabled = true}: {enabled?: boolean} = {}
+  {billingFeature, enabled = true}: AutofixCreditCheckOptions = {}
 ) {
+  // The endpoint's default prices new runs as web Autofix. For an existing
+  // run with null or UNSPECIFIED attribution, let the backend use its fallback.
+  const isUnattributed = billingFeature === null || billingFeature === 0;
   const creditCheck = useSeerCreditCheck(
     AUTOFIX_CREDIT_OPERATIONS[action ?? 'root_cause'],
-    {enabled: enabled && defined(action)}
+    {
+      billingFeature: isUnattributed ? undefined : billingFeature,
+      enabled: enabled && defined(action) && !isUnattributed,
+    }
   );
 
   return {
@@ -61,7 +72,7 @@ export function useAutofixCreditCheck(
  */
 export function useAutofixCreditsDisabled(
   action: AutofixAction | null | undefined,
-  options?: {enabled?: boolean}
+  options?: AutofixCreditCheckOptions
 ): boolean {
   return useAutofixCreditCheck(action, options).disabled;
 }
@@ -120,6 +131,7 @@ interface AutofixOutOfCreditsAlertProps {
    */
   action: AutofixAction | null;
   reason: SeerOutOfCreditsReason;
+  billingFeature?: number | null;
 }
 
 /**
@@ -129,9 +141,12 @@ interface AutofixOutOfCreditsAlertProps {
  */
 export function AutofixOutOfCreditsAlert({
   action,
+  billingFeature,
   reason,
 }: AutofixOutOfCreditsAlertProps) {
-  const {hasEnoughCredits, denialReason} = useAutofixCreditCheck(action);
+  const {hasEnoughCredits, denialReason} = useAutofixCreditCheck(action, {
+    billingFeature,
+  });
 
   if (hasEnoughCredits) {
     return null;

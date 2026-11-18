@@ -1,8 +1,13 @@
+import {SEARCH_HTTP__RESPONSE_STATUS_CODE} from '@sentry/conventions/attributes/search';
+import * as Sentry from '@sentry/react';
 import {useQuery} from '@tanstack/react-query';
 
 import type {Organization} from 'sentry/types/organization';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 /**
@@ -36,16 +41,41 @@ interface SeerCreditCheckResponse {
 
 export function seerCreditCheckApiOptions(
   organization: Organization,
-  operation: SeerCreditOperation
+  operation: SeerCreditOperation,
+  billingFeature?: number
 ) {
-  return apiOptions.as<SeerCreditCheckResponse>()(
+  const options = apiOptions.as<SeerCreditCheckResponse>()(
     '/organizations/$organizationIdOrSlug/seer/credit-check/',
     {
       path: {organizationIdOrSlug: organization.slug},
-      query: {operation},
+      query:
+        billingFeature === undefined
+          ? {operation}
+          : {operation, billing_feature: billingFeature},
       staleTime: 0,
     }
   );
+
+  return {
+    ...options,
+    // The alert and action can use the same query. Report once per request.
+    queryFn: async ({queryKey}: {queryKey: ApiQueryKey}) => {
+      try {
+        return await apiFetch<SeerCreditCheckResponse>({queryKey});
+      } catch (error) {
+        const status = error instanceof RequestError ? error.status : undefined;
+        if (status === 400 || status === 429 || (status !== undefined && status >= 500)) {
+          Sentry.logger.error('Seer credit check request failed', {
+            feature: 'seer_credit_check',
+            operation,
+            billing_feature: billingFeature,
+            [SEARCH_HTTP__RESPONSE_STATUS_CODE]: status,
+          });
+        }
+        throw error;
+      }
+    },
+  };
 }
 
 /**
@@ -61,6 +91,8 @@ export function seerCreditChecksQueryKey(organization: Organization) {
 }
 
 interface UseSeerCreditCheckOptions {
+  /** The concrete billing feature saved on an existing run. */
+  billingFeature?: number;
   /**
    * Skip the check, for example while the trigger it gates is not on screen.
    */
@@ -81,7 +113,7 @@ interface UseSeerCreditCheckOptions {
  */
 export function useSeerCreditCheck(
   operation: SeerCreditOperation,
-  {enabled = true}: UseSeerCreditCheckOptions = {}
+  {billingFeature, enabled = true}: UseSeerCreditCheckOptions = {}
 ) {
   const organization = useOrganization();
   // Orgs without token-billed Seer have no wallet to check, so they make no
@@ -92,7 +124,7 @@ export function useSeerCreditCheck(
     organization.features.includes('token-billed-seer-enabled');
 
   const query = useQuery({
-    ...seerCreditCheckApiOptions(organization, operation),
+    ...seerCreditCheckApiOptions(organization, operation, billingFeature),
     enabled: isChecking,
     // Credits move outside this page: a run elsewhere spends them and a billing
     // member can turn on auto-reload from another tab. Recheck on every mount and window

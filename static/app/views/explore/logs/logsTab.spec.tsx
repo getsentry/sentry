@@ -6,6 +6,7 @@ import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {
   render,
   renderGlobalModal,
+  renderHookWithProviders,
   screen,
   userEvent,
   waitFor,
@@ -31,6 +32,8 @@ import {
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import * as QueryParamsContext from 'sentry/views/explore/queryParams/context';
 import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
+import type {LLMContextSnapshot} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
+import {usePageContextCapture} from 'sentry/views/seerExplorer/hooks/usePageContextCapture';
 
 import {AlwaysPresentLogFields} from './constants';
 import {LOGS_AGGREGATE_FIELD_KEY} from './logsQueryParams';
@@ -75,6 +78,15 @@ describe('LogsTabContent', () => {
       >
         <LogsPageDataProvider>{children}</LogsPageDataProvider>
       </LogsQueryParamsProvider>
+    );
+  }
+
+  function PageContextWrapper({children}: {children: React.ReactNode}) {
+    return (
+      <ProviderWrapper>
+        <LogsTabContent datePageFilterProps={datePageFilterProps} />
+        {children}
+      </ProviderWrapper>
     );
   }
 
@@ -211,6 +223,57 @@ describe('LogsTabContent', () => {
       url: `/organizations/${organization.slug}/stats_v2/`,
       method: 'GET',
       body: {},
+    });
+  });
+
+  it('captures per-axis transformations and the default chart interval', async () => {
+    const visualizes = [
+      {yAxes: ['count(message)'], transformations: ['fill(zero)', 'smooth(sma,5)']},
+      {yAxes: ['count(message)'], transformations: ['fill(locf)']},
+      {yAxes: ['count(message)']},
+    ];
+    const {result} = renderHookWithProviders(usePageContextCapture, {
+      organization,
+      additionalWrapper: PageContextWrapper,
+      initialRouterConfig: {
+        ...initialRouterConfig,
+        location: {
+          ...initialRouterConfig.location,
+          query: {
+            ...initialRouterConfig.location.query,
+            aggregateField: [
+              JSON.stringify({groupBy: 'severity'}),
+              ...visualizes.map(visualize => JSON.stringify(visualize)),
+            ],
+          },
+        },
+      },
+    });
+
+    await waitFor(() => {
+      const captured = result.current({route: '/explore/logs/', allowStructured: true});
+      expect(captured.isStructured).toBe(true);
+      const snapshot: LLMContextSnapshot = JSON.parse(captured.screenshot!);
+      expect(
+        snapshot.nodes.find(node => node.nodeType === 'logs-explorer')?.data
+      ).toEqual(
+        expect.objectContaining({
+          visualizes,
+          interval: '1h',
+          searchQuery: 'severity:error',
+          groupBys: ['severity'],
+          fields: ['message', 'sentry.message.parameters.0'],
+          projectIds: [project.id],
+          projectSlugs: [project.slug],
+          projectSelectionMode: 'explicit',
+          currentSelectedDateRange: {
+            period: '14d',
+            start: null,
+            end: null,
+            utc: null,
+          },
+        })
+      );
     });
   });
 

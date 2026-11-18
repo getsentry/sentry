@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import type * as React from 'react';
 import {ThemeProvider} from '@emotion/react';
-import {useMenuItem} from '@react-aria/menu';
 import {IconStar} from '@sentry/icons/star';
 import {act, fireEvent, render, screen, waitFor, within} from '@testing-library/react';
 import {userEvent} from '@testing-library/user-event';
@@ -9,12 +8,6 @@ import {userEvent} from '@testing-library/user-event';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {lightTheme} from '@sentry/scraps/theme';
-
-// Wraps useMenuItem so a test can count how often menu items render.
-jest.mock('@react-aria/menu', () => {
-  const actual = jest.requireActual('@react-aria/menu');
-  return {...actual, useMenuItem: jest.fn(actual.useMenuItem)};
-});
 
 describe('DropdownMenu', () => {
   afterEach(() => {
@@ -123,6 +116,75 @@ describe('DropdownMenu', () => {
         value: originalPointerEvent,
       });
     }
+  });
+
+  it('treats hovering a trailing action as hovering its item', async () => {
+    const user = userEvent.setup();
+    render(
+      <DropdownMenu
+        triggerLabel="Projects"
+        items={[
+          {key: 'other', label: 'Other'},
+          {
+            key: 'project',
+            label: 'Project',
+            trailingAction: {icon: <IconStar />, label: 'Bookmark', onAction: jest.fn()},
+          },
+        ]}
+      />,
+      {wrapper: ThemeWrapper}
+    );
+
+    await user.click(screen.getByRole('button', {name: 'Projects'}));
+    await user.hover(screen.getByRole('menuitemradio', {name: 'Other'}));
+    await user.hover(screen.getByRole('button', {name: 'Bookmark'}));
+
+    // The focused item is the highlighted one.
+    expect(screen.getByRole('menuitemradio', {name: 'Project'})).toHaveFocus();
+  });
+
+  it('closes a sibling submenu when a trailing action is hovered and pressed', async () => {
+    const user = userEvent.setup();
+    const onTrailingClick = jest.fn();
+    render(
+      <DropdownMenu
+        triggerLabel="Projects"
+        items={[
+          {
+            key: 'all-projects',
+            label: 'All Projects',
+            submenu: true,
+            children: [{key: 'other-project', label: 'Other Project'}],
+          },
+          {
+            key: 'project',
+            label: 'Project',
+            trailingAction: {
+              icon: <IconStar />,
+              label: 'Bookmark',
+              onAction: onTrailingClick,
+            },
+          },
+        ]}
+      />,
+      {wrapper: ThemeWrapper}
+    );
+
+    await user.click(screen.getByRole('button', {name: 'Projects'}));
+    await user.hover(screen.getByRole('menuitem', {name: 'All Projects'}));
+    const child = await screen.findByRole('menuitemradio', {name: 'Other Project'});
+
+    // Hovering the trailing action hovers its item, which closes the sibling
+    // submenu, and the press still reaches the trailing action.
+    const star = screen.getByRole('button', {name: 'Bookmark'});
+    await user.hover(star);
+    await waitFor(() => expect(child).not.toBeInTheDocument());
+    expect(screen.getByRole('menuitemradio', {name: 'Project'})).toHaveFocus();
+
+    await user.click(star);
+
+    expect(onTrailingClick).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole('menuitemradio', {name: 'Project'})).toBeInTheDocument();
   });
 
   it('keeps keyboard activation of a trailing action from selecting its menu item', async () => {
@@ -488,6 +550,37 @@ describe('DropdownMenu', () => {
       'aria-expanded',
       'false'
     );
+  });
+
+  it('keeps a menu that is not dismissable open when clicking outside its submenu', async () => {
+    const onOpenChange = jest.fn();
+
+    render(
+      <DropdownMenu
+        isOpen
+        isDismissable={false}
+        items={[
+          {
+            key: 'item',
+            label: 'Item',
+            submenu: true,
+            children: [{key: 'subitem', label: 'Sub Item'}],
+          },
+        ]}
+        triggerLabel="Menu"
+        onOpenChange={onOpenChange}
+      />,
+      {wrapper: ThemeWrapper}
+    );
+
+    await userEvent.hover(screen.getByRole('menuitem', {name: 'Item'}));
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'Sub Item'})
+    ).toBeInTheDocument();
+
+    await userEvent.click(document.body);
+    expect(onOpenChange).not.toHaveBeenCalled();
+    expect(screen.getByRole('menuitemradio', {name: 'Sub Item'})).toBeInTheDocument();
   });
 
   it('filters a searchable submenu and focuses its search field', async () => {
@@ -1260,18 +1353,24 @@ describe('DropdownMenu', () => {
     });
 
     it('does not re-render mounted items when the menu scrolls', async () => {
-      render(<DropdownMenu triggerLabel="Menu" items={manyItems} />, {
-        wrapper: ThemeWrapper,
-      });
+      // Item content renders with its row, so counting calls counts row renders.
+      const renderLeadingItems = jest.fn(() => null);
+      render(
+        <DropdownMenu
+          triggerLabel="Menu"
+          items={manyItems.map(item => ({...item, leadingItems: renderLeadingItems}))}
+        />,
+        {wrapper: ThemeWrapper}
+      );
 
       await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
       const mountedCount = screen.getAllByRole('menuitemradio').length;
-      jest.mocked(useMenuItem).mockClear();
+      renderLeadingItems.mockClear();
 
       scrollMenuTo(10);
 
       // Only rows that newly scrolled into view render, not every mounted row.
-      expect(jest.mocked(useMenuItem).mock.calls.length).toBeLessThan(mountedCount);
+      expect(renderLeadingItems.mock.calls.length).toBeLessThan(mountedCount);
     });
 
     it('reaches items outside the window with the keyboard', async () => {
@@ -1574,7 +1673,7 @@ describe('DropdownMenu', () => {
       ['virtualized', undefined],
       ['regular', Infinity],
     ])(
-      'measures the separator after a section with the next item in a %s menu',
+      'keeps the separator after a section in the same row as the next item in a %s menu',
       async (_, virtualizeThreshold) => {
         render(
           <DropdownMenu
@@ -1595,15 +1694,18 @@ describe('DropdownMenu', () => {
 
         await userEvent.click(screen.getByRole('button', {name: 'Menu'}));
 
-        // The separator and the item share one row element: the innermost
-        // element that holds both. Ancestors come first in document order.
-        const row = screen.getAllByRole('presentation').findLast(
-          element =>
-            within(element).queryByRole('menuitemradio', {
-              name: 'After the section',
-            }) && within(element).queryByRole('separator')
-        );
+        // A row holds exactly one item. The separator above an item must be in
+        // that item's row, so the two scroll and are measured together.
+        const row = screen.getAllByRole('presentation').find(element => {
+          const items = within(element).queryAllByRole('menuitemradio');
+          return (
+            items.length === 1 &&
+            items[0] === screen.getByRole('menuitemradio', {name: 'After the section'}) &&
+            within(element).queryByRole('separator')
+          );
+        });
         expect(row).toBeInTheDocument();
+        // The virtualizer measures rows by data-index.
         if (virtualizeThreshold === undefined) {
           expect(row).toHaveAttribute('data-index');
         } else {

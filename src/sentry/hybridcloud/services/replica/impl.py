@@ -276,9 +276,9 @@ class DatabaseBackedCellReplicaService(CellReplicaService):
     ) -> None:
         # The account replica's org foreign key cascades, so finding it also proves the org
         # exists. Raising here would block the org's outbox shard until someone intervenes.
-        service_account = ServiceAccountReplica.objects.filter(
+        service_account = ServiceAccountReplica.objects.get_or_none(
             organization_id=token.organization_id, service_account_id=token.service_account_id
-        ).first()
+        )
         if service_account is None:
             logger.warning(
                 "service_account_token_replica.missing_service_account",

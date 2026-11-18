@@ -1,3 +1,4 @@
+import {useEffect} from 'react';
 import {IconInfo} from '@sentry/icons/info';
 import {IconPause} from '@sentry/icons/pause';
 import {IconSeer} from '@sentry/icons/seer';
@@ -17,6 +18,7 @@ import type {Organization} from 'sentry/types/organization';
 import {SubscriptionHeaderCard} from 'getsentry/views/subscriptionPage/headerCards/subscriptionHeaderCard';
 import {openSeerAutoTopUpModal} from 'getsentry/views/subscriptionPage/seerWallet/autoTopUpModal';
 import {
+  SEER_AUTO_RELOAD_MODAL_HASH,
   seerWalletAutoTopUpOptions,
   seerWalletBalanceOptions,
   type SeerWalletAutoTopUp,
@@ -26,6 +28,19 @@ import {
 export function SeerWalletCard({organization}: {organization: Organization}) {
   const balanceQuery = useQuery(seerWalletBalanceOptions(organization));
   const autoTopUpQuery = useQuery(seerWalletAutoTopUpOptions(organization));
+
+  useEffect(() => {
+    if (window.location.hash === SEER_AUTO_RELOAD_MODAL_HASH) {
+      openSeerAutoTopUpModal({organization});
+
+      // Clear the hash so a refresh doesn't open the modal again.
+      window.history.replaceState(
+        null,
+        '',
+        window.location.pathname + window.location.search
+      );
+    }
+  }, [organization]);
 
   if (balanceQuery.isError || autoTopUpQuery.isError) {
     return <SeerWalletError />;
@@ -94,7 +109,7 @@ export function SeerWalletCard({organization}: {organization: Organization}) {
             </Text>
             <Text size="xs" variant="muted">
               {autoTopUp.enabled
-                ? tct('Adds [credits] credits when below [threshold]', {
+                ? tct('Adds [credits] credits when at or below [threshold]', {
                     credits: autoTopUp.topUpCredits.toLocaleString(),
                     threshold: autoTopUp.thresholdCredits.toLocaleString(),
                   })

@@ -12,6 +12,8 @@ on:
     # Other labels are ignored below. Job `if`, job `name`, and concurrency
     # can't read env, so the label condition is repeated in each of them.
     types: [opened, synchronize, reopened, labeled]
+  merge_group:
+    types: [checks_requested]
   # Records the per-test coverage that select-tests maps Python changes with.
   schedule:
     - cron: '0 6 * * *'
@@ -37,7 +39,7 @@ env:
 jobs:
   files-changed:
     if: >-
-      (github.event_name == 'pull_request' || github.event_name == 'push') &&
+      (github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group') &&
       !(github.event.action == 'labeled' && github.event.label.name != 'Trigger: Override Selective Testing')
     name: detect what files changed
     runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
@@ -330,8 +332,11 @@ jobs:
 
   # Only after every shard passed and uploaded its coverage, so the combined
   # coverage includes every test. A failing day keeps the previous coverage.
+  # files-changed and select-tests are skipped on schedule, and without a
+  # status function the implicit success() skips this job because of them.
   acceptance-coverage:
     if: >-
+      !cancelled() &&
       needs.acceptance.result == 'success' &&
       (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
     needs: acceptance

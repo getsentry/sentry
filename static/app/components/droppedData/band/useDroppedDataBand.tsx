@@ -1,19 +1,23 @@
 import {useMemo} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
-import type {
-  CustomSeriesOption,
-  CustomSeriesRenderItem,
-  CustomSeriesRenderItemAPI,
-  CustomSeriesRenderItemParams,
-  CustomSeriesRenderItemReturn,
-} from 'echarts';
-import type {LinearGradientObject, ZRColor} from 'echarts/types/dist/shared';
+import type {CustomSeriesRenderItem, CustomSeriesRenderItemAPI} from 'echarts';
+import type {LinearGradientObject} from 'echarts/types/dist/shared';
 
 import {useTimezone} from '@sentry/scraps/datetime';
 import {useRenderToString} from '@sentry/scraps/renderToString';
 
-import {horizontalTooltipPosition} from 'sentry/components/charts/components/tooltip';
-import {isChartHovered} from 'sentry/components/charts/utils';
+import {
+  BAND_HEIGHT,
+  bandLayout,
+  bandRect,
+  bandTrack,
+  bucketSlot,
+  clampRange,
+  type BandElement,
+  type PixelRange,
+} from 'sentry/components/charts/bands/bandShapes';
+import {bandTooltipOption} from 'sentry/components/charts/bands/bandTooltip';
+import type {ChartBand} from 'sentry/components/charts/bands/mergeChartBands';
 import {groupIntoBuckets, isHighlighted} from 'sentry/components/droppedData/buckets';
 import type {
   DroppedDataBucket,
@@ -27,106 +31,20 @@ import {severityColor, withAlpha} from './severityColor';
 
 export const DROPPED_DATA_SERIES_ID = '__dropped_data__';
 
-const BAND_PADDING = 4;
-const BOX_HEIGHT = 4;
-export const BAND_HEIGHT = BAND_PADDING + BOX_HEIGHT + BAND_PADDING;
-const BOX_BORDER_RADIUS = 2;
 const BLEND_WIDTH = 0.3;
 const MAX_BLEND_WIDTH = 8;
-const TOOLTIP_GAP = 8;
-
-const DROPPED_DATA_Y_AXIS = {
-  type: 'value' as const,
-  min: 0,
-  max: 100,
-  show: false,
-  axisLabel: {show: false},
-  axisPointer: {show: false},
-};
 
 interface DroppedDataItem extends DroppedDataBucket {
   fill: string;
   value: [start: number, y: number];
 }
 
-interface DroppedDataSeriesParams {
-  bandOffset: number;
+interface DroppedDataBandParams {
   buckets: DroppedDataBucket[];
   chartRef: React.RefObject<ReactEchartsRef | null>;
   renderTooltip: (bucket: DroppedDataBucket) => string;
   theme: Theme;
-}
-
-type BandGroup = Extract<NonNullable<CustomSeriesRenderItemReturn>, {type: 'group'}>;
-type BandElement = BandGroup['children'][number];
-
-type CartesianCoordSys = CustomSeriesRenderItemParams['coordSys'] & {
-  width: number;
-  x: number;
-};
-
-interface PixelRange {
-  left: number;
-  right: number;
-}
-
-function clampRange({left, right}: PixelRange, track: PixelRange): PixelRange {
-  return {
-    left: Math.min(Math.max(left, track.left), track.right),
-    right: Math.min(Math.max(right, track.left), track.right),
-  };
-}
-
-/**
- * Centred on the bucket start to line up with bar series, and rounded so
- * neighbouring buckets meet without anti-aliased seams.
- */
-function bucketSlot(
-  bucket: DroppedDataBucket,
-  api: CustomSeriesRenderItemAPI
-): PixelRange | null {
-  const [startX] = api.coord([bucket.start, 0]);
-  const [endX] = api.coord([bucket.end, 0]);
-
-  if (!defined(startX) || !defined(endX)) {
-    return null;
-  }
-
-  const halfSlot = (endX - startX) / 2;
-  return {left: Math.round(startX - halfSlot), right: Math.round(endX - halfSlot)};
-}
-
-/**
- * Rounds only the corners that sit on the ends of the track, so segments
- * inside the band read as one continuous line.
- */
-function bandRect(
-  range: PixelRange,
-  y: number,
-  track: PixelRange,
-  fill: ZRColor,
-  options: {silent?: boolean; z2?: number} = {}
-): BandElement {
-  const left = range.left <= track.left ? BOX_BORDER_RADIUS : 0;
-  const right = range.right >= track.right ? BOX_BORDER_RADIUS : 0;
-
-  return {
-    type: 'rect',
-    ...options,
-    shape: {
-      x: range.left,
-      y,
-      width: range.right - range.left,
-      height: BOX_HEIGHT,
-      r: [left, right, right, left],
-    },
-    style: {
-      fill,
-      // Fakes padding so hovering anywhere in the band opens the tooltip.
-      lineWidth: BAND_PADDING * 2,
-      stroke: 'transparent',
-    },
-  };
+  onClick?: () => void;
 }
 
 interface BandGradient {
@@ -192,7 +110,6 @@ function droppedDataRenderItem(
   bandOffset: number,
   theme: Theme
 ): CustomSeriesRenderItem {
-  const trackFill = theme.tokens.background.secondary;
   const highlighted = data.filter(isHighlighted);
 
   return function renderDroppedDataItem(params, api) {
@@ -202,19 +119,16 @@ function droppedDataRenderItem(
     }
 
     const slot = bucketSlot(bucket, api);
-    const [, baseY] = api.coord([bucket.start, 0]);
-    if (!slot || !defined(baseY)) {
+    const layout = bandLayout(bucket, bandOffset, params, api);
+    if (!slot || !layout) {
       return null;
     }
 
-    const {x, width} = params.coordSys as CartesianCoordSys;
-    const track = {left: x, right: x + width};
-    const y = baseY + bandOffset + BAND_PADDING;
-
+    const {track, y} = layout;
     const children: BandElement[] = [];
 
     if (params.dataIndexInside === 0) {
-      children.push(bandRect(track, y, track, trackFill, {silent: true, z2: -1}));
+      children.push(bandTrack(track, y, theme));
 
       const gradient = bandGradient(highlighted, api);
       if (gradient) {
@@ -232,71 +146,39 @@ function droppedDataRenderItem(
   };
 }
 
-function droppedDataTooltipOption(
-  chartRef: React.RefObject<ReactEchartsRef | null>,
-  renderTooltip: (bucket: DroppedDataBucket) => string
-): CustomSeriesOption['tooltip'] {
-  return {
-    trigger: 'item',
-    position(point, _params, dom, rect, size) {
-      const [tipWidth] = size.contentSize;
-      const anchorX = rect ? rect.x + rect.width / 2 : point[0];
-      const anchorBottom = rect ? rect.y + rect.height : point[1];
-
-      const {left, arrowLeft} = horizontalTooltipPosition({
-        anchorX,
-        chartLeft: chartRef.current?.ele?.getBoundingClientRect().left ?? 0,
-        tipWidth,
-      });
-
-      if (dom instanceof HTMLElement) {
-        const arrow = dom.querySelector<HTMLDivElement>('.tooltip-arrow');
-        if (arrow) {
-          arrow.style.left = arrowLeft;
-        }
-      }
-
-      return {left, top: anchorBottom + TOOLTIP_GAP};
-    },
-    formatter: params => {
-      if (!isChartHovered(chartRef.current)) {
-        return '';
-      }
-
-      return renderTooltip(params.data as DroppedDataItem);
-    },
-  };
-}
-
-function createDroppedDataSeries({
-  bandOffset,
+function createDroppedDataBand({
   buckets,
   chartRef,
+  onClick,
   renderTooltip,
   theme,
-}: DroppedDataSeriesParams): CustomSeriesOption {
+}: DroppedDataBandParams): ChartBand {
   const data: DroppedDataItem[] = buckets.map(bucket => ({
     value: [bucket.start, 0],
     fill: severityColor(bucket.ratio, theme),
     ...bucket,
   }));
+  const tooltip = bandTooltipOption(chartRef, data, renderTooltip);
 
   return {
     id: DROPPED_DATA_SERIES_ID,
-    type: 'custom',
-    renderItem: droppedDataRenderItem(data, bandOffset, theme),
-    name: DROPPED_DATA_SERIES_ID,
-    data,
-    color: theme.tokens.dataviz.semantic.bad,
-    animation: false,
-    legendHoverLink: false,
-    tooltip: droppedDataTooltipOption(chartRef, renderTooltip),
+    height: BAND_HEIGHT,
+    onClick,
+    series: bandOffset => ({
+      type: 'custom',
+      renderItem: droppedDataRenderItem(data, bandOffset, theme),
+      name: DROPPED_DATA_SERIES_ID,
+      data,
+      color: theme.tokens.dataviz.semantic.bad,
+      animation: false,
+      legendHoverLink: false,
+      tooltip,
+    }),
   };
 }
 
 interface UseDroppedDataBandParams {
   chartRef: React.RefObject<ReactEchartsRef | null>;
-  bandOffset?: number;
   droppedData?: DroppedDataProps;
   utc?: boolean | null;
 }
@@ -304,14 +186,13 @@ interface UseDroppedDataBandParams {
 export function useDroppedDataBand({
   chartRef,
   droppedData,
-  bandOffset = 0,
   utc,
-}: UseDroppedDataBandParams) {
+}: UseDroppedDataBandParams): ChartBand | null {
   const theme = useTheme();
   const renderToString = useRenderToString();
   const userTimezone = useTimezone();
   const timezone = utc ? 'UTC' : userTimezone;
-  const {acceptedEvents, dataset, droppedEvents} = droppedData ?? {};
+  const {acceptedEvents, dataset, droppedEvents, onClick} = droppedData ?? {};
 
   const buckets = useMemo(
     () =>
@@ -322,13 +203,13 @@ export function useDroppedDataBand({
   );
   const isVisible = buckets.some(isHighlighted);
 
-  const droppedDataSeries = useMemo(
+  return useMemo(
     () =>
       isVisible && defined(dataset)
-        ? createDroppedDataSeries({
-            bandOffset,
+        ? createDroppedDataBand({
             buckets,
             chartRef,
+            onClick,
             renderTooltip: bucket =>
               renderToString(
                 <DroppedDataTooltip
@@ -340,12 +221,6 @@ export function useDroppedDataBand({
             theme,
           })
         : null,
-    [bandOffset, buckets, chartRef, dataset, isVisible, renderToString, theme, timezone]
+    [buckets, chartRef, dataset, isVisible, onClick, renderToString, theme, timezone]
   );
-
-  return {
-    droppedDataSeries,
-    droppedDataYAxis: isVisible ? DROPPED_DATA_Y_AXIS : null,
-    droppedDataBandHeight: isVisible ? BAND_HEIGHT : 0,
-  };
 }

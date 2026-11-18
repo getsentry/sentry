@@ -24,17 +24,11 @@ function ConversationsLayout() {
 
   return (
     <Feature
-      features="performance-view"
+      features="gen-ai-conversations"
       organization={organization}
       renderDisabled={NoAccess}
     >
-      <Feature
-        features="gen-ai-conversations"
-        organization={organization}
-        renderDisabled={NoAccess}
-      >
-        <ConversationsLayoutContent />
-      </Feature>
+      <ConversationsLayoutContent />
     </Feature>
   );
 }
