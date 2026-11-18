@@ -72,12 +72,20 @@ function findAdjacentReference(
 }
 
 /** Keep reference rows and creation attribution, allowing a matching Seer PR milestone between them. */
-export function deduplicatePullRequestActivities(activities: GroupActivity[]): {
+export function deduplicatePullRequestActivities(
+  activities: GroupActivity[],
+  highlightedActivityId?: string
+): {
   activities: GroupActivity[];
   actorActivityById: Map<string, GroupActivity>;
 } {
   const actorActivityById = new Map<string, GroupActivity>();
   const filteredActivities = activities.filter((activity, index) => {
+    // A deep link needs a row even for an activity the feed normally drops.
+    if (activity.id === highlightedActivityId) {
+      return true;
+    }
+
     const adjacentActivities = [activities[index - 1], activities[index + 1]];
     if (
       adjacentActivities.some(adjacent => isDuplicateCommitActivity(activity, adjacent))

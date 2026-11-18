@@ -22,6 +22,7 @@ export function isInvestigationLinkedActivity(
 
 export function ActivityLineInvestigationLinked({
   activity,
+  highlightedActivityId,
   variant,
   timestampUnitStyle,
 }: {
@@ -30,12 +31,14 @@ export function ActivityLineInvestigationLinked({
    * The compact sidebar feed leaves out the hypothesis and evidence.
    */
   variant: 'compact' | 'full';
+  highlightedActivityId?: string;
   timestampUnitStyle?: React.ComponentProps<typeof TimeSince>['unitStyle'];
 }) {
   const {investigation, reason, hypothesisStatement} = activity.data;
 
   return (
     <Timeline.Item
+      highlightedActivityId={highlightedActivityId}
       marker={<ActivityLineMarker item={activity} />}
       headline={
         <ActivityLineHeadline

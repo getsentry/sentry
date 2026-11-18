@@ -19,6 +19,7 @@ import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {GroupActions} from 'sentry/views/issueDetails/actions/index';
@@ -47,6 +48,8 @@ interface InboxIssuePreviewProps {
 }
 
 export function InboxIssuePreview({groupId}: InboxIssuePreviewProps) {
+  const {hash} = useLocation();
+  const highlightedActivityId = hash.match(/^#activity[-=](.+)$/)?.[1];
   const organization = useOrganization();
   const {projects} = useProjects();
   const [tab, setTab] = useState<InboxIssueTab>('overview');
@@ -93,7 +96,12 @@ export function InboxIssuePreview({groupId}: InboxIssuePreviewProps) {
                 {layoutProps => (
                   <TabPanels {...layoutProps}>
                     <TabPanels.Item key="overview">
-                      <InboxIssueOverview group={group} project={project} event={event} />
+                      <InboxIssueOverview
+                        group={group}
+                        project={project}
+                        event={event}
+                        highlightedActivityId={highlightedActivityId}
+                      />
                     </TabPanels.Item>
                     <TabPanels.Item key="telemetry">
                       <PageFiltersContainer
@@ -177,7 +185,12 @@ function InboxIssuePreviewHeader({group, project, event}: InboxIssueSectionProps
   );
 }
 
-function InboxIssueOverview({group, project, event}: InboxIssueSectionProps) {
+function InboxIssueOverview({
+  group,
+  project,
+  event,
+  highlightedActivityId,
+}: InboxIssueSectionProps & {highlightedActivityId?: string}) {
   return (
     <IssueDetailsContextProvider scrollContext="pane">
       <Grid flex={1} columns={{zero: 'minmax(0, 1fr)', xl: 'minmax(0, 1fr) 300px'}}>
@@ -187,6 +200,7 @@ function InboxIssueOverview({group, project, event}: InboxIssueSectionProps) {
           </Heading>
           <ActivitySection
             group={group}
+            highlightedActivityId={highlightedActivityId}
             minHeight={40}
             variant="standalone"
             placeholder={t('Add a comment. Tag users with @, or teams with #')}

@@ -1,3 +1,4 @@
+import {ActivityFeedFixture} from 'sentry-fixture/activityFeed';
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {InboxItemFixture} from 'sentry-fixture/inboxItem';
@@ -5,6 +6,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {GroupActivityType, type GroupActivity} from 'sentry/types/group';
 import Inbox from 'sentry/views/inbox';
 import {InvestigationDetailFixture} from 'sentry/views/investigations/fixtures';
 
@@ -18,10 +20,10 @@ const INBOX_ROUTES = [
 
 const NEXT_CURSOR = '2020-01-01T00:00:00+00:00|3:0:0';
 
-function mockIssuePreviewRequests(groupId: string) {
+function mockIssuePreviewRequests(groupId: string, activity: GroupActivity[] = []) {
   MockApiClient.addMockResponse({
     url: `/organizations/org-slug/issues/${groupId}/`,
-    body: GroupFixture({id: groupId, metadata: {type: 'TypeError'}}),
+    body: GroupFixture({id: groupId, metadata: {type: 'TypeError'}, activity}),
   });
   MockApiClient.addMockResponse({
     url: `/organizations/org-slug/issues/${groupId}/events/recommended/`,
@@ -319,6 +321,96 @@ describe('Inbox', () => {
       screen.getByRole('link', {name: /TypeError: Cannot read properties/})
     ).not.toHaveAttribute('aria-current');
     await expectMarkedRead({subjectType: 'issue', subjectId: '9999'});
+  });
+
+  it('highlights and scrolls to the activity selected by the URL fragment', async () => {
+    const scrollIntoView = jest.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    mockIssuePreviewRequests(issueItem.subjectId, [
+      ActivityFeedFixture({id: '123', data: {text: 'First comment'}}),
+      ActivityFeedFixture({id: '456', data: {text: 'Second comment'}}),
+    ]);
+    const issuePath = `/organizations/${organization.slug}/inbox/issue/${issueItem.subjectId}`;
+    const currentActivity = '[aria-current="location"]';
+    const {router} = render(<Inbox />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: `${issuePath}#activity=456`},
+        routes: INBOX_ROUTES,
+      },
+    });
+
+    const secondComment = await screen.findByText('Second comment');
+    const highlightedRow = secondComment.closest(currentActivity);
+    expect(highlightedRow).toBeInTheDocument();
+    await waitFor(() => expect(scrollIntoView.mock.contexts).toContain(highlightedRow));
+
+    router.navigate(`${issuePath}#activity-123`);
+
+    await waitFor(() => {
+      const firstRow = screen.getByText('First comment').closest(currentActivity);
+      expect(firstRow).toBeInTheDocument();
+      expect(scrollIntoView.mock.contexts).toContain(firstRow);
+    });
+    expect(
+      screen.queryByText('Second comment')?.closest(currentActivity)
+    ).not.toBeInTheDocument();
+
+    router.navigate(`${issuePath}#activity-missing`);
+
+    await waitFor(() =>
+      expect(
+        screen.queryByText('First comment')?.closest(currentActivity)
+      ).not.toBeInTheDocument()
+    );
+  });
+
+  it('reveals the linked activity inside a collapsed status rollup', async () => {
+    const scrollIntoView = jest.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    mockIssuePreviewRequests(issueItem.subjectId, [
+      {
+        id: '4',
+        type: GroupActivityType.SET_REGRESSION,
+        dateCreated: '2026-07-20T12:00:00Z',
+        data: {},
+      },
+      {
+        id: '3',
+        type: GroupActivityType.SET_RESOLVED,
+        dateCreated: '2026-07-20T11:00:00Z',
+        data: {},
+      },
+      {
+        id: '2',
+        type: GroupActivityType.SET_REGRESSION,
+        dateCreated: '2026-07-20T10:00:00Z',
+        data: {},
+      },
+      {
+        id: '1',
+        type: GroupActivityType.SET_RESOLVED,
+        dateCreated: '2026-07-20T09:00:00Z',
+        data: {},
+      },
+    ]);
+
+    render(<Inbox />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/inbox/issue/${issueItem.subjectId}#activity-1`,
+        },
+        routes: INBOX_ROUTES,
+      },
+    });
+
+    expect(await screen.findByRole('button', {name: 'Hide 2 events'})).toBeVisible();
+    const [latestResolution, olderResolution] = screen.getAllByText('Resolved');
+    const highlightedRow = olderResolution!.closest('[aria-current="location"]');
+    expect(highlightedRow).toBeInTheDocument();
+    expect(latestResolution!.closest('[aria-current="location"]')).toBeNull();
+    await waitFor(() => expect(scrollIntoView.mock.contexts).toContain(highlightedRow));
   });
 
   it('marks an item outside the loaded page and filters as read', async () => {

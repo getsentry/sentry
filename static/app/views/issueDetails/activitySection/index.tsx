@@ -38,6 +38,8 @@ interface ActivitySectionProps {
    * Whether to filter the activity to only show comments.
    */
   filterComments?: boolean;
+  /** Activity to highlight and scroll into view in the standalone feed. */
+  highlightedActivityId?: string;
   /** Prepared feed rows. Defaults to building rows from the issue activity. */
   items?: DisplayedActivityFeedItem[];
   minHeight?: number;
@@ -55,6 +57,7 @@ export function ActivitySection({
   group,
   activities: providedActivities,
   filterComments,
+  highlightedActivityId,
   onActivityChange,
   items,
   variant = 'sidebar',
@@ -140,6 +143,7 @@ export function ActivitySection({
     buildActivityFeedItems({
       activities,
       filterComments,
+      highlightedActivityId: isStandalone ? highlightedActivityId : undefined,
     });
   const inputVariant = isStandalone ? 'full' : 'compact';
   const timestampUnitStyle = isStandalone ? undefined : 'short';
@@ -159,6 +163,7 @@ export function ActivitySection({
     <ActivityFeed
       group={group}
       items={displayedActivities}
+      highlightedActivityId={highlightedActivityId}
       inputVariant={inputVariant}
       timestampUnitStyle={timestampUnitStyle}
       onCommentDelete={handleDelete}

@@ -94,6 +94,22 @@ function getRedirectTarget(routes: RouteObject[], url: string): string | undefin
 }
 
 describe('buildRoutes()', () => {
+  it.each([
+    [true, '/inbox/issue/42#activity-123'],
+    [false, '/organizations/org-slug/inbox/issue/42/#activity-123'],
+  ])(
+    'defines an inbox issue leaf element (customer domain: %s)',
+    (customerDomain, url) => {
+      jest
+        .spyOn(constants, 'USING_CUSTOMER_DOMAIN', 'get')
+        .mockReturnValue(customerDomain);
+
+      const leaf = matchRoutes(buildRoutes(), url)?.at(-1);
+      expect(leaf?.params.id).toBe('42');
+      expect(leaf?.route.element).toBeDefined();
+    }
+  );
+
   it.each([false, true])(
     'composes settings breadcrumbs from matched routes (customer domain: %s)',
     customerDomain => {

@@ -14,6 +14,7 @@ interface ActivityLineProps {
   group: Group;
   item: ActivityFeedItem;
   children?: React.ReactNode;
+  highlightedActivityId?: string;
   timestampUnitStyle?: React.ComponentProps<typeof TimeSince>['unitStyle'];
 }
 
@@ -21,6 +22,7 @@ export function ActivityLine({
   item,
   group,
   children,
+  highlightedActivityId,
   timestampUnitStyle,
 }: ActivityLineProps) {
   const organization = useOrganization();
@@ -42,6 +44,7 @@ export function ActivityLine({
 
   return (
     <Timeline.Item
+      highlightedActivityId={highlightedActivityId}
       variant={item.variant}
       marker={<ActivityLineMarker item={getActorActivity(item)} />}
       headline={
