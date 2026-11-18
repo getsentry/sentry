@@ -1,6 +1,8 @@
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 
+export const SEER_AUTO_RELOAD_MODAL_HASH = '#open-seer-auto-reload-modal';
+
 export type SeerWalletBalance = {
   /**
    * Remaining included plus purchased credits. Can go negative.

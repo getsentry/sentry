@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 import sentry_sdk
@@ -17,12 +18,15 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.serializers import serialize
-from sentry.apidocs.constants import RESPONSE_NO_CONTENT, RESPONSE_NOT_FOUND
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_NO_CONTENT, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.integration_examples import IntegrationExamples
 from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import ScheduledDeletion
+from sentry.exceptions import InvalidIdentity
 from sentry.integrations.api.bases.organization_integrations import (
     OrganizationIntegrationBaseEndpoint,
 )
@@ -30,11 +34,16 @@ from sentry.integrations.api.serializers.models.integration import (
     OrganizationIntegrationResponse,
     OrganizationIntegrationSerializer,
 )
+from sentry.integrations.mixins.issues import IssueBasicIntegration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.services.integration import integration_service
 from sentry.organizations.services.organization import RpcUserOrganizationContext
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
+from sentry.users.models.identity import Identity
 from sentry.utils.audit import create_audit_entry
 from sentry.web.decorators import set_referrer_policy
+
+logger = logging.getLogger(__name__)
 
 
 class IntegrationSerializer(serializers.Serializer):
@@ -64,6 +73,8 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
             200: inline_sentry_response_serializer(
                 "OrganizationIntegrationResponse", OrganizationIntegrationResponse
             ),
+            400: RESPONSE_BAD_REQUEST,
+            404: RESPONSE_NOT_FOUND,
         },
         examples=IntegrationExamples.GET_INTEGRATION,
     )
@@ -75,10 +86,58 @@ class OrganizationIntegrationDetailsEndpoint(OrganizationIntegrationBaseEndpoint
         organization_context: RpcUserOrganizationContext,
         integration_id: int,
         **kwds: Any,
-    ) -> Response[OrganizationIntegrationResponse]:
-        org_integration = self.get_organization_integration(
-            organization_context.organization.id, integration_id
-        )
+    ) -> Response[OrganizationIntegrationResponse] | Response[DetailResponse]:
+        organization = organization_context.organization
+        org_integration = self.get_organization_integration(organization.id, integration_id)
+
+        if request.GET.get("action") == "create":
+            # Fetch the ticket form here rather than in the serializer, which swallows
+            # errors, so TicketRuleModal can show why the provider failed.
+            integration = integration_service.get_integration(
+                integration_id=org_integration.integration_id
+            )
+            if integration is None:
+                return Response({"detail": "Integration not found."}, status=404)
+            installation = integration.get_installation(organization_id=organization.id)
+            if not isinstance(installation, IssueBasicIntegration):
+                return Response(
+                    {"detail": "This integration doesn't support creating issues."}, status=400
+                )
+            installation.organization = organization
+            try:
+                create_issue_config = installation.get_create_issue_config(
+                    None, request.user, params=request.GET
+                )
+            except IntegrationError as e:
+                return Response({"detail": str(e)}, status=400)
+            except (ApiError, IdentityNotValid, InvalidIdentity, Identity.DoesNotExist) as e:
+                # ApiError text is the raw provider response, so don't show it.
+                logger.info(
+                    "organization_integration.create_issue_config_failed",
+                    extra={
+                        "integration_id": integration.id,
+                        "integration_provider": integration.provider,
+                        "error_type": type(e).__name__,
+                    },
+                )
+                return Response(
+                    {
+                        "detail": "Couldn't load the issue form from this integration. "
+                        "Check that it's still connected, then try again."
+                    },
+                    status=400,
+                )
+
+            # include_config=False skips the provider calls; the form was fetched above.
+            serialized = serialize(
+                org_integration,
+                request.user,
+                OrganizationIntegrationSerializer(params=request.GET),
+                include_config=False,
+            )
+            return self.respond(
+                {**serialized, "configOrganization": [], "createIssueConfig": create_issue_config}
+            )
 
         return self.respond(
             serialize(

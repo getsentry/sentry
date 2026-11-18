@@ -92,6 +92,16 @@ api-owner-map:
 	@mkdir -p .artifacts
 	@sentry django api_endpoint_owners --output .artifacts/api-endpoint-owners.json
 
+# Writes api_exceptions/exceptions.json or updates it with ARGS="--files example_file" (note this needs the owner map from `make api-owner-map`)
+api-baseline:
+	@echo "--> Generating the API exceptions baseline"
+	@python3 -m tools.api_guidelines.generate_baseline $(ARGS)
+
+# Every team's API rule findings. Needs the owner map from `make api-owner-map`.
+# Pass ARGS, i.e `make api-report-card ARGS="--team issues-feed"` or ARGS="--format markdown"
+api-report-card:
+	@python3 -m tools.api_guidelines.report_card $(ARGS)
+
 watch-api-docs:
 	@cd api-docs/ && node ./watch.ts
 

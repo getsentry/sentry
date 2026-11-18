@@ -190,6 +190,21 @@ describe('SeerWalletCard', () => {
     ).toBeInTheDocument();
   });
 
+  it('opens the auto-reload modal from the link hash', async () => {
+    mockWallet();
+    window.location.hash = '#open-seer-auto-reload-modal';
+
+    render(
+      <Fragment>
+        <SeerWalletCard organization={organization} />
+        <GlobalModal />
+      </Fragment>
+    );
+
+    expect(await screen.findByLabelText('Daily usage limit')).toBeInTheDocument();
+    expect(window.location.hash).toBe('');
+  });
+
   it('shows an error when the wallet fails to load', async () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/seer-wallet/`,
