@@ -393,6 +393,12 @@ describe('ReplayDetails', () => {
 
       expect(await screen.findByText(heading)).toBeInTheDocument();
       expect(screen.queryByText('Replay Not Found')).not.toBeInTheDocument();
+      expect(
+        screen.getByRole('link', {name: 'Session Replay troubleshooting docs'})
+      ).toHaveAttribute(
+        'href',
+        'https://docs.sentry.io/platforms/javascript/session-replay/troubleshooting/'
+      );
       expect(screen.getByRole('tab', {name: 'Console'})).toBeInTheDocument();
       expect(screen.getByRole('tab', {name: 'Network'})).toBeInTheDocument();
     }

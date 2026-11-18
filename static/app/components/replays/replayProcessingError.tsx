@@ -51,6 +51,18 @@ export function ReplayProcessingError({className}: Props) {
       <StyledAlert variant="info" className={className}>
         <Heading>{playerOnlyError.heading}</Heading>
         <p>{playerOnlyError.reason}</p>
+        {replay?.isVideoReplay() ? null : (
+          <p>
+            {tct(
+              'See the [link:Session Replay troubleshooting docs] for common causes and fixes.',
+              {
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/platforms/javascript/session-replay/troubleshooting/" />
+                ),
+              }
+            )}
+          </p>
+        )}
         <p>
           {t(
             'You can still look through the activity, network requests, and console logs for this replay.'
