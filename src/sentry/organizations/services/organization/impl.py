@@ -372,7 +372,7 @@ class DatabaseBackedOrganizationService(OrganizationService):
         if user_id is not None:
             member = OrganizationMember.objects.filter(
                 organization_id=org.id, user_id=user_id
-            ).first()
+            ).first()  # noqa: S035
         if member is None and email is not None:
             member = first_matching_email(
                 OrganizationMember.objects.filter(organization_id=org.id), email
@@ -540,11 +540,11 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 if user_id is not None:
                     org_member = OrganizationMember.objects.filter(
                         organization_id=organization_id, user_id=user_id
-                    ).first()
+                    ).first()  # noqa: S035
                 elif email is not None:
                     org_member = OrganizationMember.objects.filter(
                         organization_id=organization_id, email=email
-                    ).first()
+                    ).first()  # noqa: S035
 
                 if org_member is None:
                     org_member = OrganizationMember.objects.create(
@@ -678,11 +678,11 @@ class DatabaseBackedOrganizationService(OrganizationService):
     def merge_users(self, *, organization_id: int, from_user_id: int, to_user_id: int) -> None:
         to_member: OrganizationMember | None = OrganizationMember.objects.filter(
             organization_id=organization_id, user_id=to_user_id
-        ).first()
+        ).first()  # noqa: S035
 
         from_member: OrganizationMember | None = OrganizationMember.objects.filter(
             organization_id=organization_id, user_id=from_user_id
-        ).first()
+        ).first()  # noqa: S035
 
         if from_member is None:
             return

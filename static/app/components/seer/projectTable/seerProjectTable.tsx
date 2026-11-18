@@ -479,6 +479,7 @@ function AddProjectButton({disabled}: {disabled: boolean}) {
         // oxlint-disable-next-line react/todo
         try {
           const {ProjectAddRepoModal} =
+            // oxlint-disable-next-line react/todo
             await import('sentry/components/seer/projectAddRepoModal/projectAddRepoModal');
 
           openModal(

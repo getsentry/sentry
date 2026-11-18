@@ -38,12 +38,10 @@ from sentry.seer.workflows.base import (
 from sentry.seer.workflows.definitions import get_definition
 from sentry.service_accounts.models import (
     MAX_NAME_LENGTH,
+    ServiceAccountOwnerKind,
     ServiceAccountReplica,
 )
-from sentry.service_accounts.outbox import (
-    ServiceAccountOwnerKind,
-    service_account_create_outbox,
-)
+from sentry.service_accounts.outbox import service_account_create_outbox
 from sentry.service_accounts.services.service_account import (
     RpcServiceAccount,
     service_account_service,

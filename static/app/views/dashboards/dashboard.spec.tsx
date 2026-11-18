@@ -796,7 +796,6 @@ describe('Dashboards > Dashboard', () => {
 
     function SnapshotCapture() {
       const {getLLMContext} = useLLMContext();
-      // oxlint-disable-next-line react/immutability
       snapshotRef.current = getLLMContext;
       return null;
     }
@@ -865,7 +864,6 @@ describe('Dashboards > Dashboard', () => {
 
       function SnapshotCapture() {
         const {getLLMContext} = useLLMContext();
-        // oxlint-disable-next-line react/immutability
         snapshotRef.current = getLLMContext;
         return null;
       }

@@ -1079,7 +1079,7 @@ export function useExplorerAutofix(
           runId: getAutofixRunId(response)!,
           isSingleRun: response?.feature_id === SINGLE_RUN_FEATURE_ID,
         };
-      } catch (e: any) {
+      } catch (e) {
         setWaitingForResponse(false);
         const queryKey = explorerAutofixApiOptions(orgSlug, groupId).queryKey;
 
@@ -1176,7 +1176,7 @@ export function useExplorerAutofix(
         queryClient.invalidateQueries({
           queryKey: explorerAutofixApiOptions(orgSlug, groupId).queryKey,
         });
-      } catch (e: any) {
+      } catch (e) {
         if (!isOutOfCreditsError(e)) {
           toast.error(getApiErrorMessage(e, 'Failed to create PR'));
           throw e;
@@ -1310,7 +1310,7 @@ export function useExplorerAutofix(
         queryClient.invalidateQueries({
           queryKey: explorerAutofixApiOptions(orgSlug, groupId).queryKey,
         });
-      } catch (e: any) {
+      } catch (e) {
         if (needsGitHubAuth(e)) {
           const currentUrl = window.location.href;
           window.location.href = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;

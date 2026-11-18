@@ -203,7 +203,6 @@ export function Filter({
 
       if (item.valid) {
         if (item.attrType === 'boolean') {
-          // oxlint-disable-next-line react/todo
           localBooleanTags[item.name] ??= {
             key: item.name,
             name: prettifyAttributeName(item.name),
@@ -212,7 +211,6 @@ export function Filter({
         }
 
         if (item.attrType === 'number') {
-          // oxlint-disable-next-line react/todo
           localNumberTags[item.name] ??= {
             key: item.name,
             name: prettifyAttributeName(item.name),
@@ -221,7 +219,6 @@ export function Filter({
         }
 
         if (item.attrType === 'string') {
-          // oxlint-disable-next-line react/todo
           localStringTags[item.name] ??= {
             key: item.name,
             name: prettifyAttributeName(item.name),
@@ -230,7 +227,6 @@ export function Filter({
         }
 
         if (supportsArrays && item.attrType === 'array') {
-          // oxlint-disable-next-line react/todo
           localArrayTags[item.name] ??= {
             key: item.name,
             name: prettifyAttributeName(item.name),

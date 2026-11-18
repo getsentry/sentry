@@ -168,7 +168,7 @@ def handle_seer_investigation_start(
         user_id=identity_user.id,
         organization_id=organization.id,
         invite_status=InviteStatus.APPROVED.value,
-    ).first()
+    ).first()  # noqa: S035
     if member is None:
         log_unavailable(InvestigationUnavailableReason.NOT_MEMBER)
         return _respond_ephemeral(
