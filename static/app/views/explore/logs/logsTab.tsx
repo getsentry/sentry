@@ -264,6 +264,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const searchQuery = useQueryParamsSearch().formatString();
   const visualizes = useQueryParamsVisualizes();
+  const [interval] = useChartInterval();
 
   useLLMContext({
     contextHint:
@@ -276,7 +277,8 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
     fields,
     sortBys: sortBys.map(s => (s.kind === 'desc' ? `-${s.field}` : s.field)),
     groupBys: groupBys.filter(g => g !== ''),
-    visualizes: visualizes.map(v => v.yAxis),
+    visualizes: visualizes.map(v => v.serialize()),
+    interval,
     currentSelectedDateRange: pageFilters.selection.datetime,
     ...toLLMContextProjectFields(selectedProjects),
   });
@@ -285,9 +287,6 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
     getMaxIngestDelayTimestamp()
   );
   usePersistentLogsPageParameters(); // persist the columns you chose last time
-
-  // always use the smallest interval possible (the most bars)
-  const [interval] = useChartInterval();
 
   const [sidebarOpen, setSidebarOpen] = useState(mode === Mode.AGGREGATE);
 
