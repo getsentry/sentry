@@ -2,7 +2,17 @@ from unittest import TestCase
 
 import pytest
 
-from sentry.utils.types import Any, Bool, Dict, Float, Int, InvalidTypeError, Sequence, String
+from sentry.utils.types import (
+    Any,
+    Bool,
+    Dict,
+    Float,
+    Int,
+    InvalidTypeError,
+    NonNegativeInt,
+    Sequence,
+    String,
+)
 
 
 class OptionsTypesTest(TestCase):
@@ -50,6 +60,17 @@ class OptionsTypesTest(TestCase):
             Int("foo")
         with pytest.raises(InvalidTypeError):
             Int("1.1")
+
+    def test_non_negative_int(self) -> None:
+        assert NonNegativeInt(0) == 0
+        assert NonNegativeInt("1") == 1
+        assert NonNegativeInt.test(-1) is False
+        with pytest.raises(InvalidTypeError):
+            NonNegativeInt(-1)
+        with pytest.raises(InvalidTypeError):
+            NonNegativeInt("-1")
+        with pytest.raises(InvalidTypeError):
+            NonNegativeInt("foo")
 
     def test_float(self) -> None:
         assert Float(1.0) == 1.0

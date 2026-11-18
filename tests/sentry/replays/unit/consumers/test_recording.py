@@ -6,6 +6,7 @@ import msgpack
 import pytest
 from google.api_core.exceptions import BadGateway, InternalServerError
 
+from sentry import options
 from sentry.replays.consumers.recording import (
     DropSilently,
     commit_message,
@@ -21,6 +22,7 @@ from sentry.replays.usecases.pack import pack
 from sentry.testutils.helpers import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json
+from sentry.utils.types import InvalidTypeError
 
 MAX_SIZE = 100 * 1024 * 1024
 
@@ -109,6 +111,20 @@ def test_decompress_segment_negative_max_size() -> None:
 
     with pytest.raises(ValueError):
         decompress_segment(bomb, -1)
+
+
+@django_db_all
+def test_max_segment_decompressed_size_rejects_negative() -> None:
+    """Test a negative limit is rejected and the previous limit stays in effect"""
+    key = "replay.consumer.max-segment-decompressed-size"
+    options.set(key, 1024)
+    try:
+        with pytest.raises(InvalidTypeError):
+            options.set(key, -1)
+
+        assert options.get(key) == 1024
+    finally:
+        options.delete(key)
 
 
 def test_decompress_segment_uncompressed_exceeds_max_size() -> None:
