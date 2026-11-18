@@ -50,7 +50,8 @@ class OrganizationTimeseriesAnnotationEndpoint(OrganizationEndpoint):
         # caller still sees org-wide rows, never another project's.
         project_ids = [p.id for p in self.get_projects(request, organization)]
         queryset = (
-            TimeseriesAnnotation.objects.filter(organization_id=organization.id)
+            TimeseriesAnnotation.objects.within_retention(organization)
+            .filter(organization_id=organization.id)
             .filter(_window_overlap(start, end))
             .filter(Q(project_id__in=project_ids) | Q(project_id__isnull=True))
         )
