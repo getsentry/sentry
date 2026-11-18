@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import {useMutation} from '@tanstack/react-query';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -8,11 +9,13 @@ import {Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Heading, Text} from '@sentry/scraps/text';
 
+import {logout} from 'sentry/actionCreators/account';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {MarkedText} from 'sentry/utils/marked/markedText';
 import {isNotFoundError} from 'sentry/utils/requestError/requestError';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
+import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
@@ -36,6 +39,15 @@ export default function AuthLogin() {
   const requestedNextUri =
     typeof location.query.next === 'string' ? location.query.next : undefined;
   const hasStartedAnalyticsSession = useRef(false);
+  // Logout assigns a new document, so the request must outlive this page.
+  const api = useApi({persistInFlight: true});
+  const switchAccountMutation = useMutation({
+    mutationFn: async () => {
+      await logout(api, {
+        redirectUrl: `${location.pathname}${location.search}`,
+      });
+    },
+  });
 
   const {
     data: authConfig,
@@ -43,7 +55,7 @@ export default function AuthLogin() {
     isFetching: isAuthConfigFetching,
     isPending: isAuthConfigPending,
     refetch: refetchAuthConfig,
-  } = useAuthConfig();
+  } = useAuthConfig(requestedNextUri);
   const {
     data: authOrganization,
     error: authOrganizationError,
@@ -68,6 +80,23 @@ export default function AuthLogin() {
   );
   const showEmailAuth =
     !focusedOrgAuth || (isSingleOrganization && !authOrganization?.ssoRequired);
+  // Multi-org SaaS hides password authentication for a signed-in non-member.
+  // When the organization does not require SSO, offer a sign-out path that
+  // returns to this organization login page as an anonymous user.
+  const canSwitchAccount = Boolean(
+    focusedOrgAuth &&
+    !isSingleOrganization &&
+    authOrganization &&
+    authOrganization.authenticated &&
+    !authOrganization.ssoRequired &&
+    authOrganization.loginMethod !== 'demo'
+  );
+  const organizationWarnings = authOrganization?.warnings ?? [];
+  // The organization config repeats the session-expired warning from the auth config.
+  const loginWarning =
+    loginConfig?.warning && !organizationWarnings.includes(loginConfig.warning)
+      ? loginConfig.warning
+      : undefined;
   const isAuthOrganizationNotFound = isNotFoundError(authOrganizationError);
   const hasAuthOrganizationError = Boolean(
     authOrganizationError && !isAuthOrganizationNotFound
@@ -283,6 +312,34 @@ export default function AuthLogin() {
                     {organizationAuthenticationContext}
                   </AccountAuthentication.Context>
                 </AccountAuthentication>
+                {canSwitchAccount && (
+                  <Stack gap="md">
+                    {switchAccountMutation.isError && (
+                      <Alert role="alert" variant="danger">
+                        {t('Unable to sign in with a different account. Try again.')}
+                      </Alert>
+                    )}
+                    <Button
+                      busy={
+                        switchAccountMutation.isPending || switchAccountMutation.isSuccess
+                      }
+                      disabled={
+                        switchAccountMutation.isPending || switchAccountMutation.isSuccess
+                      }
+                      variant="primary"
+                      onClick={() => {
+                        if (
+                          !switchAccountMutation.isPending &&
+                          !switchAccountMutation.isSuccess
+                        ) {
+                          switchAccountMutation.mutate();
+                        }
+                      }}
+                    >
+                      {t('Sign in with a different account')}
+                    </Button>
+                  </Stack>
+                )}
                 {loginConfig?.canRegister && (
                   <Text as="div" align="center" size="sm">
                     {tct('New to Sentry? [register:Create an account]', {
@@ -297,10 +354,17 @@ export default function AuthLogin() {
         <AuthCritter />
       </Stack>
 
-      {(loginConfig?.warning || loginConfig?.loginBannerMarkdown) && (
+      {(organizationWarnings.length > 0 ||
+        loginWarning ||
+        loginConfig?.loginBannerMarkdown) && (
         <Stack width="100%" gap="md">
-          {loginConfig.warning && <Alert variant="warning">{loginConfig.warning}</Alert>}
-          {loginConfig.loginBannerMarkdown && (
+          {organizationWarnings.map((warning, index) => (
+            <Alert key={`${index}:${warning}`} variant="warning">
+              {warning}
+            </Alert>
+          ))}
+          {loginWarning && <Alert variant="warning">{loginWarning}</Alert>}
+          {loginConfig?.loginBannerMarkdown && (
             <Alert variant="muted">
               <MarkedText text={loginConfig.loginBannerMarkdown} inline />
             </Alert>
