@@ -2,6 +2,7 @@ import type {Key} from 'react';
 import {useMemo, useRef, useState, useDeferredValue} from 'react';
 import styled from '@emotion/styled';
 import {type AriaComboBoxProps} from '@react-aria/combobox';
+import {VisuallyHidden} from '@react-aria/visually-hidden';
 import {Item, Section} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren} from '@react-types/shared';
@@ -377,9 +378,9 @@ function SearchComboBox(props: SearchComboBoxProps) {
 
   return (
     <StorySearchContainer>
-      <label {...labelProps} className="sr-only">
+      <VisuallyHidden elementType="label" {...labelProps}>
         {props.label}
-      </label>
+      </VisuallyHidden>
       <SearchInput ref={inputRef} placeholder={props.label} {...inputProps} />
       {state.isOpen && (
         <StyledOverlay placement="bottom-start" ref={popoverRef}>
