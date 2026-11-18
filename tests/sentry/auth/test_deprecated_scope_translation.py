@@ -38,18 +38,24 @@ def test_translate_member_read_adds_granular_scopes() -> None:
 
 
 @pytest.mark.parametrize(
-    ("member_scope", "membership_scope"),
+    ("member_scope", "membership_scopes"),
     [
-        ("member:invite", "membership:invite"),
-        ("member:write", "membership:write"),
-        ("member:admin", "membership:admin"),
+        ("member:invite", {"membership:invite"}),
+        ("member:write", {"membership:read", "membership:invite", "membership:write"}),
+        (
+            "member:admin",
+            {"membership:read", "membership:invite", "membership:write", "membership:admin"},
+        ),
     ],
 )
-def test_translate_member_scope_adds_membership_scope(
-    member_scope: str, membership_scope: str
+def test_translate_member_scope_adds_membership_scopes(
+    member_scope: str, membership_scopes: set[str]
 ) -> None:
-    assert membership_scope in translate_deprecated_scopes([member_scope])
-    assert member_scope in translate_deprecated_scopes([member_scope])
+    # Membership scopes don't imply each other, so a member scope gets the membership scope
+    # of every method it's accepted on.
+    translated = translate_deprecated_scopes([member_scope])
+    assert member_scope in translated
+    assert {scope for scope in translated if scope.startswith("membership:")} == membership_scopes
 
 
 def test_translate_member_write_keeps_user_preference_access() -> None:

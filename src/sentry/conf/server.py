@@ -2109,19 +2109,30 @@ DEPRECATED_SCOPE_TRANSLATIONS: dict[str, frozenset[str]] = {
             "user_preference:write",
         ]
     ),
-    # member:invite, member:write and member:admin translate one-to-one to the membership
-    # scopes, which endpoints accept wherever they accept the member scope.
+    # Membership scopes don't imply each other, and each endpoint method accepts only the one
+    # it needs. So each member scope translates to the membership scope of every method that
+    # accepts that member scope today, e.g. member:write can read and invite as well as write.
     "member:invite": frozenset(["member:invite", "membership:invite"]),
     # Starring and starred order accept member:write too, like member:read.
     "member:write": frozenset(
         [
             "member:write",
+            "membership:read",
+            "membership:invite",
             "membership:write",
             "user_preference:read",
             "user_preference:write",
         ]
     ),
-    "member:admin": frozenset(["member:admin", "membership:admin"]),
+    "member:admin": frozenset(
+        [
+            "member:admin",
+            "membership:read",
+            "membership:invite",
+            "membership:write",
+            "membership:admin",
+        ]
+    ),
     # No granular replacements yet.
     "project:read": frozenset(["project:read"]),
 }

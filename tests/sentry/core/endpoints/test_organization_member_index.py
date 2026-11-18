@@ -1115,9 +1115,15 @@ class OrganizationMemberListMembershipScopeTest(OrganizationMemberListTestBase):
         )
 
     @with_feature("organizations:granular-permission-scopes")
-    @granular_roles_granting("membership:write")
+    @granular_roles_granting("membership:invite", "membership:write")
     def test_membership_write_can_invite_members(self) -> None:
+        # Inviting needs membership:invite, which member:write translates to alongside
+        # membership:write. membership:write alone can't invite.
         self._use_token(["membership:write"])
+        self.get_error_response(
+            self.organization.slug, method="post", email="new@example.com", status_code=403
+        )
+        self._use_token(["membership:invite", "membership:write"])
         self.get_success_response(
             self.organization.slug,
             method="post",

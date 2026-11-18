@@ -63,33 +63,12 @@ class MemberConflictValidationError(serializers.ValidationError):
 
 class RelaxedMemberPermission(OrganizationPermission):
     scope_map = {
-        "GET": [
-            "member:read",
-            "member:write",
-            "member:admin",
-            "membership:read",
-            "membership:write",
-            "membership:admin",
-        ],
-        "POST": ["member:write", "member:admin", "membership:write", "membership:admin"],
-        "PUT": [
-            "member:invite",
-            "member:write",
-            "member:admin",
-            "membership:invite",
-            "membership:write",
-            "membership:admin",
-        ],
+        "GET": ["member:read", "member:write", "member:admin", "membership:read"],
+        "POST": ["member:write", "member:admin", "membership:write"],
+        "PUT": ["member:invite", "member:write", "member:admin", "membership:invite"],
         # DELETE checks for role comparison as you can either remove a member
         # with a lower access role, or yourself, without having the req. scope
-        "DELETE": [
-            "member:read",
-            "member:write",
-            "member:admin",
-            "membership:read",
-            "membership:write",
-            "membership:admin",
-        ],
+        "DELETE": ["member:read", "member:write", "member:admin", "membership:read"],
     }
 
     # Allow deletions to happen for disabled members so they can remove themselves

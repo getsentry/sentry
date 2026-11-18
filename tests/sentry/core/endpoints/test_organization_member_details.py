@@ -1472,6 +1472,15 @@ class ResetOrganizationMember2faTest(APITestCase):
         assert resp.status_code == 403
 
 
+# What a member:admin token holds after translation.
+MEMBER_ADMIN_MEMBERSHIP_SCOPES = [
+    "membership:read",
+    "membership:invite",
+    "membership:write",
+    "membership:admin",
+]
+
+
 class OrganizationMemberDetailsMembershipScopeTest(OrganizationMemberTestBase):
     def setUp(self) -> None:
         super().setUp()
@@ -1530,9 +1539,10 @@ class OrganizationMemberDetailsMembershipScopeTest(OrganizationMemberTestBase):
         assert not own_invite.teams.exists()
 
     @with_feature("organizations:granular-permission-scopes")
-    @granular_roles_granting("membership:admin")
+    @granular_roles_granting(*MEMBER_ADMIN_MEMBERSHIP_SCOPES)
     def test_membership_admin_can_change_member_role(self) -> None:
-        self._use_token(["membership:admin"])
+        # Updating a member needs membership:write; changing roles also needs membership:admin.
+        self._use_token(MEMBER_ADMIN_MEMBERSHIP_SCOPES)
         self.get_success_response(
             self.organization.slug, self.other.id, method="put", orgRole="manager"
         )
@@ -1540,9 +1550,11 @@ class OrganizationMemberDetailsMembershipScopeTest(OrganizationMemberTestBase):
         assert self.other.role == "manager"
 
     @with_feature("organizations:granular-permission-scopes")
-    @granular_roles_granting("membership:admin")
+    @granular_roles_granting(*MEMBER_ADMIN_MEMBERSHIP_SCOPES)
     def test_membership_admin_can_remove_member(self) -> None:
-        self._use_token(["membership:admin"])
+        # DELETE accepts membership:read so members can leave; removing others needs
+        # membership:admin.
+        self._use_token(MEMBER_ADMIN_MEMBERSHIP_SCOPES)
         self.get_success_response(
             self.organization.slug, self.other.id, method="delete", status_code=204
         )

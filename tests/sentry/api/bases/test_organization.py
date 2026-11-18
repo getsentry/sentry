@@ -647,9 +647,8 @@ def _permission_classes(cls: type[SentryPermission]) -> list[type[SentryPermissi
     return [cls, *(sub for direct in cls.__subclasses__() for sub in _permission_classes(direct))]
 
 
-MEMBER_TO_MEMBERSHIP_SCOPES = {
-    f"member:{action}": f"membership:{action}" for action in ("read", "write", "invite", "admin")
-}
+MEMBER_SCOPES = ("member:read", "member:invite", "member:write", "member:admin")
+MEMBERSHIP_SCOPES = ("membership:read", "membership:invite", "membership:write", "membership:admin")
 
 
 def _all_permission_classes() -> list[type[SentryPermission]]:
@@ -657,36 +656,39 @@ def _all_permission_classes() -> list[type[SentryPermission]]:
     return _permission_classes(SentryPermission)
 
 
-@pytest.mark.parametrize(("member_scope", "membership_scope"), MEMBER_TO_MEMBERSHIP_SCOPES.items())
-def test_membership_scope_only_replaces_member_scope(
-    member_scope: str, membership_scope: str
-) -> None:
-    """Each member scope translates to its membership scope, so the membership scope must not
-    open anything that the member scope doesn't already open."""
+@pytest.mark.parametrize("member_scope", MEMBER_SCOPES)
+def test_membership_scopes_only_replace_member_scope(member_scope: str) -> None:
+    """Each member scope translates to membership scopes, so those must not open anything that
+    the member scope doesn't already open."""
+    translated = settings.DEPRECATED_SCOPE_TRANSLATIONS[member_scope] & set(MEMBERSHIP_SCOPES)
     broadened = {
-        (permission_cls.__qualname__, method)
+        (permission_cls.__qualname__, method, membership_scope)
         for permission_cls in _all_permission_classes()
         for method, scopes in permission_cls.scope_map.items()
-        if membership_scope in scopes and member_scope not in scopes
+        for membership_scope in translated & set(scopes)
+        if member_scope not in scopes
     }
     assert broadened == set()
 
 
-def test_membership_permissions_mirror_every_member_scope() -> None:
-    """A permission that accepts membership scopes accepts the membership counterpart of every
-    member scope it accepts, so tokens holding only membership scopes keep the same access."""
-    unmirrored = {
-        (permission_cls.__qualname__, method, member_scope)
+def test_membership_permissions_accept_one_membership_scope() -> None:
+    """A method that accepts member scopes accepts exactly one membership scope, the one it
+    needs, and every member scope it accepts translates to it. So tokens holding only
+    membership scopes keep the same access without listing the whole hierarchy."""
+    wrong = {
+        (permission_cls.__qualname__, method)
         for permission_cls in _all_permission_classes()
-        if any(
-            set(scopes) & set(MEMBER_TO_MEMBERSHIP_SCOPES.values())
-            for scopes in permission_cls.scope_map.values()
-        )
+        if any(set(scopes) & set(MEMBERSHIP_SCOPES) for scopes in permission_cls.scope_map.values())
         for method, scopes in permission_cls.scope_map.items()
-        for member_scope in set(scopes) & set(MEMBER_TO_MEMBERSHIP_SCOPES)
-        if MEMBER_TO_MEMBERSHIP_SCOPES[member_scope] not in scopes
+        if set(scopes) & set(MEMBER_SCOPES)
+        for membership_scopes in [set(scopes) & set(MEMBERSHIP_SCOPES)]
+        if len(membership_scopes) != 1
+        or any(
+            not membership_scopes <= settings.DEPRECATED_SCOPE_TRANSLATIONS[member_scope]
+            for member_scope in set(scopes) & set(MEMBER_SCOPES)
+        )
     }
-    assert unmirrored == set()
+    assert wrong == set()
 
 
 class BaseOrganizationEndpointTest(TestCase):
