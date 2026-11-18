@@ -82,7 +82,6 @@ export function ReleaseListInner({
       releases={releases.map(({version}) => version)}
       organization={organization}
       selection={selection}
-      location={location}
       display={[getDisplay(location)]}
       releasesReloading={reloading}
       healthStatsPeriod={
