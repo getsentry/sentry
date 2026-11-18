@@ -134,10 +134,8 @@ class AutomationTrigger[Inputs: BaseModel](Protocol):
         """Return the active projects in the config's scope."""
         ...
 
-    def setup(
-        self, update: ConfigUpdate, *, name: str | None, created_by_id: int | None, enabled: bool
-    ) -> None:
-        """Create anything the trigger keeps outside the config, for a new automation."""
+    def setup(self, update: ConfigUpdate, workflow: Workflow) -> None:
+        """Attach anything the trigger needs to a new automation's backing workflow."""
         return None
 
     def set_scope(self, update: ConfigUpdate, selection: ScopeSelection) -> None:
@@ -344,18 +342,16 @@ class ConfigUpdate:
         self, *, name: str | None, created_by_id: int | None, enabled: bool
     ) -> None:
         """Give a new automation the backing workflow that holds its name and enabled state."""
-        self.definition.trigger.setup(self, name=name, created_by_id=created_by_id, enabled=enabled)
-        if self.config.backing_workflow is not None:
-            return
-        # TODO(telkins): Scheduled triggers keep nothing on the workflow yet, so it starts bare.
-        self.config.backing_workflow = Workflow.objects.create(
+        workflow = Workflow.objects.create(
             organization_id=self.config.organization_id,
             name=name or "Seer automation",
             enabled=enabled,
             created_by_id=created_by_id,
             config={"frequency": 0},
         )
+        self.config.backing_workflow = workflow
         self.mark("backing_workflow")
+        self.definition.trigger.setup(self, workflow)
 
     def set_enabled(self, enabled: bool) -> None:
         workflow = self._backing_workflow()

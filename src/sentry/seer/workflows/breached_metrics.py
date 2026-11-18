@@ -106,16 +106,35 @@ class MetricAlertTrigger(AutomationTrigger[MetricBreachInputs]):
             ).values("detector__project_id")
         )
 
-    def setup(
-        self, update: ConfigUpdate, *, name: str | None, created_by_id: int | None, enabled: bool
-    ) -> None:
-        update.config.backing_workflow = _create_backing_workflow(
-            update.config,
-            name=name or "Seer automation",
-            created_by_id=created_by_id,
-            enabled=enabled,
+    def setup(self, update: ConfigUpdate, workflow: Workflow) -> None:
+        organization_id = update.config.organization_id
+        triggers = DataConditionGroup.objects.create(
+            organization_id=organization_id,
+            logic_type=DataConditionGroup.Type.ANY_SHORT_CIRCUIT,
         )
-        update.mark("backing_workflow")
+        DataCondition.objects.create(
+            condition_group=triggers,
+            type=Condition.FIRST_SEEN_EVENT,
+            comparison=True,
+            condition_result=True,
+        )
+        workflow.when_condition_group = triggers
+        workflow.save(update_fields=["when_condition_group", "date_updated"])
+        action = Action.objects.create(type=Action.Type.SEER_WORKFLOW, config={}, data={})
+        SeerWorkflowTriggerBinding.objects.create(
+            workflow_config=update.config, trigger_action=action
+        )
+        action_group = DataConditionGroup.objects.create(
+            organization_id=organization_id, logic_type=DataConditionGroup.Type.ALL
+        )
+        DataCondition.objects.create(
+            condition_group=action_group,
+            type=Condition.ISSUE_TYPE,
+            comparison={"value": MetricIssue.slug},
+            condition_result=True,
+        )
+        WorkflowDataConditionGroup.objects.create(workflow=workflow, condition_group=action_group)
+        DataConditionGroupAction.objects.create(condition_group=action_group, action=action)
 
     def set_scope(self, update: ConfigUpdate, selection: ScopeSelection) -> None:
         """Callers must authorize and audit the change."""
@@ -486,44 +505,6 @@ def _replace_monitor_connections(
             for monitor_id in sorted(selected - existing)
         ]
     )
-
-
-def _create_backing_workflow(
-    config: SeerWorkflowConfig, *, name: str, created_by_id: int | None, enabled: bool
-) -> Workflow:
-    organization_id = config.organization_id
-    triggers = DataConditionGroup.objects.create(
-        organization_id=organization_id,
-        logic_type=DataConditionGroup.Type.ANY_SHORT_CIRCUIT,
-    )
-    DataCondition.objects.create(
-        condition_group=triggers,
-        type=Condition.FIRST_SEEN_EVENT,
-        comparison=True,
-        condition_result=True,
-    )
-    workflow = Workflow.objects.create(
-        organization_id=organization_id,
-        name=name,
-        enabled=enabled,
-        created_by_id=created_by_id,
-        config={"frequency": 0},
-        when_condition_group=triggers,
-    )
-    action = Action.objects.create(type=Action.Type.SEER_WORKFLOW, config={}, data={})
-    SeerWorkflowTriggerBinding.objects.create(workflow_config=config, trigger_action=action)
-    action_group = DataConditionGroup.objects.create(
-        organization_id=organization_id, logic_type=DataConditionGroup.Type.ALL
-    )
-    DataCondition.objects.create(
-        condition_group=action_group,
-        type=Condition.ISSUE_TYPE,
-        comparison={"value": MetricIssue.slug},
-        condition_result=True,
-    )
-    WorkflowDataConditionGroup.objects.create(workflow=workflow, condition_group=action_group)
-    DataConditionGroupAction.objects.create(condition_group=action_group, action=action)
-    return workflow
 
 
 def _definition_for(config: SeerWorkflowConfig) -> AutomationDefinition[Any] | None:
