@@ -104,6 +104,34 @@ describe('getPollInterval', () => {
     });
     expect(getPollInterval({autofixState: state, runStarted: false})).toBe(1000);
   });
+
+  it('polls fast while a finished iteration waits for its push, until it goes quiet', () => {
+    const awaitingPush = makeState({
+      status: 'completed',
+      repo_pr_states: {
+        'org/repo': {
+          repo_name: 'org/repo',
+          pr_number: 7,
+          pr_creation_status: 'completed',
+        } as any,
+      },
+      blocks: [{file_patches: [{repo_name: 'org/repo'}]} as unknown as Block],
+      updated_at: new Date().toISOString(),
+    });
+    const poll = (state: ExplorerAutofixState) =>
+      getPollInterval({
+        autofixState: state,
+        runStarted: false,
+        pollPR: true,
+        pinToPrHead: true,
+      });
+
+    expect(poll(awaitingPush)).toBe(1000);
+    expect(poll({...awaitingPush, pr_iteration_paused: true})).toBe(10000);
+    expect(
+      poll({...awaitingPush, updated_at: new Date(Date.now() - 3 * 60_000).toISOString()})
+    ).toBe(10000);
+  });
 });
 
 describe('isRootCauseArtifact', () => {
