@@ -1,75 +1,48 @@
-import {Fragment, type ReactNode} from 'react';
+import type {ReactNode} from 'react';
 
+import {reactNodeToText} from 'sentry/components/onboarding/utils/stepsToMarkdown';
+import {tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 
 import {AgentHandoffFlow, type AgentHandoffContext} from './types';
 
-type WrapCode<T> = (code: string) => T;
-type WrapUrl = (url: string) => ReactNode;
+interface HandoffPromptParts {
+  code: ReactNode;
+  url: ReactNode;
+}
 
-function getInstructionEnd(
-  flow: AgentHandoffFlow,
-  context: AgentHandoffContext | null
-): string {
-  switch (flow) {
-    case AgentHandoffFlow.ADD_FEATURE:
-      if (context && 'product' in context) {
-        return ` verbatim to set up ${context.product}.`;
-      }
-      break;
-    default:
-      break;
-  }
-  return ' verbatim.';
+export function getHandoffGuideUrl(): string {
+  return `${ConfigStore.get('urlPrefix').replace(/\/$/, '')}/agent-handoff.md`;
 }
 
 /**
- * Builds the agent handoff prompt around its handoff code. `wrapCode` decides how the
- * code appears, such as in backticks for the copied text or masked for the preview, so
- * both share one template and their wording can't drift apart. A wrapper that returns a
- * string produces a plain string prompt. `wrapUrl` can render the guide URL, such as a
- * link in the preview. The prompt is read by the agent, so it is intentionally not
- * translated.
- *
- * The flow determines whether and how the prompt names the product.
+ * Builds the agent handoff prompt. The parts decide how the guide URL and the handoff
+ * code appear, such as a link and a masked code in the preview, or plain text in the
+ * copied prompt, so both share one template and their wording can't drift apart.
  */
 export function getHandoffPrompt(
-  code: string,
   flow: AgentHandoffFlow,
   context: AgentHandoffContext | null,
-  wrapCode: WrapCode<string>
-): string;
-export function getHandoffPrompt(
-  code: string,
-  flow: AgentHandoffFlow,
-  context: AgentHandoffContext | null,
-  wrapCode: WrapCode<ReactNode>,
-  wrapUrl?: WrapUrl
-): ReactNode;
-export function getHandoffPrompt(
-  code: string,
-  flow: AgentHandoffFlow,
-  context: AgentHandoffContext | null,
-  wrapCode: WrapCode<ReactNode>,
-  wrapUrl?: WrapUrl
+  {url, code}: HandoffPromptParts
 ): ReactNode {
-  const guideUrl = `${ConfigStore.get('urlPrefix').replace(/\/$/, '')}/agent-handoff.md`;
-  const start = 'Read and follow ';
-  const middle = `${getInstructionEnd(flow, context)} Your handoff code is `;
-  const end = '.';
-  const wrappedCode = wrapCode(code);
-
-  if (typeof wrappedCode === 'string' && !wrapUrl) {
-    return `${start}${guideUrl}${middle}${wrappedCode}${end}`;
+  if (flow === AgentHandoffFlow.ADD_FEATURE && context && 'product' in context) {
+    return tct(
+      'Read and follow [url] verbatim to set up [product]. Your handoff code is [code].',
+      {url, code, product: context.product}
+    );
   }
+  return tct('Read and follow [url] verbatim. Your handoff code is [code].', {url, code});
+}
 
-  return (
-    <Fragment>
-      {start}
-      {wrapUrl ? wrapUrl(guideUrl) : guideUrl}
-      {middle}
-      {wrappedCode}
-      {end}
-    </Fragment>
+/**
+ * The prompt text that is copied for the agent.
+ */
+export function formatHandoffPrompt(
+  code: string,
+  flow: AgentHandoffFlow,
+  context: AgentHandoffContext | null
+): string {
+  return reactNodeToText(
+    getHandoffPrompt(flow, context, {url: getHandoffGuideUrl(), code: `\`${code}\``})
   );
 }
