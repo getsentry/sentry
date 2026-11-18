@@ -24,6 +24,7 @@ import {
   useTourReducer,
   type TourContextType,
   type TourEnumType,
+  type TourFocusHandoff,
   type TourState,
   type TourStep,
   type TourVariant,
@@ -111,9 +112,10 @@ export function TourContextProvider<T extends TourEnumType>({
   );
   const {endTour, previousStep, nextStep, currentStepId} = tourContextValue;
   const isTourActive = currentStepId !== null;
-  // Set when the user steps through a subtle tour, so the closing guide leaves
-  // focus for the next guide instead of returning it to the page.
-  const focusHandoffRef = useRef(false);
+  const focusHandoffRef = useRef<TourFocusHandoff>({
+    isHandingOff: false,
+    returnTarget: null,
+  });
   const variantTourContextValue = {
     ...tourContextValue,
     variant,
@@ -122,7 +124,7 @@ export function TourContextProvider<T extends TourEnumType>({
 
   useEffect(() => {
     if (!isTourActive) {
-      focusHandoffRef.current = false;
+      focusHandoffRef.current = {isHandingOff: false, returnTarget: null};
     }
   }, [isTourActive]);
 
@@ -235,11 +237,6 @@ export interface TourElementProps<T extends TourEnumType> extends Omit<
    * The position of the tour element.
    */
   position?: UseOverlayProps['position'];
-  /**
-   * Where focus goes when a subtle tour's guide closes while focused. Defaults
-   * to this element, which may no longer be on the page.
-   */
-  returnFocusRef?: React.RefObject<HTMLElement | null>;
 }
 
 export function TourElement<T extends TourEnumType>({
@@ -280,7 +277,6 @@ export function TourElementContent<T extends TourEnumType>({
   className,
   actions,
   margin,
-  returnFocusRef,
 }: TourElementContentProps<T>) {
   const organization = useOrganization({allowNull: true});
   const {
@@ -316,7 +312,7 @@ export function TourElementContent<T extends TourEnumType>({
   // Focus moves straight to the next guide when the step changes.
   const withFocusHandoff = (changeStep: () => void) => () => {
     if (focusHandoffRef) {
-      focusHandoffRef.current = true;
+      focusHandoffRef.current = {...focusHandoffRef.current, isHandingOff: true};
     }
     changeStep();
   };
@@ -385,7 +381,6 @@ export function TourElementContent<T extends TourEnumType>({
           : undefined
       }
       focusHandoffRef={focusHandoffRef}
-      returnFocusRef={returnFocusRef}
       variant={variant}
       stepCount={stepCount}
       stepTotal={stepTotal}
@@ -414,10 +409,10 @@ interface TourGuideProps extends Omit<
    */
   actions?: React.ReactNode;
   /**
-   * When true as the guide closes, focus is left for the next guide. The next
-   * guide resets it as it opens.
+   * Tracks focus across the tour's guides: whether the next guide takes focus
+   * over, and where focus goes back to when the guides close.
    */
-  focusHandoffRef?: React.RefObject<boolean>;
+  focusHandoffRef?: React.RefObject<TourFocusHandoff>;
   handleDismiss?: (e: React.MouseEvent) => void;
   id?: string;
   margin?: number;
@@ -433,11 +428,6 @@ interface TourGuideProps extends Omit<
    */
   onKeyDown?: (event: React.KeyboardEvent) => void;
   position?: UseOverlayProps['position'];
-  /**
-   * Where focus goes when the guide closes while focused. Defaults to the
-   * highlighted element.
-   */
-  returnFocusRef?: React.RefObject<HTMLElement | null>;
   stepCount?: number;
   stepTotal?: number;
   title?: React.ReactNode;
@@ -472,7 +462,6 @@ export function TourGuide({
   onClickOutside,
   onKeyDown,
   focusHandoffRef,
-  returnFocusRef,
   variant,
 }: TourGuideProps) {
   const theme = useTheme();
@@ -528,14 +517,20 @@ export function TourGuide({
     if (!isOpen || !isFocusable || !overlay) {
       return;
     }
-    // Like a react-aria dialog, the guide takes focus as it opens.
-    if (focusHandoffRef) {
-      focusHandoffRef.current = false;
-    }
+    // Like a react-aria dialog, the guide takes focus as it opens. The first
+    // guide remembers what had focus, and later guides inherit it.
     if (!overlay.contains(document.activeElement)) {
+      if (focusHandoffRef && !focusHandoffRef.current.isHandingOff) {
+        focusHandoffRef.current = {
+          isHandingOff: false,
+          returnTarget: document.activeElement,
+        };
+      }
       overlay.focus();
     }
-    const returnFocusTarget = returnFocusRef?.current ?? triggerRef.current;
+    if (focusHandoffRef?.current.isHandingOff) {
+      focusHandoffRef.current = {...focusHandoffRef.current, isHandingOff: false};
+    }
     let hasFocus = overlay.contains(document.activeElement);
     const handleFocusIn = () => {
       hasFocus = true;
@@ -557,13 +552,17 @@ export function TourGuide({
       // else, like a modal, has already moved it.
       const isFocusLost =
         !document.activeElement || document.activeElement === document.body;
-      if (hasFocus && isFocusLost && !focusHandoffRef?.current) {
-        if (returnFocusTarget?.isConnected) {
-          returnFocusTarget.focus();
+      const focusHandoff = focusHandoffRef?.current;
+      if (hasFocus && isFocusLost && !focusHandoff?.isHandingOff) {
+        // Focus goes back to where it was. When nothing had focus, nothing gets
+        // it, so the next Tab starts from the page again.
+        const returnTarget = focusHandoff?.returnTarget;
+        if (returnTarget instanceof HTMLElement && returnTarget.isConnected) {
+          returnTarget.focus();
         }
       }
     };
-  }, [isOpen, isFocusable, overlayRef, triggerRef, focusHandoffRef, returnFocusRef]);
+  }, [isOpen, isFocusable, overlayRef, focusHandoffRef]);
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
     // Tab cycles through the guide, like a react-aria FocusScope with `contain`.

@@ -278,10 +278,9 @@ export interface TourContextType<T extends TourEnumType> extends TourState<T> {
   setStep: (stepId: T) => void;
   startTour: () => void;
   /**
-   * Set by `TourContextProvider` for subtle tours. True while a guide hands its
-   * focus over to the guide of the next step.
+   * Set by `TourContextProvider` for subtle tours, whose guides take focus.
    */
-  focusHandoffRef?: React.RefObject<boolean>;
+  focusHandoffRef?: React.RefObject<TourFocusHandoff>;
   /**
    * How the tour presents itself. Set by `TourContextProvider`.
    */
@@ -294,3 +293,15 @@ export interface TourContextType<T extends TourEnumType> extends TourState<T> {
  * readable and usable, and only handles them while the guide has focus.
  */
 export type TourVariant = 'spotlight' | 'subtle';
+
+export interface TourFocusHandoff {
+  /**
+   * True while a guide hands its focus over to the guide of the next step.
+   */
+  isHandingOff: boolean;
+  /**
+   * What had focus before the tour's first guide took it. Focus goes back
+   * there when the tour's guides close.
+   */
+  returnTarget: Element | null;
+}
