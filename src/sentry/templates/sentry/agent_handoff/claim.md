@@ -4,9 +4,6 @@ The user started this handoff in Sentry and gave you a one-time handoff code. Th
 below installs or updates the Sentry CLI, signs in to the user's Sentry account with that
 code, and prints what to do next.
 
-Treat the handoff code like a password. It works once and expires shortly, so keep it out
-of URLs, logs, and your replies.
-
 Replace HANDOFF_CODE with the handoff code, run the command for your shell once, and then
 follow the instructions it prints.
 
