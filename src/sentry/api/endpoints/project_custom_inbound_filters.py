@@ -44,6 +44,9 @@ from sentry.models.custominboundfilter import (
 )
 from sentry.models.project import Project
 from sentry.tasks.relay import schedule_invalidate_project_config
+from sentry.timeseries_annotations.producers.inbound_filters import (
+    record_custom_filter_change_as_annotation,
+)
 
 MAX_CONDITIONS_PER_FILTER = 10
 # Relay matches every condition value as a glob against each item, so the size of a
@@ -596,6 +599,15 @@ class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
 
         custom_filter = serializer.save(project=project)
 
+        if custom_filter.active:
+            record_custom_filter_change_as_annotation(
+                project,
+                custom_filter.id,
+                DataType(custom_filter.data_type),
+                "created",
+                request.user,
+            )
+
         self.create_audit_entry(
             request=request,
             organization=project.organization,
@@ -732,6 +744,13 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
                 schedule_invalidate_project_config(
                     project_id=project.id, trigger="custom_inbound_filters"
                 )
+                record_custom_filter_change_as_annotation(
+                    project,
+                    custom_filter.id,
+                    DataType(custom_filter.data_type),
+                    "updated",
+                    request.user,
+                )
 
         return Response(serialize_custom_inbound_filter(custom_filter))
 
@@ -762,6 +781,9 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
         custom_filter = self.get_custom_inbound_filter(project, filter_id)
         audit_log_data = self.get_audit_log_data(project, custom_filter, "remove")
         target_object = custom_filter.id
+        # todo: these two variables can be inline.
+        was_active = custom_filter.active
+        data_type = DataType(custom_filter.data_type)
         if custom_filter.legacy_filter:
             # The row holds a filter list of the project settings: deleting it empties the
             # list, in its option too.
@@ -770,6 +792,11 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
             )
         else:
             custom_filter.delete()
+
+        if was_active:
+            record_custom_filter_change_as_annotation(
+                project, target_object, data_type, "deleted", request.user
+            )
 
         self.create_audit_entry(
             request=request,
