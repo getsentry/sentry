@@ -573,6 +573,35 @@ describe('DropdownMenu', () => {
     );
   });
 
+  it('keeps a menu that is not dismissable open when clicking outside its submenu', async () => {
+    const onOpenChange = jest.fn();
+
+    render(
+      <DropdownMenu
+        isOpen
+        isDismissable={false}
+        items={[
+          {
+            key: 'item',
+            label: 'Item',
+            submenu: true,
+            children: [{key: 'subitem', label: 'Sub Item'}],
+          },
+        ]}
+        triggerLabel="Menu"
+        onOpenChange={onOpenChange}
+      />,
+      {wrapper: ThemeWrapper}
+    );
+
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Item'}));
+    expect(screen.getByRole('menuitemradio', {name: 'Sub Item'})).toBeInTheDocument();
+
+    await userEvent.click(document.body);
+    expect(onOpenChange).not.toHaveBeenCalled();
+    expect(screen.getByRole('menuitemradio', {name: 'Sub Item'})).toBeInTheDocument();
+  });
+
   it('filters a searchable submenu and focuses its search field', async () => {
     const onAction = jest.fn();
     render(

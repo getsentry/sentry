@@ -82,6 +82,11 @@ export interface DropdownMenuListProps
   disableTextSelection?: boolean;
   emptyMessage?: React.ReactNode;
   /**
+   * Whether interacting outside the menu closes it. Submenus inherit the
+   * setting of their parent menu.
+   */
+  isDismissable?: boolean;
+  /**
    * Whether only the items near the viewport are rendered. Computed by
    * `DropdownMenuContent` from `virtualizeThreshold`, so it is not part of the
    * public API: consumers set the threshold instead.
@@ -299,7 +304,8 @@ function DropdownMenuList({
   overlayPositionProps,
   zIndex,
   isVirtualized: virtualized = false,
-  // Only provided to submenus through context, which inherit it.
+  // Only provided to submenus through context, which inherit them.
+  isDismissable,
   virtualizeThreshold,
   ...props
 }: DropdownMenuListProps) {
@@ -369,9 +375,17 @@ function DropdownMenuList({
       rootOverlayState: rootOverlayState ?? overlayState,
       parentMenuState: state,
       safetyTriangle,
+      isDismissable,
       virtualizeThreshold,
     }),
-    [rootOverlayState, overlayState, state, safetyTriangle, virtualizeThreshold]
+    [
+      rootOverlayState,
+      overlayState,
+      state,
+      safetyTriangle,
+      isDismissable,
+      virtualizeThreshold,
+    ]
   );
   const searchInput = searchState && (
     <DropdownMenuSearch
@@ -506,15 +520,18 @@ export function DropdownMenuContent({
   disabledKeys,
   size,
   search,
+  isDismissable,
   virtualizeThreshold,
   ...props
 }: DropdownMenuContentProps) {
   // Updated in a transition by the search field, see `DropdownMenuSearch`.
   const [searchValue, setSearchValue] = useState('');
   // A submenu renders inside its parent menu's context, so it inherits the
-  // parent's threshold unless it sets its own.
-  const {virtualizeThreshold: inheritedVirtualizeThreshold} =
-    useContext(DropdownMenuContext);
+  // parent's settings unless it sets its own.
+  const {
+    isDismissable: inheritedIsDismissable,
+    virtualizeThreshold: inheritedVirtualizeThreshold,
+  } = useContext(DropdownMenuContext);
   const resolveHref = useResolveLinkHref();
   const activeItems = useMemo(
     () => removeHiddenItemsAndSetHref(items, resolveHref),
@@ -543,6 +560,7 @@ export function DropdownMenuContent({
       disabledKeys={disabledKeys ?? defaultDisabledKeys}
       items={visibleItems}
       isVirtualized={isVirtualized}
+      isDismissable={isDismissable ?? inheritedIsDismissable}
       virtualizeThreshold={resolvedVirtualizeThreshold}
       searchState={
         search ? {...search, value: searchValue, onChange: setSearchValue} : undefined
@@ -598,7 +616,7 @@ function DropdownSubmenu({
   onClose,
   size,
 }: DropdownSubmenuProps) {
-  const {rootOverlayState} = useContext(DropdownMenuContext);
+  const {rootOverlayState, isDismissable} = useContext(DropdownMenuContext);
   const submenu = node.value?.submenu;
   const options = typeof submenu === 'object' ? submenu : {};
   const isDisabled = state.disabledKeys.has(node.key) || items.length === 0;
@@ -612,6 +630,7 @@ function DropdownSubmenu({
   } = useOverlay({
     isOpen: state.selectionManager.isSelected(node.key),
     onClose: rootOverlayState?.close,
+    isDismissable,
     disableTrigger: isDisabled,
     position: options.position ?? 'right-start',
     offset: -4,
