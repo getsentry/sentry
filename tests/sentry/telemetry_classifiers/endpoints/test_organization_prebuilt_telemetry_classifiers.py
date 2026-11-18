@@ -24,6 +24,7 @@ class OrganizationPrebuiltTelemetryClassifiersTest(APITestCase):
             "key": "conversation_user_frustration",
             "dataset": "conversation",
             "outputType": "binary",
+            "binaryThreshold": 0.8,
             "name": "User frustration",
             "description": "When your users become frustrated with the agent they are speaking with.",
             "resultAttribute": "user_frustration",

@@ -14,6 +14,7 @@ from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.auth.principal import acting_user_id, has_user
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.types import SnubaParams
+from sentry.telemetry_classifiers.constants import DEFAULT_BINARY_THRESHOLD
 from sentry.telemetry_classifiers.datasets import compile_filter
 from sentry.telemetry_classifiers.definitions import (
     InvalidClassifierDefinition,
@@ -24,6 +25,7 @@ from sentry.telemetry_classifiers.prebuilt import PREBUILT_CLASSIFIERS
 from sentry.telemetry_classifiers.types import (
     Dataset,
     PrebuiltClassifier,
+    TelemetryClassifierOutputType,
     TelemetryClassifierStatus,
 )
 from sentry.users.api.serializers.user import UserSerializerResponse
@@ -45,6 +47,7 @@ class TelemetryClassifierResponse(TypedDict):
     prebuiltClassifierKey: str | None
     naturalLanguagePrompt: str | None
     outputType: str | None
+    binaryThreshold: float | None
     createdBy: UserSerializerResponse | None
     dateAdded: datetime
     dateUpdated: datetime
@@ -55,6 +58,16 @@ def _resolve_output_type(classifier: TelemetryClassifier) -> str | None:
         return classifier.output_type
     prebuilt = PREBUILT_CLASSIFIERS.get(classifier.prebuilt_classifier_key)
     return prebuilt.output_type if prebuilt else None
+
+
+def _resolve_binary_threshold(classifier: TelemetryClassifier) -> float | None:
+    if classifier.prebuilt_classifier_key is None:
+        # TODO(aknaus): Read it from the classifier once the model stores it (AGT-3349).
+        if classifier.output_type == TelemetryClassifierOutputType.BINARY:
+            return DEFAULT_BINARY_THRESHOLD
+        return None
+    prebuilt = PREBUILT_CLASSIFIERS.get(classifier.prebuilt_classifier_key)
+    return prebuilt.binary_threshold if prebuilt else None
 
 
 @register(TelemetryClassifier)
@@ -100,6 +113,7 @@ class TelemetryClassifierSerializer(Serializer[TelemetryClassifierResponse]):
             "prebuiltClassifierKey": obj.prebuilt_classifier_key,
             "naturalLanguagePrompt": obj.natural_language_prompt,
             "outputType": _resolve_output_type(obj),
+            "binaryThreshold": _resolve_binary_threshold(obj),
             "createdBy": attrs["createdBy"],
             "dateAdded": obj.date_added,
             "dateUpdated": obj.date_updated,
@@ -110,6 +124,7 @@ class PrebuiltClassifierResponse(TypedDict):
     key: str
     dataset: str
     outputType: str
+    binaryThreshold: float | None
     name: str
     description: str
     resultAttribute: str
@@ -127,6 +142,7 @@ class PrebuiltClassifierSerializer(Serializer[PrebuiltClassifierResponse]):
             "key": obj.key,
             "dataset": obj.dataset,
             "outputType": obj.output_type,
+            "binaryThreshold": obj.binary_threshold,
             "name": obj.name,
             "description": obj.description,
             "resultAttribute": obj.result_attribute,
