@@ -228,13 +228,7 @@ test('package lint enforces shared rules and local test boundaries', t => {
   );
   const result = spawnSync(
     process.execPath,
-    [
-      fileURLToPath(new URL('cli.js', import.meta.resolve('oxlint'))),
-      '--type-aware',
-      '--format',
-      'json',
-      '.',
-    ],
+    [path.join(root, 'scripts/oxlint.ts'), '--type-aware', '--format', 'json', '.'],
     {cwd: directory, encoding: 'utf8'}
   );
   assert.equal(result.status, 1, result.stderr);

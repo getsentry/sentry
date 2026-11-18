@@ -71,7 +71,8 @@ const result = spawnSync(
   'pnpm',
   [
     'exec',
-    'oxlint',
+    'node',
+    'scripts/oxlint.ts',
     '--config',
     configPath,
     '--disable-nested-config',
@@ -89,7 +90,7 @@ const result = spawnSync(
 const stderr = String(result.stderr ?? '').trim();
 const failure = (reason: string) =>
   `${reason}\n` +
-  `command: pnpm exec oxlint --config ${configPath} ... (${files.length} files)\n` +
+  `command: pnpm exec node scripts/oxlint.ts --config ${configPath} ... (${files.length} files)\n` +
   `stderr:\n${stderr || '(empty)'}`;
 
 // oxlint exits 0 when clean and 1 when it reports problems; both are real runs
@@ -106,10 +107,10 @@ if (result.error || (result.status !== 0 && result.status !== 1)) {
   );
 }
 
-// The type-aware backend (tsgolint) can panic while oxlint still exits 0 with
+// The type-aware backend can panic while oxlint still exits 0 with
 // whatever it gathered before the crash.
 if (/panic:|Error running tsgolint/.test(stderr)) {
-  die(failure('the type-aware backend (tsgolint) crashed, so the run is incomplete.'));
+  die(failure('the type-aware backend crashed, so the run is incomplete.'));
 }
 
 interface OxlintOutput {

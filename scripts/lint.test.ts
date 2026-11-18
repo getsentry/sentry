@@ -225,6 +225,11 @@ for (const [language, options] of [
 ] as const) {
   test(`scoped ${language} fixes with ${JSON.stringify(options)} leave unselected files unchanged; package defaults scan all files`, t => {
     const {directory, write, lint} = fixture(t);
+    mkdirSync(path.join(directory, 'scripts'));
+    symlinkSync(
+      path.join(root, 'scripts/oxlint.ts'),
+      path.join(directory, 'scripts/oxlint.ts')
+    );
     const extension = language === 'js' ? 'js' : 'tsx';
     const original =
       language === 'js'
@@ -243,10 +248,9 @@ for (const [language, options] of [
         JSON.stringify({
           name,
           scripts: {
-            [`lint:${language}`]: manifest.scripts[`lint:${language}`].replace(
-              '--type-aware ',
-              ''
-            ),
+            [`lint:${language}`]: manifest.scripts[`lint:${language}`]
+              .replace('../../../scripts/', '../../scripts/')
+              .replace('--type-aware ', ''),
           },
         })
       );
