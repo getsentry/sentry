@@ -665,9 +665,12 @@ def _log_branch_moved_result(
     """Log whether an iteration whose push was refused because the branch moved got its changes
     onto the PR in the end.
 
-    Called once, when the iteration ends, so each line is one iteration. ``landed`` is the
+    Logs once, when the iteration ends, so each line is one iteration. ``landed`` is the
     answer and ``retries`` counts the retry turns it took. A refused push the iteration never
     retried shows up as ``retries=0`` with the repos still in ``branch_moved_repos``.
+
+    A push or retry that a credits refusal stranded doesn't end the iteration: the drain redoes
+    it after a top-up, and that completion logs the result.
     """
     try:
         iterations = get_iterations(state)
@@ -684,9 +687,15 @@ def _log_branch_moved_result(
     if not retries and not branch_moved_repos:
         return
 
+    landed = outcome == PrIterationOutcome.ALREADY_PUSHED.value
+    if not landed:
+        out_of_credits = get_out_of_credits(run_id=state.run_id, organization_id=organization.id)
+        if out_of_credits is not None and out_of_credits.stranded_action is not None:
+            return
+
     log_ctx.info(
         "autofix.pr_iteration.branch_moved.result",
-        landed=outcome == PrIterationOutcome.ALREADY_PUSHED.value,
+        landed=landed,
         outcome=outcome,
         retries=retries,
         branch_moved_repos=branch_moved_repos,

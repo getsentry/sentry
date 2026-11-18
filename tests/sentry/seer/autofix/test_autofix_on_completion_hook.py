@@ -1406,6 +1406,50 @@ class TestPrIterationCompletionHook(TestCase):
 
     @patch(f"{COMPLETION_PATH}.complete_pr_iteration_details")
     @patch(f"{COMPLETION_PATH}.consume_queued_feedback")
+    @patch(f"{COMPLETION_PATH}.logger")
+    def test_a_branch_moved_iteration_stranded_on_credits_logs_its_result_once(
+        self, mock_logger: MagicMock, mock_consume: MagicMock, mock_complete: MagicMock
+    ) -> None:
+        """The credits refusal doesn't end the iteration, so only the redone retry's completion
+        logs the result."""
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        self.create_seer_agent_run(
+            run=run, source=LEGACY_FEATURE_ID, group=self.group, project=self.project
+        )
+        landed = self._synced()
+        landed.blocks = [landed.blocks[0].copy(deep=True) for _ in range(2)]
+
+        with (
+            self.feature(
+                [
+                    "organizations:autofix-pr-iteration-pin-to-pr-head",
+                    "organizations:seer-credit-checks",
+                    "organizations:token-billed-seer-enabled",
+                ]
+            ),
+            patch(
+                "sentry.seer_credit.backend.check_seer_credits",
+                return_value=CheckSeerCreditsResponse(has_enough_credits=False),
+            ),
+            patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient"),
+        ):
+            for state in (self._branch_moved(), landed):
+                continue_pr_iteration(
+                    self.organization, self.group, 123, state, AutofixReferrer.ON_COMPLETION_HOOK
+                )
+
+        results = [
+            call.kwargs["extra"]
+            for call in mock_logger.info.call_args_list
+            if call.args[0] == "autofix.pr_iteration.branch_moved.result"
+        ]
+        assert len(results) == 1
+        assert results[0]["landed"] is True
+        assert results[0]["retries"] == 1
+        assert results[0]["outcome"] == PrIterationOutcome.ALREADY_PUSHED.value
+
+    @patch(f"{COMPLETION_PATH}.complete_pr_iteration_details")
+    @patch(f"{COMPLETION_PATH}.consume_queued_feedback")
     @patch(f"{COMPLETION_PATH}.trigger_push_changes")
     @patch(f"{HOOK_PATH}.fetch_run_status")
     def test_a_finished_branch_moved_push_pauses_as_an_error(
