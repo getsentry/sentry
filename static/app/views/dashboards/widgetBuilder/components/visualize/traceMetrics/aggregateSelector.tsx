@@ -15,6 +15,7 @@ import {
   buildTraceMetricAggregate,
   getTraceMetricAggregateActionType,
   getTraceMetricDisplayFields,
+  getTraceMetricFunctionParts,
 } from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {OPTIONS_BY_TYPE} from 'sentry/views/explore/metrics/constants';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
@@ -24,11 +25,15 @@ export function AggregateSelector({
   traceMetric,
   field,
   index,
+  onFieldChange,
+  disabledAggregates,
 }: {
   disabled: boolean;
   field: QueryFieldValue;
   index: number;
   traceMetric: TraceMetric;
+  disabledAggregates?: Record<string, string>;
+  onFieldChange?: (field: QueryFieldValue) => void;
 }) {
   const {state, dispatch} = useWidgetBuilderContext();
 
@@ -40,15 +45,18 @@ export function AggregateSelector({
   const actionType = getTraceMetricAggregateActionType(state.displayType);
 
   const aggregateOptions = useMemo(
-    () => OPTIONS_BY_TYPE[traceMetric?.type ?? ''] ?? [],
-    [traceMetric?.type]
+    () =>
+      (OPTIONS_BY_TYPE[traceMetric?.type ?? ''] ?? []).map(option =>
+        disabledAggregates?.[option.value]
+          ? {...option, disabled: true, tooltip: disabledAggregates[option.value]}
+          : option
+      ),
+    [traceMetric?.type, disabledAggregates]
   );
 
-  const aggregateValue = useMemo(() => {
-    return displayFields?.[index]?.kind === 'function'
-      ? (displayFields?.[index]?.function?.[0] ?? '')
-      : '';
-  }, [displayFields, index]);
+  const sourceField = onFieldChange ? field : (displayFields?.[index] ?? field);
+  const parts = getTraceMetricFunctionParts(sourceField);
+  const aggregateValue = parts?.aggregation ?? '';
 
   return (
     <AggregateCompactSelect
@@ -59,17 +67,24 @@ export function AggregateSelector({
       value={aggregateValue}
       position="bottom-start"
       onChange={option => {
-        if (field.kind === 'function') {
-          const newAggregates = cloneDeep(displayFields) ?? [];
-          newAggregates[index] = buildTraceMetricAggregate(
-            option.value as AggregationKeyWithAlias,
-            traceMetric
-          );
-          dispatch({
-            type: actionType,
-            payload: newAggregates,
-          });
+        if (field.kind !== 'function') {
+          return;
         }
+        const nextField = buildTraceMetricAggregate(
+          option.value as AggregationKeyWithAlias,
+          traceMetric,
+          parts?.filter
+        );
+        if (onFieldChange) {
+          onFieldChange(nextField);
+          return;
+        }
+        const newAggregates = cloneDeep(displayFields) ?? [];
+        newAggregates[index] = nextField;
+        dispatch({
+          type: actionType,
+          payload: newAggregates,
+        });
       }}
       trigger={triggerProps => (
         <OverlayTrigger.Button {...triggerProps} aria-label={t('Aggregate Selection')} />
