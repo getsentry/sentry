@@ -171,6 +171,126 @@ describe('AiSpanTimeline', () => {
     expect(onSelectNode).toHaveBeenCalledWith(grandchild);
   });
 
+  describe('nesting', () => {
+    const lead = AiTraceSpanNodeFixture({id: 'lead-agent', operation: 'agent'});
+    const tool = AiTraceSpanNodeFixture({
+      id: 'lead-tool',
+      operation: 'tool',
+      parent: lead,
+    });
+    const child = AiTraceSpanNodeFixture({
+      id: 'child-agent',
+      operation: 'agent',
+      parent: tool,
+    });
+    const childCall = AiTraceSpanNodeFixture({
+      id: 'child-model',
+      operation: 'ai_client',
+      parent: child,
+    });
+    const leadCall = AiTraceSpanNodeFixture({
+      id: 'lead-model',
+      operation: 'ai_client',
+      parent: lead,
+    });
+    const nodes = [lead, tool, child, childCall, leadCall];
+
+    it('collapses and expands spans at every level', async () => {
+      render(
+        <AiSpanTimeline nodes={nodes} selectedNodeKey={null} onSelectNode={jest.fn()} />
+      );
+
+      const toggles = screen.getAllByRole('button', {name: 'Collapse'});
+      // lead-agent, lead-tool and child-agent have children.
+      expect(toggles).toHaveLength(3);
+
+      await userEvent.click(toggles[1]!);
+      expect(
+        screen.queryByRole('button', {name: /^child-agent/})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: /^child-model/})
+      ).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: /^lead-model/})).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
+      expect(screen.getByRole('button', {name: /^child-model/})).toBeInTheDocument();
+
+      await userEvent.click(screen.getAllByRole('button', {name: 'Collapse'})[0]!);
+      expect(screen.queryByRole('button', {name: /^lead-tool/})).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: /^lead-model/})).not.toBeInTheDocument();
+    });
+
+    it('collapses spans from maxDefaultDepth', () => {
+      render(
+        <AiSpanTimeline
+          nodes={nodes}
+          selectedNodeKey={null}
+          onSelectNode={jest.fn()}
+          maxDefaultDepth={1}
+        />
+      );
+
+      expect(screen.getByRole('button', {name: /^lead-tool/})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: /^child-agent/})
+      ).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Expand'})).toHaveAttribute(
+        'aria-expanded',
+        'false'
+      );
+    });
+
+    it('expands the ancestors of the selected span', () => {
+      render(
+        <AiSpanTimeline
+          nodes={nodes}
+          selectedNodeKey="child-model"
+          onSelectNode={jest.fn()}
+          maxDefaultDepth={0}
+        />
+      );
+
+      expect(screen.getByRole('button', {name: /^child-model/})).toBeInTheDocument();
+    });
+
+    it('keeps children that load later hidden under a collapsed span', async () => {
+      const {rerender} = render(
+        <AiSpanTimeline
+          nodes={[lead, tool, child]}
+          selectedNodeKey={null}
+          onSelectNode={jest.fn()}
+        />
+      );
+
+      await userEvent.click(screen.getAllByRole('button', {name: 'Collapse'})[0]!);
+      rerender(
+        <AiSpanTimeline nodes={nodes} selectedNodeKey={null} onSelectNode={jest.fn()} />
+      );
+
+      expect(screen.getByRole('button', {name: /^lead-agent/})).toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: /^lead-model/})).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: /^child-model/})
+      ).not.toBeInTheDocument();
+    });
+
+    it('keeps the depth of spans whose ancestors are outside visibleNodeIds', () => {
+      render(
+        <AiSpanTimeline
+          nodes={nodes}
+          visibleNodeIds={new Set(['child-model', 'lead-model'])}
+          selectedNodeKey={null}
+          onSelectNode={jest.fn()}
+        />
+      );
+
+      expect(screen.queryByRole('button', {name: /^lead-agent/})).not.toBeInTheDocument();
+      expect(screen.getByRole('button', {name: /^child-model/})).toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Collapse'})).not.toBeInTheDocument();
+    });
+  });
+
   it('renders an evaluation with its evaluator and result', async () => {
     const onSelectNode = jest.fn();
     const node = createMockNode('eval-1', EVALUATION_ATTRIBUTES);

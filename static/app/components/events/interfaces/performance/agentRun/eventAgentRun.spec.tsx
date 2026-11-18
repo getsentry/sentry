@@ -5,6 +5,7 @@ import {
   render,
   renderHookWithProviders,
   screen,
+  userEvent,
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
@@ -278,6 +279,95 @@ describe('EventAgentActivity', () => {
       expect.stringContaining('node=span-tool-span-6')
     );
     expect(screen.getByRole('link', {name: '2 more steps'})).toBeInTheDocument();
+  });
+
+  it('collapses sub-agents and counts a collapsed one as a single row', async () => {
+    const makeTool = (
+      index: number,
+      children: Array<ReturnType<typeof makeEAPSpan>> = []
+    ) =>
+      makeEAPSpan({
+        event_id: `tool-span-${index}`,
+        op: 'gen_ai.execute_tool',
+        name: 'gen_ai.execute_tool',
+        description: `execute_tool step_${index}`,
+        start_timestamp: index + 1,
+        end_timestamp: index + 2,
+        additional_attributes: {
+          'gen_ai.operation.type': 'tool',
+          'gen_ai.tool.name': `step_${index}`,
+        },
+        errors: index === 6 ? [makeEAPError({event_id: errorEventId})] : [],
+        children,
+      });
+    const subAgentSteps = Array.from({length: 5}, (_, index) =>
+      makeEAPSpan({
+        event_id: `sub-step-${index}`,
+        op: 'gen_ai.chat',
+        name: 'gen_ai.chat',
+        start_timestamp: 2,
+        end_timestamp: 3,
+        additional_attributes: {
+          'gen_ai.operation.type': 'ai_client',
+          'gen_ai.response.model': `sub_model_${index}`,
+        },
+      })
+    );
+    const subAgent = makeEAPSpan({
+      event_id: 'sub-agent',
+      op: 'gen_ai.invoke_agent',
+      name: 'gen_ai.invoke_agent',
+      start_timestamp: 2,
+      end_timestamp: 3,
+      additional_attributes: {
+        'gen_ai.operation.type': 'agent',
+        'gen_ai.agent.name': 'researcher',
+      },
+      children: subAgentSteps,
+    });
+    const steps = Array.from({length: 8}, (_, index) =>
+      makeTool(index, index === 4 ? [subAgent] : [])
+    );
+    const trace = [
+      makeEAPSpan({
+        event_id: 'agent-span',
+        op: 'gen_ai.invoke_agent',
+        name: 'gen_ai.invoke_agent',
+        is_transaction: true,
+        start_timestamp: 0,
+        end_timestamp: 14,
+        additional_attributes: {'gen_ai.operation.type': 'agent'},
+        children: steps,
+      }),
+    ];
+
+    const agentRun = getEventAgentRun(trace, errorEventId, organization);
+    if (agentRun.type !== 'inside') {
+      throw new Error('Expected the error to be inside an agent run');
+    }
+
+    render(
+      <EventAgentActivity
+        event={event}
+        failingNode={agentRun.failingNode}
+        nodes={agentRun.nodes}
+      />,
+      {organization}
+    );
+
+    // Rows: agent, step_0..step_4, researcher (collapsed), step_5..step_7. The
+    // failing step_6 is row 9, so the window is step_4 to the end.
+    expect(screen.getByText('researcher')).toBeInTheDocument();
+    expect(screen.queryByText('sub_model_0')).not.toBeInTheDocument();
+    expect(screen.getByText('step_4')).toBeInTheDocument();
+    expect(screen.queryByText('step_3')).not.toBeInTheDocument();
+    // The agent and step_0..step_3 are hidden above; the researcher's steps aren't
+    // counted, since they're in the window.
+    expect(screen.getAllByRole('link', {name: /more step/})).toHaveLength(1);
+    expect(screen.getByRole('link', {name: '5 more steps'})).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
+    expect(screen.getByText('sub_model_4')).toBeInTheDocument();
   });
 });
 

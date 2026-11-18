@@ -7,7 +7,7 @@ import {AiSpanTimeline} from './aiSpanTimeline';
 
 describe('AiSpanTimeline', () => {
   it.snapshot(
-    'indents nested agents and their calls by their agent ancestors',
+    'indents nested spans at every level',
     () => {
       const lead = AiTraceSpanNodeFixture({id: 'lead-agent', operation: 'agent'});
       const tool = AiTraceSpanNodeFixture({

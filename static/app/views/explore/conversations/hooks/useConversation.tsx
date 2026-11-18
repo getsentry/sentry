@@ -14,6 +14,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {MAX_PICKABLE_DAYS} from 'sentry/views/explore/conversations/settings';
 import type {TraceItemDetailsMeta} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {markScrubbedValue} from 'sentry/views/insights/pages/agents/components/scrubbedText';
+import {buildAiSpanTree} from 'sentry/views/insights/pages/agents/utils/aiSpanTree';
 import {isEvaluationOperation} from 'sentry/views/insights/pages/agents/utils/evaluation';
 import {isExtractionOperation} from 'sentry/views/insights/pages/agents/utils/extraction';
 import {getGenAiOperationTypeFromSpanName} from 'sentry/views/insights/pages/agents/utils/query';
@@ -184,7 +185,8 @@ function markScrubbedSpan(apiSpan: ConversationApiSpan): ConversationApiSpan {
  */
 function createNodeFromApiSpan(
   apiSpan: ConversationApiSpan,
-  nodeMap: Map<string, AITraceSpanNode>
+  nodeMap: Map<string, AITraceSpanNode>,
+  parentIdBySpanId: Map<string, string>
 ): AITraceSpanNode {
   const operationType =
     apiSpan['gen_ai.operation.type'] ||
@@ -308,17 +310,18 @@ function createNodeFromApiSpan(
     ] as TraceTree.TraceIssue[],
 
     findClosestParentTransaction: () => null,
+    // Walks through the conversation's spans that aren't nodes, like spans that
+    // aren't gen_ai spans, so they don't cut a node off from its ancestors.
     findParent<T>(predicate: (node: T) => boolean): T | null {
+      const visited = new Set<string>([apiSpan.span_id]);
       let currentParentId: string | undefined = parentSpanId;
-      while (currentParentId) {
+      while (currentParentId && !visited.has(currentParentId)) {
+        visited.add(currentParentId);
         const parentNode = nodeMap.get(currentParentId);
-        if (!parentNode) {
-          break;
-        }
-        if (predicate(parentNode as unknown as T)) {
+        if (parentNode && predicate(parentNode as unknown as T)) {
           return parentNode as unknown as T;
         }
-        currentParentId = parentNode.value?.parent_span_id ?? undefined;
+        currentParentId = parentIdBySpanId.get(currentParentId);
       }
       return null;
     },
@@ -330,72 +333,17 @@ function createNodeFromApiSpan(
 
 /**
  * Orders the conversation's spans so that an agent is always followed by its own
- * descendants, the way the trace drawer reads them off the trace tree. Sorting by
- * start time alone interleaves agents that run in parallel, which separates each
- * agent from the spans it produced.
+ * descendants, the way the Agent Activity tab reads them off the trace tree.
+ * Sorting by start time alone interleaves agents that run in parallel, which
+ * separates each agent from the spans it produced.
  *
- * Spans whose parent is not part of the conversation become roots. Roots and
- * siblings are ordered by start time, so reading order stays chronological at
- * every level.
+ * Spans without an ancestor in the conversation become roots. Roots and siblings
+ * are ordered by start time, so reading order stays chronological at every level.
  */
-function orderDepthFirst(
-  nodes: AITraceSpanNode[],
-  nodeMap: Map<string, AITraceSpanNode>
-): AITraceSpanNode[] {
-  const byStartTimestamp = (a: AITraceSpanNode, b: AITraceSpanNode) =>
-    (a.startTimestamp ?? 0) - (b.startTimestamp ?? 0);
-
-  const roots: AITraceSpanNode[] = [];
-  const childrenByParentId = new Map<string, AITraceSpanNode[]>();
-
-  for (const node of nodes) {
-    const parentId = node.value?.parent_span_id;
-    const parent = parentId ? nodeMap.get(parentId) : undefined;
-    if (!parentId || !parent || parent === node) {
-      roots.push(node);
-      continue;
-    }
-    const siblings = childrenByParentId.get(parentId);
-    if (siblings) {
-      siblings.push(node);
-    } else {
-      childrenByParentId.set(parentId, [node]);
-    }
-  }
-
-  for (const siblings of childrenByParentId.values()) {
-    siblings.sort(byStartTimestamp);
-  }
-
-  const ordered: AITraceSpanNode[] = [];
-  const visited = new Set<string>();
-  const stack = roots.toSorted(byStartTimestamp).reverse();
-
-  while (stack.length > 0) {
-    const node = stack.pop()!;
-    if (visited.has(node.id)) {
-      continue;
-    }
-    visited.add(node.id);
-    ordered.push(node);
-
-    const children = childrenByParentId.get(node.id);
-    if (children) {
-      for (let i = children.length - 1; i >= 0; i--) {
-        stack.push(children[i]!);
-      }
-    }
-  }
-
-  // A cycle in the parent links leaves spans unreachable from any root. Keep them
-  // rather than dropping rows from the timeline.
-  for (const node of nodes) {
-    if (!visited.has(node.id)) {
-      ordered.push(node);
-    }
-  }
-
-  return ordered;
+function orderDepthFirst(nodes: AITraceSpanNode[]): AITraceSpanNode[] {
+  return buildAiSpanTree(nodes, {
+    compareSiblings: (a, b) => (a.startTimestamp ?? 0) - (b.startTimestamp ?? 0),
+  }).list.map(treeNode => treeNode.node);
 }
 
 const ONE_HOUR_MS = 60 * 60 * 1000;
@@ -470,18 +418,25 @@ export function buildConversationNodes(
   const traceMap = new Map<string, string>();
   const genAiSpans = allSpans.filter(isGenAiSpan);
   const nodeMap = new Map<string, AITraceSpanNode>();
+  const parentIdBySpanId = new Map<string, string>();
+  for (const apiSpan of allSpans) {
+    if (apiSpan.parent_span) {
+      parentIdBySpanId.set(apiSpan.span_id, apiSpan.parent_span);
+    }
+  }
 
   const transformedNodes = genAiSpans.map(apiSpan => {
     const node = createNodeFromApiSpan(
       markScrubbed ? markScrubbedSpan(apiSpan) : apiSpan,
-      nodeMap
+      nodeMap,
+      parentIdBySpanId
     );
     nodeMap.set(node.id, node);
     traceMap.set(node.id, apiSpan.trace);
     return node;
   });
 
-  return {nodes: orderDepthFirst(transformedNodes, nodeMap), nodeTraceMap: traceMap};
+  return {nodes: orderDepthFirst(transformedNodes), nodeTraceMap: traceMap};
 }
 
 const MAX_PAGES = 100;
