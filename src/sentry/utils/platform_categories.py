@@ -89,6 +89,7 @@ BACKEND = {
     "node-koa",
     "node-nestjs",
     "perl",
+    "php-bref",
     "php-laravel",
     "php-monolog",
     "php-symfony",
