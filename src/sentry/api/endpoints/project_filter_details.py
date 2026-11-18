@@ -21,6 +21,9 @@ from sentry.apidocs.response_types import ValidationErrorResponse, as_validation
 from sentry.ingest import inbound_filters
 from sentry.ingest.inbound_filters import FilterStatKeys, _LegacyBrowserFilterSerializer
 from sentry.models.project import Project
+from sentry.timeseries_annotations.producers.inbound_filters import (
+    record_builtin_filter_change_as_annotation,
+)
 
 
 @extend_schema(tags=["Projects"])
@@ -75,6 +78,10 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
         )
         if isinstance(new_state, list):
             new_state = set(new_state)
+
+        if current_state != new_state:
+            record_builtin_filter_change_as_annotation(project, filter_id, request.user)
+
         audit_log_state = audit_log.get_event_id("PROJECT_ENABLE")
 
         returned_state: bool | str | list[str] | set[str] | None = None
