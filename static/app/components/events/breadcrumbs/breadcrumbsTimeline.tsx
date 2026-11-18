@@ -11,13 +11,14 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {DateTime} from 'sentry/components/dateTime';
 import {Duration} from 'sentry/components/duration';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {BreadcrumbItemContent} from 'sentry/components/events/breadcrumbs/breadcrumbItemContent';
-import type {EnhancedCrumb} from 'sentry/components/events/breadcrumbs/utils';
 import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {Timeline} from 'sentry/components/timeline';
 import {t} from 'sentry/locale';
 import {isValidDate} from 'sentry/utils/date/isValidDate';
 import {defined} from 'sentry/utils/defined';
+
+import {BreadcrumbItemContent} from './breadcrumbItemContent';
+import type {EnhancedCrumb} from './utils';
 
 function BreadcrumbTimestampTooltipBody({timestamp}: {timestamp: Date}) {
   const currentTimezone = useTimezone();

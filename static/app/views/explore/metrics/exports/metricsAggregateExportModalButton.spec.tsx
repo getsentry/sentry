@@ -12,7 +12,6 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {MetricsAggregateExportModalButton} from 'sentry/views/explore/metrics/exports/metricsAggregateExportModalButton';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricsQueryParamsProvider} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
@@ -20,6 +19,8 @@ import type {GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+
+import {MetricsAggregateExportModalButton} from './metricsAggregateExportModalButton';
 
 const mockDownloadFromHref = jest.fn();
 jest.mock('sentry/utils/downloadFromHref', () => ({
@@ -105,10 +106,6 @@ describe('MetricsAggregateExportModalButton', () => {
         datetime: {start: null, end: null, period: '24h', utc: null},
       })
     );
-  });
-
-  afterEach(() => {
-    PageFiltersStore.reset();
   });
 
   it('downloads locally without a server export when all rows are loaded', async () => {

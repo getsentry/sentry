@@ -20,15 +20,6 @@ import type {TableColumn} from 'sentry/views/discover/table/types';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {useMetricAggregatesTable} from 'sentry/views/explore/metrics/hooks/useMetricAggregatesTable';
-import {
-  LoadingMaskRow,
-  StyledSimpleTable,
-  StyledSimpleTableHeader,
-  StyledSimpleTableHeaderCell,
-  StyledSimpleTableRowCell,
-  StyledTopResultsIndicator,
-  TransparentLoadingMask,
-} from 'sentry/views/explore/metrics/metricInfoTabs/metricInfoTabStyles';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {useMetricVisualize} from 'sentry/views/explore/metrics/metricsQueryParams';
 import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
@@ -52,6 +43,16 @@ import {
   traceItemAttributeKeysOptions,
 } from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
 import {GenericWidgetEmptyStateWarning} from 'sentry/views/performance/landing/widgets/components/selectableList';
+
+import {
+  LoadingMaskRow,
+  StyledSimpleTable,
+  StyledSimpleTableHeader,
+  StyledSimpleTableHeaderCell,
+  StyledSimpleTableRowCell,
+  StyledTopResultsIndicator,
+  TransparentLoadingMask,
+} from './metricInfoTabStyles';
 
 // TODO: add back filter actions or just revert this commit
 // once the metrics search bar supports filters on aggregates

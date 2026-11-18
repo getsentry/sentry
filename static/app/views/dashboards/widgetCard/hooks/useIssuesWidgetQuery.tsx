@@ -20,11 +20,12 @@ import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
-import {combineWidgetJsonQueryResults} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
-import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
+
+import {combineWidgetJsonQueryResults} from './utils/combineWidgetQueryResults';
+import {getWidgetStaleTime} from './utils/getStaleTime';
 
 const DEFAULT_SORT = IssueSortOptions.DATE;
 const DEFAULT_EXPAND = ['owners'];
@@ -270,6 +271,7 @@ export function useIssuesTableQuery(
 
   const tableResults: any[] = [];
   let responsePageLinks: string | undefined;
+  let totalCount: string | undefined;
 
   queryResults.forEach((q, i) => {
     if (!q?.data?.json) {
@@ -296,6 +298,8 @@ export function useIssuesTableQuery(
     tableResults.push(transformedDataItem);
 
     responsePageLinks = q.data.headers.Link;
+    const hits = q.data.headers['X-Hits'];
+    totalCount = hits === undefined ? undefined : String(hits);
   });
 
   return {
@@ -303,6 +307,7 @@ export function useIssuesTableQuery(
     errorMessage: undefined,
     tableResults,
     pageLinks: responsePageLinks,
+    totalCount,
     rawData,
   };
 }

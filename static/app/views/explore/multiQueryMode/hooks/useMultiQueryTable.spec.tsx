@@ -4,12 +4,13 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {useReadQueriesFromLocation} from 'sentry/views/explore/multiQueryMode/locationUtils';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
+
 import {
   useMultiQueryTableAggregateMode,
   useMultiQueryTableSampleMode,
-} from 'sentry/views/explore/multiQueryMode/hooks/useMultiQueryTable';
-import {useReadQueriesFromLocation} from 'sentry/views/explore/multiQueryMode/locationUtils';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
+} from './useMultiQueryTable';
 
 jest.mock('sentry/views/explore/multiQueryMode/locationUtils', () => {
   const actual = jest.requireActual('sentry/views/explore/multiQueryMode/locationUtils');

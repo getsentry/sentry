@@ -11,7 +11,7 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
-import UpgradeOrTrialButton from 'getsentry/components/upgradeOrTrialButton';
+import {UpgradeOrTrialButton} from 'getsentry/components/upgradeOrTrialButton';
 import type {Subscription} from 'getsentry/types';
 import {
   hasPartnerMigrationFeature,

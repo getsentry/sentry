@@ -9,18 +9,12 @@ import {defaultAggregateSortBys} from 'sentry/views/explore/contexts/pageParamsC
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
-  useProgressiveQuery,
-  type RPCQueryExtras,
-} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
-import {
   useQueryParamsAggregateSortBys,
   useQueryParamsExtrapolate,
   useQueryParamsGroupBys,
   useQueryParamsVisualizes,
 } from 'sentry/views/explore/queryParams/context';
 import {
-  isVisualizeFunction,
   type Visualize,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
@@ -31,6 +25,9 @@ import {
   useSortedTimeSeries,
   type SortedTimeSeries,
 } from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+
+import {useProgressiveQuery, type RPCQueryExtras} from './useProgressiveQuery';
+import {useTopEvents} from './useTopEvents';
 
 interface UseExploreTimeseriesOptions {
   enabled: boolean;
@@ -172,11 +169,7 @@ export function shouldTriggerHighAccuracy(
 ) {
   const samplingInfo = visualizes.map(visualize =>
     determineSeriesSampleCountAndIsSampled(
-      getTimeSeriesForQuery(
-        data,
-        visualize.yAxis,
-        isVisualizeFunction(visualize) ? visualize.transformations : []
-      ),
+      getTimeSeriesForQuery(data, visualize.yAxis, visualize.transformations),
       isTopN
     )
   );

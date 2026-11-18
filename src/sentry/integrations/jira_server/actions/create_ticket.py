@@ -26,4 +26,5 @@ class JiraServerCreateTicketAction(TicketEventAction):
         return f"This ticket was automatically created by Sentry via [{self.action_context.origin.label}|{absolute_uri(rule_url)}]"
 
     def translate_integration(self, integration: RpcIntegration) -> str:
-        return integration.metadata.get("domain_name", integration.name)
+        name = integration.metadata.get("domain_name", integration.name)
+        return name

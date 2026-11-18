@@ -10,15 +10,16 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {FileInsightItemDiffTable} from 'sentry/views/preprod/buildComparison/main/insights/fileInsightDiffTable';
-import {GroupInsightItemDiffTable} from 'sentry/views/preprod/buildComparison/main/insights/groupInsightDiffTable';
-import {InsightDiffRow} from 'sentry/views/preprod/buildComparison/main/insights/insightDiffRow';
 import type {
   DiffItem,
   DiffType,
   InsightDiffItem,
   InsightStatus,
 } from 'sentry/views/preprod/types/appSizeTypes';
+
+import {FileInsightItemDiffTable} from './insights/fileInsightDiffTable';
+import {GroupInsightItemDiffTable} from './insights/groupInsightDiffTable';
+import {InsightDiffRow} from './insights/insightDiffRow';
 
 interface InsightComparisonSectionProps {
   insightDiffItems: InsightDiffItem[];

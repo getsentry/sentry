@@ -14,6 +14,7 @@ import {getDuration} from 'sentry/utils/duration/getDuration';
 import {getConditionDescription} from 'sentry/views/detectors/components/details/metric/detect';
 import {getStaticDetectorThresholdSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
 import {percentThresholdAbsoluteToDelta} from 'sentry/views/detectors/utils/percentThreshold';
+import type {InvestigationDetectorValues} from 'sentry/views/investigations/api';
 import type {SourceMonitor} from 'sentry/views/investigations/source';
 import type {
   InvestigationDetectorChangeKey,
@@ -21,18 +22,47 @@ import type {
 } from 'sentry/views/investigations/types';
 
 type ChangeField = {
+  getActivityLabel: () => string;
   getLabel: () => string;
   monospace: boolean;
 };
 
 const CHANGE_FIELDS = {
-  query: {getLabel: () => t('Query'), monospace: true},
-  aggregate: {getLabel: () => t('Aggregate'), monospace: true},
-  environment: {getLabel: () => t('Environment'), monospace: false},
-  timeWindowSeconds: {getLabel: () => t('Interval'), monospace: false},
-  highThreshold: {getLabel: () => t('High threshold'), monospace: false},
-  mediumThreshold: {getLabel: () => t('Medium threshold'), monospace: false},
-  resolutionThreshold: {getLabel: () => t('Resolution threshold'), monospace: false},
+  query: {
+    getLabel: () => t('Query'),
+    getActivityLabel: () => t('query'),
+    monospace: true,
+  },
+  aggregate: {
+    getLabel: () => t('Aggregate'),
+    getActivityLabel: () => t('aggregate'),
+    monospace: true,
+  },
+  environment: {
+    getLabel: () => t('Environment'),
+    getActivityLabel: () => t('environment'),
+    monospace: false,
+  },
+  timeWindowSeconds: {
+    getLabel: () => t('Interval'),
+    getActivityLabel: () => t('interval'),
+    monospace: false,
+  },
+  highThreshold: {
+    getLabel: () => t('High threshold'),
+    getActivityLabel: () => t('threshold'),
+    monospace: false,
+  },
+  mediumThreshold: {
+    getLabel: () => t('Medium threshold'),
+    getActivityLabel: () => t('threshold'),
+    monospace: false,
+  },
+  resolutionThreshold: {
+    getLabel: () => t('Resolution threshold'),
+    getActivityLabel: () => t('threshold'),
+    monospace: false,
+  },
 } satisfies Record<InvestigationDetectorChangeKey, ChangeField>;
 
 const CHANGE_KEYS = Object.keys(CHANGE_FIELDS) as InvestigationDetectorChangeKey[];
@@ -42,29 +72,41 @@ const PRIORITY_CHANGE_KEYS: Partial<Record<number, InvestigationDetectorChangeKe
   [DetectorPriorityLevel.MEDIUM]: 'mediumThreshold',
 };
 
+export function getChangedFieldLabels(fields: string[]) {
+  const labels = CHANGE_KEYS.filter(key => fields.includes(key)).map(key =>
+    CHANGE_FIELDS[key].getActivityLabel()
+  );
+  return [...new Set(labels)];
+}
+
 type MonitorChangesProps = {
   action: InvestigationUpdateDetectorAction;
   applied: boolean;
   impact: string | null;
   monitor: SourceMonitor | null;
   name: string | null;
+  current?: InvestigationDetectorValues;
 };
 
 export function MonitorChanges({
   action,
   applied,
+  current,
   impact,
   monitor,
   name,
 }: MonitorChangesProps) {
   const changedKeys = CHANGE_KEYS.filter(key => action.changes[key] !== undefined);
+  const shownKeys = current
+    ? CHANGE_KEYS.filter(key => current[key] !== undefined)
+    : changedKeys;
   const subtitle = [
     monitor?.projectSlug,
-    changedKeys.includes('environment') ? null : monitor?.environment,
+    shownKeys.includes('environment') ? null : monitor?.environment,
   ].filter(Boolean);
   const measures = [
-    changedKeys.includes('aggregate') ? null : monitor?.aggregate,
-    changedKeys.includes('query') ? null : monitor?.query,
+    shownKeys.includes('aggregate') ? null : monitor?.aggregate,
+    shownKeys.includes('query') ? null : monitor?.query,
   ].filter(Boolean);
   const opensAnIssue = getOpensAnIssueDescription(action, monitor);
   const currentAggregate = monitor?.aggregate ?? null;
@@ -72,6 +114,8 @@ export function MonitorChanges({
     typeof action.changes.aggregate === 'string'
       ? action.changes.aggregate
       : currentAggregate;
+  const nowAggregate =
+    typeof current?.aggregate === 'string' ? current.aggregate : currentAggregate;
 
   return (
     <Container border="primary" radius="md" padding="lg">
@@ -105,7 +149,7 @@ export function MonitorChanges({
               <Text monospace>{measures.join(' • ')}</Text>
             </SettingRow>
           ) : null}
-          {changedKeys.map(key => {
+          {shownKeys.map(key => {
             const {getLabel, monospace} = CHANGE_FIELDS[key];
             const before = formatChangeValue(
               key,
@@ -129,6 +173,24 @@ export function MonitorChanges({
                     </Text>{' '}
                     <Text size="sm" variant="muted" monospace={monospace}>
                       {t('was %s', before)}
+                    </Text>
+                  </Text>
+                ) : current ? (
+                  <Text>
+                    <Text variant="muted" monospace={monospace}>
+                      {t('When suggested: %s', before)}
+                    </Text>
+                    {' · '}
+                    <Text bold monospace={monospace}>
+                      {t(
+                        'Now: %s',
+                        formatChangeValue(
+                          key,
+                          current[key],
+                          monitor?.detectionType,
+                          nowAggregate
+                        )
+                      )}
                     </Text>
                   </Text>
                 ) : (

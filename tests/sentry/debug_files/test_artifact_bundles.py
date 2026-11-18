@@ -3,6 +3,7 @@ import zipfile
 from datetime import datetime, timedelta
 from hashlib import sha1
 from io import BytesIO
+from typing import Literal, TypedDict
 from unittest.mock import patch
 
 from django.core.files.base import ContentFile
@@ -38,8 +39,15 @@ from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 
 
-def make_compressed_zip_file(files):
-    def remove_and_return(dictionary, key):
+class _ArtifactFile(TypedDict, total=False):
+    url: str
+    type: str
+    content: bytes
+    headers: dict[str, str]
+
+
+def make_compressed_zip_file(files: dict[str, _ArtifactFile]) -> bytes:
+    def remove_and_return(dictionary: _ArtifactFile, key: Literal["content"]) -> _ArtifactFile:
         dictionary.pop(key)
         return dictionary
 
@@ -65,7 +73,12 @@ def make_compressed_zip_file(files):
     return compressed.getvalue()
 
 
-def upload_bundle(bundle_file, project, release=None, dist=None):
+def upload_bundle(
+    bundle_file: bytes,
+    project: Project,
+    release: str,
+    dist: str | None = None,
+) -> None:
     blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), project.organization)
     total_checksum = sha1(bundle_file).hexdigest()
 
@@ -79,7 +92,9 @@ def upload_bundle(bundle_file, project, release=None, dist=None):
     )
 
 
-def get_artifact_bundles(project, release_name="", dist_name=""):
+def get_artifact_bundles(
+    project: Project, release_name: str = "", dist_name: str = ""
+) -> list[ArtifactBundle]:
     return list(
         ArtifactBundle.objects.filter(
             organization_id=project.organization.id,
@@ -90,7 +105,9 @@ def get_artifact_bundles(project, release_name="", dist_name=""):
     )
 
 
-def get_indexed_files(project, release_name="", dist_name="", distinct=False):
+def get_indexed_files(
+    project: Project, release_name: str = "", dist_name: str = "", distinct: bool = False
+) -> list[ArtifactBundleIndex]:
     query = ArtifactBundleIndex.objects.filter(
         organization_id=project.organization.id,
         artifact_bundle__projectartifactbundle__project_id=project.id,
@@ -103,7 +120,7 @@ def get_indexed_files(project, release_name="", dist_name="", distinct=False):
 
 
 class ArtifactLookupTest(TestCase):
-    def clear_cache(self):
+    def clear_cache(self) -> None:
         redis_client = get_redis_cluster_for_artifact_bundles()
         redis_client.flushdb()
 
@@ -370,7 +387,7 @@ class IndexUrlsInBundleTest(TestCase):
     debug_id = "eb6e60f1-65ff-4f6f-adff-f1bbeded627b"
 
     def index(self) -> list[str]:
-        files = {
+        files: dict[str, _ArtifactFile] = {
             "files/_/_/generated.js": {
                 "url": f"~/{self.debug_id}-0.js",
                 "type": "minified_source",
@@ -437,7 +454,9 @@ class GetArtifactBundlesContainingUrlTest(TestCase):
         self.release_name = "1.0.0"
         self.dist_name = "dist1"
 
-    def create_bundle(self, date_added=None, date_last_modified=None):
+    def create_bundle(
+        self, date_added: datetime | None = None, date_last_modified: datetime | None = None
+    ) -> ArtifactBundle:
         if date_added is None:
             date_added = timezone.now()
         if date_last_modified is None:
@@ -470,7 +489,9 @@ class GetArtifactBundlesContainingUrlTest(TestCase):
         )
         return artifact_bundle
 
-    def assert_results(self, results: set[tuple[int, datetime]], expected_bundle_ids: set[int]):
+    def assert_results(
+        self, results: set[tuple[int, datetime]], expected_bundle_ids: set[int]
+    ) -> None:
         assert {bundle_id for bundle_id, _ in results} == expected_bundle_ids
 
     def test_get_artifact_bundles_containing_url_exact_match(self) -> None:

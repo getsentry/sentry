@@ -1,10 +1,11 @@
 import {useCallback, useState} from 'react';
 import type {LocationDescriptor} from 'history';
-import queryString from 'query-string';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import * as qs from 'sentry/utils/url/qs';
 import {
   getValidToolLinks,
   resolveLink,
@@ -37,10 +38,10 @@ export function useCopySessionDataToClipboard({
         ? formatSessionData(blocks, organization, projects)
         : `No data available. Status: ${status ?? 'unknown'}`;
       await navigator.clipboard.writeText(text);
-      addSuccessMessage('Copied conversation to clipboard');
+      toast.success('Copied conversation to clipboard');
     } catch (err) {
       setIsError(true);
-      addErrorMessage('Failed to copy conversation to clipboard');
+      toast.error('Failed to copy conversation to clipboard');
     }
 
     trackAnalytics('seer.explorer.session_copied_to_clipboard', {organization});
@@ -135,7 +136,7 @@ function locationToUrl(location: LocationDescriptor): string | null {
   const {pathname = '', hash, query} = location;
   const base = `${window.location.origin}${pathname}`;
 
-  const queryPart = query ? `?${queryString.stringify(query)}` : '';
+  const queryPart = query ? `?${qs.stringify(query)}` : '';
 
   const hashPart = hash ? (hash.startsWith('#') ? hash : `#${hash}`) : '';
 

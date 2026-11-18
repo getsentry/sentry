@@ -5,7 +5,7 @@ import {IconAdd} from '@sentry/icons/add';
 import {Alert} from '@sentry/scraps/alert';
 import {LinkButton} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
-import {Select, components as selectComponents} from '@sentry/scraps/select';
+import {Select} from '@sentry/scraps/select';
 
 import {t} from 'sentry/locale';
 import {
@@ -16,17 +16,15 @@ import {
 } from 'sentry/types/workflowEngine/actions';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  ActionNodeContext,
-  useActionNodeContext,
-} from 'sentry/views/automations/components/actionNodeContext';
-import {actionNodesMap} from 'sentry/views/automations/components/actionNodes';
-import {useAutomationBuilderContext} from 'sentry/views/automations/components/automationBuilderContext';
-import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
-import {AutomationBuilderRow} from 'sentry/views/automations/components/automationBuilderRow';
 import {useAvailableActionsQuery} from 'sentry/views/automations/hooks';
 import {useConnectedDetectors} from 'sentry/views/automations/hooks/useConnectedDetectors';
 import {getIncompatibleActionWarnings} from 'sentry/views/automations/utils/getIncompatibleActionWarning';
+
+import {ActionNodeContext, useActionNodeContext} from './actionNodeContext';
+import {actionNodesMap} from './actionNodes';
+import {useAutomationBuilderContext} from './automationBuilderContext';
+import {useAutomationBuilderErrorContext} from './automationBuilderErrorContext';
+import {AutomationBuilderRow} from './automationBuilderRow';
 
 interface ActionNodeListProps {
   actions: Action[];
@@ -234,28 +232,18 @@ const AddActionSelect = memo(function AddActionSelect({
 }: AddActionSelectProps) {
   const organization = useOrganization();
   const {removeError} = useAutomationBuilderErrorContext();
-  const components = useMemo(
-    () => ({
-      Menu: ({children, ...props}: any) => (
-        <selectComponents.Menu {...props}>
-          <Fragment>
-            {children}
-            <Container padding="md" borderTop="muted">
-              <LinkButton
-                size="xs"
-                variant="secondary"
-                icon={<IconAdd />}
-                href={`/settings/${organization.slug}/integrations/`}
-                external
-              >
-                {t('Add another integration')}
-              </LinkButton>
-            </Container>
-          </Fragment>
-        </selectComponents.Menu>
-      ),
-    }),
-    [organization.slug]
+  const menuFooter = (
+    <Container padding="md" borderTop="muted">
+      <LinkButton
+        size="xs"
+        variant="secondary"
+        icon={<IconAdd />}
+        href={`/settings/${organization.slug}/integrations/`}
+        external
+      >
+        {t('Add another integration')}
+      </LinkButton>
+    </Container>
   );
 
   return (
@@ -268,7 +256,7 @@ const AddActionSelect = memo(function AddActionSelect({
       }}
       placeholder={placeholder}
       value={null}
-      components={components}
+      menuFooter={menuFooter}
     />
   );
 });
@@ -283,4 +271,4 @@ function Node() {
 
 const StyledSelectControl = styled(Select)`
   width: 100%;
-`;
+` as typeof Select;

@@ -8,15 +8,14 @@ import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import {severityColor, withAlpha} from 'sentry/components/droppedData/band/severityColor';
-import {
-  BAND_HEIGHT,
-  DROPPED_DATA_SERIES_ID,
-  useDroppedDataBand,
-} from 'sentry/components/droppedData/band/useDroppedDataBand';
+import {BAND_HEIGHT} from 'sentry/components/charts/bands/bandShapes';
+import {CHART_TOOLTIP_VIEWPORT_OFFSET} from 'sentry/components/charts/components/tooltip';
 import type {OutcomeRow} from 'sentry/components/droppedData/types';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+
+import {severityColor, withAlpha} from './severityColor';
+import {DROPPED_DATA_SERIES_ID, useDroppedDataBand} from './useDroppedDataBand';
 
 const chartRef: React.RefObject<ReactEchartsRef | null> = {current: null};
 
@@ -29,34 +28,33 @@ describe('useDroppedDataBand', () => {
       })
     );
 
-    expect(result.current.droppedDataSeries).toBeNull();
-    expect(result.current.droppedDataYAxis).toBeNull();
-    expect(result.current.droppedDataBandHeight).toBe(0);
+    expect(result.current).toBeNull();
   });
 
   it('returns an empty band without dropped data', () => {
     const {result} = renderHookWithProviders(() => useDroppedDataBand({chartRef}));
 
-    expect(result.current.droppedDataSeries).toBeNull();
-    expect(result.current.droppedDataYAxis).toBeNull();
-    expect(result.current.droppedDataBandHeight).toBe(0);
+    expect(result.current).toBeNull();
   });
 
-  it('builds a series and reserves space when dropped events are present', () => {
+  it('builds a band when dropped events are present', () => {
+    const onClick = jest.fn();
     const {result} = renderHookWithProviders(() =>
       useDroppedDataBand({
         chartRef,
         droppedData: {
           dataset: DiscoverDatasets.SPANS,
           droppedEvents: [OutcomeRowFixture({count: 10})],
+          onClick,
         },
       })
     );
 
-    expect(result.current.droppedDataSeries).not.toBeNull();
-    expect(result.current.droppedDataSeries?.id).toBe(DROPPED_DATA_SERIES_ID);
-    expect(result.current.droppedDataYAxis).not.toBeNull();
-    expect(result.current.droppedDataBandHeight).toBe(BAND_HEIGHT);
+    expect(result.current).toMatchObject({
+      id: DROPPED_DATA_SERIES_ID,
+      height: BAND_HEIGHT,
+      onClick,
+    });
   });
 
   it('ignores intentional drops', () => {
@@ -70,7 +68,7 @@ describe('useDroppedDataBand', () => {
       })
     );
 
-    expect(result.current.droppedDataSeries).toBeNull();
+    expect(result.current).toBeNull();
   });
 
   it('keeps buckets without drops so they can be hovered', () => {
@@ -92,7 +90,7 @@ describe('useDroppedDataBand', () => {
       })
     );
 
-    expect(result.current.droppedDataSeries?.data).toEqual([
+    expect(result.current?.series(0).data).toEqual([
       expect.objectContaining({start: 0, ratio: 0}),
       expect.objectContaining({start: 60_000, ratio: 0.01}),
       expect.objectContaining({start: 120_000, ratio: 0, accepted: 50}),
@@ -111,8 +109,7 @@ describe('useDroppedDataBand', () => {
       })
     );
 
-    expect(result.current.droppedDataSeries).toBeNull();
-    expect(result.current.droppedDataBandHeight).toBe(0);
+    expect(result.current).toBeNull();
   });
 
   it('hides the band when every bucket is below the highlight threshold', () => {
@@ -127,8 +124,7 @@ describe('useDroppedDataBand', () => {
       })
     );
 
-    expect(result.current.droppedDataSeries).toBeNull();
-    expect(result.current.droppedDataBandHeight).toBe(0);
+    expect(result.current).toBeNull();
   });
 
   it('draws no pill for buckets that only have accepted volume', () => {
@@ -143,13 +139,19 @@ describe('useDroppedDataBand', () => {
       })
     );
 
-    expect(result.current.droppedDataSeries).toBeNull();
+    expect(result.current).toBeNull();
   });
 
-  it('positions the tooltip below the band', () => {
+  it('keeps the tooltip below the hovered bucket and inside the viewport', () => {
+    const chartLeft = 40;
+    const tipWidth = 200;
+    const anchorX = window.innerWidth - chartLeft - 10;
+
     const {result} = renderHookWithProviders(() =>
       useDroppedDataBand({
-        chartRef,
+        chartRef: {
+          current: {ele: {getBoundingClientRect: () => ({left: chartLeft})}},
+        } as unknown as React.RefObject<ReactEchartsRef | null>,
         droppedData: {
           dataset: DiscoverDatasets.SPANS,
           droppedEvents: [OutcomeRowFixture({count: 10})],
@@ -157,9 +159,29 @@ describe('useDroppedDataBand', () => {
       })
     );
 
-    const tooltip = result.current.droppedDataSeries?.tooltip;
-    expect(tooltip?.trigger).toBe('item');
-    expect(tooltip).toHaveProperty('position', 'bottom');
+    const position = result.current?.series(0).tooltip?.position;
+    if (typeof position !== 'function') {
+      throw new Error('Expected the dropped data tooltip to position itself');
+    }
+
+    const tooltip = document.createElement('div');
+    const arrow = document.createElement('div');
+    arrow.className = 'tooltip-arrow arrow-top';
+    tooltip.append(arrow);
+
+    const {left, top} = position(
+      [0, 0],
+      [],
+      tooltip,
+      {x: anchorX - 30, y: 170, width: 60, height: 10},
+      {contentSize: [tipWidth, 120], viewSize: [800, 300]}
+    ) as {left: number; top: number};
+
+    expect(top).toBe(188);
+    expect(chartLeft + left + tipWidth).toBe(
+      window.innerWidth - CHART_TOOLTIP_VIEWPORT_OFFSET
+    );
+    expect(arrow).toHaveStyle({left: `${anchorX - left}px`});
   });
 
   it('collapses buckets sharing a time range into a single series datum', () => {
@@ -177,7 +199,7 @@ describe('useDroppedDataBand', () => {
       })
     );
 
-    expect(result.current.droppedDataSeries?.data).toHaveLength(2);
+    expect(result.current?.series(0).data).toHaveLength(2);
   });
 
   describe('render item', () => {
@@ -196,7 +218,7 @@ describe('useDroppedDataBand', () => {
     }
 
     interface BandRect {
-      shape: {width: number; x: number};
+      shape: {width: number; x: number; y: number};
       style: {fill: string | Gradient};
       silent?: boolean;
     }
@@ -223,7 +245,11 @@ describe('useDroppedDataBand', () => {
       };
     }
 
-    function renderShapes(dropped: OutcomeRow[], accepted: OutcomeRow[] = []) {
+    function renderShapes(
+      dropped: OutcomeRow[],
+      accepted: OutcomeRow[] = [],
+      bandOffset = 0
+    ) {
       const {result} = renderHookWithProviders(() =>
         useDroppedDataBand({
           chartRef,
@@ -235,7 +261,7 @@ describe('useDroppedDataBand', () => {
         })
       );
 
-      const series = result.current.droppedDataSeries;
+      const series = result.current?.series(bandOffset);
       if (!series || typeof series.renderItem !== 'function') {
         throw new Error('Expected the dropped data series to render items');
       }
@@ -269,6 +295,12 @@ describe('useDroppedDataBand', () => {
       expect(first?.[0]).toMatchObject({shape: {x: 0, width: TRACK_WIDTH}, silent: true});
       expect(first).toHaveLength(3);
       expect(second).toHaveLength(1);
+    });
+
+    it('draws the band at the offset it is given below the plot', () => {
+      const [shapes] = renderShapes([bucket(3)], [], 12);
+
+      expect(shapes?.[0]?.shape.y).toBe(116);
     });
 
     it('centres each hover target on its bucket start, clamped to the track', () => {

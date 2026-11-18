@@ -14,15 +14,28 @@ import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
  * for additional styling when the element becomes stuck.
  */
 interface StickyProps extends React.ComponentProps<'div'> {
-  /** Additional distance from the top bar where the element should stick. */
+  /**
+   * Where the element sticks. Defaults to just below the top bar. Use
+   * `scrollContainer` when the element scrolls inside its own container rather
+   * than the page, so the top bar height is not added.
+   */
+  relativeTo?: 'topBar' | 'scrollContainer';
+  /** Additional distance from the `relativeTo` edge where the element should stick. */
   topOffset?: number;
 }
 
-function TaggedSticky({ref, topOffset = 0, ...props}: StickyProps) {
+function TaggedSticky({
+  ref,
+  relativeTo = 'topBar',
+  topOffset = 0,
+  ...props
+}: StickyProps) {
   const elementRef = useRef<HTMLDivElement>(null);
   const {pageContentTop} = useTopOffset();
   const mergedRef = useMemo(() => mergeRefs(elementRef, ref), [ref]);
-  const stickyTopOffset = (Number.parseInt(pageContentTop, 10) || 0) + topOffset;
+  const baseTopOffset =
+    relativeTo === 'topBar' ? Number.parseInt(pageContentTop, 10) || 0 : 0;
+  const stickyTopOffset = baseTopOffset + topOffset;
 
   const isStuck = useIsStuck(elementRef, {
     offset: stickyTopOffset,
@@ -35,7 +48,10 @@ function TaggedSticky({ref, topOffset = 0, ...props}: StickyProps) {
 
 const Sticky = styled(TaggedSticky)`
   position: sticky;
-  top: calc(var(${TOP_BAR_HEIGHT_CSS_VAR}, 0px) + ${p => p.topOffset ?? 0}px);
+  top: ${p =>
+    p.relativeTo === 'scrollContainer'
+      ? `${p.topOffset ?? 0}px`
+      : `calc(var(${TOP_BAR_HEIGHT_CSS_VAR}, 0px) + ${p.topOffset ?? 0}px)`};
 `;
 
 export {Sticky};

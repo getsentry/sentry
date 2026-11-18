@@ -1,8 +1,6 @@
 import {Fragment} from 'react';
 
-import {FeatureBadge} from '@sentry/scraps/badge';
-
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {EXPLORE_AGENTS_SUB_PATH} from 'sentry/views/explore/conversations/settings';
@@ -17,15 +15,18 @@ import {
   useInvestigationsEnabled,
 } from 'sentry/views/investigations/utils';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
-import {ExploreSavedQueryNavigationItems} from 'sentry/views/navigation/secondary/sections/explore/exploreSavedQueryNavigationItems';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import {
   getAutomationsPath,
   useAutomationsEnabled,
 } from 'sentry/views/seerWorkflows/utils';
+import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
+
+import {ExploreSavedQueryNavigationItems} from './exploreSavedQueryNavigationItems';
 
 function ExploreSecondaryNavigationImpl() {
+  const settingsV3 = useSettingsV3();
   const organization = useOrganization();
 
   const baseUrl = `/organizations/${organization.slug}/explore`;
@@ -47,10 +48,7 @@ function ExploreSecondaryNavigationImpl() {
   // the explore-errors and discover-basic branches) but point elsewhere.
   const navItems: Array<{label: string; to: string; badge?: 'new' | 'beta' | 'alpha'}> =
     [];
-  if (
-    organization.features.includes('performance-view') &&
-    organization.features.includes('visibility-explore-view')
-  ) {
+  if (organization.features.includes('visibility-explore-view')) {
     navItems.push({label: 'Traces', to: `${baseUrl}/traces/`});
   }
   if (organization.features.includes('ourlogs-enabled')) {
@@ -114,21 +112,21 @@ function ExploreSecondaryNavigationImpl() {
 
   return (
     <Fragment>
-      <SecondaryNavigation.Header>{t('Explore')}</SecondaryNavigation.Header>
+      <SecondaryNavigation.Header>
+        <SecondaryNavigation.HeaderTitle>{t('Explore')}</SecondaryNavigation.HeaderTitle>
+      </SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
         <SecondaryNavigation.Section id="explore-main">
           <SecondaryNavigation.List>
-            <Feature features={['performance-view']}>
-              <Feature features={['visibility-explore-view']}>
-                <SecondaryNavigation.ListItem>
-                  <SecondaryNavigation.Link
-                    to={`${baseUrl}/traces/`}
-                    analyticsItemName="explore_traces"
-                  >
-                    {t('Traces')}
-                  </SecondaryNavigation.Link>
-                </SecondaryNavigation.ListItem>
-              </Feature>
+            <Feature features={['visibility-explore-view']}>
+              <SecondaryNavigation.ListItem>
+                <SecondaryNavigation.Link
+                  to={`${baseUrl}/traces/`}
+                  analyticsItemName="explore_traces"
+                >
+                  {t('Traces')}
+                </SecondaryNavigation.Link>
+              </SecondaryNavigation.ListItem>
             </Feature>
             <Feature features="ourlogs-enabled">
               <SecondaryNavigation.ListItem>
@@ -156,7 +154,12 @@ function ExploreSecondaryNavigationImpl() {
                   to={`${baseUrl}/errors-v2/`}
                   activeTo={`${baseUrl}/errors-v2/`}
                   analyticsItemName="explore_errors"
-                  trailingItems={<FeatureBadge type="alpha" />}
+                  leadingItems={
+                    settingsV3 ? <SecondaryNavigation.FeatureBadge type="alpha" /> : null
+                  }
+                  trailingItems={
+                    settingsV3 ? null : <SecondaryNavigation.FeatureBadge type="alpha" />
+                  }
                 >
                   {t('Errors')}
                 </SecondaryNavigation.Link>
@@ -223,7 +226,12 @@ function ExploreSecondaryNavigationImpl() {
                     search: '?statsPeriod=24h&referrer=sidebar',
                   }}
                   analyticsItemName="explore_conversations"
-                  trailingItems={<FeatureBadge type="new" />}
+                  leadingItems={
+                    settingsV3 ? <SecondaryNavigation.FeatureBadge type="new" /> : null
+                  }
+                  trailingItems={
+                    settingsV3 ? null : <SecondaryNavigation.FeatureBadge type="new" />
+                  }
                 >
                   {t('Agents')}
                 </SecondaryNavigation.Link>
@@ -234,7 +242,12 @@ function ExploreSecondaryNavigationImpl() {
                 <SecondaryNavigation.Link
                   to={automationsPath}
                   analyticsItemName="explore_automations"
-                  trailingItems={<FeatureBadge type="alpha" />}
+                  leadingItems={
+                    settingsV3 ? <SecondaryNavigation.FeatureBadge type="alpha" /> : null
+                  }
+                  trailingItems={
+                    settingsV3 ? null : <SecondaryNavigation.FeatureBadge type="alpha" />
+                  }
                 >
                   {t('Automations')}
                 </SecondaryNavigation.Link>
@@ -245,7 +258,12 @@ function ExploreSecondaryNavigationImpl() {
                 <SecondaryNavigation.Link
                   to={investigationsPath}
                   analyticsItemName="explore_investigations"
-                  trailingItems={<FeatureBadge type="alpha" />}
+                  leadingItems={
+                    settingsV3 ? <SecondaryNavigation.FeatureBadge type="alpha" /> : null
+                  }
+                  trailingItems={
+                    settingsV3 ? null : <SecondaryNavigation.FeatureBadge type="alpha" />
+                  }
                 >
                   {t('Investigations')}
                 </SecondaryNavigation.Link>
@@ -253,14 +271,14 @@ function ExploreSecondaryNavigationImpl() {
             )}
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
-        <Feature features={['visibility-explore-view', 'performance-view']}>
+        <Feature features={['visibility-explore-view']}>
           <Fragment>
             <SecondaryNavigation.Separator />
-            <SecondaryNavigation.Section id="explore-all-queries">
+            <SecondaryNavigation.Section id="explore-saved-queries">
               <SecondaryNavigation.List>
                 <SecondaryNavigation.ListItem>
                   <SecondaryNavigation.Link to={`${baseUrl}/saved-queries/`}>
-                    {t('All Queries')}
+                    {t('Saved Queries')}
                   </SecondaryNavigation.Link>
                 </SecondaryNavigation.ListItem>
                 <Feature features="organizations:explore-saved-formulas">
@@ -268,7 +286,16 @@ function ExploreSecondaryNavigationImpl() {
                     <SecondaryNavigation.Link
                       to={`${baseUrl}/saved-formulas/`}
                       analyticsItemName="explore_saved_formulas"
-                      trailingItems={<FeatureBadge type="alpha" />}
+                      leadingItems={
+                        settingsV3 ? (
+                          <SecondaryNavigation.FeatureBadge type="alpha" />
+                        ) : null
+                      }
+                      trailingItems={
+                        settingsV3 ? null : (
+                          <SecondaryNavigation.FeatureBadge type="alpha" />
+                        )
+                      }
                     >
                       {t('Saved Formulas')}
                     </SecondaryNavigation.Link>

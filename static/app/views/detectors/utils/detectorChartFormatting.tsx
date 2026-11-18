@@ -9,7 +9,8 @@ import {
   type DataUnit,
 } from 'sentry/utils/discover/fields';
 import {isARateUnit} from 'sentry/views/dashboards/widgets/common/typePredicates';
-import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetectorSuffix';
+
+import {getMetricDetectorSuffix} from './metricDetectorSuffix';
 
 type DetectionType = MetricDetector['config']['detectionType'];
 

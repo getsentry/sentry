@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from sentry.models.project import Project
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactMobileAppInfo
 from sentry.testutils.cases import TestCase
@@ -1792,7 +1794,7 @@ class PreprodArtifactBatchBaseArtifactTest(PreprodArtifactModelTestBase):
 class PreprodArtifactMobileAppInfoFormatVersionStringTest(PreprodArtifactModelTestBase):
     """Tests for PreprodArtifactMobileAppInfo.format_version_string."""
 
-    def _create_mobile_app_info(self, **kwargs) -> PreprodArtifactMobileAppInfo:
+    def _create_mobile_app_info(self, **kwargs: Any) -> PreprodArtifactMobileAppInfo:
         preprod_artifact = self.create_preprod_artifact(project=self.project)
         return self.create_preprod_artifact_mobile_app_info(preprod_artifact, **kwargs)
 

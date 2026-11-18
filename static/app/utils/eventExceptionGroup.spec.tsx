@@ -2,11 +2,12 @@ import {EventEntryExceptionGroupFixture} from 'sentry-fixture/eventEntryChainedE
 import {ExceptionValueFixture} from 'sentry-fixture/exceptionValue';
 
 import {EntryType} from 'sentry/types/event';
+
 import {
   buildExceptionGroupTree,
   getExceptionGroupHeight,
   getExceptionGroupWidth,
-} from 'sentry/utils/eventExceptionGroup';
+} from './eventExceptionGroup';
 
 describe('eventExceptionGroup', () => {
   describe('buildExceptionGroupTree', () => {

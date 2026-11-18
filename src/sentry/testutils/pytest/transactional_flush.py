@@ -143,7 +143,8 @@ def _fixture_teardown(self: TransactionTestCase) -> None:
         or self.serialized_rollback
         or any(connections[db_name].vendor != "postgresql" for db_name in db_names)
     ):
-        return _original_fixture_teardown(self)
+        _original_fixture_teardown(self)
+        return
 
     for db_name in db_names:
         flush_database(db_name)

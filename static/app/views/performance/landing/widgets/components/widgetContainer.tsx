@@ -1,9 +1,7 @@
 import {useEffect, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
-import * as qs from 'query-string';
 
 import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -16,6 +14,7 @@ import type {EventView} from 'sentry/utils/discover/eventView';
 import {DisplayModes, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {usePerformanceDisplayType} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {encodeSort} from 'sentry/utils/queryString';
+import * as qs from 'sentry/utils/url/qs';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
@@ -32,7 +31,7 @@ import type {
   ChartDefinition,
   PerformanceWidgetSetting,
 } from 'sentry/views/performance/landing/widgets/widgetDefinitions';
-import {WIDGET_DEFINITIONS} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
+import {useWidgetDefinitions} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {LineChartListWidget} from 'sentry/views/performance/landing/widgets/widgets/lineChartListWidget';
 import {MobileReleaseComparisonListWidget} from 'sentry/views/performance/landing/widgets/widgets/mobileReleaseComparisonListWidget';
 import {PerformanceScoreListWidget} from 'sentry/views/performance/landing/widgets/widgets/performanceScoreListWidget';
@@ -70,7 +69,6 @@ function trackChartSettingChange(
 export function WidgetContainer(props: Props) {
   const organization = useOrganization();
   const {index, chartHeight, rowChartSettings, setRowChartSettings, ...rest} = props;
-  const theme = useTheme();
   const performanceType = usePerformanceDisplayType();
   let _chartSetting = getChartSetting(
     index,
@@ -85,6 +83,7 @@ export function WidgetContainer(props: Props) {
   }
 
   const [chartSetting, setChartSettingState] = useState(_chartSetting);
+  const widgetDefinitions = useWidgetDefinitions();
 
   const setChartSetting = (setting: PerformanceWidgetSetting) => {
     _setChartSetting(index, chartHeight, performanceType, setting);
@@ -106,7 +105,7 @@ export function WidgetContainer(props: Props) {
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [rest.defaultChartSetting, _chartSetting]);
 
-  const chartDefinition = WIDGET_DEFINITIONS({theme})[chartSetting];
+  const chartDefinition = widgetDefinitions[chartSetting];
 
   // Construct an EventView that matches this widget's definition. The
   // `eventView` from the props is the _landing page_ EventView, which is different
@@ -169,13 +168,12 @@ function WidgetInteractiveTitle({
   rowChartSettings: PerformanceWidgetSetting[];
   setChartSetting: (setting: PerformanceWidgetSetting) => void;
 }) {
-  const theme = useTheme();
   const navigate = useNavigate();
   const organization = useOrganization();
   const menuOptions: Array<SelectOption<string>> = [];
   const useEap = useInsightsEap();
 
-  const settingsMap = WIDGET_DEFINITIONS({theme});
+  const settingsMap = useWidgetDefinitions();
   for (const setting of allowedCharts) {
     const options = settingsMap[setting];
     menuOptions.push({
@@ -185,7 +183,7 @@ function WidgetInteractiveTitle({
     });
   }
 
-  const chartDefinition = WIDGET_DEFINITIONS({theme})[chartSetting];
+  const chartDefinition = settingsMap[chartSetting];
 
   if (chartDefinition.allowsOpenInDiscover) {
     if (useEap) {

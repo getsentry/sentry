@@ -26,15 +26,6 @@ import {useCurrentHoverTime} from 'sentry/utils/replays/playback/providers/useCu
 import {getFrameMethod, getFrameStatus} from 'sentry/utils/replays/resourceFrame';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {FilterLoadingIndicator} from 'sentry/views/explore/replays/detail/filterLoadingIndicator';
-import {NetworkDetails} from 'sentry/views/explore/replays/detail/network/details';
-import {NetworkFilters} from 'sentry/views/explore/replays/detail/network/networkFilters';
-import {
-  NetworkHeaderCell,
-  TABLE_COLUMNS,
-} from 'sentry/views/explore/replays/detail/network/networkHeaderCell';
-import {NetworkTableCell} from 'sentry/views/explore/replays/detail/network/networkTableCell';
-import {useNetworkFilters} from 'sentry/views/explore/replays/detail/network/useNetworkFilters';
-import {useSortNetwork} from 'sentry/views/explore/replays/detail/network/useSortNetwork';
 import {NoRowRenderer} from 'sentry/views/explore/replays/detail/noRowRenderer';
 import {useVirtualizedGrid} from 'sentry/views/explore/replays/detail/useVirtualizedGrid';
 import {VirtualTable} from 'sentry/views/explore/replays/detail/virtualizedTableLayout';
@@ -42,6 +33,13 @@ import {
   getTimelineRowClassName,
   getVisibleRangeFromVirtualRows,
 } from 'sentry/views/explore/replays/detail/virtualizedTableUtils';
+
+import {NetworkDetails} from './details';
+import {NetworkFilters} from './networkFilters';
+import {NetworkHeaderCell, TABLE_COLUMNS} from './networkHeaderCell';
+import {NetworkTableCell} from './networkTableCell';
+import {useNetworkFilters} from './useNetworkFilters';
+import {useSortNetwork} from './useSortNetwork';
 
 const BODY_HEIGHT = 25;
 const RESIZEABLE_HANDLE_HEIGHT = 90;

@@ -1,12 +1,13 @@
 import {skipToken, useQuery} from '@tanstack/react-query';
 import type {Query} from 'history';
 
-import {QUERY_EMBED_ROW_LIMIT} from 'sentry/components/seer/markdown/embeds/components/queryEmbed/queryEmbedConstants';
 import type {EventsStats, MultiSeriesEventsStats} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {EventsTableData} from 'sentry/utils/discover/discoverQuery';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {QUERY_EMBED_ROW_LIMIT} from './queryEmbedConstants';
 
 /** Previews are cheap and short-lived; don't refetch one the reader just saw. */
 const STALE_TIME = 30_000;

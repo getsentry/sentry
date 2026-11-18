@@ -104,6 +104,7 @@ def build_workflow_event_data_from_event(
     return WorkflowEventData(
         event=group_event,
         group=group,
+        organization=group_event.project.organization,
         group_state=group_state,
         has_escalated=has_escalated,
         workflow_env=workflow_env,
@@ -120,4 +121,5 @@ def build_workflow_event_data_from_activity(
     return WorkflowEventData(
         event=activity,
         group=group,
+        organization=activity.project.organization,
     )

@@ -1,5 +1,5 @@
 import logging
-from typing import Literal, NotRequired, TypedDict
+from typing import Annotated, Literal, NotRequired, TypedDict
 
 from django.db import IntegrityError, router, transaction
 from django.utils.translation import gettext_lazy as _
@@ -25,6 +25,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import (
     DetailResponse,
@@ -108,17 +109,25 @@ class BulkCodeMappingsRequestSerializer(CamelSnakeSerializer[dict[str, object]])
 
 
 class BulkCodeMappingResult(TypedDict):
-    stackRoot: str
-    sourceRoot: str
-    status: Literal["created", "updated", "error"]
-    detail: NotRequired[str]
+    stackRoot: Annotated[str, ApiDescription("Stack trace path prefix of the mapping")]
+    sourceRoot: Annotated[str, ApiDescription("Repository path prefix of the mapping")]
+    status: Annotated[
+        Literal["created", "updated", "error"],
+        ApiDescription("Whether the mapping was created, updated or failed"),
+    ]
+    detail: NotRequired[
+        Annotated[str, ApiDescription("Why the mapping failed. Only set when status is error")]
+    ]
 
 
 class BulkCodeMappingsResponse(TypedDict):
-    created: int
-    updated: int
-    errors: int
-    mappings: list[BulkCodeMappingResult]
+    created: Annotated[int, ApiDescription("Number of mappings created")]
+    updated: Annotated[int, ApiDescription("Number of existing mappings updated")]
+    errors: Annotated[int, ApiDescription("Number of mappings that failed")]
+    mappings: Annotated[
+        list[BulkCodeMappingResult],
+        ApiDescription("Result for each requested mapping, in request order"),
+    ]
 
 
 @extend_schema(tags=["Integrations"])
@@ -128,6 +137,7 @@ class OrganizationCodeMappingsBulkEndpoint(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset({"POST"})
     permission_classes = (OrganizationCodeMappingsBulkPermission,)
 
     @staticmethod

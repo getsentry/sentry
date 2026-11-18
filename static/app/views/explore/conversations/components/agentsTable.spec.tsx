@@ -16,6 +16,7 @@ const conversationsResult = {
   data: [],
   isFetching: false,
   error: null,
+  refetch: jest.fn(),
   pageLinks: undefined,
   setCursor: jest.fn(),
   unsetCursor: jest.fn(),
@@ -52,7 +53,6 @@ describe('AgentsTable', () => {
   });
 
   afterEach(() => {
-    PageFiltersStore.reset();
     ProjectsStore.reset();
     MockApiClient.clearMockResponses();
   });

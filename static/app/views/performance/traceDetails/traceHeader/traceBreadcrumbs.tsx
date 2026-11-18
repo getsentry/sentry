@@ -15,11 +15,12 @@ import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/traceDetails/traceApi/useTraceRootEvent';
 import {isTraceItemDetailsResponse} from 'sentry/views/performance/traceDetails/traceApi/utils';
-import {getTraceViewParentCrumbs} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
 import {useAdjacentTraceNavigation} from 'sentry/views/performance/traceDetails/traceLinksNavigation/useAdjacentTraceNavigation';
 import {useTraceEventView} from 'sentry/views/performance/traceDetails/useTraceEventView';
 import {useTraceExploreTarget} from 'sentry/views/performance/traceDetails/useTraceExploreTarget';
 import {useTraceQueryParams} from 'sentry/views/performance/traceDetails/useTraceQueryParams';
+
+import {getTraceViewParentCrumbs} from './breadcrumbs';
 
 const COPY_ID_LABEL = t('Copy trace ID to clipboard');
 

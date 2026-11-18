@@ -10,16 +10,17 @@ import {Text} from '@sentry/scraps/text';
 
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
-import {SeerExplorerDebugMenu} from 'sentry/views/seerExplorer/components/seerExplorerDebugMenu';
-import {
-  SeerExplorerHeaderActions,
-  SeerExplorerHeaderActionsMenu,
-} from 'sentry/views/seerExplorer/components/seerExplorerHeaderActions';
 import {useSeerExplorerSessionsQuery} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 import type {
   SeerExplorerRunId,
   SeerExplorerSidebarPosition,
 } from 'sentry/views/seerExplorer/types';
+
+import {SeerExplorerDebugMenu} from './seerExplorerDebugMenu';
+import {
+  SeerExplorerHeaderActions,
+  SeerExplorerHeaderActionsMenu,
+} from './seerExplorerHeaderActions';
 
 /**
  * The shared inner header content (title + action cluster) for Seer Explorer.
@@ -38,10 +39,8 @@ interface SeerExplorerHeaderProps {
   onCopySessionClick: (() => void) | undefined;
   onNewChatClick: () => void;
   onOverrideBashModeToggle: () => void;
-  onShowThinkingToggle: () => void;
   onTogglePictureInPicture: () => void;
   overrideBashModeEnabled: boolean;
-  showThinking: boolean;
   conversationsUrl?: string;
   disableNewChatButton?: boolean;
   onSidebarPositionChange?: (position: SeerExplorerSidebarPosition) => void;
@@ -55,8 +54,6 @@ export function SeerExplorerHeader({
   onCopyLinkClick,
   overrideBashModeEnabled,
   onOverrideBashModeToggle,
-  showThinking,
-  onShowThinkingToggle,
   conversationsUrl,
   isPipSupported,
   isPoppedOut,
@@ -114,6 +111,7 @@ export function SeerExplorerHeader({
     isPoppedOut,
     sidebarPosition,
     onSidebarPositionChange,
+    hasNoChats: !search && !debouncedSearch && !isError && data?.length === 0,
     sessionOptions,
     sessionsLoading: isFetching || isSearchPending,
     sessionsError: isError,
@@ -132,8 +130,6 @@ export function SeerExplorerHeader({
         <SeerExplorerDebugMenu
           overrideBashModeEnabled={overrideBashModeEnabled}
           onOverrideBashModeToggle={onOverrideBashModeToggle}
-          showThinking={showThinking}
-          onShowThinkingToggle={onShowThinkingToggle}
           conversationsUrl={conversationsUrl}
         />
         <Flex display={{zero: 'none', '2xs': 'flex'}} align="center">

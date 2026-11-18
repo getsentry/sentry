@@ -11,6 +11,7 @@ from typing import TYPE_CHECKING, Any, Optional, Union
 from django.http.request import HttpRequest
 from pydantic.fields import Field
 
+from sentry.auth.deprecated_scope_translation import translate_deprecated_scopes
 from sentry.auth.scope_declaration import check_scope_declaration
 from sentry.hybridcloud.rpc import RpcModel
 from sentry.types.superuser import SuperuserAccess
@@ -127,6 +128,11 @@ class AuthenticatedToken(RpcModel):
         return self.allowed_origins
 
     def get_scopes(self) -> list[str]:
+        """The scopes the token grants, with deprecated scopes translated to granular ones."""
+        return sorted(translate_deprecated_scopes(self.scopes))
+
+    def get_stored_scopes(self) -> list[str]:
+        """The scopes stored on the token, without deprecated scope translation."""
         return self.scopes
 
     def has_scope(self, scope: str) -> bool:
@@ -160,17 +166,17 @@ class AuthenticationContext(RpcModel):
         isolated, controlled way.  This method allows for a context handling an RPC or inter silo behavior to assume
         the correct user and auth context provided explicitly in a context.
         """
+        from sentry.auth.principal import set_request_principal  # imported at app setup
+
         old_user = request.user
         old_auth = request.auth
 
-        request.user = self._get_user()  # type: ignore[assignment]  # RpcUser vs. User
-        request.auth = self.auth
+        set_request_principal(request, self._get_user(), self.auth)
 
         try:
             yield request
         finally:
-            request.user = old_user
-            request.auth = old_auth
+            set_request_principal(request, old_user, old_auth)
 
 
 class RpcAuthProviderFlags(RpcModel):

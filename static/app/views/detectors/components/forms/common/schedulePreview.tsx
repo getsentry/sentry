@@ -18,7 +18,7 @@ import type {
 } from 'sentry/components/checkInTimeline/types';
 import {LoadingError} from 'sentry/components/loadingError';
 import {t, tn} from 'sentry/locale';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {SchedulePreviewStatus} from 'sentry/views/detectors/hooks/useMonitorsScheduleSampleBuckets';
 import {
   useMonitorsScheduleSamples,
@@ -120,7 +120,8 @@ export function SchedulePreview({statusToText, ...detectorFields}: SchedulePrevi
 
   if (errors.length > 0) {
     const badRequestError = errors.find(
-      (error): error is RequestError => error?.status === 400
+      (error): error is RequestError =>
+        error instanceof RequestError && error.status === 400
     );
 
     const message = badRequestError ? (

@@ -11,7 +11,8 @@ import {
 
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
-import {OrganizationFeatureFlagsProviderRow} from 'sentry/views/settings/featureFlags/changeTracking/organizationFeatureFlagsProviderRow';
+
+import {OrganizationFeatureFlagsProviderRow} from './organizationFeatureFlagsProviderRow';
 
 describe('OrganizationFeatureFlagsProviderRow', () => {
   const {organization} = initializeOrg();

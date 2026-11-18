@@ -23,7 +23,8 @@ testable_rules_changed: &testable_rules_changed
   - added|deleted|modified: 'tests/js/jest.config.ci.mjs'
   - added|deleted|modified: 'tests/js/createJestConfig.ts'
   - added|deleted|modified: 'tests/js/bin/test.mjs'
-  - added|deleted|modified: 'scripts/{test,testCi}.js'
+  - added|deleted|modified: 'scripts/{test,testCi,jestSingleShard}.js'
+  - added|deleted|modified: 'scripts/testCi.test.ts'
   - added|deleted|modified: 'static/packages/**/package.json'
   - added|deleted|modified: 'pnpm-lock.yaml'
   - added|deleted|modified: 'pnpm-workspace.yaml'
@@ -73,6 +74,9 @@ embed_widget_schema:
 
 embed_widget_codegen:
   - added|modified: 'src/sentry/seer/agent/embed_widgets.generated.json'
+
+nav_snapshot_codegen:
+  - added|modified: 'src/sentry/seer/nav_snapshot.generated.json'
 
 test_utility_only_paths:
   - 'src/sentry/replays/testutils.py'
@@ -160,6 +164,12 @@ api_docs: &api_docs
   - *backend_all
   - 'api-docs/**'
   - 'tests/apidocs/**'
+
+# The @sentry/api package builds from the API spec, so it rebuilds whenever
+# the spec might change, and when the package itself does.
+api_client:
+  - *api_docs
+  - 'static/packages/api/**'
 
 # This is the ultimate controller for backend.yml
 backend_any_type: &backend_any_type

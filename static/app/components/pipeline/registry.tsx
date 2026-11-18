@@ -11,8 +11,10 @@ import {gcpIntegrationPipeline} from './integrationGcp';
 import {githubIntegrationPipeline} from './integrationGitHub';
 import {githubEnterpriseIntegrationPipeline} from './integrationGitHubEnterprise';
 import {gitlabIntegrationPipeline} from './integrationGitLab';
+import {grafanaIntegrationPipeline} from './integrationGrafana';
 import {jiraIntegrationPipeline} from './integrationJira';
 import {jiraServerIntegrationPipeline} from './integrationJiraServer';
+import {linearIntegrationPipeline} from './integrationLinear';
 import {msTeamsIntegrationPipeline} from './integrationMsTeams';
 import {opsgenieIntegrationPipeline} from './integrationOpsgenie';
 import {pagerDutyIntegrationPipeline} from './integrationPagerDuty';
@@ -21,6 +23,7 @@ import {
   slackIntegrationPipeline,
   slackStagingIntegrationPipeline,
 } from './integrationSlack';
+import {supabaseIntegrationPipeline} from './integrationSupabase';
 import {vercelIntegrationPipeline} from './integrationVercel';
 import {vstsIntegrationPipeline} from './integrationVsts';
 
@@ -41,14 +44,17 @@ export const PIPELINE_REGISTRY = [
   githubIntegrationPipeline,
   githubEnterpriseIntegrationPipeline,
   gitlabIntegrationPipeline,
+  grafanaIntegrationPipeline,
   jiraIntegrationPipeline,
   jiraServerIntegrationPipeline,
+  linearIntegrationPipeline,
   msTeamsIntegrationPipeline,
   opsgenieIntegrationPipeline,
   pagerDutyIntegrationPipeline,
   perforceIntegrationPipeline,
   slackIntegrationPipeline,
   slackStagingIntegrationPipeline,
+  supabaseIntegrationPipeline,
   vstsIntegrationPipeline,
   vercelIntegrationPipeline,
 ] as const;

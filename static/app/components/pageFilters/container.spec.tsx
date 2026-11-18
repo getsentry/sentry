@@ -5,14 +5,15 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {act, render, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import * as globalActions from 'sentry/components/pageFilters/actions';
-import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
-import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {getUtcToLocalDateObject} from 'sentry/utils/dates';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
+
+import * as globalActions from './actions';
+import {PageFiltersContainer} from './container';
+import {PageFiltersStore} from './store';
 
 describe('PageFiltersContainer', () => {
   const organization = OrganizationFixture();
@@ -29,6 +30,7 @@ describe('PageFiltersContainer', () => {
   });
 
   beforeEach(() => {
+    PageFiltersStore.reset();
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData(projects);
     OrganizationStore.onUpdate(organization);
@@ -44,7 +46,6 @@ describe('PageFiltersContainer', () => {
 
   afterEach(() => {
     jest.clearAllMocks();
-    PageFiltersStore.reset();
   });
 
   it('does not update router if org in URL params is different than org in context/props', () => {

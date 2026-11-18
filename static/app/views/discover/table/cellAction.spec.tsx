@@ -7,8 +7,9 @@ import {Link} from '@sentry/scraps/link';
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {Actions, CellAction, updateQuery} from 'sentry/views/discover/table/cellAction';
-import type {TableColumn} from 'sentry/views/discover/table/types';
+
+import {Actions, CellAction, updateQuery} from './cellAction';
+import type {TableColumn} from './types';
 
 const defaultData: TableDataRow = {
   transaction: 'best-transaction',

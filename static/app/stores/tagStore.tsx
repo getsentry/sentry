@@ -1,35 +1,25 @@
-import {createStore} from 'reflux';
+import {createStore} from 'zustand/vanilla';
 
 import type {Tag, TagCollection} from 'sentry/types/group';
 
-import type {StrictStoreDefinition} from './types';
+const MAX_STORE_SIZE = 2000;
 
-interface TagStoreDefinition extends StrictStoreDefinition<TagCollection> {
-  loadTagsSuccess(data: Tag[]): void;
-  reset(): void;
-}
+const store = createStore<TagCollection>()(() => ({}));
 
-const storeConfig: TagStoreDefinition = {
-  state: {},
+export const TagStore = {
+  // State is only written through the methods below.
+  getState: store.getState,
+  getInitialState: store.getInitialState,
+  subscribe: store.subscribe,
 
-  init() {
-    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
-    // listeners due to their leaky nature in tests.
-    this.state = {};
+  reset(): void {
+    // Replace the whole state instead of merging into the previous tags
+    store.setState({}, true);
   },
 
-  getState() {
-    return this.state;
-  },
-
-  reset() {
-    this.state = {};
-    this.trigger(this.state);
-  },
-
-  loadTagsSuccess(data) {
+  loadTagsSuccess(data: readonly Tag[]): void {
     // Note: We could probably stop cloning the data here and just
-    // assign to this.state directly, but there is a change someone may
+    // assign to the state directly, but there is a chance someone may
     // be relying on referential equality somewhere in the codebase and
     // we dont want to risk breaking that.
     const newState: TagCollection = {};
@@ -41,20 +31,15 @@ const storeConfig: TagStoreDefinition = {
       };
     }
 
-    // We will iterate through the previous tags in reverse so that previously
-    // added tags are carried over first. We rely on browser implementation
-    // of Object.keys() to return keys in insertion order.
-    const previousTagKeys = Object.keys(this.state);
-
-    const MAX_STORE_SIZE = 2000;
     // We will carry over the previous tags until we reach the max store size
     const toCarryOver = Math.max(0, MAX_STORE_SIZE - data.length);
 
+    // We will iterate through the previous tags in reverse so that previously
+    // added tags are carried over first. Object.entries() returns non-numeric
+    // keys in insertion order, numeric keys come first in ascending order.
     let carriedOver = 0;
-    while (previousTagKeys.length > 0 && carriedOver < toCarryOver) {
-      const tagKey = previousTagKeys.pop();
-      if (tagKey === undefined) {
-        // Should be unreachable, but just in case
+    for (const [tagKey, tag] of Object.entries(store.getState()).reverse()) {
+      if (carriedOver >= toCarryOver) {
         break;
       }
       // If the new state already has a previous tag then we will not carry it over
@@ -62,14 +47,10 @@ const storeConfig: TagStoreDefinition = {
       if (newState[tagKey]) {
         continue;
       }
-      // Else override the tag with the previous tag
-      newState[tagKey] = this.state[tagKey]!;
+      newState[tagKey] = tag;
       carriedOver++;
     }
 
-    this.state = newState;
-    this.trigger(newState);
+    store.setState(newState, true);
   },
 };
-
-export const TagStore = createStore(storeConfig);

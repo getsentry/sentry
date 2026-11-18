@@ -13,10 +13,9 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {HealthStatsPeriodOption} from 'sentry/types/release';
-import {ReleasesDisplayOption} from 'sentry/views/explore/releases/list/releasesDisplayOptions';
-import ReleasesRequest, {
-  type ReleasesRequestRenderProps,
-} from 'sentry/views/explore/releases/list/releasesRequest';
+
+import {ReleasesDisplayOption} from './releasesDisplayOptions';
+import ReleasesRequest, {type ReleasesRequestRenderProps} from './releasesRequest';
 
 describe('ReleasesRequest', () => {
   const {organization} = initializeOrg();

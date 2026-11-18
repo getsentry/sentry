@@ -21,6 +21,7 @@ from sentry.seer.autofix.pr_iteration.queue import (
     enqueue_autofix_feedback,
     peek_queued_autofix_feedback,
     pop_queued_autofix_feedback,
+    requeue_autofix_feedback,
 )
 from sentry.testutils.cases import TestCase
 from sentry.utils import json
@@ -40,7 +41,7 @@ class _CommentScmStub:
     def create_pull_request_comment(self, *args: Any, **kwargs: Any) -> Any: ...
 
 
-def _run_state(*, repo_pr_states=None) -> SeerRunState:
+def _run_state(*, repo_pr_states: dict[str, RepoPRState] | None = None) -> SeerRunState:
     return SeerRunState(
         run_id=1,
         blocks=[],
@@ -50,7 +51,7 @@ def _run_state(*, repo_pr_states=None) -> SeerRunState:
     )
 
 
-def _check_suite_event() -> dict:
+def _check_suite_event() -> dict[str, Any]:
     return {
         "check_suite": {
             "id": 1,
@@ -232,6 +233,26 @@ class TryEnqueueAutofixFeedbackTest(TestCase):
         assert [item.feedback.text for item in items] == ["first", "second"]
         assert peek_queued_autofix_feedback(4848) == []
 
+    def test_requeue_puts_a_batch_back_ahead_of_newer_feedback(self) -> None:
+        for text in ("first", "second"):
+            self._enqueue(
+                run_id=5050,
+                feedback=Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback=text)),
+            )
+        batch = pop_queued_autofix_feedback(5050)
+        self._enqueue(
+            run_id=5050,
+            feedback=Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="newer")),
+        )
+
+        requeue_autofix_feedback(5050, batch)
+
+        assert [item.feedback.text for item in peek_queued_autofix_feedback(5050)] == [
+            "first",
+            "second",
+            "newer",
+        ]
+
     def test_clear_empties_the_queue(self) -> None:
         feedback = Feedback(source=UserUIFeedbackSource(user_id=1, user_feedback="fix it"))
         self._enqueue(run_id=4949, feedback=feedback)
@@ -257,7 +278,7 @@ class StopCommandEndToEndTest(TestCase):
         )
         self.group = self.create_group(project=self.project)
 
-    def _event(self, body: str) -> dict:
+    def _event(self, body: str) -> dict[str, Any]:
         return {
             "action": "created",
             "comment": {
@@ -284,7 +305,7 @@ class StopCommandEndToEndTest(TestCase):
         )
 
     def _handle(self, body: str) -> None:
-        with self.feature("organizations:autofix-pr-iteration-manual"), self.tasks():
+        with self.tasks():
             handle_issue_comment_for_autofix_iteration(
                 event=self._event(body),
                 organization=self.organization,

@@ -21,7 +21,8 @@ import {
   ProjectRouteProvider,
 } from 'sentry/views/projects/projectRouteContext';
 import {SettingsLayout} from 'sentry/views/settings/components/settingsLayout';
-import {ProjectSettingsCommandPaletteActions} from 'sentry/views/settings/project/projectSettingsCommandPaletteActions';
+
+import {ProjectSettingsCommandPaletteActions} from './projectSettingsCommandPaletteActions';
 
 interface ProjectSettingsOutletContext {
   project: DetailedProject;

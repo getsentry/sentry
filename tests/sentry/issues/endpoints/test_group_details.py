@@ -2,6 +2,7 @@ from datetime import timedelta
 from unittest import mock
 
 from django.core.cache import cache
+from django.db import IntegrityError
 from django.test import override_settings
 from django.utils import timezone
 from rest_framework.test import APIClient
@@ -31,7 +32,7 @@ from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
-from sentry.models.grouphash import GroupHash
+from sentry.models.grouphash import GroupHash, GroupHashQuerySet
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.groupseen import GroupSeen
 from sentry.models.groupsnooze import GroupSnooze
@@ -107,8 +108,10 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
 
         event = self.store_event(data={"release": "1.0"}, project_id=self.project.id)
+        assert event.group is not None
 
         group = event.group
+        assert group is not None
 
         url = f"/api/0/organizations/{group.organization.slug}/issues/{group.qualified_short_id}/"
 
@@ -121,8 +124,10 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
     def test_no_releases(self) -> None:
         self.login_as(user=self.user)
         event = self.store_event(data={}, project_id=self.project.id)
+        assert event.group is not None
 
         group = event.group
+        assert group is not None
 
         url = f"/api/0/organizations/{group.organization.slug}/issues/{group.qualified_short_id}/"
 
@@ -474,7 +479,9 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
             event = self.store_event(
                 data={"message": "testing", "fingerprint": ["group-1"]}, project_id=self.project.id
             )
+            assert event.group is not None
             group = event.group
+            assert group is not None
             event.group.update(times_seen=1)
             buffer.backend.incr(Group, {"times_seen": 15}, filters={"id": event.group.id})
 
@@ -780,6 +787,7 @@ class GroupUpdateTest(APITestCase):
 
         group_resolution = GroupResolution.objects.filter(group=group).first()
         assert group_resolution is not None
+        assert group_resolution.group is not None
         assert group_resolution.group == group
         assert group_resolution.type == GroupResolution.Type.in_next_release
         assert group_resolution.status == GroupResolution.Status.pending
@@ -795,6 +803,7 @@ class GroupUpdateTest(APITestCase):
         # Using store_event() instead of create_group() produces GroupRelease objects
         # which is considered during the update_groups() call
         event = self.store_event(data={}, project_id=project.id)
+        assert event.group is not None
         group = event.group
         assert group is not None
 
@@ -818,6 +827,7 @@ class GroupUpdateTest(APITestCase):
         # Using store_event() instead of create_group() produces GroupRelease objects
         # which is considered during the update_groups() call
         event = self.store_event(data=data, project_id=project.id)
+        assert event.group is not None
         group = event.group
         assert group is not None
         assert group.status == GroupStatus.UNRESOLVED
@@ -839,6 +849,7 @@ class GroupUpdateTest(APITestCase):
 
         group_resolution = GroupResolution.objects.filter(group=group).first()
         assert group_resolution is not None
+        assert group_resolution.group is not None
         assert group_resolution.group == group
         # For semver projects, we consider resolution based on an expression rather than a specific release,
         # thus, it is considered resolved in the release that has the highest semver
@@ -854,6 +865,7 @@ class GroupUpdateTest(APITestCase):
         # Let's test that none of these releases regress the group
         for release in releases + [old_version]:
             event = self.store_event(data={"release": release.version}, project_id=project.id)
+            assert event.group is not None
             assert event.group == group
             # Refetch from DB to ensure the latest state is fetched
             group = Group.objects.get(id=group.id, project=project.id)
@@ -1167,13 +1179,96 @@ class GroupUpdateTest(APITestCase):
         assert resp.status_code == 204
         assert not Group.objects.filter(id=group.id).exists()
         assert GroupHash.objects.filter(id=group_hash.id).exists()
-        tombstone = GroupTombstone.objects.get(
-            id=GroupHash.objects.get(id=group_hash.id).group_tombstone_id
-        )
+        group_tombstone_id = GroupHash.objects.get(id=group_hash.id).group_tombstone_id
+        assert group_tombstone_id is not None
+        tombstone = GroupTombstone.objects.get(id=group_tombstone_id)
         assert tombstone.message == group.message
         assert tombstone.culprit == group.culprit
         assert tombstone.project == group.project
         assert tombstone.data == group.data
+
+    def test_discard_moves_hashes_in_batches(self) -> None:
+        self.login_as(user=self.user)
+        group = self.create_group()
+        hash_ids = [
+            GroupHash.objects.create(hash=f"{i:032x}", project=group.project, group=group).id
+            for i in range(5)
+        ]
+
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
+
+        with (
+            self.tasks(),
+            self.feature("projects:discard-groups"),
+            mock.patch("sentry.deletions.tasks.groups.DISCARD_GROUP_HASH_BATCH_SIZE", 2),
+            mock.patch.object(
+                GroupHashQuerySet, "update", autospec=True, side_effect=GroupHashQuerySet.update
+            ) as update,
+        ):
+            resp = self.client.put(url, data={"discard": True})
+
+        assert resp.status_code == 204
+        # 5 hashes in batches of 2
+        assert update.call_count == 3
+        assert not Group.objects.filter(id=group.id).exists()
+        tombstone = GroupTombstone.objects.get(previous_group_id=group.id)
+        assert not GroupHash.objects.filter(id__in=hash_ids, group_id__isnull=False).exists()
+        assert (
+            GroupHash.objects.filter(id__in=hash_ids, group_tombstone_id=tombstone.id).count() == 5
+        )
+
+    def test_discard_resumes_after_partial_attempt(self) -> None:
+        self.login_as(user=self.user)
+        group = self.create_group()
+        tombstone = GroupTombstone.objects.create(
+            previous_group_id=group.id,
+            project_id=group.project_id,
+            message=group.message,
+        )
+        moved_hash = GroupHash.objects.create(
+            hash="a" * 32, project=group.project, group=None, group_tombstone_id=tombstone.id
+        )
+        remaining_hash = GroupHash.objects.create(hash="b" * 32, project=group.project, group=group)
+
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
+
+        with (
+            self.tasks(),
+            self.feature("projects:discard-groups"),
+            mock.patch(
+                "sentry.api.helpers.group_index.update.create_audit_entries"
+            ) as create_audit_entries,
+        ):
+            resp = self.client.put(url, data={"discard": True})
+
+        assert resp.status_code == 204
+        # The request that created the tombstone already recorded the discard.
+        create_audit_entries.assert_not_called()
+        assert not Group.objects.filter(id=group.id).exists()
+        assert GroupTombstone.objects.filter(previous_group_id=group.id).count() == 1
+        for group_hash in (moved_hash, remaining_hash):
+            group_hash.refresh_from_db()
+            assert group_hash.group_id is None
+            assert group_hash.group_tombstone_id == tombstone.id
+
+    def test_discard_skips_group_whose_tombstone_was_concurrently_removed(self) -> None:
+        self.login_as(user=self.user)
+        group = self.create_group()
+        GroupHash.objects.create(hash="x" * 32, project=group.project, group=group)
+
+        url = f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/"
+
+        # The tombstone insert conflicts, but an undiscard deletes that tombstone before the lookup.
+        with (
+            self.feature("projects:discard-groups"),
+            mock.patch.object(GroupTombstone.objects, "create", side_effect=IntegrityError),
+            mock.patch("sentry.api.helpers.group_index.update.discard_group") as discard_group,
+        ):
+            resp = self.client.put(url, data={"discard": True})
+
+        assert resp.status_code == 204
+        discard_group.apply_async.assert_not_called()
+        assert Group.objects.filter(id=group.id).exists()
 
     def test_discard_performance_issue(self) -> None:
         self.login_as(user=self.user)
@@ -1317,3 +1412,27 @@ class GroupDeleteTest(APITestCase):
         assert response.data["firstRelease"] is None
         response = self.client.get(url, {"collapse": ["release"]})
         assert "firstRelease" not in response.data
+
+
+class GroupDetailsCorruptDerivedDataTest(APITestCase):
+    def test_corrupt_derived_status_does_not_break_details_or_reconcile(self) -> None:
+        self.login_as(user=self.user)
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+        derived = self.create_group_derived_data(group, data={"status": "invalid"})
+        with (
+            capture_action_log() as log,
+            mock.patch("sentry.issues.derived.check.metrics.incr") as incr,
+        ):
+            response = self.client.get(
+                f"/api/0/organizations/{group.organization.slug}/issues/{group.id}/",
+                {"expand": "derivedData"},
+            )
+        assert response.status_code == 200, response.content
+        assert response.data["status"] == "unresolved"
+        assert "derivedData" not in response.data
+        log.assert_not_logged(ReconcileStatusAction)
+        incr.assert_any_call(
+            "issues.status_reconciliation.error", sample_rate=1.0, tags={"source": "read_path"}
+        )
+        derived.refresh_from_db()
+        assert derived.data == {"status": "invalid"}

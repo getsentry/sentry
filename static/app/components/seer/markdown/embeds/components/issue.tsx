@@ -2,13 +2,11 @@ import {lazy, useMemo} from 'react';
 import {IconIssues} from '@sentry/icons/issues';
 
 import {LazyLoad} from 'sentry/components/lazyLoad';
-import {
-  ResourceLink,
-  type ResourceLinkFormatProps,
-} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
-import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
 import {t} from 'sentry/locale';
+
+import {ResourceLink, type ResourceLinkFormatProps} from './resourceLink';
+import {SeerEmbedBlock} from './seerEmbedBlock';
 
 const LazyGroupList = lazy(async () => {
   const {GroupList} = await import('sentry/components/issues/groupList');

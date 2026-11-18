@@ -12,6 +12,7 @@ from sentry.api.serializers.models.repository import RepositorySerializerRespons
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
 from sentry.apidocs.parameters import GlobalParams, ReleaseParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
@@ -44,7 +45,7 @@ class ProjectReleaseRepositories(ProjectEndpoint):
         },
     )
     def get(
-        self, request: Request, project, version
+        self, request: Request, project: Project, version: str
     ) -> Response[list[RepositorySerializerResponse]]:
         """
         Return the repositories that have commits associated with a given release.

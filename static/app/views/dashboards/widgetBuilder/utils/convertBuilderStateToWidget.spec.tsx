@@ -1,9 +1,10 @@
 import {explodeFieldString} from 'sentry/utils/discover/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import type {WidgetBuilderState} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
-import {convertBuilderStateToWidget} from 'sentry/views/dashboards/widgetBuilder/utils/convertBuilderStateToWidget';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {convertBuilderStateToWidget} from './convertBuilderStateToWidget';
 
 describe('convertBuilderStateToWidget', () => {
   it('returns the widget with the provided widget queries state', () => {

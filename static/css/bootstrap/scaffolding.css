@@ -1,0 +1,26 @@
+/* Horizontal rules */
+hr {
+  margin-top: 20px;
+  margin-bottom: 20px;
+  border: 0;
+  border-top: 1px solid #afa3bb;
+}
+/* Only display content to screen readers */
+/* See: https://a11yproject.com/posts/how-to-hide-content */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+/* iOS "clickable elements" fix for role="button" */
+/* Fixes "clickability" issue (and more generally, the firing of events such as focus as well) */
+/* for traditionally non-focusable elements with role="button" */
+/* see https://developer.mozilla.org/en-US/docs/Web/Events/click#Safari_Mobile */
+[role='button'] {
+  cursor: pointer;
+}

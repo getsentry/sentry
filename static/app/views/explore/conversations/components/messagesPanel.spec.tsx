@@ -100,6 +100,33 @@ function createMockEvaluationNode(overrides: {id: string; startTimestamp?: numbe
   };
 }
 
+function createMockExtractionNode(overrides: {id: string; startTimestamp?: number}) {
+  const {id, startTimestamp = 1000} = overrides;
+  const end = startTimestamp + 500;
+  return {
+    id,
+    type: 'span' as const,
+    op: 'gen_ai.extract',
+    startTimestamp,
+    endTimestamp: end,
+    value: {start_timestamp: startTimestamp, end_timestamp: end},
+    attributes: {
+      [SpanFields.GEN_AI_OPERATION_TYPE]: 'ai_client',
+      [SpanFields.GEN_AI_OPERATION_NAME]: 'extract',
+      [SpanFields.GEN_AI_REQUEST_MODEL]: '@cf/cloudflare/clairic',
+      [SpanFields.GEN_AI_OUTPUT_MESSAGES]: JSON.stringify([
+        {
+          answers: {
+            invoice_number: {type: 'text', value: 'INV-2291'},
+            po_number: {type: 'text', value: null},
+          },
+        },
+      ]),
+    },
+    errors: new Set(),
+  };
+}
+
 function createMockEmbeddingNode(overrides: {
   id: string;
   endTimestamp?: number;
@@ -696,6 +723,40 @@ describe('MessagesPanel', () => {
     );
 
     expect(onSelectNode).toHaveBeenCalledWith(evaluationNode);
+  });
+
+  it('renders an extraction as a row with the extractor and the values found', () => {
+    render(
+      <MessagesPanel
+        nodes={[createMockExtractionNode({id: 'extract-1'})] as any}
+        selectedNodeId={null}
+        onSelectNode={jest.fn()}
+      />
+    );
+
+    expect(screen.getByText('@cf/cloudflare/clairic')).toBeInTheDocument();
+    expect(screen.getByText('invoice_number: INV-2291')).toBeInTheDocument();
+    expect(
+      screen.queryByText(/doesn't include any inference spans/)
+    ).not.toBeInTheDocument();
+  });
+
+  it('selects the extraction span when its row is clicked', async () => {
+    const onSelectNode = jest.fn();
+    const extractionNode = createMockExtractionNode({id: 'extract-1'});
+    render(
+      <MessagesPanel
+        nodes={[extractionNode] as any}
+        selectedNodeId={null}
+        onSelectNode={onSelectNode}
+      />
+    );
+
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Select extraction @cf/cloudflare/clairic'})
+    );
+
+    expect(onSelectNode).toHaveBeenCalledWith(extractionNode);
   });
 
   it('does not render an embedding row when the input is unavailable', () => {

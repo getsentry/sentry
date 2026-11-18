@@ -9,7 +9,7 @@ export function IconCircledNumber({number}: IconCircledNumberProps) {
   const size = SvgIcon.ICON_SIZES.md;
   return (
     <Circle role="img" size={size} aria-label={`circled number ${number}`}>
-      <Number size={size}>{number}</Number>
+      <NumberText size={size}>{number}</NumberText>
     </Circle>
   );
 }
@@ -28,7 +28,7 @@ const Circle = styled('div')<{size: string}>`
   box-sizing: border-box;
 `;
 
-const Number = styled('span')<{size: string}>`
+const NumberText = styled('span')<{size: string}>`
   display: block;
   font-size: calc(${p => p.size} / 2);
 `;

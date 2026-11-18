@@ -61,7 +61,9 @@ class RedisSessionStoreTestCase(TestCase):
 
         # Redis session store should be bulletproof in case redis state values are invalid json.
         # For example, random bit flips caused by cosmic rays.
-        client.setex(self.store.redis_key, self.store.ttl, "invalid json")
+        redis_key = self.store.redis_key
+        assert redis_key is not None
+        client.setex(redis_key, self.store.ttl, "invalid json")
 
         assert self.store.is_valid() is False
         assert self.store.get_state() is None

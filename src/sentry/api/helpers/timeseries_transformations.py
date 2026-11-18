@@ -172,6 +172,21 @@ def parse_transformation(value: str) -> Transformation:
         raise InvalidSearchQuery(f"{value}: {detail['loc'][0]} argument invalid: {message}")
 
 
+def parse_transformations(values: Sequence[str]) -> list[Transformation]:
+    if len(values) > len(_TRANSFORMATIONS):
+        raise InvalidSearchQuery(
+            f"At most {len(_TRANSFORMATIONS)} transformations are allowed per yAxis"
+        )
+    transformations = [parse_transformation(value) for value in values]
+    functions = [
+        "fill" if isinstance(transformation, FillTransformation) else "smooth"
+        for transformation in transformations
+    ]
+    if len(functions) != len(set(functions)):
+        raise InvalidSearchQuery("Only one transformation per function type is allowed per yAxis")
+    return transformations
+
+
 def get_transformations(request: Request) -> dict[int, list[Transformation]]:
     """Parse ordered transformations by zero-based request yAxis position."""
     transformations: dict[int, list[Transformation]] = {}
@@ -188,20 +203,8 @@ def get_transformations(request: Request) -> dict[int, list[Transformation]]:
             raise ParseError(detail="Invalid transformations index")
         if index >= axis_count:
             raise ParseError(detail="transformations index must match a yAxis position")
-        if len(values) > len(_TRANSFORMATIONS):
-            raise ParseError(
-                detail=f"At most {len(_TRANSFORMATIONS)} transformations are allowed per yAxis"
-            )
         with handle_query_errors():
-            transformations[index] = [parse_transformation(value) for value in values]
-        functions = [
-            "fill" if isinstance(transformation, FillTransformation) else "smooth"
-            for transformation in transformations[index]
-        ]
-        if len(functions) != len(set(functions)):
-            raise ParseError(
-                detail="Only one transformation per function type is allowed per yAxis"
-            )
+            transformations[index] = parse_transformations(values)
     return transformations
 
 

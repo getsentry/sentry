@@ -5,13 +5,14 @@ import {LinkButton} from '@sentry/scraps/button';
 import {EmptyState} from '@sentry/scraps/emptyState';
 import {Container} from '@sentry/scraps/layout';
 
-import {NoProjectEmptyState} from 'sentry/components/illustrations/NoProjectEmptyState';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useHasProjectAccess} from 'sentry/utils/useHasProjectAccess';
 import {useProjects} from 'sentry/utils/useProjects';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+
+import {NoProjectEmptyState} from './illustrations/NoProjectEmptyState';
 
 type Props = {
   organization: Organization;

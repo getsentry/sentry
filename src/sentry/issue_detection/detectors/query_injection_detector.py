@@ -7,6 +7,7 @@ from sentry.issue_detection.base import DetectorType, PerformanceDetector
 from sentry.issue_detection.detectors.utils import (
     get_notification_attachment_body,
     get_span_description,
+    is_redis_span,
 )
 from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issue_detection.types import Span
@@ -49,10 +50,8 @@ class QueryInjectionDetector(PerformanceDetector):
                 self.potential_unsafe_inputs.append(query_pair)
 
     def visit_span(self, span: Span) -> None:
-        if not self._is_span_eligible(span):
-            return
-
-        if len(self.potential_unsafe_inputs) == 0:
+        # Check the event-level inputs first: free, unlike the span checks.
+        if not self.potential_unsafe_inputs or not self._is_span_eligible(span):
             return
 
         description = get_span_description(span)
@@ -131,7 +130,7 @@ class QueryInjectionDetector(PerformanceDetector):
 
         op = span.get("op", None)
 
-        if not op or not op.startswith("db") or op.startswith("db.redis"):
+        if not op or not op.startswith("db") or is_redis_span(span):
             return False
 
         description = get_span_description(span)

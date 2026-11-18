@@ -47,4 +47,28 @@ describe('useTraceScrollToPath', () => {
 
     expect(result.current.current).toBeNull();
   });
+
+  it('reads the first event id when the URL repeats it', () => {
+    setSearch('?eventId=first&eventId=second');
+
+    const {result} = renderHook(() => useTraceScrollToPath({traceSlug: 'trace-slug'}));
+
+    expect(result.current.current).toEqual({eventId: 'first', path: undefined});
+  });
+
+  it('returns no scroll target when the URL has neither a node nor an event id', () => {
+    setSearch('?other=1');
+
+    const {result} = renderHook(() => useTraceScrollToPath({traceSlug: 'trace-slug'}));
+
+    expect(result.current.current).toBeNull();
+  });
+
+  it('falls back to the target id when the URL has no event id', () => {
+    setSearch('?targetId=abc');
+
+    const {result} = renderHook(() => useTraceScrollToPath({traceSlug: 'trace-slug'}));
+
+    expect(result.current.current).toEqual({eventId: 'abc', path: undefined});
+  });
 });

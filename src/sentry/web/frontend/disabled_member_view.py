@@ -1,8 +1,13 @@
 from django.http import HttpRequest, HttpResponse
 from django.urls import reverse
 
+from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.organizations.services.organization import organization_service
+from sentry.organizations.services.organization.model import (
+    RpcOrganization,
+    RpcUserOrganizationContext,
+)
 from sentry.web.frontend.base import control_silo_view
 
 from .react_page import ReactPageView
@@ -10,10 +15,14 @@ from .react_page import ReactPageView
 
 @control_silo_view
 class DisabledMemberView(ReactPageView):
-    def is_member_disabled_from_limit(self, request: object, organization) -> bool:
+    def is_member_disabled_from_limit(
+        self, request: HttpRequest, organization: RpcUserOrganizationContext | RpcOrganization
+    ) -> bool:
         return False
 
-    def handle(self, request: HttpRequest, organization, **kwargs) -> HttpResponse:
+    def handle(
+        self, request: HttpRequest, organization: Organization, **kwargs: object
+    ) -> HttpResponse:
         user = request.user
         # if org member is not restricted, redirect user out of the disabled view
         try:

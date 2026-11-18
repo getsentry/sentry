@@ -3,6 +3,8 @@ import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {t, tct} from 'sentry/locale';
 
 export const onboarding: OnboardingConfig = {
+  // The setup installs the Node SDK whatever the project platform is.
+  sdkImportSpecifier: () => '@sentry/node',
   install: params => [
     {
       type: StepType.INSTALL,

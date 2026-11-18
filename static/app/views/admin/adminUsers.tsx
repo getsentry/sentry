@@ -19,6 +19,7 @@ import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 
 const USERS_COLUMNS: TableColumnConfig[] = [
@@ -144,7 +145,7 @@ export default function AdminUsers() {
         </SimpleTable>
       )}
 
-      {pageLinks && <Pagination pageLinks={pageLinks} />}
+      {pageLinks && <Pagination {...getPaginationProps(pageLinks)} />}
     </Fragment>
   );
 }

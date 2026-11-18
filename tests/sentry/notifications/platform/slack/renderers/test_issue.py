@@ -15,6 +15,7 @@ from sentry.notifications.platform.templates.issue import (
     IssueNotificationTemplate,
     SerializableRuleProxy,
 )
+from sentry.notifications.platform.templates.seer import SeerAutofixError
 from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
     NotificationData,
@@ -130,7 +131,7 @@ class IssueNotificationDataTest(IssueAlertInvocationMixin):
         result = issue_notification_data_factory(invocation)
 
         assert result.source == NotificationSource.ISSUE
-        assert result.group_id == invocation.event_data.group.id
+        assert result.group_id == invocation.event_data.require_group().id
         assert isinstance(invocation.event_data.event, GroupEvent)
         assert result.event_id == invocation.event_data.event.event_id
         assert result.notification_uuid == "test-uuid-123"
@@ -182,8 +183,6 @@ class IssueAlertNotificationTemplateTest(TestCase):
 
 class IssueSlackRendererTest(IssueAlertInvocationMixin):
     def test_render_raises_on_invalid_data(self) -> None:
-        from sentry.notifications.platform.templates.seer import SeerAutofixError
-
         invalid_data = SeerAutofixError(organization_id=1, error_message="test")
         rendered_template = NotificationRenderedTemplate(subject="test", body=[])
 
@@ -321,7 +320,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
 
         assert isinstance(invocation.event_data.event, GroupEvent)
         assert result == self._build_expected_blocks(
-            group=invocation.event_data.group,
+            group=invocation.event_data.require_group(),
             workflow_id=invocation.workflow_id,
             notification_uuid=invocation.notification_uuid,
         )
@@ -338,7 +337,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
 
         assert isinstance(invocation.event_data.event, GroupEvent)
         assert result == self._build_expected_blocks(
-            group=invocation.event_data.group,
+            group=invocation.event_data.require_group(),
             workflow_id=invocation.workflow_id,
             notification_uuid=invocation.notification_uuid,
             notes="important note",
@@ -359,7 +358,7 @@ class IssueSlackRendererTest(IssueAlertInvocationMixin):
 
         assert isinstance(invocation.event_data.event, GroupEvent)
         assert result == self._build_expected_blocks(
-            group=invocation.event_data.group,
+            group=invocation.event_data.require_group(),
             workflow_id=invocation.workflow_id,
             notification_uuid=invocation.notification_uuid,
             title="tagged event",

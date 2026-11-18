@@ -8,6 +8,9 @@ import orjson
 import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_AUTOFIX_POST_PROCESS,
+)
 from sentry_sdk import traces
 from taskbroker_client.retry import Retry
 from urllib3 import BaseHTTPResponse
@@ -34,13 +37,14 @@ from sentry.seer.autofix.exceptions import (
     IssueSummaryHidden,
     IssueSummarySelfHosted,
     NoSeerQuotaException,
+    SeerOutOfCreditsException,
 )
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     is_seer_autotriggered_autofix_rate_limited,
     is_seer_autotriggered_autofix_rate_limited_and_increment,
-    is_seer_seat_based_tier_enabled,
+    is_seer_seat_or_token_billed_enabled,
 )
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.operator import SeerAutofixOperator
@@ -143,7 +147,7 @@ def _trigger_autofix_task(
     auto_run_source: str,
     referrer: AutofixReferrer | str = AutofixReferrer.UNKNOWN,
     stopping_point: AutofixStoppingPoint | str | None = None,
-):
+) -> None:
     """
     Asynchronous task to trigger Autofix.
     Task queue serializes enum parameters to strings, so we need to convert them back.
@@ -196,6 +200,7 @@ def _trigger_autofix_task(
                 referrer=referrer,
                 run_id=None,
                 stopping_point=stopping_point,
+                billing_feature=SEER_BILLING_FEATURE_AUTOFIX_POST_PROCESS,
             )
             with action_context_scope(ActionSource.SYSTEM, SYSTEM_ACTOR):
                 Activity.objects.create_group_activity(
@@ -204,13 +209,13 @@ def _trigger_autofix_task(
                     data={"referrer": referrer.value},
                     send_notification=False,
                 )
-        except NoSeerQuotaException:
+        except (NoSeerQuotaException, SeerOutOfCreditsException):
             pass
 
         if run and SeerAutofixOperator.has_access(organization=group.project.organization):
-            SeerOperatorAutofixCache.migrate(
-                from_group_id=group_id, to_run_id=run.seer_run_state_id
-            )
+            run_state_id = run.seer_run_state_id
+            if run_state_id is not None:
+                SeerOperatorAutofixCache.migrate(from_group_id=group_id, to_run_id=run_state_id)
 
 
 def _get_event(
@@ -250,7 +255,7 @@ def _call_seer(
     serialized_event: dict[str, Any],
     trace_tree: dict[str, Any] | None,
     experiment_variant: str | None = None,
-):
+) -> SummarizeIssueResponse:
     body = SummarizeIssueRequest(
         group_id=group.id,
         issue={
@@ -480,7 +485,7 @@ def get_automation_stopping_point(group: Group) -> AutofixStoppingPoint | None:
     """
     user_preference = group.project.get_option("sentry:seer_automated_run_stopping_point")
 
-    if is_seer_seat_based_tier_enabled(group.organization):
+    if is_seer_seat_or_token_billed_enabled(group.organization):
         fixability_score = get_and_update_group_fixability_score(group)
         fixability_stopping_point = _get_stopping_point_from_fixability(fixability_score)
 

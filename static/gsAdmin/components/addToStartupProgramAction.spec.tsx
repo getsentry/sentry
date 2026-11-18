@@ -8,7 +8,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {ModalStore} from 'sentry/stores/modalStore';
+import {closeModal} from '@sentry/scraps/modal';
 
 import {triggerAddToStartupProgramModal} from 'admin/components/addToStartupProgramAction';
 
@@ -25,7 +25,7 @@ describe('AddToStartupProgramAction', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    ModalStore.reset();
+    closeModal();
     onSuccess.mockClear();
   });
 

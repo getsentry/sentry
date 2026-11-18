@@ -35,7 +35,7 @@ import type {ReleaseSdkVersion} from 'sentry/views/explore/releases/utils/releas
 import {ReleaseCardCommits} from './releaseCardCommits';
 import {ReleaseCardProjectRow} from './releaseCardProjectRow';
 import {ReleaseCardSdkVersion} from './releaseCardSdkVersion';
-import ReleaseCardStatsPeriod from './releaseCardStatsPeriod';
+import {ReleaseCardStatsPeriod} from './releaseCardStatsPeriod';
 
 function getReleaseProjectId(release: Release, selection: PageFilters) {
   // if a release has only one project

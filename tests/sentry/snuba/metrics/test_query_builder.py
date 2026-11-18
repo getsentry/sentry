@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import re
 import types
+from collections.abc import Callable
 from dataclasses import replace
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, cast
 from unittest import mock
 
 import pytest
@@ -94,7 +95,7 @@ ORG_ID = 1
 USE_CASE_ID = UseCaseID.SESSIONS
 
 
-def get_entity_of_metric_mocked(_, metric_name, use_case_id):
+def get_entity_of_metric_mocked(_: object, metric_name: str, use_case_id: UseCaseID) -> str:
     return {
         "sentry.sessions.session": EntityKey.MetricsCounters,
         SessionMRI.RAW_SESSION.value: EntityKey.MetricsCounters,
@@ -248,7 +249,7 @@ def get_entity_of_metric_mocked(_, metric_name, use_case_id):
         ),
     ],
 )
-def test_parse_conditions(query_string, expected) -> None:
+def test_parse_conditions(query_string: str, expected: Callable[[], object]) -> None:
     org_id = ORG_ID
     use_case_id = UseCaseID.SESSIONS
     for s in ("myapp@2.0.0", "/bar/:orgId/"):
@@ -297,14 +298,19 @@ def test_round_range() -> None:
         ("2022-10-01 09:20:00", "2h", {"timeframe": "91d"}, ("08:00:00 07-02", "10:00:00 10-01")),
     ],
 )
-def test_get_date_range(now, interval, parameters, expected) -> None:
-    def _to_datetimestring(d):
+def test_get_date_range(
+    now: str,
+    interval: str | None,
+    parameters: dict[str, str],
+    expected: tuple[str, str],
+) -> None:
+    def _to_datetimestring(d: datetime) -> str:
         return d.strftime("%H:%M:%S %m-%d")
 
     if interval is not None:
         parameters["interval"] = interval
     with freeze_time(now):
-        start, end, interval = get_date_range(parameters)
+        start, end, _rollup = get_date_range(parameters)
 
         start_actual = _to_datetimestring(start)
         end_actual = _to_datetimestring(end)
@@ -375,11 +381,16 @@ def test_build_snuba_query(mock_now: mock.MagicMock, mock_now2: mock.MagicMock) 
     org_id = 1
     use_case_id = UseCaseID.SESSIONS
 
-    def expected_query(match, select, extra_groupby, metric_name):
+    def expected_query(
+        match: str,
+        select: tuple[str, str, str],
+        extra_groupby: list[Column],
+        metric_name: str,
+    ) -> Query:
         function, column, alias = select
 
         select_function = Function(
-            OP_TO_SNUBA_FUNCTION[match][alias],
+            cast("dict[str, dict[str, str]]", OP_TO_SNUBA_FUNCTION)[match][alias],
             [
                 Column("value"),
                 Function(
@@ -483,7 +494,7 @@ def test_build_snuba_query(mock_now: mock.MagicMock, mock_now2: mock.MagicMock) 
 @mock.patch(
     "sentry.snuba.metrics.fields.base._get_entity_of_metric_mri", get_entity_of_metric_mocked
 )
-def test_build_snuba_query_mri(mock_now, mock_now2) -> None:
+def test_build_snuba_query_mri(mock_now: mock.MagicMock, mock_now2: mock.MagicMock) -> None:
     org_id = 1
     use_case_id = UseCaseID.SESSIONS
     # Your typical release health query querying everything
@@ -566,7 +577,9 @@ def test_build_snuba_query_mri(mock_now, mock_now2) -> None:
 @mock.patch(
     "sentry.snuba.metrics.fields.base._get_entity_of_metric_mri", get_entity_of_metric_mocked
 )
-def test_build_snuba_query_derived_metrics(mock_now, mock_now2) -> None:
+def test_build_snuba_query_derived_metrics(
+    mock_now: mock.MagicMock, mock_now2: mock.MagicMock
+) -> None:
     org_id = 1
     use_case_id = UseCaseID.SESSIONS
     # Your typical release health query querying everything
@@ -970,7 +983,7 @@ def test_translate_results_derived_metrics(_1: mock.MagicMock, _2: mock.MagicMoc
         }
     )
     query_definition = QueryDefinition([PseudoProject(1, 1)], query_params)
-    fields_in_entities: dict[MetricEntity, list[tuple[str | None, str, str]]] = {
+    fields_in_entities: dict[MetricEntity, list[tuple[MetricOperationType | None, str, str]]] = {
         "metrics_counters": [
             (
                 None,
@@ -997,7 +1010,7 @@ def test_translate_results_derived_metrics(_1: mock.MagicMock, _2: mock.MagicMoc
     intervals = list(
         get_intervals(query_definition.start, query_definition.end, query_definition.rollup)
     )
-    results = {
+    results: dict[str, dict[str, dict[str, list[dict[str, Any]]]]] = {
         "metrics_counters": {
             "totals": {
                 "data": [
@@ -1091,13 +1104,13 @@ def test_translate_results_missing_slots(_1: mock.MagicMock, _2: mock.MagicMock)
         }
     )
     query_definition = QueryDefinition([PseudoProject(1, 1)], query_params)
-    fields_in_entities: dict[MetricEntity, list[tuple[str | None, str, str]]] = {
+    fields_in_entities: dict[MetricEntity, list[tuple[MetricOperationType | None, str, str]]] = {
         "metrics_counters": [
             ("sum", SessionMRI.RAW_SESSION.value, "sum(sentry.sessions.session)"),
         ],
     }
 
-    results = {
+    results: dict[str, dict[str, dict[str, list[dict[str, Any]]]]] = {
         "metrics_counters": {
             "totals": {
                 "data": [
@@ -1388,8 +1401,11 @@ def test_translate_meta_result_type_composite_entity_derived_metric(_: mock.Magi
     ],
 )
 def test_only_can_groupby_operations_can_be_added_to_groupby(
-    select, groupby, usecase, error_string
-):
+    select: list[MetricField],
+    groupby: list[MetricGroupByField] | None,
+    usecase: UseCaseID,
+    error_string: str,
+) -> None:
     query_definition = DeprecatingMetricsQuery(
         org_id=1,
         project_ids=[1],
@@ -1498,7 +1514,10 @@ def test_only_can_groupby_operations_can_be_added_to_groupby(
     ],
 )
 def test_only_can_filter_operations_can_be_added_to_where(
-    select, where, usecase, error_string
+    select: list[MetricField],
+    where: list[MetricConditionField],
+    usecase: UseCaseID,
+    error_string: str,
 ) -> None:
     query_definition = DeprecatingMetricsQuery(
         org_id=1,
@@ -2033,7 +2052,7 @@ def test_timestamp_operators(op: MetricOperationType, clickhouse_op: str) -> Non
         [False, True],
     ],
 )
-def test_having_clause(include_totals, include_series) -> None:
+def test_having_clause(include_totals: bool, include_series: bool) -> None:
     """
     Tests that the having clause ends up in the snql queries in the expected form
     """

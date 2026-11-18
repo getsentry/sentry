@@ -1,5 +1,6 @@
 import {useState} from 'react';
 import {useTheme} from '@emotion/react';
+import {useQuery} from '@tanstack/react-query';
 
 import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
@@ -10,8 +11,7 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 
@@ -67,18 +67,19 @@ export function KeyStats() {
     };
   });
 
-  const {data, isPending, isError, refetch} = useApiQuery<KeyStatPoint[]>(
-    [
-      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/stats/', {
+  const {data, isPending, isError, refetch} = useQuery(
+    apiOptions.as<KeyStatPoint[]>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/stats/',
+      {
         path: {
           organizationIdOrSlug: organization.slug,
           projectIdOrSlug: projectId,
           keyId,
         },
-      }),
-      {query: {...queryBase, resolution: '1d'}},
-    ],
-    {staleTime: 0}
+        query: {...queryBase, resolution: '1d'},
+        staleTime: 0,
+      }
+    )
   );
 
   if (isError) {

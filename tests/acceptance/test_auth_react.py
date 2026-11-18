@@ -224,16 +224,7 @@ class ReactAuthTest(AcceptanceTestCase):
         )
 
     def submit_second_factor(self, code: str) -> None:
-        self.browser.wait_until_script_execution(
-            """
-            return Array.from(document.querySelectorAll('[aria-label="One-time password"]'))
-              .some(input => input.offsetParent !== null);
-            """
-        )
-        inputs = self.browser.elements('[aria-label="One-time password"]')
-        next(input_element for input_element in inputs if input_element.is_displayed()).send_keys(
-            code
-        )
+        self.browser.displayed_element('[aria-label="One-time password"]').send_keys(code)
 
     def locate_organization_sso(self, organization_slug: str) -> None:
         self.open_login()

@@ -1,5 +1,4 @@
-import type {TreeLike} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
-
+import type {TreeLike} from './useVirtualizedTree';
 import {VirtualizedTreeNode} from './VirtualizedTreeNode';
 
 export class VirtualizedTree<T extends TreeLike> {

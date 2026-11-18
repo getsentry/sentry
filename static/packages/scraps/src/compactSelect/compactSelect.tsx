@@ -1,0 +1,273 @@
+import type * as React from 'react';
+import {useCallback, useEffect, useId, useMemo, useRef, useState} from 'react';
+import {Item, Section} from '@react-stately/collections';
+import * as Sentry from '@sentry/react';
+import type {DistributedOmit} from 'type-fest';
+
+import {useTranslation} from '@sentry/scraps/translation';
+
+import {Control, type ControlProps} from './control';
+import type {MultipleListProps, SingleListProps} from './list';
+import {List} from './list';
+import {EmptyMessage} from './styles';
+import type {
+  SelectKey,
+  SelectOption,
+  SelectOptionOrSection,
+  SelectOptionOrSectionWithKey,
+  SelectSection,
+} from './types';
+import {getDuplicateOptionKeysInfo, getItemsWithKeys, shouldCloseOnSelect} from './utils';
+
+export type {SelectOption, SelectOptionOrSection, SelectSection, SelectKey};
+
+interface BaseSelectProps<Value extends SelectKey> extends Omit<
+  ControlProps,
+  'onClear' | 'clearable'
+> {
+  options: Array<SelectOptionOrSection<Value>>;
+  /**
+   * Number of options above which virtualization will be enabled.
+   * Note that virtualization is always disabled if there are sections in the options.
+   * @default 150
+   */
+  virtualizeThreshold?: number;
+}
+
+export type SingleSelectProps<Value extends SelectKey> = BaseSelectProps<Value> &
+  DistributedOmit<SingleListProps<Value>, 'children' | 'items' | 'mode' | 'label'>;
+
+export type MultipleSelectProps<Value extends SelectKey> = BaseSelectProps<Value> &
+  DistributedOmit<MultipleListProps<Value>, 'children' | 'items' | 'mode' | 'label'>;
+
+export type SelectProps<Value extends SelectKey> =
+  | SingleSelectProps<Value>
+  | MultipleSelectProps<Value>;
+
+// A series of TS function overloads to properly parse prop types across 2 dimensions:
+// option value types (number vs string), and selection mode (singular vs multiple)
+export function CompactSelect<Value extends number>(
+  props: SelectProps<Value>
+): React.JSX.Element;
+export function CompactSelect<Value extends string>(
+  props: SelectProps<Value>
+): React.JSX.Element;
+export function CompactSelect<Value extends SelectKey>(
+  props: SelectProps<Value>
+): React.JSX.Element;
+
+/**
+ * Flexible select component with a customizable trigger button
+ */
+export function CompactSelect<Value extends SelectKey>({
+  // List props
+  options,
+  value,
+  onChange,
+  multiple,
+  clearable,
+  isOptionDisabled,
+  sizeLimit,
+  sizeLimitMessage,
+  virtualizeThreshold,
+
+  // Control props
+  mode,
+  disabled,
+  emptyMessage,
+  size = 'md',
+  closeOnSelect,
+  menuWidth,
+  ...controlProps
+}: SelectProps<Value>) {
+  const {t} = useTranslation();
+  const generatedTriggerId = useId();
+  const triggerId = controlProps.triggerId ?? generatedTriggerId;
+
+  // Combine list props into an object with two clearly separated types, one where
+  // `multiple` is true and the other where it's not. Necessary to avoid TS errors.
+  // also multiple:false must be split into clearable true/false to satisfy TS
+  const listProps = useMemo(() => {
+    if (multiple) {
+      return {
+        clearable,
+        multiple,
+        value,
+        onChange,
+        closeOnSelect,
+        mode,
+      };
+    }
+
+    if (clearable) {
+      return {
+        clearable,
+        multiple,
+        value,
+        onChange,
+        closeOnSelect,
+        mode,
+      };
+    }
+
+    return {
+      clearable,
+      multiple,
+      value,
+      onChange,
+      closeOnSelect,
+      mode,
+    };
+  }, [multiple, clearable, value, onChange, closeOnSelect, mode]);
+
+  const [measuredMenuWidth, setMeasuredMenuWidth] = useState<number>();
+  const [hasMeasured, setHasMeasured] = useState(false);
+  const needsMeasuring =
+    !menuWidth && !hasMeasured && shouldVirtualize(options, virtualizeThreshold);
+
+  const menuRef = useCallback(
+    (element: HTMLDivElement | null) => {
+      if (element && needsMeasuring) {
+        setMeasuredMenuWidth(element.offsetWidth + 1);
+      }
+      // we only measure once, even if the width isn't saved
+      // this ensures the menu isn't measured when more options come in that put us over the threshold
+      setHasMeasured(true);
+    },
+    [needsMeasuring]
+  );
+
+  const controlDisabled = disabled ?? options?.length === 0;
+  const allItemsWithKey = useMemo(() => getItemsWithKeys(options), [options]);
+
+  const longestOptionItemsWithKey = useMemo(() => {
+    if (needsMeasuring) {
+      let longestOption: (typeof options)[number] | undefined;
+      let longestLength = -1;
+      for (const option of options) {
+        const length =
+          'options' in option
+            ? 0
+            : option.textValue
+              ? option.textValue.length
+              : typeof option.label === 'string'
+                ? option.label.length
+                : 0;
+        if (length > longestLength) {
+          longestOption = option;
+          longestLength = length;
+        }
+      }
+      return longestOption ? getItemsWithKeys([longestOption]) : [];
+    }
+    return [];
+  }, [needsMeasuring, options]);
+  const itemsWithKey = needsMeasuring ? longestOptionItemsWithKey : allItemsWithKey;
+
+  const componentTitle = useMemo(
+    () =>
+      typeof controlProps.menuTitle === 'string' ? controlProps.menuTitle : 'unknown',
+    [controlProps.menuTitle]
+  );
+
+  const lastLoggedDuplicateKeySignatureRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    const {duplicateOptionKeys, hasSections, optionCount} =
+      getDuplicateOptionKeysInfo(allItemsWithKey);
+    if (duplicateOptionKeys.length === 0) {
+      lastLoggedDuplicateKeySignatureRef.current = undefined;
+      return;
+    }
+
+    const duplicateOptionKeySignature = duplicateOptionKeys.join(',');
+    if (lastLoggedDuplicateKeySignatureRef.current === duplicateOptionKeySignature) {
+      return;
+    }
+    lastLoggedDuplicateKeySignatureRef.current = duplicateOptionKeySignature;
+
+    Sentry.logger.error('CompactSelect has duplicate option keys', {
+      component_title: componentTitle,
+      duplicate_option_key_count: duplicateOptionKeys.length,
+      duplicate_option_key_signature: duplicateOptionKeySignature,
+      has_sections: hasSections,
+      option_count: optionCount,
+      virtualize_threshold: virtualizeThreshold ?? 150,
+    });
+  }, [allItemsWithKey, componentTitle, virtualizeThreshold]);
+
+  return (
+    <Control
+      {...controlProps}
+      menuWidth={menuWidth ?? measuredMenuWidth}
+      // decrease height to 1px during measuring so that scrollbars are shown & measured
+      menuHeight={needsMeasuring ? '1px' : undefined}
+      triggerId={triggerId}
+      disabled={controlDisabled}
+      mode={mode}
+      size={size}
+      items={allItemsWithKey}
+      isOptionDisabled={isOptionDisabled}
+      value={value}
+      clearable={clearable}
+      onClear={({overlayState}) => {
+        if (clearable) {
+          if (multiple) {
+            onChange([]);
+          } else {
+            onChange(undefined);
+          }
+          if (shouldCloseOnSelect?.({...listProps, selectedOptions: []})) {
+            overlayState?.close();
+          }
+        }
+      }}
+      menuRef={menuRef}
+    >
+      <List
+        {...listProps}
+        items={itemsWithKey}
+        isOptionDisabled={isOptionDisabled}
+        size={size}
+        sizeLimit={sizeLimit}
+        sizeLimitMessage={sizeLimitMessage}
+        virtualized={shouldVirtualize(itemsWithKey, virtualizeThreshold)}
+        aria-labelledby={triggerId}
+      >
+        {(item: SelectOptionOrSectionWithKey<Value>) => {
+          if ('options' in item) {
+            return (
+              <Section key={item.key} title={item.label}>
+                {item.options.map(opt => (
+                  <Item {...opt} key={opt.key}>
+                    {opt.label}
+                  </Item>
+                ))}
+              </Section>
+            );
+          }
+
+          return (
+            <Item {...item} key={item.key}>
+              {item.label}
+            </Item>
+          );
+        }}
+      </List>
+
+      {/* Only displayed when List is empty */}
+      <EmptyMessage>{emptyMessage ?? t('No options found')}</EmptyMessage>
+    </Control>
+  );
+}
+
+function shouldVirtualize<Value extends SelectKey>(
+  items: Array<SelectOptionOrSection<Value>>,
+  virtualizeThreshold = 150
+) {
+  const hasSections = items.some(item => 'options' in item);
+  if (hasSections) {
+    return false;
+  }
+
+  return items.length > virtualizeThreshold;
+}

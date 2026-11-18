@@ -5,9 +5,9 @@ import {PlatformIcon} from 'platformicons';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Heading} from '@sentry/scraps/text';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {ExternalLink} from 'sentry/components/links/externalLink';
 import {ConsolePlatform} from 'sentry/constants/consolePlatforms';
 import {t, tct} from 'sentry/locale';

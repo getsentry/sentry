@@ -18,7 +18,6 @@ import {QueryClientProvider} from '@tanstack/react-query';
 import * as rtl from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import {userEvent} from '@testing-library/user-event'; // eslint-disable-line no-restricted-imports
 import type {OnUrlUpdateFunction} from 'nuqs/adapters/testing';
-import * as qs from 'query-string';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
@@ -28,9 +27,11 @@ import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {GlobalModal} from '@sentry/scraps/modal';
 
 import {CommandPaletteProvider} from 'sentry/components/commandPalette/ui/cmdk';
+import {SentryOverlayProvider} from 'sentry/scrapsProviders/overlay';
 import type {Organization} from 'sentry/types/organization';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
+import * as qs from 'sentry/utils/url/qs';
 import {GlobalAlertProvider} from 'sentry/views/app/globalAlerts';
 import {TopBarSlots} from 'sentry/views/navigation/topBarSlot';
 import {LLMContextProvider} from 'sentry/views/seerExplorer/contexts/llmContext';
@@ -150,11 +151,13 @@ function makeAllTheProviders(options: ProviderOptions) {
         <TopBarTestSlotOutlets />
         <LLMContextProvider>
           <OrganizationContext value={optionalOrganization}>
-            <GlobalAlertProvider>
-              <GlobalDrawer>
-                <AdditionalWrapper>{children}</AdditionalWrapper>
-              </GlobalDrawer>
-            </GlobalAlertProvider>
+            <SentryOverlayProvider>
+              <GlobalAlertProvider>
+                <GlobalDrawer>
+                  <AdditionalWrapper>{children}</AdditionalWrapper>
+                </GlobalDrawer>
+              </GlobalAlertProvider>
+            </SentryOverlayProvider>
           </OrganizationContext>
         </LLMContextProvider>
       </TopBarSlots.Provider>

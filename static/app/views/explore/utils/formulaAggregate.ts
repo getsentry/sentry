@@ -19,17 +19,23 @@ export function getFormulaArgumentParams(formula: SavedFormula): FormulaParam[] 
     .toSorted((a, b) => a.order - b.order);
 }
 
+/**
+ * Fills each argument with the param's suggested value, falling back to a
+ * generic default. Returns null when a column has neither.
+ */
 export function buildFormulaYAxis(
   formula: SavedFormula,
   defaultColumn: string | null
 ): string | null {
-  const params = getFormulaArgumentParams(formula);
-  if (!defaultColumn && params.some(param => param.type === 'column')) {
-    return null;
+  const args: string[] = [];
+  for (const param of getFormulaArgumentParams(formula)) {
+    const arg =
+      param.value || (param.type === 'number' ? DEFAULT_NUMBER_ARGUMENT : defaultColumn);
+    if (!arg) {
+      return null;
+    }
+    args.push(arg);
   }
-  const args = params.map(param =>
-    param.type === 'number' ? DEFAULT_NUMBER_ARGUMENT : defaultColumn
-  );
   return `${formula.name}(${args.join(',')})`;
 }
 

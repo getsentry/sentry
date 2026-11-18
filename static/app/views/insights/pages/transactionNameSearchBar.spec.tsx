@@ -3,7 +3,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import {TransactionNameSearchBar} from 'sentry/views/insights/pages/transactionNameSearchBar';
+
+import {TransactionNameSearchBar} from './transactionNameSearchBar';
 
 jest.unmock('@tanstack/react-pacer');
 

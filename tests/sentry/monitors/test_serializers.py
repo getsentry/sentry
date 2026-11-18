@@ -1,6 +1,6 @@
 from sentry.api.serializers import serialize
 from sentry.monitors.logic.checkin_config import get_checkin_config_id
-from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorEnvironment, ScheduleType
+from sentry.monitors.models import CheckInStatus, MonitorEnvironment, ScheduleType
 from sentry.monitors.serializers import (
     MonitorCheckInSerializer,
     MonitorEnvironmentSerializer,
@@ -121,7 +121,7 @@ class MonitorCheckInSerializerTest(TestCase):
             environment_id=999999,  # Non-existent environment ID
         )
 
-        checkin = MonitorCheckIn.objects.create(
+        checkin = self.create_monitor_checkin(
             monitor_environment=monitor_env,
             status=CheckInStatus.OK,
         )
@@ -133,7 +133,7 @@ class MonitorCheckInSerializerTest(TestCase):
         # When environment is missing, environment should be "[removed]"
         assert result[0]["environment"] == "[removed]"
 
-    def test_serialize_checkin_config_matches_legacy(self) -> None:
+    def test_serialize_checkin_config(self) -> None:
         monitor = self.create_monitor()
         monitor_env = self.create_monitor_environment(
             monitor=monitor, environment_id=self.environment.id
@@ -145,24 +145,12 @@ class MonitorCheckInSerializerTest(TestCase):
             "max_runtime": 30,
             "checkin_margin": 5,
         }
-        legacy = MonitorCheckIn.objects.create(
-            monitor_environment=monitor_env,
-            status=CheckInStatus.OK,
-            monitor_config=config,
-        )
-        snapshot = MonitorCheckIn.objects.create(
+        snapshot = self.create_monitor_checkin(
             monitor_environment=monitor_env,
             status=CheckInStatus.OK,
             checkin_config_id=get_checkin_config_id(config),
         )
-        no_config = MonitorCheckIn.objects.create(
-            monitor_environment=monitor_env,
-            status=CheckInStatus.OK,
-        )
 
-        result = serialize([legacy, snapshot, no_config], self.user, MonitorCheckInSerializer())
+        result = serialize([snapshot], self.user, MonitorCheckInSerializer())
 
-        expected = {**config, "schedule_type": "crontab"}
-        assert result[0]["monitorConfig"] == expected
-        assert result[1]["monitorConfig"] == expected
-        assert result[2]["monitorConfig"] == {}
+        assert result[0]["monitorConfig"] == {**config, "schedule_type": "crontab"}

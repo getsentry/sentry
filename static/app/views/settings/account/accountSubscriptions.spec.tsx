@@ -2,7 +2,7 @@ import {SubscriptionsFixture} from 'sentry-fixture/subscriptions';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import AccountSubscriptions from 'sentry/views/settings/account/accountSubscriptions';
+import AccountSubscriptions from './accountSubscriptions';
 
 const ENDPOINT = '/users/me/subscriptions/';
 

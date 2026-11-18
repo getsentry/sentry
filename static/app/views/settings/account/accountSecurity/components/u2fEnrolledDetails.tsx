@@ -4,10 +4,10 @@ import {IconClose} from '@sentry/icons/close';
 import {IconDelete} from '@sentry/icons/delete';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {Input} from '@sentry/scraps/input';
 import {Grid} from '@sentry/scraps/layout';
 
-import {Confirm} from 'sentry/components/confirm';
 import {DateTime} from 'sentry/components/dateTime';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {Panel} from 'sentry/components/panels/panel';

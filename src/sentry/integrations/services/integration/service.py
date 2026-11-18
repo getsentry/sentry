@@ -324,18 +324,21 @@ class IntegrationService(RpcService):
     @rpc_method
     @abstractmethod
     def get_access_token(
-        self, *, integration_id: int, organization_id: int
+        self, *, integration_id: int, organization_id: int, force_refresh: bool = False
     ) -> RpcAccessToken | None:
         """Return an access token for the integration's provider, minted or refreshed in control.
 
         For callers outside control that hand the token on: they can't mint or refresh one, and
-        can't retry after a 401, so the token has at least five minutes left. For a new token
-        once ``expires_at`` passes, call this again. Supports GitHub, GitHub Enterprise and
-        Cursor Origin.
+        can't retry after a 401, so the token has at least five minutes left. A GitLab instance
+        can configure tokens that last under ten minutes; those have at least half their
+        lifetime left instead. For a new token once ``expires_at`` passes, call this again.
+        Supports GitHub, GitHub Enterprise, Cursor Origin, GitLab and Linear.
+        ``force_refresh`` obtains a replacement for a rejected Linear token; other providers
+        do not support forced renewal through this method and return None when requested.
 
         None when the organization has no active install of an active integration with that id
         from one of those providers, or when there's no token to give (the provider refused or
-        failed).
+        failed, or a GitLab install has no identity to take one from).
         """
 
     @rpc_method

@@ -1,14 +1,14 @@
 import type {Layout} from 'react-grid-layout';
 import * as Sentry from '@sentry/react';
 
-import {clampWidgetLayout} from 'sentry/views/dashboards/clampWidgetLayout';
+import {clampWidgetLayout} from './clampWidgetLayout';
 import {
   assignDefaultLayout,
   calculateColumnDepths,
   getDashboardLayout,
   getNextAvailablePosition,
-} from 'sentry/views/dashboards/layoutUtils';
-import {DisplayType} from 'sentry/views/dashboards/types';
+} from './layoutUtils';
+import {DisplayType} from './types';
 
 jest.mock('@sentry/react');
 

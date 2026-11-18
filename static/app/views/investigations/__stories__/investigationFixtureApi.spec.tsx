@@ -10,12 +10,6 @@ import {
 
 import {QUERY_API_CLIENT} from 'sentry/utils/api/apiFetch';
 import {InvestigationsPage} from 'sentry/views/investigations';
-import {
-  commentStoryAuthors,
-  commentedInvestigation,
-  commentedInvestigationComments,
-} from 'sentry/views/investigations/__stories__/commentStoryFixtures';
-import {InvestigationFixtureApi} from 'sentry/views/investigations/__stories__/investigationFixtureApi';
 import {InvestigationActivity} from 'sentry/views/investigations/activity/investigationActivity';
 import {InvestigationBootstrapPage} from 'sentry/views/investigations/detail';
 import {
@@ -26,6 +20,13 @@ import {
   InvestigationOrchestrationFixture,
 } from 'sentry/views/investigations/fixtures';
 import {InvestigationHypotheses} from 'sentry/views/investigations/hypotheses/investigationHypotheses';
+
+import {
+  commentStoryAuthors,
+  commentedInvestigation,
+  commentedInvestigationComments,
+} from './commentStoryFixtures';
+import {InvestigationFixtureApi} from './investigationFixtureApi';
 
 const organization = OrganizationFixture({
   features: ['investigations'],
@@ -108,7 +109,7 @@ describe('InvestigationFixtureApi', () => {
     // fresh fetch proves the fixture backend actually stored it.
     await waitFor(async () => {
       const stored = await QUERY_API_CLIENT.requestPromise(
-        `/organizations/storybook-investigation-detail-test/investigations/${investigation.id}/`
+        `/organizations/storybook-investigation-detail-test/notebooks/${investigation.id}/`
       );
       expect(stored.title).toBe('Invoice PDF timeouts everywhere');
     });
@@ -129,7 +130,7 @@ describe('InvestigationFixtureApi', () => {
       id: 'fixture-id-collisions',
       blocks: [firstBlock, secondBlock],
     });
-    const baseUrl = `/organizations/storybook-fixture-id-test/investigations/${investigation.id}/`;
+    const baseUrl = `/organizations/storybook-fixture-id-test/notebooks/${investigation.id}/`;
 
     render(
       <InvestigationFixtureApi
@@ -200,78 +201,6 @@ describe('InvestigationFixtureApi', () => {
       expect(await screen.findAllByTestId('investigation-hypothesis')).toHaveLength(3);
       // A settled hypothesis folds its checks behind a toggle.
       expect(screen.getByRole('button', {name: 'Show 3 steps'})).toBeInTheDocument();
-    });
-
-    it('applies a disposition command and returns the new projection', async () => {
-      renderStoryHypotheses();
-      // The panel is up before the projection lands, so wait for the real
-      // cards before opening it.
-      await screen.findAllByTestId('investigation-hypothesis');
-      await userEvent.click(screen.getByRole('button', {name: /Hypotheses/}));
-
-      await userEvent.click(
-        await screen.findByRole('button', {
-          name: 'Actions for An external SSO provider slowed the response',
-        })
-      );
-      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Accept'}));
-
-      // The command response carries the updated projection, so the card
-      // changes without another read.
-      expect(await screen.findByText('Accepted by you')).toBeInTheDocument();
-      // Accepting settles the hypothesis, so its edge picks up the accent.
-      expect(screen.getAllByTestId('investigation-hypothesis')[1]).toHaveAttribute(
-        'data-border',
-        'accent'
-      );
-    });
-
-    it('clears a disposition back to the agent verdict', async () => {
-      renderStoryHypotheses();
-      // The panel is up before the projection lands, so wait for the real
-      // cards before opening it.
-      await screen.findAllByTestId('investigation-hypothesis');
-      await userEvent.click(screen.getByRole('button', {name: /Hypotheses/}));
-
-      const trigger = await screen.findByRole('button', {
-        name: 'Actions for An external SSO provider slowed the response',
-      });
-      await userEvent.click(trigger);
-      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Accept'}));
-      await screen.findByText('Accepted by you');
-
-      await userEvent.click(trigger);
-      await userEvent.click(
-        await screen.findByRole('menuitemradio', {name: 'Clear decision'})
-      );
-
-      expect(await screen.findByText('Refuted')).toBeInTheDocument();
-      // Back to the agent's verdict, so the edge breaks again.
-      expect(screen.getAllByTestId('investigation-hypothesis')[1]).toHaveAttribute(
-        'data-border',
-        'dashed'
-      );
-    });
-
-    it('puts a retried hypothesis back into investigation', async () => {
-      renderStoryHypotheses();
-      // The panel is up before the projection lands, so wait for the real
-      // cards before opening it.
-      await screen.findAllByTestId('investigation-hypothesis');
-      await userEvent.click(screen.getByRole('button', {name: /Hypotheses/}));
-
-      await userEvent.click(
-        await screen.findByRole('button', {
-          name: 'Actions for Session validation created a shared bottleneck',
-        })
-      );
-      await userEvent.click(
-        await screen.findByRole('menuitemradio', {name: 'Investigate again'})
-      );
-
-      expect(await screen.findByText('Verifying…')).toBeInTheDocument();
-      expect(screen.getByText('Inspect session and middleware spans')).toBeVisible();
-      expect(screen.queryByRole('listitem', {current: 'step'})).not.toBeInTheDocument();
     });
   });
 
@@ -364,7 +293,7 @@ describe('InvestigationFixtureApi', () => {
 
     it('edits and deletes comments, with actions only for the story viewer', async () => {
       const investigation = InvestigationDetailFixture({id: 'editing', blocks: []});
-      const commentsUrl = `/organizations/storybook-comments-edit-test/investigations/${investigation.id}/comments/`;
+      const commentsUrl = `/organizations/storybook-comments-edit-test/notebooks/${investigation.id}/comments/`;
 
       render(
         <InvestigationFixtureApi
@@ -459,7 +388,7 @@ describe('InvestigationFixtureApi', () => {
       expect(await screen.findByText('Fixture ready')).toBeInTheDocument();
       expect(
         await QUERY_API_CLIENT.requestPromise(
-          `/organizations/storybook-comment-counts-test/investigations/${commentedInvestigation.id}/comment-counts/`
+          `/organizations/storybook-comment-counts-test/notebooks/${commentedInvestigation.id}/comment-counts/`
         )
       ).toEqual({
         'commented-query': 3,

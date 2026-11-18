@@ -2,7 +2,7 @@ import {useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Container} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 
@@ -74,7 +74,7 @@ export function AwsLambdaArnSelector({
         <Select
           placeholder={t('Select Region')}
           options={options}
-          value={regionOption?.value}
+          value={regionOption?.value ?? null}
           onChange={option => {
             setRegion(option);
           }}

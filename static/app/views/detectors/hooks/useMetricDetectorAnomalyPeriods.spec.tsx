@@ -9,7 +9,8 @@ import {
 } from 'sentry/views/alerts/rules/metric/types';
 import {AnomalyType, type Anomaly} from 'sentry/views/alerts/types';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
-import {useMetricDetectorAnomalyPeriods} from 'sentry/views/detectors/hooks/useMetricDetectorAnomalyPeriods';
+
+import {useMetricDetectorAnomalyPeriods} from './useMetricDetectorAnomalyPeriods';
 
 const {organization} = initializeOrg();
 

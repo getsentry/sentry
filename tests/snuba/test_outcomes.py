@@ -1,17 +1,24 @@
+from collections.abc import Mapping
+from typing import Any
+
 from django.http import QueryDict
 
-from sentry.snuba.outcomes import QueryDefinition, massage_sessions_result
+from sentry.snuba.outcomes import (
+    QueryDefinition,
+    _RawSessionsResult,
+    massage_sessions_result,
+)
 from sentry.testutils.helpers.datetime import freeze_time
 
 
-def _make_query(qs, params=None):
+def _make_query(qs: str, params: dict[str, Any] | None = None) -> QueryDefinition:
     return QueryDefinition.from_query_dict(QueryDict(qs), params or {})
 
 
-def result_sorted(result):
+def result_sorted(result: _RawSessionsResult) -> _RawSessionsResult:
     """sort the groups of the results array by the `by` object, ensuring a stable order"""
 
-    def stable_dict(d):
+    def stable_dict(d: Mapping[str, Any]) -> tuple[Any, ...]:
         return tuple(sorted(d.items(), key=lambda t: t[0]))
 
     result["groups"].sort(key=lambda group: stable_dict(group["by"]))
@@ -22,7 +29,7 @@ def result_sorted(result):
 def test_massage_empty() -> None:
     query = _make_query("statsPeriod=1d&interval=1d&field=sum(quantity)&category=error")
 
-    expected_result = {
+    expected_result: dict[str, Any] = {
         "end": "2020-12-19T00:00:00Z",
         "groups": [],
         "intervals": ["2020-12-17T00:00:00Z", "2020-12-18T00:00:00Z"],

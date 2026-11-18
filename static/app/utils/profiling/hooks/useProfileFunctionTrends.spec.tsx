@@ -1,6 +1,6 @@
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useProfileFunctionTrends} from 'sentry/utils/profiling/hooks/useProfileFunctionTrends';
+import {useProfileFunctionTrends} from './useProfileFunctionTrends';
 
 describe('useProfileFunctionTrendss', () => {
   it('initializes with the loading state', () => {

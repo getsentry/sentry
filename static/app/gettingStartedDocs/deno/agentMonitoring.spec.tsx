@@ -3,7 +3,8 @@ import type {
   OnboardingStep,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {reactNodeToText} from 'sentry/components/onboarding/utils/stepsToMarkdown';
-import {agentMonitoring} from 'sentry/gettingStartedDocs/deno/agentMonitoring';
+
+import {agentMonitoring} from './agentMonitoring';
 
 function makeParams(platformOptions: Record<string, string> = {}): DocsParams {
   return {

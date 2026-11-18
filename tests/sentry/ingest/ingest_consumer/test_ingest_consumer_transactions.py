@@ -2,17 +2,22 @@ import datetime
 import random
 import time
 import uuid
+from collections.abc import Callable
+from typing import ContextManager
 
 import msgpack
 import orjson
 import pytest
+from confluent_kafka import Producer
 from django.conf import settings
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.consumers import get_stream_processor
 from sentry.event_manager import EventManager
+from sentry.models.project import Project
 from sentry.services import eventstore
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.pytest.kafka import _KafkaAdminWrapper
 from sentry.testutils.skips import requires_kafka, requires_snuba
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from sentry.utils.batching_kafka_consumer import create_topics
@@ -24,7 +29,7 @@ pytestmark = [requires_snuba, requires_kafka]
 MAX_POLL_ITERATIONS = 100
 
 
-def get_test_message(project):
+def get_test_message(project: Project) -> tuple[bytes, str]:
     """
     creates a test message to be inserted in a kafka queue
     """
@@ -73,12 +78,12 @@ def random_group_id() -> str:
 @django_db_all(transaction=True)
 @thread_leak_allowlist(reason="ingest consumers", issue=97037)
 def test_ingest_consumer_reads_from_topic_and_saves_event(
-    task_runner,
-    kafka_producer,
-    kafka_admin,
-    default_project,
-    random_group_id,
-):
+    task_runner: Callable[[], ContextManager[None]],
+    kafka_producer: Callable[[object], Producer],
+    kafka_admin: Callable[[object], _KafkaAdminWrapper],
+    default_project: Project,
+    random_group_id: str,
+) -> None:
     topic = Topic.INGEST_TRANSACTIONS
     topic_event_name = get_topic_definition(topic)["real_topic_name"]
 

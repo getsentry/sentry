@@ -107,29 +107,8 @@ def get_rules(
     project: Project,
     type_id: int | None = None,
 ) -> list[NotificationRuleDetails]:
-    legacy_rules = [rule for rule in rules if rule.legacy_rule_id is not None]
-    workflow_rules = [rule for rule in rules if rule.legacy_rule_id is None]
-
-    return get_workflow_links(workflow_rules, organization, project) + get_rules_with_legacy_ids(
-        legacy_rules, organization, project
-    )
-
-
-def get_rules_with_legacy_ids(
-    rules: Sequence[NotificationOrigin], organization: Organization, project: Project
-) -> list[NotificationRuleDetails]:
-    rules_with_legacy_ids = []
-    for rule in rules:
-        rule_id = rule.legacy_rule_id
-        assert rule_id is not None
-        rules_with_legacy_ids.append(
-            NotificationRuleDetails(
-                rule_id,
-                rule.label,
-                f"/organizations/{organization.slug}/issues/alerts/rules/{project.slug}/{rule_id}/details/",
-            )
-        )
-    return rules_with_legacy_ids
+    workflow_rules = [rule for rule in rules if rule.workflow_id is not None]
+    return get_workflow_links(workflow_rules, organization, project)
 
 
 def get_workflow_links(

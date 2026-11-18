@@ -36,6 +36,7 @@ SENTRY_TO_PROTO_CATEGORY: dict[int, int] = {
     int(DataCategory.PROFILE_BACKEND): ProtoDataCategory.DATA_CATEGORY_PROFILE_BACKEND,
     int(DataCategory.PROFILE_UI): ProtoDataCategory.DATA_CATEGORY_PROFILE_UI,
     int(DataCategory.TRACE_METRIC_BYTE): ProtoDataCategory.DATA_CATEGORY_TRACE_METRIC_BYTE,
+    int(DataCategory.SNAPSHOT_IMAGE): ProtoDataCategory.DATA_CATEGORY_SNAPSHOT_IMAGE,
 }
 
 

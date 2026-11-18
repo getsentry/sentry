@@ -4,7 +4,7 @@ import {TeamFixture} from 'sentry-fixture/team';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import OrganizationTeamProjects from 'sentry/views/settings/organizationTeams/teamProjects';
+import OrganizationTeamProjects from './teamProjects';
 
 describe('OrganizationTeamProjects', () => {
   let linkedProjectsMock!: jest.Mock;
@@ -163,7 +163,7 @@ describe('OrganizationTeamProjects', () => {
 
     await userEvent.click(await screen.findByText('Add Project'));
 
-    await userEvent.type(screen.getByRole('textbox'), 'a');
+    await userEvent.type(screen.getByRole('searchbox'), 'a');
 
     expect(filteredMock).toHaveBeenCalledTimes(1);
   });

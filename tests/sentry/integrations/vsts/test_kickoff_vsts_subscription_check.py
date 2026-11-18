@@ -17,7 +17,10 @@ PROVIDER = "vsts"
 
 def _get_subscription_data(external_id: str) -> Mapping[str, Any]:
     integration = Integration.objects.get(provider=PROVIDER, external_id=external_id)
-    return integration.metadata["subscription"]
+    subscription = integration.metadata["subscription"]
+    if not isinstance(subscription, Mapping):
+        raise TypeError("VSTS integration has no subscription metadata")
+    return subscription
 
 
 def assert_no_subscription(external_id: str, subscription_id: str) -> None:

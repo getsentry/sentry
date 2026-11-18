@@ -34,6 +34,7 @@ from sentry.issues.action_log.types import (
     SeerRCAStartedAction,
     SeerSolutionCompletedAction,
     SeerSolutionStartedAction,
+    SeerStoppedAction,
     SetEscalatingAction,
     SetPriorityAction,
     SetPrivateAction,
@@ -99,6 +100,7 @@ ACTIVITY_TYPE_TO_GROUP_ACTION_TYPE: Mapping[int, type[GroupAction]] = {
     ActivityType.SEER_CODING_COMPLETED.value: SeerCodingCompletedAction,
     ActivityType.SEER_PR_CREATED.value: SeerPRCreatedAction,
     ActivityType.SEER_PR_READY_FOR_REVIEW.value: SeerPRReadyForReviewAction,
+    ActivityType.SEER_STOPPED.value: SeerStoppedAction,
     ActivityType.SEER_ITERATION_STARTED.value: SeerIterationStartedAction,
     ActivityType.SEER_ITERATION_COMPLETED.value: SeerIterationCompletedAction,
     ActivityType.PULL_REQUEST_CLOSED.value: PullRequestClosedAction,
@@ -213,6 +215,9 @@ def activity_to_action(activity: "Activity") -> GroupAction | None:
     Does not publish the GroupAction to a GroupActionLogEntry.
     """
 
+    if activity.type == ActivityType.NOTE.value:
+        return CommentAction(comment_id=activity.id)
+
     # Ignore certain Activities that don't make sense to translate to GroupActions.
     if activity.type in ACTIVITY_TYPES_WITH_NO_ACTION:
         return None
@@ -247,10 +252,6 @@ def activity_to_action(activity: "Activity") -> GroupAction | None:
         # Translate from Activity data structure to GroupAction data structure.
         kwargs = kwargs.copy()  # Avoid mutating existing dict
         kwargs["counterpart_group_ids"] = [datum["id"] for datum in kwargs.get("issues", [])]
-
-    if activity.type == ActivityType.NOTE.value:
-        kwargs = kwargs.copy()  # Avoid mutating existing dict
-        kwargs["comment_id"] = activity.id
 
     # Pydantic lets you pass in whatever kwargs you want. If a kwarg matches some field,
     # Pydantic will set it - else Pydantic just ignores it.

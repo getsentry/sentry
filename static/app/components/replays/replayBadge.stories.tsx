@@ -1,8 +1,9 @@
 import {Stack} from '@sentry/scraps/layout';
 
-import {ReplayBadge} from 'sentry/components/replays/replayBadge';
 import * as Storybook from 'sentry/stories';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
+
+import {ReplayBadge} from './replayBadge';
 
 export default Storybook.story('ReplayBadge', story => {
   const ARCHIVED_REPLAY = mapResponseToReplayRecord({
