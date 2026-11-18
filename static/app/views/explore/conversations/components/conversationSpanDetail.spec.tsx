@@ -2,7 +2,7 @@ import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {act, render, screen} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
@@ -156,6 +156,40 @@ describe('ConversationSpanDetail', () => {
       expect(screen.getByText(value)).toAppearBefore(dashboardButton);
     }
   );
+
+  it('collapses previous turns in the input tab', async () => {
+    mockAttributes('chat-span', [
+      {name: 'gen_ai.operation.type', type: 'str', value: 'ai_client'},
+      {
+        name: 'gen_ai.input.messages',
+        type: 'str',
+        value: JSON.stringify([
+          {role: 'system', content: 'System prompt'},
+          {role: 'user', content: 'First question'},
+          {role: 'assistant', content: 'First answer'},
+          {role: 'user', content: 'Second question'},
+        ]),
+      },
+    ]);
+    render(
+      <ConversationSpanDetail
+        node={makeNode('chat-span', 'chat')}
+        traceId="trace-id"
+        activeTab="input"
+        onTabChange={jest.fn()}
+      />,
+      {organization}
+    );
+
+    expect(await screen.findByText('Second question')).toBeInTheDocument();
+    expect(screen.getByText('System prompt')).toBeInTheDocument();
+    expect(screen.queryByText('First question')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Show 2 previous messages'}));
+
+    expect(screen.getByText('First question')).toBeInTheDocument();
+    expect(screen.getByText('First answer')).toBeInTheDocument();
+  });
 
   it('shows a Decision tab in place of Input and Output on decision spans', async () => {
     mockDecisionAttributes();

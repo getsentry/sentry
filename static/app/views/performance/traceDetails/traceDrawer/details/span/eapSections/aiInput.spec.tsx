@@ -1,6 +1,6 @@
 import type {ComponentProps} from 'react';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {AIInputSection} from './aiInput';
 
@@ -138,5 +138,77 @@ describe('AIInputSection', () => {
         (_, element) => element?.tagName === 'CODE' && element.textContent === code
       )
     ).toBeInTheDocument();
+  });
+
+  describe('previous turns', () => {
+    const multiTurnMessages = [
+      {role: 'system', content: 'System prompt'},
+      {role: 'user', content: 'First question'},
+      {role: 'assistant', content: 'First answer'},
+      {role: 'user', content: 'Second question'},
+      {role: 'assistant', content: 'Calling a tool'},
+      {role: 'tool', content: 'Tool result'},
+    ];
+
+    it('collapses previous turns and shows the latest turn', async () => {
+      render(<AIInputSection node={makeAiNode(multiTurnMessages)} />);
+
+      expect(screen.getByText('System prompt')).toBeVisible();
+      expect(screen.queryByText('First question')).not.toBeInTheDocument();
+      expect(screen.queryByText('First answer')).not.toBeInTheDocument();
+      expect(screen.getByText('Second question')).toBeVisible();
+      expect(screen.getByText('Calling a tool')).toBeVisible();
+      expect(screen.getByText('Tool result')).toBeVisible();
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Show 2 previous messages'})
+      );
+
+      expect(screen.getByText('First question')).toBeVisible();
+      expect(screen.getByText('First answer')).toBeVisible();
+      expect(
+        screen.queryByRole('button', {name: /previous message/})
+      ).not.toBeInTheDocument();
+    });
+
+    it('does not treat tool-result-only user messages as a new turn', () => {
+      render(
+        <AIInputSection
+          node={makeAiNode([
+            {role: 'user', content: 'First question'},
+            {role: 'assistant', content: 'First answer'},
+            {role: 'user', content: 'Second question'},
+            {role: 'assistant', content: 'Calling a tool'},
+            {
+              role: 'user',
+              content: [{type: 'tool_result', tool_use_id: 'call_1', content: 'ok'}],
+            },
+          ])}
+        />
+      );
+
+      expect(
+        screen.getByRole('button', {name: 'Show 2 previous messages'})
+      ).toBeVisible();
+      expect(screen.getByText('Second question')).toBeVisible();
+      expect(screen.getByText('Calling a tool')).toBeVisible();
+    });
+
+    it('does not collapse a single previous message', () => {
+      render(
+        <AIInputSection
+          node={makeAiNode([
+            {role: 'system', content: 'System prompt'},
+            {role: 'assistant', content: 'Greeting'},
+            {role: 'user', content: 'Question'},
+          ])}
+        />
+      );
+
+      expect(screen.getByText('Greeting')).toBeVisible();
+      expect(
+        screen.queryByRole('button', {name: /previous message/})
+      ).not.toBeInTheDocument();
+    });
   });
 });
