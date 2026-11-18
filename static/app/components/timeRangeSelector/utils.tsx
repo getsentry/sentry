@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import moment from 'moment-timezone';
 
-import {DateTime, formatDateTime} from '@sentry/scraps/dateTime';
+import {DateTime, useDateTimeFormatter} from '@sentry/scraps/dateTime';
 
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t, tn} from 'sentry/locale';
@@ -164,46 +164,52 @@ export function getAbsoluteSummary(
   if (!start || !end) {
     return null;
   }
+  return <AbsoluteRangeSummary start={start} end={end} utc={Boolean(utc)} />;
+}
+
+function AbsoluteRangeSummary({
+  start,
+  end,
+  utc,
+}: {
+  end: Date | string;
+  start: Date | string;
+  utc: boolean;
+}) {
+  // Use the formatter that renders the labels, so a DateTimeProvider timezone
+  // override also decides whether the range covers full days.
+  const format = useDateTimeFormatter();
+  const timezone = utc ? 'UTC' : undefined;
   // Page filters serialize UTC without an offset. Convert at this boundary so
   // the formatter receives instants, including when displaying the viewer's timezone.
   const startDate = moment.utc(start).toDate();
   const endDate = moment.utc(end).toDate();
 
-  // XXX: These are NOT used for display purpose but only to determine if the
-  // dates are at the start or end of the day
-  const startTimeFormatted = formatDateTime(startDate, {
+  const timeOptions = {
     mode: 'time',
     precision: 'second',
     clock: '24',
     showTimezone: false,
-    timezone: utc ? 'UTC' : undefined,
-  });
-  const endTimeFormatted = formatDateTime(endDate, {
-    mode: 'time',
-    precision: 'second',
-    clock: '24',
-    showTimezone: false,
-    timezone: utc ? 'UTC' : undefined,
-  });
-
+    timezone,
+  } as const;
   const showDateOnly =
-    startTimeFormatted === DEFAULT_DAY_START_TIME &&
-    endTimeFormatted === DEFAULT_DAY_END_TIME;
+    format(startDate, timeOptions) === DEFAULT_DAY_START_TIME &&
+    format(endDate, timeOptions) === DEFAULT_DAY_END_TIME;
 
   return (
     <Fragment>
       <DateTime
         date={startDate}
         mode={showDateOnly ? 'date' : 'dateTime'}
-        timezone={utc ? 'UTC' : undefined}
-        showTimezone={!showDateOnly && Boolean(utc)}
+        timezone={timezone}
+        showTimezone={!showDateOnly && utc}
       />
       {'–'}
       <DateTime
         date={endDate}
         mode={showDateOnly ? 'date' : 'dateTime'}
-        timezone={utc ? 'UTC' : undefined}
-        showTimezone={!showDateOnly && Boolean(utc)}
+        timezone={timezone}
+        showTimezone={!showDateOnly && utc}
       />
     </Fragment>
   );
