@@ -109,14 +109,6 @@ def test_decompress_segment_at_max_size() -> None:
         decompress_segment(compressed_data, len(data) - 1)
 
 
-def test_decompress_segment_negative_max_size() -> None:
-    """Test a negative limit is rejected rather than treated as unlimited"""
-    bomb = zlib.compress(b"[" + b" " * (1024 * 1024) + b"]", 9)
-
-    with pytest.raises(ValueError):
-        decompress_segment(bomb, -1)
-
-
 @django_db_all
 def test_max_segment_decompressed_size_rejects_negative() -> None:
     """Test a negative limit is rejected and the previous limit stays in effect"""

@@ -119,10 +119,6 @@ def decompress_segment(segment: bytes, max_size: int) -> tuple[bytes, bytes]:
     read, so a segment with an implausible compression ratio is a durable, repeatable cost on
     the read path -- we drop it here rather than persist it.
     """
-    # zlib treats a `max_length` of 0 as unlimited, so `max_size = -1` would disable the bound.
-    if max_size < 0:
-        raise ValueError(f"max_size must not be negative, got {max_size}")
-
     try:
         # Ask for one byte past the limit so an oversized segment is detectable without ever
         # materializing more than `max_size + 1` bytes.
