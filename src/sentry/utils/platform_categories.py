@@ -131,6 +131,7 @@ SERVERLESS = {
     "node-gcpfunctions",
     "node-cloudflare-pages",
     "node-cloudflare-workers",
+    "php-bref",
     "python-awslambda",
     "python-azurefunctions",
     "python-gcpfunctions",

@@ -109,6 +109,18 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         project = Project.objects.get(id=response.data["id"])
         assert project.platform == "expo"
 
+    def test_php_bref_platform(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            name="bref app",
+            platform="php-bref",
+            status_code=201,
+        )
+
+        project = Project.objects.get(id=response.data["id"])
+        assert project.platform == "php-bref"
+
     def test_invalid_platform(self) -> None:
         response = self.get_error_response(
             self.organization.slug,
