@@ -117,7 +117,7 @@ export function MessageToolCalls({
     <CollapsibleChatRow
       // Keep the group open when one of its calls is the current selection so a
       // deep-linked/timeline-selected row stays visible instead of hidden.
-      defaultOpen={selectedToolCallId !== null}
+      openWhen={selectedToolCallId !== null}
       title={
         <Flex align="center" gap="sm" minWidth={0}>
           <Text size="sm" variant="muted">

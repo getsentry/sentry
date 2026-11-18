@@ -1005,6 +1005,28 @@ describe('MessagesPanel', () => {
       expect(mockOnSelectNode).toHaveBeenCalledWith(nodes.find(node => node.id === 'q1'));
     });
 
+    it('opens the sub-agent when the selected span inside it loads later', () => {
+      // The selected span is on a later page: the row first renders without it.
+      const nodes = createNodes();
+      const {rerender} = render(
+        <MessagesPanel
+          nodes={nodes.filter(node => node.id !== 'q1') as any}
+          selectedNodeId="q1"
+          onSelectNode={mockOnSelectNode}
+        />
+      );
+
+      rerender(
+        <MessagesPanel
+          nodes={nodes as any}
+          selectedNodeId="q1"
+          onSelectNode={mockOnSelectNode}
+        />
+      );
+
+      expect(screen.getByText('Query agent answer')).toBeVisible();
+    });
+
     it('opens the sub-agent that contains the selected span', () => {
       render(
         <MessagesPanel

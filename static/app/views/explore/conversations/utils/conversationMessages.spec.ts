@@ -2303,12 +2303,11 @@ describe('conversationMessages utilities', () => {
           reasoning: NOT_REPORTED,
           tools: undefined,
         },
-        {id: 'subagent-sub-agent', content: '', reasoning: undefined, tools: undefined},
         {
           id: 'assistant-gen-3',
           content: NOT_REPORTED,
           reasoning: undefined,
-          tools: ['search'],
+          tools: ['search', 'agent'],
         },
         {id: 'user-gen-4', content: NOT_REPORTED, reasoning: undefined, tools: undefined},
         {
@@ -2318,7 +2317,9 @@ describe('conversationMessages utilities', () => {
           tools: undefined,
         },
       ]);
-      const subAgent = messages.find(m => m.id === 'subagent-sub-agent')?.subAgent;
+      const subAgent = messages
+        .find(m => m.id === 'assistant-gen-3')
+        ?.toolCalls?.find(call => call.nodeId === 'sub-agent') as SubAgentCall;
       expect(subAgent?.messages.map(m => [m.id, m.content])).toEqual([
         ['user-gen-2', NOT_REPORTED],
         ['assistant-gen-2', NOT_REPORTED],
@@ -2550,29 +2551,53 @@ describe('conversationMessages utilities', () => {
       ).toEqual(['trace-tool']);
     });
 
-    it('places a sub-agent without a tool at its start time', () => {
+    it("orders a sub-agent without a tool among the next turn's tool calls", () => {
+      const nodes = [
+        agent('main', 'orchestrator', 0, 50),
+        generation('g1', 0, 10, 'main', {input: 'Plan a trip', output: 'Delegating'}),
+        tool('search', 'search', 11, 12, 'main'),
+        agent('sub', 'researcher', 13, 30, 'main'),
+        generation('s1', 14, 29, 'sub', {input: 'Find flights', output: 'Found 3'}),
+        tool('book', 'book', 31, 32, 'main'),
+        generation('g2', 33, 40, 'main', {output: 'Booked'}),
+      ];
+
+      const messages = extractMessagesFromNodes(nodes);
+
+      expect(messages.map(m => m.id)).toEqual([
+        'user-g1',
+        'assistant-g1',
+        'assistant-g2',
+      ]);
+      const calls = onlyMessage(messages, 'assistant-g2').toolCalls!;
+      expect(calls.map(call => [call.kind ?? 'tool', call.nodeId])).toEqual([
+        ['tool', 'search'],
+        ['subagent', 'sub'],
+        ['tool', 'book'],
+      ]);
+      const subAgent = calls[1] as SubAgentCall;
+      expect(subAgent).toMatchObject({name: 'researcher', preview: 'Find flights'});
+      expect(subAgent.viaNodeId).toBeUndefined();
+      expect(subAgent.messages.map(m => [m.id, m.content])).toEqual([
+        ['user-s1', 'Find flights'],
+        ['assistant-s1', 'Found 3'],
+      ]);
+    });
+
+    it('keeps a sub-agent that no turn follows as its own row', () => {
       const nodes = [
         agent('main', 'orchestrator', 0, 40),
         generation('g1', 0, 10, 'main', {input: 'Plan a trip', output: 'Delegating'}),
         agent('sub', 'researcher', 11, 30, 'main'),
         generation('s1', 12, 29, 'sub', {input: 'Find flights', output: 'Found 3'}),
-        generation('g2', 31, 40, 'main', {output: 'Booked'}),
       ];
 
-      const messages = extractMessagesFromNodes(nodes);
-
-      expect(messages.map(m => [m.id, m.role])).toEqual([
-        ['user-g1', 'user'],
-        ['assistant-g1', 'assistant'],
-        ['subagent-sub', 'subagent'],
-        ['assistant-g2', 'assistant'],
-      ]);
-      const subAgent = onlyMessage(messages, 'subagent-sub').subAgent;
-      expect(subAgent).toMatchObject({name: 'researcher', preview: 'Find flights'});
-      expect(subAgent?.viaNodeId).toBeUndefined();
-      expect(subAgent?.messages.map(m => [m.id, m.content])).toEqual([
-        ['user-s1', 'Find flights'],
-        ['assistant-s1', 'Found 3'],
+      expect(
+        extractMessagesFromNodes(nodes).map(m => [m.id, m.role, m.subAgent?.name])
+      ).toEqual([
+        ['user-g1', 'user', undefined],
+        ['assistant-g1', 'assistant', undefined],
+        ['subagent-sub', 'subagent', 'researcher'],
       ]);
     });
 

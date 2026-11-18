@@ -875,7 +875,9 @@ function toSubAgentCall(
 /**
  * Places sub-agents in a scope's messages. A sub-agent called through a tool
  * replaces that tool call in its turn. One without a tool call, or whose tool
- * call isn't in the transcript, becomes a message at its start time.
+ * call isn't in the transcript, joins the calls of the turn that follows it,
+ * ordered by start time with the tool calls that ran around it. Only one that
+ * no turn follows becomes a message of its own.
  */
 function attachSubAgentCalls(
   messages: ConversationMessage[],
@@ -886,43 +888,59 @@ function attachSubAgentCalls(
     return messages;
   }
 
-  const startOf = (call: SubAgentCall) => {
+  const startOf = (call: TurnCall) => {
     const node = nodesById.get(call.nodeId);
     return node ? getNodeStartTimestamp(node) : 0;
   };
-  const callsByToolId = new Map<string, SubAgentCall[]>();
-  for (const call of calls.toSorted((a, b) => startOf(a) - startOf(b))) {
-    if (call.viaNodeId) {
-      pushToMap(callsByToolId, call.viaNodeId, call);
-    }
-  }
-
   const toolIdsInTranscript = new Set(
     messages.flatMap(message => message.toolCalls?.map(call => call.nodeId) ?? [])
   );
-  const result = messages.map(message =>
-    message.toolCalls?.some(call => callsByToolId.has(call.nodeId))
-      ? {
-          ...message,
-          toolCalls: message.toolCalls.flatMap(
-            call => callsByToolId.get(call.nodeId) ?? [call]
-          ),
-        }
-      : message
-  );
 
+  const callsByToolId = new Map<string, SubAgentCall[]>();
+  const callsByMessageId = new Map<string, SubAgentCall[]>();
+  const unplacedCalls: SubAgentCall[] = [];
   for (const call of calls) {
-    if (!call.viaNodeId || !toolIdsInTranscript.has(call.viaNodeId)) {
-      result.push({
-        id: `subagent-${call.nodeId}`,
-        role: 'subagent',
-        content: '',
-        nodeId: call.nodeId,
-        timestamp: startOf(call),
-        duration: call.duration,
-        subAgent: call,
-      });
+    if (call.viaNodeId && toolIdsInTranscript.has(call.viaNodeId)) {
+      pushToMap(callsByToolId, call.viaNodeId, call);
+      continue;
     }
+    const nextTurn = messages.find(
+      message => message.role === 'assistant' && message.timestamp > startOf(call)
+    );
+    if (nextTurn) {
+      pushToMap(callsByMessageId, nextTurn.id, call);
+    } else {
+      unplacedCalls.push(call);
+    }
+  }
+
+  const result = messages.map(message => {
+    const joiningCalls = callsByMessageId.get(message.id) ?? [];
+    if (
+      joiningCalls.length === 0 &&
+      !message.toolCalls?.some(call => callsByToolId.has(call.nodeId))
+    ) {
+      return message;
+    }
+    const toolCalls = [
+      ...(message.toolCalls ?? []).flatMap(
+        call => callsByToolId.get(call.nodeId) ?? [call]
+      ),
+      ...joiningCalls,
+    ].sort((a, b) => startOf(a) - startOf(b));
+    return {...message, toolCalls};
+  });
+
+  for (const call of unplacedCalls) {
+    result.push({
+      id: `subagent-${call.nodeId}`,
+      role: 'subagent',
+      content: '',
+      nodeId: call.nodeId,
+      timestamp: startOf(call),
+      duration: call.duration,
+      subAgent: call,
+    });
   }
 
   result.sort((a, b) => a.timestamp - b.timestamp);

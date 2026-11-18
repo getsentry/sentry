@@ -58,7 +58,7 @@ export function SubAgentRow({
       showCaret={false}
       // Open when the selection is the sub-agent or inside it, so a deep-linked
       // or timeline-selected span stays visible instead of hidden.
-      defaultOpen={selectedNodeId !== null && callContainsNode(call, selectedNodeId)}
+      openWhen={selectedNodeId !== null && callContainsNode(call, selectedNodeId)}
       title={isOpen => (
         <Flex align="center" gap="sm" minWidth={0}>
           {node && <AiSpanStatusIcon node={node} />}

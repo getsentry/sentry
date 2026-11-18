@@ -444,7 +444,7 @@ const EmbeddingTurn = memo(function EmbeddingTurnImpl({
   return (
     <MessageRow from="assistant" density="line">
       <CollapsibleChatRow
-        defaultOpen={isSelected}
+        openWhen={isSelected}
         title={
           <Text
             size="sm"
