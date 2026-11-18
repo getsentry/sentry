@@ -1,6 +1,8 @@
 import * as Sentry from '@sentry/react';
+import {focusManager} from '@tanstack/react-query';
 import {DashboardListItemFixture} from 'sentry-fixture/dashboard';
 import {GroupSearchViewFixture} from 'sentry-fixture/groupSearchView';
+import {InboxItemFixture} from 'sentry-fixture/inboxItem';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
@@ -18,6 +20,7 @@ import {
 import * as modal from 'sentry/actionCreators/modal';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+import Inbox from 'sentry/views/inbox';
 import {Navigation} from 'sentry/views/navigation';
 
 import {
@@ -35,7 +38,6 @@ const ALL_AVAILABLE_FEATURES = [
   'dashboards-prebuilt-insights-dashboards',
   'session-replay-ui',
   'ourlogs-enabled',
-  'performance-view',
   'profiling',
   'visibility-explore-view',
 ];
@@ -103,11 +105,19 @@ function assertValidListHTML(list: HTMLElement) {
   });
 }
 
+function mockUnreadCount(count: number) {
+  return MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/inbox/count/',
+    body: {count},
+  });
+}
+
 function setupMocks() {
   ProjectsStore.reset();
   localStorage.clear();
   sessionStorage.clear();
   MockApiClient.clearMockResponses();
+  mockUnreadCount(0);
 
   ConfigStore.set('user', UserFixture());
   ConfigStore.set('customerDomain', null);
@@ -1668,6 +1678,125 @@ describe('desktop navigation', () => {
 
     describe('universal inbox', () => {
       const universalInbox = {features: [...ALL_AVAILABLE_FEATURES, 'universal-inbox']};
+
+      afterEach(() => {
+        focusManager.setFocused(undefined);
+      });
+
+      it('does not fetch unread counts when universal inbox is disabled', async () => {
+        const countRequest = mockUnreadCount(5);
+        render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({
+            organization: {
+              features: [
+                ...ALL_AVAILABLE_FEATURES,
+                'issue-inbox',
+                'universal-inbox-recording',
+              ],
+            },
+          })
+        );
+
+        const inboxLink = await screen.findByRole('link', {name: /Inbox/});
+        expect(inboxLink).toHaveAttribute(
+          'href',
+          '/organizations/org-slug/issues/inbox/'
+        );
+        expect(countRequest).not.toHaveBeenCalled();
+      });
+
+      it('updates the unread count after reading, removing, and restoring inbox items', async () => {
+        const firstItem = InboxItemFixture({title: 'First issue'});
+        const secondItem = InboxItemFixture({
+          id: '2',
+          subjectId: '2',
+          title: 'Second issue',
+        });
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/inbox/',
+          body: [firstItem, secondItem],
+        });
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/inbox/',
+          method: 'PUT',
+          body: {updatedCount: 1},
+        });
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/inbox/',
+          method: 'DELETE',
+          statusCode: 204,
+        });
+        mockUnreadCount(2);
+        render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+            <Inbox />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({
+            organization: universalInbox,
+            initialRouterConfig: {location: {pathname: '/organizations/org-slug/inbox/'}},
+          })
+        );
+        expect(
+          await screen.findByRole('link', {name: 'Inbox (2 unread items)'})
+        ).toBeInTheDocument();
+
+        mockUnreadCount(1);
+        await userEvent.click(
+          await screen.findByRole('checkbox', {name: 'Select First issue'})
+        );
+        await userEvent.click(screen.getByRole('button', {name: 'Mark as read'}));
+        expect(
+          await screen.findByRole('link', {name: 'Inbox (1 unread item)'})
+        ).toBeInTheDocument();
+
+        const readItem = {...firstItem, isUnread: false, unreadEventCount: 0};
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/inbox/',
+          body: [readItem],
+        });
+        mockUnreadCount(0);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Actions for Second issue'})
+        );
+        await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Remove'}));
+        expect(await screen.findByRole('link', {name: 'Inbox'})).toBeInTheDocument();
+
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/inbox/',
+          body: [readItem, secondItem],
+        });
+        mockUnreadCount(1);
+        await userEvent.click(await screen.findByRole('button', {name: 'Undo'}));
+        expect(
+          await screen.findByRole('link', {name: 'Inbox (1 unread item)'})
+        ).toBeInTheDocument();
+      });
+
+      it('refetches unread count when the window regains focus', async () => {
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/inbox/count/',
+          match: [MockApiClient.matchQuery({is_read: 'false'})],
+          body: {count: 2},
+        });
+        render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({organization: universalInbox})
+        );
+        expect(
+          await screen.findByRole('link', {name: 'Inbox (2 unread items)'})
+        ).toBeInTheDocument();
+
+        mockUnreadCount(0);
+        act(() => focusManager.setFocused(false));
+        act(() => focusManager.setFocused(true));
+        expect(await screen.findByRole('link', {name: 'Inbox'})).toBeInTheDocument();
+      });
 
       it('does not render a secondary navigation on the inbox', () => {
         render(

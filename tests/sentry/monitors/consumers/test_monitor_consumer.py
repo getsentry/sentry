@@ -1075,7 +1075,7 @@ class MonitorConsumerTest(TestCase):
         assert checkins[0].status == CheckInStatus.IN_PROGRESS
 
         # Test invalid implicit duration
-        old_checkin = MonitorCheckIn.objects.create(
+        old_checkin = self.create_monitor_checkin(
             monitor_environment=MonitorEnvironment.objects.get(monitor=monitor),
             status=CheckInStatus.IN_PROGRESS,
             date_added=monitor.date_added - timedelta(weeks=52),

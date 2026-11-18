@@ -12,6 +12,7 @@ import unescape from 'lodash/unescape';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
+import {mergeChartBands} from 'sentry/components/charts/bands/mergeChartBands';
 import {BaseChart} from 'sentry/components/charts/baseChart';
 import type {LegendItem} from 'sentry/components/charts/chartLegend';
 import {ChartLegend} from 'sentry/components/charts/chartLegend';
@@ -22,7 +23,6 @@ import {
 } from 'sentry/components/charts/useChartXRangeSelection';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
-import {mergeDroppedDataBand} from 'sentry/components/droppedData/band/mergeDroppedDataBand';
 import {useDroppedDataBand} from 'sentry/components/droppedData/band/useDroppedDataBand';
 import type {DroppedDataProps} from 'sentry/components/droppedData/types';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -495,7 +495,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const droppedDataBand = useDroppedDataBand({
     chartRef,
     droppedData: props.droppedData,
-    bandOffset: releaseBandHeight,
     utc,
   });
 
@@ -706,7 +705,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // This ensures that when the legend is clicked, none of the series are permanently hidden.
   const normalizedLegendSelection = chartLegendItems.reduce<Record<string, boolean>>(
     (acc, item) => {
-      acc[item.name] = legendSelection[item.name] !== false;
+      acc[item.name] = !showLegend || legendSelection[item.name] !== false;
       return acc;
     },
     {}
@@ -763,7 +762,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     }
   };
 
-  const band = mergeDroppedDataBand(
+  const band = mergeChartBands(
     {
       grid: {
         // NOTE: Adding a few pixels of left padding prevents ECharts from
@@ -780,8 +779,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       series: allSeries,
       onClick: handleClick,
     },
-    droppedDataBand,
-    props.droppedData?.onClick
+    [droppedDataBand],
+    {offset: releaseBandHeight}
   );
 
   const legend = showLegend ? (
@@ -813,14 +812,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           renderer="canvas"
           series={band.series}
           grid={{...band.grid, ...xAxisGrid}}
-          legend={
-            showLegend
-              ? {
-                  show: false,
-                  selected: normalizedLegendSelection,
-                }
-              : undefined
-          }
+          legend={{show: false, selected: normalizedLegendSelection}}
           onLegendSelectChanged={handleLegendSelectChanged}
           tooltip={{
             appendToBody: true,

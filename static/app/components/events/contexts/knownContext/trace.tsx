@@ -69,13 +69,12 @@ export function getTraceContextData({
             const link = event
               ? getTraceTargetFromEvent(event, organization, location)
               : undefined;
-            const hasPerformanceView = organization.features.includes('performance-view');
 
             return {
               key: ctxKey,
               subject: t('Trace ID'),
               value: traceId,
-              action: hasPerformanceView ? {link} : undefined,
+              action: {link},
             };
           }
 
@@ -161,14 +160,6 @@ export function getTraceContextData({
             return;
           }
           const transactionName = eventTag.value;
-
-          if (!organization.features.includes('performance-view')) {
-            return {
-              key: ctxKey,
-              subject: t('Transaction'),
-              value: transactionName,
-            };
-          }
 
           const link = transactionSummaryRouteWithQuery({
             organization,

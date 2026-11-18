@@ -17,6 +17,7 @@ interface ChartProps {
   datetime: PageFilterDatetime;
   evidenceData: BreakpointEvidenceData;
   percentileData: EventBreakpointChartData['percentileData'];
+  resolvedAt?: EventBreakpointChartData['resolvedAt'];
 }
 
 export function LineChart({
@@ -24,6 +25,7 @@ export function LineChart({
   percentileData,
   evidenceData,
   chartType,
+  resolvedAt,
 }: ChartProps) {
   const theme = useTheme();
   const normalizedDateTime = {
@@ -35,11 +37,11 @@ export function LineChart({
 
   const {series, chartOptions} = useMemo(() => {
     return getBreakpointChartOptionsFromData(
-      {percentileData, evidenceData},
+      {percentileData, evidenceData, resolvedAt},
       chartType,
       theme
     );
-  }, [percentileData, evidenceData, chartType, theme]);
+  }, [percentileData, evidenceData, resolvedAt, chartType, theme]);
 
   return (
     <EChartsLineChart

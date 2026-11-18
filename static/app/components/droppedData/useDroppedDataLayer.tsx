@@ -15,7 +15,7 @@ import {datasetNoun, droppedDataLabel} from './outcomes';
 import type {DroppedDataProps} from './types';
 import {useDroppedData, type UseDroppedDataParams} from './useDroppedData';
 
-const DROPPED_DATA_LAYER = 'dropped-data';
+export const DROPPED_DATA_LAYER = 'dropped-data';
 
 const SUPPORTED_DATASETS = new Set<DiscoverDatasets>([
   DiscoverDatasets.ERRORS,
