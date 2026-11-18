@@ -35,6 +35,11 @@ from sentry.seer.workflows.base import (
     lock_config,
     validate_service_account_grant,
 )
+from sentry.seer.workflows.configuration import (
+    create_backing_workflow,
+    default_action_settings,
+    read_extras,
+)
 from sentry.seer.workflows.definitions import get_definition
 from sentry.service_accounts.models import (
     MAX_NAME_LENGTH,
@@ -60,7 +65,7 @@ class SeerWorkflow:
 
     Each change applies to fresh state under the config's row lock. Returned models do not
     carry a lock or refresh automatically. What starts the automation's runs and what they do
-    come from its strategy's ``AutomationDefinition``.
+    are configured on its backing WFE workflow.
     """
 
     config_id: int
@@ -84,20 +89,20 @@ class SeerWorkflow:
                 Organization.objects.using(database).select_for_update().filter(id=organization_id)
             )
             existing = set(configs.values_list("strategy", flat=True))
-            SeerWorkflowConfig.objects.using(database).bulk_create(
-                [
-                    SeerWorkflowConfig(
-                        organization_id=organization_id,
-                        strategy=strategy.value,
-                        filters=SeerWorkflowFilters(all_projects=True).dict(),
-                        extras=SeerWorkflowConfigExtras(seeded_default=strategy).dict(
-                            exclude_none=True
-                        ),
-                    )
-                    for strategy in SEER_DEFAULT_WORKFLOW_STRATEGIES
-                    if strategy.value not in existing
-                ]
-            )
+            for strategy in SEER_DEFAULT_WORKFLOW_STRATEGIES:
+                if strategy.value in existing:
+                    continue
+                extras = SeerWorkflowConfigExtras(seeded_default=strategy)
+                config = SeerWorkflowConfig.objects.using(database).create(
+                    organization_id=organization_id,
+                    strategy=strategy.value,
+                    filters=SeerWorkflowFilters(all_projects=True).dict(),
+                    extras=extras.dict(exclude_none=True),
+                )
+                config.backing_workflow = create_backing_workflow(
+                    config, extras=extras, enabled=False
+                )
+                config.save(update_fields=["backing_workflow"])
 
     @overload
     @classmethod
@@ -157,7 +162,9 @@ class SeerWorkflow:
         # default automation, and connect new projects' default monitors as they are created.
         if strategy not in SEER_CONFIGURABLE_WORKFLOW_STRATEGIES:
             raise WorkflowUpdateError(f"{strategy} automations cannot be configured")
-        extras = extras or SeerWorkflowConfigExtras()
+        extras = (extras or SeerWorkflowConfigExtras()).copy(deep=True)
+        if extras.action_settings is None:
+            extras.action_settings = default_action_settings(strategy).dict()
         definition = get_definition(strategy)
         definition.validate_settings(extras)
         validate_service_account_grant(organization_id, service_account_grant)
@@ -181,11 +188,17 @@ class SeerWorkflow:
                 config = SeerWorkflowConfig.objects.using(database).create(
                     organization_id=organization_id,
                     strategy=strategy,
-                    enabled=enabled,
+                    enabled=False,
                     schedule=schedule,
                     filters=SeerWorkflowFilters(environments=list(environments)).dict(),
-                    extras=extras.dict(exclude_none=True),
+                    extras=extras.dict(
+                        exclude_none=True, exclude={"name", "created_by", "action_settings"}
+                    ),
                 )
+                config.backing_workflow = create_backing_workflow(
+                    config, extras=extras, enabled=enabled
+                )
+                config.save(update_fields=["backing_workflow"])
                 service_account_create_outbox(
                     organization_id=organization_id,
                     owner_kind=ServiceAccountOwnerKind.SEER_WORKFLOW_CONFIG,
@@ -228,7 +241,7 @@ class SeerWorkflow:
 
     @property
     def extras(self) -> SeerWorkflowConfigExtras:
-        return SeerWorkflowConfigExtras.parse_obj(self.get_config().extras)
+        return read_extras(self.get_config())
 
     @property
     def filters(self) -> SeerWorkflowFilters:
@@ -267,7 +280,7 @@ class SeerWorkflow:
         return counts["selected"] > 0 and counts["selected"] == counts["total"]
 
     def delete(self) -> None:
-        """Delete the config with its project links, runs, trigger bindings, and service account."""
+        """Delete the config, backing workflow, project links, runs, and service account."""
         self._delete_service_account()
         with lock_config(self.organization_id, self.config_id) as config:
             get_definition(config.strategy).trigger.teardown(config)
@@ -337,8 +350,10 @@ class SeerWorkflow:
             )
 
     def _config_queryset(self) -> QuerySet[SeerWorkflowConfig]:
-        return SeerWorkflowConfig.objects.using(router.db_for_write(SeerWorkflowConfig)).filter(
-            id=self.config_id, organization_id=self.organization_id
+        return (
+            SeerWorkflowConfig.objects.using(router.db_for_write(SeerWorkflowConfig))
+            .select_related("backing_workflow")
+            .filter(id=self.config_id, organization_id=self.organization_id)
         )
 
 

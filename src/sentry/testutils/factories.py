@@ -204,7 +204,6 @@ from sentry.seer.models.workflow import (
     SeerWorkflowConfigProject,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
-    SeerWorkflowTriggerBinding,
 )
 from sentry.seer.workflows.base import SelectedMonitors
 from sentry.seer.workflows.workflow import SeerWorkflow
@@ -3630,9 +3629,40 @@ class Factories:
         monitors: Sequence[Detector] = (),
         **kwargs: Any,
     ) -> SeerWorkflowConfig:
+        from sentry.seer.models.workflow import (
+            SEER_CONFIGURABLE_WORKFLOW_STRATEGIES,
+            SeerWorkflowConfigExtras,
+        )
+        from sentry.seer.workflows.configuration import (
+            create_backing_workflow,
+            investigation_actions,
+        )
+        from sentry.workflow_engine.models import (
+            DataConditionGroupAction,
+        )
+
         config = SeerWorkflowConfig.objects.create(organization=organization, **kwargs)
-        for action in trigger_actions:
-            Factories.create_seer_workflow_trigger_binding(config, action)
+        if (
+            config.strategy in SEER_CONFIGURABLE_WORKFLOW_STRATEGIES
+            and config.backing_workflow_id is None
+        ):
+            config.backing_workflow = create_backing_workflow(
+                config,
+                extras=SeerWorkflowConfigExtras.parse_obj(config.extras),
+                enabled=config.enabled,
+            )
+            config.extras = {
+                key: value
+                for key, value in config.extras.items()
+                if key not in {"name", "created_by", "action_settings"}
+            }
+            config.save(update_fields=["backing_workflow", "extras"])
+        if trigger_actions:
+            for default_action in investigation_actions(config):
+                DataConditionGroupAction.objects.filter(action=default_action).delete()
+                default_action.delete()
+            for action in trigger_actions:
+                Factories.create_seer_workflow_action(config, action)
         if monitors:
             workflow = SeerWorkflow(config_id=config.id, organization_id=config.organization_id)
             with workflow.update_config() as update:
@@ -3642,12 +3672,17 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)
-    def create_seer_workflow_trigger_binding(
-        config: SeerWorkflowConfig, action: Action
-    ) -> SeerWorkflowTriggerBinding:
-        return SeerWorkflowTriggerBinding.objects.create(
-            workflow_config=config, trigger_action=action
+    def create_seer_workflow_action(config: SeerWorkflowConfig, action: Action) -> Action:
+        from sentry.workflow_engine.models import (
+            DataConditionGroupAction,
+            WorkflowDataConditionGroup,
         )
+
+        group_id = WorkflowDataConditionGroup.objects.get(
+            workflow_id=config.backing_workflow_id
+        ).condition_group_id
+        DataConditionGroupAction.objects.get_or_create(condition_group_id=group_id, action=action)
+        return action
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)

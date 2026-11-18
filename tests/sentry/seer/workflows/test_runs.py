@@ -18,8 +18,10 @@ from sentry.seer.models.workflow import (
     SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
     WorkflowRunError,
+    WorkflowRunSnapshot,
 )
-from sentry.seer.workflows.base import AdmittedRun, SelectedProjects, lock_config
+from sentry.seer.workflows.admission import AdmittedRun, admit_run
+from sentry.seer.workflows.base import SelectedProjects, lock_config
 from sentry.seer.workflows.definitions import get_definition
 from sentry.seer.workflows.runs import (
     InvalidWorkflowTransition,
@@ -191,8 +193,17 @@ class WorkflowRunTest(TestCase):
 
 def admit(workflow: SeerWorkflow, *, trigger_key: str, inputs: BaseModel) -> AdmittedRun:
     with lock_config(workflow.organization_id, workflow.config_id) as config:
-        return get_definition(config.strategy).admit_run(
-            config, trigger_key=trigger_key, inputs=inputs
+        return admit_run(
+            config,
+            trigger_key=trigger_key,
+            build_snapshot=lambda: WorkflowRunSnapshot(
+                config_version=config.version,
+                strategy=SeerWorkflowStrategy(config.strategy),
+                filters=config.filters,
+                project_ids=tuple(get_definition(config.strategy).project_ids(config)),
+                output_policy=config.output_policy,
+                inputs=inputs.dict(),
+            ),
         )
 
 

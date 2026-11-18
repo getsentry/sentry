@@ -67,6 +67,7 @@ class SiloRouter:
     """
 
     historical_silo_assignments = {
+        "seer_workflowtriggerbinding": SiloMode.CELL,
         "authidentity_duplicate": SiloMode.CONTROL,
         "authprovider_duplicate": SiloMode.CONTROL,
         "feedback_feedback": SiloMode.CELL,

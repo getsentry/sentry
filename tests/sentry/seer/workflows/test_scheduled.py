@@ -20,11 +20,11 @@ from sentry.seer.models.workflow import (
     SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
 )
-from sentry.seer.workflows.base import AutomationDefinition
+from sentry.seer.workflows import admission
+from sentry.seer.workflows.breached_metrics import SeerInvestigationActionHandler
 from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
 from sentry.seer.workflows.scheduled import (
     SCHEDULED_EXECUTION_FEATURE,
-    PromptedInvestigationAction,
     ScheduledRunInputs,
     SeerWorkflowTriggerHandler,
     record_scheduled_automation_run,
@@ -128,7 +128,7 @@ class RecordScheduledAutomationRunTest(TestCase):
             target_ids=[config_id],
         )
 
-    @patch.object(PromptedInvestigationAction, "dispatch")
+    @patch.object(SeerInvestigationActionHandler, "dispatch")
     def test_admits_a_cron_run_and_delegates_dispatch(self, mock_dispatch: MagicMock) -> None:
         self.run_task()
 
@@ -148,7 +148,7 @@ class RecordScheduledAutomationRunTest(TestCase):
         assert snapshot.strategy == SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
         assert snapshot.inputs == {"source": "cron", "scheduled_for": "2024-03-10T10:00:00+00:00"}
 
-    @patch.object(PromptedInvestigationAction, "dispatch")
+    @patch.object(SeerInvestigationActionHandler, "dispatch")
     def test_duplicate_delivery_records_one_run(self, mock_dispatch: MagicMock) -> None:
         self.run_task()
         self.run_task()
@@ -157,7 +157,7 @@ class RecordScheduledAutomationRunTest(TestCase):
         mock_dispatch.assert_called_once()
 
     @patch("sentry.seer.workflows.scheduled.metrics.incr")
-    @patch.object(PromptedInvestigationAction, "dispatch")
+    @patch.object(SeerInvestigationActionHandler, "dispatch")
     def test_records_outcome(self, mock_dispatch: MagicMock, mock_incr: MagicMock) -> None:
         self.run_task()
         self.run_task()
@@ -177,17 +177,14 @@ class RecordScheduledAutomationRunTest(TestCase):
             ),
         ]
 
-    def test_unimplemented_dispatch_rolls_back_admission(self) -> None:
-        with pytest.raises(NotImplementedError, match="dispatch is not implemented"):
-            self.run_task()
+    def test_missing_service_account_records_failed_execution(self) -> None:
+        self.run_task()
+        (run,) = self.runs()
+        assert run.status == SeerWorkflowRunStatus.FAILED
+        execution = run.executions.get()
+        assert execution.extras["error"]["code"] == "service_account_unavailable"
 
-        assert self.runs() == []
-        assert not SeerWorkflowRunExecution.objects.filter(
-            run__organization_id=self.organization.id
-        ).exists()
-        assert self.is_scheduled()
-
-    @patch.object(PromptedInvestigationAction, "dispatch")
+    @patch.object(SeerInvestigationActionHandler, "dispatch")
     def test_failed_dispatch_can_retry_admission(self, mock_dispatch: MagicMock) -> None:
         mock_dispatch.side_effect = RuntimeError("dispatch failed")
         with pytest.raises(RuntimeError, match="dispatch failed"):
@@ -213,7 +210,7 @@ class RecordScheduledAutomationRunTest(TestCase):
         assert self.is_scheduled()
 
     def test_quota_exceeded_rejects_the_run(self) -> None:
-        with patch.object(AutomationDefinition, "has_quota_available", return_value=False):
+        with patch.object(admission, "has_quota_available", return_value=False):
             self.run_task()
 
         (run,) = self.runs()
@@ -228,7 +225,8 @@ class RecordScheduledAutomationRunTest(TestCase):
 
     def test_disabled_config_clears_its_stale_schedule(self) -> None:
         # Disabled without going through update_config, so the schedule was left behind.
-        SeerWorkflowConfig.objects.filter(id=self.config.id).update(enabled=False)
+        assert self.config.backing_workflow is not None
+        self.config.backing_workflow.update(enabled=False)
 
         self.run_task()
 
@@ -349,6 +347,7 @@ class SyncScheduleTest(TestCase):
         sync_schedule(config)
         assert self.next_run(config) == datetime(2024, 3, 10, 10, 0, tzinfo=UTC)
 
-        config.enabled = False
+        assert config.backing_workflow is not None
+        config.backing_workflow.update(enabled=False)
         sync_schedule(config)
         assert self.next_run(config) is None
