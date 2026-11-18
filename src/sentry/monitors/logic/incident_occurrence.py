@@ -140,7 +140,6 @@ def send_incident_occurrence(
 
     last_successful = incident.last_successful_timestamp
     if last_successful is None:
-        # Unset on incidents opened before migration 0029 until the backfill runs.
         last_successful_checkin = monitor_env.get_last_successful_checkin()
         if last_successful_checkin:
             last_successful = last_successful_checkin.date_added
