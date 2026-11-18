@@ -44,9 +44,7 @@ export interface LoadableChartWidgetProps {
   pageFilters?: PageFilters;
 
   /**
-   * Show releases as either lines per release, a bubble for a group of
-   * releases, or a band under the plot that marks each chart bucket with
-   * releases.
+   * Show releases as either lines per release or a bubble for a group of releases.
    */
-  showReleaseAs?: 'band' | 'bubble' | 'line' | 'none';
+  showReleaseAs?: 'bubble' | 'line' | 'none';
 }
