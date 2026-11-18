@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING, Any, ContextManager, Protocol, overload
 import pytest
 import requests
 import yaml
+from django.apps import apps
 from django.conf import LazySettings
 from django.core.cache import cache
 from django.core.cache.backends.base import BaseCache
@@ -401,9 +402,12 @@ def skip_snuba_writes_unless_test_requires_snuba(
     If a test reads that data back from Snuba, mark it `@requires_snuba` or base it on
     `SnubaTestCase`.
     """
-    if _SNUBA_FIXTURES.intersection(request.fixturenames) or request.node.get_closest_marker(
-        "snuba"
-    ):
+    declares_snuba = bool(_SNUBA_FIXTURES.intersection(request.fixturenames)) or bool(
+        request.node.get_closest_marker("snuba")
+    )
+    # Without Django apps (this plugin loaded on its own) no model can be saved, and
+    # patching would import sentry models.
+    if declares_snuba or not apps.ready:
         yield
         return
 

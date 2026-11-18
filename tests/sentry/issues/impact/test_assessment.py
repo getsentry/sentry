@@ -7,8 +7,10 @@ import pytest
 from sentry.issues.impact.assessment import assess_impact_for_group
 from sentry.issues.impact.types import IMPACT_FEATURE_ID
 from sentry.testutils.cases import TestCase
+from sentry.testutils.skips import requires_snuba
 
 
+@requires_snuba
 class AssessImpactForGroupTest(TestCase):
     @patch("sentry.issues.impact.assessment.SeerAgentClient")
     def test_starts_seer_feature_run(self, mock_client_cls: MagicMock) -> None:

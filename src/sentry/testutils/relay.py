@@ -11,6 +11,7 @@ from django.conf import LazySettings
 from sentry.models.eventattachment import PendingEventAttachment
 from sentry.services import eventstore
 from sentry.testutils.helpers import get_auth_header
+from sentry.testutils.skips import requires_snuba
 
 if TYPE_CHECKING:
     from sentry.services.eventstore.models import Event
@@ -36,6 +37,7 @@ def _get_event(project_id: int, event_id: str) -> Event | None:
     )
 
 
+@requires_snuba
 class RelayStoreHelper(RequiredBaseclass):
     """
     Tests that post to the store entry point should use this helper class

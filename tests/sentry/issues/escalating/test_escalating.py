@@ -31,6 +31,7 @@ from sentry.testutils.cases import (
     TestCase,
 )
 from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.skips import requires_snuba
 from sentry.types.group import GroupSubStatus
 from sentry.utils.cache import cache
 from sentry.utils.snuba import to_start_of_hour
@@ -43,6 +44,7 @@ TIME_YESTERDAY = (datetime.now() - timedelta(hours=24)).replace(
 )
 
 
+@requires_snuba
 class BaseGroupCounts(TestCase):
     def _create_events_for_group(
         self,

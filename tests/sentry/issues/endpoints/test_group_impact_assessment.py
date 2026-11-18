@@ -9,9 +9,11 @@ from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.issues.impact.types import IMPACT_FEATURE_ID
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunType
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.skips import requires_snuba
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
+@requires_snuba
 class GroupImpactAssessmentEndpointTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()

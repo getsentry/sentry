@@ -7,6 +7,7 @@ from sentry.receivers import create_default_projects
 from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.silo import no_silo_test
+from sentry.testutils.skips import requires_snuba
 
 EMAILS = (
     ("/debug/mail/assigned/", "assigned"),
@@ -71,6 +72,7 @@ def replace_amp(text: str) -> str:
 
 
 @no_silo_test
+@requires_snuba
 class EmailTestCase(AcceptanceTestCase):
     def setUp(self) -> None:
         super().setUp()

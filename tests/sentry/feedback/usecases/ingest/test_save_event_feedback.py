@@ -13,6 +13,7 @@ from sentry.models.project import Project
 from sentry.models.userreport import UserReport
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.testutils.skips import requires_snuba
 from tests.sentry.feedback import mock_feedback_event
 
 
@@ -44,6 +45,7 @@ def test_save_event_feedback_no_associated_event(
     "timestamp_format",
     ["number", "iso"],
 )
+@requires_snuba
 def test_save_event_feedback_with_associated_event(
     default_project: Project, mock_create_feedback_issue: MagicMock, timestamp_format: str
 ) -> None:

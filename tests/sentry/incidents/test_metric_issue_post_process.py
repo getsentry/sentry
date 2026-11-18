@@ -8,6 +8,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.services import eventstore
 from sentry.tasks.post_process import post_process_group
+from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 from sentry.workflow_engine.models import Action, Detector
@@ -18,6 +19,7 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 @patch("sentry.workflow_engine.tasks.actions.trigger_action.apply_async")
+@requires_snuba
 class MetricIssueIntegrationTest(BaseWorkflowTest, BaseMetricIssueTest):
     def setUp(self) -> None:
         super().setUp()

@@ -17,6 +17,7 @@ from sentry.seer.fetch_issues.by_function_name import (
 from sentry.seer.fetch_issues.utils import RepoProjects, get_repo_and_projects
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.skips import requires_snuba
 from tests.sentry.seer.fetch_issues.test_by_text_query import CreateEventTestCase
 
 
@@ -83,6 +84,7 @@ class TestGetProjectsAndFilenamesFromSourceFile(IntegrationTestCase, CreateEvent
         assert "file.py" in filenames
 
 
+@requires_snuba
 class TestGetIssuesForFile(CreateEventTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -280,6 +282,7 @@ class TestGetIssuesForFile(CreateEventTestCase):
         assert group2.id in group_ids
 
 
+@requires_snuba
 class TestFetchIssues(IntegrationTestCase, CreateEventTestCase):
     provider = GitHubIntegrationProvider
 
@@ -452,6 +455,7 @@ class TestFetchIssues(IntegrationTestCase, CreateEventTestCase):
         assert first_issue["id"] == str(group.id)
 
 
+@requires_snuba
 class TestFetchIssuesFromRepoProjects(IntegrationTestCase, CreateEventTestCase):
     provider = GitHubIntegrationProvider
 
