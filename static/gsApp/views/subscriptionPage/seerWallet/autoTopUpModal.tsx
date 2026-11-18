@@ -14,6 +14,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 import {ToggleCard} from '@sentry/scraps/toggleCard';
 
+import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
@@ -22,16 +23,22 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {
+  seerCreditCheckApiOptions,
   seerCreditChecksFilter,
   type SeerCreditDenialReason,
 } from 'sentry/utils/seer/useSeerCreditCheck';
 
-import {SeerContactAdminButton} from 'getsentry/components/ai/seerOutOfCreditsNotice';
+import {
+  getDailyLimitResetsAt,
+  SeerContactAdminButton,
+} from 'getsentry/components/ai/seerOutOfCreditsNotice';
 import {useSeerTopUpRequest} from 'getsentry/components/ai/useSeerTopUpRequest';
 import {AuthenticatePayment} from 'getsentry/components/authenticatePayment';
 import {CreditCardForm} from 'getsentry/components/creditCardEdit/form';
 import {StripeWrapper} from 'getsentry/components/stripeWrapper';
+import {withSubscription} from 'getsentry/components/withSubscription';
 import {usePaymentIntentData} from 'getsentry/hooks/useIntentData';
+import type {Subscription} from 'getsentry/types';
 import {displayPrice, displayPriceWithCents} from 'getsentry/utils/billing';
 import {
   seerWalletAutoTopUpOptions,
@@ -46,8 +53,9 @@ const AMOUNT_PRESETS_CENTS = [DEFAULT_AMOUNT_CENTS, 2500, 5000];
 interface AutoTopUpModalOptions {
   organization: Organization;
   /**
-   * Why Seer stopped, when whoever opened the modal knows. A member's request to
-   * their admins says so, which picks the email the admins get.
+   * Why Seer stopped, when whoever opened the modal knows, such as a link from
+   * Slack. Members are told the credit check's current reason instead when it
+   * has one, since the link may be old.
    */
   denialReason?: SeerCreditDenialReason | null;
 }
@@ -134,8 +142,7 @@ function AutoTopUpHeader({Header}: Pick<ModalRenderProps, 'Header'>) {
   );
 }
 
-// Members can't see the wallet, so the message says only what the link told the
-// modal stopped Seer.
+// Members can't read auto-reload, so the message says only what stopped Seer.
 const MEMBER_MESSAGE: Record<SeerCreditDenialReason | 'unknown', string> = {
   not_enough_credits: t(
     'Your organization ran out of Seer credits. Only owners and billing members can manage auto-reload, so ask your admin to turn it on.'
@@ -149,34 +156,80 @@ const MEMBER_MESSAGE: Record<SeerCreditDenialReason | 'unknown', string> = {
 };
 
 /**
+ * Why Seer is stopped now. A link's reason can be a day old, and the daily
+ * usage limit resets at midnight UTC, so the credit check's answer wins. The
+ * link's reason only counts when the check doesn't run or fails.
+ */
+function useCurrentDenialReason(
+  organization: Organization,
+  linkDenialReason: SeerCreditDenialReason | null | undefined
+) {
+  // Same gate as useSeerCreditCheck. Members can call the check.
+  const isChecking =
+    organization.features.includes('seer-credit-checks') &&
+    organization.features.includes('token-billed-seer-enabled');
+  const {data, isPending} = useQuery({
+    ...seerCreditCheckApiOptions(organization, 'agent_chat_message'),
+    enabled: isChecking,
+    retry: false,
+  });
+
+  if (isChecking && data) {
+    return {
+      denialReason: data.hasEnoughCredits ? null : data.denialReason,
+      isPending: false,
+    };
+  }
+  return {denialReason: linkDenialReason ?? null, isPending: isChecking && isPending};
+}
+
+/**
  * Members without billing access can't read or change auto-reload. Members of
  * self-serve orgs can email their admins, about what stopped Seer when the
  * modal knows; members of orgs that buy through an account team only see who to
- * ask.
+ * ask. Loads the subscription itself, so the modal doesn't depend on the page
+ * having loaded it.
  */
-function AutoTopUpContactAdmin({
+const AutoTopUpContactAdmin = withSubscription(function AutoTopUpContactAdmin({
   Header,
   Body,
   Footer,
   closeModal,
   organization,
-  denialReason,
-}: AutoTopUpModalProps) {
+  denialReason: linkDenialReason,
+}: AutoTopUpModalProps & {subscription: Subscription}) {
   const {escalation, isLoading, hasRequested, isRequesting, requestCredits} =
     useSeerTopUpRequest(organization);
+  const {denialReason, isPending} = useCurrentDenialReason(
+    organization,
+    linkDenialReason
+  );
 
   return (
     <Fragment>
       <AutoTopUpHeader Header={Header} />
       <Body>
-        <Text as="p" size="lg">
-          {MEMBER_MESSAGE[denialReason ?? 'unknown']}
-        </Text>
+        {isPending ? (
+          <LoadingIndicator />
+        ) : (
+          <Stack gap="md">
+            <Text as="p" size="lg">
+              {MEMBER_MESSAGE[denialReason ?? 'unknown']}
+            </Text>
+            {denialReason === 'daily_cap_exceeded' && (
+              <Text as="p" size="lg">
+                {tct('This will reset at [time].', {
+                  time: <DateTime date={getDailyLimitResetsAt()} timeOnly timeZone />,
+                })}
+              </Text>
+            )}
+          </Stack>
+        )}
       </Body>
       <Footer>
         <Grid flow="column" align="center" gap="md">
           <Button onClick={closeModal}>{t('Close')}</Button>
-          {escalation === 'request' && !isLoading && (
+          {escalation === 'request' && !isLoading && !isPending && (
             <SeerContactAdminButton
               variant="primary"
               onRequestCredits={() => requestCredits(denialReason)}
@@ -188,7 +241,7 @@ function AutoTopUpContactAdmin({
       </Footer>
     </Fragment>
   );
-}
+});
 
 /**
  * Loads the wallet itself so the modal can be opened from anywhere; on the

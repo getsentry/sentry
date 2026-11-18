@@ -97,7 +97,7 @@ const DAILY_LIMIT_MESSAGE: Record<
  * When the daily usage limit resets. Billing counts a day's spend by its UTC
  * date, so it resets at the next midnight UTC.
  */
-function getDailyLimitResetsAt(): Date {
+export function getDailyLimitResetsAt(): Date {
   const now = new Date();
   return new Date(
     Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1)

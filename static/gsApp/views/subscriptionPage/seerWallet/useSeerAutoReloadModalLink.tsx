@@ -1,7 +1,10 @@
 import {useEffect} from 'react';
 
 import type {Organization} from 'sentry/types/organization';
-import type {SeerCreditDenialReason} from 'sentry/utils/seer/useSeerCreditCheck';
+import {
+  SEER_CREDIT_DENIAL_REASONS,
+  type SeerCreditDenialReason,
+} from 'sentry/utils/seer/useSeerCreditCheck';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -9,7 +12,7 @@ import {openSeerAutoTopUpModal} from 'getsentry/views/subscriptionPage/seerWalle
 import {SEER_AUTO_RELOAD_MODAL_HASH} from 'getsentry/views/subscriptionPage/seerWallet/seerWalletOptions';
 
 function parseDenialReason(value: string | undefined): SeerCreditDenialReason | null {
-  return value === 'not_enough_credits' || value === 'daily_cap_exceeded' ? value : null;
+  return SEER_CREDIT_DENIAL_REASONS.find(reason => reason === value) ?? null;
 }
 
 /**
