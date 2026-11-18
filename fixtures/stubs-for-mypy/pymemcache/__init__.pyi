@@ -1,0 +1,6 @@
+from typing import Any
+
+
+class Client:
+    def __init__(self, server: object, **kwargs: Any) -> None: ...
+    def close(self) -> None: ...
