@@ -92,6 +92,7 @@ const server = new Set<PlatformKey>([
   'node-nestjs',
   'node-pi-durable',
   'php',
+  'php-bref',
   'php-laravel',
   'php-symfony',
   'powershell',

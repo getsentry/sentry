@@ -106,6 +106,7 @@ export const backend: PlatformKey[] = [
   'node-cloudflare-workers',
   'perl',
   'php',
+  'php-bref',
   'php-laravel',
   'php-monolog',
   'php-symfony',
