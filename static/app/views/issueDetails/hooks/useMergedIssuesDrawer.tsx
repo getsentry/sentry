@@ -10,7 +10,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {MergedIssuesDrawer} from 'sentry/views/issueDetails/groupMerged/mergedIssuesDrawer';
-import {MERGED_CURSOR_QUERY_KEY} from 'sentry/views/issueDetails/groupMerged/useGroupMerged';
 
 export function useMergedIssuesDrawer({
   getReturnPath,
@@ -43,7 +42,7 @@ export function useMergedIssuesDrawer({
             pathname: getReturnPath(),
             query: {
               ...location.query,
-              [MERGED_CURSOR_QUERY_KEY]: undefined,
+              mergedCursor: undefined,
             },
           },
           {replace: true, preventScrollReset: true}

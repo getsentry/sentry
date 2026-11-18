@@ -1,4 +1,3 @@
-import {useSearchParams} from 'react-router';
 import {useQuery} from '@tanstack/react-query';
 
 import {Badge} from '@sentry/scraps/badge';
@@ -21,13 +20,19 @@ import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
 import {isActivityNote} from 'sentry/views/issueDetails/activitySection/activityLineItem/note';
 import {issueCommentsQueryOptions} from 'sentry/views/issueDetails/activitySection/issueCommentsQueryOptions';
 import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
+import {
+  IssueDetailsDrawer,
+  useIssueDetailsDrawerParams,
+} from 'sentry/views/issueDetails/issueDetailsQueryParams';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
 
 const GROUP_ACTIVITY_LIMIT = 100;
 
 export function ActivityDrawer() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const filter = searchParams.get('filter') ?? 'all';
+  const [{filter: filterParam}, setDrawerParams] = useIssueDetailsDrawerParams(
+    IssueDetailsDrawer.ACTIVITY
+  );
+  const filter = filterParam ?? 'all';
   const organization = useOrganization();
   const groupId = useGroupId();
 
@@ -77,16 +82,9 @@ export function ActivityDrawer() {
                 organization,
                 filter: value,
               });
-              setSearchParams(
-                params => {
-                  if (value === 'comments') {
-                    params.set('filter', 'comments');
-                  } else {
-                    params.delete('filter');
-                  }
-                  return params;
-                },
-                {replace: true}
+              setDrawerParams(
+                {filter: value === 'comments' ? 'comments' : null},
+                {history: 'replace'}
               );
             }}
           >

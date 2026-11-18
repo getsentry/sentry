@@ -1,5 +1,4 @@
 import {useQuery} from '@tanstack/react-query';
-import {useQueryState} from 'nuqs';
 
 import {usePageFilterDates} from 'sentry/components/checkInTimeline/hooks/useMonitorDates';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -11,18 +10,19 @@ import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {UptimeChecksGrid} from 'sentry/views/detectors/components/uptime/uptimeChecksGrid';
 import {useDetectorQuery} from 'sentry/views/detectors/hooks';
-import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
 import {uptimeChecksApiOptions} from 'sentry/views/insights/uptime/utils/uptimeChecksApiOptions';
 
 import {EventListTable} from './eventListTable';
 import {useGroupId} from './groupIdContext';
+import {useIssueDetailsTabParams} from './issueDetailsQueryParams';
 import {useUptimeIssueDetectorId} from './issueUptimeCheckTimeline';
+import {Tab} from './types';
 import {useGroup} from './useGroup';
 
 export default function GroupUptimeChecks() {
   const organization = useOrganization();
   const groupId = useGroupId();
-  const [cursor] = useQueryState('cursor', parseAsScalar);
+  const [{cursor}] = useIssueDetailsTabParams(Tab.UPTIME_CHECKS);
   const {since, until} = usePageFilterDates();
   const detectorId = useUptimeIssueDetectorId({groupId});
 

@@ -1,7 +1,6 @@
 import {Fragment, useEffect, useState} from 'react';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {useQuery} from '@tanstack/react-query';
-import {parseAsString, useQueryState} from 'nuqs';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
@@ -31,6 +30,10 @@ import {
   DISTRIBUTIONS_TYPE_QUERY_KEY,
   DrawerTab,
 } from 'sentry/views/issueDetails/groupDistributions/types';
+import {
+  IssueDetailsDrawer,
+  useIssueDetailsDrawerParams,
+} from 'sentry/views/issueDetails/issueDetailsQueryParams';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
@@ -50,9 +53,8 @@ export function FlagDetailsDrawerContent({group}: Props) {
   const {tagKey} = useParams<{tagKey: string}>();
   const {baseUrl} = useGroupDetailsRoute();
   const location = useLocation();
-  const [flagDrawerCursor, setFlagDrawerCursor] = useQueryState(
-    'flagDrawerCursor',
-    parseAsString
+  const [{flagDrawerCursor}, setDrawerParams] = useIssueDetailsDrawerParams(
+    IssueDetailsDrawer.DISTRIBUTIONS
   );
 
   const {
@@ -149,7 +151,7 @@ export function FlagDetailsDrawerContent({group}: Props) {
               organization,
               surface: analyticsArea,
             });
-            setFlagDrawerCursor(cursor ?? null, {history: 'push'});
+            setDrawerParams({flagDrawerCursor: cursor ?? null}, {history: 'push'});
           }}
           size="xs"
         />

@@ -1,9 +1,9 @@
-import {parseAsString, useQueryStates} from 'nuqs';
-
 import {Flex} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 
 import {t} from 'sentry/locale';
+import {useIssueDetailsTabParams} from 'sentry/views/issueDetails/issueDetailsQueryParams';
+import {Tab} from 'sentry/views/issueDetails/types';
 
 export const enum EventAttachmentFilter {
   ALL = 'all',
@@ -20,10 +20,7 @@ interface GroupEventAttachmentsFilterProps {
 export function GroupEventAttachmentsFilter({
   onChange,
 }: GroupEventAttachmentsFilterProps) {
-  const [{attachmentFilter}, setQueryParams] = useQueryStates({
-    attachmentFilter: parseAsString,
-    cursor: parseAsString,
-  });
+  const [{attachmentFilter}, setQueryParams] = useIssueDetailsTabParams(Tab.ATTACHMENTS);
 
   const activeFilter =
     (attachmentFilter as AttachmentFilterValue | null) ?? EventAttachmentFilter.ALL;

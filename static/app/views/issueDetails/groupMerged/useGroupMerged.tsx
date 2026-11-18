@@ -1,6 +1,5 @@
-import {useMemo, useReducer} from 'react';
+import {useCallback, useMemo, useReducer} from 'react';
 import {useMutation, useQuery} from '@tanstack/react-query';
-import {parseAsString, useQueryState} from 'nuqs';
 
 import {toast} from '@sentry/scraps/toast';
 
@@ -11,6 +10,10 @@ import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {
+  IssueDetailsDrawer,
+  useIssueDetailsDrawerParams,
+} from 'sentry/views/issueDetails/issueDetailsQueryParams';
 
 export interface Fingerprint {
   id: string;
@@ -25,14 +28,16 @@ export interface FingerprintWithLatestEvent extends Fingerprint {
 const MERGED_HASH_LIMIT = 20;
 
 // The merged hashes list lives in a drawer over the issue details page, so it
-// can't use the generic `cursor` param without clobbering the page's own
-// pagination. Scope it to this drawer instead.
-export const MERGED_CURSOR_QUERY_KEY = 'mergedCursor';
-
-// Reading returns the current cursor (or null); setting null removes the param,
-// which is how we clean it up when the drawer closes.
+// uses the drawer's own `mergedCursor` param rather than the page's `cursor`.
 export function useMergedCursor() {
-  return useQueryState(MERGED_CURSOR_QUERY_KEY, parseAsString);
+  const [{mergedCursor}, setDrawerParams] = useIssueDetailsDrawerParams(
+    IssueDetailsDrawer.MERGED
+  );
+  const setMergedCursor = useCallback(
+    (cursor: string | null) => setDrawerParams({mergedCursor: cursor}),
+    [setDrawerParams]
+  );
+  return [mergedCursor, setMergedCursor] as const;
 }
 
 interface FingerprintState {

@@ -1,17 +1,26 @@
-import {parseAsStringLiteral, useQueryState} from 'nuqs';
+import {useCallback} from 'react';
 
-import {DISTRIBUTIONS_TYPE_QUERY_KEY, DrawerTab} from './types';
+import {
+  IssueDetailsDrawer,
+  useIssueDetailsDrawerParams,
+} from 'sentry/views/issueDetails/issueDetailsQueryParams';
 
-const tabParser = parseAsStringLiteral(Object.values(DrawerTab)).withDefault(
-  DrawerTab.TAGS
-);
+import {DrawerTab} from './types';
 
 function setTabDisabled(_tab: DrawerTab) {
   return Promise.resolve(new URLSearchParams());
 }
 
 export function useDrawerTab({enabled}: {enabled: boolean}) {
-  const [tab, setTab] = useQueryState(DISTRIBUTIONS_TYPE_QUERY_KEY, tabParser);
+  const [{type}, setDrawerParams] = useIssueDetailsDrawerParams(
+    IssueDetailsDrawer.DISTRIBUTIONS
+  );
+  const setTab = useCallback(
+    (tab: DrawerTab) => setDrawerParams({type: tab}),
+    [setDrawerParams]
+  );
 
-  return enabled ? {tab, setTab} : {tab: DrawerTab.TAGS, setTab: setTabDisabled};
+  return enabled
+    ? {tab: type ?? DrawerTab.TAGS, setTab}
+    : {tab: DrawerTab.TAGS, setTab: setTabDisabled};
 }

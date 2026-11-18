@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
-import {parseAsString, useQueryState} from 'nuqs';
+import {parseAsString} from 'nuqs';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
@@ -12,6 +12,9 @@ import {defined} from 'sentry/utils/defined';
 import type {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useLocation} from 'sentry/utils/useLocation';
 import {applyQueryParamsUpdates} from 'sentry/views/explore/queryParams/parsers';
+
+import {useIssueDetailsTabParams} from './issueDetailsQueryParams';
+import {Tab} from './types';
 
 export const CURSOR_PARSERS = {cursor: parseAsString};
 
@@ -190,7 +193,7 @@ export function PaginationText({
   tableUnits: Required<EventListTableProps>['pagination']['tableUnits'];
   totalCount: Required<EventListTableProps>['pagination']['totalCount'];
 }) {
-  const [cursor] = useQueryState('cursor', parseAsString);
+  const [{cursor}] = useIssueDetailsTabParams(Tab.EVENTS);
   const currentCursor = parseCursor(cursor);
 
   if (pageCount === 0) {

@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import {IconSeer} from '@sentry/icons/seer';
 import {useQuery} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
-import {parseAsString, useQueryState} from 'nuqs';
 
 import {Flex} from '@sentry/scraps/layout';
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
@@ -27,6 +26,8 @@ import {
 
 import {EventListTable} from './eventListTable';
 import {useGroupId} from './groupIdContext';
+import {useIssueDetailsTabParams} from './issueDetailsQueryParams';
+import {Tab} from './types';
 
 interface OpenPeriodDisplayData {
   description: string;
@@ -53,7 +54,7 @@ function getOpenPeriodActivityTypeLabel(activity: GroupOpenPeriodActivity): stri
 
 function IssueOpenPeriodsList() {
   const organization = useOrganization();
-  const [cursor] = useQueryState('cursor', parseAsString);
+  const [{cursor}] = useIssueDetailsTabParams(Tab.OPEN_PERIODS);
   const groupId = useGroupId();
   const {
     data: response,

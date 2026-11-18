@@ -1,7 +1,6 @@
 import {useMemo} from 'react';
 import {useQuery, type QueryClient} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
-import {parseAsString, useQueryStates} from 'nuqs';
 import {useStore} from 'zustand';
 
 import {
@@ -28,6 +27,7 @@ import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {useGroupTags} from './groupTags/useGroupTags';
 import {useGroupData} from './groupDataContext';
 import {useGroupId} from './groupIdContext';
+import {IssueDetailsDrawer, useIssueDetailsDrawerParams} from './issueDetailsQueryParams';
 
 export async function markEventSeen(
   api: Client,
@@ -320,14 +320,11 @@ export function useIsSampleEvent(): boolean {
 type TagSort = 'date' | 'count';
 const DEFAULT_SORT: TagSort = 'count';
 
-export const TAG_DRAWER_PARSERS = {
-  tagDrawerCursor: parseAsString,
-  tagDrawerSort: parseAsString,
-};
-
 export function usePrefetchTagValues(tagKey: string, groupId: string, enabled: boolean) {
   const organization = useOrganization();
-  const [{tagDrawerCursor, tagDrawerSort}] = useQueryStates(TAG_DRAWER_PARSERS);
+  const [{tagDrawerCursor, tagDrawerSort}] = useIssueDetailsDrawerParams(
+    IssueDetailsDrawer.DISTRIBUTIONS
+  );
   const sort = (tagDrawerSort as TagSort | null) ?? DEFAULT_SORT;
 
   useQuery({

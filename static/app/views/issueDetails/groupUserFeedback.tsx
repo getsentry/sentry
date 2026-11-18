@@ -1,5 +1,4 @@
 import {useQuery} from '@tanstack/react-query';
-import {parseAsString, useQueryState} from 'nuqs';
 
 import {Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
@@ -18,11 +17,13 @@ import {FeedbackEmptyState} from 'sentry/views/feedback/feedbackEmptyState';
 
 import {useGroupId} from './groupIdContext';
 import {groupUserFeedbackApiOptions} from './groupUserFeedbackApiOptions';
+import {useIssueDetailsTabParams} from './issueDetailsQueryParams';
+import {Tab} from './types';
 import {useGroup} from './useGroup';
 
 function GroupUserFeedback() {
   const organization = useOrganization();
-  const [cursor] = useQueryState('cursor', parseAsString);
+  const [{cursor}] = useIssueDetailsTabParams(Tab.USER_FEEDBACK);
   const groupId = useGroupId();
 
   const {

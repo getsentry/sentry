@@ -4,7 +4,7 @@ import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {IconOpen} from '@sentry/icons/open';
 import {useQuery} from '@tanstack/react-query';
 import type {LocationDescriptor} from 'history';
-import {parseAsString, useQueryStates} from 'nuqs';
+import {parseAsString} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
@@ -40,7 +40,12 @@ import {useParams} from 'sentry/utils/useParams';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {applyQueryParamsUpdates} from 'sentry/views/explore/queryParams/parsers';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/issueDetailsEventsQuery';
-import {getUserTagValue, TAG_DRAWER_PARSERS} from 'sentry/views/issueDetails/utils';
+import {
+  ISSUE_DETAILS_DRAWER_PARAMS,
+  IssueDetailsDrawer,
+  useIssueDetailsDrawerParams,
+} from 'sentry/views/issueDetails/issueDetailsQueryParams';
+import {getUserTagValue} from 'sentry/views/issueDetails/utils';
 
 import {TagDetailsTable, type TagSort} from './tagDetailsTable';
 import {TagBar} from './tagDistribution';
@@ -48,7 +53,7 @@ import {TagBar} from './tagDistribution';
 const DEFAULT_SORT: TagSort = 'count';
 
 const SORT_LINK_PARSERS = {
-  ...TAG_DRAWER_PARSERS,
+  ...ISSUE_DETAILS_DRAWER_PARAMS[IssueDetailsDrawer.DISTRIBUTIONS],
   cursor: parseAsString,
   page: parseAsString,
 };
@@ -60,7 +65,7 @@ type TagValueRow = TagValue & {value: string};
 export function TagDetailsDrawerContent({group}: {group: Group}) {
   const location = useLocation();
   const [{tagDrawerCursor, tagDrawerSort}, setTagDrawerQuery] =
-    useQueryStates(TAG_DRAWER_PARSERS);
+    useIssueDetailsDrawerParams(IssueDetailsDrawer.DISTRIBUTIONS);
   const organization = useOrganization();
   const {tagKey} = useParams<{tagKey: string}>();
 
