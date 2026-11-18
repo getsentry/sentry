@@ -105,6 +105,7 @@ class RelayStoreHelper(RequiredBaseclass):
     get_relay_attachments_url: Any
     get_relay_minidump_url: Any
     get_relay_unreal_url: Any
+    _rejected_keys: set[tuple[int, int, int]]
 
     def post_and_retrieve_event(
         self, data: object, headers: Mapping[str, str] | None = None
@@ -171,7 +172,17 @@ class RelayStoreHelper(RequiredBaseclass):
         """
         Post an event that Relay accepts over HTTP and then drops asynchronously,
         and wait for the outcome that records the drop instead of the ingestion timeout.
+
+        Relay aggregates outcomes and drops their event IDs, so the outcome is matched
+        by org, project, and key. Each test may therefore post only one candidate event
+        per key: a second rejection could pick up the first one's late outcome. A
+        second call for the same key fails, and the quantity check catches outcomes
+        that Relay merged from several events.
         """
+        own_key = (self.project.organization_id, self.project.id, self.projectkey.id)
+        assert own_key not in self._rejected_keys, "Only one rejection per project key"
+        self._rejected_keys.add(own_key)
+
         if headers is None:
             headers = {"x-sentry-auth": self.auth_header, "content-type": "application/json"}
         url = self.get_relay_store_url(self.project.id)
@@ -182,10 +193,6 @@ class RelayStoreHelper(RequiredBaseclass):
             resp = requests.post(url, headers=headers, json={**data, "event_id": event_id})
             assert resp.status_code == 200, resp.text
             assert resp.json()["id"] == event_id
-
-            # Relay aggregates outcomes and drops their event IDs. Snowflake project
-            # IDs are unique per test, and this is the only event posted for the key.
-            own_key = (self.project.organization_id, self.project.id, self.projectkey.id)
 
             def poll_own_outcome() -> dict[str, Any] | None:
                 result = poll()
@@ -292,3 +299,4 @@ class RelayStoreHelper(RequiredBaseclass):
         self.get_relay_security_url = get_relay_security_url
         self.get_relay_attachments_url = get_relay_attachments_url
         self.wait_for_ingest_consumer = cast("_IngestWaiter", wait_for_ingest_consumer(settings))
+        self._rejected_keys = set()
