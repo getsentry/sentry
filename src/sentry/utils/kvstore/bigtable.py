@@ -143,8 +143,8 @@ class BigtableKVStorage(KVStorage[str, bytes]):
                     self.instance,
                     self.table_name,
                     app_profile_id=self.app_profile,
-                    # Match the retry budgets of the legacy client; the
-                    # defaults (600s) are much too long for ingestion.
+                    # The default budgets (600s) are much too long for
+                    # ingestion.
                     default_read_rows_operation_timeout=60,
                     default_mutate_rows_operation_timeout=120,
                 )
@@ -225,9 +225,6 @@ class BigtableKVStorage(KVStorage[str, bytes]):
             # Retry once on InternalServerError or ServiceUnavailable
             # 500 Received RST_STREAM with error code 2
             # SENTRY-S6D
-            # Unlike the legacy client, the data client refreshes its own
-            # channels, so the client isn't recreated (closing it would also
-            # break requests in flight on other threads).
             return self._set(key, value, ttl)
 
     def _set(self, key: str, value: bytes, ttl: timedelta | None = None) -> None:

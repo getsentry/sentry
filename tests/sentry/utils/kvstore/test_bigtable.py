@@ -178,7 +178,7 @@ def test_client_is_closed_at_thread_shutdown() -> None:
     client_cls.return_value.close.assert_called_once_with()
 
 
-def test_table_uses_legacy_retry_budgets() -> None:
+def test_table_retry_budgets() -> None:
     store = BigtableKVStorage("test", "test", "test", app_profile="profile")
     with (
         mock.patch("sentry.utils.kvstore.bigtable.BigtableDataClient") as client_cls,
