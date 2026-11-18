@@ -33,17 +33,7 @@ function getEscalation(
  * Who the viewer turns to for more Seer credits, and the "Contact Admin"
  * request that emails their admins when it's `request`.
  */
-export function useSeerTopUpRequest(
-  organization: Organization,
-  {
-    enabled = true,
-  }: {
-    /**
-     * Skip checking for an earlier request when the caller won't offer one.
-     */
-    enabled?: boolean;
-  } = {}
-) {
+export function useSeerTopUpRequest(organization: Organization) {
   const api = useApi({persistInFlight: true});
   const subscription = useStore(
     SubscriptionStore,
@@ -51,7 +41,6 @@ export function useSeerTopUpRequest(
   );
   const [isRequesting, setIsRequesting] = useState(false);
   const escalation = getEscalation(organization, subscription);
-  const canRequest = enabled && escalation === 'request';
 
   const {isLoading, isPromptDismissed, snoozePrompt} = usePrompts({
     features: [TOP_UP_REQUESTED_PROMPT],
@@ -59,7 +48,7 @@ export function useSeerTopUpRequest(
     // A request counts until the billing period ends, when the included Seer
     // credits refill.
     isDismissed: prompt => !!subscription && trialPromptIsDismissed(prompt, subscription),
-    options: {enabled: canRequest},
+    options: {enabled: escalation === 'request'},
   });
 
   async function requestCredits(denialReason?: SeerCreditDenialReason | null) {
@@ -80,7 +69,7 @@ export function useSeerTopUpRequest(
      * Whether the viewer already emailed their admins this billing period is
      * still loading. Until it has, "Contact Admin" could send another request.
      */
-    isLoading: canRequest && isLoading,
+    isLoading: escalation === 'request' && isLoading,
     hasRequested: !!isPromptDismissed[TOP_UP_REQUESTED_PROMPT],
     isRequesting,
     requestCredits,

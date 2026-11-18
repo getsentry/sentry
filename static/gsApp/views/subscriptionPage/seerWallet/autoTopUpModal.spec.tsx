@@ -839,7 +839,15 @@ describe('openSeerAutoTopUpModal', () => {
       expect(await screen.findByRole('button', {name: 'Admins emailed'})).toBeDisabled();
     });
 
-    it('gives members no Contact Admin when the link does not say why Seer stopped', () => {
+    it('lets members email their admins when the link does not say why Seer stopped', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${member.slug}/prompts-activity/`,
+        method: 'PUT',
+      });
+      const request = MockApiClient.addMockResponse({
+        url: `/organizations/${member.slug}/seer-top-up-request/`,
+        method: 'POST',
+      });
       openForMember({canSelfServe: true, denialReason: null});
 
       expect(
@@ -847,10 +855,14 @@ describe('openSeerAutoTopUpModal', () => {
           'Only owners and billing members can manage auto-reload. Ask your admin to turn it on or increase your daily usage limit.'
         )
       ).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Close'})).toBeInTheDocument();
-      expect(
-        screen.queryByRole('button', {name: 'Contact Admin'})
-      ).not.toBeInTheDocument();
+      await userEvent.click(await screen.findByRole('button', {name: 'Contact Admin'}));
+
+      await waitFor(() =>
+        expect(request).toHaveBeenCalledWith(
+          `/organizations/${member.slug}/seer-top-up-request/`,
+          expect.objectContaining({data: {denialReason: null}})
+        )
+      );
     });
 
     it('gives members of orgs that cannot self-serve no Contact Admin', () => {

@@ -46,9 +46,8 @@ const AMOUNT_PRESETS_CENTS = [DEFAULT_AMOUNT_CENTS, 2500, 5000];
 interface AutoTopUpModalOptions {
   organization: Organization;
   /**
-   * Why Seer stopped, when whoever opened the modal knows. Members can only ask
-   * their admins for a change when it's set, since the request tells the admins
-   * what stopped Seer.
+   * Why Seer stopped, when whoever opened the modal knows. A member's request to
+   * their admins says so, which picks the email the admins get.
    */
   denialReason?: SeerCreditDenialReason | null;
 }
@@ -151,8 +150,9 @@ const MEMBER_MESSAGE: Record<SeerCreditDenialReason | 'unknown', string> = {
 
 /**
  * Members without billing access can't read or change auto-reload. Members of
- * self-serve orgs can email their admins about what stopped Seer; members of
- * orgs that buy through an account team only see who to ask.
+ * self-serve orgs can email their admins, about what stopped Seer when the
+ * modal knows; members of orgs that buy through an account team only see who to
+ * ask.
  */
 function AutoTopUpContactAdmin({
   Header,
@@ -163,7 +163,7 @@ function AutoTopUpContactAdmin({
   denialReason,
 }: AutoTopUpModalProps) {
   const {escalation, isLoading, hasRequested, isRequesting, requestCredits} =
-    useSeerTopUpRequest(organization, {enabled: !!denialReason});
+    useSeerTopUpRequest(organization);
 
   return (
     <Fragment>
@@ -176,9 +176,7 @@ function AutoTopUpContactAdmin({
       <Footer>
         <Grid flow="column" align="center" gap="md">
           <Button onClick={closeModal}>{t('Close')}</Button>
-          {/* The request emails admins that Seer stopped and why, so it needs the
-              reason. Without one, Seer may not have stopped at all. */}
-          {escalation === 'request' && denialReason && !isLoading && (
+          {escalation === 'request' && !isLoading && (
             <SeerContactAdminButton
               variant="primary"
               onRequestCredits={() => requestCredits(denialReason)}
