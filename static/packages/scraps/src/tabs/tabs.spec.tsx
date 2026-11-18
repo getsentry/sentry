@@ -1,12 +1,6 @@
 import {Fragment, type ReactNode} from 'react';
 import {ThemeProvider} from '@emotion/react';
-import {
-  act,
-  render,
-  screen,
-  waitForElementToBeRemoved,
-  within,
-} from '@testing-library/react';
+import {act, render, screen, within} from '@testing-library/react';
 import {userEvent} from '@testing-library/user-event';
 import {expectTypeOf} from 'expect-type';
 
@@ -814,7 +808,7 @@ describe('Tabs overflow', () => {
     expect(screen.queryByRole('button', {name: 'More tabs'})).not.toBeInTheDocument();
   });
 
-  it('does not overflow when the tabs fill the container to a fraction of a pixel', async () => {
+  it('does not overflow when the tabs fill the container to a fraction of a pixel', () => {
     // A shrink-to-fit container is exactly as wide as its tabs, which is not a
     // whole number of pixels. Rounding the container down would push the last
     // tab into the menu, shrink the container around the remaining tabs, and
@@ -840,7 +834,7 @@ describe('Tabs overflow', () => {
     // holds if the gaps are counted.
     resizeContainerTo(tabsWithGaps - 1);
 
-    expect(await screen.findByRole('button', {name: 'More tabs'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'More tabs'})).toBeInTheDocument();
   });
 
   it('moves tabs that do not fit into an overflow menu', async () => {
@@ -887,16 +881,14 @@ describe('Tabs overflow', () => {
     expect(screen.queryByRole('button', {name: 'More tabs'})).not.toBeInTheDocument();
 
     resizeContainerTo(260);
-    await userEvent.click(await screen.findByRole('button', {name: 'More tabs'}));
+    await userEvent.click(screen.getByRole('button', {name: 'More tabs'}));
     expect(
       screen.getByRole('menuitemradio', {name: 'User Feedback'})
     ).toBeInTheDocument();
     expect(screen.getByRole('menuitemradio', {name: 'Attachments'})).toBeInTheDocument();
 
     resizeContainerTo(1000);
-    await waitForElementToBeRemoved(() =>
-      screen.queryByRole('button', {name: 'More tabs'})
-    );
+    expect(screen.queryByRole('button', {name: 'More tabs'})).not.toBeInTheDocument();
   });
 
   it.each(['click', 'keyboard'])(

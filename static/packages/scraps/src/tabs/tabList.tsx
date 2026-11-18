@@ -203,8 +203,7 @@ function useOverflowTabs({
   }, [recomputeSignature]);
 
   // Recompute on container resize (available space changes) and on list resize
-  // (tabs added/removed/relabeled change its intrinsic width). Keyed only on the
-  const rafRef = useRef<number | null>(null);
+  // (tabs added/removed/relabeled change its intrinsic width).
   useEffect(() => {
     if (disabled) {
       return;
@@ -216,21 +215,11 @@ function useOverflowTabs({
       return;
     }
 
-    const resizeObserver = new ResizeObserver(() => {
-      // Defer recompute to outside the render/layout phase. In Firefox,
-      // ResizeObserver callbacks can fire synchronously during rendering,
-      // which throws when calling a useEffectEvent-wrapped function.
-      rafRef.current = requestAnimationFrame(() => recompute());
-    });
+    const resizeObserver = new ResizeObserver(() => recompute());
     resizeObserver.observe(outerWrap);
     resizeObserver.observe(tabList);
 
-    return () => {
-      if (rafRef.current !== null) {
-        cancelAnimationFrame(rafRef.current);
-      }
-      resizeObserver.disconnect();
-    };
+    return () => resizeObserver.disconnect();
   }, [disabled, outerWrapRef, tabListRef]);
 
   // Tabs with the `hidden` prop render with display: none; never surface them
