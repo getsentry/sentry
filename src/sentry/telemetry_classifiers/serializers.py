@@ -50,6 +50,13 @@ class TelemetryClassifierResponse(TypedDict):
     dateUpdated: datetime
 
 
+def _resolve_output_type(classifier: TelemetryClassifier) -> str | None:
+    if classifier.prebuilt_classifier_key is None:
+        return classifier.output_type
+    prebuilt = PREBUILT_CLASSIFIERS.get(classifier.prebuilt_classifier_key)
+    return prebuilt.output_type if prebuilt else None
+
+
 @register(TelemetryClassifier)
 class TelemetryClassifierSerializer(Serializer[TelemetryClassifierResponse]):
     def get_attrs(
@@ -92,7 +99,7 @@ class TelemetryClassifierSerializer(Serializer[TelemetryClassifierResponse]):
             "status": obj.status,
             "prebuiltClassifierKey": obj.prebuilt_classifier_key,
             "naturalLanguagePrompt": obj.natural_language_prompt,
-            "outputType": obj.output_type,
+            "outputType": _resolve_output_type(obj),
             "createdBy": attrs["createdBy"],
             "dateAdded": obj.date_added,
             "dateUpdated": obj.date_updated,
@@ -102,6 +109,7 @@ class TelemetryClassifierSerializer(Serializer[TelemetryClassifierResponse]):
 class PrebuiltClassifierResponse(TypedDict):
     key: str
     dataset: str
+    outputType: str
     name: str
     description: str
     resultAttribute: str
@@ -118,6 +126,7 @@ class PrebuiltClassifierSerializer(Serializer[PrebuiltClassifierResponse]):
         return {
             "key": obj.key,
             "dataset": obj.dataset,
+            "outputType": obj.output_type,
             "name": obj.name,
             "description": obj.description,
             "resultAttribute": obj.result_attribute,
