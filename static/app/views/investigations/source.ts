@@ -42,7 +42,15 @@ const metricOpenPeriodSourceSchema = z.object({
   ref: z.object({groupId: z.string(), openPeriodId: z.string()}),
   // Investigations created before the snapshot existed only carry `ref`.
   snapshot: z
-    .object({monitor: sourceMonitorSchema, project: z.object({slug: z.string()})})
+    .object({
+      monitor: sourceMonitorSchema,
+      project: z.object({slug: z.string()}),
+      // A window inside the open period, which finds it among the issue's open periods.
+      analysisWindow: z
+        .object({breachStart: z.string(), end: z.string()})
+        .optional()
+        .catch(undefined),
+    })
     .optional()
     .catch(undefined),
 });
@@ -62,9 +70,13 @@ export function getInvestigationSource(investigation: InvestigationDetail) {
   const source = parseMetricOpenPeriodSource(investigation.source);
   return {
     groupId: source?.ref.groupId ?? null,
+    openPeriodId: source?.ref.openPeriodId ?? null,
+    analysisWindow: source?.snapshot?.analysisWindow ?? null,
     monitorName: source?.snapshot?.monitor.name ?? null,
   };
 }
+
+export type InvestigationSource = ReturnType<typeof getInvestigationSource>;
 
 export function getSourceMonitor(
   source: InvestigationDetail['source'],

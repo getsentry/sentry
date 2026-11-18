@@ -1,5 +1,9 @@
 import {useState, type ReactNode} from 'react';
 import {QueryClientProvider} from '@tanstack/react-query';
+import {
+  GroupOpenPeriodActivityFixture,
+  GroupOpenPeriodFixture,
+} from 'sentry-fixture/groupOpenPeriod';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {dragHandle} from 'sentry-test/dragMove';
@@ -232,6 +236,61 @@ describe('Investigation detail', () => {
     expect(
       await screen.findByRole('link', {name: 'Checkout error rate'})
     ).toHaveAttribute('href', '/organizations/org-slug/issues/123/');
+  });
+
+  it('links a breached metric investigation to the event that opened its open period', async () => {
+    const source = InvestigationMetricSourceFixture();
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({
+        sourceType: 'metric_open_period',
+        source: {
+          ...source,
+          snapshot: {
+            ...source.snapshot,
+            analysisWindow: {
+              baselineStart: '2026-08-27T09:00:00Z',
+              breachStart: '2026-08-27T10:00:00Z',
+              end: '2026-08-27T11:00:00Z',
+            },
+          },
+        },
+      }),
+    });
+    const openPeriodsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/open-periods/',
+      body: [
+        GroupOpenPeriodFixture({
+          id: '455',
+          groupId: '123',
+          activities: [GroupOpenPeriodActivityFixture({eventId: 'other-event'})],
+        }),
+        GroupOpenPeriodFixture({
+          id: '456',
+          groupId: '123',
+          activities: [GroupOpenPeriodActivityFixture({eventId: 'opening-event'})],
+        }),
+      ],
+    });
+
+    renderView();
+
+    await waitFor(() =>
+      expect(screen.getByRole('link', {name: 'Checkout error rate'})).toHaveAttribute(
+        'href',
+        '/organizations/org-slug/issues/123/events/opening-event/'
+      )
+    );
+    expect(openPeriodsRequest).toHaveBeenCalledWith(
+      '/organizations/org-slug/open-periods/',
+      expect.objectContaining({
+        query: expect.objectContaining({
+          groupId: '123',
+          start: '2026-08-27T10:00:00Z',
+          end: '2026-08-27T11:00:00Z',
+        }),
+      })
+    );
   });
 
   it('links the issue of a breached metric investigation without a snapshot', async () => {

@@ -16,7 +16,6 @@ import {DateTime} from 'sentry/components/dateTime';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t, tct, tn} from 'sentry/locale';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   AnchoredActionRequests,
@@ -74,6 +73,7 @@ import {
 import {InvestigationViewers} from './presence';
 import {InvestigationRunTimer} from './runTimer';
 import type {InvestigationTitle} from './useInvestigationTitle';
+import {useSourceIssuePath} from './useSourceIssuePath';
 
 const STATUS_TAG_VARIANT = {
   running: 'info',
@@ -300,6 +300,7 @@ export function InvestigationPageContent({
     }
   );
   const source = getInvestigationSource(investigation);
+  const sourceIssuePath = useSourceIssuePath(source);
   const hasDetails =
     Boolean(investigation.orchestration) ||
     visibleBlocks.length > 0 ||
@@ -382,12 +383,8 @@ export function InvestigationPageContent({
             ) : null}
           </Grid>
           <Flex minWidth={0} align="center" gap="sm" wrap="wrap">
-            {source.groupId ? (
-              <Link
-                to={normalizeUrl(
-                  `/organizations/${organization.slug}/issues/${source.groupId}/`
-                )}
-              >
+            {sourceIssuePath ? (
+              <Link to={sourceIssuePath}>
                 <Flex as="span" align="center" gap="xs">
                   <IconIssues size="xs" />
                   {source.monitorName ?? t('View issue')}
