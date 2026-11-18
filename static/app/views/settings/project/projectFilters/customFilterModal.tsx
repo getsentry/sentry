@@ -57,7 +57,8 @@ type ConditionType =
   | 'log_message'
   | 'release'
   | 'environment'
-  | 'ip_address';
+  | 'ip_address'
+  | 'transaction_name';
 
 // How a condition compares its values to the field, as the API names it. `glob`
 // matches each value as a glob pattern. The literal operators read every character
@@ -210,6 +211,14 @@ const CONDITIONS: Record<ConditionType, ConditionSpec> = {
     placeholder: t('Glob pattern, e.g. *DEBUG*'),
     description: t('Matches the body of the log.'),
   },
+  transaction_name: {
+    dataType: 'span',
+    label: t('Transaction Name'),
+    placeholder: t('Glob pattern, e.g. */health*'),
+    description: t(
+      'Matches the name of the transaction a span belongs to, and drops all of its spans. Names are compared ignoring case. Start patterns with * and match both the raw URL and the route, e.g. */health*, since some spans may report the URL before the route is known.'
+    ),
+  },
   release: {
     comparable: true,
     label: t('Release'),
@@ -291,24 +300,31 @@ function getFilterKeys(dataType: FilterDataType): TagCollection {
   return keys;
 }
 
-// The environment condition rolls out behind its own flag, so the key menu leaves
-// it out until the organization has it. Parsing still reads it, so a filter that
-// already holds one stays editable.
-const FILTER_KEYS_WITHOUT_ENVIRONMENT = new Map<FilterDataType, TagCollection>();
+// The environment and transaction name conditions roll out behind their own flags, so
+// the key menu leaves each out until the organization has its flag. Parsing still reads
+// them, so a filter that already holds one stays editable.
+const OFFERED_FILTER_KEYS = new Map<string, TagCollection>();
 
 function getOfferedFilterKeys(
   dataType: FilterDataType,
-  hasEnvironmentCondition: boolean
+  hasEnvironmentCondition: boolean,
+  hasTransactionNameCondition: boolean
 ): TagCollection {
   const keys = getFilterKeys(dataType);
-  if (hasEnvironmentCondition) {
+  if (hasEnvironmentCondition && hasTransactionNameCondition) {
     return keys;
   }
-  let offered = FILTER_KEYS_WITHOUT_ENVIRONMENT.get(dataType);
+  const cacheKey = `${dataType}:${hasEnvironmentCondition}:${hasTransactionNameCondition}`;
+  let offered = OFFERED_FILTER_KEYS.get(cacheKey);
   if (!offered) {
-    const {environment: _environment, ...rest} = keys;
-    offered = rest;
-    FILTER_KEYS_WITHOUT_ENVIRONMENT.set(dataType, offered);
+    offered = Object.fromEntries(
+      Object.entries(keys).filter(
+        ([key]) =>
+          (hasEnvironmentCondition || key !== 'environment') &&
+          (hasTransactionNameCondition || key !== 'transaction_name')
+      )
+    );
+    OFFERED_FILTER_KEYS.set(cacheKey, offered);
   }
   return offered;
 }
@@ -854,6 +870,9 @@ function CustomFilterModal({
   const hasEnvironmentCondition = organization.features.includes(
     'inbound-filters-environment-condition'
   );
+  const hasTransactionNameCondition = organization.features.includes(
+    'inbound-filters-transaction-name'
+  );
 
   // A row that holds a legacy list keeps its one condition and its data type: the
   // modal edits the lines of the condition.
@@ -1073,7 +1092,8 @@ function CustomFilterModal({
                               initialQuery={queryField.state.value}
                               filterKeys={getOfferedFilterKeys(
                                 dataType,
-                                hasEnvironmentCondition
+                                hasEnvironmentCondition,
+                                hasTransactionNameCondition
                               )}
                               fieldDefinitionGetter={getFieldDefinitionGetter(dataType)}
                               getTagValues={getNoTagValues}
