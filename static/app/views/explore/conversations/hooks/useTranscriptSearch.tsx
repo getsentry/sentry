@@ -88,12 +88,8 @@ function clearHighlights() {
 }
 
 /**
- * Searches the text the transcript shows, like browser find. When the loaded pages
- * don't have the wanted occurrence yet, it loads the next page and searches again.
- * The occurrence found is marked, collapsed blocks holding it open, its span is
- * selected and it's scrolled into view. Next and previous step through the
- * occurrences, loading more pages as needed; previous from the first wraps to the
- * last, which loads everything first.
+ * Searches the text the transcript shows, like browser find, loading more pages while
+ * the loaded ones don't have the occurrence it's after.
  */
 export function useTranscriptSearch({
   rootRef,
