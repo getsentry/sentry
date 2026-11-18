@@ -354,14 +354,13 @@ describe('desktop navigation', () => {
       const guide = await screen.findByText(
         'Quick settings-access for your important Projects'
       );
-      await waitFor(() => expect(guide.closest('[tabindex="-1"]')).toHaveFocus());
+      await waitFor(() => expect(guide.closest('[role="dialog"]')).toHaveFocus());
       await userEvent.keyboard('{Escape}');
       expect(
         screen.queryByText('Quick settings-access for your important Projects')
       ).not.toBeInTheDocument();
-      expect(
-        screen.getByRole('button', {name: 'Toggle organization menu'})
-      ).toHaveFocus();
+      // Nothing had focus before the tour, so focus goes back to the page.
+      expect(document.body).toHaveFocus();
     });
 
     it('explains project creation in the tour when no projects are available', async () => {

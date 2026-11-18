@@ -84,7 +84,6 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   const settingsTour = useSettingsNavigationTour();
   const [isMenuOpen, setMenuOpen] = useState(false);
   const isProjectTourActive = settingsTour?.currentStepId === 'projects';
-  const triggerRef = useRef<HTMLButtonElement>(null);
   const organizations = useStore(OrganizationsStore, state => state.organizations);
 
   const [activeOrgs, inactiveOrgs] = partition(
@@ -167,7 +166,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
           size={size}
           aria-label={t('Toggle organization menu')}
           {...mergeProps(triggerProps, {className: tourProps.className})}
-          ref={mergeRefs(triggerProps.ref, tourProps.ref, triggerRef)}
+          ref={mergeRefs(triggerProps.ref, tourProps.ref)}
         />
       )}
     </SettingsNavigationTourElement>
@@ -194,8 +193,6 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
       <SettingsNavigationTourElement
         id="projects"
         position="right"
-        // The menu closes with the tour, so focus returns to its trigger.
-        returnFocusRef={triggerRef}
         title={
           hasNoProjects
             ? getSettingsScopeTitle('project')
