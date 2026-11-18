@@ -24,7 +24,6 @@ from sentry.models.project import Project
 from sentry.notebooks.models import Notebook
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
-    SeerWorkflowConfigExtras,
     SeerWorkflowExecutionExtras,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
@@ -133,6 +132,17 @@ class MetricAlertTrigger(AutomationTrigger[MetricBreachInputs]):
             ),
             using=router.db_for_write(SeerWorkflowConfig),
         )
+
+    def create_backing_workflow(
+        self, update: ConfigUpdate, *, name: str | None, created_by_id: int | None, enabled: bool
+    ) -> None:
+        update.config.backing_workflow = _create_backing_workflow(
+            update.config,
+            name=name or "Seer automation",
+            created_by_id=created_by_id,
+            enabled=enabled,
+        )
+        update.mark("backing_workflow")
 
     def teardown(self, config: SeerWorkflowConfig) -> None:
         if config.backing_workflow_id is None:
@@ -495,7 +505,9 @@ def _get_or_create_backing_workflow(
     )
     if workflow is not None and workflow.status == ObjectStatus.ACTIVE:
         return workflow, False
-    config.backing_workflow = workflow = _create_backing_workflow(organization_id, config)
+    config.backing_workflow = workflow = _create_backing_workflow(
+        config, name="Seer automation", created_by_id=None, enabled=True
+    )
     return workflow, True
 
 
@@ -511,8 +523,10 @@ def _replace_monitor_connections(
     )
 
 
-def _create_backing_workflow(organization_id: int, config: SeerWorkflowConfig) -> Workflow:
-    extras = SeerWorkflowConfigExtras.parse_obj(config.extras)
+def _create_backing_workflow(
+    config: SeerWorkflowConfig, *, name: str, created_by_id: int | None, enabled: bool
+) -> Workflow:
+    organization_id = config.organization_id
     triggers = DataConditionGroup.objects.create(
         organization_id=organization_id,
         logic_type=DataConditionGroup.Type.ANY_SHORT_CIRCUIT,
@@ -525,9 +539,9 @@ def _create_backing_workflow(organization_id: int, config: SeerWorkflowConfig) -
     )
     workflow = Workflow.objects.create(
         organization_id=organization_id,
-        name=extras.name or "Seer automation",
-        enabled=config.enabled,
-        created_by_id=extras.created_by,
+        name=name,
+        enabled=enabled,
+        created_by_id=created_by_id,
         config={"frequency": 0},
         when_condition_group=triggers,
     )

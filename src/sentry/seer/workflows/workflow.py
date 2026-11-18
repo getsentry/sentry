@@ -35,6 +35,7 @@ from sentry.seer.workflows.base import (
     lock_config,
     validate_service_account_grant,
 )
+from sentry.seer.workflows.breached_metrics import MetricAlertTrigger
 from sentry.seer.workflows.definitions import get_definition
 from sentry.service_accounts.models import (
     MAX_NAME_LENGTH,
@@ -198,6 +199,10 @@ class SeerWorkflow:
                 ).save()
 
                 update = ConfigUpdate(LockedConfig(config), definition)
+                if isinstance(definition.trigger, MetricAlertTrigger):
+                    definition.trigger.create_backing_workflow(
+                        update, name=extras.name, created_by_id=extras.created_by, enabled=enabled
+                    )
                 update.set_scope(scope)
                 if update.dirty_fields:
                     config.save(using=database, update_fields=sorted(update.dirty_fields))
