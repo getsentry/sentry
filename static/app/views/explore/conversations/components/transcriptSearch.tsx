@@ -1,5 +1,6 @@
-import {useState, type RefObject} from 'react';
+import {Fragment, useState, type RefObject} from 'react';
 import {css, Global, useTheme} from '@emotion/react';
+import {IconChevron} from '@sentry/icons/chevron';
 import {IconClose} from '@sentry/icons/close';
 import {IconSearch} from '@sentry/icons/search';
 
@@ -45,6 +46,11 @@ export function TranscriptSearch({
         ? t('No results')
         : null;
 
+  const counter =
+    search.status === 'found' && search.index !== null
+      ? `${search.index + 1}/${search.matchCount}${search.hasMore ? '+' : ''}`
+      : null;
+
   const handleClear = () => {
     setQuery('');
     search.clear();
@@ -84,16 +90,37 @@ export function TranscriptSearch({
           onChange={e => setQuery(e.target.value)}
           onKeyDown={e => {
             if (e.key === 'Enter' && query.trim()) {
-              search.submit(query.trim());
+              search.submit(query.trim(), e.shiftKey);
             }
           }}
         />
-        {status || query ? (
+        {status || counter || query ? (
           <InputGroup.TrailingItems>
             {status ? (
               <Text size="sm" variant="muted">
                 {status}
               </Text>
+            ) : null}
+            {counter ? (
+              <Fragment>
+                <Text size="sm" variant="muted" tabular>
+                  {counter}
+                </Text>
+                <Button
+                  size="zero"
+                  variant="transparent"
+                  icon={<IconChevron size="xs" />}
+                  aria-label={t('Previous match')}
+                  onClick={search.previous}
+                />
+                <Button
+                  size="zero"
+                  variant="transparent"
+                  icon={<IconChevron size="xs" direction="down" />}
+                  aria-label={t('Next match')}
+                  onClick={search.next}
+                />
+              </Fragment>
             ) : null}
             {query ? (
               <Button

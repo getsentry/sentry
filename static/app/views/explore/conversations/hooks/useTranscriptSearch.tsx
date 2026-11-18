@@ -83,8 +83,9 @@ function clearHighlights() {
  * Searches the text the transcript shows, like browser find. When the loaded pages
  * don't have the wanted occurrence yet, it loads the next page and searches again.
  * The occurrence found is marked, collapsed blocks holding it open, its span is
- * selected and it's scrolled into view. Submitting the same query again goes to the
- * next occurrence.
+ * selected and it's scrolled into view. Next and previous step through the
+ * occurrences, loading more pages as needed; previous from the first wraps to the
+ * last, which loads everything first.
  */
 export function useTranscriptSearch({
   rootRef,
@@ -93,8 +94,11 @@ export function useTranscriptSearch({
   loadMore,
   onSelectSpan,
 }: UseTranscriptSearchOptions) {
-  const [search, setSearch] = useState<{index: number; query: string} | null>(null);
+  const [search, setSearch] = useState<{index: number | 'last'; query: string} | null>(
+    null
+  );
   const [status, setStatus] = useState<TranscriptSearchStatus>('idle');
+  const [matchCount, setMatchCount] = useState(0);
   const revealedRef = useRef<string | null>(null);
   const loadMoreRef = useRef(loadMore);
   const onSelectSpanRef = useRef(onSelectSpan);
@@ -104,24 +108,34 @@ export function useTranscriptSearch({
     onSelectSpanRef.current = onSelectSpan;
   });
 
+  const step = useCallback(
+    (direction: 1 | -1) => {
+      if (!search || status !== 'found' || search.index === 'last') {
+        return;
+      }
+      const index = search.index + direction;
+      setSearch({query: search.query, index: index < 0 ? 'last' : index});
+    },
+    [search, status]
+  );
+
   const submit = useCallback(
-    (query: string) => {
+    (query: string, backwards = false) => {
       if (search?.query === query) {
-        if (status === 'found') {
-          setSearch({query, index: search.index + 1});
-        }
+        step(backwards ? -1 : 1);
         return;
       }
       revealedRef.current = null;
       setSearch({query, index: 0});
     },
-    [search, status]
+    [search, step]
   );
 
   const clear = useCallback(() => {
     revealedRef.current = null;
     setSearch(null);
     setStatus('idle');
+    setMatchCount(0);
   }, []);
 
   useEffect(() => {
@@ -136,6 +150,24 @@ export function useTranscriptSearch({
     const apply = () => {
       frame = null;
       const matches = findMatches(root, query);
+      setMatchCount(matches.length);
+
+      if (index === 'last') {
+        if (canLoadMore) {
+          highlight(matches, null);
+          setStatus('searching');
+          if (!isLoadingMore) {
+            loadMoreRef.current();
+          }
+        } else if (matches.length === 0) {
+          highlight(matches, null);
+          setStatus('no-results');
+        } else {
+          setSearch({query, index: matches.length - 1});
+        }
+        return;
+      }
+
       const current = matches[index];
 
       if (!current) {
@@ -201,5 +233,14 @@ export function useTranscriptSearch({
 
   useEffect(() => clearHighlights, []);
 
-  return {status, submit, clear};
+  return {
+    status,
+    submit,
+    clear,
+    next: () => step(1),
+    previous: () => step(-1),
+    index: typeof search?.index === 'number' ? search.index : null,
+    matchCount,
+    hasMore: canLoadMore,
+  };
 }
