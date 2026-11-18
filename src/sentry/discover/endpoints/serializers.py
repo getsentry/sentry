@@ -292,6 +292,11 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
             )
 
 
+class DiscoverHomepageQuerySerializer(DiscoverSavedQuerySerializer):
+    # The homepage query has no name, so callers don't send one.
+    name = serializers.HiddenField(default="")
+
+
 class TeamKeyTransactionSerializer(serializers.Serializer):
     transaction = serializers.CharField(
         required=True, max_length=200, help_text="The name of the transaction."
