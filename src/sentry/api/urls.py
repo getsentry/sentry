@@ -319,6 +319,11 @@ from sentry.investigations.endpoints.organization_investigation_orchestration im
 from sentry.investigations.endpoints.organization_investigation_start import (
     OrganizationInvestigationStartEndpoint,
 )
+from sentry.investigations.endpoints.workflow_runs import (
+    OrganizationWorkflowCommandsEndpoint,
+    OrganizationWorkflowRunEndpoint,
+    OrganizationWorkflowRunsEndpoint,
+)
 from sentry.issues.endpoints import (
     ActionableItemsEndpoint,
     EventIdLookupEndpoint,
@@ -2488,6 +2493,21 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<notebook_id>[^/]+)/orchestration/commands/$",
         OrganizationInvestigationOrchestrationCommandsEndpoint.as_view(),
         name="sentry-api-0-organization-investigation-orchestration-commands",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/investigation-workflows/runs/$",
+        OrganizationWorkflowRunsEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-workflow-runs",
+    ),
+    re_path(
+        rf"^(?P<organization_id_or_slug>[^/]+)/investigation-workflows/runs/(?P<run_id>{UUIDConverter.regex})/$",
+        OrganizationWorkflowRunEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-workflow-run",
+    ),
+    re_path(
+        rf"^(?P<organization_id_or_slug>[^/]+)/investigation-workflows/runs/(?P<run_id>{UUIDConverter.regex})/commands/$",
+        OrganizationWorkflowCommandsEndpoint.as_view(),
+        name="sentry-api-0-organization-investigation-workflow-commands",
     ),
     re_path(
         rf"^(?P<organization_id_or_slug>[^/]+)/notebooks/workflow-runs/(?P<workflow_run_id>{UUIDConverter.regex})/$",
