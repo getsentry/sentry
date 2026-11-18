@@ -89,7 +89,6 @@ async function startWorkflow(body, examples) {
     requestId: submission.id,
   });
   submission = undefined;
-  storage.setItem('submitted-workflow', JSON.stringify({id: accepted.id, workflow}));
   return accepted;
 }
 
@@ -149,10 +148,11 @@ function presentRun(run) {
   const dependencies = Object.create(null);
   const allBlocks = [];
   for (const node of run.nodes) {
-    const attempts = node.attempts || [];
+    const attempts = [...(node.attempts || [])];
     if (node.kind === 'llm' && node.output !== null && node.output !== undefined) {
       attempts.push({
         attempt: node.attempt,
+        kind: 'llm',
         session: {
           usage: node.usage,
           blocks: [
@@ -210,7 +210,6 @@ function presentRun(run) {
     node.metrics = usageMetrics(usages, blocks);
   }
   Object.values(nodes).forEach(aggregate);
-  const submitted = JSON.parse(storage.getItem('submitted-workflow') || 'null');
   return {
     ...run,
     nodes,
@@ -219,7 +218,6 @@ function presentRun(run) {
     mode: 'agent',
     scenario: 'agent',
     definition: run.workflow,
-    source_workflow: submitted?.id === run.id ? submitted.workflow : run.workflow,
     output_node: run.workflow.output.slice(1),
     metrics: {
       ...usageMetrics(run.usage.usages, allBlocks),

@@ -46,3 +46,57 @@ test('the active workflow owns the Notebook tab and the last read', async () => 
   syncNotebook(context.lastSnapshot, context.view);
   assert.equal(hidden, true);
 });
+
+test('run snapshots expand map items into independent coordinator and worker statuses', async t => {
+  globalThis.document = {documentElement: {dataset: {}}};
+  globalThis.window = {markdownit: () => ({disable() {}})};
+  const {getRun} = await import('./assets/transport.js');
+  const {WorkflowGraph} = await import('./assets/graph.js');
+  const definition = {
+    nodes: {
+      verify: {
+        kind: 'map',
+        items: '$input.items',
+        body: {
+          kind: 'agent_loop',
+          coordinator: {kind: 'llm'},
+          worker: {kind: 'agent'},
+        },
+      },
+    },
+    output: '$verify',
+  };
+  const node = (id, status, fields = {}) => ({id, name: id, status, ...fields});
+  const nodes = [
+    node('verify', 'running'),
+    node('notebook/write', 'pending', {kind: 'agent', dependencies: ['verify']}),
+  ];
+  for (const [i, status] of ['succeeded', 'running', 'ready'].entries()) {
+    const parent = 'item-' + i;
+    nodes.push(node(parent, 'running', {parent: 'verify', item: i}));
+    nodes.push(node('c' + i, 'succeeded', {parent, role: 'coordinator', round: 1}));
+    nodes.push(node('w' + i, status, {parent, role: 'worker', round: 1}));
+  }
+  const snapshot = {
+    id: 'run',
+    workflow: definition,
+    nodes: nodes.toReversed(),
+    usage: {usages: []},
+  };
+  t.mock.method(globalThis, 'fetch', () => Response.json(snapshot));
+  const run = await getRun(snapshot.id);
+  const graph = WorkflowGraph.prototype.displayGraph(
+    definition,
+    run.nodes,
+    run.dependencies
+  );
+  assert.deepEqual(
+    ['verify[1].worker', 'verify[2].worker', 'verify[3].worker'].map(
+      id => graph.states[id].status
+    ),
+    ['succeeded', 'running', 'ready']
+  );
+  assert.equal(graph.states['verify[3].coordinator'].status, 'succeeded');
+  assert.equal(graph.states['notebook/write'].status, 'pending');
+  assert.equal(graph.dependencies['notebook/write'].length, 3);
+});

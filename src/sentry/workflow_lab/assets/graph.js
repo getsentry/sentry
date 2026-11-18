@@ -123,7 +123,7 @@ export class WorkflowGraph {
           exit: groups.flatMap(group => group.exit),
         };
       }
-      if (node.kind === 'map' && !state.items) {
+      if (node.kind === 'map' && !state.items && !Array.isArray(state.input)) {
         return expand(`${id}[*]`, node.body, state);
       }
       if (node.kind === 'agent_loop') {
@@ -146,7 +146,7 @@ export class WorkflowGraph {
               ['cancelled', 'failed'].includes(state.status) &&
               !['succeeded', 'failed'].includes(latest.status)
                 ? state.status
-                : latest.status || 'pending',
+                : latest.status || (state.status === 'succeeded' ? 'skipped' : 'pending'),
             attempts: rounds.flatMap(child =>
               (child.attempts || []).map(attempt => ({...attempt, round: child.round}))
             ),
@@ -165,6 +165,12 @@ export class WorkflowGraph {
     };
     for (const [id, node] of Object.entries(definition.nodes)) {
       members[id] = expand(id, node, states[id] || {});
+    }
+    // Notebook authoring and its post-run steps exist only in the execution graph.
+    for (const [id, state] of Object.entries(states)) {
+      if (!Object.hasOwn(members, id)) {
+        members[id] = expand(id, {kind: state.kind}, state);
+      }
     }
     for (const [id, group] of Object.entries(members)) {
       const parents = (dependencies[id] || []).flatMap(
@@ -244,11 +250,13 @@ export class WorkflowGraph {
       if (!definition?.nodes || !Object.keys(definition.nodes).length) {
         throw new Error('Add nodes to the JSON definition to see the graph.');
       }
-      const display = this.displayGraph(
-        definition,
-        states,
-        dependencies || this.dependencies(definition)
-      );
+      const edges = this.dependencies(definition);
+      for (const [id, parents] of Object.entries(dependencies || {})) {
+        if (parents?.length) {
+          edges[id] = parents;
+        }
+      }
+      const display = this.displayGraph(definition, states, edges);
       this.dependenciesMap = display.dependencies;
       this.loops = display.loops;
       const depths = Object.create(null),
@@ -286,6 +294,7 @@ export class WorkflowGraph {
           const status = state.status || 'pending';
           const labels = {
             pending: 'Waiting',
+            skipped: 'Skipped',
             ready: 'Queued',
             running: 'Running',
             succeeded: 'Succeeded',
@@ -363,9 +372,11 @@ export class WorkflowGraph {
               ? ''
               : '<span class="graph-item-input">' +
                 escapeText(
-                  typeof state.item_value === 'string'
-                    ? state.item_value
-                    : JSON.stringify(state.item_value)
+                  state.item_value?.hypothesis?.statement ||
+                    state.item_value?.statement ||
+                    (typeof state.item_value === 'string'
+                      ? state.item_value
+                      : JSON.stringify(state.item_value))
                 ) +
                 '</span>') +
             `<span class="graph-instructions">${escapeText(node.instructions)}</span>` +
@@ -375,7 +386,7 @@ export class WorkflowGraph {
         .join('');
       const viewport = this.element.querySelector('.graph-viewport');
       const scroll = [viewport?.scrollLeft || 0, viewport?.scrollTop || 0];
-      this.element.innerHTML = `<div class="graph-viewport"><div class="graph-stage"><div class="graph-canvas"><svg class="graph-edges" aria-hidden="true"><defs><marker id="graph-arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="none" stroke="context-stroke"/></marker></defs><g></g></svg>${cards}</div></div></div><div class="graph-controls" role="group" aria-label="Graph zoom"><button data-graph-zoom=".8" aria-label="Zoom out">−</button><button data-graph-zoom="fit" aria-label="Fit graph">Fit</button><button data-graph-zoom="1.25" aria-label="Zoom in">+</button></div>`;
+      this.element.innerHTML = `<div class="graph-viewport"><div class="graph-stage"><div class="graph-canvas"><svg class="graph-edges" aria-hidden="true"><defs><marker id="graph-arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="none" stroke="context-stroke"/></marker></defs><g></g></svg>${cards}</div></div></div><div class="graph-controls" role="group" aria-label="Graph zoom"><span>${saved ? 'Run graph' : 'Draft graph'}</span><button data-graph-zoom=".8" aria-label="Zoom out">−</button><button data-graph-zoom="fit" aria-label="Fit graph">Fit</button><button data-graph-zoom="1.25" aria-label="Zoom in">+</button></div>`;
       this.layout();
       this.element.querySelector('.graph-viewport').scrollTo(...scroll);
     } catch (error) {

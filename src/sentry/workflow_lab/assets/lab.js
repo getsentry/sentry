@@ -41,16 +41,16 @@ function renderGraph() {
     return;
   }
   try {
-    const draft = JSON.parse(editorValue('workflow'));
-    const saved =
-      lastSnapshot &&
-      JSON.stringify(draft) === JSON.stringify(lastSnapshot.source_workflow);
-    graph.render(
-      saved ? lastSnapshot.definition : draft,
-      saved ? lastSnapshot.nodes : {},
-      saved ? lastSnapshot.dependencies : null,
-      !!saved
-    );
+    if (lastSnapshot?.definition) {
+      graph.render(
+        lastSnapshot.definition,
+        lastSnapshot.nodes,
+        lastSnapshot.dependencies,
+        true
+      );
+    } else {
+      graph.render(JSON.parse(editorValue('workflow')));
+    }
   } catch (error) {
     $('graphView').textContent = 'Fix the JSON to preview the graph: ' + error.message;
   }
@@ -676,6 +676,9 @@ function loadExample(name) {
   if ($('run').disabled) {
     message('Wait for the current run to finish before loading an example.');
     return;
+  }
+  if (lastSnapshot) {
+    clearRun();
   }
   setEditor('workflow', fmt(example.workflow));
   setEditor('input', fmt(example.input));

@@ -23,10 +23,12 @@ type Block = {
   embedSource: string | null;
   embedSummary: string | null;
   id: string;
+  producerKey: string | null;
   title: string;
 };
 
 interface Notebook {
+  actionRequests: Array<{id: string; rationale: string; state: string; title: string}>;
   blocks: Block[];
   summary: string | null;
   summaryDescription: string | null;
@@ -64,6 +66,9 @@ function NotebookView() {
     return <p>Loading notebook…</p>;
   }
   const doc = notebook.data;
+  const firstHypothesis = doc.blocks.find(block =>
+    block.producerKey?.startsWith('hypothesis-')
+  );
   return (
     <OrganizationContext.Provider value={org.data}>
       <ScrapsProviders>
@@ -77,6 +82,11 @@ function NotebookView() {
             const widget = block.embed && SeerEmbedRegistry.get(block.embed.name);
             return (
               <section key={block.id} style={{marginBottom: 16}}>
+                {block === firstHypothesis && (
+                  <Heading as="h3" size="lg">
+                    Hypotheses
+                  </Heading>
+                )}
                 {block.title && (
                   <Heading as="h3" size="lg">
                     {block.title}
@@ -97,6 +107,21 @@ function NotebookView() {
               </section>
             );
           })}
+          {doc.actionRequests.length > 0 && (
+            <section>
+              <Heading as="h3" size="lg">
+                Next steps
+              </Heading>
+              <ol>
+                {doc.actionRequests.map(step => (
+                  <li key={step.id}>
+                    <strong>{step.title}</strong> · {step.state}
+                    <SeerMarkdown raw={step.rationale} />
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
         </article>
       </ScrapsProviders>
     </OrganizationContext.Provider>
