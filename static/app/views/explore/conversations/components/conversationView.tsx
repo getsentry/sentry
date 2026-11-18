@@ -41,7 +41,6 @@ export const CONVERSATION_VIEW_TABS: readonly ConversationViewTab[] = [
 interface ConversationViewContentProps {
   activeTab: ConversationViewTab;
   conversation: UseConversationsOptions;
-  /** Opens or closes every collapsible block in the transcript. */
   expandAll?: CollapsibleExpandAll | null;
   focusedTool?: string | null;
   onDeselectSpan?: () => void;
