@@ -46,12 +46,15 @@ export function FilterSelectorTriggerButton({
         filterSummary ? (
           <Stack gap="xs">
             <Text bold>{t('%s Filter', datasetLabel)}</Text>
-            <Text wordBreak="break-all">{filterSummary}</Text>
+            <Text align="left" wordBreak="break-word">
+              {filterSummary}
+            </Text>
           </Stack>
         ) : (
           t('%s Filter', datasetLabel)
         )
       }
+      maxWidth={400}
       // The open menu already shows the dataset in its title
       disabled={!!triggerProps['aria-expanded']}
       skipWrapper
