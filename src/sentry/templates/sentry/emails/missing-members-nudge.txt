@@ -1,7 +1,7 @@
 
 Bring your full {{ provider }} team on board in Sentry
 
-You have developers committing code changes in your GitHub organization. Invite them to Sentry so that they can monitor their error and performance issues.
+You have developers committing code changes in your GitHub organization. Invite them to Sentry so they can debug the issues in the code they ship.
 
 Most Active Contributors
 
