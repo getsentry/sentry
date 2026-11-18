@@ -69,6 +69,7 @@ from sentry.seer.autofix.pr_iteration.out_of_credits import (
     StrandedAction,
     get_out_of_credits,
     mark_out_of_credits,
+    take_out_of_credits,
 )
 from sentry.seer.autofix.pr_iteration.pause import (
     PauseReason,
@@ -1447,6 +1448,107 @@ class TestPrIterationCompletionHook(TestCase):
         assert results[0]["landed"] is True
         assert results[0]["retries"] == 1
         assert results[0]["outcome"] == PrIterationOutcome.ALREADY_PUSHED.value
+
+    def _branch_moved_results(self, mock_logger: MagicMock) -> list[dict[str, Any]]:
+        return [
+            call.kwargs["extra"]
+            for call in mock_logger.info.call_args_list
+            if call.args[0] == "autofix.pr_iteration.branch_moved.result"
+        ]
+
+    def _redo(self, state: SeerRunState, action: StrandedAction) -> None:
+        """Redo the stranded action the way the drain does: take the marker first."""
+        take_out_of_credits(run_id=123, organization_id=self.organization.id)
+        redo_stranded_action(
+            iteration_log_context(self.organization, self.group, state),
+            self.group,
+            123,
+            state,
+            action,
+        )
+
+    @patch(f"{COMPLETION_PATH}.complete_pr_iteration_details")
+    @patch(f"{COMPLETION_PATH}.consume_queued_feedback")
+    @patch(f"{COMPLETION_PATH}.logger")
+    def test_a_stranded_branch_moved_retry_whose_redo_fails_logs_its_result_once(
+        self, mock_logger: MagicMock, mock_consume: MagicMock, mock_complete: MagicMock
+    ) -> None:
+        """No completion follows a redo that fails, so the redo logs the result. A redo refused
+        for credits again is stranded again and doesn't."""
+        run = self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        self.create_seer_agent_run(
+            run=run, source=LEGACY_FEATURE_ID, group=self.group, project=self.project
+        )
+        state = self._branch_moved()
+
+        with (
+            self.feature(
+                [
+                    "organizations:autofix-pr-iteration-pin-to-pr-head",
+                    "organizations:seer-credit-checks",
+                    "organizations:token-billed-seer-enabled",
+                ]
+            ),
+            patch(
+                "sentry.seer_credit.backend.check_seer_credits",
+                return_value=CheckSeerCreditsResponse(has_enough_credits=False),
+            ),
+            patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient"),
+        ):
+            continue_pr_iteration(
+                self.organization, self.group, 123, state, AutofixReferrer.ON_COMPLETION_HOOK
+            )
+            self._redo(state, StrandedAction.BRANCH_MOVED_RETRY)
+        assert self._branch_moved_results(mock_logger) == []
+        assert get_out_of_credits(run_id=123, organization_id=self.organization.id) == OutOfCredits(
+            stranded_action=StrandedAction.BRANCH_MOVED_RETRY
+        )
+
+        with (
+            self.feature("organizations:autofix-pr-iteration-pin-to-pr-head"),
+            patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as mock_client_cls,
+        ):
+            mock_client_cls.return_value.continue_feature_run.side_effect = SeerApiError(
+                "unavailable", 503
+            )
+            self._redo(state, StrandedAction.BRANCH_MOVED_RETRY)
+
+        results = self._branch_moved_results(mock_logger)
+        assert len(results) == 1
+        assert results[0]["landed"] is False
+        assert results[0]["retries"] == 0
+        assert results[0]["branch_moved_repos"] == ["test-repo"]
+        assert results[0]["outcome"] == PrIterationOutcome.PR_CREATION_ERRORED.value
+
+    @patch(f"{COMPLETION_PATH}.complete_pr_iteration_details")
+    @patch(f"{COMPLETION_PATH}.consume_queued_feedback")
+    @patch(f"{COMPLETION_PATH}.trigger_push_changes")
+    @patch(f"{COMPLETION_PATH}.logger")
+    def test_a_stranded_push_after_a_branch_moved_retry_whose_redo_fails_logs_its_result_once(
+        self,
+        mock_logger: MagicMock,
+        mock_push: MagicMock,
+        mock_consume: MagicMock,
+        mock_complete: MagicMock,
+    ) -> None:
+        self.create_seer_run(organization=self.organization, seer_run_state_id=123)
+        state = self._unsynced()
+        state.blocks = [state.blocks[0].copy(deep=True) for _ in range(2)]
+
+        mock_push.side_effect = SeerOutOfCreditsException()
+        continue_pr_iteration(
+            self.organization, self.group, 123, state, AutofixReferrer.ON_COMPLETION_HOOK
+        )
+        assert self._branch_moved_results(mock_logger) == []
+
+        mock_push.side_effect = RuntimeError("push failed")
+        self._redo(state, StrandedAction.PUSH)
+
+        results = self._branch_moved_results(mock_logger)
+        assert len(results) == 1
+        assert results[0]["landed"] is False
+        assert results[0]["retries"] == 1
+        assert results[0]["outcome"] == PrIterationOutcome.PUSH_FAILED.value
 
     @patch(f"{COMPLETION_PATH}.complete_pr_iteration_details")
     @patch(f"{COMPLETION_PATH}.consume_queued_feedback")

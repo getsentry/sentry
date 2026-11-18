@@ -600,9 +600,10 @@ def redo_stranded_action(
 
     Its completion hook drains the queue, as it would have the first time.
     """
+    outcome: PrIterationOutcome | Retrying | None
     match action:
         case StrandedAction.PUSH:
-            _push_iteration_changes(
+            outcome = _push_iteration_changes(
                 log_ctx, group, run_id, state, author=_iteration_commit_author(state)
             )
         case StrandedAction.BRANCH_MOVED_RETRY:
@@ -615,6 +616,11 @@ def redo_stranded_action(
                 )
         case _:
             assert_never(action)
+
+    # A redo that fails ends the iteration here, with no completion to log it. One refused for
+    # credits again is stranded again, so the skip in the log holds it for the next redo.
+    if isinstance(outcome, PrIterationOutcome):
+        _log_branch_moved_result(log_ctx, group.organization, state, outcome.value)
 
 
 def _push_failed_on_moved_branch(
@@ -670,7 +676,7 @@ def _log_branch_moved_result(
     retried shows up as ``retries=0`` with the repos still in ``branch_moved_repos``.
 
     A push or retry that a credits refusal stranded doesn't end the iteration: the drain redoes
-    it after a top-up, and that completion logs the result.
+    it after a top-up, and the redo logs the result if it fails, or its completion does.
     """
     try:
         iterations = get_iterations(state)
