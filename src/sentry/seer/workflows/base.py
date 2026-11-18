@@ -33,7 +33,6 @@ from sentry.service_accounts.models import (
 )
 from sentry.service_accounts.outbox import service_account_grant_update_outbox
 from sentry.utils import json
-from sentry.workflow_engine.models import Workflow
 
 logger = logging.getLogger(__name__)
 
@@ -107,18 +106,11 @@ def lock_config(organization_id: int, config_id: int) -> Iterator[LockedConfig]:
     """Hold the config's row lock for the block. Raises DoesNotExist for a missing config."""
     database = router.db_for_write(SeerWorkflowConfig)
     with transaction.atomic(database):
-        config = (
+        yield LockedConfig(
             SeerWorkflowConfig.objects.using(database)
             .select_for_update()
             .get(id=config_id, organization_id=organization_id)
         )
-        if config.backing_workflow_id is not None:
-            config.backing_workflow = (
-                Workflow.objects_for_deletion.using(database)
-                .select_for_update()
-                .get(id=config.backing_workflow_id, organization_id=organization_id)
-            )
-        yield LockedConfig(config)
 
 
 class NoSettings(BaseModel):
@@ -348,13 +340,15 @@ class ConfigUpdate:
         self.definition.validate_settings(extras)
         workflow = self.config.backing_workflow
         if workflow is not None:
-            fields: dict[str, Any] = {}
+            changed_fields = []
             if extras.name is not None and workflow.name != extras.name:
-                fields["name"] = extras.name
+                workflow.name = extras.name
+                changed_fields.append("name")
             if extras.created_by is not None and workflow.created_by_id != extras.created_by:
-                fields["created_by_id"] = extras.created_by
-            if fields:
-                workflow.update(**fields)
+                workflow.created_by_id = extras.created_by
+                changed_fields.append("created_by_id")
+            if changed_fields:
+                workflow.save(update_fields=[*changed_fields, "date_updated"])
                 self.mark_related_changed()
             extras = extras.copy(update={"name": None, "created_by": None})
         new_extras = extras.dict(exclude_none=True)
