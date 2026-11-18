@@ -40,6 +40,15 @@ describe('findChapterIndex', () => {
     ).toBe(-1);
   });
 
+  it('includes the end of a chapter followed by a gap', () => {
+    const gapped = [
+      {start: 1000, end: 2000},
+      {start: 3000, end: 4000},
+    ];
+    expect(findChapterIndex(gapped, 2000)).toBe(0);
+    expect(findChapterIndex(gapped, 2001)).toBe(-1);
+  });
+
   it('assigns a timestamp to a zero-length chapter at that instant', () => {
     const withZeroLength = [
       {start: 1000, end: 2000},

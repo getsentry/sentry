@@ -56,23 +56,25 @@ export type TimeRanges = Array<{
  * Returns the index of the one chapter that owns `timestampMs`, or -1.
  *
  * Chapters must be sorted by `start`. Ranges are half-open (`[start, end)`) so a
- * timestamp on a shared boundary belongs only to the later chapter. The last
- * chapter also owns its `end`, a zero-length chapter owns its single instant,
- * and the first chapter owns anything before its start, because summaries can
- * begin a few ms after the first event of the replay. When ranges overlap, the
- * earlier chapter wins.
+ * timestamp on a shared boundary belongs only to the later chapter. A chapter
+ * still owns its `end` when no later chapter starts there (the last chapter, or
+ * a gap before the next one), and a zero-length chapter owns its single instant.
+ * The first chapter owns anything before its start, because summaries can begin
+ * a few ms after the first event of the replay. When ranges overlap, the earlier
+ * chapter wins.
  */
 export function findChapterIndex(
   chapters: ReadonlyArray<{end: number; start: number}>,
   timestampMs: number
 ): number {
-  const lastIndex = chapters.length - 1;
   return chapters.findIndex(({start, end}, i) => {
     if (timestampMs < start) {
       return i === 0;
     }
-    return (
-      timestampMs < end || (timestampMs === end && (start === end || i === lastIndex))
-    );
+    if (timestampMs !== end) {
+      return timestampMs < end;
+    }
+    const next = chapters[i + 1];
+    return start === end || next === undefined || next.start > end;
   });
 }
