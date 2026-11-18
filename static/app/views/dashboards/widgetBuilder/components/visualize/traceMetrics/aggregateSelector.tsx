@@ -54,6 +54,8 @@ export function AggregateSelector({
     [traceMetric?.type, disabledAggregates]
   );
 
+  // Hidden rows are not in the builder state, so read the column prop.
+  // Visible rows read the state like before.
   const sourceField = onFieldChange ? field : (displayFields?.[index] ?? field);
   const parts = getTraceMetricFunctionParts(sourceField);
   const aggregateValue = parts?.aggregation ?? '';

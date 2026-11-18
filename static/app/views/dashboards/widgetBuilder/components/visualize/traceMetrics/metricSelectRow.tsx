@@ -109,8 +109,8 @@ export function MetricSelectRow({
     state.fields
   );
 
-  // Rows stored in the builder state read the latest column from the state;
-  // controlled rows (hidden equation rows) read the column they were given.
+  // Hidden rows are not in the builder state, so read the column prop.
+  // Visible rows read the state like before.
   const sourceField = onFieldChange ? field : (displayFields?.[index] ?? field);
   const traceMetric = extractTraceMetricFromColumn(sourceField) ?? {name: '', type: ''};
 
