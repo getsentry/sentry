@@ -758,7 +758,7 @@ export function TextTourAction(props: React.ComponentProps<typeof Button>) {
 const GuidePositionWrapper = styled(PositionWrapper)`
   outline: none;
 
-  &[data-focus-ring]:focus > [data-overlay] {
+  &[data-focus-ring]:focus-visible > [data-overlay] {
     ${p => p.theme.focusRing()};
   }
 `;
