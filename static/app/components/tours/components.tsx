@@ -1,5 +1,13 @@
 import type {HTMLAttributes} from 'react';
-import {Fragment, useContext, useEffect, useId, useLayoutEffect, useMemo} from 'react';
+import {
+  Fragment,
+  useContext,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useState,
+} from 'react';
 import {createPortal} from 'react-dom';
 import {ClassNames, ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -112,11 +120,19 @@ export function TourContextProvider<T extends TourEnumType>({
   );
   const {endTour, previousStep, nextStep, currentStepId} = tourContextValue;
   const isTourActive = currentStepId !== null;
-  // Each run of the tour gets its own focus scope.
-  const focusScope = useMemo(
-    () => createTourFocusScope({isRunning: isTourActive}),
-    [isTourActive]
-  );
+  // Each run of the tour gets its own focus scope. It is state, not memoized,
+  // because the guides' effects need it to stay the same for the whole run.
+  const [focusScopeRun, setFocusScopeRun] = useState(() => ({
+    isTourActive,
+    focusScope: createTourFocusScope({isRunning: isTourActive}),
+  }));
+  if (focusScopeRun.isTourActive !== isTourActive) {
+    setFocusScopeRun({
+      isTourActive,
+      focusScope: createTourFocusScope({isRunning: isTourActive}),
+    });
+  }
+  const {focusScope} = focusScopeRun;
   // A layout effect, so the scope ends before the last guide's effects clean up
   // and return focus.
   useLayoutEffect(() => focusScope.end, [focusScope]);
