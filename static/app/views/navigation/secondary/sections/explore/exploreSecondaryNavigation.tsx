@@ -48,10 +48,7 @@ function ExploreSecondaryNavigationImpl() {
   // the explore-errors and discover-basic branches) but point elsewhere.
   const navItems: Array<{label: string; to: string; badge?: 'new' | 'beta' | 'alpha'}> =
     [];
-  if (
-    organization.features.includes('performance-view') &&
-    organization.features.includes('visibility-explore-view')
-  ) {
+  if (organization.features.includes('visibility-explore-view')) {
     navItems.push({label: 'Traces', to: `${baseUrl}/traces/`});
   }
   if (organization.features.includes('ourlogs-enabled')) {
@@ -119,17 +116,15 @@ function ExploreSecondaryNavigationImpl() {
       <SecondaryNavigation.Body>
         <SecondaryNavigation.Section id="explore-main">
           <SecondaryNavigation.List>
-            <Feature features={['performance-view']}>
-              <Feature features={['visibility-explore-view']}>
-                <SecondaryNavigation.ListItem>
-                  <SecondaryNavigation.Link
-                    to={`${baseUrl}/traces/`}
-                    analyticsItemName="explore_traces"
-                  >
-                    {t('Traces')}
-                  </SecondaryNavigation.Link>
-                </SecondaryNavigation.ListItem>
-              </Feature>
+            <Feature features={['visibility-explore-view']}>
+              <SecondaryNavigation.ListItem>
+                <SecondaryNavigation.Link
+                  to={`${baseUrl}/traces/`}
+                  analyticsItemName="explore_traces"
+                >
+                  {t('Traces')}
+                </SecondaryNavigation.Link>
+              </SecondaryNavigation.ListItem>
             </Feature>
             <Feature features="ourlogs-enabled">
               <SecondaryNavigation.ListItem>
@@ -272,7 +267,7 @@ function ExploreSecondaryNavigationImpl() {
             )}
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
-        <Feature features={['visibility-explore-view', 'performance-view']}>
+        <Feature features={['visibility-explore-view']}>
           <Fragment>
             <SecondaryNavigation.Separator />
             <SecondaryNavigation.Section id="explore-saved-queries">

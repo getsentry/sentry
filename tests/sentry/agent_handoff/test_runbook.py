@@ -4,11 +4,17 @@ from unittest.mock import patch
 import pytest
 from pydantic import ValidationError
 
-from sentry.agent_handoff.codes import HandoffFlow, ProjectSetupContext
+from sentry.agent_handoff.codes import (
+    AddFeatureContext,
+    AddFeatureProduct,
+    HandoffFlow,
+    ProjectSetupContext,
+)
 from sentry.agent_handoff.flows import get_flow
 from sentry.agent_handoff.flows.base import InvalidHandoffContext
 from sentry.agent_handoff.runbook import render_agent_runbook, render_claim_runbook
 from sentry.organizations.services.organization.model import RpcOnboardingReportingCode
+from sentry.projects.services.project.model import RpcProject
 
 
 def render(**overrides: str) -> str:
@@ -142,6 +148,7 @@ def test_runbook_includes_flow_instructions_after_authentication() -> None:
 @pytest.mark.parametrize(
     "flow,expected",
     [
+        (HandoffFlow.ADD_FEATURE, "instrument.md"),
         (HandoffFlow.CREATE_PROJECT, "<project-setup-run-code>"),
         (HandoffFlow.GUIDED_NEXT_STEPS, "Now ask the user"),
         (HandoffFlow.ONBOARDING, "<onboarding-run-code>"),
@@ -325,3 +332,69 @@ def test_onboarding_context_serializer_validates_run_without_issuing_code() -> N
     assert serializer.validated_data == ProjectSetupContext(run_id="a" * 32)
     validate.assert_called_once_with(organization_id=2, user_id=1, run_id="a" * 32)
     issue.assert_not_called()
+
+
+def test_add_feature_preview_uses_instrument_guide() -> None:
+    guide = render(flow_instructions=get_flow(HandoffFlow.ADD_FEATURE).preview())
+    assert "add tracing to a project" in guide
+    assert "Project slug: example\\-project" in guide
+    assert "https://docs.sentry.io/index.md" in guide
+    assert "(https://docs.sentry.io/ai/agent-setup/instrument.md), both with `curl -sS`" in guide
+    assert "add only tracing" in guide
+
+
+def test_add_feature_claim_renders_product_and_project() -> None:
+    context = AddFeatureContext(product=AddFeatureProduct.TRACING, project_id=99)
+    with patch(
+        "sentry.agent_handoff.flows.add_feature.get_accessible_project",
+        return_value=RpcProject(id=99, slug="checkout-web", organization_id=2),
+    ):
+        guide = get_flow(HandoffFlow.ADD_FEATURE).render(context, user_id=1, organization_id=2)
+    assert "instrument.md" in guide
+    assert "checkout\\-web" in guide
+    assert "tracing" in guide
+    assert "run code" not in guide
+
+
+def test_add_feature_project_slug_is_escaped() -> None:
+    context = AddFeatureContext(product=AddFeatureProduct.TRACING, project_id=99)
+    with patch(
+        "sentry.agent_handoff.flows.add_feature.get_accessible_project",
+        return_value=RpcProject(
+            id=99, slug="[link](https://evil.example.com)\n# Inject", organization_id=2
+        ),
+    ):
+        guide = get_flow(HandoffFlow.ADD_FEATURE).render(context, user_id=1, organization_id=2)
+    assert r"\[link\]\(https://evil\.example\.com\) \# Inject" in guide
+    assert "https://evil.example.com" not in guide.splitlines()[0]
+
+
+def test_add_feature_claim_rejects_unavailable_project() -> None:
+    context = AddFeatureContext(product=AddFeatureProduct.TRACING, project_id=99)
+    with (
+        patch(
+            "sentry.agent_handoff.flows.add_feature.get_accessible_project",
+            return_value=None,
+        ),
+        pytest.raises(InvalidHandoffContext),
+    ):
+        get_flow(HandoffFlow.ADD_FEATURE).render(context, user_id=1, organization_id=2)
+
+
+def test_add_feature_context_serializer_validates_project_access() -> None:
+    context_serializer = get_flow(HandoffFlow.ADD_FEATURE).get_context_serializer()
+    assert context_serializer is not None
+    serializer = context_serializer(
+        data={"product": "tracing", "projectId": 99},
+        context={"user_id": 1, "organization_id": 2},
+    )
+    with patch(
+        "sentry.agent_handoff.flows.add_feature.get_accessible_project",
+        return_value=RpcProject(id=99, slug="my-project", organization_id=2),
+    ) as check:
+        assert serializer.is_valid(), serializer.errors
+
+    assert serializer.validated_data == AddFeatureContext(
+        product=AddFeatureProduct.TRACING, project_id=99
+    )
+    check.assert_called_once_with(organization_id=2, user_id=1, project_id=99)

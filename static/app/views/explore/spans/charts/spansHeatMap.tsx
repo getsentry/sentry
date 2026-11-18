@@ -5,7 +5,6 @@ import {parseAsString, useQueryStates} from 'nuqs';
 import {Container} from '@sentry/scraps/layout';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
@@ -13,7 +12,6 @@ import {getUtcDateString} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {AggregationKey} from 'sentry/utils/fields';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useDimensions} from 'sentry/utils/useDimensions';
@@ -42,12 +40,11 @@ import {dateTimeAsHeatMapWindow} from 'sentry/views/explore/metrics/hooks/partit
 import {useQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {
-  isVisualizeEquation,
   isVisualizeFunction,
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
+import {HEATMAP_AGGREGATE} from 'sentry/views/explore/utils/heatMapAggregate';
 import {setExploreAttributeBounds} from 'sentry/views/explore/utils/setExploreAttributeBounds';
-import {ChartType} from 'sentry/views/insights/common/components/chartTypes';
 import {SpanFields} from 'sentry/views/insights/types';
 
 export const SPANS_HEAT_MAP_Y_AXES = [
@@ -66,7 +63,7 @@ export function getSpansHeatMapYAxis(
 ): SpansHeatMapYAxis | undefined {
   if (
     !isVisualizeFunction(visualize) ||
-    visualize.parsedFunction?.name !== AggregationKey.COUNT
+    visualize.parsedFunction?.name !== HEATMAP_AGGREGATE
   ) {
     return undefined;
   }
@@ -74,27 +71,12 @@ export function getSpansHeatMapYAxis(
   return SPANS_HEAT_MAP_Y_AXES.find(yAxis => yAxis === attribute);
 }
 
-export function getSpansHeatMapDisabledReason(visualize: Visualize): string | undefined {
-  if (isVisualizeEquation(visualize)) {
-    return t('Heatmaps are not available for equations.');
-  }
-  if (!defined(getSpansHeatMapYAxis(visualize))) {
-    return t('Heatmaps are only available for count.');
-  }
-  return undefined;
-}
-
 export function isSpansHeatMap(visualize: Visualize, organization: Organization) {
-  if (
-    !canUseSpansHeatMap(organization) ||
-    defined(visualize.chartGroup) ||
-    !defined(getSpansHeatMapYAxis(visualize))
-  ) {
-    return false;
-  }
-  return visualize.hasSelectedChartType
-    ? visualize.chartType === ChartType.HEATMAP
-    : true;
+  return (
+    canUseSpansHeatMap(organization) &&
+    !defined(visualize.chartGroup) &&
+    defined(getSpansHeatMapYAxis(visualize))
+  );
 }
 
 interface SpansHeatMapProps {

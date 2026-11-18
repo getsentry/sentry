@@ -224,6 +224,8 @@ export interface ExplorerAutofixState {
   run_id: number;
   status: 'processing' | 'completed' | 'error' | 'awaiting_user_input';
   updated_at: string;
+  /** The saved SeerBillingFeature. Null means the run has no attribution. */
+  billing_feature?: number | null;
   coding_agents?: Record<string, ExplorerCodingAgentState>;
   failure_reason?: ExplorerFailureReason | null;
   feature_id?: string | null;

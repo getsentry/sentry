@@ -553,7 +553,7 @@ export function GlobalCommandPaletteActions() {
 
         {/* Hide the Insights section once the insights-to-dashboards migration
             is active; Crons and Uptime now live under the Monitors section. */}
-        {organization.features.includes('performance-view') && !hasInsightsRollout && (
+        {!hasInsightsRollout && (
           <CMDKAction
             display={{
               label: t('Insights'),

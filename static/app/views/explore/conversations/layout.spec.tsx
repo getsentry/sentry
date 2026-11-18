@@ -8,9 +8,7 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 import ConversationsLayout from './layout';
 import {CONVERSATIONS_LANDING_TITLE, CONVERSATIONS_SIDEBAR_LABEL} from './settings';
 
-const organization = OrganizationFixture({
-  features: ['performance-view'],
-});
+const organization = OrganizationFixture();
 
 function renderLayout(
   location: {pathname: string; query?: Record<string, string | number | string[]>},

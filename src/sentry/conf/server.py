@@ -506,6 +506,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.insights",
     "sentry.preprod",
     "sentry.releases",
+    "sentry.timeseries_annotations",
     "sentry.seer",
     "sentry.scm",
     "sentry.cadence",
@@ -717,6 +718,10 @@ VISUALSTUDIO_SCOPES = ["vso.work_write", "vso.project", "vso.code", "vso.release
 # Linear integration (OAuth app credentials)
 LINEAR_CLIENT_ID = ""
 LINEAR_CLIENT_SECRET = ""
+
+# Supabase integration (OAuth app credentials)
+SUPABASE_FOR_SEER_CLIENT_ID = ""
+SUPABASE_FOR_SEER_CLIENT_SECRET = ""
 
 SOCIAL_AUTH_PIPELINE = (
     "social_auth.backends.pipeline.user.get_username",
@@ -1048,7 +1053,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.seer.agentic_triage.cron",
     "sentry.tasks.seer.autofix_issue_data",
     "sentry.tasks.seer.backfill_supergroups_lightweight",
-    "sentry.telemetry_classifiers.poc_tasks",
     "sentry.telemetry_classifiers.tasks",
     # Used for tests
     "sentry.taskworker.tasks.examples",
@@ -1197,10 +1201,6 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "dynamic-sampling-cache-dynamic-sampling-feature-flags": {
         "task": "telemetry-experience:sentry.dynamic_sampling.per_org.cache_dynamic_sampling_feature_flags",
         "schedule": crontab("0", "*", "*", "*", "*"),
-    },
-    "telemetry-classifiers-conversations": {
-        "task": "telemetry.classifiers:sentry.telemetry_classifiers.tasks.schedule_conversation_classifiers",
-        "schedule": crontab("*/5", "*", "*", "*", "*"),
     },
     "telemetry-classifiers-schedule": {
         "task": "telemetry.classifiers:sentry.telemetry_classifiers.tasks.schedule_classifiers",
@@ -2672,6 +2672,7 @@ SENTRY_DEFAULT_INTEGRATIONS = (
     "sentry.integrations.gcp.integration.GcpIntegrationProvider",
     "sentry.integrations.grafana.integration.GrafanaIntegrationProvider",
     "sentry.integrations.linear.integration.LinearIntegrationProvider",
+    "sentry.integrations.supabase.integration.SupabaseIntegrationProvider",
     "sentry.integrations.github_copilot.integration.GithubCopilotIntegrationProvider",
     "sentry.integrations.perforce.integration.PerforceIntegrationProvider",
     "sentry.integrations.cursor_origin.integration.CursorOriginIntegrationProvider",
@@ -2787,7 +2788,6 @@ SENTRY_OBJECTSTORE_CONFIG: dict[str, Any] = {
         "permissions": ["object.read"],
     },
 }
-SENTRY_VIEWER_CONTEXT_ENABLED = True
 SENTRY_ANALYTICS_BACKEND = "noop"
 SENTRY_ANALYTICS_OPTIONS: dict[str, Any] = {}
 SENTRY_MAIL_LIST_NAMESPACE = "localhost"
@@ -3654,7 +3654,6 @@ REGION_PINNED_URL_NAMES = {
     "sentry-api-0-group-user-reports",
     "sentry-api-0-group-attachments",
     "sentry-api-0-group-similar",
-    "sentry-api-0-group-similar-issues-embeddings",
     "sentry-api-0-group-external-issues",
     "sentry-api-0-group-external-issues-details",
     "sentry-api-0-group-integrations",

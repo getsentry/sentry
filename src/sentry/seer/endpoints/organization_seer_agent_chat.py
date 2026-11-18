@@ -12,6 +12,9 @@ from rest_framework.permissions import SAFE_METHODS
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_SEER_AGENT,
+)
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -37,20 +40,16 @@ from sentry.seer.autofix.constants import (
     AutofixReferrer,
 )
 from sentry.seer.autofix.exceptions import SeerOutOfCreditsException
-from sentry.seer.autofix.feature.dispatch import continue_single_run
+from sentry.seer.autofix.feature.dispatch import continue_single_run, get_run_billing_feature
 from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 from sentry.seer.autofix.prompt_redaction import redact_autofix_prompts
 from sentry.seer.autofix.single_run import is_single_run
-from sentry.seer.credits import (
-    SeerFeature,
-    SeerOperation,
-    check_seer_operation,
-    get_denial_reason,
-)
+from sentry.seer.credits import SeerOperation, check_seer_operation, get_denial_reason
 from sentry.seer.endpoints.group_ai_autofix import RUN_IN_FLIGHT_CODE
 from sentry.seer.endpoints.utils import (
     SEER_AGENT_CHAT_OUT_OF_CREDITS_DETAIL,
     ResolvedSeerRun,
+    refuse_service_account_token,
     resolve_seer_run,
     seer_out_of_credits_response,
 )
@@ -225,6 +224,8 @@ class OrganizationSeerAgentChatPermission(OrganizationPermission):
             if not is_demo_mode_enabled() or request.method not in self.DEMO_ALLOWED_METHODS:
                 return False
             return True
+        if request.method == "POST":
+            refuse_service_account_token(request)
         return super().has_permission(request, view)
 
     def has_object_permission(self, request: Request, view: APIView, obj: Any) -> bool:
@@ -273,12 +274,10 @@ def _maybe_reply_to_single_run(
     if not request.access.has_any_project_scope(project, AUTOFIX_RUN_SCOPES):
         raise PermissionDenied("You do not have access to this run.")
     try:
-        if (
-            SeerAgentClient(organization, request.user)
-            .get_run(run_id=resolved.seer_run_state_id)
-            .status
-            == "processing"
-        ):
+        run_state = SeerAgentClient(organization, request.user).get_run(
+            run_id=resolved.seer_run_state_id
+        )
+        if run_state.status == "processing":
             return Response(
                 {
                     "detail": "This run is still working",
@@ -292,9 +291,10 @@ def _maybe_reply_to_single_run(
             single_run,
             single_run.group,
             reply,
+            referrer=AutofixReferrer.SEER_EXPLORER,
+            billing_feature=get_run_billing_feature(run_state),
             user=replier,
             can_publish=request.access.has_any_project_scope(project, PUBLISH_SCOPES),
-            referrer=AutofixReferrer.SEER_EXPLORER,
         )
     except SeerOutOfCreditsException as e:
         return seer_out_of_credits_response(SEER_AGENT_CHAT_OUT_OF_CREDITS_DETAIL, e.denial_reason)
@@ -472,7 +472,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
         # Do not bill for dashboard generation.
         if not is_dashboard_generate_run:
             credits = check_seer_operation(
-                organization, SeerFeature.EXPLORER, SeerOperation.AGENT_CHAT_MESSAGE
+                organization, SEER_BILLING_FEATURE_SEER_AGENT, SeerOperation.AGENT_CHAT_MESSAGE
             )
             if not credits.has_enough_credits:
                 return seer_out_of_credits_response(

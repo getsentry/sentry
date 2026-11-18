@@ -35,7 +35,7 @@ def get_identity_or_404(
         _logger.info("provider is not part of supported external providers", extra=logger_metadata)
         raise Http404
 
-    integration = Integration.objects.filter(id=integration_id).first()
+    integration = Integration.objects.get_or_none(id=integration_id)
     if integration is None:
         _logger.info("failed to find an integration", extra=logger_metadata)
         raise Http404

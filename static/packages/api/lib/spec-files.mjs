@@ -12,14 +12,8 @@ const repositoryPaths = {
 };
 
 const root = new URL("../../../../", import.meta.url);
-// A directory that holds all of them instead, such as one CI job's spec/
-// output downloaded into another.
-const dir = process.env.SENTRY_API_SPEC_DIR;
 
 /** Where to copy each spec/ file from, by name. */
 export const specFiles = Object.fromEntries(
-  Object.entries(repositoryPaths).map(([name, path]) => [
-    name,
-    dir ? `${dir}/${name}` : fileURLToPath(new URL(path, root)),
-  ]),
+  Object.entries(repositoryPaths).map(([name, path]) => [name, fileURLToPath(new URL(path, root))]),
 );

@@ -67,6 +67,7 @@ class SlackEntrypointInteractionType(StrEnum):
     PROCESS_MENTION = "process_mention"
     PROCESS_REACTION = "process_reaction"
     UPDATE_INVESTIGATION_STATUS = "update_investigation_status"
+    SEND_INVESTIGATION_STARTED = "send_investigation_started"
     SEND_INVESTIGATION_CONCLUSION = "send_investigation_conclusion"
 
 

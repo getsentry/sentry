@@ -55,9 +55,9 @@ def deliver_impact_assessment(
         logger.exception("impact.delivery.invalid_result", extra=log_extra)
         return
 
-    group = Group.objects.filter(
+    group = Group.objects.get_or_none(
         id=agent_run.group_id, project__organization_id=organization_id
-    ).first()
+    )
     if group is None:
         logger.warning("impact.delivery.missing_group", extra=log_extra)
         return
