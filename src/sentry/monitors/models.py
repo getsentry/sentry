@@ -582,9 +582,6 @@ class MonitorCheckIn(Model):
                 condition=Q(status=CheckInStatus.IN_PROGRESS),
                 name="consumer_latest",
             ),
-            # Note: If we remove all indexes that start with `monitor_environment`, we need to add the index back on the
-            # column
-            models.Index(fields=["monitor_environment", "status", "date_added"]),
             # used for timeout task
             models.Index(
                 fields=["timeout_at"],
@@ -748,13 +745,6 @@ class MonitorEnvironment(Model):
             "status": self.status,
             "monitor": self.monitor.name,
         }
-
-    def get_last_successful_checkin(self) -> MonitorCheckIn | None:
-        return (
-            MonitorCheckIn.objects.filter(monitor_environment=self, status=CheckInStatus.OK)
-            .order_by("-date_added")
-            .first()
-        )
 
     @property
     def active_incident(self) -> MonitorIncident | None:
