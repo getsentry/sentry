@@ -795,6 +795,7 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
         workflow = updated.backing_workflow
         assert workflow is not None
         assert workflow.name == "Seer automation"
+        assert workflow.type == Workflow.Type.SEER_INVESTIGATION
         assert list(
             workflow.detectorworkflow_set.order_by("detector_id").values_list(
                 "detector_id", flat=True

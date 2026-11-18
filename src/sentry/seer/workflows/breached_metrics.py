@@ -536,6 +536,7 @@ def _create_backing_workflow(organization_id: int, config: SeerWorkflowConfig) -
     workflow = Workflow.objects.create(
         organization_id=organization_id,
         name="Seer automation",
+        type=Workflow.Type.SEER_INVESTIGATION,
         enabled=True,
         config={"frequency": 0},
         when_condition_group=triggers,
