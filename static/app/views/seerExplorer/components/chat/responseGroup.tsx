@@ -153,6 +153,11 @@ interface ResponseGroupProps {
   readOnly?: boolean;
   runId?: SeerExplorerRunId;
   showThinking?: boolean;
+  /**
+   * When the run stopped, if the response stopped before answering. Ends the
+   * ThinkingBlock's timer, which otherwise waits for a settled answer.
+   */
+  stoppedAt?: string;
 }
 
 /**
@@ -190,6 +195,7 @@ export const ResponseGroup = memo(function ResponseGroup({
   readOnly,
   runId,
   showThinking,
+  stoppedAt,
 }: ResponseGroupProps) {
   // `answer` identifies the block whose content is the visible response — used to exclude it
   // from the ThinkingBlock trace. `settledAnswer` is the same block once it has finished
@@ -215,11 +221,10 @@ export const ResponseGroup = memo(function ResponseGroup({
 
   const [startTime] = useState(() => new Date(group[0]!.timestamp));
   // `settledAnswer` is the stable "response is done" signal. `block.loading` flickers false
-  // between tool calls, but answer settles once
-  const endTime =
-    !settledAnswer || pendingInput
-      ? undefined
-      : new Date(group[group.length - 1]!.timestamp);
+  // between tool calls, but answer settles once.
+  // If the response stopped before answering, end at `stoppedAt`, the timestamp of the last block.
+  const endTimestamp = settledAnswer ? group[group.length - 1]!.timestamp : stoppedAt;
+  const endTime = !endTimestamp || pendingInput ? undefined : new Date(endTimestamp);
 
   return (
     <Container width="100%" position="relative" flexShrink={0} data-block-wrapper="">

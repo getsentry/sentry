@@ -53,9 +53,13 @@ export function ArtifactPartialDetails({blocks}: {blocks: AutofixSection['blocks
     return null;
   }
 
+  // Seer adds its error block, filtered out above, as the last block when a run
+  // fails. Keep its timestamp so the timer ends when the run did.
+  const stoppedAt = blocks[blocks.length - 1]?.timestamp;
+
   return (
     <ArtifactDetails>
-      <StepResponses {...transcript} />
+      <StepResponses {...transcript} stoppedAt={stoppedAt} />
     </ArtifactDetails>
   );
 }
@@ -75,7 +79,11 @@ function useStepTranscript(blocks: AutofixSection['blocks']) {
 /**
  * A step's responses, the way the Seer Agent chat draws them.
  */
-function StepResponses({responses, latestTodos}: ReturnType<typeof useStepTranscript>) {
+function StepResponses({
+  responses,
+  latestTodos,
+  stoppedAt,
+}: ReturnType<typeof useStepTranscript> & {stoppedAt?: string}) {
   return responses.map(segment => (
     <ResponseGroup
       key={segment.indices[0]}
@@ -84,6 +92,7 @@ function StepResponses({responses, latestTodos}: ReturnType<typeof useStepTransc
       latestTodos={latestTodos}
       readOnly
       showThinking
+      stoppedAt={stoppedAt}
     />
   ));
 }

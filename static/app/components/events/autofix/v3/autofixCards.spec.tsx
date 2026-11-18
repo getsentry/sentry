@@ -2832,6 +2832,35 @@ describe('out of credits', () => {
     });
   });
 
+  it('ends the timer when root cause stopped mid-tool-call', () => {
+    mockCreditCheck('autofix_root_cause', false);
+    render(
+      <RootCauseCard
+        autofix={{...mockAutofix, runState: stoppedRunState}}
+        groupId="1"
+        section={makeOutOfCreditsSection('root_cause', [
+          {
+            id: 'block-1',
+            timestamp: '2026-01-01T00:00:00Z',
+            message: {
+              role: 'tool_use',
+              content: 'Searching for the cache key.',
+              tool_calls: [{id: 'call-1', function: 'telemetry_live_search', args: '{}'}],
+              metadata: {step: 'root_cause'},
+            },
+          },
+          {...seerErrorBlock, timestamp: '2026-01-01T00:02:30Z'},
+        ])}
+      />,
+      {organization}
+    );
+
+    expect(
+      screen.getByRole('button', {name: /See thinking and tool calls/})
+    ).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByText('2m 30s')).toBeInTheDocument();
+  });
+
   it('keeps what the plan step wrote and disables Re-run while out of credits', async () => {
     mockCreditCheck('autofix_solution', false);
     render(

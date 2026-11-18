@@ -348,6 +348,27 @@ describe('ResponseGroup', () => {
     );
   });
 
+  it('ends the timer when the run stopped before answering', () => {
+    const group = [toolUseBlock('t1')];
+
+    const {container} = render(
+      <ResponseGroup
+        group={group}
+        blockIndex={1}
+        latestTodos={findLatestTodos(group)}
+        showThinking
+        stoppedAt="2024-01-01T00:03:30Z"
+      />,
+      {organization}
+    );
+
+    expect(reasoningBox(container).querySelector('button')).toHaveAttribute(
+      'aria-expanded',
+      'false'
+    );
+    expect(screen.getByText('2m 30s')).toBeInTheDocument();
+  });
+
   it('spins inside the box while a tool works', () => {
     const group = [toolUseBlock('t1', {loading: true})];
 
