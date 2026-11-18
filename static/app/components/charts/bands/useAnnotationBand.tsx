@@ -28,12 +28,12 @@ import type {ChartBand} from './mergeChartBands';
 
 export const ANNOTATION_BAND_SERIES_ID = '__annotation_band__';
 
-const ANNOTATION_KINDS: AnnotationKind[] = ['release', 'flag', 'change'];
+const ANNOTATION_KINDS: AnnotationKind[] = ['release', 'flag', 'timeseriesAnnotation'];
 
 const ANNOTATION_KIND_LABELS: Record<AnnotationKind, string> = {
   release: t('Releases'),
   flag: t('Flags'),
-  change: t('Changes'),
+  timeseriesAnnotation: t('Changes'),
 };
 
 interface AnnotationBandItem extends AnnotationBucket {
