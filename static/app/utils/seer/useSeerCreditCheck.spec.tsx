@@ -6,9 +6,7 @@ import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLib
 import {useSeerCreditCheck} from './useSeerCreditCheck';
 
 describe('useSeerCreditCheck', () => {
-  const organization = OrganizationFixture({
-    features: ['token-billed-seer-enabled'],
-  });
+  const organization = OrganizationFixture({features: ['token-billed-seer-enabled']});
   const url = `/organizations/${organization.slug}/seer/credit-check/`;
 
   afterEach(() => {

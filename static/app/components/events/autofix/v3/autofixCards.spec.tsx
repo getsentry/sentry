@@ -2704,9 +2704,7 @@ describe('ArtifactCard', () => {
 });
 
 describe('out of credits', () => {
-  const organization = OrganizationFixture({
-    features: ['token-billed-seer-enabled'],
-  });
+  const organization = OrganizationFixture({features: ['token-billed-seer-enabled']});
   const retryTooltip = 'Your organization does not have enough Seer credits for this.';
 
   function mockCreditCheck(operation: string, hasEnoughCredits: boolean) {

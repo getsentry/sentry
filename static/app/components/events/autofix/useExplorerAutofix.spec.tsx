@@ -1319,9 +1319,7 @@ describe('useExplorerAutofix - createPR', () => {
     'says a push was refused for credits (denialReason %s) and rechecks credits',
     async (denialReason, message) => {
       const errorSpy = jest.spyOn(toast, 'error');
-      const organization = OrganizationFixture({
-        features: ['token-billed-seer-enabled'],
-      });
+      const organization = OrganizationFixture({features: ['token-billed-seer-enabled']});
       const creditCheck = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/seer/credit-check/`,
         body: {hasEnoughCredits: true},
@@ -1908,9 +1906,7 @@ describe('useExplorerAutofix - startStep errors', () => {
     'says a kickoff was refused for credits (denialReason %s), rechecks credits, and paints no failed run',
     async (denialReason, message) => {
       const errorSpy = jest.spyOn(toast, 'error');
-      const organization = OrganizationFixture({
-        features: ['token-billed-seer-enabled'],
-      });
+      const organization = OrganizationFixture({features: ['token-billed-seer-enabled']});
       const creditCheck = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/seer/credit-check/`,
         body: {hasEnoughCredits: true},

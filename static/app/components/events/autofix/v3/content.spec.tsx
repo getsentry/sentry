@@ -298,9 +298,7 @@ describe('SeerDrawerContent', () => {
   });
 
   describe('out of Seer credits', () => {
-    const organization = OrganizationFixture({
-      features: ['token-billed-seer-enabled'],
-    });
+    const organization = OrganizationFixture({features: ['token-billed-seer-enabled']});
     const creditCheckUrl = `/organizations/${organization.slug}/seer/credit-check/`;
 
     // getsentry fills in the CTA; this stand-in shows what it was asked for.
