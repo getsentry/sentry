@@ -48,10 +48,31 @@ from sentry.service_accounts.services.service_account import (
     RpcServiceAccount,
     service_account_service,
 )
+from sentry.workflow_engine.models import Workflow
 
 logger = logging.getLogger(__name__)
 
 SEER_DEFAULT_WORKFLOW_STRATEGIES = (SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,)
+
+
+def setup_backing_workflow(
+    update: ConfigUpdate, *, name: str | None, created_by_id: int | None, enabled: bool
+) -> None:
+    """Give a new automation the backing workflow that holds its name and enabled state."""
+    update.definition.trigger.setup(
+        update, name=name, created_by_id=created_by_id, enabled=enabled
+    )
+    if update.config.backing_workflow is not None:
+        return
+    # TODO(telkins): Scheduled triggers keep nothing on the workflow yet, so it starts bare.
+    update.config.backing_workflow = Workflow.objects.create(
+        organization_id=update.config.organization_id,
+        name=name or "Seer automation",
+        enabled=enabled,
+        created_by_id=created_by_id,
+        config={"frequency": 0},
+    )
+    update.mark("backing_workflow")
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -84,20 +105,20 @@ class SeerWorkflow:
                 Organization.objects.using(database).select_for_update().filter(id=organization_id)
             )
             existing = set(configs.values_list("strategy", flat=True))
-            SeerWorkflowConfig.objects.using(database).bulk_create(
-                [
-                    SeerWorkflowConfig(
-                        organization_id=organization_id,
-                        strategy=strategy.value,
-                        filters=SeerWorkflowFilters(all_projects=True).dict(),
-                        extras=SeerWorkflowConfigExtras(seeded_default=strategy).dict(
-                            exclude_none=True
-                        ),
-                    )
-                    for strategy in SEER_DEFAULT_WORKFLOW_STRATEGIES
-                    if strategy.value not in existing
-                ]
-            )
+            for strategy in SEER_DEFAULT_WORKFLOW_STRATEGIES:
+                if strategy.value in existing:
+                    continue
+                config = SeerWorkflowConfig.objects.using(database).create(
+                    organization_id=organization_id,
+                    strategy=strategy.value,
+                    filters=SeerWorkflowFilters(all_projects=True).dict(),
+                    extras=SeerWorkflowConfigExtras(seeded_default=strategy).dict(
+                        exclude_none=True
+                    ),
+                )
+                update = ConfigUpdate(LockedConfig(config), get_definition(strategy))
+                setup_backing_workflow(update, name=None, created_by_id=None, enabled=False)
+                config.save(using=database, update_fields=sorted(update.dirty_fields))
 
     @overload
     @classmethod
@@ -204,7 +225,7 @@ class SeerWorkflow:
                 ).save()
 
                 update = ConfigUpdate(LockedConfig(config), definition)
-                definition.trigger.setup(
+                setup_backing_workflow(
                     update, name=name, created_by_id=created_by_id, enabled=enabled
                 )
                 update.set_scope(scope)
