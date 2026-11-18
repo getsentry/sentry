@@ -53,7 +53,7 @@ export function llmCostStatsOptions(
 function getProducts() {
   return [
     {prefix: 'autofix', label: t('Autofix')},
-    {prefix: 'seer_agent', label: t('Seer Agent')},
+    {prefix: 'seer_agent', label: t('Agent')},
   ];
 }
 

@@ -25,7 +25,7 @@ describe('groupCostByProduct', () => {
 
     expect(products).toEqual([
       {label: 'Autofix', costUsd: [1.125, 2], totalUsd: 3.125},
-      {label: 'Seer Agent', costUsd: [4, 0.25], totalUsd: 4.25},
+      {label: 'Agent', costUsd: [4, 0.25], totalUsd: 4.25},
       {label: 'Other', costUsd: [0.5, 0], totalUsd: 0.5},
     ]);
   });

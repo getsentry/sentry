@@ -63,7 +63,7 @@ describe('SeerCostStats', () => {
 
     expect(await screen.findByRole('cell', {name: 'Autofix'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '$3.00'})).toBeInTheDocument();
-    expect(screen.getByRole('cell', {name: 'Seer Agent'})).toBeInTheDocument();
+    expect(screen.getByRole('cell', {name: 'Agent'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '$0.50'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '$3.50'})).toBeInTheDocument();
     expect(request).toHaveBeenCalled();
