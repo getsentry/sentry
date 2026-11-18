@@ -31,7 +31,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {useOverlay, type UseOverlayProps} from '@sentry/scraps/useOverlay';
 
 import {useFrontendVersion} from 'sentry/components/frontendVersionContext';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -128,19 +128,25 @@ interface PrimaryNavigationLinkProps
   label: string;
   to: string;
   children?: React.ReactNode;
+  unreadCount?: number;
 }
 
-function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
+function PrimaryNavigationLink({unreadCount = 0, ...props}: PrimaryNavigationLinkProps) {
   const organization = useOrganization({allowNull: true});
   // Reload the page when the frontend is stale to ensure users get the latest version
   const {state: appState} = useFrontendVersion();
   const theme = useTheme();
+  const label =
+    unreadCount > 0
+      ? t('%s (%s)', props.label, tn('%s unread item', '%s unread items', unreadCount))
+      : props.label;
 
   const sharedLinkProps = {
     to: props.to,
     reloadDocument: appState === 'stale',
     state: {source: SIDEBAR_NAVIGATION_SOURCE},
     'aria-current': props['aria-current'],
+    'aria-label': props['aria-label'] ?? label,
     'data-active-group': props['data-active-group'],
     onMouseEnter: props.onMouseEnter,
     onMouseLeave: props.onMouseLeave,
@@ -159,6 +165,7 @@ function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
     <Fragment>
       <Flex
         as="span"
+        position="relative"
         align="center"
         justify="center"
         radius="md"
@@ -168,6 +175,7 @@ function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
         aria-hidden="true"
       >
         {props.children}
+        {unreadCount > 0 && <PrimaryNavigationUnreadIndicator variant="accent" />}
       </Flex>
       <Text size="xs" bold variant="muted" style={{letterSpacing: '-0.05em'}}>
         {props.label}
@@ -176,7 +184,11 @@ function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
   );
 
   return (
-    <DesktopNavigationLink {...sharedLinkProps}>{desktopChildren}</DesktopNavigationLink>
+    <Tooltip title={label} disabled={unreadCount <= 0} position="right" skipWrapper>
+      <DesktopNavigationLink {...sharedLinkProps}>
+        {desktopChildren}
+      </DesktopNavigationLink>
+    </Tooltip>
   );
 }
 

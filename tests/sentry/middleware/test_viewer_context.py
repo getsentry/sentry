@@ -111,26 +111,6 @@ class ViewerContextMiddlewareTest(TestCase):
         super().setUp()
         self.factory = RequestFactory()
 
-    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=False)
-    def test_skipped_when_disabled(self) -> None:
-        captured: list[Any] = []
-
-        def get_response(request: HttpRequest) -> MagicMock:
-            captured.append(get_viewer_context())
-            return MagicMock(status_code=200)
-
-        middleware = ViewerContextMiddleware(get_response)
-
-        request = self.factory.get("/")
-        request.user = self.user
-        request.auth = None
-
-        middleware(request)
-
-        assert len(captured) == 1
-        assert captured[0] is None
-
-    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     def test_sets_context_during_request(self) -> None:
         captured: list[Any] = []
 
@@ -150,7 +130,6 @@ class ViewerContextMiddlewareTest(TestCase):
         assert captured[0] is not None
         assert captured[0].actor.actor_id == self.user.id
 
-    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     def test_cleans_up_after_request(self) -> None:
         middleware = ViewerContextMiddleware(lambda r: MagicMock(status_code=200))
 
@@ -162,7 +141,6 @@ class ViewerContextMiddlewareTest(TestCase):
 
         assert get_viewer_context() is None
 
-    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     def test_cleans_up_on_exception(self) -> None:
         def get_response(request: HttpRequest) -> HttpResponseBase:
             raise RuntimeError("boom")
@@ -180,7 +158,6 @@ class ViewerContextMiddlewareTest(TestCase):
 
         assert get_viewer_context() is None
 
-    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     def test_anonymous_request_sets_empty_context(self) -> None:
         captured: list[Any] = []
 
@@ -202,7 +179,6 @@ class ViewerContextMiddlewareTest(TestCase):
         assert ctx.actor.actor_id is None
         assert ctx.organization_id is None
 
-    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     @override_settings(SEER_API_SHARED_SECRET="test-secret")
     def test_agent_token_sets_agent_context(self) -> None:
         # Through the real chain: AuthenticationMiddleware resolves the agent bearer,
@@ -234,7 +210,6 @@ class ViewerContextMiddlewareTest(TestCase):
         assert ctx.organization_id == self.organization.id
         assert ctx.actor.type is ActorType.AGENT
 
-    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     @override_settings(SEER_API_SHARED_SECRET="test-secret")
     def test_jwt_header_sets_viewer_context(self) -> None:
         vc = ViewerContext(
@@ -260,7 +235,6 @@ class ViewerContextMiddlewareTest(TestCase):
 
         assert captured == [vc]
 
-    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     @override_settings(SEER_API_SHARED_SECRET="test-secret")
     def test_authenticated_user_takes_precedence_over_jwt(self) -> None:
         vc = ViewerContext(actor=Actor(type=ActorType.INTEGRATION), organization_id=99)
@@ -285,7 +259,6 @@ class ViewerContextMiddlewareTest(TestCase):
         assert ctx.actor.actor_id == self.user.id
         assert ctx.actor.type == ActorType.USER
 
-    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     @override_settings(SEER_API_SHARED_SECRET="test-secret")
     def test_jwt_used_when_no_authenticated_user(self) -> None:
         vc = ViewerContext(actor=Actor(type=ActorType.INTEGRATION), organization_id=99)
@@ -311,7 +284,6 @@ class ViewerContextMiddlewareTest(TestCase):
         assert ctx.actor.type == ActorType.INTEGRATION
         assert ctx.actor.actor_id is None
 
-    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     @override_settings(SEER_API_SHARED_SECRET="test-secret")
     @patch("sentry.middleware.viewer_context.logger")
     def test_logs_warning_on_jwt_request_mismatch(self, mock_logger: MagicMock) -> None:
@@ -341,7 +313,6 @@ class ViewerContextMiddlewareTest(TestCase):
             },
         )
 
-    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     @override_settings(SEER_API_SHARED_SECRET="test-secret")
     def test_invalid_jwt_falls_back_to_request_user(self) -> None:
         captured: list[Any] = []
@@ -363,7 +334,6 @@ class ViewerContextMiddlewareTest(TestCase):
         assert ctx.actor.actor_id == self.user.id
         assert ctx.actor.type == ActorType.USER
 
-    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     def test_raw_json_without_signature_falls_back(self) -> None:
         captured: list[Any] = []
 
@@ -387,7 +357,6 @@ class ViewerContextMiddlewareTest(TestCase):
         assert ctx.actor.actor_id == self.user.id
         assert ctx.actor.type == ActorType.USER
 
-    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     @override_settings(SEER_API_SHARED_SECRET="test-secret")
     def test_non_jwt_header_ignored(self) -> None:
         captured: list[Any] = []

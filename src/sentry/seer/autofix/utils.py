@@ -857,7 +857,10 @@ def update_seer_project_settings(project_ids: list[int], data: SeerProjectSettin
         )
 
     if "pr_iteration" in data:
-        _set_or_clear("sentry:seer_pr_iteration", data["pr_iteration"], default=True)
+        # Stored even when it matches the default. Token-billed orgs default to
+        # off (see ``pr_iteration.project_setting``), so deleting the row on "on"
+        # would turn it back off for them.
+        options_to_set["sentry:seer_pr_iteration"] = data["pr_iteration"]
 
     if "automation_tuning" in data:
         _set_or_clear(

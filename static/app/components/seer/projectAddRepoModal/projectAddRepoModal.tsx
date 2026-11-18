@@ -110,7 +110,8 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
       repoEntries: [] as Array<{branch: string; repoId: string}>,
       agentOption,
       stoppingPoint,
-      prIteration: true,
+      // Opt-in under token-based billing, matching the backend default.
+      prIteration: !isSeerTokenBasedBillingOnboardingEnabled(organization),
     },
     validators: {
       onMount: formSchema.extend({

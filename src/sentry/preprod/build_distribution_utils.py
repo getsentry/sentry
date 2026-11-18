@@ -430,7 +430,7 @@ def find_latest_installable_artifact(
             "mobile_app_info",
         )
         .filter(id=latest_artifact_id)
-        .first()
+        .get_or_none()
     )
 
 

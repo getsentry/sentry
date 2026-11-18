@@ -51,8 +51,7 @@ jobs:
           filters: .github/file-filters.yml
 
   api-docs:
-    # api_client includes api_docs: the api-client job needs this job's spec.
-    if: needs.files-changed.outputs.api_client == 'true'
+    if: needs.files-changed.outputs.api_docs == 'true'
     needs: files-changed
     name: api docs test
     runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
@@ -88,17 +87,6 @@ jobs:
       - name: Build the RPC method schema
         run: make build-rpc-schema
 
-      - name: Collect the @sentry/api spec files
-        run: pnpm --filter @sentry/api run build:spec
-
-      - name: Upload the @sentry/api spec files
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: api-spec
-          path: static/packages/api/spec/
-          if-no-files-found: error
-          retention-days: 1
-
       - name: Wait for devservices
         run: python3 .github/actions/setup-sentry/devservices-bg.py wait
 
@@ -113,26 +101,32 @@ jobs:
           fi
 
   # Builds, typechecks and tests the @sentry/api client against this commit's
-  # API spec, so a spec change that breaks the client cannot merge.
+  # API spec, so a spec change that breaks the client cannot merge. It builds
+  # the spec itself instead of waiting for api-docs, which would put both jobs
+  # end to end on the critical path.
   api-client:
     if: needs.files-changed.outputs.api_client == 'true'
-    needs: [files-changed, api-docs]
+    needs: files-changed
     name: api client
     runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 20
     env:
-      SENTRY_API_SPEC_DIR: ${{ github.workspace }}/.artifacts/api-spec
       SENTRY_API_TARBALL: ${{ github.workspace }}/.artifacts/sentry-api.tgz
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      - name: Setup sentry python env
+        uses: ./.github/actions/setup-sentry
+        with:
+          skip-devservices: 'true'
+
       - uses: ./.github/actions/setup-node-pnpm
 
-      - name: Download the @sentry/api spec files
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: api-spec
-          path: ${{ env.SENTRY_API_SPEC_DIR }}
+      - name: Configure sentry
+        run: sentry init
+
+      - name: Build the API spec
+        run: make build-api-docs build-rpc-schema
 
       - name: Build
         run: pnpm --filter @sentry/api run build
@@ -364,19 +358,22 @@ jobs:
             "$PG_IMAGE" postgres \
               -c wal_level=logical -c max_replication_slots=1 -c max_wal_senders=1 \
               -c fsync=off -c synchronous_commit=off -c full_page_writes=off
-          # docker run -d returns 0 even if postgres dies right after — bound the
-          # wait so a crashing postgres surfaces fast instead of hitting the job
-          # timeout silently.
-          for _ in $(seq 1 120); do
-            [ -S "/tmp/pg-sock/.s.PGSQL.5432" ] && break
-            sleep 0.5
+          # On an empty volume, the image's entrypoint runs initdb with a temporary
+          # server that listens only on the socket, then stops it and starts the
+          # real one. The socket alone can vanish a moment after it appears, so also
+          # wait for TCP, which only the real server listens on. docker run -d
+          # returns 0 even if postgres dies right after, so the wait is bounded.
+          for _ in $(seq 1 60); do
+            if [ -S "/tmp/pg-sock/.s.PGSQL.5432" ] &&
+              docker exec postgres-postgres-1 pg_isready --quiet --host 127.0.0.1 --port 5432; then
+              echo "SENTRY_DB_SOCKET=/tmp/pg-sock" >> "$GITHUB_ENV"
+              exit 0
+            fi
+            sleep 1
           done
-          if [ ! -S "/tmp/pg-sock/.s.PGSQL.5432" ]; then
-            echo "::error::postgres unix socket did not appear after 60s"
-            docker logs postgres-postgres-1 2>&1 | tail -30 || true
-            exit 1
-          fi
-          echo "SENTRY_DB_SOCKET=/tmp/pg-sock" >> "$GITHUB_ENV"
+          echo "::error::postgres was not ready on its Unix socket after 60s"
+          docker logs postgres-postgres-1 2>&1 | tail -30 || true
+          exit 1
 
       - name: Download odiff binary
         run: |

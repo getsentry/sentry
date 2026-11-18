@@ -136,6 +136,41 @@ describe('ClassifiersList', () => {
     );
   });
 
+  it('searches classifiers and resets the cursor', async () => {
+    mockClassifiers([TelemetryClassifierFixture()]);
+    const searchRequest = MockApiClient.addMockResponse({
+      url: classifiersUrl,
+      body: [TelemetryClassifierFixture({id: '11', name: 'Tool failure'})],
+      match: [MockApiClient.matchQuery({query: 'status:enabled'})],
+    });
+
+    const {router} = renderList({cursor: '0:25:0'});
+
+    await userEvent.type(
+      await screen.findByRole('combobox', {name: 'Add a search term'}),
+      'status:enabled{enter}'
+    );
+
+    expect(await screen.findByRole('link', {name: 'Tool failure'})).toBeInTheDocument();
+    expect(searchRequest).toHaveBeenCalled();
+    expect(router.location.query).toEqual({query: 'status:enabled'});
+    expect(router.historyAction).toBe('PUSH');
+  });
+
+  it('shows an empty state when no classifiers match the search', async () => {
+    const request = mockClassifiers([]);
+
+    renderList({query: 'frustr'});
+
+    expect(
+      await screen.findByText('No classifiers match your search.')
+    ).toBeInTheDocument();
+    expect(request).toHaveBeenCalledWith(
+      classifiersUrl,
+      expect.objectContaining({query: expect.objectContaining({query: 'frustr'})})
+    );
+  });
+
   it('moves to the next page with the pagination controls', async () => {
     mockClassifiers([TelemetryClassifierFixture()], {Link: NEXT_PAGE_LINKS});
 

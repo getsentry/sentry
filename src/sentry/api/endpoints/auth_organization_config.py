@@ -59,8 +59,8 @@ class AuthOrganizationConfigEndpoint(Endpoint):
             raise NotFound()
 
         organization = organization_context.organization
-        auth_provider = AuthProvider.objects.filter(organization_id=organization.id).first()
-        avatar = OrganizationAvatarReplica.objects.filter(organization_id=organization.id).first()
+        auth_provider = AuthProvider.objects.get_or_none(organization_id=organization.id)
+        avatar = OrganizationAvatarReplica.objects.get_or_none(organization_id=organization.id)
         is_demo_organization = is_demo_mode_enabled() and is_demo_org(organization)
 
         provider = None

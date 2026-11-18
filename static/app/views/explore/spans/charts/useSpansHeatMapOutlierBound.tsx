@@ -13,24 +13,29 @@ import type {SpansHeatMapYAxis} from './spansHeatMap';
 
 const SAMPLE_WINDOW_MS = 60 * 60 * 1000;
 
-// Below this many spans in the sample window, p99.9 is less than one span and
-// the extrapolation isn't backed by enough data to be worth trusting.
-const MIN_SAMPLE_COUNT = 1000;
-
 // Only clip when it at least doubles the resolution of the remaining rows,
 // otherwise hiding spans isn't worth it.
 const MIN_CLIP_GAIN = 2;
 
-// Standard normal quantiles for p95, p99 and p99.9.
+// Standard normal quantiles for p95 and p99.
 const Z_P95 = 1.6449;
 const Z_P99 = 2.3263;
-const Z_P999 = 3.0902;
+
+export const OUTLIER_CUTOFFS = ['p99.9', 'p99.99'] as const;
+export type OutlierCutoff = (typeof OUTLIER_CUTOFFS)[number];
+
+// Below `minSampleCount` spans in the sample window the cutoff is less than one
+// span, and the extrapolation isn't backed by enough data to be worth trusting.
+const CUTOFF_QUANTILES: Record<OutlierCutoff, {minSampleCount: number; z: number}> = {
+  'p99.9': {minSampleCount: 1_000, z: 3.0902},
+  'p99.99': {minSampleCount: 10_000, z: 3.719},
+};
 
 type OutlierBoundResponse = {
   data: Array<Record<string, number | null>>;
 };
 
-interface HeatMapYBounds {
+export interface HeatMapYBounds {
   yMax: number;
   yMin: number;
 }
@@ -46,20 +51,20 @@ interface UseSpansHeatMapOutlierBoundOptions {
  * squash the rest of the distribution into the bottom few rows.
  *
  * Fetches p0, p95, p99 and max over the most recent hour of the selected window
- * at the highest accuracy tier, then extrapolates p99.9 from a log-normal fit
+ * at the highest accuracy tier, then extrapolates each cutoff from a log-normal fit
  * through p95 and p99. Fitting only the tail matters: an unfiltered query mixes
  * very different span types, so a fit through p50 badly overshoots.
  *
- * Skipped when the sample is too small to extrapolate from, or when the slowest
- * span isn't far enough past p99.9 for clipping to buy much resolution.
+ * A cutoff is skipped when it would fall below one span in the sample, or when
+ * the slowest span isn't far enough past it for clipping to buy much resolution.
  */
 export function useSpansHeatMapOutlierBound({
   enabled,
   query,
   yAxis,
 }: UseSpansHeatMapOutlierBoundOptions): {
+  bounds: Partial<Record<OutlierCutoff, HeatMapYBounds>>;
   isPending: boolean;
-  bounds?: HeatMapYBounds;
 } {
   const organization = useOrganization();
   const {selection, isReady} = usePageFilters();
@@ -97,7 +102,7 @@ export function useSpansHeatMapOutlierBound({
   });
 
   if (!isActive) {
-    return {isPending: false};
+    return {isPending: false, bounds: {}};
   }
 
   const row = data?.data[0];
@@ -111,7 +116,7 @@ export function useSpansHeatMapOutlierBound({
           max: row[fields.max] ?? null,
           count: row[fields.count] ?? null,
         })
-      : undefined,
+      : {},
   };
 }
 
@@ -130,7 +135,7 @@ function sampleWindow(datetime: PageFilters['datetime']): PageFilters['datetime'
 
 /**
  * With a log-normal fit through p95 and p99, σ = ln(p99 / p95) / (z99 − z95),
- * so p99.9 = p99 · (p99 / p95)^((z99.9 − z99) / (z99 − z95)).
+ * so a cutoff with quantile z lands at p99 · (p99 / p95)^((z − z99) / (z99 − z95)).
  */
 function estimateBounds({
   p0,
@@ -138,25 +143,23 @@ function estimateBounds({
   p99,
   max,
   count,
-}: Record<'p0' | 'p95' | 'p99' | 'max' | 'count', number | null>):
-  | HeatMapYBounds
-  | undefined {
-  if (
-    !defined(p0) ||
-    !p95 ||
-    !p99 ||
-    !max ||
-    !count ||
-    count < MIN_SAMPLE_COUNT ||
-    p99 <= p95
-  ) {
-    return undefined;
+}: Record<'p0' | 'p95' | 'p99' | 'max' | 'count', number | null>): Partial<
+  Record<OutlierCutoff, HeatMapYBounds>
+> {
+  if (!defined(p0) || !p95 || !p99 || !max || !count || p99 <= p95) {
+    return {};
   }
 
-  const p999 = p99 * Math.pow(p99 / p95, (Z_P999 - Z_P99) / (Z_P99 - Z_P95));
-  if (max - p0 < MIN_CLIP_GAIN * (p999 - p0)) {
-    return undefined;
+  const bounds: Partial<Record<OutlierCutoff, HeatMapYBounds>> = {};
+  for (const cutoff of OUTLIER_CUTOFFS) {
+    const {minSampleCount, z} = CUTOFF_QUANTILES[cutoff];
+    if (count < minSampleCount) {
+      continue;
+    }
+    const yMax = p99 * Math.pow(p99 / p95, (z - Z_P99) / (Z_P99 - Z_P95));
+    if (max - p0 >= MIN_CLIP_GAIN * (yMax - p0)) {
+      bounds[cutoff] = {yMin: p0, yMax};
+    }
   }
-
-  return {yMin: p0, yMax: p999};
+  return bounds;
 }

@@ -21,19 +21,40 @@ const TEXT_STYLES = {
 } as const;
 
 interface EntityHeaderMetadataItemBase {
+  /**
+   * What the property is — "Started at", "Browser". Always exposed to
+   * assistive technology, as text or in a link's name, so the value is never
+   * announced unexplained; `mode` decides whether it is drawn.
+   */
   label: string;
+  /**
+   * A 16px graphic before the value. Always decorative, so it is hidden from
+   * assistive technology. A node rather than data: there is no fixed set of
+   * things a property can be about.
+   */
   leadingGraphic?:
     | React.ReactElement<SVGIconProps>
     | React.ReactElement<React.ComponentProps<typeof PlatformIcon>>
     | React.ReactElement<React.ComponentProps<typeof UserAvatar>>;
   /**
+   * `compact` leaves naming the property to the graphic beside it and keeps
+   * `label` for screen readers only; `full` draws it too.
+   *
    * @default 'compact'
    */
   mode?: 'compact' | 'full';
+  /**
+   * A qualifier on the value, such as a browser's version. `label` names the
+   * child and composes with the parent's: "version" under "Browser" is read
+   * "Browser version". A property needing a third value is two properties.
+   */
   secondary?: {
     label: string;
     value: React.ReactNode;
   };
+  /**
+   * Explains the value on hover or focus, underlined to signal it.
+   */
   tooltip?: React.ReactNode;
 }
 
@@ -42,9 +63,22 @@ export type EntityHeaderMetadataItemProps = EntityHeaderMetadataItemBase &
     | {
         type: 'text';
         value: React.ReactNode;
+        /**
+         * Colours the value. Narrower than `ContentVariant`, because a
+         * tooltipped value also colours its underline and `Tooltip` takes a
+         * smaller set. `muted` stands in for `secondary`; left out are
+         * `accent`, which would read as a link, and `promotion`.
+         */
         variant?: 'primary' | 'muted' | 'danger' | 'success' | 'warning';
       }
-    | ({type: 'link'; value: string} & LinkDestination)
+    | ({
+        type: 'link';
+        /**
+         * Text, not a node: the link is named from it and `label` together, so
+         * a links list reads "Release 8.42.0".
+         */
+        value: string;
+      } & LinkDestination)
   );
 
 export function EntityHeaderMetadataItemSkeleton() {
@@ -105,6 +139,9 @@ export function EntityHeaderMetadataItem(
   const {isLoading, label, leadingGraphic, mode = 'compact', secondary} = props;
   const needsOwnLabel = props.type === 'text' || mode === 'full';
 
+  // One named list item rather than a `dt`/`dd` pair: as a description list,
+  // VoiceOver narrated the pairing — "term", "selectable list item", "end of
+  // term" — before it ever reached the value.
   return (
     <Flex
       role="listitem"

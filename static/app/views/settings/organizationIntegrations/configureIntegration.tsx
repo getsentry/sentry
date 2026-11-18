@@ -17,7 +17,7 @@ import {FieldGroup} from '@sentry/scraps/form';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {singleLineRenderer} from '@sentry/scraps/markdown';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
@@ -147,7 +147,7 @@ function IntegrationAction({
 }) {
   const {startFlow} = useAddIntegration();
 
-  if (provider.key === 'linear') {
+  if (provider.key === 'linear' || provider.key === 'supabase') {
     return (
       <Button
         onClick={() =>
@@ -155,7 +155,7 @@ function IntegrationAction({
             provider,
             organization,
             // The default toast says the integration was "added", but this
-            // flow refreshes an existing workspace connection.
+            // flow refreshes an existing organization connection.
             suppressSuccessMessage: true,
             onInstall: () => {
               toast.success(t('%s reconnected', provider.name));
@@ -166,7 +166,7 @@ function IntegrationAction({
         disabled={!canManageIntegrations(organization)}
         size="sm"
       >
-        {t('Reconnect Linear')}
+        {provider.key === 'linear' ? t('Reconnect Linear') : t('Reconnect Supabase')}
       </Button>
     );
   }
@@ -645,11 +645,13 @@ function ConfigureIntegration() {
       {allTabs.length > 1 && (
         <TabsContainer>
           <Tabs value={tab} onChange={onTabChange}>
-            <TabList>
-              {allTabs.map(tabTuple => (
-                <TabList.Item key={tabTuple[0]}>{tabTuple[1]}</TabList.Item>
-              ))}
-            </TabList>
+            {({TabList}) => (
+              <TabList>
+                {allTabs.map(tabTuple => (
+                  <TabList.Item key={tabTuple[0]}>{tabTuple[1]}</TabList.Item>
+                ))}
+              </TabList>
+            )}
           </Tabs>
         </TabsContainer>
       )}
