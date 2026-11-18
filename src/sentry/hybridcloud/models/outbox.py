@@ -697,20 +697,30 @@ def outbox_silo_modes() -> list[SiloMode]:
 
 class OutboxContext(threading.local):
     flushing_enabled: bool | None = None
+    flush_override: bool | None = None
+    """The flush flag a caller passed to an enclosing outbox_context, or None if none did."""
 
 
 _outbox_context = OutboxContext()
 
 
-def get_outbox_flushing_enabled() -> bool | None:
-    """The enclosing outbox_context's flush flag, or None outside any outbox_context."""
-    return _outbox_context.flushing_enabled
+def get_outbox_flush_override() -> bool | None:
+    """The flush flag a caller passed to an enclosing outbox_context, or None if none did."""
+    return _outbox_context.flush_override
 
 
 @contextlib.contextmanager
 def outbox_context(
     inner: Atomic | None = None, flush: bool | None = None
 ) -> Generator[Atomic | None]:
+    original = _outbox_context.flushing_enabled
+    original_override = _outbox_context.flush_override
+
+    if flush is None:
+        override = original_override
+    else:
+        override = flush
+
     # If we don't specify our flush, use the outer specified override
     if flush is None:
         flush = _outbox_context.flushing_enabled
@@ -720,19 +730,21 @@ def outbox_context(
 
     assert not flush or inner, "Must either set a transaction or flush=False"
 
-    original = _outbox_context.flushing_enabled
-
     if inner:
         assert inner.using is not None
         with unguarded_write(using=inner.using), enforce_constraints(inner):
             _outbox_context.flushing_enabled = flush
+            _outbox_context.flush_override = override
             try:
                 yield inner
             finally:
                 _outbox_context.flushing_enabled = original
+                _outbox_context.flush_override = original_override
     else:
         _outbox_context.flushing_enabled = flush
+        _outbox_context.flush_override = override
         try:
             yield None
         finally:
             _outbox_context.flushing_enabled = original
+            _outbox_context.flush_override = original_override

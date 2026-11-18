@@ -121,7 +121,7 @@ class ControlOutboxTest(TestCase):
             (OutboxScope.USER_SCOPE.value, user2.id, expected_region_name),
         }
 
-    def test_enclosing_outbox_context_overrides_default_flush(self) -> None:
+    def test_caller_flush_flag_overrides_default_flush(self) -> None:
         user = self.create_user()
         with assume_test_silo_mode(SiloMode.CELL):
             self.create_organization(owner=user)
@@ -134,10 +134,16 @@ class ControlOutboxTest(TestCase):
                 mock_drain_shard.assert_not_called()
 
                 with self.captureOnCommitCallbacks(execute=True):
+                    with outbox_context(transaction.atomic(router.db_for_write(UserEmail))):
+                        self.create_useremail(user)
+                mock_drain_shard.assert_not_called()
+
+                with self.captureOnCommitCallbacks(execute=True):
                     with outbox_context(
                         transaction.atomic(router.db_for_write(UserEmail)), flush=True
                     ):
-                        self.create_useremail(user)
+                        with outbox_context(transaction.atomic(router.db_for_write(UserEmail))):
+                            self.create_useremail(user)
                 mock_drain_shard.assert_called_once_with()
 
             mock_drain_shard.reset_mock()
@@ -656,7 +662,7 @@ class CellOutboxTest(TestCase):
         assert [t["caller"] for t in _drain_timer_tags(mock_timer)] == ["unknown"]
         mock_drain_shard.assert_called_once_with()
 
-    def test_enclosing_outbox_context_overrides_default_flush(self) -> None:
+    def test_caller_flush_flag_overrides_default_flush(self) -> None:
         org = self.create_organization()
 
         with patch.object(CellOutbox, "drain_shard") as mock_drain_shard:
@@ -666,10 +672,16 @@ class CellOutboxTest(TestCase):
                 mock_drain_shard.assert_not_called()
 
                 with self.captureOnCommitCallbacks(execute=True):
+                    with outbox_context(transaction.atomic(router.db_for_write(Organization))):
+                        org.update(name="caller context without a flag")
+                mock_drain_shard.assert_not_called()
+
+                with self.captureOnCommitCallbacks(execute=True):
                     with outbox_context(
                         transaction.atomic(router.db_for_write(Organization)), flush=True
                     ):
-                        org.update(name="flushing caller")
+                        with outbox_context(transaction.atomic(router.db_for_write(Organization))):
+                            org.update(name="flushing caller")
                 mock_drain_shard.assert_called_once_with()
 
             mock_drain_shard.reset_mock()
