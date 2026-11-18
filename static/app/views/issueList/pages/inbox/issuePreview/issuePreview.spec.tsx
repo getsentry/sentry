@@ -850,7 +850,7 @@ describe('IssuePreview', () => {
         await userEvent.click(copyButton);
 
         expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-          expect.stringContaining(`**Short ID:** ${group.shortId}`)
+          expect.stringContaining(`**Issue Slug:** ${group.shortId}`)
         );
         expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
           expect.stringContaining('## Thread: main (crashed)')
@@ -982,7 +982,7 @@ describe('IssuePreview', () => {
           expect.stringContaining(`# ${group.title}`)
         );
         expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-          expect.stringContaining(`**Short ID:** ${group.shortId}`)
+          expect.stringContaining(`**Issue Slug:** ${group.shortId}`)
         );
       });
 

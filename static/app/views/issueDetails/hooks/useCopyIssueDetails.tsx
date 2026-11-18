@@ -274,6 +274,9 @@ export const issueAndEventToMarkdown = ({
   const formatted = event?.formatted?.content;
   if (formatted) {
     let llmMarkdown = `**Issue ID:** ${group.id}\n`;
+    if (group.shortId) {
+      llmMarkdown += `**Issue Slug:** ${group.shortId}\n`;
+    }
     if (group.project?.slug) {
       llmMarkdown += `**Project:** ${group.project.slug}\n`;
     }
@@ -292,7 +295,7 @@ export const issueAndEventToMarkdown = ({
   markdownText += `**Issue ID:** ${group.id}\n`;
 
   if (group.shortId) {
-    markdownText += `**Short ID:** ${group.shortId}\n`;
+    markdownText += `**Issue Slug:** ${group.shortId}\n`;
   }
 
   if (group.project?.slug) {
