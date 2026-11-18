@@ -528,7 +528,7 @@ def _payload_delivery_tags(
     delivery_tags: Mapping[str, str], payload: WebhookPayload
 ) -> dict[str, str | None]:
     """
-    The delivery tags plus the cell this payload is sent to, for outcomes that
+    The delivery tags plus the cell this payload is sent to, for metrics that
     concern one payload. Without it a single cell that stops accepting deliveries
     can't be told apart from loss spread across every cell.
 
@@ -1275,7 +1275,10 @@ def _record_delivery_time_metrics(
     duration = timezone.now() - payload.date_added
     provider = _provider_from_mailbox(payload.mailbox_name)
     tags = {
-        **delivery_tags,
+        **_payload_delivery_tags(delivery_tags, payload),
+        # Deprecated duplicate of destination_region, kept until the dashboards
+        # and monitors that read it have moved over. The two values are always
+        # equal, so carrying both adds no series.
         "region_sent_to": payload.cell_name,
         # The unit delivery queues by, and bounded to one value per mailbox shape.
         "event_type": event_type_from_mailbox(provider, payload.mailbox_name),
