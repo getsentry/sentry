@@ -21,7 +21,10 @@ import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
-import {seerCreditChecksFilter} from 'sentry/utils/seer/useSeerCreditCheck';
+import {
+  seerCreditChecksFilter,
+  type SeerCreditDenialReason,
+} from 'sentry/utils/seer/useSeerCreditCheck';
 
 import {SeerContactAdminButton} from 'getsentry/components/ai/seerOutOfCreditsNotice';
 import {useSeerTopUpRequest} from 'getsentry/components/ai/useSeerTopUpRequest';
@@ -42,6 +45,12 @@ const AMOUNT_PRESETS_CENTS = [DEFAULT_AMOUNT_CENTS, 2500, 5000];
 
 interface AutoTopUpModalOptions {
   organization: Organization;
+  /**
+   * Why Seer stopped, when whoever opened the modal knows. Members can only ask
+   * their admins for a change when it's set, since the request tells the admins
+   * what stopped Seer.
+   */
+  denialReason?: SeerCreditDenialReason | null;
 }
 
 type AutoTopUpModalProps = AutoTopUpModalOptions & ModalRenderProps;
@@ -126,10 +135,24 @@ function AutoTopUpHeader({Header}: Pick<ModalRenderProps, 'Header'>) {
   );
 }
 
+// Members can't see the wallet, so the message says only what the link told the
+// modal stopped Seer.
+const MEMBER_MESSAGE: Record<SeerCreditDenialReason | 'unknown', string> = {
+  not_enough_credits: t(
+    'Your organization ran out of Seer credits. Only owners and billing members can manage auto-reload, so ask your admin to turn it on.'
+  ),
+  daily_cap_exceeded: t(
+    'Your organization hit its daily Seer usage limit. Only owners and billing members can manage auto-reload, so ask your admin to increase the limit.'
+  ),
+  unknown: t(
+    'Only owners and billing members can manage auto-reload. Ask your admin to turn it on or increase your daily usage limit.'
+  ),
+};
+
 /**
  * Members without billing access can't read or change auto-reload. Members of
- * self-serve orgs can email their admins to ask; members of orgs that buy
- * through an account team only see who to ask.
+ * self-serve orgs can email their admins about what stopped Seer; members of
+ * orgs that buy through an account team only see who to ask.
  */
 function AutoTopUpContactAdmin({
   Header,
@@ -137,27 +160,28 @@ function AutoTopUpContactAdmin({
   Footer,
   closeModal,
   organization,
+  denialReason,
 }: AutoTopUpModalProps) {
   const {escalation, isLoading, hasRequested, isRequesting, requestCredits} =
-    useSeerTopUpRequest(organization);
+    useSeerTopUpRequest(organization, {enabled: !!denialReason});
 
   return (
     <Fragment>
       <AutoTopUpHeader Header={Header} />
       <Body>
         <Text as="p" size="lg">
-          {t(
-            'Only owners and billing members can manage auto-reload. Ask your admin to turn it on or increase your daily usage limit.'
-          )}
+          {MEMBER_MESSAGE[denialReason ?? 'unknown']}
         </Text>
       </Body>
       <Footer>
         <Grid flow="column" align="center" gap="md">
           <Button onClick={closeModal}>{t('Close')}</Button>
-          {escalation === 'request' && !isLoading && (
+          {/* The request emails admins that Seer stopped and why, so it needs the
+              reason. Without one, Seer may not have stopped at all. */}
+          {escalation === 'request' && denialReason && !isLoading && (
             <SeerContactAdminButton
               variant="primary"
-              onRequestCredits={() => requestCredits()}
+              onRequestCredits={() => requestCredits(denialReason)}
               isRequestingCredits={isRequesting}
               hasRequestedCredits={hasRequested}
             />

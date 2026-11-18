@@ -9,6 +9,8 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import type {SeerCreditDenialReason} from 'sentry/utils/seer/useSeerCreditCheck';
+
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {openSeerAutoTopUpModal} from 'getsentry/views/subscriptionPage/seerWallet/autoTopUpModal';
 import type {SeerWalletAutoTopUp} from 'getsentry/views/subscriptionPage/seerWallet/seerWalletOptions';
@@ -783,10 +785,14 @@ describe('openSeerAutoTopUpModal', () => {
 
   describe('without billing access', () => {
     const member = OrganizationFixture({access: ['org:read']});
-    const message =
-      'Only owners and billing members can manage auto-reload. Ask your admin to turn it on or increase your daily usage limit.';
 
-    function openForMember({canSelfServe}: {canSelfServe: boolean}) {
+    function openForMember({
+      canSelfServe,
+      denialReason,
+    }: {
+      canSelfServe: boolean;
+      denialReason: SeerCreditDenialReason | null;
+    }) {
       act(() =>
         SubscriptionStore.set(
           member.slug,
@@ -798,15 +804,15 @@ describe('openSeerAutoTopUpModal', () => {
           })
         )
       );
-      renderGlobalModal({organization: member});
-      act(() => openSeerAutoTopUpModal({organization: member}));
-    }
-
-    it('lets members of self-serve orgs email their admins', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${member.slug}/prompts-activity/`,
         body: {},
       });
+      renderGlobalModal({organization: member});
+      act(() => openSeerAutoTopUpModal({organization: member, denialReason}));
+    }
+
+    it('lets members of self-serve orgs ask their admins about what stopped Seer', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${member.slug}/prompts-activity/`,
         method: 'PUT',
@@ -815,20 +821,46 @@ describe('openSeerAutoTopUpModal', () => {
         url: `/organizations/${member.slug}/seer-top-up-request/`,
         method: 'POST',
       });
-      openForMember({canSelfServe: true});
+      openForMember({canSelfServe: true, denialReason: 'daily_cap_exceeded'});
 
-      expect(await screen.findByText(message)).toBeInTheDocument();
+      expect(
+        await screen.findByText(
+          'Your organization hit its daily Seer usage limit. Only owners and billing members can manage auto-reload, so ask your admin to increase the limit.'
+        )
+      ).toBeInTheDocument();
       await userEvent.click(await screen.findByRole('button', {name: 'Contact Admin'}));
 
-      await waitFor(() => expect(request).toHaveBeenCalled());
+      await waitFor(() =>
+        expect(request).toHaveBeenCalledWith(
+          `/organizations/${member.slug}/seer-top-up-request/`,
+          expect.objectContaining({data: {denialReason: 'daily_cap_exceeded'}})
+        )
+      );
       expect(await screen.findByRole('button', {name: 'Admins emailed'})).toBeDisabled();
     });
 
-    it('gives members of orgs that cannot self-serve no Contact Admin', () => {
-      openForMember({canSelfServe: false});
+    it('gives members no Contact Admin when the link does not say why Seer stopped', () => {
+      openForMember({canSelfServe: true, denialReason: null});
 
-      expect(screen.getByText(message)).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          'Only owners and billing members can manage auto-reload. Ask your admin to turn it on or increase your daily usage limit.'
+        )
+      ).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Close'})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Contact Admin'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('gives members of orgs that cannot self-serve no Contact Admin', () => {
+      openForMember({canSelfServe: false, denialReason: 'not_enough_credits'});
+
+      expect(
+        screen.getByText(
+          'Your organization ran out of Seer credits. Only owners and billing members can manage auto-reload, so ask your admin to turn it on.'
+        )
+      ).toBeInTheDocument();
       expect(
         screen.queryByRole('button', {name: 'Contact Admin'})
       ).not.toBeInTheDocument();

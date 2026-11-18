@@ -23,11 +23,19 @@ interface Props {
   organization: Organization;
 }
 
-export function OrganizationHeader({organization}: Props) {
+/**
+ * Reads the location on its own, so a location change re-renders only this
+ * and not the banners next to it.
+ */
+function SeerAutoReloadModalLink({organization}: Props) {
   useSeerAutoReloadModalLink(organization);
+  return null;
+}
 
+export function OrganizationHeader({organization}: Props) {
   return (
     <Fragment>
+      <SeerAutoReloadModalLink organization={organization} />
       <Global styles={pendoEmbeddedGuideStyles} />
       <GSBanner organization={organization} />
     </Fragment>

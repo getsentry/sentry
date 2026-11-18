@@ -1,5 +1,5 @@
 import {Button} from '@sentry/scraps/button';
-import {Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
@@ -38,12 +38,36 @@ export default Storybook.story('Seer auto-reload modal', story => {
       <Stack gap="md" align="start">
         <Text as="p">
           Members without billing access can't change auto-reload, so the modal asks them
-          to contact their admins. Members of self-serve organizations get Contact Admin,
-          which sends your admins a real email.
+          to contact their admins. A link can say why Seer stopped, as in{' '}
+          <code>#open-seer-auto-reload-modal:daily_cap_exceeded</code>. With a reason,
+          members of self-serve organizations also get Contact Admin, which sends your
+          admins a real email about it.
         </Text>
-        <Button onClick={() => openSeerAutoTopUpModal({organization: member})}>
-          Open without billing access
-        </Button>
+        <Flex gap="md" wrap="wrap">
+          <Button
+            onClick={() =>
+              openSeerAutoTopUpModal({
+                organization: member,
+                denialReason: 'not_enough_credits',
+              })
+            }
+          >
+            Out of credits
+          </Button>
+          <Button
+            onClick={() =>
+              openSeerAutoTopUpModal({
+                organization: member,
+                denialReason: 'daily_cap_exceeded',
+              })
+            }
+          >
+            Daily usage limit
+          </Button>
+          <Button onClick={() => openSeerAutoTopUpModal({organization: member})}>
+            No reason
+          </Button>
+        </Flex>
       </Stack>
     );
   });
