@@ -11,7 +11,13 @@ SEER_INVESTIGATION_WORKFLOW_TYPE = "seer_investigation"
 
 def convert_seer_workflow_actions(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     Action = apps.get_model("workflow_engine", "Action")
-    Action.objects.filter(type="seer_workflow").update(type="seer_investigation")
+    SeerWorkflowTriggerBinding = apps.get_model("seer", "SeerWorkflowTriggerBinding")
+    # Action.type isn't indexed, so find the actions through their bindings rather than scanning
+    # the whole table. Every seer_workflow action was created with a binding.
+    action_ids = SeerWorkflowTriggerBinding.objects.values_list("trigger_action_id", flat=True)
+    Action.objects.filter(id__in=list(action_ids), type="seer_workflow").update(
+        type="seer_investigation"
+    )
 
 
 def update_backing_workflows(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
@@ -55,7 +61,7 @@ class Migration(CheckedMigration):
         migrations.RunPython(
             convert_seer_workflow_actions,
             reverse_code=migrations.RunPython.noop,
-            hints={"tables": ["workflow_engine_action"]},
+            hints={"tables": ["seer_workflowtriggerbinding", "workflow_engine_action"]},
         ),
         migrations.RunPython(
             update_backing_workflows,

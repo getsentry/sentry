@@ -1,3 +1,5 @@
+from typing import Any
+
 from django.db.migrations.state import StateApps
 
 from sentry.silo.safety import unguarded_write
@@ -15,6 +17,7 @@ class ConvertSeerWorkflowActionsTest(TestMigrations):
         Organization = apps.get_model("sentry", "Organization")
         SeerWorkflowConfig = apps.get_model("seer", "SeerWorkflowConfig")
         HistoricalWorkflow = apps.get_model("workflow_engine", "Workflow")
+        SeerWorkflowTriggerBinding = apps.get_model("seer", "SeerWorkflowTriggerBinding")
 
         self.seer_action = HistoricalAction.objects.create(type="seer_workflow", config={}, data={})
         self.email_action = HistoricalAction.objects.create(type="email", config={}, data={})
@@ -22,23 +25,28 @@ class ConvertSeerWorkflowActionsTest(TestMigrations):
         with unguarded_write(using="default"):
             organization = Organization.objects.create(slug="migration-org", name="Migration")
 
-        def config_with_workflow(workflow_name: str, extras: dict[str, object]) -> int:
+        def config_with_workflow(workflow_name: str, extras: dict[str, object]) -> Any:
             workflow = HistoricalWorkflow.objects.create(
                 organization=organization, name=workflow_name, config={}
             )
-            SeerWorkflowConfig.objects.create(
+            return SeerWorkflowConfig.objects.create(
                 organization=organization,
                 strategy="breached_metric_investigation",
                 backing_workflow=workflow,
                 extras=extras,
             )
-            return workflow.id
 
-        self.defaulted = config_with_workflow(
+        defaulted = config_with_workflow(
             "Seer automation", {"name": "Checkout latency", "created_by": 42}
         )
-        self.renamed = config_with_workflow("Already renamed", {"name": "Old name"})
-        self.unnamed = config_with_workflow("Seer automation", {})
+        SeerWorkflowTriggerBinding.objects.create(
+            workflow_config=defaulted, trigger_action=self.seer_action
+        )
+        self.defaulted = defaulted.backing_workflow_id
+        self.renamed = config_with_workflow(
+            "Already renamed", {"name": "Old name"}
+        ).backing_workflow_id
+        self.unnamed = config_with_workflow("Seer automation", {}).backing_workflow_id
 
     def test_converts_actions_and_updates_backing_workflows(self) -> None:
         assert Action.objects.get(id=self.seer_action.id).type == "seer_investigation"
