@@ -16,6 +16,7 @@ from sentry.services.eventstore.models import Event
 from sentry.tasks.post_process import post_process_group
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.skips import requires_snuba
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
 from sentry.workflow_engine.handlers.condition.utils.match import MatchType
 from sentry.workflow_engine.models import Detector, DetectorWorkflow
@@ -151,6 +152,7 @@ class TestWorkflowEngineIntegrationFromIssuePlatform(BaseWorkflowIntegrationTest
 
 
 @mock.patch("sentry.workflow_engine.processors.action.trigger_action.apply_async")
+@requires_snuba
 class TestWorkflowEngineIntegrationFromErrorPostProcess(BaseWorkflowIntegrationTest):
     def setUp(self) -> None:
         (

@@ -15,6 +15,7 @@ from sentry.models.project import Project
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.services.eventstore.models import Event, GroupEvent
 from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from sentry.utils.snuba import RateLimitExceeded
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
@@ -483,6 +484,7 @@ class TestDelayedWorkflowQueries(BaseWorkflowTest):
 
 
 @freeze_time(FROZEN_TIME)
+@requires_snuba
 class TestGetSnubaResults(BaseWorkflowTest):
     def tearDown(self) -> None:
         super().tearDown()

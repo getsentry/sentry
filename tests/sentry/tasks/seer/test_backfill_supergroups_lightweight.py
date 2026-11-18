@@ -16,6 +16,7 @@ from sentry.tasks.seer.backfill_supergroups_lightweight import (
 from sentry.taskworker.adapters import ViewerContextHook
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.skips import requires_snuba
 from sentry.types.group import GroupSubStatus
 from sentry.utils.snuba import SnubaError
 from sentry.viewer_context import (
@@ -60,6 +61,7 @@ def _make_event_data(
     return data
 
 
+@requires_snuba
 class BackfillSupergroupsLightweightForOrgTest(TestCase):
     def setUp(self) -> None:
         super().setUp()

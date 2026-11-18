@@ -734,6 +734,9 @@ from sentry.telemetry_classifiers.endpoints.organization_telemetry_classifiers i
 from sentry.tempest.endpoints.tempest_credentials import TempestCredentialsEndpoint
 from sentry.tempest.endpoints.tempest_credentials_details import TempestCredentialsDetailsEndpoint
 from sentry.tempest.endpoints.tempest_ips import TempestIpsEndpoint
+from sentry.timeseries_annotations.endpoints.organization_timeseries_annotation_endpoint import (
+    OrganizationTimeseriesAnnotationEndpoint,
+)
 from sentry.uptime.endpoints.organiation_uptime_alert_index import (
     OrganizationUptimeAlertIndexEndpoint,
 )
@@ -2482,6 +2485,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/notebooks/$",
         OrganizationNotebookIndexEndpoint.as_view(),
         name="sentry-api-0-organization-notebooks",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/annotations/$",
+        OrganizationTimeseriesAnnotationEndpoint.as_view(),
+        name="sentry-api-0-organization-timeseries-annotations",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/notebooks/(?P<notebook_id>[^/]+)/$",

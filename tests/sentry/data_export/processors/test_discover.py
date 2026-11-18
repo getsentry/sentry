@@ -4,6 +4,7 @@ from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 from sentry.data_export.base import ExportError
 from sentry.data_export.processors.discover import DiscoverProcessor
 from sentry.testutils.cases import PerformanceIssueTestCase, SnubaTestCase, TestCase
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.samples import load_data
 
 
@@ -129,6 +130,7 @@ class DiscoverProcessorTest(TestCase, SnubaTestCase):
         }
 
 
+@requires_snuba
 class DiscoverIssuesProcessorTest(TestCase, PerformanceIssueTestCase):
     def test_handle_dataset(self) -> None:
         query = {

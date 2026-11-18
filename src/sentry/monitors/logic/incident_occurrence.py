@@ -138,11 +138,12 @@ def send_incident_occurrence(
     """
     monitor_env = failed_checkin.monitor_environment
 
-    # Get last successful check-in to show in evidence display
-    last_successful_checkin_timestamp = "Never"
-    last_successful_checkin = monitor_env.get_last_successful_checkin()
-    if last_successful_checkin:
-        last_successful_checkin_timestamp = last_successful_checkin.date_added.isoformat()
+    last_successful = incident.last_successful_timestamp
+    if last_successful is None:
+        last_successful_checkin = monitor_env.get_last_successful_checkin()
+        if last_successful_checkin:
+            last_successful = last_successful_checkin.date_added
+    last_successful_checkin_timestamp = last_successful.isoformat() if last_successful else "Never"
 
     detector = get_detector_for_monitor(monitor_env.monitor)
     evidence_data = {}

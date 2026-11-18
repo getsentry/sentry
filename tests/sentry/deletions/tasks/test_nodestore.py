@@ -15,10 +15,12 @@ from sentry.snuba.referrer import Referrer
 from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
+from sentry.testutils.skips import requires_snuba
 from sentry.utils.snuba import UnqualifiedQueryError
 from sentry.utils.snuba_rpc import SnubaRPCTimeout
 
 
+@requires_snuba
 class NodestoreDeletionTaskTest(TestCase):
     def create_n_events_with_group(self, n_events: int) -> list[Event]:
         events = []

@@ -28,6 +28,7 @@ from sentry.testutils.cases import SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.silo import assume_test_silo_mode_of
+from sentry.testutils.skips import requires_snuba
 from sentry.users.models.user import User
 from sentry.utils import json
 from sentry.utils.cache import cache
@@ -313,6 +314,7 @@ class TestTop5IssuesByCount(SnubaTestCase, GitlabCommentTestCase):
         assert [issue["group_id"] for issue in res] == [group3, group1]
 
 
+@requires_snuba
 class TestGetCommentBody(GitlabCommentTestCase):
     def test_simple(self) -> None:
         ev1 = self.store_event(
