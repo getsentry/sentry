@@ -50,6 +50,7 @@ from sentry.service_accounts.models import (
     GRANTABLE_SCOPES,
     MAX_NAME_LENGTH,
     ServiceAccount,
+    ServiceAccountOwnerKind,
     ServiceAccountProject,
 )
 
@@ -81,6 +82,8 @@ class ServiceAccountResponse(TypedDict):
     scopes: list[str]
     projectIds: list[str]
     allProjects: bool
+    # A `ServiceAccountOwnerKind`. Null when the owner is unknown.
+    ownerKind: str | None
     dateCreated: datetime
 
 
@@ -118,6 +121,7 @@ class ServiceAccountSerializer(Serializer[ServiceAccountResponse]):
             "scopes": sorted(obj.scope_list),
             "projectIds": [str(project_id) for project_id in attrs["project_ids"]],
             "allProjects": obj.all_projects,
+            "ownerKind": obj.owner_kind,
             "dateCreated": obj.date_added,
         }
 
@@ -316,6 +320,7 @@ class OrganizationServiceAccountIndexEndpoint(OrganizationServiceAccountEndpoint
                 project_ids=data.get("projectIds") or (),
                 all_projects=all_projects,
                 created_by_id=acting_user_id(request.user),
+                owner_kind=ServiceAccountOwnerKind.ORGANIZATION,
             )
         except IntegrityError:
             # The (organization_id, name) unique constraint is the duplicate name check.

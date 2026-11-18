@@ -43,7 +43,7 @@ seer_workflow_outputs: 0001_initial
 
 sentry: 1262_remove_gal_project_option_value_id_index
 
-service_accounts: 0007_add_service_account_token_replica
+service_accounts: 0008_add_owner_kind
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 
