@@ -81,3 +81,41 @@ def test_collect_findings_returns_every_rules_findings(tmp_path: Path) -> None:
         findings = collect_findings(tmp_path)
 
     assert findings == [(PATH, s026), (PATH, s034)]
+
+
+def test_collect_findings_with_paths_scans_only_those_files(tmp_path: Path) -> None:
+    _write_example(tmp_path)
+    other = "src/sentry/api/endpoints/other.py"
+    (tmp_path / other).write_text(EXAMPLE_ENDPOINT)
+
+    findings = collect_findings(tmp_path, [PATH])
+
+    paths = set()
+    for path, _finding in findings:
+        paths.add(path)
+
+    assert len(findings) == 4
+    assert paths == {PATH}
+
+
+def test_collect_findings_skips_paths_that_dont_exist(tmp_path: Path) -> None:
+    _write_example(tmp_path)
+
+    findings = collect_findings(tmp_path, [PATH, "src/sentry/deleted.py"])
+
+    assert len(findings) == 4
+
+
+def test_collect_findings_with_no_paths_scans_nothing(tmp_path: Path) -> None:
+    # an empty list means no files, not every file (that's None)
+    _write_example(tmp_path)
+
+    assert collect_findings(tmp_path, []) == []
+
+
+def test_collect_findings_scans_a_repeated_path_once(tmp_path: Path) -> None:
+    _write_example(tmp_path)
+
+    findings = collect_findings(tmp_path, [PATH, PATH])
+
+    assert len(findings) == 4
