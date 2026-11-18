@@ -245,6 +245,7 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
         if len(request.query_params.getlist("config")) > 1:
             return Response({"detail": "Supply only one config."}, status=400)
         try:
+            # With optional=True, omitting date filters returns (None, None) for the full run history.
             start, end = get_date_range_from_params(request.GET, optional=True)
         except (ValueError, OverflowError, OSError):
             # Out-of-range numeric timestamps can fail in datetime.fromtimestamp.
