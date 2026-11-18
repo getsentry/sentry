@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from typing import ClassVar, Self
+from typing import ClassVar, NewType, Self
 
 from django.conf import settings
 from django.contrib.postgres.fields.array import ArrayField
@@ -54,10 +54,20 @@ class InvalidScopeError(ValidationError):
     pass
 
 
+# Scope-name eligibility only; callers must still authorize the grant.
+GrantableScope = NewType("GrantableScope", str)
+
+
 def validate_grantable_scopes(value: Iterable[str]) -> None:
     for scope in value:
         if scope not in GRANTABLE_SCOPES:
             raise InvalidScopeError(f"{scope} is not a scope a service account can hold.")
+
+
+def parse_grantable_scopes(scopes: Iterable[str]) -> list[GrantableScope]:
+    scopes = list(scopes)
+    validate_grantable_scopes(scopes)
+    return [GrantableScope(scope) for scope in scopes]
 
 
 def service_account_outboxes(

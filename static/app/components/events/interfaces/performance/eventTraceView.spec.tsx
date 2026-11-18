@@ -7,6 +7,7 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EntryType} from 'sentry/types/event';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   makeEAPError,
   makeEAPSpan,
@@ -14,6 +15,7 @@ import {
 
 import {EventTraceView} from './eventTraceView';
 
+jest.mock('sentry/utils/analytics');
 jest.mock('sentry/components/lazyRender', () => ({
   LazyRender: ({children}: {children: React.ReactNode}) => children,
 }));
@@ -245,6 +247,9 @@ describe('EventTraceView', () => {
       steps.compareDocumentPosition(linkedIssues) & Node.DOCUMENT_POSITION_FOLLOWING
     ).toBeTruthy();
     expect(screen.getByRole('radio', {name: 'Agent Activity'})).toBeChecked();
+    expect(trackAnalytics).toHaveBeenCalledWith('issue_details.agent_run.viewed', {
+      organization: agentOrganization,
+    });
     expect(screen.getByRole('button', {name: 'View Full Trace'})).toHaveAttribute(
       'href',
       expect.stringContaining('tab=ai-spans')
@@ -256,6 +261,14 @@ describe('EventTraceView', () => {
       'href',
       expect.stringContaining('tab=ai-spans')
     );
+
+    // Switching back to Agent Activity doesn't count as another view.
+    await userEvent.click(screen.getByRole('radio', {name: 'Agent Activity'}));
+    expect(
+      jest
+        .mocked(trackAnalytics)
+        .mock.calls.filter(([key]) => key === 'issue_details.agent_run.viewed')
+    ).toHaveLength(1);
   });
 
   it('does not render the trace section when the trace_id is synthetic', () => {

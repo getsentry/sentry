@@ -2,17 +2,17 @@ import {useCallback, useMemo} from 'react';
 import {skipToken, useQuery} from '@tanstack/react-query';
 import {parseAsStringLiteral, useQueryState} from 'nuqs';
 
+import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TelemetryClassifier} from 'sentry/views/classifiers/types';
-import {
-  CLASSIFIER_DETAIL_STATS_PERIOD,
-  getResultAttributeKey,
-} from 'sentry/views/classifiers/utils';
+import {getResultAttributeKey} from 'sentry/views/classifiers/utils';
 import type {Conversation} from 'sentry/views/explore/conversations/hooks/useConversations';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
+
+import {useClassifierPageFilters} from './useClassifierPageFilters';
 
 const CLASSIFIED_CONVERSATIONS_PER_PAGE = 20;
 
@@ -35,6 +35,8 @@ export interface ClassifiedConversation {
 
 export function useClassifiedConversations(classifier: TelemetryClassifier) {
   const organization = useOrganization();
+  const selection = useClassifierPageFilters(classifier);
+  const datetimeParams = normalizeDateTimeParams(selection.datetime);
   const {cursor, setCursor, unsetCursor} = useTableCursor();
   const [sort, setSortState] = useQueryState(
     'sort',
@@ -69,7 +71,8 @@ export function useClassifiedConversations(classifier: TelemetryClassifier) {
           per_page: CLASSIFIED_CONVERSATIONS_PER_PAGE,
           cursor,
           project,
-          statsPeriod: CLASSIFIER_DETAIL_STATS_PERIOD,
+          environment: selection.environments,
+          ...datetimeParams,
           referrer: 'api.classifiers.detail.conversations',
         },
         staleTime: 60_000,
@@ -116,7 +119,8 @@ export function useClassifiedConversations(classifier: TelemetryClassifier) {
             .formatString(),
           project,
           per_page: conversationIds.length,
-          statsPeriod: CLASSIFIER_DETAIL_STATS_PERIOD,
+          environment: selection.environments,
+          ...datetimeParams,
         },
         staleTime: 60_000,
       }

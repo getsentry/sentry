@@ -1,7 +1,11 @@
 from typing import Any
 
 from sentry.telemetry_classifiers.models import TelemetryClassifier
-from sentry.telemetry_classifiers.types import Dataset, TelemetryClassifierStatus
+from sentry.telemetry_classifiers.types import (
+    Dataset,
+    TelemetryClassifierOutputType,
+    TelemetryClassifierStatus,
+)
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import cell_silo_test
 
@@ -20,7 +24,7 @@ class OrganizationTelemetryClassifiersTest(APITestCase):
 
         self.get_error_response(self.organization.slug, status_code=404)
 
-    def test_lists_classifiers_newest_first(self) -> None:
+    def test_lists_classifiers(self) -> None:
         custom = self.create_telemetry_classifier(
             name="Frustration",
             result_attribute="frustration",
@@ -40,8 +44,8 @@ class OrganizationTelemetryClassifiersTest(APITestCase):
         with self.feature(self.features):
             response = self.get_success_response(self.organization.slug)
 
-        assert [c["id"] for c in response.data] == [str(prebuilt.id), str(custom.id)]
-        custom_data, prebuilt_data = response.data[1], response.data[0]
+        assert [c["id"] for c in response.data] == [str(custom.id), str(prebuilt.id)]
+        custom_data, prebuilt_data = response.data
         assert custom_data.pop("createdBy")["id"] == str(self.user.id)
         assert custom_data == {
             "id": str(custom.id),
@@ -54,6 +58,7 @@ class OrganizationTelemetryClassifiersTest(APITestCase):
             "prebuiltClassifierKey": None,
             "naturalLanguagePrompt": "Is the user frustrated?",
             "outputType": "binary",
+            "binaryThreshold": 0.8,
             "dateAdded": custom.date_added,
             "dateUpdated": custom.date_updated,
         }
@@ -62,7 +67,31 @@ class OrganizationTelemetryClassifiersTest(APITestCase):
         assert prebuilt_data["prebuiltClassifierKey"] == "refusal"
         assert prebuilt_data["naturalLanguagePrompt"] is None
         assert prebuilt_data["outputType"] is None
+        assert prebuilt_data["binaryThreshold"] is None
         assert prebuilt_data["createdBy"] is None
+
+    def test_non_binary_custom_classifier_has_no_binary_threshold(self) -> None:
+        self.create_telemetry_classifier(output_type=TelemetryClassifierOutputType.SCORE)
+
+        with self.feature(self.features):
+            response = self.get_success_response(self.organization.slug)
+
+        assert response.data[0]["outputType"] == "score"
+        assert response.data[0]["binaryThreshold"] is None
+
+    def test_sorts_newest_first_with_disabled_last(self) -> None:
+        oldest = self.create_telemetry_classifier()
+        disabled = self.create_telemetry_classifier(status=TelemetryClassifierStatus.DISABLED)
+        newest = self.create_telemetry_classifier()
+
+        with self.feature(self.features):
+            response = self.get_success_response(self.organization.slug)
+
+        assert [c["id"] for c in response.data] == [
+            str(newest.id),
+            str(oldest.id),
+            str(disabled.id),
+        ]
 
     def test_filters_by_project(self) -> None:
         other_project = self.create_project(organization=self.organization, teams=[self.team])
@@ -307,7 +336,8 @@ class OrganizationTelemetryClassifiersCreateTest(APITestCase):
             "status": "enabled",
             "prebuiltClassifierKey": "conversation_user_frustration",
             "naturalLanguagePrompt": None,
-            "outputType": None,
+            "outputType": "binary",
+            "binaryThreshold": 0.8,
             "dateAdded": classifier.date_added,
             "dateUpdated": classifier.date_updated,
         }

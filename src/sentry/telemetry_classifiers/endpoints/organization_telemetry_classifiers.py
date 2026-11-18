@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from django.db.models import QuerySet
+from django.db.models import BooleanField, Case, QuerySet, Value, When
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -28,6 +28,7 @@ from sentry.telemetry_classifiers.serializers import (
     TelemetryClassifierResponse,
     TelemetryClassifierSerializer,
 )
+from sentry.telemetry_classifiers.types import TelemetryClassifierStatus
 
 
 class TelemetryClassifierPermission(OrganizationPermission):
@@ -82,7 +83,8 @@ class OrganizationTelemetryClassifiersEndpoint(OrganizationEndpoint):
         self, request: Request, organization: Organization
     ) -> Response[list[TelemetryClassifierResponse]]:
         """
-        List the telemetry classifiers defined on the projects the caller can access, newest first.
+        List the telemetry classifiers defined on the projects the caller can access, newest first with
+        disabled classifiers last.
         """
         if not features.has("organizations:classifiers-ui", organization, actor=request.user):
             return self.respond(status=404)
@@ -95,10 +97,18 @@ class OrganizationTelemetryClassifiersEndpoint(OrganizationEndpoint):
         if raw_query := request.GET.get("query", "").strip():
             queryset = filter_classifiers_by_query(queryset, raw_query)
 
+        queryset = queryset.annotate(
+            is_disabled=Case(
+                When(status=TelemetryClassifierStatus.DISABLED, then=Value(True)),
+                default=Value(False),
+                output_field=BooleanField(),
+            )
+        )
+
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by=("-date_added", "-id"),
+            order_by=("is_disabled", "-date_added", "-id"),
             paginator_cls=OffsetPaginator,
             on_results=lambda results: serialize(
                 results, request.user, serializer=TelemetryClassifierSerializer()

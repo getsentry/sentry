@@ -11,6 +11,7 @@ interface UseOutOfCreditsRetryOptions {
    * checked otherwise.
    */
   enabled: boolean;
+  billingFeature?: number | null;
 }
 
 /**
@@ -23,9 +24,9 @@ interface UseOutOfCreditsRetryOptions {
  */
 export function useOutOfCreditsRetry(
   action: AutofixAction,
-  {enabled}: UseOutOfCreditsRetryOptions
+  options: UseOutOfCreditsRetryOptions
 ) {
-  const {disabled, hasEnoughCredits} = useAutofixCreditCheck(action, {enabled});
+  const {disabled, hasEnoughCredits} = useAutofixCreditCheck(action, options);
 
   return {
     disabled,

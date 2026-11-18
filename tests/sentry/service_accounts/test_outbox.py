@@ -4,7 +4,11 @@ import pytest
 
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
-from sentry.service_accounts.models import ServiceAccount, ServiceAccountOwnerKind
+from sentry.service_accounts.models import (
+    ServiceAccount,
+    ServiceAccountOwnerKind,
+    parse_grantable_scopes,
+)
 from sentry.service_accounts.outbox import (
     ServiceAccountCreatePayload,
     service_account_create_outbox,
@@ -23,7 +27,7 @@ class ServiceAccountCreateOutboxTest(TestCase):
                 owner_kind=ServiceAccountOwnerKind.ORGANIZATION,
                 owner_id=1,
                 name="nightly-triage",
-                scope_list=["event:read"],
+                scope_list=parse_grantable_scopes(["event:read"]),
             )
 
     def test_organization_owner_kind_payload_is_dropped_without_blocking_the_shard(self) -> None:

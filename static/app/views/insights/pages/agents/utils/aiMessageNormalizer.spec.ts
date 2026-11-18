@@ -1,3 +1,5 @@
+import {annotate} from '@sentry/scraps/markdown/annotation';
+
 import {
   EMPTY_TEXT_CONTENT,
   extractAssistantOutput,
@@ -334,6 +336,18 @@ describe('normalizeToMessages', () => {
 
       expect(messages).toBeNull();
       expect(fixedInvalidJson).toBe(true);
+    });
+
+    it('returns null when everything is a marked [Filtered]', () => {
+      const marked = annotate(
+        '[Filtered]',
+        JSON.stringify({ruleId: '@password:filter', remark: 's'})
+      );
+
+      expect(normalizeToMessages(marked, {defaultRole: 'user'})).toEqual({
+        messages: null,
+        fixedInvalidJson: true,
+      });
     });
 
     it('does not throw on malformed JSON with [Filtered]', () => {

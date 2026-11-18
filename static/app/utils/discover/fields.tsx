@@ -821,7 +821,7 @@ export function isRelativeSpanOperationBreakdownField(field: string) {
 
 export const SPAN_OP_BREAKDOWN_FIELDS = Object.values(SpanOpBreakdown);
 
-// This list contains fields/functions that are available with performance-view feature.
+// Fields and functions available for tracing queries.
 export const TRACING_FIELDS = [
   AggregationKey.AVG,
   AggregationKey.SUM,
