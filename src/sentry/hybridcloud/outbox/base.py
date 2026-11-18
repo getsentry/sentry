@@ -39,20 +39,24 @@ class CellOutboxProducingModel(Model):
     class Meta:
         abstract = True
 
-    default_flush: bool = True
-    """Whether outbox writes flush on commit when no enclosing outbox_context sets a flag."""
+    default_flush: bool | None = None
+    """The flush flag for outbox writes outside any outbox_context (None flushes)."""
     replication_version: int = 1
 
     @contextlib.contextmanager
     def prepare_outboxes(
         self, *, outbox_before_super: bool, flush: bool | None = None
     ) -> Generator[None]:
-        from sentry.hybridcloud.models.outbox import outbox_context
+        from sentry.hybridcloud.models.outbox import outbox_context, outbox_flushing_enabled
+
+        if flush is None:
+            flush = outbox_flushing_enabled()
+        if flush is None:
+            flush = self.default_flush
 
         with outbox_context(
             transaction.atomic(router.db_for_write(type(self))),
             flush=flush,
-            default_flush=self.default_flush,
         ):
             if not outbox_before_super:
                 yield
@@ -223,8 +227,8 @@ class ControlOutboxProducingModel(Model):
     to support bulk operations that respect outbox creation.
     """
 
-    default_flush: bool = True
-    """Whether outbox writes flush on commit when no enclosing outbox_context sets a flag."""
+    default_flush: bool | None = None
+    """The flush flag for outbox writes outside any outbox_context (None flushes)."""
     replication_version: int = 1
 
     class Meta:
@@ -232,11 +236,15 @@ class ControlOutboxProducingModel(Model):
 
     @contextlib.contextmanager
     def _maybe_prepare_outboxes(self, *, outbox_before_super: bool) -> Generator[None]:
-        from sentry.hybridcloud.models.outbox import outbox_context
+        from sentry.hybridcloud.models.outbox import outbox_context, outbox_flushing_enabled
+
+        flush = outbox_flushing_enabled()
+        if flush is None:
+            flush = self.default_flush
 
         with outbox_context(
             transaction.atomic(router.db_for_write(type(self))),
-            default_flush=self.default_flush,
+            flush=flush,
         ):
             if not outbox_before_super:
                 yield

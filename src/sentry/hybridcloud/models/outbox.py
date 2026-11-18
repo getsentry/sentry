@@ -702,16 +702,21 @@ class OutboxContext(threading.local):
 _outbox_context = OutboxContext()
 
 
+def outbox_flushing_enabled() -> bool | None:
+    """The enclosing outbox_context's flush flag, or None outside any outbox_context."""
+    return _outbox_context.flushing_enabled
+
+
 @contextlib.contextmanager
 def outbox_context(
-    inner: Atomic | None = None, flush: bool | None = None, *, default_flush: bool = True
+    inner: Atomic | None = None, flush: bool | None = None
 ) -> Generator[Atomic | None]:
     # If we don't specify our flush, use the outer specified override
     if flush is None:
         flush = _outbox_context.flushing_enabled
-        # But if there is no outer override, use the default
+        # But if there is no outer override, default to True
         if flush is None:
-            flush = default_flush
+            flush = True
 
     assert not flush or inner, "Must either set a transaction or flush=False"
 
