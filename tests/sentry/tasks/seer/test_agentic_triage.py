@@ -759,7 +759,7 @@ class TestGetEligibleProjects(AgenticTriageFixtures, TestCase):
         assert result[0].automation_tuning is None
 
     def test_token_billed_orgs_are_not_legacy(self) -> None:
-        org = self.create_organization(owner=self.user)
+        org = self.create_organization()
         project = self._make_eligible(self.create_project(organization=org))
         project.update_option(
             "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.LOW
