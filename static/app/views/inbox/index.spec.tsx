@@ -66,7 +66,6 @@ describe('Inbox', () => {
 
   const issueItem = InboxItemFixture({
     id: '1',
-    subjectType: 'issue',
     subjectId: '7656018581',
     title: "TypeError: Cannot read properties of undefined (reading 'id')",
   });
@@ -1055,16 +1054,21 @@ describe('Inbox', () => {
       expect(router.location.query).toEqual({});
     });
 
-    it('keeps filters in item links', async () => {
+    it('keeps filters when following an item URL with a query and fragment', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/inbox/',
         match: [
           MockApiClient.matchQuery({subject_type: ['notebook'], recipient: ['team']}),
         ],
-        body: [notebookItem],
+        body: [
+          {
+            ...notebookItem,
+            url: `${notebookItem.url}?comment=1#comment-1`,
+          },
+        ],
       });
 
-      render(<Inbox />, {
+      const {router} = render(<Inbox />, {
         organization,
         initialRouterConfig: {
           location: {
@@ -1075,14 +1079,23 @@ describe('Inbox', () => {
         },
       });
 
-      expect(
-        await screen.findByRole('link', {
-          name: /OperationalError: could not connect to server/,
-        })
-      ).toHaveAttribute(
+      const item = await screen.findByRole('link', {
+        name: /OperationalError: could not connect to server/,
+      });
+      expect(item).toHaveAttribute(
         'href',
-        '/organizations/org-slug/inbox/notebook/1000210/?recipient=team&subjectType=notebook'
+        '/organizations/org-slug/inbox/notebook/1000210/?comment=1&recipient=team&subjectType=notebook#comment-1'
       );
+
+      await userEvent.click(item);
+
+      expect(router.location.hash).toBe('#comment-1');
+      expect(router.location.query).toEqual({
+        comment: '1',
+        recipient: 'team',
+        subjectType: 'notebook',
+      });
+      await expectMarkedRead(notebookItem);
     });
 
     it('ignores unknown filter values in the url', async () => {
