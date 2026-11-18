@@ -108,6 +108,41 @@ describe('useWidgetBuilderState', () => {
   });
 
   describe('display type', () => {
+    it('retargets a stale equation sort when a trace metrics table becomes a time series', () => {
+      const countTtfb = 'count(value,browser.web_vital.ttfb,distribution,millisecond)';
+      const {result} = renderWidgetBuilderState({
+        dataset: WidgetType.TRACEMETRICS,
+        displayType: DisplayType.TABLE,
+        field: [
+          'transaction',
+          'project',
+          countTtfb,
+          'p75(value,browser.web_vital.lcp,distribution,millisecond)',
+          'p75(value,browser.web_vital.fcp,distribution,millisecond)',
+          'p75(value,browser.web_vital.cls,distribution,none)',
+          'equation|performance_score()',
+          'equation|opportunity_score()',
+        ],
+        sort: ['-equation[1]'],
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.AREA,
+        });
+      });
+
+      expect(result.current.state.fields).toEqual([
+        {kind: 'field', field: 'transaction'},
+        {kind: 'field', field: 'project'},
+      ]);
+      expect(result.current.state.yAxis).toHaveLength(3);
+      // The equations were dropped with the y-axis cap, so the sort moves to a
+      // plotted aggregate instead of pointing at a missing equation
+      expect(result.current.state.sort).toEqual([{kind: 'desc', field: countTtfb}]);
+    });
+
     it('returns the display type from the query params', () => {
       const {result} = renderWidgetBuilderState({displayType: DisplayType.AREA});
 
