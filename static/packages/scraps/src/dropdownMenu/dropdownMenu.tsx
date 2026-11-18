@@ -14,6 +14,7 @@ import {DropdownMenuContent} from './content';
 import {DropdownMenuContext} from './context';
 import type {MenuItemProps} from './item';
 import type {DropdownMenuContentProps, DropdownMenuListProps} from './list';
+import {useDropdownRootMenuState} from './useDropdownRootMenuState';
 
 export type {MenuItemProps};
 
@@ -21,7 +22,7 @@ interface BaseDropdownMenuProps
   extends
     Omit<
       DropdownMenuContentProps,
-      'overlayState' | 'overlayPositionProps' | 'items' | 'children' | 'menuTitle'
+      'menuLevel' | 'overlayPositionProps' | 'items' | 'children' | 'menuTitle'
     >,
     Pick<
       UseOverlayProps,
@@ -136,7 +137,7 @@ function DropdownMenu({
   const size = explicitSize ?? 'md';
   const isDisabled = disabledProp ?? (!items || items.length === 0);
 
-  const {rootOverlayState} = useContext(DropdownMenuContext);
+  const {rootMenuState: parentRootMenuState} = useContext(DropdownMenuContext);
   const {
     isOpen,
     state: overlayState,
@@ -146,7 +147,7 @@ function DropdownMenu({
   } = useOverlay({
     type: 'menu',
     isOpen: isOpenProp,
-    onClose: rootOverlayState?.close,
+    onClose: parentRootMenuState?.close,
     offset,
     position,
     isDismissable,
@@ -160,6 +161,8 @@ function DropdownMenu({
     shouldApplyMinWidth,
     strategy,
   });
+
+  const rootMenuState = useDropdownRootMenuState(overlayState, parentRootMenuState);
 
   const {menuTriggerProps, menuProps} = useMenuTrigger(
     {type: 'menu', isDisabled},
@@ -196,7 +199,7 @@ function DropdownMenu({
             minWidth: minMenuWidth ?? overlayProps.style?.minWidth,
           },
         }}
-        overlayState={overlayState}
+        menuLevel={{type: 'root', state: rootMenuState}}
         isDismissable={isDismissable}
         items={items}
       />

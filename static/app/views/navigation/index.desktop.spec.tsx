@@ -329,9 +329,7 @@ describe('desktop navigation', () => {
       expect(
         await screen.findByText('Quick settings-access for your important Projects')
       ).toBeInTheDocument();
-      await userEvent.hover(
-        screen.getByRole('menuitemradio', {name: 'View All Projects'})
-      );
+      await userEvent.hover(screen.getByRole('menuitem', {name: 'View All Projects'}));
       expect(await screen.findByPlaceholderText('Search')).toBeInTheDocument();
       await userEvent.click(screen.getByRole('button', {name: 'Previous'}));
       expect(await screen.findByText('Access Settings here')).toBeInTheDocument();

@@ -1,5 +1,7 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import {annotate, hasAnnotations} from '@sentry/scraps/markdown/annotation';
+
 import {AIContentRenderer} from './aiContentRenderer';
 
 describe('AIContentRenderer', () => {
@@ -99,6 +101,40 @@ describe('AIContentRenderer', () => {
   it('wraps plain text in MultilineText by default', () => {
     render(<AIContentRenderer text="simple text" />);
     expect(screen.getByText('simple text')).toBeInTheDocument();
+  });
+
+  it('marks scrubbed values in plain text', () => {
+    const rule = JSON.stringify({ruleId: '@email:replace', remark: 's'});
+    const {container} = render(
+      <AIContentRenderer text={`Mail ${annotate('[email]', rule)} now`} />
+    );
+
+    expect(screen.getByText('[email]')).toBeInTheDocument();
+    expect(hasAnnotations(container.textContent ?? '')).toBe(false);
+  });
+
+  it('marks scrubbed values in JSON', () => {
+    const rule = JSON.stringify({ruleId: '@email:replace', remark: 's'});
+    const {container} = render(
+      <AIContentRenderer
+        text={JSON.stringify({note: `Mail ${annotate('[email]', rule)} now`})}
+      />
+    );
+
+    expect(screen.getByText('[email]')).toBeInTheDocument();
+    expect(container).toHaveTextContent('"Mail [email] now"');
+    expect(hasAnnotations(container.textContent ?? '')).toBe(false);
+  });
+
+  it('marks scrubbed values in JSON code blocks', () => {
+    const rule = JSON.stringify({ruleId: '@email:replace', remark: 's'});
+    const json = JSON.stringify({note: `Mail ${annotate('[email]', rule)} now`});
+    const {container} = render(
+      <AIContentRenderer text={`Result:\n\n\`\`\`json\n${json}\n\`\`\``} inline />
+    );
+
+    expect(screen.getByText('[email]')).toBeInTheDocument();
+    expect(hasAnnotations(container.textContent ?? '')).toBe(false);
   });
 
   it('renders collapsible XML tags with tag name label', () => {
