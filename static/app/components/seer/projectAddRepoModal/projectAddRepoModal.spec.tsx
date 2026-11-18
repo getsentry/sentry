@@ -164,10 +164,10 @@ describe('ProjectAddRepoModal', () => {
       `/projects/${organization.slug}/${project.slug}/seer/settings/`,
       expect.objectContaining({data: expect.objectContaining({agent: 'seer'})})
     );
-    // Auto-Iterate can't run on GitLab, so it's saved off, as the switch shows.
+    // Auto-Iterate is only shown as off: the saved value is the user's choice.
     expect(settingsPut).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({data: expect.objectContaining({prIteration: false})})
+      expect.objectContaining({data: expect.objectContaining({prIteration: true})})
     );
     // The reset must not carry the coding-agent integration id either.
     expect(settingsPut).not.toHaveBeenCalledWith(
@@ -210,7 +210,7 @@ describe('ProjectAddRepoModal', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('turns Auto-Iterate on PRs off and disables it when no repo is on github.com', async () => {
+  it('shows Auto-Iterate on PRs off and disabled until a github.com repo is added', async () => {
     openAddRepoModal();
 
     const getToggle = () => screen.getByRole('checkbox', {name: 'Auto-Iterate on PRs'});
@@ -224,6 +224,11 @@ describe('ProjectAddRepoModal', () => {
     expect(getToggle()).not.toBeChecked();
     await userEvent.hover(getToggle());
     expect(await screen.findByText(NON_GITHUB_PR_ITERATION_WARNING)).toBeInTheDocument();
+
+    // The user's choice comes back once a github.com repo is added.
+    await addRepository(/getsentry\/sentry/);
+    await waitFor(() => expect(getToggle()).toBeEnabled());
+    expect(getToggle()).toBeChecked();
   });
 
   it('keeps Auto-Iterate on PRs available when a github.com repo is added', async () => {

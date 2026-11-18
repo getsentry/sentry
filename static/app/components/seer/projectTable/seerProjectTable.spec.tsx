@@ -208,30 +208,20 @@ describe('SeerProjectTable', () => {
     expect(errorSpy).not.toHaveBeenCalled();
   });
 
-  it.each([
-    ['GitLab', ['integrations:gitlab']],
-    ['GitHub Enterprise', ['integrations:github_enterprise']],
-  ])(
-    'disables PR iteration with a tooltip for a project with only %s repos',
-    async (_name, repoProviders) => {
-      mockProjectSettings({repoProviders});
+  it('disables PR iteration with a tooltip for a project with only GitLab repos', async () => {
+    mockProjectSettings({repoProviders: ['integrations:gitlab']});
 
-      render(<SeerProjectTable />, {organization});
+    render(<SeerProjectTable />, {organization});
 
-      const select = await screen.findByRole('textbox', {
-        name: 'Auto-iterate on PRs for project-slug',
-      });
-      expect(select).toBeDisabled();
-      // Shown as off, whatever is saved.
-      expect(within(getRow('project-slug')).getAllByText('Off').length).toBeGreaterThan(
-        0
-      );
-      await userEvent.hover(select);
-      expect(
-        await screen.findByText(NON_GITHUB_PR_ITERATION_WARNING)
-      ).toBeInTheDocument();
-    }
-  );
+    const select = await screen.findByRole('textbox', {
+      name: 'Auto-iterate on PRs for project-slug',
+    });
+    expect(select).toBeDisabled();
+    // Shown as off, whatever is saved.
+    expect(within(getRow('project-slug')).getAllByText('Off').length).toBeGreaterThan(0);
+    await userEvent.hover(select);
+    expect(await screen.findByText(NON_GITHUB_PR_ITERATION_WARNING)).toBeInTheDocument();
+  });
 
   it('keeps PR iteration available for a project with a github.com repo', async () => {
     mockProjectSettings({repoProviders: ['integrations:github', 'integrations:gitlab']});

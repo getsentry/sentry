@@ -171,7 +171,9 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
   }, [isOnlyGithubRepos, form]);
 
   // Auto-Iterate only runs on github.com PRs. Once repos are added and none of
-  // them is on github.com, hard-reset it to off the same way as the agent.
+  // them is on github.com, show it as off and disabled. Unlike the agent, the
+  // form value is left alone, like on the project page: it does nothing without
+  // a github.com repo, and comes back into effect if one is linked later.
   // Unresolved repos (still loading) might be on github.com, so they don't count.
   const hasNoGitHubDotComRepo =
     repoEntries.length > 0 &&
@@ -179,11 +181,6 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
       const providerId = repositoriesById.get(entry.repoId)?.provider.id;
       return providerId !== undefined && !isGitHubDotComProvider(providerId);
     });
-  useEffect(() => {
-    if (hasNoGitHubDotComRepo && form.state.values.prIteration) {
-      form.setFieldValue('prIteration', false);
-    }
-  }, [hasNoGitHubDotComRepo, form]);
 
   const manageRepositoriesLink = (
     <ExternalLink href={`/settings/${organization.slug}/repos/`} />

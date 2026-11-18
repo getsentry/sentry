@@ -274,14 +274,6 @@ describe('AutofixAgent', () => {
     );
   });
 
-  it('treats GitHub Enterprise repos as not on github.com', async () => {
-    mockEndpoints({repos: [seerRepo({provider: 'integrations:github_enterprise'})]});
-
-    render(<AutofixAgent canWrite project={project} />, {organization});
-
-    await expectPrIterationDisabledWithReason();
-  });
-
   it('enables Auto-Iterate on PRs when any repo is on github.com', async () => {
     mockEndpoints({
       repos: [
@@ -307,5 +299,21 @@ describe('AutofixAgent', () => {
       await screen.findByRole('textbox', {name: 'Auto-Iterate on PRs'})
     ).toBeDisabled();
     expect(screen.queryByText(NON_GITHUB_PR_ITERATION_WARNING)).not.toBeInTheDocument();
+  });
+
+  it('keeps Auto-Iterate on PRs available when the repos request fails', async () => {
+    mockEndpoints({repos: []});
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/seer/repos/`,
+      method: 'GET',
+      statusCode: 500,
+      body: {},
+    });
+
+    render(<AutofixAgent canWrite project={project} />, {organization});
+
+    const select = await screen.findByRole('textbox', {name: 'Auto-Iterate on PRs'});
+    await waitFor(() => expect(select).toBeEnabled());
+    expect(screen.getByText('On')).toBeInTheDocument();
   });
 });

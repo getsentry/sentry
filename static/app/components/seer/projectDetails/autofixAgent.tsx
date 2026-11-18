@@ -81,6 +81,9 @@ export function AutofixAgent({canWrite, project}: Props) {
   // github.com repo, and comes back into effect if one is linked later.
   const hasGitHubDotComRepo = repos.some(repo => isGitHubDotComProvider(repo.provider));
   const prIterationUnavailable = reposLoaded && !hasGitHubDotComRepo;
+  // If the repos request fails, fall back to the stored value rather than
+  // locking a setting the user may need to turn off.
+  const prIterationLoading = !reposLoaded && !reposResult.isError;
 
   // `isIdle` is true only until the first attempt settles, so the effect below
   // fires at most once. This matters because the mutation rolls back its
@@ -254,7 +257,7 @@ export function AutofixAgent({canWrite, project}: Props) {
                 containerDisplayMode="block"
               >
                 <field.Select
-                  disabled={!canWrite || !reposLoaded || prIterationUnavailable}
+                  disabled={!canWrite || prIterationLoading || prIterationUnavailable}
                   value={prIterationUnavailable ? false : field.state.value}
                   onChange={field.handleChange}
                   options={PR_ITERATION_OPTIONS}
