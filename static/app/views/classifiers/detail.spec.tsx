@@ -746,6 +746,36 @@ describe('ClassifierDetail', () => {
     expect(nonMatchesRequest).toHaveBeenCalled();
   });
 
+  it('drops a failed non-match chart request after leaving show all', async () => {
+    const yAxis = 'count(tags[sentry.enrichment.user_frustration,number])';
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: TelemetryClassifierFixture({id: '10', projectId: '1'}),
+    });
+    MockApiClient.addMockResponse({
+      url: timeSeriesUrl,
+      body: {timeSeries: [TimeSeriesFixture({yAxis})]},
+      match: [MockApiClient.matchQuery({query: `${RESULT_FIELD}:>=0.8`})],
+    });
+    MockApiClient.addMockResponse({
+      url: timeSeriesUrl,
+      statusCode: 400,
+      body: {detail: 'Non-match query failed'},
+      match: [MockApiClient.matchQuery({query: `${RESULT_FIELD}:<0.8`})],
+    });
+
+    renderDetail(organization, {results: 'all'});
+
+    expect(await screen.findByText('Non-match query failed')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Show all'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Show matches'}));
+
+    await waitFor(() =>
+      expect(screen.queryByText('Non-match query failed')).not.toBeInTheDocument()
+    );
+  });
+
   it.each([
     {name: 'without a threshold', outputType: 'score' as const, binaryThreshold: null},
     {name: 'with a stray threshold', outputType: 'choice' as const, binaryThreshold: 0.8},

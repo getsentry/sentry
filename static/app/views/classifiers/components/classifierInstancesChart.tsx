@@ -113,7 +113,7 @@ export function ClassifierInstancesChart({classifier}: ClassifierInstancesChartP
   );
 
   const isPending = primaryResults.isPending || (isGrouped && nonMatchResults.isPending);
-  const error = primaryResults.error ?? nonMatchResults.error;
+  const error = primaryResults.error ?? (isGrouped ? nonMatchResults.error : null);
   const nonMatchColor = theme.tokens.dataviz.semantic.neutral;
   const seriesGroups: SeriesGroup[] = isGrouped
     ? [
