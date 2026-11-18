@@ -14,6 +14,7 @@ import {openModal} from '@sentry/scraps/modal';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {NON_GITHUB_HANDOFF_WARNING} from 'sentry/utils/seer/preferredAgent';
+import {NON_GITHUB_PR_ITERATION_WARNING} from 'sentry/utils/seer/prIteration';
 
 import {ProjectAddRepoModal} from './projectAddRepoModal';
 
@@ -163,6 +164,11 @@ describe('ProjectAddRepoModal', () => {
       `/projects/${organization.slug}/${project.slug}/seer/settings/`,
       expect.objectContaining({data: expect.objectContaining({agent: 'seer'})})
     );
+    // Auto-Iterate can't run on GitLab, so it's saved off, as the switch shows.
+    expect(settingsPut).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({data: expect.objectContaining({prIteration: false})})
+    );
     // The reset must not carry the coding-agent integration id either.
     expect(settingsPut).not.toHaveBeenCalledWith(
       expect.anything(),
@@ -202,5 +208,33 @@ describe('ProjectAddRepoModal', () => {
     expect(
       screen.queryByText(/Seer uses the repositories linked to your project/)
     ).not.toBeInTheDocument();
+  });
+
+  it('turns Auto-Iterate on PRs off and disables it when no repo is on github.com', async () => {
+    openAddRepoModal();
+
+    const getToggle = () => screen.getByRole('checkbox', {name: 'Auto-Iterate on PRs'});
+    expect(
+      await screen.findByRole('checkbox', {name: 'Auto-Iterate on PRs'})
+    ).toBeChecked();
+
+    await addRepository(/gitlab-repo/);
+
+    await waitFor(() => expect(getToggle()).toBeDisabled());
+    expect(getToggle()).not.toBeChecked();
+    await userEvent.hover(getToggle());
+    expect(await screen.findByText(NON_GITHUB_PR_ITERATION_WARNING)).toBeInTheDocument();
+  });
+
+  it('keeps Auto-Iterate on PRs available when a github.com repo is added', async () => {
+    openAddRepoModal();
+
+    await addRepository(/getsentry\/sentry/);
+
+    const toggle = screen.getByRole('checkbox', {name: 'Auto-Iterate on PRs'});
+    expect(toggle).toBeEnabled();
+    expect(toggle).toBeChecked();
+    await userEvent.hover(toggle);
+    expect(screen.queryByText(NON_GITHUB_PR_ITERATION_WARNING)).not.toBeInTheDocument();
   });
 });

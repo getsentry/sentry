@@ -11,6 +11,7 @@ import {AutoSaveForm, FieldGroup, FormSearch} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
@@ -22,9 +23,13 @@ import {
   knownAgentIntegrationsQueryOptions,
   coalesePreferredAgent,
 } from 'sentry/utils/seer/preferredAgent';
-import {PR_ITERATION_OPTIONS} from 'sentry/utils/seer/prIteration';
+import {
+  NON_GITHUB_PR_ITERATION_WARNING,
+  PR_ITERATION_OPTIONS,
+} from 'sentry/utils/seer/prIteration';
 import {
   getSeerProjectReposInfiniteQueryOptions,
+  isGitHubDotComProvider,
   isGitHubProvider,
 } from 'sentry/utils/seer/seerProjectRepos';
 import {
@@ -68,10 +73,14 @@ export function AutofixAgent({canWrite, project}: Props) {
   // the warning (a repos-fetch error keeps handoff restricted, which is safe).
   const reposLoaded =
     reposResult.isSuccess && !reposResult.hasNextPage && !reposResult.isFetchingNextPage;
-  const hasNonGithubRepo = (reposResult.data?.pages ?? [])
-    .flatMap(page => page.json)
-    .some(repo => !isGitHubProvider(repo.provider));
+  const repos = (reposResult.data?.pages ?? []).flatMap(page => page.json);
+  const hasNonGithubRepo = repos.some(repo => !isGitHubProvider(repo.provider));
   const restrictToSeer = reposLoaded && hasNonGithubRepo;
+  // Auto-Iterate only runs on github.com PRs, so it needs at least one such repo.
+  // Unlike the agent, the stored value is left alone: it does nothing without a
+  // github.com repo, and comes back into effect if one is linked later.
+  const hasGitHubDotComRepo = repos.some(repo => isGitHubDotComProvider(repo.provider));
+  const prIterationUnavailable = reposLoaded && !hasGitHubDotComRepo;
 
   // `isIdle` is true only until the first attempt settles, so the effect below
   // fires at most once. This matters because the mutation rolls back its
@@ -239,12 +248,18 @@ export function AutofixAgent({canWrite, project}: Props) {
                 'After opening a PR, Seer automatically pushes fixes when CI checks fail. You can still ask Seer to iterate on a PR yourself.'
               )}
             >
-              <field.Select
-                disabled={!canWrite}
-                value={field.state.value}
-                onChange={field.handleChange}
-                options={PR_ITERATION_OPTIONS}
-              />
+              <Tooltip
+                title={NON_GITHUB_PR_ITERATION_WARNING}
+                disabled={!prIterationUnavailable}
+                containerDisplayMode="block"
+              >
+                <field.Select
+                  disabled={!canWrite || !reposLoaded || prIterationUnavailable}
+                  value={prIterationUnavailable ? false : field.state.value}
+                  onChange={field.handleChange}
+                  options={PR_ITERATION_OPTIONS}
+                />
+              </Tooltip>
             </field.Layout.Row>
           )}
         </AutoSaveForm>

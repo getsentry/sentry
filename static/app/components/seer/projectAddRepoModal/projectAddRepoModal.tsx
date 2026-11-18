@@ -23,6 +23,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
@@ -38,7 +39,11 @@ import {
   orgDefaultAgentQueryOptions,
   seerAgentIntegrationsSelectQueryOptions,
 } from 'sentry/utils/seer/preferredAgent';
-import {isGitHubProvider} from 'sentry/utils/seer/seerProjectRepos';
+import {NON_GITHUB_PR_ITERATION_WARNING} from 'sentry/utils/seer/prIteration';
+import {
+  isGitHubDotComProvider,
+  isGitHubProvider,
+} from 'sentry/utils/seer/seerProjectRepos';
 import {getInfiniteSeerProjectsSettingsQueryOptions} from 'sentry/utils/seer/seerProjectSettings';
 import {
   PROJECT_STOPPING_POINT_OPTIONS,
@@ -164,6 +169,21 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
       form.setFieldValue('agentOption', 'seer');
     }
   }, [isOnlyGithubRepos, form]);
+
+  // Auto-Iterate only runs on github.com PRs. Once repos are added and none of
+  // them is on github.com, hard-reset it to off the same way as the agent.
+  // Unresolved repos (still loading) might be on github.com, so they don't count.
+  const hasNoGitHubDotComRepo =
+    repoEntries.length > 0 &&
+    repoEntries.every(entry => {
+      const providerId = repositoriesById.get(entry.repoId)?.provider.id;
+      return providerId !== undefined && !isGitHubDotComProvider(providerId);
+    });
+  useEffect(() => {
+    if (hasNoGitHubDotComRepo && form.state.values.prIteration) {
+      form.setFieldValue('prIteration', false);
+    }
+  }, [hasNoGitHubDotComRepo, form]);
 
   const manageRepositoriesLink = (
     <ExternalLink href={`/settings/${organization.slug}/repos/`} />
@@ -399,10 +419,16 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
                     'After opening a PR, Seer automatically pushes fixes when CI checks fail. You can still ask Seer to iterate on a PR yourself.'
                   )}
                 >
-                  <field.Switch
-                    checked={field.state.value}
-                    onChange={field.handleChange}
-                  />
+                  <Tooltip
+                    title={NON_GITHUB_PR_ITERATION_WARNING}
+                    disabled={!hasNoGitHubDotComRepo}
+                  >
+                    <field.Switch
+                      checked={hasNoGitHubDotComRepo ? false : field.state.value}
+                      onChange={field.handleChange}
+                      disabled={hasNoGitHubDotComRepo}
+                    />
+                  </Tooltip>
                 </field.Layout.Row>
               )}
             </form.AppField>
