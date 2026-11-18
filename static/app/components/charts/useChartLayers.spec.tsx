@@ -116,6 +116,8 @@ describe('useChartLayers', () => {
       title: 'new-checkout',
     };
 
+    let flagLogRequest: jest.Mock;
+
     function renderAnnotationsHook({
       releases,
       flags,
@@ -127,7 +129,7 @@ describe('useChartLayers', () => {
         url: `/organizations/${annotationsOrganization.slug}/releases/stats/`,
         body: releases,
       });
-      MockApiClient.addMockResponse({
+      flagLogRequest = MockApiClient.addMockResponse({
         url: `/organizations/${annotationsOrganization.slug}/flags/logs/`,
         body: {data: flags},
       });
@@ -154,6 +156,19 @@ describe('useChartLayers', () => {
         expect.objectContaining({value: 'releases', selected: true}),
         expect.objectContaining({value: 'flags', label: 'Flags', selected: true}),
       ]);
+    });
+
+    it('requests the flag log in a stable order so its pages line up', async () => {
+      renderAnnotationsHook({releases: [], flags: [flagChange]});
+
+      await waitFor(() =>
+        expect(flagLogRequest).toHaveBeenCalledWith(
+          `/organizations/${annotationsOrganization.slug}/flags/logs/`,
+          expect.objectContaining({
+            query: expect.objectContaining({sort: 'created_at'}),
+          })
+        )
+      );
     });
 
     it('toggles releases in the annotations band from the Releases layer', async () => {

@@ -56,7 +56,7 @@ export function useChartLayers({
 
   const {data: flagLog} = useOrganizationFlagLogInfinite({
     organization,
-    query: normalizeDateTimeParams(selection.datetime),
+    query: {...normalizeDateTimeParams(selection.datetime), sort: 'created_at'},
     enabled: areAnnotationsEnabled,
   });
   const [isFlagsLayerOn, setIsFlagsLayerOn] = useState(true);
