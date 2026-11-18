@@ -1,6 +1,6 @@
 import {useCallback, useRef, useState} from 'react';
 import * as Sentry from '@sentry/react';
-import {useQueryClient, type QueryClient} from '@tanstack/react-query';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {toast} from '@sentry/scraps/toast';
 
@@ -12,12 +12,13 @@ import {
   HIGH_PRIORITY_WORKFLOW_NAME,
   useCreateProjectWorkflow,
   type CreatedProjectWorkflow,
+  type ProjectWorkflowVariables,
 } from 'sentry/components/onboarding/useCreateProjectWorkflow';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Repository} from 'sentry/types/integrations';
 import type {OnboardingSelectedSDK} from 'sentry/types/onboarding';
-import type {Organization, Team} from 'sentry/types/organization';
+import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -120,12 +121,12 @@ export function useScmProjectCreation({
   onCreatedProjectChange,
   selectedRepository,
 }: UseScmProjectCreationOptions) {
-  const queryClient = useQueryClient();
   const organization = useOrganization();
   const {teams, fetching: isLoadingTeams} = useTeams();
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const createProjectAndRules = useCreateProjectAndRules();
-  const {mutateAsync: createProjectWorkflow} = useCreateProjectWorkflow();
+  const {mutateAsync: updateProjectPlatform} = useUpdateProjectPlatform();
+  const {mutateAsync: replaceProjectWorkflow} = useReplaceProjectWorkflow();
 
   // The ref is the synchronous re-entry guard; the state drives busy/disabled
   // UI. See useScmProjectDetails for the same pattern and rationale.
@@ -177,7 +178,6 @@ export function useScmProjectCreation({
           let project = existingProject;
           if (platformChanged) {
             const updated = await updateProjectPlatform({
-              organization,
               project: existingProject,
               platformKey: platform.key,
               selectedRepository,
@@ -208,17 +208,12 @@ export function useScmProjectCreation({
             // high-priority workflow with email and the integration action.
             try {
               workflow = await replaceProjectWorkflow({
-                queryClient,
-                organization,
                 project,
-                create: () =>
-                  createProjectWorkflow(
-                    getProjectWorkflowVariables({
-                      project,
-                      alertRuleConfig,
-                      integrationAction,
-                    })
-                  ),
+                variables: getProjectWorkflowVariables({
+                  project,
+                  alertRuleConfig,
+                  integrationAction,
+                }),
               });
             } catch (error) {
               toast.error(t('Failed to update project alerts'));
@@ -322,14 +317,14 @@ export function useScmProjectCreation({
     },
     [
       createProjectAndRules,
-      createProjectWorkflow,
       createdProject,
       onCreatedProjectChange,
       organization,
       projects,
-      queryClient,
+      replaceProjectWorkflow,
       selectedRepository,
       teams,
+      updateProjectPlatform,
     ]
   );
 
@@ -342,54 +337,47 @@ export function useScmProjectCreation({
  * backend deduplicated, is kept. The rename is dropped if it fails (e.g. the
  * slug is taken), since the platform is what the setup docs depend on.
  */
-async function updateProjectPlatform({
-  organization,
-  project,
-  platformKey,
-  selectedRepository,
-}: {
-  organization: Organization;
-  platformKey: OnboardingSelectedSDK['key'];
-  project: Project;
-  selectedRepository: Repository | undefined;
-}): Promise<Project> {
-  const url = getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
-    path: {
-      organizationIdOrSlug: organization.slug,
-      projectIdOrSlug: project.slug,
+function useUpdateProjectPlatform() {
+  const organization = useOrganization();
+
+  return useMutation({
+    mutationFn: async ({
+      project,
+      platformKey,
+      selectedRepository,
+    }: {
+      platformKey: OnboardingSelectedSDK['key'];
+      project: Project;
+      selectedRepository: Repository | undefined;
+    }) => {
+      const url = getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+      });
+      const oldDefaultName = getScmDefaultProjectName({
+        repository: selectedRepository,
+        platformKey: project.platform,
+      });
+      const newDefaultName = getScmDefaultProjectName({
+        repository: selectedRepository,
+        platformKey,
+      });
+      const shouldRename =
+        project.name === oldDefaultName && newDefaultName !== oldDefaultName;
+
+      const renamed = shouldRename
+        ? await fetchMutation<Project>({
+            url,
+            method: 'PUT',
+            data: {platform: platformKey, name: newDefaultName, slug: newDefaultName},
+          }).catch(() => null)
+        : null;
+      return (
+        renamed ??
+        fetchMutation<Project>({url, method: 'PUT', data: {platform: platformKey}})
+      );
     },
+    onSuccess: project => ProjectsStore.onUpdateSuccess(project),
   });
-  const oldDefaultName = getScmDefaultProjectName({
-    repository: selectedRepository,
-    platformKey: project.platform,
-  });
-  const newDefaultName = getScmDefaultProjectName({
-    repository: selectedRepository,
-    platformKey,
-  });
-  const shouldRename =
-    project.name === oldDefaultName && newDefaultName !== oldDefaultName;
-
-  let updated: Project | null = null;
-  if (shouldRename) {
-    updated = await fetchMutation<Project>({
-      url,
-      method: 'PUT',
-      data: {
-        platform: platformKey,
-        name: newDefaultName,
-        slug: newDefaultName,
-      },
-    }).catch(() => null);
-  }
-  updated ??= await fetchMutation<Project>({
-    url,
-    method: 'PUT',
-    data: {platform: platformKey},
-  });
-
-  ProjectsStore.onUpdateSuccess(updated);
-  return updated;
 }
 
 /**
@@ -401,52 +389,62 @@ async function updateProjectPlatform({
  * leaves the project without alerts. A failed delete only logs: the project
  * then has both workflows, which costs a duplicate notification, not data.
  */
-async function replaceProjectWorkflow({
-  queryClient,
-  organization,
-  project,
-  create,
-}: {
-  create: () => Promise<CreatedProjectWorkflow>;
-  organization: Organization;
-  project: Project;
-  queryClient: QueryClient;
-}): Promise<CreatedProjectWorkflow> {
-  const [detectorId] = await fetchIssueStreamDetectorIdsForProjects({
-    queryClient,
-    organization,
-    projectIds: [project.id],
+function useReplaceProjectWorkflow() {
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
+  const {mutateAsync: createProjectWorkflow} = useCreateProjectWorkflow();
+
+  return useMutation({
+    mutationFn: async ({
+      project,
+      variables,
+    }: {
+      project: Project;
+      variables: ProjectWorkflowVariables;
+    }) => {
+      // Read at submit time, not from a render-time query: the list must
+      // reflect workflows created by an earlier swap in this session.
+      const [detectorId] = await fetchIssueStreamDetectorIdsForProjects({
+        queryClient,
+        organization,
+        projectIds: [project.id],
+      });
+      const {json: workflows} = await queryClient.fetchQuery(
+        automationsApiOptions(organization, {projects: [Number(project.id)]})
+      );
+      const oldWorkflowIds = workflows
+        .filter(
+          workflow =>
+            workflow.name === HIGH_PRIORITY_WORKFLOW_NAME &&
+            detectorId !== undefined &&
+            workflow.detectorIds.length === 1 &&
+            workflow.detectorIds[0] === detectorId
+        )
+        .map(workflow => workflow.id);
+
+      const workflow = await createProjectWorkflow(variables);
+
+      await Promise.all(
+        oldWorkflowIds.map(workflowId =>
+          fetchMutation({
+            url: getApiUrl(
+              '/organizations/$organizationIdOrSlug/workflows/$workflowId/',
+              {
+                path: {organizationIdOrSlug: organization.slug, workflowId},
+              }
+            ),
+            method: 'DELETE',
+          }).catch(error => Sentry.captureException(error))
+        )
+      );
+
+      return workflow;
+    },
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: automationsApiOptions(organization).queryKey,
+      }),
   });
-  const {json: workflows} = await queryClient.fetchQuery(
-    automationsApiOptions(organization, {projects: [Number(project.id)]})
-  );
-  const oldWorkflowIds = workflows
-    .filter(
-      workflow =>
-        workflow.name === HIGH_PRIORITY_WORKFLOW_NAME &&
-        detectorId !== undefined &&
-        workflow.detectorIds.length === 1 &&
-        workflow.detectorIds[0] === detectorId
-    )
-    .map(workflow => workflow.id);
-
-  const workflow = await create();
-
-  await Promise.all(
-    oldWorkflowIds.map(workflowId =>
-      fetchMutation({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/workflows/$workflowId/', {
-          path: {organizationIdOrSlug: organization.slug, workflowId},
-        }),
-        method: 'DELETE',
-      }).catch(error => Sentry.captureException(error))
-    )
-  );
-  queryClient.invalidateQueries({
-    queryKey: automationsApiOptions(organization).queryKey,
-  });
-
-  return workflow;
 }
 
 function isSameSelection(
