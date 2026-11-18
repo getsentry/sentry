@@ -67,10 +67,7 @@
     },
     {
       "crumbs": "Explore → Agents",
-      "path": "/explore/agents/",
-      "when": {
-        "flag": "gen-ai-conversations"
-      }
+      "path": "/explore/agents/"
     },
     {
       "crumbs": "Explore → Saved Queries",

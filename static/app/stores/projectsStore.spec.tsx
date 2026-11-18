@@ -40,6 +40,19 @@ describe('ProjectsStore', () => {
         loading: false,
       });
     });
+
+    it('merges projects into the current state', () => {
+      ProjectsStore.loadInitialData([projectFoo, projectBar]);
+      const updatedFoo = {...projectFoo, name: 'Foo Updated'};
+      const projectBaz = ProjectFixture({id: '11', slug: 'baz'});
+
+      ProjectsStore.mergeProjects([updatedFoo, projectBaz]);
+
+      expect(ProjectsStore.getState()).toMatchObject({
+        projects: [projectBar, projectBaz, updatedFoo],
+        loading: false,
+      });
+    });
   });
 
   describe('updating data', () => {

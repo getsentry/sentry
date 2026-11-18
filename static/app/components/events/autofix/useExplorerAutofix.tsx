@@ -234,6 +234,9 @@ export interface ExplorerAutofixState {
     id: string;
     input_type: 'file_change_approval' | 'ask_user_question';
   } | null;
+  // Credits refused the run's next step, so its queued feedback waits. Null while a turn
+  // runs or iteration is paused.
+  pr_iteration_out_of_credits?: PrIterationOutOfCredits | null;
   pr_iteration_paused?: boolean;
   queued_feedback?: RawFeedback[];
   repo_pr_states?: Record<string, RepoPRState>;
@@ -243,6 +246,12 @@ export interface ExplorerAutofixState {
     installation_id?: string;
     repo_name?: string;
   }>;
+}
+
+interface PrIterationOutOfCredits {
+  denial_reason: SeerCreditDenialReason | null;
+  // What the latest PR iteration left unfinished.
+  unfinished_action: 'agent_turn' | 'push' | 'branch_moved_retry' | null;
 }
 
 /**
@@ -354,7 +363,7 @@ interface OutOfCreditsError {
  * Seer credits. The triggers' credit checks fail open and can be out of date, so
  * the backend has the final say.
  */
-function isOutOfCreditsError(e: unknown): e is OutOfCreditsError {
+export function isOutOfCreditsError(e: unknown): e is OutOfCreditsError {
   const error = e as
     | {responseJSON?: {code?: unknown}; status?: number}
     | null
@@ -755,6 +764,16 @@ export function isPrIterationPaused(runState: ExplorerAutofixState | null): bool
   return runState?.pr_iteration_paused === true;
 }
 
+/**
+ * The latest PR iteration's push or retry, when it's waiting for credits.
+ */
+export function getPrIterationWaitingAction(
+  runState: ExplorerAutofixState | null
+): 'push' | 'branch_moved_retry' | null {
+  const action = runState?.pr_iteration_out_of_credits?.unfinished_action;
+  return action === 'push' || action === 'branch_moved_retry' ? action : null;
+}
+
 export function isLastStepPrIteration(runState: ExplorerAutofixState | null): boolean {
   // pr_iteration is always the last work to run, so if the most recent block
   // with a step came from one, the run is in the pr_iteration phase (whether it
@@ -1060,7 +1079,7 @@ export function useExplorerAutofix(
           runId: getAutofixRunId(response)!,
           isSingleRun: response?.feature_id === SINGLE_RUN_FEATURE_ID,
         };
-      } catch (e: any) {
+      } catch (e) {
         setWaitingForResponse(false);
         const queryKey = explorerAutofixApiOptions(orgSlug, groupId).queryKey;
 
@@ -1085,6 +1104,10 @@ export function useExplorerAutofix(
           queryClient.invalidateQueries({
             queryKey: seerCreditChecksQueryKey(organization),
           });
+          // A refused PR iteration waits on the queue, so show it.
+          if (step === 'pr_iteration') {
+            queryClient.invalidateQueries({queryKey});
+          }
           toast.error(getRefusedStepMessage(step, e.responseJSON.denialReason ?? null));
           throw e;
         }
@@ -1153,7 +1176,7 @@ export function useExplorerAutofix(
         queryClient.invalidateQueries({
           queryKey: explorerAutofixApiOptions(orgSlug, groupId).queryKey,
         });
-      } catch (e: any) {
+      } catch (e) {
         if (!isOutOfCreditsError(e)) {
           toast.error(getApiErrorMessage(e, 'Failed to create PR'));
           throw e;
@@ -1287,7 +1310,7 @@ export function useExplorerAutofix(
         queryClient.invalidateQueries({
           queryKey: explorerAutofixApiOptions(orgSlug, groupId).queryKey,
         });
-      } catch (e: any) {
+      } catch (e) {
         if (needsGitHubAuth(e)) {
           const currentUrl = window.location.href;
           window.location.href = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;

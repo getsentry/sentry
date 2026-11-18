@@ -1,3 +1,5 @@
+import {stripAnnotations} from '@sentry/scraps/markdown/annotation';
+
 import {isRecord} from 'sentry/utils/object/isRecord';
 import {tryParsePythonDict} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentDetection';
 import {
@@ -521,7 +523,8 @@ function parseJsonString(value: string): unknown {
 }
 
 function looksLikeJson(raw: string): boolean {
-  const trimmed = raw.trim();
+  // Marks on a scrubbed value, see `markScrubbedValue`, don't change what it is.
+  const trimmed = stripAnnotations(raw).trim();
   if (!trimmed) {
     return false;
   }

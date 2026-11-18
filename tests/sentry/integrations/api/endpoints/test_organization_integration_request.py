@@ -1,3 +1,4 @@
+from django.core import mail
 from django.test import override_settings
 
 from sentry.testutils.cases import APITestCase
@@ -22,6 +23,55 @@ class OrganizationIntegrationRequestTest(APITestCase):
             self.organization.slug,
             providerSlug="github",
             providerType="first_party",
+        )
+
+    def test_integration_request_for_category(self) -> None:
+        with self.tasks():
+            self.get_success_response(
+                self.organization.slug,
+                providerSlug="source code management",
+                providerType="category",
+                status_code=201,
+            )
+
+        assert len(mail.outbox) == 1
+        assert mail.outbox[0].subject.endswith(
+            "Your team member requested a source code management integration on Sentry"
+        )
+        body = mail.outbox[0].body
+        assert "requested a source code management integration." in body
+        assert "Install integration by clicking the link below" in body
+        assert (
+            f"/settings/{self.organization.slug}/integrations/"
+            "?category=source%20code%20management&referrer=request_email"
+        ) in body
+
+    def test_integration_request_without_provider(self) -> None:
+        with self.tasks():
+            self.get_success_response(self.organization.slug, status_code=201)
+
+        assert len(mail.outbox) == 1
+        assert mail.outbox[0].subject.endswith(
+            "Your team member requested an integration on Sentry"
+        )
+        body = mail.outbox[0].body
+        assert "requested an integration." in body
+        assert "Install integration by clicking the link below" in body
+        assert f"/settings/{self.organization.slug}/integrations/?referrer=request_email" in body
+
+    def test_integration_request_with_only_provider_type(self) -> None:
+        self.get_error_response(
+            self.organization.slug,
+            providerType="first_party",
+            status_code=400,
+        )
+
+    def test_integration_request_with_invalid_category(self) -> None:
+        self.get_error_response(
+            self.organization.slug,
+            providerSlug="alerting",
+            providerType="category",
+            status_code=400,
         )
 
     def test_integration_request_with_invalid_plugin(self) -> None:

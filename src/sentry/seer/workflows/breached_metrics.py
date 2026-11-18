@@ -150,7 +150,7 @@ class MetricAlertTrigger(AutomationTrigger[MetricBreachInputs]):
             return
         workflow = Workflow.objects_for_deletion.filter(
             id=config.backing_workflow_id, organization_id=config.organization_id
-        ).first()
+        ).first()  # noqa: S035
         if workflow is not None and workflow.status == ObjectStatus.ACTIVE:
             CellScheduledDeletion.schedule(workflow, days=0)
             workflow.update(status=ObjectStatus.PENDING_DELETION)

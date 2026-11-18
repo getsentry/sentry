@@ -227,9 +227,9 @@ class SupabaseClient:
         try:
             acquired = lock.blocking_acquire(initial_delay=0.1, timeout=5)
         except UnableToAcquireLock:
-            integration = Integration.objects.filter(
+            integration = Integration.objects.get_or_none(
                 id=self.integration.id, status=ObjectStatus.ACTIVE
-            ).first()
+            )
             stored = (
                 _stored_token(integration, minimum_validity, force_refresh) if integration else None
             )
@@ -237,9 +237,9 @@ class SupabaseClient:
                 raise
             return stored
         with acquired:
-            integration = Integration.objects.filter(
+            integration = Integration.objects.get_or_none(
                 id=self.integration.id, status=ObjectStatus.ACTIVE
-            ).first()
+            )
             if integration is None:
                 return None
             stored = _stored_token(integration, minimum_validity, force_refresh)
@@ -253,7 +253,7 @@ class SupabaseClient:
                 token = refresh_access_token(refresh_token).as_metadata()
             except SupabaseRefreshTokenError:
                 # Reauthorization can replace the grant while the token request is in flight.
-                current = Integration.objects.filter(id=integration.id).first()
+                current = Integration.objects.get_or_none(id=integration.id)
                 if current is not None and current.metadata.get("refresh_token") == refresh_token:
                     Integration.objects.filter(
                         id=integration.id,
@@ -287,7 +287,7 @@ class SupabaseClient:
                 .exists()
             ):
                 return
-            integration = Integration.objects.filter(id=self.integration.id).first()
+            integration = Integration.objects.get_or_none(id=self.integration.id)
             if integration is None:
                 return
             try:

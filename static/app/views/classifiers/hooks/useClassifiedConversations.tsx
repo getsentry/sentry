@@ -8,11 +8,15 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TelemetryClassifier} from 'sentry/views/classifiers/types';
-import {getResultAttributeKey} from 'sentry/views/classifiers/utils';
+import {
+  getClassifierResultQuery,
+  getResultAttributeKey,
+} from 'sentry/views/classifiers/utils';
 import type {Conversation} from 'sentry/views/explore/conversations/hooks/useConversations';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 
 import {useClassifierPageFilters} from './useClassifierPageFilters';
+import {useClassifierResultFilter} from './useClassifierResultFilter';
 
 const CLASSIFIED_CONVERSATIONS_PER_PAGE = 20;
 
@@ -38,13 +42,17 @@ export function useClassifiedConversations(classifier: TelemetryClassifier) {
   const selection = useClassifierPageFilters(classifier);
   const datetimeParams = normalizeDateTimeParams(selection.datetime);
   const {cursor, setCursor, unsetCursor} = useTableCursor();
-  const [sort, setSortState] = useQueryState(
+  const [sortState, setSortState] = useQueryState(
     'sort',
     parseAsStringLiteral(CLASSIFIED_CONVERSATION_SORTS)
       .withDefault('-age')
       .withOptions({history: 'replace'})
   );
+  const {resultFilter} = useClassifierResultFilter(classifier);
+  const sort: ClassifiedConversationSort =
+    resultFilter !== 'all' && sortState.endsWith('result') ? '-age' : sortState;
   const resultField = `tags[${getResultAttributeKey(classifier.resultAttribute)},number]`;
+  const resultQuery = getClassifierResultQuery(classifier, resultFilter);
   const project = [Number(classifier.projectId)];
 
   const sortDirection = sort.startsWith('-') ? '-' : '';
@@ -66,7 +74,7 @@ export function useClassifiedConversations(classifier: TelemetryClassifier) {
         query: {
           dataset: DiscoverDatasets.ENRICHMENT_ATTRIBUTES,
           field: [CONVERSATION_ID_FIELD, resultField, TIMESTAMP_FIELD],
-          query: `has:${resultField}`,
+          query: resultQuery,
           sort: `${sortDirection}${sortField}`,
           per_page: CLASSIFIED_CONVERSATIONS_PER_PAGE,
           cursor,
