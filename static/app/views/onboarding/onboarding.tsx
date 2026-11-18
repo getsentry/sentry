@@ -205,8 +205,10 @@ export function OnboardingWithoutContext() {
   const {step: stepId} = useParams<{step: string}>();
   const organization = useOrganization();
   const onboardingContext = useOnboardingContext();
-  const selectedProjectSlug =
-    onboardingContext.createdProject?.slug ?? onboardingContext.selectedPlatform?.key;
+  // Only a project this session created may back the docs step. The platform key
+  // is not a safe stand-in: the server dedupes slugs, so it can name an unrelated
+  // project (which Back would then delete) or none at all.
+  const createdProjectSlug = onboardingContext.createdProject?.slug;
 
   // Only report experiment exposure for genuine new-org onboarding. Existing
   // orgs can land on /onboarding via stale links, which would
@@ -231,7 +233,7 @@ export function OnboardingWithoutContext() {
   const isPastPlatformFeatures =
     (stepId === OnboardingStepId.SCM_MESSAGING &&
       defined(onboardingContext.selectedPlatform)) ||
-    (stepId === OnboardingStepId.SETUP_DOCS && defined(selectedProjectSlug));
+    (stepId === OnboardingStepId.SETUP_DOCS && defined(createdProjectSlug));
   const {inExperiment: hasScmMessaging} = useExperiment({
     feature: 'onboarding-scm-messaging-experiment',
     reportExposure:
@@ -251,7 +253,7 @@ export function OnboardingWithoutContext() {
   const stepObj = onboardingSteps.find(({id}) => stepId === id);
   const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);
 
-  const projectSlug = stepObj?.id === 'setup-docs' ? selectedProjectSlug : undefined;
+  const projectSlug = stepObj?.id === 'setup-docs' ? createdProjectSlug : undefined;
 
   const {project: recentCreatedProject, isProjectActive} = useRecentCreatedProject({
     orgSlug: organization.slug,
@@ -363,7 +365,9 @@ export function OnboardingWithoutContext() {
     );
   };
 
-  // Redirect to the first step if we end up in an invalid state
+  // Redirect when the step cannot render from the staged state. Steps that
+  // depend on the platform step go back to it rather than to Welcome, which
+  // resets the session and would drop the SCM connection.
   const isInvalidDocsStep = stepId === OnboardingStepId.SETUP_DOCS && !projectSlug;
   // Keyed off `stepObj` rather than the experiment flag so the fallback below is
   // always a step in the active list: `scm-messaging` only exists alongside
@@ -372,9 +376,10 @@ export function OnboardingWithoutContext() {
   const isInvalidMessagingStep =
     stepObj?.id === OnboardingStepId.SCM_MESSAGING && !onboardingContext.selectedPlatform;
   if (!stepObj || stepIndex === -1 || isInvalidDocsStep || isInvalidMessagingStep) {
-    const fallbackStep = isInvalidMessagingStep
-      ? OnboardingStepId.SCM_PLATFORM_FEATURES
-      : onboardingSteps[0]!.id;
+    const fallbackStep =
+      isInvalidDocsStep || isInvalidMessagingStep
+        ? OnboardingStepId.SCM_PLATFORM_FEATURES
+        : onboardingSteps[0]!.id;
     return (
       <Redirect to={normalizeUrl(`/onboarding/${organization.slug}/${fallbackStep}/`)} />
     );

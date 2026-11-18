@@ -302,6 +302,7 @@ describe('Onboarding', () => {
             name: 'Next.js',
             link: 'https://docs.sentry.io/platforms/javascript/guides/nextjs/',
           },
+          createdProject: {slug: nextJsProject.slug, messagingSelection: undefined},
         }}
       >
         <OnboardingWithoutContext />
@@ -368,6 +369,7 @@ describe('Onboarding', () => {
             name: 'React',
             link: 'https://docs.sentry.io/platforms/javascript/guides/react/',
           },
+          createdProject: {slug: reactProject.slug, messagingSelection: undefined},
         }}
       >
         <OnboardingWithoutContext />
@@ -521,6 +523,62 @@ describe('Onboarding', () => {
         expect(router.location.pathname).toBe(
           `/onboarding/${messagingOrganization.slug}/scm-platform-features/`
         );
+      });
+    });
+
+    it('does not load a project named after the staged platform on setup-docs', async () => {
+      // An unrelated project whose slug matches the platform key. Setup docs
+      // must not adopt it, since Back from that step can delete the project.
+      const unrelatedProject = ProjectFixture({
+        id: '99',
+        slug: nextJsPlatform.key,
+        platform: nextJsPlatform.key,
+      });
+      ProjectsStore.loadInitialData([unrelatedProject]);
+      const overviewMock = MockApiClient.addMockResponse({
+        url: `/projects/${scmOrganization.slug}/${unrelatedProject.slug}/overview/`,
+        body: unrelatedProject,
+      });
+
+      const {router} = renderOnboarding('setup-docs', {
+        initialContext: {selectedPlatform: nextJsPlatform},
+      });
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe(
+          `/onboarding/${scmOrganization.slug}/scm-platform-features/`
+        );
+      });
+      expect(overviewMock).not.toHaveBeenCalled();
+      expect(screen.queryByText('Configure Next.js SDK')).not.toBeInTheDocument();
+    });
+
+    it('stages a ?platform= deep link on the platform step instead of setup-docs', async () => {
+      const {router} = render(
+        <OnboardingContextProvider>
+          <OnboardingWithoutContext />
+        </OnboardingContextProvider>,
+        {
+          organization: scmOrganization,
+          initialRouterConfig: {
+            location: {
+              pathname: `/onboarding/${scmOrganization.slug}/setup-docs/`,
+              query: {platform: nextJsPlatform.key},
+            },
+            route: '/onboarding/:orgId/:step/',
+          },
+        }
+      );
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe(
+          `/onboarding/${scmOrganization.slug}/scm-platform-features/`
+        );
+      });
+      await waitFor(() => {
+        expect(
+          JSON.parse(sessionStorage.getItem('onboarding') ?? '{}').selectedPlatform?.key
+        ).toBe(nextJsPlatform.key);
       });
     });
 
@@ -1226,7 +1284,12 @@ describe('Onboarding', () => {
         });
 
         return render(
-          <OnboardingContextProvider initialValue={{selectedPlatform: nextJsPlatform}}>
+          <OnboardingContextProvider
+            initialValue={{
+              selectedPlatform: nextJsPlatform,
+              createdProject: {slug: project.slug, messagingSelection: undefined},
+            }}
+          >
             <OnboardingWithoutContext />
           </OnboardingContextProvider>,
           {
