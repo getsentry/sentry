@@ -15,7 +15,7 @@ from django.utils import timezone
 from sentry_sdk import traces
 from sentry_sdk.traces import StreamedSpan
 
-from sentry import features, options, projectoptions, quotas, release_health, roles
+from sentry import features, projectoptions, quotas, release_health, roles
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.team import get_org_roles
 from sentry.apidocs.descriptions import ApiDescription
@@ -1401,7 +1401,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                     "digests:mail:maximum_delay", digests.maximum_delay
                 ),
                 "subjectPrefix": attrs["options"].get(
-                    "mail:subject_prefix", options.get("mail.subject-prefix")
+                    "mail:subject_prefix", settings.EMAIL_SUBJECT_PREFIX
                 ),
                 "allowedDomains": attrs["options"].get("sentry:origins", ["*"]),
                 "resolveAge": int(attrs["options"].get("sentry:resolve_age", 0)),
