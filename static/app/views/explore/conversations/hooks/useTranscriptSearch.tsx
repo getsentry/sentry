@@ -1,4 +1,11 @@
-import {useCallback, useEffect, useRef, useState, type RefObject} from 'react';
+import {
+  useCallback,
+  useEffect,
+  useEffectEvent,
+  useRef,
+  useState,
+  type RefObject,
+} from 'react';
 
 const MATCH_HIGHLIGHT = 'conversation-search-match';
 const CURRENT_HIGHLIGHT = 'conversation-search-current';
@@ -101,13 +108,8 @@ export function useTranscriptSearch({
   const [status, setStatus] = useState<TranscriptSearchStatus>('idle');
   const [matchCount, setMatchCount] = useState(0);
   const revealedRef = useRef<string | null>(null);
-  const loadMoreRef = useRef(loadMore);
-  const onSelectSpanRef = useRef(onSelectSpan);
-
-  useEffect(() => {
-    loadMoreRef.current = loadMore;
-    onSelectSpanRef.current = onSelectSpan;
-  });
+  const loadNextPage = useEffectEvent(() => loadMore());
+  const selectSpan = useEffectEvent((spanId: string) => onSelectSpan(spanId));
 
   const step = useCallback(
     (direction: 1 | -1) => {
@@ -158,7 +160,7 @@ export function useTranscriptSearch({
           highlight(matches, null);
           setStatus('searching');
           if (!isLoadingMore) {
-            loadMoreRef.current();
+            loadNextPage();
           }
         } else if (matches.length === 0) {
           highlight(matches, null);
@@ -176,7 +178,7 @@ export function useTranscriptSearch({
         if (canLoadMore) {
           setStatus('searching');
           if (!isLoadingMore) {
-            loadMoreRef.current();
+            loadNextPage();
           }
         } else if (matches.length === 0) {
           setStatus('no-results');
@@ -201,7 +203,7 @@ export function useTranscriptSearch({
         details.open = true;
         details = details.parentElement?.closest('details');
       }
-      onSelectSpanRef.current(current.spanId);
+      selectSpan(current.spanId);
       // Selecting opens the span details beside the transcript, which reflows it.
       requestAnimationFrame(() =>
         requestAnimationFrame(() => {
