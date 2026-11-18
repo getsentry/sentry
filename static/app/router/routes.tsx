@@ -2791,6 +2791,10 @@ function buildRoutes(): RouteObject[] {
       redirectTo: 'automations/',
     },
     {
+      path: 'workflow-lab/',
+      component: make(() => import('sentry/views/workflowLab')),
+    },
+    {
       path: 'investigations/',
       component: make(() => import('sentry/views/investigations')),
     },

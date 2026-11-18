@@ -319,6 +319,10 @@ from sentry.investigations.endpoints.organization_investigation_orchestration im
 from sentry.investigations.endpoints.organization_investigation_start import (
     OrganizationInvestigationStartEndpoint,
 )
+from sentry.investigations.endpoints.workflow_lab import (
+    OrganizationWorkflowLabEndpoint,
+    OrganizationWorkflowLabRunEndpoint,
+)
 from sentry.issues.endpoints import (
     ActionableItemsEndpoint,
     EventIdLookupEndpoint,
@@ -2468,6 +2472,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/inbox/(?P<item_id>\d+)/events/$",
         OrganizationInboxItemEventsEndpoint.as_view(),
         name="sentry-api-0-organization-inbox-item-events",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/workflow-lab/$",
+        OrganizationWorkflowLabEndpoint.as_view(),
+        name="sentry-api-0-organization-workflow-lab",
+    ),
+    re_path(
+        rf"^(?P<organization_id_or_slug>[^/]+)/workflow-lab/runs/(?P<run_id>{UUIDConverter.regex})/$",
+        OrganizationWorkflowLabRunEndpoint.as_view(),
+        name="sentry-api-0-organization-workflow-lab-run",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/$",

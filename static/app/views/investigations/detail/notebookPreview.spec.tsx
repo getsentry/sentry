@@ -4,9 +4,9 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {InvestigationDetailFixture} from 'sentry/views/investigations/fixtures';
 
-import {InboxNotebookPreview} from './inboxNotebookPreview';
+import {NotebookPreview} from './notebookPreview';
 
-describe('InboxNotebookPreview', () => {
+describe('NotebookPreview', () => {
   const organization = OrganizationFixture({
     features: ['investigations'],
     openMembership: true,
@@ -26,7 +26,7 @@ describe('InboxNotebookPreview', () => {
   });
 
   it('shows the investigation header, report, and activity', async () => {
-    render(<InboxNotebookPreview investigationId={investigation.id} />, {organization});
+    render(<NotebookPreview investigationId={investigation.id} />, {organization});
 
     expect(await screen.findByRole('textbox', {name: 'Investigation title'})).toHaveValue(
       'Investigate database latency'
@@ -37,7 +37,7 @@ describe('InboxNotebookPreview', () => {
   });
 
   it("leaves the page's top bar alone", async () => {
-    render(<InboxNotebookPreview investigationId={investigation.id} />, {organization});
+    render(<NotebookPreview investigationId={investigation.id} />, {organization});
 
     await screen.findByRole('textbox', {name: 'Investigation title'});
 
@@ -56,13 +56,13 @@ describe('InboxNotebookPreview', () => {
   it('shows an error when the investigation fails to load', async () => {
     MockApiClient.addMockResponse({url: detailUrl, statusCode: 404, body: {}});
 
-    render(<InboxNotebookPreview investigationId={investigation.id} />, {organization});
+    render(<NotebookPreview investigationId={investigation.id} />, {organization});
 
     expect(await screen.findByRole('button', {name: 'Retry'})).toBeInTheDocument();
   });
 
   it('explains when investigations need open membership', () => {
-    render(<InboxNotebookPreview investigationId={investigation.id} />, {
+    render(<NotebookPreview investigationId={investigation.id} />, {
       organization: OrganizationFixture({
         features: ['investigations'],
         openMembership: false,

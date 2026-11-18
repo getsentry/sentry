@@ -131,6 +131,9 @@ const BLOCK_OUTPUT_MAX_CHARS = 4000;
  * an older text block carries as its content instead.
  */
 function getBlockOutputText(block: InvestigationBlock): string {
+  if (block.kind === 'embed') {
+    return block.embedSummary || block.embedSource || '';
+  }
   const {output} = block;
   if (output && typeof output === 'object') {
     if ('tableMarkdown' in output && typeof output.tableMarkdown === 'string') {
