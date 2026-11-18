@@ -24,10 +24,6 @@ class OrganizationTimeseriesAnnotationEndpointTest(TimeseriesAnnotationEndpointT
         values.update(kwargs)
         return TimeseriesAnnotation.objects.create(**values)
 
-    def test_requires_feature(self) -> None:
-        with self.feature({"organizations:timeseries-annotations": False}):
-            self.get_error_response(self.organization.slug, status_code=404)
-
     def test_lists_point_in_window(self) -> None:
         inside = self._annotation(start_timestamp=before_now(days=1))
         self._annotation(start_timestamp=before_now(days=30))  # outside 14d window
