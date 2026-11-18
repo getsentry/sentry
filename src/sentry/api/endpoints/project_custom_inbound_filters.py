@@ -781,9 +781,16 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
         custom_filter = self.get_custom_inbound_filter(project, filter_id)
         audit_log_data = self.get_audit_log_data(project, custom_filter, "remove")
         target_object = custom_filter.id
-        # todo: these two variables can be inline.
-        was_active = custom_filter.active
-        data_type = DataType(custom_filter.data_type)
+
+        if custom_filter.active:
+            record_custom_filter_change_as_annotation(
+                project,
+                custom_filter.id,
+                DataType(custom_filter.data_type),
+                "deleted",
+                request.user,
+            )
+
         if custom_filter.legacy_filter:
             # The row holds a filter list of the project settings: deleting it empties the
             # list, in its option too.
@@ -792,11 +799,6 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
             )
         else:
             custom_filter.delete()
-
-        if was_active:
-            record_custom_filter_change_as_annotation(
-                project, target_object, data_type, "deleted", request.user
-            )
 
         self.create_audit_entry(
             request=request,
