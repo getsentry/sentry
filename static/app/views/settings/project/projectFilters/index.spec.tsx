@@ -1238,9 +1238,7 @@ describe('ProjectFilters', () => {
     await userEvent.click(
       within(dialog).getByRole('button', {name: 'Edit value for filter: release'})
     );
-    expect(
-      await screen.findByText('A release with a version, e.g. 1.2.0 or myapp@1.2.0')
-    ).toBeInTheDocument();
+    expect(await screen.findByText('A version, e.g. 1.2.0')).toBeInTheDocument();
   });
 
   it('keeps a gated data type selectable when editing', async () => {
@@ -1599,7 +1597,7 @@ describe('ProjectFilters', () => {
     );
   });
 
-  it('offers the version comparisons on browser version, with a browser hint', async () => {
+  it('offers the version comparisons on browser version', async () => {
     renderInboundFilters([], businessProject, browserConditionOrg);
     expect(await screen.findByText('No custom inbound filters yet')).toBeInTheDocument();
 
@@ -1619,9 +1617,7 @@ describe('ProjectFilters', () => {
     await userEvent.click(
       within(dialog).getByRole('button', {name: 'Edit value for filter: browser_version'})
     );
-    expect(
-      await screen.findByText(/A browser version, e\.g\. 120 or 120\.0\.6099/)
-    ).toBeInTheDocument();
+    expect(await screen.findByText('A version, e.g. 1.2.0')).toBeInTheDocument();
   });
 
   it('sends a browser name with a wildcard as a glob', async () => {

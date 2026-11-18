@@ -163,8 +163,7 @@ type ConditionSpec = {
   label: string;
   placeholder: string;
   // Values compare as versions too, so the query builder offers >, >=, < and <=.
-  // `versionHint` says what a value is under them.
-  comparable?: {versionHint: string};
+  comparable?: boolean;
   // The data type whose field this condition reads. Absent for the conditions
   // every data type carries, so they stay on offer whatever the filter targets.
   dataType?: FilterDataType;
@@ -215,7 +214,7 @@ const CONDITIONS: Record<ConditionType, ConditionSpec> = {
     description: t('Matches the body of the log.'),
   },
   release: {
-    comparable: {versionHint: t('A release with a version, e.g. 1.2.0 or myapp@1.2.0')},
+    comparable: true,
     label: t('Release'),
     placeholder: t('Glob pattern, e.g. 2.41.*'),
     description: {
@@ -255,11 +254,7 @@ const CONDITIONS: Record<ConditionType, ConditionSpec> = {
     ),
   },
   browser_version: {
-    comparable: {
-      versionHint: t(
-        'A browser version, e.g. 120 or 120.0.6099. To match a version and every older one, compare with the next version, e.g. < 121.'
-      ),
-    },
+    comparable: true,
     feature: 'inbound-filters-browser-condition',
     label: t('Browser Version'),
     placeholder: t('Glob pattern, e.g. 120.*'),
@@ -365,7 +360,7 @@ function getValueHint(spec: ConditionSpec, operator: TermOperator): string | und
   }
   const conditionOperator = TERM_OPERATORS[operator];
   if (conditionOperator && COMPARISON_OPERATORS.has(conditionOperator)) {
-    return spec.comparable?.versionHint;
+    return t('A version, e.g. 1.2.0');
   }
   if (operator === TermOperator.DEFAULT || operator === TermOperator.EQUAL) {
     return t('The exact text, or a pattern with * as a wildcard');
@@ -387,8 +382,8 @@ function getFieldDefinitionGetter(dataType: FilterDataType): FieldDefinitionGett
         kind: FieldKind.FIELD,
         valueType: FieldValueType.STRING,
         desc: getMatchDescription(key, dataType),
-        allowComparisonOperators: spec.comparable !== undefined,
-        comparisonOperatorsFirst: spec.comparable !== undefined,
+        allowComparisonOperators: spec.comparable,
+        comparisonOperatorsFirst: spec.comparable,
         allowWildcard: !spec.exact,
         disallowWildcardOperators: spec.exact,
         disallowedOperators: spec.exact ? undefined : TEXT_DISALLOWED_OPERATORS,
