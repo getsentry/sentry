@@ -83,14 +83,12 @@ export function safeParseQueryKey(
   return isApiQueryKey(queryKey) ? parseQueryKey(queryKey) : undefined;
 }
 
+export function createApiQueryKey(params: ApiQueryKeyParams): ApiQueryKey;
+export function createApiQueryKey(params: InfiniteApiQueryKeyParams): InfiniteApiQueryKey;
 export function createApiQueryKey(
-  params: ApiQueryKeyParams
-): readonly [typeof API_QUERY_KEY_MARKER, ApiQueryKeyParams];
-export function createApiQueryKey(
-  params: InfiniteApiQueryKeyParams
-): readonly [typeof API_QUERY_KEY_MARKER, InfiniteApiQueryKeyParams];
-export function createApiQueryKey(params: ApiQueryKeyParams | InfiniteApiQueryKeyParams) {
-  return [API_QUERY_KEY_MARKER, params] as const;
+  params: ParsedQueryKey
+): readonly [typeof API_QUERY_KEY_MARKER, ParsedQueryKey, ...unknown[]] {
+  return [API_QUERY_KEY_MARKER, params];
 }
 
 type ApiQueryKeyFilterParams = Partial<
