@@ -81,7 +81,7 @@ def record_builtin_filter_change_as_annotation(
     project: Project, filter_id: str, principal: RequestPrincipal
 ) -> None:
     """Annotate a change to a built-in inbound filter. Call only when state changed."""
-    scope = _BUILTIN_FILTER_SCOPE.get(filter_id, AnnotationScope.ERRORS)
+    scope = _BUILTIN_FILTER_SCOPE.get(filter_id, AnnotationScope.GLOBAL)
     _create_filter_change_annotation(
         project,
         scope,
