@@ -1,3 +1,5 @@
+import {stripAnnotations} from '@sentry/scraps/markdown/annotation';
+
 import {getTraceNodeAttribute} from './aiTraceNodes';
 import type {AITraceSpanNode} from './types';
 
@@ -28,7 +30,7 @@ export function getToolOutputBytesFromAttributes(
   for (const key of TOOL_OUTPUT_ATTRIBUTES) {
     const output = getAttribute(key);
     if (output) {
-      return new TextEncoder().encode(output.toString()).length;
+      return new TextEncoder().encode(stripAnnotations(output.toString())).length;
     }
   }
   return 0;

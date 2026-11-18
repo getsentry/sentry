@@ -51,11 +51,7 @@ export function ProjectCard({
   hasProjectAccess,
 }: ProjectCardProps) {
   const organization = useOrganization();
-  const hasPerformance = organization.features.includes('performance-view');
-  const {getOne: getProjectStats} = useProjectStats({
-    organization,
-    hasPerformance,
-  });
+  const {getOne: getProjectStats} = useProjectStats({organization});
 
   const {stats, transactionStats, sessionStats, latestDeploys} =
     getProjectStats(simpleProject);
@@ -138,21 +134,19 @@ export function ProjectCard({
               >
                 {t('Errors: %s', formatAbbreviatedNumber(totalErrors))}
               </Link>
-              {hasPerformance && (
-                <TransactionsLink
-                  data-test-id="project-transactions"
-                  to={`${getPerformanceBaseUrl(organization.slug, domainView)}/?project=${simpleProject.id}`}
-                >
-                  {t('Transactions: %s', formatAbbreviatedNumber(totalTransactions))}
-                  {totalTransactions === 0 && (
-                    <InfoTip
-                      title={t('Click here to learn more about performance monitoring')}
-                      position="top"
-                      size="xs"
-                    />
-                  )}
-                </TransactionsLink>
-              )}
+              <TransactionsLink
+                data-test-id="project-transactions"
+                to={`${getPerformanceBaseUrl(organization.slug, domainView)}/?project=${simpleProject.id}`}
+              >
+                {t('Transactions: %s', formatAbbreviatedNumber(totalTransactions))}
+                {totalTransactions === 0 && (
+                  <InfoTip
+                    title={t('Click here to learn more about performance monitoring')}
+                    position="top"
+                    size="xs"
+                  />
+                )}
+              </TransactionsLink>
             </Fragment>
           ) : (
             <SummaryLinkPlaceholder />

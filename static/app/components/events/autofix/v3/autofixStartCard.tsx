@@ -5,9 +5,10 @@ import {IconBug} from '@sentry/icons/bug';
 import seerConfigConnectImg from 'sentry-images/spot/seer-config-connect-2.svg';
 
 import {Button} from '@sentry/scraps/button';
+import type {CSS} from '@sentry/scraps/cssTypes';
 import {Image} from '@sentry/scraps/image';
 import {Input} from '@sentry/scraps/input';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {useAutofixCreditCheck} from 'sentry/components/events/autofix/autofixCredits';
@@ -16,6 +17,7 @@ import type {useExplorerAutofix} from 'sentry/components/events/autofix/useExplo
 import {SeerOutOfCreditsCta} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {useOpenSingleRunChat} from './useToggleSingleRunChat';
 
@@ -30,10 +32,9 @@ interface AutofixStartCardProps {
   onStarted?: () => void;
   referrer?: string;
   /**
-   * Swaps the "Have Seer..." explainer for the muted out-of-credits notice,
-   * above the disabled start button. The issue sidebar sets this; the Seer
-   * drawer and Autofix tab show their own alert at the top of their content
-   * instead.
+   * Swaps the explainer for the muted out-of-credits notice, above the
+   * disabled start button. The issue sidebar sets this; the Seer drawer and
+   * Autofix tab show their own alert at the top of their content instead.
    */
   showOutOfCreditsNotice?: boolean;
 }
@@ -48,6 +49,7 @@ export function AutofixStartCard({
   // extract startStep first here so we can depend on it directly as `autofix` itself is unstable.
   const startStep = autofix.startStep;
 
+  const organization = useOrganization();
   const creditCheck = useAutofixCreditCheck('root_cause');
 
   const [startingRun, setStartingRun] = useState(false);
@@ -73,6 +75,47 @@ export function AutofixStartCard({
       onStarted?.();
     }
   };
+
+  const startButton = (
+    <Button
+      size="md"
+      icon={<IconBug />}
+      aria-label={t('Start Analysis')}
+      variant="primary"
+      onClick={handleStartRootCause}
+      analyticsEventKey="autofix.start_fix_clicked"
+      analyticsEventName="Autofix: Start Fix Clicked"
+      analyticsParams={{
+        group_id: group.id,
+        mode: 'explorer',
+        referrer,
+      }}
+      busy={isStarting}
+      // Held disabled until this mount's credit check answers, so it is never
+      // clickable before the answer arrives, even with an earlier one cached.
+      disabled={isStartDisabled}
+    >
+      {t('Start Analysis')}
+    </Button>
+  );
+
+  if (!organization.features.includes('autofix-single-run')) {
+    return (
+      <Stack gap="md">
+        {/* The Billing Gates design gives the sidebar one card: the notice takes the explainer's place. */}
+        {showNotice ? (
+          <SeerOutOfCreditsCta
+            reason="autofix-start"
+            denialReason={creditCheck.denialReason}
+            variant="muted"
+          />
+        ) : (
+          <LegacyStartCardContent />
+        )}
+        {startButton}
+      </Stack>
+    );
+  }
 
   return (
     <Stack gap="md">
@@ -113,26 +156,7 @@ export function AutofixStartCard({
                 {t('Add Context')}
               </Button>
             )}
-            <Button
-              size="md"
-              icon={<IconBug />}
-              aria-label={t('Start Analysis')}
-              variant="primary"
-              onClick={handleStartRootCause}
-              analyticsEventKey="autofix.start_fix_clicked"
-              analyticsEventName="Autofix: Start Fix Clicked"
-              analyticsParams={{
-                group_id: group.id,
-                mode: 'explorer',
-                referrer,
-              }}
-              busy={isStarting}
-              // Held disabled until this mount's credit check answers, so it is never
-              // clickable before the answer arrives, even with an earlier one cached.
-              disabled={isStartDisabled}
-            >
-              {t('Start Analysis')}
-            </Button>
+            {startButton}
           </Stack>
           {showContext ? (
             <ContextInput
@@ -158,6 +182,42 @@ export function AutofixStartCard({
     </Stack>
   );
 }
+
+function LegacyStartCardContent() {
+  return (
+    <Flex
+      border="muted"
+      radius="md"
+      padding="lg"
+      gap="lg"
+      align="center"
+      justify="between"
+    >
+      <Container>
+        <Text>{t('Have Seer...')}</Text>
+        <Container as="ol" margin="0">
+          <li>{t('Determine the root cause of your issue')}</li>
+          <li>{t('Outline a plan')}</li>
+          <li>{t('Create a code fix')}</li>
+        </Container>
+      </Container>
+      <LegacyImageContainer
+        justify="end"
+        align="center"
+        aspectRatio="9 / 16"
+        height={{zero: '78px', '4xl': '98px'}}
+      >
+        <Image src={seerConfigConnectImg} alt="" width="auto" height="100%" />
+      </LegacyImageContainer>
+    </Flex>
+  );
+}
+
+const LegacyImageContainer = styled(Flex)<{
+  aspectRatio?: CSS['aspectRatio'];
+}>`
+  ${p => p.aspectRatio && `aspect-ratio: ${p.aspectRatio}`};
+`;
 
 const ImageContainer = styled('div')`
   flex: none;

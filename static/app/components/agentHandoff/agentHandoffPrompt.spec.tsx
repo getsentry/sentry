@@ -10,7 +10,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {AgentHandoffPrompt} from './agentHandoffPrompt';
-import {AgentHandoffFlow} from './useAgentHandoff';
+import {AgentHandoffFlow} from './types';
 
 describe('AgentHandoffPrompt', () => {
   const organization = OrganizationFixture();
@@ -65,6 +65,11 @@ describe('AgentHandoffPrompt', () => {
     expect(screen.getByText(/Read and follow/)).toHaveTextContent(
       'Read and follow https://sentry-jest-tests.example.com/agent-handoff.md verbatim. Your handoff code is sntryh_****.'
     );
+    expect(
+      screen.getByRole('link', {
+        name: 'https://sentry-jest-tests.example.com/agent-handoff.md',
+      })
+    ).toHaveAttribute('href', 'https://sentry-jest-tests.example.com/agent-handoff.md');
     await userEvent.click(screen.getByRole('button', {name: 'Copy agent prompt'}));
 
     await waitFor(() => expect(onCopySuccess).toHaveBeenCalledTimes(1));
@@ -150,6 +155,28 @@ describe('AgentHandoffPrompt', () => {
 
     await userEvent.click(screen.getByRole('textbox', {name: 'Prior input'}));
 
+    expect(screen.getByText('sntryh_****')).not.toHaveAttribute('data-selected');
+  });
+
+  it('does not select the prompt when its guide link is clicked', async () => {
+    const onSelect = jest.fn();
+    render(
+      <AgentHandoffPrompt
+        context={context}
+        feedbackSource={feedbackSource}
+        flow={AgentHandoffFlow.ONBOARDING}
+        onSelect={onSelect}
+      />,
+      {organization}
+    );
+
+    await userEvent.click(
+      screen.getByRole('link', {
+        name: 'https://sentry-jest-tests.example.com/agent-handoff.md',
+      })
+    );
+
+    expect(onSelect).not.toHaveBeenCalled();
     expect(screen.getByText('sntryh_****')).not.toHaveAttribute('data-selected');
   });
 

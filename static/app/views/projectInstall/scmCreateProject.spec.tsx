@@ -33,6 +33,7 @@ import type {PlatformKey} from 'sentry/types/platform';
 import * as analytics from 'sentry/utils/analytics';
 import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 
+import {FROM_PROJECT_CREATION_STATE} from './gettingStartedLocationState';
 import {DEFAULT_ISSUE_ALERT_OPTIONS_VALUES} from './issueAlertOptions';
 import {PlatformDocHeader} from './platformDocHeader';
 import {ScmCreateProject} from './scmCreateProject';
@@ -92,7 +93,7 @@ const pythonPlatform: OnboardingSelectedSDK = {
 };
 
 describe('ScmCreateProject', () => {
-  const organization = OrganizationFixture({features: ['performance-view']});
+  const organization = OrganizationFixture();
   const adminTeam = TeamFixture({slug: 'admin-team', access: ['team:admin']});
   const selectedTeam = TeamFixture({
     id: '2',
@@ -365,7 +366,6 @@ describe('ScmCreateProject', () => {
       body: [],
     });
     const memberOrganization = OrganizationFixture({
-      features: ['performance-view'],
       access: ['org:read', 'project:read', 'team:read'],
       allowMemberProjectCreation: true,
     });
@@ -381,7 +381,6 @@ describe('ScmCreateProject', () => {
   it('keeps the repository section for members when an integration is connected', async () => {
     mockExistingGithubRepository();
     const memberOrganization = OrganizationFixture({
-      features: ['performance-view'],
       access: ['org:read', 'project:read', 'team:read'],
       allowMemberProjectCreation: true,
     });
@@ -1617,7 +1616,9 @@ describe('ScmCreateProject', () => {
         persistWizardSession({
           projectDetailsForm: {projectName: 'restored-name', teamSlug: adminTeam.slug},
         });
-        router.navigate('/organizations/org-slug/projects/python/getting-started/');
+        router.navigate('/organizations/org-slug/projects/python/getting-started/', {
+          state: FROM_PROJECT_CREATION_STATE,
+        });
         await waitFor(() => expect(overviewRequest).toHaveBeenCalled());
 
         router.navigate(-1);

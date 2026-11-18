@@ -168,7 +168,6 @@ function TruncatedFilterDisplayValue({
     const observer = new ResizeObserver(update);
     observer.observe(observed);
     return () => observer.disconnect();
-    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [value, fallbackMaxLength, multi]);
 
   const Truncated = multi ? FilterMultiValueTruncated : FilterValueSingleTruncatedValue;

@@ -6,7 +6,7 @@ import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {AgentHandoffFlow} from 'sentry/components/agentHandoff/useAgentHandoff';
+import {AgentHandoffFlow} from 'sentry/components/agentHandoff/types';
 import {ScmCollapsibleReveal} from 'sentry/components/onboarding/scm/scmCollapsibleReveal';
 import {t, tct} from 'sentry/locale';
 
@@ -34,13 +34,11 @@ interface AgenticSetupProps {
   handoffFlow?: AgentHandoffFlow;
   /** Tilts the setup card and adds the stacked brand border and shadows. */
   layered?: boolean;
-  onboardingCode?: string;
 }
 
 export function AgenticSetup({
   hasInitFailed,
   isAgentConnected,
-  onboardingCode,
   onCopyCommand,
   onRetry,
   onSelectSnippet,
@@ -106,11 +104,7 @@ export function AgenticSetup({
               exit={{opacity: 0}}
               transition={CARD_MORPH_TRANSITION}
             >
-              <AgenticProgress
-                run={run}
-                onboardingCode={onboardingCode}
-                issueLinkReferrer={issueLinkReferrer}
-              />
+              <AgenticProgress run={run} issueLinkReferrer={issueLinkReferrer} />
             </MotionContainer>
           ) : (
             <MotionContainer

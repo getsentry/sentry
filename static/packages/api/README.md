@@ -119,6 +119,20 @@ await sentry.getOrganizationIssueEvent({ path, query: { collapse: [] } }); // in
 
 Standalone operations, bound methods, and `narrowError_*` wrappers behave the same way. The operation catalog describes the API itself, so it does not list these defaults.
 
+### Query serialization
+
+The client writes the query string the way `query-string@7`'s `stringify` does with its default options. Keys are sorted, `null` becomes a bare key, `undefined` is omitted, and arrays repeat the key (`field=id&field=title`). Keys and values are percent-encoded, including `!'()*`. Objects, which query-string doesn't encode, are written in `deepObject` style (`filter[status]=open`):
+
+```ts
+import { createSentryClient } from "@sentry/api";
+
+const sentry = createSentryClient({ baseUrl: "https://sentry.example.com" });
+sentry.client.buildUrl({ url: "/organizations/", query: { sortBy: "date", query: null, cursor: undefined } });
+// https://sentry.example.com/api/0/organizations/?query&sortBy=date
+```
+
+Pass `querySerializer`, a function that takes the query object and returns the string after `?`, to write it some other way.
+
 ### Operation discovery
 
 `@sentry/api/operations` exports a readonly catalog for offline discovery, without importing the client, validators, or transport:
@@ -308,6 +322,22 @@ It runs once per request, including `prepareRequest`, after `requestValidator`
 and before request interceptors. A per-call `resolveBaseUrl` replaces the
 configured one. A throw rejects the request unchanged, before `fetch` is called.
 
+### Renamed projects
+
+A request that uses a project's old slug gets a 302 to the same URL with the new slug, and fetch follows it. `getSentryProjectRename(request, response)` reports such a rename, from the followed redirect or from the 302's `Location` when redirects are not followed. It returns `{ organization, previousSlug, slug, url }`, or `undefined` for any other response, and never redirects. Use it in a response interceptor to update stored slugs or links:
+
+```ts
+import { getSentryProjectRename } from "@sentry/api";
+
+sentry.client.interceptors.response.use((response, request) => {
+  const rename = getSentryProjectRename(request, response);
+  if (rename) console.info(`Project ${rename.previousSlug} is now ${rename.slug}`);
+  return response;
+});
+```
+
+Browsers hide the target of an unfollowed (`redirect: "manual"`) redirect, so there only a followed redirect is reported.
+
 ### Linking to Sentry
 
 To link to something in Sentry, use the URL the API returns instead of building one from the base URL and slugs. Those URLs account for how the deployment is set up, such as organization subdomains or a self-hosted URL prefix:
@@ -357,8 +387,8 @@ For endpoints with an existing query, serialized query keys replace all existing
 occurrences of those keys. Explicit `null` input keys also remove existing values,
 even with custom serializers; the serialized output can then add them back.
 Unrelated repeated parameters and their encoding are retained, as is custom
-query-serializer output. The default serializer omits `null` and `undefined`:
-`null` clears the original value, while `undefined` leaves it unchanged.
+query-serializer output. With the default serializer, `null` replaces the
+original values with a bare key, while `undefined` leaves them unchanged.
 Literal URL fragments are removed; encoded `%23` values are retained. These
 rules also apply to ordinary requests through the same URL builder.
 
@@ -426,7 +456,7 @@ Failures throw `ObjectstoreError`, an `ApiError` with the failing object or requ
 
 ## Runtime validation
 
-The root `@sentry/api` entry has no runtime dependencies. It provides the API client and pure TypeScript types without installing a validation library.
+The root `@sentry/api` entry imports no other package at runtime, and neither do `@sentry/api/browser`, `@sentry/api/operations`, and `@sentry/api/docs`. It provides the API client and pure TypeScript types without installing a validation library. Only `@sentry/api/client` imports packages, `p-limit` and `http-cache-semantics`. They are regular dependencies, so npm installs them with `@sentry/api` even when you never import `/client`.
 
 Valibot 1 runtime schemas are available through a separate optional entry point:
 

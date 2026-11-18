@@ -29,7 +29,7 @@ nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
 notebooks: 0004_add_notebook_org_auth_token_creator
 
-notifications: 0018_inbox_event_idempotency
+notifications: 0019_require_inbox_event_idempotency_key
 
 preprod: 0001_squashed_0030_add_images_errored_to_snapshot_comparison
 
@@ -43,13 +43,15 @@ seer_workflow_outputs: 0001_initial
 
 sentry: 1262_remove_gal_project_option_value_id_index
 
-service_accounts: 0007_add_service_account_token_replica
+service_accounts: 0008_add_owner_kind
 
 social_auth: 0001_squashed_0003_social_auth_json_field
 
 telemetry_classifiers: 0001_create_telemetry_classifier
 
 tempest: 0001_squashed_0003_use_encrypted_char_field
+
+timeseries_annotations: 0001_create_timeseries_annotation
 
 uptime: 0056_encrypt_uptime_subscription_headers_body
 

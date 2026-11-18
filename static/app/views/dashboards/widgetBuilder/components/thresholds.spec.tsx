@@ -353,7 +353,6 @@ describe('Thresholds', () => {
 
     function StateCapture() {
       const {state} = useWidgetBuilderContext();
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       capturedState = state;
       return null;
     }
@@ -391,7 +390,6 @@ describe('Thresholds', () => {
     // deviates from the URL param update (e.g. null vs undefined behavior)
     function StateCapture() {
       const {state} = useWidgetBuilderContext();
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       capturedState = state;
       return null;
     }
