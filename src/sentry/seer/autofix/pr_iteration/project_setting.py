@@ -15,7 +15,7 @@ from sentry.models.group import Group
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.seer.autofix.utils import is_seer_token_based_billing_onboarding_enabled
+from sentry.seer.autofix.utils import is_token_billed_seer_enabled
 
 PR_ITERATION_OPTION = "sentry:seer_pr_iteration"
 
@@ -25,7 +25,7 @@ def pr_iteration_default(organization: Organization) -> bool:
 
     Under token-based billing PR iteration is opt-in, so it defaults off.
     """
-    return not is_seer_token_based_billing_onboarding_enabled(organization)
+    return not is_token_billed_seer_enabled(organization)
 
 
 def get_pr_iteration_setting(project: Project) -> bool:

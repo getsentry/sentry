@@ -26,9 +26,7 @@ from sentry.viewer_context import Actor, ActorType, ViewerContext, get_viewer_co
 REVIEW_PATH = "sentry.seer.autofix.pr_iteration.listeners.review"
 TASK_PATH = "sentry.tasks.seer.pr_iteration"
 
-# Both flags behind ``is_seer_token_based_billing_onboarding_enabled``.
 TOKEN_BILLING_FEATURES = {
-    "organizations:seer-token-based-billing-onboarding": True,
     "organizations:token-billed-seer-enabled": True,
 }
 

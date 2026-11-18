@@ -547,7 +547,6 @@ class TestSeerRpcMethods(APITestCase):
 
     @with_feature(
         {
-            "organizations:seer-token-based-billing-onboarding": True,
             "organizations:token-billed-seer-enabled": True,
         }
     )

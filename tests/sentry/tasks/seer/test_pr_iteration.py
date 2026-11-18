@@ -96,9 +96,7 @@ CHECK_SUITE_SOURCE_PATH = "sentry.seer.autofix.pr_iteration.feedback_sources.che
 PAUSE_PATH = "sentry.seer.autofix.pr_iteration.pause"
 PR_STATE_PATH = "sentry.seer.autofix.pr_iteration.pr_state"
 
-# Both flags behind ``is_seer_token_based_billing_onboarding_enabled``.
 TOKEN_BILLING_FEATURES = {
-    "organizations:seer-token-based-billing-onboarding": True,
     "organizations:token-billed-seer-enabled": True,
 }
 

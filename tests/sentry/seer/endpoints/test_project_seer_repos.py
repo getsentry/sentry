@@ -108,7 +108,6 @@ class ProjectSeerRepoGetSeatBasedBillingTest(ProjectSeerRepoGetBaseTest):
 
 @with_feature(
     {
-        "organizations:seer-token-based-billing-onboarding": True,
         "organizations:token-billed-seer-enabled": True,
     }
 )
@@ -316,7 +315,6 @@ class ProjectSeerRepoPutSeatBasedBillingTest(ProjectSeerRepoPutBaseTest):
 
 @with_feature(
     {
-        "organizations:seer-token-based-billing-onboarding": True,
         "organizations:token-billed-seer-enabled": True,
     }
 )
@@ -421,7 +419,6 @@ class ProjectSeerRepoDeleteSeatBasedBillingTest(APITestCase):
 
 @with_feature(
     {
-        "organizations:seer-token-based-billing-onboarding": True,
         "organizations:token-billed-seer-enabled": True,
     }
 )
@@ -681,7 +678,6 @@ class ProjectSeerReposGetSeatBasedBillingTest(ProjectSeerReposGetBaseTest):
 
 @with_feature(
     {
-        "organizations:seer-token-based-billing-onboarding": True,
         "organizations:token-billed-seer-enabled": True,
     }
 )
@@ -888,7 +884,6 @@ class ProjectSeerReposPostSeatBasedBillingTest(ProjectSeerReposPostBaseTest):
 
 @with_feature(
     {
-        "organizations:seer-token-based-billing-onboarding": True,
         "organizations:token-billed-seer-enabled": True,
     }
 )
@@ -1025,7 +1020,6 @@ class ProjectSeerReposPutTest(APITestCase):
 
     @with_feature(
         {
-            "organizations:seer-token-based-billing-onboarding": True,
             "organizations:token-billed-seer-enabled": True,
         }
     )
@@ -1069,7 +1063,6 @@ class ProjectSeerReposPutTest(APITestCase):
 
     @with_feature(
         {
-            "organizations:seer-token-based-billing-onboarding": True,
             "organizations:token-billed-seer-enabled": True,
         }
     )

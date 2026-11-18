@@ -36,7 +36,6 @@ _INTEGRATION_SERVICE = (
 )
 
 _TOKEN_BILLING_FEATURES = {
-    "organizations:seer-token-based-billing-onboarding": True,
     "organizations:token-billed-seer-enabled": True,
 }
 

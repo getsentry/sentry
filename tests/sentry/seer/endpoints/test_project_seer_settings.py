@@ -421,7 +421,6 @@ class ProjectSeerSettingsEndpointSeatBasedBillingTest(ProjectSeerSettingsEndpoin
 
 @with_feature(
     {
-        "organizations:seer-token-based-billing-onboarding": True,
         "organizations:token-billed-seer-enabled": True,
     }
 )
@@ -1051,7 +1050,6 @@ class OrganizationSeerProjectSettingsEndpointSeatBasedBillingTest(
 
 @with_feature(
     {
-        "organizations:seer-token-based-billing-onboarding": True,
         "organizations:token-billed-seer-enabled": True,
     }
 )

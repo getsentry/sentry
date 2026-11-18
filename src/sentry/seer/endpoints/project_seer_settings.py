@@ -47,7 +47,7 @@ from sentry.seer.autofix.utils import (
     get_token_based_billing_repo_filter,
     get_valid_automated_run_stopping_points,
     is_seer_seat_or_token_billed_enabled,
-    is_seer_token_based_billing_onboarding_enabled,
+    is_token_billed_seer_enabled,
     update_seer_project_settings,
 )
 from sentry.seer.models.project_repository import SeerProjectRepository
@@ -106,7 +106,7 @@ def _get_project_settings(project: Project) -> SeerProjectSettings:
         pr_iteration=get_pr_iteration_setting(project),
         repos_count=(
             get_token_based_billing_project_repos(project.organization, [project.id]).count()
-            if is_seer_token_based_billing_onboarding_enabled(project.organization)
+            if is_token_billed_seer_enabled(project.organization)
             else SeerProjectRepository.objects.filter(
                 project_repository__project=project,
                 project_repository__repository__status=ObjectStatus.ACTIVE,
@@ -129,7 +129,7 @@ def _bulk_get_project_settings(
     }
 
     repo_counts: dict[int, int]
-    if is_seer_token_based_billing_onboarding_enabled(organization):
+    if is_token_billed_seer_enabled(organization):
         repo_counts = dict(
             ProjectRepository.objects.filter(
                 get_token_based_billing_repo_filter(organization, prefix="repository__"),
@@ -238,7 +238,7 @@ def _annotate_queryset(queryset: Any, organization: Organization) -> Any:
                 organization, prefix="projectrepository__repository__"
             ),
         )
-        if is_seer_token_based_billing_onboarding_enabled(organization)
+        if is_token_billed_seer_enabled(organization)
         else Count(
             "projectrepository__seerprojectrepository",
             filter=Q(projectrepository__repository__status=ObjectStatus.ACTIVE),

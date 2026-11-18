@@ -682,9 +682,7 @@ class IsExplicitRequestTest(TestCase):
         assert parsed[0].source.is_explicit_request is True
 
 
-# Both flags behind ``is_seer_token_based_billing_onboarding_enabled``.
 TOKEN_BILLING_FEATURES = {
-    "organizations:seer-token-based-billing-onboarding": True,
     "organizations:token-billed-seer-enabled": True,
 }
 

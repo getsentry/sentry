@@ -320,9 +320,8 @@ class TestScheduleAgenticTriage(TestCase):
         token_billed = self.create_organization()
         free_cohort = self.create_organization()
         free_cohort.update_option("agentic-triage-free-cohort", True)
-        onboarding_only = self.create_organization()
         no_seer = self.create_organization()
-        all_orgs = [seat_based, token_billed, free_cohort, onboarding_only, no_seer]
+        all_orgs = [seat_based, token_billed, free_cohort, no_seer]
 
         with (
             self.options({"seer.night_shift.enable_for_legacy_orgs": False}),
@@ -330,10 +329,6 @@ class TestScheduleAgenticTriage(TestCase):
                 {
                     "organizations:seer-night-shift": [org.slug for org in all_orgs],
                     "organizations:seat-based-seer-enabled": [seat_based.slug],
-                    "organizations:seer-token-based-billing-onboarding": [
-                        token_billed.slug,
-                        onboarding_only.slug,
-                    ],
                     "organizations:token-billed-seer-enabled": [token_billed.slug],
                 }
             ),
@@ -470,7 +465,6 @@ class TestScheduleAgenticTriage(TestCase):
             self.feature(
                 {
                     "organizations:seer-night-shift": [org.slug],
-                    "organizations:seer-token-based-billing-onboarding": [org.slug],
                     "organizations:token-billed-seer-enabled": [org.slug],
                 }
             ),
@@ -765,11 +759,23 @@ class TestGetEligibleProjects(AgenticTriageFixtures, TestCase):
         assert result[0].automation_tuning is None
 
     def test_token_billed_orgs_are_not_legacy(self) -> None:
-        org = self.create_organization()
+        org = self.create_organization(owner=self.user)
         project = self._make_eligible(self.create_project(organization=org))
         project.update_option(
             "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.LOW
         )
+        # Token-billed orgs use the project's linked repos.
+        integration = self.create_integration(
+            organization=org, provider="github", external_id="github:1"
+        )
+        linked_repo = self.create_repo(
+            project=project,
+            provider="integrations:github",
+            integration_id=integration.id,
+            external_id="1",
+            name="owner/linked",
+        )
+        self.create_project_repository(project=project, repository=linked_repo)
 
         with (
             patch(

@@ -431,7 +431,6 @@ class TestHasProjectConnectedReposSeatBasedBilling(HasProjectConnectedReposBaseT
 
 @with_feature(
     {
-        "organizations:seer-token-based-billing-onboarding": True,
         "organizations:token-billed-seer-enabled": True,
     }
 )
@@ -1323,7 +1322,6 @@ class TestReadPreferenceFromSentryDbSeatBasedBilling(ReadPreferenceFromSentryDbB
 
 @with_feature(
     {
-        "organizations:seer-token-based-billing-onboarding": True,
         "organizations:token-billed-seer-enabled": True,
     }
 )
@@ -1594,7 +1592,6 @@ class TestBulkReadPreferencesFromSentryDbSeatBasedBilling(BulkReadPreferencesFro
 
 @with_feature(
     {
-        "organizations:seer-token-based-billing-onboarding": True,
         "organizations:token-billed-seer-enabled": True,
     }
 )
@@ -1636,7 +1633,6 @@ class TestBulkReadPreferencesFromSentryDbTokenBasedBilling(BulkReadPreferencesFr
 
 
 TOKEN_BILLING_FEATURES = {
-    "organizations:seer-token-based-billing-onboarding": True,
     "organizations:token-billed-seer-enabled": True,
 }
 

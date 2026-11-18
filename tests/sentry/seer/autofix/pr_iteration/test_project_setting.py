@@ -6,9 +6,7 @@ from sentry.seer.autofix.pr_iteration.project_setting import (
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
 
-# Both flags behind ``is_seer_token_based_billing_onboarding_enabled``.
 TOKEN_BILLING_FEATURES = {
-    "organizations:seer-token-based-billing-onboarding": True,
     "organizations:token-billed-seer-enabled": True,
 }
 
