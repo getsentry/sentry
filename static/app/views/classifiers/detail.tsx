@@ -154,7 +154,7 @@ function ClassifierDetails({
         )}
         <DescriptionList.Term>{t('Date created')}</DescriptionList.Term>
         <DescriptionList.Details>
-          <DateTime date={classifier.dateAdded} dateOnly year />
+          <DateTime date={classifier.dateAdded} mode="date" year="always" />
         </DescriptionList.Details>
         <DescriptionList.Term>{t('Last modified')}</DescriptionList.Term>
         <DescriptionList.Details>
