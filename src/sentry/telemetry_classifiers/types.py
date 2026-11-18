@@ -35,6 +35,8 @@ class PrebuiltClassifier:
     description: str
     # Suggested result attribute name, without RESULT_ATTRIBUTE_PREFIX. Customers can change it.
     result_attribute: str
+    # Only set for binary classifiers.
+    binary_threshold: float | None = None
 
 
 @dataclass(frozen=True)
