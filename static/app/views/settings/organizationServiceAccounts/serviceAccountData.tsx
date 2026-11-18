@@ -21,7 +21,7 @@ export interface Scope {
   scope: string;
 }
 
-export type ScopeCategoryId = 'data' | 'ci' | 'project' | 'org' | 'people' | 'billing';
+export type ScopeCategoryId = 'data' | 'ci';
 
 export interface ScopeCategory {
   /** Whether the step 2 project selection limits this category. */
@@ -30,14 +30,13 @@ export interface ScopeCategory {
   label: string;
 }
 
-/** Ordered from what agents use day to day to the most sensitive. */
+/**
+ * Service accounts only get telemetry and CI access. Settings, people and billing are
+ * left out.
+ */
 export const SCOPE_CATEGORIES: ScopeCategory[] = [
   {id: 'data', label: 'Data & Triage', appliesTo: 'projects'},
   {id: 'ci', label: 'Releases & CI', appliesTo: 'projects'},
-  {id: 'project', label: 'Project Settings', appliesTo: 'projects'},
-  {id: 'org', label: 'Organization Settings', appliesTo: 'organization'},
-  {id: 'people', label: 'People & Access', appliesTo: 'organization'},
-  {id: 'billing', label: 'Billing', appliesTo: 'organization'},
 ];
 
 export interface ScopeResource {
@@ -134,115 +133,6 @@ export const SCOPE_RESOURCES: ScopeResource[] = [
     scopes: scopes('telemetry', ['read', 'write']),
   },
   {
-    id: 'project_v2',
-    category: 'project',
-    label: 'Projects',
-    help: 'Create and delete projects, and edit their name, platform, default environment, auto-resolve age, alert email subject, digests and grouping rules',
-    scopes: scopes('project_v2', ['read', 'create', 'write', 'delete']),
-  },
-  {
-    id: 'project.transfer',
-    category: 'project',
-    label: 'Project Transfer',
-    help: 'Move a project to another organization',
-    scopes: scopes('project.transfer', ['write'], {irreversible: ['write']}),
-    ownerless: true,
-  },
-  {
-    id: 'project.security',
-    category: 'project',
-    label: 'Project Security & Privacy',
-    help: 'Data scrubbing rules, sensitive and safe fields, IP address scrubbing, allowed domains, security token, SSL verification and symbol source credentials',
-    scopes: scopes('project.security', ['read', 'write'], {irreversible: ['write']}),
-    ownerless: true,
-  },
-  {
-    id: 'team',
-    category: 'people',
-    label: 'Teams',
-    help: 'Create, rename and delete teams, add and remove team members, and change which projects a team owns',
-    scopes: scopes('team', ['read', 'write', 'delete']),
-    ownerless: true,
-  },
-  {
-    id: 'team.role',
-    category: 'people',
-    label: 'Team Roles',
-    help: 'Change whether a team member is a Contributor or a Team Admin',
-    scopes: scopes('team.role', ['write']),
-    ownerless: true,
-  },
-  {
-    id: 'member_v2',
-    category: 'people',
-    label: 'Members',
-    help: 'View, invite and remove organization members',
-    scopes: scopes('member_v2', ['read', 'invite', 'write', 'delete']),
-    ownerless: true,
-  },
-  {
-    id: 'member.role',
-    category: 'people',
-    label: 'Member Roles',
-    help: 'Change the organization role of a member: Member, Admin, Manager, Owner or Billing',
-    scopes: scopes('member.role', ['write']),
-    ownerless: true,
-  },
-  {
-    id: 'org.general',
-    category: 'org',
-    label: 'Organization',
-    help: 'Organization name, avatar, Apdex threshold, alert thread settings and early adopter status, and deleting the organization',
-    scopes: scopes('org.general', ['read', 'write', 'delete']),
-    ownerless: true,
-  },
-  {
-    id: 'org.security',
-    category: 'org',
-    label: 'Organization Security & Privacy',
-    help: 'Superuser access, enhanced privacy, trusted relays, shared issues, JavaScript source fetching and organization-wide data scrubbing defaults',
-    // Loosening scrubbing can leak PII and tightening collection loses data, and neither
-    // can be undone, so editing is irreversible.
-    scopes: scopes('org.security', ['read', 'write'], {irreversible: ['write']}),
-    ownerless: true,
-  },
-  {
-    id: 'org.spend',
-    category: 'org',
-    label: 'Organization Spend',
-    help: 'Organization sample rate, sampling mode and crash report storage',
-    scopes: scopes('org.spend', ['read', 'write'], {costImpact: ['write']}),
-    ownerless: true,
-  },
-  {
-    id: 'billing',
-    category: 'billing',
-    label: 'Billing',
-    help: 'Plan, subscription changes, payment details, invoices and usage',
-    scopes: scopes('billing', ['read', 'write'], {costImpact: ['write']}),
-    ownerless: true,
-  },
-  {
-    id: 'billing.filter',
-    category: 'project',
-    label: 'Project Inbound Filters',
-    help: 'Filters that drop events before they are stored: browser extensions, localhost, legacy browsers, web crawlers, health checks, and custom filters by IP, release or error message. Turning one off increases usage.',
-    // Creating a filter drops matching events for good, so it is irreversible. Removing
-    // one is reversible but stores (and bills) more events.
-    scopes: scopes('billing.filter', ['read', 'create', 'delete'], {
-      irreversible: ['create'],
-      costImpact: ['delete'],
-    }),
-    ownerless: true,
-  },
-  {
-    id: 'integrations',
-    category: 'org',
-    label: 'Integrations',
-    help: 'Install, configure and uninstall integrations such as GitHub, Slack and Jira, and their code mappings',
-    scopes: scopes('integrations', ['read', 'write']),
-  },
-  {
     id: 'release',
     category: 'ci',
     label: 'Releases',
@@ -277,20 +167,6 @@ function scopeIds(filter: (scope: Scope) => boolean): string[] {
   return ALL_SCOPES.filter(filter).map(scope => scope.scope);
 }
 
-const SENSITIVE_RESOURCES = [
-  'member_v2:',
-  'team:',
-  'team.role:',
-  'member.role:',
-  'project.transfer:',
-  'org.general:',
-  'org.spend:',
-  'org.security:',
-  'project.security:',
-  'billing',
-  'integrations:',
-];
-
 const OWNER_ROLE_SCOPES = ALL_SCOPE_IDS;
 
 export const DEFAULT_BUNDLE_ID = 'default_agent';
@@ -300,7 +176,8 @@ export const BUNDLES: Bundle[] = [
   {
     id: 'read_only',
     name: 'Read Only',
-    description: "Read access to everything, including settings. Can't change anything.",
+    description:
+      "Reads issues, telemetry, monitors, dashboards and releases. Can't change anything.",
     dataAccess: null,
     scopes: scopeIds(scope => scope.action === 'read'),
   },
@@ -308,28 +185,24 @@ export const BUNDLES: Bundle[] = [
     id: 'ci',
     name: 'CI',
     description:
-      'Reads everything, and can manage repositories, source maps and integrations from a CI pipeline.',
+      'Reads everything, and can manage repositories and source maps from a CI pipeline.',
     dataAccess: 'all',
     scopes: scopeIds(
       scope =>
         scope.action === 'read' ||
-        ['repository:', 'sourcemap:', 'integrations:'].some(prefix =>
-          scope.scope.startsWith(prefix)
-        )
+        ['repository:', 'sourcemap:'].some(prefix => scope.scope.startsWith(prefix))
     ),
   },
   {
     id: 'default_agent',
     name: 'Default Agent',
-    description:
-      'Reads everything, and can edit or delete data this account created. Members, teams, org settings and integrations stay read-only.',
+    description: 'Reads everything, and can edit or delete data this account created.',
     dataAccess: 'own',
     scopes: scopeIds(
       scope =>
         scope.action === 'read' ||
-        // It only changes its own data, so things with no owner stay read-only too.
-        (!OWNERLESS_SCOPES.has(scope.scope) &&
-          !SENSITIVE_RESOURCES.some(prefix => scope.scope.startsWith(prefix)))
+        // It only changes its own data, so things with no owner stay read-only.
+        !OWNERLESS_SCOPES.has(scope.scope)
     ),
   },
   {
