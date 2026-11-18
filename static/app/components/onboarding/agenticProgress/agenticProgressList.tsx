@@ -314,21 +314,30 @@ export function AgenticProgressList({
   );
 }
 
-function AgenticProgressLastUpdate({updatedAt}: {updatedAt: string}) {
+function AgenticProgressLastUpdate({
+  action,
+  updatedAt,
+}: {
+  action: React.ReactNode;
+  updatedAt: string;
+}) {
   return (
-    <Flex align="center" gap="sm" padding="0 lg">
-      <StatusIndicator variant="accent" />
-      <Text size="sm" variant="muted">
-        {tct('Last update [time]', {
-          time: (
-            <TimeSince
-              date={updatedAt}
-              disabledAbsoluteTooltip
-              liveUpdateInterval="second"
-            />
-          ),
-        })}
-      </Text>
+    <Flex align="center" justify="between" gap="md" padding="0 lg">
+      <Flex align="center" gap="sm">
+        <StatusIndicator variant="accent" />
+        <Text size="sm" variant="muted">
+          {tct('Last update [time]', {
+            time: (
+              <TimeSince
+                date={updatedAt}
+                disabledAbsoluteTooltip
+                liveUpdateInterval="second"
+              />
+            ),
+          })}
+        </Text>
+      </Flex>
+      {action}
     </Flex>
   );
 }
@@ -380,9 +389,12 @@ function CreatedProjects({projectSlugs}: {projectSlugs: string[]}) {
 export function AgenticProgress({
   run,
   issueLinkReferrer = 'onboarding-agentic-first-issue',
+  metaAction,
 }: {
   run: AgenticProgressRun;
   issueLinkReferrer?: string;
+  /** Rendered at the end of the row under the progress list. */
+  metaAction?: React.ReactNode;
 }) {
   const createProjectStage = run.stages.find(stage => stage.stage === 'create_project');
   const projectSlugs = createProjectStage?.extra?.projectSlugs ?? [];
@@ -434,7 +446,9 @@ export function AgenticProgress({
           <FirstIssueCard issueId={firstIssueId} referrer={issueLinkReferrer} />
         </MotionContainer>
       ) : null}
-      {isComplete ? null : <AgenticProgressLastUpdate updatedAt={run.updatedAt} />}
+      {isComplete ? null : (
+        <AgenticProgressLastUpdate action={metaAction} updatedAt={run.updatedAt} />
+      )}
     </Stack>
   );
 }

@@ -1,6 +1,7 @@
 import {useEffect} from 'react';
 import {IconBot} from '@sentry/icons/bot';
 import {IconGraph} from '@sentry/icons/graph';
+import {IconNext} from '@sentry/icons/next';
 import {IconProfiling} from '@sentry/icons/profiling';
 import {IconSeer} from '@sentry/icons/seer';
 import {IconSpan} from '@sentry/icons/span';
@@ -10,7 +11,7 @@ import {IconWarning} from '@sentry/icons/warning';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
-import {Button} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -224,6 +225,18 @@ export function NewWelcomeUI(props: StepProps) {
                   onSelectSnippet={handleSelectSnippet}
                   onSetupInBrowser={handleComplete}
                   run={run}
+                  metaAction={
+                    isSetupComplete ? undefined : (
+                      <LinkButton
+                        variant="transparent"
+                        size="xs"
+                        icon={<IconNext size="xs" />}
+                        to={`/organizations/${organization.slug}/issues/`}
+                      >
+                        {t("I'm finished")}
+                      </LinkButton>
+                    )
+                  }
                 />
               </MotionContainer>
             ) : (

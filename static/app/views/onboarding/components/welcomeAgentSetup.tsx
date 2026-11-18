@@ -12,6 +12,7 @@ interface WelcomeAgentSetupProps {
   onSelectSnippet: (source: AgentSetupCopySource) => void;
   onSetupInBrowser: () => void;
   run: AgenticProgressRun | undefined;
+  metaAction?: React.ReactNode;
 }
 
 export function WelcomeAgentSetup({onSetupInBrowser, ...props}: WelcomeAgentSetupProps) {
