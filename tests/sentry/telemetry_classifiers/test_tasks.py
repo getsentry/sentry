@@ -63,6 +63,25 @@ class ScheduleClassifiersTest(TestCase):
 
         mock_select.assert_called_once_with(enabled.id)
 
+    @patch("sentry.telemetry_classifiers.tasks.metrics.incr")
+    @patch("sentry.telemetry_classifiers.tasks.select_entities.delay")
+    def test_skips_killswitched_organizations(
+        self, mock_select: MagicMock, mock_incr: MagicMock
+    ) -> None:
+        kept = self.create_telemetry_classifier(project=self.project)
+        killswitched_org = self.create_organization()
+        self.create_telemetry_classifier(project=self.create_project(organization=killswitched_org))
+
+        with override_options(
+            {"telemetry-classifiers.killswitch-organization-ids": [killswitched_org.id]}
+        ):
+            schedule_classifiers()
+
+        mock_select.assert_called_once_with(kept.id)
+        mock_incr.assert_any_call(
+            "telemetry_classifiers.schedule", amount=1, tags={"outcome": "org_killswitched"}
+        )
+
 
 @cell_silo_test
 class SelectEntitiesTest(ClassifierTaskTestCase):
@@ -153,6 +172,21 @@ class SelectEntitiesTest(ClassifierTaskTestCase):
 
         self.dataset.select.assert_not_called()
 
+    @patch("sentry.telemetry_classifiers.tasks.metrics.incr")
+    def test_skips_killswitched_organizations(self, mock_incr: MagicMock) -> None:
+        classifier = self.create_telemetry_classifier(project=self.project)
+
+        with override_options(
+            {"telemetry-classifiers.killswitch-organization-ids": [self.organization.id]}
+        ):
+            select_entities(classifier.id)
+
+        self.dataset.select.assert_not_called()
+        mock_incr.assert_any_call(
+            "telemetry_classifiers.select",
+            tags={"dataset": Dataset.CONVERSATION, "outcome": "org_killswitched"},
+        )
+
     def test_skips_invalid_filters(self) -> None:
         classifier = self.create_telemetry_classifier(project=self.project)
         self.dataset.select.side_effect = InvalidSearchQuery("invalid")
@@ -213,6 +247,22 @@ class ClassifyEntityTest(ClassifierTaskTestCase):
         classify_entity(classifier_id=classifier.id, entity_id="conversation")
 
         self.dataset.load.assert_not_called()
+
+    @patch("sentry.telemetry_classifiers.tasks.metrics.incr")
+    def test_skips_killswitched_organizations(self, mock_incr: MagicMock) -> None:
+        classifier = self.create_prebuilt_classifier()
+
+        with override_options(
+            {"telemetry-classifiers.killswitch-organization-ids": [self.organization.id]}
+        ):
+            classify_entity(classifier_id=classifier.id, entity_id="conversation")
+
+        self.dataset.load.assert_not_called()
+        self.classify.assert_not_called()
+        mock_incr.assert_any_call(
+            "telemetry_classifiers.classify",
+            tags={"dataset": Dataset.CONVERSATION, "outcome": "org_killswitched"},
+        )
 
     def test_skips_classifiers_that_cant_run(self) -> None:
         # Custom classifiers can't run yet.
