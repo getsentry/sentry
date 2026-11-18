@@ -1,4 +1,5 @@
 import {Fragment, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import {IconClock} from '@sentry/icons/clock';
 import {IconGraph} from '@sentry/icons/graph';
 
@@ -17,8 +18,10 @@ import {useFetchEventsTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTi
 import {getIntervalOptionsForPageFilter} from 'sentry/utils/useChartInterval';
 import {useClassifiedConversationCount} from 'sentry/views/classifiers/hooks/useClassifiedConversationCount';
 import {useClassifierPageFilters} from 'sentry/views/classifiers/hooks/useClassifierPageFilters';
+import {useClassifierResultFilter} from 'sentry/views/classifiers/hooks/useClassifierResultFilter';
 import type {TelemetryClassifier} from 'sentry/views/classifiers/types';
-import {getResultAttributeKey} from 'sentry/views/classifiers/utils';
+import {getClassifierResultQuery, getResultField} from 'sentry/views/classifiers/utils';
+import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
 import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
 import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
@@ -33,8 +36,8 @@ function ClassifiedConversationCount({count}: {count: number}) {
   return (
     <Text size="sm" variant="muted">
       {count === 1
-        ? t('1 conversation classified')
-        : t('%s conversations classified', formatAbbreviatedNumber(count))}
+        ? t('1 conversation')
+        : t('%s conversations', formatAbbreviatedNumber(count))}
     </Text>
   );
 }
@@ -43,8 +46,32 @@ interface ClassifierInstancesChartProps {
   classifier: TelemetryClassifier;
 }
 
+interface SeriesGroup {
+  alias: string;
+  timeSeries: TimeSeries[];
+  color?: string;
+}
+
+function createPlottable(
+  chartType: ChartType,
+  series: TimeSeries,
+  {alias, color}: SeriesGroup
+) {
+  const config = {alias, name: alias, color};
+  switch (chartType) {
+    case ChartType.LINE:
+      return new Line(series, config);
+    case ChartType.AREA:
+      return new Area(series, config);
+    default:
+      return new Bars(series, {...config, stack: 'results'});
+  }
+}
+
 export function ClassifierInstancesChart({classifier}: ClassifierInstancesChartProps) {
+  const theme = useTheme();
   const selection = useClassifierPageFilters(classifier);
+  const {isBinary, resultFilter} = useClassifierResultFilter(classifier);
   const {data: classifiedCount, isPending: isCountPending} =
     useClassifiedConversationCount(classifier);
   const [chartType, setChartType] = useState(ChartType.BAR);
@@ -60,21 +87,55 @@ export function ClassifierInstancesChart({classifier}: ClassifierInstancesChartP
     projects: [Number(classifier.projectId)],
   };
 
-  const {data, isPending, error} = useFetchEventsTimeSeries(
+  const isGrouped = isBinary && resultFilter === 'all';
+  const yAxis = `count(${getResultField(classifier.resultAttribute)})`;
+
+  const primaryResults = useFetchEventsTimeSeries(
     DiscoverDatasets.ENRICHMENT_ATTRIBUTES,
     {
-      yAxis: `count(tags[${getResultAttributeKey(classifier.resultAttribute)},number])`,
+      yAxis,
+      query: getClassifierResultQuery(classifier, isGrouped ? 'matches' : resultFilter),
       interval: chartInterval,
       pageFilters,
     },
     'api.classifiers.detail.instances-chart'
   );
+  const nonMatchResults = useFetchEventsTimeSeries(
+    DiscoverDatasets.ENRICHMENT_ATTRIBUTES,
+    {
+      yAxis,
+      query: getClassifierResultQuery(classifier, 'non-matches'),
+      interval: chartInterval,
+      pageFilters,
+      enabled: isGrouped,
+    },
+    'api.classifiers.detail.instances-chart'
+  );
 
-  const PlottableConstructor =
-    chartType === ChartType.LINE ? Line : chartType === ChartType.AREA ? Area : Bars;
-  const timeSeries = data?.timeSeries ?? [];
-  const hasInstances = timeSeries.some(series =>
-    series.values.some(item => !!item.value)
+  const isPending = primaryResults.isPending || (isGrouped && nonMatchResults.isPending);
+  const error = primaryResults.error ?? nonMatchResults.error;
+  const nonMatchColor = theme.tokens.dataviz.semantic.neutral;
+  const seriesGroups: SeriesGroup[] = isGrouped
+    ? [
+        {alias: t('Matches'), timeSeries: primaryResults.data?.timeSeries ?? []},
+        {
+          alias: t('Non-matches'),
+          timeSeries: nonMatchResults.data?.timeSeries ?? [],
+          color: nonMatchColor,
+        },
+      ]
+    : [
+        {
+          alias: TITLE,
+          timeSeries: primaryResults.data?.timeSeries ?? [],
+          color: resultFilter === 'non-matches' ? nonMatchColor : undefined,
+        },
+      ];
+  const plottables = seriesGroups.flatMap(group =>
+    group.timeSeries.map(series => createPlottable(chartType, series, group))
+  );
+  const hasInstances = seriesGroups.some(({timeSeries}) =>
+    timeSeries.some(series => series.values.some(item => !!item.value))
   );
   const chartIcon =
     chartType === ChartType.LINE ? 'line' : chartType === ChartType.AREA ? 'area' : 'bar';
@@ -93,10 +154,8 @@ export function ClassifierInstancesChart({classifier}: ClassifierInstancesChartP
       <TimeSeriesWidgetVisualization
         pageFilters={pageFilters}
         disableZoom
-        showLegend="never"
-        plottables={timeSeries.map(
-          series => new PlottableConstructor(series, {alias: TITLE})
-        )}
+        showLegend={isGrouped ? 'always' : 'never'}
+        plottables={plottables}
       />
     );
   } else {
