@@ -337,6 +337,58 @@ describe('groupDetails', () => {
     expect(router.historyAction).toBe('REPLACE');
   });
 
+  it('renders the page tab from the query', async () => {
+    jest
+      .spyOn(GroupDetailsLayoutModule, 'GroupDetailsLayout')
+      .mockImplementation(({children}) => <div>{children}</div>);
+    const userReportsMock = MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/user-reports/`,
+      body: [],
+    });
+
+    createWrapper({
+      ...initialRouterConfig,
+      location: LocationFixture({
+        ...initialRouterConfig.location,
+        query: {project: group.project.id, tab: 'feedback'},
+      }),
+    });
+
+    await waitFor(() => expect(userReportsMock).toHaveBeenCalled());
+  });
+
+  it('opens a drawer from the query over the page tab and keeps the tab on close', async () => {
+    jest
+      .spyOn(GroupDetailsLayoutModule, 'GroupDetailsLayout')
+      .mockImplementation(({children}) => <div>{children}</div>);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${defaultInit.organization.slug}/issues/${group.id}/user-reports/`,
+      body: [],
+    });
+
+    const {router} = createWrapper({
+      ...initialRouterConfig,
+      location: LocationFixture({
+        ...initialRouterConfig.location,
+        query: {
+          project: group.project.id,
+          tab: 'feedback',
+          drawer: 'activity',
+          filter: 'comments',
+        },
+      }),
+    });
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Close Drawer'}));
+
+    await waitFor(() =>
+      expect(router.location.query).toEqual({project: group.project.id, tab: 'feedback'})
+    );
+    expect(router.location.pathname).toBe(
+      `/organizations/${defaultInit.organization.slug}/issues/${group.id}/`
+    );
+  });
+
   it('renders', async () => {
     act(() => ProjectsStore.reset());
     createWrapper();

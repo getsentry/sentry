@@ -6,23 +6,25 @@ import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {MergedIssuesDrawer} from 'sentry/views/issueDetails/groupMerged/mergedIssuesDrawer';
+import {IssueDetailsDrawer} from 'sentry/views/issueDetails/issueDetailsQueryParams';
+
+import {useIssueDetailsDrawerOptions} from './useIssueDetailsDrawerOptions';
 
 export function useMergedIssuesDrawer({
-  getReturnPath,
   group,
   project,
 }: {
-  getReturnPath: () => string;
   group: Group;
   project: Project;
 }) {
   const {openDrawer} = useDrawer();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const {onClose, shouldCloseOnLocationChange} = useIssueDetailsDrawerOptions({
+    drawer: IssueDetailsDrawer.MERGED,
+    groupId: group.id,
+    history: 'replace',
+  });
   const organization = useOrganization();
 
   const openMergedIssuesDrawer = useCallback(() => {
@@ -35,21 +37,10 @@ export function useMergedIssuesDrawer({
       ariaLabel: t('Merged Issues'),
       drawerKey: 'merged-issues-drawer',
       shouldCloseOnInteractOutside: () => false,
-      onClose: () => {
-        // Remove drawer state from URL
-        navigate(
-          {
-            pathname: getReturnPath(),
-            query: {
-              ...location.query,
-              mergedCursor: undefined,
-            },
-          },
-          {replace: true, preventScrollReset: true}
-        );
-      },
+      onClose,
+      shouldCloseOnLocationChange,
     });
-  }, [openDrawer, group, project, getReturnPath, navigate, location.query, organization]);
+  }, [openDrawer, group, project, onClose, shouldCloseOnLocationChange, organization]);
 
   return {openMergedIssuesDrawer};
 }

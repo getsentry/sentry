@@ -10,9 +10,9 @@ import {t, tct} from 'sentry/locale';
 import {getOverride} from 'sentry/overrideRegistry';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 
 import {useGroupId} from './groupIdContext';
+import {useIssueDetailsParams} from './useGroupDetailsRoute';
 import {RESERVED_EVENT_IDS} from './useGroupEvent';
 import {useDefaultIssueEvent} from './utils';
 
@@ -21,9 +21,7 @@ export function EventMissingBanner() {
   const organization = useOrganization();
   const defaultEventId = useDefaultIssueEvent();
   const groupId = useGroupId();
-  const {eventId: eventIdParam} = useParams<{
-    eventId: string;
-  }>();
+  const {eventId: eventIdParam} = useIssueDetailsParams();
   const eventId = eventIdParam ?? defaultEventId;
 
   const useGetMaxRetentionDays =

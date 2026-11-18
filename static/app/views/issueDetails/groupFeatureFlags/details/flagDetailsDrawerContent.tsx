@@ -25,7 +25,6 @@ import {getPaginationProps} from 'sentry/utils/pagination';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import {
   DISTRIBUTIONS_TYPE_QUERY_KEY,
   DrawerTab,
@@ -35,7 +34,10 @@ import {
   useIssueDetailsDrawerParams,
 } from 'sentry/views/issueDetails/issueDetailsQueryParams';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
-import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {
+  useGroupDetailsRoute,
+  useIssueDetailsParams,
+} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 const COLUMNS: TableColumnConfig[] = [
   {key: 'provider', width: 'min-content'},
@@ -50,7 +52,7 @@ interface Props {
 
 export function FlagDetailsDrawerContent({group}: Props) {
   const organization = useOrganization();
-  const {tagKey} = useParams<{tagKey: string}>();
+  const {tagKey} = useIssueDetailsParams();
   const {baseUrl} = useGroupDetailsRoute();
   const location = useLocation();
   const [{flagDrawerCursor}, setDrawerParams] = useIssueDetailsDrawerParams(

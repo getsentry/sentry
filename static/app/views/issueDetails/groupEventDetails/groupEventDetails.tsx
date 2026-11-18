@@ -15,14 +15,15 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import {usePrevious} from 'sentry/utils/usePrevious';
 import {useProjectFromSlug} from 'sentry/utils/useProjectFromSlug';
 import {SourceMapIssueDetails} from 'sentry/views/issueDetails/configurationIssues/sourceMapIssues/sourceMapIssueDetails';
 import {EventDetails} from 'sentry/views/issueDetails/eventDetails';
 import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
+import {makeIssueDetailsLocation} from 'sentry/views/issueDetails/issueDetailsQueryParams';
 import {ReprocessingProgress} from 'sentry/views/issueDetails/reprocessingProgress';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
+import {useIssueDetailsParams} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 import {
   getEventEnvironment,
@@ -38,7 +39,7 @@ function GroupEventDetails() {
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
-  const {eventId} = useParams<{eventId?: string}>();
+  const {drawer, eventId, tagKey} = useIssueDetailsParams();
   const groupId = useGroupId();
   const environments = useEnvironmentsFromUrl();
 
@@ -91,10 +92,14 @@ function GroupEventDetails() {
 
       if (shouldRedirect) {
         navigate(
-          {
-            pathname: `/organizations/${organization.slug}/issues/${groupId}/`,
+          makeIssueDetailsLocation({
+            organization,
+            groupId,
+            drawer,
+            // The tag key may still come from a path-based route.
+            drawerParams: tagKey ? {tagKey} : undefined,
             query: location.query,
-          },
+          }),
           {replace: true}
         );
         return;
@@ -104,8 +109,10 @@ function GroupEventDetails() {
     prevEnvironment,
     environments,
     location.query,
-    organization.slug,
+    organization,
+    drawer,
     eventId,
+    tagKey,
     groupId,
     prevEvent,
     navigate,

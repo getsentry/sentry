@@ -48,7 +48,6 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useDisableRouteAnalytics} from 'sentry/utils/routeAnalytics/useDisableRouteAnalytics';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
@@ -73,7 +72,11 @@ import {GroupDataContextProvider} from './groupDataContext';
 import {GroupDetailsLayout} from './groupDetailsLayout';
 import {GroupIdProvider, useGroupId} from './groupIdContext';
 import {IssueDetailsPageTabContent} from './issueDetailsPageTabContent';
-import {isIssueDetailsPageTab} from './issueDetailsQueryParams';
+import {
+  IssueDetailsDrawer,
+  makeIssueDetailsLocation,
+  type IssueDetailsPageTab,
+} from './issueDetailsQueryParams';
 import {
   ISSUE_DETAILS_TOUR_GUIDE_KEY,
   IssueDetailsTourModal,
@@ -84,9 +87,12 @@ import {
 import {Tab} from './types';
 import {useEngagedViewTracking} from './useEngagedViewTracking';
 import {groupApiOptions, useGroup} from './useGroup';
-import {useGroupDetailsRoute} from './useGroupDetailsRoute';
+import {
+  useGroupDetailsRoute,
+  useIssueDetailsParams,
+  type IssueDetailsParams,
+} from './useGroupDetailsRoute';
 import {RESERVED_EVENT_IDS, useGroupEvent} from './useGroupEvent';
-import {useIssueDrawerReturnPath} from './useIssueDrawerReturnPath';
 import {
   getGroupReprocessingStatus,
   markEventSeen,
@@ -152,10 +158,11 @@ function getFetchDataRequestErrorType(status?: number | null): Error {
 }
 
 function getReprocessingNewRoute({
-  orgSlug,
+  organization,
   group,
   currentTab,
-  baseUrl,
+  drawer,
+  eventId,
   location,
   currentGroupId,
 }: {
@@ -165,49 +172,58 @@ function getReprocessingNewRoute({
   currentGroupId: string;
   group: Group;
   location: ReturnType<typeof useLocation>;
-  orgSlug: string;
-} & ReturnType<typeof useGroupDetailsRoute>) {
+  organization: Organization;
+} & Pick<IssueDetailsParams, 'currentTab' | 'drawer' | 'eventId'>) {
   const {id: nextGroupId} = group;
 
   const reprocessingStatus = getGroupReprocessingStatus(group);
 
   if (currentGroupId !== nextGroupId) {
-    // Redirects to the Activities tab
+    // Opens the activity drawer
     if (
       reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT &&
-      currentTab !== Tab.ACTIVITY
+      drawer !== IssueDetailsDrawer.ACTIVITY
     ) {
-      return {
-        pathname: `${baseUrl}${Tab.ACTIVITY}/`,
+      return makeIssueDetailsLocation({
+        organization,
+        groupId: currentGroupId,
+        eventId,
+        drawer: IssueDetailsDrawer.ACTIVITY,
         query: {...location.query, groupId: nextGroupId},
-      };
+      });
     }
 
-    return normalizeUrl({
-      pathname: `/organizations/${orgSlug}/issues/${nextGroupId}/`,
+    return makeIssueDetailsLocation({
+      organization,
+      groupId: nextGroupId,
       query: location.query,
     });
   }
 
   if (
     reprocessingStatus === ReprocessingStatus.REPROCESSING &&
-    currentTab !== Tab.DETAILS
+    (currentTab !== Tab.DETAILS || drawer)
   ) {
-    return {
-      pathname: baseUrl,
+    return makeIssueDetailsLocation({
+      organization,
+      groupId: currentGroupId,
+      eventId,
       query: location.query,
-    };
+    });
   }
 
   if (
     reprocessingStatus === ReprocessingStatus.REPROCESSED_AND_HASNT_EVENT &&
-    currentTab !== Tab.ACTIVITY &&
+    drawer !== IssueDetailsDrawer.ACTIVITY &&
     currentTab !== Tab.USER_FEEDBACK
   ) {
-    return {
-      pathname: `${baseUrl}${Tab.ACTIVITY}/`,
+    return makeIssueDetailsLocation({
+      organization,
+      groupId: currentGroupId,
+      eventId,
+      drawer: IssueDetailsDrawer.ACTIVITY,
       query: location.query,
-    };
+    });
   }
 
   return;
@@ -264,7 +280,6 @@ export function useFetchGroupDetails(): FetchGroupDetailsState {
   const api = useApi();
   const organization = useOrganization();
   const location = useLocation();
-  const {eventId} = useParams<{eventId?: string}>();
   const groupId = useGroupId();
   const navigate = useNavigate();
   const {projects} = useProjects();
@@ -272,7 +287,7 @@ export function useFetchGroupDetails(): FetchGroupDetailsState {
   const [allProjectChanged, setAllProjectChanged] = useState(false);
   const [, setAllProjectsQuery] = useQueryStates(allProjectsQueryParsers);
 
-  const {currentTab, baseUrl} = useGroupDetailsRoute();
+  const {currentTab, drawer, eventId} = useGroupDetailsRoute();
   const environments = useEnvironmentsFromUrl();
 
   const {
@@ -358,17 +373,28 @@ export function useFetchGroupDetails(): FetchGroupDetailsState {
       const reprocessingNewRoute = getReprocessingNewRoute({
         group,
         currentTab,
+        drawer,
+        eventId,
         location,
-        baseUrl,
         currentGroupId: groupId,
-        orgSlug: organization.slug,
+        organization,
       });
 
       if (reprocessingNewRoute) {
         navigate(reprocessingNewRoute, {replace: true});
       }
     }
-  }, [group, event, location, currentTab, baseUrl, navigate, organization.slug, groupId]);
+  }, [
+    group,
+    event,
+    location,
+    currentTab,
+    drawer,
+    eventId,
+    navigate,
+    organization,
+    groupId,
+  ]);
 
   useEffect(() => {
     const matchingProjectSlug = group?.project?.slug;
@@ -472,15 +498,15 @@ export function useFetchGroupDetails(): FetchGroupDetailsState {
 }
 
 function useLoadedEventType() {
-  const params = useParams<{eventId?: string}>();
+  const {eventId} = useIssueDetailsParams();
   const defaultIssueEvent = useDefaultIssueEvent();
 
-  switch (params.eventId) {
+  switch (eventId) {
     case undefined:
       return defaultIssueEvent;
     case 'latest':
     case 'oldest':
-      return params.eventId;
+      return eventId;
     default:
       return 'event_id';
   }
@@ -491,14 +517,16 @@ function useTrackView({
   event,
   project,
   tab,
+  drawer,
   organization,
   hasAutofixQuota,
 }: {
+  drawer: IssueDetailsDrawer | null;
   event: Event | null;
   group: Group | null;
   hasAutofixQuota: boolean;
   organization: Organization;
-  tab: Tab;
+  tab: IssueDetailsPageTab;
   project?: Project;
 }) {
   const location = useLocation();
@@ -513,6 +541,7 @@ function useTrackView({
     ...getAnalyticsDataForEvent(event),
     ...getAnalyicsDataForProject(project),
     tab,
+    drawer: drawer ?? undefined,
     query: query ?? undefined,
     // Alert properties track if the user came from email/slack alerts
     alert_date: alert_date === null ? undefined : getUtcDateString(Number(alert_date)),
@@ -631,28 +660,18 @@ function GroupDetailsContentInner({group, project, event}: GroupDetailsContentPr
   const includeFlagDistributions = featureFlagDrawerPlatforms.includes(
     project.platform ?? 'other'
   );
-  const {currentTab, baseUrl} = useGroupDetailsRoute();
-  const location = useLocation();
-  const getReturnPath = useIssueDrawerReturnPath({
-    baseUrl,
-    currentTab,
-    pathname: location.pathname,
-  });
   const {openDistributionsDrawer} = useGroupDistributionsDrawer({
-    getReturnPath,
     group,
     includeFeatureFlagsTab: includeFlagDistributions,
   });
-  const {openSimilarIssuesDrawer} = useSimilarIssuesDrawer({
-    getReturnPath,
-    group,
-    project,
-  });
-  const {openMergedIssuesDrawer} = useMergedIssuesDrawer({getReturnPath, group, project});
-  const {openIssueActivityDrawer} = useIssueActivityDrawer({getReturnPath, group});
+  const {openSimilarIssuesDrawer} = useSimilarIssuesDrawer({group, project});
+  const {openMergedIssuesDrawer} = useMergedIssuesDrawer({group, project});
+  const {openIssueActivityDrawer} = useIssueActivityDrawer({group});
   const {openSeerDrawer} = useOpenSeerDrawer({group, project});
   const {isAnyDrawerOpen} = useDrawer();
 
+  const {currentTab, drawer, eventId, tagKey} = useGroupDetailsRoute();
+  const location = useLocation();
   const autofixPage = hasAutofixPage(organization);
   // nuqs flips this as soon as the drawer closes, before the URL catches up, so
   // closing the drawer doesn't reopen it.
@@ -678,18 +697,18 @@ function GroupDetailsContentInner({group, project, event}: GroupDetailsContentPr
       return;
     }
 
-    if (currentTab === Tab.DISTRIBUTIONS) {
+    if (drawer === IssueDetailsDrawer.DISTRIBUTIONS) {
       // Tag and feature flag distributions.
       openDistributionsDrawer();
-    } else if (currentTab === Tab.SIMILAR_ISSUES) {
+    } else if (drawer === IssueDetailsDrawer.SIMILAR_ISSUES) {
       openSimilarIssuesDrawer();
-    } else if (currentTab === Tab.MERGED) {
+    } else if (drawer === IssueDetailsDrawer.MERGED) {
       openMergedIssuesDrawer();
-    } else if (currentTab === Tab.ACTIVITY) {
+    } else if (drawer === IssueDetailsDrawer.ACTIVITY) {
       openIssueActivityDrawer();
     }
   }, [
-    currentTab,
+    drawer,
     isAnyDrawerOpen,
     autofixPage,
     seerDrawer,
@@ -705,19 +724,15 @@ function GroupDetailsContentInner({group, project, event}: GroupDetailsContentPr
     event,
     project,
     tab: currentTab,
+    drawer,
     organization,
     hasAutofixQuota,
   });
 
   useEngagedViewTracking({group, project});
 
-  const {eventId: eventIdParam, tagKey} = useParams<{
-    eventId?: string;
-    tagKey?: string;
-  }>();
-
   let issueView: IssueView = 'issue-overview';
-  if (eventIdParam && !RESERVED_EVENT_IDS.has(eventIdParam)) {
+  if (eventId && !RESERVED_EVENT_IDS.has(eventId)) {
     issueView = 'specific-event';
   } else if (currentTab === Tab.EVENTS) {
     issueView = 'events-list';
@@ -727,7 +742,7 @@ function GroupDetailsContentInner({group, project, event}: GroupDetailsContentPr
     issueView = 'attachments';
   } else if (currentTab === Tab.AUTOFIX) {
     issueView = 'autofix';
-  } else if (currentTab === Tab.DISTRIBUTIONS) {
+  } else if (drawer === IssueDetailsDrawer.DISTRIBUTIONS) {
     issueView = tagKey ? 'distributions-tag-detail' : 'distributions';
   }
 
@@ -770,10 +785,7 @@ function GroupDetailsContentInner({group, project, event}: GroupDetailsContentPr
 
   return (
     <GroupDetailsLayout group={group} event={event ?? undefined} project={project}>
-      {/* Drawers open on top of the details tab */}
-      <IssueDetailsPageTabContent
-        tab={isIssueDetailsPageTab(currentTab) ? currentTab : Tab.DETAILS}
-      />
+      <IssueDetailsPageTabContent tab={currentTab} />
     </GroupDetailsLayout>
   );
 }

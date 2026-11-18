@@ -8,9 +8,11 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
-import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+import {
+  useGroupDetailsRoute,
+  useIssueDetailsParams,
+} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 import {DISTRIBUTIONS_TYPE_QUERY_KEY, DrawerTab} from './types';
 import {useTagExportMenuItems} from './useTagExportMenuItems';
@@ -24,7 +26,7 @@ interface Props {
 export function GroupDistributionCrumbs({group, project, tab}: Props) {
   const location = useLocation();
   const organization = useOrganization();
-  const {tagKey} = useParams<{tagKey: string}>();
+  const {tagKey} = useIssueDetailsParams();
   const {baseUrl} = useGroupDetailsRoute();
   const exportItems = useTagExportMenuItems({
     group,

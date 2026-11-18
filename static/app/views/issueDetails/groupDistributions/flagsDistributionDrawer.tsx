@@ -8,9 +8,9 @@ import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useParams} from 'sentry/utils/useParams';
 import {FlagDetailsDrawerContent} from 'sentry/views/issueDetails/groupFeatureFlags/details/flagDetailsDrawerContent';
 import {FlagDrawerContent} from 'sentry/views/issueDetails/groupFeatureFlags/flagDrawerContent';
+import {useIssueDetailsParams} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
 
 import {GroupDistributionsSearchInput} from './groupDistributionsSearchInput';
@@ -25,7 +25,7 @@ interface Props {
 
 export function FlagsDistributionDrawer({group, organization, setTab}: Props) {
   const environments = useEnvironmentsFromUrl();
-  const {tagKey} = useParams<{tagKey: string}>();
+  const {tagKey} = useIssueDetailsParams();
 
   const [search, setSearch] = useState('');
   const [orderBy, setOrderBy] = useState(OrderBy.A_TO_Z);

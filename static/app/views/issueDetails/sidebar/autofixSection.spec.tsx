@@ -1,4 +1,3 @@
-import {useMatches} from 'react-router';
 import {AutofixSetupFixture} from 'sentry-fixture/autofixSetupFixture';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -11,7 +10,6 @@ import type {SeerOutOfCreditsCtaProps} from 'sentry/components/seer/outOfCredits
 import {registerOverride} from 'sentry/overrideRegistry';
 import {IssueCategory, IssueType, type Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {
   LLMContextProvider,
   useLLMContext,
@@ -37,26 +35,12 @@ jest.mock('sentry/views/seerExplorer/seerExplorerChatStateContext', () => ({
 }));
 
 jest.mock('sentry/utils/cells');
-jest.mock('react-router', () => ({
-  ...jest.requireActual('react-router'),
-  useMatches: jest.fn(),
-}));
 
-const mockUseMatches = jest.mocked(useMatches);
-
-/** The route match shape `useCurrentTab` reads, for whichever tab is on screen. */
-function matchesForTab(tab: Tab) {
-  return [
-    {
-      id: '0',
-      pathname: '/organizations/org-slug/issues/1/',
-      params: {orgId: 'org-slug', groupId: '1'},
-      data: null,
-      loaderData: null,
-      handle: {path: TabPaths[tab]},
-    },
-  ];
-}
+/** Renders on the issue details autofix tab. */
+const autofixTabRouterConfig = {
+  location: {pathname: '/organizations/org-slug/issues/1/', query: {tab: 'autofix'}},
+  route: '/organizations/:orgId/issues/:groupId/',
+};
 
 describe('AutofixSection', () => {
   const mockProject = DetailedProjectFixture();
@@ -69,7 +53,6 @@ describe('AutofixSection', () => {
   beforeEach(() => {
     mockGroup = GroupFixture();
     MockApiClient.clearMockResponses();
-    mockUseMatches.mockImplementation(() => matchesForTab(Tab.DETAILS));
 
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
@@ -216,7 +199,6 @@ describe('AutofixSection', () => {
   });
 
   it('starts collapsed on the autofix tab even when saved as open', async () => {
-    mockUseMatches.mockImplementation(() => matchesForTab(Tab.AUTOFIX));
     localStorage.setItem('issue-details-fold-section-collapse:seer', 'false');
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
@@ -225,6 +207,7 @@ describe('AutofixSection', () => {
 
     render(<AutofixSection group={mockGroup} project={mockProject} />, {
       organization,
+      initialRouterConfig: autofixTabRouterConfig,
     });
 
     expect(await screen.findByRole('button', {name: 'View Section'})).toHaveAttribute(
@@ -238,7 +221,6 @@ describe('AutofixSection', () => {
   });
 
   it('drops the open button on the autofix tab but keeps the previews', async () => {
-    mockUseMatches.mockImplementation(() => matchesForTab(Tab.AUTOFIX));
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
       body: {
@@ -274,6 +256,7 @@ describe('AutofixSection', () => {
 
     render(<AutofixSection group={mockGroup} project={mockProject} />, {
       organization,
+      initialRouterConfig: autofixTabRouterConfig,
     });
 
     await userEvent.click(await screen.findByRole('button', {name: 'View Section'}));
@@ -335,7 +318,6 @@ describe('AutofixSection', () => {
     });
 
     it('collapses an expanded autofix-tab section when the run opens in the panel', async () => {
-      mockUseMatches.mockImplementation(() => matchesForTab(Tab.AUTOFIX));
       MockApiClient.addMockResponse({
         url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
         body: singleRunBody,
@@ -343,7 +325,7 @@ describe('AutofixSection', () => {
 
       const {rerender} = render(
         <AutofixSection group={mockGroup} project={mockProject} />,
-        {organization}
+        {organization, initialRouterConfig: autofixTabRouterConfig}
       );
 
       await userEvent.click(await screen.findByRole('button', {name: 'View Section'}));

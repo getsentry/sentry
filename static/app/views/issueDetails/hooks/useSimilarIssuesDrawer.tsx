@@ -6,23 +6,25 @@ import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SimilarIssuesDrawer} from 'sentry/views/issueDetails/groupSimilarIssues/similarIssuesDrawer';
+import {IssueDetailsDrawer} from 'sentry/views/issueDetails/issueDetailsQueryParams';
+
+import {useIssueDetailsDrawerOptions} from './useIssueDetailsDrawerOptions';
 
 export function useSimilarIssuesDrawer({
-  getReturnPath,
   group,
   project,
 }: {
-  getReturnPath: () => string;
   group: Group;
   project: Project;
 }) {
   const {openDrawer} = useDrawer();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const {onClose, shouldCloseOnLocationChange} = useIssueDetailsDrawerOptions({
+    drawer: IssueDetailsDrawer.SIMILAR_ISSUES,
+    groupId: group.id,
+    history: 'replace',
+  });
   const organization = useOrganization();
 
   const openSimilarIssuesDrawer = useCallback(() => {
@@ -35,18 +37,10 @@ export function useSimilarIssuesDrawer({
       drawerKey: 'similar-issues-drawer',
       ariaLabel: t('Similar Issues'),
       shouldCloseOnInteractOutside: () => false,
-      onClose: () => {
-        // Remove drawer state from URL
-        navigate(
-          {
-            pathname: getReturnPath(),
-            query: location.query,
-          },
-          {replace: true, preventScrollReset: true}
-        );
-      },
+      onClose,
+      shouldCloseOnLocationChange,
     });
-  }, [openDrawer, group, project, getReturnPath, navigate, location.query, organization]);
+  }, [openDrawer, group, project, onClose, shouldCloseOnLocationChange, organization]);
 
   return {openSimilarIssuesDrawer};
 }

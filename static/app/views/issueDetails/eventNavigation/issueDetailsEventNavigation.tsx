@@ -14,7 +14,7 @@ import {defined} from 'sentry/utils/defined';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
+import {useIssueDetailsParams} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
 import {useDefaultIssueEvent} from 'sentry/views/issueDetails/utils';
 
@@ -31,7 +31,7 @@ export function IssueDetailsEventNavigation({
 }: IssueDetailsEventNavigationProps) {
   const organization = useOrganization();
   const location = useLocation();
-  const params = useParams<{eventId?: string}>();
+  const {eventId: currentEventId} = useIssueDetailsParams();
   const theme = useTheme();
   const defaultIssueEvent = useDefaultIssueEvent();
   const [shouldPreload, setShouldPreload] = useState({next: false, previous: false});
@@ -82,7 +82,7 @@ export function IssueDetailsEventNavigation({
       tooltip: t('Recent event with richer content'),
     },
   ] as const;
-  const currentEventKey = params.eventId ?? defaultIssueEvent;
+  const currentEventKey = currentEventId ?? defaultIssueEvent;
 
   const onTabChange = (tabKey: string) => {
     const preset = eventNavPresets.find(({key}) => key === tabKey);

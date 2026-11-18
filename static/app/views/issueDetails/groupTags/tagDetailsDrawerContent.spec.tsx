@@ -64,7 +64,7 @@ describe('TagDetailsDrawerContent', () => {
       url: '/organizations/org-slug/issues/1/tags/user/values/',
       body: TagValuesFixture(),
     });
-    render(<TagDetailsDrawerContent group={group} />, {
+    render(<TagDetailsDrawerContent group={group} tagKey="user" />, {
       initialRouterConfig: makeInitialRouterConfig('user'),
     });
 
@@ -104,7 +104,7 @@ describe('TagDetailsDrawerContent', () => {
       headers: {Link: pageLinks},
       match: [MockApiClient.matchQuery({cursor: '0:100:0'})],
     });
-    const {router} = render(<TagDetailsDrawerContent group={group} />, {
+    const {router} = render(<TagDetailsDrawerContent group={group} tagKey="user" />, {
       initialRouterConfig: makeInitialRouterConfig('user'),
       additionalWrapper: ProductionNuqsAdapter,
     });
@@ -133,7 +133,7 @@ describe('TagDetailsDrawerContent', () => {
       body: TagValuesFixture(),
       match: [MockApiClient.matchQuery({sort: 'date'})],
     });
-    const {router} = render(<TagDetailsDrawerContent group={group} />, {
+    const {router} = render(<TagDetailsDrawerContent group={group} tagKey="user" />, {
       initialRouterConfig: makeInitialRouterConfig('user'),
     });
 
@@ -163,7 +163,7 @@ describe('TagDetailsDrawerContent', () => {
       url: '/organizations/org-slug/issues/1/tags/user/values/',
       body: TagValuesFixture(),
     });
-    render(<TagDetailsDrawerContent group={group} />, {
+    render(<TagDetailsDrawerContent group={group} tagKey="user" />, {
       initialRouterConfig: {
         ...makeInitialRouterConfig('user'),
         location: {
@@ -192,7 +192,7 @@ describe('TagDetailsDrawerContent', () => {
       body: [],
     });
 
-    render(<TagDetailsDrawerContent group={group} />, {
+    render(<TagDetailsDrawerContent group={group} tagKey="user" />, {
       initialRouterConfig: makeInitialRouterConfig('user'),
     });
 
@@ -204,7 +204,7 @@ describe('TagDetailsDrawerContent', () => {
       url: '/organizations/org-slug/issues/1/tags/user/values/',
       body: TagValuesFixture(),
     });
-    render(<TagDetailsDrawerContent group={group} />, {
+    render(<TagDetailsDrawerContent group={group} tagKey="user" />, {
       initialRouterConfig: makeInitialRouterConfig('user'),
     });
 
@@ -237,9 +237,12 @@ describe('TagDetailsDrawerContent', () => {
         },
       ],
     });
-    const {router} = render(<TagDetailsDrawerContent group={group} />, {
-      initialRouterConfig: makeInitialRouterConfig('project_id'),
-    });
+    const {router} = render(
+      <TagDetailsDrawerContent group={group} tagKey="project_id" />,
+      {
+        initialRouterConfig: makeInitialRouterConfig('project_id'),
+      }
+    );
 
     await userEvent.click(await screen.findByRole('link', {name: 'custom-project'}));
 
@@ -256,7 +259,7 @@ describe('TagDetailsDrawerContent', () => {
         {...TagValuesFixture()[0], name: 'say "hi"', value: 'say "hi"', query: undefined},
       ],
     });
-    const {router} = render(<TagDetailsDrawerContent group={group} />, {
+    const {router} = render(<TagDetailsDrawerContent group={group} tagKey="user" />, {
       initialRouterConfig: makeInitialRouterConfig('user'),
     });
 
@@ -278,7 +281,7 @@ describe('TagDetailsDrawerContent', () => {
         },
       ],
     });
-    const {router} = render(<TagDetailsDrawerContent group={group} />, {
+    const {router} = render(<TagDetailsDrawerContent group={group} tagKey="user" />, {
       initialRouterConfig: makeInitialRouterConfig('user'),
     });
 
@@ -296,7 +299,7 @@ describe('TagDetailsDrawerContent', () => {
       url: '/organizations/org-slug/issues/1/tags/user/values/',
       body: TagValuesFixture(),
     });
-    render(<TagDetailsDrawerContent group={group} />, {
+    render(<TagDetailsDrawerContent group={group} tagKey="user" />, {
       initialRouterConfig: makeInitialRouterConfig('user'),
       organization: discoverOrganization,
     });
@@ -333,7 +336,7 @@ describe('TagDetailsDrawerContent', () => {
       statusCode: 500,
     });
 
-    render(<TagDetailsDrawerContent group={group} />, {
+    render(<TagDetailsDrawerContent group={group} tagKey="user" />, {
       initialRouterConfig: makeInitialRouterConfig('user'),
     });
 
@@ -353,7 +356,7 @@ describe('TagDetailsDrawerContent', () => {
       headers: {Link: pageLinks},
     });
 
-    render(<TagDetailsDrawerContent group={group} />, {
+    render(<TagDetailsDrawerContent group={group} tagKey="user" />, {
       initialRouterConfig: makeInitialRouterConfig('user'),
     });
 
@@ -378,7 +381,7 @@ describe('TagDetailsDrawerContent', () => {
       headers: {Link: pageLinks},
     });
 
-    render(<TagDetailsDrawerContent group={group} />, {
+    render(<TagDetailsDrawerContent group={group} tagKey="user" />, {
       initialRouterConfig: makeInitialRouterConfig('user'),
     });
 
@@ -402,7 +405,7 @@ describe('TagDetailsDrawerContent', () => {
       body: VariableTagValueFixture([996, 4]),
     });
 
-    render(<TagDetailsDrawerContent group={group} />, {
+    render(<TagDetailsDrawerContent group={group} tagKey="user" />, {
       initialRouterConfig: makeInitialRouterConfig('user'),
     });
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
@@ -429,7 +432,7 @@ describe('TagDetailsDrawerContent', () => {
       body: VariableTagValueFixture([992, 7]),
     });
 
-    render(<TagDetailsDrawerContent group={group} />, {
+    render(<TagDetailsDrawerContent group={group} tagKey="user" />, {
       initialRouterConfig: makeInitialRouterConfig('user'),
     });
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
@@ -456,7 +459,7 @@ describe('TagDetailsDrawerContent', () => {
       body: VariableTagValueFixture([995, 5]),
     });
 
-    render(<TagDetailsDrawerContent group={group} />, {
+    render(<TagDetailsDrawerContent group={group} tagKey="user" />, {
       initialRouterConfig: makeInitialRouterConfig('user'),
     });
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
@@ -484,7 +487,7 @@ describe('TagDetailsDrawerContent', () => {
       body: VariableTagValueFixture([997, 3]),
     });
 
-    render(<TagDetailsDrawerContent group={group} />, {
+    render(<TagDetailsDrawerContent group={group} tagKey="user" />, {
       initialRouterConfig: makeInitialRouterConfig('user'),
     });
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
@@ -516,7 +519,7 @@ describe('TagDetailsDrawerContent', () => {
       ],
     });
 
-    render(<TagDetailsDrawerContent group={group} />, {
+    render(<TagDetailsDrawerContent group={group} tagKey="user" />, {
       initialRouterConfig: makeInitialRouterConfig('user'),
     });
 
@@ -575,7 +578,7 @@ describe('TagDetailsDrawerContent', () => {
       body: group,
     });
 
-    render(<TagDetailsDrawerContent group={group} />, {
+    render(<TagDetailsDrawerContent group={group} tagKey="device" />, {
       initialRouterConfig: makeInitialRouterConfig('device'),
     });
 

@@ -4,23 +4,23 @@ import {useDrawer} from '@sentry/scraps/drawer';
 
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
+import {IssueDetailsDrawer} from 'sentry/views/issueDetails/issueDetailsQueryParams';
 import {ActivityDrawer} from 'sentry/views/issueDetails/sidebar/activityDrawer';
 
+import {useIssueDetailsDrawerOptions} from './useIssueDetailsDrawerOptions';
+
 interface UseIssueActivityDrawerProps {
-  getReturnPath: () => string;
   group: Group;
 }
 
-export function useIssueActivityDrawer({
-  getReturnPath,
-  group,
-}: UseIssueActivityDrawerProps) {
+export function useIssueActivityDrawer({group}: UseIssueActivityDrawerProps) {
   const {openDrawer} = useDrawer();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const {onClose, shouldCloseOnLocationChange} = useIssueDetailsDrawerOptions({
+    drawer: IssueDetailsDrawer.ACTIVITY,
+    groupId: group.id,
+    history: 'replace',
+  });
 
   const openIssueActivityDrawer = useCallback(() => {
     openDrawer(
@@ -32,24 +32,11 @@ export function useIssueActivityDrawer({
       {
         ariaLabel: t('Issue Activity'),
         drawerKey: 'issue-activity-drawer',
-        onClose: () => {
-          navigate(
-            {
-              pathname: getReturnPath(),
-              query: {
-                ...location.query,
-                filter: undefined,
-              },
-            },
-            {replace: true, preventScrollReset: true}
-          );
-        },
-        shouldCloseOnLocationChange: newLocation => {
-          return !newLocation.pathname.includes('/activity');
-        },
+        onClose,
+        shouldCloseOnLocationChange,
       }
     );
-  }, [openDrawer, getReturnPath, navigate, location.query, group.id]);
+  }, [openDrawer, onClose, shouldCloseOnLocationChange, group.id]);
 
   return {openIssueActivityDrawer};
 }

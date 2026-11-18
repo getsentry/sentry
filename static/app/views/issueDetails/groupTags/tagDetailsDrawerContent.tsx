@@ -36,7 +36,6 @@ import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {applyQueryParamsUpdates} from 'sentry/views/explore/queryParams/parsers';
 import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/issueDetailsEventsQuery';
@@ -62,12 +61,11 @@ const SORT_LINK_PARSERS = {
 // it as "(empty)".
 type TagValueRow = TagValue & {value: string};
 
-export function TagDetailsDrawerContent({group}: {group: Group}) {
+export function TagDetailsDrawerContent({group, tagKey}: {group: Group; tagKey: string}) {
   const location = useLocation();
   const [{tagDrawerCursor, tagDrawerSort}, setTagDrawerQuery] =
     useIssueDetailsDrawerParams(IssueDetailsDrawer.DISTRIBUTIONS);
   const organization = useOrganization();
-  const {tagKey} = useParams<{tagKey: string}>();
 
   const sort = (tagDrawerSort as TagSort | null) ?? DEFAULT_SORT;
 
