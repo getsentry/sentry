@@ -260,8 +260,10 @@ class TestEmailMetricAlertHandler(MetricAlertHandlerBase):
         link = str(title_link["href"])
 
         assert html.select_one("table.alert-details") is None
-        assert "enhanced privacy" in html.get_text()
-        assert "enhanced privacy" in message.body
+        notices = html.select("div.notice")
+        assert len(notices) == 1
+        assert "Details about this alert" in notices[0].get_text()
+        assert message.body.count("enhanced privacy") == 1
         assert link in message.body
         assert "Threshold:" not in message.body
 

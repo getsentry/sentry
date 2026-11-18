@@ -53,8 +53,10 @@
   {% endblock %}
 
     {% if enhanced_privacy %}
+      {% block enhanced_privacy_notice %}
       <div class="notice">Details about this issue are not shown in this notification since enhanced privacy
         controls are enabled. For more details about this issue, <a href="{{ link }}">view this issue on Sentry</a>.</div>
+      {% endblock %}
     {% endif %}
 
     {% if group and not enhanced_privacy %}

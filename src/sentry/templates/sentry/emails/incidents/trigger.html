@@ -26,12 +26,7 @@
     </div>
   </div>
 
-  {% if enhanced_privacy %}
-    <div class="notice">
-      Details about this alert are not shown in this email since enhanced privacy
-      controls are enabled. For more details about this alert, <a href="{{ link }}">view on Sentry.</a>
-    </div>
-  {% else %}
+  {% if not enhanced_privacy %}
     {% if chart_url %}
       <div class="align-center" style="margin-bottom: 16px;">
         <img height="200" src="{{ chart_url }}" alt="{{ incident_name }} chart" />
@@ -76,4 +71,11 @@
     </p>
     </div>
   {% endif %}
+{% endblock %}
+
+{% block enhanced_privacy_notice %}
+  <div class="notice">
+    Details about this alert are not shown in this email since enhanced privacy
+    controls are enabled. For more details about this alert, <a href="{{ link }}">view on Sentry.</a>
+  </div>
 {% endblock %}
