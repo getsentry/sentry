@@ -222,6 +222,9 @@ export const OPTIONS_BY_TYPE: Record<string, Array<SelectOption<string>>> = {
   ],
 };
 
+// Histograms are aggregated by their buckets, which supports the same aggregates as distributions
+OPTIONS_BY_TYPE.histogram = OPTIONS_BY_TYPE.distribution!;
+
 export const GROUPED_OPTIONS_BY_TYPE: Record<string, Array<SelectSection<string>>> = {
   counter: [
     {
@@ -370,9 +373,12 @@ export const GROUPED_OPTIONS_BY_TYPE: Record<string, Array<SelectSection<string>
   ],
 };
 
+GROUPED_OPTIONS_BY_TYPE.histogram = GROUPED_OPTIONS_BY_TYPE.distribution!;
+
 export const DEFAULT_YAXIS_BY_TYPE: Record<string, string> = {
   counter: 'sum',
   distribution: 'sum',
+  histogram: 'sum',
   gauge: 'avg',
 };
 
