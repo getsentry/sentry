@@ -3,7 +3,7 @@ import {DetailedProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {SourceServerMapping} from 'sentry/views/settings/projectDebugFiles/sources/sourceServerMapping';
+import {SourceServerMapping} from './sourceServerMapping';
 
 describe('SourceServerMapping', () => {
   beforeEach(() => {
