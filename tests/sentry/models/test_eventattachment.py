@@ -28,7 +28,7 @@ class EventAttachmentDeleteTest(TestCase):
             blob_path="v2/some-key",
         )
 
-    @mock.patch("sentry.models.eventattachment.get_project_session")
+    @mock.patch("sentry.models.eventattachment.get_session")
     @mock.patch("sentry.models.eventattachment._get_organization", return_value=1)
     def test_v2_delete_calls_objectstore(
         self,
@@ -41,7 +41,7 @@ class EventAttachmentDeleteTest(TestCase):
 
         mock_get_session.return_value.delete.assert_called_once_with("some-key")
 
-    @mock.patch("sentry.models.eventattachment.get_project_session")
+    @mock.patch("sentry.models.eventattachment.get_session")
     @mock.patch("sentry.models.eventattachment._get_organization", return_value=1)
     def test_v2_delete_skips_objectstore_during_cleanup(
         self,
@@ -84,7 +84,7 @@ class PendingEventAttachmentDeleteTest(TestCase):
         assert not PendingEventAttachment.objects.filter(id=pending.id).exists()
         mock_get_storage.return_value.delete.assert_called_once_with("eventattachments/v1/some-key")
 
-    @mock.patch("sentry.models.eventattachment.get_project_session")
+    @mock.patch("sentry.models.eventattachment.get_session")
     @mock.patch("sentry.models.eventattachment._get_organization", return_value=1)
     def test_v2_delete_removes_objectstore(
         self,
@@ -206,7 +206,7 @@ class PendingEventAttachmentDeleteTest(TestCase):
 
 
 class EventAttachmentPutfileTest(TestCase):
-    @mock.patch("sentry.models.eventattachment.get_project_session")
+    @mock.patch("sentry.models.eventattachment.get_session")
     @mock.patch("sentry.models.eventattachment._get_organization", return_value=1)
     @override_options({"objectstore.enable_for.attachments": 1})
     def test_objectstore_upload_stores_filename(
@@ -226,7 +226,7 @@ class EventAttachmentPutfileTest(TestCase):
         assert mock_get_session.return_value.put.call_args.kwargs["filename"] == "hello.png"
         assert mock_get_session.return_value.put.call_args.kwargs["content_type"] == "image/png"
 
-    @mock.patch("sentry.models.eventattachment.get_project_session")
+    @mock.patch("sentry.models.eventattachment.get_session")
     @mock.patch("sentry.models.eventattachment._get_organization", return_value=1)
     @override_options({"objectstore.enable_for.attachments": 1})
     def test_objectstore_upload_stores_normalized_content_type(
