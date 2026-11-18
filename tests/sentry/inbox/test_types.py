@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 from threading import Barrier
 from typing import Any, assert_type
@@ -83,10 +83,22 @@ class ReferenceItemType(StubItemType[SubjectReference]):
 class MentionedData(InboxEventData):
     comment_id: int
 
+    def serialize(self) -> Mapping[str, object]:
+        return {"commentId": str(self.comment_id)}
+
 
 @dataclass(frozen=True, kw_only=True)
 class StructuredData(InboxEventData):
     details: dict[str, Any]
+
+    def serialize(self) -> Mapping[str, object]:
+        return {"details": self.details}
+
+
+@dataclass(frozen=True, kw_only=True)
+class EmptyData(InboxEventData):
+    def serialize(self) -> dict[str, object]:
+        return {}
 
 
 def test_data_from_payload_ignores_unknown_keys() -> None:
@@ -126,9 +138,7 @@ def test_idempotency_key_sorts_nested_data() -> None:
 
 
 @dataclass(frozen=True, kw_only=True)
-class LinkedMentionData(InboxEventData):
-    comment_id: int
-
+class LinkedMentionData(MentionedData):
     def get_url(self, subject_url: str) -> str:
         return urlsplit(subject_url)._replace(fragment=f"comment-{self.comment_id}").geturl()
 
@@ -655,13 +665,13 @@ class RecordTest(TestCase):
             event_type="test.reference.updated",
             summary=InboxEventSummary.ISSUE_USER_MENTIONED,
             item_type=item_type,
-            data_class=InboxEventData,
+            data_class=EmptyData,
             notification_setting=NotificationSettingEnum.INBOX_MENTIONS,
         )
 
         event_type.record(
             subject=SubjectReference(organization_id=self.organization.id, subject_id="period-1"),
-            data=InboxEventData(),
+            data=EmptyData(),
             recipient_user_ids=[self.user.id],
             actor=SYSTEM_ACTOR,
         )

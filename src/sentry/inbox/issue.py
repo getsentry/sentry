@@ -1,5 +1,6 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import TypedDict
 
 from sentry.inbox.event_data import InboxEventData
 from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
@@ -35,21 +36,44 @@ class IssueItemType(InboxItemType[Group]):
         return list(user_ids)
 
 
+class IssueAssignedDataResponse(TypedDict):
+    assignmentSource: str | None
+    activityId: str
+
+
 @dataclass(frozen=True, kw_only=True)
 class IssueAssignedData(InboxEventData):
     assignment_source: ActivityIntegration | None
     activity_id: int
+
+    def serialize(self) -> IssueAssignedDataResponse:
+        return {"assignmentSource": self.assignment_source, "activityId": str(self.activity_id)}
+
+
+class IssueMentionedDataResponse(TypedDict):
+    commentId: str
 
 
 @dataclass(frozen=True, kw_only=True)
 class IssueMentionedData(InboxEventData):
     comment_id: int  # Comment reference exposed as commentId by the activity API.
 
+    def serialize(self) -> IssueMentionedDataResponse:
+        return {"commentId": str(self.comment_id)}
+
+
+class IssuePRReadyForReviewDataResponse(TypedDict):
+    prUrl: str
+    seerRunId: str
+
 
 @dataclass(frozen=True, kw_only=True)
 class IssuePRReadyForReviewData(InboxEventData):
     pr_url: str
     seer_run_id: int  # Seer DbRunState ID.
+
+    def serialize(self) -> IssuePRReadyForReviewDataResponse:
+        return {"prUrl": self.pr_url, "seerRunId": str(self.seer_run_id)}
 
 
 ISSUE = IssueItemType()
