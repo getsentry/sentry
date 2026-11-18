@@ -197,7 +197,7 @@ describe('Settings navigation tour', () => {
       {organization}
     );
     const guide = await screen.findByRole('dialog', {name: 'Tour entry'});
-    expect(guide).toHaveAccessibleDescription('Description entry');
+    expect(guide).toHaveAccessibleDescription('Step 1 of 2 Description entry');
     expect(guide).toHaveFocus();
 
     await userEvent.tab();

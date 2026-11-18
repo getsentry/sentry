@@ -14,6 +14,7 @@ import {ClassNames, ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {createFocusManager} from '@react-aria/focus';
 import {mergeProps} from '@react-aria/utils';
+import {VisuallyHidden} from '@react-aria/visually-hidden';
 import {IconClose} from '@sentry/icons/close';
 
 import {Button} from '@sentry/scraps/button';
@@ -614,6 +615,14 @@ export function TourGuide({
   };
   const titleId = useId();
   const descriptionId = useId();
+  const stepId = useId();
+  // Screen readers hear the step, such as "Step 1 of 2", before the description.
+  const describedBy = [
+    isStepCountVisible ? stepId : undefined,
+    description ? descriptionId : undefined,
+  ]
+    .filter(defined)
+    .join(' ');
   const dialogProps: HTMLAttributes<HTMLElement> & {'data-focus-ring'?: boolean} =
     isSubtle
       ? {
@@ -622,7 +631,7 @@ export function TourGuide({
           onKeyDown: handleKeyDown,
           'data-focus-ring': isFocusRingVisible || undefined,
           'aria-labelledby': title ? titleId : undefined,
-          'aria-describedby': description ? descriptionId : undefined,
+          'aria-describedby': describedBy || undefined,
         }
       : {};
 
@@ -677,9 +686,14 @@ export function TourGuide({
                             align="center"
                             minHeight={theme.form.sm.height}
                           >
-                            <Text size="sm" variant="muted" bold>
+                            <Text size="sm" variant="muted" bold aria-hidden>
                               {countText}
                             </Text>
+                            {isStepCountVisible && (
+                              <VisuallyHidden id={stepId}>
+                                {t('Step %s of %s', stepCount, stepTotal)}
+                              </VisuallyHidden>
+                            )}
                             {isDismissVisible && (
                               <Button
                                 variant="transparent"
