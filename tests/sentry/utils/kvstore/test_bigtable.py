@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import functools
 import os
-import time
 from collections.abc import Callable
 from datetime import timedelta
 from unittest import mock
 
 import pytest
+from django.utils import timezone
 from google.cloud.bigtable.data import DeleteAllFromRow, MutationsExceptionGroup
 
 from sentry.utils.kvstore.bigtable import BigtableError, BigtableKVStorage
@@ -112,9 +112,8 @@ def test_ttl_expiry(store_factory: Callable[[str | None], BigtableKVStorage]) ->
     store.set("long", b"value", ttl=timedelta(hours=3))
     assert store.get("short") == b"value"
 
-    two_hours_later_ns = time.time_ns() + int(timedelta(hours=2).total_seconds() * 1e9)
-    with mock.patch("sentry.utils.kvstore.bigtable.time") as mock_time:
-        mock_time.time_ns.return_value = two_hours_later_ns
+    two_hours_later = timezone.now() + timedelta(hours=2)
+    with mock.patch.object(timezone, "now", return_value=two_hours_later):
         assert store.get("short") is None
         assert store.get("long") == b"value"
         assert dict(store.get_many(["short", "long", "missing"])) == {"long": b"value"}

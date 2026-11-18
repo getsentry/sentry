@@ -3,7 +3,6 @@ import enum
 import logging
 import struct
 import threading
-import time
 from collections.abc import Iterator, Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any
@@ -40,7 +39,9 @@ class BigtableError(Exception):
 
 
 def _to_timestamp_micros(dt: datetime) -> int:
-    # Bigtable only stores millisecond precision.
+    # Cell timestamps are in microseconds, but tables use millisecond
+    # granularity by default and reject timestamps that aren't a multiple of
+    # 1000. The data client only truncates timestamps it generates itself.
     micros = calendar.timegm(dt.utctimetuple()) * 1_000_000 + dt.microsecond
     return micros - micros % 1000
 
@@ -194,7 +195,7 @@ class BigtableKVStorage(KVStorage[str, bytes]):
         # not.
         if (self.column_family, self.ttl_column) in row:
             # NOTE: If you need the value, it can be unpacked with the struct.
-            if cell.timestamp_micros < time.time_ns() // 1000:
+            if cell.timestamp_micros < _to_timestamp_micros(timezone.now()):
                 return None
 
         value = cell.value
