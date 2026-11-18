@@ -3,13 +3,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {
-  DateTime,
-  formatDateTime,
-  getFormat,
-  useClockDisplay,
-  useTimezone,
-} from '@sentry/scraps/dateTime';
+import {DateTime, formatDateTime, useClock, useTimezone} from '@sentry/scraps/dateTime';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 
@@ -30,8 +24,8 @@ describe('shared date configuration', () => {
   }
 
   function ShowClockDisplay() {
-    const clockDisplay = useClockDisplay();
-    return <div>{`${clockDisplay} hour clock`}</div>;
+    const clock = useClock();
+    return <div>{`${clock} hour clock`}</div>;
   }
 
   function ChangeUserTimezone({tz}: {tz: string}) {
@@ -85,10 +79,9 @@ it('keeps plain formatters and React dates in sync with live application prefere
   user.options.timezone = 'America/New_York';
   user.options.clock24Hours = false;
   act(() => ConfigStore.set('user', user));
-  render(<DateTime date={date} timeOnly />);
+  render(<DateTime date={date} mode="time" />);
   expect(screen.getByText('6:45 PM')).toBeInTheDocument();
-  expect(formatDateTime(date, {timeOnly: true})).toBe('6:45 PM');
-  expect(getFormat({timeOnly: true})).toBe('LT');
+  expect(formatDateTime(date, {mode: 'time'})).toBe('6:45 PM');
 
   act(() =>
     ConfigStore.set('user', {
@@ -97,6 +90,6 @@ it('keeps plain formatters and React dates in sync with live application prefere
     })
   );
   expect(screen.getByText('23:45')).toBeInTheDocument();
-  expect(formatDateTime(date, {timeOnly: true})).toBe('23:45');
-  expect(getFormat({timeOnly: true})).toBe('HH:mm');
+  expect(formatDateTime(date, {mode: 'time'})).toBe('23:45');
+  expect(formatDateTime(date, {mode: 'time', timezone: 'UTC'})).toBe('23:45 UTC');
 });

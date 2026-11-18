@@ -230,7 +230,7 @@ function TimestampText({
     <InfoText
       size="sm"
       variant="muted"
-      title={<DateTime date={timestamp * 1000} seconds timeZone />}
+      title={<DateTime date={timestamp * 1000} precision="second" showTimezone />}
     >
       {children}
     </InfoText>

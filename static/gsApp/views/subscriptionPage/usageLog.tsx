@@ -7,7 +7,7 @@ import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Tag} from '@sentry/scraps/badge';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {DateTime, getFormat} from '@sentry/scraps/dateTime';
+import {useDateTimeFormatter} from '@sentry/scraps/dateTime';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {CursorHandler} from '@sentry/scraps/pagination';
@@ -93,6 +93,7 @@ export default function UsageLog() {
     cursor: parseAsString,
   });
   const theme = useTheme();
+  const formatDateTime = useDateTimeFormatter();
   const {data, isPending, isError, refetch} = useQuery({
     ...apiOptions.as<UsageLogs>()(
       '/customers/$organizationIdOrSlug/subscription/usage-logs/',
@@ -179,11 +180,18 @@ export default function UsageLog() {
                           {' ・ '}
                         </Text>
                         <Grid columns="max-content auto" gap="md">
-                          <DateTime
-                            format={`MMM D, YYYY ・ ${getFormat({timeZone: true, timeOnly: true})}`}
-                            date={entry.dateCreated}
-                            style={{fontSize: theme.font.size.sm}}
-                          />
+                          <time style={{fontSize: theme.font.size.sm}}>
+                            {formatDateTime(entry.dateCreated, {
+                              mode: 'date',
+                              year: 'always',
+                              showTimezone: false,
+                            })}
+                            {' ・ '}
+                            {formatDateTime(entry.dateCreated, {
+                              mode: 'time',
+                              showTimezone: true,
+                            })}
+                          </time>
                         </Grid>
                         {entry.actor && entry.actor.name !== 'Sentry' && (
                           <Fragment>

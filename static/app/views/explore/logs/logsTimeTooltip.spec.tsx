@@ -26,7 +26,7 @@ describe('TimestampTooltipBody', () => {
     };
 
     render(
-      <DateTimeProvider value={{timezone: 'America/New_York', clockDisplay: '12'}}>
+      <DateTimeProvider value={{timezone: 'America/New_York', clock: '12'}}>
         <TimestampTooltipBody timestamp={timestamp} attributes={attributes} />
       </DateTimeProvider>
     );
@@ -47,7 +47,7 @@ describe('TimestampTooltipBody', () => {
     };
 
     render(
-      <DateTimeProvider value={{timezone: 'UTC', clockDisplay: '12'}}>
+      <DateTimeProvider value={{timezone: 'UTC', clock: '12'}}>
         <TimestampTooltipBody timestamp={timestamp} attributes={attributes} />
       </DateTimeProvider>
     );
@@ -69,7 +69,7 @@ describe('TimestampTooltipBody', () => {
     };
 
     render(
-      <DateTimeProvider value={{timezone: 'America/New_York', clockDisplay: '12'}}>
+      <DateTimeProvider value={{timezone: 'America/New_York', clock: '12'}}>
         <TimestampTooltipBody timestamp={timestamp} attributes={attributes} />
       </DateTimeProvider>
     );
@@ -88,7 +88,7 @@ describe('TimestampTooltipBody', () => {
     };
 
     render(
-      <DateTimeProvider value={{timezone: 'America/New_York', clockDisplay: '12'}}>
+      <DateTimeProvider value={{timezone: 'America/New_York', clock: '12'}}>
         <TimestampTooltipBody timestamp={timestamp} attributes={attributes} />
       </DateTimeProvider>
     );
@@ -108,7 +108,7 @@ describe('TimestampTooltipBody', () => {
     };
 
     render(
-      <DateTimeProvider value={{timezone: 'America/New_York', clockDisplay: '12'}}>
+      <DateTimeProvider value={{timezone: 'America/New_York', clock: '12'}}>
         <TimestampTooltipBody timestamp={timestamp} attributes={attributes} />
       </DateTimeProvider>
     );
@@ -127,7 +127,7 @@ describe('TimestampTooltipBody', () => {
     };
 
     render(
-      <DateTimeProvider value={{timezone: 'America/New_York', clockDisplay: '12'}}>
+      <DateTimeProvider value={{timezone: 'America/New_York', clock: '12'}}>
         <TimestampTooltipBody
           timestamp={timestamp}
           attributes={attributes}
@@ -147,7 +147,7 @@ describe('TimestampTooltipBody', () => {
     };
 
     render(
-      <DateTimeProvider value={{timezone: 'America/New_York', clockDisplay: '24'}}>
+      <DateTimeProvider value={{timezone: 'America/New_York', clock: '24'}}>
         <TimestampTooltipBody timestamp={pmTimestamp} attributes={attributes} />
       </DateTimeProvider>
     );

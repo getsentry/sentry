@@ -13,7 +13,7 @@ import * as Sentry from '@sentry/react';
 import type {Virtualizer} from '@tanstack/react-virtual';
 
 import {Button} from '@sentry/scraps/button';
-import {useClockDisplay} from '@sentry/scraps/dateTime';
+import {useClock} from '@sentry/scraps/dateTime';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {toast} from '@sentry/scraps/toast';
 
@@ -260,8 +260,8 @@ export function LogsInfiniteTable({
   const isEmptyWithoutInjectedErrors = isEmpty && !hasInjectedErrorRows;
 
   // Widest timestamps: "Dec 28, 10:58:58.888 PM" (12h), "Dec 28, 22:58:58.888" (24h).
-  const clockDisplay = useClockDisplay();
-  const timestampWidth = clockDisplay === '24' ? 20 : 23;
+  const clock = useClock();
+  const timestampWidth = clock === '24' ? 20 : 23;
 
   // Calculate quantized start and end times for replay links
   const {logStart, logEnd} = useMemo(() => {

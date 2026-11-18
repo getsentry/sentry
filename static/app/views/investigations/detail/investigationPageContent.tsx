@@ -399,7 +399,7 @@ export function InvestigationPageContent({
             <MetaDivider />
             <Text variant="muted">
               {tct('Last update: [date]', {
-                date: <DateTime date={investigation.dateUpdated} year />,
+                date: <DateTime date={investigation.dateUpdated} year="always" />,
               })}
             </Text>
             {!showActivity ||

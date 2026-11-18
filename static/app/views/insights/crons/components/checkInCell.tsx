@@ -132,7 +132,7 @@ export function CheckInCell({cellKey, project, checkIn}: CheckInRowProps) {
 
   const expectedAtColumn = expectedTime ? (
     <TimestampContainer>
-      <ExpectedDateTime date={expectedTime} timeZone seconds />
+      <ExpectedDateTime date={expectedTime} showTimezone precision="second" />
       <OffScheduleIndicator checkIn={checkIn} />
       <ProcessingLatencyIndicator checkIn={checkIn} />
     </TimestampContainer>
@@ -175,7 +175,7 @@ export function CheckInCell({cellKey, project, checkIn}: CheckInRowProps) {
   const startedColumn = (
     <TimestampContainer>
       {hadInProgress ? (
-        <DateTime date={dateAdded} timeZone seconds />
+        <DateTime date={dateAdded} precision="second" showTimezone />
       ) : (
         <NotSentIndicator />
       )}
@@ -184,11 +184,13 @@ export function CheckInCell({cellKey, project, checkIn}: CheckInRowProps) {
 
   const completedColumn = (
     <TimestampContainer>
-      {completionStatus === CompletionStatus.COMPLETE ? (
-        <DateTime date={dateUpdated} timeZone seconds />
-      ) : completionStatus === CompletionStatus.COMPLETE_TIMEOUT && defined(duration) ? (
+      {completionStatus === CompletionStatus.COMPLETE && dateUpdated ? (
+        <DateTime date={dateUpdated} precision="second" showTimezone />
+      ) : completionStatus === CompletionStatus.COMPLETE_TIMEOUT &&
+        defined(duration) &&
+        dateUpdated ? (
         <Fragment>
-          <DateTime date={dateUpdated} timeZone seconds />
+          <DateTime date={dateUpdated} precision="second" showTimezone />
           <CompletedLateIndicator checkIn={checkIn} />
         </Fragment>
       ) : completionStatus === CompletionStatus.INCOMPLETE_TIMEOUT ? (

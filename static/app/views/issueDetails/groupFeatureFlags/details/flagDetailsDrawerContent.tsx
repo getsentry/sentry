@@ -167,7 +167,7 @@ function FlagDetailsRow({flagValue}: {flagValue: RawFlag}) {
             {getFlagActionLabel(flagValue.action)}
           </SimpleTable.RowCell>
           <SimpleTable.RowCell position="relative">
-            <DateTime date={flagValue.createdAt} year timeZone />
+            <DateTime date={flagValue.createdAt} year="always" showTimezone />
             <FlagValueActionsMenu flagValue={flagValue} />
           </SimpleTable.RowCell>
         </SimpleTable.Row>
@@ -182,7 +182,7 @@ function GroupFirstSeenRow({group}: {group: Group}) {
       <SimpleTable.RowCell column="span 2">{t('Issue First Seen')}</SimpleTable.RowCell>
       <SimpleTable.RowCell />
       <SimpleTable.RowCell>
-        <DateTime date={group.firstSeen} year timeZone />
+        <DateTime date={group.firstSeen} year="always" showTimezone />
       </SimpleTable.RowCell>
     </SimpleTable.Row>
   );

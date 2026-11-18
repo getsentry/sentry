@@ -45,10 +45,10 @@ export function DowntimeDuration({group}: {group: Group}) {
       title={
         <DowntimeTooltipTitle>
           <DowntimeLabel>{t('From:')}</DowntimeLabel>
-          <DateTime date={startDate} timeZone />
+          <DateTime date={startDate} showTimezone />
           <DowntimeLabel>{t('To:')}</DowntimeLabel>
           {group.status === GroupStatus.RESOLVED ? (
-            <DateTime date={endDate} timeZone />
+            <DateTime date={endDate} showTimezone />
           ) : (
             t('Now')
           )}

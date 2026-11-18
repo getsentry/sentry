@@ -1,27 +1,40 @@
 import moment from 'moment-timezone';
 
-import {useClockDisplay, useTimezone, DateTime, getFormat} from '@sentry/scraps/dateTime';
+import {useDateTimeFormatter, DateTime} from '@sentry/scraps/dateTime';
 import {getRelativeDate} from '@sentry/scraps/relativeTime';
 
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
 import {TimeSince} from 'sentry/components/timeSince';
-import {t} from 'sentry/locale';
+
+type TimestampValue = EmbedOutput<'timestamp'>['value'];
+
+const CALENDAR_DATE_OPTIONS = {
+  mode: 'date',
+  timezone: 'UTC',
+  showTimezone: false,
+} as const;
+
+/**
+ * Agents copy page filter times, which have no offset and mean UTC. A
+ * calendar date names a day, so it is drawn without shifting into the
+ * viewer's timezone.
+ */
+function parseTimestampValue(value: TimestampValue) {
+  return {
+    date: moment.utc(value).toDate(),
+    options: value.includes('T') ? undefined : CALENDAR_DATE_OPTIONS,
+  };
+}
 
 /**
  * Formatted the way `DateTime` draws it, so a copied date matches the one on
  * screen. A component because the timezone and clock preferences are hooks.
  */
-function AbsoluteTimestampMarkdown({value}: {value: EmbedOutput<'timestamp'>['value']}) {
-  const clockDisplay = useClockDisplay();
-  const timeZone = useTimezone();
-
-  return moment.tz(value, timeZone).format(
-    getFormat({
-      year: moment.tz(timeZone).year() !== moment.tz(value, timeZone).year(),
-      clock24Hours: clockDisplay === '24',
-    })
-  );
+function AbsoluteTimestampMarkdown({value}: {value: TimestampValue}) {
+  const formatDateTime = useDateTimeFormatter();
+  const {date, options} = parseTimestampValue(value);
+  return formatDateTime(date, options);
 }
 
 export const Timestamp = defineSeerEmbed({
@@ -32,17 +45,19 @@ export const Timestamp = defineSeerEmbed({
         // The rendered relative time ticks; a copy fixes it at the moment
         // it was taken.
         return format === 'relative' ? (
-          getRelativeDate(value, t('ago'), t('in'))
+          getRelativeDate(parseTimestampValue(value).date)
         ) : (
           <AbsoluteTimestampMarkdown value={value} />
         );
       case 'block':
-      case 'inline':
+      case 'inline': {
+        const {date, options} = parseTimestampValue(value);
         return format === 'relative' ? (
-          <TimeSince date={value} />
+          <TimeSince date={date} />
         ) : (
-          <DateTime date={value} />
+          <DateTime date={date} {...options} />
         );
+      }
     }
   },
 });

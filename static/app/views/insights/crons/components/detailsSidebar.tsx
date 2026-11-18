@@ -60,7 +60,7 @@ export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) 
         <div>
           {monitorEnv?.lastCheckIn ? (
             <TimeSince
-              unitStyle="regular"
+              unitStyle="long"
               liveUpdateInterval="second"
               date={monitorEnv.lastCheckIn}
             />
@@ -72,7 +72,7 @@ export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) 
           {monitor.status !== 'disabled' && monitorEnv?.nextCheckIn ? (
             moment(monitorEnv.nextCheckIn).isAfter(moment()) ? (
               <TimeSince
-                unitStyle="regular"
+                unitStyle="long"
                 liveUpdateInterval="second"
                 date={monitorEnv.nextCheckIn}
               />
@@ -125,7 +125,12 @@ export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) 
           </DescriptionList.Details>
           <DescriptionList.Term>{t('Date created')}</DescriptionList.Term>
           <DescriptionList.Details>
-            {formatDateTime(monitor.dateCreated, {format: 'MMM D, YYYY', utc: true})}
+            {formatDateTime(monitor.dateCreated, {
+              mode: 'date',
+              year: 'always',
+              showTimezone: false,
+              timezone: 'UTC',
+            })}
           </DescriptionList.Details>
         </DescriptionList>
       </Container>

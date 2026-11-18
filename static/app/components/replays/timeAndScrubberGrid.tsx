@@ -142,7 +142,7 @@ export function TimeAndScrubberGrid({
         {durationMs === undefined ? (
           '--:--'
         ) : timestampType === 'absolute' ? (
-          <DateTime timeOnly seconds date={startTimestamp + durationMs} />
+          <DateTime date={startTimestamp + durationMs} mode="time" precision="second" />
         ) : (
           <Duration duration={[durationMs, 'ms']} precision="sec" />
         )}

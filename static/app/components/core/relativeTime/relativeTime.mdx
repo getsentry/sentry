@@ -66,8 +66,9 @@ Most timestamps in the app are already labelled by what they sit beside, so a ca
 ## Matching the trigger
 
 The header repeats the relative time so the card reads as an expansion of what was hovered
-rather than a separate fact. For that to hold, give `RelativeTime` the same `unitStyle`,
-`suffix`, and `prefix` as the trigger. A trigger reading "43min ago" should open a card whose
+rather than a separate fact. For that to hold, give `RelativeTime` the same unit width and rounding as the trigger.
+`TimeSince` calls the width `unitStyle`; `RelativeTime` calls it `style`. Preserve any custom
+`suffix` or `prefix` too. A trigger reading "43min ago" should open a card whose
 header also reads "43min ago", not "43 minutes ago".
 
 <Storybook.Demo>
@@ -75,12 +76,19 @@ header also reads "43min ago", not "43 minutes ago".
     date="2026-07-29T06:40:00Z"
     label="Last Seen"
     suffix="ago"
-    unitStyle="short"
+    style="short"
+    rounding="unit"
   />
 </Storybook.Demo>
 
 ```jsx
-<RelativeTime date={date} label={t('Last Seen')} suffix="ago" unitStyle="short" />
+<RelativeTime
+  date={date}
+  label={t('Last Seen')}
+  suffix="ago"
+  style="short"
+  rounding="unit"
+/>
 ```
 
 ## Timezones

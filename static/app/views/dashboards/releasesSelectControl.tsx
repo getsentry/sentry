@@ -167,7 +167,7 @@ function LabelDetails(props: LabelDetailsProps) {
 
       <Container justifySelf="right">
         {defined(props.dateCreated) && (
-          <DateTime dateOnly year date={props.dateCreated} />
+          <DateTime date={props.dateCreated} mode="date" year="always" />
         )}
       </Container>
     </Grid>
