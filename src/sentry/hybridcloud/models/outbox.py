@@ -704,14 +704,14 @@ _outbox_context = OutboxContext()
 
 @contextlib.contextmanager
 def outbox_context(
-    inner: Atomic | None = None, flush: bool | None = None
+    inner: Atomic | None = None, flush: bool | None = None, *, default_flush: bool = True
 ) -> Generator[Atomic | None]:
     # If we don't specify our flush, use the outer specified override
     if flush is None:
         flush = _outbox_context.flushing_enabled
-        # But if there is no outer override, default to True
+        # But if there is no outer override, use the default
         if flush is None:
-            flush = True
+            flush = default_flush
 
     assert not flush or inner, "Must either set a transaction or flush=False"
 

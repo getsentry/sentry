@@ -39,7 +39,8 @@ class CellOutboxProducingModel(Model):
     class Meta:
         abstract = True
 
-    default_flush: bool | None = None
+    default_flush: bool = True
+    """Whether outbox writes flush on commit when no enclosing outbox_context sets a flag."""
     replication_version: int = 1
 
     @contextlib.contextmanager
@@ -48,12 +49,10 @@ class CellOutboxProducingModel(Model):
     ) -> Generator[None]:
         from sentry.hybridcloud.models.outbox import outbox_context
 
-        if flush is None:
-            flush = self.default_flush
-
         with outbox_context(
             transaction.atomic(router.db_for_write(type(self))),
             flush=flush,
+            default_flush=self.default_flush,
         ):
             if not outbox_before_super:
                 yield
@@ -224,7 +223,8 @@ class ControlOutboxProducingModel(Model):
     to support bulk operations that respect outbox creation.
     """
 
-    default_flush: bool | None = None
+    default_flush: bool = True
+    """Whether outbox writes flush on commit when no enclosing outbox_context sets a flag."""
     replication_version: int = 1
 
     class Meta:
@@ -236,7 +236,7 @@ class ControlOutboxProducingModel(Model):
 
         with outbox_context(
             transaction.atomic(router.db_for_write(type(self))),
-            flush=self.default_flush,
+            default_flush=self.default_flush,
         ):
             if not outbox_before_super:
                 yield
