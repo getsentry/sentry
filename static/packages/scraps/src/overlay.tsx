@@ -1,11 +1,12 @@
 import type * as React from 'react';
+import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Placement} from '@floating-ui/react-dom';
 import type {HTMLMotionProps, MotionProps, MotionStyle} from 'framer-motion';
 import {motion, useIsPresent} from 'framer-motion';
 
 import type {OverlayArrowProps} from '@sentry/scraps/overlayArrow';
-import {OverlayArrow} from '@sentry/scraps/overlayArrow';
+import {arrowFocusRingVar, OverlayArrow, overlayFrame} from '@sentry/scraps/overlayArrow';
 import {PanelProvider} from '@sentry/scraps/panelProvider';
 
 type OriginPoint = Partial<{x: number; y: number}>;
@@ -124,15 +125,51 @@ export function Overlay({
   );
 }
 
+const liftVar = '--overlay-lift';
+const focusVar = '--overlay-focus';
+
+/**
+ * Shows the focus ring around an `Overlay`'s box and its arrow. Apply it under
+ * your own rule for when the ring shows, on the element whose direct child is
+ * the `Overlay`, usually its `PositionWrapper`:
+ *
+ * ```tsx
+ * const GuidePositionWrapper = styled(PositionWrapper)`
+ *   outline: none;
+ *   &:focus-visible {
+ *     ${overlayFocusRing}
+ *   }
+ * `;
+ * ```
+ *
+ * Overlays nested inside that `Overlay` don't get the ring.
+ */
+export const overlayFocusRing = css`
+  & > [data-overlay] {
+    /* Like a focused button's, the ring wraps the box's bottom shadow too. */
+    box-shadow:
+      var(${liftVar}),
+      0 ${overlayFrame.liftHeight}px 0 ${overlayFrame.focusRingWidth}px var(${focusVar}),
+      0 0 0 ${overlayFrame.focusRingWidth}px var(${focusVar});
+  }
+
+  & > [data-overlay] > [data-overlay-arrow] {
+    ${arrowFocusRingVar}: var(${focusVar});
+  }
+`;
+
 const OverlayInner = styled(motion.div)<{
   placement?: OverlayProps['placement'];
 }>`
   position: relative;
   background: ${p => p.theme.tokens.background.overlay};
   border-radius: ${p => p.theme.radius.md};
-  border: 1px solid ${p => p.theme.tokens.border.primary};
+  border: ${overlayFrame.borderWidth}px solid ${p => p.theme.tokens.border.primary};
+  /* Declared in the overlay's own theme, so overlayFocusRing can reuse them. */
   /* oxlint-disable-next-line @sentry/scraps/use-semantic-token */
-  box-shadow: 0 2px 0 ${p => p.theme.tokens.border.primary};
+  ${liftVar}: 0 ${overlayFrame.liftHeight}px 0 ${p => p.theme.tokens.border.primary};
+  ${focusVar}: ${p => p.theme.tokens.focus.default};
+  box-shadow: var(${liftVar});
   font-size: ${p => p.theme.font.size.md};
 
   /* Override z-index from useOverlayPosition */
