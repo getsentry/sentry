@@ -285,7 +285,7 @@ def get_monitor_environment_context(
         "id": str(monitor_environment.monitor.guid),
         "slug": str(monitor_environment.monitor.slug),
         "name": monitor_environment.monitor.name,
-        "config": monitor_environment.monitor.config,
+        "config": config,
         "status": monitor_environment.get_status_display(),
     }
 

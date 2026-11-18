@@ -13,6 +13,7 @@ from sentry.monitors.logic.incident_occurrence import (
     MONITORS_INCIDENT_OCCURRENCES,
     dispatch_incident_occurrence,
     get_failure_reason,
+    get_monitor_environment_context,
     queue_incident_occurrence,
     send_incident_occurrence,
 )
@@ -134,7 +135,7 @@ class IncidentOccurrenceTestCase(TestCase):
                 "contexts": {
                     "monitor": {
                         "status": "error",
-                        "config": self.monitor.config,
+                        "config": {**self.monitor.config, "schedule_type": "interval"},
                         "id": str(self.monitor.guid),
                         "name": self.monitor.name,
                         "slug": self.monitor.slug,
@@ -219,7 +220,7 @@ class IncidentOccurrenceTestCase(TestCase):
                 "contexts": {
                     "monitor": {
                         "status": "error",
-                        "config": self.monitor.config,
+                        "config": {**self.monitor.config, "schedule_type": "interval"},
                         "id": str(self.monitor.guid),
                         "name": self.monitor.name,
                         "slug": self.monitor.slug,
@@ -242,6 +243,30 @@ class IncidentOccurrenceTestCase(TestCase):
                 },
             },
         ) == dict(event)
+
+    def test_monitor_environment_context_schedule_type_display(self) -> None:
+        monitor = Monitor.objects.create(
+            name="test monitor",
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            config={
+                "schedule": [1, "month"],
+                "schedule_type": ScheduleType.INTERVAL,
+                "max_runtime": None,
+                "checkin_margin": None,
+            },
+        )
+        monitor_environment = MonitorEnvironment.objects.create(
+            monitor=monitor,
+            environment_id=self.environment.id,
+            status=MonitorStatus.ERROR,
+        )
+
+        context = get_monitor_environment_context(monitor_environment)
+
+        assert context["config"] == {**monitor.config, "schedule_type": "interval"}
+        # The monitor's own config is left as stored
+        assert monitor.config["schedule_type"] == ScheduleType.INTERVAL
 
     def test_failure_reason(self) -> None:
         monitor = self.create_monitor()
