@@ -9,6 +9,7 @@ import {IconWarning} from '@sentry/icons/warning';
 import {AnimatePresence, motion, type MotionProps} from 'framer-motion';
 
 import {Tag} from '@sentry/scraps/badge';
+import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {StatusIndicator} from '@sentry/scraps/statusIndicator';
 import {Text} from '@sentry/scraps/text';
@@ -317,13 +318,15 @@ export function AgenticProgressList({
 function AgenticProgressMeta({
   isComplete,
   onboardingCode,
+  onStartOver,
   updatedAt,
 }: {
   isComplete: boolean;
   onboardingCode: string | undefined;
   updatedAt: string;
+  onStartOver?: () => void;
 }) {
-  if (isComplete && !onboardingCode) {
+  if (isComplete && !onboardingCode && !onStartOver) {
     return null;
   }
 
@@ -345,11 +348,18 @@ function AgenticProgressMeta({
           </Text>
         </Flex>
       )}
-      {onboardingCode ? (
-        <RunId size="sm" variant="muted" monospace>
-          {t('ID:%s', onboardingCode)}
-        </RunId>
-      ) : null}
+      <Flex align="center" gap="sm">
+        {onboardingCode ? (
+          <RunId size="sm" variant="muted" monospace>
+            {t('ID:%s', onboardingCode)}
+          </RunId>
+        ) : null}
+        {onStartOver ? (
+          <Button size="zero" variant="transparent" onClick={onStartOver}>
+            {t('Start over')}
+          </Button>
+        ) : null}
+      </Flex>
     </Flex>
   );
 }
@@ -407,9 +417,11 @@ export function AgenticProgress({
   // oxlint-disable-next-line react/todo
   onboardingCode = run.onboardingCode,
   issueLinkReferrer = 'onboarding-agentic-first-issue',
+  onStartOver,
 }: {
   run: AgenticProgressRun;
   issueLinkReferrer?: string;
+  onStartOver?: () => void;
   onboardingCode?: string;
 }) {
   const createProjectStage = run.stages.find(stage => stage.stage === 'create_project');
@@ -465,6 +477,7 @@ export function AgenticProgress({
       <AgenticProgressMeta
         isComplete={isComplete}
         onboardingCode={onboardingCode}
+        onStartOver={run.runStatus === 'active' ? onStartOver : undefined}
         updatedAt={run.updatedAt}
       />
     </Stack>

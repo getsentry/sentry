@@ -11,6 +11,7 @@ interface WelcomeAgentSetupProps {
   onRetry: () => void;
   onSelectSnippet: (source: AgentSetupCopySource) => void;
   onSetupInBrowser: () => void;
+  onStartOver: () => void;
   run: AgenticProgressRun | undefined;
   onboardingCode?: string;
 }
