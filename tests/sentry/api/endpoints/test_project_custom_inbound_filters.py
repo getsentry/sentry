@@ -359,33 +359,65 @@ class CustomInboundFiltersTest(APITestCase):
                 f"{value} is not a release with a version such as 1.2.0 or myapp@1.2.0."
             )
 
-    def test_environment_condition_requires_feature(self) -> None:
-        conditions = [{"type": "environment", "operator": "equals", "value": ["staging"]}]
+    def test_condition_type_requires_feature(self) -> None:
+        cases = [
+            (
+                "organizations:inbound-filters-environment-condition",
+                {"type": "environment", "operator": "equals", "value": ["staging"]},
+            ),
+            (
+                "organizations:inbound-filters-request-url-condition",
+                {"type": "request_url", "operator": "does_not_contain", "value": ["example.com"]},
+            ),
+        ]
 
-        with self.feature(self.features):
+        for feature, condition in cases:
+            with self.feature(self.features):
+                response = self.get_error_response(
+                    self.organization.slug,
+                    self.project.slug,
+                    method="post",
+                    status_code=400,
+                    name=condition["type"],
+                    dataType="error",
+                    conditions=[condition],
+                )
+            assert str(response.data["conditions"][0]) == (
+                f"The {condition['type']} condition is not enabled for this organization."
+            )
+
+            with self.feature([*self.features, feature]):
+                self.get_success_response(
+                    self.organization.slug,
+                    self.project.slug,
+                    method="post",
+                    status_code=201,
+                    name=condition["type"],
+                    dataType="error",
+                    conditions=[condition],
+                )
+
+    def test_request_url_condition_is_only_for_errors(self) -> None:
+        with self.feature([*self.features, "organizations:inbound-filters-request-url-condition"]):
             response = self.get_error_response(
                 self.organization.slug,
                 self.project.slug,
                 method="post",
                 status_code=400,
-                name="Staging",
-                dataType="error",
-                conditions=conditions,
+                name="Other sites",
+                dataType="span",
+                conditions=[
+                    {
+                        "type": "request_url",
+                        "operator": "does_not_contain",
+                        "value": ["example.com"],
+                    }
+                ],
             )
         assert str(response.data["conditions"][0]) == (
-            "The environment condition is not enabled for this organization."
+            "A filter on span data cannot use the request_url condition. "
+            "It accepts release, environment, ip_address."
         )
-
-        with self.feature([*self.features, "organizations:inbound-filters-environment-condition"]):
-            self.get_success_response(
-                self.organization.slug,
-                self.project.slug,
-                method="post",
-                status_code=201,
-                name="Staging",
-                dataType="error",
-                conditions=conditions,
-            )
 
     def test_without_inbound_filters_v2_feature(self) -> None:
         with self.feature(["projects:custom-inbound-filters"]):
@@ -408,7 +440,7 @@ class CustomInboundFiltersTest(APITestCase):
                     {"type": "log_message", "operator": "starts_with", "value": ["Rate limit"]},
                 ],
                 "A filter on error data cannot use the log_message condition. "
-                "It accepts error_type, error_message, release, environment, ip_address, geo_country_code.",
+                "It accepts error_type, error_message, release, environment, ip_address, geo_country_code, request_url.",
             ),
             (
                 "log",
@@ -1074,7 +1106,7 @@ class CustomInboundFilterDetailsTest(APITestCase):
         assert (
             str(response.data["conditions"][0])
             == "A filter on error data cannot use the log_message condition. "
-            "It accepts error_type, error_message, release, environment, ip_address, geo_country_code."
+            "It accepts error_type, error_message, release, environment, ip_address, geo_country_code, request_url."
         )
 
     def test_put_to_catch_all(self) -> None:

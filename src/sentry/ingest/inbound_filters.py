@@ -734,6 +734,11 @@ _CONDITION_MATCHERS: Mapping[
     ConditionType.GEO_COUNTRY_CODE: {
         DataType.ERROR: _field_matcher("event.user.geo.country_code"),
     },
+    # The SDK reports the URL, so this works for server-side errors, which carry no Origin
+    # header for the project's allowed domains to check.
+    ConditionType.REQUEST_URL: {
+        DataType.ERROR: _field_matcher("event.request.url"),
+    },
 }
 
 _SINGLE_DATA_TYPES = frozenset(DataType) - {DataType.ALL}

@@ -58,6 +58,11 @@ _REQUIRED_FEATURE_BY_DATA_TYPE: Mapping[DataType, str] = {
     DataType.METRIC: "organizations:tracemetrics-ingestion",
 }
 
+_REQUIRED_FEATURE_BY_CONDITION_TYPE: Mapping[ConditionType, str] = {
+    ConditionType.ENVIRONMENT: "organizations:inbound-filters-environment-condition",
+    ConditionType.REQUEST_URL: "organizations:inbound-filters-request-url-condition",
+}
+
 
 class CustomInboundFilterCondition(TypedDict):
     type: str
@@ -154,7 +159,7 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
         help_text=(
             "The field the condition matches against. Every `dataType` accepts `release`, "
             "`environment` and `ip_address`. In addition, `error` accepts `error_type`, `error_message` and "
-            "`geo_country_code`, `log` accepts `log_message`, and `metric` accepts "
+            "`geo_country_code` and `request_url`, `log` accepts `log_message`, and `metric` accepts "
             "`metric_name`. `span` and `all` accept no other types."
         ),
     )
@@ -306,6 +311,21 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
 
         return data_type
 
+    def _validate_condition_features(self, conditions: list[CustomInboundFilterCondition]) -> None:
+        organization = self.context["project"].organization
+        for condition_type in sorted({ConditionType(c["type"]) for c in conditions}):
+            required_feature = _REQUIRED_FEATURE_BY_CONDITION_TYPE.get(condition_type)
+            if required_feature and not features.has(
+                required_feature, organization, actor=self.context["request"].user
+            ):
+                raise serializers.ValidationError(
+                    {
+                        "conditions": (
+                            f"The {condition_type} condition is not enabled for this organization."
+                        )
+                    }
+                )
+
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         # A partial update may change the data type or the conditions alone, so the
         # other side comes from the stored filter.
@@ -323,22 +343,8 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
         if stored is not None and stored.legacy_filter:
             _validate_legacy_row_change(stored, data_type, conditions)
 
-        if "conditions" in attrs and any(
-            condition["type"] == ConditionType.ENVIRONMENT for condition in conditions
-        ):
-            organization = self.context["project"].organization
-            if not features.has(
-                "organizations:inbound-filters-environment-condition",
-                organization,
-                actor=self.context["request"].user,
-            ):
-                raise serializers.ValidationError(
-                    {
-                        "conditions": (
-                            "The environment condition is not enabled for this organization."
-                        )
-                    }
-                )
+        if "conditions" in attrs:
+            self._validate_condition_features(conditions)
 
         supported = get_supported_condition_types(data_type)
         unsupported = sorted({condition["type"] for condition in conditions} - set(supported))
