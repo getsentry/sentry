@@ -42,8 +42,6 @@ const STAGE_LABELS: Record<AgenticProgressStage, string> = {
 
 const STATUS_LABELS: Record<AgenticProgressStageStatus, string> = {
   active: t('In progress'),
-  // The page has nothing to fill in; the agent is waiting on a reply in the
-  // user's editor or terminal, so point them there.
   waiting: t('Check your agent'),
   completed: t('Done'),
   skipped: t('Skipped'),
