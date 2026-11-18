@@ -8,6 +8,7 @@ from sentry.notifications.notification_action.types import BaseIssueAlertHandler
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.utils.errors import SentryAppError
 from sentry.workflow_engine.models import Action
+from sentry.workflow_engine.types import ActionTargetNotFoundError
 from sentry.workflow_engine.typings.notification_action import (
     ActionFieldMapping,
     ActionFieldMappingKeys,
@@ -41,7 +42,12 @@ class SentryAppIssueAlertHandler(BaseIssueAlertHandler):
                 filter=dict(app_ids=[int(target_identifier)], organization_id=organization_id)
             )
 
-            if sentry_app_installations is None or len(sentry_app_installations) != 1:
+            if not sentry_app_installations:
+                raise ActionTargetNotFoundError(
+                    f"No sentry app installation for action type: {action.type}, target_identifier: {target_identifier}"
+                )
+
+            if len(sentry_app_installations) != 1:
                 raise ValueError(
                     f"Expected 1 sentry app installation for action type: {action.type}, target_identifier: {target_identifier}, but got {len(sentry_app_installations)}"
                 )

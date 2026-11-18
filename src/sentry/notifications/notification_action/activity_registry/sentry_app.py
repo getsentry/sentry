@@ -23,7 +23,7 @@ from sentry.types.activity import SEER_ACTIVITY_TYPES, STATUS_CHANGE_ACTIVITY_TY
 from sentry.users.services.user.service import user_service
 from sentry.utils import json
 from sentry.workflow_engine.models import Action, Workflow
-from sentry.workflow_engine.types import ActionInvocation
+from sentry.workflow_engine.types import ActionInvocation, ActionTargetNotFoundError
 
 REGISTERED_SENTRY_APP_ACTIVITY_TYPES = [*SEER_ACTIVITY_TYPES, *STATUS_CHANGE_ACTIVITY_TYPES]
 
@@ -102,7 +102,11 @@ def _get_sentry_app_installation(
             )
         )
 
-    if not installations or len(installations) != 1:
+    if not installations:
+        raise ActionTargetNotFoundError(
+            f"No sentry app installation for target_identifier: {target_identifier}"
+        )
+    if len(installations) != 1:
         raise ValueError(f"Expected 1 sentry app installation, got {len(installations)}")
     return installations[0]
 
@@ -214,7 +218,11 @@ class SentryAppActivityHandler(ActivityHandler):
                 }
             )
 
-            install = _get_sentry_app_installation(action, organization)
+            try:
+                install = _get_sentry_app_installation(action, organization)
+            except ActionTargetNotFoundError as e:
+                lifecycle.record_halt(e)
+                raise
             payload = ActivityAlertWebhookPayload(
                 issue=_webhook_issue_data(group=group, serialized_group=serialize(group)),
                 activity=_build_activity_data(activity=activity),

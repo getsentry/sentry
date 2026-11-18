@@ -21,12 +21,13 @@ from sentry.workflow_engine.tasks.utils import (
     build_workflow_event_data_from_activity,
     build_workflow_event_data_from_event,
 )
-from sentry.workflow_engine.types import WorkflowEventData, WorkflowId
+from sentry.workflow_engine.types import ActionTargetNotFoundError, WorkflowEventData, WorkflowId
 from sentry.workflow_engine.utils import log_context
 
 logger = log_context.get_logger(__name__)
 
 TRIGGER_ACTION_RETRY_IGNORED_EXCEPTIONS = (
+    ActionTargetNotFoundError,
     Action.DoesNotExist,
     Group.DoesNotExist,
     Project.DoesNotExist,

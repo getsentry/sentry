@@ -13,7 +13,7 @@ from sentry.shared_integrations.exceptions import ApiUnauthorized
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.tasks.actions import build_trigger_action_task_params, trigger_action
-from sentry.workflow_engine.types import WorkflowEventData
+from sentry.workflow_engine.types import ActionTargetNotFoundError, WorkflowEventData
 
 
 class TestBuildTriggerActionTaskParams(TestCase):
@@ -160,6 +160,15 @@ class TestTriggerAction(TestCase):
     def test_suppresses_ignored_trigger_exception(self, mock_capture_exception: Mock) -> None:
         action = Mock(id=1, type=Action.Type.SLACK)
         action.trigger.side_effect = Action.DoesNotExist()
+
+        self.call_trigger_action(action, retry_state=FIRST_ATTEMPT)
+
+        mock_capture_exception.assert_not_called()
+
+    @patch("sentry.workflow_engine.tasks.actions.sentry_sdk.capture_exception")
+    def test_suppresses_action_target_not_found(self, mock_capture_exception: Mock) -> None:
+        action = Mock(id=1, type=Action.Type.SENTRY_APP)
+        action.trigger.side_effect = ActionTargetNotFoundError("app uninstalled")
 
         self.call_trigger_action(action, retry_state=FIRST_ATTEMPT)
 

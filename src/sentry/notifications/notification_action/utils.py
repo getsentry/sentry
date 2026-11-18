@@ -35,7 +35,7 @@ from sentry.notifications.platform.templates.metric_alert import MetricAlertNoti
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils.registry import NoRegistrationExistsError
 from sentry.workflow_engine.models import Action
-from sentry.workflow_engine.types import ActionInvocation
+from sentry.workflow_engine.types import ActionInvocation, ActionTargetNotFoundError
 
 logger = logging.getLogger(__name__)
 
@@ -88,6 +88,8 @@ def execute_via_group_type_registry(invocation: ActionInvocation) -> None:
             extra={"detector_id": invocation.detector.id, "action_id": invocation.action.id},
         )
         return execute_via_issue_alert_handler(invocation)
+    except ActionTargetNotFoundError:
+        raise
     except Exception:
         logger.exception(
             "Error executing via group type registry",
@@ -110,6 +112,8 @@ def execute_via_issue_alert_handler(invocation: ActionInvocation) -> None:
             invocation.action.type,
             extra={"action_id": invocation.action.id, "detector_id": invocation.detector.id},
         )
+        raise
+    except ActionTargetNotFoundError:
         raise
     except Exception:
         logger.exception(

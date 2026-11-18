@@ -41,7 +41,11 @@ from sentry.testutils.helpers.data_blobs import (
     WEBHOOK_ACTION_DATA_BLOBS,
 )
 from sentry.workflow_engine.models import Action
-from sentry.workflow_engine.types import ActionInvocation, WorkflowEventData
+from sentry.workflow_engine.types import (
+    ActionInvocation,
+    ActionTargetNotFoundError,
+    WorkflowEventData,
+)
 from sentry.workflow_engine.typings.notification_action import (
     ACTION_FIELD_MAPPINGS,
     EXCLUDED_ACTION_DATA_KEYS,
@@ -848,6 +852,19 @@ class TestSentryAppIssueAlertHandler(BaseWorkflowTest):
 
         # Both orgs should have different sentry app installations
         assert action_1_uuid != action_2_uuid
+
+    def test_build_rule_action_blob_sentry_app_not_installed(self) -> None:
+        other_org = self.create_organization()
+        action = self.create_action(
+            type=Action.Type.SENTRY_APP,
+            config={
+                "target_identifier": str(self.sentry_app.id),
+                "target_type": ActionTarget.SENTRY_APP.value,
+            },
+        )
+
+        with pytest.raises(ActionTargetNotFoundError):
+            self.handler.build_rule_action_blob(action, other_org.id)
 
 
 class TestInvokeFutureWithErrorHandling(BaseWorkflowTest):
