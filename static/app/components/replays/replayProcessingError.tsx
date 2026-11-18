@@ -63,11 +63,7 @@ export function ReplayProcessingError({className}: Props) {
             )}
           </p>
         )}
-        <p>
-          {t(
-            'You can still look through the activity, network requests, and console logs for this replay.'
-          )}
-        </p>
+        <p>{t('Other information captured for this replay is still available.')}</p>
       </StyledAlert>
     );
   }
