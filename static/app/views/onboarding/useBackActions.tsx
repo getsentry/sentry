@@ -2,7 +2,6 @@ import {useCallback} from 'react';
 import {useBlocker} from 'react-router';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {defined} from 'sentry/utils/defined';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -62,18 +61,14 @@ export function useBackActions({
     return false;
   });
 
-  const handleGoBack = useCallback(
-    (goToStepIndex?: number) => {
-      const prevStep =
-        onboardingSteps[defined(goToStepIndex) ? goToStepIndex : stepIndex - 1];
-      if (!prevStep) {
-        return;
-      }
-      trackBack(prevStep, false);
-      goToStep(prevStep);
-    },
-    [stepIndex, onboardingSteps, trackBack, goToStep]
-  );
+  const handleGoBack = useCallback(() => {
+    const prevStep = onboardingSteps[stepIndex - 1];
+    if (!prevStep) {
+      return;
+    }
+    trackBack(prevStep, false);
+    goToStep(prevStep);
+  }, [stepIndex, onboardingSteps, trackBack, goToStep]);
 
   return {handleGoBack};
 }

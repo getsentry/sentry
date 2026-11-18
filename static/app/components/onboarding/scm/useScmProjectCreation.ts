@@ -4,7 +4,6 @@ import {useQueryClient, type QueryClient} from '@tanstack/react-query';
 
 import {toast} from '@sentry/scraps/toast';
 
-import type {Client} from 'sentry/api';
 import {
   getProjectWorkflowVariables,
   useCreateProjectAndRules,
@@ -22,7 +21,7 @@ import type {Organization, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApi} from 'sentry/utils/useApi';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useTeams} from 'sentry/utils/useTeams';
@@ -121,7 +120,6 @@ export function useScmProjectCreation({
   onCreatedProjectChange,
   selectedRepository,
 }: UseScmProjectCreationOptions) {
-  const api = useApi();
   const queryClient = useQueryClient();
   const organization = useOrganization();
   const {teams, fetching: isLoadingTeams} = useTeams();
@@ -179,7 +177,6 @@ export function useScmProjectCreation({
           let project = existingProject;
           if (platformChanged) {
             const updated = await updateProjectPlatform({
-              api,
               organization,
               project: existingProject,
               platformKey: platform.key,
@@ -211,7 +208,6 @@ export function useScmProjectCreation({
             // high-priority workflow with email and the integration action.
             try {
               workflow = await replaceProjectWorkflow({
-                api,
                 queryClient,
                 organization,
                 project,
@@ -325,7 +321,6 @@ export function useScmProjectCreation({
       }
     },
     [
-      api,
       createProjectAndRules,
       createProjectWorkflow,
       createdProject,
@@ -348,20 +343,21 @@ export function useScmProjectCreation({
  * slug is taken), since the platform is what the setup docs depend on.
  */
 async function updateProjectPlatform({
-  api,
   organization,
   project,
   platformKey,
   selectedRepository,
 }: {
-  api: Client;
   organization: Organization;
   platformKey: OnboardingSelectedSDK['key'];
   project: Project;
   selectedRepository: Repository | undefined;
 }): Promise<Project> {
   const url = getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
-    path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+    path: {
+      organizationIdOrSlug: organization.slug,
+      projectIdOrSlug: project.slug,
+    },
   });
   const oldDefaultName = getScmDefaultProjectName({
     repository: selectedRepository,
@@ -374,19 +370,23 @@ async function updateProjectPlatform({
   const shouldRename =
     project.name === oldDefaultName && newDefaultName !== oldDefaultName;
 
-  let updated: Project | undefined;
+  let updated: Project | null = null;
   if (shouldRename) {
-    updated = await api
-      .requestPromise(url, {
-        method: 'PUT',
-        data: {platform: platformKey, name: newDefaultName, slug: newDefaultName},
-      })
-      .catch(() => {});
+    updated = await fetchMutation<Project>({
+      url,
+      method: 'PUT',
+      data: {
+        platform: platformKey,
+        name: newDefaultName,
+        slug: newDefaultName,
+      },
+    }).catch(() => null);
   }
-  updated ??= (await api.requestPromise(url, {
+  updated ??= await fetchMutation<Project>({
+    url,
     method: 'PUT',
     data: {platform: platformKey},
-  })) as Project;
+  });
 
   ProjectsStore.onUpdateSuccess(updated);
   return updated;
@@ -402,13 +402,11 @@ async function updateProjectPlatform({
  * then has both workflows, which costs a duplicate notification, not data.
  */
 async function replaceProjectWorkflow({
-  api,
   queryClient,
   organization,
   project,
   create,
 }: {
-  api: Client;
   create: () => Promise<CreatedProjectWorkflow>;
   organization: Organization;
   project: Project;
@@ -436,17 +434,17 @@ async function replaceProjectWorkflow({
 
   await Promise.all(
     oldWorkflowIds.map(workflowId =>
-      api
-        .requestPromise(
-          getApiUrl('/organizations/$organizationIdOrSlug/workflows/$workflowId/', {
-            path: {organizationIdOrSlug: organization.slug, workflowId},
-          }),
-          {method: 'DELETE'}
-        )
-        .catch(error => Sentry.captureException(error))
+      fetchMutation({
+        url: getApiUrl('/organizations/$organizationIdOrSlug/workflows/$workflowId/', {
+          path: {organizationIdOrSlug: organization.slug, workflowId},
+        }),
+        method: 'DELETE',
+      }).catch(error => Sentry.captureException(error))
     )
   );
-  queryClient.invalidateQueries({queryKey: automationsApiOptions(organization).queryKey});
+  queryClient.invalidateQueries({
+    queryKey: automationsApiOptions(organization).queryKey,
+  });
 
   return workflow;
 }
