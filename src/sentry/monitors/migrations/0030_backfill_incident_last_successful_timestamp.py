@@ -5,7 +5,6 @@ from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
 
 from sentry.new_migrations.migrations import CheckedMigration
-from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
 
 CHECKIN_STATUS_OK = 1
 
@@ -16,14 +15,17 @@ def backfill_last_successful_timestamp(
     MonitorCheckIn = apps.get_model("monitors", "MonitorCheckIn")
     MonitorIncident = apps.get_model("monitors", "MonitorIncident")
 
-    open_incidents = MonitorIncident.objects.filter(
-        resolving_checkin__isnull=True,
-        last_successful_timestamp__isnull=True,
+    # Few enough to load at once, and the partial active-incident index serves this.
+    open_incidents = list(
+        MonitorIncident.objects.filter(
+            resolving_checkin__isnull=True,
+            last_successful_timestamp__isnull=True,
+        ).values_list("id", "monitor_environment_id")
     )
-    for incident in RangeQuerySetWrapperWithProgressBar(open_incidents):
+    for incident_id, monitor_environment_id in open_incidents:
         last_successful = (
             MonitorCheckIn.objects.filter(
-                monitor_environment_id=incident.monitor_environment_id,
+                monitor_environment_id=monitor_environment_id,
                 status=CHECKIN_STATUS_OK,
             )
             .order_by("-date_added")
@@ -34,7 +36,7 @@ def backfill_last_successful_timestamp(
             continue
         # Don't overwrite a value an OK check-in wrote since we read the incident.
         MonitorIncident.objects.filter(
-            id=incident.id, last_successful_timestamp__isnull=True
+            id=incident_id, last_successful_timestamp__isnull=True
         ).update(last_successful_timestamp=last_successful)
 
 
