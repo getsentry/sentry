@@ -435,6 +435,7 @@ interface TourGuideProps extends Omit<
 
 function createTourFocusScope({isRunning}: {isRunning: boolean}): TourFocusScope {
   let returnTarget: HTMLElement | null = null;
+  let hasEntered = false;
   return {
     end: () => {
       isRunning = false;
@@ -443,6 +444,9 @@ function createTourFocusScope({isRunning}: {isRunning: boolean}): TourFocusScope
       if (!returnTarget && previousFocus instanceof HTMLElement) {
         returnTarget = previousFocus;
       }
+      const isFirst = !hasEntered;
+      hasEntered = true;
+      return isFirst;
     },
     exit: () => (isRunning ? null : returnTarget),
   };
@@ -541,6 +545,7 @@ export function TourGuide({
   }, [isOpen, triggerRef]);
 
   const isDialog = variant === 'subtle';
+  const [isFocusRingVisible, setIsFocusRingVisible] = useState(false);
   useEffect(() => {
     const overlay = overlayRef.current;
     // The guide's element attaches after it opens, and this runs again then.
@@ -551,7 +556,9 @@ export function TourGuide({
     const scope = focusScope ?? createTourFocusScope({isRunning: false});
     // Like a react-aria dialog, the guide takes focus as it opens.
     if (!overlay.contains(document.activeElement)) {
-      scope.enter(document.activeElement);
+      // Only the tour's first guide shows the focus ring, so the user notices
+      // the tour start; later steps take focus without it.
+      setIsFocusRingVisible(scope.enter(document.activeElement));
       overlay.focus();
     }
     let hasFocus = overlay.contains(document.activeElement);
@@ -607,15 +614,17 @@ export function TourGuide({
   };
   const titleId = useId();
   const descriptionId = useId();
-  const dialogProps: HTMLAttributes<HTMLElement> = isDialog
-    ? {
-        role: 'dialog',
-        tabIndex: -1,
-        onKeyDown: handleKeyDown,
-        'aria-labelledby': title ? titleId : undefined,
-        'aria-describedby': description ? descriptionId : undefined,
-      }
-    : {};
+  const dialogProps: HTMLAttributes<HTMLElement> & {'data-focus-ring'?: boolean} =
+    isDialog
+      ? {
+          role: 'dialog',
+          tabIndex: -1,
+          onKeyDown: handleKeyDown,
+          'data-focus-ring': isFocusRingVisible || undefined,
+          'aria-labelledby': title ? titleId : undefined,
+          'aria-describedby': description ? descriptionId : undefined,
+        }
+      : {};
 
   return (
     <Fragment>
@@ -736,14 +745,14 @@ export function TextTourAction(props: React.ComponentProps<typeof Button>) {
 }
 
 /**
- * A focused guide shows the focus ring on its visible box, rather than the
- * browser's outline around the wrapper that positions it.
+ * The tour's first guide shows the focus ring on its visible box, rather than
+ * the browser's outline around the wrapper that positions it.
  */
 const GuidePositionWrapper = styled(PositionWrapper)`
   outline: none;
 
   /* Like a focused button, the ring wraps the box's bottom edge too. */
-  &:focus-visible > [data-overlay] {
+  &[data-focus-ring]:focus > [data-overlay] {
     box-shadow:
       0 2px 0 0 ${darkTheme.tokens.border.primary},
       0 2px 0 2px ${p => p.theme.tokens.focus.default},

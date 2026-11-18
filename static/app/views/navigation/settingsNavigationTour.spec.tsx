@@ -169,6 +169,17 @@ describe('Settings navigation tour', () => {
     expect(screen.getByRole('button', {name: 'Give Feedback'})).toHaveFocus();
   });
 
+  it('shows the focus ring on the first guide only', async () => {
+    render(<Tour />, {organization});
+    const firstGuide = await screen.findByRole('dialog', {name: 'Tour entry'});
+    expect(firstGuide).toHaveFocus();
+    expect(firstGuide).toHaveAttribute('data-focus-ring');
+    await userEvent.click(screen.getByRole('button', {name: 'Next'}));
+    const secondGuide = await screen.findByRole('dialog', {name: 'Tour projects'});
+    expect(secondGuide).toHaveFocus();
+    expect(secondGuide).not.toHaveAttribute('data-focus-ring');
+  });
+
   it('leaves focus on the page when nothing had it before the tour started', async () => {
     render(<Tour />, {organization});
     expect(await screen.findByRole('dialog', {name: 'Tour entry'})).toHaveFocus();

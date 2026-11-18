@@ -305,9 +305,10 @@ export interface TourFocusScope {
   end: () => void;
   /**
    * Called as a guide takes focus. The scope keeps the first element it gets,
-   * which is what had focus before the tour.
+   * which is what had focus before the tour. Returns whether this is the
+   * tour's first guide to take focus.
    */
-  enter: (previousFocus: Element | null) => void;
+  enter: (previousFocus: Element | null) => boolean;
   /**
    * Where focus goes as a guide closes: nowhere while the scope runs, since
    * the next guide takes focus over.
