@@ -28,9 +28,6 @@ import type {ChartBand} from './mergeChartBands';
 
 export const ANNOTATION_BAND_SERIES_ID = '__annotation_band__';
 
-/**
- * The order of the kinds in the tooltip, matching the Layers menu.
- */
 const ANNOTATION_KINDS: AnnotationKind[] = ['release', 'flag', 'change'];
 
 const ANNOTATION_KIND_LABELS: Record<AnnotationKind, string> = {
