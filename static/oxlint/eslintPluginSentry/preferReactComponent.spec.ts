@@ -69,6 +69,46 @@ ruleTester.run('prefer-react-component', preferReactComponent, {
       code: 'class Component { render() { return <div />; } }',
     },
     {
+      name: 'conditional with a non-JSX consequent',
+      code: 'function Component() { const getValue = () => (condition ? value : <Heading />); return <div>{getValue()}</div>; }',
+    },
+    {
+      name: 'conditional with a non-JSX alternate',
+      code: 'function Component() { const getValue = () => (condition ? <Heading /> : value); return <div>{getValue()}</div>; }',
+    },
+    {
+      name: 'invoked function with a non-JSX return branch',
+      code: 'function Component() { function getHeader() { if (condition) return <Heading />; return value; } return <div>{getHeader()}</div>; }',
+    },
+    {
+      name: 'invoked function with a bare return',
+      code: 'function Component() { function getHeader() { if (condition) return <Heading />; return; } return <div>{getHeader()}</div>; }',
+    },
+    {
+      name: 'invoked block-bodied function without returns',
+      code: 'function Component() { const track = () => { log(); }; track(); return <div />; }',
+    },
+    {
+      name: 'async function returning JSX',
+      code: 'function Component() { async function loadHeader() { return <Heading />; } loadHeader(); return <div />; }',
+    },
+    {
+      name: 'generator function returning JSX',
+      code: 'function Component() { function* makeHeaders() { return <Heading />; } makeHeaders(); return <div />; }',
+    },
+    {
+      name: 'anonymous JSX-returning callback',
+      code: 'function Component() { return <div>{items.map(() => <Heading />)}</div>; }',
+    },
+    {
+      name: 'JSX-returning function passed as an argument',
+      code: 'function Component() { const renderItem = () => <Heading />; return <div>{items.map(renderItem)}</div>; }',
+    },
+    {
+      name: 'top-level JSX',
+      code: 'const element = <Heading />;',
+    },
+    {
       name: 'JSX-returning function passed as a prop',
       code: `
         function Component() {
@@ -174,6 +214,49 @@ ruleTester.run('prefer-react-component', preferReactComponent, {
       name: 'function inside a custom hook',
       code: 'function useComponentData() { const makeHeader = () => <Heading />; return {header: makeHeader()}; }',
       errors: [{messageId: 'useComponent', data: {name: 'makeHeader'}}],
+    },
+    {
+      name: 'type assertion returning JSX',
+      code: 'function Component() { const makeHeader = () => <Heading /> as Element; return <div>{makeHeader()}</div>; }',
+      filename: 'component.tsx',
+      errors: [{messageId: 'useComponent', data: {name: 'makeHeader'}}],
+    },
+    {
+      name: 'non-null assertion returning JSX',
+      code: 'function Component() { const makeHeader = () => (<Heading />)!; return <div>{makeHeader()}</div>; }',
+      filename: 'component.tsx',
+      errors: [{messageId: 'useComponent', data: {name: 'makeHeader'}}],
+    },
+    {
+      name: 'satisfies returning JSX',
+      code: 'function Component() { const makeHeader = () => <Heading /> satisfies Element; return <div>{makeHeader()}</div>; }',
+      filename: 'component.tsx',
+      errors: [{messageId: 'useComponent', data: {name: 'makeHeader'}}],
+    },
+    {
+      name: 'angle-bracket assertion returning null',
+      code: 'function useHeader() { const makeHeader = () => <Element>null; return makeHeader(); }',
+      filename: 'hook.ts',
+      errors: [{messageId: 'useComponent', data: {name: 'makeHeader'}}],
+    },
+    {
+      name: 'helper parameter shares its name',
+      code: 'function Component() { function makeHeader(makeHeader) { return <Heading>{makeHeader}</Heading>; } return <div>{makeHeader(title)}</div>; }',
+      errors: [{messageId: 'useComponent', data: {name: 'makeHeader'}}],
+    },
+    {
+      name: 'reports the helper name',
+      code: 'function Component() { const makeHeader = () => { return <Heading />; }; return <div>{makeHeader()}</div>; }',
+      errors: [
+        {
+          messageId: 'useComponent',
+          data: {name: 'makeHeader'},
+          line: 1,
+          column: 29,
+          endLine: 1,
+          endColumn: 39,
+        },
+      ],
     },
     {
       name: 'function inside a component with a non-helper name',

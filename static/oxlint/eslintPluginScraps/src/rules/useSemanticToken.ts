@@ -6,8 +6,7 @@ import {defineRule} from '@oxlint/plugins';
  * CSS properties based on their semantic category.
  */
 
-import {createStyleCollector, shouldAnalyze} from '../ast/extractor/index.ts';
-import type {StyleDeclaration} from '../ast/extractor/types.ts';
+import {createStyleVisitors, shouldAnalyze} from '../ast/extractor/index.ts';
 import {findRuleForToken, PROPERTY_TO_RULE} from '../config/tokenRules.ts';
 
 interface Options {
@@ -52,71 +51,32 @@ export const useSemanticToken = defineRule({
       ? new Set(options.enabledCategories)
       : null; // null means all enabled
 
-    /**
-     * Check if a category is enabled in the rule options.
-     * @returns {boolean}
-     */
-    function isCategoryEnabled(categoryName: string) {
-      return enabledCategories === null || enabledCategories.has(categoryName);
-    }
-    const {collector, visitors} = createStyleCollector(context);
-
-    /**
-     * Validate a single StyleDeclaration
-     */
-    function validateDeclaration(decl: StyleDeclaration) {
-      const normalizedProperty = decl.property.name;
-      if (normalizedProperty.startsWith('--')) {
+    return createStyleVisitors(context, (property, {node, tokenPath}) => {
+      if (property.startsWith('--')) {
         return;
       }
-
-      for (const value of decl.values) {
-        if (!value.tokenInfo) {
-          continue;
-        }
-        const {tokenPath, node: tokenNode} = value.tokenInfo;
-        const rule = findRuleForToken(tokenPath);
-
-        if (!rule) {
-          continue;
-        }
-        if (!isCategoryEnabled(rule.name)) {
-          continue;
-        }
-        if (!rule.allowedProperties.has(normalizedProperty)) {
-          const suggestedCategory = PROPERTY_TO_RULE.get(normalizedProperty);
-          if (suggestedCategory) {
-            context.report({
-              node: tokenNode,
-              messageId: 'invalidPropertyWithSuggestion',
-              data: {
-                tokenPath,
-                property: normalizedProperty,
-                suggestedCategory,
-              },
-            });
-          } else {
-            context.report({
-              node: tokenNode,
-              messageId: 'invalidProperty',
-              data: {
-                tokenPath,
-                property: normalizedProperty,
-              },
-            });
-          }
-        }
+      const rule = findRuleForToken(tokenPath);
+      if (
+        !rule ||
+        (enabledCategories && !enabledCategories.has(rule.name)) ||
+        rule.allowedProperties.has(property)
+      ) {
+        return;
       }
-    }
-    return {
-      ...visitors,
-      'Program:exit'() {
-        for (const declaration of collector.getAll()) {
-          validateDeclaration(declaration);
-        }
-        // Clean up for next file
-        collector.clear();
-      },
-    };
+      const suggestedCategory = PROPERTY_TO_RULE.get(property);
+      if (suggestedCategory) {
+        context.report({
+          node,
+          messageId: 'invalidPropertyWithSuggestion',
+          data: {tokenPath, property, suggestedCategory},
+        });
+      } else {
+        context.report({
+          node,
+          messageId: 'invalidProperty',
+          data: {tokenPath, property},
+        });
+      }
+    });
   },
 });

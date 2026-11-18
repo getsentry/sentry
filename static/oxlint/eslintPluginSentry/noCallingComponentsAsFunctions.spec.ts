@@ -82,6 +82,26 @@ ruleTester.run('no-calling-components-as-functions', noCallingComponentsAsFuncti
     {code: 'import {Component} from "./c"; const x = Component(`template`);'},
     // Declared as a non-function variable — not tracked
     {code: 'const Component = "hello"; const x = Component({a: 1});'},
+    {code: 'let Component; const x = Component({a: 1});'},
+    {code: 'import {helper} from "./h"; const x = helper({a: 1});'},
+    {code: 'function helper() { return null; } const x = helper({a: 1});'},
+    {code: 'const helper = () => null; const x = helper({a: 1});'},
+    {code: 'export default function () { return <div />; }'},
+    {
+      code: 'import {ProjectFixture} from "./fixtures"; const x = ProjectFixture({slug: "test"});',
+    },
+    {
+      code: 'function A(Row) { return Row({a}); } function Row() { return <div />; }',
+    },
+    {
+      code: 'function A() { const Row = make(); return Row({a}); } function Row() { return <div />; }',
+    },
+    {
+      code: 'function Row() { return <div />; } function A(Row) { return Row({a}); }',
+    },
+    {
+      code: 'import {Row} from "./row"; function A() { const Row = make(); return Row({a}); }',
+    },
   ],
 
   invalid: [
@@ -106,8 +126,14 @@ ruleTester.run('no-calling-components-as-functions', noCallingComponentsAsFuncti
     },
     // Imported component — key-value property
     {
-      code: 'import {Component} from "./c"; const x = Component({key: value});',
-      output: 'import {Component} from "./c"; const x = <Component key={value} />;',
+      code: 'import {Component} from "./c"; const x = Component({title: value});',
+      output: 'import {Component} from "./c"; const x = <Component title={value} />;',
+      errors: [{messageId: 'noCallingComponentAsFunction'}],
+    },
+    {
+      code: 'import {Component} from "./c"; const x = Component({"aria-label": label});',
+      output:
+        'import {Component} from "./c"; const x = <Component aria-label={label} />;',
       errors: [{messageId: 'noCallingComponentAsFunction'}],
     },
     // Imported component — mixed shorthand and key-value
@@ -154,6 +180,85 @@ ruleTester.run('no-calling-components-as-functions', noCallingComponentsAsFuncti
     {
       code: 'import {Component} from "./c"; const x = Component({[dynamicKey]: value});',
       output: null,
+      errors: [{messageId: 'noCallingComponentAsFunction'}],
+    },
+    {
+      code: 'import {Component} from "./c"; const x = Component({key: value});',
+      output: null,
+      errors: [{messageId: 'noCallingComponentAsFunction'}],
+    },
+    {
+      code: 'import {Component} from "./c"; const x = Component({"data label": value});',
+      output: null,
+      errors: [{messageId: 'noCallingComponentAsFunction'}],
+    },
+    {
+      code: 'import {Component} from "./c"; const x = Component({1: value});',
+      output: null,
+      errors: [{messageId: 'noCallingComponentAsFunction'}],
+    },
+    {
+      code: 'import {Component} from "./c"; const x = Component({render() { return null; }});',
+      output: null,
+      errors: [{messageId: 'noCallingComponentAsFunction'}],
+    },
+    {
+      code: 'import {Component} from "./c"; const x = Component({get title() { return value; }});',
+      output: null,
+      errors: [{messageId: 'noCallingComponentAsFunction'}],
+    },
+    {
+      code: 'import {Component} from "./c"; const x = Component({/* label */ title});',
+      output: null,
+      errors: [{messageId: 'noCallingComponentAsFunction'}],
+    },
+    {
+      code: 'import {Component} from "./c"; const x = Component?.({title});',
+      output: null,
+      errors: [{messageId: 'noCallingComponentAsFunction'}],
+    },
+    {
+      code: 'import {Component} from "./c"; const x = Component<Props>({title});',
+      output: null,
+      errors: [{messageId: 'noCallingComponentAsFunction'}],
+      filename: 'component.tsx',
+    },
+    {
+      code: 'import {Component} from "./c"; const x = Component({title: (a, b)});',
+      output: null,
+      errors: [{messageId: 'noCallingComponentAsFunction'}],
+    },
+    {
+      code: 'import {Component} from "./c"; const x = Component({...(a, b)});',
+      output: null,
+      errors: [{messageId: 'noCallingComponentAsFunction'}],
+    },
+    {
+      code: 'import {Component} from "./c"; const x = Component({__proto__: value});',
+      output: null,
+      errors: [{messageId: 'noCallingComponentAsFunction'}],
+    },
+    {
+      code: 'import {Component} from "./c"; const x = Component({"__proto__": value});',
+      output: null,
+      errors: [{messageId: 'noCallingComponentAsFunction'}],
+    },
+    {
+      code: 'import {Component} from "./c"; const x = Component({title: a, ...rest, title: b});',
+      output: null,
+      errors: [{messageId: 'noCallingComponentAsFunction'}],
+    },
+    {
+      code: 'function render() { return Row({title}); } const Row = () => <div />;',
+      output:
+        'function render() { return <Row title={title} />; } const Row = () => <div />;',
+      errors: [{messageId: 'noCallingComponentAsFunction'}],
+    },
+    // Component declared after it is called
+    {
+      code: 'function render() { return Row({title}); } function Row({title}) { return <div />; }',
+      output:
+        'function render() { return <Row title={title} />; } function Row({title}) { return <div />; }',
       errors: [{messageId: 'noCallingComponentAsFunction'}],
     },
     // Default import

@@ -16,7 +16,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {InteractionStateLayer} from 'sentry/components/interactionStateLayer';
 import {StrictClick} from 'sentry/components/strictClick';
 import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {t, tn} from 'sentry/locale';

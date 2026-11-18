@@ -26,6 +26,7 @@ interface FunctionDefaults {
 function getHardcodedValue(node: ESTree.Node): HardcodedValue | typeof NOT_HARDCODED {
   if (
     node.type === 'TSAsExpression' ||
+    node.type === 'TSSatisfiesExpression' ||
     node.type === 'TSTypeAssertion' ||
     node.type === 'TSNonNullExpression'
   ) {
@@ -45,22 +46,21 @@ function getHardcodedValue(node: ESTree.Node): HardcodedValue | typeof NOT_HARDC
     return NOT_HARDCODED;
   }
 
-  if (
-    node.type === 'TemplateLiteral' &&
-    node.expressions.length === 0 &&
-    node.quasis[0]?.value.cooked !== null &&
-    node.quasis[0]?.value.cooked !== undefined
-  ) {
-    return node.quasis[0].value.cooked;
+  if (node.type === 'TemplateLiteral' && node.expressions.length === 0) {
+    return node.quasis[0]?.value.cooked ?? NOT_HARDCODED;
   }
 
-  if (
-    node.type === 'UnaryExpression' &&
-    (node.operator === '-' || node.operator === '+') &&
-    node.argument.type === 'Literal' &&
-    typeof node.argument.value === 'number'
-  ) {
-    return node.operator === '-' ? -node.argument.value : node.argument.value;
+  if (node.type === 'UnaryExpression' && node.argument.type === 'Literal') {
+    const operand = node.argument.value;
+    if (typeof operand === 'number' && node.operator === '+') {
+      return operand;
+    }
+    if (
+      (typeof operand === 'number' || typeof operand === 'bigint') &&
+      node.operator === '-'
+    ) {
+      return -operand;
+    }
   }
 
   return NOT_HARDCODED;
@@ -108,7 +108,10 @@ function getFunctionDefaults(
     positional: new Map(),
   };
 
-  node.params.forEach((parameter, index) => {
+  const runtimeParameters = node.params.filter(
+    parameter => parameter.type !== 'Identifier' || parameter.name !== 'this'
+  );
+  runtimeParameters.forEach((parameter, index) => {
     if (parameter.type === 'AssignmentPattern') {
       if (parameter.left.type === 'Identifier') {
         const value = getHardcodedValue(parameter.right);
@@ -164,7 +167,7 @@ function getTypeScriptHardcodedValue(
     return Number(node.text);
   }
   if (ts.isBigIntLiteral(node)) {
-    return BigInt(node.getText().replaceAll('_', '').slice(0, -1));
+    return BigInt(node.text.slice(0, -1));
   }
   if (node.kind === ts.SyntaxKind.TrueKeyword) {
     return true;
@@ -208,7 +211,7 @@ function getTypeScriptObjectDefaults(pattern: ts.ObjectBindingPattern) {
   const defaults = new Map<string, DefaultValue>();
 
   for (const element of pattern.elements) {
-    if (element.dotDotDotToken || !element.initializer) {
+    if (!element.initializer) {
       continue;
     }
 
@@ -258,16 +261,9 @@ function getTypeScriptFunctionDefaults(
 }
 
 function getFunctionLikeDeclaration(
-  declaration: ts.Declaration
+  declaration: ts.VariableDeclaration
 ): ts.SignatureDeclarationBase | undefined {
-  if (
-    ts.isFunctionDeclaration(declaration) ||
-    ts.isFunctionExpression(declaration) ||
-    ts.isArrowFunction(declaration)
-  ) {
-    return declaration;
-  }
-  if (!ts.isVariableDeclaration(declaration) || !declaration.initializer) {
+  if (!declaration.initializer) {
     return undefined;
   }
 
@@ -613,7 +609,7 @@ function resolveExportedDefaults(
               seen
             )
           : resolveLocalDefaults(resolver, sourceFile, localName, seen);
-      } else if (moduleSpecifier && exportName !== 'default') {
+      } else if (!statement.exportClause && moduleSpecifier && exportName !== 'default') {
         defaults = resolveModuleExport(
           resolver,
           sourceFile.fileName,
@@ -662,23 +658,6 @@ function getImportedBinding(
     default:
       return undefined;
   }
-}
-
-function getSyntacticImportedDefaults(
-  resolver: SyntacticResolver,
-  fileName: string,
-  variable: Variable
-): FunctionDefaults | undefined {
-  const imported = getImportedBinding(variable);
-  return imported
-    ? resolveModuleExport(
-        resolver,
-        fileName,
-        imported.moduleSpecifier,
-        imported.exportName,
-        new Set()
-      )
-    : undefined;
 }
 
 function objectExpressionHasHardcodedCandidate(node: ESTree.ObjectExpression): boolean {
@@ -803,7 +782,8 @@ export const noRedundantDefaultArgument = defineRule({
         return importedDefaultsByVariable.get(variable);
       }
 
-      if (!getImportedBinding(variable)) {
+      const imported = getImportedBinding(variable);
+      if (!imported) {
         importedDefaultsByVariable.set(variable, null);
         return;
       }
@@ -812,7 +792,13 @@ export const noRedundantDefaultArgument = defineRule({
         syntacticResolver = getSyntacticResolver(currentFileName) ?? null;
       }
       const defaults = syntacticResolver
-        ? getSyntacticImportedDefaults(syntacticResolver, currentFileName, variable)
+        ? resolveModuleExport(
+            syntacticResolver,
+            currentFileName,
+            imported.moduleSpecifier,
+            imported.exportName,
+            new Set()
+          )
         : undefined;
       importedDefaultsByVariable.set(variable, defaults ?? null);
       return defaults;
@@ -866,25 +852,29 @@ export const noRedundantDefaultArgument = defineRule({
       node: ESTree.CallExpression,
       firstIndex: number
     ) {
+      const {sourceCode} = context;
       const firstArgument = node.arguments[firstIndex];
-      const lastArgument = node.arguments.at(-1);
-      if (!firstArgument || !lastArgument) {
+      const closingParen = sourceCode.getLastToken(node);
+      if (!firstArgument || !closingParen) {
         return null;
       }
 
-      let rangeStart = firstArgument.range[0];
-      if (firstIndex > 0) {
-        const previousArgument = node.arguments[firstIndex - 1];
-        if (!previousArgument) {
-          return null;
-        }
-        rangeStart = previousArgument.range[1];
+      const lastToken = sourceCode.getTokenBefore(closingParen);
+      const tokenBeforeArguments =
+        firstIndex === 0
+          ? sourceCode.getTokenAfter(node.typeArguments ?? node.callee, {
+              filter: token => token.value === '(',
+            })
+          : sourceCode.getTokenBefore(firstArgument, {
+              filter: token => token.value === ',',
+            });
+      if (!lastToken || !tokenBeforeArguments) {
+        return null;
       }
 
-      const tokenAfter = context.sourceCode.getTokenAfter(lastArgument);
       const range: Range = [
-        rangeStart,
-        tokenAfter?.value === ',' ? tokenAfter.range[1] : lastArgument.range[1],
+        firstIndex === 0 ? tokenBeforeArguments.range[1] : tokenBeforeArguments.range[0],
+        lastToken.range[1],
       ];
       return rangeContainsComment(range) ? null : fixer.removeRange(range);
     }
@@ -962,7 +952,7 @@ export const noRedundantDefaultArgument = defineRule({
           continue;
         }
 
-        let rangeStart = node.name.range[1];
+        let rangeStart = (node.typeArguments ?? node.name).range[1];
         if (start > 0) {
           const previousAttribute = node.attributes[start - 1];
           if (!previousAttribute) {
@@ -996,9 +986,11 @@ export const noRedundantDefaultArgument = defineRule({
       defaults: Map<string, DefaultValue>
     ) {
       const seen = new Set<string>();
-      const redundantProperties: Array<{
+      const duplicates = new Set<string>();
+      let redundantProperties: Array<{
         defaultValue: DefaultValue;
         index: number;
+        name: string;
         property: ESTree.ObjectProperty;
       }> = [];
 
@@ -1015,22 +1007,25 @@ export const noRedundantDefaultArgument = defineRule({
         }
 
         const name = getPropertyName(property.key, property.computed);
-        if (name === undefined || seen.has(name)) {
+        if (name === undefined) {
+          continue;
+        }
+        if (seen.has(name)) {
+          duplicates.add(name);
           continue;
         }
         seen.add(name);
 
         const defaultValue = defaults.get(name);
-        const value = getHardcodedValue(property.value);
         if (
           defaultValue &&
-          value !== NOT_HARDCODED &&
-          Object.is(value, defaultValue.value)
+          Object.is(getHardcodedValue(property.value), defaultValue.value)
         ) {
-          redundantProperties.push({defaultValue, index, property});
+          redundantProperties.push({defaultValue, index, name, property});
         }
       }
 
+      redundantProperties = redundantProperties.filter(({name}) => !duplicates.has(name));
       redundantProperties.reverse();
       const indices = redundantProperties.map(({index}) => index);
       redundantProperties.forEach(({defaultValue, property}, index) => {
@@ -1057,11 +1052,9 @@ export const noRedundantDefaultArgument = defineRule({
             break;
           }
           const defaultValue = defaults.positional.get(index);
-          const value = getHardcodedValue(argument);
           if (
             !defaultValue ||
-            value === NOT_HARDCODED ||
-            !Object.is(value, defaultValue.value)
+            !Object.is(getHardcodedValue(argument), defaultValue.value)
           ) {
             break;
           }
@@ -1102,10 +1095,12 @@ export const noRedundantDefaultArgument = defineRule({
       }
 
       const seen = new Set<string>();
-      const redundantAttributes: Array<{
+      const duplicates = new Set<string>();
+      let redundantAttributes: Array<{
         attribute: ESTree.JSXAttribute;
         defaultValue: DefaultValue;
         index: number;
+        name: string;
       }> = [];
       for (let index = node.attributes.length - 1; index >= 0; index--) {
         const attribute = node.attributes[index];
@@ -1121,6 +1116,7 @@ export const noRedundantDefaultArgument = defineRule({
 
         const name = attribute.name.name;
         if (seen.has(name)) {
+          duplicates.add(name);
           continue;
         }
         seen.add(name);
@@ -1130,13 +1126,12 @@ export const noRedundantDefaultArgument = defineRule({
           continue;
         }
 
-        const value = getJSXAttributeValue(attribute);
-
-        if (value !== NOT_HARDCODED && Object.is(value, defaultValue.value)) {
-          redundantAttributes.push({attribute, defaultValue, index});
+        if (Object.is(getJSXAttributeValue(attribute), defaultValue.value)) {
+          redundantAttributes.push({attribute, defaultValue, index, name});
         }
       }
 
+      redundantAttributes = redundantAttributes.filter(({name}) => !duplicates.has(name));
       redundantAttributes.reverse();
       const indices = redundantAttributes.map(({index}) => index);
       redundantAttributes.forEach(({attribute, defaultValue}, index) => {
@@ -1197,9 +1192,6 @@ export const noRedundantDefaultArgument = defineRule({
           if (!isStable(variable)) {
             continue;
           }
-          if (node.callee.type !== 'Identifier') {
-            continue;
-          }
           const defaults = getDefaults(variable);
           if (defaults) {
             checkCall(node, defaults);
@@ -1207,9 +1199,6 @@ export const noRedundantDefaultArgument = defineRule({
         }
         for (const {node, variable} of elements) {
           if (!isStable(variable)) {
-            continue;
-          }
-          if (node.name.type !== 'JSXIdentifier') {
             continue;
           }
           const defaults = getDefaults(variable);

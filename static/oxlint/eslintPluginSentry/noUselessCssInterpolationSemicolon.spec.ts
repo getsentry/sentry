@@ -56,6 +56,13 @@ ruleTester.run(
       {
         code: `
         const Foo = styled('div')\`
+          \${p => p.active ? p.color : css\`color: red;\`};
+        \`;
+      `,
+      },
+      {
+        code: `
+        const Foo = styled('div')\`
           \${p => p.color || css\`color: red;\`};
         \`;
       `,
@@ -66,6 +73,12 @@ ruleTester.run(
           color: red;
         \`;
       `,
+      },
+      {
+        code: "const Foo = styled('div')`${p => p.active && other`color: red;`};`;",
+      },
+      {
+        code: 'const value = this.tag`${css`color: red;`};`;',
       },
     ],
     invalid: [
@@ -128,6 +141,39 @@ ruleTester.run(
           \${p => p.active && css\`color: red;\`}
         \`;
       `,
+        errors: [
+          {
+            messageId: 'noUselessSemicolon',
+            line: 3,
+            column: 46,
+            endLine: 3,
+            endColumn: 47,
+          },
+        ],
+      },
+      {
+        code: 'const Foo = styled.div`${css`color: red;`};`;',
+        output: 'const Foo = styled.div`${css`color: red;`}`;',
+        errors: [{messageId: 'noUselessSemicolon'}],
+      },
+      {
+        code: 'const styles = css`${p => p.active && css`color: red;`};`;',
+        output: 'const styles = css`${p => p.active && css`color: red;`}`;',
+        errors: [{messageId: 'noUselessSemicolon'}],
+      },
+      {
+        code: "const Foo = styled('div')`${ p => p.active && css`color: red;` };`;",
+        output: "const Foo = styled('div')`${ p => p.active && css`color: red;` }`;",
+        errors: [{messageId: 'noUselessSemicolon'}],
+      },
+      {
+        code: "const Foo = styled('div')`${(p => p.active && css`color: red;`)};`;",
+        output: "const Foo = styled('div')`${(p => p.active && css`color: red;`)}`;",
+        errors: [{messageId: 'noUselessSemicolon'}],
+      },
+      {
+        code: "const Foo = styled('div')`${css`color: red;` /* comment */};`;",
+        output: "const Foo = styled('div')`${css`color: red;` /* comment */}`;",
         errors: [{messageId: 'noUselessSemicolon'}],
       },
     ],

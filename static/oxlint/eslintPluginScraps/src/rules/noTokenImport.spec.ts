@@ -14,14 +14,9 @@ ruleTester.run('no-token-import', noTokenImport, {
       code: 'const x = require("other-package");',
       filename: '/project/src/foo/file.js',
     },
-
     {
-      code: 'import {colors} from "sentry/utils/theme/scraps/colors";',
-      filename: '/static/app/utils/theme/theme.tsx',
-    },
-    {
-      code: 'import {color} from "@sentry/scraps/tokens/color";',
-      filename: '/static/app/utils/theme/theme.tsx',
+      code: 'import {Tokenized} from "@sentry/scraps/tokenized";',
+      filename: '/static/app/index.tsx',
     },
     {
       code: 'import {size} from "@sentry/scraps/tokens/size";',
@@ -34,11 +29,6 @@ ruleTester.run('no-token-import', noTokenImport, {
   ],
 
   invalid: [
-    {
-      code: 'import {colors} from "sentry/utils/theme/scraps/colors";',
-      filename: '/static/app/index.tsx',
-      errors: [{messageId: 'forbidden'}],
-    },
     {
       code: 'import {size} from "@sentry/scraps/tokens";',
       filename: '/static/app/index.tsx',

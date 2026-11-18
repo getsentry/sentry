@@ -378,37 +378,37 @@ export function SelectRow({
     return columnOptionsWithSearched;
   }, [columnValue, columnOptionsWithSearched]);
 
-  const applySpansConditionalFilter = useCallback(
-    (nextField: QueryFieldValue, nextAggregateName: string): QueryFieldValue => {
-      if (!isSpansDataset || nextField.kind !== FieldValueKind.FUNCTION) {
-        return nextField;
-      }
-      const existingFilter = conditionalAggregate?.filter;
-      const filter = supportsConditionalAggregateFilter(nextAggregateName)
-        ? (existingFilter ?? '')
-        : '';
-      if (!filter && existingFilter === undefined) {
-        return nextField;
-      }
-      // Rebuild from the base aggregate so we do not keep a leftover `_if` name
-      // or a search-filter argument in the column slot.
-      const baseField: QueryFieldValue = {
-        kind: FieldValueKind.FUNCTION,
-        function: [
-          nextAggregateName as AggregationKeyWithAlias,
-          nextField.function[1] ?? '',
-          nextField.function[2],
-          nextField.function[3],
-        ],
-        alias: nextField.alias,
-      };
-      return explodeFieldString(
-        applyConditionalFilter(generateFieldAsString(baseField), filter),
-        nextField.alias
-      );
-    },
-    [conditionalAggregate?.filter, isSpansDataset]
-  );
+  const applySpansConditionalFilter = (
+    nextField: QueryFieldValue,
+    nextAggregateName: string
+  ): QueryFieldValue => {
+    if (!isSpansDataset || nextField.kind !== FieldValueKind.FUNCTION) {
+      return nextField;
+    }
+    const existingFilter = conditionalAggregate?.filter;
+    const filter = supportsConditionalAggregateFilter(nextAggregateName)
+      ? (existingFilter ?? '')
+      : '';
+    if (!filter && existingFilter === undefined) {
+      return nextField;
+    }
+    // Rebuild from the base aggregate so we do not keep a leftover `_if` name
+    // or a search-filter argument in the column slot.
+    const baseField: QueryFieldValue = {
+      kind: FieldValueKind.FUNCTION,
+      function: [
+        nextAggregateName as AggregationKeyWithAlias,
+        nextField.function[1] ?? '',
+        nextField.function[2],
+        nextField.function[3],
+      ],
+      alias: nextField.alias,
+    };
+    return explodeFieldString(
+      applyConditionalFilter(generateFieldAsString(baseField), filter),
+      nextField.alias
+    );
+  };
 
   const handleFilterSearch = useCallback(
     (filter: string) => {

@@ -61,9 +61,7 @@ function attribute(
 ): ESTree.JSXAttribute | undefined {
   return node.attributes.find(
     (item): item is ESTree.JSXAttribute =>
-      item.type === 'JSXAttribute' &&
-      item.name.type === 'JSXIdentifier' &&
-      item.name.name === name
+      item.type === 'JSXAttribute' && item.name.name === name
   );
 }
 
@@ -140,10 +138,7 @@ export const noManualTable = defineRule({
     }
 
     function templateKey(node: ESTree.Node): unknown {
-      if (
-        belowMinimumTracks(node) ||
-        (node.type === 'Identifier' && belowMinimumTracks(constantInit(node)))
-      ) {
+      if (belowMinimumTracks(node) || belowMinimumTracks(constantInit(node))) {
         return null;
       }
       const literal = staticString(node);
@@ -168,10 +163,7 @@ export const noManualTable = defineRule({
 
     function styledRepetitions(node: ESTree.Node): boolean[] {
       const declarator = node.parent;
-      if (
-        declarator?.type !== 'VariableDeclarator' ||
-        declarator.id.type !== 'Identifier'
-      ) {
+      if (declarator?.type !== 'VariableDeclarator') {
         return [false];
       }
       const reads =
@@ -189,8 +181,12 @@ export const noManualTable = defineRule({
         return;
       }
 
-      if (styled.kind === 'element' && TABLE_ELEMENTS.has(styled.name)) {
-        context.report({node, messageId: 'tableElement', data: {element: styled.name}});
+      if (TABLE_ELEMENTS.has(styled.name)) {
+        context.report({
+          node: styled.tag,
+          messageId: 'tableElement',
+          data: {element: styled.name},
+        });
         return;
       }
 
@@ -221,19 +217,21 @@ export const noManualTable = defineRule({
       );
 
       if (
-        styled.kind === 'component' &&
         (columns || mixins.length > 0) &&
-        importTracker
-          .findLocalNames(PANEL_HEADER_SOURCE, 'PanelHeader')
-          .includes(styled.name)
+        styled.tag.type === 'CallExpression' &&
+        styled.tag.arguments[0] &&
+        importTracker.is(styled.tag.arguments[0], PANEL_HEADER_SOURCE, 'PanelHeader')
       ) {
-        context.report({node, messageId: 'panelHeaderColumns'});
+        context.report({node: styled.tag, messageId: 'panelHeaderColumns'});
         return;
       }
 
       const repetitions = styledRepetitions(node);
       for (const mixin of mixins) {
-        addStyledUses(importTracker.resolveVariable(mixin), node, repetitions);
+        const variable = importTracker.resolveVariable(mixin);
+        if (variable) {
+          addStyledUses(variable, styled.tag, repetitions);
+        }
       }
       if (!columns) {
         return;
@@ -244,18 +242,21 @@ export const noManualTable = defineRule({
       if (columns.interpolations.length === 1 && interpolation) {
         const key = templateKey(interpolation.expression);
         if (key !== null) {
-          addStyledUses(key, node, repetitions);
+          addStyledUses(key, styled.tag, repetitions);
         }
       } else if (
         columns.interpolations.length === 0 &&
         countTracks(columns.value) >= MINIMUM_SHARED_TRACKS
       ) {
-        addStyledUses(`literal:${normalizeSpace(columns.value)}`, node, repetitions);
+        addStyledUses(
+          `literal:${normalizeSpace(columns.value)}`,
+          styled.tag,
+          repetitions
+        );
       }
     }
 
     return {
-      ...importTracker.visitors,
       TaggedTemplateExpression: checkStyled,
       CallExpression: checkStyled,
       JSXOpeningElement(node) {
@@ -268,9 +269,14 @@ export const noManualTable = defineRule({
           return;
         }
 
-        const as = staticString(attributeExpression(attribute(node, 'as')));
-        if (as && TABLE_ELEMENTS.has(as)) {
-          context.report({node, messageId: 'tableElement', data: {element: as}});
+        const asAttribute = attribute(node, 'as');
+        const as = staticString(attributeExpression(asAttribute));
+        if (asAttribute && as && TABLE_ELEMENTS.has(as)) {
+          context.report({
+            node: asAttribute,
+            messageId: 'tableElement',
+            data: {element: as},
+          });
           return;
         }
 
@@ -285,12 +291,15 @@ export const noManualTable = defineRule({
         }
       },
       'Program:exit'() {
-        for (const uses of templateUses.values()) {
-          if (uses.some(use => use.repeated) && uses.some(use => !use.repeated)) {
-            for (const node of new Set(uses.map(use => use.node))) {
-              context.report({node, messageId: 'sharedGridTemplate'});
-            }
-          }
+        const shared = new Set(
+          [...templateUses.values()]
+            .filter(
+              uses => uses.some(use => use.repeated) && uses.some(use => !use.repeated)
+            )
+            .flatMap(uses => uses.map(use => use.node))
+        );
+        for (const node of shared) {
+          context.report({node, messageId: 'sharedGridTemplate'});
         }
       },
     };

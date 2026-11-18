@@ -16,11 +16,13 @@ export const noQueryDataTypeParameters = defineRule({
   create(context) {
     return {
       CallExpression(node) {
-        if (!node.typeArguments || node.typeArguments.params.length === 0) {
-          return;
-        }
         const {callee} = node;
-        if (callee.type !== 'MemberExpression' || callee.property.type !== 'Identifier') {
+        if (
+          !node.typeArguments ||
+          callee.type !== 'MemberExpression' ||
+          callee.computed ||
+          callee.property.type !== 'Identifier'
+        ) {
           return;
         }
         const method = callee.property.name;

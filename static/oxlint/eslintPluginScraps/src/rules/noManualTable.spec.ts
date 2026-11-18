@@ -57,6 +57,18 @@ ruleTester.run('no-manual-table', noManualTable, {
     },
     {
       code: `
+        import styled from '@emotion/styled';
+        import {PanelHeader} from 'sentry/components/panels/panelHeader';
+        function make(PanelHeader) {
+          return styled(PanelHeader)\`
+            display: grid;
+            grid-template-columns: 1fr 100px;
+          \`;
+        }
+      `,
+    },
+    {
+      code: `
         import {Grid} from '@sentry/scraps/layout';
         const x = <Grid columns="1fr 200px 150px">a</Grid>;
         const y = <Grid columns="1fr 200px 150px">b</Grid>;
@@ -111,6 +123,143 @@ ruleTester.run('no-manual-table', noManualTable, {
         \`;
       `,
     },
+    {
+      code: `
+        import {Grid} from '@sentry/scraps/layout';
+        const x = <Grid gap="md">a</Grid>;
+      `,
+    },
+    {
+      code: `
+        import {Grid} from '@sentry/scraps/layout';
+        const x = <Grid columns={3}>a</Grid>;
+      `,
+    },
+    {
+      code: `
+        import {Flex} from '@sentry/scraps/layout';
+        const x = <Flex {...props}>a</Flex>;
+      `,
+    },
+    {
+      code: `
+        import {Flex} from '@sentry/scraps/layout';
+        const x = <Flex as="section">a</Flex>;
+      `,
+    },
+    {
+      code: `
+        import {Grid} from '@sentry/scraps/layout';
+        const header = wrap(<Grid columns="1fr 200px 150px">a</Grid>);
+      `,
+    },
+    {
+      code: `
+        import {Grid} from '@sentry/scraps/layout';
+        const header = <Grid columns={\`1fr auto\`}>a</Grid>;
+        const rows = items.map(item => <Grid columns={\`1fr auto\`}>{item}</Grid>);
+      `,
+    },
+    {
+      code: `
+        import {Grid} from '@sentry/scraps/layout';
+        const header = <Grid columns={compact ? COMPACT : FULL}>a</Grid>;
+        const rows = items.map(item => <Grid columns={getColumns(item)}>{item}</Grid>);
+      `,
+    },
+    {
+      code: `
+        import {Grid} from '@sentry/scraps/layout';
+        function Header() {
+          const COLUMNS = getHeaderColumns();
+          return <Grid columns={COLUMNS}>a</Grid>;
+        }
+        function Rows() {
+          const COLUMNS = getRowColumns();
+          return items.map(item => <Grid columns={COLUMNS}>{item}</Grid>);
+        }
+      `,
+    },
+    {
+      code: `
+        import styled from '@emotion/styled';
+        const COLUMNS = '1fr auto';
+        const Header = styled('div')\`
+          grid-template-columns: \${COLUMNS};
+        \`;
+        const Row = styled('div')\`
+          grid-template-columns: \${COLUMNS};
+        \`;
+        const x = <div><Header />{items.map(item => <Row key={item} />)}</div>;
+      `,
+    },
+    {
+      code: `
+        import styled from '@emotion/styled';
+        const Row = styled('div')\`
+          grid-template-columns: 1fr auto;
+        \`;
+        const x = <div><Row />{items.map(item => <Row key={item} />)}</div>;
+      `,
+    },
+    {
+      code: `
+        import styled from '@emotion/styled';
+        const Header = styled('div')\`
+          \${gridHeaderLayout};
+        \`;
+        const Row = styled('div')\`
+          \${columnRowLayout};
+        \`;
+        const x = <div><Header />{items.map(item => <Row key={item} />)}</div>;
+      `,
+    },
+    {
+      code: `
+        import styled from '@emotion/styled';
+        export default styled('div')\`
+          grid-template-columns: 1fr 200px 150px;
+        \`;
+      `,
+    },
+    {
+      code: `
+        import styled from '@emotion/styled';
+        const Row = styled('div')({gridTemplateColumns: '1fr 200px 150px'});
+      `,
+    },
+    {
+      code: `
+        import styled from '@emotion/styled';
+        const Layout = styled(Card)\`
+          display: grid;
+          grid-template-columns: 1fr 200px 150px;
+        \`;
+      `,
+    },
+    {
+      code: `
+        import {css} from '@emotion/react';
+        import styled from '@emotion/styled';
+        import {PanelHeader} from 'sentry/components/panels/panelHeader';
+        const layoutStyles = css\`
+          display: flex;
+        \`;
+        const StyledPanelHeader = styled(PanelHeader)\`
+          \${layoutStyles}
+        \`;
+      `,
+    },
+    {
+      code: `
+        import styled from '@emotion/styled';
+        import {PanelHeader} from 'sentry/components/panels/panelHeader';
+        import {GRID_GAP} from './row';
+        const StyledPanelHeader = styled(PanelHeader)\`
+          gap: \${GRID_GAP};
+        \`;
+      `,
+    },
   ],
   invalid: [
     {
@@ -128,7 +277,33 @@ ruleTester.run('no-manual-table', noManualTable, {
           width: 100%;
         \`;
       `,
-      errors: [{messageId: 'tableElement', data: {element: 'table'}}],
+      errors: [
+        {
+          messageId: 'tableElement',
+          data: {element: 'table'},
+          line: 3,
+          column: 22,
+          endLine: 3,
+          endColumn: 37,
+        },
+      ],
+    },
+    {
+      code: `
+        import styled from '@emotion/styled';
+        const Base = styled('table');
+        const T = Base\`color: red\`;
+      `,
+      errors: [
+        {
+          messageId: 'tableElement',
+          data: {element: 'table'},
+          line: 3,
+          column: 21,
+          endLine: 3,
+          endColumn: 36,
+        },
+      ],
     },
     {
       code: `
@@ -142,6 +317,17 @@ ruleTester.run('no-manual-table', noManualTable, {
         import styled from '@emotion/styled';
         import {PanelHeader} from 'sentry/components/panels/panelHeader';
         const StyledPanelHeader = styled(PanelHeader)\`
+          display: grid;
+          grid-template-columns: \${GRID_TEMPLATE};
+        \`;
+      `,
+      errors: [{messageId: 'panelHeaderColumns'}],
+    },
+    {
+      code: `
+        import styled from '@emotion/styled';
+        import * as panels from 'sentry/components/panels/panelHeader';
+        const StyledPanelHeader = styled(panels.PanelHeader)\`
           display: grid;
           grid-template-columns: \${GRID_TEMPLATE};
         \`;
@@ -217,10 +403,122 @@ ruleTester.run('no-manual-table', noManualTable, {
     },
     {
       code: `
+        import styled from '@emotion/styled';
+        const Header = styled.div(\`display: grid; grid-template-columns: 1fr 2fr 3fr;\`);
+        const Row = styled.div(\`display: grid; grid-template-columns: 1fr 2fr 3fr;\`);
+        const x = <div><Header />{items.map(item => <Row key={item} />)}</div>;
+      `,
+      errors: [{messageId: 'sharedGridTemplate'}, {messageId: 'sharedGridTemplate'}],
+    },
+    {
+      code: `
         import {Grid} from '@sentry/scraps/layout';
         const COLUMNS = {zero: '1fr auto', sm: '1fr 120px 120px'};
         const header = <Grid columns={COLUMNS}>a</Grid>;
         const rows = items.map(item => <Grid columns={COLUMNS}>{item}</Grid>);
+      `,
+      errors: [{messageId: 'sharedGridTemplate'}, {messageId: 'sharedGridTemplate'}],
+    },
+    {
+      code: `
+        import {Flex} from '@sentry/scraps/layout';
+        const x = <Flex gap="md" as="tr" align="center">a</Flex>;
+      `,
+      errors: [
+        {
+          messageId: 'tableElement',
+          data: {element: 'tr'},
+          line: 3,
+          column: 33,
+          endLine: 3,
+          endColumn: 40,
+        },
+      ],
+    },
+    {
+      code: `
+        import {Grid} from '@sentry/scraps/layout';
+        const header = renderer.wrap(<Grid columns="1fr 200px 150px">a</Grid>);
+        const rows = items.map(item => <Grid columns="1fr 200px 150px">{item}</Grid>);
+      `,
+      errors: [{messageId: 'sharedGridTemplate'}, {messageId: 'sharedGridTemplate'}],
+    },
+    {
+      code: `
+        import {Grid} from '@sentry/scraps/layout';
+        let COLUMNS = '1fr auto';
+        const header = <Grid columns={COLUMNS}>a</Grid>;
+        const rows = items.map(item => <Grid columns={COLUMNS}>{item}</Grid>);
+      `,
+      errors: [{messageId: 'sharedGridTemplate'}, {messageId: 'sharedGridTemplate'}],
+    },
+    {
+      code: `
+        import {Grid} from '@sentry/scraps/layout';
+        const header = <Grid columns={\`\${first} 1fr 2fr\`}>a</Grid>;
+        const rows = items.map(item => <Grid columns={\`\${first} 1fr 2fr\`}>{item}</Grid>);
+      `,
+      errors: [{messageId: 'sharedGridTemplate'}, {messageId: 'sharedGridTemplate'}],
+    },
+    {
+      code: `
+        import styled from '@emotion/styled';
+        import {Grid} from '@sentry/scraps/layout';
+        const Row = styled('div')\`
+          grid-template-columns: 1fr 200px 150px;
+        \`;
+        const x = <div><Grid columns="1fr  200px 150px" />{items.map(item => <Row key={item} />)}</div>;
+      `,
+      errors: [{messageId: 'sharedGridTemplate'}, {messageId: 'sharedGridTemplate'}],
+    },
+    {
+      code: `
+        import styled from '@emotion/styled';
+        const GRID_TEMPLATE = 'minmax(100px, 1fr) 200px 150px';
+        export const Header = styled('div')\`
+          grid-template-columns: \${GRID_TEMPLATE};
+        \`;
+        const Row = styled('div')\`
+          grid-template-columns: \${GRID_TEMPLATE};
+        \`;
+        const x = items.map(item => <Row key={item} />);
+      `,
+      errors: [{messageId: 'sharedGridTemplate'}, {messageId: 'sharedGridTemplate'}],
+    },
+    {
+      code: `
+        import {css} from '@emotion/react';
+        import styled from '@emotion/styled';
+        const gridLayout = css\`
+          grid-template-columns: 1fr 200px 150px;
+        \`;
+        const Header = styled('div')\`
+          \${gridLayout};
+        \`;
+        const Row = styled('div')\`
+          \${gridLayout};
+        \`;
+        const x = <div><Header />{items.map(item => <Row key={item} />)}</div>;
+      `,
+      errors: [{messageId: 'sharedGridTemplate'}, {messageId: 'sharedGridTemplate'}],
+    },
+    {
+      code: `
+        import {css} from '@emotion/react';
+        import styled from '@emotion/styled';
+        const gridLayout = css\`
+          grid-template-columns: 1fr 200px 150px;
+        \`;
+        const COLUMNS = '1fr 200px 150px';
+        const Header = styled('div')\`
+          \${gridLayout};
+          grid-template-columns: \${COLUMNS};
+        \`;
+        const Row = styled('div')\`
+          \${gridLayout};
+          grid-template-columns: \${COLUMNS};
+        \`;
+        const x = <div><Header />{items.map(item => <Row key={item} />)}</div>;
       `,
       errors: [{messageId: 'sharedGridTemplate'}, {messageId: 'sharedGridTemplate'}],
     },

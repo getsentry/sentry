@@ -1,4 +1,4 @@
-import {defineRule, type ESTree, type Variable} from '@oxlint/plugins';
+import {defineRule, type ESTree} from '@oxlint/plugins';
 
 type FunctionNode = ESTree.ArrowFunctionExpression | ESTree.Function;
 
@@ -54,42 +54,27 @@ export const preferReactComponent = defineRule({
 
   create(context) {
     const stack: FunctionFrame[] = [];
-    const candidates: Array<{frame: FunctionFrame; name: string}> = [];
+    const candidates: Array<{binding: ESTree.BindingIdentifier; frame: FunctionFrame}> =
+      [];
 
-    function resolveVariable(
-      node: ESTree.IdentifierReference | ESTree.BindingIdentifier
-    ): Variable | undefined {
-      let scope = context.sourceCode.getScope(node);
-      while (scope) {
-        const binding = scope.variables.find(variable => variable.name === node.name);
-        if (binding) {
-          return binding;
-        }
-        scope = scope.upper!;
-      }
-      return undefined;
-    }
-
-    function isDirectlyInvoked(
-      binding: ESTree.IdentifierReference | ESTree.BindingIdentifier
-    ): boolean {
-      const variable = resolveVariable(binding);
-      return (
-        variable?.references.some(reference => {
+    function isDirectlyInvoked(binding: ESTree.BindingIdentifier): boolean {
+      return context.sourceCode
+        .getDeclaredVariables(binding.parent)
+        .find(variable => variable.name === binding.name)!
+        .references.some(reference => {
           const parent = reference.identifier.parent;
           return (
             parent?.type === 'CallExpression' && parent.callee === reference.identifier
           );
-        }) ?? false
-      );
+        });
     }
 
     function returnsOnlyJsxOrNull({node, returns}: FunctionFrame): boolean {
-      if (!node.body) {
+      if (node.async || node.generator) {
         return false;
       }
 
-      if (node.body.type !== 'BlockStatement') {
+      if (node.body?.type !== 'BlockStatement') {
         return isJsxOrNullExpression(node.body);
       }
 
@@ -117,8 +102,7 @@ export const preferReactComponent = defineRule({
     }
 
     function isReactScope({node, hasJsx}: FunctionFrame): boolean {
-      const name = getFunctionName(node);
-      return (name !== null && (/^[A-Z]/.test(name) || /^use[A-Z]/.test(name))) || hasJsx;
+      return hasJsx || /^(?:[A-Z]|use[A-Z])/.test(getFunctionName(node) ?? '');
     }
 
     function isNestedInReactScope({parent}: FunctionFrame): boolean {
@@ -166,17 +150,17 @@ export const preferReactComponent = defineRule({
           return;
         }
 
-        candidates.push({frame, name: binding.name});
+        candidates.push({binding, frame});
       },
 
       'Program:exit'() {
         // Parent JSX may appear after the candidate, so wait until traversal is complete.
-        for (const {frame, name} of candidates) {
+        for (const {binding, frame} of candidates) {
           if (isNestedInReactScope(frame)) {
             context.report({
-              node: frame.node,
+              node: binding,
               messageId: 'useComponent',
-              data: {name},
+              data: {name: binding.name},
             });
           }
         }

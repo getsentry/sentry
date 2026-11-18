@@ -2,6 +2,7 @@ import {defineRule, type ESTree} from '@oxlint/plugins';
 
 import {
   cookCssTemplateText,
+  isDisabledByCssDirective,
   parseCssTemplate,
   type ParsedCssSelector,
 } from '../ast/extractor/css.ts';
@@ -50,11 +51,7 @@ export const noDomCoupling = defineRule({
     function binding(node: ESTree.Node): ESTree.Node | undefined {
       if (node.type === 'MemberExpression') {
         const object = binding(node.object);
-        const name = node.computed
-          ? stringValue(node.property)
-          : node.property.type === 'Identifier'
-            ? node.property.name
-            : null;
+        const name = node.computed ? stringValue(node.property) : node.property.name;
         if (object?.type === 'ObjectExpression' && name !== null) {
           const found = object.properties.find(
             property =>
@@ -223,7 +220,7 @@ export const noDomCoupling = defineRule({
         return ['.sentry-dynamic-selector'];
       }
       if (
-        expression.type === 'Identifier' &&
+        (expression.type === 'Identifier' || expression.type === 'MemberExpression') &&
         /^[a-z]/.test(name) &&
         /^\s*\n/.test(suffix)
       ) {
@@ -269,42 +266,26 @@ export const noDomCoupling = defineRule({
         const target = values
           .map(value => getDomCouplingTarget(value + last))
           .find(value => value !== undefined);
-        if (!target) {
+        if (!target || isDisabledByCssDirective(selector, context.id)) {
           continue;
         }
-        let disabled = false;
-        let disabledLine = false;
-        for (const directive of selector.directives) {
-          if (directive.rules.length && !directive.rules.includes(context.id)) {
-            continue;
-          }
-          if (directive.action === 'disable-next-line') {
-            disabledLine ||= selector.line === (directive.endLine ?? -2) + 1;
-          } else if (directive.action === 'disable-line') {
-            disabledLine ||= selector.line === directive.line;
-          } else if (directive.offset < selector.sourceRange[0]) {
-            disabled = directive.action === 'disable';
-          }
-        }
-        if (!disabled && !disabledLine) {
-          context.report({
-            node,
-            ...(template
-              ? {
-                  loc: {
-                    start: context.sourceCode.getLocFromIndex(
-                      template.range[0] + selector.sourceRange[0]
-                    ),
-                    end: context.sourceCode.getLocFromIndex(
-                      template.range[0] + selector.sourceRange[1]
-                    ),
-                  },
-                }
-              : {}),
-            messageId: 'forbidden',
-            data: {target: targets[target]},
-          });
-        }
+        context.report({
+          node,
+          ...(template
+            ? {
+                loc: {
+                  start: context.sourceCode.getLocFromIndex(
+                    template.range[0] + selector.sourceRange[0]
+                  ),
+                  end: context.sourceCode.getLocFromIndex(
+                    template.range[0] + selector.sourceRange[1]
+                  ),
+                },
+              }
+            : {}),
+          messageId: 'forbidden',
+          data: {target: targets[target]},
+        });
       }
       for (const expression of template?.expressions ?? []) {
         styles(expression);
@@ -497,9 +478,7 @@ export const noDomCoupling = defineRule({
     }
 
     return {
-      ...imports.visitors,
       ImportDeclaration(node) {
-        imports.visitors.ImportDeclaration?.(node);
         if (
           node.source.value !== '@emotion/react' &&
           node.source.value !== '@emotion/serialize' &&

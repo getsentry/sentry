@@ -394,6 +394,140 @@ ruleTester.run('no-dom-coupling', noDomCoupling, {
       code: emotion + 'const C = css`button {color: red;`;',
       filename,
     },
+    {
+      name: 'as const selector constants are unwrapped',
+      code:
+        emotion +
+        'const SLOT = ".slot" as const; const C = css`& > ${SLOT} {color:red;}`;',
+      filename,
+    },
+    {
+      name: 'satisfies selector constants are unwrapped',
+      code:
+        emotion +
+        'const SLOT = ".slot" satisfies string; const C = css`& > ${SLOT} {color:red;}`;',
+      filename,
+    },
+    {
+      name: 'non-null selector interpolations are unwrapped',
+      code: emotion + 'const SLOT = ".slot"; const C = css`& > ${SLOT!} {color:red;}`;',
+      filename,
+    },
+    {
+      name: 'type assertion selector constants are unwrapped',
+      code:
+        emotion +
+        'const SLOT = <string>".slot"; const C = css`& > ${SLOT} {color:red;}`;',
+      filename: 'file.ts',
+    },
+    {
+      name: 'missing object members are ignored',
+      code: emotion + 'const shared = {}; const C = css(shared.missing);',
+      filename,
+    },
+    {
+      name: 'numeric nth-child interpolations are formulas',
+      code: emotion + 'const C = css`&:nth-child(${2}) {color:red;}`;',
+      filename,
+    },
+    {
+      name: 'theme callback mixins before a scoped selector',
+      code:
+        emotion +
+        'const C = styled.div`\n${p => p.theme.overflowEllipsis}\n&:hover {color: red;}\n`;',
+      filename,
+    },
+    {
+      name: 'member mixins before a scoped selector',
+      code:
+        emotion +
+        'const C = styled.div`\n${theme.overflowEllipsis}\n&:hover {color: red;}\n`;',
+      filename,
+    },
+    {
+      name: 'function expressions returning scoped selectors',
+      code:
+        emotion +
+        'const C = styled.div`& > ${function () { return ".slot"; }} {color:red;}`;',
+      filename,
+    },
+    {
+      name: 'local calls returning scoped selectors',
+      code:
+        emotion +
+        'function getSlot() { return ".slot"; } const C = css`& > ${getSlot()} {color:red;}`;',
+      filename,
+    },
+    {
+      name: 'imported selector constants are dynamic',
+      code:
+        emotion +
+        'import {SLOT_SELECTOR} from "./selectors"; const C = css`& > ${SLOT_SELECTOR} {color:red;}`;',
+      filename,
+    },
+    {
+      name: 'other typed objects from style packages are not styles',
+      code: "import type {Theme} from '@emotion/react'; const theme: Theme = {button: {color: 'red'}};",
+      filename,
+    },
+    {
+      name: 'non-style helper calls are not styles',
+      code:
+        emotion +
+        'function getConfig() { return {button: {size: 12}}; } const config = getConfig();',
+      filename,
+    },
+    {
+      name: 'styles props on components other than Select are not styles',
+      code: 'const C = <Table styles={{header: {"& > button": {color: "red"}}}} />;',
+      filename,
+    },
+    {
+      name: 'other JSX attributes are not styles',
+      code: 'const C = <Chart options={{button: {size: 12}}} />;',
+      filename,
+    },
+    {
+      name: 'primitive type annotations are ignored',
+      code: emotion + 'const width: number = 1;',
+      filename,
+    },
+    {
+      name: 'other type annotations are ignored',
+      code:
+        emotion +
+        'type Config = {button: {size: number}}; const config: Config = {button: {size: 12}};',
+      filename,
+    },
+    {
+      name: 'typed CSS object parameters are ignored',
+      code: "import type {CSSObject} from '@emotion/react'; function apply(styles: CSSObject) { return styles; }",
+      filename,
+    },
+    {
+      name: 'typed CSS objects without initializers are ignored',
+      code: "import type {CSSObject} from '@emotion/react'; let styles: CSSObject;",
+      filename,
+    },
+    {
+      name: 'cyclic object value aliases do not crash',
+      code: emotion + 'const a = b; const b = a; const C = css({button: a});',
+      filename,
+    },
+    {
+      name: 'CSS block suppression applies to later selectors',
+      code:
+        emotion +
+        'const C = styled.div`\n/* oxlint-disable rule-to-test/no-dom-coupling */\nbutton {color:red;}\n`;',
+      filename,
+    },
+    {
+      name: 'CSS line suppression applies to its selector',
+      code:
+        emotion +
+        'const C = styled.div`\nbutton { /* oxlint-disable-line rule-to-test/no-dom-coupling */ color:red; }\n`;',
+      filename,
+    },
   ],
   invalid: [
     ...[
@@ -799,6 +933,10 @@ ruleTester.run('no-dom-coupling', noDomCoupling, {
       '&:has(> thead + tbody)',
       '&:not(button)',
       '&:is(.slot, button)',
+      '&:where(button)',
+      '&:host(button)',
+      ':host-context(button) &',
+      '&::slotted(span)',
       '& > :is(.slot, :first-child)',
       '&:nth-child(2n of button)',
       '&:nth-child(2n of *)',
@@ -938,6 +1076,126 @@ ruleTester.run('no-dom-coupling', noDomCoupling, {
       name: 'file exclusions belong to configuration',
       code: emotion + 'const C = css`button {color:red;}`;',
       filename: 'static/packages/scraps/src/button.tsx',
+      errors,
+    },
+    {
+      name: 'member style resolves computed constant keys',
+      code:
+        emotion +
+        'const key = "style"; const shared = {...base, [key]: {"& > button": {color: "red"}}}; const C = css(shared.style);',
+      filename,
+      errors,
+    },
+    {
+      name: 'member style resolves string keys',
+      code:
+        emotion +
+        'const shared = {"style": {"& > button": {color: "red"}}}; const C = css(shared.style);',
+      filename,
+      errors,
+    },
+    {
+      name: 'member style resolves computed string access',
+      code:
+        emotion +
+        'const shared = {style: {"& > button": {color: "red"}}}; const C = css(shared["style"]);',
+      filename,
+      errors,
+    },
+    {
+      name: 'style helpers check else branches',
+      code:
+        emotion +
+        'function getStyles() { if (active) { return {color: "red"}; } else { return {button: {color: "red"}}; } } const C = css(getStyles());',
+      filename,
+      errors,
+    },
+    {
+      name: 'DOM selector in the consequent of a conditional',
+      code: emotion + 'const C = css`& > ${active ? "button" : ".slot"} {color:red;}`;',
+      filename,
+      errors,
+    },
+    {
+      name: 'declaration string mixins before a DOM selector',
+      code:
+        emotion +
+        'const shared = "color: red;"; const C = styled.div`${shared}\nbutton {color: blue;}`;',
+      filename,
+      errors,
+    },
+    {
+      name: 'as const DOM selector constants are unwrapped',
+      code:
+        emotion +
+        'const SLOT = "button" as const; const C = css`& > ${SLOT} {color:red;}`;',
+      filename,
+      errors: [{messageId: 'forbidden', data: {target: 'A DOM element selector'}}],
+    },
+    {
+      name: 'selectors nested under scoped object selectors',
+      code: emotion + 'const C = css({"&:hover": {"& > button": {color: "red"}}});',
+      filename,
+      errors,
+    },
+    {
+      name: 'conditional computed keys report once',
+      code: emotion + 'const C = css({[active ? "button" : "div"]: {color: "red"}});',
+      filename,
+      errors,
+    },
+    {
+      name: 'spread Select style configs are checked',
+      code: "import {Select} from '@sentry/scraps/select'; const base = {menu: b => ({...b, '& > button': {color: 'red'}})}; const C = <Select styles={{...base}} />;",
+      filename,
+      errors,
+    },
+    {
+      name: 'typed Select style configs are checked',
+      code: "import type {StylesConfig} from '@sentry/scraps/select'; const styles: StylesConfig = {menu: base => ({...base, '& > button': {color: 'red'}})};",
+      filename,
+      errors,
+    },
+    {
+      name: 'CSS objects typed from Emotion serialize are checked',
+      code: "import type {CSSObject} from '@emotion/serialize'; const styles: CSSObject = {'> div': {color: 'red'}};",
+      filename,
+      errors,
+    },
+    {
+      name: 'typed arrow style helpers are checked',
+      code: "import type {CSSObject} from '@emotion/react'; const getStyles = (): CSSObject => ({'> div': {color: 'red'}});",
+      filename,
+      errors,
+    },
+    {
+      name: 'spread css prop arrays are checked',
+      code: 'const parts = [{button: {color: "red"}}]; const C = <div css={[...parts]} />;',
+      filename,
+      errors,
+    },
+    {
+      name: 'unknown calls at the end of a selector are component selectors',
+      code:
+        emotion +
+        'import {getTarget} from "./target"; const C = css`& > ${getTarget()} {color:red;}`;',
+      filename,
+      errors,
+    },
+    {
+      name: 'CSS suppressions for other rules do not apply',
+      code:
+        emotion +
+        'const C = styled.div`\n/* oxlint-disable-next-line other/rule */\nbutton {color:red;}\n`;',
+      filename,
+      errors,
+    },
+    {
+      name: 'CSS block suppression ends at enable',
+      code:
+        emotion +
+        'const C = styled.div`\n/* oxlint-disable rule-to-test/no-dom-coupling */\n/* oxlint-enable rule-to-test/no-dom-coupling */\nbutton {color:red;}\n`;',
+      filename,
       errors,
     },
   ],

@@ -359,10 +359,7 @@ export const preferPrimitives = defineRule({
         }
         return;
       }
-      if (
-        node.type === 'ArrowFunctionExpression' &&
-        node.body.type !== 'BlockStatement'
-      ) {
+      if (node.type === 'ArrowFunctionExpression') {
         addStyle(node.body, element, seen);
         return;
       }
@@ -404,7 +401,6 @@ export const preferPrimitives = defineRule({
     }
 
     return {
-      ...importTracker.visitors,
       TaggedTemplateExpression(node) {
         checkStyled(node, node.quasi);
       },

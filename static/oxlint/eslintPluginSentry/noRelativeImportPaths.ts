@@ -13,8 +13,9 @@ type Options = {
 function isInsideRoot(fileName: string, root: string): boolean {
   const relativePath = path.relative(root, fileName);
   return (
-    relativePath === '' ||
-    (!relativePath.startsWith('..') && !path.isAbsolute(relativePath))
+    relativePath !== '..' &&
+    !relativePath.startsWith(`..${path.sep}`) &&
+    !path.isAbsolute(relativePath)
   );
 }
 
@@ -56,20 +57,18 @@ export const noRelativeImportPaths = defineRule({
     const options = (context.options[0] ?? {}) as Options;
     const root = path.resolve(process.cwd(), options.rootDir ?? '');
     const fileName = path.resolve(context.filename);
+    if (!isInsideRoot(fileName, root)) {
+      return {};
+    }
 
     return {
       ImportDeclaration(node) {
-        if (node.source.type !== 'Literal' || typeof node.source.value !== 'string') {
-          return;
-        }
-
         const importPath = node.source.value;
         const sameFolderImport = importPath.startsWith('./');
         const parentImport = importPath.startsWith('../');
         const target = path.resolve(path.dirname(fileName), importPath);
         const disallowedParentImport =
           parentImport &&
-          isInsideRoot(fileName, root) &&
           isInsideRoot(target, root) &&
           (options.allowedDepth === undefined ||
             getParentDepth(importPath) > options.allowedDepth);

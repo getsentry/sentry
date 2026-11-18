@@ -9,7 +9,7 @@ import {IconClose} from '@sentry/icons/close';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {InteractionStateLayer} from 'sentry/components/interactionStateLayer';
 import {
   useSearchQueryBuilderConfig,
   useSearchQueryBuilderState,

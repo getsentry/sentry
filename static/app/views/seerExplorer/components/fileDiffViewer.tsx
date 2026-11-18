@@ -13,7 +13,7 @@ import {
   type DiffLine,
   type FilePatch,
 } from 'sentry/components/events/autofix/types';
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {InteractionStateLayer} from 'sentry/components/interactionStateLayer';
 import {DIFF_COLORS} from 'sentry/components/splitDiff';
 import {t} from 'sentry/locale';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';

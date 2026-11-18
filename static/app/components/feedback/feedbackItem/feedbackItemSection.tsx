@@ -4,7 +4,7 @@ import {IconChevron} from '@sentry/icons/chevron';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {InteractionStateLayer} from 'sentry/components/interactionStateLayer';
 import {t} from 'sentry/locale';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 

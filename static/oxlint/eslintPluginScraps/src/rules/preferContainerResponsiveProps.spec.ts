@@ -75,6 +75,30 @@ ruleTester.run('prefer-container-responsive-props', preferContainerResponsivePro
       filename: '/project/static/packages/scraps/src/slideOverPanel.tsx',
       code: "import styled from '@emotion/styled'; const _SlideOverPanel = styled.div`@media (max-width: 800px) { width: 100%; }`;",
     },
+    {
+      filename,
+      code: "import {css} from '@emotion/react'; function modalCss() { return css`@media (min-width: 800px) { width: 80%; }`; }",
+    },
+    {
+      filename,
+      code: "import {css} from '@emotion/react'; const modalCss = css`@media (min-width: 800px) {}`;",
+    },
+    {
+      filename: '/project/static/packages/scraps/src/slideOverPanel.tsx',
+      code: "import styled from '@emotion/styled'; const _SlideOverPanel = styled.div`@media (min-width: 800px) { ${p => p.styles} }`;",
+    },
+    {
+      filename,
+      code: "import {useMedia} from '@sentry/scraps/useMedia'; useMedia(query);",
+    },
+    {
+      filename,
+      code: "const sizes = {0: 'none', screen: 'md'};",
+    },
+    {
+      filename: '/project/static/oxlint/eslintPluginScraps/src/rules/example.spec.ts',
+      code: "const props = {direction: {'screen:md': 'row'}};",
+    },
   ],
   invalid: [
     {
@@ -185,6 +209,90 @@ ruleTester.run('prefer-container-responsive-props', preferContainerResponsivePro
     {
       filename: '/project/static/app/views/example.spec.tsx',
       code: "import styled from '@emotion/styled'; const Box = styled.div`@media (max-width: 800px) { width: 100%; }`;",
+      errors: [{messageId: 'forbidden'}],
+    },
+    {
+      filename,
+      code: `import styled from '@emotion/styled';
+const Box = styled.div\`
+  @media  (max-width: \${p => p.theme.breakpoints.md}) /* sm */ {
+    width: 100%;
+  }
+  @container (width > 1px) { width: 50%; }
+\`;`,
+      errors: [
+        {messageId: 'forbidden', line: 3, column: 2, endLine: 3, endColumn: 53},
+        {messageId: 'forbidden', line: 6, column: 2, endLine: 6, endColumn: 26},
+      ],
+    },
+    {
+      filename,
+      code: "import styled from '@emotion/styled'; const Box = styled.div`@media (max-width: 1px) /* why */ and (min-width: 0) { color: red; }`;",
+      errors: [{messageId: 'forbidden', line: 1, column: 61, endLine: 1, endColumn: 113}],
+    },
+    {
+      filename,
+      code: "import styled from '@emotion/styled'; const Box = styled.div`@media screen { color: red; }`;",
+      errors: [{messageId: 'forbidden'}],
+    },
+    {
+      filename,
+      code: "import {css} from '@emotion/react'; const modalCss = css`@media (min-width: 800px) { & > div { width: 80%; } }`;",
+      errors: [{messageId: 'forbidden'}],
+    },
+    {
+      filename,
+      code: "import {css} from '@emotion/react'; const modalCss = css`@media (min-width: 800px) { width: 80%; } @media (min-width: 900px) { & > div { width: 90%; } }`;",
+      errors: [{messageId: 'forbidden'}, {messageId: 'forbidden'}],
+    },
+    {
+      filename,
+      code: "import {css} from '@emotion/react'; const modalCss = css`@media (min-width: 800px) { width: 80%; display: flex; }`;",
+      errors: [{messageId: 'forbidden'}],
+    },
+    {
+      filename,
+      code: "import {css} from '@emotion/react'; const modalCss = css`@media (min-width: 800px) { ${styles} }`;",
+      errors: [{messageId: 'forbidden'}],
+    },
+    {
+      filename: '/project/static/packages/scraps/src/slideOverPanel.tsx',
+      code: "import styled from '@emotion/styled'; const _SlideOverPanel = styled.div`@media (min-width: 800px) { display: none; }`;",
+      errors: [{messageId: 'forbidden'}],
+    },
+    {
+      filename,
+      code: "import styled from '@emotion/styled'; const _SlideOverPanel = styled.div`@media (min-width: 800px) { width: 100%; }`;",
+      errors: [{messageId: 'forbidden'}],
+    },
+    {
+      filename: '/project/static/packages/scraps/src/slideOverPanel.tsx',
+      code: "import styled from '@emotion/styled'; const SlideOverHeader = styled.div`@media (min-width: 800px) { width: 100%; }`;",
+      errors: [{messageId: 'forbidden'}],
+    },
+    {
+      filename,
+      code: "import {css} from '@emotion/react'; const onDemandBudgetEditModalCss = theme => css`@media (min-width: 800px) { width: 800px; }`;",
+      errors: [{messageId: 'forbidden'}],
+    },
+    {
+      filename: '/project/static/gsApp/actionCreators/modal.tsx',
+      code: "import {css} from '@emotion/react'; const otherModalCss = theme => css`@media (min-width: 800px) { width: 800px; }`;",
+      errors: [{messageId: 'forbidden'}],
+    },
+    {
+      filename,
+      code: "import styled from '@emotion/styled'; const DrawerSlidePanel = styled.div`@media (max-width: 800px) { width: 100%; }`;",
+      errors: [{messageId: 'forbidden'}],
+    },
+    {
+      filename: '/project/static/packages/scraps/src/drawer/components.tsx',
+      code: "import styled from '@emotion/styled'; const DrawerContent = styled.div`@media (max-width: 800px) { width: 100%; }`;",
+      errors: [{messageId: 'forbidden'}],
+    },
+    {
+      filename,
+      code: "import {useMedia} from '@sentry/scraps/useMedia'; useMedia('(800px <= width)');",
       errors: [{messageId: 'forbidden'}],
     },
   ],

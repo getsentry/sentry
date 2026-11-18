@@ -207,6 +207,146 @@ ruleTester.run('prefer-fake-timers', preferFakeTimers, {
       });
       beforeEach(() => jest.useFakeTimers());
     `,
+    `
+      jest.useFakeTimers();
+      it('module-level fake timers', async () => {
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      });
+    `,
+    `
+      import {waitFor, screen, within, render} from 'sentry-test/reactTestingLibrary';
+      it('cyclic aliases', async () => {
+        const first = second;
+        const second = first;
+        await first(check, {timeout: 1500});
+      });
+    `,
+    `
+      it('unimported namespace', async () => {
+        await rtl.waitFor(check, {timeout: 1500});
+      });
+    `,
+    `
+      import {waitFor} from 'other-library';
+      it('unrelated library', async () => {
+        await waitFor(check, {timeout: 1500});
+      });
+    `,
+    `
+      import * as globals from '@jest/globals';
+      it('jest globals namespace', async () => {
+        globals.jest.useFakeTimers();
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      });
+    `,
+    `
+      import library from '@testing-library/react';
+      it('default import', async () => {
+        await library.waitFor(check, {timeout: 1500});
+      });
+    `,
+    `
+      import {waitFor, screen, within, render} from 'sentry-test/reactTestingLibrary';
+      it('reassigned alias', async () => {
+        let until = waitFor;
+        until = custom;
+        await until(check, {timeout: 1500});
+      });
+    `,
+    `
+      import {waitFor, screen, within, render} from 'sentry-test/reactTestingLibrary';
+      it('destructured default', async () => {
+        const {findByText = custom} = render(view);
+        await findByText('ready', {}, {timeout: 1500});
+      });
+    `,
+    `
+      it('let duration', async () => {
+        let duration = 1500;
+        await new Promise(resolve => setTimeout(resolve, duration));
+      });
+    `,
+    `
+      it('other constructor', async () => {
+        await new Deferred(resolve => setTimeout(resolve, 1500));
+      });
+    `,
+    `
+      beforeEach(async () => {
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      });
+    `,
+    `
+      it('executor reference', async () => {
+        await new Promise(executor);
+      });
+    `,
+    `
+      it('other scheduler', async () => {
+        await new Promise(resolve => schedule(resolve, 1500));
+      });
+    `,
+    `
+      it('no resolve parameter', async () => {
+        await new Promise(() => setTimeout(done, 1500));
+      });
+    `,
+    `
+      it('other callback', async () => {
+        await new Promise(resolve => setTimeout(other, 1500));
+      });
+    `,
+    `
+      import {waitFor, screen, within, render} from 'sentry-test/reactTestingLibrary';
+      it('get query', async () => {
+        screen.getByText('ready', {}, {timeout: 1500});
+      });
+    `,
+    `
+      import {waitFor, screen, within, render} from 'sentry-test/reactTestingLibrary';
+      it('interval only', async () => {
+        await waitFor(check, {interval: 100});
+      });
+    `,
+    `
+      import {act} from 'sentry-test/reactTestingLibrary';
+      it('unawaited act', () => {
+        act(() => new Promise(resolve => setTimeout(resolve, 1500)));
+      });
+    `,
+    `
+      import {act} from 'sentry-test/reactTestingLibrary';
+      it('fake act sleep', async () => {
+        jest.useFakeTimers();
+        await act(() => new Promise(resolve => setTimeout(resolve, 1500)));
+      });
+    `,
+    `
+      import {act} from 'sentry-test/reactTestingLibrary';
+      it('other wrapper', async () => {
+        await wrap(() => new Promise(resolve => setTimeout(resolve, 1500)));
+      });
+    `,
+    `
+      import {act} from 'sentry-test/reactTestingLibrary';
+      beforeEach(async () => {
+        await act(() => new Promise(resolve => setTimeout(resolve, 1500)));
+      });
+    `,
+    `
+      beforeEach(async () => {
+        await jest.useFakeTimers();
+      });
+      it('awaited fake timers', async () => {
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      });
+    `,
+    `
+      import {act} from 'sentry-test/reactTestingLibrary';
+      it('act with nested promise', async () => {
+        await act(() => wrap(new Promise(resolve => setTimeout(resolve, 1500))));
+      });
+    `,
   ],
   invalid: [
     {
@@ -217,7 +357,7 @@ ruleTester.run('prefer-fake-timers', preferFakeTimers, {
         });
       `,
       errors: [
-        {messageId: 'preferFakeTimers', line: 4, column: 16, endLine: 4, endColumn: 51},
+        {messageId: 'preferFakeTimers', line: 4, column: 31, endLine: 4, endColumn: 50},
       ],
     },
     {
@@ -228,7 +368,7 @@ ruleTester.run('prefer-fake-timers', preferFakeTimers, {
         });
       `,
       errors: [
-        {messageId: 'preferFakeTimers', line: 4, column: 16, endLine: 4, endColumn: 59},
+        {messageId: 'preferFakeTimers', line: 4, column: 31, endLine: 4, endColumn: 58},
       ],
     },
     {
@@ -239,7 +379,7 @@ ruleTester.run('prefer-fake-timers', preferFakeTimers, {
         });
       `,
       errors: [
-        {messageId: 'preferFakeTimers', line: 4, column: 16, endLine: 4, endColumn: 48},
+        {messageId: 'preferFakeTimers', line: 4, column: 31, endLine: 4, endColumn: 47},
       ],
     },
     {
@@ -250,7 +390,7 @@ ruleTester.run('prefer-fake-timers', preferFakeTimers, {
         });
       `,
       errors: [
-        {messageId: 'preferFakeTimers', line: 4, column: 16, endLine: 4, endColumn: 48},
+        {messageId: 'preferFakeTimers', line: 4, column: 31, endLine: 4, endColumn: 47},
       ],
     },
     {
@@ -263,7 +403,7 @@ ruleTester.run('prefer-fake-timers', preferFakeTimers, {
         });
       `,
       errors: [
-        {messageId: 'preferFakeTimers', line: 6, column: 16, endLine: 6, endColumn: 72},
+        {messageId: 'preferFakeTimers', line: 6, column: 56, endLine: 6, endColumn: 71},
       ],
     },
     {
@@ -274,7 +414,7 @@ ruleTester.run('prefer-fake-timers', preferFakeTimers, {
         });
       `,
       errors: [
-        {messageId: 'preferFakeTimers', line: 4, column: 16, endLine: 4, endColumn: 68},
+        {messageId: 'preferFakeTimers', line: 4, column: 52, endLine: 4, endColumn: 67},
       ],
     },
     {
@@ -288,7 +428,7 @@ ruleTester.run('prefer-fake-timers', preferFakeTimers, {
         });
       `,
       errors: [
-        {messageId: 'preferFakeTimers', line: 7, column: 16, endLine: 7, endColumn: 47},
+        {messageId: 'preferFakeTimers', line: 7, column: 31, endLine: 7, endColumn: 46},
       ],
     },
     {
@@ -299,7 +439,7 @@ ruleTester.run('prefer-fake-timers', preferFakeTimers, {
         });
       `,
       errors: [
-        {messageId: 'preferFakeTimers', line: 4, column: 16, endLine: 4, endColumn: 89},
+        {messageId: 'preferFakeTimers', line: 4, column: 73, endLine: 4, endColumn: 88},
       ],
     },
     {
@@ -310,7 +450,7 @@ ruleTester.run('prefer-fake-timers', preferFakeTimers, {
         });
       `,
       errors: [
-        {messageId: 'preferFakeTimers', line: 4, column: 16, endLine: 4, endColumn: 79},
+        {messageId: 'preferFakeTimers', line: 4, column: 61, endLine: 4, endColumn: 78},
       ],
     },
     {
@@ -321,7 +461,7 @@ ruleTester.run('prefer-fake-timers', preferFakeTimers, {
         });
       `,
       errors: [
-        {messageId: 'preferFakeTimers', line: 4, column: 16, endLine: 4, endColumn: 47},
+        {messageId: 'preferFakeTimers', line: 4, column: 31, endLine: 4, endColumn: 46},
       ],
     },
     {
@@ -332,7 +472,7 @@ ruleTester.run('prefer-fake-timers', preferFakeTimers, {
         });
       `,
       errors: [
-        {messageId: 'preferFakeTimers', line: 4, column: 16, endLine: 4, endColumn: 77},
+        {messageId: 'preferFakeTimers', line: 4, column: 61, endLine: 4, endColumn: 76},
       ],
     },
     {
@@ -344,7 +484,7 @@ ruleTester.run('prefer-fake-timers', preferFakeTimers, {
         });
       `,
       errors: [
-        {messageId: 'preferFakeTimers', line: 5, column: 16, endLine: 5, endColumn: 50},
+        {messageId: 'preferFakeTimers', line: 5, column: 34, endLine: 5, endColumn: 49},
       ],
     },
     {
@@ -357,7 +497,7 @@ ruleTester.run('prefer-fake-timers', preferFakeTimers, {
         });
       `,
       errors: [
-        {messageId: 'preferFakeTimers', line: 6, column: 16, endLine: 6, endColumn: 39},
+        {messageId: 'preferFakeTimers', line: 6, column: 31, endLine: 6, endColumn: 38},
       ],
     },
     {
@@ -371,7 +511,7 @@ ruleTester.run('prefer-fake-timers', preferFakeTimers, {
         });
       `,
       errors: [
-        {messageId: 'preferFakeTimers', line: 7, column: 16, endLine: 7, endColumn: 72},
+        {messageId: 'preferFakeTimers', line: 7, column: 56, endLine: 7, endColumn: 71},
       ],
     },
     {
@@ -385,7 +525,7 @@ ruleTester.run('prefer-fake-timers', preferFakeTimers, {
         });
       `,
       errors: [
-        {messageId: 'preferFakeTimers', line: 7, column: 16, endLine: 7, endColumn: 72},
+        {messageId: 'preferFakeTimers', line: 7, column: 56, endLine: 7, endColumn: 71},
       ],
     },
     {
@@ -397,7 +537,7 @@ ruleTester.run('prefer-fake-timers', preferFakeTimers, {
         });
       `,
       errors: [
-        {messageId: 'preferFakeTimers', line: 4, column: 16, endLine: 4, endColumn: 72},
+        {messageId: 'preferFakeTimers', line: 4, column: 56, endLine: 4, endColumn: 71},
       ],
     },
     {
@@ -410,7 +550,7 @@ ruleTester.run('prefer-fake-timers', preferFakeTimers, {
         });
       `,
       errors: [
-        {messageId: 'preferFakeTimers', line: 6, column: 16, endLine: 6, endColumn: 72},
+        {messageId: 'preferFakeTimers', line: 6, column: 56, endLine: 6, endColumn: 71},
       ],
     },
     {
@@ -423,7 +563,7 @@ ruleTester.run('prefer-fake-timers', preferFakeTimers, {
         });
       `,
       errors: [
-        {messageId: 'preferFakeTimers', line: 6, column: 16, endLine: 6, endColumn: 72},
+        {messageId: 'preferFakeTimers', line: 6, column: 56, endLine: 6, endColumn: 71},
       ],
     },
     {
@@ -438,7 +578,7 @@ ruleTester.run('prefer-fake-timers', preferFakeTimers, {
         });
       `,
       errors: [
-        {messageId: 'preferFakeTimers', line: 7, column: 18, endLine: 7, endColumn: 74},
+        {messageId: 'preferFakeTimers', line: 7, column: 58, endLine: 7, endColumn: 73},
       ],
     },
     {
@@ -450,7 +590,7 @@ ruleTester.run('prefer-fake-timers', preferFakeTimers, {
         });
       `,
       errors: [
-        {messageId: 'preferFakeTimers', line: 5, column: 16, endLine: 5, endColumn: 72},
+        {messageId: 'preferFakeTimers', line: 5, column: 56, endLine: 5, endColumn: 71},
       ],
     },
     {
@@ -462,7 +602,7 @@ ruleTester.run('prefer-fake-timers', preferFakeTimers, {
         });
       `,
       errors: [
-        {messageId: 'preferFakeTimers', line: 5, column: 16, endLine: 5, endColumn: 72},
+        {messageId: 'preferFakeTimers', line: 5, column: 56, endLine: 5, endColumn: 71},
       ],
     },
     {
@@ -475,7 +615,7 @@ ruleTester.run('prefer-fake-timers', preferFakeTimers, {
         });
       `,
       errors: [
-        {messageId: 'preferFakeTimers', line: 6, column: 16, endLine: 6, endColumn: 72},
+        {messageId: 'preferFakeTimers', line: 6, column: 56, endLine: 6, endColumn: 71},
       ],
     },
     {
@@ -486,7 +626,7 @@ ruleTester.run('prefer-fake-timers', preferFakeTimers, {
         });
       `,
       errors: [
-        {messageId: 'preferFakeTimers', line: 4, column: 16, endLine: 4, endColumn: 72},
+        {messageId: 'preferFakeTimers', line: 4, column: 56, endLine: 4, endColumn: 71},
       ],
     },
     {
@@ -497,7 +637,7 @@ ruleTester.run('prefer-fake-timers', preferFakeTimers, {
         });
       `,
       errors: [
-        {messageId: 'preferFakeTimers', line: 4, column: 16, endLine: 4, endColumn: 72},
+        {messageId: 'preferFakeTimers', line: 4, column: 56, endLine: 4, endColumn: 71},
       ],
     },
     {
@@ -508,7 +648,7 @@ ruleTester.run('prefer-fake-timers', preferFakeTimers, {
         });
       `,
       errors: [
-        {messageId: 'preferFakeTimers', line: 4, column: 16, endLine: 4, endColumn: 45},
+        {messageId: 'preferFakeTimers', line: 4, column: 29, endLine: 4, endColumn: 44},
       ],
     },
     {
@@ -519,7 +659,7 @@ ruleTester.run('prefer-fake-timers', preferFakeTimers, {
         });
       `,
       errors: [
-        {messageId: 'preferFakeTimers', line: 4, column: 16, endLine: 4, endColumn: 51},
+        {messageId: 'preferFakeTimers', line: 4, column: 35, endLine: 4, endColumn: 50},
       ],
     },
     {
@@ -530,7 +670,7 @@ ruleTester.run('prefer-fake-timers', preferFakeTimers, {
         });
       `,
       errors: [
-        {messageId: 'preferFakeTimers', line: 4, column: 16, endLine: 4, endColumn: 67},
+        {messageId: 'preferFakeTimers', line: 4, column: 51, endLine: 4, endColumn: 66},
       ],
     },
     {
@@ -559,6 +699,123 @@ ruleTester.run('prefer-fake-timers', preferFakeTimers, {
         });
       `,
       errors: [{messageId: 'sleep', line: 4, column: 16, endLine: 4, endColumn: 69}],
+    },
+    {
+      code: `
+        import {waitFor, screen, within, render} from 'sentry-test/reactTestingLibrary';
+        it('string key', async () => {
+          await waitFor(check, {'timeout': 1500});
+        });
+      `,
+      errors: [
+        {messageId: 'preferFakeTimers', line: 4, column: 31, endLine: 4, endColumn: 48},
+      ],
+    },
+    {
+      code: `
+        import {waitFor, screen, within, render} from 'sentry-test/reactTestingLibrary';
+        it('numeric computed key', async () => {
+          await waitFor(check, {[0]: 0, timeout: 1500});
+        });
+      `,
+      errors: [
+        {messageId: 'preferFakeTimers', line: 4, column: 31, endLine: 4, endColumn: 54},
+      ],
+    },
+    {
+      code: `
+        import {test as caseOf} from '@jest/globals';
+        import {waitFor, screen, within, render} from 'sentry-test/reactTestingLibrary';
+        caseOf('jest globals test alias', async () => {
+          await waitFor(check, {timeout: 1500});
+        });
+      `,
+      errors: [
+        {messageId: 'preferFakeTimers', line: 5, column: 31, endLine: 5, endColumn: 46},
+      ],
+    },
+    {
+      code: `
+        import {'waitFor' as until} from '@testing-library/react';
+        it('string import name', async () => {
+          await until(check, {timeout: 1500});
+        });
+      `,
+      errors: [
+        {messageId: 'preferFakeTimers', line: 4, column: 29, endLine: 4, endColumn: 44},
+      ],
+    },
+    {
+      code: `
+        import {waitFor, screen, within, render} from 'sentry-test/reactTestingLibrary';
+        it('local alias', async () => {
+          const until = waitFor;
+          await until(check, {timeout: 1500});
+        });
+      `,
+      errors: [
+        {messageId: 'preferFakeTimers', line: 5, column: 29, endLine: 5, endColumn: 44},
+      ],
+    },
+    {
+      code: `
+        import {waitFor, screen, within, render} from 'sentry-test/reactTestingLibrary';
+        it.each\`
+          value
+          \${1}
+        \`('tagged table', async () => {
+          await waitFor(check, {timeout: 1500});
+        });
+      `,
+      errors: [
+        {messageId: 'preferFakeTimers', line: 7, column: 31, endLine: 7, endColumn: 46},
+      ],
+    },
+    {
+      code: `
+        import {waitFor, screen, within, render} from 'sentry-test/reactTestingLibrary';
+        it('multiline callback', async () => {
+          await waitFor(
+            () => {
+              expect(ready).toBe(true);
+            },
+            {timeout: 1500}
+          );
+        });
+      `,
+      errors: [
+        {messageId: 'preferFakeTimers', line: 8, column: 12, endLine: 8, endColumn: 27},
+      ],
+    },
+    {
+      code: `
+        describe('sibling', () => {
+          beforeAll(() => jest.useFakeTimers());
+        });
+        it('real timers', async () => {
+          await new Promise(resolve => setTimeout(resolve, 1500));
+        });
+      `,
+      errors: [{messageId: 'sleep', line: 6, column: 16, endLine: 6, endColumn: 65}],
+    },
+    {
+      code: `
+        it('function executor', async () => {
+          await new Promise(function (resolve) {
+            setTimeout(resolve, 1500);
+          });
+        });
+      `,
+      errors: [{messageId: 'sleep', line: 3, column: 16, endLine: 5, endColumn: 12}],
+    },
+    {
+      code: `
+        import {act} from 'sentry-test/reactTestingLibrary';
+        it('act sleep', async () => {
+          await act(() => new Promise(resolve => setTimeout(resolve, 1500)));
+        });
+      `,
+      errors: [{messageId: 'sleep', line: 4, column: 26, endLine: 4, endColumn: 75}],
     },
   ],
 });

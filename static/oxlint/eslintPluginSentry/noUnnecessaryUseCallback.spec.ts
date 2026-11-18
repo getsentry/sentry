@@ -5,6 +5,7 @@ import {noUnnecessaryUseCallback} from './noUnnecessaryUseCallback';
 const ruleTester = new RuleTester({
   languageOptions: {
     parserOptions: {
+      lang: 'tsx',
       ecmaFeatures: {jsx: true},
     },
   },
@@ -158,6 +159,95 @@ ruleTester.run('no-unnecessary-use-callback', noUnnecessaryUseCallback, {
           const fn = () => {};
           return <button onClick={fn} />;
         })();
+      `,
+    },
+    {
+      name: 'useCallback wrapping a non-function value',
+      code: `
+        const fn = useCallback(debounce(search, 300), []);
+        <input onChange={fn} />
+      `,
+    },
+    {
+      name: 'useCallback wrapping a logical expression with a non-function operand',
+      code: `
+        const fn = useCallback(onClick ?? debounce(search, 300), []);
+        <input onChange={fn} />
+      `,
+    },
+    {
+      name: 'useCallback wrapping a conditional with a non-function branch',
+      code: `
+        const fn = useCallback(enabled ? debounce(search, 300) : noop, []);
+        <input onChange={fn} />
+      `,
+    },
+    {
+      name: 'useCallback wrapping an asserted non-function value',
+      code: `
+        const fn = useCallback(debounce(search, 300) as Handler, []);
+        <input onChange={fn} />
+      `,
+    },
+    {
+      name: 'useCallback passed to component whose name starts with an underscore',
+      code: `
+        const fn = useCallback(() => {}, []);
+        <_Component onClick={fn} />
+      `,
+    },
+    {
+      name: 'aliased useCallback import from another module',
+      code: `
+        import {useCallback as uc} from 'other';
+        const fn = uc(() => {}, []);
+        <button onClick={fn} />
+      `,
+    },
+    {
+      name: 'other react hook passed to intrinsic element',
+      code: `
+        import {useMemo} from 'react';
+        const fn = useMemo(() => () => {}, []);
+        <button onClick={fn} />
+      `,
+    },
+    {
+      name: 'useCallback passed to non-scraps component',
+      code: `
+        import {Button} from 'sentry/components/button';
+        const fn = useCallback(() => {}, []);
+        <Button onClick={fn} />
+      `,
+    },
+    {
+      name: 'other function call passed to intrinsic element',
+      code: `
+        const fn = createHandler(() => {}, []);
+        <button onClick={fn} />
+      `,
+    },
+    {
+      name: 'binding called twice in a nested arrow and used as a dependency',
+      code: `
+        const fn = useCallback(() => {}, []);
+        useEffect(() => {}, [fn]);
+        <List render={() => <button onClick={() => { fn(); fn(); }} />} />
+      `,
+    },
+    {
+      name: 'binding called in a nested arrow and used as a dependency',
+      code: `
+        const fn = useCallback(() => {}, []);
+        useEffect(() => {}, [fn]);
+        <List renderItem={item => <button onClick={() => fn(item)} />} />
+      `,
+    },
+    {
+      name: 'useCallback alongside non-expression attributes',
+      code: `
+        const fn = useCallback(() => {}, []);
+        <MyComponent onClick={fn} disabled title="title" />
       `,
     },
   ],
@@ -511,6 +601,312 @@ ruleTester.run('no-unnecessary-use-callback', noUnnecessaryUseCallback, {
           const fn = useCallback(() => {}, []);
           return <Memo onClick={fn} />;
         }
+      `,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'same binding called twice in one arrow',
+      code: `
+        const fn = useCallback(() => {}, []);
+        <button onClick={() => { fn(); fn(); }} />
+      `,
+      errors: [
+        {
+          messageId: 'unnecessaryUseCallback',
+          data: {name: 'fn', usages: 'directly invoked in line 3'},
+          suggestions: [
+            {
+              messageId: 'removeUseCallback',
+              output: `
+        const fn = () => {};
+        <button onClick={() => { fn(); fn(); }} />
+      `,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'two bindings called in one arrow',
+      code: `
+        const a = useCallback(() => {}, []);
+        const b = useCallback(() => {}, []);
+        <button onClick={() => { a(); b(); }} />
+      `,
+      errors: [
+        {
+          messageId: 'unnecessaryUseCallback',
+          data: {name: 'a', usages: 'directly invoked in line 4'},
+          suggestions: [
+            {
+              messageId: 'removeUseCallback',
+              output: `
+        const a = () => {};
+        const b = useCallback(() => {}, []);
+        <button onClick={() => { a(); b(); }} />
+      `,
+            },
+          ],
+        },
+        {
+          messageId: 'unnecessaryUseCallback',
+          data: {name: 'b', usages: 'directly invoked in line 4'},
+          suggestions: [
+            {
+              messageId: 'removeUseCallback',
+              output: `
+        const a = useCallback(() => {}, []);
+        const b = () => {};
+        <button onClick={() => { a(); b(); }} />
+      `,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'binding called after an unrelated call',
+      code: `
+        const fn = useCallback(() => {}, []);
+        <button onClick={() => { track(); fn(); }} />
+      `,
+      errors: [
+        {
+          messageId: 'unnecessaryUseCallback',
+          data: {name: 'fn', usages: 'directly invoked in line 3'},
+          suggestions: [
+            {
+              messageId: 'removeUseCallback',
+              output: `
+        const fn = () => {};
+        <button onClick={() => { track(); fn(); }} />
+      `,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'binding called inside another call argument',
+      code: `
+        const fn = useCallback(() => {}, []);
+        <button onClick={() => wrap(fn())} />
+      `,
+      errors: [
+        {
+          messageId: 'unnecessaryUseCallback',
+          data: {name: 'fn', usages: 'directly invoked in line 3'},
+          suggestions: [
+            {
+              messageId: 'removeUseCallback',
+              output: `
+        const fn = () => {};
+        <button onClick={() => wrap(fn())} />
+      `,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'useCallback wrapping an identifier',
+      code: `
+        const handle = () => {};
+        const fn = useCallback(handle, []);
+        <button onClick={fn} />
+      `,
+      errors: [
+        {
+          messageId: 'unnecessaryUseCallback',
+          data: {
+            name: 'fn',
+            usages: 'passed to intrinsic element <button> in line 4',
+          },
+          suggestions: [
+            {
+              messageId: 'removeUseCallback',
+              output: `
+        const handle = () => {};
+        const fn = handle;
+        <button onClick={fn} />
+      `,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'useCallback wrapping a conditional of stable values',
+      code: `
+        const fn = useCallback(x ? a : b, []);
+        <button onClick={fn} />
+      `,
+      errors: [
+        {
+          messageId: 'unnecessaryUseCallback',
+          data: {
+            name: 'fn',
+            usages: 'passed to intrinsic element <button> in line 3',
+          },
+          suggestions: [
+            {
+              messageId: 'removeUseCallback',
+              output: `
+        const fn = x ? a : b;
+        <button onClick={fn} />
+      `,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'useCallback wrapping a logical expression of stable values',
+      code: `
+        const fn = useCallback(onClick ?? noop, []);
+        <button onClick={fn} />
+      `,
+      errors: [
+        {
+          messageId: 'unnecessaryUseCallback',
+          data: {
+            name: 'fn',
+            usages: 'passed to intrinsic element <button> in line 3',
+          },
+          suggestions: [
+            {
+              messageId: 'removeUseCallback',
+              output: `
+        const fn = onClick ?? noop;
+        <button onClick={fn} />
+      `,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'useCallback wrapping a member expression',
+      code: `
+        const fn = useCallback(props.handler, []);
+        <button onClick={fn} />
+      `,
+      errors: [
+        {
+          messageId: 'unnecessaryUseCallback',
+          data: {
+            name: 'fn',
+            usages: 'passed to intrinsic element <button> in line 3',
+          },
+          suggestions: [
+            {
+              messageId: 'removeUseCallback',
+              output: `
+        const fn = props.handler;
+        <button onClick={fn} />
+      `,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'useCallback wrapping an optional member expression',
+      code: `
+        const fn = useCallback(props?.onClick, []);
+        <button onClick={fn} />
+      `,
+      errors: [
+        {
+          messageId: 'unnecessaryUseCallback',
+          data: {
+            name: 'fn',
+            usages: 'passed to intrinsic element <button> in line 3',
+          },
+          suggestions: [
+            {
+              messageId: 'removeUseCallback',
+              output: `
+        const fn = props?.onClick;
+        <button onClick={fn} />
+      `,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'useCallback wrapping an instantiation expression',
+      code: `
+        const fn = useCallback(handler<string>, []);
+        <button onClick={fn} />
+      `,
+      errors: [
+        {
+          messageId: 'unnecessaryUseCallback',
+          data: {
+            name: 'fn',
+            usages: 'passed to intrinsic element <button> in line 3',
+          },
+          suggestions: [
+            {
+              messageId: 'removeUseCallback',
+              output: `
+        const fn = handler<string>;
+        <button onClick={fn} />
+      `,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'useCallback wrapping a non-null asserted identifier',
+      code: `
+        const fn = useCallback(handler!, []);
+        <button onClick={fn} />
+      `,
+      errors: [
+        {
+          messageId: 'unnecessaryUseCallback',
+          data: {
+            name: 'fn',
+            usages: 'passed to intrinsic element <button> in line 3',
+          },
+          suggestions: [
+            {
+              messageId: 'removeUseCallback',
+              output: `
+        const fn = handler!;
+        <button onClick={fn} />
+      `,
+            },
+          ],
+        },
+      ],
+    },
+    {
+      name: 'useCallback wrapping a function expression',
+      code: `
+        const fn = useCallback(function () {}, []);
+        <button onClick={fn} />
+      `,
+      errors: [
+        {
+          messageId: 'unnecessaryUseCallback',
+          data: {
+            name: 'fn',
+            usages: 'passed to intrinsic element <button> in line 3',
+          },
+          suggestions: [
+            {
+              messageId: 'removeUseCallback',
+              output: `
+        const fn = function () {};
+        <button onClick={fn} />
       `,
             },
           ],

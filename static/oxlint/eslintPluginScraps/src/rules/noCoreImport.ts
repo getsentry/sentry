@@ -23,17 +23,10 @@ export const noCoreImport = defineRule({
   create(context) {
     return {
       ImportDeclaration(node) {
-        if (node?.source.type !== 'Literal') {
-          return;
-        }
-
         const importPath = node.source.value;
 
-        if (typeof importPath !== 'string') {
-          return;
-        }
-
         if (
+          !importPath.startsWith(FORBIDDEN_PATH) ||
           /^sentry\/components\/core\/badge\/(alertBadge|deployBadge|projectsBadge)$/.test(
             importPath
           )
@@ -41,23 +34,15 @@ export const noCoreImport = defineRule({
           return;
         }
 
-        if (importPath.startsWith(FORBIDDEN_PATH)) {
-          context.report({
-            node,
-            messageId: 'forbidden',
-            fix(fixer) {
-              let newPath = REPLACEMENT_PATH;
-
-              // Check if we are importing from a subpath and extract the component
-              if (importPath.startsWith(FORBIDDEN_PATH)) {
-                const firstComponent = importPath.split('/')[3];
-                newPath = `${REPLACEMENT_PATH}/${firstComponent}`;
-              }
-
-              return fixer.replaceText(node.source, `'${newPath}'`);
-            },
-          });
-        }
+        context.report({
+          node,
+          messageId: 'forbidden',
+          fix: fixer =>
+            fixer.replaceText(
+              node.source,
+              `'${REPLACEMENT_PATH}/${importPath.split('/')[3]}'`
+            ),
+        });
       },
     };
   },

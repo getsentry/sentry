@@ -7,32 +7,11 @@ import {
 } from '@oxlint/plugins';
 
 import {createImportTracker} from '../ast/tracker/imports.ts';
+import {removeJsxAttributes} from '../ast/utils/removeJsxAttributes.ts';
 
 const LAYOUT_SOURCE = '@sentry/scraps/layout';
 
 type ImportTracker = ReturnType<typeof createImportTracker>;
-
-/**
- * Whether a JSX tag resolves to layout's `Flex`, either as a named import
- * (`<Flex>`) or via a namespace import (`import * as Layout` -> `<Layout.Flex>`).
- */
-function isLayoutFlexElement(
-  nameNode: ESTree.JSXElementName,
-  importTracker: ImportTracker
-): boolean {
-  if (nameNode.type === 'JSXIdentifier') {
-    return importTracker.is(nameNode, LAYOUT_SOURCE, 'Flex');
-  }
-  if (
-    nameNode.type === 'JSXMemberExpression' &&
-    nameNode.object.type === 'JSXIdentifier' &&
-    nameNode.property.name === 'Flex'
-  ) {
-    const info = importTracker.resolve(nameNode.object);
-    return info?.source === LAYOUT_SOURCE && info.imported === '*';
-  }
-  return false;
-}
 
 /**
  * Returns the `direction` attribute when it is set to the literal string
@@ -43,66 +22,22 @@ function isLayoutFlexElement(
 function getColumnDirectionAttribute(
   opening: ESTree.JSXOpeningElement
 ): ESTree.JSXAttribute | null {
-  for (const attr of opening.attributes) {
-    if (
-      attr.type !== 'JSXAttribute' ||
-      attr.name.type !== 'JSXIdentifier' ||
-      attr.name.name !== 'direction'
-    ) {
-      continue;
-    }
-    const value = attr.value;
-    if (value?.type === 'Literal' && value.value === 'column') {
-      return attr;
-    }
-    if (
-      value?.type === 'JSXExpressionContainer' &&
-      value.expression.type === 'Literal' &&
-      value.expression.value === 'column'
-    ) {
-      return attr;
-    }
-    return null;
-  }
-  return null;
+  const attr = opening.attributes.find(
+    (attribute): attribute is ESTree.JSXAttribute =>
+      attribute.type === 'JSXAttribute' && attribute.name.name === 'direction'
+  );
+  const value =
+    attr?.value?.type === 'JSXExpressionContainer' ? attr.value.expression : attr?.value;
+  return attr && value?.type === 'Literal' && value.value === 'column' ? attr : null;
 }
 
-function getStackLocalName(importTracker: ImportTracker): string {
-  return importTracker.findLocalNames(LAYOUT_SOURCE, 'Stack')[0] ?? 'Stack';
-}
-
-/** Adds `Stack` to the existing layout import, or a fresh import if none exists. */
 function getStackImportFix(
   fixer: Fixer,
-  context: Context,
-  importTracker: ImportTracker
+  flexImport: ESTree.ImportDeclaration
 ): Fix | null {
-  if (importTracker.findLocalNames(LAYOUT_SOURCE, 'Stack').length > 0) {
-    return null;
-  }
-
-  const layoutImport = context.sourceCode.ast.body.find(
-    (node): node is ESTree.ImportDeclaration =>
-      node.type === 'ImportDeclaration' && node.source.value === LAYOUT_SOURCE
-  );
-
-  // The element resolves to Flex from the layout module, so an import from
-  // that source always exists; fall back to a fresh import defensively.
-  if (!layoutImport) {
-    return fixer.insertTextBeforeRange(
-      [0, 0],
-      `import {Stack} from '${LAYOUT_SOURCE}';\n`
-    );
-  }
-
-  const specifiers = layoutImport.specifiers.filter(
+  const specifiers = flexImport.specifiers.filter(
     (spec): spec is ESTree.ImportSpecifier => spec.type === 'ImportSpecifier'
   );
-  const lastSpecifier = specifiers.at(-1);
-  if (!lastSpecifier) {
-    return null;
-  }
-
   // Insert Stack in alphabetical position among the named imports.
   const after = specifiers.find(
     spec =>
@@ -114,7 +49,8 @@ function getStackImportFix(
   if (after) {
     return fixer.insertTextBefore(after, 'Stack, ');
   }
-  return fixer.insertTextAfter(lastSpecifier, ', Stack');
+  const lastSpecifier = specifiers.at(-1);
+  return lastSpecifier ? fixer.insertTextAfter(lastSpecifier, ', Stack') : null;
 }
 
 /** Renames Flex -> Stack, drops the redundant `direction` prop, and ensures the import. */
@@ -139,26 +75,22 @@ function buildStackFix(
     }
   } else {
     // Named form (`<Flex>`): rename the element and ensure Stack is imported.
-    const stackName = getStackLocalName(importTracker);
+    const [existingStackName] = importTracker.findLocalNames(LAYOUT_SOURCE, 'Stack');
+    const stackName = existingStackName ?? 'Stack';
     fixes.push(fixer.replaceText(openingName, stackName));
     if (closingName) {
       fixes.push(fixer.replaceText(closingName, stackName));
     }
-    const importFix = getStackImportFix(fixer, context, importTracker);
-    if (importFix !== null) {
-      fixes.push(importFix);
+    const flexImport = importTracker.resolveVariable(openingName)?.defs[0]?.parent;
+    if (!existingStackName && flexImport?.type === 'ImportDeclaration') {
+      const importFix = getStackImportFix(fixer, flexImport);
+      if (importFix) {
+        fixes.push(importFix);
+      }
     }
   }
 
-  // Remove the now-redundant direction attribute along with the whitespace
-  // separating it from the previous token, so an attribute alone on its own
-  // line takes the whole line (including the preceding newline) with it.
-  // includeComments keeps a preceding comment from being swallowed by the range.
-  const tokenBefore = context.sourceCode.getTokenBefore(directionAttr, {
-    includeComments: true,
-  });
-  const start = tokenBefore ? tokenBefore.range[1] : directionAttr.range[0];
-  fixes.push(fixer.removeRange([start, directionAttr.range[1]]));
+  fixes.push(removeJsxAttributes(fixer, context.sourceCode, directionAttr));
 
   return fixes;
 }
@@ -182,21 +114,25 @@ export const preferStackForColumnFlex = defineRule({
     const importTracker = createImportTracker(context);
 
     return {
-      ...importTracker.visitors,
-
       JSXElement(node) {
-        if (!isLayoutFlexElement(node.openingElement.name, importTracker)) {
+        if (!importTracker.is(node.openingElement.name, LAYOUT_SOURCE, 'Flex')) {
           return;
         }
+        const {attributes} = node.openingElement;
         const directionAttr = getColumnDirectionAttribute(node.openingElement);
         if (!directionAttr) {
           return;
         }
+        const spreadBeforeDirection = attributes
+          .slice(0, attributes.indexOf(directionAttr))
+          .some(attr => attr.type === 'JSXSpreadAttribute');
 
         context.report({
           node: directionAttr,
           messageId: 'preferStack',
-          fix: fixer => buildStackFix(fixer, node, directionAttr, context, importTracker),
+          fix: spreadBeforeDirection
+            ? undefined
+            : fixer => buildStackFix(fixer, node, directionAttr, context, importTracker),
         });
       },
     };

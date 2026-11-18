@@ -36,14 +36,12 @@ ruleTester.run('prefer-relative-child-imports', preferRelativeChildImports, {
       filename: `${process.cwd()}/static/widget.ts`,
     },
     {
-      code: "import value from 'sentry/value';",
-      filename: '<input>',
-      options: [{rootDir: '.'}],
+      code: "import value from 'sentry/../value';",
+      filename: `${process.cwd()}/static/widget.ts`,
     },
     {
-      code: "import value from 'sentry/value';",
-      filename: '<text>',
-      options: [{rootDir: '.'}],
+      code: "import value from 'sentry/../outside/value';",
+      filename: `${process.cwd()}/static/outside/widget.ts`,
     },
     {
       code: "import value from 'sentry';",

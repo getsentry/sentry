@@ -6,7 +6,7 @@ import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 import {IconClose} from '@sentry/icons/close';
 
-import InteractionStateLayer from 'sentry/components/interactionStateLayer';
+import {InteractionStateLayer} from 'sentry/components/interactionStateLayer';
 import {
   useSearchQueryBuilderConfig,
   useSearchQueryBuilderLayout,

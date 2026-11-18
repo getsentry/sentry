@@ -168,6 +168,18 @@ ruleTester.run('require-fake-timer-cleanup', requireFakeTimerCleanup, {
         });
       `,
     },
+    {
+      name: 'function expression hooks',
+      code: `describe('test', function () {beforeEach(function () {jest.useFakeTimers();}); afterEach(function () {try {jest.runOnlyPendingTimers();} finally {jest.useRealTimers();}});});`,
+    },
+    {
+      name: 'timer methods on another object',
+      code: `beforeEach(() => clock.useFakeTimers());`,
+    },
+    {
+      name: 'additional afterEach without timer restoration',
+      code: `beforeEach(() => jest.useFakeTimers()); afterEach(() => {try {jest.runOnlyPendingTimers();} finally {jest.useRealTimers();}}); afterEach(() => {cleanup();});`,
+    },
   ],
   invalid: [
     {
@@ -346,6 +358,31 @@ ruleTester.run('require-fake-timer-cleanup', requireFakeTimerCleanup, {
         });
       `,
       errors: [{messageId: 'missingCleanup'}],
+    },
+    {
+      name: 'nested function declaration in a test',
+      code: `it('case', () => {function setup() {jest.useFakeTimers();}}); afterEach(() => {try {jest.runOnlyPendingTimers();} finally {jest.useRealTimers();}});`,
+      errors: [{messageId: 'useFakeTimersNotInHook'}],
+    },
+    {
+      name: 'afterEach inside a non-describe callback does not apply',
+      code: `beforeEach(() => jest.useFakeTimers()); helper(() => {afterEach(() => {try {jest.runOnlyPendingTimers();} finally {jest.useRealTimers();}});});`,
+      errors: [{messageId: 'missingCleanup'}],
+    },
+    {
+      name: 'fake timers in a test require protected teardown',
+      code: `it('case', () => {jest.useFakeTimers();}); afterEach(() => {jest.runOnlyPendingTimers(); jest.useRealTimers();});`,
+      errors: [{messageId: 'missingFinally'}],
+    },
+    {
+      name: 'unprotected nested teardown alongside protected ancestor',
+      code: `afterEach(() => {try {jest.runOnlyPendingTimers();} finally {jest.useRealTimers();}}); describe('inner', () => {beforeEach(() => jest.useFakeTimers()); afterEach(() => {jest.runOnlyPendingTimers(); jest.useRealTimers();});});`,
+      errors: [{messageId: 'missingFinally'}],
+    },
+    {
+      name: 'empty statement before straight-line teardown',
+      code: `beforeEach(() => jest.useFakeTimers()); afterEach(() => {; jest.runOnlyPendingTimers(); jest.useRealTimers();});`,
+      errors: [{messageId: 'missingFinally'}],
     },
   ],
 });
