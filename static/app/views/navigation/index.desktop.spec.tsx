@@ -302,7 +302,7 @@ describe('desktop navigation', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('keeps the All Projects submenu closed during the projects tour step', async () => {
+    it('keeps the tour running when going back with the All Projects submenu open', async () => {
       MockApiClient.addMockResponse({
         url: '/assistant/',
         body: [{guide: 'tour.settings_navigation', seen: false}],
@@ -318,12 +318,10 @@ describe('desktop navigation', () => {
       expect(
         await screen.findByText('Quick settings-access for your important Projects')
       ).toBeInTheDocument();
-      const viewAllProjects = screen.getByRole('menuitemradio', {
-        name: 'View All Projects',
-      });
-      expect(viewAllProjects).toHaveAttribute('aria-disabled', 'true');
-      await userEvent.hover(viewAllProjects);
-      expect(screen.queryByPlaceholderText('Search')).not.toBeInTheDocument();
+      await userEvent.hover(
+        screen.getByRole('menuitemradio', {name: 'View All Projects'})
+      );
+      expect(await screen.findByPlaceholderText('Search')).toBeInTheDocument();
       await userEvent.click(screen.getByRole('button', {name: 'Previous'}));
       expect(await screen.findByText('Access Settings here')).toBeInTheDocument();
     });

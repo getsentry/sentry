@@ -10,6 +10,11 @@ export type OverlayState = ReturnType<typeof useOverlay>['state'];
 
 interface DropdownMenuContextValue {
   /**
+   * `isDismissable` of the root menu. Dismissing a submenu closes the root menu,
+   * so submenus follow it.
+   */
+  isDismissable?: boolean;
+  /**
    * Menu state (from @react-aria's useTreeState) of the parent menu. To be used to
    * close the current submenu.
    */
