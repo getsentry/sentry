@@ -896,6 +896,12 @@ describe('getSavedQueryTraceItemUrl', () => {
     expect(getCompareCaseInsensitiveParams(savedQuery)).toEqual([false, '1']);
   });
 
+  it('leaves a saved query priority off the compare url', () => {
+    const savedQuery = makeSavedQuery('spans', [readableQuery, readableQuery], 'faster');
+
+    expect(parseSavedQueryUrl(savedQuery).queryPriority).toBeUndefined();
+  });
+
   function conversationsSavedQuery(overrides: Partial<ReadableSavedQuery> = {}) {
     return new SavedQuery({
       id: 1,

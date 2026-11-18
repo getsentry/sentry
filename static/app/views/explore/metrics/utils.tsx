@@ -165,6 +165,7 @@ type BaseGetMetricsUrlParams = {
   id?: number;
   interval?: string;
   metricQueries?: BaseMetricQuery[];
+  queryPriority?: 'normal' | 'faster';
   referrer?: string;
   selection?: PageFilters;
   title?: string;
@@ -182,6 +183,7 @@ export function getMetricsUrl({
   metricQueries,
   id,
   interval,
+  queryPriority,
   referrer,
   title,
 }: BaseGetMetricsUrlParams & {organization: Organization | string}) {
@@ -199,6 +201,7 @@ export function getMetricsUrl({
     metric: metricQueries?.map(metricQuery => encodeMetricQueryParams(metricQuery)),
     id,
     interval,
+    queryPriority,
     referrer,
     title,
   };

@@ -171,6 +171,8 @@ function getExploreUrlFromSavedQueryUrl({
     return getExploreMultiQueryUrl({
       organization,
       ...savedQuery,
+      // Compare does not apply query speed, so a saved priority stays off this URL.
+      queryPriority: undefined,
       queries: savedQuery.query.map(q => {
         const groupBys: string[] | undefined =
           q.aggregateField
@@ -250,6 +252,7 @@ export function getExploreMultiQueryUrl({
   queries,
   title,
   id,
+  queryPriority,
   referrer,
 }: {
   interval: string;
@@ -257,6 +260,7 @@ export function getExploreMultiQueryUrl({
   queries: ReadableExploreQueryParts[];
   selection: PageFilters;
   id?: number;
+  queryPriority?: 'normal' | 'faster';
   referrer?: string;
   title?: string;
 }) {
@@ -285,6 +289,7 @@ export function getExploreMultiQueryUrl({
     title,
     id,
     utc,
+    queryPriority,
     referrer,
   };
 

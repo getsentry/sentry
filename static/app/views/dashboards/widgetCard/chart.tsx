@@ -35,6 +35,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
+import {useDashboardQueryPriority} from 'sentry/views/dashboards/hooks/useDashboardQueryPriority';
 import {useTrackAnalyticsOnSpanMigrationError} from 'sentry/views/dashboards/hooks/useTrackAnalyticsOnSpanMigrationError';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {
@@ -239,6 +240,7 @@ function TableComponent({
   const navigate = useNavigate();
   const theme = useTheme();
   const {projects} = useProjects();
+  const {priority: dashboardQueryPriority} = useDashboardQueryPriority();
   if (loading || !tableResults?.[0]) {
     // Align height to other charts.
     return <LoadingPlaceholder />;
@@ -310,7 +312,8 @@ function TableComponent({
               meta as MetaType,
               widget,
               organization,
-              dashboardFilters
+              dashboardFilters,
+              dashboardQueryPriority
             )!;
 
             return customRenderer;
@@ -336,7 +339,9 @@ function TableComponent({
                 selection,
                 widget,
                 organization,
-                dashboardFilters
+                dashboardFilters,
+                0,
+                dashboardQueryPriority
               );
               const exploreUrl = getExploreUrl(dataRow);
               if (exploreUrl) {
