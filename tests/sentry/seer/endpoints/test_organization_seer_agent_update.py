@@ -4,9 +4,13 @@ import orjson
 from django.test import override_settings
 from rest_framework import status
 
+from sentry.analytics.events.seer_scm_connect_events import SeerScmConnectResolvedEvent
 from sentry.integrations.types import ExternalProviders
+from sentry.seer.agent.client_models import PendingUserInput, SeerRunState
+from sentry.seer.agent.scm_connect_analytics import record_scm_connect_shown
 from sentry.seer.models.run import SeerRunMirrorStatus
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.analytics import assert_analytics_events
 from sentry.testutils.helpers.features import with_feature
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
@@ -357,3 +361,74 @@ class TestOrganizationSeerAgentUpdateCommitAuthor(APITestCase):
 
         # A spoofed author is stripped on every payload type, not just create_pr.
         assert "author" not in self._sent_payload(mock_request, "interrupt")
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_update.has_seer_agent_access_with_detail")
+    @patch("sentry.seer.endpoints.organization_seer_agent_update.make_signed_seer_api_request")
+    def test_continue_after_fixing_scm_access_is_recorded_with_the_repo_found(
+        self, mock_request: MagicMock, mock_has_access: MagicMock
+    ) -> None:
+        mock_has_access.return_value = (True, None)
+        mock_request.return_value.status = 200
+        mock_request.return_value.json.return_value = {"run_id": 123}
+        record_scm_connect_shown(
+            self.organization,
+            self.user.id,
+            123,
+            SeerRunState(
+                run_id=123,
+                blocks=[],
+                status="awaiting_user_input",
+                updated_at="2024-01-01T00:00:00Z",
+                owner_user_id=self.user.id,
+                pending_user_input=PendingUserInput(
+                    id="input-1",
+                    input_type="connect_scm",
+                    data={"repo_name": "acme-labs/app", "failure_reason": "no_scm_integration"},
+                ),
+            ),
+            can_install_integrations=True,
+        )
+        # The user connects GitHub and the repo while the popup is open.
+        self.create_integration(
+            organization=self.organization,
+            provider="github",
+            external_id="github:1",
+            name="acme-labs",
+            metadata={"domain_name": "github.com/acme-labs"},
+        )
+        self.create_repo(
+            project=self.create_project(organization=self.organization),
+            name="acme-labs/app",
+            provider="integrations:github",
+            url="https://github.com/acme-labs/app",
+            external_id="1",
+        )
+
+        with assert_analytics_events(
+            [
+                SeerScmConnectResolvedEvent(
+                    organization_id=self.organization.id,
+                    user_id=self.user.id,
+                    run_id=123,
+                    input_id="input-1",
+                    failure_reason="no_scm_integration",
+                    resolution="retry",
+                    repo_status="found",
+                    seconds_open=0,
+                )
+            ],
+            exclude_fields=["seconds_open"],
+        ):
+            response = self.client.post(
+                self.url,
+                data={
+                    "payload": {
+                        "type": "user_input_response",
+                        "input_id": "input-1",
+                        "response_data": {"decision": "retry"},
+                    },
+                },
+                format="json",
+            )
+
+        assert response.status_code == status.HTTP_202_ACCEPTED
