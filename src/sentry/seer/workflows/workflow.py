@@ -25,7 +25,6 @@ from sentry.seer.models.workflow import (
     SeerWorkflowStrategy,
 )
 from sentry.seer.workflows.base import (
-    BackingWorkflowFields,
     ConfigUpdate,
     LockedConfig,
     ProjectSelection,
@@ -205,14 +204,10 @@ class SeerWorkflow:
                 ).save()
 
                 update = ConfigUpdate(LockedConfig(config), definition)
-                update.set_scope(
-                    scope,
-                    new_workflow=BackingWorkflowFields(
-                        name=name or "Seer automation",
-                        created_by_id=created_by_id,
-                        enabled=enabled,
-                    ),
+                definition.trigger.setup(
+                    update, name=name, created_by_id=created_by_id, enabled=enabled
                 )
+                update.set_scope(scope)
                 if update.dirty_fields:
                     config.save(using=database, update_fields=sorted(update.dirty_fields))
                 definition.trigger.sync(config)

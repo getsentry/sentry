@@ -113,15 +113,6 @@ def lock_config(organization_id: int, config_id: int) -> Iterator[LockedConfig]:
         )
 
 
-@dataclass(frozen=True)
-class BackingWorkflowFields:
-    """What a newly created backing workflow starts with."""
-
-    name: str = "Seer automation"
-    created_by_id: int | None = None
-    enabled: bool = True
-
-
 class NoSettings(BaseModel):
     class Config:
         extra = "forbid"
@@ -139,12 +130,13 @@ class AutomationTrigger[Inputs: BaseModel](Protocol):
         """Return the active projects in the config's scope."""
         ...
 
-    def set_scope(
-        self,
-        update: ConfigUpdate,
-        selection: ScopeSelection,
-        new_workflow: BackingWorkflowFields,
+    def setup(
+        self, update: ConfigUpdate, *, name: str | None, created_by_id: int | None, enabled: bool
     ) -> None:
+        """Create anything the trigger keeps outside the config, for a new automation."""
+        return None
+
+    def set_scope(self, update: ConfigUpdate, selection: ScopeSelection) -> None:
         """Replace the config's scope, marking ``update`` only when something changed."""
         ...
 
@@ -431,15 +423,10 @@ class ConfigUpdate:
             raise WorkflowUpdateError("The automation's service account can't be found")
         return replica
 
-    def set_scope(
-        self,
-        selection: ScopeSelection,
-        *,
-        new_workflow: BackingWorkflowFields | None = None,
-    ) -> None:
+    def set_scope(self, selection: ScopeSelection) -> None:
         """Replace which projects the automation covers, in the form its trigger takes.
 
         Callers must authorize the change; this only checks that the selection belongs to
         the workflow's organization.
         """
-        self.definition.trigger.set_scope(self, selection, new_workflow or BackingWorkflowFields())
+        self.definition.trigger.set_scope(self, selection)

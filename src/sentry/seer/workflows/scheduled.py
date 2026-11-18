@@ -47,7 +47,6 @@ from sentry.seer.workflows.base import (
     AutomationAction,
     AutomationDefinition,
     AutomationTrigger,
-    BackingWorkflowFields,
     ConfigUpdate,
     ScopeSelection,
     SelectedMonitors,
@@ -156,12 +155,7 @@ class ScheduleTrigger(AutomationTrigger[ScheduledRunInputs]):
             )
         return projects
 
-    def set_scope(
-        self,
-        update: ConfigUpdate,
-        selection: ScopeSelection,
-        new_workflow: BackingWorkflowFields,
-    ) -> None:
+    def set_scope(self, update: ConfigUpdate, selection: ScopeSelection) -> None:
         match selection:
             case AllProjects():
                 all_projects = True

@@ -87,7 +87,7 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
                 {
                     "id": str(run.id),
                     "configId": str(self.config.id),
-                    "configName": None,
+                    "configName": "Seer automation",
                     "strategy": "breached_metric_investigation",
                     "trigger": None,
                     "status": "running",

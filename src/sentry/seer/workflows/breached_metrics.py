@@ -35,7 +35,6 @@ from sentry.seer.workflows.base import (
     AutomationAction,
     AutomationDefinition,
     AutomationTrigger,
-    BackingWorkflowFields,
     ConfigUpdate,
     NoSettings,
     RejectionReason,
@@ -108,24 +107,28 @@ class MetricAlertTrigger(AutomationTrigger[MetricBreachInputs]):
             ).values("detector__project_id")
         )
 
-    def set_scope(
-        self,
-        update: ConfigUpdate,
-        selection: ScopeSelection,
-        new_workflow: BackingWorkflowFields,
+    def setup(
+        self, update: ConfigUpdate, *, name: str | None, created_by_id: int | None, enabled: bool
     ) -> None:
+        update.config.backing_workflow = _create_backing_workflow(
+            update.config,
+            name=name or "Seer automation",
+            created_by_id=created_by_id,
+            enabled=enabled,
+        )
+        update.mark("backing_workflow")
+
+    def set_scope(self, update: ConfigUpdate, selection: ScopeSelection) -> None:
         """Callers must authorize and audit the change."""
         if not isinstance(selection, SelectedMonitors):
             raise WorkflowUpdateError(
                 "Breached metric projects are selected by connecting monitors"
             )
         config = update.config
-        change = _set_monitor_selection(
-            config.organization_id, config, selection.monitor_ids, new_workflow
-        )
+        change = _set_monitor_selection(config.organization_id, config, selection.monitor_ids)
         if change is None:
             return
-        update.mark("backing_workflow")
+        update.mark_related_changed()
         # Read the version at commit time, after update_config bumps it.
         transaction.on_commit(
             lambda: logger.info(
@@ -398,7 +401,6 @@ class ConnectedMonitor(NamedTuple):
 @dataclass(frozen=True)
 class MonitorSelectionChange:
     workflow_id: int
-    workflow_created: bool
     monitor_count: int
     added_count: int
     removed_count: int
@@ -447,29 +449,22 @@ def get_monitor_project_ids(monitor_ids: Sequence[int], organization: Organizati
 
 
 def _set_monitor_selection(
-    organization_id: int,
-    config: SeerWorkflowConfig,
-    monitor_ids: Sequence[int],
-    new_workflow: BackingWorkflowFields,
+    organization_id: int, config: SeerWorkflowConfig, monitor_ids: Sequence[int]
 ) -> MonitorSelectionChange | None:
-    """
-    Creates a backing workflow if one does not exist and sets/replaces its connected monitors.
-    Returns the change, or None when nothing changed. Callers must save ``backing_workflow``.
-    """
+    """Replace the backing workflow's connected monitors; None when nothing changed."""
     selected = set(monitor_ids)
     _validate_monitors(organization_id, selected)
-    workflow, created = _get_or_create_backing_workflow(organization_id, config, new_workflow)
+    workflow = config.backing_workflow
+    if workflow is None or workflow.status != ObjectStatus.ACTIVE:
+        raise WorkflowUpdateError("The automation's alert workflow was deleted.")
     existing = set(
         DetectorWorkflow.objects.filter(workflow=workflow).values_list("detector_id", flat=True)
     )
-    if not created and existing == selected:
+    if existing == selected:
         return None
-
-    if existing != selected:
-        _replace_monitor_connections(workflow, existing, selected)
+    _replace_monitor_connections(workflow, existing, selected)
     return MonitorSelectionChange(
         workflow_id=workflow.id,
-        workflow_created=created,
         monitor_count=len(selected),
         added_count=len(selected - existing),
         removed_count=len(existing - selected),
@@ -492,25 +487,6 @@ def _validate_monitors(organization_id: int, monitor_ids: set[int]) -> None:
         )
 
 
-def _get_or_create_backing_workflow(
-    organization_id: int, config: SeerWorkflowConfig, new_workflow: BackingWorkflowFields
-) -> tuple[Workflow, bool]:
-    """Replace a missing or deleted backing workflow; returns whether one was created."""
-    workflow = (
-        Workflow.objects_for_deletion.get(
-            id=config.backing_workflow_id, organization_id=organization_id
-        )
-        if config.backing_workflow_id is not None
-        else None
-    )
-    if workflow is not None and workflow.status == ObjectStatus.ACTIVE:
-        return workflow, False
-    config.backing_workflow = workflow = _create_backing_workflow(
-        organization_id, config, new_workflow
-    )
-    return workflow, True
-
-
 def _replace_monitor_connections(
     workflow: Workflow, existing: set[int], selected: set[int]
 ) -> None:
@@ -524,8 +500,9 @@ def _replace_monitor_connections(
 
 
 def _create_backing_workflow(
-    organization_id: int, config: SeerWorkflowConfig, fields: BackingWorkflowFields
+    config: SeerWorkflowConfig, *, name: str, created_by_id: int | None, enabled: bool
 ) -> Workflow:
+    organization_id = config.organization_id
     triggers = DataConditionGroup.objects.create(
         organization_id=organization_id,
         logic_type=DataConditionGroup.Type.ANY_SHORT_CIRCUIT,
@@ -538,9 +515,9 @@ def _create_backing_workflow(
     )
     workflow = Workflow.objects.create(
         organization_id=organization_id,
-        name=fields.name,
-        enabled=fields.enabled,
-        created_by_id=fields.created_by_id,
+        name=name,
+        enabled=enabled,
+        created_by_id=created_by_id,
         config={"frequency": 0},
         when_condition_group=triggers,
     )
