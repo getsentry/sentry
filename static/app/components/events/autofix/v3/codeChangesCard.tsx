@@ -361,6 +361,8 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
       );
     } else if (isResetAvailable) {
       // An iteration is retried with feedback, through the PR iteration form.
+      // TODO(CW-3102): Retry the stopped iteration's own feedback once the
+      // organization has credits, instead of asking for it again.
       retry = (
         <Flex>
           <Button

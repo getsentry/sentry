@@ -409,7 +409,7 @@ export default Storybook.story('SeerDrawerContent', story => {
 
   story('Out of credits: PR iteration stopped partway with feedback queued', () => (
     <DrawerStory
-      description="The same stop with feedback queued behind it. The queued feedback waits, and the card shows both the stop line and the count of waiting feedback."
+      description="The same stop with feedback queued behind it. The queued feedback shows as waiting, and the card shows only the stop line."
       runState={makeRun(STOPPED_PR_ITERATION_BLOCKS, {
         ...STOPPED_RUN,
         queued_feedback: QUEUED_FEEDBACK,

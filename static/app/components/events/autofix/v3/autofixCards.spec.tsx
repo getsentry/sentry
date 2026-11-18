@@ -3010,7 +3010,7 @@ describe('out of credits', () => {
     }
   );
 
-  it('shows only the stop line when a stopped PR iteration has queued feedback', () => {
+  it('shows only the stop line when a stopped PR iteration has queued feedback too', () => {
     mockCreditCheck('autofix_pr_iteration', false);
     render(
       <CodeChangesCard
