@@ -137,6 +137,23 @@ describe('AIContentRenderer', () => {
     expect(hasAnnotations(container.textContent ?? '')).toBe(false);
   });
 
+  it('marks scrubbed values in inline code', () => {
+    const marked = annotate(
+      '[email]',
+      JSON.stringify({ruleId: '@email:replace', remark: 's'})
+    );
+    // Inline code across a line isn't detected as markdown, so it reaches the plain
+    // text renderer.
+    const texts = [`Run \`send("${marked}")\` now`, `Run \`send(\n"${marked}")\` now`];
+
+    for (const text of texts) {
+      const {container, unmount} = render(<AIContentRenderer text={text} />);
+      expect(screen.getByText('[email]').closest('code')).toBeInTheDocument();
+      expect(hasAnnotations(container.textContent ?? '')).toBe(false);
+      unmount();
+    }
+  });
+
   it('drops the marks of scrubbed values in code', () => {
     const marked = annotate(
       '[email]',
