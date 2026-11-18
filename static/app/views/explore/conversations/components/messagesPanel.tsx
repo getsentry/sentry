@@ -1,4 +1,4 @@
-import {Fragment, memo, useMemo} from 'react';
+import {memo, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -112,99 +112,91 @@ export function MessagesPanel({
     <PanelContainer>
       {hasNotReportedContent && <NotReportedAlert nodes={nodes} />}
       <Stack gap="0" width="100%">
-        {messages.map(message => (
-          // Search finds the rows a span renders by this attribute.
-          <Container key={message.id} display="contents" data-node-id={message.nodeId}>
-            <TranscriptTurn
+        {messages.map(message => {
+          const hasXmlTags = hasXmlByMessageId.get(message.id) ?? false;
+
+          if (message.role === 'user') {
+            return (
+              <UserTurn
+                key={message.id}
+                nodeId={message.nodeId}
+                content={message.content}
+                hasXmlTags={hasXmlTags}
+              />
+            );
+          }
+
+          if (message.role === 'embedding') {
+            return (
+              <EmbeddingTurn
+                key={message.id}
+                message={message}
+                isSelected={message.nodeId === selectedNodeId}
+              />
+            );
+          }
+
+          if (message.role === 'evaluation') {
+            return (
+              <EvaluationTurn
+                key={message.id}
+                message={message}
+                node={nodeMap.get(message.nodeId)}
+                isSelected={message.nodeId === selectedNodeId}
+                onSelectNode={onSelectNode}
+              />
+            );
+          }
+
+          if (message.role === 'extraction') {
+            return (
+              <ExtractionTurn
+                key={message.id}
+                message={message}
+                node={nodeMap.get(message.nodeId)}
+                isSelected={message.nodeId === selectedNodeId}
+                onSelectNode={onSelectNode}
+              />
+            );
+          }
+
+          if (message.role === 'memory') {
+            return (
+              <MemoryTurn
+                key={message.id}
+                message={message}
+                node={nodeMap.get(message.nodeId)}
+                isSelected={message.nodeId === selectedNodeId}
+                onSelectNode={onSelectNode}
+              />
+            );
+          }
+
+          // Pass each turn only the selection state that concerns it, rather
+          // than the shared `selectedNodeId`. A turn's props stay referentially
+          // stable when the selection moves to an unrelated turn, so once these
+          // rows are memoized only the turns that gain/lose selection re-render.
+          const isSelected = message.nodeId === selectedNodeId;
+          const selectedToolCallId = message.toolCalls?.some(
+            tool => tool.nodeId === selectedNodeId
+          )
+            ? selectedNodeId
+            : null;
+
+          return (
+            <AssistantTurn
+              key={message.id}
               message={message}
-              hasXmlTags={hasXmlByMessageId.get(message.id) ?? false}
-              selectedNodeId={selectedNodeId}
+              hasXmlTags={hasXmlTags}
+              isSelected={isSelected}
+              selectedToolCallId={selectedToolCallId}
               nodeMap={nodeMap}
               onSelectNode={onSelectNode}
             />
-          </Container>
-        ))}
+          );
+        })}
       </Stack>
     </PanelContainer>
-  );
-}
-
-function TranscriptTurn({
-  message,
-  hasXmlTags,
-  selectedNodeId,
-  nodeMap,
-  onSelectNode,
-}: {
-  hasXmlTags: boolean;
-  message: ConversationMessage;
-  nodeMap: Map<string, AITraceSpanNode>;
-  onSelectNode: (node: AITraceSpanNode) => void;
-  selectedNodeId: string | null;
-}) {
-  if (message.role === 'user') {
-    return <UserTurn content={message.content} hasXmlTags={hasXmlTags} />;
-  }
-
-  if (message.role === 'embedding') {
-    return (
-      <EmbeddingTurn message={message} isSelected={message.nodeId === selectedNodeId} />
-    );
-  }
-
-  if (message.role === 'evaluation') {
-    return (
-      <EvaluationTurn
-        message={message}
-        node={nodeMap.get(message.nodeId)}
-        isSelected={message.nodeId === selectedNodeId}
-        onSelectNode={onSelectNode}
-      />
-    );
-  }
-
-  if (message.role === 'extraction') {
-    return (
-      <ExtractionTurn
-        message={message}
-        node={nodeMap.get(message.nodeId)}
-        isSelected={message.nodeId === selectedNodeId}
-        onSelectNode={onSelectNode}
-      />
-    );
-  }
-
-  if (message.role === 'memory') {
-    return (
-      <MemoryTurn
-        message={message}
-        node={nodeMap.get(message.nodeId)}
-        isSelected={message.nodeId === selectedNodeId}
-        onSelectNode={onSelectNode}
-      />
-    );
-  }
-
-  // Pass each turn only the selection state that concerns it, rather
-  // than the shared `selectedNodeId`. A turn's props stay referentially
-  // stable when the selection moves to an unrelated turn, so once these
-  // rows are memoized only the turns that gain/lose selection re-render.
-  const isSelected = message.nodeId === selectedNodeId;
-  const selectedToolCallId = message.toolCalls?.some(
-    tool => tool.nodeId === selectedNodeId
-  )
-    ? selectedNodeId
-    : null;
-
-  return (
-    <AssistantTurn
-      message={message}
-      hasXmlTags={hasXmlTags}
-      isSelected={isSelected}
-      selectedToolCallId={selectedToolCallId}
-      nodeMap={nodeMap}
-      onSelectNode={onSelectNode}
-    />
   );
 }
 
@@ -213,26 +205,29 @@ function TranscriptTurn({
 const UserTurn = memo(function UserTurnImpl({
   content,
   hasXmlTags,
+  nodeId,
 }: {
   content: string;
   hasXmlTags: boolean;
+  nodeId: string;
 }) {
-  if (content === NOT_REPORTED) {
-    return (
-      <UserMessageBlock>
-        <MessageText align="left" variant="muted">
-          {content}
-        </MessageText>
-      </UserMessageBlock>
-    );
-  }
-
   return (
-    <UserMessageBlock expand={hasXmlTags}>
-      <MessageText align="left">
-        <AIContentRenderer text={content} inline autoCollapseLimit={10} />
-      </MessageText>
-    </UserMessageBlock>
+    // Search finds the span a transcript block renders by its data-node-id.
+    <Container display="contents" data-node-id={nodeId}>
+      {content === NOT_REPORTED ? (
+        <UserMessageBlock>
+          <MessageText align="left" variant="muted">
+            {content}
+          </MessageText>
+        </UserMessageBlock>
+      ) : (
+        <UserMessageBlock expand={hasXmlTags}>
+          <MessageText align="left">
+            <AIContentRenderer text={content} inline autoCollapseLimit={10} />
+          </MessageText>
+        </UserMessageBlock>
+      )}
+    </Container>
   );
 });
 
@@ -286,7 +281,7 @@ const AssistantTurn = memo(function AssistantTurnImpl({
   };
 
   return (
-    <Fragment>
+    <Container display="contents" data-node-id={message.nodeId}>
       {message.toolCalls && message.toolCalls.length > 0 && (
         <MessageRow from="assistant" density="compact">
           <MessageToolCalls
@@ -351,7 +346,7 @@ const AssistantTurn = memo(function AssistantTurnImpl({
           </MessageText>
         </AssistantMessageBlock>
       )}
-    </Fragment>
+    </Container>
   );
 });
 
@@ -392,7 +387,7 @@ const EmbeddingTurn = memo(function EmbeddingTurnImpl({
   const tokens = message.embeddingTokens;
 
   return (
-    <MessageRow from="assistant" density="compact">
+    <MessageRow from="assistant" density="compact" data-node-id={message.nodeId}>
       <CollapsibleChatRow
         defaultOpen={isSelected}
         title={
@@ -478,7 +473,7 @@ const EvaluationTurn = memo(function EvaluationTurnImpl({
   };
 
   return (
-    <MessageRow from="assistant" density="compact">
+    <MessageRow from="assistant" density="compact" data-node-id={message.nodeId}>
       <TranscriptSpanRow
         node={node}
         isSelected={isSelected}
@@ -524,7 +519,7 @@ const ExtractionTurn = memo(function ExtractionTurnImpl({
   };
 
   return (
-    <MessageRow from="assistant" density="compact">
+    <MessageRow from="assistant" density="compact" data-node-id={message.nodeId}>
       <TranscriptSpanRow
         node={node}
         isSelected={isSelected}
@@ -564,7 +559,7 @@ const MemoryTurn = memo(function MemoryTurnImpl({
   };
 
   return (
-    <MessageRow from="assistant" density="compact">
+    <MessageRow from="assistant" density="compact" data-node-id={message.nodeId}>
       <TranscriptSpanRow
         node={node}
         isSelected={isSelected}
