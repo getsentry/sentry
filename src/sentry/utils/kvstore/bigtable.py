@@ -42,9 +42,10 @@ def bigtable_timeout(timeout: float) -> Generator[None]:
     Caps how long, in seconds, each Bigtable (nodestore) operation within this
     context keeps retrying before raising ``BigtableError``.
 
-    For mutations, each attempt is also bounded to ``min(5, floor(timeout))``
-    seconds (see ``_mutate_rows``). An attempt in flight when ``timeout`` elapses is
-    not interrupted, so a mutation may take up to ~5s longer than ``timeout``.
+    For mutations, each attempt times out after ``min(5, floor(timeout))``
+    seconds (see ``_mutate_rows``). ``timeout`` only decides whether to start
+    another attempt; it doesn't shorten one already running, so a mutation can
+    overrun ``timeout`` by up to one attempt.
 
     This never loosens a tighter timeout, whether from an enclosing
     ``bigtable_timeout`` or an operation's own default.
