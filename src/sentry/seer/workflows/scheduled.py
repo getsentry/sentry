@@ -103,7 +103,7 @@ def _daily() -> CronSchedule:
 
 def schedule_for(config: SeerWorkflowConfig) -> Schedule | None:
     """The schedule a scheduled `config` should run on, or None while it is disabled."""
-    if not config.enabled:
+    if not AutomationDefinition.is_enabled(config):
         return None
     extras = SeerWorkflowConfigExtras.parse_obj(config.extras)
     settings = ScheduleSettings.parse_obj(extras.trigger_settings or {})
@@ -320,7 +320,7 @@ def _record_scheduled_run(
     """Admit and dispatch the run scheduled for `scheduled_for`, once per config."""
     try:
         with lock_config(organization_id, config_id) as config:
-            if not config.enabled:
+            if not AutomationDefinition.is_enabled(config):
                 return ScheduledRunOutcome("ignored", reason="config_disabled")
 
             run = definition.trigger_run(
