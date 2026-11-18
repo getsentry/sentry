@@ -453,19 +453,6 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
             response = self.get_error_response(self.organization.slug, status_code=400, **filters)
             assert response.data["detail"], filters
 
-    def test_empty_run_filters(self) -> None:
-        for param in (
-            "start",
-            "end",
-            "statsPeriod",
-            "statsPeriodStart",
-            "statsPeriodEnd",
-            "timeframe",
-            "status",
-        ):
-            empty = self.get_error_response(self.organization.slug, status_code=400, **{param: ""})
-            assert param in empty.data["detail"]
-
     @freeze_time()
     def test_repeated_date_and_status_use_last_value(self) -> None:
         hour_ago = timezone.now() - timedelta(hours=1)

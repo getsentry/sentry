@@ -230,8 +230,7 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
 
         Date ranges include runs created at or after the start and before the end.
         Supply ``start`` and ``end`` together. Timestamps without an offset use UTC.
-        Omit date filters to include the full history. Empty or invalid filters
-        return HTTP 400.
+        Omit date filters to include the full history. Invalid filters return HTTP 400.
 
         Limited-access members see a run started by a trigger in one project (such as a
         monitor) when they can access that project. For other runs they must be able to
@@ -245,20 +244,6 @@ class OrganizationSeerWorkflowRunsEndpoint(OrganizationEndpoint):
 
         if len(request.query_params.getlist("config")) > 1:
             return Response({"detail": "Supply only one config."}, status=400)
-        for param in (
-            "config",
-            "status",
-            "statsPeriod",
-            "statsPeriodStart",
-            "statsPeriodEnd",
-            "start",
-            "end",
-            "timeframe",
-            "timeframeStart",
-            "timeframeEnd",
-        ):
-            if request.query_params.get(param) == "":
-                return Response({"detail": f"Supply a value for {param}."}, status=400)
         try:
             start, end = get_date_range_from_params(request.GET, optional=True)
         except (ValueError, OverflowError, OSError):
