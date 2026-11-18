@@ -315,6 +315,46 @@ describe('useSaveAsMetricItems', () => {
     expect(alertItem?.children).toHaveLength(1);
   });
 
+  it('disables the alert option for histogram metrics', () => {
+    const encodedMetricQuery = encodeMetricQueryParams({
+      metric: {name: 'metric.a', type: 'histogram'},
+      queryParams: new ReadableQueryParams({
+        extrapolate: true,
+        mode: Mode.AGGREGATE,
+        query: 'release:1.2.3',
+        aggregateCursor: '',
+        aggregateFields: [new VisualizeFunction('sum(value,metric.a,histogram,none)')],
+        aggregateSortBys: [{field: 'sum(value,metric.a,histogram,none)', kind: 'desc'}],
+        cursor: '',
+        fields: [],
+        sortBys: [],
+      }),
+    });
+
+    const {result} = renderHookWithProviders(useSaveAsMetricItems, {
+      organization,
+      additionalWrapper: Wrapper,
+      initialProps: {interval: '5m'},
+      initialRouterConfig: {
+        ...initialRouterConfig,
+        location: {
+          ...initialRouterConfig.location,
+          query: {
+            ...initialRouterConfig.location.query,
+            metric: [encodedMetricQuery],
+          },
+        },
+      },
+    });
+
+    const alertItem = result.current.find(item => item.key === 'create-alert') as
+      | {children: unknown[]; disabled: boolean}
+      | undefined;
+
+    expect(alertItem?.disabled).toBe(true);
+    expect(alertItem?.children).toHaveLength(0);
+  });
+
   it('formats alerts submenu labels for equations', () => {
     const equation =
       'equation|sum(value,metric.a,counter,none) + avg(value,metric.a,counter,none)';

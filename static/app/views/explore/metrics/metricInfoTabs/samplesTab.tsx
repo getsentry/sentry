@@ -1,3 +1,4 @@
+import {getMetricSamplesRequiredQuery} from 'sentry/views/explore/metrics/hooks/useMetricSamplesTable';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 
 import {MetricsSamplesTable} from './metricsSamplesTable';
@@ -12,6 +13,7 @@ export function SamplesTab({traceMetric, isMetricOptionsEmpty}: SamplesTabProps)
     <MetricsSamplesTable
       traceMetric={traceMetric}
       isMetricOptionsEmpty={isMetricOptionsEmpty}
+      requiredQuery={getMetricSamplesRequiredQuery(traceMetric)}
     />
   );
 }

@@ -41,7 +41,10 @@ import {MetricsAggregateExportModalButton} from 'sentry/views/explore/metrics/ex
 import {MetricsSamplesExportModalButton} from 'sentry/views/explore/metrics/exports/metricsSamplesExportModalButton';
 import {useMetricAggregatesTable} from 'sentry/views/explore/metrics/hooks/useMetricAggregatesTable';
 import {useMetricHeatMapData} from 'sentry/views/explore/metrics/hooks/useMetricHeatMapData';
-import {useMetricSamplesTable} from 'sentry/views/explore/metrics/hooks/useMetricSamplesTable';
+import {
+  getMetricSamplesRequiredQuery,
+  useMetricSamplesTable,
+} from 'sentry/views/explore/metrics/hooks/useMetricSamplesTable';
 import {useMetricTimeseries} from 'sentry/views/explore/metrics/hooks/useMetricTimeseries';
 import {TRACE_METRICS_INGESTION_DELAY_SECONDS} from 'sentry/views/explore/metrics/ingestionDelay';
 import {
@@ -166,6 +169,7 @@ export function MetricPanel({
     limit: RESULT_LIMIT,
     traceMetric,
     fields,
+    requiredQuery: getMetricSamplesRequiredQuery(traceMetric),
     ingestionDelaySeconds: TRACE_METRICS_INGESTION_DELAY_SECONDS,
     staleTime: EXPLORE_FIVE_MIN_STALE_TIME,
   });

@@ -69,6 +69,13 @@ export function getMetricSamplesFields(fields: string[]): string[] {
   return Array.from(new Set([...AlwaysPresentTraceMetricFields, ...fields]));
 }
 
+// A histogram row holds a whole point's buckets, so only exemplars are individual samples
+export function getMetricSamplesRequiredQuery(traceMetric: TraceMetric) {
+  return traceMetric.type === 'histogram'
+    ? 'sentry._internal.row_kind:exemplar'
+    : undefined;
+}
+
 /**
  * The samples query has to narrow to the panel's metric itself, which the aggregate
  * query gets for free from its aggregate arguments. Exported so exports of this table

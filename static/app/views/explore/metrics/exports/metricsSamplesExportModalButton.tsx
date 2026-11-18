@@ -6,6 +6,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatExportSort} from 'sentry/views/explore/components/exports/formatExportSort';
 import {
   getMetricSamplesFields,
+  getMetricSamplesRequiredQuery,
   useMetricSamplesQueryString,
 } from 'sentry/views/explore/metrics/hooks/useMetricSamplesTable';
 import {
@@ -35,7 +36,10 @@ export function MetricsSamplesExportModalButton({
 }: MetricsSamplesExportModalButtonProps) {
   const {selection} = usePageFilters();
   const sortBys = useQueryParamsSortBys();
-  const query = useMetricSamplesQueryString(traceMetric);
+  const query = useMetricSamplesQueryString(
+    traceMetric,
+    getMetricSamplesRequiredQuery(traceMetric)
+  );
 
   const statsPeriodRange = ingestionDelayedRelativePeriod(
     selection.datetime,
