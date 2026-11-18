@@ -245,6 +245,8 @@ function syncNotebook(lastSnapshot, view) {
   const url =
     'notebook/?id=' +
     encodeURIComponent(lastSnapshot.notebookId) +
+    '&run=' +
+    encodeURIComponent(lastSnapshot.id) +
     '&live=' +
     Number(!lastSnapshot.done);
   if (pane.firstElementChild?.getAttribute('src') === url) {

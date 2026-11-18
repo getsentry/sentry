@@ -4,7 +4,7 @@ Sign in and open <http://dev.getsentry.net:8000/workflow-lab/sentry/>. Substitut
 
 The editor, graph, results, recovery scenarios and notebook renderer all live here. **Run** sends the workflow name, input and request ID to the organization’s investigation-workflows API. Sentry signs the request with the current viewer’s identity. Edited definitions are validated and registered as immutable development drafts before submission to the same API. Run details, cancellation and usage use the durable workflow service.
 
-For a workflow with `"notebook": true`, the Notebook tab appears between Output and Run details. It reads the organization’s notebook API and renders saved blocks with Explorer’s Code Mode components. The tab refreshes throughout the run and fetches the final notebook when the workflow finishes.
+For a workflow with `"notebook": true`, the Notebook tab appears between Output and Run details. It reads the organization’s notebook API and renders saved blocks with Explorer’s Code Mode components. The graph follows the selected run, including parallel map items, coordinator and worker rounds, notebook authoring, and the post-run steps. The Notebook tab refreshes throughout the run and fetches the final notebook and suggested next steps when the workflow finishes. Expand **Agent activity** in the completed notebook to read the public agent updates and Code Mode calls.
 
 The recovery choices in the Run menu simulate failure against isolated local Postgres schemas. Set `WORKFLOW_LAB_SEER_CHECKOUT` on Sentry to a local Seer checkout with its virtualenv installed. By default the Lab looks for a sibling checkout named `Seer-loops` or `seer`. Set `WORKFLOW_LAB_KEEP_PROOF_DATA=1` to retain a simulation’s schema for inspection.
 

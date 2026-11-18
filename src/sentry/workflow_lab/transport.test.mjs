@@ -23,7 +23,7 @@ test('the active workflow owns the Notebook tab and the last read', async () => 
       }),
     },
     view: 'notebook',
-    lastSnapshot: {notebook: true, done: false, notebookId: null},
+    lastSnapshot: {id: 'run1', notebook: true, done: false, notebookId: null},
   };
   globalThis.document = context.document;
   const {syncNotebook} = await import('./assets/transport.js');
@@ -33,12 +33,12 @@ test('the active workflow owns the Notebook tab and the last read', async () => 
   context.lastSnapshot.notebookId = '42';
   syncNotebook(context.lastSnapshot, context.view);
   const live = pane.firstElementChild;
-  assert.equal(live.src, 'notebook/?id=42&live=1');
+  assert.equal(live.src, 'notebook/?id=42&run=run1&live=1');
   syncNotebook(context.lastSnapshot, context.view);
   assert.equal(pane.firstElementChild, live);
   context.lastSnapshot.done = true;
   syncNotebook(context.lastSnapshot, context.view);
-  assert.equal(pane.firstElementChild.src, 'notebook/?id=42&live=0');
+  assert.equal(pane.firstElementChild.src, 'notebook/?id=42&run=run1&live=0');
   context.view = 'output';
   syncNotebook(context.lastSnapshot, context.view);
   assert.equal(pane.firstElementChild, undefined);

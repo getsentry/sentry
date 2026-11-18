@@ -1,5 +1,5 @@
 /* eslint-disable boundaries/no-unknown-files, import-js/no-extraneous-dependencies -- This standalone entrypoint consumes the Sentry frontend workspace dependencies. */
-import {createElement} from 'react';
+import {createElement, useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {createBrowserRouter, RouterProvider} from 'react-router';
 import {QueryClient, QueryClientProvider, useQuery} from '@tanstack/react-query';
@@ -16,6 +16,7 @@ import {ScrapsProviders} from 'sentry/scrapsProviders';
 import type {Organization} from 'sentry/types/organization';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {DEFAULT_QUERY_CLIENT_CONFIG} from 'sentry/utils/queryClientConfig';
+import type {Block as ExplorerBlock} from 'sentry/views/seerExplorer/types';
 
 type Block = {
   content: string;
@@ -47,12 +48,81 @@ const slug = document.documentElement.dataset.organization!;
 const base = document.documentElement.dataset.organizationApi!;
 const params = new URLSearchParams(location.search);
 
+interface ActivityRun {
+  nodes: Array<{attempts: Array<{session: {blocks: ExplorerBlock[]}}>}>;
+  notebookId: string | null;
+}
+
+function NotebookActivity({runId, notebookId}: {notebookId: string; runId: string}) {
+  const [open, setOpen] = useState(false);
+  const activity = useQuery({
+    queryKey: ['notebook-activity', slug, notebookId, runId],
+    enabled: open,
+    staleTime: Infinity,
+    queryFn: async () => {
+      const run = await read<ActivityRun>(
+        base +
+          'investigation-workflows/runs/' +
+          encodeURIComponent(runId) +
+          '/?activity=1'
+      );
+      if (run.notebookId !== notebookId) {
+        throw new Error('This workflow run belongs to a different notebook.');
+      }
+      return run.nodes
+        .flatMap(node => node.attempts.flatMap(attempt => attempt.session.blocks))
+        .flatMap(block => {
+          const calls = (block.tool_results ?? []).flatMap(result =>
+            (result?.structuredContent?.calls ?? []).flatMap(call => {
+              const title = call.llm_description || call.title;
+              if (!title || (call.parent !== null && call.parent !== undefined)) {
+                return [];
+              }
+              return [
+                call.error || (call.status ?? 0) >= 400 ? title + ' (failed)' : title,
+              ];
+            })
+          );
+          const message =
+            block.message.role === 'assistant' ? block.message.content : null;
+          return message || calls.length
+            ? [{id: block.id, at: block.timestamp, message, calls}]
+            : [];
+        })
+        .sort((a, b) => Date.parse(a.at) - Date.parse(b.at));
+    },
+  });
+  return (
+    <details onToggle={event => setOpen(event.currentTarget.open)}>
+      <summary>Agent activity</summary>
+      {open &&
+        (activity.isPending ? (
+          <p>Loading agent activity…</p>
+        ) : activity.error ? (
+          <p role="alert">{activity.error.message}</p>
+        ) : activity.data.length ? (
+          <ol>
+            {activity.data.map(entry => (
+              <li key={entry.id}>
+                {entry.message && <SeerMarkdown raw={entry.message} />}
+                {entry.calls.join(' · ')}
+              </li>
+            ))}
+          </ol>
+        ) : (
+          <p>No agent updates were recorded.</p>
+        ))}
+    </details>
+  );
+}
+
 function NotebookView() {
   const org = useQuery({
     queryKey: ['organization', slug],
     queryFn: () => read<Organization>(base),
   });
   const id = params.get('id') ?? '';
+  const runId = params.get('run');
   const notebook = useQuery({
     queryKey: ['notebook', slug, id],
     queryFn: () => read<Notebook>(base + 'notebooks/' + encodeURIComponent(id) + '/'),
@@ -107,6 +177,9 @@ function NotebookView() {
               </section>
             );
           })}
+          {runId && params.get('live') === '0' && (
+            <NotebookActivity runId={runId} notebookId={id} />
+          )}
           {doc.actionRequests.length > 0 && (
             <section>
               <Heading as="h3" size="lg">
