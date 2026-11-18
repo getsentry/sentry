@@ -5,6 +5,10 @@ import {parseAsStringLiteral, useQueryStates} from 'nuqs';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
+import {
+  type CollapsibleExpandAll,
+  CollapsibleExpandAllContext,
+} from 'sentry/components/ai/chat/collapsibleContent';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -37,6 +41,8 @@ export const CONVERSATION_VIEW_TABS: readonly ConversationViewTab[] = [
 interface ConversationViewContentProps {
   activeTab: ConversationViewTab;
   conversation: UseConversationsOptions;
+  /** Opens or closes every collapsible block in the transcript. */
+  expandAll?: CollapsibleExpandAll | null;
   focusedTool?: string | null;
   onDeselectSpan?: () => void;
   onSelectSpan?: (spanId: string) => void;
@@ -52,6 +58,7 @@ export function ConversationViewContent({
   onDeselectSpan,
   onViewTimeline,
   focusedTool,
+  expandAll = null,
 }: ConversationViewContentProps) {
   const isTimeline = activeTab === 'timeline';
 
@@ -186,13 +193,15 @@ export function ConversationViewContent({
         left={
           <Fragment>
             {isTranscript ? (
-              <MessagesPanel
-                isLoading={isLoading}
-                nodes={nodes}
-                selectedNodeId={displayedNode?.id ?? null}
-                onSelectNode={handleSelectAndOpenDetail}
-                onViewTimeline={onViewTimeline}
-              />
+              <CollapsibleExpandAllContext value={expandAll}>
+                <MessagesPanel
+                  isLoading={isLoading}
+                  nodes={nodes}
+                  selectedNodeId={displayedNode?.id ?? null}
+                  onSelectNode={handleSelectAndOpenDetail}
+                  onViewTimeline={onViewTimeline}
+                />
+              </CollapsibleExpandAllContext>
             ) : (
               <AiSpanTimeline
                 isLoading={isLoading}

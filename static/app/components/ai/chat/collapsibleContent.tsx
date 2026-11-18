@@ -1,11 +1,25 @@
 import type {ReactNode} from 'react';
-import {useState} from 'react';
+import {createContext, useContext, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 
 import {TURN_META_WIDTH} from './turnMeta';
+
+export interface CollapsibleExpandAll {
+  /** Bumped on every expand or collapse all, so it overrides earlier toggles. */
+  generation: number;
+  open: boolean;
+}
+
+/**
+ * Opens or closes every `CollapsibleContent` below it, e.g. a transcript's expand
+ * all. A block toggled by hand keeps its state until the next expand or collapse all.
+ */
+export const CollapsibleExpandAllContext = createContext<CollapsibleExpandAll | null>(
+  null
+);
 
 interface CollapsibleContentProps {
   /** The rendered content revealed when expanded (markdown, nested blocks, etc.). */
@@ -36,7 +50,15 @@ export function CollapsibleContent({
   defaultOpen = false,
   onToggle,
 }: CollapsibleContentProps) {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
+  const expandAll = useContext(CollapsibleExpandAllContext);
+  const [toggled, setToggled] = useState<{
+    generation: number | undefined;
+    open: boolean;
+  } | null>(null);
+  const isOpen =
+    toggled && toggled.generation === expandAll?.generation
+      ? toggled.open
+      : (expandAll?.open ?? defaultOpen);
 
   return (
     <Details
@@ -44,7 +66,7 @@ export function CollapsibleContent({
       className={className}
       onToggle={e => {
         const open = e.currentTarget.open;
-        setIsOpen(open);
+        setToggled({generation: expandAll?.generation, open});
         onToggle?.(open);
       }}
     >

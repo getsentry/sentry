@@ -19,9 +19,12 @@ import {
   ConversationViewContent,
   type ConversationViewTab,
 } from './components/conversationView';
+import {ExpandAllButton} from './components/expandAllButton';
 import {ExportTranscriptButton} from './components/exportTranscriptButton';
 import {useConversation} from './hooks/useConversation';
+import {useTranscriptExpandAll} from './hooks/useTranscriptExpandAll';
 import {extractMessagesFromNodes} from './utils/conversationMessages';
+import {hasConversationTranscriptSearchFeature} from './utils/features';
 
 function useConversationDetailQueryState() {
   return useQueryStates(
@@ -51,9 +54,25 @@ function ConversationDetailPage() {
     () => ({conversationId, startTimestamp, endTimestamp}),
     [conversationId, startTimestamp, endTimestamp]
   );
-  const {stats, nodes, nodeTraceMap, isLoading, hasNextPage, title} = useConversation({
+  const {
+    stats,
+    nodes,
+    nodeTraceMap,
+    isLoading,
+    hasNextPage,
+    canAutoFetchNextPage,
+    isFetchingNextPage,
+    loadNextPage,
+    title,
+  } = useConversation({
     ...conversation,
     autoFetchAll: false,
+  });
+  const transcriptExpandAll = useTranscriptExpandAll({
+    canLoadMore: canAutoFetchNextPage,
+    hasMorePages: hasNextPage,
+    isLoadingMore: isLoading || isFetchingNextPage,
+    loadMore: loadNextPage,
   });
 
   const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
@@ -130,7 +149,19 @@ function ConversationDetailPage() {
             )}
           </Tabs>
           {queryState.tab === 'transcript' && messages.length > 0 && (
-            <ExportTranscriptButton conversation={conversation} />
+            <Flex align="center" gap="sm">
+              {hasConversationTranscriptSearchFeature(organization) && (
+                <ExpandAllButton
+                  isExpanded={transcriptExpandAll.isExpanded}
+                  isLoadingAll={transcriptExpandAll.isLoadingAll}
+                  isPartial={transcriptExpandAll.isPartial}
+                  onExpand={transcriptExpandAll.expand}
+                  onCollapse={transcriptExpandAll.collapse}
+                  onCancel={transcriptExpandAll.cancel}
+                />
+              )}
+              <ExportTranscriptButton conversation={conversation} />
+            </Flex>
           )}
         </Flex>
         <ConversationViewContainer>
@@ -142,6 +173,7 @@ function ConversationDetailPage() {
             onDeselectSpan={handleDeselectSpan}
             onViewTimeline={handleViewTimeline}
             focusedTool={queryState.focusedTool}
+            expandAll={transcriptExpandAll.expandAll}
           />
         </ConversationViewContainer>
       </Stack>
