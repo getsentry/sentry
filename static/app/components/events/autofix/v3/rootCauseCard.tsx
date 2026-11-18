@@ -67,6 +67,7 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
 
   const isOutOfCredits = isOutOfCreditsSection(section);
   const outOfCreditsRetry = useOutOfCreditsRetry('root_cause', {
+    billingFeature: isSingleRun ? undefined : autofix.runState?.billing_feature,
     enabled: isOutOfCredits,
   });
 
@@ -181,7 +182,9 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
                   // Single runs reject step restarts, so this starts a new one.
                   disabled={isSingleRun ? singleRunRerun.disabled : !canReset}
                   tooltipProps={{title: outOfCreditsRetry.tooltip}}
-                  onClick={isSingleRun ? singleRunRerun.rerun : () => handleReset()}
+                  onClick={
+                    isSingleRun ? () => singleRunRerun.rerun() : () => handleReset()
+                  }
                 >
                   {t('Re-run')}
                 </Button>

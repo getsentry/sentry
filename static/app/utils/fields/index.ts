@@ -3366,6 +3366,10 @@ function _getFieldFromMappings(
         return {kind: FieldKind.FIELD, valueType: FieldValueType.BOOLEAN};
       }
 
+      if (kind === FieldKind.ARRAY) {
+        return {kind: FieldKind.ARRAY, valueType: FieldValueType.STRING};
+      }
+
       return null;
 
     case 'span':

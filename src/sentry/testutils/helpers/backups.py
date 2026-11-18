@@ -140,6 +140,7 @@ from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import Factories, get_fixture_path
 from sentry.testutils.fixtures import Fixtures
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.timeseries_annotations.models import AnnotationType, TimeseriesAnnotation
 from sentry.types.token import AuthTokenType
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.user import User
@@ -543,6 +544,14 @@ class ExhaustiveFixtures(Fixtures):
             natural_language_prompt="Is this conversation useful?",
             compiled_prompt="Return yes when this conversation is useful.",
             output_type=TelemetryClassifierOutputType.BINARY,
+            created_by_id=owner_id,
+        )
+        TimeseriesAnnotation.objects.create(
+            organization=org,
+            project=project,
+            start_timestamp=timezone.now(),
+            annotation_type=AnnotationType.INBOUND_FILTER_CHANGE,
+            description=f"inbound filter changed in {slug}",
             created_by_id=owner_id,
         )
 

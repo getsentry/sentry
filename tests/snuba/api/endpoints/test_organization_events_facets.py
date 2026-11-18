@@ -39,13 +39,8 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         sort_key = lambda row: row["name"] if row["name"] is not None else ""
         assert sorted(expected, key=sort_key) == sorted(actual["topValues"], key=sort_key)
 
-    def test_performance_view_feature(self) -> None:
-        self.features.update(
-            {
-                "organizations:discover-basic": False,
-                "organizations:performance-view": True,
-            }
-        )
+    def test_without_discover_basic(self) -> None:
+        self.features.update({"organizations:discover-basic": False})
         with self.feature(self.features):
             response = self.client.get(self.url, data={"project": self.project.id}, format="json")
 

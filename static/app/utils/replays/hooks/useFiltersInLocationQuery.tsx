@@ -3,14 +3,17 @@ import {
   type inferParserType,
   parseAsNativeArrayOf,
   parseAsString,
+  parseAsStringLiteral,
   useQueryStates,
 } from 'nuqs';
+
+import {BREADCRUMB_TYPES} from 'sentry/utils/replays/breadcrumbTypes';
 
 const parseAsStringArray = parseAsNativeArrayOf(parseAsString);
 
 export const replayDetailFilterParsers = {
   f_b_search: parseAsString,
-  f_b_type: parseAsStringArray,
+  f_b_type: parseAsNativeArrayOf(parseAsStringLiteral(BREADCRUMB_TYPES)),
   f_c_logLevel: parseAsStringArray,
   f_c_search: parseAsString,
   f_e_level: parseAsStringArray,
@@ -95,10 +98,10 @@ function setNullableStringValue(
   }
 }
 
-function setNullableArrayValue(
+function setNullableArrayValue<Key extends ArrayReplayDetailFilterKey>(
   target: NullableReplayDetailFilterUpdate,
-  source: ReplayDetailFilterUpdate,
-  key: ArrayReplayDetailFilterKey
+  source: Pick<ReplayDetailFilterUpdate, Key>,
+  key: Key
 ) {
   if (key in source) {
     target[key] = source[key] ?? null;

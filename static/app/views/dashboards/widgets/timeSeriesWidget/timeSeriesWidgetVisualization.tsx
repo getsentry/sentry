@@ -12,6 +12,10 @@ import unescape from 'lodash/unescape';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
+import type {BandBucket} from 'sentry/components/charts/bands/bandShapes';
+import {useBandTooltips} from 'sentry/components/charts/bands/bandTooltip';
+import {mergeChartBands} from 'sentry/components/charts/bands/mergeChartBands';
+import {useReleaseBand} from 'sentry/components/charts/bands/useReleaseBand';
 import {BaseChart} from 'sentry/components/charts/baseChart';
 import type {LegendItem} from 'sentry/components/charts/chartLegend';
 import {ChartLegend} from 'sentry/components/charts/chartLegend';
@@ -22,7 +26,6 @@ import {
 } from 'sentry/components/charts/useChartXRangeSelection';
 import {useChartZoom} from 'sentry/components/charts/useChartZoom';
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
-import {mergeDroppedDataBand} from 'sentry/components/droppedData/band/mergeDroppedDataBand';
 import {useDroppedDataBand} from 'sentry/components/droppedData/band/useDroppedDataBand';
 import type {DroppedDataProps} from 'sentry/components/droppedData/types';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -61,7 +64,10 @@ import type {LoadableChartWidgetProps} from 'sentry/views/insights/common/compon
 import {formatTooltipValue} from './formatters/formatTooltipValue';
 import {formatXAxisTimestamp} from './formatters/formatXAxisTimestamp';
 import {formatYAxisValue} from './formatters/formatYAxisValue';
-import {isLowConfidenceDataPoint} from './plottables/continuousTimeSeries';
+import {
+  ContinuousTimeSeries,
+  isLowConfidenceDataPoint,
+} from './plottables/continuousTimeSeries';
 import type {Plottable} from './plottables/plottable';
 import {assignPlottablesToYAxes} from './assignPlottablesToYAxes';
 import {createReleaseSeriesOptions} from './createReleaseSeriesOptions';
@@ -228,6 +234,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const location = useLocation();
   const hasReleaseBubbles =
     props.showReleaseAs !== 'none' && props.showReleaseAs === 'bubble';
+  const hasReleaseBand = props.showReleaseAs === 'band';
 
   // Local legend selection state used when the parent doesn't manage it
   const [localLegendSelection, setLocalLegendSelection] = useState<
@@ -488,22 +495,27 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   }
 
   // `useReleaseBubbles` returns an empty object when there are no bubbles to draw.
-  const releaseBandHeight =
+  const releaseBubblesHeight =
     'offset' in releaseBubbleXAxis ? releaseBubbleXAxis.offset : 0;
   const releaseGridBottom = 'bottom' in releaseBubbleGrid ? releaseBubbleGrid.bottom : 0;
 
-  const droppedDataBand = useDroppedDataBand({
-    chartRef,
-    droppedData: props.droppedData,
-    bandOffset: releaseBandHeight,
-    utc,
+  const bandBuckets = useMemo(
+    () => (hasReleaseBand ? getBandBuckets(props.plottables) : []),
+    [hasReleaseBand, props.plottables]
+  );
+  const releaseBand = useReleaseBand({
+    buckets: bandBuckets,
+    releases: hasReleaseBand ? props.releases : undefined,
   });
+
+  const droppedDataBand = useDroppedDataBand({droppedData: props.droppedData});
+  const bands = useBandTooltips([droppedDataBand, releaseBand], {chartRef, utc});
 
   const showYAxisProp = props.showYAxis ?? 'auto';
   const showYAxis = showYAxisProp === 'auto';
 
   const releaseSeries =
-    props.releases && props.showReleaseAs !== 'none'
+    props.releases && props.showReleaseAs !== 'none' && !hasReleaseBand
       ? hasReleaseBubbles
         ? releaseBubbleSeries
         : createReleaseSeriesOptions(
@@ -600,8 +612,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
         // When customValues are provided, suppress auto-tick generation
         // so ECharts only renders our timezone-aligned ticks.
         splitNumber: hasCustomTicks ? 0 : X_AXIS_SPLIT_NUMBER,
-        axisLine: {onZero: releaseBandHeight === 0},
-        offset: releaseBandHeight,
+        axisLine: {onZero: releaseBubblesHeight === 0},
+        offset: releaseBubblesHeight,
       }
     : HIDDEN_AXIS;
 
@@ -706,7 +718,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // This ensures that when the legend is clicked, none of the series are permanently hidden.
   const normalizedLegendSelection = chartLegendItems.reduce<Record<string, boolean>>(
     (acc, item) => {
-      acc[item.name] = legendSelection[item.name] !== false;
+      acc[item.name] = !showLegend || legendSelection[item.name] !== false;
       return acc;
     },
     {}
@@ -763,7 +775,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     }
   };
 
-  const band = mergeDroppedDataBand(
+  const band = mergeChartBands(
     {
       grid: {
         // NOTE: Adding a few pixels of left padding prevents ECharts from
@@ -780,8 +792,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
       series: allSeries,
       onClick: handleClick,
     },
-    droppedDataBand,
-    props.droppedData?.onClick
+    bands,
+    {offset: releaseBubblesHeight}
   );
 
   const legend = showLegend ? (
@@ -813,14 +825,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
           renderer="canvas"
           series={band.series}
           grid={{...band.grid, ...xAxisGrid}}
-          legend={
-            showLegend
-              ? {
-                  show: false,
-                  selected: normalizedLegendSelection,
-                }
-              : undefined
-          }
+          legend={{show: false, selected: normalizedLegendSelection}}
           onLegendSelectChanged={handleLegendSelectChanged}
           tooltip={{
             appendToBody: true,
@@ -881,6 +886,18 @@ function getPlottableEventDataIndex(
   );
 
   return dataIndexOffset + dataIndex;
+}
+
+function getBandBuckets(plottables: Plottable[]): BandBucket[] {
+  const plottable = plottables.find(item => item instanceof ContinuousTimeSeries);
+  if (!plottable) {
+    return [];
+  }
+
+  const {meta, values} = plottable.timeSeries;
+  return values
+    .map(({timestamp}) => ({start: timestamp, end: timestamp + meta.interval}))
+    .toSorted((a, b) => a.start - b.start);
 }
 
 // Hide every part of the axis so ECharts will remove those elements and also

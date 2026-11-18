@@ -249,8 +249,11 @@ function AddToDashboardModal({
       }
 
       let newOrderBy = orderBy ?? w.queries[0]!.orderby;
-      if (!(usesTimeSeriesData(w.displayType) && w.queries[0]!.columns.length)) {
-        newOrderBy = ''; // Clear orderby if its not a top n visualization.
+      const hasGroupBy = w.queries[0]!.columns.length > 0;
+      // A time series without group-bys has no top N to sort, but table-style widgets
+      // (tables, categorical bars, etc.) still need their sort.
+      if (usesTimeSeriesData(w.displayType) && !hasGroupBy) {
+        newOrderBy = '';
       }
       const queries = w.queries.map(query => ({
         ...query,

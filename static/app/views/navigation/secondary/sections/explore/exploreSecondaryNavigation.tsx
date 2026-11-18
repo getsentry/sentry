@@ -48,10 +48,7 @@ function ExploreSecondaryNavigationImpl() {
   // the explore-errors and discover-basic branches) but point elsewhere.
   const navItems: Array<{label: string; to: string; badge?: 'new' | 'beta' | 'alpha'}> =
     [];
-  if (
-    organization.features.includes('performance-view') &&
-    organization.features.includes('visibility-explore-view')
-  ) {
+  if (organization.features.includes('visibility-explore-view')) {
     navItems.push({label: 'Traces', to: `${baseUrl}/traces/`});
   }
   if (organization.features.includes('ourlogs-enabled')) {
@@ -76,13 +73,11 @@ function ExploreSecondaryNavigationImpl() {
     navItems.push({label: 'Replays', to: `${baseUrl}/replays/`});
   }
   navItems.push({label: 'Releases', to: `${baseUrl}/releases/`});
-  if (organization.features.includes('gen-ai-conversations')) {
-    navItems.push({
-      label: 'Agents',
-      badge: 'new',
-      to: `${baseUrl}/${EXPLORE_AGENTS_SUB_PATH}/`,
-    });
-  }
+  navItems.push({
+    label: 'Agents',
+    badge: 'new',
+    to: `${baseUrl}/${EXPLORE_AGENTS_SUB_PATH}/`,
+  });
   if (automationsEnabled) {
     navItems.push({label: 'Automations', badge: 'alpha', to: automationsPath});
   }
@@ -121,17 +116,15 @@ function ExploreSecondaryNavigationImpl() {
       <SecondaryNavigation.Body>
         <SecondaryNavigation.Section id="explore-main">
           <SecondaryNavigation.List>
-            <Feature features={['performance-view']}>
-              <Feature features={['visibility-explore-view']}>
-                <SecondaryNavigation.ListItem>
-                  <SecondaryNavigation.Link
-                    to={`${baseUrl}/traces/`}
-                    analyticsItemName="explore_traces"
-                  >
-                    {t('Traces')}
-                  </SecondaryNavigation.Link>
-                </SecondaryNavigation.ListItem>
-              </Feature>
+            <Feature features={['visibility-explore-view']}>
+              <SecondaryNavigation.ListItem>
+                <SecondaryNavigation.Link
+                  to={`${baseUrl}/traces/`}
+                  analyticsItemName="explore_traces"
+                >
+                  {t('Traces')}
+                </SecondaryNavigation.Link>
+              </SecondaryNavigation.ListItem>
             </Feature>
             <Feature features="ourlogs-enabled">
               <SecondaryNavigation.ListItem>
@@ -222,26 +215,24 @@ function ExploreSecondaryNavigationImpl() {
                 {t('Releases')}
               </SecondaryNavigation.Link>
             </SecondaryNavigation.ListItem>
-            <Feature features="gen-ai-conversations">
-              <SecondaryNavigation.ListItem>
-                <SecondaryNavigation.Link
-                  // TODO: Remove once query performance is improved - defaults to 24h to avoid slow loads
-                  to={{
-                    pathname: `${baseUrl}/${EXPLORE_AGENTS_SUB_PATH}/`,
-                    search: '?statsPeriod=24h&referrer=sidebar',
-                  }}
-                  analyticsItemName="explore_conversations"
-                  leadingItems={
-                    settingsV3 ? <SecondaryNavigation.FeatureBadge type="new" /> : null
-                  }
-                  trailingItems={
-                    settingsV3 ? null : <SecondaryNavigation.FeatureBadge type="new" />
-                  }
-                >
-                  {t('Agents')}
-                </SecondaryNavigation.Link>
-              </SecondaryNavigation.ListItem>
-            </Feature>
+            <SecondaryNavigation.ListItem>
+              <SecondaryNavigation.Link
+                // TODO: Remove once query performance is improved - defaults to 24h to avoid slow loads
+                to={{
+                  pathname: `${baseUrl}/${EXPLORE_AGENTS_SUB_PATH}/`,
+                  search: '?statsPeriod=24h&referrer=sidebar',
+                }}
+                analyticsItemName="explore_conversations"
+                leadingItems={
+                  settingsV3 ? <SecondaryNavigation.FeatureBadge type="new" /> : null
+                }
+                trailingItems={
+                  settingsV3 ? null : <SecondaryNavigation.FeatureBadge type="new" />
+                }
+              >
+                {t('Agents')}
+              </SecondaryNavigation.Link>
+            </SecondaryNavigation.ListItem>
             {automationsEnabled && (
               <SecondaryNavigation.ListItem>
                 <SecondaryNavigation.Link
@@ -276,7 +267,7 @@ function ExploreSecondaryNavigationImpl() {
             )}
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
-        <Feature features={['visibility-explore-view', 'performance-view']}>
+        <Feature features={['visibility-explore-view']}>
           <Fragment>
             <SecondaryNavigation.Separator />
             <SecondaryNavigation.Section id="explore-saved-queries">

@@ -222,10 +222,7 @@ export function UsageStatsProjects({
     (project: Project) => {
       const {performance, projectDetail, settings} = getNextLocations(project);
 
-      if (
-        dataCategory === DATA_CATEGORY_INFO.transaction &&
-        organization.features.includes('performance-view')
-      ) {
+      if (dataCategory === DATA_CATEGORY_INFO.transaction) {
         return {
           projectLink: performance,
           projectSettingsLink: settings,
@@ -237,7 +234,7 @@ export function UsageStatsProjects({
         projectSettingsLink: settings,
       };
     },
-    [organization, dataCategory, getNextLocations]
+    [dataCategory, getNextLocations]
   );
 
   const tableOffset = useMemo(() => {
@@ -315,6 +312,7 @@ export function UsageStatsProjects({
           stat[SortBy.ACCEPTED_STORED] > 0 &&
           stat[SortBy.ACCEPTED_STORED] !== stat[SortBy.ACCEPTED]
         ) {
+          // oxlint-disable-next-line react/immutability
           hasStoredOutcome = true;
         }
         return {

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from collections import defaultdict
 from collections.abc import Callable, Collection, Mapping, Sequence
 from datetime import datetime
@@ -9,6 +10,7 @@ from typing import Any
 
 from django.db import router, transaction
 from django.db.models.base import Model
+from sentry_sdk import traces
 from taskbroker_client.state import current_task
 
 from sentry import features, similarity, tsdb
@@ -552,17 +554,22 @@ def start_unmerge(
 def unmerge(*posargs: Any, **kwargs: Any) -> None:
     with action_context_scope(ActionSource.SYSTEM):
         args = UnmergeArgsBase.parse_arguments(*posargs, **kwargs)
-        extra = {"source_id": args.source_id, "project_id": args.project_id}
+        batch_started_at = time.monotonic()
 
         # Self-chain idempotency guard. If this activation already produced its continuation in a
         # prior delivery, this execution is a broker re-pend: no-op so we don't fork the chain (and
         # skip the redundant re-processing). Only effective inside a worker (current_task() set).
         task_state = current_task()
         activation_id = task_state.id if task_state else None
+        extra = {
+            "source_id": args.source_id,
+            "project_id": args.project_id,
+            "activation_id": activation_id,
+        }
         if activation_id and already_spawned(_TASK_KEY, activation_id):
             logger.info(
                 "unmerge.duplicate_redelivery.skipped",
-                extra={**extra, "activation_id": activation_id},
+                extra=extra,
             )
             metrics.incr("taskworker.selfchain.duplicate_skipped", tags={"task": _TASK_KEY})
             return
@@ -599,18 +606,30 @@ def unmerge(*posargs: Any, **kwargs: Any) -> None:
             last_event = args.last_event
             locked_primary_hashes = list(args.locked_primary_hashes)
 
-        last_event, raw_events = task_run_batch_query(
-            filter=eventstore.Filter(project_ids=[args.project_id], group_ids=[source.id]),
-            batch_size=args.batch_size,
-            state=last_event,
-            referrer="unmerge",
-            tenant_ids={"organization_id": source.project.organization_id},
-            eap_conditions=build_group_id_in_filter([source.id]),
-        )
-        # Convert Event objects to GroupEvent objects
-        events: list[GroupEvent] = [event.for_group(source) for event in raw_events]
-        # Log info related to this unmerge
-        logger.info("unmerge.check", extra={**extra, "num_events": len(events)})
+        fetch_started_at = time.monotonic()
+        with traces.start_span(name="unmerge.fetch_events"):
+            last_event, raw_events = task_run_batch_query(
+                filter=eventstore.Filter(project_ids=[args.project_id], group_ids=[source.id]),
+                batch_size=args.batch_size,
+                state=last_event,
+                referrer="unmerge",
+                tenant_ids={"organization_id": source.project.organization_id},
+                eap_conditions=build_group_id_in_filter([source.id]),
+            )
+        copy_started_at = time.monotonic()
+        with traces.start_span(name="unmerge.copy_events"):
+            events: list[GroupEvent] = [event.for_group(source) for event in raw_events]
+        processing_started_at = time.monotonic()
+        batch_extra = {
+            **extra,
+            "num_events": len(events),
+            "batch_size": args.batch_size,
+            "cursor_timestamp": last_event["timestamp"] if last_event else None,
+            "setup_seconds": fetch_started_at - batch_started_at,
+            "fetch_seconds": copy_started_at - fetch_started_at,
+            "copy_seconds": processing_started_at - copy_started_at,
+        }
+        logger.info("unmerge.check", extra=batch_extra)
 
         # If there are no more events to process, we're done with the migration.
         if not events:
@@ -624,6 +643,13 @@ def unmerge(*posargs: Any, **kwargs: Any) -> None:
                 )
                 if eventstream_state:
                     args.replacement.stop_snuba_replacement(eventstream_state)
+            logger.info(
+                "unmerge.batch_complete",
+                extra={
+                    **batch_extra,
+                    "processing_seconds": time.monotonic() - processing_started_at,
+                },
+            )
             return
 
         source_events = []
@@ -696,3 +722,10 @@ def unmerge(*posargs: Any, **kwargs: Any) -> None:
         # activation will short-circuit at the guard above instead of spawning again.
         if activation_id:
             mark_spawned(_TASK_KEY, activation_id)
+        logger.info(
+            "unmerge.batch_complete",
+            extra={
+                **batch_extra,
+                "processing_seconds": time.monotonic() - processing_started_at,
+            },
+        )

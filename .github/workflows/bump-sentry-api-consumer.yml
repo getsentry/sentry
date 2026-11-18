@@ -1,0 +1,105 @@
+name: Bump @sentry/api in a consumer
+
+# Reusable workflow that pins a repository's @sentry/api to its newest npm
+# release. Each consumer calls it from its own bump-sentry-api.yml, which this
+# repository dispatches after each api@ release:
+#
+#   uses: getsentry/sentry/.github/workflows/bump-sentry-api-consumer.yml@master
+#
+# The bump logic lives in .github/workflows/scripts/bump-sentry-api.js, which
+# documents the `pin` and `mode` inputs.
+on:
+  workflow_call:
+    inputs:
+      pin:
+        description: 'Where the consumer pins @sentry/api: `dependency` or `catalog`.'
+        required: true
+        type: string
+      mode:
+        description: 'What to do with the bump: `merge` or `rolling-pr`.'
+        required: true
+        type: string
+      app-client-id:
+        description: >-
+          Client ID of the GitHub App that pushes and opens the bump PR. A PR
+          opened with github.token does not start the consumer's CI. In `merge`
+          mode, the app must also be allowed to merge with `--admin`.
+        required: true
+        type: string
+      node-version:
+        description: 'Node.js version. Overrides node-version-file when set.'
+        required: false
+        type: string
+        default: ''
+      node-version-file:
+        description: 'File that sets the Node.js version, such as package.json with volta.'
+        required: false
+        type: string
+        default: package.json
+      commit-author-name:
+        description: 'Author of the bump commits. Defaults to github-actions[bot].'
+        required: false
+        type: string
+        default: ''
+      commit-author-email:
+        description: 'Email of commit-author-name.'
+        required: false
+        type: string
+        default: ''
+    secrets:
+      app-private-key:
+        description: 'Private key of the app-client-id app.'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  bump:
+    name: Bump @sentry/api
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # One bump at a time per consumer, so overlapping dispatches can't race on
+    # the same branch or merge. github.repository is the caller here.
+    concurrency:
+      group: bump-sentry-api-consumer-${{ github.repository }}
+      cancel-in-progress: false
+    steps:
+      - name: Get auth token
+        id: token
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          client-id: ${{ inputs.app-client-id }}
+          private-key: ${{ secrets.app-private-key }}
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          token: ${{ steps.token.outputs.token }}
+          # A rolling PR's branch is compared with the default branch.
+          fetch-depth: 0
+
+      # Callers use this workflow from master, so the script comes from there too.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: getsentry/sentry
+          ref: master
+          path: .bump-sentry-api
+          persist-credentials: false
+          sparse-checkout: .github/workflows/scripts/bump-sentry-api.js
+          sparse-checkout-cone-mode: false
+
+      - uses: pnpm/action-setup@36de12bed180fa130ed56a35e7344f2fa7a820ab # v4
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: ${{ inputs.node-version }}
+          node-version-file: ${{ inputs.node-version-file }}
+
+      - name: Bump @sentry/api
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+          BUMP_PIN: ${{ inputs.pin }}
+          BUMP_MODE: ${{ inputs.mode }}
+          BUMP_AUTHOR_NAME: ${{ inputs.commit-author-name }}
+          BUMP_AUTHOR_EMAIL: ${{ inputs.commit-author-email }}
+        run: node .bump-sentry-api/.github/workflows/scripts/bump-sentry-api.js

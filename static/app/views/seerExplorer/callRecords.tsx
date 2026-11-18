@@ -38,6 +38,7 @@ const PROVIDER_SHORT_LABELS: Record<string, string> = {
   datadog: 'Datadog',
   gcp: 'GCP',
   linear: 'Linear',
+  supabase: 'Supabase',
 };
 
 /**

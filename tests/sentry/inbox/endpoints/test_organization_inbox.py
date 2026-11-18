@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 import pytest
 from django.db import connections, router
+from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
@@ -85,6 +86,24 @@ class OrganizationInboxIndexTest(APITestCase):
         assert [entry["id"] for entry in response.data] == [str(item.id)]
         assert response.data[0]["title"] == self.group.title
         assert response.data[0]["subtitle"] == "Assigned to you"
+        assert response.data[0]["url"] == self.organization.absolute_url(
+            f"/organizations/{self.organization.slug}/inbox/issue/{self.group.id}/"
+        )
+
+    @override_settings(
+        SENTRY_ORGANIZATION_BASE_HOSTNAME="{slug}.sentry.io",
+        SENTRY_ORGANIZATION_URL_TEMPLATE="https://{hostname}",
+    )
+    @with_feature("system:multi-region")
+    def test_url_uses_organization_domain(self) -> None:
+        item = self.create_inbox_item(subject_id=str(self.group.id))
+        self.create_inbox_item_event(inbox_item=item, data={})
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert response.data[0]["url"] == (
+            f"https://{self.organization.slug}.sentry.io/inbox/issue/{self.group.id}/"
+        )
 
     def test_recording_works_while_ui_is_off(self) -> None:
         with self.feature(

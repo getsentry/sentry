@@ -2943,7 +2943,7 @@ describe('out of credits', () => {
         )
       );
       await userEvent.click(screen.getByRole('button', {name: 'Re-run'}));
-      expect(startStep).toHaveBeenCalledWith('root_cause');
+      expect(startStep).toHaveBeenCalledWith('root_cause', {userContext: undefined});
     }
   );
 
@@ -3009,6 +3009,83 @@ describe('out of credits', () => {
       );
     }
   );
+
+  it('shows only the stop line when a stopped PR iteration has queued feedback too', () => {
+    mockCreditCheck('autofix_pr_iteration', false);
+    render(
+      <CodeChangesCard
+        autofix={{
+          ...mockAutofix,
+          runState: {
+            ...stoppedRunState,
+            repo_pr_states: {'org/repo': makePR()},
+            pr_iteration_out_of_credits: {
+              unfinished_action: 'agent_turn',
+              denial_reason: null,
+            },
+            queued_feedback: [{text: 'Also log it', source: {type: 'user-ui'}}],
+          },
+        }}
+        groupId="1"
+        section={makeOutOfCreditsSection('code_changes', [
+          makePrIterationBlock(0, {text: 'Please add a test'}),
+          seerErrorBlock,
+        ])}
+      />,
+      {organization}
+    );
+
+    expect(
+      screen.getByText(
+        'Seer stopped before updating the pull request because your organization is out of credits.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Seer couldn't start on/)).not.toBeInTheDocument();
+  });
+
+  it.each([
+    [
+      null,
+      "Seer couldn't start on 2 feedback items because your organization is out of credits. Seer continues the next time it iterates on the pull request.",
+    ],
+    [
+      'daily_cap_exceeded' as const,
+      "Seer couldn't start on 2 feedback items because your organization hit its daily usage limit. Seer continues the next time it iterates on the pull request.",
+    ],
+  ])('says queued feedback is waiting when denied for %s', (denialReason, message) => {
+    render(
+      <CodeChangesCard
+        autofix={{
+          ...mockAutofix,
+          runState: {
+            run_id: 123,
+            blocks: [],
+            status: 'completed',
+            updated_at: '2026-01-01T00:00:00Z',
+            repo_pr_states: {'org/repo': makePR()},
+            pr_iteration_out_of_credits: {
+              unfinished_action: null,
+              denial_reason: denialReason,
+            },
+            queued_feedback: [
+              {text: 'Also log it', source: {type: 'user-ui'}},
+              {text: 'And rename it', source: {type: 'user-ui'}},
+            ],
+          },
+        }}
+        groupId="1"
+        section={makeSection(
+          'code_changes',
+          'completed',
+          [[makePatch('org/repo', 'src/cart.py')]],
+          [makePrIterationBlock(0, {text: 'Please add a test'})]
+        )}
+      />,
+      {organization}
+    );
+
+    expect(screen.getByText(message)).toBeInTheDocument();
+  });
 
   describe('a PR that failed for credits', () => {
     const section = makeSection('pull_request', 'completed', [

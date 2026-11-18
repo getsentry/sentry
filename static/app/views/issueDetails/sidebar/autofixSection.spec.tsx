@@ -636,9 +636,7 @@ describe('AutofixSection', () => {
 
     // The Seer title should still render
     expect(screen.getByText('Seer Autofix')).toBeInTheDocument();
-    expect(
-      await screen.findByText('Let Seer find the root cause and fix it')
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Have Seer...')).toBeInTheDocument();
   });
 
   it('renders multiple artifact types in order', async () => {
@@ -813,9 +811,7 @@ describe('AutofixSection', () => {
       organization: seatBasedOrg,
     });
 
-    expect(
-      await screen.findByText('Let Seer find the root cause and fix it')
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Have Seer...')).toBeInTheDocument();
     expect(screen.queryByText('Finish Configuring Seer')).not.toBeInTheDocument();
   });
 
@@ -843,9 +839,7 @@ describe('AutofixSection', () => {
       organization: legacyOrg,
     });
 
-    expect(
-      await screen.findByText('Let Seer find the root cause and fix it')
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Have Seer...')).toBeInTheDocument();
     expect(screen.queryByText('Finish Configuring Seer')).not.toBeInTheDocument();
   });
 
@@ -861,9 +855,33 @@ describe('AutofixSection', () => {
       organization,
     });
 
+    expect(await screen.findByText('Have Seer...')).toBeInTheDocument();
+    expect(
+      screen.getByText('Determine the root cause of your issue')
+    ).toBeInTheDocument();
+    expect(screen.getByText('Outline a plan')).toBeInTheDocument();
+    expect(screen.getByText('Create a code fix')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Start Analysis'})).toBeInTheDocument();
+  });
+
+  it('shows the redesigned start card with autofix-single-run', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      body: {autofix: null},
+    });
+
+    render(<AutofixSection group={mockGroup} project={mockProject} />, {
+      organization: OrganizationFixture({
+        hideAiFeatures: false,
+        features: ['autofix-single-run'],
+      }),
+    });
+
     expect(
       await screen.findByText('Let Seer find the root cause and fix it')
     ).toBeInTheDocument();
+    expect(screen.queryByText('Have Seer...')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Add Context'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Start Analysis'})).toBeInTheDocument();
   });
 
@@ -887,9 +905,7 @@ describe('AutofixSection', () => {
     await userEvent.click(await screen.findByRole('button', {name: 'Start Analysis'}));
 
     await waitFor(() => expect(startRequest).toHaveBeenCalled());
-    expect(
-      screen.getByText('Let Seer find the root cause and fix it')
-    ).toBeInTheDocument();
+    expect(screen.getByText('Have Seer...')).toBeInTheDocument();
     const startButton = screen.getByRole('button', {name: 'Start Analysis'});
     expect(startButton).toBeDisabled();
     expect(startButton).toHaveAttribute('aria-busy', 'true');
@@ -901,7 +917,6 @@ describe('AutofixSection', () => {
 
     function ContextCapture() {
       const {getLLMContext} = useLLMContext();
-      // oxlint-disable-next-line react/immutability
       snapshotRef.current = getLLMContext;
       return null;
     }
@@ -1025,9 +1040,7 @@ describe('AutofixSection', () => {
       expect(
         cta.compareDocumentPosition(startButton) & Node.DOCUMENT_POSITION_FOLLOWING
       ).toBeTruthy();
-      expect(
-        screen.queryByText('Let Seer find the root cause and fix it')
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText('Have Seer...')).not.toBeInTheDocument();
       expect(creditCheck).toHaveBeenCalledTimes(1);
     });
 
@@ -1047,9 +1060,7 @@ describe('AutofixSection', () => {
       });
 
       expect(await screen.findByRole('button', {name: 'Start Analysis'})).toBeDisabled();
-      expect(
-        screen.getByText('Let Seer find the root cause and fix it')
-      ).toBeInTheDocument();
+      expect(screen.getByText('Have Seer...')).toBeInTheDocument();
       expect(screen.queryByTestId('seer-out-of-credits-cta')).not.toBeInTheDocument();
     });
 

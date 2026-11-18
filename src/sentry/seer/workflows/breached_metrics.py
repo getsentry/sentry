@@ -139,7 +139,7 @@ class MetricAlertTrigger(AutomationTrigger[MetricBreachInputs]):
                 id=config.backing_workflow_id, organization_id=config.organization_id
             )
             .exclude(enabled=config.enabled)
-            .first()
+            .get_or_none()
         )
         if workflow is not None:
             # Saved through the instance so the processing-workflows cache is invalidated.
@@ -150,7 +150,7 @@ class MetricAlertTrigger(AutomationTrigger[MetricBreachInputs]):
             return
         workflow = Workflow.objects_for_deletion.filter(
             id=config.backing_workflow_id, organization_id=config.organization_id
-        ).first()
+        ).first()  # noqa: S035
         if workflow is not None and workflow.status == ObjectStatus.ACTIVE:
             CellScheduledDeletion.schedule(workflow, days=0)
             workflow.update(status=ObjectStatus.PENDING_DELETION)
@@ -280,10 +280,10 @@ class SeerMetricAlertActionHandler(ActionHandler):
             "workflow_id": invocation.workflow_id,
             "action_id": invocation.action.id,
         }
-        binding = SeerWorkflowTriggerBinding.objects.filter(
+        binding = SeerWorkflowTriggerBinding.objects.get_or_none(
             workflow_config__organization_id=group.project.organization_id,
             trigger_action=invocation.action,
-        ).first()
+        )
         if binding is None:
             _record_trigger_outcome("ignored", extra, reason="missing_binding")
             return
