@@ -77,7 +77,7 @@ apiOptions.queryKey('/organizations/$organizationIdOrSlug/issues/', {
 
 ### Reading a key: `parseQueryKey` and `safeParseQueryKey`
 
-Both return `{fullUrl, urlParts, options, infinite?}`, where `fullUrl` is the requested url and `options` holds `path`, `query` and the other request options.
+Both return `{url, urlParts, options, infinite?}`, where `url` is the requested url and `options` holds `path`, `query` and the other request options.
 
 ```typescript
 import {parseQueryKey, safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
@@ -87,8 +87,7 @@ const {options} = parseQueryKey(listApiOptions.queryKey);
 
 // Any key, for example in a predicate. Returns undefined for keys that are not api query keys.
 queryClient.invalidateQueries({
-  predicate: query =>
-    issueUrlRegexp.test(safeParseQueryKey(query.queryKey)?.fullUrl ?? ''),
+  predicate: query => issueUrlRegexp.test(safeParseQueryKey(query.queryKey)?.url ?? ''),
 });
 ```
 

@@ -77,10 +77,7 @@ function getQueryKeyParams(
   options: QueryKeyEndpointOptions
 ) {
   return {
-    fullUrl: getApiUrl(
-      path,
-      ...([{path: pathParams}] as OptionalPathParams<KnownApiUrl>)
-    ),
+    url: getApiUrl(path, ...([{path: pathParams}] as OptionalPathParams<KnownApiUrl>)),
     urlParts: path.split('/').filter(Boolean),
     options: stripUndefinedValues({
       ...options,
@@ -139,7 +136,7 @@ function _queryKey(
 
   return createApiQueryKeyFilter({
     ...(exact
-      ? {fullUrl: getApiUrl(url, ...([{path}] as OptionalPathParams<KnownApiUrl>))}
+      ? {url: getApiUrl(url, ...([{path}] as OptionalPathParams<KnownApiUrl>))}
       : {urlParts: url.slice(0, -1).split('/').filter(Boolean)}),
     ...(Object.keys(keyOptions).length > 0 ? {options: keyOptions} : {}),
     ...(infinite ? {infinite} : {}),

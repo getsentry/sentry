@@ -97,7 +97,7 @@ export function useMutateAutofixProject() {
         organization,
         project,
       });
-      const reposUrl = parseQueryKey(reposQueryOptions.queryKey).fullUrl;
+      const reposUrl = parseQueryKey(reposQueryOptions.queryKey).url;
       await fetchMutation({
         method: 'PUT',
         url: reposUrl,
@@ -115,7 +115,7 @@ export function useMutateAutofixProject() {
         organization,
         project: {slug: project.slug},
       });
-      const settingsUrl = parseQueryKey(settingsQueryOptions.queryKey).fullUrl;
+      const settingsUrl = parseQueryKey(settingsQueryOptions.queryKey).url;
       try {
         await fetchMutation<SeerProjectSettingResponse>({
           method: 'PUT',

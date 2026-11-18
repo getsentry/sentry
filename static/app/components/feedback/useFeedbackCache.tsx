@@ -17,8 +17,8 @@ type ListCache = {
 
 const issueApiEndpointRegexp = /^\/organizations\/\w+\/issues\/\d+\/$/;
 function isIssueEndpointUrl(query: {queryKey: readonly unknown[]}) {
-  const fullUrl = safeParseQueryKey(query.queryKey)?.fullUrl;
-  return fullUrl !== undefined && issueApiEndpointRegexp.test(fullUrl);
+  const url = safeParseQueryKey(query.queryKey)?.url;
+  return url !== undefined && issueApiEndpointRegexp.test(url);
 }
 
 export function useFeedbackCache() {

@@ -46,9 +46,9 @@ export async function apiFetch<TQueryFnData = unknown>({
 }: {
   queryKey: ApiQueryKey;
 }): Promise<ApiResponse<TQueryFnData>> {
-  const {fullUrl, options} = parseQueryKey(queryKey);
+  const {url, options} = parseQueryKey(queryKey);
 
-  const [json, , response] = await QUERY_API_CLIENT.requestPromise(fullUrl, {
+  const [json, , response] = await QUERY_API_CLIENT.requestPromise(url, {
     includeAllArgs: true,
     allowAuthError: options.allowAuthError,
     host: options.host,
@@ -72,9 +72,9 @@ export async function apiFetchInfinite<TQueryFnData = unknown>({
   pageParam: null | undefined | ParsedHeader;
   queryKey: InfiniteApiQueryKey;
 }): Promise<ApiResponse<TQueryFnData>> {
-  const {fullUrl, options} = parseQueryKey(queryKey);
+  const {url, options} = parseQueryKey(queryKey);
 
-  const [json, , response] = await QUERY_API_CLIENT.requestPromise(fullUrl, {
+  const [json, , response] = await QUERY_API_CLIENT.requestPromise(url, {
     includeAllArgs: true,
     allowAuthError: options.allowAuthError,
     host: options.host,

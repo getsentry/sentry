@@ -25,7 +25,7 @@ describe('validateEventParamsOptions', () => {
       query: 'span.op:http',
     });
 
-    expect(parseQueryKey(options.queryKey).fullUrl).toBe(
+    expect(parseQueryKey(options.queryKey).url).toBe(
       '/organizations/org-slug/events/validate/'
     );
     expect(parseQueryKey(options.queryKey).options).toEqual(
@@ -56,7 +56,7 @@ describe('validateEventParamsOptions', () => {
     expect(options.queryKey).toEqual([
       '_api',
       expect.objectContaining({
-        fullUrl: '/organizations/org-slug/events/validate/',
+        url: '/organizations/org-slug/events/validate/',
         options: expect.objectContaining({
           query: expect.objectContaining({
             dataset: TraceItemDataset.LOGS,

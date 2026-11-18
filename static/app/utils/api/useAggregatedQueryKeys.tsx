@@ -106,7 +106,7 @@ export function useAggregatedQueryKeys<AggregatableQueryKey, Data, ResponseData 
   const queryClient = useQueryClient();
   const cache = queryClient.getQueryCache();
 
-  const url = parseQueryKey(getQueryOptions([]).queryKey).fullUrl;
+  const url = parseQueryKey(getQueryOptions([]).queryKey).url;
 
   // Sentinels live in the shared query cache, rather than in this hook, so
   // every instance can see what is already queued or in flight.
@@ -117,7 +117,7 @@ export function useAggregatedQueryKeys<AggregatableQueryKey, Data, ResponseData 
   const isApiQueryKeyForUrl = useCallback(
     (queryKey: readonly unknown[]): boolean => {
       const parsedQueryKey = safeParseQueryKey(queryKey);
-      if (parsedQueryKey?.fullUrl !== url) {
+      if (parsedQueryKey?.url !== url) {
         return false;
       }
       return queryFilter?.(parsedQueryKey) ?? true;

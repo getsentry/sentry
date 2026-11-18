@@ -17,8 +17,8 @@ describe('apiOptions', () => {
       {staleTime: 0, path: {organizationIdOrSlug: 'my-org', version: 'v 1.0.0'}}
     );
 
-    const {fullUrl, options: keyOptions} = parseQueryKey(options.queryKey);
-    expect(fullUrl).toBe('/organizations/my-org/releases/v%201.0.0/');
+    const {url, options: keyOptions} = parseQueryKey(options.queryKey);
+    expect(url).toBe('/organizations/my-org/releases/v%201.0.0/');
     expect(keyOptions.path).toEqual({organizationIdOrSlug: 'my-org', version: 'v 1.0.0'});
   });
 
@@ -31,7 +31,7 @@ describe('apiOptions', () => {
     expect(options.queryKey).toEqual([
       '_api',
       {
-        fullUrl: '/api-tokens/123/',
+        url: '/api-tokens/123/',
         urlParts: ['api-tokens', '$tokenId'],
         options: {path: {tokenId: '123'}},
       },
@@ -49,7 +49,7 @@ describe('apiOptions', () => {
     expect(options.queryKey).toEqual([
       '_api',
       {
-        fullUrl: '/api-tokens/123/',
+        url: '/api-tokens/123/',
         urlParts: ['api-tokens', '$tokenId'],
         options: {path: {tokenId: '123'}},
       },
@@ -67,7 +67,7 @@ describe('apiOptions', () => {
     expect(options.queryKey).toEqual([
       '_api',
       {
-        fullUrl: '/api-tokens/123/',
+        url: '/api-tokens/123/',
         urlParts: ['api-tokens', '$tokenId'],
         options: {path: {tokenId: '123'}},
       },
@@ -85,7 +85,7 @@ describe('apiOptions', () => {
     expect(options.queryKey).toEqual([
       '_api',
       {
-        fullUrl: '/api-tokens/123/',
+        url: '/api-tokens/123/',
         urlParts: ['api-tokens', '$tokenId'],
         options: {path: {tokenId: '123'}, query: {cursor: 'abc'}},
       },
@@ -99,7 +99,7 @@ describe('apiOptions', () => {
       path: {id: '123', id1: '456'},
     });
 
-    expect(parseQueryKey(options.queryKey).fullUrl).toBe('/projects/456/123');
+    expect(parseQueryKey(options.queryKey).url).toBe('/projects/456/123');
   });
 
   it('should allow skipToken as path', () => {
@@ -114,7 +114,7 @@ describe('apiOptions', () => {
     expect(getOptions('123').queryKey).toEqual([
       '_api',
       {
-        fullUrl: '/api-tokens/123/',
+        url: '/api-tokens/123/',
         urlParts: ['api-tokens', '$tokenId'],
         options: {path: {tokenId: '123'}},
       },
@@ -123,7 +123,7 @@ describe('apiOptions', () => {
     expect(getOptions(null).queryKey).toEqual([
       '_api',
       {
-        fullUrl: '/api-tokens/$tokenId/',
+        url: '/api-tokens/$tokenId/',
         urlParts: ['api-tokens', '$tokenId'],
         options: {},
       },

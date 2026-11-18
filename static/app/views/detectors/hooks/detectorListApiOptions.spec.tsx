@@ -77,7 +77,7 @@ describe('detectorListApiOptions', () => {
     });
 
     it('builds the correct URL', () => {
-      const {fullUrl: url} = parseQueryKey(detectorListApiOptions(organization).queryKey);
+      const {url} = parseQueryKey(detectorListApiOptions(organization).queryKey);
       expect(url).toBe(`/organizations/${organization.slug}/detectors/`);
     });
   });
@@ -115,7 +115,7 @@ describe('detectorListApiOptions', () => {
       expect(prefixKey).toEqual([
         '_api',
         {
-          fullUrl: `/organizations/${organization.slug}/detectors/`,
+          url: `/organizations/${organization.slug}/detectors/`,
           urlParts: ['organizations', '$organizationIdOrSlug', 'detectors'],
           options: {path: {organizationIdOrSlug: organization.slug}},
         },

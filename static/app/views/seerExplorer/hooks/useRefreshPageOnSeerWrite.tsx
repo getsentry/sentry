@@ -190,10 +190,8 @@ export function useRefreshPageOnSeerWrite({
 
     queryClient.invalidateQueries({
       predicate: (query: Query) => {
-        const fullUrl = safeParseQueryKey(query.queryKey)?.fullUrl;
-        return (
-          fullUrl !== undefined && prefixes.some(prefix => isStaleUrl(fullUrl, prefix))
-        );
+        const url = safeParseQueryKey(query.queryKey)?.url;
+        return url !== undefined && prefixes.some(prefix => isStaleUrl(url, prefix));
       },
     });
   }, [blocks, runId, queryClient, organization]);

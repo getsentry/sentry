@@ -64,7 +64,7 @@ const CACHED_QUERY_KEYS = [
   }).queryKey,
 ];
 
-const CACHED_URLS = CACHED_QUERY_KEYS.map(queryKey => parseQueryKey(queryKey).fullUrl);
+const CACHED_URLS = CACHED_QUERY_KEYS.map(queryKey => parseQueryKey(queryKey).url);
 
 function makeBlock(id: string, calls: CallRecord[]): Block {
   return {
@@ -127,7 +127,7 @@ function renderRefreshHook(initialBlocks: Block[] | undefined) {
   const invalidatedUrls = () =>
     CACHED_QUERY_KEYS.filter(
       queryKey => queryClient.getQueryState(queryKey)?.isInvalidated
-    ).map(queryKey => parseQueryKey(queryKey).fullUrl);
+    ).map(queryKey => parseQueryKey(queryKey).url);
   return {...hook, invalidateQueries, invalidatedUrls};
 }
 

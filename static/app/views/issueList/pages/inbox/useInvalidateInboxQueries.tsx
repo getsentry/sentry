@@ -24,7 +24,7 @@ export function useInvalidateInboxQueries(groupId: string) {
 
     void queryClient.invalidateQueries({
       predicate: query => {
-        const url = safeParseQueryKey(query.queryKey)?.fullUrl;
+        const url = safeParseQueryKey(query.queryKey)?.url;
         return (
           url === issueListUrl || url === issueCountUrl || url === issueActivitiesUrl
         );

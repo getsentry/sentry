@@ -69,7 +69,7 @@ class SimulatedSidebarQueryClient extends QueryClient {
     }
 
     const {queryKey} = defaulted;
-    const url = safeParseQueryKey(queryKey)?.fullUrl ?? '';
+    const url = safeParseQueryKey(queryKey)?.url ?? '';
     const queryFn = () => Promise.resolve({json: this.respond(url), headers: {}});
     // Each answer matches the response type of the query that asked for it.
     return {...defaulted, queryFn: queryFn as never};

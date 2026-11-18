@@ -124,7 +124,7 @@ export function getMutateSeerProjectRepoOptions({
     project,
     repoId,
   }).queryKey;
-  const singleUrl = parseQueryKey(singleQueryKey).fullUrl;
+  const singleUrl = parseQueryKey(singleQueryKey).url;
 
   const infiniteQueryKey = getSeerProjectReposInfiniteQueryOptions({
     organization,
@@ -234,7 +234,7 @@ export function getDeleteSeerProjectRepoOptions({
           project,
           repoId,
         }).queryKey
-      ).fullUrl;
+      ).url;
 
       return fetchMutation({method: 'DELETE', url: singleUrl, data: {repoId}});
     },
@@ -427,7 +427,7 @@ export function getMutateSeerProjectReposOptionsAddRepo({
     organization,
     project,
   }).queryKey;
-  const infiniteUrl = parseQueryKey(infiniteQueryKey).fullUrl;
+  const infiniteUrl = parseQueryKey(infiniteQueryKey).url;
 
   return mutationOptions({
     mutationFn: (data: {repos: SeerProjectRepoCreateInput[]}) => {

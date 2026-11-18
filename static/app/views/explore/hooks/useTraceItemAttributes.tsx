@@ -77,9 +77,9 @@ function isProjectArray(
 }
 
 function getAttributeScopeHash(queryKey: ApiQueryKey) {
-  const {fullUrl, options} = parseQueryKey(queryKey);
+  const {url, options} = parseQueryKey(queryKey);
   return hashKey([
-    fullUrl,
+    url,
     {
       ...options,
       query: {...options.query, substringMatch: undefined},

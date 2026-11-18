@@ -20,7 +20,7 @@ class CreditCheckQueryClient extends QueryClient {
   override defaultQueryOptions: QueryClient['defaultQueryOptions'] = options => {
     const defaulted = super.defaultQueryOptions(options);
     const {queryKey} = defaulted;
-    const url = safeParseQueryKey(queryKey)?.fullUrl ?? '';
+    const url = safeParseQueryKey(queryKey)?.url ?? '';
     if (defaulted.queryFn === skipToken || !url.includes('/seer/credit-check/')) {
       return defaulted;
     }

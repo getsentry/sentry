@@ -57,7 +57,7 @@ describe('apiQueryKey', () => {
       expect(
         parseQueryKey(issuesOptions('acme', {query: 'is:unresolved'}).queryKey)
       ).toEqual({
-        fullUrl: '/organizations/acme/issues/',
+        url: '/organizations/acme/issues/',
         urlParts: ['organizations', '$organizationIdOrSlug', 'issues'],
         options: {path: {organizationIdOrSlug: 'acme'}, query: {query: 'is:unresolved'}},
       });
@@ -70,7 +70,7 @@ describe('apiQueryKey', () => {
       const {queryKey} = issuesOptions('acme');
 
       expect(safeParseQueryKey(queryKey)).toBe(parseQueryKey(queryKey));
-      expect(safeParseQueryKey([...queryKey, {sessionKey: 'session'}])?.fullUrl).toBe(
+      expect(safeParseQueryKey([...queryKey, {sessionKey: 'session'}])?.url).toBe(
         '/organizations/acme/issues/'
       );
       expect(safeParseQueryKey(issuesInfiniteOptions('acme').queryKey)?.infinite).toBe(
@@ -123,7 +123,7 @@ describe('apiQueryKey', () => {
         {path: {organizationIdOrSlug: 'acme'}}
       );
 
-      expect(queryKey).toEqual(['_api', {fullUrl: '/organizations/acme/issues/'}]);
+      expect(queryKey).toEqual(['_api', {url: '/organizations/acme/issues/'}]);
       expect(matching(queryKey)).toEqual([
         'acmeIssues',
         'acmeIssuesFiltered',
@@ -224,7 +224,7 @@ describe('apiQueryKey', () => {
             '/organizations/$organizationIdOrSlug/issues/$issueId/autofix/setup/',
             {path: {organizationIdOrSlug: 'acme', issueId: '123'}}
           )
-        ).toEqual(['_api', {fullUrl: '/organizations/acme/issues/123/autofix/setup/'}]);
+        ).toEqual(['_api', {url: '/organizations/acme/issues/123/autofix/setup/'}]);
       });
 
       it('matches the same cache entry with both keys', () => {
@@ -236,7 +236,7 @@ describe('apiQueryKey', () => {
         expect(autofixSetupKey).toEqual([
           '_api',
           {
-            fullUrl: '/organizations/acme/issues/123/autofix/setup/',
+            url: '/organizations/acme/issues/123/autofix/setup/',
             urlParts: [
               'organizations',
               '$organizationIdOrSlug',

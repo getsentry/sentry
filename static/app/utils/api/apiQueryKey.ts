@@ -19,11 +19,11 @@ type ApiQueryKeyOptions = QueryKeyEndpointOptions & {
 };
 
 type ApiQueryKeyParams = {
+  options: ApiQueryKeyOptions;
   /**
    * The resolved url that gets requested
    */
-  fullUrl: ApiUrl;
-  options: ApiQueryKeyOptions;
+  url: ApiUrl;
   /**
    * The url template split into segments, with `$param` placeholders kept.
    * Use it to match every query below a url prefix, across all param values.
@@ -92,7 +92,7 @@ export function createApiQueryKey(
 }
 
 type ApiQueryKeyFilterParams = Partial<
-  Pick<ApiQueryKeyParams, 'fullUrl' | 'options' | 'urlParts'>
+  Pick<ApiQueryKeyParams, 'url' | 'options' | 'urlParts'>
 > & {infinite?: true};
 
 /**

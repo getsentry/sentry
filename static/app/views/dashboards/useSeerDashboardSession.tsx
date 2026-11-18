@@ -176,7 +176,7 @@ export function useSeerDashboardSession({
           // A session exists, send the message to the existing session
           const {queryKey} = seerDashboardSessionApiOptions(organization.slug, seerRunId);
           await fetchMutation({
-            url: parseQueryKey(queryKey).fullUrl,
+            url: parseQueryKey(queryKey).url,
             method: 'POST',
             data: {
               query: message,

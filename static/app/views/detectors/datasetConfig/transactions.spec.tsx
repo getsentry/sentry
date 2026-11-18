@@ -24,7 +24,7 @@ describe('DetectorTransactionsConfig', () => {
         comparisonDelta: undefined,
       }).queryKey;
 
-      const {fullUrl: url, options} = parseQueryKey(key);
+      const {url, options} = parseQueryKey(key);
       expect(url).toBe(`/organizations/${organization.slug}/events-stats/`);
       const params = options?.query!;
       expect(params.dataset).toBe(DiscoverDatasets.METRICS_ENHANCED);

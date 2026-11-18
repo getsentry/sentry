@@ -70,7 +70,7 @@ function getPrefixSearchCacheKey(
   const {query: _ignoredQuery, ...optionsWithoutQuery} = parsed.options;
 
   return {
-    url: parsed.fullUrl,
+    url: parsed.url,
     substringMatch,
     queryFingerprint: JSON.stringify(queryWithoutSubstring),
     optionsFingerprint: JSON.stringify(optionsWithoutQuery),

@@ -109,7 +109,7 @@ export function useCreateInvestigationCommentMutation(
       organizationSlug,
       investigationId,
     }).queryKey
-  ).fullUrl;
+  ).url;
   const invalidateComments = useInvalidateInvestigationComments(
     organizationSlug,
     investigationId

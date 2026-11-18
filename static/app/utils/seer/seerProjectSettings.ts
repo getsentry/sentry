@@ -115,7 +115,7 @@ export function getMutateSeerProjectSettingsOptions({
   knownAgents?: AgentIntegration[];
 }) {
   const queryKey = getSeerProjectSettingsQueryOptions({organization, project}).queryKey;
-  const url = parseQueryKey(queryKey).fullUrl;
+  const url = parseQueryKey(queryKey).url;
 
   return mutationOptions({
     mutationKey: getSeerProjectSettingsMutationKey(organization.slug, project.slug),
@@ -246,7 +246,7 @@ export function getMutateSeerProjectsSettingsOptions({
     organization,
     query: {},
   }).queryKey;
-  const infiniteUrl = parseQueryKey(infiniteQueryKey).fullUrl;
+  const infiniteUrl = parseQueryKey(infiniteQueryKey).url;
 
   const singleProjectSettingsQueryKey = apiOptions.queryKey(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/seer/settings/*',

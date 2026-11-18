@@ -52,8 +52,8 @@ export function useAutoFetchWindow({
   const deadlineMs = getAutoFetchWindowDeadlineMs(resumeCount, windowStartMs);
 
   const queryKeyHash = useMemo(() => {
-    const {fullUrl, options} = parseQueryKey(queryKey);
-    return JSON.stringify([fullUrl, options.query]);
+    const {url, options} = parseQueryKey(queryKey);
+    return JSON.stringify([url, options.query]);
   }, [queryKey]);
 
   useEffect(() => {
