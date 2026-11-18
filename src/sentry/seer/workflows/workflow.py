@@ -59,9 +59,7 @@ def setup_backing_workflow(
     update: ConfigUpdate, *, name: str | None, created_by_id: int | None, enabled: bool
 ) -> None:
     """Give a new automation the backing workflow that holds its name and enabled state."""
-    update.definition.trigger.setup(
-        update, name=name, created_by_id=created_by_id, enabled=enabled
-    )
+    update.definition.trigger.setup(update, name=name, created_by_id=created_by_id, enabled=enabled)
     if update.config.backing_workflow is not None:
         return
     # TODO(telkins): Scheduled triggers keep nothing on the workflow yet, so it starts bare.
