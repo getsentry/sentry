@@ -1,4 +1,6 @@
 import importlib
+from collections.abc import Iterator
+from typing import Any
 
 from django.http import HttpResponse
 from django.urls import URLResolver, get_resolver
@@ -6,7 +8,7 @@ from django.urls import URLResolver, get_resolver
 from sentry.middleware.integrations.classifications import IntegrationClassification
 
 
-def extract_matching_url_patterns(urlpatterns, base: str = ""):
+def extract_matching_url_patterns(urlpatterns: Any, base: str = "") -> Iterator[str]:
     for pattern in urlpatterns:
         if isinstance(pattern, URLResolver):
             yield from extract_matching_url_patterns(

@@ -30,7 +30,8 @@ import {
 } from 'sentry/views/explore/queryParams/visualize';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
-import {ToolbarSaveAs} from 'sentry/views/explore/toolbar/toolbarSaveAs';
+
+import {ToolbarSaveAs} from './toolbarSaveAs';
 
 /**
  * Returns the y axes of each chart written to the URL, one entry per chart.
@@ -57,9 +58,7 @@ function Wrapper({children}: {children: ReactNode}) {
 jest.mock('sentry/actionCreators/modal');
 
 describe('ExploreToolbar', () => {
-  const organization = OrganizationFixture({
-    features: ['dashboards-edit'],
-  });
+  const organization = OrganizationFixture();
 
   beforeEach(() => {
     const project = ProjectFixture({
@@ -287,6 +286,79 @@ describe('ExploreToolbar', () => {
     expect(visualizes).toEqual([new VisualizeFunction('count_unique(span.op)')]);
   });
 
+  it('only offers heatmap with explore-dev-features', async () => {
+    render(<ExploreToolbar />, {additionalWrapper: Wrapper});
+
+    const section = screen.getByTestId('section-visualizes');
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    expect(
+      within(section).queryByRole('option', {name: 'heatmap'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps the duration field when switching to heatmap', async () => {
+    let visualizes: readonly Visualize[] = [];
+    function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
+      visualizes = useQueryParamsVisualizes();
+      return <ExploreToolbar />;
+    }
+
+    render(<Component />, {
+      organization: OrganizationFixture({
+        ...organization,
+        features: [...organization.features, 'explore-dev-features'],
+      }),
+      additionalWrapper: Wrapper,
+    });
+
+    const section = screen.getByTestId('section-visualizes');
+
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
+    await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
+
+    await userEvent.click(within(section).getByRole('button', {name: 'avg'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'heatmap'}));
+
+    expect(visualizes).toEqual([new VisualizeFunction('heatmap(span.self_time)')]);
+
+    await userEvent.click(within(section).getByRole('button', {name: 'span.self_time'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'span.duration'}));
+
+    expect(visualizes).toEqual([new VisualizeFunction('heatmap(span.duration)')]);
+  });
+
+  it('keeps the heatmap field when switching away from heatmap', async () => {
+    let visualizes: readonly Visualize[] = [];
+    function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
+      visualizes = useQueryParamsVisualizes();
+      return <ExploreToolbar />;
+    }
+
+    render(<Component />, {
+      organization: OrganizationFixture({
+        ...organization,
+        features: [...organization.features, 'explore-dev-features'],
+      }),
+      additionalWrapper: Wrapper,
+    });
+
+    const section = screen.getByTestId('section-visualizes');
+
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'heatmap'}));
+    await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
+
+    await userEvent.click(within(section).getByRole('button', {name: 'heatmap'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'p95'}));
+
+    expect(visualizes).toEqual([new VisualizeFunction('p95(span.self_time)')]);
+  });
+
   it('allows changing visualizes', async () => {
     let fields!: readonly string[];
     let visualizes: any;
@@ -430,26 +502,8 @@ describe('ExploreToolbar', () => {
     expect(visualizes).toEqual([new VisualizeFunction('avg(span.duration)')]);
   });
 
-  it('picks one aggregate per chart without multi aggregate charts', async () => {
-    const {router} = render(<ExploreToolbar />, {additionalWrapper: Wrapper});
-
-    const section = screen.getByTestId('section-visualizes');
-
-    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
-    expect(within(section).queryByText('Percentiles')).not.toBeInTheDocument();
-    await userEvent.click(within(section).getByRole('option', {name: 'p50'}));
-    await waitFor(() =>
-      expect(chartYAxesFromRouter(router)).toEqual([['p50(span.duration)']])
-    );
-    expect(within(section).queryByRole('option')).not.toBeInTheDocument();
-  });
-
   it('plots aggregates selected together on one chart', async () => {
     const {router} = render(<ExploreToolbar />, {
-      organization: OrganizationFixture({
-        ...organization,
-        features: [...organization.features, 'explore-multi-aggregate-charts'],
-      }),
       additionalWrapper: Wrapper,
     });
 
@@ -508,10 +562,6 @@ describe('ExploreToolbar', () => {
 
   it('resets the aggregates when the selection is cleared', async () => {
     const {router} = render(<ExploreToolbar />, {
-      organization: OrganizationFixture({
-        ...organization,
-        features: [...organization.features, 'explore-multi-aggregate-charts'],
-      }),
       additionalWrapper: Wrapper,
     });
 
@@ -1225,7 +1275,7 @@ describe('ExploreToolbar', () => {
 
   describe('conditional aggregates', () => {
     const organizationWithDashboardFeatures = OrganizationFixture({
-      features: ['dashboards-edit', 'incidents'],
+      features: ['incidents'],
     });
 
     const SERIES_FILTER_PLACEHOLDER = 'Filter spans for this series';
@@ -1479,7 +1529,7 @@ describe('ExploreToolbar', () => {
     });
 
     await userEvent.click(screen.getByRole('button', {name: /save as/i}));
-    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Monitor for'}));
+    await userEvent.hover(screen.getByRole('menuitem', {name: 'Monitor for'}));
     await userEvent.click(
       await screen.findByRole('menuitemradio', {name: 'count(spans)'})
     );

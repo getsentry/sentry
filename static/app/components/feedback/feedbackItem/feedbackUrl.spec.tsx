@@ -4,7 +4,8 @@ import {FeedbackIssueFixture} from 'sentry-fixture/feedbackIssue';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import * as modal from 'sentry/actionCreators/modal';
-import {FeedbackUrl} from 'sentry/components/feedback/feedbackItem/feedbackUrl';
+
+import {FeedbackUrl} from './feedbackUrl';
 
 describe('FeedbackUrl', () => {
   const feedbackItem = FeedbackIssueFixture({});

@@ -8,7 +8,8 @@ import {
   webVitalScoreCountField,
   webVitalScoreField,
 } from 'sentry/views/dashboards/utils/webVitalTraceMetricFields';
-import {WheelWidgetVisualization} from 'sentry/views/dashboards/widgets/wheelWidget/wheelWidgetVisualization';
+
+import {WheelWidgetVisualization} from './wheelWidgetVisualization';
 
 describe('WheelWidgetVisualization', () => {
   const mockTableResults: TableDataWithTitle[] = [

@@ -2,9 +2,9 @@ import {useReducer} from 'react';
 
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
-import {makeCombinedReducers} from 'sentry/utils/makeCombinedReducer';
-import type {UndoableNode} from 'sentry/utils/useUndoableReducer';
-import {makeUndoableReducer, useUndoableReducer} from 'sentry/utils/useUndoableReducer';
+import {makeCombinedReducers} from './makeCombinedReducer';
+import type {UndoableNode} from './useUndoableReducer';
+import {makeUndoableReducer, useUndoableReducer} from './useUndoableReducer';
 
 describe('makeUndoableReducer', () => {
   it('does not overflow undo/redo', () => {

@@ -21,13 +21,14 @@ import {selectEvent} from 'sentry-test/selectEvent';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
-import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
-import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
-import DetectorNewSettings from 'sentry/views/detectors/detectorNewSettings';
+
+import {getDatasetConfig} from './datasetConfig/getDatasetConfig';
+import {DetectorDataset} from './datasetConfig/types';
+import DetectorNewSettings from './detectorNewSettings';
 
 describe('DetectorEdit', () => {
   const organization = OrganizationFixture({
-    features: ['visibility-explore-view', 'performance-view'],
+    features: ['visibility-explore-view'],
   });
   const organizationWithMonitorDuplication = OrganizationFixture({
     ...organization,
@@ -1019,7 +1020,8 @@ describe('DetectorEdit', () => {
       await userEvent.keyboard('Foo{enter}');
 
       const description = screen.getByRole('textbox', {name: 'description'});
-      await userEvent.type(description, 'This is my metric monitor description');
+      await userEvent.click(description);
+      await userEvent.paste('This is my metric monitor description');
 
       await userEvent.type(
         screen.getByRole('spinbutton', {name: 'High threshold'}),
@@ -1587,7 +1589,7 @@ describe('DetectorEdit', () => {
   describe('Metric Detector with Metrics dataset', () => {
     it('shows metrics dataset option', async () => {
       const metricsOrganization = OrganizationFixture({
-        features: ['visibility-explore-view', 'performance-view', 'tracemetrics-enabled'],
+        features: ['visibility-explore-view', 'tracemetrics-enabled'],
       });
 
       render(<DetectorNewSettings />, {
@@ -1617,7 +1619,7 @@ describe('DetectorEdit', () => {
 
     it('can submit a new metric detector with metrics dataset from URL params', async () => {
       const metricsOrganization = OrganizationFixture({
-        features: ['visibility-explore-view', 'performance-view', 'tracemetrics-enabled'],
+        features: ['visibility-explore-view', 'tracemetrics-enabled'],
       });
 
       MockApiClient.addMockResponse({
@@ -2167,7 +2169,8 @@ describe('DetectorEdit', () => {
       });
 
       const description = screen.getByRole('textbox', {name: 'description'});
-      await userEvent.type(description, 'This is my cron monitor description');
+      await userEvent.click(description);
+      await userEvent.paste('This is my cron monitor description');
 
       await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
 

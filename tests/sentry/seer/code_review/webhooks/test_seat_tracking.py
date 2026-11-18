@@ -5,6 +5,7 @@ import orjson
 
 from fixtures.gitlab import MERGE_REQUEST_OPENED_EVENT, GitLabTestCase
 from sentry.integrations.gitlab.webhooks import MergeEventWebhook
+from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.code_review.webhooks.merge_request import handle_merge_request_event
@@ -30,6 +31,8 @@ def test_processor_runs_before_code_review_handler() -> None:
 
 def _make_event(action: str = "open", **overrides: object) -> dict[str, Any]:
     event = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
+    if not isinstance(event, dict):
+        raise TypeError("Merge request event is not a JSON object")
     event["object_attributes"]["action"] = action
     for key, value in overrides.items():
         event["object_attributes"][key] = value
@@ -51,7 +54,7 @@ class TrackGitlabContributorSeatProcessorTest(GitLabTestCase):
             event=event if event is not None else _make_event(),
             organization=self.rpc_organization,
             repo=self.repo,
-            integration=self.integration,
+            integration=serialize_integration(self.integration),
         )
 
     @patch("sentry.seer.code_review.webhooks.seat_tracking.track_contributor_seat")
@@ -192,7 +195,7 @@ class TrackGitlabContributorActionProcessorTest(GitLabTestCase):
             event=_make_event(),
             organization=self.rpc_organization,
             repo=self.repo,
-            integration=self.integration,
+            integration=serialize_integration(self.integration),
         )
 
         mock_record.assert_called_once()
@@ -213,7 +216,7 @@ class TrackGitlabContributorActionProcessorTest(GitLabTestCase):
             event=_make_event(action="update"),
             organization=self.rpc_organization,
             repo=self.repo,
-            integration=self.integration,
+            integration=serialize_integration(self.integration),
         )
         assert mock_record.call_args.kwargs["is_opened"] is False
 
@@ -235,7 +238,7 @@ class TrackGitlabContributorActionProcessorTest(GitLabTestCase):
             event=event,
             organization=self.rpc_organization,
             repo=self.repo,
-            integration=self.integration,
+            integration=serialize_integration(self.integration),
         )
         mock_record.assert_not_called()
 
@@ -247,7 +250,7 @@ class TrackGitlabContributorActionProcessorTest(GitLabTestCase):
             event=event,
             organization=self.rpc_organization,
             repo=self.repo,
-            integration=self.integration,
+            integration=serialize_integration(self.integration),
         )
         mock_record.assert_not_called()
 
@@ -261,7 +264,7 @@ class TrackGitlabContributorActionProcessorTest(GitLabTestCase):
             event=event,
             organization=self.rpc_organization,
             repo=self.repo,
-            integration=self.integration,
+            integration=serialize_integration(self.integration),
         )
         mock_record.assert_not_called()
 
@@ -273,6 +276,6 @@ class TrackGitlabContributorActionProcessorTest(GitLabTestCase):
             event=event,
             organization=self.rpc_organization,
             repo=self.repo,
-            integration=self.integration,
+            integration=serialize_integration(self.integration),
         )
         mock_record.assert_not_called()

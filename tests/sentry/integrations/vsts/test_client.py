@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Generator
 from time import time
-from typing import TypedDict
+from typing import TypedDict, cast
 from unittest import mock
 from unittest.mock import MagicMock, call
 from urllib.parse import parse_qs, quote_plus
@@ -10,6 +11,7 @@ import orjson
 import pytest
 import responses
 from django.test import override_settings
+from requests import PreparedRequest
 from responses import matchers
 
 from fixtures.vsts import VstsIntegrationTestCase
@@ -28,7 +30,7 @@ from sentry.users.models.identity import Identity, IdentityProvider
 @control_silo_test
 class VstsApiClientTest(VstsIntegrationTestCase):
     @pytest.fixture(autouse=True)
-    def _setup_metric_patch(self):
+    def _setup_metric_patch(self) -> Generator[None]:
         with mock.patch("sentry.shared_integrations.client.base.metrics") as self.metrics:
             yield
 
@@ -115,8 +117,8 @@ class VstsApiClientTest(VstsIntegrationTestCase):
             client.identity
 
     def test_project_pagination(self) -> None:
-        def request_callback(request):
-            query = parse_qs(request.url.split("?")[1])
+        def request_callback(request: PreparedRequest) -> tuple[int, dict[str, str], str]:
+            query = parse_qs(cast(str, request.url).split("?")[1])
             # allow for 220 responses
             if int(query["$skip"][0]) >= 200:
                 projects = [self.project_a, self.project_b] * 10
@@ -401,8 +403,9 @@ class VstsApiClientTest(VstsIntegrationTestCase):
         assert success.args[0] == EventLifecycleOutcome.SUCCESS
 
 
-def assert_proxy_request(request, is_proxy=True):
-    assert (PROXY_BASE_PATH in request.url) == is_proxy
+def assert_proxy_request(request: PreparedRequest, is_proxy: bool = True) -> None:
+    url = cast(str, request.url)
+    assert (PROXY_BASE_PATH in url) == is_proxy
     assert (PROXY_OI_HEADER in request.headers) == is_proxy
     assert (PROXY_SIGNATURE_HEADER in request.headers) == is_proxy
     assert ("Authorization" in request.headers) != is_proxy

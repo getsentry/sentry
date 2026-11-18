@@ -2,7 +2,7 @@ import math
 import re
 from collections.abc import Collection, Iterable, Mapping
 from datetime import datetime
-from typing import Literal, Protocol
+from typing import Literal, Protocol, cast
 
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_conventions.attributes import ATTRIBUTE_METADATA as ATTRIBUTE_METADATA
@@ -19,6 +19,7 @@ from sentry.search.eap.columns import ColumnDefinitions, ResolvedAttribute
 from sentry.search.eap.constants import (
     ARRAY,
     BOOLEAN,
+    MAX_STATS_REQUEST_ATTRIBUTES,
     SENTRY_INTERNAL_PREFIXES,
     STRING,
     TYPE_MAP,
@@ -612,7 +613,7 @@ def parse_formula(
     resolver: SearchResolver,
 ) -> str:
     # Create a dict of param name -> the arg the user passed
-    variables = {}
+    variables: dict[str, str | float] = {}
     saved_columns = []
     for saved_arg, arg in zip(saved_args, arguments):
         if saved_arg.param_type == ParamItemTypes.NUMBER:
@@ -639,14 +640,14 @@ def parse_formula(
         variables[saved_arg.name] = arg
 
     # Resolve all the calculations
-    calculations = {}
+    calculations: dict[str, float] = {}
     for calculation in saved_calculations:
         value = calculation.value
         for param_name, user_arg in variables.items():
             # Don't sub columns since they aren't possible, ie. can't multiply a column if its used in a condition
             if param_name in saved_columns:
                 continue
-            value = value.replace(f"{{{param_name}}}", user_arg)
+            value = value.replace(f"{{{param_name}}}", cast(str, user_arg))
         check_unmatched(calculation.name, value, saved_columns=saved_columns)
         try:
             parsed, _, _ = parse_arithmetic(value, definitions=resolver.definitions)
@@ -676,3 +677,7 @@ def parse_formula(
         raise InvalidSearchQuery(e)
 
     return f"{final_equation}"
+
+
+def get_stats_chunk_count(attribute_count: int, min_chunks: int) -> int:
+    return max(min_chunks, math.ceil(attribute_count / MAX_STATS_REQUEST_ATTRIBUTES))

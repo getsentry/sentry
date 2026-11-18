@@ -5,8 +5,11 @@ from unittest.mock import MagicMock, patch
 
 from sentry.grouping.ingest.grouphash_metadata import create_or_update_grouphash_metadata_if_needed
 from sentry.grouping.ingest.seer import get_seer_similar_issues, should_call_seer_for_grouping
+from sentry.grouping.variants import BaseVariant
 from sentry.models.grouphash import GroupHash
+from sentry.models.project import Project
 from sentry.seer.similarity.types import GroupingVersion, SeerSimilarIssueData
+from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.testutils.pytest.mocking import capture_results
@@ -115,13 +118,17 @@ class SeerEventManagerGroupingTest(TestCase):
 
     @patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True)
     @patch("sentry.grouping.ingest.seer.get_seer_similar_issues", return_value=EMPTY_SEER_RESULTS)
-    def test_calls_seer_if_no_group_found(self, mock_get_seer_similar_issues: MagicMock, _) -> None:
+    def test_calls_seer_if_no_group_found(
+        self, mock_get_seer_similar_issues: MagicMock, _: MagicMock
+    ) -> None:
         save_new_event({"message": "Dogs are great!"}, self.project)
         assert mock_get_seer_similar_issues.call_count == 1
 
     @patch("sentry.grouping.ingest.seer.should_call_seer_for_grouping", return_value=True)
     @patch("sentry.grouping.ingest.seer.get_seer_similar_issues", return_value=EMPTY_SEER_RESULTS)
-    def test_bypasses_seer_if_group_found(self, mock_get_seer_similar_issues: MagicMock, _) -> None:
+    def test_bypasses_seer_if_group_found(
+        self, mock_get_seer_similar_issues: MagicMock, _: MagicMock
+    ) -> None:
         existing_event = save_new_event({"message": "Dogs are great!"}, self.project)
         assert mock_get_seer_similar_issues.call_count == 1
 
@@ -316,8 +323,13 @@ class StoredSeerMetadataTest(TestCase):
         # create `GroupHash` and `GroupHashMetadata` records, and each event wins one of the races,
         # which results in the metadata not having a `date_added` value
         def race_condition_create_or_update_grouphash_metadata(
-            event, project, grouphash, created, grouping_config, variants
-        ):
+            event: Event,
+            project: Project,
+            grouphash: GroupHash,
+            created: bool,
+            grouping_config: str,
+            variants: dict[str, BaseVariant],
+        ) -> None:
             create_or_update_grouphash_metadata_if_needed(
                 event, project, grouphash, created, grouping_config, variants
             )

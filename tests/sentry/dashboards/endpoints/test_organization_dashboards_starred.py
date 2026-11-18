@@ -1,5 +1,8 @@
+from typing import Any
+
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
+from rest_framework.response import Response
 
 from sentry.models.dashboard import DashboardFavoriteUser
 from sentry.silo.base import SiloMode
@@ -9,9 +12,9 @@ from sentry.testutils.silo import assume_test_silo_mode
 
 
 class StarredDashboardTestCase(OrganizationDashboardWidgetTestCase):
-    def do_request(self, *args, **kwargs):
+    def do_request(self, method: str, url: str, data: dict[str, Any] | None = None) -> Response:
         with self.feature("organizations:dashboards-starred"):
-            return super().do_request(*args, **kwargs)
+            return super().do_request(method, url, data)
 
 
 class OrganizationDashboardsStarredTest(StarredDashboardTestCase):

@@ -3,7 +3,6 @@ from unittest.mock import MagicMock, patch
 
 import responses
 
-from sentry.integrations.jira import JIRA_KEY
 from sentry.integrations.jira.views import UNABLE_TO_VERIFY_INSTALLATION
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
@@ -82,7 +81,7 @@ class JiraIssueHookTest(APITestCase):
 
         self.login_as(self.user)
 
-        self.properties_key = f"com.atlassian.jira.issue:{JIRA_KEY}:sentry-issues-glance:status"
+        self.properties_key = "com.atlassian.jira.issue:testserver.jira:sentry-issues-glance:status"
         self.properties_url = "https://getsentry.atlassian.net/rest/api/3/issue/%s/properties/%s"
 
     @patch(
@@ -237,7 +236,7 @@ class JiraIssueHookControlTest(APITestCase):
 
         self.login_as(self.user)
 
-        self.properties_key = f"com.atlassian.jira.issue:{JIRA_KEY}:sentry-issues-glance:status"
+        self.properties_key = "com.atlassian.jira.issue:testserver.jira:sentry-issues-glance:status"
         self.properties_url = "https://getsentry.atlassian.net/rest/api/3/issue/%s/properties/%s"
 
     @patch(

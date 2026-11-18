@@ -23,7 +23,7 @@ def mock_seer_response(data: dict[str, Any]) -> MagicMock:
 class OrganizationSupergroupsByGroupEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-supergroups-by-group"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
         self.unresolved_group = self.create_group(
@@ -32,7 +32,7 @@ class OrganizationSupergroupsByGroupEndpointTest(APITestCase):
         self.resolved_group = self.create_group(project=self.project, status=GroupStatus.RESOLVED)
 
     @patch("sentry.seer.supergroups.by_group.make_supergroups_get_by_group_ids_request")
-    def test_status_filter_strips_resolved_from_response(self, mock_seer):
+    def test_status_filter_strips_resolved_from_response(self, mock_seer: MagicMock) -> None:
         extra_unresolved = self.create_group(project=self.project, status=GroupStatus.UNRESOLVED)
         mock_seer.return_value = mock_seer_response(
             {
@@ -68,7 +68,7 @@ class OrganizationSupergroupsByGroupEndpointTest(APITestCase):
             extra_unresolved.id,
         ]
 
-    def test_status_filter_invalid(self):
+    def test_status_filter_invalid(self) -> None:
         with self.feature("organizations:top-issues-ui"):
             self.get_error_response(
                 self.organization.slug,
@@ -78,7 +78,7 @@ class OrganizationSupergroupsByGroupEndpointTest(APITestCase):
             )
 
     @patch("sentry.seer.supergroups.by_group.make_supergroups_get_by_group_ids_request")
-    def test_assignee_summary(self, mock_seer):
+    def test_assignee_summary(self, mock_seer: MagicMock) -> None:
         user_a = self.create_user(email="a@example.com")
         user_b = self.create_user(email="b@example.com")
         team = self.create_team(organization=self.organization, slug="backend")
@@ -119,7 +119,7 @@ class OrganizationSupergroupsByGroupEndpointTest(APITestCase):
         }
 
     @patch("sentry.seer.supergroups.by_group.make_supergroups_get_by_group_ids_request")
-    def test_assignee_summary_empty(self, mock_seer):
+    def test_assignee_summary_empty(self, mock_seer: MagicMock) -> None:
         unassigned = self.create_group(project=self.project)
         mock_seer.return_value = mock_seer_response(
             {"data": [{"id": 1, "group_ids": [unassigned.id], "title": "sg"}]}
@@ -135,7 +135,7 @@ class OrganizationSupergroupsByGroupEndpointTest(APITestCase):
         assert sg["assignees"] == []
 
     @patch("sentry.seer.supergroups.by_group.make_supergroups_get_by_group_ids_request")
-    def test_assignee_summary_ignores_cross_org_groups(self, mock_seer):
+    def test_assignee_summary_ignores_cross_org_groups(self, mock_seer: MagicMock) -> None:
         other_org = self.create_organization()
         other_project = self.create_project(organization=other_org)
         other_user = self.create_user(email="other@example.com")
@@ -165,7 +165,7 @@ class OrganizationSupergroupsByGroupEndpointTest(APITestCase):
 
     @patch.object(organization_supergroups_by_group, "_MAX_GROUPS_FOR_FETCH", 1)
     @patch("sentry.seer.supergroups.by_group.make_supergroups_get_by_group_ids_request")
-    def test_skips_fanout_over_threshold(self, mock_seer):
+    def test_skips_fanout_over_threshold(self, mock_seer: MagicMock) -> None:
         mock_seer.return_value = mock_seer_response(
             {
                 "data": [
@@ -190,7 +190,7 @@ class OrganizationSupergroupsByGroupEndpointTest(APITestCase):
         assert "assignees" not in sg
         assert self.resolved_group.id in sg["group_ids"]
 
-    def test_returns_404_when_all_groups_are_in_inaccessible_projects(self):
+    def test_returns_404_when_all_groups_are_in_inaccessible_projects(self) -> None:
         self.organization.flags.allow_joinleave = False
         self.organization.save()
 
@@ -210,7 +210,7 @@ class OrganizationSupergroupsByGroupEndpointTest(APITestCase):
             )
 
     @patch("sentry.seer.supergroups.by_group.make_supergroups_get_by_group_ids_request")
-    def test_filters_out_groups_from_inaccessible_projects(self, mock_seer):
+    def test_filters_out_groups_from_inaccessible_projects(self, mock_seer: MagicMock) -> None:
         self.organization.flags.allow_joinleave = False
         self.organization.save()
 
@@ -248,7 +248,7 @@ class OrganizationSupergroupsByGroupEndpointTest(APITestCase):
         assert len(response.data["data"]) == 1
 
     @patch("sentry.seer.supergroups.by_group.make_supergroups_get_by_group_ids_request")
-    def test_assignee_summary_tolerates_missing_actor(self, mock_seer):
+    def test_assignee_summary_tolerates_missing_actor(self, mock_seer: MagicMock) -> None:
         # GroupAssignee row references a user_id that `user_service.get_many_by_id` no longer returns
         assigned = self.create_group(project=self.project)
         GroupAssignee.objects.create(group=assigned, project=self.project, user_id=999_999)
@@ -266,7 +266,7 @@ class OrganizationSupergroupsByGroupEndpointTest(APITestCase):
         sg = response.data["data"][0]
         assert sg["assignees"] == []
 
-    def _login_as_restricted_member(self):
+    def _login_as_restricted_member(self) -> None:
         self.organization.flags.allow_joinleave = False
         self.organization.save()
         member_user = self.create_user()
@@ -281,7 +281,7 @@ class OrganizationSupergroupsByGroupEndpointTest(APITestCase):
         self.login_as(member_user)
 
     @patch("sentry.seer.supergroups.by_group.make_supergroups_get_by_group_ids_request")
-    def test_strips_inaccessible_groups_from_seer_response(self, mock_seer):
+    def test_strips_inaccessible_groups_from_seer_response(self, mock_seer: MagicMock) -> None:
         other_project = self.create_project(organization=self.organization)
         inaccessible_group = self.create_group(project=other_project)
         inaccessible_only_group = self.create_group(project=other_project)
@@ -323,7 +323,7 @@ class OrganizationSupergroupsByGroupEndpointTest(APITestCase):
 
     @patch.object(organization_supergroups_by_group, "_MAX_GROUPS_FOR_FETCH", 1)
     @patch("sentry.seer.supergroups.by_group.make_supergroups_get_by_group_ids_request")
-    def test_strips_inaccessible_groups_over_threshold(self, mock_seer):
+    def test_strips_inaccessible_groups_over_threshold(self, mock_seer: MagicMock) -> None:
         other_project = self.create_project(organization=self.organization)
         inaccessible_group = self.create_group(project=other_project)
 

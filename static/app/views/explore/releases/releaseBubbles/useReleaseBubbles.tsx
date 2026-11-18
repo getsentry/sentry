@@ -10,7 +10,8 @@ import type {
 } from 'echarts';
 import moment from 'moment-timezone';
 
-import {closeModal} from 'sentry/actionCreators/modal';
+import {closeModal} from '@sentry/scraps/modal';
+
 import {isChartHovered} from 'sentry/components/charts/utils';
 import type {RawFlag} from 'sentry/components/featureFlags/utils';
 import type {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
@@ -31,8 +32,9 @@ import {
   cleanReleaseCursors,
   ReleasesDrawerFields,
 } from 'sentry/views/explore/releases/drawer/utils';
-import type {Bucket} from 'sentry/views/explore/releases/releaseBubbles/types';
-import {createReleaseBuckets} from 'sentry/views/explore/releases/releaseBubbles/utils/createReleaseBuckets';
+
+import {createReleaseBuckets} from './utils/createReleaseBuckets';
+import type {Bucket} from './types';
 
 const BUBBLE_SERIES_ID = '__release_bubble__';
 export const RELEASE_BUBBLE_SERIES_NAME = 'Releases';

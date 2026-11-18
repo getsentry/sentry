@@ -11,17 +11,17 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {ExternalIssueForm} from 'sentry/components/externalIssues/externalIssueForm';
-import type {IntegrationIssueConfig} from 'sentry/types/integrations';
-
-jest.mock('sentry/actionCreators/indicator');
 import {
   makeClosableHeader,
   makeCloseButton,
   ModalBody,
   ModalFooter,
 } from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
+
+import type {IntegrationIssueConfig} from 'sentry/types/integrations';
+
+import {ExternalIssueForm} from './externalIssueForm';
 
 describe('ExternalIssueForm', () => {
   const group = GroupFixture();
@@ -35,6 +35,7 @@ describe('ExternalIssueForm', () => {
   const onChange = jest.fn();
 
   beforeEach(() => {
+    jest.spyOn(toast, 'error').mockClear();
     MockApiClient.clearMockResponses();
   });
 
@@ -480,7 +481,7 @@ describe('ExternalIssueForm', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'Create Issue'}));
 
-      await waitFor(() => expect(addErrorMessage).toHaveBeenCalled());
+      await waitFor(() => expect(toast.error).toHaveBeenCalled());
       expect(closeModal).not.toHaveBeenCalled();
     });
 

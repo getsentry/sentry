@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
+from typing import Any
+
 import sentry_sdk
 from drf_spectacular.utils import extend_schema_serializer
 from rest_framework import serializers
@@ -25,14 +28,14 @@ from sentry.seer.seer_setup import get_supported_scm_providers
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
-class BranchOverrideSerializer(CamelSnakeSerializer):
+class BranchOverrideSerializer(CamelSnakeSerializer[dict[str, Any]]):
     tag_name = serializers.CharField(required=True)
     tag_value = serializers.CharField(required=True)
     branch_name = serializers.CharField(required=True)
 
 
 @extend_schema_serializer(deprecate_fields=["owner", "name"])
-class RepositorySerializer(CamelSnakeSerializer):
+class RepositorySerializer(CamelSnakeSerializer[dict[str, Any]]):
     repository_id = serializers.IntegerField(required=False)
     provider = serializers.CharField(required=False)
     owner = serializers.CharField(required=False)
@@ -48,7 +51,7 @@ class RepositorySerializer(CamelSnakeSerializer):
     base_commit_sha = serializers.CharField(required=False, allow_null=True)
     provider_raw = serializers.CharField(required=False, allow_null=True)
 
-    def validate(self, attrs):
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         if attrs.get("repository_id") is not None:
             return attrs
 
@@ -79,7 +82,9 @@ class RepositorySerializer(CamelSnakeSerializer):
             )
         return attrs
 
-    def validate_branch_overrides(self, value):
+    def validate_branch_overrides(
+        self, value: Sequence[Mapping[str, str]]
+    ) -> Sequence[Mapping[str, str]]:
         if not value:
             return value
         seen = set()
@@ -93,7 +98,7 @@ class RepositorySerializer(CamelSnakeSerializer):
         return value
 
 
-class SeerAutomationHandoffConfigurationSerializer(CamelSnakeSerializer):
+class SeerAutomationHandoffConfigurationSerializer(CamelSnakeSerializer[dict[str, Any]]):
     handoff_point = serializers.ChoiceField(
         choices=["root_cause"],
         required=True,
@@ -106,7 +111,7 @@ class SeerAutomationHandoffConfigurationSerializer(CamelSnakeSerializer):
     auto_create_pr = serializers.BooleanField(required=False, default=False)
 
 
-class ProjectSeerPreferencesSerializer(CamelSnakeSerializer):
+class ProjectSeerPreferencesSerializer(CamelSnakeSerializer[dict[str, Any]]):
     repositories = RepositorySerializer(many=True, required=True)
     automated_run_stopping_point = serializers.CharField(required=False, allow_null=True)
     automation_handoff = SeerAutomationHandoffConfigurationSerializer(

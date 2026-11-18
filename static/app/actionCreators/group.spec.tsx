@@ -1,10 +1,6 @@
-import {
-  bulkDelete,
-  bulkUpdate,
-  mergeGroups,
-  paramsToQueryArgs,
-} from 'sentry/actionCreators/group';
 import {GroupStore} from 'sentry/stores/groupStore';
+
+import {bulkDelete, bulkUpdate, mergeGroups, paramsToQueryArgs} from './group';
 
 describe('group', () => {
   it('skips bulk actions without a request when itemIds is empty', async () => {

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Any, Literal, TypedDict, cast, get_args
+from typing import Any, Literal, cast, get_args
 
 from django.utils import timezone
 from django.utils.dateparse import parse_datetime
@@ -16,6 +16,10 @@ from sentry.investigations.models.orchestration import (
 )
 from sentry.notebooks.contracts import (
     MAX_MARKDOWN_CHARS,
+    ActionPayloadSerializer,
+    ActionRequestItem,
+    RelaxedContractSerializer,
+    StrictCharField,
     StrictContractSerializer,
     json_byte_size,
     validate_query_result,
@@ -26,15 +30,6 @@ logger = logging.getLogger(__name__)
 
 MAX_PROJECTION_BYTES = 512 * 1024
 MAX_THOUGHT_TEXT_CHARS = 1_500
-
-
-class RelaxedContractSerializer(serializers.Serializer[Any]):
-    def to_internal_value(self, data: Any) -> dict[str, Any]:
-        validated = super().to_internal_value(data)
-        if not isinstance(data, dict):
-            return validated
-        passthrough = {key: value for key, value in data.items() if key not in self.fields}
-        return {**passthrough, **validated}
 
 
 WORK_STATUSES = {
@@ -92,19 +87,6 @@ MAX_EVIDENCE_DATA_BYTES = 128 * 1024
 MAX_PROJECT_IDS = 100
 MAX_PROJECTION_ERRORS = 50
 MAX_PROJECTION_INTENTS = 50
-
-
-class StrictCharField(serializers.CharField):
-    """A string that rejects the numbers DRF would stringify, and keeps its whitespace."""
-
-    def __init__(self, **kwargs: Any) -> None:
-        kwargs.setdefault("trim_whitespace", False)
-        super().__init__(**kwargs)
-
-    def to_internal_value(self, data: Any) -> str:
-        if not isinstance(data, str):
-            self.fail("invalid")
-        return super().to_internal_value(data)
 
 
 class StrictIntegerField(serializers.IntegerField):
@@ -436,6 +418,33 @@ class SteeringIntentSerializer(RelaxedContractSerializer):
     completed = StrictBooleanField(required=False)
 
 
+MAX_LINKED_ISSUES = 10
+
+
+class LinkedIssueSerializer(RelaxedContractSerializer):
+    """An issue that evidence for a confirmed hypothesis names, sent once the run completes."""
+
+    groupId = StrictIntegerField(min_value=1, max_value=I64_MAX, required=False, allow_null=True)
+    # Only when Seer had no group ID: the short ID a tool returned, like `PROJ-1A3`.
+    shortId = OptionalStrictCharField(128, allow_blank=False)
+    hypothesisId = StrictCharField(max_length=128)
+    hypothesisStatement = StrictCharField(max_length=2_000)
+    reason = OptionalStrictCharField(1_000)
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        if (attrs.get("groupId") is None) == (attrs.get("shortId") is None):
+            raise serializers.ValidationError("Exactly one of groupId or shortId is required.")
+        return attrs
+
+
+def valid_linked_issues(items: object) -> list[dict[str, Any]]:
+    """The linked issues Sentry can use. A bad item is dropped, so it can't block the run."""
+    if not isinstance(items, list):
+        return []
+    validators = [LinkedIssueSerializer(data=item) for item in items[:MAX_LINKED_ISSUES]]
+    return [dict(validator.validated_data) for validator in validators if validator.is_valid()]
+
+
 class OrchestrationProjectionSerializer(RelaxedContractSerializer):
     """The projection blob Seer sends with every orchestration event."""
 
@@ -490,25 +499,6 @@ MAX_REPORT_BLOCKS = 200
 MAX_ACTION_REQUESTS = 50
 ACTION_REQUEST_KEY_PATTERN = re.compile(r"[a-z0-9][a-z0-9_-]{0,63}")
 ANCHOR_TYPES = ("block", "hypothesis")
-
-
-class ActionRequestAnchor(TypedDict):
-    type: Literal["block", "hypothesis"]
-    id: str
-
-
-class ActionRequestItem(TypedDict):
-    """A request from Seer that has passed validation."""
-
-    key: str
-    reportRevision: int
-    title: str
-    rationale: str
-    impact: str | None
-    primary: bool
-    anchor: ActionRequestAnchor | None
-    # The action kind owns this, so nothing else should read inside it.
-    action: dict[str, Any] | None
 
 
 MAX_TEXT_DELTA_CHARS = 64 * 1024
@@ -577,19 +567,8 @@ class MetadataCompletedPayloadSerializer(_ReportRevisionMixin):
     title = StrictCharField(required=False, max_length=255)
 
 
-class ActionPayloadSerializer(RelaxedContractSerializer):
-    """Base class for an action kind's payload. Each kind validates its own fields."""
-
-    kind = StrictCharField(max_length=64)
-
-    @classmethod
-    def trim(cls, action: dict[str, Any]) -> dict[str, Any] | None:
-        """Remove values this kind won't accept. Return None to keep the request as advice."""
-        return action
-
-
 def _payload_serializer(action: Any) -> type[ActionPayloadSerializer] | None:
-    from sentry.investigations.services.action_kinds import get_action_kind
+    from sentry.notebooks.services.action_kinds import get_action_kind
 
     kind = action.get("kind") if isinstance(action, dict) else None
     action_kind = get_action_kind(kind) if isinstance(kind, str) else None

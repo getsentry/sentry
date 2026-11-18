@@ -1,9 +1,9 @@
 import {defined} from 'sentry/utils/defined';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import type {Frame} from 'sentry/utils/profiling/frame';
-import type {createContinuousProfileFrameIndex} from 'sentry/utils/profiling/profile/utils';
 
 import {Profile} from './profile';
+import type {createContinuousProfileFrameIndex} from './utils';
 import {sortProfileSamples} from './utils';
 
 type WeightedSample = Profiling.ContinuousProfile['samples'][number] & {

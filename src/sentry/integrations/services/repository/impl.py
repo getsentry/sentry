@@ -51,7 +51,7 @@ class DatabaseBackedRepositoryService(RepositoryService):
         id: int,
         as_user: RpcUser | None = None,
     ) -> Any | None:
-        repository = Repository.objects.filter(organization_id=organization_id, id=id).first()
+        repository = Repository.objects.get_or_none(organization_id=organization_id, id=id)
         if repository is None:
             return None
         return serialize(repository, user=as_user)
@@ -62,16 +62,22 @@ class DatabaseBackedRepositoryService(RepositoryService):
         organization_id: int,
         integration_id: int | None = None,
         external_id: str | None = None,
+        external_ids: list[str] | None = None,
         providers: list[str] | None = None,
         has_integration: bool | None = None,
         has_provider: bool | None = None,
         status: int | None = None,
     ) -> list[RpcRepository]:
+        if external_id is not None and external_ids is not None:
+            raise ValueError("external_id and external_ids cannot both be provided")
+
         query = Repository.objects.filter(organization_id=organization_id)
         if integration_id is not None:
             query = query.filter(integration_id=integration_id)
         if external_id is not None:
             query = query.filter(external_id=external_id)
+        if external_ids is not None:
+            query = query.filter(external_id__in=external_ids)
         if providers is not None:
             query = query.filter(provider__in=providers)
         if has_integration is not None:
@@ -83,7 +89,7 @@ class DatabaseBackedRepositoryService(RepositoryService):
         return [serialize_repository(repo) for repo in query]
 
     def get_repository(self, *, organization_id: int, id: int) -> RpcRepository | None:
-        repository = Repository.objects.filter(organization_id=organization_id, id=id).first()
+        repository = Repository.objects.get_or_none(organization_id=organization_id, id=id)
         if repository is None:
             return None
         return serialize_repository(repository)
@@ -105,7 +111,7 @@ class DatabaseBackedRepositoryService(RepositoryService):
             repository = (
                 Repository.objects.filter(organization_id=organization_id, id=update.id)
                 .select_for_update()
-                .first()
+                .get_or_none()
             )
             if repository is None:
                 return
@@ -132,7 +138,7 @@ class DatabaseBackedRepositoryService(RepositoryService):
             repository = (
                 Repository.objects.filter(organization_id=organization_id, id=id)
                 .select_for_update()
-                .first()
+                .get_or_none()
             )
             if repository is None or repository.status != ObjectStatus.ACTIVE:
                 return False
@@ -197,7 +203,7 @@ class DatabaseBackedRepositoryService(RepositoryService):
             repository = (
                 Repository.objects.filter(organization_id=organization_id, id=update.id)
                 .select_for_update()
-                .first()
+                .get_or_none()
             )
             if repository is None or repository.status not in (
                 ObjectStatus.ACTIVE,

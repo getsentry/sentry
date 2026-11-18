@@ -4,7 +4,6 @@ import type {Placement} from '@floating-ui/react-dom';
 import type {HTMLMotionProps, MotionProps, MotionStyle} from 'framer-motion';
 import {motion, useIsPresent} from 'framer-motion';
 
-import {defined} from '@sentry/scraps/defined';
 import type {OverlayArrowProps} from '@sentry/scraps/overlayArrow';
 import {OverlayArrow} from '@sentry/scraps/overlayArrow';
 import {PanelProvider} from '@sentry/scraps/panelProvider';
@@ -119,7 +118,7 @@ export function Overlay({
       ref={ref}
       placement={placement}
     >
-      {defined(arrowProps) && <OverlayArrow {...arrowProps} />}
+      {arrowProps != null && <OverlayArrow {...arrowProps} />}
       <PanelProvider>{children}</PanelProvider>
     </OverlayInner>
   );

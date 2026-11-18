@@ -1,5 +1,5 @@
-from collections.abc import Mapping
-from typing import Literal, NotRequired, TypedDict
+from collections.abc import Iterator, Mapping
+from typing import Any, Literal, NotRequired, TypedDict, cast
 
 RemarkType = Literal["a", "x", "s", "m", "p", "e"]
 
@@ -27,11 +27,13 @@ class Meta:
     dict. Alternatively, use the ``merge`` or ``add_error`` convenience methods.
     """
 
-    def __init__(self, meta=None, path=None):
+    def __init__(
+        self, meta: dict[str, object] | None = None, path: list[str] | None = None
+    ) -> None:
         self._meta = {} if meta is None else meta
         self._path = path or []
 
-    def enter(self, *path):
+    def enter(self, *path: object) -> "Meta":
         """
         Enters into sub meta data at the specified path. This always returns a
         new ``Meta`` object, regardless whether the path already exists.
@@ -39,13 +41,13 @@ class Meta:
         return Meta(self._meta, path=self._path + [str(p) for p in path])
 
     @property
-    def path(self):
+    def path(self) -> str:
         """
         Returns the full path of this meta instance, joined with dots (".").
         """
         return ".".join(self._path)
 
-    def raw(self):
+    def raw(self) -> dict[str, object]:
         """
         Returns the raw meta tree at the current path, if it exists; otherwise
         an empty object. This will contain both the meta data of the key ("")
@@ -56,19 +58,19 @@ class Meta:
         """
         meta = self._meta
         for key in self._path:
-            meta = meta.get(key) or {}
+            meta = cast(dict[str, object], meta.get(key) or {})
         return meta
 
-    def get(self):
+    def get(self) -> dict[str, object]:
         """
         Returns meta data of the item at the current path, or an empty dict.
 
         It is not safe to mutate the return value since it might be detached
         from the actual meta tree.
         """
-        return self.raw().get("") or {}
+        return cast(dict[str, object], self.raw().get("") or {})
 
-    def create(self):
+    def create(self) -> dict[str, object]:
         """
         Creates an empty meta data entry corresponding to the current path. This
         recursively creates the entire parent tree.
@@ -77,11 +79,11 @@ class Meta:
         for key in self._path + [""]:
             if key not in meta or meta[key] is None:
                 meta[key] = {}
-            meta = meta[key]
+            meta = cast(dict[str, object], meta[key])
 
         return meta
 
-    def merge(self, other):
+    def merge(self, other: "Meta") -> dict[str, object] | None:
         """
         Merges meta data of the given other ``Meta`` object into the current
         path.
@@ -89,20 +91,21 @@ class Meta:
         If no meta data entry exists for the current path, it is created, along
         with the entire parent tree.
         """
-        other = other.get()
-        if not other:
-            return
+        other_data = other.get()
+        if not other_data:
+            return None
 
         meta = self.create()
-        err = meta.get("err")
-        meta.update(other)
+        err = cast("list[object] | None", meta.get("err"))
+        meta.update(other_data)
 
-        if err and other.get("err"):
-            meta["err"] = err + other["err"]
+        other_err = cast("list[object] | None", other_data.get("err"))
+        if err and other_err:
+            meta["err"] = err + other_err
 
         return meta
 
-    def iter_errors(self):
+    def iter_errors(self) -> Iterator[list[object]]:
         """
         Iterates over meta errors of the item at the current path, if any.
 
@@ -110,19 +113,22 @@ class Meta:
          - ``type`` is the error constant also used in EventError
          - ``data`` a dictionary of additional error infos
         """
-        return (([err, {}] if isinstance(err, str) else err) for err in self.get().get("err") or ())
+        return (
+            ([err, {}] if isinstance(err, str) else err)
+            for err in cast(Any, self.get().get("err")) or ()
+        )
 
-    def get_event_errors(self):
+    def get_event_errors(self) -> list[dict[str, object]]:
         """
         Returns all errors of the item at the current path in EventError schema,
         which can directly be stored to an event's "errors" list.
         """
 
-        errors = []
+        errors: list[dict[str, object]] = []
         value = self.get().get("val")
 
         for error, data in self.iter_errors():
-            eventerror = dict(data)
+            eventerror: dict[str, object] = dict(cast("Mapping[str, object]", data))
             eventerror["type"] = error
 
             if self._path:
@@ -136,7 +142,9 @@ class Meta:
 
         return errors
 
-    def add_error(self, error, value=None, data=None):
+    def add_error(
+        self, error: object, value: object = None, data: Mapping[object, object] | None = None
+    ) -> None:
         """
         Adds an error to the meta data at the current path. The ``error``
         argument is converted to string. If optional ``data`` is specified, the
@@ -153,15 +161,15 @@ class Meta:
         if "err" not in meta or meta["err"] is None:
             meta["err"] = []
 
-        error = str(error)
+        error_entry: object = str(error)
         if isinstance(data, Mapping):
-            error = [error, dict(data)]
-        meta["err"].append(error)
+            error_entry = [error_entry, dict(data)]
+        cast("list[object]", meta["err"]).append(error_entry)
 
         if value is not None:
             meta["val"] = value
 
-    def add_remark(self, rem: Remark, value=None):
+    def add_remark(self, rem: Remark, value: object = None) -> None:
         """
         Adds a remark to the meta data at the current path.
 
@@ -188,12 +196,12 @@ class Meta:
         if range_end is not None:
             rem_list.append(range_end)
 
-        meta["rem"].append(rem_list)
+        cast("list[object]", meta["rem"]).append(rem_list)
 
         if value is not None:
             meta["val"] = value
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator["Meta"]:
         """
         Iterates all child meta entries that potentially have errors set.
         """

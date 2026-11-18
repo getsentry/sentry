@@ -1,29 +1,20 @@
 import {t} from 'sentry/locale';
 import {DisplayType, SlideoutId, WidgetType} from 'sentry/views/dashboards/types';
 import {type PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {WEB_VITALS_DETAILS_PREBUILT_CONFIG} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/pageDetails';
 import {DETAILS_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/settings';
+import {ISSUE_TYPES} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
+import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
+import {ModuleName} from 'sentry/views/insights/types';
+
 import {
+  INTERACTIONS_FIELD,
   PAGELOADS_FIELD,
   scoreBreakdownChartWidget,
   scoreBreakdownWheelWidget,
   WEB_VITALS_TRACE_METRICS_GLOBAL_FILTERS,
   webVitalP75Meter,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/traceMetrics/widgets';
-import {ISSUE_TYPES} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
-import {ModuleName} from 'sentry/views/insights/types';
-
-// TODO: Move these to trace metrics once the metrics can back them.
-const SPANS_WIDGET_IDS = new Set([
-  'lcp-samples-table',
-  'inp-samples-table',
-  'cls-samples-table',
-  'interactions-chart',
-]);
-
-const SPANS_WIDGETS = WEB_VITALS_DETAILS_PREBUILT_CONFIG.widgets.filter(
-  widget => widget.id && SPANS_WIDGET_IDS.has(widget.id)
-);
+  webVitalSamplesTable,
+} from './widgets';
 
 /**
  * Trace metrics variant of `WEB_VITALS_DETAILS_PREBUILT_CONFIG`
@@ -128,7 +119,44 @@ export const WEB_VITALS_DETAILS_TRACE_METRICS_PREBUILT_CONFIG: PrebuiltDashboard
       ],
       layout: {y: 2, w: 1, h: 2, x: 5, minH: 2},
     },
-    ...SPANS_WIDGETS,
+    {
+      id: 'interactions-chart',
+      title: t('Interactions'),
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.TRACEMETRICS,
+      interval: '5m',
+      queries: [
+        {
+          name: '',
+          conditions: '',
+          fields: [INTERACTIONS_FIELD],
+          aggregates: [INTERACTIONS_FIELD],
+          columns: [],
+          orderby: '',
+        },
+      ],
+      layout: {y: 4, w: 1, h: 2, x: 5, minH: 2},
+    },
+    webVitalSamplesTable({
+      vital: 'lcp',
+      id: 'lcp-samples-table',
+      title: t('LCP Samples'),
+      extraFields: [TraceMetricKnownFieldKey.BROWSER_WEB_VITAL_LCP_ELEMENT],
+      tableWidths: [-1, -1, 200, -1, -1, -1, -1],
+      layout: {y: 6, w: 5, h: 2, x: 0, minH: 2},
+    }),
+    webVitalSamplesTable({
+      vital: 'inp',
+      id: 'inp-samples-table',
+      title: t('INP Samples'),
+      layout: {y: 8, w: 5, h: 2, x: 0, minH: 2},
+    }),
+    webVitalSamplesTable({
+      vital: 'cls',
+      id: 'cls-samples-table',
+      title: t('CLS Samples'),
+      layout: {y: 10, w: 5, h: 2, x: 0, minH: 2},
+    }),
   ],
   onboarding: {type: 'module', moduleName: ModuleName.VITAL},
 };

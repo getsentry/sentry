@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useMemo, useState} from 'react';
+import {Fragment, useEffect, useMemo, useState, type ReactNode} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import shuffle from 'lodash/shuffle';
@@ -6,7 +6,7 @@ import moment from 'moment-timezone';
 import {parseAsString, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -14,6 +14,8 @@ import * as Storybook from 'sentry/stories';
 import type {DateString} from 'sentry/types/core';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {DAY, HOUR, MINUTE} from 'sentry/utils/formatters';
+import {OrganizationContext} from 'sentry/utils/organizationContext';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import type {
   LegendSelection,
   Release,
@@ -803,6 +805,75 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
     );
   });
 
+  story('Low Confidence Data', () => {
+    const createLowConfidenceTimeSeriesClone = function (
+      timeSeries: TimeSeries
+    ): TimeSeries {
+      return {
+        ...timeSeries,
+        values: timeSeries.values.map((value, index) => {
+          if ((index > 10 && index < 16) || (index > 30 && index < 33)) {
+            return {...value, confidence: 'low'};
+          }
+          return value;
+        }),
+      };
+    };
+
+    const lowConfidenceDurationTimeSeries = createLowConfidenceTimeSeriesClone(
+      sampleDurationTimeSeries
+    );
+    const lowConfidenceDurationP50TimeSeries = createLowConfidenceTimeSeriesClone(
+      sampleDurationTimeSeriesP50
+    );
+
+    return (
+      <Fragment>
+        <p>
+          Data points with <code>confidence: 'low'</code> are estimated from too few
+          samples to be reliable. <code>TimeSeriesWidgetVisualization</code> draws them
+          differently from high-confidence data, and the tooltip labels them. This only
+          happens when the organization has the{' '}
+          <code>data-browsing-time-series-confidence</code> feature, which these examples
+          turn on.
+        </p>
+
+        <WithTimeSeriesConfidenceFeature>
+          <Storybook.SideBySide>
+            <MediumWidget>
+              <TimeSeriesWidgetVisualization
+                plottables={[
+                  new Line(lowConfidenceDurationTimeSeries),
+                  new Line(lowConfidenceDurationP50TimeSeries),
+                ]}
+              />
+            </MediumWidget>
+            <MediumWidget>
+              <TimeSeriesWidgetVisualization
+                plottables={[
+                  new Area(lowConfidenceDurationTimeSeries),
+                  new Area(lowConfidenceDurationP50TimeSeries),
+                ]}
+              />
+            </MediumWidget>
+            <MediumWidget>
+              <TimeSeriesWidgetVisualization
+                plottables={[
+                  new Bars(lowConfidenceDurationTimeSeries, {
+                    stack: 'all',
+                  }),
+                  new Bars(lowConfidenceDurationP50TimeSeries, {
+                    stack: 'all',
+                  }),
+                ]}
+              />
+            </MediumWidget>
+          </Storybook.SideBySide>
+        </WithTimeSeriesConfidenceFeature>
+      </Fragment>
+    );
+  });
+
   story('Click Events', () => {
     const [sampleId, setSampleId] = useState<string>();
 
@@ -1121,8 +1192,9 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
       <Fragment>
         <p>
           Area and line charts support showing release markers via the{' '}
-          <code>releases</code> prop with two different visualizations specified by the
-          <code>showReleaseAs</code> prop: <code>"line"</code> and <code>"bubble"</code>.
+          <code>releases</code> prop with three different visualizations specified by the
+          <code>showReleaseAs</code> prop: <code>"line"</code>, <code>"bubble"</code>, and{' '}
+          <code>"band"</code>.
         </p>
 
         <p>
@@ -1130,6 +1202,11 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
           should be reserved for inside the flyout when there are an appropriate number of
           releases to display. Clicking on a release line should open the release details
           inside of the flyout.
+        </p>
+
+        <p>
+          The release band marks each of the chart's time buckets that has releases, so it
+          lines up with the other bands under the plot, like dropped data.
         </p>
 
         <Storybook.SideBySide>
@@ -1168,6 +1245,18 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
               ]}
               releases={releases}
               showReleaseAs="bubble"
+            />
+          </MediumWidget>
+
+          <MediumWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Line(sampleThroughputTimeSeries),
+                new Line(sampleDurationTimeSeries),
+                new Line(sampleDurationTimeSeriesP50),
+              ]}
+              releases={releases}
+              showReleaseAs="band"
             />
           </MediumWidget>
         </Storybook.SideBySide>
@@ -1422,3 +1511,18 @@ const X_AXIS_TICK_TEST_CASES: Array<{endMs: number; label: string; startMs: numb
     endMs: Date.UTC(2025, 0, 10, 0, 0, 0),
   },
 ];
+
+function WithTimeSeriesConfidenceFeature({children}: {children: ReactNode}) {
+  const organization = useOrganization();
+
+  return (
+    <OrganizationContext
+      value={{
+        ...organization,
+        features: [...organization.features, 'data-browsing-time-series-confidence'],
+      }}
+    >
+      {children}
+    </OrganizationContext>
+  );
+}

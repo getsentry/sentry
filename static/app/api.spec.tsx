@@ -4,17 +4,17 @@ import fetchMock from 'jest-fetch-mock';
 import {waitFor} from 'sentry-test/reactTestingLibrary';
 import {setWindowLocation} from 'sentry-test/utils';
 
+import {PROJECT_MOVED} from './constants/apiErrorCodes';
+import type {ResponseMeta} from './types/api';
+import {RequestError} from './utils/requestError/requestError';
+import {testableWindowLocation} from './utils/testableWindowLocation';
 import {
   Client,
   initApiClientErrorHandling,
   registerApiErrorHandler,
   Request,
   withCurrentPageAsNext,
-} from 'sentry/api';
-import {PROJECT_MOVED} from 'sentry/constants/apiErrorCodes';
-import type {ResponseMeta} from 'sentry/types/api';
-import {RequestError} from 'sentry/utils/requestError/requestError';
-import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
+} from './api';
 
 jest.unmock('sentry/api');
 
@@ -224,6 +224,28 @@ describe('api', () => {
     fetchMock.mockResponseOnce(JSON.stringify({detail: 'Still nope'}), {status: 500});
     await expect(client.requestPromise('/second/')).rejects.toBeDefined();
     expect(errorHandler).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not expire the session for primary-email-verification-required', async () => {
+    const unregister = initApiClientErrorHandling();
+    const client = new Client();
+
+    fetchMock.mockResponseOnce(
+      JSON.stringify({
+        detail: {
+          code: 'primary-email-verification-required',
+          message: 'Primary email verification required.',
+          extra: {username: 'foo@example.com'},
+        },
+      }),
+      {status: 401}
+    );
+
+    await expect(
+      client.requestPromise('/users/me/authenticators/totp/enroll/', {method: 'POST'})
+    ).rejects.toBeInstanceOf(RequestError);
+    expect(testableWindowLocation.assign).not.toHaveBeenCalled();
+    unregister();
   });
 
   describe('sso-required', () => {

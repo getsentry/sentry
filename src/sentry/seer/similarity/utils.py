@@ -1,6 +1,7 @@
 import logging
 import os
 import threading
+import time
 from collections.abc import Mapping, Sequence
 from enum import StrEnum
 from typing import Any, TypedDict, TypeVar
@@ -16,6 +17,7 @@ from sentry.grouping.api import get_contributing_variant_and_component
 from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
 from sentry.grouping.variants import BaseVariant
 from sentry.killswitches import killswitch_matches_context
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.autofix.constants import AutofixAutomationTuningSettings
@@ -24,7 +26,7 @@ from sentry.seer.autofix.utils import (
     AutomationCodingAgent,
     SeerProjectSettingsUpdate,
     get_org_default_seer_automation_handoff,
-    is_seer_seat_based_tier_enabled,
+    is_seer_seat_or_token_billed_enabled,
     update_seer_project_settings,
 )
 from sentry.seer.similarity.types import GroupingVersion
@@ -489,6 +491,32 @@ def _is_snipped_context_line(context_line: str) -> bool:
     return context_line.startswith("{snip}") or context_line.endswith("{snip}")
 
 
+def project_uses_seer_similarity(project: Project) -> bool:
+    """
+    Whether a project uses Seer embeddings similarity rather than the legacy MinHash index.
+
+    TODO: once the all-projects option is on for all of SaaS, drop the per-project option and
+    reduce this to that option check.
+    """
+    if options.get("similarity.seer_grouping.all_projects"):
+        return True
+    return bool(project.get_option("sentry:similarity_backfill_completed"))
+
+
+def projects_using_seer_similarity(projects: Sequence[Project]) -> dict[Project, bool]:
+    """
+    Batch form of ``project_uses_seer_similarity``: one option query for all projects.
+    """
+    if not projects:
+        return {}
+    if options.get("similarity.seer_grouping.all_projects"):
+        return {project: True for project in projects}
+    opted_in = ProjectOption.objects.get_value_bulk(
+        projects, "sentry:similarity_backfill_completed"
+    )
+    return {project: bool(opted_in.get(project)) for project in projects}
+
+
 def project_is_seer_eligible(project: Project) -> bool:
     """
     Return True if the project hasn't already been backfilled and the feature is enabled in the region.
@@ -497,6 +525,12 @@ def project_is_seer_eligible(project: Project) -> bool:
     is_region_enabled = options.get("similarity.new_project_seer_grouping.enabled")
 
     return not is_backfill_completed and is_region_enabled
+
+
+def set_default_project_similarity_grouping(project: Project) -> None:
+    """Called once at project creation time to opt the project into Seer similarity grouping."""
+    if project_is_seer_eligible(project):
+        project.update_option("sentry:similarity_backfill_completed", int(time.time()))
 
 
 def set_default_project_autofix_automation_tuning(
@@ -510,14 +544,14 @@ def set_default_project_autofix_automation_tuning(
         project.update_option(
             "sentry:autofix_automation_tuning", AutofixAutomationTuningSettings.OFF
         )
-    elif is_seer_seat_based_tier_enabled(organization):
-        # Feature flag ON overrides everything except explicit "off"
+    elif is_seer_seat_or_token_billed_enabled(organization):
+        # Seat-based and token-billed orgs override everything except explicit "off"
         project.update_option(
             "sentry:autofix_automation_tuning",
             AutofixAutomationTuningSettings.MEDIUM,
         )
     elif org_default:
-        # Feature flag OFF, use org's explicit value
+        # Legacy orgs use org's explicit value
         project.update_option("sentry:autofix_automation_tuning", org_default)
 
 
@@ -525,11 +559,11 @@ def set_default_project_seer_scanner_automation(
     organization: Organization, project: Project
 ) -> None:
     """Called once at project creation time to set the initial seer scanner automation."""
-    if is_seer_seat_based_tier_enabled(organization):
-        # Feature flag ON always sets scanner to True
+    if is_seer_seat_or_token_billed_enabled(organization):
+        # Seat-based and token-billed orgs always set scanner to True
         project.update_option("sentry:seer_scanner_automation", True)
     else:
-        # Feature flag OFF, use org's explicit value if set
+        # Legacy orgs use org's explicit value if set
         org_default = organization.get_option("sentry:default_seer_scanner_automation")
         if org_default is not None:
             project.update_option("sentry:seer_scanner_automation", org_default)
@@ -539,7 +573,7 @@ def set_default_project_seer_preferences(organization: Organization, project: Pr
     """Called once at project creation time to set the initial automated run stopping
     point and automation handoff.
     """
-    if not is_seer_seat_based_tier_enabled(organization):
+    if not is_seer_seat_or_token_billed_enabled(organization):
         return
 
     stopping_point, automation_handoff = get_org_default_seer_automation_handoff(organization)

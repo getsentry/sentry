@@ -1,8 +1,9 @@
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 from django.test import override_settings
+from rest_framework.response import Response
 
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack
@@ -38,7 +39,7 @@ LINK_SHARED_EVENT: dict[str, Any] = {
 }
 
 
-def build_test_block(link):
+def build_test_block(link: str) -> dict[str, object]:
     return {
         "blocks": [
             {
@@ -63,12 +64,12 @@ class BaseEventTest(APITestCase):
             type="slack", external_id=self.integration.external_id
         )
 
-    def link_identity(self, slack_user_id: str, user: User | None = None):
+    def link_identity(self, slack_user_id: str, user: User | None = None) -> None:
         self.create_identity(
             user=user or self.user, identity_provider=self.idp, external_id=slack_user_id
         )
 
-    def unlink_identity(self, user=None):
+    def unlink_identity(self, user: User | None = None) -> None:
         with assume_test_silo_mode_of(Identity):
             Identity.objects.filter(user=user or self.user).delete()
 
@@ -77,13 +78,13 @@ class BaseEventTest(APITestCase):
     )
     def post_webhook(
         self,
-        check_signing_secret_mock,
-        event_data=None,
-        type="event_callback",
-        data=None,
-        token=UNSET,
-        team_id="TXXXXXXX1",
-    ):
+        check_signing_secret_mock: MagicMock,
+        event_data: dict[str, object] | None = None,
+        type: str = "event_callback",
+        data: dict[str, object] | None = None,
+        token: object = UNSET,
+        team_id: str = "TXXXXXXX1",
+    ) -> Response:
         payload = {
             "team_id": team_id,
             "api_app_id": "AXXXXXXXX1",
@@ -95,6 +96,9 @@ class BaseEventTest(APITestCase):
         if data:
             payload.update(data)
         if event_data:
-            payload.setdefault("event", {}).update(event_data)
+            event_payload = payload.setdefault("event", {})
+            assert isinstance(event_payload, dict)
+            event_payload.update(event_data)
 
-        return self.client.post("/extensions/slack/event/", payload)
+        response: Response = self.client.post("/extensions/slack/event/", payload)
+        return response

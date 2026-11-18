@@ -4,8 +4,8 @@ import * as Sentry from '@sentry/react';
 import {vec2} from 'gl-matrix';
 
 import type {CSS} from '@sentry/scraps/cssTypes';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import type {RequestState} from 'sentry/types/core';
 import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
@@ -79,7 +79,7 @@ export function FlamegraphUIFrames({
 
     if (renderer === null) {
       Sentry.captureException('Failed to initialize a flamegraph renderer');
-      addErrorMessage('Failed to initialize renderer');
+      toast.error('Failed to initialize renderer');
       return null;
     }
 

@@ -9,7 +9,8 @@ import {
 
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 import {hydrateBreadcrumbs} from 'sentry/utils/replays/hydrateBreadcrumbs';
-import {useConsoleFilters} from 'sentry/views/explore/replays/detail/console/useConsoleFilters';
+
+import {useConsoleFilters} from './useConsoleFilters';
 
 const frames = hydrateBreadcrumbs(ReplayRecordFixture(), [
   ReplayConsoleFrameFixture({

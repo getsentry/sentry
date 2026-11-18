@@ -1,3 +1,6 @@
+from unittest.mock import patch
+
+from django.test import override_settings
 from django.urls import reverse
 
 from sentry.discover.models import (
@@ -16,6 +19,7 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
 class DiscoverSavedQueryBase(APITestCase, SnubaTestCase):
@@ -415,6 +419,27 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         values = [int(item["createdBy"]["id"]) for item in response.data]
         assert values == [self.user.id, uhoh_user.id, whoops_user.id]
 
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_sorts_by_myqueries(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.org, project_ids=self.project_ids
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.org.id,
+            ),
+            key="service-account-secret",
+        )
+
+        with self.feature(self.feature_name):
+            response = self.client.get(
+                self.url, {"sortBy": "myqueries"}, HTTP_X_VIEWER_CONTEXT=viewer_context
+            )
+        assert response.status_code == 200, response.content
+        assert [query["name"] for query in response.data] == ["Test query"]
+
     def test_get_expired_query(self) -> None:
         query = {
             "start": before_now(days=90).isoformat(),
@@ -579,6 +604,86 @@ class DiscoverSavedQueriesTest(DiscoverSavedQueryBase):
         assert response.data["range"] == "24h"
         assert "start" not in response.data
         assert "end" not in response.data
+        model = DiscoverSavedQuery.objects.get(id=response.data["id"])
+        assert model.created_by_id == self.user.id
+        assert model.created_by_service_account_id is None
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    def test_post_as_service_account(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.org,
+            scope_list=["org:read", "project:read"],
+            project_ids=self.project_ids,
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.org.id,
+            ),
+            key="service-account-secret",
+        )
+        with self.feature([self.feature_name, "organizations:service-accounts"]):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Service account query",
+                    "projects": self.project_ids,
+                    "fields": [],
+                    "range": "24h",
+                    "limit": 20,
+                    "conditions": [],
+                    "aggregations": [],
+                    "orderby": "-time",
+                },
+                HTTP_X_VIEWER_CONTEXT=viewer_context,
+            )
+        assert response.status_code == 201, response.content
+        model = DiscoverSavedQuery.objects.get(id=response.data["id"])
+        assert model.created_by_id is None
+        assert model.created_by_service_account_id == service_account.id
+        assert model.created_by_org_auth_token_id is None
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_post_starred_as_service_account(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.org, project_ids=self.project_ids
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.org.id,
+            ),
+            key="service-account-secret",
+        )
+
+        with (
+            self.feature(self.feature_name),
+            patch(
+                "sentry.discover.endpoints.discover_saved_queries.sentry_sdk.capture_exception"
+            ) as capture_exception,
+        ):
+            response = self.client.post(
+                self.url,
+                {
+                    "name": "Service account query",
+                    "projects": self.project_ids,
+                    "fields": [],
+                    "range": "24h",
+                    "limit": 20,
+                    "conditions": [],
+                    "aggregations": [],
+                    "orderby": "-time",
+                    "starred": True,
+                },
+                format="json",
+                HTTP_X_VIEWER_CONTEXT=viewer_context,
+            )
+
+        assert response.status_code == 201, response.content
+        query = DiscoverSavedQuery.objects.get(id=response.data["id"])
+        assert not DiscoverSavedQueryStarred.objects.filter(discover_saved_query=query).exists()
+        capture_exception.assert_not_called()
 
     def test_post_duplicated_query_keeps_starred_status(self) -> None:
         """Duplicating a starred query re-posts the serialized row, starred flag and all,

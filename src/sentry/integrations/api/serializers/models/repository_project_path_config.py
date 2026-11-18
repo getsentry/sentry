@@ -1,8 +1,11 @@
-from typing import TypedDict
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import Annotated, Any, TypedDict
 
+from django.contrib.auth.models import AnonymousUser
 from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.integrations.api.serializers.models.integration import (
     IntegrationProviderInfo,
     serialize_provider,
@@ -11,28 +14,43 @@ from sentry.integrations.models.repository_project_path_config import Repository
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.projectcodeowners import ProjectCodeOwners
+from sentry.users.models.user import User
+from sentry.users.services.user import RpcUser
 
 
 class RepositoryProjectPathConfigSerializerResponse(TypedDict):
-    id: str
-    projectId: str
-    projectSlug: str
-    repoId: str
-    repoName: str
-    integrationId: str | None
-    provider: IntegrationProviderInfo | None
-    stackRoot: str
-    sourceRoot: str
-    defaultBranch: str | None
-    automaticallyGenerated: bool
-    hasCodeOwner: bool
+    id: Annotated[str, ApiDescription("ID of the code mapping")]
+    projectId: Annotated[str, ApiDescription("ID of the project")]
+    projectSlug: Annotated[str, ApiDescription("Slug of the project")]
+    repoId: Annotated[str, ApiDescription("ID of the repository")]
+    repoName: Annotated[str, ApiDescription("Name of the repository")]
+    integrationId: Annotated[str | None, ApiDescription("ID of the repository's integration")]
+    provider: Annotated[
+        IntegrationProviderInfo | None, ApiDescription("Provider of the repository's integration")
+    ]
+    stackRoot: Annotated[str, ApiDescription("Stack trace path prefix that the mapping replaces")]
+    sourceRoot: Annotated[
+        str, ApiDescription("Repository path prefix that replaces the stack root")
+    ]
+    defaultBranch: Annotated[str | None, ApiDescription("Branch to link source files on")]
+    automaticallyGenerated: Annotated[
+        bool, ApiDescription("Whether Sentry created the mapping automatically")
+    ]
+    hasCodeOwner: Annotated[
+        bool, ApiDescription("Whether the mapping has a CODEOWNERS file linked")
+    ]
 
 
 @register(RepositoryProjectPathConfig)
 class RepositoryProjectPathConfigSerializer(
     Serializer[RepositoryProjectPathConfigSerializerResponse]
 ):
-    def get_attrs(self, item_list, user, **kwargs):
+    def get_attrs(
+        self,
+        item_list: Sequence[RepositoryProjectPathConfig],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> MutableMapping[Any, Any]:
         if not item_list:
             return {}
 
@@ -84,7 +102,11 @@ class RepositoryProjectPathConfigSerializer(
         }
 
     def serialize(
-        self, obj, attrs, user, **kwargs
+        self,
+        obj: RepositoryProjectPathConfig,
+        attrs: Mapping[Any, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
     ) -> RepositoryProjectPathConfigSerializerResponse:
         integration = attrs.get("integration")
 

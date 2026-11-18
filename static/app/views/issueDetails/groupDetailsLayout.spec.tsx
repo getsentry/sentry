@@ -12,8 +12,8 @@ import {Container} from '@sentry/scraps/layout';
 
 import {mockTour} from 'sentry/components/tours/testUtils';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 
+import {GroupDataContextProvider} from './groupDataContext';
 import {GroupDetailsLayout} from './groupDetailsLayout';
 
 jest.mock('sentry/views/issueDetails/issueDetailsTour', () => ({

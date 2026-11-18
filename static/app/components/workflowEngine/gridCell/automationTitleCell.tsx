@@ -1,8 +1,9 @@
-import {TitleCell} from 'sentry/components/workflowEngine/gridCell/titleCell';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getAutomationActionsWarning} from 'sentry/views/automations/hooks/utils';
 import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
+
+import {TitleCell} from './titleCell';
 
 interface Props {
   automation: Automation;

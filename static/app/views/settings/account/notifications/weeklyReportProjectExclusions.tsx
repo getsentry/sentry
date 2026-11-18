@@ -2,14 +2,15 @@ import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
 import {skipToken, useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import {Switch} from '@sentry/scraps/switch';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {IdBadge} from 'sentry/components/idBadge';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -35,7 +36,7 @@ interface WeeklyReportProjectExclusionsProps {
   handleEditNotificationOption: (option: NotificationOptionsObject) => void;
   handleRemoveNotificationOption: (id: string) => void;
   notificationOptions: NotificationOptionsObject[];
-  organizations: OrganizationSummary[];
+  organizations: readonly OrganizationSummary[];
 }
 
 const PAGE_SIZE = 15;
@@ -71,6 +72,7 @@ export function WeeklyReportProjectExclusions({
   const location = useLocation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const [organizationIdParam] = useQueryState('organizationId', parseAsString);
   const [currentPage, setCurrentPage] = useState(0);
 
   const customerDomain = ConfigStore.get('customerDomain');
@@ -79,7 +81,7 @@ export function WeeklyReportProjectExclusions({
   )?.id;
 
   const orgId =
-    (location.query?.organizationId as string | undefined) ??
+    organizationIdParam ??
     orgFromSubdomain ??
     (organizations.length === 1 ? organizations[0]?.id : undefined);
   const organization = organizations.find(({id}) => id === orgId);
@@ -148,13 +150,13 @@ export function WeeklyReportProjectExclusions({
       return {previousExclusions};
     },
     onSuccess: () => {
-      addSuccessMessage(t('Updated weekly report project exclusions'));
+      toast.success(t('Updated weekly report project exclusions'));
     },
     onError: (_error, _variables, context) => {
       if (context?.previousExclusions) {
         queryClient.setQueryData(exclusionsOpts.queryKey, context.previousExclusions);
       }
-      addErrorMessage(t('Unable to update weekly report project exclusions'));
+      toast.error(t('Unable to update weekly report project exclusions'));
     },
     onSettled: () => {
       queryClient.invalidateQueries({queryKey: exclusionsOpts.queryKey});

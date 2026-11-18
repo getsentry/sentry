@@ -8,20 +8,6 @@ import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
-  AlwaysPresentLogFields,
-  QUERY_PAGE_LIMIT,
-  QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH,
-} from 'sentry/views/explore/logs/constants';
-import {
-  useLogsFrozenProjectIds,
-  useLogsFrozenReplayInfo,
-  useLogsFrozenSearch,
-  useLogsFrozenTraceIds,
-  useLogsFrozenTraceTimestamp,
-} from 'sentry/views/explore/logs/logsFrozenContext';
-import type {EventsLogsResult} from 'sentry/views/explore/logs/types';
-import {useLogsQueryTruncate} from 'sentry/views/explore/logs/useLogsQueryTruncate';
-import {
   useQueryParamsCursor,
   useQueryParamsFields,
   useQueryParamsGroupBys,
@@ -29,6 +15,21 @@ import {
   useQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
 import {getEventView} from 'sentry/views/insights/common/queries/useDiscover';
+
+import {
+  AlwaysPresentLogFields,
+  QUERY_PAGE_LIMIT,
+  QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH,
+} from './constants';
+import {
+  useLogsFrozenProjectIds,
+  useLogsFrozenReplayInfo,
+  useLogsFrozenSearch,
+  useLogsFrozenTraceIds,
+  useLogsFrozenTraceTimestamp,
+} from './logsFrozenContext';
+import type {EventsLogsResult} from './types';
+import {useLogsQueryTruncate} from './useLogsQueryTruncate';
 
 const LOGS_DATA_CATEGORIES = [DataCategory.LOG_BYTE] as const;
 

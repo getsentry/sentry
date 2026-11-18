@@ -10,12 +10,13 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ToolTag} from 'sentry/views/explore/conversations/components/toolTag';
-import {TranscriptSpanRow} from 'sentry/views/explore/conversations/components/transcriptSpanRow';
 import type {ToolCall} from 'sentry/views/explore/conversations/utils/conversationMessages';
 import {getToolInputPreview} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {getToolOutputBytes} from 'sentry/views/insights/pages/agents/utils/getToolOutputBytes';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
+
+import {ToolTag} from './toolTag';
+import {TranscriptSpanRow} from './transcriptSpanRow';
 
 interface MessageToolCallsProps {
   nodeMap: Map<string, AITraceSpanNode>;

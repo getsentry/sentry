@@ -24,7 +24,8 @@ import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
 import {getFormat, getUserTimezone} from 'sentry/utils/dates';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {formatSpanEvidenceToMarkdown} from 'sentry/views/issueDetails/hooks/spanEvidenceMarkdown';
+
+import {formatSpanEvidenceToMarkdown} from './spanEvidenceMarkdown';
 
 // Simple store for active thread ID from the UI with subscription support
 let _activeThreadId: number | undefined;
@@ -273,6 +274,9 @@ export const issueAndEventToMarkdown = ({
   const formatted = event?.formatted?.content;
   if (formatted) {
     let llmMarkdown = `**Issue ID:** ${group.id}\n`;
+    if (group.shortId) {
+      llmMarkdown += `**Short ID:** ${group.shortId}\n`;
+    }
     if (group.project?.slug) {
       llmMarkdown += `**Project:** ${group.project.slug}\n`;
     }

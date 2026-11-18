@@ -1,8 +1,9 @@
 import {useMemo} from 'react';
+import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import type {SelectValue} from '@sentry/scraps/select';
 
-import {useFetchOrganizationTags} from 'sentry/actionCreators/tags';
+import {organizationTagsApiOptions} from 'sentry/actionCreators/tags';
 import {AutomationBuilderInput} from 'sentry/components/workflowEngine/form/automationBuilderInput';
 import {AutomationBuilderSelect} from 'sentry/components/workflowEngine/form/automationBuilderSelect';
 import {t, tct} from 'sentry/locale';
@@ -10,13 +11,11 @@ import type {Tag} from 'sentry/types/group';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
-import {
-  MATCH_CHOICES,
-  MatchType,
-} from 'sentry/views/automations/components/actionFilters/constants';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
 import {useDataConditionNodeContext} from 'sentry/views/automations/components/dataConditionNodeContext';
+
+import {MATCH_CHOICES, MatchType} from './constants';
 
 function matchRequiresValue(match: MatchType): boolean {
   return match !== MatchType.IS_SET && match !== MatchType.NOT_SET;
@@ -68,16 +67,14 @@ function KeyField() {
 
   // Select all the tags for an organization to generate a list of the most likely tags
   const organization = useOrganization();
-  const {data: tagOptions = [], isLoading} = useFetchOrganizationTags(
-    {
+  const {data: tagOptions = [], isLoading} = useQuery({
+    ...organizationTagsApiOptions({
       orgSlug: organization.slug,
       projectIds,
       dataset: Dataset.ISSUE_PLATFORM,
-      useCache: true,
-      keepPreviousData: true,
-    },
-    {}
-  );
+    }),
+    placeholderData: keepPreviousData,
+  });
 
   const sortedOptions = useMemo(() => {
     const sorted = tagOptions.toSorted((a, b) => {

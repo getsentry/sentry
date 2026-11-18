@@ -1,3 +1,4 @@
+import {useQuery} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {SnapshotDetailsFixture} from 'sentry-fixture/preprod';
 
@@ -9,8 +10,8 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
+import {useSnapShotApiOptions} from 'sentry/views/preprod/snapshots/snapshotApiOptions';
 import type {SnapshotDetailsApiResponse} from 'sentry/views/preprod/types/snapshotTypes';
 
 import {SnapshotHeaderContent} from './snapshotHeaderContent';
@@ -19,10 +20,11 @@ jest.mock('sentry/utils/downloadFromHref');
 
 const ORG_SLUG = 'org-slug';
 const ARTIFACT_ID = '123';
-const API_URL = getApiUrl(
-  '/organizations/$organizationIdOrSlug/preprodartifacts/snapshots/$snapshotId/',
-  {path: {organizationIdOrSlug: ORG_SLUG, snapshotId: ARTIFACT_ID}}
-);
+const API_URL = `/organizations/${ORG_SLUG}/preprodartifacts/snapshots/${ARTIFACT_ID}/`;
+const initialRouterConfig = {
+  location: {pathname: `/organizations/${ORG_SLUG}/preprod/snapshots/${ARTIFACT_ID}/`},
+  route: '/organizations/:orgId/preprod/snapshots/:snapshotId/',
+};
 const ARCHIVE_URL = `/organizations/${ORG_SLUG}/preprodartifacts/snapshots/${ARTIFACT_ID}/archive/`;
 const APPROVE_URL = `/organizations/${ORG_SLUG}/preprodartifacts/${ARTIFACT_ID}/approve/`;
 
@@ -38,9 +40,19 @@ function renderActions(overrides: Partial<SnapshotDetailsApiResponse> = {}) {
         ...overrides,
       })}
       organizationSlug={ORG_SLUG}
-      apiUrl={API_URL}
     />,
-    {organization}
+    {organization, initialRouterConfig}
+  );
+}
+
+function SnapshotHeaderWithQuery() {
+  const {data} = useQuery(useSnapShotApiOptions());
+  return (
+    <SnapshotHeaderContent
+      snapshotId={ARTIFACT_ID}
+      organizationSlug={ORG_SLUG}
+      data={data}
+    />
   );
 }
 
@@ -239,12 +251,8 @@ describe('SnapshotHeaderContent breadcrumbs', () => {
 
   it('renders the page title before the snapshot has loaded', () => {
     render(
-      <SnapshotHeaderContent
-        snapshotId={ARTIFACT_ID}
-        organizationSlug={ORG_SLUG}
-        apiUrl={API_URL}
-      />,
-      {organization: OrganizationFixture({slug: ORG_SLUG})}
+      <SnapshotHeaderContent snapshotId={ARTIFACT_ID} organizationSlug={ORG_SLUG} />,
+      {organization: OrganizationFixture({slug: ORG_SLUG}), initialRouterConfig}
     );
 
     expect(screen.getByRole('heading', {level: 1, name: ARTIFACT_ID})).toBeVisible();
@@ -258,6 +266,46 @@ describe('SnapshotHeaderContent breadcrumbs', () => {
 
   it('does not offer Approve once approved', () => {
     renderActions({comparison_state: 'success', approval_status: 'approved'});
+    expect(screen.queryByRole('button', {name: 'Approve'})).not.toBeInTheDocument();
+  });
+});
+
+describe('SnapshotHeaderContent query invalidation', () => {
+  it('refetches the routed snapshot after approval and updates the available actions', async () => {
+    const snapshot = SnapshotDetailsFixture({
+      head_artifact_id: ARTIFACT_ID,
+      comparison_state: 'success',
+      approval_status: 'requires_approval',
+    });
+    const initialRequest = MockApiClient.addMockResponse({
+      url: API_URL,
+      body: snapshot,
+    });
+    const approveRequest = MockApiClient.addMockResponse({
+      url: APPROVE_URL,
+      method: 'POST',
+      match: [MockApiClient.matchData({feature_type: 'snapshots'})],
+      body: {detail: 'Approved'},
+    });
+
+    render(<SnapshotHeaderWithQuery />, {
+      organization: OrganizationFixture({slug: ORG_SLUG}),
+      initialRouterConfig,
+    });
+
+    const approveButton = await screen.findByRole('button', {name: 'Approve'});
+    expect(initialRequest).toHaveBeenCalledTimes(1);
+    const refetchRequest = MockApiClient.addMockResponse({
+      url: API_URL,
+      body: {...snapshot, approval_status: 'approved'},
+    });
+
+    await userEvent.click(approveButton);
+
+    await waitFor(() => expect(approveRequest).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(refetchRequest).toHaveBeenCalledTimes(1));
+    await userEvent.click(screen.getByRole('button', {name: 'More actions'}));
+    expect(await screen.findByText('Re-approve')).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Approve'})).not.toBeInTheDocument();
   });
 });

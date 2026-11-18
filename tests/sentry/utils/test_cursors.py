@@ -1,6 +1,6 @@
 import math
 from types import SimpleNamespace
-from typing import TypedDict
+from typing import TypedDict, cast
 
 from sentry.utils.cursors import Cursor, KeyCallable, build_cursor
 
@@ -17,10 +17,10 @@ def test_build_cursor() -> None:
 
     results = [event1, event2, event3]
 
-    def item_key(key, for_prev=False):
+    def item_key(key: SimpleNamespace, for_prev: bool = False) -> int:
         return int(math.floor(key.id))
 
-    cursor_kwargs: CursorKwargs = {"key": item_key, "limit": 1}
+    cursor_kwargs: CursorKwargs = {"key": cast(KeyCallable, item_key), "limit": 1}
 
     cursor = build_cursor(results, **cursor_kwargs)
     assert isinstance(cursor.next, Cursor)

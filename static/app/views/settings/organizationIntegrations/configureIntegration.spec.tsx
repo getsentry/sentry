@@ -5,6 +5,7 @@ import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegr
 
 import {
   render,
+  renderGlobalModal,
   screen,
   userEvent,
   waitFor,
@@ -16,7 +17,8 @@ import type {
   IntegrationProvider,
   OrganizationIntegration,
 } from 'sentry/types/integrations';
-import ConfigureIntegration from 'sentry/views/settings/organizationIntegrations/configureIntegration';
+
+import ConfigureIntegration from './configureIntegration';
 
 describe('ConfigureIntegration settings tab', () => {
   const org = OrganizationFixture({
@@ -40,19 +42,11 @@ describe('ConfigureIntegration settings tab', () => {
       url: `/organizations/${org.slug}/integrations/${integrationId}/`,
       body: integration,
     });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/code-mappings/`,
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/repos/`,
-      body: [],
-    });
   }
 
-  function renderConfigure(providerKey = 'github') {
+  function renderConfigure(providerKey = 'github', organization = org) {
     return render(<ConfigureIntegration />, {
-      organization: org,
+      organization,
       initialRouterConfig: {
         location: {
           pathname: `/settings/${org.slug}/integrations/${providerKey}/${integrationId}/`,
@@ -65,7 +59,15 @@ describe('ConfigureIntegration settings tab', () => {
 
   const githubProvider = OrganizationIntegrationsFixture().provider;
 
-  it('shows the external domain as a settings row even without other configuration', async () => {
+  const codeownersProvider = GitHubIntegrationProviderFixture({
+    features: ['codeowners'],
+  });
+  const codeownersOrg = OrganizationFixture({
+    access: ['org:integrations', 'org:write'],
+    features: ['integrations-codeowners'],
+  });
+
+  it('shows the external domain as a settings row without a tab list for a stacktrace-link-only provider', async () => {
     const integration = OrganizationIntegrationsFixture({
       name: 'sentry-demos',
       domainName: 'github.com/sentry-demos',
@@ -77,10 +79,8 @@ describe('ConfigureIntegration settings tab', () => {
     renderConfigure();
 
     const heading = await screen.findByRole('heading', {name: 'sentry-demos'});
-    expect(screen.getByRole('tab', {name: 'Settings'})).toHaveAttribute(
-      'aria-selected',
-      'true'
-    );
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', {name: 'Code Mappings'})).not.toBeInTheDocument();
     expect(screen.getByText('Organization Integration Settings')).toBeInTheDocument();
     expect(screen.getByText('Integration URL')).toBeInTheDocument();
     const link = screen.getByRole('link', {name: 'github.com/sentry-demos'});
@@ -88,10 +88,42 @@ describe('ConfigureIntegration settings tab', () => {
     expect(link).toHaveAttribute('target', '_blank');
     expect(heading).not.toContainElement(link);
     expect(screen.queryByRole('link', {name: 'sentry-demos'})).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole('tab', {name: 'Code Mappings'}));
-    expect(
-      screen.queryByRole('link', {name: 'github.com/sentry-demos'})
-    ).not.toBeInTheDocument();
+  });
+
+  it('pushes the new tab and drops the cursor when switching tabs', async () => {
+    const integration = OrganizationIntegrationsFixture({
+      name: 'sentry-demos',
+      domainName: 'github.com/sentry-demos',
+      provider: {...githubProvider, key: 'github'},
+      configOrganization: [],
+    });
+    mockRequests(integration, codeownersProvider);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${codeownersOrg.slug}/members/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${codeownersOrg.slug}/codeowners-associations/`,
+      body: {},
+    });
+
+    const {router} = render(<ConfigureIntegration />, {
+      organization: codeownersOrg,
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/${codeownersOrg.slug}/integrations/github/${integrationId}/`,
+          query: {cursor: '0:100:0', other: 'kept'},
+        },
+        route: '/settings/:orgId/integrations/:providerKey/:integrationId/',
+      },
+    });
+
+    await userEvent.click(await screen.findByRole('tab', {name: 'User Mappings'}));
+
+    await waitFor(() =>
+      expect(router.location.query).toEqual({tab: 'userMappings', other: 'kept'})
+    );
+    expect(router.historyAction).toBe('PUSH');
   });
 
   it('links the configurations crumb to the provider configurations tab', async () => {
@@ -169,19 +201,100 @@ describe('ConfigureIntegration settings tab', () => {
     expect(screen.queryByRole('link', {name: 'Slack'})).not.toBeInTheDocument();
   });
 
+  it.each([
+    {
+      key: 'linear',
+      name: 'Linear',
+      oauthUrl: 'https://linear.app/oauth/authorize?actor=app',
+    },
+    {
+      key: 'supabase',
+      name: 'Supabase',
+      oauthUrl: 'https://api.supabase.com/v1/oauth/authorize',
+    },
+  ])(
+    'reconnects a disabled $name integration through OAuth',
+    async ({key, name, oauthUrl}) => {
+      const provider = IntegrationProviderFixture({
+        key,
+        slug: key,
+        name: `${name} for Seer`,
+        features: ['seer-context'],
+        canAdd: false,
+      });
+      mockRequests(
+        OrganizationIntegrationsFixture({
+          name: `${name} (Example)`,
+          domainName: null,
+          status: 'disabled',
+          provider: {...provider, aspects: {}},
+          configOrganization: [],
+          configData: {},
+        }),
+        provider
+      );
+      const initialize = MockApiClient.addMockResponse({
+        url: `/organizations/${org.slug}/pipeline/integration_pipeline/`,
+        method: 'POST',
+        body: {
+          step: 'oauth_login',
+          stepIndex: 0,
+          totalSteps: 1,
+          provider: key,
+          data: {oauthUrl},
+        },
+      });
+      renderGlobalModal({organization: org});
+      render(<ConfigureIntegration />, {
+        organization: org,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/${org.slug}/integrations/${key}/${integrationId}/`,
+          },
+          route: '/settings/:orgId/integrations/:providerKey/:integrationId/',
+        },
+      });
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: `Reconnect ${name}`})
+      );
+
+      expect(
+        await screen.findByRole('button', {name: `Authorize ${name}`})
+      ).toBeEnabled();
+      expect(initialize).toHaveBeenCalledWith(
+        `/organizations/${org.slug}/pipeline/integration_pipeline/`,
+        expect.objectContaining({data: {action: 'initialize', provider: key}})
+      );
+      expect(screen.queryByRole('textbox', {name: 'Client ID'})).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Client secret')).not.toBeInTheDocument();
+    }
+  );
+
   it('hides the Settings tab when there is no settings content', async () => {
     mockRequests(
       OrganizationIntegrationsFixture({
         provider: {...githubProvider, key: 'github'},
         configOrganization: [],
         domainName: null,
-      })
+      }),
+      codeownersProvider
     );
+    MockApiClient.addMockResponse({
+      url: `/organizations/${codeownersOrg.slug}/members/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${codeownersOrg.slug}/codeowners-associations/`,
+      body: {},
+    });
 
-    renderConfigure();
+    renderConfigure('github', codeownersOrg);
 
-    expect(await screen.findByRole('tab', {name: 'Code Mappings'})).toBeInTheDocument();
+    expect(await screen.findByRole('tab', {name: 'User Mappings'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'Team Mappings'})).toBeInTheDocument();
     expect(screen.queryByRole('tab', {name: 'Settings'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', {name: 'Code Mappings'})).not.toBeInTheDocument();
   });
 
   it('shows the Settings tab when there is organization config', async () => {
@@ -195,13 +308,16 @@ describe('ConfigureIntegration settings tab', () => {
             label: 'Toggle',
           },
         ],
-      })
+      }),
+      codeownersProvider
     );
 
-    renderConfigure();
+    renderConfigure('github', codeownersOrg);
 
     expect(await screen.findByRole('tab', {name: 'Settings'})).toBeInTheDocument();
-    expect(screen.getByRole('tab', {name: 'Code Mappings'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'User Mappings'})).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'Team Mappings'})).toBeInTheDocument();
+    expect(screen.queryByRole('tab', {name: 'Code Mappings'})).not.toBeInTheDocument();
   });
 });
 
@@ -401,16 +517,13 @@ describe('ConfigureIntegration mapping removals', () => {
 
   function setup({
     providerKey = 'jira',
-    features = [],
     configData = {sync_status_forward: mappings},
   }: {
     configData?: Record<string, unknown>;
-    features?: string[];
     providerKey?: string;
   } = {}) {
     const organization = OrganizationFixture({
       access: ['org:integrations', 'org:write'],
-      features,
     });
     const provider = GitHubIntegrationProviderFixture({
       key: providerKey,
@@ -464,23 +577,8 @@ describe('ConfigureIntegration mapping removals', () => {
     await userEvent.click(deleteButtons[1]!);
   }
 
-  it('uses the legacy full replacement payload when the feature is disabled', async () => {
-    const postRequest = setup();
-
-    await deleteSecondMapping();
-
-    await waitFor(() =>
-      expect(postRequest).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          data: {sync_status_forward: {'10000': mappings['10000']}},
-        })
-      )
-    );
-  });
-
   it('appends a removal entry for a removed mapping', async () => {
-    const postRequest = setup({features: ['jira-explicit-mapping-removals']});
+    const postRequest = setup();
 
     await deleteSecondMapping();
 
@@ -500,10 +598,7 @@ describe('ConfigureIntegration mapping removals', () => {
   });
 
   it('does not have explicit removals for a non-Jira provider', async () => {
-    const postRequest = setup({
-      providerKey: 'github',
-      features: ['jira-explicit-mapping-removals'],
-    });
+    const postRequest = setup({providerKey: 'github'});
 
     await deleteSecondMapping();
 
@@ -518,7 +613,7 @@ describe('ConfigureIntegration mapping removals', () => {
   });
 
   it('sends all current mappings as objects when updating a mapping', async () => {
-    const postRequest = setup({features: ['jira-explicit-mapping-removals']});
+    const postRequest = setup();
 
     await selectEvent.select(await screen.findByText('Open'), 'To Do');
 
@@ -538,10 +633,7 @@ describe('ConfigureIntegration mapping removals', () => {
   });
 
   it('does not add removals when previous mapping data is missing', async () => {
-    const postRequest = setup({
-      features: ['jira-explicit-mapping-removals'],
-      configData: {},
-    });
+    const postRequest = setup({configData: {}});
 
     await userEvent.click(await screen.findByText('Add Project'));
     await userEvent.click(await screen.findByRole('option', {name: 'Project A'}));

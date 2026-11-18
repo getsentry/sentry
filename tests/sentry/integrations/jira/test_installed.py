@@ -58,7 +58,7 @@ class JiraInstalledTest(APITestCase):
             headers={**(headers or {}), "alg": jira_signing_algorithm},
         )
 
-    def jwt_token_cdn(self):
+    def jwt_token_cdn(self) -> str:
         return self._jwt_token("RS256", RS256_KEY, headers={"kid": self.kid})
 
     def body(self, client_key: str | None = None) -> Mapping[str, Any]:
@@ -233,6 +233,24 @@ class JiraInstalledTest(APITestCase):
 
         mock_set_tag.assert_any_call("integration_id", integration.id)
         assert integration.status == ObjectStatus.ACTIVE
+
+    @responses.activate
+    def test_reinstall_merges_metadata(self) -> None:
+        self.add_response()
+        integration = self.create_provider_integration(
+            provider="jira",
+            external_id=self.external_id,
+            metadata={"shared_secret": "old-secret", "icon": "https://example.com/icon.png"},
+        )
+
+        self.get_success_response(
+            **self.body(),
+            extra_headers=dict(HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn()),
+        )
+
+        integration.refresh_from_db()
+        assert integration.metadata["shared_secret"] == self.shared_secret
+        assert integration.metadata["icon"] == "https://example.com/icon.png"
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate

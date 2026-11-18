@@ -1,12 +1,13 @@
+from django.test import override_settings
 from django.urls import reverse
 
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
 class ProjectTransactionThresholdTest(APITestCase):
-    feature_name = "organizations:performance-view"
-
     def setUp(self) -> None:
         super().setUp()
 
@@ -29,42 +30,27 @@ class ProjectTransactionThresholdTest(APITestCase):
             metric=TransactionMetric.LCP.value,
         )
 
-        with self.feature(self.feature_name):
-            response = self.client.get(self.url, format="json")
+        response = self.client.get(self.url, format="json")
 
         assert response.status_code == 200, response.content
         assert response.data["threshold"] == "500"
         assert response.data["metric"] == "lcp"
 
     def test_get_for_project_without_custom_threshold(self) -> None:
-        with self.feature(self.feature_name):
-            response = self.client.get(self.url, format="json")
+        response = self.client.get(self.url, format="json")
 
         assert response.status_code == 200, response.content
         assert response.data["threshold"] == "300"
         assert response.data["metric"] == "duration"
 
-    def test_get_returns_error_without_feature_enabled(self) -> None:
-        with self.feature({self.feature_name: False}):
-            ProjectTransactionThreshold.objects.create(
-                project=self.project,
-                organization=self.project.organization,
-                threshold=300,
-                metric=TransactionMetric.DURATION.value,
-            )
-
-            response = self.client.get(self.url, format="json")
-            assert response.status_code == 404
-
     def test_create_project_threshold(self) -> None:
-        with self.feature(self.feature_name):
-            response = self.client.post(
-                self.url,
-                data={
-                    "metric": "duration",
-                    "threshold": "300",
-                },
-            )
+        response = self.client.post(
+            self.url,
+            data={
+                "metric": "duration",
+                "threshold": "300",
+            },
+        )
 
         assert response.status_code == 201, response.content
         assert response.data["threshold"] == "300"
@@ -75,27 +61,51 @@ class ProjectTransactionThresholdTest(APITestCase):
             project=self.project, organization=self.project.organization
         ).exists()
 
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_creates_threshold_without_editor(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.project.organization,
+            scope_list=["project:write"],
+            project_ids=[self.project.id],
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.project.organization.id,
+            ),
+            key="service-account-secret",
+        )
+
+        response = self.client.post(
+            self.url,
+            data={"metric": "duration", "threshold": "300"},
+            HTTP_X_VIEWER_CONTEXT=viewer_context,
+        )
+
+        assert response.status_code == 201, response.content
+        threshold = ProjectTransactionThreshold.objects.get(project=self.project)
+        assert threshold.edited_by_id is None
+
     def test_update_single_field_project_threshold(self) -> None:
-        with self.feature(self.feature_name):
-            response = self.client.post(
-                self.url,
-                data={
-                    "metric": "lcp",
-                    "threshold": "300",
-                },
-            )
+        response = self.client.post(
+            self.url,
+            data={
+                "metric": "lcp",
+                "threshold": "300",
+            },
+        )
 
         assert response.status_code == 201, response.content
         assert response.data["threshold"] == "300"
         assert response.data["metric"] == "lcp"
 
-        with self.feature(self.feature_name):
-            response = self.client.post(
-                self.url,
-                data={
-                    "threshold": "400",
-                },
-            )
+        response = self.client.post(
+            self.url,
+            data={
+                "threshold": "400",
+            },
+        )
 
         assert response.status_code == 200, response.content
         assert response.data["threshold"] == "400"
@@ -125,49 +135,44 @@ class ProjectTransactionThresholdTest(APITestCase):
             metric=TransactionMetric.DURATION.value,
         )
 
-        with self.feature(self.feature_name):
-            response = self.client.get(url, format="json")
+        response = self.client.get(url, format="json")
 
         assert response.status_code == 200, response.content
 
-        with self.feature(self.feature_name):
-            response = self.client.post(
-                url,
-                data={
-                    "metric": "lcp",
-                    "threshold": "400",
-                },
-            )
+        response = self.client.post(
+            url,
+            data={
+                "metric": "lcp",
+                "threshold": "400",
+            },
+        )
 
         assert response.status_code == 403
 
-        with self.feature(self.feature_name):
-            response = self.client.delete(url)
+        response = self.client.delete(url)
 
         assert response.status_code == 403
 
     def test_update_project_threshold(self) -> None:
-        with self.feature(self.feature_name):
-            response = self.client.post(
-                self.url,
-                data={
-                    "metric": "duration",
-                    "threshold": "300",
-                },
-            )
+        response = self.client.post(
+            self.url,
+            data={
+                "metric": "duration",
+                "threshold": "300",
+            },
+        )
 
         assert response.status_code == 201, response.content
         assert response.data["threshold"] == "300"
         assert response.data["metric"] == "duration"
 
-        with self.feature(self.feature_name):
-            response = self.client.post(
-                self.url,
-                data={
-                    "metric": "lcp",
-                    "threshold": "400",
-                },
-            )
+        response = self.client.post(
+            self.url,
+            data={
+                "metric": "lcp",
+                "threshold": "400",
+            },
+        )
 
         assert response.status_code == 200, response.content
         assert response.data["threshold"] == "400"
@@ -184,8 +189,7 @@ class ProjectTransactionThresholdTest(APITestCase):
             project=self.project, organization=self.project.organization
         ).exists()
 
-        with self.feature(self.feature_name):
-            response = self.client.delete(self.url)
+        response = self.client.delete(self.url)
 
         assert response.status_code == 204
         assert not ProjectTransactionThreshold.objects.filter(

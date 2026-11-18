@@ -1,5 +1,10 @@
+from datetime import timedelta
+from typing import cast
+
 import orjson
+from django.http import HttpResponse
 from django.test import override_settings
+from django.utils import timezone
 
 from sentry.preprod.models import PreprodArtifact, PreprodArtifactSizeMetrics
 from sentry.testutils.auth import generate_service_request_signature
@@ -18,17 +23,25 @@ class ProjectPreprodSizeEndpointTest(TestCase):
             state=PreprodArtifact.ArtifactState.UPLOADING,
         )
 
-    def _put(self, data, identifier=None, secret=SHARED_SECRET_FOR_TESTS):
+    def _put(
+        self,
+        data: bytes,
+        identifier: str | None = None,
+        secret: str = SHARED_SECRET_FOR_TESTS,
+    ) -> HttpResponse:
         if identifier:
             url = f"/api/0/internal/{self.organization.slug}/{self.project.slug}/files/preprodartifacts/{self.artifact.id}/size/{identifier}/"
         else:
             url = f"/api/0/internal/{self.organization.slug}/{self.project.slug}/files/preprodartifacts/{self.artifact.id}/size/"
         signature = generate_service_request_signature(url, data, [secret], "Launchpad")
-        return self.client.put(
-            url,
-            data=data,
-            content_type="application/json",
-            HTTP_AUTHORIZATION=f"rpcsignature {signature}",
+        return cast(
+            "HttpResponse",
+            self.client.put(
+                url,
+                data=data,
+                content_type="application/json",
+                HTTP_AUTHORIZATION=f"rpcsignature {signature}",
+            ),
         )
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=[SHARED_SECRET_FOR_TESTS])
@@ -149,12 +162,49 @@ class ProjectPreprodSizeEndpointTest(TestCase):
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=[SHARED_SECRET_FOR_TESTS])
     def test_processing(self) -> None:
-        self.create_preprod_artifact_size_metrics(self.artifact)
+        metrics = self.create_preprod_artifact_size_metrics(
+            self.artifact, state=PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING
+        )
+        for state in [
+            PreprodArtifactSizeMetrics.SizeAnalysisState.PENDING,
+            PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING,
+            PreprodArtifactSizeMetrics.SizeAnalysisState.FAILED,
+        ]:
+            with self.subTest(state=state):
+                old_time = timezone.now() - timedelta(minutes=35)
+                PreprodArtifactSizeMetrics.objects.filter(id=metrics.id).update(
+                    state=state,
+                    date_updated=old_time,
+                    error_code=PreprodArtifactSizeMetrics.ErrorCode.TIMEOUT,
+                    error_message="Previous attempt timed out",
+                )
 
-        self._put(orjson.dumps({"state": 1}))
+                response = self._put(orjson.dumps({"state": 1}))
 
-        metrics = PreprodArtifactSizeMetrics.objects.get(preprod_artifact=self.artifact)
-        assert metrics.state == PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING
+                assert response.status_code == 200
+                metrics.refresh_from_db()
+                assert metrics.state == PreprodArtifactSizeMetrics.SizeAnalysisState.PROCESSING
+                assert metrics.date_updated > old_time
+                assert metrics.error_code is None
+                assert metrics.error_message is None
+
+    @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=[SHARED_SECRET_FOR_TESTS])
+    def test_processing_preserves_finished_results(self) -> None:
+        for state in [
+            PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+            PreprodArtifactSizeMetrics.SizeAnalysisState.NOT_RAN,
+        ]:
+            with self.subTest(state=state):
+                self.artifact = self.create_preprod_artifact(project=self.project)
+                metrics = self.create_preprod_artifact_size_metrics(self.artifact, state=state)
+                original_updated = metrics.date_updated
+
+                response = self._put(orjson.dumps({"state": 1}))
+
+                assert response.status_code == 200
+                metrics.refresh_from_db()
+                assert metrics.state == state
+                assert metrics.date_updated == original_updated
 
     @override_settings(LAUNCHPAD_RPC_SHARED_SECRET=[SHARED_SECRET_FOR_TESTS])
     def test_requires_launchpad_rpc_authentication(self) -> None:

@@ -36,6 +36,7 @@ class InboxItemResponse(TypedDict):
     subjectType: str
     subjectId: str
     title: str | None  # Null when the subject is unavailable.
+    url: str  # Latest event's URL, falling back to the subject's inbox URL.
     subtitle: str  # The latest event's summary.
     eventTypes: list[str]
     eventCount: int
@@ -46,7 +47,13 @@ class InboxItemResponse(TypedDict):
     lastReadAt: datetime | None
 
 
-class InboxUnreadCountResponse(TypedDict):
-    """Number of active unread inbox items."""
+class InboxCountResponse(TypedDict):
+    """Number of active inbox items matching the filters."""
 
     count: int
+
+
+class InboxUpdateResponse(TypedDict):
+    """Number of inbox items matching a bulk update, including unchanged items."""
+
+    updatedCount: int

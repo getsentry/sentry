@@ -3,8 +3,9 @@ import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 import {prettifyAttributeName} from 'sentry/views/explore/components/traceItemAttributes/utils';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
-import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
-import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
+
+import {parseConditionalAggregate} from './parseConditionalAggregate';
+import type {EventValidationData} from './validateEventParamsOptions';
 
 export interface AttributeCollections {
   boolean: TagCollection;

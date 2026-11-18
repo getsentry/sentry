@@ -83,5 +83,38 @@
         "value": ""
       }
     ]
+  },
+  {
+    "query": "tags[fruit,array]:apple",
+    "result": [
+      {
+        "type": "spaces",
+        "value": ""
+      },
+      {
+        "type": "filter",
+        "filter": "text",
+        "key": {
+          "type": "keyExplicitArrayTag",
+          "prefix": "tags",
+          "key": {
+            "type": "keySimple",
+            "value": "fruit",
+            "quoted": false
+          }
+        },
+        "value": {
+          "type": "valueText",
+          "value": "apple",
+          "quoted": false
+        },
+        "negated": false,
+        "operator": ""
+      },
+      {
+        "type": "spaces",
+        "value": ""
+      }
+    ]
   }
 ]

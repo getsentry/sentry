@@ -3,12 +3,13 @@ import {createBrowserRouter} from 'react-router';
 import {RouterProvider} from 'react-router/dom';
 import {ThemeProvider} from '@emotion/react';
 import {parseAsString, useQueryState} from 'nuqs';
-import {NuqsAdapter} from 'nuqs/adapters/react-router/v8';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {act, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {Button} from '@sentry/scraps/button';
+
+import {NuqsAdapter} from 'sentry/router/nuqsAdapter';
 
 function QueryState({shallow}: {shallow: boolean}) {
   const [query, setQuery] = useQueryState(

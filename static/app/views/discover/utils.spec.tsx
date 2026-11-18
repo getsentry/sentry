@@ -19,7 +19,8 @@ import {
   DisplayType,
   WidgetType,
 } from 'sentry/views/dashboards/types';
-import {DEFAULT_EVENT_VIEW} from 'sentry/views/discover/results/data';
+
+import {DEFAULT_EVENT_VIEW} from './results/data';
 import {
   canCreateAlerts,
   constructAddQueryToDashboardLink,
@@ -29,7 +30,7 @@ import {
   getCreateAlertFromViewUrl,
   getExpandedResults,
   handleAddQueryToDashboard,
-} from 'sentry/views/discover/utils';
+} from './utils';
 
 jest.mock('sentry/actionCreators/modal');
 

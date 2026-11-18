@@ -19,6 +19,7 @@ from sentry.api.endpoints.organization_monitoring_provider_index import (
     MonitoringProviderPermission,
 )
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.auth.principal import is_owned_by_acting_user
 from sentry.identity import default_manager as identity_manager
 from sentry.identity.base import Provider
 from sentry.identity.oauth2 import OAuth2Provider
@@ -86,12 +87,12 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
         # Reuse the stored site from the existing connection.
         org_identity = (
             OrganizationIdentity.objects.filter(
+                is_owned_by_acting_user(request.user, "identity__user_id"),
                 organization_id=organization.id,
-                identity__user_id=request.user.id,  # type: ignore[misc]
                 identity__idp__type=provider_key,
             )
             .select_related("identity")
-            .first()
+            .first()  # noqa: S035
         )
         if org_identity is None:
             return Response({"detail": "Not connected to this provider."}, status=404)
@@ -186,8 +187,8 @@ class OrganizationMonitoringProviderDetailsEndpoint(ControlSiloOrganizationEndpo
 
         org_identities: list[OrganizationIdentity] = list(
             OrganizationIdentity.objects.filter(
+                is_owned_by_acting_user(request.user, "identity__user_id"),
                 organization_id=organization.id,
-                identity__user_id=request.user.id,  # type: ignore[misc]
                 identity__idp__type=provider_key,
             ).select_related("identity")
         )

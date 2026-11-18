@@ -99,20 +99,22 @@ export function getSearchInExploreTarget(
   };
 }
 
-// Sort attributes so that span.* attributes are at the beginning and
-// the rest of the attributes are sorted alphabetically.
-export function sortAttributes(attributes: TraceItemResponseAttribute[]) {
+// Sort attributes alphabetically, prioritizing sentry.* in raw mode and span.* otherwise.
+export function sortAttributes(
+  attributes: TraceItemResponseAttribute[],
+  useRawAttributeNames = false
+) {
+  const priorityPrefix = useRawAttributeNames ? 'sentry.' : 'span.';
   return attributes.toSorted((a, b) => {
-    const aIsSpan = a.name.startsWith('span.');
-    const bIsSpan = b.name.startsWith('span.');
+    const aName = useRawAttributeNames ? (a.rawName ?? a.name) : a.name;
+    const bName = useRawAttributeNames ? (b.rawName ?? b.name) : b.name;
+    const aIsPriority = aName.startsWith(priorityPrefix);
+    const bIsPriority = bName.startsWith(priorityPrefix);
 
-    if (aIsSpan && !bIsSpan) {
-      return -1;
+    if (aIsPriority !== bIsPriority) {
+      return aIsPriority ? -1 : 1;
     }
-    if (!aIsSpan && bIsSpan) {
-      return 1;
-    }
-    return a.name.localeCompare(b.name);
+    return aName.localeCompare(bName);
   });
 }
 

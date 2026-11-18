@@ -7,11 +7,11 @@ import {Observer} from 'mobx-react-lite';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {Confirm} from 'sentry/components/confirm';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import {BooleanField} from 'sentry/components/forms/fields/booleanField';
 import {HiddenField} from 'sentry/components/forms/fields/hiddenField';
@@ -36,16 +36,13 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
-import type {
-  UptimeAssertion,
-  UptimeRule,
-} from 'sentry/views/detectors/components/uptime/types';
 
 import {createEmptyAssertionRoot, UptimeAssertionsField} from './assertions/field';
 import {createMapFormErrors} from './formErrors';
 import {HTTPSnippet} from './httpSnippet';
 import {PreviewCheckResultProvider, usePreviewCheckResult} from './previewCheckContext';
 import {TestUptimeMonitorButton} from './testUptimeMonitorButton';
+import type {UptimeAssertion, UptimeRule} from './types';
 import {UptimeHeadersField} from './uptimeHeadersField';
 import {useUptimeAssertionFeatures} from './useUptimeAssertionFeatures';
 

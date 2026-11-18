@@ -2,6 +2,8 @@ import type {MouseEvent as ReactMouseEvent} from 'react';
 import React, {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {IconSettings} from '@sentry/icons/settings';
+import type {UseQueryResult} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {LinkButton} from '@sentry/scraps/button';
@@ -28,13 +30,10 @@ import type {
 } from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getUserTimezone, shouldUse24Hours} from 'sentry/utils/dates';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -313,7 +312,7 @@ export interface UsageStatsOrganizationProps {
         | 'card-invalid'
         | 'chart-title'
     ) => void;
-    orgStats: UseApiQueryResult<UsageSeries | undefined, RequestError>;
+    orgStats: UseQueryResult<UsageSeries | undefined>;
     usageChart: React.ReactNode;
   }) => React.ReactNode;
   clientDiscard?: boolean;
@@ -358,20 +357,17 @@ export function UsageStatsOrganization({
     );
   }, [endpointQuery, dataCategoryApiName, dataDatetime, organization, projectIds]);
 
-  const orgStatsReponse = useApiQuery<UsageSeries | undefined>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/stats_v2/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
+  const orgStatsReponse = useQuery({
+    ...apiOptions.as<UsageSeries | undefined>()(
+      '/organizations/$organizationIdOrSlug/stats_v2/',
       {
+        path: {organizationIdOrSlug: organization.slug},
         query: orgStatsQuery,
-      },
-    ],
-    {
-      staleTime: Infinity,
-      retry: false,
-    }
-  );
+        staleTime: Infinity,
+      }
+    ),
+    retry: false,
+  });
 
   const handleOnDocsClick = useCallback(
     (

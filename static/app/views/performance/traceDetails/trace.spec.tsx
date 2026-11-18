@@ -19,12 +19,9 @@ import {setWindowLocation} from 'sentry-test/utils';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useLocation} from 'sentry/utils/useLocation';
-import TraceView from 'sentry/views/performance/traceDetails/index';
-import {
-  makeEAPError,
-  makeEAPSpan,
-  makeEAPTrace,
-} from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
+
+import {makeEAPError, makeEAPSpan, makeEAPTrace} from './traceModels/traceTreeTestUtils';
+import TraceView from './index';
 
 class MockResizeObserver {
   callback: ResizeObserverCallback;
@@ -701,7 +698,9 @@ describe('trace view', () => {
       await waitFor(() =>
         expect(router.location.query.pinnedAttribute).toBe('tags[custom.size,number]')
       );
-      expect(screen.queryByText('waterfall-region')).not.toBeInTheDocument();
+      await waitFor(() =>
+        expect(screen.queryByText('waterfall-region')).not.toBeInTheDocument()
+      );
       expect(
         within(screen.getByTestId('tree-key-custom.region')).queryByRole('img', {
           name: 'Pinned attribute',
@@ -1190,6 +1189,157 @@ describe('trace view', () => {
   });
 
   describe('EAP waterfall navigation', () => {
+    it.each([
+      {interaction: 'mouse', nested: false},
+      {interaction: 'keyboard', nested: true},
+    ])(
+      'collapses the initial transaction overview with $interaction and nested=$nested',
+      async ({interaction, nested}) => {
+        setupEAPTraceView();
+        const transactions = [
+          makeEAPSpan({
+            event_id: 'second-transaction',
+            description: 'second transaction',
+            is_transaction: true,
+            start_timestamp: 1,
+            end_timestamp: 2,
+            children: Array.from({length: 100}, (_, index) =>
+              makeEAPSpan({
+                description: `hidden span ${index}`,
+                start_timestamp: 1,
+                end_timestamp: 2,
+              })
+            ),
+          }),
+          makeEAPSpan({
+            event_id: 'third-transaction',
+            description: 'third transaction',
+            is_transaction: true,
+            start_timestamp: 3,
+            end_timestamp: 4,
+          }),
+        ];
+        mockTraceResponse({
+          body: makeEAPTrace([
+            makeEAPSpan({
+              event_id: 'root-transaction',
+              description: 'root transaction',
+              is_transaction: true,
+              start_timestamp: 1,
+              end_timestamp: 4,
+              children: nested
+                ? [
+                    makeEAPSpan({
+                      description: 'intermediate span',
+                      start_timestamp: 1,
+                      end_timestamp: 4,
+                      children: transactions,
+                    }),
+                  ]
+                : transactions,
+            }),
+          ]),
+        });
+
+        render(<TraceView />, {initialRouterConfig});
+
+        const waterfall = within(await screen.findByTestId('trace-virtualized-list'));
+        const root = await waterfall.findByText('root transaction');
+        const rootRow = root.closest<HTMLElement>(VISIBLE_TRACE_ROW_SELECTOR)!;
+        const rootButton = within(rootRow).getByRole('button', {name: '2'});
+        expect(rootButton.querySelector('svg')).toHaveStyle('transform: rotate(180deg)');
+        expect(waterfall.getByText('second transaction')).toBeInTheDocument();
+        expect(waterfall.getByText('third transaction')).toBeInTheDocument();
+        expect(waterfall.queryByText('hidden span 0')).not.toBeInTheDocument();
+        const secondRow = waterfall
+          .getByText('second transaction')
+          .closest<HTMLElement>(VISIBLE_TRACE_ROW_SELECTOR)!;
+        expect(
+          within(secondRow).getByRole('button', {name: '100'}).querySelector('svg')
+        ).toHaveStyle('transform: rotate(90deg)');
+
+        if (interaction === 'mouse') {
+          await userEvent.click(rootButton);
+        } else {
+          await userEvent.click(rootRow);
+          await userEvent.keyboard('{arrowleft}');
+        }
+
+        expect(rootButton.querySelector('svg')).toHaveStyle('transform: rotate(90deg)');
+        expect(rootButton).toHaveTextContent(nested ? '1' : '2');
+        expect(waterfall.queryByText('second transaction')).not.toBeInTheDocument();
+        expect(waterfall.queryByText('third transaction')).not.toBeInTheDocument();
+      }
+    );
+
+    it('hides nested transactions on collapse and restores their expansion states', async () => {
+      setupEAPTraceView();
+      mockTraceResponse({
+        body: makeEAPTrace([
+          makeEAPSpan({
+            event_id: 'root-transaction',
+            description: 'root transaction',
+            is_transaction: true,
+            start_timestamp: 1,
+            end_timestamp: 4,
+            children: [
+              makeEAPSpan({
+                event_id: 'second-transaction',
+                description: 'second transaction',
+                is_transaction: true,
+                start_timestamp: 1,
+                end_timestamp: 2,
+                children: [
+                  makeEAPSpan({
+                    description: 'expanded grandchild',
+                    start_timestamp: 1,
+                    end_timestamp: 2,
+                  }),
+                ],
+              }),
+              makeEAPSpan({
+                event_id: 'third-transaction',
+                description: 'third transaction',
+                is_transaction: true,
+                start_timestamp: 3,
+                end_timestamp: 4,
+                children: [
+                  makeEAPSpan({
+                    description: 'collapsed grandchild',
+                    start_timestamp: 3,
+                    end_timestamp: 4,
+                  }),
+                ],
+              }),
+            ],
+          }),
+        ]),
+      });
+
+      render(<TraceView />, {initialRouterConfig});
+
+      const waterfall = within(await screen.findByTestId('trace-virtualized-list'));
+      const root = await waterfall.findByText('root transaction');
+      const rootRow = root.closest<HTMLElement>(VISIBLE_TRACE_ROW_SELECTOR)!;
+      const rootButton = within(rootRow).getByRole('button', {name: '2'});
+      const thirdRow = waterfall
+        .getByText('third transaction')
+        .closest<HTMLElement>(VISIBLE_TRACE_ROW_SELECTOR)!;
+      expect(waterfall.getByText('expanded grandchild')).toBeInTheDocument();
+      expect(waterfall.getByText('collapsed grandchild')).toBeInTheDocument();
+      await userEvent.click(within(thirdRow).getByRole('button', {name: '1'}));
+      expect(waterfall.queryByText('collapsed grandchild')).not.toBeInTheDocument();
+
+      await userEvent.click(rootButton);
+
+      expect(waterfall.queryByText('expanded grandchild')).not.toBeInTheDocument();
+
+      await userEvent.click(rootButton);
+
+      expect(waterfall.getByText('expanded grandchild')).toBeInTheDocument();
+      expect(waterfall.queryByText('collapsed grandchild')).not.toBeInTheDocument();
+    });
+
     it('focuses the node from the eventId query parameter', async () => {
       mockQueryString('?eventId=second-transaction');
       setupEAPTraceView();
@@ -1217,6 +1367,35 @@ describe('trace view', () => {
       await waitFor(() => expect(secondTransactionRow).toHaveFocus());
       await userEvent.keyboard('{arrowup}');
       await waitFor(() => expect(rootTransactionRow).toHaveFocus());
+    });
+
+    it('reveals a span linked within the already loaded trace', async () => {
+      mockQueryString('?node=span-second-transaction');
+      setupEAPTraceView();
+      const {router} = render(<TraceView />, {initialRouterConfig});
+
+      expect(await screen.findByTestId('trace-drawer-title')).toHaveTextContent(
+        'SpanID: second-transaction'
+      );
+      await userEvent.click(screen.getByRole('button', {name: 'Close Drawer'}));
+      await waitFor(() =>
+        expect(screen.queryByTestId('trace-drawer-title')).not.toBeInTheDocument()
+      );
+      act(() =>
+        router.navigate(
+          '/organizations/org-slug/performance/trace/trace-id/?revealNode=span-third-transaction'
+        )
+      );
+
+      expect(await screen.findByTestId('trace-drawer-title')).toHaveTextContent(
+        'SpanID: third-transaction'
+      );
+      expect(
+        within(screen.getByTestId('trace-virtualized-list'))
+          .getByText('third transaction')
+          .closest(VISIBLE_TRACE_ROW_SELECTOR)
+      ).toHaveAttribute('tabindex', '0');
+      expect(router.location.query).toEqual({node: 'span-third-transaction'});
     });
 
     it('warns when an EAP node from the URL cannot be found', async () => {

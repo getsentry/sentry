@@ -20,7 +20,7 @@ from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.projectownership import ProjectOwnership
-from sentry.notifications.additional_attachment_manager import manager as attachment_manager
+from sentry.notifications.additional_attachment_manager import slack_attachment_manager
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.utils import (
     execute_via_group_type_registry,
@@ -316,7 +316,7 @@ class ShadowReadIssueAlertTest(ShadowReadTestBase, OccurrenceTestMixin):
 
         self.assert_match(observation)
         legacy, _ = observation.payloads
-        assert invocation.event_data.group.title in legacy["text"]
+        assert invocation.event_data.require_group().title in legacy["text"]
 
     @with_feature("organizations:slack-reinstall-nudge-on-issue-alert")
     @override_options({"slack.nudge-frequency": 1.0})
@@ -363,7 +363,7 @@ class ShadowReadIssueAlertTest(ShadowReadTestBase, OccurrenceTestMixin):
         action = self.create_shadow_action("slack", {"tags": "", "notes": ""})
 
         with mock.patch.dict(
-            attachment_manager.attachment_generators,
+            slack_attachment_manager.attachment_generators,
             {ExternalProviders.SLACK: lambda integration, organization: [attachment]},
         ):
             observation, _ = self.send(self.invocation(action))

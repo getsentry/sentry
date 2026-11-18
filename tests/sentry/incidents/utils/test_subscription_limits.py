@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 from contextlib import contextmanager
 from unittest.mock import MagicMock, patch
 
@@ -10,7 +11,7 @@ class TestIsMetricSubscriptionAllowed:
     org = MagicMock(spec=Organization)
 
     @contextmanager
-    def fake_features(self, enabled: set[str]):
+    def fake_features(self, enabled: set[str]) -> Iterator[None]:
         with patch("sentry.incidents.utils.subscription_limits.features") as mock_features:
             mock_features.has.side_effect = lambda name, *a, **kw: name in enabled
             yield
@@ -21,14 +22,10 @@ class TestIsMetricSubscriptionAllowed:
         with self.fake_features(set()):
             assert is_metric_subscription_allowed(Dataset.Events.value, self.org) is True
 
-    # -- Transactions: requires :performance-view --
+    # -- Transactions: ungated --
 
-    def test_transactions_without_any_features(self) -> None:
+    def test_transactions_always_allowed(self) -> None:
         with self.fake_features(set()):
-            assert is_metric_subscription_allowed(Dataset.Transactions.value, self.org) is False
-
-    def test_transactions_with_performance_view(self) -> None:
-        with self.fake_features({"organizations:performance-view"}):
             assert is_metric_subscription_allowed(Dataset.Transactions.value, self.org) is True
 
     # -- EAP: requires :visibility-explore-view --

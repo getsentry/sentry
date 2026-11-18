@@ -28,6 +28,7 @@ import type {AuditLog, Organization} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {getInternalDate} from 'sentry/utils/dates';
 import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
@@ -414,7 +415,7 @@ export function AuditLogList({
             );
           })}
       </SimpleTable>
-      {pageLinks && <Pagination pageLinks={pageLinks} onCursor={onCursor} />}
+      {pageLinks && <Pagination {...getPaginationProps(pageLinks)} onCursor={onCursor} />}
     </div>
   );
 }

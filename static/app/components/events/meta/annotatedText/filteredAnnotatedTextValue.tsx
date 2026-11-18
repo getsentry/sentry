@@ -1,9 +1,11 @@
 import {useMemo} from 'react';
+import {useQueryState} from 'nuqs';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import type {Meta} from 'sentry/types/group';
 import {useDetailedProject} from 'sentry/utils/project/useDetailedProject';
-import {useLocation} from 'sentry/utils/useLocation';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
@@ -11,16 +13,18 @@ import {getTooltipText} from './utils';
 import {ValueElement} from './valueElement';
 
 type Props = {
-  meta: Record<any, any>;
+  meta: Partial<Meta>;
   value: React.ReactNode;
 };
 
 export function FilteredAnnotatedTextValue({value, meta}: Props) {
   const organization = useOrganization();
-  const location = useLocation<{project: string}>();
-  const projectId = location.query.project;
+  const [projectIds] = useQueryState('project', pageFilterParsers.project);
   const {projects} = useProjects();
-  const currentProject = projects.find(project => project.id === projectId);
+  const currentProject =
+    projectIds.length === 1
+      ? projects.find(project => project.id === projectIds[0])
+      : undefined;
 
   // Fetch full project details including `project.relayPiiConfig`
   // That property is not normally available in the store
@@ -34,9 +38,10 @@ export function FilteredAnnotatedTextValue({value, meta}: Props) {
   );
 
   const tooltipText = useMemo(() => {
+    const [ruleId = '', remark] = meta.rem?.[0] ?? [];
     return getTooltipText({
-      rule_id: meta.rem[0][0],
-      remark: meta.rem[0][1],
+      rule_id: ruleId,
+      remark,
       organization,
       project: projectDetails,
     });

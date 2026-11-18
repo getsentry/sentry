@@ -13,6 +13,7 @@ import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
 import {usePrevious} from 'sentry/utils/usePrevious';
+import type {Release} from 'sentry/views/dashboards/widgets/common/types';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
@@ -21,23 +22,29 @@ import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/
 import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/plottable';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
-import {useIncompleteBucketTooltipDetails} from 'sentry/views/explore/components/chart/incompleteBucketTooltip';
-import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {prettifyAggregation} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {INGESTION_DELAY} from 'sentry/views/insights/settings';
+
+import {useIncompleteBucketTooltipDetails} from './incompleteBucketTooltip';
+import type {ChartInfo} from './types';
 
 interface ChartVisualizationProps {
   chartInfo: ChartInfo;
   chartRef?: Ref<ReactEchartsRef>;
   chartXRangeSelection?: Partial<ChartXRangeSelectionProps>;
   droppedData?: DroppedDataProps;
+  isDroppedDataLoading?: boolean;
   /**
    * Overrides the plottables derived from `chartInfo`, e.g. when several
    * aggregates are plotted on the same chart.
    */
   plottables?: Plottable[];
+  /**
+   * Releases drawn as a band under the plot.
+   */
+  releases?: Release[];
   /**
    * Maximum number of series listed in the tooltip, see
    * `TimeSeriesWidgetVisualization`.
@@ -103,22 +110,27 @@ export function ChartVisualization({
   chartInfo,
   chartRef,
   droppedData,
+  isDroppedDataLoading = false,
   plottables: plottablesOverride,
+  releases,
   tooltipLimit,
 }: ChartVisualizationProps) {
   const defaultPlottables = useChartVisualizationPlottables(chartInfo);
   const plottables = plottablesOverride ?? defaultPlottables;
-  const previousPlottables = usePrevious(
-    plottables,
-    chartInfo.timeseriesResult.isPending
-  );
+  const isLoading =
+    chartInfo.timeseriesResult.isPending ||
+    (isDroppedDataLoading && !chartInfo.timeseriesResult.error);
+  // `usePrevious` seeds itself with the first render's value, so a chart that
+  // mounts mid-load must not seed it, or it would draw without the band.
+  const previousPlottables = usePrevious(isLoading ? [] : plottables, isLoading);
+  const previousDroppedData = usePrevious(isLoading ? undefined : droppedData, isLoading);
   const renderTooltipSeriesDetails = useIncompleteBucketTooltipDetails(
     chartInfo.series,
     chartInfo.timeseriesResult.meta?.ingestion?.completeThrough
   );
 
-  const isLoading = chartInfo.timeseriesResult.isPending;
   const activePlottables = isLoading ? previousPlottables : plottables;
+  const activeDroppedData = isLoading ? previousDroppedData : droppedData;
 
   if (isLoading && !plottablesCanBeVisualized(previousPlottables)) {
     const loadingMessage =
@@ -157,7 +169,9 @@ export function ChartVisualization({
         ref={chartRef}
         plottables={activePlottables}
         chartXRangeSelection={chartXRangeSelection}
-        droppedData={droppedData}
+        droppedData={activeDroppedData}
+        releases={releases}
+        showReleaseAs="band"
         renderTooltipSeriesDetails={renderTooltipSeriesDetails}
         tooltipLimit={tooltipLimit}
       />

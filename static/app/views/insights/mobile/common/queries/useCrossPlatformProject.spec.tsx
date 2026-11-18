@@ -6,7 +6,8 @@ import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
-import {useCrossPlatformProject} from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
+
+import {useCrossPlatformProject} from './useCrossPlatformProject';
 
 function initializePageFilters(projects: number[]) {
   PageFiltersStore.onInitializeUrlState(
@@ -28,11 +29,6 @@ describe('useCrossPlatformProject', () => {
     mockProject = ProjectFixture({platform: 'flutter'});
     PageFiltersStore.init();
     ProjectsStore.loadInitialData([mockProject]);
-  });
-
-  afterEach(() => {
-    PageFiltersStore.reset();
-    ProjectsStore.reset();
   });
 
   it('returns null for project if >1 project is selected', () => {

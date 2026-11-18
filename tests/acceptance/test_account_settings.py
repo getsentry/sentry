@@ -52,7 +52,7 @@ class AccountSettingsWithoutOrganizationTest(AcceptanceTestCase):
             secondary_navigation = '[role="navigation"][aria-label="Secondary Navigation"]'
             links = self.browser.elements(f"{secondary_navigation} a[href]")
             assert len(links) == 10
-            assert all("/settings/account/" in link.get_attribute("href") for link in links)
+            assert all("/settings/account/" in (link.get_attribute("href") or "") for link in links)
 
             for path, title in [
                 ("security", "Security"),
@@ -88,7 +88,7 @@ class AccountSettingsWithoutOrganizationTest(AcceptanceTestCase):
             self.options({"system.url-prefix": self.browser.live_server_url}),
             self.browser.full_viewport(width=375, height=812, fit_content=False),
         ):
-            self.browser.driver.execute_cdp_cmd(
+            getattr(self.browser.driver, "execute_cdp_cmd")(
                 "Emulation.setTouchEmulationEnabled", {"enabled": True}
             )
             try:
@@ -106,6 +106,6 @@ class AccountSettingsWithoutOrganizationTest(AcceptanceTestCase):
                 self.browser.wait_until('input[name="email"]')
                 assert self.browser.driver.current_url.endswith("/settings/account/emails/")
             finally:
-                self.browser.driver.execute_cdp_cmd(
+                getattr(self.browser.driver, "execute_cdp_cmd")(
                     "Emulation.setTouchEmulationEnabled", {"enabled": False}
                 )

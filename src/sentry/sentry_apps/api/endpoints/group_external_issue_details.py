@@ -27,6 +27,7 @@ from sentry.issues.action_log.request import resolve_action_source
 from sentry.issues.action_log.types import UnlinkPlatformExternalIssueAction
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.locks import locks
+from sentry.models.group import Group
 from sentry.sentry_apps.models.platformexternalissue import PlatformExternalIssue
 from sentry.utils.locking import UnableToAcquireLock
 
@@ -38,6 +39,7 @@ class GroupExternalIssueDetailsEndpoint(GroupEndpoint):
     publish_status = {
         "DELETE": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
+    idempotent_methods = frozenset({"DELETE"})
 
     @extend_schema(
         operation_id="deleteOrganizationIssueExternalIssue",
@@ -68,7 +70,10 @@ class GroupExternalIssueDetailsEndpoint(GroupEndpoint):
         url_names=["sentry-api-0-group-external-issues-details"],
     )
     def delete(
-        self, request: Request, external_issue_id, group
+        self,
+        request: Request,
+        external_issue_id: str,
+        group: Group,
     ) -> Response[None] | Response[DetailResponse]:
         """Remove a custom integration's association with a Sentry issue. The external issue is not deleted."""
         try:
@@ -93,6 +98,7 @@ class GroupExternalIssueDetailsEndpoint(GroupEndpoint):
             except PlatformExternalIssue.DoesNotExist:
                 return Response(status=204)
 
+            actor_id = acting_user_id(request.user)
             publish_action(
                 UnlinkPlatformExternalIssueAction(
                     service_type=external_issue.service_type,
@@ -102,11 +108,7 @@ class GroupExternalIssueDetailsEndpoint(GroupEndpoint):
                 source=resolve_action_source(request),
                 group_id=group.id,
                 project=group.project,
-                actor=(
-                    GroupActionActor.user(user_id)
-                    if (user_id := acting_user_id(request.user)) is not None
-                    else SYSTEM_ACTOR
-                ),
+                actor=(GroupActionActor.user(actor_id) if actor_id is not None else SYSTEM_ACTOR),
             )
 
             deletions.exec_sync(external_issue)

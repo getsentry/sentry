@@ -3,6 +3,7 @@ from uuid import uuid4
 import pytest
 from django.db.migrations.loader import MigrationLoader
 
+from django.db.migrations.state import StateApps
 from sentry.constants import ObjectStatus
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestMigrations
@@ -14,7 +15,7 @@ class SyncCronDetectorEnabledTest(TestMigrations):
     migrate_from = "0121_add_activation_id_to_detector_state"
     migrate_to = "0122_sync_cron_detector_enabled"
 
-    def setup_before_migration(self, apps):
+    def setup_before_migration(self, apps: StateApps) -> None:
         Organization = apps.get_model("sentry", "Organization")
         Project = apps.get_model("sentry", "Project")
         # monitors isn't in the migrate_from state.
@@ -51,7 +52,7 @@ class SyncCronDetectorEnabledTest(TestMigrations):
                 config={},
             )
             DataSourceDetector.objects.create(data_source=data_source, detector=detector)
-            return detector.id
+            return int(detector.id)
 
         self.disabled_shown_enabled = create("disabled-enabled", ObjectStatus.DISABLED, True)
         self.active_shown_disabled = create("active-disabled", ObjectStatus.ACTIVE, False)

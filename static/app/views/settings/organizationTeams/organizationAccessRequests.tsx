@@ -3,8 +3,8 @@ import {useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
@@ -71,12 +71,10 @@ function AccessRequestItem({
     },
     onSuccess: (_data, {isApproved}) => {
       onRemoveAccessRequest(id, isApproved);
-      addSuccessMessage(
-        isApproved ? t('Team request approved') : t('Team request denied')
-      );
+      toast.success(isApproved ? t('Team request approved') : t('Team request denied'));
     },
     onError: (_error, {isApproved}) => {
-      addErrorMessage(
+      toast.error(
         isApproved ? t('Error approving team request') : t('Error denying team request')
       );
     },

@@ -6,10 +6,9 @@ import type {Location} from 'history';
 import {Alert} from '@sentry/scraps/alert';
 import {Grid, Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 
 import {DocumentationHint} from 'sentry/components/documentationHint';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
@@ -28,6 +27,7 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useProfileEventsApiOptions} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {formatError, formatSort} from 'sentry/utils/profiling/hooks/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -42,8 +42,6 @@ import {
   ExploreBodySearch,
   ExploreContentSection,
 } from 'sentry/views/explore/components/styles';
-import {LandingAggregateFlamegraph} from 'sentry/views/explore/profiling/landingAggregateFlamegraph';
-import {Onboarding} from 'sentry/views/explore/profiling/onboarding';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
@@ -53,6 +51,8 @@ import {
 } from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
 
 import {LandingWidgetSelector} from './landing/landingWidgetSelector';
+import {LandingAggregateFlamegraph} from './landingAggregateFlamegraph';
+import {Onboarding} from './onboarding';
 import type {DataState} from './useLandingAnalytics';
 import {useLandingAnalytics} from './useLandingAnalytics';
 
@@ -222,28 +222,30 @@ function ProfilingContentInner() {
                   )}
                   <Stack gap="lg">
                     <Tabs value={tab} onChange={onTabChange}>
-                      <TabList>
-                        <TabList.Item key="transactions">
-                          {t('Transactions')}
-                          <StyledQuestionTooltip
-                            position="top"
-                            size="sm"
-                            title={t(
-                              'Transactions breakdown the profiling data by transactions to provide a more focused view of the data. It allows you to view an aggregate flamegraph for just that transaction and find specific examples.'
-                            )}
-                          />
-                        </TabList.Item>
-                        <TabList.Item key="flamegraph">
-                          {t('Aggregate Flamegraph')}
-                          <StyledQuestionTooltip
-                            position="top"
-                            size="sm"
-                            title={t(
-                              'Aggregate flamegraphs are a visual representation of stacktraces that helps identify where a program spends its time. Look for the widest stacktraces as they indicate where your application is spending more time.'
-                            )}
-                          />
-                        </TabList.Item>
-                      </TabList>
+                      {({TabList}) => (
+                        <TabList>
+                          <TabList.Item key="transactions">
+                            {t('Transactions')}
+                            <StyledQuestionTooltip
+                              position="top"
+                              size="sm"
+                              title={t(
+                                'Transactions breakdown the profiling data by transactions to provide a more focused view of the data. It allows you to view an aggregate flamegraph for just that transaction and find specific examples.'
+                              )}
+                            />
+                          </TabList.Item>
+                          <TabList.Item key="flamegraph">
+                            {t('Aggregate Flamegraph')}
+                            <StyledQuestionTooltip
+                              position="top"
+                              size="sm"
+                              title={t(
+                                'Aggregate flamegraphs are a visual representation of stacktraces that helps identify where a program spends its time. Look for the widest stacktraces as they indicate where your application is spending more time.'
+                              )}
+                            />
+                          </TabList.Item>
+                        </TabList>
+                      )}
                     </Tabs>
                     {tab === 'flamegraph' ? (
                       <FlamegraphTab onDataState={updateFlamegraphDataState} />
@@ -359,9 +361,9 @@ function TransactionsTab({onDataState, location, selection}: TabbedContentProps)
         sortableColumns={new Set(fields)}
       />
       <StyledPagination
-        pageLinks={
+        {...getPaginationProps(
           transactions.status === 'success' ? transactions.data.headers.Link : null
-        }
+        )}
       />
     </Stack>
   );
@@ -394,30 +396,20 @@ function shouldShowProfilingOnboardingPanel(selection: PageFilters, projects: Pr
 
 function ProfilingContentPageHeader() {
   return (
-    <Fragment>
-      <TopBar.Slot
-        name="breadcrumbs"
-        title={{
-          type: 'page-title',
-          label: t('Profiles'),
-          labelTooltip: (
-            <DocumentationHint docsUrl="https://docs.sentry.io/product/profiling/">
-              {t(
-                'Profiling collects detailed information in production about the functions executing in your application and how long they take to run, giving you code-level visibility into your hot paths.'
-              )}
-            </DocumentationHint>
-          ),
-        }}
-      />
-      <TopBar.Slot name="feedback">
-        <FeedbackButton
-          aria-label={t('Give Feedback')}
-          tooltipProps={{title: t('Give Feedback')}}
-        >
-          {null}
-        </FeedbackButton>
-      </TopBar.Slot>
-    </Fragment>
+    <TopBar.Slot
+      name="breadcrumbs"
+      title={{
+        type: 'page-title',
+        label: t('Profiles'),
+        labelTooltip: (
+          <DocumentationHint docsUrl="https://docs.sentry.io/product/profiling/">
+            {t(
+              'Profiling collects detailed information in production about the functions executing in your application and how long they take to run, giving you code-level visibility into your hot paths.'
+            )}
+          </DocumentationHint>
+        ),
+      }}
+    />
   );
 }
 

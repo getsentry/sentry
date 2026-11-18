@@ -2,12 +2,10 @@ import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 import {triggerResizeObservers} from 'sentry-test/resizeObserver';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {
-  FormattedQuery,
-  type FormattedQueryProps,
-} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import type {TagCollection} from 'sentry/types/group';
 import {getFieldDefinition} from 'sentry/utils/fields';
+
+import {FormattedQuery, type FormattedQueryProps} from './formattedQuery';
 
 const FILTER_KEYS: TagCollection = {
   lastSeen: {

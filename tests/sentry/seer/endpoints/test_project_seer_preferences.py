@@ -2,9 +2,12 @@ from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 
+from sentry.models.projectrepository import ProjectRepositorySource
 from sentry.models.repository import Repository
+from sentry.seer.autofix.utils import MAX_SEER_REPOS_PER_PROJECT
 from sentry.seer.models.project_repository import SeerProjectRepository
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
 
 
 class ProjectSeerPreferencesEndpointTest(APITestCase):
@@ -162,6 +165,33 @@ class ProjectSeerPreferencesEndpointTest(APITestCase):
         assert preference["repositories"] == []
         assert preference["automation_handoff"] is None
         assert response.data["code_mapping_repos"] == []
+
+    @with_feature(
+        {
+            "organizations:seer-token-based-billing-onboarding": True,
+            "organizations:token-billed-seer-enabled": True,
+        }
+    )
+    def test_get_returns_every_linked_repo(self) -> None:
+        integration = self.create_integration(
+            organization=self.org, provider="github", external_id="github:1"
+        )
+        for i in range(MAX_SEER_REPOS_PER_PROJECT + 2):
+            repo = self.create_repo(
+                project=self.project,
+                provider="integrations:github",
+                integration_id=integration.id,
+                external_id=f"ext-{i}",
+                name=f"getsentry/repo-{i}",
+            )
+            self.create_project_repository(
+                project=self.project, repository=repo, source=ProjectRepositorySource.AUTO_EVENT
+            )
+
+        response = self.client.get(self.url)
+
+        assert response.status_code == 200
+        assert len(response.data["preference"]["repositories"]) == MAX_SEER_REPOS_PER_PROJECT + 2
 
     def test_post_with_blank_string_fields(self) -> None:
         """Test that optional fields accept blank strings (empty strings) not just null values"""

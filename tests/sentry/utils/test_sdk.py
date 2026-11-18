@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import contextlib
 import os
+from collections.abc import Iterator
 from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
@@ -29,7 +30,7 @@ from sentry.utils.sdk import (
 
 
 @contextlib.contextmanager
-def patch_isolation_scope():
+def patch_isolation_scope() -> Iterator[Scope]:
     """
     Generates and yields new Scope object, and patches sentry.utils.sdk.Scope.get_isolation_scope to return the same
     scope within the context manager.
@@ -242,7 +243,7 @@ class CheckTagForScopeBleedTest(TestCase):
 
     def test_overwriting_list_with_non_member_single_org_counts_as_mismatch(
         self, mock_logger_warning: MagicMock
-    ):
+    ) -> None:
         orgs = [self.create_organization() for _ in range(3)]
 
         with patch_isolation_scope() as mock_scope:
@@ -352,7 +353,7 @@ class CaptureExceptionWithScopeCheckTest(TestCase):
         self,
         mock_check_transaction: MagicMock,
         mock_sdk_capture_exception: MagicMock,
-    ):
+    ) -> None:
         capture_exception_with_scope_check(Exception())
 
         assert mock_check_transaction.call_count == 0
@@ -433,7 +434,7 @@ class CaptureExceptionWithScopeCheckTest(TestCase):
 
     def test_doesnt_overwrite_incoming_scope_bleed_context(
         self, mock_sdk_capture_exception: MagicMock
-    ):
+    ) -> None:
         existing_scope_bleed_data = {
             "previous_org.slug_tag": "good_dogs",
             "new_org.slug_tag": "squirrel_chasers",
@@ -606,7 +607,7 @@ class BindAmbiguousOrgContextTest(TestCase):
 class SDKLoggerTest(TestCase):
     def test_flatten_dict(self) -> None:
         class Dog:
-            def __init__(self, name: str):
+            def __init__(self, name: str) -> None:
                 self.name = name
 
             def __str__(self) -> str:
@@ -860,3 +861,22 @@ def test_before_send_error_level() -> None:
     event_with_before_send = sdk.before_send(event, hint)  # type: ignore[arg-type]
     assert event_with_before_send
     assert event_with_before_send["level"] == "warning"
+
+
+def test_before_send_adds_tags_when_event_has_none() -> None:
+    event = sdk.before_send({"level": "error"}, {})
+    assert event
+    assert event["tags"] == {
+        "silo_mode": str(settings.SILO_MODE),
+        "sentry_region": settings.SENTRY_LOCAL_CELL,
+    }
+
+
+def test_before_send_preserves_existing_tags() -> None:
+    event = sdk.before_send({"level": "error", "tags": {"foo": "bar"}}, {})
+    assert event
+    assert event["tags"] == {
+        "foo": "bar",
+        "silo_mode": str(settings.SILO_MODE),
+        "sentry_region": settings.SENTRY_LOCAL_CELL,
+    }

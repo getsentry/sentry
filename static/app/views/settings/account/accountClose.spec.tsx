@@ -7,7 +7,7 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import AccountClose from 'sentry/views/settings/account/accountClose';
+import AccountClose from './accountClose';
 
 describe('AccountClose', () => {
   let deleteMock: jest.Mock;

@@ -1,5 +1,3 @@
-import * as qs from 'query-string';
-
 import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization} from 'sentry/types/organization';
@@ -9,6 +7,7 @@ import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 import {uniqueId} from 'sentry/utils/guid';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
+import * as qs from 'sentry/utils/url/qs';
 import {readStorageValue} from 'sentry/utils/useSessionStorage';
 
 import type {Subscription} from 'getsentry/types';
@@ -94,8 +93,7 @@ const getCustomReferrer = () => {
 const getOrganizationId = (
   organization: Organization | string | null
 ): number | undefined | null => {
-  // this should never happen but there are components that use withOrganization
-  // that might end up with an undefined org if used incorrectly
+  // this should never happen, but untyped callers may still pass an undefined org
   if (organization === undefined) {
     // eslint-disable-next-line no-console
     console.warn('Unexpected undefined organization');

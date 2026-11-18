@@ -20,7 +20,6 @@ import {usePrevious} from 'sentry/utils/usePrevious';
 import {useProjectFromSlug} from 'sentry/utils/useProjectFromSlug';
 import {SourceMapIssueDetails} from 'sentry/views/issueDetails/configurationIssues/sourceMapIssues/sourceMapIssueDetails';
 import {EventDetails} from 'sentry/views/issueDetails/eventDetails';
-import {GroupEventDetailsLoading} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsLoading';
 import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
 import {ReprocessingProgress} from 'sentry/views/issueDetails/reprocessingProgress';
 import {useGroup} from 'sentry/views/issueDetails/useGroup';
@@ -33,11 +32,13 @@ import {
   useEnvironmentsFromUrl,
 } from 'sentry/views/issueDetails/utils';
 
+import {GroupEventDetailsLoading} from './groupEventDetailsLoading';
+
 function GroupEventDetails() {
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
-  const params = useParams<{eventId?: string}>();
+  const {eventId} = useParams<{eventId?: string}>();
   const groupId = useGroupId();
   const environments = useEnvironmentsFromUrl();
 
@@ -49,7 +50,7 @@ function GroupEventDetails() {
     refetch: refetchEvent,
   } = useGroupEvent({
     groupId,
-    eventId: params.eventId,
+    eventId,
   });
 
   const {
@@ -81,8 +82,8 @@ function GroupEventDetails() {
     if (
       environmentsHaveChanged &&
       prevEvent &&
-      params.eventId &&
-      !['latest', 'oldest'].includes(params.eventId)
+      eventId &&
+      !['latest', 'oldest'].includes(eventId)
     ) {
       const environment = getEventEnvironment(prevEvent);
       const shouldRedirect =
@@ -102,10 +103,10 @@ function GroupEventDetails() {
   }, [
     prevEnvironment,
     environments,
-    groupId,
     location.query,
     organization.slug,
-    params,
+    eventId,
+    groupId,
     prevEvent,
     navigate,
   ]);

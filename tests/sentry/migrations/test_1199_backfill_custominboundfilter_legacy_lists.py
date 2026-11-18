@@ -1,5 +1,7 @@
+from typing import Any
 import pytest
 
+from django.db.migrations.state import StateApps
 from sentry.testutils.cases import TestMigrations
 
 
@@ -9,10 +11,10 @@ class BackfillCustomInboundFilterLegacyListsTest(TestMigrations):
     migrate_from = "1198_prepare_incidentactivity_retirement"
     migrate_to = "1199_backfill_custominboundfilter_legacy_lists"
 
-    def setup_initial_state(self):
+    def setup_initial_state(self) -> None:
         self.other_project = self.create_project(organization=self.organization)
 
-    def setup_before_migration(self, apps):
+    def setup_before_migration(self, apps: StateApps) -> None:
         ProjectOption = apps.get_model("sentry", "ProjectOption")
         CustomInboundFilter = apps.get_model("sentry", "CustomInboundFilter")
 
@@ -62,10 +64,10 @@ class BackfillCustomInboundFilterLegacyListsTest(TestMigrations):
             conditions=[{"type": "release", "value": ["3.*"]}],
         )
 
-    def test_backfill(self):
+    def test_backfill(self) -> None:
         CustomInboundFilter = self.apps.get_model("sentry", "CustomInboundFilter")
 
-        def rows(project_id):
+        def rows(project_id: int) -> dict[str | None, Any]:
             return {
                 row.legacy_filter: row
                 for row in CustomInboundFilter.objects.filter(project_id=project_id)

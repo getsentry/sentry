@@ -1,5 +1,5 @@
-import {trimTextCenter} from 'sentry/utils/string/trimTextCenter';
-import {ELLIPSIS} from 'sentry/utils/string/unicode';
+import {trimTextCenter} from './trimTextCenter';
+import {ELLIPSIS} from './unicode';
 
 describe('trimTextCenter', () => {
   it('trims nothing if low > length', () => {

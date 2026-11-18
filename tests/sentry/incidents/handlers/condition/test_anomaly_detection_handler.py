@@ -35,7 +35,7 @@ class TestAnomalyDetectionHandler(ConditionTestCase):
         (self.workflow, self.detector, self.detector_workflow, self.workflow_triggers) = (
             self.create_detector_and_workflow()
         )
-        self.detector.update(config={"detection_type": "dynamic", "comparison_delta": None})
+        self.detector.update(config={"detection_type": "dynamic"})
         self.detector.save()
 
         packet = AnomalyDetectionUpdate(

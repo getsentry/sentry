@@ -8,8 +8,9 @@ import type {
   PullRequestReviewStatus,
 } from 'sentry/types/integrations';
 import type {Broadcast} from 'sentry/types/system';
-import type {BaseEventAnalyticsParams} from 'sentry/utils/analytics/workflowAnalyticsEvents';
 import type {CommonGroupAnalyticsData} from 'sentry/utils/events';
+
+import type {BaseEventAnalyticsParams} from './workflowAnalyticsEvents';
 
 type IssueStream = {
   group_id: string;
@@ -102,6 +103,8 @@ export type IssueEventParameters = {
   'issue_details.activity_drawer.filter_changed': {
     filter: string;
   };
+  'issue_details.agent_run.step_clicked': {source: 'timeline' | 'hidden_steps'};
+  'issue_details.agent_run.viewed': Record<string, unknown>;
   'issue_details.comment_created': Record<string, unknown>;
   'issue_details.comment_deleted': Record<string, unknown>;
   'issue_details.comment_updated': Record<string, unknown>;
@@ -145,15 +148,10 @@ export type IssueEventParameters = {
     group_id?: string;
     parent_group_id?: string;
     project_id?: string;
-    shouldBeGrouped?: string;
   };
   'issue_details.similar_issues.drawer_opened': {
     group_id: string;
     project_id: string;
-  };
-  'issue_details.streamline_ui_toggle': {
-    enforced_streamline_ui: boolean;
-    isEnabled: boolean;
   };
   'issue_details.tour.reminder': {method: 'dismissed' | 'timeout'};
   'issue_details.tour.skipped': Record<string, unknown>;
@@ -261,6 +259,11 @@ export type IssueEventParameters = {
     action_status_details?: string;
     action_substatus?: string | null;
   };
+  'issues_stream.copied': {
+    area: string;
+    copy_type: 'short_ids' | 'links';
+    count: number;
+  };
   'issues_stream.issue_assigned': IssueStream & {
     area: string;
     assigned_type: string;
@@ -343,7 +346,6 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
     'Issue Details: Merged Issues Drawer Opened',
   'issue_details.similar_issues.diff_clicked':
     'Issue Details: Similar Issues: Diff Clicked',
-  'issue_details.streamline_ui_toggle': 'Streamline: UI Toggle Clicked',
   'issue_details.tour.skipped': 'Issue Details: Tour Skipped',
   'issue_details.tour.started': 'Issue Details: Tour Started',
   'issue_details.tour.reminder': 'Issue Details: Tour Reminder Acknowledged',
@@ -380,6 +382,7 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'issue_inbox.item_clicked': 'Issue Inbox: Item Clicked',
   'issue_inbox.open_in_desktop_app_clicked': 'Issue Inbox: Open in Desktop App Clicked',
   'issues_stream.archived': 'Issues Stream: Archived',
+  'issues_stream.copied': 'Issues Stream: Copied',
   'issues_stream.updated_priority': 'Issues Stream: Updated Priority',
   'issues_stream.realtime_clicked': 'Issues Stream: Realtime Clicked',
   'issues_stream.issue_assigned': 'Assigned Issue from Issues Stream',
@@ -397,6 +400,8 @@ export const issueEventMap: Record<IssueEventKey, string | null> = {
   'integrations.integration_reinstall_clicked': 'Integration Reinstall Button Clicked',
   'issue_details.view_full_trace_waterfall_clicked':
     ' Issue Details: View Full Trace Waterfall Clicked',
+  'issue_details.agent_run.step_clicked': 'Issue Details: Agent Run Step Clicked',
+  'issue_details.agent_run.viewed': 'Issue Details: Agent Run Viewed',
 
   'actionable_items.expand_clicked': 'Actionable Item: Expand Clicked',
   'issue_details.copy_event_link_clicked': 'Issue Details: Copy Event Link Clicked',

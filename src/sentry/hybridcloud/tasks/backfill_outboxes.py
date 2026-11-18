@@ -74,7 +74,7 @@ def _watermark_model(table_name: str) -> type[BaseOutboxBackfillWatermark]:
 
 
 def read_processing_state(table_name: str) -> tuple[int, int] | None:
-    row = _watermark_model(table_name).objects.filter(table_name=table_name).first()
+    row = _watermark_model(table_name).objects.filter(table_name=table_name).first()  # noqa: S035
     if row is None:
         return None
     return row.low_bound, row.version
@@ -129,7 +129,8 @@ def find_replication_version(
         return coded_version
 
     model_key = f"outbox_replication.{model._meta.db_table}.replication_version"
-    return min(options.get(model_key), coded_version)
+    configured_version = options.get(model_key)
+    return min(configured_version, coded_version)
 
 
 def _chunk_processing_batch(

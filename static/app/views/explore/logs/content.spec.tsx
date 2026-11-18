@@ -18,13 +18,13 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
 import {LOGS_AUTO_REFRESH_KEY} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import type {OurLogsResponseItem} from 'sentry/views/explore/logs/types';
+
+import LogsPage from './content';
+import type {OurLogsResponseItem} from './types';
 import {
   LOGS_AGGREGATES_TIMESTAMP_FIELD,
   LOGS_AGGREGATES_TRACE_FIELD,
-} from 'sentry/views/explore/logs/useLogsAggregatesTable';
-
-import LogsPage from './content';
+} from './useLogsAggregatesTable';
 
 beforeEach(() => {
   mockElementSize();
@@ -109,6 +109,31 @@ describe('LogsPage', () => {
       method: 'GET',
       body: {},
     });
+  });
+
+  it('keeps the sidebar hidden until Advanced is pressed', async () => {
+    render(<LogsPage />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: `/organizations/${organization.slug}/explore/logs/`},
+      },
+    });
+
+    expect(screen.queryByTestId('logs-toolbar')).not.toBeInTheDocument();
+    const expandSidebar = await screen.findByRole('button', {name: 'Expand sidebar'});
+    expect(expandSidebar).toHaveTextContent('Advanced');
+
+    await userEvent.click(expandSidebar);
+    expect(screen.getByTestId('logs-toolbar')).toBeInTheDocument();
+
+    const collapseSidebar = screen.getByRole('button', {name: 'Collapse sidebar'});
+    expect(collapseSidebar).not.toHaveTextContent('Advanced');
+    await userEvent.click(collapseSidebar);
+
+    expect(screen.queryByTestId('logs-toolbar')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Expand sidebar'})).toHaveTextContent(
+      'Advanced'
+    );
   });
 
   it('should call APIs as expected', async () => {

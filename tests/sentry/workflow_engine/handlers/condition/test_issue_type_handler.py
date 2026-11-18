@@ -67,12 +67,14 @@ class TestIssueTypeCondition(ConditionTestCase):
 
         # Error event will pass when we include ErrorGroupType
         self.dc.update(comparison={"value": ErrorGroupType.slug, "include": True})
-        self.assert_passes(self.dc, WorkflowEventData(event=self.event, group=self.group))
+        self.assert_passes(self.dc, WorkflowEventData(event=self.group_event, group=self.group))
         self.assert_passes(self.dc, WorkflowEventData(event=group_event, group=self.group))
 
         # Error event will not pass when we include MetricIssue
         self.dc.update(comparison={"value": MetricIssue.slug, "include": True})
-        self.assert_does_not_pass(self.dc, WorkflowEventData(event=self.event, group=self.group))
+        self.assert_does_not_pass(
+            self.dc, WorkflowEventData(event=self.group_event, group=self.group)
+        )
         self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event, group=self.group))
 
     def test_preview_filters_groups_by_issue_type(self) -> None:
@@ -96,10 +98,12 @@ class TestIssueTypeCondition(ConditionTestCase):
 
         self.dc.update(comparison={"value": ErrorGroupType.slug, "include": False})
         # Error event will not pass when we exclude ErrorGroupType
-        self.assert_does_not_pass(self.dc, WorkflowEventData(event=self.event, group=self.group))
+        self.assert_does_not_pass(
+            self.dc, WorkflowEventData(event=self.group_event, group=self.group)
+        )
         self.assert_does_not_pass(self.dc, WorkflowEventData(event=group_event, group=self.group))
 
         self.dc.update(comparison={"value": MetricIssue.slug, "include": False})
         # Error event will pass when we exclude MetricIssue
-        self.assert_passes(self.dc, WorkflowEventData(event=self.event, group=self.group))
+        self.assert_passes(self.dc, WorkflowEventData(event=self.group_event, group=self.group))
         self.assert_passes(self.dc, WorkflowEventData(event=group_event, group=self.group))

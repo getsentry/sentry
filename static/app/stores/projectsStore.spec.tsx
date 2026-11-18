@@ -1,8 +1,8 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 
-import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {TeamStore} from 'sentry/stores/teamStore';
+import {ProjectsStore} from './projectsStore';
+import {TeamStore} from './teamStore';
 
 describe('ProjectsStore', () => {
   const teamFoo = TeamFixture({
@@ -37,6 +37,19 @@ describe('ProjectsStore', () => {
       ProjectsStore.loadInitialData([projectFoo, projectBar]);
       expect(ProjectsStore.getState()).toMatchObject({
         projects: [projectBar, projectFoo], // projects are returned sorted
+        loading: false,
+      });
+    });
+
+    it('merges projects into the current state', () => {
+      ProjectsStore.loadInitialData([projectFoo, projectBar]);
+      const updatedFoo = {...projectFoo, name: 'Foo Updated'};
+      const projectBaz = ProjectFixture({id: '11', slug: 'baz'});
+
+      ProjectsStore.mergeProjects([updatedFoo, projectBaz]);
+
+      expect(ProjectsStore.getState()).toMatchObject({
+        projects: [projectBar, projectBaz, updatedFoo],
         loading: false,
       });
     });

@@ -7,7 +7,6 @@ import {Stack, Grid} from '@sentry/scraps/layout';
 import type {StylesConfig, SelectValue} from '@sentry/scraps/select';
 import {Select} from '@sentry/scraps/select';
 
-import {useInviteMembersContext} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
 import {RoleSelectControl} from 'sentry/components/roleSelectControl';
 import {TeamSelector} from 'sentry/components/teamSelector';
 import {t} from 'sentry/locale';
@@ -15,6 +14,7 @@ import type {Organization, OrgRole} from 'sentry/types/organization';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {EmailValue} from './emailValue';
+import {useInviteMembersContext} from './inviteMembersContext';
 import type {InviteStatus} from './types';
 
 type SelectOption = SelectValue<string>;
@@ -23,6 +23,18 @@ type Props = {
   roleDisabledUnallowed: boolean;
   roleOptions: OrgRole[];
 };
+
+// Address lists copied from mail clients look like `Jane Doe <jane@example.com>`.
+const EMAIL_PATTERN = /[^\s<>[\],;"()]+@[^\s<>[\],;"()]+/g;
+const SEPARATOR_PATTERN = /[\s,;<>]/;
+
+export function parseEmails(input: string): string[] {
+  const emails = input.replace(/mailto:/gi, '').match(EMAIL_PATTERN);
+  if (emails) {
+    return emails;
+  }
+  return input.split(/[\s,;]+/).filter(Boolean);
+}
 
 function mapToOptions(values: string[]): SelectOption[] {
   return values.map(value => ({value, label: value}));
@@ -85,6 +97,7 @@ export function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
     switch (e.key) {
       case 'Enter':
       case ',':
+      case ';':
       case ' ':
         e.preventDefault();
         handleInput(inputValue);
@@ -96,7 +109,7 @@ export function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
   };
 
   const handleInput = (input: string) => {
-    const newEmails = input.trim() ? input.trim().split(/[\s,]+/) : [];
+    const newEmails = parseEmails(input);
     if (newEmails.length > 0) {
       onChangeEmails([
         ...mapToOptions(emails),
@@ -129,7 +142,15 @@ export function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
             handleInput(e.target.value);
           }}
           styles={getStyles(theme, inviteStatus)}
-          onInputChange={setInputValue}
+          onInputChange={(value, reason) => {
+            // Typed separators are caught in onKeyDown, so one here means pasted text.
+            if (reason === 'input' && SEPARATOR_PATTERN.test(value)) {
+              handleInput(value);
+              setInputValue('');
+              return;
+            }
+            setInputValue(value);
+          }}
           onKeyDown={handleKeyDown}
           onChange={onChangeEmails}
           multiple
@@ -138,13 +159,21 @@ export function InviteRowControl({roleDisabledUnallowed, roleOptions}: Props) {
           isOpen={false}
         />
       </div>
-      <Grid align="start" gap="lg" columns="1fr 1fr">
+      <Grid
+        align="start"
+        gap="lg"
+        columns={{zero: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))'}}
+      >
         <div>
           <Heading htmlFor="role">{t('Role')}</Heading>
           <RoleSelectControl
             id="role"
             aria-label={t('Role')}
             disabled={isOverMemberLimit}
+            // A search field opens the on-screen keyboard over the menu on
+            // touch devices, and there are only a handful of roles.
+            searchable={false}
+            maxMenuWidth="100%"
             value={role}
             roles={roleOptions}
             disableUnallowed={roleDisabledUnallowed}

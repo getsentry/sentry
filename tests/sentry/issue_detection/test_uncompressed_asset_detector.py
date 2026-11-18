@@ -16,9 +16,9 @@ from sentry.issue_detection.performance_problem import PerformanceProblem
 from sentry.issues.grouptype import PerformanceUncompressedAssetsGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.options.project_option import ProjectOption
+from sentry.spans.grouping.strategy.base import Span
 from sentry.testutils.cases import TestCase
 from sentry.testutils.issue_detection.event_generators import PROJECT_ID, create_span, get_event
-from sentry.testutils.issue_detection.span_builder import SpanBuilder
 
 
 def create_asset_span(
@@ -26,11 +26,11 @@ def create_asset_span(
     desc: str = "https://s1.sentry-cdn.com/_static/dist/sentry/entrypoints/app.js",
     duration: float = 1000.0,
     data: dict[str, Any] | None = None,
-) -> SpanBuilder:
+) -> Span:
     return create_span("resource.script", desc=desc, duration=duration, data=data)
 
 
-def create_compressed_asset_span() -> SpanBuilder:
+def create_compressed_asset_span() -> Span:
     return create_asset_span(
         desc="https://someothersite.example.com/app.js",
         duration=1.0,

@@ -263,7 +263,7 @@ class User(Model, AbstractBaseUser):
                     if self.pk is None and not is_relocated_user:
                         # new users should set email_unique
                         self.email_unique = self.email
-                    elif self.pk is None and is_relocated_user:
+                    elif not self.pk and is_relocated_user:
                         # If the user is new, relocated blank email_unique to dodge
                         # integrity errors.
                         self.email_unique = None
@@ -630,7 +630,7 @@ class User(Model, AbstractBaseUser):
         # server-generated and `username` is unique, so matching on username alone is safe.
         # Reuse the existing account instead of inserting.
         if flags.merge_users:
-            username_match = User.objects.filter(username__iexact=self.username).first()
+            username_match = User.objects.filter(username__iexact=self.username).first()  # noqa: S035
             if username_match:
                 return (username_match.pk, ImportKind.Existing)
 

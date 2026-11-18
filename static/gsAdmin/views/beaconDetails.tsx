@@ -1,7 +1,8 @@
+import {useQuery} from '@tanstack/react-query';
+
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useParams} from 'sentry/utils/useParams';
 
 import {BeaconCheckins} from 'admin/components/beacons/beaconCheckins';
@@ -12,15 +13,11 @@ import {DetailsPage} from 'admin/components/detailsPage';
 
 export function BeaconDetails() {
   const params = useParams<{beaconId: string}>();
-  const {data, isPending, isError} = useApiQuery<BeaconData>(
-    [
-      getApiUrl('/beacons/$beaconId/', {
-        path: {beaconId: params.beaconId},
-      }),
-    ],
-    {
+  const {data, isPending, isError} = useQuery(
+    apiOptions.as<BeaconData>()('/beacons/$beaconId/', {
+      path: {beaconId: params.beaconId},
       staleTime: 0,
-    }
+    })
   );
 
   if (isPending) {

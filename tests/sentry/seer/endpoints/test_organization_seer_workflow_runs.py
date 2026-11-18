@@ -1,4 +1,6 @@
 from collections.abc import Sequence
+from datetime import UTC, datetime
+from typing import Any
 from unittest.mock import patch
 
 from django.db import connections, router
@@ -13,6 +15,7 @@ from sentry.apidocs.spectacular_ports import resolve_type_hint
 from sentry.db.models.fields.bounded import I64_MAX
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
+from sentry.models.group import GroupStatus
 from sentry.notebooks.models import NotebookStatus
 from sentry.seer.endpoints.organization_seer_workflow_runs import (
     SeerWorkflowRunsResponse,
@@ -32,6 +35,8 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.features import with_feature
+from sentry.utils import json
+from sentry.workflow_engine.models import Workflow
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
@@ -83,7 +88,9 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
                 {
                     "id": str(run.id),
                     "configId": str(self.config.id),
+                    "configName": None,
                     "strategy": "breached_metric_investigation",
+                    "trigger": None,
                     "status": "running",
                     "dateAdded": run.date_added,
                     "dateUpdated": run.date_updated,
@@ -161,7 +168,7 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
         )
 
         response = self.get_success_response(self.organization.slug, config=self.config.id)
-        (serialized_run,) = response.json()["runs"]
+        (serialized_run,) = json.loads(response.content)["runs"]
         (serialized_execution,) = serialized_run["executions"]
         assert serialized_run["status"] == serialized_execution["status"] == "failed"
         assert serialized_run["error"] == error
@@ -184,7 +191,7 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
             run.update(extras={"error": error})
             execution.update(extras={"error": error})
             response = self.get_success_response(self.organization.slug, config=self.config.id)
-            (serialized_run,) = response.json()["runs"]
+            (serialized_run,) = json.loads(response.content)["runs"]
             unknown = {"code": "unknown", "message": "No error details are available."}
             assert serialized_run["error"] == (None if error is None else unknown)
             assert serialized_run["executions"][0]["error"] == unknown
@@ -215,7 +222,7 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
             )
 
         response = self.get_success_response(self.organization.slug, config=self.config.id)
-        runs = response.json()["runs"]
+        runs = json.loads(response.content)["runs"]
         assert [run["status"] for run in runs] == [None, "complete", "running", "queued"]
         for run_data in runs:
             assert "error" not in run_data
@@ -427,7 +434,10 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
             Factories.create_seer_workflow_run_execution(run)
         runs = list(
             SeerWorkflowRun.objects.filter(id__in=[run.id for run in created])
-            .annotate(strategy=F("workflow_config__strategy"))
+            .annotate(
+                strategy=F("workflow_config__strategy"),
+                config_extras=F("workflow_config__extras"),
+            )
             .order_by("id")
         )
         using = router.db_for_read(SeerWorkflowRunExecution)
@@ -476,7 +486,169 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
         assert response.data["runs"][0]["executions"][0]["outputs"] == []
         assert investigation.title not in response.content.decode()
 
-    def create_run(self, *, project_ids: Sequence[int] | None = None, **kwargs) -> SeerWorkflowRun:
+    def test_returns_the_triggering_monitor(self) -> None:
+        detector = self.create_detector(project=self.project)
+        group = self.create_group(project=self.project)
+        run = self.create_run(inputs=self.monitor_inputs(detector.id, self.project.id, group.id))
+
+        response = self.get_success_response(self.organization.slug)
+
+        (serialized_run,) = response.data["runs"]
+        assert serialized_run["id"] == str(run.id)
+        assert serialized_run["trigger"] == {
+            "type": "monitor",
+            "detectorId": str(detector.id),
+            "detectorName": detector.name,
+            "environment": "production",
+            "eventId": "a" * 32,
+            "groupExists": True,
+            "groupId": str(group.id),
+            "groupShortId": "BACKEND-1A",
+            "observedAt": datetime(2025, 1, 1, 10, tzinfo=UTC),
+            "occurrenceId": "abc",
+            "projectId": str(self.project.id),
+        }
+
+    def test_returns_the_config_name(self) -> None:
+        self.config.update(extras={"name": "Checkout latency"})
+        self.create_run()
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert response.data["runs"][0]["configName"] == "Checkout latency"
+
+    def test_detector_name_is_null_for_a_deleted_detector(self) -> None:
+        detector = self.create_detector(project=self.project)
+        detector_id = detector.id
+        self.create_run(inputs=self.monitor_inputs(detector_id, self.project.id))
+        detector.delete()
+
+        response = self.get_success_response(self.organization.slug)
+
+        trigger = response.data["runs"][0]["trigger"]
+        assert trigger["detectorId"] == str(detector_id)
+        assert trigger["detectorName"] is None
+
+    def test_detector_name_is_null_when_the_detector_left_the_trigger_project(self) -> None:
+        detector = self.create_detector(project=self.create_project())
+        self.create_run(inputs=self.monitor_inputs(detector.id, self.project.id))
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert response.data["runs"][0]["trigger"]["detectorName"] is None
+
+    def test_detector_name_is_null_for_a_foreign_detector(self) -> None:
+        foreign_project = self.create_project(organization=self.create_organization())
+        detector = self.create_detector(project=foreign_project)
+        self.create_run(inputs=self.monitor_inputs(detector.id, foreign_project.id))
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert response.data["runs"][0]["trigger"]["detectorName"] is None
+
+    def test_triggered_runs_only_require_access_to_the_trigger_project(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        team = self.create_team(organization=self.organization)
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, role="member", teams=[team])
+        visible_project = self.create_project(teams=[team])
+        hidden_project = self.create_project(
+            teams=[self.create_team(organization=self.organization)]
+        )
+        visible_detector = self.create_detector(project=visible_project, name="Visible monitor")
+        hidden_detector = self.create_detector(project=hidden_project, name="Hidden monitor")
+        # Triggered in a hidden project, even though the saved scope is fully visible.
+        self.create_run(
+            project_ids=[visible_project.id],
+            inputs=self.monitor_inputs(hidden_detector.id, hidden_project.id),
+        )
+        # Triggered in a visible project, even though the saved scope includes a hidden one.
+        visible = self.create_run(
+            project_ids=[visible_project.id, hidden_project.id],
+            inputs=self.monitor_inputs(visible_detector.id, visible_project.id),
+        )
+        self.login_as(member)
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert [(run["id"], run["trigger"]["detectorName"]) for run in response.data["runs"]] == [
+            (str(visible.id), "Visible monitor"),
+        ]
+        assert "Hidden monitor" not in response.content.decode()
+
+    def test_group_exists_is_false_for_a_deleted_group(self) -> None:
+        detector = self.create_detector(project=self.project)
+        deleted = self.create_group(project=self.project)
+        deleted_id = deleted.id
+        pending_deletion = self.create_group(
+            project=self.project, status=GroupStatus.PENDING_DELETION
+        )
+        pending_run = self.create_run(
+            inputs=self.monitor_inputs(detector.id, self.project.id, pending_deletion.id)
+        )
+        deleted_run = self.create_run(
+            inputs=self.monitor_inputs(detector.id, self.project.id, deleted_id)
+        )
+        deleted.delete()
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert [
+            (run["id"], run["trigger"]["groupId"], run["trigger"]["groupExists"])
+            for run in response.data["runs"]
+        ] == [
+            (str(deleted_run.id), str(deleted_id), False),
+            (str(pending_run.id), str(pending_deletion.id), False),
+        ]
+
+    def test_returns_cron_trigger_for_scheduled_runs(self) -> None:
+        self.config.update(strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2)
+        self.create_run(trigger_key="2026-11-09T03:00")
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert response.data["runs"][0]["trigger"] == {"type": "cron"}
+
+    def test_trigger_is_null_without_a_snapshot(self) -> None:
+        self.create_run(extras={})
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert response.data["runs"][0]["trigger"] is None
+
+    def test_trigger_is_null_for_invalid_inputs(self) -> None:
+        self.create_run(inputs={"detector_id": "not-an-id"})
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert response.data["runs"][0]["trigger"] is None
+
+    def monitor_inputs(
+        self, detector_id: int, project_id: int, group_id: int = 1
+    ) -> dict[str, object]:
+        return {
+            "event_id": "a" * 32,
+            "occurrence_id": "abc",
+            "detector_id": detector_id,
+            "evidence": {},
+            "observed_at": "2025-01-01T10:00:00Z",
+            "environment": "production",
+            "group_id": group_id,
+            "group_short_id": "BACKEND-1A",
+            "project_id": project_id,
+            "binding_id": 1,
+            "workflow_id": 1,
+            "action_id": 1,
+        }
+
+    def create_run(
+        self,
+        *,
+        project_ids: Sequence[int] | None = None,
+        inputs: dict[str, object] | None = None,
+        **kwargs: object,
+    ) -> SeerWorkflowRun:
         kwargs.setdefault("status", SeerWorkflowRunStatus.QUEUED)
         kwargs.setdefault(
             "extras",
@@ -489,7 +661,7 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
                     if project_ids is not None
                     else [self.project.id],
                     "output_policy": self.config.output_policy,
-                    "inputs": {},
+                    "inputs": inputs or {},
                 },
                 "error": None,
             },
@@ -547,6 +719,35 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         assert finding["monitors"] == [
             {"id": str(self.keep.id), "name": "Keep", "enabled": self.keep.enabled},
             {"id": str(self.duplicate.id), "name": "Copy", "enabled": self.duplicate.enabled},
+        ]
+
+    def test_hidden_workflow_findings_are_dropped(self) -> None:
+        alert_workflow = self.create_workflow(organization=self.organization, name="Alert")
+
+        hidden_workflow = self.create_workflow(
+            organization=self.organization, name="Hidden", type=Workflow.Type.INBOX
+        )
+
+        self.create_detector_workflow(detector=self.keep, workflow=alert_workflow)
+        self.create_detector_workflow(detector=self.keep, workflow=hidden_workflow)
+
+        run = self.trigger()
+
+        result = self.result()
+
+        findings = result["data"]["projects"][0]["findings"]
+        findings[0]["alert_ids"] = [str(alert_workflow.id)]
+        findings.append({**findings[0], "alert_ids": [str(hidden_workflow.id)]})
+
+        deliver_monitor_cleanup_result(
+            self.organization.id, run.run.uuid, "completed", result, None
+        )
+
+        run.refresh_from_db()
+        (finding,) = run.extras["results"][0]["findings"]
+
+        assert finding["alerts"] == [
+            {"id": str(alert_workflow.id), "name": "Alert", "enabled": alert_workflow.enabled}
         ]
 
     def test_invalid_results_report_safe_errors(self) -> None:
@@ -608,7 +809,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
         assert agent_run.extras["status"] == "failed"
         assert agent_run.extras["error"] == "The triggering user no longer exists."
 
-    def trigger(self):
+    def trigger(self) -> SeerAgentRun:
         with self.feature("organizations:seer-workflows-monitor-cleanup"):
             response = self.get_success_response(
                 self.organization.slug, strategy="duplicate_monitors", status_code=202
@@ -617,7 +818,7 @@ class OrganizationSeerMonitorCleanupTest(APITestCase):
             run__workflow_execution__run_id=response.data["runId"]
         )
 
-    def result(self):
+    def result(self) -> dict[str, Any]:
         return {
             "schema_version": 1,
             "data": {

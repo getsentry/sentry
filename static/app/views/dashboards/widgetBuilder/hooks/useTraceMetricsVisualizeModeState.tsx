@@ -23,7 +23,6 @@ import {
   prepareQueriesForEquationMode,
 } from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/metricsEquationVisualize/utils';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {
   getTraceMetricAggregateActionType,
   getTraceMetricAggregates,
@@ -37,6 +36,8 @@ import {
   isVisualizeEquation,
   isVisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
+
+import {BuilderStateAction} from './useWidgetBuilderState';
 
 interface SeriesModeSnapshot {
   fields: QueryFieldValue[];

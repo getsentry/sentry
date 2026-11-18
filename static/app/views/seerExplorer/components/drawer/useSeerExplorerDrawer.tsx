@@ -7,10 +7,11 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {ChatPrompt} from 'sentry/views/seerExplorer/chatPrompt';
-import {ExplorerDrawerContent} from 'sentry/views/seerExplorer/components/drawer/explorerDrawerContent';
 import {useSeerExplorerChatDispatch} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 import {usePageReferrer} from 'sentry/views/seerExplorer/utils';
+
+import {ExplorerDrawerContent} from './explorerDrawerContent';
 
 const SEER_EXPLORER_DRAWER_KEY = 'seer-explorer-drawer';
 

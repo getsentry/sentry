@@ -8,10 +8,10 @@ import {Button, ButtonBar} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
 import type {TableColumnConfig} from '@sentry/scraps/table';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {LinkTabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SearchBar} from 'sentry/components/searchBar';
@@ -31,8 +31,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
-import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
+
+import {ProjectPermissionAlert} from './projectPermissionAlert';
+import {useProjectSettingsOutlet} from './projectSettingsLayout';
 
 const ENVIRONMENT_COLUMNS: TableColumnConfig[] = [
   {key: 'name', width: 'minmax(0, 1fr)'},
@@ -193,7 +194,7 @@ export default function ProjectEnvironments() {
       return {previousData};
     },
     onSuccess: (_data, {environment, shouldHide}) => {
-      addSuccessMessage(
+      toast.success(
         shouldHide
           ? t('Hidden %s', getDisplayName(environment))
           : t('Unhidden %s', getDisplayName(environment))
@@ -204,7 +205,7 @@ export default function ProjectEnvironments() {
         queryClient.setQueryData(environmentsQueryOptions.queryKey, context.previousData);
       }
 
-      addErrorMessage(
+      toast.error(
         shouldHide
           ? t('Unable to hide %s', getDisplayName(environment))
           : t('Unable to unhide %s', getDisplayName(environment))
@@ -275,22 +276,24 @@ export default function ProjectEnvironments() {
       <SentryDocumentTitle title={t('Environments')} projectSlug={params.projectId} />
       <SettingsPageHeader title={t('Manage Environments')} />
       <TabsContainer>
-        <Tabs value={isHidden ? 'hidden' : 'environments'}>
-          <TabList>
-            <TabList.Item
-              key="environments"
-              to={`/settings/${organization.slug}/projects/${params.projectId}/environments/`}
-            >
-              {t('Environments')}
-            </TabList.Item>
-            <TabList.Item
-              key="hidden"
-              to={`/settings/${organization.slug}/projects/${params.projectId}/environments/hidden/`}
-            >
-              {t('Hidden')}
-            </TabList.Item>
-          </TabList>
-        </Tabs>
+        <LinkTabs value={isHidden ? 'hidden' : 'environments'}>
+          {({TabList}) => (
+            <TabList>
+              <TabList.Item
+                key="environments"
+                to={`/settings/${organization.slug}/projects/${params.projectId}/environments/`}
+              >
+                {t('Environments')}
+              </TabList.Item>
+              <TabList.Item
+                key="hidden"
+                to={`/settings/${organization.slug}/projects/${params.projectId}/environments/hidden/`}
+              >
+                {t('Hidden')}
+              </TabList.Item>
+            </TabList>
+          )}
+        </LinkTabs>
       </TabsContainer>
       <ProjectPermissionAlert project={project} />
       <Flex paddingBottom="xl">

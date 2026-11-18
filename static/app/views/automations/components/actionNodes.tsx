@@ -3,63 +3,25 @@ import type React from 'react';
 import {t} from 'sentry/locale';
 import type {Action} from 'sentry/types/workflowEngine/actions';
 import {ActionType} from 'sentry/types/workflowEngine/actions';
-import {
-  AzureDevOpsDetails,
-  AzureDevOpsNode,
-} from 'sentry/views/automations/components/actions/azureDevOps';
-import {
-  DiscordDetails,
-  DiscordNode,
-  validateDiscordAction,
-} from 'sentry/views/automations/components/actions/discord';
-import {
-  EmailDetails,
-  EmailNode,
-  validateEmailAction,
-} from 'sentry/views/automations/components/actions/email';
-import {
-  GithubDetails,
-  GithubNode,
-} from 'sentry/views/automations/components/actions/github';
-import {
-  GithubEnterpriseDetails,
-  GithubEnterpriseNode,
-} from 'sentry/views/automations/components/actions/githubEnterprise';
-import {JiraDetails, JiraNode} from 'sentry/views/automations/components/actions/jira';
-import {
-  JiraServerDetails,
-  JiraServerNode,
-} from 'sentry/views/automations/components/actions/jiraServer';
-import {
-  MSTeamsDetails,
-  MSTeamsNode,
-  validateMSTeamsAction,
-} from 'sentry/views/automations/components/actions/msTeams';
-import {
-  OpsgenieDetails,
-  OpsgenieNode,
-  validateOpsgenieAction,
-} from 'sentry/views/automations/components/actions/opsgenie';
+
+import {AzureDevOpsDetails, AzureDevOpsNode} from './actions/azureDevOps';
+import {DiscordDetails, DiscordNode, validateDiscordAction} from './actions/discord';
+import {EmailDetails, EmailNode, validateEmailAction} from './actions/email';
+import {GithubDetails, GithubNode} from './actions/github';
+import {GithubEnterpriseDetails, GithubEnterpriseNode} from './actions/githubEnterprise';
+import {JiraDetails, JiraNode} from './actions/jira';
+import {JiraServerDetails, JiraServerNode} from './actions/jiraServer';
+import {MSTeamsDetails, MSTeamsNode, validateMSTeamsAction} from './actions/msTeams';
+import {OpsgenieDetails, OpsgenieNode, validateOpsgenieAction} from './actions/opsgenie';
 import {
   PagerdutyDetails,
   PagerdutyNode,
   validatePagerdutyAction,
-} from 'sentry/views/automations/components/actions/pagerduty';
-import {PluginNode} from 'sentry/views/automations/components/actions/plugin';
-import {
-  SentryAppDetails,
-  SentryAppNode,
-} from 'sentry/views/automations/components/actions/sentryApp';
-import {
-  SlackDetails,
-  SlackNode,
-  validateSlackAction,
-} from 'sentry/views/automations/components/actions/slack';
-import {
-  validateWebhookAction,
-  WebhookDetails,
-  WebhookNode,
-} from 'sentry/views/automations/components/actions/webhook';
+} from './actions/pagerduty';
+import {PluginNode} from './actions/plugin';
+import {SentryAppDetails, SentryAppNode} from './actions/sentryApp';
+import {SlackDetails, SlackNode, validateSlackAction} from './actions/slack';
+import {validateWebhookAction, WebhookDetails, WebhookNode} from './actions/webhook';
 
 type ActionNode = {
   action: React.ComponentType<any>;

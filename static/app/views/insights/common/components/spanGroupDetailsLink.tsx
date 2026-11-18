@@ -1,13 +1,14 @@
 import styled from '@emotion/styled';
-import * as qs from 'query-string';
 
 import {Link} from '@sentry/scraps/link';
 
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import * as qs from 'sentry/utils/url/qs';
 import {useLocation} from 'sentry/utils/useLocation';
-import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {type ModuleName} from 'sentry/views/insights/types';
+
+import {OverflowEllipsisTextContainer} from './textAlign';
 
 interface Props {
   description: React.ReactNode;

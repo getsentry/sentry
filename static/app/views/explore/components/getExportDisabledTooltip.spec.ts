@@ -1,4 +1,4 @@
-import {getExportDisabledTooltip} from 'sentry/views/explore/components/getExportDisabledTooltip';
+import {getExportDisabledTooltip} from './getExportDisabledTooltip';
 
 describe('getExportDisabledTooltip', () => {
   it('returns undefined when data is ready and non-empty', () => {

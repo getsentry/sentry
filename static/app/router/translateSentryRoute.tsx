@@ -3,13 +3,14 @@ import {Navigate, type NavigateProps, type RouteObject} from 'react-router';
 import * as Sentry from '@sentry/react';
 
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
-import {PRELOAD_HANDLE} from 'sentry/router/preload';
-import type {SentryRouteObject} from 'sentry/router/types';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {withDomainRedirect} from 'sentry/utils/withDomainRedirect';
 import {withDomainRequired} from 'sentry/utils/withDomainRequired';
+
+import {PRELOAD_HANDLE} from './preload';
+import type {SentryRouteObject} from './types';
 
 interface RedirectProps extends Omit<NavigateProps, 'to'> {
   /**
@@ -21,7 +22,7 @@ interface RedirectProps extends Omit<NavigateProps, 'to'> {
 /**
  * Wraps a declarative `Navigate` component to interpolate the params of `to`
  */
-function Redirect({to, ...rest}: RedirectProps) {
+export function Redirect({to, ...rest}: RedirectProps) {
   const params = useParams();
   const routes = useRoutes();
 

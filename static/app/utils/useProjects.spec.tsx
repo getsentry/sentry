@@ -4,7 +4,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {useProjects} from 'sentry/utils/useProjects';
+
+import {useProjects} from './useProjects';
 
 const org = OrganizationFixture();
 
@@ -90,5 +91,39 @@ describe('useProjects', () => {
     const {projects, initiallyLoaded} = result.current;
     expect(initiallyLoaded).toBe(true);
     expect(projects).toEqual(expect.arrayContaining(mockProjects));
+  });
+
+  it('keeps all projects when the store loads before a slug fetch resolves', async () => {
+    act(() => ProjectsStore.reset());
+
+    const target = ProjectFixture({id: '1', slug: 'target'});
+    const allProjects = [
+      target,
+      ProjectFixture({id: '2', slug: 'other-a'}),
+      ProjectFixture({id: '3', slug: 'other-b'}),
+    ];
+
+    let resolveSlugFetch!: () => void;
+    const slugFetchDone = new Promise<void>(r => (resolveSlugFetch = r));
+    const slugRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${org.slug}/projects/`,
+      body: [target],
+      asyncDelay: slugFetchDone,
+    });
+
+    renderHookWithProviders(useProjects, {
+      organization: org,
+      initialProps: {slugs: ['target']},
+    });
+    expect(slugRequest).toHaveBeenCalled();
+
+    act(() => ProjectsStore.loadInitialData(allProjects));
+
+    await act(async () => {
+      resolveSlugFetch();
+      await slugFetchDone;
+    });
+
+    await waitFor(() => expect(ProjectsStore.getState().projects).toHaveLength(3));
   });
 });

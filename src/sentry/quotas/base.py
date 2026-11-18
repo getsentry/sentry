@@ -1,16 +1,12 @@
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from enum import IntEnum, StrEnum, unique
 from functools import total_ordering
 from typing import TYPE_CHECKING, Any, Literal, TypedDict
 
 from django.core.cache import cache
-from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_seer_credits_pb2 import (
-    CheckSeerCreditsRequest,
-    CheckSeerCreditsResponse,
-)
 
 from sentry import features, options
 from sentry.constants import DataCategory
@@ -23,6 +19,7 @@ if TYPE_CHECKING:
     from sentry.models.organizationmember import OrganizationMember
     from sentry.models.project import Project
     from sentry.models.projectkey import ProjectKey
+    from sentry.monitors.constants import PermitCheckInStatus
     from sentry.profiles.utils import Profile
     from sentry.quotas.types import SeatObject
 
@@ -33,7 +30,7 @@ class QuotaScope(IntEnum):
     PROJECT = 2
     KEY = 3
 
-    def api_name(self):
+    def api_name(self) -> str:
         return self.name.lower()
 
 
@@ -142,7 +139,7 @@ class QuotaGroupBy:
     max_cardinality: int
     dimensions: tuple[QuotaDimension, ...]
 
-    def to_json(self) -> dict[str, Any]:
+    def to_json(self) -> dict[str, object]:
         return {
             "maxCardinality": self.max_cardinality,
             "dimensions": [d.value for d in self.dimensions],
@@ -202,18 +199,28 @@ class QuotaConfig:
         "group_by",
     ]
 
+    id: str | None
+    categories: set[DataCategory]
+    scope: QuotaScope
+    scope_id: str | None
+    limit: int | None
+    window: int | None
+    reason_code: str | None
+    namespace: str | None
+    group_by: QuotaGroupBy | None
+
     def __init__(
         self,
-        id=None,
-        categories=None,
-        scope=None,
-        scope_id=None,
+        id: str | None = None,
+        categories: Iterable[DataCategory] | None = None,
+        scope: QuotaScope | None = None,
+        scope_id: str | int | None = None,
         limit: int | None = None,
-        window=None,
-        reason_code=None,
-        namespace=None,
+        window: int | None = None,
+        reason_code: str | None = None,
+        namespace: str | None = None,
         group_by: QuotaGroupBy | None = None,
-    ):
+    ) -> None:
         if limit is not None:
             assert reason_code, "reason code required for fallible quotas"
             assert isinstance(limit, int), "limit must be an integer"
@@ -242,14 +249,14 @@ class QuotaConfig:
         self.group_by = group_by
 
     @property
-    def should_track(self):
+    def should_track(self) -> bool:
         """
         Whether the quotas service should track this quota.
         """
 
         return self.id is not None and self.window is not None
 
-    def to_json(self):
+    def to_json(self) -> dict[str, object]:
         categories = None
         if self.categories:
             categories = [c.api_name() for c in self.categories]
@@ -346,7 +353,7 @@ class SeatAssignmentResult:
             raise ValueError("`reason` must be specified when not assignable")
 
 
-def index_data_category(event_type: str | None, organization) -> DataCategory:
+def index_data_category(event_type: str | None, organization: Organization | None) -> DataCategory:
     if event_type == "transaction" and features.has(
         "organizations:transaction-metrics-extraction", organization
     ):
@@ -384,7 +391,7 @@ class Quota(Service):
         "update_monitor_slug",
     )
 
-    def __init__(self, **options):
+    def __init__(self, **options: object) -> None:
         pass
 
     def get_quotas(
@@ -406,7 +413,14 @@ class Quota(Service):
         """
         return []
 
-    def refund(self, project, key=None, timestamp=None, category=None, quantity=None):
+    def refund(
+        self,
+        project: Project,
+        key: ProjectKey | None = None,
+        timestamp: float | None = None,
+        category: DataCategory | None = None,
+        quantity: int | None = None,
+    ) -> None:
         """
         Signals that data counted against quotas was dropped, and refunds the
         previously consumed quota.
@@ -427,7 +441,12 @@ class Quota(Service):
                           attachment in bytes.
         """
 
-    def get_event_retention(self, organization, category: DataCategory | None = None, **kwargs):
+    def get_event_retention(
+        self,
+        organization: Organization | None,
+        category: DataCategory | None = None,
+        **kwargs: object,
+    ) -> int | None:
         """
         Returns the retention for events in the given organization in days.
         Returns ``None`` if events are to be stored indefinitely.
@@ -439,8 +458,11 @@ class Quota(Service):
         return _limit_from_settings(options.get("system.event-retention-days"))
 
     def get_downsampled_event_retention(
-        self, organization, category: DataCategory | None = None, **kwargs
-    ):
+        self,
+        organization: Organization | None,
+        category: DataCategory | None = None,
+        **kwargs: object,
+    ) -> int:
         """
         Returns the retention for downsampled events in the given organization in days.
         Returning ``0`` means downsampled event retention will default to the value of ``get_event_retention``.
@@ -448,22 +470,24 @@ class Quota(Service):
         return 0
 
     def get_retentions(
-        self, organization: Organization, **kwargs
+        self, organization: Organization | None, **kwargs: object
     ) -> Mapping[DataCategory, RetentionSettings]:
         return {}
 
-    def get_trimming_configs(self, organization: Organization, **kwargs) -> TrimmingConfigs:
+    def get_trimming_configs(
+        self, organization: Organization | None, **kwargs: object
+    ) -> TrimmingConfigs:
         """
         Returns per-data-category trimming settings.
         """
         return {}
 
-    def validate(self):
+    def validate(self) -> None:
         """
         Validates that the quota service is operational.
         """
 
-    def get_key_quota(self, key):
+    def get_key_quota(self, key: ProjectKey) -> tuple[int | None, int | None]:
         from sentry import features
 
         # XXX(epurkhiser): Avoid excessive feature manager checks (which can be
@@ -482,7 +506,7 @@ class Quota(Service):
         limit, window = key.rate_limit
         return _limit_from_settings(limit), window
 
-    def get_abuse_quotas(self, org):
+    def get_abuse_quotas(self, org: Organization) -> Iterator[QuotaConfig]:
         # Per-project abuse quotas for errors, transactions, attachments, sessions.
         global_abuse_window = options.get("project-abuse-quota.window")
 
@@ -569,7 +593,7 @@ class Quota(Service):
                     namespace=quota.namespace,
                 )
 
-    def get_monitor_quota(self, project):
+    def get_monitor_quota(self, project: Project) -> tuple[int | None, int | None]:
         from sentry.monitors.rate_limit import get_project_monitor_quota
 
         return get_project_monitor_quota(project)
@@ -641,7 +665,9 @@ class Quota(Service):
         Removes an assigned seat.
         """
 
-    def check_accept_monitor_checkin(self, project_id: int, monitor_slug: str):
+    def check_accept_monitor_checkin(
+        self, project_id: int, monitor_slug: str
+    ) -> PermitCheckInStatus:
         """
         Will return a `PermitCheckInStatus`.
         """
@@ -649,7 +675,7 @@ class Quota(Service):
 
         return PermitCheckInStatus.ACCEPT
 
-    def update_monitor_slug(self, previous_slug: str, new_slug: str, project_id: int):
+    def update_monitor_slug(self, previous_slug: str, new_slug: str, project_id: int) -> None:
         """
         Updates a monitor seat assignment's slug.
         """
@@ -746,9 +772,3 @@ class Quota(Service):
         Checks if the organization has access to Seer for the given data category and seat object.
         """
         return True
-
-    def check_seer_credits(self, request: CheckSeerCreditsRequest) -> CheckSeerCreditsResponse:
-        """
-        Checks if the organization has enough Seer credits for the predicted usage.
-        """
-        return CheckSeerCreditsResponse(has_enough_credits=True)

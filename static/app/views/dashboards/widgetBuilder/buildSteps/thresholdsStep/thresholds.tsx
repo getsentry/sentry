@@ -15,10 +15,8 @@ import {SelectField} from 'sentry/components/forms/fields/selectField';
 import type {Polarity} from 'sentry/components/percentChange';
 import {t} from 'sentry/locale';
 import {getThresholdUnitSelectOptions} from 'sentry/views/dashboards/utils';
-import {
-  NEGATIVE_POLARITY_COLOR_ORDER,
-  POSITIVE_POLARITY_COLOR_ORDER,
-} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/constants';
+
+import {NEGATIVE_POLARITY_COLOR_ORDER, POSITIVE_POLARITY_COLOR_ORDER} from './constants';
 
 type ThresholdErrors = Partial<Record<ThresholdMaxKeys, string>>;
 

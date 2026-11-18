@@ -1,7 +1,7 @@
 import datetime
 from datetime import UTC, timedelta
 from functools import cached_property
-from typing import Any
+from typing import Any, cast
 from unittest import mock
 
 from django.conf import settings
@@ -21,7 +21,7 @@ from sentry.api.serializers.models.project import (
 )
 from sentry.app import env
 from sentry.conf.types.sentry_config import SentryMode
-from sentry.features.base import ProjectFeature
+from sentry.features.base import Feature, ProjectFeature
 from sentry.models.deploy import Deploy
 from sentry.models.environment import Environment, EnvironmentProject
 from sentry.models.options.project_option import ProjectOption
@@ -234,26 +234,30 @@ class ProjectSerializerTest(TestCase):
         class EarlyAdopterFeatureHandler(features.BatchFeatureHandler):
             features = {early_flag}
 
-            def _check_for_batch(self, feature_name, organization, actor):
+            def _check_for_batch(
+                self, feature_name: str, organization: object, actor: object
+            ) -> bool:
                 return organization == early_adopter
 
-            def batch_has(self, *a, **k):
+            def batch_has(self, *a: object, **k: object) -> None:
                 raise NotImplementedError("unreachable")
 
-        def create_color_handler(color_flag, included_projects):
+        def create_color_handler(
+            color_flag: str, included_projects: list[Project]
+        ) -> features.FeatureHandler:
             class ProjectColorFeatureHandler(features.FeatureHandler):
                 features = {color_flag}
 
                 def has(
                     self,
-                    feature,
-                    actor,
+                    feature: Feature,
+                    actor: object,
                     skip_entity: bool | None = False,
                     skip_experiment_exposure: bool = False,
-                ):
-                    return feature.project in included_projects
+                ) -> bool:
+                    return cast(ProjectFeature, feature).project in included_projects
 
-                def batch_has(self, *a, **k):
+                def batch_has(self, *a: object, **k: object) -> None:
                     raise NotImplementedError("unreachable")
 
             return ProjectColorFeatureHandler()
@@ -266,12 +270,12 @@ class ProjectSerializerTest(TestCase):
         for handler in (EarlyAdopterFeatureHandler(), red_handler, blue_handler):
             test_features.add_handler(handler)
 
-        def api_form(flag):
+        def api_form(flag: str) -> str:
             return flag[len("projects:") :]
 
         flags_to_find = {api_form(f) for f in [early_flag, red_flag, blue_flag]}
 
-        def assert_has_features(project, expected_features):
+        def assert_has_features(project: Project, expected_features: list[str]) -> None:
             serialized = serialize(project)
             actual_features = {f for f in serialized["features"] if f in flags_to_find}
             assert actual_features == {api_form(f) for f in expected_features}
@@ -714,8 +718,10 @@ class ProjectSummarySerializerTest(SnubaTestCase, SpanTestCase, TestCase):
         "sentry.api.serializers.models.project.release_health.backend.get_current_and_previous_crash_free_rates"
     )
     def test_stats_with_sessions(
-        self, get_current_and_previous_crash_free_rates, check_has_health_data
-    ):
+        self,
+        get_current_and_previous_crash_free_rates: mock.MagicMock,
+        check_has_health_data: mock.MagicMock,
+    ) -> None:
         get_current_and_previous_crash_free_rates.return_value = {
             self.project.id: {
                 "currentCrashFreeRate": 75.63453,
@@ -739,8 +745,10 @@ class ProjectSummarySerializerTest(SnubaTestCase, SpanTestCase, TestCase):
         "sentry.api.serializers.models.project.release_health.backend.get_current_and_previous_crash_free_rates"
     )
     def test_stats_with_sessions_and_none_crash_free_rates(
-        self, get_current_and_previous_crash_free_rates, check_has_health_data
-    ):
+        self,
+        get_current_and_previous_crash_free_rates: mock.MagicMock,
+        check_has_health_data: mock.MagicMock,
+    ) -> None:
         """
         Test that ensures if both `currentCrashFreeRate` and `previousCrashFreeRate` are None, then
         we need to make a call to `check_has_health_data` to know if we have health data in that
@@ -905,11 +913,11 @@ class DetailedProjectSerializerTest(TestCase):
 
 class BulkFetchProjectLatestReleases(TestCase):
     @cached_property
-    def project(self):
+    def project(self) -> Project:
         return self.create_project(teams=[self.team], organization=self.organization)
 
     @cached_property
-    def other_project(self):
+    def other_project(self) -> Project:
         return self.create_project(teams=[self.team], organization=self.organization)
 
     def test_single_no_release(self) -> None:

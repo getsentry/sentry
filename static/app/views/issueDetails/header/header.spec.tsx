@@ -11,8 +11,9 @@ import {mockTour} from 'sentry/components/tours/testUtils';
 import {IssueCategory} from 'sentry/types/group';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
-import {GroupHeader} from 'sentry/views/issueDetails/header/header';
 import {ReprocessingStatus} from 'sentry/views/issueDetails/utils';
+
+import {GroupHeader} from './header';
 
 jest.mock('sentry/utils/useFeedbackForm', () => ({
   useFeedbackForm: () => jest.fn(),

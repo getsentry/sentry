@@ -42,6 +42,7 @@ from sentry.models.tombstone import CellTombstone
 from sentry.monitors.models import Monitor
 from sentry.service_accounts.models import ServiceAccount
 from sentry.silo.base import SiloMode
+from sentry.telemetry_classifiers.models import TelemetryClassifier
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.backups import BackupTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
@@ -491,6 +492,7 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         RecentSearch,
         Rule,
         ServiceAccount,
+        TelemetryClassifier,
     )
     def test_only_source_user_is_member_of_organization(
         self, expected_models: list[type[Model]]
@@ -532,6 +534,7 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         RecentSearch,
         Rule,
         ServiceAccount,
+        TelemetryClassifier,
     )
     def test_both_users_are_members_of_organization(
         self, expected_models: list[type[Model]]
