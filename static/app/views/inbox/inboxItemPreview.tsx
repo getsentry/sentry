@@ -3,9 +3,9 @@ import {EmptyState} from '@sentry/scraps/emptyState';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {t} from 'sentry/locale';
 import {unreachable} from 'sentry/utils/unreachable';
-import {NotebookPreview} from 'sentry/views/investigations/detail/notebookPreview';
 
 import {InboxIssuePreview} from './inboxIssuePreview';
+import {InboxNotebookPreview} from './inboxNotebookPreview';
 import type {InboxSubject} from './types';
 
 interface InboxItemPreviewProps {
@@ -28,7 +28,10 @@ function InboxItemPreviewContent({subject}: InboxItemPreviewProps) {
       return <InboxIssuePreview key={subject.subjectId} groupId={subject.subjectId} />;
     case 'notebook':
       return (
-        <NotebookPreview key={subject.subjectId} investigationId={subject.subjectId} />
+        <InboxNotebookPreview
+          key={subject.subjectId}
+          investigationId={subject.subjectId}
+        />
       );
     default:
       unreachable(subject.subjectType);

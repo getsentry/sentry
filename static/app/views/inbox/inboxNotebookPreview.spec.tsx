@@ -4,9 +4,9 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {InvestigationDetailFixture} from 'sentry/views/investigations/fixtures';
 
-import {NotebookPreview} from './notebookPreview';
+import {InboxNotebookPreview} from './inboxNotebookPreview';
 
-describe('NotebookPreview', () => {
+describe('InboxNotebookPreview', () => {
   const organization = OrganizationFixture({
     features: ['investigations'],
     openMembership: true,
@@ -26,7 +26,7 @@ describe('NotebookPreview', () => {
   });
 
   it('shows the investigation header, report, and activity', async () => {
-    render(<NotebookPreview investigationId={investigation.id} />, {organization});
+    render(<InboxNotebookPreview investigationId={investigation.id} />, {organization});
 
     expect(await screen.findByRole('textbox', {name: 'Investigation title'})).toHaveValue(
       'Investigate database latency'
@@ -37,7 +37,7 @@ describe('NotebookPreview', () => {
   });
 
   it("leaves the page's top bar alone", async () => {
-    render(<NotebookPreview investigationId={investigation.id} />, {organization});
+    render(<InboxNotebookPreview investigationId={investigation.id} />, {organization});
 
     await screen.findByRole('textbox', {name: 'Investigation title'});
 
@@ -56,13 +56,13 @@ describe('NotebookPreview', () => {
   it('shows an error when the investigation fails to load', async () => {
     MockApiClient.addMockResponse({url: detailUrl, statusCode: 404, body: {}});
 
-    render(<NotebookPreview investigationId={investigation.id} />, {organization});
+    render(<InboxNotebookPreview investigationId={investigation.id} />, {organization});
 
     expect(await screen.findByRole('button', {name: 'Retry'})).toBeInTheDocument();
   });
 
   it('explains when investigations need open membership', () => {
-    render(<NotebookPreview investigationId={investigation.id} />, {
+    render(<InboxNotebookPreview investigationId={investigation.id} />, {
       organization: OrganizationFixture({
         features: ['investigations'],
         openMembership: false,

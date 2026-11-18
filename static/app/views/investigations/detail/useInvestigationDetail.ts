@@ -14,10 +14,7 @@ import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerC
 import {shouldPollInvestigationBlocks} from './block';
 import {isTitleGenerationActive} from './utils';
 
-export function useInvestigationDetail(
-  investigationId: string,
-  workflowRunning?: boolean
-) {
+export function useInvestigationDetail(investigationId: string) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
   const detailOptions = getInvestigationDetailQueryOptions(
@@ -31,7 +28,6 @@ export function useInvestigationDetail(
   const isSeerWorking = useSeerExplorerContext().sessionState === 'thinking';
   const detailQuery = useQuery({
     ...detailOptions,
-    refetchOnMount: workflowRunning === undefined ? true : 'always',
     refetchInterval: query => {
       const data = query.state.data?.json;
       // A live agentic run keeps this polling too: the notebook fills in as the
@@ -40,8 +36,7 @@ export function useInvestigationDetail(
       // has since finished.
       const orchestrationActive =
         data?.orchestration && shouldPollInvestigationRun(data.orchestration.status);
-      return workflowRunning ||
-        isSeerWorking ||
+      return isSeerWorking ||
         orchestrationActive ||
         data?.actionRequests?.some(isFollowUpPending) ||
         shouldPollInvestigationBlocks(data?.blocks ?? []) ||
@@ -55,15 +50,6 @@ export function useInvestigationDetail(
         : false,
   });
   const {refetch} = detailQuery;
-
-  const wasWorkflowRunning = useRef(workflowRunning);
-  useEffect(() => {
-    // The finalizers can commit after the most recent notebook poll.
-    if (wasWorkflowRunning.current && workflowRunning === false) {
-      void refetch();
-    }
-    wasWorkflowRunning.current = workflowRunning;
-  }, [workflowRunning, refetch]);
 
   const wasSeerWorking = useRef(isSeerWorking);
   useEffect(() => {

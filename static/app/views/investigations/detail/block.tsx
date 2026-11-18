@@ -1,12 +1,4 @@
-import {
-  createElement,
-  Fragment,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconChat} from '@sentry/icons/chat';
 import {IconClose} from '@sentry/icons/close';
@@ -31,7 +23,6 @@ import {toast} from '@sentry/scraps/toast';
 
 import {Duration} from 'sentry/components/duration';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
-import {SeerEmbedRegistry} from 'sentry/components/seer/markdown/embeds';
 import {ChartContent} from 'sentry/components/seer/markdown/embeds/components/chart';
 import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import {ALL_SEER_EMBED_SCHEMAS} from 'sentry/components/seer/markdown/embeds/schemas';
@@ -240,9 +231,7 @@ function InvestigationNotebookBlockInner({
       padding="0"
       data-test-id={`investigation-block-${block.id}`}
     >
-      {block.kind === 'embed' ? (
-        <NotebookEmbed block={block} />
-      ) : block.kind === 'query' ? (
+      {block.kind === 'query' ? (
         <Fragment>
           <QueryResult
             actions={<BlockActionButtons {...actionButtonProps} size="zero" />}
@@ -591,31 +580,12 @@ function getBlockProgressState(block: InvestigationBlock): BlockProgressState {
   return null;
 }
 
-function NotebookEmbed({block}: {block: InvestigationBlock}) {
-  const embed = block.embed;
-  const Widget = embed && SeerEmbedRegistry.get(embed.name);
-  return (
-    <Stack gap="sm">
-      {Widget && embed
-        ? createElement(Widget, {name: embed.name, data: embed.body, level: 'block'})
-        : null}
-      {block.embedSummary && <Text as="p">{block.embedSummary}</Text>}
-      {block.embedSource && !block.embedSummary && (
-        <Text as="p">{block.embedSource}</Text>
-      )}
-    </Stack>
-  );
-}
-
 export function shouldDisplayInvestigationBlock(block: InvestigationBlock) {
   // Seer names a block before it fills it, so a block it has started can be shown
   // right away. A block that is only queued stays hidden — it may never produce
   // anything.
   if (isBlockWorking(block) && block.title.trim()) {
     return true;
-  }
-  if (block.kind === 'embed') {
-    return Boolean(block.embed || block.embedSummary || block.embedSource);
   }
   if (block.kind === 'text') {
     return Boolean((getTextOutput(block.output) ?? block.content).trim());
