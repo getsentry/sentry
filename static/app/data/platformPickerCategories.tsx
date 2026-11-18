@@ -162,6 +162,7 @@ const serverless = new Set<PlatformKey>([
   'node-azurefunctions',
   'node-gcpfunctions',
   'node-cloudflare-workers',
+  'php-bref',
   'python-awslambda',
   'python-gcpfunctions',
   'python-serverless',

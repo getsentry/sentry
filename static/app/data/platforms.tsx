@@ -560,6 +560,13 @@ export const platforms: PlatformIntegration[] = [
     link: 'https://docs.sentry.io/platforms/php/',
   },
   {
+    id: 'php-bref',
+    name: 'Bref',
+    type: 'framework',
+    language: 'php',
+    link: 'https://docs.sentry.io/platforms/php/guides/bref/',
+  },
+  {
     id: 'php-laravel',
     name: 'Laravel',
     type: 'framework',
