@@ -10,14 +10,13 @@ from sentry.seer.workflows.breached_metrics import (
     MetricBreachInputs,
 )
 from sentry.seer.workflows.scheduled import (
-    PromptedInvestigationAction,
     ScheduledRunInputs,
     ScheduleTrigger,
 )
 
 DEFINITIONS: Mapping[SeerWorkflowStrategy, AutomationDefinition[Any]] = {
     SeerWorkflowStrategy.AGENTIC_TRIAGE_V2: AutomationDefinition[ScheduledRunInputs](
-        trigger=ScheduleTrigger(), action=PromptedInvestigationAction()
+        trigger=ScheduleTrigger()
     ),
     SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION: AutomationDefinition[MetricBreachInputs](
         trigger=MetricAlertTrigger()
