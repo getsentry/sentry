@@ -1,6 +1,8 @@
 from django.db.migrations.state import StateApps
 
+from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestMigrations
+from sentry.workflow_engine.models import Action, Workflow
 
 
 class ConvertSeerWorkflowActionsTest(TestMigrations):
@@ -9,12 +11,41 @@ class ConvertSeerWorkflowActionsTest(TestMigrations):
     migrate_to = "0047_convert_seer_workflow_actions"
 
     def setup_before_migration(self, apps: StateApps) -> None:
-        Action = apps.get_model("workflow_engine", "Action")
-        self.seer_action = Action.objects.create(type="seer_workflow", config={}, data={})
-        self.email_action = Action.objects.create(type="email", config={}, data={})
+        HistoricalAction = apps.get_model("workflow_engine", "Action")
+        Organization = apps.get_model("sentry", "Organization")
+        SeerWorkflowConfig = apps.get_model("seer", "SeerWorkflowConfig")
+        HistoricalWorkflow = apps.get_model("workflow_engine", "Workflow")
 
-    def test_converts_only_seer_workflow_actions(self) -> None:
-        self.seer_action.refresh_from_db()
-        self.email_action.refresh_from_db()
-        assert self.seer_action.type == "seer_investigation"
-        assert self.email_action.type == "email"
+        self.seer_action = HistoricalAction.objects.create(type="seer_workflow", config={}, data={})
+        self.email_action = HistoricalAction.objects.create(type="email", config={}, data={})
+
+        with unguarded_write(using="default"):
+            organization = Organization.objects.create(slug="migration-org", name="Migration")
+
+        def config_with_workflow(workflow_name: str, extras: dict[str, object]) -> int:
+            workflow = HistoricalWorkflow.objects.create(
+                organization=organization, name=workflow_name, config={}
+            )
+            SeerWorkflowConfig.objects.create(
+                organization=organization,
+                strategy="breached_metric_investigation",
+                backing_workflow=workflow,
+                extras=extras,
+            )
+            return workflow.id
+
+        self.defaulted = config_with_workflow(
+            "Seer automation", {"name": "Checkout latency", "created_by": 42}
+        )
+        self.renamed = config_with_workflow("Already renamed", {"name": "Old name"})
+        self.unnamed = config_with_workflow("Seer automation", {})
+
+    def test_converts_actions_and_copies_names(self) -> None:
+        assert Action.objects.get(id=self.seer_action.id).type == "seer_investigation"
+        assert Action.objects.get(id=self.email_action.id).type == "email"
+
+        defaulted = Workflow.objects.get(id=self.defaulted)
+        assert (defaulted.name, defaulted.created_by_id) == ("Checkout latency", 42)
+        assert Workflow.objects.get(id=self.renamed).name == "Already renamed"
+        unnamed = Workflow.objects.get(id=self.unnamed)
+        assert (unnamed.name, unnamed.created_by_id) == ("Seer automation", None)

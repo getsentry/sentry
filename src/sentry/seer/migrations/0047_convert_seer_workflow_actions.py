@@ -5,9 +5,28 @@ from django.db.migrations.state import StateApps
 from sentry.new_migrations.migrations import CheckedMigration
 
 
+DEFAULT_WORKFLOW_NAME = "Seer automation"
+
+
 def convert_seer_workflow_actions(apps: StateApps, schema_editor: BaseDatabaseSchemaEditor) -> None:
     Action = apps.get_model("workflow_engine", "Action")
     Action.objects.filter(type="seer_workflow").update(type="seer_investigation")
+
+
+def copy_names_to_backing_workflows(
+    apps: StateApps, schema_editor: BaseDatabaseSchemaEditor
+) -> None:
+    SeerWorkflowConfig = apps.get_model("seer", "SeerWorkflowConfig")
+    Workflow = apps.get_model("workflow_engine", "Workflow")
+    for config in SeerWorkflowConfig.objects.filter(backing_workflow__isnull=False):
+        workflow = Workflow.objects.get(id=config.backing_workflow_id)
+        name = config.extras.get("name")
+        created_by = config.extras.get("created_by")
+        if name and workflow.name == DEFAULT_WORKFLOW_NAME:
+            workflow.name = name
+        if isinstance(created_by, int) and workflow.created_by_id is None:
+            workflow.created_by_id = created_by
+        workflow.save(update_fields=["name", "created_by_id"])
 
 
 class Migration(CheckedMigration):
@@ -24,6 +43,7 @@ class Migration(CheckedMigration):
     # Once deployed, run these manually via: https://develop.sentry.dev/database-migrations/#migration-deployment
 
     # Post deployment so it also converts actions that pods still running the old code create.
+    # Only a handful of automations exist, so the per-row loop below is fine.
     is_post_deployment = True
 
     dependencies = [
@@ -36,5 +56,10 @@ class Migration(CheckedMigration):
             convert_seer_workflow_actions,
             reverse_code=migrations.RunPython.noop,
             hints={"tables": ["workflow_engine_action"]},
+        ),
+        migrations.RunPython(
+            copy_names_to_backing_workflows,
+            reverse_code=migrations.RunPython.noop,
+            hints={"tables": ["seer_workflowconfig", "workflow_engine_workflow"]},
         ),
     ]
