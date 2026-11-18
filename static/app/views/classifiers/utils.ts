@@ -13,7 +13,12 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import type {ClassifierDataset, ClassifierOutputType} from './types';
+import type {
+  ClassifierDataset,
+  ClassifierOutputType,
+  ClassifierResultFilter,
+  TelemetryClassifier,
+} from './types';
 
 export const CLASSIFIER_PREVIEW_PER_PAGE = 10;
 
@@ -207,6 +212,31 @@ export function getOutputTypeLabel(outputType: ClassifierOutputType) {
 
 export function getResultAttributeKey(resultAttribute: string) {
   return `${ENRICHMENT_ATTRIBUTE_PREFIX}${resultAttribute}`;
+}
+
+export function getResultField(resultAttribute: string) {
+  return `tags[${getResultAttributeKey(resultAttribute)},number]`;
+}
+
+export function getClassifierResultQuery(
+  classifier: Pick<TelemetryClassifier, 'binaryThreshold' | 'resultAttribute'>,
+  resultFilter: ClassifierResultFilter
+) {
+  const resultField = getResultField(classifier.resultAttribute);
+  const threshold = classifier.binaryThreshold;
+  if (threshold === null || resultFilter === 'all') {
+    return `has:${resultField}`;
+  }
+  return resultFilter === 'matches'
+    ? `${resultField}:>=${threshold}`
+    : `${resultField}:<${threshold}`;
+}
+
+export function isClassifierMatch(
+  classifier: Pick<TelemetryClassifier, 'binaryThreshold'>,
+  value: number
+) {
+  return classifier.binaryThreshold !== null && value >= classifier.binaryThreshold;
 }
 
 export function getEnvironmentsFilter(environments: readonly string[]) {
