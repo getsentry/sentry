@@ -65,6 +65,7 @@ type ParamKeys =
   | 'sentryAppSlug'
   | 'serviceAccountId'
   | 'shareId'
+  | 'signedParams'
   | 'snapshotId'
   | 'spanSlug'
   | 'step'
