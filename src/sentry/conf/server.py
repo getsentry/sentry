@@ -1120,7 +1120,7 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "schedule": crontab("0", "3", "*", "*", "*"),
     },
     "maintain-partitions": {
-        "task": "deletions:sentry.db.partitions.tasks.maintain_partitions",
+        "task": "db:sentry.db.partitions.tasks.maintain_partitions",
         "schedule": crontab("17", "*", "*", "*", "*"),
     },
     "deliver-from-outbox": {
