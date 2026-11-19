@@ -285,8 +285,18 @@ def report_partition_metrics(target: RangeTable, now: datetime) -> None:
         )
 
 
+def _report_failure(table: str, step: str) -> None:
+    logger.exception("partitions.maintenance.failed", extra={"table": table, "step": step})
+    metrics.incr("db.partitions.maintenance.error", tags={"table": table, "step": step})
+
+
 def maintain_partitions() -> None:
-    """Create upcoming partitions and drop expired ones for every range partitioned table."""
+    """
+    Create upcoming partitions and drop expired ones for every range partitioned table.
+
+    Each step runs on its own, so one that keeps failing, e.g. creating a partition
+    whose name is taken, doesn't stop the others.
+    """
     for model, spec in iter_partitioned_models():
         if not isinstance(spec, RangePartitioning):
             continue
@@ -297,21 +307,22 @@ def maintain_partitions() -> None:
         try:
             target = get_range_table(model)
         except Exception:
-            logger.exception("partitions.maintenance.failed", extra={"table": table})
-            metrics.incr("db.partitions.maintenance.error", tags={"table": table})
+            _report_failure(table, "inspect")
             continue
         if target is None:
             continue
         now = timezone.now()
         try:
             ensure_range_partitions(target, now=now)
-            if spec.retention is not None:
-                expire_range_partitions(target, now - spec.retention, now=now)
         except Exception:
-            logger.exception("partitions.maintenance.failed", extra={"table": table})
-            metrics.incr("db.partitions.maintenance.error", tags={"table": table})
+            _report_failure(table, "ensure")
+        if spec.retention is not None:
+            try:
+                expire_range_partitions(target, now - spec.retention, now=now)
+            except Exception:
+                _report_failure(table, "expire")
         # Reported even when maintenance failed, which is when they matter most.
         try:
             report_partition_metrics(target, now)
         except Exception:
-            logger.exception("partitions.metrics.failed", extra={"table": table})
+            _report_failure(table, "metrics")

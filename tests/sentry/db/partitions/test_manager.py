@@ -396,6 +396,27 @@ class MaintainPartitionsTest(TransactionTestCase):
                 f"{RANGE_TABLE}_p20240422",
             ]
 
+    @freeze_time(CREATED_AT)
+    def test_failing_creation_does_not_stop_expiry(self) -> None:
+        with fixture_tables():
+            upcoming = f"{RANGE_TABLE}_p20240408"
+            # A table that keeps the name of an upcoming partition, e.g. one detached by
+            # hand, makes creating that partition fail on every run.
+            with connection.cursor() as cursor:
+                cursor.execute(f'CREATE TABLE "{upcoming}" (id bigint)')
+            with (
+                freeze_time(datetime(2024, 4, 9, tzinfo=UTC)),
+                mock.patch("sentry.db.partitions.manager.metrics.incr") as incr,
+            ):
+                maintain_partitions()
+            errors = [
+                c for c in incr.call_args_list if c.args[0] == "db.partitions.maintenance.error"
+            ]
+            assert [c.kwargs["tags"] for c in errors] == [{"table": RANGE_TABLE, "step": "ensure"}]
+            # The week of 03-04 is past the four week retention and still dropped.
+            assert week(4) not in partition_names()
+            assert upcoming not in partition_names()
+
     def test_errors_do_not_propagate(self) -> None:
         with fixture_tables():
             with (
@@ -405,7 +426,9 @@ class MaintainPartitionsTest(TransactionTestCase):
                 mock.patch("sentry.db.partitions.manager.metrics.incr") as incr,
             ):
                 maintain_partitions()
-            incr.assert_any_call("db.partitions.maintenance.error", tags={"table": RANGE_TABLE})
+            incr.assert_any_call(
+                "db.partitions.maintenance.error", tags={"table": RANGE_TABLE, "step": "ensure"}
+            )
 
     def gauges(self) -> dict[str, int]:
         with mock.patch("sentry.db.partitions.manager.metrics.gauge") as gauge:
