@@ -2,15 +2,15 @@ from __future__ import annotations
 
 import contextlib
 from collections import defaultdict
-from collections.abc import Generator, Mapping, Sequence
+from collections.abc import Collection, Generator, Sequence
 from datetime import datetime
-from typing import Any
+from typing import Any, ReadOnly, TypedDict
 
 from django.utils import timezone
 
 from sentry.users.models.user import User
 
-from .base import Newsletter, SubscriptionRecord
+from .base import Newsletter
 
 
 class NewsletterSubscription:
@@ -74,6 +74,10 @@ class NewsletterSubscription:
             self.unsubscribed_date = timezone.now()
 
 
+class DummyNewsletterSubscriptions(TypedDict):
+    subscriptions: ReadOnly[Sequence[NewsletterSubscription]]
+
+
 class DummyNewsletter(Newsletter):
     """
     The ``DummyNewsletter`` implementation is primarily used for test cases. It uses a in-memory
@@ -98,7 +102,7 @@ class DummyNewsletter(Newsletter):
     def is_enabled(self) -> bool:
         return self._enabled
 
-    def get_subscriptions(self, user: User) -> Mapping[str, Sequence[SubscriptionRecord]]:
+    def get_subscriptions(self, user: User) -> DummyNewsletterSubscriptions:
         return {"subscriptions": list((self._subscriptions.get(user) or {}).values())}
 
     def update_subscription(
@@ -122,7 +126,7 @@ class DummyNewsletter(Newsletter):
     def update_subscriptions(
         self,
         user: User,
-        list_ids: Sequence[int] | None = None,
+        list_ids: Collection[int] | None = None,
         create: bool | None = False,
         **kwargs: Any,
     ) -> dict[int, NewsletterSubscription]:
