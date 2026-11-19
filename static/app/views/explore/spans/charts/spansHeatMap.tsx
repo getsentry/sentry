@@ -5,6 +5,7 @@ import {parseAsString, useQueryStates} from 'nuqs';
 import {Container} from '@sentry/scraps/layout';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
@@ -39,6 +40,7 @@ import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery'
 import {Tab} from 'sentry/views/explore/hooks/useTab';
 import {dateTimeAsHeatMapWindow} from 'sentry/views/explore/metrics/hooks/partitionHeatMapWindows';
 import {useQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
+import type {CrossEventQueryExtras} from 'sentry/views/explore/queryParams/crossEvent';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {
   isVisualizeFunction,
@@ -85,8 +87,11 @@ export function isSpansHeatMap(visualize: Visualize, organization: Organization)
 
 interface SpansHeatMapProps {
   chartIndex: number;
+  extrapolate: boolean;
   query: string;
   yAxis: SpansHeatMapYAxis;
+  caseInsensitive?: CaseInsensitive;
+  crossEventQueries?: CrossEventQueryExtras;
   /**
    * Holds the heat map request until the Y-axis bounds are known, so it isn't
    * fetched twice.
@@ -98,8 +103,11 @@ interface SpansHeatMapProps {
 
 export function SpansHeatMap({
   chartIndex,
+  extrapolate,
   query,
   yAxis,
+  caseInsensitive,
+  crossEventQueries,
   yBounds,
   isYBoundsPending,
   samplingMode,
@@ -157,6 +165,9 @@ export function SpansHeatMap({
       yBuckets: bucketDimensions?.yBuckets,
       yMin: yBounds?.yMin,
       yMax: yBounds?.yMax,
+      caseInsensitive: Boolean(caseInsensitive),
+      extrapolate,
+      ...crossEventQueries,
     }),
     select: selectWithMillisecondUnit,
     enabled: !isYBoundsPending,
@@ -169,6 +180,9 @@ export function SpansHeatMap({
       interval: bucketDimensions?.interval ?? undefined,
       sampling: samplingMode,
       enabled: defined(bucketDimensions?.interval),
+      caseInsensitive: Boolean(caseInsensitive),
+      extrapolate,
+      ...crossEventQueries,
     },
     'api.explore.spans-heatmap-percentiles'
   );

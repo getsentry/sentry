@@ -19,8 +19,13 @@ interface HeatMapApiOptions {
   selection: PageFilters;
   timeWindow: HeatMapWindow;
   yAxis: string;
+  caseInsensitive?: boolean;
+  extrapolate?: boolean;
   interval?: string | null;
+  logQuery?: string[];
+  metricQuery?: string[];
   sampling?: SamplingMode;
+  spanQuery?: string[];
   yBuckets?: number | null;
   yMax?: number;
   yMin?: number;
@@ -34,8 +39,13 @@ export function heatMapApiOptions({
   yAxis,
   query,
   referrer,
+  caseInsensitive,
+  extrapolate,
   interval,
+  logQuery,
+  metricQuery,
   sampling,
+  spanQuery,
   yBuckets,
   yMin,
   yMax,
@@ -64,6 +74,11 @@ export function heatMapApiOptions({
         yMax,
         sampling,
         query,
+        disableAggregateExtrapolation: extrapolate === false ? '1' : undefined,
+        caseInsensitive: caseInsensitive ? 1 : undefined,
+        logQuery,
+        metricQuery,
+        spanQuery,
         project: selection.projects,
         environment: selection.environments,
         ...timeWindow,

@@ -2,12 +2,14 @@ import {useQuery} from '@tanstack/react-query';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import type {PageFilters} from 'sentry/types/core';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import type {CrossEventQueryExtras} from 'sentry/views/explore/queryParams/crossEvent';
 
 import type {SpansHeatMapYAxis} from './spansHeatMap';
 
@@ -42,8 +44,11 @@ export interface HeatMapYBounds {
 
 interface UseSpansHeatMapOutlierBoundOptions {
   enabled: boolean;
+  extrapolate: boolean;
   query: string;
   yAxis: SpansHeatMapYAxis | undefined;
+  caseInsensitive?: CaseInsensitive;
+  crossEventQueries?: CrossEventQueryExtras;
 }
 
 /**
@@ -62,8 +67,11 @@ interface UseSpansHeatMapOutlierBoundOptions {
  */
 export function useSpansHeatMapOutlierBound({
   enabled,
+  extrapolate,
   query,
   yAxis,
+  caseInsensitive,
+  crossEventQueries,
 }: UseSpansHeatMapOutlierBoundOptions): {
   bounds: Partial<Record<OutlierCutoff, HeatMapYBounds>>;
   isPending: boolean;
@@ -94,6 +102,9 @@ export function useSpansHeatMapOutlierBound({
           environment: selection.environments,
           sampling: SAMPLING_MODE.HIGH_ACCURACY,
           referrer: 'api.explore.spans-heatmap-outlier-bound',
+          disableAggregateExtrapolation: extrapolate ? undefined : '1',
+          caseInsensitive: caseInsensitive ? 1 : undefined,
+          ...crossEventQueries,
           ...normalizeDateTimeParams(sampleWindow(selection.datetime)),
         },
         staleTime: Infinity,

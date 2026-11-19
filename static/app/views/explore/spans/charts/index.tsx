@@ -19,6 +19,7 @@ import {useChartLayers} from 'sentry/components/charts/useChartLayers';
 import {DroppedDataFilterNote} from 'sentry/components/droppedData/droppedDataFilterNote';
 import {DroppedDataLLMContext} from 'sentry/components/droppedData/droppedDataLLMContext';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
@@ -53,6 +54,7 @@ import {type SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery'
 import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {useQueryParamsGroupBys} from 'sentry/views/explore/queryParams/context';
+import type {CrossEventQueryExtras} from 'sentry/views/explore/queryParams/crossEvent';
 import {
   groupVisualizes,
   serializeVisualizes,
@@ -94,6 +96,8 @@ interface ExploreChartsProps {
   setVisualizes: (visualizes: BaseVisualize[]) => void;
   timeseriesResult: SortedTimeSeries;
   visualizes: readonly Visualize[];
+  caseInsensitive?: CaseInsensitive;
+  crossEventQueries?: CrossEventQueryExtras;
   samplingMode?: SamplingMode;
 }
 
@@ -128,6 +132,8 @@ const MAX_TOOLTIP_SERIES = 10;
 export function ExploreCharts({
   query,
   extrapolate,
+  caseInsensitive,
+  crossEventQueries,
   rawSpanCounts,
   timeseriesResult,
   visualizes,
@@ -174,6 +180,8 @@ export function ExploreCharts({
             <Chart
               key={`${group.index}-${group.visualizes.map(v => v.yAxis).join(',')}`}
               extrapolate={extrapolate}
+              caseInsensitive={caseInsensitive}
+              crossEventQueries={crossEventQueries}
               index={group.index}
               onChartTypeChange={chartType => updateVisualizes(indices, {chartType})}
               onChartVisibilityChange={visible => updateVisualizes(indices, {visible})}
@@ -291,12 +299,16 @@ interface ChartProps {
    * The visualizes plotted on this chart.
    */
   visualizes: readonly Visualize[];
+  caseInsensitive?: CaseInsensitive;
+  crossEventQueries?: CrossEventQueryExtras;
   samplingMode?: SamplingMode;
   topEvents?: number;
 }
 
 function Chart({
   extrapolate,
+  caseInsensitive,
+  crossEventQueries,
   index,
   onChartTypeChange,
   onChartVisibilityChange,
@@ -346,8 +358,11 @@ function Chart({
     organization.features.includes('explore-interpolation-and-smoothing');
   const heatMapOutlierBound = useSpansHeatMapOutlierBound({
     enabled: isHeatMap && visualize.visible,
+    extrapolate,
     query,
     yAxis: heatMapYAxis,
+    caseInsensitive,
+    crossEventQueries,
   });
   const [outlierCutoff, setOutlierCutoff] = useState<OutlierCutoff | typeof OUTLIERS_OFF>(
     OUTLIER_CUTOFFS[0]
@@ -547,8 +562,11 @@ function Chart({
           (isHeatMap && defined(heatMapYAxis) ? (
             <SpansHeatMap
               chartIndex={index}
+              extrapolate={extrapolate}
               query={query}
               yAxis={heatMapYAxis}
+              caseInsensitive={caseInsensitive}
+              crossEventQueries={crossEventQueries}
               yBounds={heatMapYBounds}
               isYBoundsPending={
                 outlierCutoff !== OUTLIERS_OFF && heatMapOutlierBound.isPending

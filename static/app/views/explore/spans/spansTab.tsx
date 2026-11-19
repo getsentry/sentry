@@ -334,6 +334,8 @@ function SpanTabContentSectionInner({
             <ExploreCharts
               query={query}
               extrapolate={extrapolate}
+              caseInsensitive={caseInsensitive}
+              crossEventQueries={crossEventQueries}
               timeseriesResult={timeseriesResult}
               visualizes={visualizes}
               setVisualizes={setVisualizes}
