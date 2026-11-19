@@ -68,15 +68,10 @@ export function buildAiSpanTree(
     }
   }
 
-  const list: AiSpanTreeNode[] = [];
-  const stack = roots.toReversed();
-  while (stack.length > 0) {
-    const treeNode = stack.pop()!;
+  const list = walkDepthFirst(roots, treeNode => treeNode.children);
+  // Parents come before their children, so their depth is already set.
+  for (const treeNode of list) {
     treeNode.depth = treeNode.parent ? treeNode.parent.depth + 1 : 0;
-    list.push(treeNode);
-    for (let i = treeNode.children.length - 1; i >= 0; i--) {
-      stack.push(treeNode.children[i]!);
-    }
   }
 
   return {byId, list, roots};
@@ -90,18 +85,9 @@ export function getVisibleTreeNodes(
   tree: AiSpanTree,
   isExpanded: (treeNode: AiSpanTreeNode) => boolean
 ): AiSpanTreeNode[] {
-  const visible: AiSpanTreeNode[] = [];
-  const stack = tree.roots.toReversed();
-  while (stack.length > 0) {
-    const treeNode = stack.pop()!;
-    visible.push(treeNode);
-    if (treeNode.children.length > 0 && isExpanded(treeNode)) {
-      for (let i = treeNode.children.length - 1; i >= 0; i--) {
-        stack.push(treeNode.children[i]!);
-      }
-    }
-  }
-  return visible;
+  return walkDepthFirst(tree.roots, treeNode =>
+    treeNode.children.length > 0 && isExpanded(treeNode) ? treeNode.children : []
+  );
 }
 
 /**
@@ -133,16 +119,24 @@ export function getTreeAncestors(treeNode: AiSpanTreeNode): AiSpanTreeNode[] {
  * The tree node's descendants, depth-first.
  */
 export function getTreeDescendants(treeNode: AiSpanTreeNode): AiSpanTreeNode[] {
-  const descendants: AiSpanTreeNode[] = [];
-  const stack = treeNode.children.toReversed();
-  while (stack.length > 0) {
-    const descendant = stack.pop()!;
-    descendants.push(descendant);
-    for (let i = descendant.children.length - 1; i >= 0; i--) {
-      stack.push(descendant.children[i]!);
-    }
+  return walkDepthFirst(treeNode.children, descendant => descendant.children);
+}
+
+/**
+ * Lists `starts` and the nodes below them, each node followed by the nodes below
+ * it. `getChildren` picks which children to descend into.
+ */
+function walkDepthFirst(
+  starts: AiSpanTreeNode[],
+  getChildren: (treeNode: AiSpanTreeNode) => AiSpanTreeNode[]
+): AiSpanTreeNode[] {
+  const visited: AiSpanTreeNode[] = [];
+  const stack = starts.toReversed();
+  for (let treeNode = stack.pop(); treeNode; treeNode = stack.pop()) {
+    visited.push(treeNode);
+    stack.push(...getChildren(treeNode).toReversed());
   }
-  return descendants;
+  return visited;
 }
 
 function findClosestTreeAncestor(
