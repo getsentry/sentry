@@ -1,11 +1,20 @@
 from random import random
 from typing import Any
 
-from sentry_sdk import metrics
+from sentry_sdk import get_client, metrics
 
 from .base import MetricsBackend, Tags
 
-__all__ = ["SentrySDKMetricsBackend"]
+__all__ = ["SentrySDKMetricsBackend", "is_window_sampled"]
+
+
+def is_window_sampled(name: str) -> bool:
+    """
+    Whether the SDK samples this metric name per time window. The SDK then sets
+    `sentry.client_sample_rate` itself, so callers must not sample it first.
+    """
+    window_sampling = get_client().options["_experiments"].get("metrics_window_sampling")
+    return name in (window_sampling or ())
 
 
 class SentrySDKMetricsBackend(MetricsBackend):

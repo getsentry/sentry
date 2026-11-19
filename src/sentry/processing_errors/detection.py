@@ -12,6 +12,7 @@ from django.utils import timezone
 
 from sentry import features, ratelimits
 from sentry.issues.grouptype import GroupType
+from sentry.metrics.sentry_sdk import is_window_sampled
 from sentry.processing_errors.grouptype import (
     ProcessingErrorDetectorHandler,
     ProcessingErrorPacketValue,
@@ -154,23 +155,23 @@ def _detect_for_config(
     matching_error_types = sorted(
         config.handler_cls.error_types.intersection(filter(None, (e.get("type") for e in errors)))
     )
+    metric_name = f"processing_errors.{config.slug}.event_with_errors"
+    window_sampled = is_window_sampled(metric_name)
     # testing internal sampling on high volume metrics, not yet public api
-    if random() < 0.01:
-        sentry_sdk.metrics.count(
-            f"processing_errors.{config.slug}.event_with_errors",
-            1,
-            attributes={
-                "org_slug": event.project.organization.slug,
-                "event_project_id": str(event.project.id),
-                "event_project_slug": event.project.slug,
-                "project_platform": event.project.platform or "unknown",
-                "event_platform": event.data.get("platform") or "unknown",
-                "event_sdk": normalized_sdk_tag_from_event(event.data),
-                "error_type": ",".join(matching_error_types),
-                "project_age_bucket": _project_age_bucket(event.project),
-                "sentry.client_sample_rate": 0.01,
-            },
-        )
+    if window_sampled or random() < 0.01:
+        attributes: dict[str, str | float] = {
+            "org_slug": event.project.organization.slug,
+            "event_project_id": str(event.project.id),
+            "event_project_slug": event.project.slug,
+            "project_platform": event.project.platform or "unknown",
+            "event_platform": event.data.get("platform") or "unknown",
+            "event_sdk": normalized_sdk_tag_from_event(event.data),
+            "error_type": ",".join(matching_error_types),
+            "project_age_bucket": _project_age_bucket(event.project),
+        }
+        if not window_sampled:
+            attributes["sentry.client_sample_rate"] = 0.01
+        sentry_sdk.metrics.count(metric_name, 1, attributes=attributes)
 
     if config.feature_flag and not features.has(config.feature_flag, event.project.organization):
         return

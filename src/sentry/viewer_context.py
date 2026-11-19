@@ -23,6 +23,7 @@ from sentry_viewercontext import (
     viewer_context_var,
 )
 
+from sentry.metrics.sentry_sdk import is_window_sampled
 from sentry.silo.base import SiloMode
 
 __all__ = [
@@ -128,15 +129,16 @@ def observe_viewer_context_propagation(
         }
     )
 
+    metric_name = "viewer_context.observation"
+    if is_window_sampled(metric_name):
+        sentry_sdk.metrics.count(metric_name, 1, attributes=attributes)
     # testing internal sampling on high volume metrics, not yet public api
-    if random() < 0.001:
+    elif random() < 0.001:
         attributes_with_sampling: dict[str, str | float] = {
             **attributes,
             "sentry.client_sample_rate": 0.001,
         }
-        sentry_sdk.metrics.count(
-            "viewer_context.observation", 1, attributes=attributes_with_sampling
-        )
+        sentry_sdk.metrics.count(metric_name, 1, attributes=attributes_with_sampling)
 
     if expected and ctx is None:
         log_extra: dict[str, Any] = dict(extra_attributes) if extra_attributes else {}

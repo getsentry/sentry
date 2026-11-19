@@ -354,6 +354,15 @@ class TestObserve:
         assert getattr(missing_records[0], "method") == "ghost_method"
         assert getattr(missing_records[0], "point") == "seer_rpc_in"
 
+    def test_window_sampled_skips_presampling(self, patch_metrics: mock.MagicMock) -> None:
+        with (
+            mock.patch("sentry.viewer_context.is_window_sampled", return_value=True),
+            mock.patch("sentry.viewer_context.random", return_value=0.5),
+        ):
+            observe_viewer_context_propagation("seer_rpc_out")
+        tags = self._tags(patch_metrics)
+        assert "sentry.client_sample_rate" not in tags
+
 
 @pytest.mark.parametrize(
     "wire",

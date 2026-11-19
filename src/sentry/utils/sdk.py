@@ -286,6 +286,7 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     sdk_options["trace_lifecycle"] = "stream"
     sdk_options.setdefault("_experiments", {}).update(
         transport_http2=options.get("sdk_http2_experiment.enabled"),
+        metrics_window_sampling=options.get("sdk_metrics_window_sampling.rates"),
     )
 
     # Remove legacy keys to avoid cross-deploy problems.

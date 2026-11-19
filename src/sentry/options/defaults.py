@@ -4338,6 +4338,15 @@ register(
     type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Metric name -> metrics per second each process keeps, for SDK window sampling.
+# Read at SDK init, so a change needs a restart. SDKs without window sampling
+# ignore it, which sends the listed metrics unsampled.
+register(
+    "sdk_metrics_window_sampling.rates",
+    default={},
+    type=Dict,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "sdk-deprecation.profile-chunk.python",
     default="2.24.1",

@@ -2,7 +2,7 @@ from unittest import mock
 
 import pytest
 
-from sentry.metrics.sentry_sdk import SentrySDKMetricsBackend
+from sentry.metrics.sentry_sdk import SentrySDKMetricsBackend, is_window_sampled
 
 
 class TestSentrySDKMetricsBackend:
@@ -224,3 +224,18 @@ class TestSentrySDKMetricsBackend:
             unit=None,
             attributes={"x": "y", "sentry.client_sample_rate": 0.25},
         )
+
+
+@pytest.mark.parametrize(
+    ("experiments", "expected"),
+    [
+        ({}, False),
+        ({"metrics_window_sampling": None}, False),
+        ({"metrics_window_sampling": {"bar": 1}}, False),
+        ({"metrics_window_sampling": {"foo": 1}}, True),
+    ],
+)
+def test_is_window_sampled(experiments: dict[str, object], expected: bool) -> None:
+    with mock.patch("sentry.metrics.sentry_sdk.get_client") as get_client:
+        get_client.return_value.options = {"_experiments": experiments}
+        assert is_window_sampled("foo") is expected
