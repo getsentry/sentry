@@ -143,3 +143,45 @@ class AuditLogEntrySerializerTest(TestCase):
 
         result = serialize(log, serializer=AuditLogEntrySerializer())
         assert result["note"] == "revoked a token for internal integration my-integration"
+
+    def test_autofix_settings_note_legacy_single_project(self) -> None:
+        log = AuditLogEntry.objects.create(
+            organization_id=self.organization.id,
+            event=audit_log.get_event_id("AUTOFIX_SETTINGS_EDIT"),
+            actor=self.user,
+            datetime=timezone.now(),
+            data={"project_id": self.project.id, "autofix_automation_tuning": "medium"},
+        )
+
+        result = serialize(log, serializer=AuditLogEntrySerializer())
+        assert result["note"] == "updated autofix automation settings for 1 projects"
+
+    def test_project_accept_transfer_note_legacy_slug(self) -> None:
+        log = AuditLogEntry.objects.create(
+            organization_id=self.organization.id,
+            event=audit_log.get_event_id("PROJECT_ACCEPT_TRANSFER"),
+            actor=self.user,
+            datetime=timezone.now(),
+            data={
+                "id": 1,
+                "slug": "my-project",
+                "name": "My Project",
+                "status": 0,
+                "public": False,
+            },
+        )
+
+        result = serialize(log, serializer=AuditLogEntrySerializer())
+        assert result["note"] == "accepted transfer of project my-project"
+
+    def test_detector_workflow_note_legacy_ids(self) -> None:
+        log = AuditLogEntry.objects.create(
+            organization_id=self.organization.id,
+            event=audit_log.get_event_id("DETECTOR_WORKFLOW_REMOVE"),
+            actor=self.user,
+            datetime=timezone.now(),
+            data={"detector_id": 12, "workflow_id": 34},
+        )
+
+        result = serialize(log, serializer=AuditLogEntrySerializer())
+        assert result["note"] == "disconnected detector 12 from workflow 34"

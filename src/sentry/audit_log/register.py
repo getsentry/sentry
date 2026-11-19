@@ -96,7 +96,7 @@ default_manager.add(
     )
 )
 default_manager.add(
-    AuditLogEvent(
+    events.ProjectAcceptTransferAuditLogEvent(
         event_id=36,
         name="PROJECT_ACCEPT_TRANSFER",
         api_name="project.accept-transfer",
@@ -634,7 +634,7 @@ default_manager.add(
     )
 )
 default_manager.add(
-    AuditLogEvent(
+    events.DetectorWorkflowAuditLogEvent(
         event_id=216,
         name="DETECTOR_WORKFLOW_ADD",
         api_name="detector_workflow.add",
@@ -642,7 +642,7 @@ default_manager.add(
     )
 )
 default_manager.add(
-    AuditLogEvent(
+    events.DetectorWorkflowAuditLogEvent(
         event_id=217,
         name="DETECTOR_WORKFLOW_REMOVE",
         api_name="detector_workflow.remove",
@@ -710,7 +710,7 @@ default_manager.add(
 )
 default_manager.add(events.RepoSettingsEditAuditLogEvent())
 default_manager.add(
-    AuditLogEvent(
+    events.AutofixSettingsEditAuditLogEvent(
         event_id=1160,
         name="AUTOFIX_SETTINGS_EDIT",
         api_name="autofix-settings.edit",
