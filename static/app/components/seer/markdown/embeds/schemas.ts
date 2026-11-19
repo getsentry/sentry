@@ -8,15 +8,31 @@ const isoTimestampSchema = z.iso.datetime({offset: true});
 // and every consumer reads them as UTC, so the agent copies that form back.
 const pageFilterTimestampSchema = z.iso.datetime({offset: true, local: true});
 
-const chartSeriesDataSchema = z
-  .array(
-    z.object({
-      x: z.union([z.string(), z.number()]),
-      y: z.number(),
-    })
-  )
-  .min(1)
-  .max(200);
+const chartPointSchema = z.object({
+  x: z.union([z.string(), z.number()]),
+  y: z
+    .number()
+    .nullable()
+    .describe('Value at x, or null when there is no data. Never use 0 for missing data.'),
+  filled: z
+    .boolean()
+    .optional()
+    .describe('Whether a fill transformation produced this value'),
+  smoothed: z
+    .boolean()
+    .optional()
+    .describe('Whether a smoothing transformation produced this value'),
+});
+
+// The point Seer is told to produce. Readers accept `chartPointSchema`, which
+// is wider, so every deployed frontend reads nulls and transformation flags
+// before the agent contract lets Seer send them.
+const chartGenerationPointSchema = z.object({
+  x: z.union([z.string(), z.number()]),
+  y: z.number(),
+});
+
+const chartSeriesDataSchema = z.array(chartPointSchema).min(1).max(200);
 
 const chartSeriesSchema = z.union([
   z.object({
@@ -1165,7 +1181,23 @@ export function seerEmbedsToJsonSchemas(): Array<{
 }> {
   return Object.entries(SEER_EMBED_SCHEMAS).map(([name, entry]) => {
     const def: SeerEmbedSchema = entry;
-    const body = z.toJSONSchema(def.schema, {io: 'input'});
+    const body = z.toJSONSchema(def.schema, {
+      io: 'input',
+      override: ({zodSchema, jsonSchema}) => {
+        if (zodSchema !== chartPointSchema) {
+          return;
+        }
+        // The override edits this node in place; its parent already holds it.
+        for (const key of Object.keys(jsonSchema)) {
+          delete jsonSchema[key];
+        }
+        const {$schema: _, ...generationPoint} = z.toJSONSchema(
+          chartGenerationPointSchema,
+          {io: 'input'}
+        );
+        Object.assign(jsonSchema, generationPoint);
+      },
+    });
     if (name === 'chart') {
       // superRefine is not exported. Apply its rules to new generation without
       // changing the reader used by historical conversations.

@@ -10,6 +10,13 @@ jest.mock('sentry/components/charts/baseChart', () => ({
   BaseChart: jest.fn(() => null),
 }));
 
+// The tooltip only renders for the chart under the pointer, which a mocked
+// chart never is.
+jest.mock('sentry/components/charts/utils', () => ({
+  ...jest.requireActual('sentry/components/charts/utils'),
+  isChartHovered: () => true,
+}));
+
 function ExampleChartEmbed({body}: {body: Record<string, unknown>}) {
   return <SeerMarkdown raw={`{% chart %}${JSON.stringify(body)}{% /chart %}`} />;
 }
@@ -314,6 +321,127 @@ describe('Chart embed', () => {
     );
 
     expect(screen.getByTestId('seer-chart-embed')).toBeInTheDocument();
+  });
+
+  it.each(['time', 'category'] as const)(
+    'shows the empty state when every %s value is missing',
+    xAxis => {
+      render(
+        <ExampleChartEmbed
+          body={{
+            title: 'Error volume',
+            visualization: 'bar',
+            x_axis: xAxis,
+            series: [
+              {
+                label: 'Errors',
+                data: [
+                  {x: xAxis === 'time' ? '2026-07-30T12:00:00Z' : '/api/cart', y: null},
+                  {x: xAxis === 'time' ? '2026-07-30T13:00:00Z' : '/api/search', y: null},
+                ],
+              },
+            ],
+          }}
+        />
+      );
+
+      expect(screen.getByText('No data to plot.')).toBeInTheDocument();
+      expect(BaseChart).not.toHaveBeenCalled();
+    }
+  );
+
+  it('passes missing values to the chart as nulls', () => {
+    render(
+      <ExampleChartEmbed
+        body={{
+          title: 'Error volume',
+          visualization: 'line',
+          x_axis: 'time',
+          series: [
+            {
+              label: 'Errors',
+              data: [
+                {x: '2026-07-30T12:00:00Z', y: 12},
+                {x: '2026-07-30T13:00:00Z', y: null},
+                {x: '2026-07-30T14:00:00Z', y: 15},
+              ],
+            },
+          ],
+        }}
+      />
+    );
+
+    expect(jest.mocked(BaseChart).mock.calls.at(-1)![0].series).toEqual([
+      expect.objectContaining({
+        data: [
+          expect.objectContaining({value: [Date.parse('2026-07-30T12:00:00Z'), 12]}),
+          expect.objectContaining({value: [Date.parse('2026-07-30T13:00:00Z'), '-']}),
+          expect.objectContaining({value: [Date.parse('2026-07-30T14:00:00Z'), 15]}),
+        ],
+      }),
+    ]);
+  });
+
+  it('draws filled and smoothed values like observed ones and names them in the tooltip', () => {
+    const t0 = '2026-07-30T12:00:00Z';
+    const t1 = '2026-07-30T13:00:00Z';
+    render(
+      <ExampleChartEmbed
+        body={{
+          title: 'Latency',
+          visualization: 'line',
+          x_axis: 'time',
+          y_axis_unit: 'duration',
+          series: [
+            {
+              label: 'p95',
+              data: [
+                {x: t0, y: 100, smoothed: true},
+                {x: t1, y: 120, filled: true},
+              ],
+            },
+            {
+              label: 'p50',
+              data: [
+                {x: t0, y: 40},
+                {x: t1, y: 45},
+              ],
+            },
+          ],
+        }}
+      />
+    );
+
+    const props = jest.mocked(BaseChart).mock.calls.at(-1)![0];
+    expect(props.series).toEqual([
+      expect.objectContaining({
+        name: 'seer-chart-series-0',
+        data: [
+          expect.objectContaining({value: [Date.parse(t0), 100]}),
+          expect.objectContaining({value: [Date.parse(t1), 120]}),
+        ],
+      }),
+      expect.objectContaining({name: 'seer-chart-series-1'}),
+    ]);
+    expect(props.series?.[0]).not.toHaveProperty('lineStyle.type', 'dashed');
+    expect(screen.getByText('p95')).toBeInTheDocument();
+
+    const formatter = (props.tooltip as {formatter: (params: unknown[]) => string})
+      .formatter;
+    const tooltipAt = (timestamp: string) =>
+      formatter(
+        ['seer-chart-series-0', 'seer-chart-series-1'].map((seriesName, seriesIndex) => ({
+          seriesName,
+          seriesIndex,
+          value: [Date.parse(timestamp), 1],
+          data: [Date.parse(timestamp), 1],
+          axisValue: Date.parse(timestamp),
+          marker: '',
+        }))
+      );
+    expect(tooltipAt(t0)).toContain('p95: smoothed value');
+    expect(tooltipAt(t1)).toContain('p95: filled value');
+    expect(tooltipAt(t1)).not.toContain('p50: ');
   });
 });
 
