@@ -1,5 +1,6 @@
 import {Fragment, useRef, useState} from 'react';
 import {Outlet} from 'react-router';
+import {useTheme} from '@emotion/react';
 import {IconDelete} from '@sentry/icons/delete';
 import {IconEdit} from '@sentry/icons/edit';
 import {IconPause} from '@sentry/icons/pause';
@@ -28,6 +29,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUserFromId} from 'sentry/utils/useUserFromId';
 import {TopBar} from 'sentry/views/navigation/topBar';
+import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 import {
   getNextUpdate,
   type AutomationConfig,
@@ -50,6 +52,8 @@ import {
 import type {AutomationDetailOutletContext} from './configuration';
 
 export default function AutomationDetail() {
+  const theme = useTheme();
+  const {pageContentTop} = useTopOffset();
   const organization = useOrganization();
   const location = useLocation();
   const activeTab: 'configuration' | 'runs' = location.pathname.endsWith('/runs/')
@@ -297,6 +301,9 @@ export default function AutomationDetail() {
           padding="xl xl 0 xl"
           background="secondary"
           borderBottom="primary"
+          position="sticky"
+          top={pageContentTop}
+          style={{zIndex: theme.zIndex.initial + 1}}
         >
           <Flex justify="between" align="start" gap="xl">
             <Stack gap="xs">

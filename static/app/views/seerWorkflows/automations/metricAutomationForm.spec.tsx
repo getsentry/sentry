@@ -346,8 +346,11 @@ describe('MetricAutomationForm', () => {
       // Fields are locked before configuring
       expect(
         await screen.findByRole('button', {name: 'Disconnect Checkout error rate'})
-      ).toBeDisabled();
-      expect(screen.getByRole('button', {name: 'Connect monitors'})).toBeDisabled();
+      ).toHaveAttribute('aria-disabled', 'true');
+      expect(screen.getByRole('button', {name: 'Connect monitors'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
 
       await userEvent.click(screen.getByRole('button', {name: 'Configure'}));
 
@@ -366,7 +369,10 @@ describe('MetricAutomationForm', () => {
       await waitFor(() => expect(update).toHaveBeenCalled());
       expect(await screen.findByRole('button', {name: 'Configure'})).toBeInTheDocument();
       expect(screen.queryByRole('button', {name: 'Save'})).not.toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Connect monitors'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Connect monitors'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
     });
 
     it('enables save only while there are changes', async () => {
@@ -442,7 +448,7 @@ describe('MetricAutomationForm', () => {
       await userEvent.click(screen.getByRole('tab', {name: 'Configuration'}));
       expect(
         await screen.findByRole('button', {name: 'Disconnect Checkout error rate'})
-      ).toBeDisabled();
+      ).toHaveAttribute('aria-disabled', 'true');
       expect(update).not.toHaveBeenCalled();
     });
 

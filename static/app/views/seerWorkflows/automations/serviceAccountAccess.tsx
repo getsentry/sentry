@@ -116,12 +116,14 @@ export function ServiceAccountProjects({
   value,
   monitors,
   disabled,
+  disabledTooltip,
   onChange,
 }: {
   disabled: boolean;
   monitors: MetricDetector[];
   onChange: (value: ServiceAccountProjectAccess) => void;
   value: ServiceAccountProjectAccess;
+  disabledTooltip?: string;
 }) {
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -153,8 +155,11 @@ export function ServiceAccountProjects({
       >
         <Flex>
           <Tooltip
-            disabled={hasGlobalRole}
-            title={t('Only roles with access to all projects can change this.')}
+            title={
+              hasGlobalRole
+                ? disabledTooltip
+                : t('Only roles with access to all projects can change this.')
+            }
           >
             <Switch
               aria-label={t('All projects')}
@@ -190,7 +195,12 @@ export function ServiceAccountProjects({
             }
             emptyMessage={t('No other projects to add')}
             trigger={triggerProps => (
-              <OverlayTrigger.Button {...triggerProps} size="sm" icon={<IconAdd />}>
+              <OverlayTrigger.Button
+                {...triggerProps}
+                size="sm"
+                icon={<IconAdd />}
+                tooltipProps={{title: disabledTooltip}}
+              >
                 {t('Add projects')}
               </OverlayTrigger.Button>
             )}
@@ -249,6 +259,7 @@ export function ServiceAccountProjects({
                       icon={<IconClose />}
                       aria-label={t('Remove %s', project.slug)}
                       disabled={disabled}
+                      tooltipProps={{title: disabledTooltip}}
                       onClick={() =>
                         onChange({
                           ...value,
@@ -270,11 +281,13 @@ export function ServiceAccountProjects({
 export function ServiceAccountPermissions({
   value,
   disabled,
+  disabledTooltip,
   onChange,
 }: {
   disabled: boolean;
   onChange: (scopes: string[]) => void;
   value: string[];
+  disabledTooltip?: string;
 }) {
   const organization = useOrganization();
   const grantable = new Set<string>(organization.access);
@@ -341,6 +354,7 @@ export function ServiceAccountPermissions({
                   <OverlayTrigger.Button
                     {...triggerProps}
                     aria-label={t('%s permission', label)}
+                    tooltipProps={{title: disabledTooltip}}
                   />
                 )}
               />
