@@ -75,6 +75,7 @@ const config: KnipConfig = {
         'jest', // CI runner and regression tests resolve Jest from tests/js.
         'tslib', // subdependency of many packages, declare the latest version
         'odiff-bin', // raw binary consumed by Python backend, not a JS import
+        '@sentry/decision-model-linter', // run by .github/workflows/scripts/run-decision-model-lint.sh
         'zrender', // used in echarts
       ],
     },

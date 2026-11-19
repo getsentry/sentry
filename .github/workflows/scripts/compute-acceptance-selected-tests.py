@@ -50,10 +50,12 @@ from selected_tests_common import PYTHON_FULL_SUITE_TRIGGERS, covering_contexts,
 
 ACCEPTANCE_DIR = "tests/acceptance/"
 
-# Each shard spends several minutes building the frontend and starting
-# services before it runs a test, so a small selection gets few shards.
-TESTS_PER_SHARD = 40
-MAX_SHARDS = 5
+# Each shard spends about 2.5 minutes building the frontend and starting
+# services before it runs a test, then about 1.7s per test. 30 tests keeps a
+# shard under 4 minutes. A full run is MAX_SHARDS shards, so acceptance.yml
+# repeats it for runs that select-tests doesn't plan.
+TESTS_PER_SHARD = 30
+MAX_SHARDS = 7
 
 FULL_SUITE_TRIGGERS: list[str | re.Pattern[str]] = [
     # How the suite is built and run.
@@ -96,6 +98,13 @@ IGNORED: list[re.Pattern[str]] = [
     re.compile(r"^\.github/"),
     re.compile(r"^\.agents/"),
     re.compile(r"^\.cursor/"),
+    # Editor and agent settings, and developer tooling that runs outside the
+    # app: type stubs, node scripts under scripts/, Seer helper scripts.
+    re.compile(r"^\.(claude|vscode|sentry-refactor-tasks)/"),
+    re.compile(r"^\.(mcp\.json|git-blame-ignore-revs)$"),
+    re.compile(r"^fixtures/stubs-for-mypy/.+\.pyi$"),
+    re.compile(r"^scripts/[^/]+\.ts$"),
+    re.compile(r"^bin/seer/"),
     re.compile(r"^api-docs/"),
     re.compile(r"^tools/"),
     re.compile(r"^devenv/"),

@@ -1,7 +1,13 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {DEFAULT_LOCALE_DATA, pgettext, setLocale, t, tct} from './locale';
+import {formatTimezone} from '@sentry/scraps/dateTime';
+import {getDuration} from '@sentry/scraps/duration';
+import {getRelativeDate, useRelativeTimeFormatter} from '@sentry/scraps/relativeTime';
+
+import {formatChartDateTime} from './components/charts/formatChartDateTime';
+import {getAbsoluteSummary} from './components/timeRangeSelector/utils';
+import {DEFAULT_LOCALE_DATA, getLocaleSnapshot, setLocale, t, tct, tn} from './locale';
 
 describe('locale.gettextComponentTemplate', () => {
   it('should not wrap translated text in span', () => {
@@ -95,7 +101,7 @@ describe('locale.gettextComponentTemplate', () => {
   });
 });
 
-describe('locale.pgettext', () => {
+describe('locale snapshot contextual translations', () => {
   afterEach(() => {
     setLocale(DEFAULT_LOCALE_DATA);
   });
@@ -107,7 +113,10 @@ describe('locale.pgettext', () => {
       'abbreviated minutes\u0004m': ['м'],
     });
 
-    const result = [t('m'), pgettext('abbreviated minutes', 'm')];
+    const result = [
+      t('m'),
+      getLocaleSnapshot().messages.pgettext('abbreviated minutes', 'm'),
+    ];
 
     expect(result).toEqual(['млн', 'м']);
   });
@@ -115,8 +124,103 @@ describe('locale.pgettext', () => {
   it('should fall back to the msgid when the context has no translation', () => {
     setLocale({...DEFAULT_LOCALE_DATA, m: ['млн']});
 
-    const result = pgettext('abbreviated minutes', 'm');
+    const result = getLocaleSnapshot().messages.pgettext('abbreviated minutes', 'm');
 
     expect(result).toBe('m');
+  });
+});
+
+describe('shared formatter translations', () => {
+  beforeEach(() => {
+    jest.useFakeTimers().setSystemTime(new Date('2026-01-01T00:00:02Z'));
+  });
+  afterEach(() => {
+    try {
+      cleanup();
+      jest.runOnlyPendingTimers();
+    } finally {
+      jest.useRealTimers();
+      act(() => setLocale(DEFAULT_LOCALE_DATA));
+    }
+  });
+
+  it('keeps full-day ranges date-only with localized digits', () => {
+    setLocale({
+      ...DEFAULT_LOCALE_DATA,
+      '': {...DEFAULT_LOCALE_DATA[''], lang: 'fa'},
+    });
+    render(
+      <div>{getAbsoluteSummary('2025-01-01T00:00:00', '2025-01-02T23:59:59', true)}</div>
+    );
+    expect(screen.getByText('۱ ژانویه ۲۰۲۵')).toBeInTheDocument();
+    expect(screen.getByText('۲ ژانویه ۲۰۲۵')).toBeInTheDocument();
+  });
+
+  it('preserves localized numeric timezone labels from the application source', () => {
+    setLocale({
+      ...DEFAULT_LOCALE_DATA,
+      '': {...DEFAULT_LOCALE_DATA[''], lang: 'fa'},
+    });
+    const date = '2025-01-01T00:00:00Z';
+    expect(formatTimezone(Date.parse(date), 'Asia/Kathmandu')).toBe('+۰۵۴۵');
+    expect(formatChartDateTime(date, 'timezone', {timezone: 'Asia/Kathmandu'})).toBe(
+      '+۰۵۴۵'
+    );
+  });
+
+  it('keeps plural count formatting and catalog bindings consistent', () => {
+    const original = getLocaleSnapshot();
+    expect(original.messages.tn('%s item', '%s items', 2)).toBe(
+      tn('%s item', '%s items', 2)
+    );
+    setLocale({
+      ...DEFAULT_LOCALE_DATA,
+      '%s item': ['%s article', '%s articles'],
+    });
+    const translated = getLocaleSnapshot();
+    expect(translated.messages.tn('%s item', '%s items', 9999)).toBe(
+      tn('%s item', '%s items', 9999)
+    );
+    expect(original.messages.tn('%s item', '%s items', 2)).toBe('2 items');
+    expect(translated.messages.tn('%s item', '%s items', 2)).toBe('2 articles');
+  });
+
+  it('uses the active locale for duration and relative-date formatting', () => {
+    expect(getDuration(2)).toBe('2 seconds');
+    setLocale({...DEFAULT_LOCALE_DATA, second: ['seconde', 'secondes']});
+    expect(getDuration(2)).toBe('2 secondes');
+    expect(getRelativeDate('2026-01-01T00:00:00Z', {rounding: 'unit', suffix: ''})).toBe(
+      '2 secondes'
+    );
+    setLocale(DEFAULT_LOCALE_DATA);
+    expect(getDuration(2)).toBe('2 seconds');
+  });
+
+  it('updates a mounted relative time with a complete phrase from the new catalog', () => {
+    const date = '2026-01-01T00:00:00Z';
+    function RelativeDate() {
+      const format = useRelativeTimeFormatter();
+      return <span>{format(date, {rounding: 'unit'})}</span>;
+    }
+    render(<RelativeDate />);
+    expect(screen.getByText('2 seconds ago')).toBeInTheDocument();
+
+    act(() => {
+      setLocale({
+        ...DEFAULT_LOCALE_DATA,
+        '': {...DEFAULT_LOCALE_DATA[''], lang: 'fr'},
+        second: ['seconde', 'secondes'],
+        '%s ago': ['il y a %s'],
+        'in %s': ['dans %s'],
+      });
+    });
+    expect(screen.getByText('il y a 2 secondes')).toBeInTheDocument();
+    expect(getRelativeDate(date, {rounding: 'unit'})).toBe('il y a 2 secondes');
+    expect(
+      formatChartDateTime('2026-01-01T00:00:00Z', 'ordinalDate', {timezone: 'UTC'})
+    ).toBe('1 janv.');
+    expect(getRelativeDate('2026-01-01T00:00:04Z', {rounding: 'unit'})).toBe(
+      'dans 2 secondes'
+    );
   });
 });

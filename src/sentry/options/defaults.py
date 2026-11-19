@@ -1665,6 +1665,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Organizations whose telemetry classifiers aren't processed.
+register(
+    "telemetry-classifiers.killswitch-organization-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Kill switch for sentry.cadence: when False, no triggers are claimed or fired.
 register(
     "cadence.tick.enabled",

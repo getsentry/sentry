@@ -2,11 +2,11 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {Duration} from 'sentry/components/duration';
 import {Placeholder} from 'sentry/components/placeholder';
 import {DataGrid, type GridColumnOrder} from 'sentry/components/tables/dataGrid';
@@ -142,9 +142,9 @@ function CheckInBodyCell({
         <TimeCell>
           <Tooltip
             maxWidth={300}
-            title={t('Checked at %s', <DateTime date={timestamp} seconds />)}
+            title={t('Checked at %s', <DateTime date={timestamp} precision="second" />)}
           >
-            <DateTime date={scheduledCheckTime} timeZone />
+            <DateTime date={scheduledCheckTime} showTimezone />
           </Tooltip>
         </TimeCell>
       );

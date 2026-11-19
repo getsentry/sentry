@@ -7,7 +7,7 @@ import {ReleaseFixture} from 'sentry-fixture/release';
 import {RepositoryFixture} from 'sentry-fixture/repository';
 import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProjectPathConfig';
 
-import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Frame} from 'sentry/types/event';
@@ -56,6 +56,26 @@ describe('StacktraceLink', () => {
     );
     const link = await screen.findByRole('button', {name: 'Open this line in GitHub'});
     expect(link).toHaveAttribute('href', 'https://something.io#L233');
+  });
+
+  it("requests the link for the frame's file revision", async () => {
+    const request = MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
+      body: {config, sourceUrl: 'https://something.io', integrations: [integration]},
+      match: [MockApiClient.matchQuery({fileRevision: '12345'})],
+    });
+    render(
+      <StacktraceLink
+        frame={{...frame, fileRevision: '12345'}}
+        event={event}
+        line="foo()"
+        disableSetup={false}
+      />
+    );
+    expect(
+      await screen.findByRole('button', {name: 'Open this line in GitHub'})
+    ).toBeInTheDocument();
+    expect(request).toHaveBeenCalled();
   });
 
   it('displays fix modal on error', async () => {
@@ -181,6 +201,7 @@ describe('StacktraceLink', () => {
 
     afterEach(async () => {
       try {
+        cleanup();
         await act(() => jest.runOnlyPendingTimersAsync());
       } finally {
         jest.useRealTimers();

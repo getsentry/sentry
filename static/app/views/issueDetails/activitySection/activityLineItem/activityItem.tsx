@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 import * as Sentry from '@sentry/react';
 
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Link} from '@sentry/scraps/link';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {Duration} from 'sentry/components/duration';
 import {t, tct, tn} from 'sentry/locale';
 import type {
