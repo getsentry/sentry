@@ -47,3 +47,30 @@ export function useUpdateClassifier(classifierId: string) {
     },
   });
 }
+
+export function useDeleteClassifier(classifierId: string) {
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () =>
+      fetchMutation<void>({
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/classifiers/$classifierId/',
+          {
+            path: {organizationIdOrSlug: organization.slug, classifierId},
+          }
+        ),
+        method: 'DELETE',
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/classifiers/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
+        ],
+      });
+    },
+  });
+}

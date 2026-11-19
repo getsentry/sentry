@@ -40,6 +40,28 @@ class VisibleNavLink:
     pending: Condition | None
 
 
+@dataclass(frozen=True)
+class NavSummary:
+    # Section to its labels, the section header first.
+    sections: dict[str, list[str]]
+    prebuilt_dashboards: list[str]
+    explore_tabs: list[str]
+    # Each flag the nav files reference, and whether the org has it.
+    flags: dict[str, bool]
+
+
+def nav_summary(features: Collection[str]) -> NavSummary:
+    """The nav summary, with the flags it references evaluated against the org's `features`."""
+    summary = _SNAPSHOT["summary"]
+    features = frozenset(features)
+    return NavSummary(
+        sections=summary["sections"],
+        prebuilt_dashboards=summary["prebuilt_dashboards"],
+        explore_tabs=summary["explore_tabs"],
+        flags={flag: flag in features for flag in summary["flags"]},
+    )
+
+
 def _deployment(kind: str) -> bool | None:
     if kind == "self_hosted":
         return is_self_hosted()

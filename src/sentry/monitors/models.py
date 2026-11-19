@@ -815,6 +815,12 @@ class MonitorIncident(Model):
     This represents the final OK check-in that we receive
     """
 
+    last_successful_timestamp = models.DateTimeField(null=True)
+    """
+    Time of the newest OK check-in before this incident, or during it while
+    the recovery threshold is not yet met. Shown on the incident's issue.
+    """
+
     grouphash = models.CharField(max_length=32, default=default_grouphash)
     """
     Used for issue occurrences generation. Failed check-ins produce an
@@ -868,7 +874,7 @@ def get_cron_monitor(detector: Detector) -> Monitor:
     """
     Given a detector get the matching cron monitor.
     """
-    data_source = detector.data_sources.filter(type=DATA_SOURCE_CRON_MONITOR).first()
+    data_source = detector.data_sources.filter(type=DATA_SOURCE_CRON_MONITOR).first()  # noqa: S035
     assert data_source
     return Monitor.objects.get(id=int(data_source.source_id), project_id=detector.linked_project.id)
 

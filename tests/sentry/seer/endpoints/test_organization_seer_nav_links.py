@@ -24,6 +24,12 @@ _SNAPSHOT = {
             "when": {"org": "openMembership"},
         },
     ],
+    "summary": {
+        "sections": {"explore": ["Explore", "Logs", "Releases"]},
+        "prebuilt_dashboards": ["Queries"],
+        "explore_tabs": ["Aggregates"],
+        "flags": ["ourlogs-enabled", "profiling"],
+    },
 }
 
 
@@ -52,6 +58,19 @@ class OrganizationSeerNavLinksTest(APITestCase):
                 "condition": "organization setting `openMembership` enabled",
             },
         ]
+
+    def test_summary_evaluates_flags_for_the_org(self) -> None:
+        with self.feature("organizations:ourlogs-enabled"):
+            response = self.get_success_response(self.organization.slug)
+        assert response.data["summary"] == {
+            "sections": {"explore": ["Explore", "Logs", "Releases"]},
+            "prebuiltDashboards": ["Queries"],
+            "exploreTabs": ["Aggregates"],
+            "flags": [
+                {"name": "ourlogs-enabled", "enabled": True},
+                {"name": "profiling", "enabled": False},
+            ],
+        }
 
     def test_member_without_scope_does_not_see_the_page(self) -> None:
         member = self.create_user()

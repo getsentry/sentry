@@ -25,11 +25,8 @@ const WARNING_PERCENT = 90;
 
 export function SeerCreditUsageMeter({hasEnoughCredits}: SeerCreditUsageMeterProps) {
   const organization = useOrganization();
-  // Without `seer-credit-checks` the chat looks as it did before, and only
-  // token-billed orgs have a wallet to show.
-  const isEnabled =
-    organization.features.includes('seer-credit-checks') &&
-    organization.features.includes('token-billed-seer-enabled');
+  // Only token-billed orgs have a wallet to show.
+  const isEnabled = organization.features.includes('token-billed-seer-enabled');
   // Every member can read the wallet, but the auto-reload settings need
   // `org:billing`, so other members see the meter without them.
   const canReadAutoReload = organization.access.includes('org:billing');

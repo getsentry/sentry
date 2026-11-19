@@ -264,7 +264,7 @@ def handle_pull_requests_merged_milestone(
             pull_request__repository_id=repo.id,
             pull_request__key=str(number),
         )
-        .first()
+        .first()  # noqa: S035
     )
     if link is None:
         return

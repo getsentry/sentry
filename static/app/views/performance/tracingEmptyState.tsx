@@ -186,13 +186,7 @@ function TracingManualSetup({
     ...performanceDocs.verify(docParams),
   ];
 
-  return (
-    <ManualSetupSteps
-      project={project}
-      steps={tracingSteps}
-      copyMarkdownSource="performance_onboarding"
-    />
-  );
+  return <ManualSetupSteps project={project} steps={tracingSteps} />;
 }
 
 type Props = {

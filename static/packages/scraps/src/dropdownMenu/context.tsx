@@ -1,12 +1,6 @@
+import type * as React from 'react';
 import {createContext} from 'react';
-import type {TreeState} from '@react-stately/tree';
-
-import type {useOverlay} from '@sentry/scraps/useOverlay';
-
-import type {MenuItemProps} from './item';
-import type {useSafetyTriangle} from './useSafetyTriangle';
-
-export type OverlayState = ReturnType<typeof useOverlay>['state'];
+import type {RootMenuTriggerState} from '@react-stately/menu';
 
 interface DropdownMenuContextValue {
   /**
@@ -15,16 +9,29 @@ interface DropdownMenuContextValue {
    */
   isDismissable?: boolean;
   /**
-   * Menu state (from @react-aria's useTreeState) of the parent menu. To be used to
-   * close the current submenu.
+   * Ref to the menu element (the `ul` with `role="menu"`) that renders the
+   * current items. Submenu triggers pass it to `useSubmenuTrigger` as their
+   * parent menu.
    */
-  parentMenuState?: TreeState<MenuItemProps>;
+  parentMenuRef?: React.RefObject<HTMLElement | null>;
   /**
-   * Overlay state manager (from useOverlay) for the root (top-most) menu. To be used to
-   * close the entire menu system.
+   * Element that submenus are portaled into. Submenus render outside their
+   * parent menu element, so focus moving into a submenu is not mistaken for
+   * focus moving to another item of the parent menu, but they stay inside the
+   * root overlay, so the root menu does not close on blur.
    */
-  rootOverlayState?: OverlayState;
-  safetyTriangle?: ReturnType<typeof useSafetyTriangle>;
+  portalContainer?: HTMLElement | null;
+  /**
+   * Menu trigger state (from react-stately's `useMenuTriggerState` shape) for
+   * the root (top-most) menu. Tracks which submenus are open, and closes the
+   * entire menu system.
+   */
+  rootMenuState?: RootMenuTriggerState;
+  /**
+   * Level of the submenus opened from the current menu's items: 0 in the root
+   * menu, 1 in its submenus, and so on.
+   */
+  submenuLevel?: number;
   /**
    * `virtualizeThreshold` of the parent menu, inherited by its submenus.
    */

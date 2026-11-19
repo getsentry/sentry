@@ -329,9 +329,7 @@ describe('desktop navigation', () => {
       expect(
         await screen.findByText('Quick settings-access for your important Projects')
       ).toBeInTheDocument();
-      await userEvent.hover(
-        screen.getByRole('menuitemradio', {name: 'View All Projects'})
-      );
+      await userEvent.hover(screen.getByRole('menuitem', {name: 'View All Projects'}));
       expect(await screen.findByPlaceholderText('Search')).toBeInTheDocument();
       await userEvent.click(screen.getByRole('button', {name: 'Previous'}));
       expect(await screen.findByText('Access Settings here')).toBeInTheDocument();
@@ -356,14 +354,13 @@ describe('desktop navigation', () => {
       const guide = await screen.findByText(
         'Quick settings-access for your important Projects'
       );
-      await waitFor(() => expect(guide.closest('[tabindex="-1"]')).toHaveFocus());
+      await waitFor(() => expect(guide.closest('[role="dialog"]')).toHaveFocus());
       await userEvent.keyboard('{Escape}');
       expect(
         screen.queryByText('Quick settings-access for your important Projects')
       ).not.toBeInTheDocument();
-      expect(
-        screen.getByRole('button', {name: 'Toggle organization menu'})
-      ).toHaveFocus();
+      // Nothing had focus before the tour, so focus goes back to the page.
+      expect(document.body).toHaveFocus();
     });
 
     it('explains project creation in the tour when no projects are available', async () => {

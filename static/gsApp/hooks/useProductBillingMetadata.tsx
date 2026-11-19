@@ -90,7 +90,7 @@ export function useProductBillingMetadata(
   const billedCategoryInfo = getCategoryInfoFromPlural(billedCategory);
 
   let displayName = '';
-  let addOnInfo = undefined;
+  let addOnInfo: AddOn | undefined;
 
   if (isAddOn) {
     const category = (parentProduct ?? product) as AddOnCategory;

@@ -1,4 +1,9 @@
 from sentry.testutils.cases import APITestCase
+from sentry.timeseries_annotations.models import (
+    AnnotationScope,
+    AnnotationType,
+    TimeseriesAnnotation,
+)
 
 
 class ProjectFilterDetailsTest(APITestCase):
@@ -80,3 +85,83 @@ class ProjectFilterDetailsTest(APITestCase):
         )
 
         assert project.get_option("filters:legacy-browsers") == new_subfilters
+
+
+class ProjectFilterDetailsAnnotationTest(APITestCase):
+    endpoint = "sentry-api-0-project-filters-details"
+    method = "put"
+    features = [
+        "organizations:timeseries-annotations",
+        "organizations:timeseries-annotations-usecase-filter-change",
+    ]
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(user=self.user)
+        self.project.update_option("filters:browser-extensions", "0")
+
+    def test_records_annotation_on_change(self) -> None:
+        with self.feature(self.features):
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                "browser-extensions",
+                active=True,
+                status_code=204,
+            )
+
+        annotation = TimeseriesAnnotation.objects.get(project_id=self.project.id)
+        assert annotation.annotation_type == AnnotationType.INBOUND_FILTER_CHANGE
+        assert annotation.scope == AnnotationScope.ERRORS
+        assert annotation.tags == {"filter": "browser-extensions"}
+        assert annotation.created_by_id == self.user.id
+
+    def test_health_check_filter_is_spans_scoped(self) -> None:
+        self.project.update_option("filters:filtered-transaction", "0")
+        with self.feature(self.features):
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                "filtered-transaction",
+                active=True,
+                status_code=204,
+            )
+
+        annotation = TimeseriesAnnotation.objects.get(project_id=self.project.id)
+        assert annotation.scope == AnnotationScope.SPANS
+
+    def test_no_annotation_when_state_unchanged(self) -> None:
+        with self.feature(self.features):
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                "browser-extensions",
+                active=False,
+                status_code=204,
+            )
+
+        assert not TimeseriesAnnotation.objects.filter(project_id=self.project.id).exists()
+
+    def test_no_annotation_without_framework_feature(self) -> None:
+        with self.feature("organizations:timeseries-annotations-usecase-filter-change"):
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                "browser-extensions",
+                active=True,
+                status_code=204,
+            )
+
+        assert not TimeseriesAnnotation.objects.filter(project_id=self.project.id).exists()
+
+    def test_no_annotation_without_usecase_feature(self) -> None:
+        with self.feature("organizations:timeseries-annotations"):
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                "browser-extensions",
+                active=True,
+                status_code=204,
+            )
+
+        assert not TimeseriesAnnotation.objects.filter(project_id=self.project.id).exists()

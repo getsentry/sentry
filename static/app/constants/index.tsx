@@ -111,6 +111,23 @@ export const DISTRIBUTION_SENTRY_APP_PERMISSION: PermissionObj = {
   },
 };
 
+// Only offered on personal tokens, for organizations with
+// `organizations:service-accounts`. The backend doesn't make
+// `service_account:write` imply read, so Read & Write requests both.
+export const SERVICE_ACCOUNT_SENTRY_APP_PERMISSION: PermissionObj = {
+  resource: 'ServiceAccount',
+  label: 'Service Accounts',
+  help: 'Service accounts and their tokens',
+  choices: {
+    'no-access': {label: 'No Access', scopes: []},
+    read: {label: 'Read', scopes: ['service_account:read']},
+    write: {
+      label: 'Read & Write',
+      scopes: ['service_account:read', 'service_account:write'],
+    },
+  },
+};
+
 export const CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION: SpecialPermissionObj = {
   fieldName: 'ContinuousIntegration--permission',
   label: 'Continuous Integration (CI)',
