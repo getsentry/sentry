@@ -16,7 +16,7 @@ from sentry.anomaly_detection.correlation.footprint import (
     service_of,
     slice_of,
 )
-from sentry.anomaly_detection.correlation.shared_dependencies import learn
+from sentry.anomaly_detection.correlation.shared_dependencies import SharedConfig, learn
 from sentry.anomaly_detection.evaluation.organization import OrgEvaluator
 from tests.sentry.anomaly_detection.test_parity import make_handlers
 
@@ -307,6 +307,42 @@ def test_shared_dependency_learning_links_repeated_co_onsets_without_traces() ->
     localization = actions[-1].group.localization
     assert localization is not None and "shared with" in localization
     assert learn(history, START, coverage=coverage).get(ORDERS, replica) is None
+
+
+@pytest.mark.parametrize("latent_first", [True, False])
+def test_shared_latent_bridges_groups_without_joining_namesake(latent_first: bool) -> None:
+    replica = replace(ORDERS, project="3")
+    support_key = replace(ORDERS, project="4")
+    namesake = replace(ORDERS, project="5")
+    support_slice = (service_of(support_key), support_key.signal, support_key.dim_value)
+    config = SharedConfig(
+        force=[
+            (support_slice, (service_of(key), key.signal, key.dim_value))
+            for key in (ORDERS, replica)
+        ]
+    )
+    correlator = Correlator()
+    support = _episode(support_key)
+    first, second, unrelated = (_episode(key) for key in (ORDERS, replica, namesake))
+    correlator.step(START, [("open", unrelated), ("open", first)])
+    if latent_first:
+        # The latent excursion can predate the availability of learned evidence.
+        correlator.step(START, [("latent", support)])
+    correlator.shared = learn({}, START, config, coverage={})
+    actions = correlator.step(START + MINUTE, [("open", second)])
+    if not latent_first:
+        assert len(correlator.state.open_groups) == 3
+        actions = correlator.step(START + 2 * MINUTE, [("latent", support)])
+
+    owner = correlator.by_event[episode_key(support)]
+    assert len(correlator.state.open_groups) == 2
+    assert set(owner.members) == {episode_key(event) for event in (first, second, support)}
+    assert owner.members[episode_key(support)].latent
+    assert correlator.independent(owner) == 1
+    assert episode_key(support) not in correlator.state.latent
+    assert any(
+        action.kind == "close" and action.merged_into == owner.group.id for action in actions
+    )
 
 
 def test_late_downstream_change_cannot_explain_earlier_onset() -> None:

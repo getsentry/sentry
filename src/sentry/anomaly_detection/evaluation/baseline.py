@@ -40,6 +40,10 @@ def _hour(t: datetime) -> datetime:
     return t.replace(minute=0, second=0, microsecond=0)
 
 
+def _day(t: datetime) -> datetime:
+    return t.replace(hour=0, minute=0, second=0, microsecond=0)
+
+
 class Baseline:
     def __init__(self, hourly: Mapping[SeriesKey, Series], cfg: BaselineConfig | None = None):
         self.hourly = hourly
@@ -48,12 +52,17 @@ class Baseline:
         self._fallback_cache: dict[tuple[SeriesKey, datetime], float] = {}
         self._windows: dict[datetime, tuple[tuple[datetime, datetime], ...]] = {}
 
+    def checkpoint_hourly_bounds(self, cursor: datetime) -> tuple[datetime, datetime]:
+        """Keep enough history for both same-hour shapes and the daily fallback."""
+        # A bucket starting in the cursor's hour is not fully observed yet.
+        return _day(cursor) - timedelta(days=self.cfg.history_days), _hour(cursor)
+
     def shape(self, key: SeriesKey, t: datetime) -> float:
         shape = self.raw_shape(key, t)
         if shape is not None:
             return shape
         # A missing hour still needs the same units as fitted seasonal observations.
-        day = t.replace(hour=0, minute=0, second=0, microsecond=0)
+        day = _day(t)
         cache_key = (key, day)
         if cache_key not in self._fallback_cache:
             cutoff = day - timedelta(days=self.cfg.history_days)

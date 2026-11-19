@@ -45,10 +45,60 @@ if TYPE_CHECKING:
 
 _REFERRER = "anomaly-detection.enrich"
 _ISSUE_LIFETIME = timedelta(hours=1)
+_MINUTE = timedelta(minutes=1)
+_HOUR = timedelta(hours=1)
+# The scheduler collects 16 days ending at the poll's latest closed hour. Leave
+# enough history to use the same trailing window during warmup and issue replay.
+_THRESHOLD_LOOKBACK = timedelta(days=15)
 _MAX_NEW_GROUPS = 100  # candidate groups per project
 _MAX_NEW_ISSUE_TITLES = 25  # Queried titles per project and environment.
 _ISSUE_USER_PAGE_SIZE = 10_000  # SnQL limits each page to 10,000 rows.
 _MIN_NEW_USERS = 10
+
+
+def _hour_floor(timestamp: datetime) -> datetime:
+    return timestamp.replace(minute=0, second=0, microsecond=0)
+
+
+def _observed_at(timestamp: datetime) -> datetime:
+    return timestamp.replace(second=0, microsecond=0) + _MINUTE
+
+
+class NewFailureThresholds:
+    def __init__(self, samples: Mapping[tuple[str, str], Sequence[tuple[datetime, float]]]) -> None:
+        self._samples = samples
+        self._thresholds: dict[tuple[tuple[str, str], datetime], float] = {}
+
+    def at(self, scope: tuple[str, str], observation_end: datetime) -> float:
+        """Scale the threshold using only buckets closed at observation_end."""
+        end = _hour_floor(_utc(observation_end))
+        key = scope, end
+        if key not in self._thresholds:
+            start = end - _THRESHOLD_LOOKBACK
+            values = [value for hour, value in self._samples.get(scope, ()) if start <= hour < end]
+            self._thresholds[key] = (
+                max(float(_MIN_NEW_USERS), 0.05 * median(values))
+                if values
+                else float(_MIN_NEW_USERS)
+            )
+        return self._thresholds[key]
+
+    def falling_scopes(self, start: datetime, end: datetime) -> Iterator[tuple[str, str]]:
+        """Find environments where existing users can cross without a new error."""
+        boundary = _hour_floor(start) + _HOUR
+        while boundary <= end:
+            for scope in self._samples:
+                if math.ceil(self.at(scope, boundary)) < math.ceil(
+                    self.at(scope, boundary - _HOUR)
+                ):
+                    yield scope
+            boundary += _HOUR
+
+
+class _ThresholdWindow(NamedTuple):
+    start: datetime
+    end: datetime
+    threshold: float
 
 
 @dataclass(frozen=True)
@@ -57,7 +107,21 @@ class _FailureScope:
     environment: str
     start: datetime
     end: datetime
-    threshold: float
+    thresholds: NewFailureThresholds | Mapping[tuple[str, str], float]
+
+    def threshold_windows(self, start: datetime, end: datetime) -> Iterator[_ThresholdWindow]:
+        key = str(self.project.id), self.environment
+        if not isinstance(self.thresholds, NewFailureThresholds):
+            threshold = self.thresholds.get(key, float(_MIN_NEW_USERS))
+            if not math.isfinite(threshold) or threshold <= 0:
+                threshold = float(_MIN_NEW_USERS)
+            yield _ThresholdWindow(start, end, threshold)
+            return
+
+        while start < end:
+            stop = min(_hour_floor(start) + _HOUR, end)
+            yield _ThresholdWindow(start, stop, self.thresholds.at(key, start))
+            start = stop
 
 
 class _IssueCandidate(NamedTuple):
@@ -66,49 +130,58 @@ class _IssueCandidate(NamedTuple):
     event_count: float
 
 
-def new_failure_thresholds(hourly_rows: Sequence[Row]) -> dict[tuple[str, str], float]:
-    """Scale the minimum affected-user threshold per project/environment."""
-    samples: dict[tuple[str, str], list[float]] = defaultdict(list)
-    for _, signal, metric, project, env, dimension, value in hourly_rows:
+class _IssueCrossing(NamedTuple):
+    detected_at: datetime
+    threshold: float
+    users: int
+
+
+def new_failure_thresholds(hourly_rows: Sequence[Row]) -> NewFailureThresholds:
+    samples: dict[tuple[str, str], list[tuple[datetime, float]]] = defaultdict(list)
+    for hour, signal, metric, project, env, dimension, value in hourly_rows:
         if (
             signal == "errors"
             and metric == "count_unique(user)"
             and not dimension
-            and value is not None
+            and (sample := _number(value)) is not None
         ):
-            samples[(project, env)].append(value)
-    return {scope: max(_MIN_NEW_USERS, 0.05 * median(values)) for scope, values in samples.items()}
+            samples[(project, env)].append((_utc(hour), sample))
+    return NewFailureThresholds(samples)
 
 
 def collect_new_failure_modes(
     organization: Organization,
     projects: Sequence[Project],
-    thresholds: Mapping[tuple[str, str], float],
+    thresholds: NewFailureThresholds | Mapping[tuple[str, str], float],
     start: datetime,
     end: datetime,
     *,
     current_rows: Sequence[Row],
 ) -> list[ChangeEvent]:
-    """Find new failure modes and weaker corroborating issues in [start, end)."""
+    """Find issue milestones observable at minute closes in (start, end]."""
     projects_by_id = _project_map(organization, projects)
     start, end = _utc(start), _utc(end)
     if start >= end:
         return []
 
     active_environments = _active_error_environments(current_rows, start, end)
+    boundary_environments: dict[str, set[str]] = defaultdict(set)
+    if isinstance(thresholds, NewFailureThresholds):
+        for project_id, environment in thresholds.falling_scopes(start, end):
+            boundary_environments[project_id].add(environment)
     changes: list[ChangeEvent] = []
     for project_id, project in projects_by_id.items():
-        environments = sorted(active_environments.get(project_id, ()))[:MAX_ENVIRONMENTS]
+        environments = set(sorted(active_environments.get(project_id, ()))[:MAX_ENVIRONMENTS])
+        # Scopes from the bounded hourly snapshot supplement current errors;
+        # a quiet scope's threshold change cannot displace an active scope.
+        environments.update(boundary_environments.get(project_id, ()))
         if not environments:
             continue
         groups_by_id = _recent_error_groups(project, start, end)
         if not groups_by_id:
             continue
-        for environment in environments:
-            threshold = thresholds.get((project_id, environment), float(_MIN_NEW_USERS))
-            if not math.isfinite(threshold) or threshold <= 0:
-                threshold = float(_MIN_NEW_USERS)
-            scope = _FailureScope(project, environment, start, end, threshold)
+        for environment in sorted(environments):
+            scope = _FailureScope(project, environment, start, end, thresholds)
             changes.extend(_collect_environment_failures(organization, scope, groups_by_id))
     return sorted(changes, key=lambda change: (change.detected_at or change.start, change.key))
 
@@ -191,8 +264,6 @@ def _collect_title_crossings(
     title: str,
     members: Sequence[_IssueCandidate],
 ) -> Iterator[ChangeEvent]:
-    if sum(member.event_count for member in members) < min(scope.threshold, _MIN_NEW_USERS):
-        return
     ordered_members = sorted(members, key=lambda member: (member.group.first_seen, member.group.id))
     first_group = ordered_members[0].group
     first_seen = _utc(first_group.first_seen)
@@ -202,8 +273,13 @@ def _collect_title_crossings(
 
     first_minute = first_seen.replace(second=0, microsecond=0)
     issue_ids = tuple(member.group.id for member in ordered_members)
-    threshold = scope.threshold
-    cutoffs = (float(_MIN_NEW_USERS), threshold) if threshold > _MIN_NEW_USERS else (threshold,)
+    # Replay from issue onset, not the current poll's start. A prior crossing
+    # must not become a new crossing just because the threshold changed.
+    last_observation = _observed_at(window_end - datetime.resolution)
+    windows = tuple(scope.threshold_windows(first_minute + _MINUTE, last_observation + _MINUTE))
+    max_threshold = max(window.threshold for window in windows)
+    if sum(member.event_count for member in members) < min(max_threshold, _MIN_NEW_USERS):
+        return
     first_user_times = _first_user_times(
         organization,
         [
@@ -211,10 +287,10 @@ def _collect_title_crossings(
             Condition(_error_env(), Op.EQ, scope.environment),
             Condition(Column("group_id"), Op.IN, list(issue_ids)),
         ],
-        math.ceil(cutoffs[-1]),
+        math.ceil(max_threshold),
     )
-    for cutoff, crossed_at, users in _crossings(first_user_times, cutoffs):
-        if not scope.start <= crossed_at < window_end:
+    for detected_at, threshold, users in _crossings(first_user_times, windows):
+        if not scope.start < detected_at <= scope.end:
             continue
         yield ChangeEvent(
             key=SeriesKey(
@@ -228,8 +304,8 @@ def _collect_title_crossings(
             start=first_minute,
             actual=users,
             expected=threshold,
-            confidence=0.9 if cutoff == threshold else 0.5,
-            detected_at=crossed_at.replace(second=0, microsecond=0) + timedelta(minutes=1),
+            confidence=0.9 if users >= threshold else 0.5,
+            detected_at=detected_at,
             peak_ratio=users / threshold,
             evidence=[title[:200]],
             issue_ids=issue_ids,
@@ -269,18 +345,31 @@ def _first_user_times(
 
 
 def _crossings(
-    first_user_times: Iterator[datetime], cutoffs: tuple[float, ...]
-) -> list[tuple[float, datetime, int]]:
-    found: list[tuple[float, datetime, int]] = []
-    for users, first_seen in enumerate(first_user_times, start=1):
-        if users >= cutoffs[len(found)]:
-            found.append((cutoffs[len(found)], first_seen, users))
-            if len(found) == len(cutoffs):
+    first_user_times: Iterator[datetime], windows: Sequence[_ThresholdWindow]
+) -> Iterator[_IssueCrossing]:
+    users = 0
+    weak = strong = None
+    observations = map(_observed_at, first_user_times)
+    observed_at = next(observations, None)
+    for start, end, threshold in windows:
+        # The audience only grows, but a new hour can lower the threshold. It
+        # can qualify the existing audience without any newly observed user.
+        if users >= threshold:
+            strong = _IssueCrossing(start, threshold, users)
+            break
+        while observed_at is not None and observed_at < end:
+            users += 1
+            if users >= threshold:
+                strong = _IssueCrossing(observed_at, threshold, users)
                 break
-    # Skip redundant weak evidence if the strong crossing is observable in the
-    # same minute, but never hide earlier evidence using later events.
-    if len(found) == 2 and found[0][1].replace(second=0, microsecond=0) == found[1][1].replace(
-        second=0, microsecond=0
-    ):
-        return found[1:]
-    return found
+            if users == _MIN_NEW_USERS:
+                weak = _IssueCrossing(observed_at, threshold, users)
+            observed_at = next(observations, None)
+        if strong is not None:
+            break
+
+    # Keep earlier weak evidence, but do not emit two milestones at the same tick.
+    if weak is not None and (strong is None or weak.detected_at < strong.detected_at):
+        yield weak
+    if strong is not None:
+        yield strong

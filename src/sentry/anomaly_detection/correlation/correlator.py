@@ -156,7 +156,6 @@ class Correlator:
             emitted.append((state, GroupAction(t, kind, state.group, event, detail, merged_into)))
 
         # Process newly observed escalation metadata before matching changes in the same minute.
-        # Recovery is applied after matching, allowing a final handoff on that tick.
         for action, event in actions:
             key = episode_key(event)
             owner = self.by_event.get(key)
@@ -430,42 +429,41 @@ class Correlator:
         self, t: datetime, state: GroupState, source: MemberState, emit: _Emit
     ) -> None:
         event = source.event
-        tolerance = self.cfg.tolerance
-        support: MemberState | None
         for latent in list(self.state.latent.values()):
-            pair = self.shared.get(event.key, latent.key)
-            near_onset = abs(latent.start - linking.onset(event)) <= tolerance
-            if pair and (near_onset or abs(latent.start - event.start) <= tolerance):
-                support = self._attach_support(
-                    state, latent, emit, linking.shared_detail(pair), alias_of=source
-                )
-            elif latent.key == event.key and linking.overlap(event, latent, tolerance):
-                support = self._attach_support(state, latent, emit, "same series", alias_of=source)
-            else:
-                support = self._attach_downstream_support(t, state, source, latent, emit)
+            support = self._attach_shared_support(t, state, source, latent, emit)
+            if support is None:
+                if latent.key == event.key and linking.overlap(event, latent, self.cfg.tolerance):
+                    support = self._attach_support(
+                        state, latent, emit, "same series", alias_of=source
+                    )
+                else:
+                    support = self._attach_downstream_support(t, state, source, latent, emit)
             if support is not None:
                 self._bridge_support(t, state, support, emit)
 
     def _attach_new_latent(self, t: datetime, latent: ChangeEvent, emit: _Emit) -> None:
         for state in self.state.open_groups.values():
             for source in self._live_members(t, state):
-                if abs(latent.start - source.event.start) <= self.cfg.tolerance and (
-                    pair := self.shared.get(latent.key, source.event.key)
-                ):
-                    self._attach_support(
-                        state, latent, emit, linking.shared_detail(pair), alias_of=source
-                    )
-                elif (
-                    not source.latent
-                    and (support := self._attach_downstream_support(t, state, source, latent, emit))
-                    is not None
-                ):
-                    self._bridge_support(t, state, support, emit)
-                else:
+                support = self._attach_shared_support(t, state, source, latent, emit)
+                if support is None and not source.latent:
+                    support = self._attach_downstream_support(t, state, source, latent, emit)
+                if support is None:
                     continue
+                self._bridge_support(t, state, support, emit)
                 state.last_activity = t
                 self._update_group(t, state, emit)
                 return
+
+    def _attach_shared_support(
+        self, t: datetime, state: GroupState, source: MemberState, latent: ChangeEvent, emit: _Emit
+    ) -> MemberState | None:
+        if self.shared.get(latent.key, source.event.key) is None:
+            return None
+        support = MemberState(latent, latent.open_ratio, latent=True)
+        link = linking.link(self, t, support, source, error_signals=ERROR_SIGNALS)
+        if link is None or link.kind != "shared":
+            return None
+        return self._attach_support(state, latent, emit, link.detail, alias_of=source)
 
     def _attach_downstream_support(
         self, t: datetime, state: GroupState, source: MemberState, latent: ChangeEvent, emit: _Emit

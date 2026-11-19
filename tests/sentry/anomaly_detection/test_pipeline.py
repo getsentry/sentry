@@ -1,6 +1,7 @@
 from dataclasses import replace
 from datetime import datetime, timedelta
 
+from sentry.anomaly_detection.checkpoint.codec import _restore, _snapshot
 from sentry.anomaly_detection.contracts import (
     AnomalyGroup,
     ChangeEvent,
@@ -12,6 +13,7 @@ from sentry.anomaly_detection.correlation.correlator import GroupAction
 from sentry.anomaly_detection.correlation.footprint import Footprint
 from sentry.anomaly_detection.evaluation.organization import OrgEvaluator, evaluate_org
 from sentry.anomaly_detection.evaluation.series import SeriesRow
+from sentry.utils import json
 from tests.sentry.anomaly_detection.test_parity import make_handlers
 
 T0 = datetime(2020, 11, 2, 12)
@@ -106,11 +108,9 @@ def test_unusual_but_short_single_slowdown_does_not_qualify() -> None:
     assert group.closed_at is None
 
 
-def test_routine_slowdown_qualifies_when_it_lasts_unusually_long() -> None:
-    start = T0 + 480 * MINUTE
-    duration_look = start + 60 * MINUTE
+def _routine_slowdown_rows(*, flare_minutes: int = 5) -> list[SeriesRow]:
     rows: list[SeriesRow] = []
-    short_flares = [(i, i + 5) for i in range(120, 480, 60)]
+    short_flares = [(i, i + flare_minutes) for i in range(120, 480, 60)]
     for i in range(550):
         t = T0 + i * MINUTE
         slow = i >= 480 or any(lo <= i < hi for lo, hi in short_flares)
@@ -128,6 +128,13 @@ def test_routine_slowdown_qualifies_when_it_lasts_unusually_long() -> None:
                 (t, "outbound_db", "count_sample()", "42", "prod", "primary", 500.0),
             ]
         )
+    return rows
+
+
+def test_routine_slowdown_qualifies_when_it_lasts_unusually_long() -> None:
+    start = T0 + 480 * MINUTE
+    duration_look = start + 60 * MINUTE
+    rows = _routine_slowdown_rows()
 
     evaluator = OrgEvaluator(NoFootprints(), handlers=make_handlers("42"))
     assert not evaluator.advance(rows=rows, hourly_rows=[], start=start, end=duration_look)
@@ -140,6 +147,89 @@ def test_routine_slowdown_qualifies_when_it_lasts_unusually_long() -> None:
     assert opened.timestamp == duration_look
     assert not opened.is_resolved
     assert not evaluator.absorbed
+
+
+def test_duration_promotion_waits_for_supported_anomaly_after_gap() -> None:
+    start = T0 + 480 * MINUTE
+    first_look = start + 60 * MINUTE
+    healthy_return = first_look + 5 * MINUTE
+    unsupported_return = healthy_return + MINUTE
+    supported_return = unsupported_return + MINUTE
+    rows: list[SeriesRow] = []
+    for t, signal, metric, project, env, dim, value in _routine_slowdown_rows():
+        if first_look <= t < healthy_return:
+            continue
+        if t == healthy_return and metric == "p95(span.duration)":
+            value = 30.0
+        elif t == unsupported_return and metric == "count_sample()":
+            value = 1.0
+        rows.append((t, signal, metric, project, env, dim, value))
+    handlers = make_handlers("42")
+    evaluator = OrgEvaluator(NoFootprints(), handlers=handlers)
+    assert not evaluator.advance(rows=rows, hourly_rows=[], start=start, end=first_look)
+    checkpoint = json.loads(json.dumps(_snapshot(evaluator, first_look)))
+
+    assert not evaluator.advance(rows=rows, hourly_rows=[], start=first_look, end=supported_return)
+    (latent,) = evaluator.absorbed.values()
+    assert evaluator.novelty.observed_duration(latent, supported_return) == 61
+    assert not evaluator.next_look
+
+    expected = evaluator.advance(
+        rows=rows, hourly_rows=[], start=supported_return, end=supported_return + MINUTE
+    )
+    (opened,) = expected
+    assert opened.timestamp == supported_return and not opened.is_resolved
+    assert latent.novelty and latent.novelty["opened_on_duration"] is True
+
+    # A restarted poll catches up through the gap and healthy return before
+    # processing the first supported anomalous tick in its publication window.
+    restarted = _restore(NoFootprints(), checkpoint, handlers=handlers)
+    assert (
+        restarted.advance(
+            rows=rows, hourly_rows=[], start=supported_return, end=supported_return + MINUTE
+        )
+        == expected
+    )
+
+
+def test_duration_judgment_does_not_see_backdated_peer_opened_on_same_tick() -> None:
+    start = T0 + 480 * MINUTE
+    duration_look = start + 60 * MINUTE
+    peer_key = SeriesKey("42", "prod", "outbound_db", "p95(span.duration)", "peer")
+    rows = _routine_slowdown_rows(flare_minutes=3) + [
+        (
+            T0 + i * MINUTE,
+            peer_key.signal,
+            metric,
+            peer_key.project,
+            peer_key.env,
+            peer_key.dim_value,
+            value,
+        )
+        for i in range(541)
+        for metric, value in (
+            (peer_key.metric, 450.0 if i in (536, 538, 540) else 30.0),
+            ("count_sample()", 500.0),
+        )
+    ]
+    evaluator = OrgEvaluator(NoFootprints(), handlers=make_handlers("42"))
+    evaluator.series_history.cfg.close_after = 1
+    assert not evaluator.advance(rows=rows, hourly_rows=[], start=start, end=duration_look)
+    (latent,) = evaluator.absorbed.values()
+    # Only the peer's four backdated minutes qualify; the past flares lasted three.
+    evaluator.novelty.cfg.comparable = 15.0
+    prior = evaluator.novelty.judge_duration(latent, 60, duration_look)
+    assert prior.unusual
+
+    evaluator.advance(rows=rows, hourly_rows=[], start=duration_look, end=duration_look + MINUTE)
+
+    (peer,) = evaluator.novelty.history[peer_key]
+    assert peer.event.detected_at == duration_look
+    assert evaluator.novelty.observed_duration(peer.event, duration_look) == 4
+    assert latent.novelty == prior.as_dict() | {"opened_on_duration": True}
+    assert (
+        evaluator.novelty.judge_duration(latent, 60, duration_look).pooled_rate > prior.pooled_rate
+    )
 
 
 def test_new_failure_mode_opens_only_after_crossing_the_standalone_threshold() -> None:
@@ -262,12 +352,15 @@ def test_simultaneous_excursions_do_not_change_each_others_prior() -> None:
         minute = T0 + offset * MINUTE
         evaluator.novelty.observe(left_key, minute)
         evaluator.novelty.observe(right_key, minute)
-    evaluator.novelty.record(replace(candidate, start=T0 + MINUTE))
+    earlier = replace(candidate, start=T0 + MINUTE)
+    evaluator.novelty.record(earlier)
     prior = evaluator.novelty.judge(candidate, 1.0, candidate_minute)
 
     evaluator._judge(candidate_minute, [("open", peer), ("open", candidate)])
 
     assert candidate.novelty == prior.as_dict()
+    assert [item.event for item in evaluator.novelty.history[left_key]] == [earlier]
+    assert right_key not in evaluator.novelty.history
 
 
 def test_healthy_measurements_restore_latency_detection() -> None:

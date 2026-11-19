@@ -1,24 +1,33 @@
 """Bound retained evaluator state and reconcile changes to enabled projects."""
 
-from collections import defaultdict
+from collections import defaultdict, deque
 from collections.abc import Set as AbstractSet
 from dataclasses import replace
 from datetime import datetime, timedelta
 
 from sentry.anomaly_detection.contracts import ChangeEvent, ChangeType, SeriesKey
-from sentry.anomaly_detection.correlation.correlator import Correlator, EpisodeKey, episode_key
+from sentry.anomaly_detection.correlation.correlator import (
+    Correlator,
+    EpisodeKey,
+    GroupState,
+    _localize,
+    episode_key,
+)
+from sentry.anomaly_detection.correlation.footprint import service_of
 from sentry.anomaly_detection.evaluation.baseline import MINUTE
 from sentry.anomaly_detection.evaluation.organization import (
     _CONTEXT_HORIZON,
     AnomalyDecision,
     OrgEvaluator,
 )
-from sentry.anomaly_detection.evaluation.series_history import RULES
+from sentry.anomaly_detection.evaluation.rate_shifts import RateShiftState
+from sentry.anomaly_detection.evaluation.series_history import RULES, SeriesState
 from sentry.anomaly_detection.inputs.measurements import MAX_ENVIRONMENTS, MAX_SLICES
+from sentry.utils import metrics
 
-# Preserve the current and one previous full collector cohort per project/signal.
-# Cardinality is bounded even when every poll selects different dimensions;
-# history size depends on the retained minute window, not on compression ratios.
+# Budget two full collector cohorts per project/signal, counting active groups
+# against the same limit. History size then depends on the retained measurement
+# windows, not on how often dimensions change or how well values compress.
 _RETAINED_SLICE_GROUPS = 2 * MAX_ENVIRONMENTS * MAX_SLICES
 # Errors and spans discover environments independently.
 _RETAINED_ENVIRONMENTS = 2 * 2 * MAX_ENVIRONMENTS
@@ -42,6 +51,20 @@ def _history_floor(evaluator: OrgEvaluator, cursor: datetime) -> datetime:
     return cursor - timedelta(
         minutes=baseline_cfg.window_min + baseline_cfg.reach_back_min + anchor_lookback
     )
+
+
+def _trim_group_metadata(group: GroupState) -> None:
+    services = {service_of(key[0]) for key in group.members}
+    issues = {str(issue) for member in group.members.values() for issue in member.event.issue_ids}
+    blast_radius = group.group.blast_radius
+    # Localization can name peers that are no longer represented. Fall back to
+    # the retained root without relocalizing (which may query trace evidence).
+    if any(service not in services for service in blast_radius):
+        group.group.localization = _localize(group.root.key)
+    blast_radius[:] = [service for service in blast_radius if service in services]
+    group.group.driving_issues[:] = [
+        issue for issue in group.group.driving_issues if issue in issues
+    ]
 
 
 def _prune_group_members(corr: Correlator, cursor: datetime) -> None:
@@ -78,6 +101,7 @@ def _prune_group_members(corr: Correlator, cursor: datetime) -> None:
         group.group.change_events[:] = [
             event for event in group.group.change_events if episode_key(event) not in expired
         ]
+        _trim_group_metadata(group)
 
 
 def _prune_novelty(evaluator: OrgEvaluator, cursor: datetime) -> None:
@@ -149,6 +173,7 @@ def _reconcile_correlation(
                         evaluator.absorbed.pop(key, None)
                         evaluator.next_look.pop(key, None)
             else:
+                _trim_group_metadata(group)
                 for member in group.members.values():
                     if (footprint := member.footprint) is not None:
                         for slice_key in list(footprint.slices):
@@ -187,6 +212,7 @@ def _reconcile_projects(
     detector, cp, novelty = evaluator.series_history, evaluator.rate_shifts, evaluator.novelty
     for mapping in (
         evaluator.series,
+        evaluator.hourly,
         detector.watched,
         detector.state,
         cp.exclude,
@@ -226,23 +252,36 @@ def _evict_stale_series(
     evaluator: OrgEvaluator, cursor: datetime, at: datetime
 ) -> list[AnomalyDecision]:
     floor = _history_floor(evaluator, cursor)
-    slices: dict[tuple[str, str], dict[tuple[str, str], datetime]] = defaultdict(dict)
-    environments: dict[str, dict[str, datetime]] = defaultdict(dict)
-    last_seen = {
-        key: next(reversed(points), datetime.min) for key, points in evaluator.series.items()
+    det, cp = evaluator.series_history, evaluator.rate_shifts
+    opened = {
+        key for states in (det.state, cp.state) for key, state in states.items() if state.open
     }
-    for key, seen in last_seen.items():
+    live: dict[SeriesKey, datetime] = {}
+    for key in opened:
+        points = evaluator.series.get(key, {})
+        for minute in reversed(points):
+            if minute < floor:
+                break
+            if points[minute] is not None:
+                live[key] = minute
+                break
+
+    slices: dict[tuple[str, str], dict[tuple[str, str], tuple[bool, datetime]]] = defaultdict(dict)
+    environments: dict[str, dict[str, tuple[bool, datetime]]] = defaultdict(dict)
+    for key, points in evaluator.series.items():
+        seen = next(reversed(points), datetime.min)
+        priority = (key in live, live.get(key, seen))
         if key.dim_value:
             if seen >= floor:
                 group = key.env, key.dim_value
                 members = slices[key.project, key.signal]
-                members[group] = max(seen, members.get(group, seen))
+                members[group] = max(priority, members.get(group, priority))
         else:
             envs = environments[key.project]
-            envs[key.env] = max(seen, envs.get(key.env, seen))
+            envs[key.env] = max(priority, envs.get(key.env, priority))
 
-    # Rank scope groups, not metric keys, so a latency/share never loses its
-    # sample-count companion under churn. Ties do not depend on collection order.
+    # Live episodes take their metric group with them, not extra slots. If they
+    # alone exceed the budget, prefer the last observed episodes, with stable ties.
     kept_slices = {
         scope: set(
             sorted(groups, key=lambda group: (groups[group], group), reverse=True)[
@@ -258,18 +297,19 @@ def _evict_stale_series(
         for project, envs in environments.items()
     }
     evicted: set[SeriesKey] = set()
-    for key, seen in last_seen.items():
+    for key in evaluator.series:
         if key.dim_value:
-            if seen < floor or (key.env, key.dim_value) not in kept_slices[key.project, key.signal]:
+            if (key.env, key.dim_value) not in kept_slices.get((key.project, key.signal), ()):
                 evicted.add(key)
         elif key.env not in kept_envs[key.project]:
             # Empty aggregate keys preserve the presence of request instrumentation
             # for this environment, but environments themselves are bounded.
             evicted.add(key)
-    if not evicted:
+    expired = opened - live.keys()
+    if not (evicted or expired):
         return []
 
-    det, cp = evaluator.series_history, evaluator.rate_shifts
+    over_cap = 0
     expirations: list[tuple[str, ChangeEvent]] = []
     maps = (
         evaluator.series,
@@ -280,12 +320,27 @@ def _evict_stale_series(
         cp.spike_minutes,
         cp._spike_seen,
     )
-    for key in sorted(evicted):
+    for key in sorted(evicted | expired):
         for states in (det.state, cp.state):
-            if (state := states.get(key)) is not None and (event := state.open) is not None:
-                event.ended_at = at
+            state = states.get(key)
+            if state is None or state.open is None:
+                continue
+            event = state.open
+            event.ended_at = at
+            if key in expired:
                 event.evidence.append("expired: measurements no longer collected")
-                expirations.append(("expire", event))
+            else:
+                event.evidence.append("expired: active episode exceeded checkpoint cohort budget")
+                over_cap += 1
+            expirations.append(("expire", event))
+        if key not in evicted:
+            # Another metric still needs this slice or environment. Reset the
+            # expired detector without forgetting the retained measurements.
+            if (series_state := det.state.get(key)) is not None and series_state.open is not None:
+                det.state[key] = SeriesState(recent=deque(maxlen=series_state.recent.maxlen))
+            if (rate_state := cp.state.get(key)) is not None and rate_state.open is not None:
+                cp.state[key] = RateShiftState()
+            continue
         for mapping in maps:
             mapping.pop(key, None)
     cp.watched[:] = [key for key in cp.watched if key not in evicted]
@@ -293,6 +348,8 @@ def _evict_stale_series(
     for pseudo_key in list(det._pseudo):
         if pseudo_key[0] in evicted:
             del det._pseudo[pseudo_key]
+    if over_cap:
+        metrics.incr("anomaly_detection.active_episode_evicted", amount=over_cap)
 
     # Retain novelty and existing correlation context on their own horizons.
     # Unlike a recovery, expiration does not imply an observed return to normal.

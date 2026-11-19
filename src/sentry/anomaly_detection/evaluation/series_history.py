@@ -148,6 +148,19 @@ class SeriesHistory:
             return samples is not None and samples >= self.cfg.min_samples
         return True
 
+    def has_anomalous_observation(self, event: ChangeEvent, minute: datetime) -> bool:
+        """Whether this tick's minute or window test flagged the active episode."""
+        state = self.state.get(event.key)
+        if (
+            state is None
+            or state.open is not event
+            or event.key in self.exclude
+            or not state.recent
+        ):
+            return False
+        reading = state.recent[-1]
+        return reading.minute == minute and reading.flagged
+
     def _get(self, key: SeriesKey, t: datetime) -> float | None:
         return self.series.get(key, {}).get(t)
 
@@ -194,10 +207,11 @@ class SeriesHistory:
         self, key: SeriesKey, rule: Rule, minute: datetime
     ) -> tuple[str, ChangeEvent] | None:
         cfg, state = self.cfg, self.state[key]
-        if (
-            state.open is None
-            and rule.only_without_traffic
-            and has_traffic(self.series, key.project, key.env)
+        # An excluded series can finish recovering, but cannot reopen before the
+        # next quality check re-enables it.
+        if state.open is None and (
+            key in self.exclude
+            or (rule.only_without_traffic and has_traffic(self.series, key.project, key.env))
         ):
             state.recent.clear()
             state.counts = None
@@ -254,7 +268,7 @@ class SeriesHistory:
         k = self.baseline.cfg.k
         beyond = z > k if up else z < -k
         if up:
-            valid, enough = self._up_evidence(
+            minute_valid, enough = self._up_evidence(
                 key,
                 rule,
                 actual,
@@ -265,15 +279,16 @@ class SeriesHistory:
                 rate_samples,
             )
         elif samples is None:
-            valid, enough = True, expectation.expected >= cfg.min_samples
+            minute_valid, enough = True, expectation.expected >= cfg.min_samples
         else:
-            valid = samples >= cfg.min_samples
+            minute_valid = samples >= cfg.min_samples
             # A genuine drop reduces its own sample count. Judge it against its pre-drop volume,
             # and retain that evidence once the drop is open.
             enough = beyond and (
                 state.open is not None or self._window_median(sample_key, minute) >= cfg.min_samples
             )
         flagged = beyond and enough
+        recovery_valid = minute_valid
         if is_latency:
             state.recent_ratios.append(ratio if (samples or 0) >= cfg.latency_min_samples else None)
 
@@ -307,8 +322,8 @@ class SeriesHistory:
                 if hit is not None:
                     measurement = hit.measurement
                     flagged = beyond = True
-                elif state.open is not None and (state.window or not valid):
-                    valid, held = count_windows.pooled_recovery(
+                elif state.open is not None and (state.window or not minute_valid):
+                    recovery_valid, held = count_windows.pooled_recovery(
                         state, expectation, cfg, self.baseline
                     )
                     beyond = beyond or held
@@ -318,7 +333,18 @@ class SeriesHistory:
             if flagged and sum(reading.flagged for reading in state.recent) >= rule.persist[0]:
                 return self._open_episode(rule, state, expectation, measurement, hit)
             return None
-        return self._update_episode(state, rule, minute, measurement, beyond, flagged, valid)
+        return self._update_episode(
+            state,
+            rule,
+            minute,
+            measurement,
+            beyond=beyond,
+            flagged=flagged,
+            recovery_valid=recovery_valid,
+            # Pooled recovery can be measurable without making the raw minute
+            # trustworthy. Only a strong window hit replaces its measurement.
+            update_evidence=flagged or minute_valid,
+        )
 
     @staticmethod
     def _unavailable(state: SeriesState, minute: datetime, is_latency: bool) -> None:
@@ -423,9 +449,11 @@ class SeriesHistory:
         rule: Rule,
         minute: datetime,
         measurement: count_windows.Measurement,
+        *,
         beyond: bool,
         flagged: bool,
-        valid: bool,
+        recovery_valid: bool,
+        update_evidence: bool,
     ) -> tuple[str, ChangeEvent] | None:
         cfg = self.cfg
         event = state.open
@@ -433,7 +461,7 @@ class SeriesHistory:
         actual, expected, ratio, z = measurement
         if flagged:
             state.score = min(cfg.evidence_cap, state.score + 1)
-        elif valid and not beyond:
+        elif recovery_valid and not beyond:
             state.score = max(0.0, state.score - 1)
         if rule.change == ChangeType.SLOWDOWN:
             duration = (minute - event.start) // MINUTE
@@ -445,11 +473,10 @@ class SeriesHistory:
                     event.sustained_at = minute
         state.excluded.add(minute)
         direction = 1 if rule.direction == "up" else -1
-        if flagged or valid:
-            if (ratio - event.peak_ratio) * direction > 0:
-                event.peak_ratio, event.actual, event.expected = ratio, actual, expected
-                if z:
-                    event.confidence = max(event.confidence, _confidence(z, self.baseline.cfg.k))
+        if update_evidence and (ratio - event.peak_ratio) * direction > 0:
+            event.peak_ratio, event.actual, event.expected = ratio, actual, expected
+            if z:
+                event.confidence = max(event.confidence, _confidence(z, self.baseline.cfg.k))
         if flagged and direction * math.log(ratio / state.level_ratio) >= math.log(
             cfg.escalate_factor
         ):

@@ -26,6 +26,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
 from sentry.workflow_engine.models import DataPacket
+from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.processors import DetectorEvaluation
 from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import DetectorAPIOperation, DetectorPriorityLevel, DetectorType
@@ -178,6 +179,7 @@ class TestAnomalyDetectionHandler(TestCase):
             publish_anomaly_transition(self.detector, self.transition)
             group = Group.objects.get(project=self.project, type=AnomalyDetection.type_id)
             assert group.status == GroupStatus.UNRESOLVED
+            assert DetectorGroup.objects.get(group=group).detector_id == self.detector.id
 
             publish_anomaly_transition(
                 self.detector,

@@ -10,7 +10,7 @@ from sentry_protos.snuba.v1.endpoint_time_series_pb2 import (
     TimeSeriesResponse,
 )
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
-from snuba_sdk import Column, Op
+from snuba_sdk import Column, Function, Op
 
 from sentry.anomaly_detection.contracts import ChangeEvent, ChangeType, SeriesKey
 from sentry.anomaly_detection.correlation.footprint import FOOTPRINT_DEFERRED, Footprint
@@ -42,7 +42,7 @@ class TestCollection(TestCase):
             {"data": [{"env": "prod,blue", ERROR_RELEASE: "service,2"}]},
             {
                 "data": [
-                    {"time": "2025-10-01T00:00:00Z", "env": "", "count()": 8, "users": None},
+                    {"time": "2025-10-01T00:00:00Z", "env": "", "count()": 8, "users": 0},
                     {"time": "2025-10-01T00:01:00Z", "env": "prod,blue", "count()": 4, "users": 2},
                 ]
             },
@@ -66,7 +66,7 @@ class TestCollection(TestCase):
 
         project = str(self.project.id)
         expected = [
-            (START, "errors", "", "", 8.0, None),
+            (START, "errors", "", "", 8.0, 0.0),
             (START, "errors", "prod,blue", "", 0.0, 0.0),
             (START + MINUTE, "errors", "", "", 0.0, 0.0),
             (START + MINUTE, "errors", "prod,blue", "", 4.0, 2.0),
@@ -78,6 +78,7 @@ class TestCollection(TestCase):
             for ts, signal, env, dimension, count, users in expected
             for metric, value in [("count()", count), ("count_unique(user)", users)]
         }
+        assert raw.call_count == 5
         for index, call in enumerate(raw.call_args_list):
             (request,) = call.args
             request.serialize()
@@ -88,7 +89,14 @@ class TestCollection(TestCase):
                 days=int(index == 1)
             )
             assert request.query.where[2].op == Op.LT
-        assert raw.call_args_list[3].args[0].query.granularity.granularity == 60
+        for call in raw.call_args_list[3:]:
+            query = call.args[0].query
+            assert query.granularity.granularity == 60
+            assert query.select == [
+                Function("count", []),
+                Function("uniq", [Column(ERROR_USER)], "users"),
+            ]
+            assert len(query.where) == 4  # Project, time range, and environment/release scope.
 
     def test_spans_catalog_and_sparse_protobuf_response(self) -> None:
         env = 'prod,"blue"'
@@ -549,7 +557,8 @@ def test_failure_thresholds_use_only_observed_hourly_error_users() -> None:
         (START, "errors_by_release", "count_unique(user)", "10", "stage", "v1", 2000.0),
         (START, "errors", "count_unique(user)", "10", "unobserved", "", None),
     ]
-    assert new_failures.new_failure_thresholds(rows) == {
-        ("10", "prod"): 15.0,
-        ("10", "stage"): 10.0,
-    }
+    thresholds = new_failures.new_failure_thresholds(rows)
+    observation_end = START + timedelta(hours=2)
+    assert thresholds.at(("10", "prod"), observation_end) == 15.0
+    assert thresholds.at(("10", "stage"), observation_end) == 10.0
+    assert thresholds.at(("10", "unobserved"), observation_end) == 10.0

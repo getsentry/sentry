@@ -1,15 +1,76 @@
 from datetime import timedelta
 from unittest import mock
+from uuid import uuid4
+
+from snuba_sdk import Column, Entity, Limit, Query
 
 from sentry.anomaly_detection.contracts import SeriesKey
 from sentry.anomaly_detection.evaluation.series import build
 from sentry.anomaly_detection.inputs import new_failures
-from sentry.anomaly_detection.inputs.measurements import MAX_SLICES, collect
+from sentry.anomaly_detection.inputs.measurements import (
+    ERROR_USER,
+    MAX_SLICES,
+    _error_where,
+    _run_errors,
+    collect,
+)
 from sentry.testutils.cases import SnubaTestCase, SpanTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 
 
 class TestAnomalyDetectionCollection(TestCase, SnubaTestCase, SpanTestCase):
+    def test_collect_errors_excludes_stored_empty_user_from_distinct_count(self) -> None:
+        start = before_now(minutes=20).replace(second=0, microsecond=0)
+        timestamp = start + timedelta(seconds=15)
+        group = self.create_group(project=self.project)
+        # Insert directly so event normalization cannot discard the empty tag.
+        users_by_event = {uuid4().hex: user for user in ("", "id:1", "id:1", "id:2")}
+        for event_id, user in users_by_event.items():
+            self.snuba_insert(
+                (
+                    2,
+                    "insert",
+                    {
+                        "event_id": event_id,
+                        "primary_hash": "a" * 32,
+                        "group_id": group.id,
+                        "project_id": self.project.id,
+                        "message": "error",
+                        "platform": "python",
+                        "datetime": timestamp.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+                        "data": {
+                            "received": timestamp.timestamp(),
+                            "tags": [["sentry:user", user], ["sentry:release", "v1"]],
+                        },
+                    },
+                    {},
+                )
+            )
+
+        end = start + timedelta(minutes=1)
+        bucket = start.replace(tzinfo=None)
+        stored = _run_errors(
+            self.organization,
+            Query(
+                match=Entity("events"),
+                select=[Column("event_id"), Column(ERROR_USER)],
+                where=_error_where(self.project, bucket, end.replace(tzinfo=None)),
+                limit=Limit(len(users_by_event) + 1),
+            ),
+        )
+        # The empty-tag event is present, but Snuba does not count it as a third user.
+        # Verify presence by event ID without depending on whether SQL returns null or ''.
+        assert {row["event_id"]: row[ERROR_USER] or "" for row in stored} == users_by_event
+
+        rows = collect(self.organization, [self.project], start, end, "1m")
+        project = str(self.project.id)
+        assert sorted(rows) == [
+            (bucket, "errors", "count()", project, "", "", 4.0),
+            (bucket, "errors", "count_unique(user)", project, "", "", 2.0),
+            (bucket, "errors_by_release", "count()", project, "", "v1", 4.0),
+            (bucket, "errors_by_release", "count_unique(user)", project, "", "v1", 2.0),
+        ]
+
     def test_collect_errors_counts_distinct_users_within_window(self) -> None:
         start = before_now(minutes=20).replace(second=0, microsecond=0)
         end = start + timedelta(minutes=3)
@@ -106,6 +167,51 @@ class TestAnomalyDetectionCollection(TestCase, SnubaTestCase, SpanTestCase):
         assert [row for row in rows if row[0] == bucket and row[2] == "p95(span.duration)"] == [
             (bucket, "endpoints", "p95(span.duration)", project, "production", endpoint, 250.0),
         ]
+
+    def test_collect_distinguishes_omitted_and_literal_none_span_environments(self) -> None:
+        start = before_now(minutes=20).replace(second=0, microsecond=0)
+        timestamp = start + timedelta(seconds=15)
+        endpoint = "GET /checkout"
+        self.store_spans(
+            [
+                self.create_span(
+                    {
+                        "is_segment": True,
+                        "sentry_tags": {"transaction": endpoint, **tags},
+                        "measurements": {"http.response.status_code": {"value": status}},
+                    },
+                    start_ts=timestamp,
+                    duration=duration,
+                )
+                for tags, status, duration in (
+                    ({}, 503, 250),
+                    ({"environment": "None"}, 200, 500),
+                    ({"environment": "None"}, 200, 500),
+                )
+            ]
+        )
+
+        rows = collect(self.organization, [self.project], start, start + timedelta(minutes=2), "1m")
+        bucket = start.replace(tzinfo=None)
+        idle = bucket + timedelta(minutes=1)
+        for metric in ("count()", "count_sample()"):
+            assert {
+                (ts, signal, env): value
+                for ts, signal, name, _, env, _, value in rows
+                if name == metric and signal in {"requests", "failed_requests"}
+            } == {
+                (bucket, "requests", ""): 1.0,
+                (bucket, "requests", "None"): 2.0,
+                (bucket, "failed_requests", ""): 1.0,
+                (bucket, "failed_requests", "None"): 0.0,
+                (idle, "requests", ""): 0.0,
+                (idle, "requests", "None"): 0.0,
+            }
+        assert {
+            (env, dim): value
+            for ts, signal, metric, _, env, dim, value in rows
+            if ts == bucket and signal == "endpoints" and metric == "p95(span.duration)"
+        } == {("", endpoint): 250.0, ("None", endpoint): 500.0}
 
     def test_collect_clean_requests_and_outbound_only_environment(self) -> None:
         start = before_now(minutes=20).replace(second=0, microsecond=0)

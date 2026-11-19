@@ -66,8 +66,11 @@ detector handler. The handler compares measurements with prior baselines and ret
 for the organization to correlate. This product-specific step does not publish issues. Once
 correlation is complete, the source commits its checkpoint and pending transitions together
 and calls `process_detectors` for the pinned project detector. Workflow Engine records evaluation
-artifacts and dispatches outcomes. The source keeps a transition pending until Issue Platform
-ingestion is observed, so the handler must not drop retries before publication.
+artifacts and dispatches Issue Platform outcomes. Anomaly evaluation keeps advancing while a
+delivery awaits confirmation. The anomaly outbox preserves order within each issue activation
+and confirms the issue state in Issue Platform rather than treating broker acknowledgment as
+ingestion. It bounds retries and backlog, prioritizes closes for existing issues, and counts
+terminal drops in `anomaly_detection.delivery_dropped`.
 
 Start with [`schedule.py`](../../anomaly_detection/schedule.py) for task execution or
 [`detector_handler.py`](../../anomaly_detection/detector_handler.py) for detector behavior.

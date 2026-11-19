@@ -1,9 +1,32 @@
+from collections import Counter
+from collections.abc import Sequence
+from dataclasses import replace
+from datetime import UTC, datetime, timedelta
 from unittest import mock
 
 from sentry import deletions
+from sentry.anomaly_detection import schedule
+from sentry.anomaly_detection.checkpoint.codec import _restore, _snapshot
+from sentry.anomaly_detection.checkpoint.replay import (
+    _CheckpointOnlyFootprints,
+    remove_project_state,
+)
+from sentry.anomaly_detection.contracts import ChangeEvent, ChangeType, SeriesKey, Urgency
+from sentry.anomaly_detection.correlation.correlator import GroupState, MemberState, episode_key
+from sentry.anomaly_detection.correlation.footprint import (
+    Footprint,
+    SliceStats,
+    service_of,
+    slice_of,
+)
+from sentry.anomaly_detection.delivery.pending_transitions import DeliveryState
+from sentry.anomaly_detection.evaluation.organization import AnomalyDecision, OrgEvaluator
+from sentry.anomaly_detection.evaluation.series import SeriesRow
+from sentry.anomaly_detection.grouptype import AnomalyDetection
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.models.activity import Activity
+from sentry.models.anomaly_detection_state import AnomalyDetectionState
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.debugfile import ProjectDebugFile
@@ -17,6 +40,7 @@ from sentry.models.groupopenperiod import GroupOpenPeriod
 from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity, OpenPeriodActivityType
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.groupseen import GroupSeen
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
@@ -35,8 +59,9 @@ from sentry.sentry_apps.models.servicehook import ServiceHook
 from sentry.services import eventstore
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.cases import TransactionTestCase
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
+from sentry.testutils.silo import cell_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.uptime.models import UptimeSubscription, get_uptime_subscription
@@ -51,12 +76,11 @@ from sentry.workflow_engine.models import (
     Workflow,
 )
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.types import DetectorPriorityLevel
+from sentry.workflow_engine.types import DetectorPriorityLevel, DetectorType
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
-pytestmark = [requires_snuba]
 
-
+@requires_snuba
 class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMixin):
     def test_deletes_issue_inbox_items(self) -> None:
         project = self.create_project()
@@ -273,6 +297,197 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
         # remove_seat is called from both DetectorDeletionTask and
         # UptimeSubscriptionDeletionTask as belt-and-suspenders.
         assert mock_remove_seat.call_count == 2
+
+
+@cell_silo_test
+class DeleteProjectAnomalyStateTest(TransactionTestCase):
+    BOUNDARY = datetime(2025, 1, 1, 12, 0)
+    START = BOUNDARY - timedelta(minutes=1)
+
+    def make_detector(self, project: Project, *, enabled: bool = True) -> Detector:
+        return self.create_detector(
+            project=project, type=DetectorType.ANOMALY_DETECTION, enabled=enabled
+        )
+
+    def add_finding(
+        self, evaluator: OrgEvaluator, project: Project, env: str
+    ) -> tuple[GroupState, AnomalyDecision]:
+        key = SeriesKey(str(project.id), env, "endpoints", "p95(span.duration)", "/health")
+        event = ChangeEvent(key, ChangeType.SLOWDOWN, self.START, 400.0, 100.0, 0.9)
+        evaluator.series[key] = {self.START: event.actual}
+        evaluator.novelty.observe(key, self.START)
+        evaluator.novelty.record(event)
+        group = evaluator.corr._create_group(self.START, MemberState(event, 4.0))
+        decision = AnomalyDecision(
+            group.group.id, project.id, self.START, Urgency.MEDIUM, False, "Slowdown", {}, env
+        )
+        evaluator.qualified[decision.group_key] = decision
+        return group, decision
+
+    def delete_project(self, project: Project) -> None:
+        with mock.patch.dict("os.environ", {"_SENTRY_CLEANUP": "1"}), self.tasks():
+            deletions.exec_sync(project)
+        assert not Project.objects.filter(id=project.id).exists()
+
+    def test_last_enabled_project_deletes_anomaly_state_with_feature_off(self) -> None:
+        project = self.create_project()
+        detector = self.make_detector(project)
+        self.make_detector(self.create_project(), enabled=False)
+        evaluator = OrgEvaluator(_CheckpointOnlyFootprints(), handlers={})
+        evaluator.next_minute = self.BOUNDARY
+        _, finding = self.add_finding(evaluator, project, "prod")
+        delivery = DeliveryState()
+        delivery.stage(
+            [finding],
+            {project.id: detector.id},
+            start=self.START,
+            end=self.BOUNDARY,
+            retained_keys={finding.group_key},
+        )
+        AnomalyDetectionState.objects.get_or_create(
+            organization_id=project.organization_id,
+            defaults={
+                "checkpoint": _snapshot(evaluator, self.BOUNDARY),
+                "delivery": delivery.to_json(),
+                "next_minute": self.BOUNDARY.replace(tzinfo=UTC),
+            },
+        )
+
+        with self.feature(
+            {schedule.FEATURE: False, AnomalyDetection.build_ingest_feature_name(): False}
+        ):
+            self.delete_project(project)
+
+        assert not AnomalyDetectionState.objects.filter(
+            organization_id=project.organization_id
+        ).exists()
+
+    def test_mixed_scope_scrubs_only_deleted_project_and_closes_original_activation(self) -> None:
+        deleted, retained = self.create_project(), self.create_project()
+        deleted_detector = self.make_detector(deleted)
+        retained_detector = self.make_detector(retained)
+        evaluator = OrgEvaluator(_CheckpointOnlyFootprints(), handlers={})
+        evaluator.next_minute = self.BOUNDARY
+        removed, removed_decision = self.add_finding(evaluator, deleted, "prod")
+        kept, kept_decision = self.add_finding(evaluator, retained, "prod")
+        mixed, mixed_decision = self.add_finding(evaluator, retained, "canary")
+        mixed_retained_key = mixed.root.key
+
+        # Correlation changed roots after publication; close the original activation.
+        deleted_member = replace(removed.root, key=replace(removed.root.key, env="canary"))
+        evaluator.corr._add_member(mixed, MemberState(deleted_member, 4.0))
+        mixed.root = deleted_member
+        deleted_edge = service_of(kept.root.key), "removed.example", service_of(removed.root.key)
+        kept_edge = service_of(kept.root.key), "retained.example", service_of(mixed_retained_key)
+        kept_slice, deleted_slice = slice_of(kept.root.key), slice_of(removed.root.key)
+        stats = SliceStats(1.0, 400.0, 10)
+        kept.members[episode_key(kept.root)].footprint = Footprint(
+            kept.root.key,
+            [],
+            {kept_slice: stats, deleted_slice: stats},
+            Counter({kept_edge: 2, deleted_edge: 1}),
+        )
+        evaluator.corr.state.edges.update({kept_edge: 2, deleted_edge: 1})
+        evaluator.corr.state.edge_seen_at.update({kept_edge: self.START, deleted_edge: self.START})
+
+        delivery = DeliveryState()
+        delivery.stage(
+            [removed_decision, kept_decision, mixed_decision],
+            {deleted.id: deleted_detector.id, retained.id: retained_detector.id},
+            start=self.START,
+            end=self.BOUNDARY,
+            retained_keys=set(evaluator.qualified),
+        )
+        # The mixed open was delivered; the unrelated open is still waiting for ingestion.
+        removed_open, kept_open, mixed_open = delivery.pending
+        kept_open.broker_acked_at = self.START.replace(tzinfo=UTC)
+        delivery.pending = [removed_open, kept_open]
+        state, _ = AnomalyDetectionState.objects.get_or_create(
+            organization_id=deleted.organization_id,
+            defaults={
+                "checkpoint": _snapshot(evaluator, self.BOUNDARY),
+                "delivery": delivery.to_json(),
+                "next_minute": self.BOUNDARY.replace(tzinfo=UTC),
+            },
+        )
+
+        self.delete_project(deleted)
+
+        state.refresh_from_db()
+        assert state.next_minute == self.BOUNDARY.replace(tzinfo=UTC)
+        assert state.checkpoint is not None
+        restored = _restore(_CheckpointOnlyFootprints(), state.checkpoint, handlers={})
+        assert set(restored.series) == {kept.root.key, mixed_retained_key}
+        assert (
+            set(restored.novelty.history) == set(restored.novelty.coverage) == set(restored.series)
+        )
+        assert restored.corr.state.edges == {kept_edge: 2}
+        assert restored.corr.state.edge_seen_at == {kept_edge: self.START}
+        assert all(record["key"][0] == str(retained.id) for record in state.checkpoint["events"])
+        assert restored.qualified == {kept_decision.group_key: kept_decision}
+        (remaining,) = restored.corr.groups
+        footprint = remaining.members[episode_key(kept.root)].footprint
+        assert footprint is not None
+        assert footprint.slices == {kept_slice: stats}
+        assert footprint.edges == {kept_edge: 2}
+
+        remaining_delivery = DeliveryState.from_json(state.delivery)
+        unrelated_open, scope_close = remaining_delivery.pending
+        assert unrelated_open == kept_open
+        assert scope_close.logical_key == mixed_open.logical_key
+        assert scope_close.detector_id == mixed_open.detector_id
+        assert scope_close.transition == replace(
+            mixed_open.transition, timestamp=self.BOUNDARY, is_resolved=True
+        )
+        assert remaining_delivery.pins == {
+            kept_decision.group_key: delivery.pins[kept_decision.group_key],
+            mixed_decision.group_key: replace(delivery.pins[mixed_decision.group_key], closed=True),
+        }
+
+        # Retrying cleanup must not queue another close or change unrelated work.
+        saved = state.checkpoint, state.delivery
+        remove_project_state(organization_id=deleted.organization_id, project_id=deleted.id)
+        state.refresh_from_db()
+        assert (state.checkpoint, state.delivery) == saved
+
+    @freeze_time("2025-01-01T12:02:00Z")
+    def test_in_flight_worker_cannot_restore_deleted_scope(self) -> None:
+        deleted, retained = self.create_project(), self.create_project()
+        self.make_detector(deleted)
+        self.make_detector(retained)
+        state, _ = AnomalyDetectionState.objects.get_or_create(
+            organization_id=deleted.organization_id,
+            defaults={"next_minute": self.START.replace(tzinfo=UTC)},
+        )
+        revision = state.date_updated
+
+        def collect_then_delete(
+            organization: Organization,
+            projects: Sequence[Project],
+            start: datetime,
+            end: datetime,
+            interval: str,
+        ) -> list[SeriesRow]:
+            assert {project.id for project in projects} == {deleted.id, retained.id}
+            self.delete_project(deleted)
+            return [(start, "requests", "count()", str(deleted.id), "prod", "", 100.0)]
+
+        with (
+            self.feature(
+                {schedule.FEATURE: True, AnomalyDetection.build_ingest_feature_name(): True}
+            ),
+            mock.patch.object(schedule, "collect", side_effect=collect_then_delete) as collect,
+            mock.patch.object(schedule, "_hourly_rows", return_value=[]),
+            mock.patch.object(schedule, "collect_new_failure_modes", return_value=[]),
+        ):
+            assert not schedule._run_organization(deleted.organization_id, self.BOUNDARY)
+
+        collect.assert_called_once()
+        state.refresh_from_db()
+        assert state.date_updated == revision + timedelta(microseconds=1)
+        assert state.next_minute == self.START.replace(tzinfo=UTC)
+        assert state.checkpoint is None
+        assert state.delivery is None
 
 
 class DeleteWorkflowEngineModelsTest(DeleteProjectTest):

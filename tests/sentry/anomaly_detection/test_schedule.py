@@ -14,10 +14,13 @@ from sentry import features
 from sentry.anomaly_detection import schedule
 from sentry.anomaly_detection.checkpoint.codec import CHECKPOINT_VERSION
 from sentry.anomaly_detection.contracts import Urgency
-from sentry.anomaly_detection.delivery import outbox
+from sentry.anomaly_detection.delivery import outbox, pending_transitions
 from sentry.anomaly_detection.delivery.pending_transitions import DeliveryState
 from sentry.anomaly_detection.delivery.transition import AnomalyTransition
-from sentry.anomaly_detection.detector_handler import AnomalyDetectionDetectorHandler
+from sentry.anomaly_detection.detector_handler import (
+    AnomalyDetectionDetectorHandler,
+    enabled_anomaly_detectors,
+)
 from sentry.anomaly_detection.evaluation.organization import AnomalyDecision
 from sentry.anomaly_detection.evaluation.series import SeriesRow
 from sentry.anomaly_detection.grouptype import AnomalyDetection
@@ -32,12 +35,12 @@ from sentry.locks import locks
 from sentry.models.anomaly_detection_state import AnomalyDetectionState
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
-from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.organization import OrganizationStatus
 from sentry.models.project import Project
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import cell_silo_test
-from sentry.utils import json
+from sentry.utils import json, metrics
 from sentry.utils.kafka_config import get_topic_definition
 from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.types import DetectorPriorityLevel, DetectorType
@@ -90,13 +93,17 @@ class TestAnomalySchedule(TestCase):
         inactive.update(status=OrganizationStatus.PENDING_DELETION)
         hidden = self.create_organization()
         self.make_detector(self.create_project(organization=hidden))
+        ingest_disabled = self.create_organization()
+        self.make_detector(self.create_project(organization=ingest_disabled))
         inactive_project = self.create_organization()
         project = self.create_project(organization=inactive_project)
         self.make_detector(project)
         project.update(status=ObjectStatus.PENDING_DELETION)
 
-        def allowed(flag: str, org: Organization) -> bool:
-            return org == self.organization and flag in FEATURES
+        def allowed(name: str, *entities: object, **_kwargs: object) -> bool:
+            return (entities == (self.organization,) and name in FEATURES) or (
+                entities == (ingest_disabled,) and name == schedule.FEATURE
+            )
 
         with (
             patch.object(features, "has", side_effect=allowed),
@@ -111,16 +118,17 @@ class TestAnomalySchedule(TestCase):
         organizations = [self.create_organization() for _ in range(3)]
         for organization in organizations:
             self.make_detector(self.create_project(organization=organization))
+        ids = sorted(organization.id for organization in organizations)
         with (
             self.feature(FEATURES),
             patch.object(schedule, "_MAX_ORGS_PER_TICK", 2),
             patch.object(schedule.run_anomaly_detection, "delay") as enqueue,
         ):
             schedule.schedule_anomaly_detectors()
+            assert [entry.args[0] for entry in enqueue.call_args_list] == ids[:2]
+            enqueue.reset_mock()
             schedule.schedule_anomaly_detectors()
-
-        ids = sorted(organization.id for organization in organizations)
-        assert [call.args[0] for call in enqueue.call_args_list] == ids + ids[:1]
+            assert [entry.args[0] for entry in enqueue.call_args_list] == ids[2:] + ids[:1]
 
     def test_collects_only_enabled_scoped_projects_with_bounded_catchup(self) -> None:
         primary = self.make_detector(self.project)
@@ -235,9 +243,9 @@ class TestAnomalySchedule(TestCase):
             assert schedule._run_organization(self.organization.id, END + timedelta(minutes=1))
             assert publish.call_count == 2 * outbox._MAX_DELIVERIES
 
-        advance.assert_called_once()
+        assert [entry.kwargs["start"] for entry in advance.call_args_list] == [START, END]
         state = AnomalyDetectionState.objects.get(organization=self.organization)
-        assert state.next_minute == END.replace(tzinfo=UTC)
+        assert state.next_minute == (END + timedelta(minutes=1)).replace(tzinfo=UTC)
         assert state.checkpoint == checkpoint
         delivery = DeliveryState.from_json(state.delivery)
         assert len(delivery.pending) == len(delivery.pins) == 320
@@ -326,7 +334,31 @@ class TestAnomalySchedule(TestCase):
         collect.assert_not_called()
         assert not AnomalyDetectionState.objects.filter(organization=self.organization).exists()
 
+    def test_cold_worker_rechecks_scope_after_last_project_becomes_ineligible(self) -> None:
+        self.make_detector(self.project)
+        scoped = enabled_anomaly_detectors().filter(project__organization_id=self.organization.id)
+        exists = scoped.exists
+
+        def stale_candidate_lookup() -> bool:
+            assert exists()
+            assert not AnomalyDetectionState.objects.filter(organization=self.organization).exists()
+            self.project.update(status=ObjectStatus.PENDING_DELETION)
+            return True
+
+        with (
+            self.feature(FEATURES),
+            patch.object(schedule, "enabled_anomaly_detectors") as enabled,
+            patch.object(scoped, "exists", side_effect=stale_candidate_lookup),
+            patch.object(schedule, "collect") as collect,
+        ):
+            enabled.return_value.filter.return_value = scoped
+            assert not schedule._run_organization(self.organization.id, END)
+
+        collect.assert_not_called()
+        assert not AnomalyDetectionState.objects.filter(organization=self.organization).exists()
+
     @freeze_time(NOW)
+    @override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
     def test_publisher_failure_does_not_ack_or_send_close(self) -> None:
         detector = self.make_detector(self.project)
         decisions = [decision(self.project.id), decision(self.project.id, resolved=True)]
@@ -347,28 +379,35 @@ class TestAnomalySchedule(TestCase):
             patch.object(
                 outbox,
                 "publish_anomaly_transition",
-                side_effect=TimeoutError("Kafka acknowledgement"),
+                wraps=outbox.publish_anomaly_transition,
             ) as publish,
+            patch("sentry.issues.producer._confirmed_occurrence_producer") as producer,
         ):
-            with pytest.raises(TimeoutError, match="Kafka acknowledgement"):
-                schedule._run_organization(self.organization.id, END)
+            broker_result = producer.produce.return_value.result
+            broker_result.side_effect = TimeoutError("Kafka acknowledgement")
+            schedule._run_organization(self.organization.id, END)
             state = AnomalyDetectionState.objects.get(organization=self.organization)
             assert state.next_minute == END.replace(tzinfo=UTC)
             pending = DeliveryState.from_json(state.delivery).pending
             assert [item.transition.is_resolved for item in pending] == [False, True]
             assert pending[0].transition.group_key == pending[1].transition.group_key
             assert pending[0].broker_acked_at is None
+            assert pending[0].attempts == 1
             first_attempt = publish.call_args.args
 
-            publish.side_effect = None
+            broker_result.side_effect = None
             schedule._run_organization(self.organization.id, END)
+            publish.assert_called_once()
+            retry_time = NOW + outbox._PUBLISH_RETRY_DELAY
+            with freeze_time(retry_time):
+                schedule._run_organization(self.organization.id, END)
             assert publish.call_args.args == first_attempt
             state = AnomalyDetectionState.objects.get(id=state.id)
-            assert DeliveryState.from_json(state.delivery).pending[0].broker_acked_at == NOW
+            assert DeliveryState.from_json(state.delivery).pending[0].broker_acked_at == retry_time
             # Kafka acknowledgement alone must neither pop the open nor publish the close.
             schedule._run_organization(self.organization.id, END)
             assert publish.call_count == 2
-            with freeze_time(NOW + timedelta(minutes=5)):
+            with freeze_time(retry_time + outbox._INGEST_RETRY_DELAY):
                 schedule._run_organization(self.organization.id, END)
             assert publish.call_args.args == first_attempt
             assert publish.call_count == 3
@@ -378,6 +417,9 @@ class TestAnomalySchedule(TestCase):
             )
             schedule._run_organization(self.organization.id, END)
             assert publish.call_count == 4
+            assert producer.produce.call_count == 4
+            payload = json.loads(producer.produce.call_args.args[1].value)
+            assert payload["payload_type"] == "status_change"
             assert publish.call_args.args[0] == detector
             assert publish.call_args.args[1].is_resolved
             lookup.assert_called_with(
@@ -395,6 +437,149 @@ class TestAnomalySchedule(TestCase):
         advance.assert_called_once()
         state = AnomalyDetectionState.objects.get(id=state.id)
         assert not DeliveryState.from_json(state.delivery).pending
+
+    @freeze_time(NOW)
+    def test_rejected_open_does_not_block_next_window_or_unrelated_project(self) -> None:
+        rejected_detector = self.make_detector(self.project)
+        unrelated = self.create_project()
+        first_window = [decision(self.project.id), decision(self.project.id, resolved=True)]
+        second_window = [decision(unrelated.id, key="unrelated", timestamp=END)]
+        qualified = [{"group_key": "group"}]
+        checkpoint = {"version": CHECKPOINT_VERSION, "qualified": qualified}
+        next_checkpoint = {
+            **checkpoint,
+            "qualified": [*qualified, {"group_key": "unrelated"}],
+        }
+        target = END + timedelta(minutes=1)
+        groups: dict[int, SimpleNamespace] = {}
+
+        def publish_transition(detector: Detector, _transition: AnomalyTransition) -> None:
+            if detector == rejected_detector:
+                raise TimeoutError("Kafka acknowledgement")
+
+        with (
+            self.feature(FEATURES),
+            patch.object(schedule, "collect", return_value=[]),
+            patch.object(schedule, "_hourly_rows", return_value=[]),
+            patch.object(schedule, "collect_new_failure_modes", return_value=[]),
+            patch.object(
+                schedule,
+                "advance_org",
+                side_effect=[(first_window, checkpoint), (second_window, next_checkpoint)],
+            ) as advance,
+            patch.object(
+                outbox,
+                "get_group_from_fingerprint",
+                side_effect=lambda project_id, _: groups.get(project_id),
+            ),
+            patch.object(
+                outbox, "publish_anomaly_transition", side_effect=publish_transition
+            ) as publish,
+            patch.object(metrics, "incr") as incr,
+        ):
+            schedule._run_organization(self.organization.id, END)
+            unrelated_detector = self.make_detector(unrelated)
+            schedule._run_organization(self.organization.id, target)
+            state = AnomalyDetectionState.objects.get(organization=self.organization)
+            assert state.next_minute == target.replace(tzinfo=UTC)
+            assert state.checkpoint == next_checkpoint
+            pending = DeliveryState.from_json(state.delivery).pending
+            rejected = [item for item in pending if item.logical_key == "group"]
+            (unrelated_open,) = [item for item in pending if item.logical_key == "unrelated"]
+            assert [item.kind for item in rejected] == ["open", "close"]
+            assert rejected[0].attempts == 1
+            assert rejected[0].broker_acked_at is None
+            assert unrelated_open.broker_acked_at == NOW
+
+            # The unrelated publication is independently confirmed. The rejected
+            # open's remaining attempts never publish its dependent close.
+            groups[unrelated.id] = SimpleNamespace(last_seen=END.replace(tzinfo=UTC))
+            for attempt in range(1, outbox._MAX_ATTEMPTS + 1):
+                with freeze_time(NOW + attempt * outbox._PUBLISH_RETRY_DELAY):
+                    schedule._run_organization(self.organization.id, target)
+
+        assert [entry.kwargs["start"] for entry in advance.call_args_list] == [START, END]
+        rejected_publication = call(rejected_detector, rejected[0].transition)
+        assert publish.call_args_list == [
+            rejected_publication,
+            call(unrelated_detector, unrelated_open.transition),
+            *([rejected_publication] * (outbox._MAX_ATTEMPTS - 1)),
+        ]
+        incr.assert_any_call(
+            "anomaly_detection.delivery_dropped",
+            amount=2,
+            tags={"reason": "attempts_exhausted", "kind": "open"},
+            sample_rate=1.0,
+        )
+        state.refresh_from_db()
+        delivery = DeliveryState.from_json(state.delivery)
+        assert not delivery.pending
+        assert delivery.pins["group"].activation_retired
+        assert not delivery.pins["unrelated"].activation_retired
+
+    @freeze_time(NOW)
+    def test_concurrent_drain_cannot_resurrect_confirmed_open(self) -> None:
+        detector = self.make_detector(self.project)
+        delivery = DeliveryState()
+        delivery.stage(
+            [decision(self.project.id)],
+            {self.project.id: detector.id},
+            start=START,
+            end=END,
+            retained_keys={"group"},
+        )
+        checkpoint = {"version": CHECKPOINT_VERSION, "qualified": [{"group_key": "group"}]}
+        state = AnomalyDetectionState.objects.create(
+            organization=self.organization,
+            next_minute=END.replace(tzinfo=UTC),
+            checkpoint=checkpoint,
+            delivery=delivery.to_json(),
+        )
+        next_checkpoint = {"version": CHECKPOINT_VERSION, "qualified": []}
+        target = END + timedelta(minutes=1)
+        update = decision(self.project.id, timestamp=END)
+
+        with (
+            self.feature(FEATURES),
+            patch.object(schedule, "collect", return_value=[]),
+            patch.object(schedule, "_hourly_rows", return_value=[]),
+            patch.object(schedule, "collect_new_failure_modes", return_value=[]),
+            patch.object(schedule, "advance_org") as advance,
+            patch.object(outbox, "get_group_from_fingerprint", return_value=None) as lookup,
+            patch.object(outbox, "publish_anomaly_transition") as publish,
+        ):
+
+            def evaluate(**_kwargs: object) -> tuple[list[AnomalyDecision], dict[str, object]]:
+                state.refresh_from_db()
+                revision = state.date_updated
+                assert DeliveryState.from_json(state.delivery).pending[0].broker_acked_at == NOW
+                lookup.return_value = SimpleNamespace(last_seen=START.replace(tzinfo=UTC))
+                assert state._state.db is not None
+                outbox.PendingTransitionDrain(state.id, self.organization.id, state._state.db).run()
+                state.refresh_from_db()
+                assert state.date_updated > revision
+                assert state.next_minute == END.replace(tzinfo=UTC)
+                return [update], next_checkpoint
+
+            advance.side_effect = evaluate
+            assert not schedule._run_organization(self.organization.id, target)
+            publish.assert_called_once_with(detector, delivery.pending[0].transition)
+            state.refresh_from_db()
+            assert state.next_minute == END.replace(tzinfo=UTC)
+            assert state.checkpoint == checkpoint
+            assert not DeliveryState.from_json(state.delivery).pending
+
+            advance.side_effect = None
+            advance.return_value = ([update], next_checkpoint)
+            schedule._run_organization(self.organization.id, target)
+
+        state.refresh_from_db()
+        assert state.next_minute == target.replace(tzinfo=UTC)
+        assert state.checkpoint == next_checkpoint
+        (staged,) = DeliveryState.from_json(state.delivery).pending
+        assert staged.kind == "update"
+        assert staged.transition.group_key == delivery.pending[0].transition.group_key
+        publish.assert_called_with(detector, staged.transition)
 
     @freeze_time(NOW)
     def test_independent_opens_do_not_wait_for_prior_activation(self) -> None:
@@ -467,7 +652,7 @@ class TestAnomalySchedule(TestCase):
             assert close.group_key == first_open.group_key
             assert close.is_resolved
 
-        advance.assert_called_once()
+        assert [entry.kwargs["start"] for entry in advance.call_args_list] == [START, target]
 
     @freeze_time(NOW)
     def test_late_close_retry_only_targets_its_activation(self) -> None:
@@ -626,7 +811,8 @@ class TestAnomalySchedule(TestCase):
             patch.object(outbox, "publish_anomaly_transition") as publish,
         ):
             target = END + timedelta(minutes=1)
-            schedule._run_organization(self.organization.id, target)
+            with pytest.raises(RuntimeError, match="exceeds the project limit"):
+                schedule._run_organization(self.organization.id, target)
             lookup.return_value = SimpleNamespace(last_seen=START.replace(tzinfo=UTC))
             with pytest.raises(RuntimeError, match="exceeds the project limit"):
                 schedule._run_organization(self.organization.id, target)
@@ -637,17 +823,24 @@ class TestAnomalySchedule(TestCase):
         assert state.next_minute == END.replace(tzinfo=UTC)
         assert not DeliveryState.from_json(state.delivery).pending
 
-    def test_disabled_pinned_detector_drains_when_no_projects_are_eligible(self) -> None:
+    def test_disabled_pinned_detector_retires_only_its_queued_work(self) -> None:
         detector = self.make_detector(self.project)
         replacement = self.make_detector(self.project, enabled=False)
+        unrelated_project = self.create_project()
+        unrelated_detector = self.make_detector(unrelated_project)
         delivery = DeliveryState()
         delivery.stage(
-            [decision(self.project.id), decision(self.project.id, resolved=True)],
-            {self.project.id: detector.id},
+            [
+                decision(self.project.id),
+                decision(self.project.id, resolved=True),
+                decision(unrelated_project.id, key="unrelated"),
+            ],
+            {self.project.id: detector.id, unrelated_project.id: unrelated_detector.id},
             start=START,
             end=END,
-            retained_keys={"group"},
+            retained_keys={"group", "unrelated"},
         )
+        unrelated_open = delivery.pending[-1].transition
         state, _ = AnomalyDetectionState.objects.get_or_create(organization=self.organization)
         state.update(delivery=delivery.to_json(), next_minute=END.replace(tzinfo=UTC))
         detector.update(enabled=False)
@@ -656,11 +849,11 @@ class TestAnomalySchedule(TestCase):
             patch.object(outbox, "publish_anomaly_transition") as publish,
         ):
             schedule._run_organization(self.organization.id, END)
-        publish.assert_not_called()
+        publish.assert_called_once_with(unrelated_detector, unrelated_open)
 
         state = AnomalyDetectionState.objects.get(id=state.id)
         delivery = DeliveryState.from_json(state.delivery)
-        assert not delivery.pending
+        assert [item.transition for item in delivery.pending] == [unrelated_open]
         assert delivery.pins["group"].detector_id == detector.id
         assert delivery.pins["group"].owner_retired
         replacement.update(enabled=True)
@@ -672,10 +865,10 @@ class TestAnomalySchedule(TestCase):
             {self.project.id: replacement.id},
             start=END,
             end=END + timedelta(minutes=1),
-            retained_keys={"group", "new"},
+            retained_keys={"group", "new", "unrelated"},
         )
-        assert [item.logical_key for item in delivery.pending] == ["new"]
-        assert delivery.pending[0].detector_id == replacement.id
+        assert [item.logical_key for item in delivery.pending] == ["unrelated", "new"]
+        assert delivery.pending[1].detector_id == replacement.id
 
 
 def test_delivery_pins_scope_and_rejects_unopened_groups() -> None:
@@ -821,3 +1014,41 @@ def test_delivery_retains_pins_across_evaluation_batches() -> None:
         )
         state.pending.clear()
     assert DeliveryState.from_json(state.to_json()).pins.keys() == retained_keys
+
+
+def test_delivery_backlog_prefers_ingested_closes_and_does_not_orphan_dependents() -> None:
+    state = DeliveryState()
+    keys = {"ingested", "untouched", "overflow"}
+    state.stage([decision(1, key="ingested")], {1: 11}, start=START, end=END, retained_keys=keys)
+    ingested = state.pending.pop().transition.group_key
+    with (
+        patch.object(pending_transitions, "_MAX_PENDING", 2),
+        patch.object(metrics, "incr") as incr,
+    ):
+        state.stage(
+            [
+                decision(2, key="untouched", timestamp=END),
+                decision(3, key="overflow", timestamp=END),
+                decision(3, key="overflow", timestamp=END, resolved=True),
+                decision(1, key="ingested", timestamp=END),
+                decision(1, key="ingested", timestamp=END, resolved=True),
+            ],
+            {1: 11, 2: 22, 3: 33},
+            start=END,
+            end=END + timedelta(minutes=1),
+            retained_keys=keys,
+        )
+
+    assert [(item.logical_key, item.kind) for item in state.pending] == [
+        ("untouched", "open"),
+        ("ingested", "close"),
+    ]
+    assert state.pending[1].transition.group_key == ingested
+    assert state.pins["overflow"].activation_retired
+    for kind in ("open", "update", "close"):
+        incr.assert_any_call(
+            "anomaly_detection.delivery_dropped",
+            amount=1,
+            tags={"reason": "backlog", "kind": kind},
+            sample_rate=1.0,
+        )

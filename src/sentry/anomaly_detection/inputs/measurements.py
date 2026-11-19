@@ -265,12 +265,13 @@ def _collect_errors(
         queries.append(("errors_by_release", [env_group, release], release_where, release_groups))
 
     step = timedelta(seconds=rollup)
+    bucket = Column("time")
+    # Snuba's distinct count ignores empty user tags without dropping those errors from count().
+    users = Function("uniq", [Column(ERROR_USER)], "users")
     for left, right in _windows(start, end, rollup):
         bucket_count = (right - left) // step
         # Use native time grouping. Only fill empty buckets for scopes the
         # successful, bounded query actually covered.
-        bucket = Column("time")
-        metrics = [count, Function("uniq", [Column(ERROR_USER)], "users")]
         where = _error_where(project, left, right)
         for signal, groups, condition, allowed in queries:
             cap = len(allowed) * bucket_count
@@ -278,7 +279,7 @@ def _collect_errors(
                 organization,
                 Query(
                     match=Entity("events"),
-                    select=metrics,
+                    select=[count, users],
                     where=[*where, condition],
                     groupby=[bucket, *groups],
                     granularity=Granularity(rollup),
@@ -418,7 +419,9 @@ def _span_groups(
         limit_by=SpanLimitBy(columns=["environment"], limit=MAX_SLICES) if partitioned else None,
     )
     data = response["data"]
-    groups = list(dict.fromkeys(tuple(row[field] or "" for field in fields) for row in data))
+    groups: list[tuple[str, ...]] = list(
+        dict.fromkeys(tuple(row.get(field) or "" for field in fields) for row in data)
+    )
     token = response.get("page_token")
     if len(data) > limit or (partitioned and token is not None and not token.end_pagination):
         raise IncompleteCollection("Spans group discovery exceeded its partition limit")
@@ -438,8 +441,36 @@ def _span_series(
     *,
     positive_requests: set[tuple[datetime, str]] | None = None,
 ) -> Iterator[Row]:
-    if not groups:
-        return
+    # The timeseries RPC can stringify a null group as "None". Filter the
+    # missing/empty scope separately and don't group it by environment.
+    for missing in (False, True):
+        scoped_groups = [group for group in groups if (group[0] == "") == missing]
+        if scoped_groups:
+            yield from _scoped_span_series(
+                organization,
+                project,
+                start,
+                end,
+                rollup,
+                signal,
+                scoped_groups,
+                missing=missing,
+                positive_requests=positive_requests,
+            )
+
+
+def _scoped_span_series(
+    organization: Organization,
+    project: Project,
+    start: datetime,
+    end: datetime,
+    rollup: int,
+    signal: SpanSignal,
+    groups: list[tuple[str, ...]],
+    *,
+    missing: bool,
+    positive_requests: set[tuple[datetime, str]] | None,
+) -> Iterator[Row]:
     allowed = set(groups)
     fields = ["environment", signal.dimension] if signal.dimension else ["environment"]
     config = ScopedSpans()
@@ -468,7 +499,7 @@ def _span_series(
             params=params,
             query_string=signal.query,
             y_axes=list(signal.metrics),
-            groupby=fields,
+            groupby=fields[1:] if missing else fields,
             referrer=_REFERRER,
             sampling_mode=None,
             extra_conditions=conditions,
@@ -479,6 +510,8 @@ def _span_series(
         for series in response.result_timeseries:
             attributes = series.group_by_attributes
             key = tuple(attributes.get(column.internal_name, "") for column in columns)
+            if missing:
+                key = ("", *key)
             if key not in allowed:
                 raise IncompleteCollection("Unexpected group in Spans time series")
             if series.label not in signal.metrics or len(series.buckets) > bucket_count:

@@ -4,13 +4,13 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Sequence
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from django.db import transaction
 from django.db.models import F
 from django.utils import timezone
 
-from sentry.anomaly_detection.delivery.pending_transitions import DeliveryState
+from sentry.anomaly_detection.delivery.pending_transitions import DeliveryState, PendingTransition
 from sentry.anomaly_detection.delivery.transition import AnomalyTransition
 from sentry.anomaly_detection.detector_handler import enabled_anomaly_detectors, get_anomaly_handler
 from sentry.issues.ingest import hash_fingerprint
@@ -25,7 +25,15 @@ from sentry.workflow_engine.processors.detector import process_detectors
 logger = logging.getLogger(__name__)
 
 _MAX_DELIVERIES = 4
+_MAX_ATTEMPTS = 4
 _INGEST_RETRY_DELAY = timedelta(minutes=5)
+_PUBLISH_RETRY_DELAY = timedelta(minutes=1)
+
+
+def next_state_revision(previous: datetime) -> datetime:
+    # The checkpoint and deletion paths use this as a fencing token. Never rewind
+    # it, including on a queue-only write from a worker with a slower clock.
+    return max(timezone.now(), previous + timedelta(microseconds=1))
 
 
 def publish_anomaly_transition(detector: Detector, transition: AnomalyTransition) -> None:
@@ -49,9 +57,9 @@ def _deliver_one(
             id=state_id, organization_id=organization_id
         )
         try:
-            raw_delivery = (
+            raw_delivery, revision = (
                 state_rows.select_for_update(skip_locked=True)
-                .values_list("delivery", flat=True)
+                .values_list("delivery", "date_updated")
                 .get()
             )
         except AnomalyDetectionState.DoesNotExist:
@@ -78,6 +86,7 @@ def _deliver_one(
                 project__organization_id=organization_id,
             )
         )
+        progressed = True
         if detector is None:
             # Disabling/removing a detector cancels only its affected publications.
             # Never reroute that lifecycle, even if the project has a new detector.
@@ -87,23 +96,56 @@ def _deliver_one(
             )
             delivery.retire_owner(pending.logical_key)
         elif not _acknowledge_or_retire(delivery, index, detector, organization_id):
-            now = timezone.now()
-            published = (
-                pending.broker_acked_at is None
-                or now - pending.broker_acked_at >= _INGEST_RETRY_DELAY
-            )
-            if published:
-                publish_anomaly_transition(detector, transition)
-                pending.broker_acked_at = now
-            waiting.add(transition.group_key)
-            moved = delivery.defer_activation(transition.group_key)
-            if published or moved:
-                state_rows.update(delivery=delivery.to_json(), date_updated=now)
-            metrics.incr("anomaly_detection.delivery_waiting_for_ingest")
-            return published, True
+            retry_at = pending.next_attempt_at
+            if retry_at is None and pending.broker_acked_at is not None:
+                # Old queue entries carried only a broker acknowledgement timestamp.
+                retry_at = pending.broker_acked_at + _INGEST_RETRY_DELAY
+            progressed = retry_at is None or timezone.now() >= retry_at
+            if progressed and pending.attempts >= _MAX_ATTEMPTS:
+                # Ingestion was checked above even after the last attempt. An
+                # exhausted update must not strand a close for an ingested issue.
+                if pending.is_open:
+                    dropped = delivery.retire_activation(pending)
+                else:
+                    delivery.pending.pop(index)
+                    dropped = 1
+                metrics.incr(
+                    "anomaly_detection.delivery_dropped",
+                    amount=dropped,
+                    tags={"reason": "attempts_exhausted", "kind": pending.kind},
+                    sample_rate=1.0,
+                )
+            else:
+                if progressed:
+                    _attempt_publication(pending, detector, organization_id, db)
+                waiting.add(transition.group_key)
+                if pending.broker_acked_at is not None:
+                    metrics.incr("anomaly_detection.delivery_waiting_for_ingest")
+                if not delivery.defer_activation(transition.group_key) and not progressed:
+                    return False, True
 
-        state_rows.update(delivery=delivery.to_json(), date_updated=timezone.now())
-        return True, bool(delivery.pending)
+        state_rows.update(delivery=delivery.to_json(), date_updated=next_state_revision(revision))
+        return progressed, bool(delivery.pending)
+
+
+def _attempt_publication(
+    pending: PendingTransition, detector: Detector, organization_id: int, db: str
+) -> None:
+    pending.attempts += 1
+    try:
+        # Isolate local ingest/Workflow Engine DB errors so a poison transition
+        # still records its attempt and doesn't block other activations.
+        with transaction.atomic(using=db):
+            publish_anomaly_transition(detector, pending.transition)
+    except Exception:
+        logger.exception(
+            "anomaly_detection.delivery_publish_failed",
+            extra={"organization_id": organization_id, "detector_id": detector.id},
+        )
+        pending.next_attempt_at = timezone.now() + _PUBLISH_RETRY_DELAY
+    else:
+        pending.broker_acked_at = timezone.now()
+        pending.next_attempt_at = pending.broker_acked_at + _INGEST_RETRY_DELAY
 
 
 def _acknowledge_or_retire(
@@ -148,17 +190,28 @@ def _is_tombstoned(project_id: int, fingerprint: Sequence[str]) -> bool:
     ).exists()
 
 
-def drain_pending_transitions(state_id: int, organization_id: int, db: str) -> tuple[bool, bool]:
-    """Return (pending remains, enqueue continuation) after a bounded drain."""
-    waiting: set[str] = set()
-    made_progress = False
-    for _ in range(_MAX_DELIVERIES):
-        result = _deliver_one(state_id, organization_id, db, waiting)
-        if result is None:
-            return True, False
-        progressed, pending_remains = result
-        if not pending_remains:
-            return False, False
-        made_progress |= progressed
-    # If the whole pass was waiting on ingestion, let the next cron tick retry.
-    return True, made_progress
+class PendingTransitionDrain:
+    """Share a bounded drain budget across the two sides of an evaluator commit."""
+
+    def __init__(self, state_id: int, organization_id: int, db: str) -> None:
+        self.state_id = state_id
+        self.organization_id = organization_id
+        self.db = db
+        self._waiting: set[str] = set()
+        self._remaining = _MAX_DELIVERIES
+        self._made_progress = False
+
+    def run(self, *, max_checks: int | None = None) -> bool:
+        """Drain ready activations; return whether to enqueue a continuation."""
+        checks = self._remaining if max_checks is None else min(self._remaining, max_checks)
+        for _ in range(checks):
+            result = _deliver_one(self.state_id, self.organization_id, self.db, self._waiting)
+            if result is None:
+                return False
+            self._remaining -= 1
+            progressed, pending_remains = result
+            if not pending_remains:
+                return False
+            self._made_progress |= progressed
+        # If the whole pass was waiting on ingestion, let the next cron tick retry.
+        return self._made_progress

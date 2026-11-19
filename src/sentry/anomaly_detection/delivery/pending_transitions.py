@@ -1,5 +1,6 @@
 """Durable delivery state. The statistical checkpoint has its own versioned codec."""
 
+from collections import Counter, defaultdict
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field, replace
 from datetime import datetime
@@ -9,9 +10,11 @@ from uuid import uuid4
 from sentry.anomaly_detection.contracts import Urgency
 from sentry.anomaly_detection.delivery.transition import AnomalyTransition
 from sentry.anomaly_detection.evaluation.organization import AnomalyDecision
+from sentry.utils import metrics
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 _STATE_VERSION = 2
+_MAX_PENDING = 2048  # Allow dense evaluation batches (320 opens) and room for catchup.
 _PRIORITIES = {
     Urgency.LOW: DetectorPriorityLevel.LOW,
     Urgency.MEDIUM: DetectorPriorityLevel.MEDIUM,
@@ -38,6 +41,14 @@ class PendingTransition:
     transition: AnomalyTransition
     is_open: bool
     broker_acked_at: datetime | None = None
+    attempts: int = 0
+    next_attempt_at: datetime | None = None
+
+    @property
+    def kind(self) -> str:
+        if self.is_open:
+            return "open"
+        return "close" if self.transition.is_resolved else "update"
 
 
 @dataclass
@@ -85,6 +96,12 @@ class DeliveryState:
                         if item["broker_acked_at"]
                         else None
                     ),
+                    attempts=item.get("attempts", int(item["broker_acked_at"] is not None)),
+                    next_attempt_at=(
+                        datetime.fromisoformat(item["next_attempt_at"])
+                        if item.get("next_attempt_at")
+                        else None
+                    ),
                 )
                 for item in value["pending"]
             ],
@@ -122,6 +139,10 @@ class DeliveryState:
                     "broker_acked_at": (
                         item.broker_acked_at.isoformat() if item.broker_acked_at else None
                     ),
+                    "attempts": item.attempts,
+                    "next_attempt_at": (
+                        item.next_attempt_at.isoformat() if item.next_attempt_at else None
+                    ),
                 }
                 for item in self.pending
             ],
@@ -132,14 +153,20 @@ class DeliveryState:
         self.pins[logical_key] = replace(self.pins[logical_key], owner_retired=True)
         self.pending = [item for item in self.pending if item.logical_key != logical_key]
 
-    def retire_activation(self, pending: PendingTransition) -> None:
-        activation_key = pending.transition.group_key
+    def _mark_activation_retired(self, pending: PendingTransition) -> None:
         pin = self.pins[pending.logical_key]
-        if pin.activation_key == activation_key:
+        if pin.activation_key == pending.transition.group_key:
             self.pins[pending.logical_key] = replace(pin, activation_retired=True)
+
+    def retire_activation(self, pending: PendingTransition) -> int:
+        self._mark_activation_retired(pending)
+        before = len(self.pending)
         self.pending = [
-            item for item in self.pending if item.transition.group_key != activation_key
+            item
+            for item in self.pending
+            if item.transition.group_key != pending.transition.group_key
         ]
+        return before - len(self.pending)
 
     def defer_activation(self, activation_key: str) -> bool:
         """Give other activations a turn without reordering this activation's work."""
@@ -150,7 +177,7 @@ class DeliveryState:
                 deferred.append(item)
             else:
                 other.append(item)
-        if not other:
+        if not other or self.pending[-len(deferred) :] == deferred:
             return False
         self.pending = other + deferred
         return True
@@ -218,8 +245,48 @@ class DeliveryState:
             self.pending.append(pending)
             if not decision.is_resolved:
                 non_resolution_by_identity[identity] = pending
+        self._bound_backlog()
         # Scope reconciliation can discard an open group without emitting a close.
         queued = {item.logical_key for item in self.pending}
         self.pins = {
             key: pin for key, pin in self.pins.items() if key in retained_keys or key in queued
         }
+
+    def _bound_backlog(self) -> None:
+        excess = len(self.pending) - _MAX_PENDING
+        if excess <= 0:
+            return
+
+        def discard_priority(item: PendingTransition) -> int:
+            # Updates are expendable; never leave a successor behind a discarded open.
+            # A close without a queued open belongs to an already ingested issue.
+            if item.is_open:
+                return 2 if item.attempts else 1
+            return 3 if item.transition.is_resolved else 0
+
+        by_activation: dict[str, list[int]] = defaultdict(list)
+        for i, item in enumerate(self.pending):
+            by_activation[item.transition.group_key].append(i)
+        dropped: set[int] = set()
+        for i in sorted(
+            reversed(range(len(self.pending))), key=lambda i: discard_priority(self.pending[i])
+        ):
+            if len(dropped) >= excess:
+                break
+            if i in dropped:
+                continue
+            item = self.pending[i]
+            if item.is_open:
+                self._mark_activation_retired(item)
+                dropped.update(by_activation[item.transition.group_key])
+            else:
+                dropped.add(i)
+
+        for kind, count in Counter(self.pending[i].kind for i in dropped).items():
+            metrics.incr(
+                "anomaly_detection.delivery_dropped",
+                amount=count,
+                tags={"reason": "backlog", "kind": kind},
+                sample_rate=1.0,
+            )
+        self.pending = [item for i, item in enumerate(self.pending) if i not in dropped]

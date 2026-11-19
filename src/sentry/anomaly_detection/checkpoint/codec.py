@@ -38,6 +38,7 @@ from sentry.anomaly_detection.contracts import SeriesKey, Urgency
 from sentry.anomaly_detection.correlation.correlator import Correlator, FootprintSource
 from sentry.anomaly_detection.detector_handler import AnomalyDetectionDetectorHandler
 from sentry.anomaly_detection.evaluation.organization import AnomalyDecision, OrgEvaluator
+from sentry.anomaly_detection.evaluation.series import Series
 
 CHECKPOINT_VERSION = 3
 
@@ -75,6 +76,32 @@ def _snapshot(evaluator: OrgEvaluator, end: datetime) -> dict[str, Any]:
     return _encode_snapshot(evaluator, _history_floor(evaluator, cursor), cursor)
 
 
+def _hourly_support(evaluator: OrgEvaluator, cursor: datetime) -> list[Any]:
+    since, until = evaluator.baseline.checkpoint_hourly_bounds(cursor)
+    # Only live slice anchors need their previous seasonal units. At most
+    # 14 days plus the closed hours of the cursor day fit in the sparse
+    # measurement codec's minute offsets.
+    series = {}
+    for key, state in evaluator.series_history.state.items():
+        if not (
+            key.dim_value
+            and key.project in evaluator.handlers
+            and state.open
+            and state.anchor_level is not None
+        ):
+            continue
+        points: Series = {
+            hour: value
+            for hour, value in sorted(evaluator.hourly.get(key, {}).items())
+            if since <= hour < until
+            and hour == hour.replace(minute=0, second=0, microsecond=0)
+            and value is not None
+        }
+        if points:
+            series[key] = points
+    return _series(series, since, until)
+
+
 def _encode_snapshot(evaluator: OrgEvaluator, since: datetime, cursor: datetime) -> dict[str, Any]:
     events = _EventWriter()
     novelty = evaluator.novelty
@@ -82,6 +109,7 @@ def _encode_snapshot(evaluator: OrgEvaluator, since: datetime, cursor: datetime)
         "version": CHECKPOINT_VERSION,
         "next_minute": _iso(evaluator.next_minute),
         "series": _series(evaluator.series, since, cursor),
+        "hourly_support": _hourly_support(evaluator, cursor),
         "detector": _detector(evaluator.series_history, events),
         "change_points": _change_points(evaluator.rate_shifts, events),
         "correlation": _correlation(evaluator.corr.state, events),
@@ -133,6 +161,9 @@ def _restore(
     events = _EventReader(data["events"])
     # The evaluator, detector, change-point detector, and correlator all share series.
     evaluator.series.update(_read_series(data["series"]))
+    # The next collection overlays this by key and hour, including explicit
+    # missing values. Fresh input wins; omitted top slices keep their reference.
+    evaluator.hourly.update(_read_series(data.get("hourly_support", [])))
     evaluator.next_minute = _time(data["next_minute"])
     _restore_detector(evaluator.series_history, data["detector"], events)
     _restore_change_points(evaluator.rate_shifts, data["change_points"], events)

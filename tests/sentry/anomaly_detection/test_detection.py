@@ -118,6 +118,30 @@ def test_frozen_baseline_survives_missing_support_and_closes_on_recovery_only() 
     assert event.evidence == ["recovered"]
 
 
+def test_excluded_latency_can_recover_but_cannot_reopen_between_quality_checks() -> None:
+    detector = MeasurementStream(
+        {
+            LATENCY: points(0, 60, 30.0)
+            | points(60, 111, 0.0)
+            | points(117, 120, 300.0)
+            | points(120, 130, 0.0)
+            | points(130, 136, 300.0),
+            samples_key(LATENCY): points(0, 136, 100.0),
+        },
+        Baseline({}),
+    )
+    [(action, event)] = step(detector, 0, 120)
+    assert action == "open"
+    assert event.start == minute(117)
+
+    # The hourly quality check sees mostly zeros but keeps the active episode.
+    assert step(detector, 120, 130) == [("close", event)]
+    assert event.ended_at == minute(129)
+    assert LATENCY in detector.history.exclude
+
+    assert step(detector, 130, 136) == []
+
+
 def test_bursts_pause_escalate_and_recover_as_one_episode() -> None:
     series = {
         LATENCY: points(0, 60, 20.0)
@@ -195,6 +219,26 @@ def test_minute_opened_failure_spike_can_recover_on_pooled_samples() -> None:
     assert step(detector, 75, 180) == [("close", event)]
 
 
+def test_pooled_recovery_does_not_replace_peak_with_unsupported_minute() -> None:
+    detector = MeasurementStream(
+        {
+            FAILURES: points(0, 60, 0.0) | points(60, 63, 6 / 50) | points(63, 64, 1.0),
+            samples_key(FAILURES): points(0, 63, 50.0) | points(63, 64, 1.0),
+        },
+        Baseline({}),
+    )
+    [(action, event)] = step(detector, 0, 63)
+    assert action == "open"
+    assert event.actual == 6 / 50
+    peak = (event.actual, event.expected, event.peak_ratio, event.confidence)
+
+    # The trailing window has enough volume to hold the spike, but this minute
+    # has only one trial and is not eligible to replace the peak measurement.
+    assert step(detector, 63, 64) == []
+    assert detector.history.state[FAILURES].open is event
+    assert (event.actual, event.expected, event.peak_ratio, event.confidence) == peak
+
+
 def test_sparse_failure_spike_does_not_learn_degraded_rate_as_recovery() -> None:
     detector = MeasurementStream(
         {
@@ -212,18 +256,21 @@ def test_sparse_failure_spike_does_not_learn_degraded_rate_as_recovery() -> None
 def test_window_spike_reports_pooled_rate_on_a_healthy_minute() -> None:
     detector = MeasurementStream(
         {
-            FAILURES: points(0, 240, 0.0) | points(152, 159, 1.0),
+            FAILURES: points(0, 240, 0.0) | points(152, 159, 1.0) | points(160, 161, 1.0),
             samples_key(FAILURES): points(0, 240, 1.0),
         },
         Baseline({}),
         DetectConfig(windows=(60,), window_p=0.02),
     )
-    actions = step(detector, 0, 165)
+    actions = step(detector, 0, 160)
     [(action, event)] = actions
     assert action == "open"
     assert event.detected_at == minute(159)
     assert event.actual == pytest.approx(7 / 60)
     assert 0 < event.expected < event.actual
+
+    assert step(detector, 160, 161) == []
+    assert event.actual == pytest.approx(8 / 60)
 
 
 def test_occasional_sparse_failure_is_not_a_spike() -> None:

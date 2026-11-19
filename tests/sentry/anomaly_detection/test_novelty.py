@@ -342,3 +342,54 @@ def test_shared_learning_does_not_depend_on_project_order() -> None:
                 novelty.record(excursion(key, onset, 10.0))
 
         assert learn(novelty.history, end, coverage=novelty.coverage).get(QUIET, replica) is None
+
+
+def test_shared_learning_counts_staggered_cross_metric_incidents_once() -> None:
+    replica = SeriesKey("2", QUIET.env, QUIET.signal, QUIET.metric, QUIET.dim_value)
+    rate = SeriesKey(
+        QUIET.project, QUIET.env, QUIET.signal, "failed_requests/requests", QUIET.dim_value
+    )
+    replica_rate = SeriesKey(
+        replica.project, replica.env, replica.signal, rate.metric, replica.dim_value
+    )
+    end = T0 + timedelta(days=14)
+    starts = [T0 + timedelta(hours=hour, minutes=phase) for hour, phase in ((1, 10), (4, 30))]
+    observed = {T0 + timedelta(hours=hour): (1 << 60) - 1 for hour in range(336)}
+    history: dict[SeriesKey, list[ChangeEvent]] = {}
+    for key in (QUIET, replica, rate, replica_rate):
+        history[key] = []
+        for start in starts:
+            onset = start + (MINUTE if key.metric == rate.metric else timedelta())
+            event = excursion(key, onset, 10.0)
+            event.ended_at = start + 3 * MINUTE
+            history[key].append(event)
+    coverage = dict.fromkeys(history, observed)
+
+    assert learn(history, end, coverage=coverage).get(QUIET, replica) is None
+
+    # A nearby start after the preceding excursion ends is a distinct incident.
+    for key in (rate, replica_rate):
+        history[key].append(excursion(key, starts[-1] + 3 * MINUTE, 10.0))
+
+    pair = learn(history, end, coverage=coverage).get(QUIET, replica)
+    assert pair is not None
+    assert (pair.co, pair.n_a, pair.n_b) == (3, 3, 3)
+
+
+def test_shared_learning_uses_joint_phase_opportunities_across_hour_boundary() -> None:
+    replica = SeriesKey("2", QUIET.env, QUIET.signal, QUIET.metric, QUIET.dim_value)
+    end = T0 + timedelta(days=14)
+    mostly_observed = ((1 << 59) - 1) & ~1  # Minutes 1–58, not the incident phases.
+    sparse = {T0 + timedelta(hours=hour): mostly_observed for hour in range(336)}
+    dense = {hour: (1 << 60) - 1 for hour in sparse}
+    history: dict[SeriesKey, list[ChangeEvent]] = {QUIET: [], replica: []}
+    for hour in range(3):
+        left = T0 + timedelta(hours=hour, minutes=59)
+        right = left + MINUTE
+        sparse[left.replace(minute=0)] |= 1 << 59
+        sparse[right] |= 1
+        history[QUIET].append(excursion(QUIET, left, 10.0))
+        history[replica].append(excursion(replica, right, 10.0))
+
+    assert learn(history, end, coverage={QUIET: dense, replica: dense}).get(QUIET, replica)
+    assert learn(history, end, coverage={QUIET: dense, replica: sparse}).get(QUIET, replica) is None

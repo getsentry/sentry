@@ -78,37 +78,37 @@ def learn(
     """Use only excursion onsets in the rolling window before `until`."""
     cfg = cfg or SharedConfig()
     since = until - timedelta(days=cfg.window_days)
-    onsets: dict[DependencySlice, set[datetime]] = defaultdict(set)
+    excursions_by_slice: dict[DependencySlice, list[tuple[str, Excursion]]] = defaultdict(list)
     observed: dict[DependencySlice, HourlyCoverage] = defaultdict(dict)
     for key, excursions in history.items():
         dependency = _dependency_slice(key)
         if dependency is None:
             continue
-        onsets[dependency].update(exc.start for exc in excursions if since <= exc.start < until)
-        for hour, mask in coverage_between(coverage.get(key, {}), since, until):
+        key_coverage = dict(coverage_between(coverage.get(key, {}), since, until))
+        excursions_by_slice[dependency].extend(
+            (key.metric, exc)
+            for exc in excursions
+            if since <= exc.start < until and _observed_at(key_coverage, exc.start)
+        )
+        for hour, mask in key_coverage.items():
             hours = observed[dependency]
             hours[hour] = hours.get(hour, 0) | mask
 
+    tolerance = timedelta(minutes=cfg.coincide_min)
     by_name: dict[tuple[str, str], list[DependencySlice]] = defaultdict(list)
-    for dependency, starts in sorted(onsets.items()):
-        if len(starts) >= cfg.min_co:
+    for dependency, candidates in sorted(excursions_by_slice.items()):
+        if len(candidates) >= cfg.min_co:
             by_name[dependency[1:]].append(dependency)
 
-    ordered = {dependency: sorted(starts) for dependency, starts in onsets.items()}
     pairs: dict[frozenset[DependencySlice], PairStats] = {}
     for dependencies in by_name.values():
         for first, second in combinations(dependencies, 2):
             sample_overlap = _overlap(observed[first], observed[second])
             if not sample_overlap:
                 continue
-            first_onsets = [
-                start for start in ordered[first] if _observed_at(sample_overlap, start)
-            ]
-            second_onsets = [
-                start for start in ordered[second] if _observed_at(sample_overlap, start)
-            ]
-            observed_hours = sum(mask.bit_count() for mask in sample_overlap.values()) / 60
-            stats = _pair_stats(first, second, first_onsets, second_onsets, observed_hours, cfg)
+            first_onsets = _distinct_onsets(excursions_by_slice[first], sample_overlap, tolerance)
+            second_onsets = _distinct_onsets(excursions_by_slice[second], sample_overlap, tolerance)
+            stats = _pair_stats(first, second, first_onsets, second_onsets, sample_overlap, cfg)
             if stats is not None and stats.p <= cfg.max_p:
                 pairs[frozenset((first, second))] = stats
     for first, second in cfg.force:
@@ -129,12 +129,40 @@ def _observed_at(hours: HourlyCoverage, minute: datetime) -> bool:
     return bool(hours.get(hour, 0) & (1 << minute.minute))
 
 
+def _distinct_onsets(
+    excursions: list[tuple[str, Excursion]], coverage: HourlyCoverage, tolerance: timedelta
+) -> list[datetime]:
+    ordered = sorted(
+        ((metric, exc) for metric, exc in excursions if _observed_at(coverage, exc.start)),
+        key=lambda item: (item[1].start, item[0]),
+    )
+    starts: set[datetime] = set()
+    unmatched: list[tuple[str, Excursion]] = []
+    for metric, exc in ordered:
+        unmatched = [
+            (other_metric, other)
+            for other_metric, other in unmatched
+            if exc.start - other.start <= tolerance
+            and ((end := getattr(other, "ended_at", other.start)) is None or exc.start < end)
+        ]
+        # Pair the nearest overlapping cross-metric start once; a long excursion
+        # must not hide repeated starts on the other metric.
+        for index in range(len(unmatched) - 1, -1, -1):
+            if unmatched[index][0] != metric:
+                unmatched.pop(index)
+                break
+        else:
+            starts.add(exc.start)
+            unmatched.append((metric, exc))
+    return sorted(starts)
+
+
 def _pair_stats(
     first: DependencySlice,
     second: DependencySlice,
     first_onsets: list[datetime],
     second_onsets: list[datetime],
-    observed_hours: float,
+    coverage: HourlyCoverage,
     cfg: SharedConfig,
 ) -> PairStats | None:
     # Match each onset at most once, even if one slice flaps around the other's onset.
@@ -153,10 +181,15 @@ def _pair_stats(
     if coincidences < cfg.min_co:
         return None
 
-    offsets = {offset % 60 for offset in range(-cfg.coincide_min, cfg.coincide_min + 1)}
+    phase_opportunities = [
+        sum(bool(mask & (1 << phase)) for mask in coverage.values()) for phase in range(60)
+    ]
+    offsets = [
+        timedelta(minutes=offset) for offset in range(-cfg.coincide_min, cfg.coincide_min + 1)
+    ]
     expected = max(
-        _expected_matches(first_onsets, second_onsets, offsets, observed_hours),
-        _expected_matches(second_onsets, first_onsets, offsets, observed_hours),
+        _expected_matches(first_onsets, second_onsets, offsets, coverage, phase_opportunities),
+        _expected_matches(second_onsets, first_onsets, offsets, coverage, phase_opportunities),
     )
     return PairStats(
         first,
@@ -170,14 +203,23 @@ def _pair_stats(
 
 
 def _expected_matches(
-    starts: list[datetime], peers: list[datetime], offsets: set[int], observed_hours: float
+    starts: list[datetime],
+    peers: list[datetime],
+    offsets: list[timedelta],
+    coverage: HourlyCoverage,
+    phase_opportunities: list[int],
 ) -> float:
     peer_onsets_by_minute = Counter(start.minute for start in peers)
+    # Datetime offsets carry the window across hour boundaries; each observed
+    # neighbor uses its own phase's exposure.
     return sum(
         min(
             1.0,
-            sum(peer_onsets_by_minute[(start.minute + offset) % 60] for offset in offsets)
-            / observed_hours,
+            sum(
+                peer_onsets_by_minute[minute.minute] / phase_opportunities[minute.minute]
+                for offset in offsets
+                if _observed_at(coverage, minute := start + offset)
+            ),
         )
         for start in starts
     )

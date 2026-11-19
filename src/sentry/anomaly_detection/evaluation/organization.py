@@ -211,6 +211,10 @@ class OrgEvaluator:
         actions.extend(("open", event) for event in standalone_failures)
         self.point_closes.extend((minute + _POINT_LIFETIME, event) for event in standalone_failures)
         actions.extend(self._promote(minute, opened_changes, standalone_failures))
+        # Size and duration both use the same prior, even for peers whose opens
+        # are backdated. Record only the original detector opens, not promotions.
+        for event in opened_changes:
+            self.novelty.record(event)
 
         # A new failure mode is a point observation. Other members, if any, still
         # hold its group open until they end.
@@ -300,13 +304,12 @@ class OrgEvaluator:
         )
 
     def _judge(self, minute: datetime, candidates: Sequence[ChangeAction]) -> list[ChangeAction]:
+        """Judge sizes and retire episodes without recording this minute's opens."""
         actions = []
-        new_changes = []
         for action_kind, event in candidates:
             episode = _episode(event)
             if action_kind == "open":
                 verdict = self.novelty.judge(event, size_of(event.open_ratio), minute)
-                new_changes.append(event)
                 event.novelty = verdict.as_dict()
                 if not verdict.unusual:
                     service_harm = self.harm.get(_service(event), ())
@@ -331,9 +334,6 @@ class OrgEvaluator:
                         actions.append(self._promote_event(event, minute, evidence))
                 continue
             actions.append((action_kind, event))
-        # Judge every change against the same history before recording this minute's opens.
-        for event in new_changes:
-            self.novelty.record(event)
         return actions
 
     def _promote_event(
@@ -390,7 +390,7 @@ class OrgEvaluator:
         if (
             event.change_type == ChangeType.CHANGE_POINT
             or minute - event.start < next_duration_check * _MINUTE
-            or not self.series_history.has_novelty_observation(event.key, minute)
+            or not self.series_history.has_anomalous_observation(event, minute)
         ):
             return None
         observed_minutes = self.novelty.observed_duration(event, minute)
