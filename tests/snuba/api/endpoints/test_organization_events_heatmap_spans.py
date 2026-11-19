@@ -106,3 +106,17 @@ class OrganizationEventsHeatmapSpansEndpointTest(OrganizationEventsEndpointTestB
             response = self._do_request(data={**self.base_data, "yAxis": y_axis})
             assert response.status_code == 400, response.content
             assert response.data["detail"] == "yAxis must be one of span.duration, span.self_time"
+
+    def test_y_buckets_clamped(self) -> None:
+        self.store_spans(
+            [
+                self.create_span({"description": "foo"}, duration=duration, start_ts=self.start)
+                for duration in [100, 600]
+            ],
+        )
+
+        response = self._do_request(data={**self.base_data, "yBuckets": 100})
+        assert response.status_code == 200, response.content
+        assert response.data["meta"]["yAxis"]["bucketCount"] == 50
+        assert response.data["meta"]["yAxis"]["bucketSize"] == 10
+        assert len({row["yAxis"] for row in response.data["values"]}) == 50

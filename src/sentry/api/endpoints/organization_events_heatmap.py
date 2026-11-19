@@ -24,6 +24,9 @@ from sentry.snuba.utils import DATASET_LABELS
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 MAX_BUCKETS = 1_000
+# Each Y bucket is a separate count_if aggregate, and Snuba rejects the
+# resulting span query once it exceeds its maximum query size.
+MAX_SPANS_Y_BUCKETS = 50
 DEFAULT_Y_AXIS = {TraceMetrics: "value", Spans: "span.duration"}
 HEATMAP_Y_AXES = {TraceMetrics: {"value"}, Spans: {"span.duration", "span.self_time"}}
 
@@ -179,6 +182,8 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
                     raise ParseError("yBuckets must be greater than 0")
                 elif y_buckets > MAX_BUCKETS:
                     raise ParseError(f"yBuckets must be less than {MAX_BUCKETS}")
+                if dataset is Spans:
+                    y_buckets = min(y_buckets, MAX_SPANS_Y_BUCKETS)
 
             # Callers may need to pin the value axis via yMin/yMax to enforce
             # identical bounds across parallel requests.
