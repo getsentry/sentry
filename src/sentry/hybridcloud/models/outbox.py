@@ -702,6 +702,11 @@ class OutboxContext(threading.local):
 _outbox_context = OutboxContext()
 
 
+def get_outbox_flushing_enabled() -> bool | None:
+    """The enclosing outbox_context's flush flag, or None outside any outbox_context."""
+    return _outbox_context.flushing_enabled
+
+
 @contextlib.contextmanager
 def outbox_context(
     inner: Atomic | None = None, flush: bool | None = None
