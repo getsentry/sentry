@@ -17,13 +17,6 @@ class OnboardingFlow(Flow[ProjectSetupContext]):
         if issued is None:
             raise InvalidHandoffContext("Onboarding run is unavailable")
 
-        return render_onboarding_runbook(run_code=issued.code)
-
-    def preview(self) -> str:
-        return render_onboarding_runbook(run_code="<onboarding-run-code>")
-
-
-def render_onboarding_runbook(*, run_code: str) -> str:
-    return MARKDOWN_JINJA_ENV.get_template("sentry/agent_handoff/onboarding.md").render(
-        run_code=run_code
-    )
+        return MARKDOWN_JINJA_ENV.get_template("sentry/agent_handoff/onboarding.md").render(
+            run_code=issued.code
+        )

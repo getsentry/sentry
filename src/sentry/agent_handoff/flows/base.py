@@ -18,7 +18,3 @@ class Flow(ABC, Generic[Context]):
     @abstractmethod
     def render(self, context: object, *, user_id: int, organization_id: int) -> str:
         pass
-
-    @abstractmethod
-    def preview(self) -> str:
-        pass

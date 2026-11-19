@@ -13,6 +13,7 @@ export function hydrateSpans(
 ): SpanFrame[] {
   const startTimestampMs = replayRecord.started_at.getTime();
   const opsMissingData = new Set<string>();
+  const opsMissingDescription = new Set<string>();
 
   const hydrated = spanFrames
     .map((frame: RawSpanFrame) => {
@@ -37,6 +38,9 @@ export function hydrateSpans(
         if (!frame.data || (frame.op === 'memory' && !isMemoryFrame(hydratedFrame))) {
           opsMissingData.add(frame.op);
         }
+        if (frame.description === undefined) {
+          opsMissingDescription.add(frame.op);
+        }
         return hydratedFrame;
       } catch {
         return;
@@ -47,6 +51,14 @@ export function hydrateSpans(
   if (opsMissingData.size > 0) {
     Sentry.logger.warn('Replay: span frames are missing data', {
       ops: [...opsMissingData].sort().join(','),
+      sdk_name: replayRecord.sdk.name,
+      sdk_version: replayRecord.sdk.version,
+    });
+  }
+
+  if (opsMissingDescription.size > 0) {
+    Sentry.logger.warn('Replay: span frames are missing description', {
+      ops: [...opsMissingDescription].sort().join(','),
       sdk_name: replayRecord.sdk.name,
       sdk_version: replayRecord.sdk.version,
     });

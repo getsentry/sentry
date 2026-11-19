@@ -115,8 +115,12 @@ describe('ReplayReader', () => {
     const firstDiv = RRWebFullSnapshotFrameEventFixture({timestamp});
     const secondDiv = RRWebFullSnapshotFrameEventFixture({timestamp});
     const clickEvent = ReplayClickEventFixture({timestamp});
-    const secondClickEvent = ReplayClickEventFixture({timestamp: secondTimestamp});
-    const thirdClickEvent = ReplayClickEventFixture({timestamp: thirdTimestamp});
+    const secondClickEvent = ReplayClickEventFixture({
+      timestamp: secondTimestamp,
+    });
+    const thirdClickEvent = ReplayClickEventFixture({
+      timestamp: thirdTimestamp,
+    });
     const deadClickEvent = ReplayDeadClickEventFixture({timestamp});
     const firstMemory = ReplayMemoryEventFixture({
       startTimestamp: timestamp,
@@ -481,6 +485,46 @@ describe('ReplayReader', () => {
       });
 
       expect(replay?.processingErrors()).toEqual(['Missing Full Snapshot Frame']);
+      expect(replay?.isMissingFullSnapshot()).toBe(true);
+      expect(replay?.hasTimelineData()).toBe(true);
+    });
+
+    it('reports a missing meta frame when the replay only has a full snapshot', () => {
+      const replay = ReplayReader.factory({
+        attachments: [RRWebFullSnapshotFrameEventFixture({timestamp})],
+        errors: [],
+        fetching: false,
+        replayRecord,
+      });
+
+      expect(replay?.processingErrors()).toEqual(['Missing Meta Frame']);
+      expect(replay?.isMissingMeta()).toBe(true);
+      expect(replay?.isMissingFullSnapshot()).toBe(false);
+      expect(replay?.hasTimelineData()).toBe(true);
+    });
+
+    it('has timeline data when the replay only has breadcrumbs', () => {
+      const replay = ReplayReader.factory({
+        attachments: [ReplayConsoleEventFixture({timestamp})],
+        errors: [],
+        fetching: false,
+        replayRecord,
+      });
+
+      expect(replay?.hasProcessingErrors()).toBeTruthy();
+      expect(replay?.hasTimelineData()).toBe(true);
+    });
+
+    it('has no timeline data when the replay has no frames at all', () => {
+      const replay = ReplayReader.factory({
+        attachments: [],
+        errors: [],
+        fetching: false,
+        replayRecord,
+      });
+
+      expect(replay?.processingErrors()).toContain('Missing Meta Frame');
+      expect(replay?.hasTimelineData()).toBe(false);
     });
 
     it('reports no missing full snapshot when the replay is a video replay', () => {
@@ -814,13 +858,23 @@ describe('ReplayReader', () => {
       const result = reader.getRRWebFramesForDomExtraction();
 
       expect(result).toEqual([
-        {data: {node: {childNodes: [], tagName: 'html', type: 1}}, timestamp: 0, type: 2},
+        {
+          data: {node: {childNodes: [], tagName: 'html', type: 1}},
+          timestamp: 0,
+          type: 2,
+        },
         {
           data: {
             adds: [
               {
                 nextId: 21,
-                node: {attributes: {}, childNodes: [], id: 47, tagName: 'style', type: 2},
+                node: {
+                  attributes: {},
+                  childNodes: [],
+                  id: 47,
+                  tagName: 'style',
+                  type: 2,
+                },
                 parentId: 4,
               },
               {
@@ -845,7 +899,11 @@ describe('ReplayReader', () => {
           timestamp: 0,
           type: 3,
         },
-        {data: {payload: {}, tag: 'replay.end'}, timestamp: expect.any(Number), type: 5},
+        {
+          data: {payload: {}, tag: 'replay.end'},
+          timestamp: expect.any(Number),
+          type: 5,
+        },
       ]);
     });
   });

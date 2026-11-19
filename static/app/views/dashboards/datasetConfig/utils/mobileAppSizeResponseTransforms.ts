@@ -9,6 +9,7 @@ import {
   transformTimeSeriesResponse,
   type WidgetTimeSeries,
 } from 'sentry/views/dashboards/utils/transformTimeSeriesResponse';
+import type {TimeSeriesItem} from 'sentry/views/dashboards/widgets/common/types';
 
 function transformTimeSeries(
   data: EventsTimeSeriesResponse,
@@ -40,11 +41,26 @@ function transformTimeSeries(
     ...item,
     timeSeries: {
       ...item.timeSeries,
-      values: item.timeSeries.values.filter(
-        ({value}) => value !== null && value !== undefined && value !== 0 // Removes empty buckets, matching legacy behavior
-      ),
+      values: carryForwardLastBuild(item.timeSeries.values),
     },
   }));
+}
+
+/**
+ * A bucket without a build is empty, but the app is still the size of its
+ * last build. Lines show that size instead of dropping to zero. Buckets before
+ * the first build in range stay empty.
+ */
+function carryForwardLastBuild(values: TimeSeriesItem[]): TimeSeriesItem[] {
+  let lastValue: number | null = null;
+  return values.map(item => {
+    // Matches the legacy empty bucket check. No real build has a size of 0.
+    if (item.value === null || item.value === 0) {
+      return {...item, value: lastValue};
+    }
+    lastValue = item.value;
+    return item;
+  });
 }
 
 export const mobileAppSizeResponseTransforms: Pick<
