@@ -5,7 +5,6 @@ import {useQuery} from '@tanstack/react-query';
 
 import {Flex} from '@sentry/scraps/layout';
 
-import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {OrganizationSummary} from 'sentry/types/organization';
@@ -14,6 +13,7 @@ import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
 import {useSetupWizardCompletedAnalytics} from './utils/setupWizardAnalytics';
 import type {WizardSession} from './types';
+import {WizardError} from './wizardError';
 
 export function WaitingForWizardToConnect({
   hash,
@@ -53,7 +53,7 @@ export function WaitingForWizardToConnect({
 
   if (session.isError) {
     return (
-      <LoadingError
+      <WizardError
         message={t('Failed to load wizard session')}
         onRetry={session.refetch}
       />
@@ -62,9 +62,7 @@ export function WaitingForWizardToConnect({
 
   if (session.data?.status === 'expired') {
     return (
-      <LoadingError
-        message={t('This setup session has expired. Run the wizard again.')}
-      />
+      <WizardError message={t('This setup session has expired. Run the wizard again.')} />
     );
   }
 

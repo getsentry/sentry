@@ -1,7 +1,8 @@
 import {useEffect, useRef} from 'react';
 import {useMutation, useQuery} from '@tanstack/react-query';
 
-import {LoadingError} from 'sentry/components/loadingError';
+import {Container} from '@sentry/scraps/layout';
+
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {NarrowLayout} from 'sentry/components/narrowLayout';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -15,6 +16,7 @@ import {useParams} from 'sentry/utils/useParams';
 import SetupWizard from 'sentry/views/setupWizard';
 
 import type {WizardSession} from './types';
+import {WizardError} from './wizardError';
 
 function WizardSessionContent({hash}: {hash: string}) {
   const {query} = useLocation();
@@ -71,7 +73,7 @@ function WizardSessionContent({hash}: {hash: string}) {
 
   if (session.isError || isInitializationError) {
     return (
-      <LoadingError
+      <WizardError
         message={t('Failed to load wizard session')}
         onRetry={() => (isInitializationError ? initialize() : session.refetch())}
       />
@@ -88,9 +90,7 @@ function WizardSessionContent({hash}: {hash: string}) {
 
   if (state.status === 'expired') {
     return (
-      <LoadingError
-        message={t('This setup session has expired. Run the wizard again.')}
-      />
+      <WizardError message={t('This setup session has expired. Run the wizard again.')} />
     );
   }
 
@@ -103,7 +103,10 @@ export default function SetupWizardRoute() {
   return (
     <SentryDocumentTitle title={t('Setup Wizard')}>
       <NarrowLayout>
-        <WizardSessionContent key={wizardHash} hash={wizardHash} />
+        {/* NarrowLayout's content box has no bottom padding */}
+        <Container paddingBottom="2xl">
+          <WizardSessionContent key={wizardHash} hash={wizardHash} />
+        </Container>
       </NarrowLayout>
     </SentryDocumentTitle>
   );
