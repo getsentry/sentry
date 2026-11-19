@@ -187,6 +187,7 @@ repos:
             reconnect-postgres-socket|
             run-acceptance-tests|
             run-backend-tests|
+            run-decision-model-lint|
             run-prek|
             send-public-suffix-list-checkin|
             wait-for-api-release-on-npm|
