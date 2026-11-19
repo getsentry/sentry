@@ -2,6 +2,8 @@ import styled from '@emotion/styled';
 
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import type {Meta} from 'sentry/types/group';
+
 import {FilteredAnnotatedTextValue} from './filteredAnnotatedTextValue';
 import {Redaction} from './redaction';
 import {getTooltipText} from './utils';
@@ -9,14 +11,14 @@ import {ValueElement} from './valueElement';
 
 type Props = {
   value: React.ReactNode;
-  meta?: Record<any, any>;
+  meta?: Partial<Meta>;
 };
 
 export function AnnotatedTextValue({value, meta}: Props) {
   if (meta?.chunks?.length && meta.chunks.length > 1) {
     return (
       <ChunksSpan>
-        {meta.chunks.map((chunk: any, index: any) => {
+        {meta.chunks.map((chunk, index) => {
           if (chunk.type === 'redaction') {
             return (
               <Tooltip

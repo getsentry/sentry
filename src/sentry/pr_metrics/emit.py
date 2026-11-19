@@ -787,7 +787,7 @@ def _repo_is_public(
             pull_request=pull_request, event_type=PullRequestActivityType.OPENED
         )
         .values_list("payload__is_private", flat=True)
-        .first()
+        .first()  # noqa: S035
     )
     return None if is_private is None else not is_private
 

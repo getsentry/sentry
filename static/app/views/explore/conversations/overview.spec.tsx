@@ -16,9 +16,7 @@ import ConversationsOverviewPage from './overview';
 
 jest.mock('sentry/utils/analytics');
 
-const organization = OrganizationFixture({
-  features: ['gen-ai-conversations'],
-});
+const organization = OrganizationFixture();
 
 const MISSING_AGENT_SPANS_MESSAGE =
   'You’re sending LLM calls only — no agent or tool spans yet. Running agents in your app?';

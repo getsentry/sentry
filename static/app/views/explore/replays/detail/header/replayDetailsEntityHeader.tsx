@@ -3,10 +3,10 @@ import {IconCalendar} from '@sentry/icons/calendar';
 import {PlatformIcon} from 'platformicons';
 
 import {Tag} from '@sentry/scraps/badge';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {EntityHeader} from '@sentry/scraps/entityHeader';
 import type {EntityHeaderProps} from '@sentry/scraps/entityHeader';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {ReplayLoadingState} from 'sentry/components/replays/player/replayLoadingState';
 import {useLiveBadge} from 'sentry/components/replays/replayLiveIndicator';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -169,7 +169,7 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
                 type: 'text',
                 value:
                   prefs.timestampType === 'absolute' ? (
-                    <DateTime year timeZone date={replayRecord.started_at} />
+                    <DateTime date={replayRecord.started_at} year="always" showTimezone />
                   ) : (
                     <TimeSince date={replayRecord.started_at} />
                   ),

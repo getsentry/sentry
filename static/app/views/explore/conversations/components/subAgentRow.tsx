@@ -1,13 +1,13 @@
 import type {ReactNode} from 'react';
 import {IconChevron} from '@sentry/icons/chevron';
 
+import {getDuration} from '@sentry/scraps/duration';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {CollapsibleChatRow} from 'sentry/components/ai/chat/collapsibleContent';
 import {TurnMeta} from 'sentry/components/ai/chat/turnMeta';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   callContainsNode,
@@ -77,7 +77,7 @@ export function SubAgentRow({
           duration={
             call.duration === undefined || call.duration <= 0 ? null : (
               <Text size="xs" variant="muted" tabular align="right">
-                {getDuration(call.duration, 2, true)}
+                {getDuration(call.duration, {precision: 2, style: 'short'})}
               </Text>
             )
           }

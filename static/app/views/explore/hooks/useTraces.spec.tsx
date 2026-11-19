@@ -85,7 +85,6 @@ describe('useTraces', () => {
     });
 
     const useTracesQuery = (...params: Parameters<typeof useTracesApiOptions>) =>
-      // oxlint-disable-next-line react/todo
       useQuery(useTracesApiOptions(...params));
 
     const {result} = renderHookWithProviders(useTracesQuery, {

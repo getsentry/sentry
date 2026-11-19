@@ -1,7 +1,11 @@
 from typing import Any
 
 from sentry.telemetry_classifiers.models import TelemetryClassifier
-from sentry.telemetry_classifiers.types import Dataset, TelemetryClassifierStatus
+from sentry.telemetry_classifiers.types import (
+    Dataset,
+    TelemetryClassifierOutputType,
+    TelemetryClassifierStatus,
+)
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import cell_silo_test
 
@@ -54,6 +58,7 @@ class OrganizationTelemetryClassifiersTest(APITestCase):
             "prebuiltClassifierKey": None,
             "naturalLanguagePrompt": "Is the user frustrated?",
             "outputType": "binary",
+            "binaryThreshold": 0.8,
             "dateAdded": custom.date_added,
             "dateUpdated": custom.date_updated,
         }
@@ -62,7 +67,17 @@ class OrganizationTelemetryClassifiersTest(APITestCase):
         assert prebuilt_data["prebuiltClassifierKey"] == "refusal"
         assert prebuilt_data["naturalLanguagePrompt"] is None
         assert prebuilt_data["outputType"] is None
+        assert prebuilt_data["binaryThreshold"] is None
         assert prebuilt_data["createdBy"] is None
+
+    def test_non_binary_custom_classifier_has_no_binary_threshold(self) -> None:
+        self.create_telemetry_classifier(output_type=TelemetryClassifierOutputType.SCORE)
+
+        with self.feature(self.features):
+            response = self.get_success_response(self.organization.slug)
+
+        assert response.data[0]["outputType"] == "score"
+        assert response.data[0]["binaryThreshold"] is None
 
     def test_sorts_newest_first_with_disabled_last(self) -> None:
         oldest = self.create_telemetry_classifier()
@@ -322,6 +337,7 @@ class OrganizationTelemetryClassifiersCreateTest(APITestCase):
             "prebuiltClassifierKey": "conversation_user_frustration",
             "naturalLanguagePrompt": None,
             "outputType": "binary",
+            "binaryThreshold": 0.8,
             "dateAdded": classifier.date_added,
             "dateUpdated": classifier.date_updated,
         }

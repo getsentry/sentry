@@ -1,6 +1,6 @@
+import {getDuration} from '@sentry/scraps/duration';
 import {stripAnnotations} from '@sentry/scraps/markdown/annotation';
 
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {
   EMPTY_TEXT_CONTENT,
   extractAssistantOutput,
@@ -1274,7 +1274,7 @@ function extractionToMarkdown(extraction: Extraction | undefined): string[] {
 
 function formatMarkdownDuration(duration: number | undefined): string {
   return duration !== undefined && duration > 0
-    ? ` — ${getDuration(duration, 1, true)}`
+    ? ` — ${getDuration(duration, {precision: 1, style: 'short'})}`
     : '';
 }
 
