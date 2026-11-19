@@ -9,6 +9,7 @@
  */
 import {existsSync, readFileSync, writeFileSync} from 'node:fs';
 import * as path from 'node:path';
+import {isDeepStrictEqual} from 'node:util';
 
 import {seerEmbedsToJsonSchemas} from 'sentry/components/seer/markdown/embeds/schemas';
 
@@ -17,7 +18,31 @@ const OUT_PATH = path.resolve(
   'src/sentry/seer/agent/embed_widgets.generated.json'
 );
 
+const transformedQueryWidgets = new Set(['spansQuery', 'logsQuery', 'metricsQuery']);
+// The backend exposes these fields behind rollout flags before the frontend reader supports them.
+const transformedQueryProperties = {
+  transformations: {
+    description:
+      'Ordered transformations indexed by yAxes, including duplicate axes. Use [] for a raw axis. Steps use events-timeseries syntax, e.g. [[], ["fill(locf)", "smooth(sma,3)"]]. With no yAxes, transformations apply to the default aggregate.',
+    type: 'array',
+    items: {type: 'array', items: {type: 'string', minLength: 1}},
+  },
+  interval: {
+    description: 'Bucket interval shared by all axes, e.g. "5m" or "1h".',
+    type: 'string',
+    pattern: '^[1-9]\\d*[smhdw]$',
+  },
+};
 const widgets = seerEmbedsToJsonSchemas();
+for (const {name, body} of widgets) {
+  if (transformedQueryWidgets.has(name)) {
+    const {properties} = body;
+    if (!properties || typeof properties !== 'object') {
+      throw new Error(`Expected object properties for ${name}`);
+    }
+    body.properties = {...transformedQueryProperties, ...properties};
+  }
+}
 const output = JSON.stringify(widgets, null, 2);
 
 function hasCurrentWidgets(): boolean {
@@ -26,7 +51,7 @@ function hasCurrentWidgets(): boolean {
   }
   const existing = readFileSync(OUT_PATH, 'utf8');
   try {
-    return JSON.stringify(JSON.parse(existing), null, 2) === output;
+    return isDeepStrictEqual(JSON.parse(existing), widgets);
   } catch (error) {
     if (error instanceof SyntaxError) {
       return false;
