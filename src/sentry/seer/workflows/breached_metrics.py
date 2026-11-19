@@ -343,7 +343,10 @@ class SeerInvestigationActionHandler(ActionHandler):
             .values_list("id", "strategy", named=True)
             .get_or_none()
         )
-        definition = _find_definition(config.strategy) if config is not None else None
+        # Imported here because definitions imports this module for its strategy table.
+        from sentry.seer.workflows.definitions import find_definition
+
+        definition = find_definition(config.strategy) if config is not None else None
         if config is None or not isinstance(definition, MetricAlertDefinition):
             _record_trigger_outcome(IgnoredMetricBreach("configuration_unavailable"), extra)
             return
@@ -497,10 +500,3 @@ def _replace_monitor_connections(
             for monitor_id in sorted(selected - existing)
         ]
     )
-
-
-def _find_definition(strategy: str) -> AutomationDefinition[Any] | None:
-    # Imported here because definitions imports this module for its strategy table.
-    from sentry.seer.workflows.definitions import find_definition
-
-    return find_definition(strategy)
