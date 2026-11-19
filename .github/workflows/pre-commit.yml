@@ -63,7 +63,7 @@ jobs:
           # It doesn't make sense to lint deleted files.
           # Therefore we specify we are only interested in added or modified files.
           filters: |
-            all:
+            changed:
               - added|modified: '**/*'
             frontend:
               - 'static/**'
@@ -76,6 +76,11 @@ jobs:
               - 'pnpm-lock.yaml'
               - 'scripts/oxlint-suppressions.ts'
               - 'stylelint.config.js'
+            lint_config:
+              - '.pre-commit-config.yaml'
+              - 'pyproject.toml'
+              - 'setup.cfg'
+              - 'tools/flake8_plugin.py'
 
       - uses: $/.github/actions/setup-node-pnpm
 
@@ -102,8 +107,11 @@ jobs:
         id: prek
         env:
           # Linux caps a single environment variable at 128 KiB, so a huge file list
-          # stops bash from starting. Leave it empty and lint every file instead.
-          ALL_FILES: ${{ fromJSON(steps.changes.outputs.all_count) <= 1000 && steps.changes.outputs.all_files || '' }}
+          # stops bash from starting. Lint every file instead.
+          TOO_MANY_FILES: ${{ fromJSON(steps.changes.outputs.changed_count) > 1000 }}
+          CHANGED_FILES: ${{ fromJSON(steps.changes.outputs.changed_count) <= 1000 && steps.changes.outputs.changed_files || '' }}
+          # New lint configurations should lint every file to avoid silently missing violations
+          LINT_CONFIG_CHANGED: ${{ steps.changes.outputs.lint_config }}
         run: .github/workflows/scripts/run-prek.sh
 
       - name: Prune suppression budgets
