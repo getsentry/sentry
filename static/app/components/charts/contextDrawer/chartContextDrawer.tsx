@@ -12,7 +12,7 @@ import type {
   AnnotationItem,
   AnnotationKind,
 } from 'sentry/components/charts/annotations/types';
-import {useAnnotationFlagLog} from 'sentry/components/charts/annotations/useAnnotationFlagLog';
+import {useAnnotationItems} from 'sentry/components/charts/annotations/useAnnotationItems';
 import {DroppedDataPanel} from 'sentry/components/droppedData/drawer/droppedDataPanel';
 import {
   droppedAndFilteredLabel,
@@ -28,13 +28,11 @@ import {
   useDroppedData,
   type UseDroppedDataParams,
 } from 'sentry/components/droppedData/useDroppedData';
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {DroppedDataAnalyticsSource} from 'sentry/utils/analytics/exploreAnalyticsEvents';
 import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 
 const CHART_CONTEXT_TABS = ['dropped-data', 'releases', 'flags'] as const;
 
@@ -72,7 +70,6 @@ export function ChartContextDrawer({
   showAnnotationTabs = false,
 }: ChartContextDrawerProps) {
   const organization = useOrganization();
-  const {selection} = usePageFilters();
   const [scope, setScope] = useState<DroppedDataScope>('unexpected');
   const [{contextTab}, setTabQuery] = useQueryStates(CHART_CONTEXT_TAB_PARSERS);
   const hasDroppedDataTab = organization.features.includes(
@@ -84,8 +81,9 @@ export function ChartContextDrawer({
   const tab = showAnnotationTabs ? (shownContextTab ?? defaultTab) : 'dropped-data';
 
   const {droppedEvents, acceptedEvents} = useDroppedData({dataset, interval, projects});
-  const {releases} = useReleaseStats(selection, {enabled: showAnnotationTabs});
-  const {data: flagLog} = useAnnotationFlagLog({enabled: showAnnotationTabs});
+  const {release: releaseItems, flag: flagItems} = useAnnotationItems({
+    enabled: showAnnotationTabs,
+  });
 
   const scopeControl =
     tab === 'dropped-data' ? (
@@ -139,10 +137,10 @@ export function ChartContextDrawer({
     {
       key: 'releases',
       label: t('Releases'),
-      badge: releases?.length,
+      badge: releaseItems?.length,
       panel: <TableComingSoon />,
     },
-    {key: 'flags', label: t('Flags'), badge: flagLog?.length, panel: <TableComingSoon />},
+    {key: 'flags', label: t('Flags'), badge: flagItems?.length, panel: <TableComingSoon />},
   ];
 
   return (
