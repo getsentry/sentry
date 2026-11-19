@@ -20,16 +20,18 @@ export function ProjectAccessSummary({account}: {account: ServiceAccount}) {
   if (account.allProjects) {
     return <Text>{t('All projects')}</Text>;
   }
-  if (accountProjects.length <= 2) {
+  const projectCount = account.projectIds.length;
+  if (projectCount === 0) {
+    return <Text>{t('No projects')}</Text>;
+  }
+  // Fall back to a count when some IDs aren't in the store, so the slugs
+  // never undercount the projects the account can reach.
+  if (projectCount <= 2 && accountProjects.length === projectCount) {
     return (
-      <Text ellipsis>
-        {accountProjects.length === 0
-          ? t('No projects')
-          : accountProjects.map(project => project.slug).join(', ')}
-      </Text>
+      <Text ellipsis>{accountProjects.map(project => project.slug).join(', ')}</Text>
     );
   }
-  return <Text>{tn('%s project', '%s projects', accountProjects.length)}</Text>;
+  return <Text>{tn('%s project', '%s projects', projectCount)}</Text>;
 }
 
 export function ProjectAccessBadges({account}: {account: ServiceAccount}) {
@@ -37,20 +39,29 @@ export function ProjectAccessBadges({account}: {account: ServiceAccount}) {
   if (account.allProjects) {
     return <Text>{t('All projects')}</Text>;
   }
-  if (accountProjects.length === 0) {
+  const projectCount = account.projectIds.length;
+  if (projectCount === 0) {
     return <Text variant="muted">{t('No projects')}</Text>;
   }
-  const hidden = accountProjects.slice(MAX_PROJECT_BADGES);
+  const shown = accountProjects.slice(0, MAX_PROJECT_BADGES);
+  if (shown.length === 0) {
+    return <Text>{tn('%s project', '%s projects', projectCount)}</Text>;
+  }
+  const hiddenCount = projectCount - shown.length;
+  const hiddenSlugs = accountProjects
+    .slice(MAX_PROJECT_BADGES)
+    .map(project => project.slug);
   return (
     <Flex wrap="wrap" gap="sm md" align="center">
-      {accountProjects.slice(0, MAX_PROJECT_BADGES).map(project => (
+      {shown.map(project => (
         <ProjectBadge key={project.id} project={project} avatarSize={16} />
       ))}
-      {hidden.length > 0 && (
-        <InfoText title={hidden.map(project => project.slug).join(', ')}>
-          {t('+%s more', hidden.length)}
-        </InfoText>
-      )}
+      {hiddenCount > 0 &&
+        (hiddenSlugs.length > 0 ? (
+          <InfoText title={hiddenSlugs.join(', ')}>{t('+%s more', hiddenCount)}</InfoText>
+        ) : (
+          <Text>{t('+%s more', hiddenCount)}</Text>
+        ))}
     </Flex>
   );
 }

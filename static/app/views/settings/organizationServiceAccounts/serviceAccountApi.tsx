@@ -3,11 +3,15 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 import type {ServiceAccount} from './types';
 
-export function serviceAccountsApiOptions(organization: Organization) {
+export function serviceAccountsApiOptions(
+  organization: Organization,
+  {cursor}: {cursor?: string} = {}
+) {
   return apiOptions.as<ServiceAccount[]>()(
     '/organizations/$organizationIdOrSlug/service-accounts/',
     {
       path: {organizationIdOrSlug: organization.slug},
+      query: {cursor},
       staleTime: 0,
     }
   );

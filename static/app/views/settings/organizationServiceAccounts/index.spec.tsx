@@ -62,6 +62,48 @@ describe('OrganizationServiceAccounts', () => {
     expect(screen.getByText('1 permission')).toBeInTheDocument();
   });
 
+  it('counts projects that are not in the projects store', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/service-accounts/`,
+      body: [
+        {
+          id: '12',
+          name: 'partly-hidden',
+          scopes: [],
+          projectIds: ['1', '99'],
+          allProjects: false,
+          ownerKind: 'organization',
+          dateCreated: '2026-11-03T00:00:00Z',
+        },
+      ],
+    });
+
+    render(<OrganizationServiceAccounts />, {organization});
+
+    expect(await screen.findByText('2 projects')).toBeInTheDocument();
+  });
+
+  it('requests the page in the cursor', async () => {
+    const request = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/service-accounts/`,
+      body: [],
+      match: [MockApiClient.matchQuery({cursor: '0:100:0'})],
+    });
+
+    render(<OrganizationServiceAccounts />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/settings/${organization.slug}/service-accounts/`,
+          query: {cursor: '0:100:0'},
+        },
+      },
+    });
+
+    expect(await screen.findByText('No service accounts yet')).toBeInTheDocument();
+    expect(request).toHaveBeenCalled();
+  });
+
   it('shows an empty state', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/service-accounts/`,

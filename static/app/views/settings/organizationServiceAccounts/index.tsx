@@ -4,12 +4,17 @@ import {useQuery} from '@tanstack/react-query';
 import {DateTime} from '@sentry/scraps/dateTime';
 import {EmptyState} from '@sentry/scraps/emptyState';
 import {Link} from '@sentry/scraps/link';
+import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps} from 'sentry/utils/pagination';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
@@ -28,12 +33,13 @@ const COLUMNS: TableColumnConfig[] = [
 
 export default function OrganizationServiceAccounts() {
   const organization = useOrganization();
-  const {
-    data: accounts,
-    isPending,
-    isError,
-    refetch,
-  } = useQuery(serviceAccountsApiOptions(organization));
+  const location = useLocation();
+  const cursor = decodeScalar(location.query.cursor);
+  const {data, isPending, isError, refetch} = useQuery({
+    ...serviceAccountsApiOptions(organization, {cursor}),
+    select: selectJsonWithHeaders,
+  });
+  const accounts = data?.json ?? [];
 
   const basePath = `/settings/${organization.slug}/service-accounts/`;
 
@@ -97,6 +103,7 @@ export default function OrganizationServiceAccounts() {
           </SimpleTable.Row>
         ))}
       </SimpleTable>
+      <Pagination {...getPaginationProps(data?.headers.Link)} />
     </Fragment>
   );
 }
