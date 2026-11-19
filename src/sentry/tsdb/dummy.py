@@ -16,37 +16,6 @@ class DummyTSDB(BaseTSDB):
     A no-op time-series storage.
     """
 
-    def incr(
-        self,
-        model: TSDBModel,
-        key: TSDBKey,
-        timestamp: datetime | None = None,
-        count: int = 1,
-        environment_id: int | None = None,
-    ) -> None:
-        self.validate_arguments([model], [environment_id])
-
-    def merge(
-        self,
-        model: TSDBModel,
-        destination: int,
-        sources: list[int],
-        timestamp: datetime | None = None,
-        environment_ids: Iterable[int] | None = None,
-    ) -> None:
-        self.validate_arguments([model], _environment_ids(environment_ids))
-
-    def delete(
-        self,
-        models: list[TSDBModel],
-        keys: list[int],
-        start: datetime | None = None,
-        end: datetime | None = None,
-        timestamp: datetime | None = None,
-        environment_ids: Iterable[int | None] | None = None,
-    ) -> None:
-        self.validate_arguments(models, _environment_ids(environment_ids))
-
     def get_range(
         self,
         model: TSDBModel,
@@ -67,16 +36,6 @@ class DummyTSDB(BaseTSDB):
         self.validate_arguments([model], _environment_ids(environment_ids))
         _, series = self.get_optimal_rollup_series(start, end, rollup)
         return {k: [(ts, 0) for ts in series] for k in keys}
-
-    def record(
-        self,
-        model: TSDBModel,
-        key: int,
-        values: Iterable[str],
-        timestamp: datetime | None = None,
-        environment_id: int | None = None,
-    ) -> None:
-        self.validate_arguments([model], [environment_id])
 
     def get_distinct_counts_series(
         self,
@@ -112,27 +71,6 @@ class DummyTSDB(BaseTSDB):
         self.validate_arguments([model], [environment_id])
         return {k: 0 for k in keys}
 
-    def merge_distinct_counts(
-        self,
-        model: TSDBModel,
-        destination: int,
-        sources: list[int],
-        timestamp: datetime | None = None,
-        environment_ids: Iterable[int] | None = None,
-    ) -> None:
-        self.validate_arguments([model], _environment_ids(environment_ids))
-
-    def delete_distinct_counts(
-        self,
-        models: list[TSDBModel],
-        keys: list[int],
-        start: datetime | None = None,
-        end: datetime | None = None,
-        timestamp: datetime | None = None,
-        environment_ids: Iterable[int] | None = None,
-    ) -> None:
-        self.validate_arguments(models, _environment_ids(environment_ids))
-
     def get_frequency_series(
         self,
         model: TSDBModel,
@@ -151,6 +89,3 @@ class DummyTSDB(BaseTSDB):
             key: [(timestamp, {k: 0.0 for k in members}) for timestamp in series]
             for key, members in items.items()
         }
-
-    def flush(self) -> None:
-        pass

@@ -9,7 +9,7 @@ from django.db.models.functions import Coalesce
 from taskbroker_client.retry import Retry
 from taskbroker_client.state import current_task
 
-from sentry import eventstream, similarity, tsdb
+from sentry import eventstream, similarity
 from sentry.db.models.base import Model
 from sentry.issues.derived.processing import invalidate_group_derived_data
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
@@ -21,7 +21,6 @@ from sentry.tasks.base import instrumented_task, track_group_async_operation
 from sentry.tasks.post_process import fetch_buffered_group_stats
 from sentry.taskworker.namespaces import issues_merge_tasks
 from sentry.taskworker.selfchain_idempotency import already_spawned, mark_spawned
-from sentry.tsdb.base import TSDBModel
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.merge")
@@ -99,7 +98,6 @@ def merge_groups(
 ) -> bool:
     # TODO(mattrobenolt): Write tests for all of this
     from sentry.models.activity import Activity
-    from sentry.models.environment import Environment
     from sentry.models.eventattachment import EventAttachment
     from sentry.models.group import get_group_with_redirect
     from sentry.models.groupassignee import GroupAssignee
@@ -202,34 +200,6 @@ def merge_groups(
             # Don't do MinHash work if we use embeddings-based similarity.
             if not project_uses_seer_similarity(group.project):
                 similarity.merge(group.project, new_group, [group], allow_unsafe=True)
-
-            environment_ids = list(
-                Environment.objects.filter(projects=group.project).values_list("id", flat=True)
-            )
-
-            for model in [TSDBModel.group]:
-                tsdb.backend.merge(
-                    model,
-                    new_group.id,
-                    [group.id],
-                    environment_ids=(
-                        environment_ids
-                        if model in tsdb.backend.models_with_environment_support
-                        else None
-                    ),
-                )
-
-            for model in [TSDBModel.users_affected_by_group]:
-                tsdb.backend.merge_distinct_counts(
-                    model,
-                    new_group.id,
-                    [group.id],
-                    environment_ids=(
-                        environment_ids
-                        if model in tsdb.backend.models_with_environment_support
-                        else None
-                    ),
-                )
 
             # Fetch buffered stats before deleting the group
             fetch_buffered_group_stats(group)
