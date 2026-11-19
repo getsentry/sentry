@@ -33,6 +33,7 @@ from sentry.models.apitoken import ApiToken
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.projectkey import ProjectKey
+from sentry.models.team import Team
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase, TransactionTestCase
@@ -692,6 +693,17 @@ class CellOutboxTest(TestCase):
                     ):
                         org.update(name="non-flushing caller")
                 mock_drain_shard.assert_not_called()
+
+    def test_delete_inside_flushing_context_stays_async(self) -> None:
+        team = self.create_team(organization=self.create_organization())
+        team_id = team.id
+
+        with patch.object(CellOutbox, "drain_shard") as mock_drain_shard:
+            with self.captureOnCommitCallbacks(execute=True):
+                with outbox_context(transaction.atomic(router.db_for_write(Team)), flush=True):
+                    team.delete()
+            assert CellOutbox.objects.filter(object_identifier=team_id).exists()
+            mock_drain_shard.assert_not_called()
 
     def test_creating_org_outboxes(self) -> None:
         with outbox_context(flush=False):

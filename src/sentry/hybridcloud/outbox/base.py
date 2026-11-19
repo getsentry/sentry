@@ -44,13 +44,10 @@ class CellOutboxProducingModel(Model):
     replication_version: int = 1
 
     @contextlib.contextmanager
-    def prepare_outboxes(
-        self, *, outbox_before_super: bool, flush: bool | None = None
-    ) -> Generator[None]:
+    def prepare_outboxes(self, *, outbox_before_super: bool) -> Generator[None]:
         from sentry.hybridcloud.models.outbox import get_outbox_flush_override, outbox_context
 
-        if flush is None:
-            flush = get_outbox_flush_override()
+        flush = get_outbox_flush_override()
         if flush is None:
             flush = self.default_flush
 
@@ -73,8 +70,11 @@ class CellOutboxProducingModel(Model):
             return super().update(*args, **kwds)
 
     def delete(self, *args: Any, **kwds: Any) -> tuple[int, dict[str, Any]]:
-        with self.prepare_outboxes(outbox_before_super=True, flush=False):
-            return super().delete(*args, **kwds)
+        from sentry.hybridcloud.models.outbox import outbox_context
+
+        with outbox_context(flush=False):
+            with self.prepare_outboxes(outbox_before_super=True):
+                return super().delete(*args, **kwds)
 
     def outbox_for_update(self, shard_identifier: int | None = None) -> CellOutboxBase:
         raise NotImplementedError
