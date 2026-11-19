@@ -11,6 +11,11 @@ env:
   NODE_OPTIONS: '--max-old-space-size=4096'
   SNAPSHOT_OUTPUT_DIR: .artifacts/snapshots
   VCS_METADATA_FILE: .artifacts/vcs-metadata.json
+
+permissions:
+  # actions/checkout and `gh api .../compare` in "Compute merge base SHA"
+  contents: read
+
 jobs:
   snapshots:
     name: snapshot tests
