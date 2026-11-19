@@ -107,6 +107,31 @@ class GroupCommentAttachmentsTest(APITestCase):
         assert response.status_code == 201, response.content
         assert response.data["name"] == "clip.mp4"
 
+    def test_upload_with_write_token(self) -> None:
+        token = self.create_user_auth_token(user=self.user, scope_list=["event:write"])
+        with self.feature(FEATURE):
+            response = self.client.post(
+                self.url(),
+                {"file": upload()},
+                format="multipart",
+                HTTP_AUTHORIZATION=f"Bearer {token.token}",
+            )
+
+        assert response.status_code == 201, response.content
+
+    def test_upload_with_read_only_token(self) -> None:
+        token = self.create_user_auth_token(user=self.user, scope_list=["event:read"])
+        with self.feature(FEATURE):
+            response = self.client.post(
+                self.url(),
+                {"file": upload()},
+                format="multipart",
+                HTTP_AUTHORIZATION=f"Bearer {token.token}",
+            )
+
+        assert response.status_code == 403
+        assert not File.objects.filter(type=COMMENT_ATTACHMENT_FILE_TYPE).exists()
+
     def test_user_outside_organization(self) -> None:
         self.login_as(self.create_user())
         with self.feature(FEATURE):
@@ -170,6 +195,14 @@ class GroupCommentAttachmentDetailsTest(APITestCase):
 
         assert response.status_code == 416
         assert response["Content-Range"] == f"bytes */{len(VIDEO_BYTES)}"
+
+    def test_read_with_read_only_token(self) -> None:
+        token = self.create_user_auth_token(user=self.user, scope_list=["event:read"])
+
+        response = self.get(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+        assert response.status_code == 200
+        assert b"".join(response.streaming_content) == VIDEO_BYTES
 
     def test_feature_disabled(self) -> None:
         response = self.client.get(self.attachment_url)
