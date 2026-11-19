@@ -944,7 +944,7 @@ describe('openSeerAutoTopUpModal', () => {
       });
 
       it('drops the link reason once Seer is no longer stopped', async () => {
-        const request = openWithCreditCheck({
+        openWithCreditCheck({
           linkDenialReason: 'daily_cap_exceeded',
           creditCheck: {hasEnoughCredits: true, denialReason: null},
         });
@@ -954,14 +954,32 @@ describe('openSeerAutoTopUpModal', () => {
             'Only owners and billing members can manage auto-reload. Ask your admin to turn it on or increase your daily usage limit.'
           )
         ).toBeInTheDocument();
-        await userEvent.click(await screen.findByRole('button', {name: 'Contact Admin'}));
+      });
 
-        await waitFor(() =>
-          expect(request).toHaveBeenCalledWith(
-            `/organizations/${checkedMember.slug}/seer-top-up-request/`,
-            expect.objectContaining({data: {denialReason: null}})
+      it('does not email admins when Seer is available again by the time of the click', async () => {
+        const request = openWithCreditCheck({
+          linkDenialReason: 'daily_cap_exceeded',
+          creditCheck: {hasEnoughCredits: false, denialReason: 'daily_cap_exceeded'},
+        });
+        const contactAdmin = await screen.findByRole('button', {name: 'Contact Admin'});
+
+        // The daily usage limit resets while the modal is open.
+        const recheck = MockApiClient.addMockResponse({
+          url: `/organizations/${checkedMember.slug}/seer/credit-check/`,
+          body: {hasEnoughCredits: true, denialReason: null},
+        });
+        await userEvent.click(contactAdmin);
+
+        expect(
+          await screen.findByText(
+            'Seer is available again, so there is no need to contact your admin.'
           )
-        );
+        ).toBeInTheDocument();
+        expect(recheck).toHaveBeenCalled();
+        expect(request).not.toHaveBeenCalled();
+        expect(
+          screen.queryByRole('button', {name: 'Contact Admin'})
+        ).not.toBeInTheDocument();
       });
     });
 

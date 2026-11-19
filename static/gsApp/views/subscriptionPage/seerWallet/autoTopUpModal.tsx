@@ -155,30 +155,62 @@ const MEMBER_MESSAGE: Record<SeerCreditDenialReason | 'unknown', string> = {
   ),
 };
 
+type SeerStatus = {
+  denialReason: SeerCreditDenialReason | null;
+  /**
+   * The credit check says Seer can run, so there's nothing to ask admins for.
+   */
+  isAvailable: boolean;
+};
+
+function toSeerStatus(
+  check:
+    | {denialReason: SeerCreditDenialReason | null; hasEnoughCredits: boolean}
+    | undefined,
+  linkDenialReason: SeerCreditDenialReason | null | undefined
+): SeerStatus {
+  if (!check) {
+    return {denialReason: linkDenialReason ?? null, isAvailable: false};
+  }
+  return {
+    denialReason: check.hasEnoughCredits ? null : check.denialReason,
+    isAvailable: check.hasEnoughCredits,
+  };
+}
+
 /**
  * Why Seer is stopped now. A link's reason can be a day old, and the daily
  * usage limit resets at midnight UTC, so the credit check's answer wins. The
  * link's reason only counts when the check doesn't run or fails.
  */
-function useCurrentDenialReason(
+function useSeerStatus(
   organization: Organization,
   linkDenialReason: SeerCreditDenialReason | null | undefined
 ) {
   // Same gate as useSeerCreditCheck. Members can call the check.
   const isChecking = organization.features.includes('token-billed-seer-enabled');
-  const {data, isPending} = useQuery({
+  const {data, isPending, refetch} = useQuery({
     ...seerCreditCheckApiOptions(organization, 'agent_chat_message'),
     enabled: isChecking,
     retry: false,
   });
 
-  if (isChecking && data) {
-    return {
-      denialReason: data.hasEnoughCredits ? null : data.denialReason,
-      isPending: false,
-    };
-  }
-  return {denialReason: linkDenialReason ?? null, isPending: isChecking && isPending};
+  return {
+    ...toSeerStatus(isChecking ? data : undefined, linkDenialReason),
+    isPending: isChecking && isPending,
+    /**
+     * Asks the credit check again. The modal can stay open past a reset, so
+     * this runs right before emailing admins.
+     */
+    recheck: async (): Promise<SeerStatus> => {
+      if (!isChecking) {
+        return toSeerStatus(undefined, linkDenialReason);
+      }
+      // A failed recheck keeps the last answer, or the link's reason without one.
+      const result = await refetch();
+      return toSeerStatus(result.data, linkDenialReason);
+    },
+  };
 }
 
 /**
@@ -198,10 +230,25 @@ const AutoTopUpContactAdmin = withSubscription(function AutoTopUpContactAdmin({
 }: AutoTopUpModalProps & {subscription: Subscription}) {
   const {escalation, isLoading, hasRequested, isRequesting, requestCredits} =
     useSeerTopUpRequest(organization);
-  const {denialReason, isPending} = useCurrentDenialReason(
+  const {denialReason, isPending, recheck} = useSeerStatus(
     organization,
     linkDenialReason
   );
+  const [isRechecking, setIsRechecking] = useState(false);
+  // Set when the check on click finds Seer running again.
+  const [isAvailableAgain, setIsAvailableAgain] = useState(false);
+
+  async function handleContactAdmin() {
+    setIsRechecking(true);
+    const current = await recheck();
+    setIsRechecking(false);
+    // Don't email admins about credits or a limit that has since reset.
+    if (current.isAvailable) {
+      setIsAvailableAgain(true);
+      return;
+    }
+    requestCredits(current.denialReason);
+  }
 
   return (
     <Fragment>
@@ -209,6 +256,10 @@ const AutoTopUpContactAdmin = withSubscription(function AutoTopUpContactAdmin({
       <Body>
         {isPending ? (
           <LoadingIndicator />
+        ) : isAvailableAgain ? (
+          <Text as="p" size="lg">
+            {t('Seer is available again, so there is no need to contact your admin.')}
+          </Text>
         ) : (
           <Stack gap="md">
             <Text as="p" size="lg">
@@ -229,11 +280,11 @@ const AutoTopUpContactAdmin = withSubscription(function AutoTopUpContactAdmin({
       <Footer>
         <Grid flow="column" align="center" gap="md">
           <Button onClick={closeModal}>{t('Close')}</Button>
-          {escalation === 'request' && !isLoading && !isPending && (
+          {escalation === 'request' && !isLoading && !isPending && !isAvailableAgain && (
             <SeerContactAdminButton
               variant="primary"
-              onRequestCredits={() => requestCredits(denialReason)}
-              isRequestingCredits={isRequesting}
+              onRequestCredits={handleContactAdmin}
+              isRequestingCredits={isRechecking || isRequesting}
               hasRequestedCredits={hasRequested}
             />
           )}
