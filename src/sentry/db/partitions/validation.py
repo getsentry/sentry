@@ -21,7 +21,6 @@ from sentry.db.partitions.spec import (
     PartitioningSpec,
     RangePartitioning,
 )
-from sentry.silo.base import SiloLimit, SiloMode
 
 DOCS_HINT = "See the partitioning section of the `generate-migration` skill."
 
@@ -213,38 +212,11 @@ def get_relation_errors(all_models: Iterable[type[models.Model]]) -> list[str]:
     return errors
 
 
-def get_silo_errors(all_models: Iterable[type[models.Model]]) -> list[str]:
-    """
-    Range partitioned models must live in the cell silo.
-
-    Their partitions are created and dropped by a task that only runs in cell silos,
-    so a control silo table would run out of partitions after ``premake`` intervals.
-    Hash partitions never change after the table is created, so hash partitioned
-    models can live in either silo. The silo decorator is applied after the model
-    class is prepared, so this can only be checked once every model is loaded.
-    """
-    return [
-        f"{model._meta.label} is range partitioned, which is only supported in the cell "
-        f"silo: partition maintenance only runs there."
-        for model in all_models
-        if isinstance(_get_spec(model), RangePartitioning)
-        and isinstance(silo_limit := getattr(model._meta, "silo_limit", None), SiloLimit)
-        and SiloMode.CONTROL in silo_limit.modes
-    ]
-
-
 def validate_all_models(all_models: Iterable[type[models.Model]]) -> None:
-    """
-    Validate every declaration, the silo of range partitioned models and every
-    foreign key into a partitioned table.
-    """
+    """Validate every declaration and every foreign key into a partitioned table."""
     model_list = list(all_models)
     for model in model_list:
         validate_model_partitioning(model)
-    silo_errors = get_silo_errors(model_list)
-    if silo_errors:
-        details = "\n".join(f"  - {error}" for error in silo_errors)
-        raise ImproperlyConfigured(f"Invalid partitioned models:\n{details}\n{DOCS_HINT}")
     errors = get_relation_errors(model_list)
     if errors:
         details = "\n".join(f"  - {error}" for error in errors)

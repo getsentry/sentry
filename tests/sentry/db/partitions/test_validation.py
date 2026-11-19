@@ -8,12 +8,11 @@ from django.db.models import F
 from django.test.utils import isolate_apps
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, control_silo_model
+from sentry.db.models import FlexibleForeignKey, Model
 from sentry.db.partitions import HashPartitioning, PartitionInterval, RangePartitioning
 from sentry.db.partitions.validation import (
     get_model_partitioning_errors,
     get_relation_errors,
-    get_silo_errors,
     validate_all_models,
 )
 
@@ -287,41 +286,3 @@ def test_hash_partitioning_on_a_lazy_foreign_key() -> None:
     assert get_model_partitioning_errors(Partitioned, HashPartitioning("other", modulus=4)) == [
         "Hash partitioning needs an integer field, `other` is a FlexibleForeignKey."
     ]
-
-
-@isolate_apps("fixtures")
-def test_range_partitioned_models_must_be_in_the_cell_silo() -> None:
-    @control_silo_model
-    class ControlRange(Model):
-        __relocation_scope__ = RelocationScope.Excluded
-        __partitioning__ = WEEKLY
-
-        date_added = models.DateTimeField()
-
-        class Meta:
-            app_label = "fixtures"
-
-    @control_silo_model
-    class ControlHash(Model):
-        __relocation_scope__ = RelocationScope.Excluded
-        __partitioning__ = HashPartitioning("id", modulus=4)
-
-        class Meta:
-            app_label = "fixtures"
-
-    @cell_silo_model
-    class CellRange(Model):
-        __relocation_scope__ = RelocationScope.Excluded
-        __partitioning__ = WEEKLY
-
-        date_added = models.DateTimeField()
-
-        class Meta:
-            app_label = "fixtures"
-
-    assert get_silo_errors([ControlRange, ControlHash, CellRange]) == [
-        "fixtures.ControlRange is range partitioned, which is only supported in the cell "
-        "silo: partition maintenance only runs there."
-    ]
-    with pytest.raises(ImproperlyConfigured, match="Invalid partitioned models"):
-        validate_all_models([ControlRange])
