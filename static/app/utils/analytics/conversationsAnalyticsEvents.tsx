@@ -6,6 +6,7 @@ export type ConversationsEventParameters = {
   'conversations.detail.copy-conversation': Record<string, unknown>;
   'conversations.detail.copy-conversation-id': Record<string, unknown>;
   'conversations.detail.expand-embedding': {expanded: boolean};
+  'conversations.detail.expand-subagent': {expanded: boolean};
   'conversations.detail.expand-thinking': {expanded: boolean};
   'conversations.detail.expand-tool-calls': {expanded: boolean};
   'conversations.detail.export-conversation': Record<string, unknown>;
@@ -65,6 +66,7 @@ export const conversationsEventMap: Record<keyof ConversationsEventParameters, s
   'conversations.table.page-view': 'Conversations: Table Page View',
   'conversations.table.paginate': 'Conversations: Table Paginate',
   'conversations.detail.expand-embedding': 'Conversations: Detail Expand Embedding',
+  'conversations.detail.expand-subagent': 'Conversations: Detail Expand Sub-Agent',
   'conversations.detail.expand-thinking': 'Conversations: Detail Expand Thinking',
   'conversations.detail.expand-tool-calls': 'Conversations: Detail Expand Tool Calls',
   'conversations.detail.page-view': 'Conversations: Detail Page View',

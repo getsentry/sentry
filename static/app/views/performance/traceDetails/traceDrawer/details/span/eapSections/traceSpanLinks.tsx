@@ -1,4 +1,3 @@
-import {SEARCH_SENTRY__LINK__TYPE} from '@sentry/conventions/attributes/search';
 import type {Location} from 'history';
 import countBy from 'lodash/countBy';
 
@@ -22,7 +21,10 @@ import {
 } from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
-import {getSpanLinkType} from 'sentry/views/performance/traceDetails/getSpanLinkType';
+import {
+  getSpanLinkType,
+  isSpanLinkTypeAttribute,
+} from 'sentry/views/performance/traceDetails/getSpanLinkType';
 import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
@@ -175,7 +177,7 @@ export function TraceSpanLinks({
           : [{name: `${prefix}.sampled`, type: 'bool' as const, value: link.sampled}]),
         // The link type is the group name already.
         ...(link.attributes || [])
-          .filter(attribute => attribute.name !== SEARCH_SENTRY__LINK__TYPE)
+          .filter(attribute => !isSpanLinkTypeAttribute(attribute.name))
           .map(attribute => ({
             ...attribute,
             name: `${prefix}.attributes.${attribute.name}`,

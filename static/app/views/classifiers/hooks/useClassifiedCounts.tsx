@@ -11,8 +11,9 @@ import {useClassifierPageFilters} from './useClassifierPageFilters';
 import {useClassifierResultFilter} from './useClassifierResultFilter';
 
 const CONVERSATION_COUNT_FIELD = 'count_unique(gen_ai.conversation.id)';
+const USER_COUNT_FIELD = 'count_unique(user)';
 
-export function useClassifiedConversationCount(classifier: TelemetryClassifier) {
+export function useClassifiedCounts(classifier: TelemetryClassifier) {
   const organization = useOrganization();
   const selection = useClassifierPageFilters(classifier);
   const {resultFilter} = useClassifierResultFilter(classifier);
@@ -24,7 +25,7 @@ export function useClassifiedConversationCount(classifier: TelemetryClassifier) 
         path: {organizationIdOrSlug: organization.slug},
         query: {
           dataset: DiscoverDatasets.ENRICHMENT_ATTRIBUTES,
-          field: [CONVERSATION_COUNT_FIELD],
+          field: [CONVERSATION_COUNT_FIELD, USER_COUNT_FIELD],
           query: getClassifierResultQuery(classifier, resultFilter),
           project: [Number(classifier.projectId)],
           environment: selection.environments,
@@ -34,6 +35,12 @@ export function useClassifiedConversationCount(classifier: TelemetryClassifier) 
         staleTime: 60_000,
       }
     ),
-    select: response => response.json.data[0]?.[CONVERSATION_COUNT_FIELD] ?? 0,
+    select: response => {
+      const row = response.json.data[0];
+      return {
+        conversations: row?.[CONVERSATION_COUNT_FIELD] ?? 0,
+        users: row?.[USER_COUNT_FIELD] ?? 0,
+      };
+    },
   });
 }

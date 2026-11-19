@@ -262,6 +262,11 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
     def _create_blob_index(self, blob: BlobType, offset: int) -> BlobIndexType: ...
 
     @abc.abstractmethod
+    def _bulk_create_blob_indexes(
+        self, blobs_with_offsets: Sequence[tuple[BlobType, int]]
+    ) -> None: ...
+
+    @abc.abstractmethod
     def _create_blob_from_file(self, contents: ContentFile[bytes], logger: Any) -> BlobType: ...
 
     @abc.abstractmethod
@@ -391,22 +396,26 @@ class AbstractFile(Model, _Parent[BlobIndexType, BlobType]):
                 logger.exception("`FileBlob` disappeared during `assemble_file`")
                 raise
 
-            new_checksum = sha1(b"")
+            blobs_with_offsets = []
             offset = 0
             for blob in file_blobs:
-                try:
-                    self._create_blob_index(blob=blob, offset=offset)
-                except IntegrityError:
-                    # Most likely a `ForeignKeyViolation` like `SENTRY-11P5`, because
-                    # the blob we want to link does not exist anymore
-                    logger.exception("`FileBlob` disappeared trying to link `FileBlobIndex`")
-                    raise
+                blobs_with_offsets.append((blob, offset))
+                offset += blob.size
 
+            try:
+                self._bulk_create_blob_indexes(blobs_with_offsets)
+            except IntegrityError:
+                # Most likely a `ForeignKeyViolation` like `SENTRY-11P5`, because
+                # the blob we want to link does not exist anymore
+                logger.exception("`FileBlob` disappeared trying to link `FileBlobIndex`")
+                raise
+
+            new_checksum = sha1(b"")
+            for blob in file_blobs:
                 with blob.getfile() as blobfile:
                     for chunk in blobfile.chunks():
                         new_checksum.update(chunk)
                         tf.write(chunk)
-                offset += blob.size
 
             self.size = offset
             self.checksum = new_checksum.hexdigest()
