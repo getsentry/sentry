@@ -37,8 +37,11 @@ def update_monitor_environment(
     monitor_env.last_checkin = last_checkin
     monitor_env.next_checkin = next_checkin
     monitor_env.next_checkin_latest = next_checkin_latest
-    monitor_env.status = status
 
-    monitor_env.save(
-        update_fields=["last_checkin", "next_checkin", "next_checkin_latest", "status"]
-    )
+    update_fields = ["last_checkin", "next_checkin", "next_checkin_latest"]
+    # This copy's status can be stale, so only write one the caller set.
+    if monitor_status is not None:
+        monitor_env.status = monitor_status
+        update_fields.append("status")
+
+    monitor_env.save(update_fields=update_fields)
