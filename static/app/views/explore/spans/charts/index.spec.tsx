@@ -34,14 +34,16 @@ jest.mock('echarts-for-react/lib/core', () => {
       (event: Record<string, unknown>, instance: Record<string, unknown>) => void
     >;
     option: {
-      series: Array<{data?: Array<[number, number]>}>;
+      series: Array<{data?: Array<{value: [number, number]}>}>;
       brush?: unknown;
     };
   }) {
     return (
       <div>
         <output aria-label="Chart values">
-          {JSON.stringify(option.series.map(series => series.data))}
+          {JSON.stringify(
+            option.series.map(series => series.data?.map(point => point.value))
+          )}
         </output>
         <button
           onClick={() => {
@@ -85,6 +87,10 @@ function timeseriesResultFixture(overrides: Partial<SortedTimeSeries> = {}) {
 }
 
 describe('ExploreCharts', () => {
+  beforeEach(() => {
+    PageFiltersStore.reset();
+  });
+
   describe('range selection', () => {
     const timeseriesResult = timeseriesResultFixture({
       data: {
@@ -124,10 +130,6 @@ describe('ExploreCharts', () => {
 
     beforeEach(() => {
       PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
-    });
-
-    afterEach(() => {
-      PageFiltersStore.reset();
     });
 
     it.each<Record<string, string>>([
@@ -636,6 +638,82 @@ describe('ExploreCharts', () => {
       expect(single).toBeEnabled();
     });
 
+    it('hides the heatmap chart type without explore-dev-features', async () => {
+      render(
+        <ControlledExploreCharts
+          initialVisualizes={[{yAxes: ['count(span.duration)']}]}
+        />,
+        {
+          organization: OrganizationFixture(),
+        }
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Chart type'}));
+      expect(screen.getByRole('option', {name: 'Line'})).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'Heatmap'})).not.toBeInTheDocument();
+    });
+
+    function mockOutlierBound(count: number) {
+      PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        match: [
+          MockApiClient.matchQuery({referrer: 'api.explore.spans-heatmap-outlier-bound'}),
+        ],
+        body: {
+          data: [
+            {
+              'min(span.duration)': 1,
+              'p95(span.duration)': 100,
+              'p99(span.duration)': 200,
+              'max(span.duration)': 100_000,
+              'count()': count,
+            },
+          ],
+        },
+      });
+    }
+
+    it('shows outliers when the selected cutoff has no bounds', async () => {
+      mockOutlierBound(10);
+      render(
+        <ControlledExploreCharts
+          initialVisualizes={[{yAxes: ['heatmap(span.duration)']}]}
+        />,
+        {organization: OrganizationFixture({features: ['explore-dev-features']})}
+      );
+
+      expect(
+        await screen.findByRole('button', {name: 'Outliers: shown'})
+      ).toBeInTheDocument();
+    });
+
+    it('lets outliers be turned off for heatmap', async () => {
+      mockOutlierBound(5_000);
+      render(
+        <ControlledExploreCharts
+          initialVisualizes={[{yAxes: ['heatmap(span.duration)']}]}
+        />,
+        {organization: OrganizationFixture({features: ['explore-dev-features']})}
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Outliers: p99.9'}));
+      await userEvent.click(screen.getByRole('option', {name: 'Show all'}));
+
+      expect(screen.getByRole('button', {name: 'Outliers: shown'})).toBeInTheDocument();
+    });
+
+    it('locks the chart type for heatmap', async () => {
+      render(
+        <ControlledExploreCharts
+          initialVisualizes={[{yAxes: ['heatmap(span.duration)']}]}
+        />,
+        {organization: OrganizationFixture({features: ['explore-dev-features']})}
+      );
+
+      expect(await screen.findByRole('button', {name: 'Chart type'})).toBeDisabled();
+    });
+
     it('keeps the aggregates together when the chart is collapsed', async () => {
       const onSetVisualizes = jest.fn();
       render(
@@ -665,20 +743,20 @@ describe('ExploreCharts', () => {
       PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
     });
 
-    afterEach(() => {
-      PageFiltersStore.reset();
-    });
-
     function renderCharts({
       acceptedEvents = [],
+      asyncDelay,
       droppedEvents = [],
       organizationFeatures = features,
       query = '',
+      timeseriesResult = timeseriesResultFixture(),
     }: {
       acceptedEvents?: OutcomeRow[];
+      asyncDelay?: Promise<void>;
       droppedEvents?: OutcomeRow[];
       organizationFeatures?: string[];
       query?: string;
+      timeseriesResult?: SortedTimeSeries;
     }) {
       const request = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-dropped/',
@@ -687,6 +765,7 @@ describe('ExploreCharts', () => {
           droppedEvents,
           acceptedEvents,
         },
+        asyncDelay,
       });
 
       render(
@@ -695,7 +774,7 @@ describe('ExploreCharts', () => {
             <ExploreCharts
               extrapolate
               query={query}
-              timeseriesResult={timeseriesResultFixture()}
+              timeseriesResult={timeseriesResult}
               visualizes={defaultVisualizes()}
               setVisualizes={() => {}}
               rawSpanCounts={{
@@ -710,6 +789,39 @@ describe('ExploreCharts', () => {
 
       return request;
     }
+
+    it('waits for the dropped data before drawing the chart', async () => {
+      let resolveDroppedData!: () => void;
+      const asyncDelay = new Promise<void>(resolve => {
+        resolveDroppedData = resolve;
+      });
+      renderCharts({
+        asyncDelay,
+        droppedEvents: [OutcomeRowFixture()],
+        timeseriesResult: timeseriesResultFixture({
+          data: {
+            'count(span.duration)': [
+              TimeSeriesFixture({
+                yAxis: 'count(span.duration)',
+                values: [{timestamp: 1729796400000, value: 10}],
+              }),
+            ],
+          },
+        }),
+      });
+
+      expect(await screen.findByTestId('loading-indicator')).toBeInTheDocument();
+      expect(screen.queryByLabelText('Chart values')).not.toBeInTheDocument();
+
+      await act(async () => {
+        resolveDroppedData();
+        await asyncDelay;
+      });
+
+      expect(await screen.findByLabelText('Chart values')).toHaveTextContent(
+        '[[[1729796400000,10]],[[0,0]]]'
+      );
+    });
 
     it('notes that dropped spans ignore the search while the layer is on', async () => {
       renderCharts({droppedEvents: [OutcomeRowFixture()], query: 'span.op:db'});

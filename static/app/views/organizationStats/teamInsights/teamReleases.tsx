@@ -1,6 +1,7 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconArrow} from '@sentry/icons/arrow';
+import {useQuery} from '@tanstack/react-query';
 import round from 'lodash/round';
 import moment from 'moment-timezone';
 
@@ -19,9 +20,8 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {toArray} from 'sentry/utils/array/toArray';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 
 import {ProjectBadge, ProjectBadgeContainer, TeamInsightsTable} from './styles';
@@ -56,18 +56,17 @@ export function TeamReleases({
     isPending: isPeriodReleasesLoading,
     isError: isPeriodReleasesError,
     refetch: refetchPeriodReleases,
-  } = useApiQuery<ProjectReleaseCount>(
-    [
-      getApiUrl('/teams/$organizationIdOrSlug/$teamIdOrSlug/release-count/', {
-        path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
-      }),
+  } = useQuery(
+    apiOptions.as<ProjectReleaseCount>()(
+      '/teams/$organizationIdOrSlug/$teamIdOrSlug/release-count/',
       {
+        path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
         query: {
           ...normalizeDateTimeParams(datetime),
         },
-      },
-    ],
-    {staleTime: 5000}
+        staleTime: 5000,
+      }
+    )
   );
 
   const {
@@ -75,18 +74,17 @@ export function TeamReleases({
     isPending: isWeekReleasesLoading,
     isError: isWeekReleasesError,
     refetch: refetchWeekReleases,
-  } = useApiQuery<ProjectReleaseCount>(
-    [
-      getApiUrl('/teams/$organizationIdOrSlug/$teamIdOrSlug/release-count/', {
-        path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
-      }),
+  } = useQuery(
+    apiOptions.as<ProjectReleaseCount>()(
+      '/teams/$organizationIdOrSlug/$teamIdOrSlug/release-count/',
       {
+        path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
         query: {
           statsPeriod: '7d',
         },
-      },
-    ],
-    {staleTime: 5000}
+        staleTime: 5000,
+      }
+    )
   );
 
   const isLoading = isPeriodReleasesLoading || isWeekReleasesLoading;

@@ -136,6 +136,19 @@ def absolute_url(value: str) -> Url:
     return UrlStr(value)
 
 
+@dataclass(frozen=True)
+class ApiJsonValue:
+    """
+    Marks a TypedDict response field whose value can be any JSON value. Use ``JsonValue``.
+    """
+
+
+# Any JSON value: an object, an array, a string, a number, a boolean or null. The
+# response coverage check accepts it as typed, so use it only for data whose shape
+# Sentry doesn't define, such as the contexts an SDK sent. Type everything else exactly.
+JsonValue = Annotated[object, ApiJsonValue()]
+
+
 def uuid_str(value: UUID | str) -> Uuid:
     """
     Returns ``value`` as the value of a ``uuid`` field. A ``UUID`` becomes its hyphenated

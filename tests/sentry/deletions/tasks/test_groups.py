@@ -4,19 +4,22 @@ from uuid import uuid4
 import pytest
 
 from sentry import deletions, nodestore
-from sentry.deletions.tasks.groups import delete_groups_for_project
+from sentry.deletions.tasks.groups import delete_groups_for_project, discard_group
 from sentry.exceptions import DeleteAborted
+from sentry.locks import locks
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouphashmetadata import GroupHashMetadata
 from sentry.models.groupmeta import GroupMeta
 from sentry.models.groupredirect import GroupRedirect
+from sentry.models.grouptombstone import GroupTombstone
 from sentry.services import eventstore
 from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.skips import requires_snuba
+from sentry.utils.locking import UnableToAcquireLock
 
 pytestmark = [requires_snuba]
 
@@ -177,3 +180,112 @@ class DeleteGroupTest(TestCase):
             str(excinfo.value)
             == f"delete_groups.object_ids_too_large: {len(group_ids)} groups is greater than GROUP_CHUNK_SIZE"
         )
+
+
+class DiscardGroupTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group()
+        self.tombstone = GroupTombstone.objects.create(
+            previous_group_id=self.group.id, project_id=self.project.id
+        )
+        self.group_hash = GroupHash.objects.create(
+            project=self.project, hash="a" * 32, group=self.group
+        )
+
+    def run_task(self) -> None:
+        discard_group(
+            group_id=self.group.id,
+            project_id=self.project.id,
+            tombstone_id=self.tombstone.id,
+            transaction_id=uuid4().hex,
+        )
+
+    def test_moves_hashes_before_marking_group_pending_deletion(self) -> None:
+        with patch("sentry.deletions.tasks.groups.delete_groups_for_project") as delete_task:
+            self.run_task()
+
+        self.group_hash.refresh_from_db()
+        assert self.group_hash.group_id is None
+        assert self.group_hash.group_tombstone_id == self.tombstone.id
+        assert Group.objects.get(id=self.group.id).status == GroupStatus.PENDING_DELETION
+        delete_task.apply_async.assert_called_once()
+        assert delete_task.apply_async.call_args.kwargs["kwargs"]["object_ids"] == [self.group.id]
+
+    def test_does_not_schedule_deletion_again_for_pending_group(self) -> None:
+        self.group.update(status=GroupStatus.PENDING_DELETION)
+
+        with patch("sentry.deletions.tasks.groups.delete_groups_for_project") as delete_task:
+            self.run_task()
+
+        self.group_hash.refresh_from_db()
+        assert self.group_hash.group_tombstone_id == self.tombstone.id
+        delete_task.apply_async.assert_not_called()
+
+    def test_retry_schedules_deletion_when_earlier_run_failed_to(self) -> None:
+        with (
+            patch("sentry.deletions.tasks.groups.delete_groups_for_project") as delete_task,
+            pytest.raises(RuntimeError),
+        ):
+            delete_task.apply_async.side_effect = RuntimeError
+            self.run_task()
+
+        assert Group.objects.get(id=self.group.id).status == GroupStatus.UNRESOLVED
+
+        with patch("sentry.deletions.tasks.groups.delete_groups_for_project") as delete_task:
+            self.run_task()
+
+        delete_task.apply_async.assert_called_once()
+        assert Group.objects.get(id=self.group.id).status == GroupStatus.PENDING_DELETION
+
+    def test_stops_without_deleting_when_tombstone_was_removed(self) -> None:
+        self.tombstone.delete()
+
+        with patch("sentry.deletions.tasks.groups.delete_groups_for_project") as delete_task:
+            self.run_task()
+
+        self.group_hash.refresh_from_db()
+        assert self.group_hash.group_id == self.group.id
+        assert self.group_hash.group_tombstone_id is None
+        assert Group.objects.get(id=self.group.id).status == GroupStatus.UNRESOLVED
+        delete_task.apply_async.assert_not_called()
+
+    def test_deletes_group_without_hashes_when_tombstone_was_removed(self) -> None:
+        self.group_hash.update(group=None, group_tombstone_id=None)
+        self.tombstone.delete()
+
+        with patch("sentry.deletions.tasks.groups.delete_groups_for_project") as delete_task:
+            self.run_task()
+
+        delete_task.apply_async.assert_called_once()
+        assert Group.objects.get(id=self.group.id).status == GroupStatus.PENDING_DELETION
+
+    def test_records_metric_when_retries_are_exhausted(self) -> None:
+        with (
+            patch(
+                "sentry.deletions.tasks.groups.delete_groups_for_project.apply_async",
+                side_effect=RuntimeError,
+            ),
+            patch("sentry.deletions.tasks.groups.current_task", return_value=None),
+            patch("sentry.deletions.tasks.groups.metrics") as metrics,
+            pytest.raises(RuntimeError),
+        ):
+            self.run_task()
+
+        metrics.incr.assert_called_once_with(
+            "deletions.discard_group.retries_exhausted", sample_rate=1.0
+        )
+
+    def test_retries_when_another_run_holds_the_lock(self) -> None:
+        lock = locks.get(f"discard-group:{self.group.id}", duration=60, name="discard_group")
+        with (
+            lock.acquire(),
+            patch("sentry.deletions.tasks.groups.delete_groups_for_project") as delete_task,
+            pytest.raises(UnableToAcquireLock),
+        ):
+            self.run_task()
+
+        self.group_hash.refresh_from_db()
+        assert self.group_hash.group_id == self.group.id
+        assert Group.objects.get(id=self.group.id).status == GroupStatus.UNRESOLVED
+        delete_task.apply_async.assert_not_called()

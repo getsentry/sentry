@@ -86,7 +86,7 @@ export function HypothesisList({
     return null;
   }
 
-  const ordered = [...hypotheses].sort((a, b) => a.order - b.order);
+  const ordered = hypotheses.toSorted((a, b) => a.order - b.order);
 
   return (
     <Grid {...ROW_LAYOUT} className={className} data-test-id="investigation-hypotheses">

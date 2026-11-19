@@ -10,6 +10,7 @@ import {
 } from '@sentry/react';
 import cloneDeep from 'lodash/cloneDeep';
 import {useQueryState} from 'nuqs';
+import {useStore} from 'zustand';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
@@ -25,7 +26,6 @@ import type {Data} from 'sentry/components/forms/types';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {defined} from 'sentry/utils/defined';
 import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -206,7 +206,7 @@ export function FeedbackModal<T extends Data>({
   closeModal,
   ...props
 }: FeedbackModalProps<T> & ModalRenderProps) {
-  const {organization} = useLegacyStore(OrganizationStore);
+  const organization = useStore(OrganizationStore, state => state.organization);
   const {projects, initiallyLoaded: projectsLoaded} = useProjects();
   const [projectIds] = useQueryState('project', pageFilterParsers.project);
 

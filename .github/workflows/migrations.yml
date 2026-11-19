@@ -51,7 +51,7 @@ jobs:
           ref: master
 
       - name: Setup sentry env
-        uses: ./.github/actions/setup-sentry
+        uses: $/.github/actions/setup-sentry
         with:
           mode: migrations
 

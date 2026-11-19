@@ -73,7 +73,7 @@ def _allow_relative_uris(node: Any) -> None:
             _allow_relative_uris(value)
 
 
-def _definitions() -> dict[str, Any]:
+def component_definitions() -> dict[str, Any]:
     definitions = copy.deepcopy(cast(dict[str, Any], SCHEMA["definitions"]))
     _allow_relative_uris(definitions)
     for name, properties in _PREPARED_PROPERTIES.items():
@@ -84,7 +84,7 @@ def _definitions() -> dict[str, Any]:
 def component_schema() -> dict[str, Any]:
     return to_response_schema(
         {"anyOf": [{"$ref": f"#/definitions/{element}"} for element in ELEMENT_TYPES]},
-        definitions=_definitions(),
+        definitions=component_definitions(),
         descriptions=_DESCRIPTIONS,
     )
 
@@ -92,6 +92,6 @@ def component_schema() -> dict[str, Any]:
 def alert_rule_settings_schema() -> dict[str, Any]:
     return to_response_schema(
         {"$ref": "#/definitions/alert-rule-settings"},
-        definitions=_definitions(),
+        definitions=component_definitions(),
         descriptions=_DESCRIPTIONS,
     )

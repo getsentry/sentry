@@ -11,6 +11,7 @@ from sentry.apidocs.descriptions import ApiDescription, ApiSchema
 from sentry.apidocs.formats import Uuid, uuid_str
 from sentry.sentry_apps.api.serializers.response_schemas import component_schema
 from sentry.sentry_apps.api.serializers.sentry_app_avatar import SentryAppAvatarSerializerResponse
+from sentry.sentry_apps.generated_schema_types import SentryAppComponentSchema
 from sentry.sentry_apps.models.sentry_app_component import SentryAppComponent
 from sentry.sentry_apps.services.app import SentryAppEventDataInterface
 from sentry.sentry_apps.utils.errors import SentryAppPublicErrorBody
@@ -36,7 +37,9 @@ class SentryAppComponentSerializerResponse(TypedDict):
         ),
     ]
     schema: Annotated[
-        dict[str, Any], ApiDescription("UI schema of the component"), ApiSchema(component_schema)
+        SentryAppComponentSchema,
+        ApiDescription("UI schema of the component"),
+        ApiSchema(component_schema),
     ]
     error: Annotated[
         str | SentryAppPublicErrorBody,

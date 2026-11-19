@@ -35,6 +35,7 @@ const datasetToTraceItemType: Record<
 const HIDDEN_SCRUBBING_ATTRIBUTES: Partial<
   Record<AllowedDataScrubbingDatasets, Set<string>>
 > = {
+  [AllowedDataScrubbingDatasets.LOGS]: new Set(['message']),
   [AllowedDataScrubbingDatasets.METRICS]: new Set([
     'metric.name',
     'metric.type',

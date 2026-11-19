@@ -16,6 +16,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {
   DISTRIBUTION_SENTRY_APP_PERMISSION,
   SENTRY_APP_PERMISSIONS,
+  SERVICE_ACCOUNT_SENTRY_APP_PERMISSION,
 } from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import type {Permissions} from 'sentry/types/integrations';
@@ -34,6 +35,7 @@ import {
   permissionStateToList,
 } from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
 
+import {apiTokensOptions} from './apiTokensOptions';
 import {
   GranularPermissionSelection,
   granularPermissionsToScopes,
@@ -55,6 +57,7 @@ const INITIAL_PERMISSIONS: Permissions = {
   Organization: 'no-access',
   Alerts: 'no-access',
   Distribution: 'no-access',
+  ServiceAccount: 'no-access',
 };
 
 // Personal tokens can't be used for Distribution. The point of
@@ -79,6 +82,9 @@ export default function ApiNewToken() {
   // the organization currently in context.
   const hasGranularPermissions =
     organization?.features.includes('granular-permission-scopes-ui') ?? false;
+  const displayedPermissions = organization?.features.includes('service-accounts')
+    ? [...DISPLAYED_PERMISSIONS, SERVICE_ACCOUNT_SENTRY_APP_PERMISSION]
+    : DISPLAYED_PERMISSIONS;
 
   const handleGoBack = useCallback(
     () => navigate(normalizeUrl(API_INDEX_ROUTE)),
@@ -109,7 +115,7 @@ export default function ApiNewToken() {
       }),
     onSuccess: token => {
       toast.success(t('Created personal token.'));
-      queryClient.invalidateQueries({queryKey: [getApiUrl('/api-tokens/')]});
+      queryClient.invalidateQueries({queryKey: apiTokensOptions.queryKey});
       displayNewToken(token.token, handleGoBack);
     },
     onError: (error: RequestError) => {
@@ -183,7 +189,7 @@ export default function ApiNewToken() {
                   onChange={nextPermissions => {
                     setPermissions({...nextPermissions});
                   }}
-                  displayedPermissions={DISPLAYED_PERMISSIONS}
+                  displayedPermissions={displayedPermissions}
                 />
               )}
               <DisplayField.Row

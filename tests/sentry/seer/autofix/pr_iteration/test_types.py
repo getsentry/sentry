@@ -15,6 +15,7 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
 )
 from sentry.seer.autofix.pr_iteration.feedback import (
     Feedback,
+    feedback_allowed_by_project,
     parse_feedback,
     serialize_feedback,
 )
@@ -608,6 +609,127 @@ class GithubPrReviewBodyTest(TestCase):
     def test_should_consume_true_when_review_id_missing(self) -> None:
         source = GithubPrReviewBodyFeedbackSource(body="a")
         assert source.should_consume(_run_state()) == Decision(ok=True, reason="no_review_id")
+
+
+class IsExplicitRequestTest(TestCase):
+    def test_check_suite_is_not_explicit(self) -> None:
+        assert _check_suite_source().is_explicit_request is False
+
+    def test_ui_feedback_is_explicit(self) -> None:
+        assert UserUIFeedbackSource(user_id=1, user_feedback="fix it").is_explicit_request is True
+
+    def test_top_level_command_comment_is_explicit(self) -> None:
+        source = GithubPrCommentFeedbackSource(comment={"id": 1, "body": "@sentry fix CI"})
+        assert source.is_explicit_request is True
+
+    def test_review_comment_with_mention_is_explicit(self) -> None:
+        source = GithubPrReviewCommentFeedbackSource(
+            comment={"id": 1, "body": "@sentry rename this", "path": "a.py", "line": 5},
+        )
+        assert source.is_explicit_request is True
+
+    def test_review_comment_without_mention_is_not_explicit(self) -> None:
+        source = GithubPrReviewCommentFeedbackSource(
+            comment={"id": 1, "body": "rename this", "path": "a.py", "line": 5},
+        )
+        assert source.is_explicit_request is False
+
+    def test_review_comment_email_is_not_a_mention(self) -> None:
+        # Same matching as top-level commands.
+        source = GithubPrReviewCommentFeedbackSource(comment={"id": 1, "body": "ping me@sentry.io"})
+        assert source.is_explicit_request is False
+
+    def test_review_comment_longer_handle_is_not_a_mention(self) -> None:
+        source = GithubPrReviewCommentFeedbackSource(
+            comment={"id": 1, "body": "@sentry-bot rename this"}
+        )
+        assert source.is_explicit_request is False
+
+    def test_bot_review_comment_with_mention_is_not_explicit(self) -> None:
+        source = GithubPrReviewCommentFeedbackSource(
+            comment={"id": 1, "body": "@sentry rename this"}, author_is_bot=True
+        )
+        assert source.is_explicit_request is False
+
+    def test_review_body_with_mention_is_explicit(self) -> None:
+        source = GithubPrReviewBodyFeedbackSource(review_id=5, body="@sentry address these")
+        assert source.is_explicit_request is True
+
+    def test_review_body_without_mention_is_not_explicit(self) -> None:
+        source = GithubPrReviewBodyFeedbackSource(review_id=5, body="looks mostly fine")
+        assert source.is_explicit_request is False
+
+    def test_bot_review_body_with_mention_is_not_explicit(self) -> None:
+        source = GithubPrReviewBodyFeedbackSource(
+            review_id=5, body="@sentry address these", author_is_bot=True
+        )
+        assert source.is_explicit_request is False
+
+    def test_judged_per_inline_comment(self) -> None:
+        # Only the comment that mentions @sentry is explicit, not its whole review.
+        mentioned, plain = (
+            GithubPrReviewCommentFeedbackSource(comment={"id": i, "body": body}, review_id=9)
+            for i, body in ((1, "@sentry fix this one"), (2, "and this"))
+        )
+        assert mentioned.is_explicit_request is True
+        assert plain.is_explicit_request is False
+
+    def test_survives_round_trip(self) -> None:
+        source = GithubPrReviewCommentFeedbackSource(
+            comment={"id": 1, "body": "@sentry rename this", "path": "a.py", "line": 5},
+        )
+        parsed = parse_feedback(Feedback(source=source).json())
+        assert parsed[0].source.is_explicit_request is True
+
+
+class FeedbackAllowedByProjectTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group(project=self.project)
+
+    def _allowed(self, feedback: Feedback, *, organization_id: int | None = None) -> Decision:
+        return feedback_allowed_by_project(
+            organization_id=organization_id or self.organization.id,
+            group_id=self.group.id,
+            feedback=feedback,
+        )
+
+    def _human_review(self, body: str = "rename this") -> Feedback:
+        return Feedback(source=GithubPrReviewCommentFeedbackSource(comment={"id": 1, "body": body}))
+
+    def test_opt_in_with_setting_off_rejects_ci(self) -> None:
+        self.project.update_option("sentry:seer_pr_iteration", False)
+        with self.feature("organizations:token-billed-seer-enabled"):
+            decision = self._allowed(Feedback(source=_check_suite_source()))
+        assert decision == Decision(ok=False, reason="not_requested")
+
+    def test_opt_in_with_setting_off_rejects_human_review_without_mention(self) -> None:
+        self.project.update_option("sentry:seer_pr_iteration", False)
+        with self.feature("organizations:token-billed-seer-enabled"):
+            decision = self._allowed(self._human_review())
+        assert decision == Decision(ok=False, reason="not_requested")
+
+    def test_opt_in_with_setting_off_allows_explicit_request(self) -> None:
+        self.project.update_option("sentry:seer_pr_iteration", False)
+        with self.feature("organizations:token-billed-seer-enabled"):
+            decision = self._allowed(self._human_review("@sentry rename this"))
+        assert decision == Decision(ok=True, reason="explicit_request")
+
+    def test_opt_in_with_setting_on_allows_ci(self) -> None:
+        self.project.update_option("sentry:seer_pr_iteration", True)
+        with self.feature("organizations:token-billed-seer-enabled"):
+            decision = self._allowed(Feedback(source=_check_suite_source()))
+        assert decision == Decision(ok=True, reason="project_enabled")
+
+    def test_without_flag_allows_everything(self) -> None:
+        # ``automated_iteration_allowed`` keeps applying the setting to CI and bots.
+        self.project.update_option("sentry:seer_pr_iteration", False)
+        decision = self._allowed(Feedback(source=_check_suite_source()))
+        assert decision == Decision(ok=True, reason="flag_disabled")
+
+    def test_missing_organization_reads_as_allowed(self) -> None:
+        decision = self._allowed(self._human_review(), organization_id=self.organization.id + 1000)
+        assert decision == Decision(ok=True, reason="organization_not_found")
 
 
 class ConsumeTaskTest(TestCase):

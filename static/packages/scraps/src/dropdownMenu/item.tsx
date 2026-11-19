@@ -1,6 +1,7 @@
 import type * as React from 'react';
-import {Fragment, useContext, useEffect, useRef} from 'react';
-import {useHover, useKeyboard} from '@react-aria/interactions';
+import {Fragment, useContext, useRef} from 'react';
+import {useKeyboard} from '@react-aria/interactions';
+import type {SubmenuTriggerAria} from '@react-aria/menu';
 import {useMenuItem} from '@react-aria/menu';
 import {mergeProps, mergeRefs} from '@react-aria/utils';
 import type {TreeState} from '@react-stately/tree';
@@ -15,8 +16,36 @@ import {
   type MenuItemTrailingAction,
 } from '@sentry/scraps/menu';
 import type {UseOverlayProps} from '@sentry/scraps/useOverlay';
+import {
+  isAfterFirstInSection,
+  type VirtualRowProps,
+} from '@sentry/scraps/useVirtualCollection';
 
 import {DropdownMenuContext} from './context';
+
+/**
+ * Data attributes `DropdownMenuSection` spaces its items by: every item of a
+ * section gets `data-section-item`, and the first one also gets
+ * `data-first-in-section`. Marking the first item, rather than relying on
+ * `:first-child`, keeps the spacing right in a virtualized menu, where spacer
+ * elements sit between the rows.
+ */
+function getSectionItemAttributes(
+  node: Node<MenuItemProps>,
+  state: TreeState<MenuItemProps>
+) {
+  const section =
+    node.parentKey === null || node.parentKey === undefined
+      ? null
+      : state.collection.getItem(node.parentKey);
+  if (section?.type !== 'section') {
+    return {};
+  }
+  return {
+    'data-section-item': true,
+    'data-first-in-section': isAfterFirstInSection(node, section) ? undefined : true,
+  };
+}
 
 export type DropdownMenuSearchOptions = {placeholder?: string};
 
@@ -117,6 +146,12 @@ interface DropdownMenuItemProps<T extends React.ElementType = 'li'> {
   state: TreeState<MenuItemProps>;
   id?: string;
   /**
+   * Whether the item is in a virtualized menu. React Aria then sets
+   * `aria-posinset` and `aria-setsize`, so assistive technology knows the
+   * item's position in the full menu rather than among the mounted rows.
+   */
+  isVirtualized?: boolean;
+  /**
    * Ref to the inner focusable menu item.
    */
   menuItemRef?: React.Ref<HTMLElement>;
@@ -129,7 +164,16 @@ interface DropdownMenuItemProps<T extends React.ElementType = 'li'> {
    * Tag name for item wrapper
    */
   renderAs?: T;
-  submenuRef?: React.RefObject<HTMLElement | null>;
+  /**
+   * Measurement props from a virtualized list, applied to the item's root
+   * element. The root is measured rather than a wrapper, since submenu
+   * wrappers use `display: contents` and have no height of their own.
+   */
+  rowProps?: VirtualRowProps;
+  /**
+   * Props from `useSubmenuTrigger`, set when this item opens a submenu.
+   */
+  submenuTriggerProps?: SubmenuTriggerAria<MenuItemProps>['submenuTriggerProps'];
 }
 
 /**
@@ -145,12 +189,13 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
   renderAs,
   ref,
   menuItemRef,
-  submenuRef,
+  submenuTriggerProps,
+  isVirtualized,
+  rowProps,
   ...props
 }: DropdownMenuItemProps<T>) {
   const innerWrapRef = useRef<HTMLElement | null>(null);
   const trailingActionRef = useRef<HTMLButtonElement>(null);
-  const lastPointerPosition = useRef<{x: number; y: number} | null>(null);
   const isDisabled = state.disabledKeys.has(node.key);
   const isFocused = state.selectionManager.focusedKey === node.key;
   const {
@@ -170,7 +215,7 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
   } = node.value ?? {};
   const isSubmenu = !!submenu;
   const {size} = node.props;
-  const {rootOverlayState, safetyTriangle} = useContext(DropdownMenuContext);
+  const {rootMenuState} = useContext(DropdownMenuContext);
   const isLink = to || externalHref;
   const resolvedCloseOnSelect = itemCloseOnSelect ?? closeOnSelect;
 
@@ -179,45 +224,18 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
       // Close the menu after the click event has bubbled to the link
       // Only needed on links that do not unmount the menu
       if (resolvedCloseOnSelect) {
-        requestAnimationFrame(() => rootOverlayState?.close());
+        requestAnimationFrame(() => rootMenuState?.close());
       }
       onAction?.();
-      return;
-    }
-    if (isSubmenu) {
-      state.selectionManager.toggleSelection(node.key);
       return;
     }
     onAction?.();
   };
 
-  // Open submenu on hover
-  const {hoverProps, isHovered} = useHover({});
-  const previousInteraction = useRef({isHovered, isFocused});
-  useEffect(() => {
-    const previous = previousInteraction.current;
-    previousInteraction.current = {isHovered, isFocused};
-    if (isHovered === previous.isHovered && isFocused === previous.isFocused) {
-      return;
-    }
-
-    if (isHovered && isFocused) {
-      if (isSubmenu) {
-        state.selectionManager.replaceSelection(node.key);
-        return;
-      }
-      state.selectionManager.clearSelection();
-    }
-  }, [isHovered, isFocused, isSubmenu, node.key, state.selectionManager]);
-
-  // ArrowRight opens a submenu or moves focus to an adjacent action.
+  // ArrowRight moves focus to the trailing action. Submenu triggers get their
+  // arrow key handling from `useSubmenuTrigger`.
   const {keyboardProps} = useKeyboard({
     onKeyDown: e => {
-      if (e.key === 'ArrowRight' && isSubmenu) {
-        state.selectionManager.replaceSelection(node.key);
-        return;
-      }
-
       // The trailing action sits outside the focusable menu item. Move to it
       // only when focus is still on the item itself and the button can take focus.
       if (
@@ -237,16 +255,19 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
   });
 
   // Manage interactive events & create aria attributes
+  const {isOpen: _isSubmenuOpen, ...submenuTriggerAriaProps} = submenuTriggerProps ?? {};
   const {menuItemProps, labelProps, descriptionProps} = useMenuItem(
     {
+      ...submenuTriggerAriaProps,
       key: node.key,
       onAction: actionHandler,
       onClose: () => {
         onClose?.();
-        rootOverlayState?.close();
+        rootMenuState?.close();
       },
       closeOnSelect: isLink ? false : resolvedCloseOnSelect,
       isDisabled,
+      isVirtualized,
     },
     state,
     innerWrapRef
@@ -278,18 +299,53 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
   const mergedMenuItemContentProps: React.HTMLAttributes<HTMLElement> = mergeProps(
     props,
     menuItemProps,
-    hoverProps,
     keyboardProps,
     makeInnerWrapProps(),
     // oxlint-disable-next-line react/refs
     {ref: mergeRefs(menuItemRef, innerWrapRef), 'data-test-id': key}
   );
-  const {onPointerEnter, onPointerMove, onPointerLeave} = mergedMenuItemContentProps;
+  const {onPointerEnter, onPointerMove, onPointerLeave, ...menuItemContentProps} =
+    mergedMenuItemContentProps;
   const itemLabel = node.rendered ?? label;
+
+  // The details overlay is portaled out of the row but still bubbles React events
+  // through it. Ignore those, as useHover does, so the row tracks only its own box.
+  const isFromRow = (event: React.PointerEvent<HTMLElement>) =>
+    event.target instanceof Node && event.currentTarget.contains(event.target);
+
+  // The row, not the item, handles pointer and arrow key events, so they cover the
+  // trailing action that sits beside the item.
+  const rowEventProps = {
+    onPointerEnter: (event: React.PointerEvent<HTMLElement>) => {
+      if (isFromRow(event)) {
+        onPointerEnter?.(event);
+      }
+    },
+    onPointerMove: (event: React.PointerEvent<HTMLElement>) => {
+      if (isFromRow(event)) {
+        onPointerMove?.(event);
+      }
+    },
+    onPointerLeave: (event: React.PointerEvent<HTMLElement>) => {
+      if (isFromRow(event)) {
+        onPointerLeave?.(event);
+      }
+    },
+    onKeyDown: (event: React.KeyboardEvent<HTMLElement>) => {
+      // ArrowLeft returns from the trailing action to its item.
+      if (event.key === 'ArrowLeft' && event.target === trailingActionRef.current) {
+        event.preventDefault();
+        event.stopPropagation();
+        innerWrapRef.current?.focus();
+      }
+    },
+  };
 
   return (
     <ListItem
-      ref={mergeRefs(ref, itemRef)}
+      ref={mergeRefs(ref, itemRef, rowProps?.ref)}
+      data-index={rowProps?.['data-index']}
+      {...getSectionItemAttributes(node, state)}
       as={renderAs}
       label={itemLabel}
       leadingItems={
@@ -311,48 +367,11 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
       }
       disabled={isDisabled}
       isFocused={isFocused}
-      innerWrapProps={{
-        ...mergedMenuItemContentProps,
-        onPointerEnter: (event: React.PointerEvent<HTMLElement>) => {
-          lastPointerPosition.current = {x: event.clientX, y: event.clientY};
-          // React clears currentTarget after dispatch, but hover may be deferred.
-          const savedEvent = {...event, currentTarget: event.currentTarget};
-          const enter = () => onPointerEnter?.(savedEvent);
-          if (safetyTriangle) {
-            safetyTriangle.defer(event, enter);
-          } else {
-            enter();
-          }
-        },
-        onPointerMove: (event: React.PointerEvent<HTMLElement>) => {
-          lastPointerPosition.current = {x: event.clientX, y: event.clientY};
-          onPointerMove?.(event);
-        },
-        onPointerLeave: (event: React.PointerEvent<HTMLElement>) => {
-          safetyTriangle?.leave(event.currentTarget);
-          if (
-            event.pointerType === 'mouse' &&
-            submenuRef?.current &&
-            lastPointerPosition.current
-          ) {
-            safetyTriangle?.start(lastPointerPosition.current, submenuRef.current);
-          }
-          onPointerLeave?.(event);
-        },
-      }}
+      innerWrapProps={menuItemContentProps}
       labelProps={labelProps}
       detailsProps={descriptionProps}
       trailingAction={trailingAction}
       trailingActionRef={trailingActionRef}
-      trailingActionWrapperProps={{
-        onKeyDown: event => {
-          if (event.key === 'ArrowLeft') {
-            event.preventDefault();
-            event.stopPropagation();
-            innerWrapRef.current?.focus();
-          }
-        },
-      }}
       trailingItems={
         isSubmenu ? (
           <Fragment>
@@ -364,6 +383,7 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
         )
       }
       size={size}
+      {...rowEventProps}
       {...itemProps}
     />
   );

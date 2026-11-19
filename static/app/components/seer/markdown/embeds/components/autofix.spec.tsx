@@ -10,6 +10,8 @@ import type {
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {AutofixChatProvider} from 'sentry/components/seer/autofixChatContext';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
+import type {SeerOutOfCreditsCtaProps} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
+import {registerOverride} from 'sentry/overrideRegistry';
 import type {Group} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -491,6 +493,183 @@ describe('AutofixRef embed', () => {
     }
   );
 
+  describe('out of credits', () => {
+    const creditsOrganization = OrganizationFixture({
+      slug: 'org-slug',
+      features: ['token-billed-seer-enabled'],
+    });
+    const retryTooltip = 'Your organization does not have enough Seer credits for this.';
+
+    function mockCreditCheck(operation: string, hasEnoughCredits: boolean) {
+      return MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/credit-check/`,
+        match: [MockApiClient.matchQuery({operation})],
+        body: {hasEnoughCredits},
+      });
+    }
+
+    // While the check is in flight the button is natively disabled. Once it
+    // settles it is only aria-disabled, so it stays focusable and its tooltip
+    // can say why.
+    async function expectDisabledForCredits(button: HTMLElement) {
+      await waitFor(() => expect(button).toBeEnabled());
+      expect(button).toHaveAttribute('aria-disabled', 'true');
+      await userEvent.hover(button);
+      expect(await screen.findByText(retryTooltip)).toBeInTheDocument();
+    }
+
+    function makeStoppedRun(step: AutofixExplorerStep): ExplorerAutofixState {
+      const run = makeRunThrough(step, {status: 'error'});
+      return {
+        ...run,
+        failure_reason: 'out_of_credits',
+        blocks: [
+          ...run.blocks,
+          {
+            id: 'error-1',
+            timestamp: '2026-01-01T00:00:00Z',
+            message: {
+              role: 'assistant',
+              content: "Your organization doesn't have enough Seer credits for this.",
+            },
+          },
+        ],
+      };
+    }
+
+    function withOutOfCreditsPR(run: ExplorerAutofixState): ExplorerAutofixState {
+      const prState = run.repo_pr_states!['getsentry/sentry']!;
+      return {
+        ...run,
+        repo_pr_states: {
+          'getsentry/sentry': {...prState, pr_creation_error_code: 'out_of_credits'},
+        },
+      };
+    }
+
+    it.each([
+      [
+        'root_cause',
+        'autofix_root_cause',
+        'Seer stopped before finishing the root cause',
+      ],
+      ['solution', 'autofix_solution', 'Seer stopped before finishing the plan'],
+      [
+        'code_changes',
+        'autofix_code_changes',
+        'Seer stopped before finishing the code changes',
+      ],
+    ] as const)(
+      'keeps what the %s step wrote and disables Try again while out of credits',
+      async (step, operation, message) => {
+        mockRun(makeStoppedRun(step));
+        mockCreditCheck(operation, false);
+        render(
+          <AutofixChatProvider sendMessage={jest.fn()}>
+            <AutofixRefFor step={step} />
+          </AutofixChatProvider>,
+          {organization: creditsOrganization}
+        );
+        await expandAll(1);
+
+        expect(screen.getByText(`Finished ${step}`)).toBeInTheDocument();
+        expect(screen.getByText(new RegExp(message))).toBeInTheDocument();
+        expect(screen.queryByText(/This one is on us/)).not.toBeInTheDocument();
+        expect(
+          screen.queryByText(/doesn't have enough Seer credits/)
+        ).not.toBeInTheDocument();
+        expect(getButtons('Draft a pull request')).toHaveLength(0);
+        await expectDisabledForCredits(screen.getByRole('button', {name: 'Try again'}));
+      }
+    );
+
+    it('retries a step that stopped for credits once the organization can afford it', async () => {
+      mockRun(makeStoppedRun('code_changes'));
+      mockCreditCheck('autofix_code_changes', true);
+      const sendMessage = jest.fn();
+      render(
+        <AutofixChatProvider sendMessage={sendMessage}>
+          <AutofixRefFor step="code_changes" />
+        </AutofixChatProvider>,
+        {organization: creditsOrganization}
+      );
+      await expandAll(1);
+
+      await waitFor(() =>
+        expect(screen.getByRole('button', {name: 'Try again'})).toHaveAttribute(
+          'aria-disabled',
+          'false'
+        )
+      );
+      await userEvent.click(screen.getByRole('button', {name: 'Try again'}));
+      expect(sendMessage).toHaveBeenCalledWith(
+        'Retry the Code Changes step for JAVASCRIPT-1.'
+      );
+    });
+
+    it('does not check credits for a stopped step in a read-only conversation', async () => {
+      mockRun(makeStoppedRun('code_changes'));
+      const creditCheck = mockCreditCheck('autofix_code_changes', false);
+      render(<AutofixRefFor step="code_changes" />, {organization: creditsOrganization});
+      await expandAll(1);
+
+      expect(
+        screen.getByText(/Seer stopped before finishing the code changes/)
+      ).toBeInTheDocument();
+      expect(creditCheck).not.toHaveBeenCalled();
+    });
+
+    it('disables drafting the pull request again while out of credits', async () => {
+      mockRun(withOutOfCreditsPR(makeRunThrough('code_changes', {pullRequest: 'error'})));
+      mockCreditCheck('autofix_open_pr', false);
+      render(
+        <AutofixChatProvider sendMessage={jest.fn()}>
+          <AutofixRefFor step="code_changes" />
+        </AutofixChatProvider>,
+        {organization: creditsOrganization}
+      );
+      await expandAll(1);
+
+      await expectDisabledForCredits(
+        screen.getByRole('button', {name: 'Draft a pull request'})
+      );
+    });
+
+    it('drafts the pull request again once the organization can afford it', async () => {
+      mockRun(withOutOfCreditsPR(makeRunThrough('code_changes', {pullRequest: 'error'})));
+      mockCreditCheck('autofix_open_pr', true);
+      const sendMessage = jest.fn();
+      render(
+        <AutofixChatProvider sendMessage={sendMessage}>
+          <AutofixRefFor step="code_changes" />
+        </AutofixChatProvider>,
+        {organization: creditsOrganization}
+      );
+      await expandAll(1);
+
+      await waitFor(() =>
+        expect(
+          screen.getByRole('button', {name: 'Draft a pull request'})
+        ).toHaveAttribute('aria-disabled', 'false')
+      );
+      await userEvent.click(screen.getByRole('button', {name: 'Draft a pull request'}));
+      expect(sendMessage).toHaveBeenCalledWith('Draft a pull request for JAVASCRIPT-1.');
+    });
+
+    it('says the pull request step failed for credits', async () => {
+      mockRun(withOutOfCreditsPR(makeRunThrough('code_changes', {pullRequest: 'error'})));
+      render(<AutofixRefFor step="pr_iteration" />, {organization: creditsOrganization});
+      await expandAll(1);
+
+      expect(
+        screen.getByText(
+          "Seer couldn't open a pull request in getsentry/sentry because your organization is out of credits."
+        )
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/This one is on us/)).not.toBeInTheDocument();
+    });
+  });
+
   // One embed per step, as a conversation that walked the whole run holds.
   // Only the action the run has not taken yet is on offer, from one place.
   it('offers only the untaken action across a conversation spanning every step', async () => {
@@ -508,6 +687,225 @@ describe('AutofixRef embed', () => {
     expect(getButtons('Continue: Plan')).toHaveLength(0);
     expect(getButtons('Continue: Code Changes')).toHaveLength(0);
     expect(getButtons('Draft a pull request')).toHaveLength(1);
+  });
+
+  describe('out of Seer credits', () => {
+    const creditCheckOrganization = OrganizationFixture({
+      slug: 'org-slug',
+      features: ['token-billed-seer-enabled'],
+    });
+    const creditCheckUrl = `/organizations/${organization.slug}/seer/credit-check/`;
+
+    // getsentry fills in the CTA; this stand-in shows what it was asked for.
+    function StubOutOfCreditsCta({
+      reason,
+      variant = 'warning',
+    }: SeerOutOfCreditsCtaProps) {
+      return <div data-test-id="seer-out-of-credits-cta">{`${variant} ${reason}`}</div>;
+    }
+
+    beforeEach(() => {
+      registerOverride('component:seer-out-of-credits-cta', () => StubOutOfCreditsCta);
+    });
+
+    it.each([
+      {step: 'root_cause', button: 'Continue: Plan', operation: 'autofix_solution'},
+      {
+        step: 'solution',
+        button: 'Continue: Code Changes',
+        operation: 'autofix_code_changes',
+      },
+      {
+        step: 'code_changes',
+        button: 'Draft a pull request',
+        operation: 'autofix_open_pr',
+      },
+    ] as const)(
+      'outside the Explorer chat, shows the CTA above a disabled $button',
+      async ({step, button, operation}) => {
+        mockRun(makeRunThrough(step));
+        const creditCheck = MockApiClient.addMockResponse({
+          url: creditCheckUrl,
+          match: [MockApiClient.matchQuery({operation})],
+          body: {hasEnoughCredits: false},
+        });
+
+        render(
+          <AutofixChatProvider sendMessage={jest.fn()}>
+            <AutofixRefFor step={step} />
+          </AutofixChatProvider>,
+          {organization: creditCheckOrganization}
+        );
+        await expandAll(1);
+
+        const cta = await screen.findByTestId('seer-out-of-credits-cta');
+        expect(cta).toHaveTextContent('muted autofix-continue');
+        expect(getButtons(button)).toHaveLength(1);
+        expect(getButtons(button)[0]).toBeDisabled();
+        expect(
+          cta.compareDocumentPosition(getButtons(button)[0]!) &
+            Node.DOCUMENT_POSITION_FOLLOWING
+        ).toBeTruthy();
+        expect(creditCheck).toHaveBeenCalledTimes(1);
+      }
+    );
+
+    it('keeps the step result visible', async () => {
+      mockRun(makeRunThrough('root_cause'));
+      MockApiClient.addMockResponse({
+        url: creditCheckUrl,
+        body: {hasEnoughCredits: false},
+      });
+
+      render(
+        <AutofixChatProvider sendMessage={jest.fn()}>
+          <AutofixRefFor step="root_cause" />
+        </AutofixChatProvider>,
+        {organization: creditCheckOrganization}
+      );
+      await expandAll(1);
+
+      expect(await screen.findByTestId('seer-out-of-credits-cta')).toBeInTheDocument();
+      expect(screen.getByText('The cache key collides across orgs')).toBeInTheDocument();
+    });
+
+    it('offers the next step when the org can afford it', async () => {
+      mockRun(makeRunThrough('root_cause'));
+      MockApiClient.addMockResponse({
+        url: creditCheckUrl,
+        body: {hasEnoughCredits: true},
+      });
+
+      render(
+        <AutofixChatProvider sendMessage={jest.fn()}>
+          <AutofixRefFor step="root_cause" />
+        </AutofixChatProvider>,
+        {organization: creditCheckOrganization}
+      );
+      await expandAll(1);
+
+      await waitFor(() => expect(getButtons('Continue: Plan')[0]).toBeEnabled());
+      expect(screen.queryByTestId('seer-out-of-credits-cta')).not.toBeInTheDocument();
+    });
+
+    it('leaves the CTA to the Explorer chat, where the composer shows it', async () => {
+      mockRun(makeRunThrough('root_cause'));
+      MockApiClient.addMockResponse({
+        url: creditCheckUrl,
+        body: {hasEnoughCredits: false},
+      });
+      const reportOutOfCredits = jest.fn();
+
+      const {unmount} = render(
+        <AutofixChatProvider
+          sendMessage={jest.fn()}
+          reportOutOfCredits={reportOutOfCredits}
+        >
+          <AutofixRefFor step="root_cause" />
+        </AutofixChatProvider>,
+        {organization: creditCheckOrganization}
+      );
+      await expandAll(1);
+
+      await waitFor(() =>
+        expect(reportOutOfCredits).toHaveBeenLastCalledWith(
+          expect.any(String),
+          true,
+          null
+        )
+      );
+      expect(getButtons('Continue: Plan')[0]).toBeDisabled();
+      expect(screen.queryByTestId('seer-out-of-credits-cta')).not.toBeInTheDocument();
+
+      // A card that leaves the chat takes its report with it.
+      const [embedId] = reportOutOfCredits.mock.lastCall!;
+      unmount();
+      expect(reportOutOfCredits).toHaveBeenLastCalledWith(embedId, false, null);
+    });
+
+    it('reports nothing to the Explorer chat when the org can afford the step', async () => {
+      mockRun(makeRunThrough('root_cause'));
+      MockApiClient.addMockResponse({
+        url: creditCheckUrl,
+        body: {hasEnoughCredits: true},
+      });
+      const reportOutOfCredits = jest.fn();
+
+      render(
+        <AutofixChatProvider
+          sendMessage={jest.fn()}
+          reportOutOfCredits={reportOutOfCredits}
+        >
+          <AutofixRefFor step="root_cause" />
+        </AutofixChatProvider>,
+        {organization: creditCheckOrganization}
+      );
+      await expandAll(1);
+
+      await waitFor(() => expect(getButtons('Continue: Plan')[0]).toBeEnabled());
+      expect(reportOutOfCredits).not.toHaveBeenCalledWith(expect.any(String), true, null);
+    });
+
+    it('offers no next step for a single run, so checks nothing', async () => {
+      mockRun({
+        run_id: 42,
+        feature_id: 'autofix_single_run',
+        status: 'completed',
+        updated_at: '2026-01-01T00:00:00Z',
+        blocks: [
+          {
+            id: 'block-0',
+            timestamp: '2026-01-01T00:00:00Z',
+            message: {role: 'assistant', content: 'done', metadata: {step: 'single_run'}},
+            artifacts: [
+              {
+                key: 'single_run_root_cause',
+                reason: 'found',
+                data: {headline: 'Divides by zero', cause: 'Empty weights.'},
+              },
+            ],
+          },
+        ],
+      });
+      const creditCheck = MockApiClient.addMockResponse({
+        url: creditCheckUrl,
+        body: {hasEnoughCredits: false},
+      });
+      const reportOutOfCredits = jest.fn();
+
+      render(
+        <AutofixChatProvider
+          sendMessage={jest.fn()}
+          reportOutOfCredits={reportOutOfCredits}
+        >
+          <AutofixRefFor step="root_cause" />
+        </AutofixChatProvider>,
+        {organization: creditCheckOrganization}
+      );
+      await expandAll(1);
+
+      expect(await screen.findByText('Divides by zero')).toBeInTheDocument();
+      expect(getButtons('Continue: Plan')).toHaveLength(0);
+      expect(creditCheck).not.toHaveBeenCalled();
+      expect(reportOutOfCredits).not.toHaveBeenCalledWith(expect.any(String), true, null);
+    });
+
+    it('does not check credits in a read-only conversation', async () => {
+      mockRun(makeRunThrough('root_cause'));
+      const creditCheck = MockApiClient.addMockResponse({
+        url: creditCheckUrl,
+        body: {hasEnoughCredits: false},
+      });
+
+      render(<AutofixRefFor step="root_cause" />, {
+        organization: creditCheckOrganization,
+      });
+      await expandAll(1);
+
+      expect(getButtons('Continue: Plan')).toHaveLength(1);
+      expect(screen.queryByTestId('seer-out-of-credits-cta')).not.toBeInTheDocument();
+      expect(creditCheck).not.toHaveBeenCalled();
+    });
   });
 });
 

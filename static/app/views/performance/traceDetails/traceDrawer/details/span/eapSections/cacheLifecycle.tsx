@@ -2,20 +2,19 @@ import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import type {Location} from 'history';
 
-import {Tag} from '@sentry/scraps/badge';
+import {FeatureBadge, Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
+import {DateTime} from '@sentry/scraps/dateTime';
+import {getDuration} from '@sentry/scraps/duration';
 import {InfoText} from '@sentry/scraps/info';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {Placeholder} from 'sentry/components/placeholder';
 import {Timeline, type TimelineItemProps} from 'sentry/components/timeline';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {
@@ -30,8 +29,8 @@ import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/trace
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
 import type {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/eapSpanNode';
-import {useTraceStateDispatch} from 'sentry/views/performance/traceDetails/traceState/traceStateProvider';
-import {TraceLayoutTabKeys} from 'sentry/views/performance/traceDetails/useTraceLayoutTabs';
+
+import {useLinkedSpanTarget} from './useLinkedSpanTarget';
 
 const CACHE_ORIGIN_LINK_TYPE = 'cache_origin';
 
@@ -112,57 +111,6 @@ function findCacheOriginLink(
   );
 }
 
-/**
- * Link target and click handler for the origin span. The real href lets users
- * open the origin trace in a new tab. A plain left click is intercepted when
- * the fill span is in the tree already on screen: the replay trace view merges
- * several traces into one tree, so search it even when the link points to
- * another trace.
- */
-function useOriginSpanLink({
-  tree,
-  link,
-  timestamp,
-  organization,
-  location,
-  onTabScrollToNode,
-}: Pick<
-  CacheLifecycleSectionProps,
-  'tree' | 'organization' | 'location' | 'onTabScrollToNode'
-> & {
-  link: TraceItemResponseLink;
-  timestamp: number;
-}) {
-  const traceDispatch = useTraceStateDispatch();
-
-  const to = generateLinkToEventInTraceView({
-    organization,
-    location,
-    traceSlug: link.traceId,
-    spanId: link.itemId,
-    timestamp,
-    tab: TraceLayoutTabKeys.WATERFALL,
-  });
-
-  function onClick(event: React.MouseEvent<HTMLAnchorElement>) {
-    // Modified clicks (new tab, new window) go through the href.
-    if (event.metaKey || event.altKey || event.ctrlKey || event.shiftKey) {
-      return;
-    }
-
-    const spanNode = tree?.root.findChild(c => c.matchById(link.itemId));
-    if (spanNode) {
-      event.preventDefault();
-      onTabScrollToNode(spanNode);
-      return;
-    }
-
-    traceDispatch({type: 'minimize drawer', payload: true});
-  }
-
-  return {to, onClick};
-}
-
 function useTimelineColors() {
   const theme = useTheme();
   return {
@@ -213,11 +161,11 @@ function getReadOutcome(
 
 /** `cache.item_age` and `cache.ttl` are whole seconds, so 0 means under a second. */
 function formatAge(seconds: number): string {
-  return seconds < 1 ? t('<1s') : getDuration(seconds, 0, true);
+  return seconds < 1 ? t('<1s') : getDuration(seconds, {style: 'short'});
 }
 
 function formatMs(ms: number): string {
-  return getDuration(ms / 1000, 2, true);
+  return getDuration(ms / 1000, {precision: 2, style: 'short'});
 }
 
 export function CacheLifecycleSection(props: CacheLifecycleSectionProps) {
@@ -243,28 +191,21 @@ function LifecycleFoldSection({
   children: React.ReactNode;
   tag?: React.ReactNode;
 }) {
-  const title = (
-    <TraceDrawerComponents.SectionTitleWithQuestionTooltip
-      title={t('Cache Lifecycle')}
-      tooltipText={t(
-        'A cache-specific summary of this span’s attributes and links. Times are relative to this span.'
-      )}
-    />
-  );
-
   return (
     <FoldSection
       sectionKey="cache-lifecycle"
       disableCollapsePersistence
       title={
-        tag ? (
-          <Flex gap="sm" align="center">
-            {title}
-            {tag}
-          </Flex>
-        ) : (
-          title
-        )
+        <Flex gap="sm" align="center">
+          <TraceDrawerComponents.SectionTitleWithQuestionTooltip
+            title={t('Cache lifecycle')}
+            tooltipText={t(
+              'A cache-specific summary of this span’s attributes and links. Times are relative to this span.'
+            )}
+          />
+          <FeatureBadge type="new" />
+          {tag}
+        </Flex>
       }
     >
       <Timeline.Container>{children}</Timeline.Container>
@@ -289,7 +230,7 @@ function TimestampText({
     <InfoText
       size="sm"
       variant="muted"
-      title={<DateTime date={timestamp * 1000} seconds timeZone />}
+      title={<DateTime date={timestamp * 1000} precision="second" showTimezone />}
     >
       {children}
     </InfoText>
@@ -360,7 +301,7 @@ function SourceFact({path}: {path: string}) {
 /**
  * The end of an entry's TTL, which starts at the fill. Without `cache.ttl`
  * there is no expiry to show. The conventions list when SDKs omit it:
- * https://getsentry.github.io/sentry-conventions/attributes/cache/#cache-ttl
+ * https://conventions.sentry.dev/attributes/cache/#cache-ttl
  */
 interface CacheExpiry {
   /** Seconds between this span and the expiry. */
@@ -447,7 +388,7 @@ function CacheOriginContent({
     timestamp: fillTimestamp,
     enabled: isSampled && !isPastRetention,
   });
-  const originSpanLink = useOriginSpanLink({
+  const originSpanLink = useLinkedSpanTarget({
     ...props,
     link,
     timestamp: fillTimestamp,

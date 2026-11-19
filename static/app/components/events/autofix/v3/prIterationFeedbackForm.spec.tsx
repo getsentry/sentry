@@ -68,6 +68,14 @@ describe('PrIterationFeedbackForm', () => {
     expect(screen.getByRole('button', {name: 'Submit'})).toBeInTheDocument();
   });
 
+  it('keeps the form rendered but inert when disabled', () => {
+    const autofix = makeAutofix();
+    render(<PrIterationFeedbackForm autofix={autofix} groupId="1" runId={1} disabled />);
+
+    expect(screen.getByRole('textbox')).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Submit'})).toBeDisabled();
+  });
+
   it('keeps the form rendered but inert when PR iteration is paused', async () => {
     const autofix = makeAutofix({
       runState: {run_id: 1, blocks: [], pr_iteration_paused: true} as any,
@@ -127,5 +135,30 @@ describe('PrIterationFeedbackForm', () => {
     expect(trackAnalytics).not.toHaveBeenCalled();
     // startStep owns the error message, so the form must not add its own.
     expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it('clears the feedback when out of credits', async () => {
+    const autofix = makeAutofix({
+      startStep: jest.fn().mockRejectedValue({
+        status: 402,
+        responseJSON: {code: 'seer_out_of_credits'},
+      }),
+    });
+    const onClose = jest.fn();
+    render(
+      <PrIterationFeedbackForm
+        autofix={autofix}
+        groupId="1"
+        runId={1}
+        onClose={onClose}
+      />
+    );
+
+    await userEvent.type(screen.getByRole('textbox'), 'make it blue');
+    await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
+
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(screen.getByRole('textbox')).toHaveValue('');
+    expect(trackAnalytics).not.toHaveBeenCalled();
   });
 });

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from typing import ClassVar, Self
+from typing import ClassVar, NewType, Self
 
 from django.conf import settings
 from django.contrib.postgres.fields.array import ArrayField
@@ -31,10 +31,12 @@ from sentry.types.cell import find_cells_for_orgs
 
 __all__ = (
     "ServiceAccount",
+    "ServiceAccountOwnerKind",
     "ServiceAccountProject",
     "ServiceAccountReplica",
     "ServiceAccountProjectReplica",
     "ServiceAccountToken",
+    "ServiceAccountTokenReplica",
 )
 
 # Matches the `name` serializer in the service account API.
@@ -52,10 +54,20 @@ class InvalidScopeError(ValidationError):
     pass
 
 
+# Scope-name eligibility only; callers must still authorize the grant.
+GrantableScope = NewType("GrantableScope", str)
+
+
 def validate_grantable_scopes(value: Iterable[str]) -> None:
     for scope in value:
         if scope not in GRANTABLE_SCOPES:
             raise InvalidScopeError(f"{scope} is not a scope a service account can hold.")
+
+
+def parse_grantable_scopes(scopes: Iterable[str]) -> list[GrantableScope]:
+    scopes = list(scopes)
+    validate_grantable_scopes(scopes)
+    return [GrantableScope(scope) for scope in scopes]
 
 
 def service_account_outboxes(
@@ -66,6 +78,15 @@ def service_account_outboxes(
         object_identifier=service_account_id,
         shard_identifier=shard_identifier or organization_id,
     )
+
+
+class ServiceAccountOwnerKind(models.TextChoices):
+    """What owns an account's lifecycle. `created_by_id` records the person who made it."""
+
+    # The org's admins manage it in settings.
+    ORGANIZATION = "organization"
+    # The workflow config manages it, and deleting the config deletes the account.
+    SEER_WORKFLOW_CONFIG = "seer_workflow_config"
 
 
 @control_silo_model
@@ -96,6 +117,12 @@ class ServiceAccount(ReplicatedControlModel):
     created_by = FlexibleForeignKey("sentry.User", null=True, blank=True, on_delete=models.SET_NULL)
     # Lets a retried create, such as an outbox redelivery, find the account it already made.
     idempotency_key = models.CharField(max_length=64, null=True, blank=True)
+    # Null for accounts created before this was recorded, so their owner is unknown. Only an
+    # owner in the cell, such as a Seer automation, holds the link to its account, so control
+    # knows the kind of owner but not which one.
+    owner_kind = models.CharField(
+        max_length=64, choices=ServiceAccountOwnerKind.choices, null=True, blank=True
+    )
     date_added = models.DateTimeField(default=timezone.now)
     date_updated = models.DateTimeField(auto_now=True)
 
@@ -131,6 +158,7 @@ class ServiceAccount(ReplicatedControlModel):
         all_projects: bool,
         created_by_id: int | None,
         idempotency_key: str | None = None,
+        owner_kind: ServiceAccountOwnerKind | None = None,
     ) -> ServiceAccount:
         """
         Raises `InvalidScopeError` for a scope outside `GRANTABLE_SCOPES` and `IntegrityError`
@@ -146,6 +174,7 @@ class ServiceAccount(ReplicatedControlModel):
                 all_projects=all_projects,
                 created_by_id=created_by_id,
                 idempotency_key=idempotency_key,
+                owner_kind=owner_kind,
             )
             if not all_projects:
                 ServiceAccountProject.objects.bulk_create(
@@ -164,7 +193,7 @@ class ServiceAccount(ReplicatedControlModel):
             account = (
                 ServiceAccount.objects.select_for_update()
                 .filter(id=self.id, is_active=True)
-                .first()
+                .first()  # noqa: S035
             )
             if account is None:
                 return False
@@ -302,7 +331,7 @@ class ServiceAccountProjectReplica(Model):
 
 
 @control_silo_model
-class ServiceAccountToken(Model):
+class ServiceAccountToken(ReplicatedControlModel):
     """
     A long-lived credential an org admin creates for a service account. Requests made with
     it act as the account, never as the admin who created it.
@@ -313,6 +342,7 @@ class ServiceAccountToken(Model):
 
     # A relocated token would need a new secret, so admins create new tokens instead.
     __relocation_scope__ = RelocationScope.Excluded
+    category = OutboxCategory.SERVICE_ACCOUNT_TOKEN_UPDATE
 
     service_account = FlexibleForeignKey(
         "service_accounts.ServiceAccount", on_delete=models.CASCADE
@@ -340,3 +370,49 @@ class ServiceAccountToken(Model):
         db_table = "service_accounts_serviceaccounttoken"
 
     __repr__ = sane_repr("organization_id", "service_account_id", "name")
+
+    def handle_async_replication(self, cell_name: str, shard_identifier: int) -> None:
+        from sentry.hybridcloud.services.replica import cell_replica_service
+        from sentry.service_accounts.services.service_account.serial import (
+            serialize_service_account_token,
+        )
+
+        cell_replica_service.upsert_replicated_service_account_token(
+            token=serialize_service_account_token(self),
+            cell_name=cell_name,
+        )
+
+
+@cell_silo_model
+class ServiceAccountTokenReplica(Model):
+    """
+    The cell's copy of a `ServiceAccountToken`, written by its outbox. Revoking the token
+    keeps this row with `date_deactivated` set, so callers must check it, `date_expires` and
+    the account's `is_active`.
+    """
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    service_account = FlexibleForeignKey(
+        "service_accounts.ServiceAccountReplica", on_delete=models.CASCADE
+    )
+    token_id = HybridCloudForeignKey(
+        "service_accounts.ServiceAccountToken", null=False, on_delete="CASCADE", unique=True
+    )
+    organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
+    token_hashed = models.TextField()
+    scope_list = ArrayField(models.TextField(), default=list)
+    date_expires = models.DateTimeField(null=True)
+    date_deactivated = models.DateTimeField(null=True)
+
+    class Meta:
+        app_label = "service_accounts"
+        db_table = "service_accounts_serviceaccounttokenreplica"
+        indexes = [
+            models.Index(
+                fields=["token_hashed"],
+                name="sa_token_replica_hash_idx",
+            ),
+        ]
+
+    __repr__ = sane_repr("organization_id", "token_id")

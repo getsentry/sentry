@@ -20,9 +20,9 @@ export function supportsWidgetTransformations(
 }
 
 /**
- * Builds the pipelines for a new list of series. `sourceIndices[i]` is the
+ * Builds the transformations for a new list of series. `sourceIndices[i]` is the
  * position series `i` had before the change, or `undefined` when it has no
- * earlier pipeline to keep.
+ * earlier transformations to keep.
  */
 export function remapTransformations(
   transformations: QueryTransformations,
@@ -33,8 +33,8 @@ export function remapTransformations(
       if (sourceIndex === undefined) {
         return [];
       }
-      const pipeline = transformations[sourceIndex];
-      return pipeline?.length ? [[index, pipeline]] : [];
+      const axisTransformations = transformations[sourceIndex];
+      return axisTransformations?.length ? [[index, axisTransformations]] : [];
     })
   );
 }

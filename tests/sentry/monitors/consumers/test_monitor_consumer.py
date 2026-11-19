@@ -197,7 +197,6 @@ class MonitorConsumerTest(TestCase):
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.OK
-        assert checkin.monitor_config is None
         assert (
             MonitorCheckInConfig.objects.get(id=checkin.checkin_config_id).config == monitor.config
         )
@@ -270,7 +269,6 @@ class MonitorConsumerTest(TestCase):
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.OK
-        assert checkin.monitor_config is None
         assert (
             MonitorCheckInConfig.objects.get(id=checkin.checkin_config_id).config == monitor.config
         )
@@ -1077,7 +1075,7 @@ class MonitorConsumerTest(TestCase):
         assert checkins[0].status == CheckInStatus.IN_PROGRESS
 
         # Test invalid implicit duration
-        old_checkin = MonitorCheckIn.objects.create(
+        old_checkin = self.create_monitor_checkin(
             monitor_environment=MonitorEnvironment.objects.get(monitor=monitor),
             status=CheckInStatus.IN_PROGRESS,
             date_added=monitor.date_added - timedelta(weeks=52),

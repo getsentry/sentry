@@ -14,7 +14,13 @@ jobs:
     name: lint PR
     # Branches in this repo only, so employees and internal bots but never forks. Every label
     # change re-runs the lint, because a skipped run would replace the last result.
-    if: github.event.pull_request.head.repo.full_name == github.repository
+    # Each changed file costs model calls, so mass rewrites such as codemods and formatter
+    # sweeps are skipped. Removed lines are not linted, so only additions count. Over 99.8% of
+    # merged PRs fall under both limits.
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.changed_files <= 200 &&
+      github.event.pull_request.additions <= 10000
     runs-on: ubuntu-26.04-arm
     timeout-minutes: 15
     permissions:
@@ -27,7 +33,7 @@ jobs:
           fetch-depth: 2
           persist-credentials: false
 
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: $/.github/actions/setup-node-pnpm
 
       - name: lint
         env:
@@ -35,6 +41,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.number }}
           LABEL: 'Trigger: Override Decision Model Lint'
+          # Rules diff each file against the PR's base, it must match --base below
+          DECISION_MODEL_LINT_BASE: HEAD^1
           OVERRIDDEN: "${{ contains(github.event.pull_request.labels.*.name, 'Trigger: Override Decision Model Lint') }}"
         run: |
           report="$RUNNER_TEMP/decision-model-lint.md"
@@ -51,21 +59,33 @@ jobs:
             printf 'The linter did not finish (exit %s), and the `%s` label passes the check anyway; see the job log.\n' "$status" "$LABEL" >> "$report"
           fi
 
+          cat "$report" >> "$GITHUB_STEP_SUMMARY"
+
           marker='<!-- decision-model-linter -->'
           comment=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate \
             --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | contains(\"$marker\"))) | .id" | head -n 1)
-          body=
+          # gh reads the body from a file, because Linux limits one argument to 128 KiB.
+          body="$RUNNER_TEMP/decision-model-lint-comment.md"
           if [ -s "$report" ] && { [ "$status" -le 1 ] || [ "$OVERRIDDEN" = true ]; }; then
-            body=$(printf '%s\n%s' "$marker" "$(cat "$report")")
+            printf '%s\n' "$marker" > "$body"
+            # GitHub rejects comments over 65536 characters, and bytes never undercount characters.
+            if [ "$(wc -c < "$report")" -gt 60000 ]; then
+              # Drop the line that the cut can split. Keep the last line: the note above, or the usage.
+              head -c 60000 "$report" | sed '$d' >> "$body"
+              printf '\nThe report is too long for a comment. The [job summary](%s) has the full report.\n\n' \
+                "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" >> "$body"
+              tail -n 1 "$report" >> "$body"
+            else
+              cat "$report" >> "$body"
+            fi
           elif [ "$status" -eq 0 ] && [ -n "$comment" ]; then
-            body=$(printf '%s\nNo findings on the latest commit.' "$marker")
+            printf '%s\nNo findings on the latest commit.\n' "$marker" > "$body"
           fi
-          if [ -n "$body" ] && [ -n "$comment" ]; then
-            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$comment" -f body="$body" > /dev/null
-          elif [ -n "$body" ]; then
-            gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" -f body="$body" > /dev/null
+          if [ -s "$body" ] && [ -n "$comment" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$comment" -F body=@"$body" > /dev/null
+          elif [ -s "$body" ]; then
+            gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" -F body=@"$body" > /dev/null
           fi
-          cat "$report" >> "$GITHUB_STEP_SUMMARY"
 
           if [ "$status" -ne 0 ] && [ "$OVERRIDDEN" = true ]; then exit 0; fi
           exit "$status"

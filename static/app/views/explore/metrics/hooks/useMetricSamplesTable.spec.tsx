@@ -25,10 +25,6 @@ describe('useMetricSamplesTable', () => {
     jest.clearAllMocks();
   });
 
-  afterEach(() => {
-    PageFiltersStore.reset();
-  });
-
   it('triggers the high accuracy request when there is no data and a partial scan', async () => {
     const mockNormalRequestUrl = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
@@ -125,9 +121,7 @@ describe('useMetricSamplesTable', () => {
       expect.objectContaining({
         query: expect.objectContaining({
           query: 'metric.name:test.metric metric.type:counter',
-          caseInsensitive: undefined,
           dataset: 'tracemetrics',
-          disableAggregateExtrapolation: undefined,
           environment: ['prod'],
           field: [
             'id',
@@ -185,9 +179,6 @@ describe('useMetricSamplesTable', () => {
         query: expect.objectContaining({
           statsPeriodStart: '24h',
           statsPeriodEnd: '120s',
-          statsPeriod: undefined,
-          start: undefined,
-          end: undefined,
         }),
       })
     );

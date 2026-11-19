@@ -1,17 +1,19 @@
 import type {Organization} from 'sentry/types/organization';
 
+import {orgHasNewSeerPlan} from './orgHasNewSeerPlan';
+
 /**
  * This hook determines if we should show the new Seer settings/onboarding or not.
  *
  * This is based on the following factors:
- *  - The organization is on the new Seer, seat-based plan. This supersedes all other checks.
+ *  - The organization is on the new seat-based or token-billed Seer plan. This supersedes all other checks.
  *  - The organization is on the old Seer plan
  *  - The organization is on the code-review-beta trial
  *  - If the new Seer billing is released
  */
 export function showNewSeer(organization: Organization) {
   // New seer plan
-  if (organization.features.includes('seat-based-seer-enabled')) {
+  if (orgHasNewSeerPlan(organization)) {
     return true;
   }
 

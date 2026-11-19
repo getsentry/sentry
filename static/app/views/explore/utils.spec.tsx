@@ -1,13 +1,14 @@
-import qs from 'query-string';
 import {DiscoverSavedQueryFixture} from 'sentry-fixture/discover';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
+import type {QuerySpeed} from 'sentry/components/querySpeedMenu';
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import * as qs from 'sentry/utils/url/qs';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 import {Mode} from './contexts/pageParamsContext/mode';
@@ -818,7 +819,8 @@ describe('getSavedQueryTraceItemUrl', () => {
 
   function makeSavedQuery(
     dataset: ReadableSavedQuery['dataset'],
-    query: ReadableSavedQuery['query']
+    query: ReadableSavedQuery['query'],
+    queryPriority?: QuerySpeed
   ) {
     return new SavedQuery({
       id: 1,
@@ -832,18 +834,27 @@ describe('getSavedQueryTraceItemUrl', () => {
       starred: false,
       position: null,
       query,
+      queryPriority,
     });
   }
 
+  function parseSavedQueryUrl(savedQuery: SavedQuery) {
+    const url = getSavedQueryTraceItemUrl({savedQuery, organization});
+    return qs.parse(new URL(url, 'https://sentry.io').search);
+  }
+
+  it('puts a saved query priority on the spans url', () => {
+    const savedQuery = makeSavedQuery('spans', [readableQuery], 'faster');
+
+    expect(parseSavedQueryUrl(savedQuery).queryPriority).toBe('faster');
+  });
+
   function getCaseInsensitiveParam(savedQuery: SavedQuery) {
-    return qs.parseUrl(getSavedQueryTraceItemUrl({savedQuery, organization})).query
-      .caseInsensitive;
+    return parseSavedQueryUrl(savedQuery).caseInsensitive;
   }
 
   function getCompareCaseInsensitiveParams(savedQuery: SavedQuery) {
-    const {queries} = qs.parseUrl(
-      getSavedQueryTraceItemUrl({savedQuery, organization})
-    ).query;
+    const {queries} = parseSavedQueryUrl(savedQuery);
     return (queries as string[]).map(query => JSON.parse(query).caseInsensitive);
   }
 
@@ -884,6 +895,12 @@ describe('getSavedQueryTraceItemUrl', () => {
     ]);
 
     expect(getCompareCaseInsensitiveParams(savedQuery)).toEqual([false, '1']);
+  });
+
+  it('leaves a saved query priority off the compare url', () => {
+    const savedQuery = makeSavedQuery('spans', [readableQuery, readableQuery], 'faster');
+
+    expect(parseSavedQueryUrl(savedQuery).queryPriority).toBeUndefined();
   });
 
   function conversationsSavedQuery(overrides: Partial<ReadableSavedQuery> = {}) {

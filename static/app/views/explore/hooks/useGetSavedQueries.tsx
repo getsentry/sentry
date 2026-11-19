@@ -1,6 +1,7 @@
 import {useCallback, useMemo} from 'react';
 import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
 
+import type {QuerySpeed} from 'sentry/components/querySpeedMenu';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import type {DateString} from 'sentry/types/core';
 import type {
@@ -146,6 +147,7 @@ export type ReadableSavedQuery = {
   environment?: string[];
   errorsOnly?: boolean;
   isPrebuilt?: boolean;
+  queryPriority?: QuerySpeed;
   start?: string;
   statsPeriod?: string;
 };
@@ -171,6 +173,7 @@ export class SavedQuery {
   environment?: string[];
   errorsOnly?: boolean;
   isPrebuilt?: boolean;
+  queryPriority?: QuerySpeed;
   start?: string | DateString;
   statsPeriod?: string;
 
@@ -196,6 +199,10 @@ export class SavedQuery {
     this.environment = savedQuery.environment;
     this.errorsOnly = savedQuery.errorsOnly;
     this.isPrebuilt = savedQuery.isPrebuilt;
+    this.queryPriority =
+      savedQuery.queryPriority === 'normal' || savedQuery.queryPriority === 'faster'
+        ? savedQuery.queryPriority
+        : undefined;
     this.statsPeriod = savedQuery.statsPeriod;
     this.start = savedQuery.start;
     this.dataset = savedQuery.dataset;
@@ -358,7 +365,9 @@ function savedQueryApiOptions({
 
 export function useGetSavedQuery(id?: string) {
   const organization = useOrganization();
-  const {data, isLoading, isFetched} = useQuery(savedQueryApiOptions({organization, id}));
+  const {data, isLoading, isFetched, isError} = useQuery(
+    savedQueryApiOptions({organization, id})
+  );
   const savedQuery = useMemo(() => {
     if (!defined(data)) {
       return;
@@ -367,7 +376,7 @@ export function useGetSavedQuery(id?: string) {
       ? new SavedQuery(data)
       : undefined;
   }, [data]);
-  return {data: savedQuery, isLoading, isFetched};
+  return {data: savedQuery, isError, isLoading, isFetched};
 }
 
 export function useInvalidateSavedQuery(id?: string) {

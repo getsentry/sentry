@@ -1,16 +1,16 @@
 import {useCallback, useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
 import type {EventsMetaType, EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
+import {useExploreQuerySpeed} from 'sentry/views/explore/hooks/useExploreQuerySpeed';
 import type {RPCQueryExtras} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
   SAMPLING_MODE,
@@ -116,7 +116,7 @@ export function useMetricSamplesQueryString(
   }, [frozenSearch, requiredQuery, traceMetric, userSearch]);
 }
 
-function useMetricsQueryKey({
+function useMetricsQueryOptions({
   limit,
   traceMetric,
   fields,
@@ -208,15 +208,17 @@ function useMetricsQueryKey({
     eventView,
   };
 
-  const queryKey: ApiQueryKey = [
-    getApiUrl('/organizations/$organizationIdOrSlug/events/', {
-      path: {organizationIdOrSlug: organization.slug},
-    }),
-    params,
-  ];
+  const queryOptions = apiOptions.as<{
+    data: TraceMetricEventsResponseItem[];
+    meta?: EventsMetaType;
+  }>()('/organizations/$organizationIdOrSlug/events/', {
+    path: {organizationIdOrSlug: organization.slug},
+    ...params,
+    staleTime: 0,
+  });
 
   return {
-    queryKey,
+    queryOptions,
     other: {
       eventView,
       pageFiltersReady,
@@ -234,6 +236,7 @@ export function useMetricSamplesTable({
   requiredQuery,
   staleTime,
 }: UseMetricSamplesTableOptions) {
+  const {isReady: querySpeedReady, samplingMode} = useExploreQuerySpeed();
   const canTriggerHighAccuracy = useCallback(
     (result: MetricSamplesTableResult['result']) => {
       const canGoToHigherAccuracyTier = result.meta?.dataScanned === 'partial';
@@ -246,7 +249,7 @@ export function useMetricSamplesTable({
   return useProgressiveQuery<typeof useMetricSamplesTableImpl>({
     queryHookImplementation: useMetricSamplesTableImpl, // oxlint-disable-line react/hooks -- useProgressiveQuery takes the query hook as a value and calls it per accuracy tier.
     queryHookArgs: {
-      enabled: !disabled,
+      enabled: !disabled && querySpeedReady,
       limit,
       traceMetric,
       fields,
@@ -257,6 +260,7 @@ export function useMetricSamplesTable({
     },
     queryOptions: {
       canTriggerHighAccuracy,
+      samplingMode,
     },
   });
 }
@@ -271,7 +275,7 @@ function useMetricSamplesTableImpl({
   requiredQuery,
   staleTime,
 }: UseMetricSamplesTableOptions & {enabled: boolean}): MetricSamplesTableResult {
-  const {queryKey, other} = useMetricsQueryKey({
+  const {queryOptions, other} = useMetricsQueryOptions({
     limit,
     traceMetric,
     fields,
@@ -281,7 +285,8 @@ function useMetricSamplesTableImpl({
     requiredQuery,
   });
 
-  const result = useApiQuery<{data: any[]; meta?: EventsMetaType}>(queryKey, {
+  const result = useQuery({
+    ...queryOptions,
     enabled,
     staleTime: staleTime ?? getStaleTimeForEventView(other.eventView),
   });

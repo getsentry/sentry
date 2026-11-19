@@ -184,6 +184,10 @@ const mockGroupApis = (
   trace?: TraceTree.EAPSpan
 ) => {
   MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/issues/`,
+    body: [],
+  });
+  MockApiClient.addMockResponse({
     url: '/organizations/org-slug/issues/1/events/',
     body: [],
   });

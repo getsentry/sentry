@@ -108,6 +108,41 @@ describe('useWidgetBuilderState', () => {
   });
 
   describe('display type', () => {
+    it('retargets a stale equation sort when a trace metrics table becomes a time series', () => {
+      const countTtfb = 'count(value,browser.web_vital.ttfb,distribution,millisecond)';
+      const {result} = renderWidgetBuilderState({
+        dataset: WidgetType.TRACEMETRICS,
+        displayType: DisplayType.TABLE,
+        field: [
+          'transaction',
+          'project',
+          countTtfb,
+          'p75(value,browser.web_vital.lcp,distribution,millisecond)',
+          'p75(value,browser.web_vital.fcp,distribution,millisecond)',
+          'p75(value,browser.web_vital.cls,distribution,none)',
+          'equation|performance_score()',
+          'equation|opportunity_score()',
+        ],
+        sort: ['-equation[1]'],
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.AREA,
+        });
+      });
+
+      expect(result.current.state.fields).toEqual([
+        {kind: 'field', field: 'transaction'},
+        {kind: 'field', field: 'project'},
+      ]);
+      expect(result.current.state.yAxis).toHaveLength(3);
+      // The equations were dropped with the y-axis cap, so the sort moves to a
+      // plotted aggregate instead of pointing at a missing equation
+      expect(result.current.state.sort).toEqual([{kind: 'desc', field: countTtfb}]);
+    });
+
     it('returns the display type from the query params', () => {
       const {result} = renderWidgetBuilderState({displayType: DisplayType.AREA});
 
@@ -906,7 +941,7 @@ describe('useWidgetBuilderState', () => {
         });
       });
 
-      // PREPROD_APP_SIZE only supports LINE, so TABLE should be reset to LINE
+      // PREPROD_APP_SIZE does not support TABLE, so it resets to the first supported type
       expect(result.current.state.displayType).toBe(DisplayType.LINE);
     });
 
@@ -1558,7 +1593,7 @@ describe('useWidgetBuilderState', () => {
   });
 
   describe('transformations', () => {
-    it('updates or clears one aggregate across filters without changing sibling pipelines', () => {
+    it('updates or clears one aggregate across filters without changing sibling transformations', () => {
       const {result} = renderWidgetBuilderState({
         dataset: WidgetType.SPANS,
         displayType: DisplayType.LINE,
@@ -1588,7 +1623,7 @@ describe('useWidgetBuilderState', () => {
       ]);
     });
 
-    it('moves equation pipelines when equations are reordered', () => {
+    it('moves equation transformations when equations are reordered', () => {
       const {result} = renderWidgetBuilderState({
         dataset: WidgetType.SPANS,
         displayType: DisplayType.LINE,
@@ -1608,7 +1643,7 @@ describe('useWidgetBuilderState', () => {
       expect(result.current.state.transformations).toEqual([{0: ['smooth(sma,3)']}]);
     });
 
-    it('keeps pipelines aligned through duplicate-axis moves, edits, additions, and deletion', () => {
+    it('keeps transformations aligned through duplicate-axis moves, edits, additions, and deletion', () => {
       const {result} = renderWidgetBuilderState({
         dataset: WidgetType.SPANS,
         displayType: DisplayType.LINE,
@@ -1660,7 +1695,7 @@ describe('useWidgetBuilderState', () => {
       ]);
     });
 
-    it('removes a filter pipeline and copies the first pipeline for an appended filter', () => {
+    it("removes a filter's transformations and copies the first filter's transformations for an appended filter", () => {
       const {result} = renderWidgetBuilderState({
         yAxis: ['count()'],
         query: ['environment:prod', 'environment:staging', 'environment:dev'],
@@ -1691,7 +1726,7 @@ describe('useWidgetBuilderState', () => {
       ]);
     });
 
-    it('clears previous pipelines when loading a widget without transformations', () => {
+    it('clears previous transformations when loading a widget without transformations', () => {
       const {result} = renderWidgetBuilderState({
         transformations: '[{"0":["fill(zero)"]}]',
       });
@@ -1709,7 +1744,7 @@ describe('useWidgetBuilderState', () => {
       expect(result.current.state.transformations).toBeUndefined();
     });
 
-    it('loads pipelines when setting the state', () => {
+    it('loads transformations when setting the state', () => {
       const {result} = renderWidgetBuilderState();
       act(() => {
         result.current.dispatch({
@@ -1725,7 +1760,7 @@ describe('useWidgetBuilderState', () => {
       expect(result.current.state.transformations).toEqual([{1: ['fill(zero)']}]);
     });
 
-    it('clears previous pipelines when loading a widget with malformed transformations', () => {
+    it('clears previous transformations when loading a widget with malformed transformations', () => {
       const {result} = renderWidgetBuilderState({
         transformations: '[{"0":["fill(zero)"]}]',
       });
@@ -1743,7 +1778,7 @@ describe('useWidgetBuilderState', () => {
       expect(result.current.state.transformations).toBeUndefined();
     });
 
-    it('writes pipelines to the URL as JSON', () => {
+    it('writes transformations to the URL as JSON', () => {
       const {result, router} = renderWidgetBuilderState({yAxis: ['count()', 'count()']});
       act(() => {
         result.current.dispatch({
@@ -1778,7 +1813,7 @@ describe('useWidgetBuilderState', () => {
       expect(result.current.state.transformations).toEqual([{1: ['fill(zero)']}]);
     });
 
-    it('retains pipelines for timeseries chart changes and clears them on dataset changes', () => {
+    it('retains transformations for timeseries chart changes and clears them on dataset changes', () => {
       const {result} = renderWidgetBuilderState({
         dataset: WidgetType.SPANS,
         displayType: DisplayType.LINE,

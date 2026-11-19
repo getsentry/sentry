@@ -1,10 +1,11 @@
 import {useCallback, type ReactNode} from 'react';
 import {parseAsString, useQueryStates} from 'nuqs';
 
-import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
+import {Pagination} from '@sentry/scraps/pagination';
 
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {getPaginationProps, useGetPaginationCaption} from 'sentry/utils/pagination';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -148,7 +149,7 @@ function DetectorListContentInner({
         )}
       </VisuallyCompleteWithData>
       <Pagination
-        pageLinks={pageLinks}
+        {...getPaginationProps(pageLinks)}
         caption={paginationCaption}
         onCursor={newCursor => {
           setListParams({cursor: newCursor ?? null});

@@ -18,7 +18,9 @@ const staticDir = path.resolve(import.meta.dirname, '../static');
  * `static/`, so each key starts with its root directory.
  *
  * The manifest is a module inside the `sentry` package, which does not depend
- * on `getsentry`, so that root is imported by relative path.
+ * on `getsentry`, so that root is imported by relative path. Scraps docs live
+ * next to their components in the package, which is also imported by relative
+ * path.
  *
  * gsAdmin is left out on purpose: its components are staff-only, and stories
  * are visible to every logged-in user.
@@ -26,6 +28,7 @@ const staticDir = path.resolve(import.meta.dirname, '../static');
 const STORY_ROOTS = [
   {directory: 'app', importPrefix: 'sentry/'},
   {directory: 'gsApp', importPrefix: '../../gsApp/'},
+  {directory: 'packages/scraps/src', importPrefix: '../../packages/scraps/src/'},
 ];
 
 const PLUGIN_NAME = 'StoryManifestPlugin';
@@ -92,9 +95,7 @@ function createManifest() {
       const source = fs.readFileSync(path.join(staticDir, key), 'utf8');
       return {
         key,
-        // Component categories are validated against app-relative paths, so
-        // only app stories can be core component docs.
-        frontmatter: parseStoryFrontmatter(key.replace(/^app\//, ''), source),
+        frontmatter: parseStoryFrontmatter(key, source),
         headings: indexStoryHeadings(mdxParser.parse({path: file, value: source})),
       };
     });

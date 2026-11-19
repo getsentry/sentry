@@ -25,7 +25,13 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project import DetailedProjectResponse, DetailedProjectSerializer
 from sentry.api.serializers.rest_framework.list import EmptyListField
 from sentry.api.serializers.rest_framework.origin import OriginField
-from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NO_CONTENT, RESPONSE_NOT_FOUND
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_CONFLICT,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NO_CONTENT,
+    RESPONSE_NOT_FOUND,
+)
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.apidocs.parameters import GlobalParams
@@ -38,13 +44,11 @@ from sentry.auth.principal import acting_user_id
 from sentry.constants import (
     PROJECT_SLUG_MAX_LENGTH,
     RESERVED_PROJECT_SLUGS,
-    SAMPLING_MODE_DEFAULT,
     ObjectStatus,
 )
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.dynamic_sampling import get_supported_biases_ids, get_user_biases
-from sentry.dynamic_sampling.types import DynamicSamplingMode
-from sentry.dynamic_sampling.utils import has_custom_dynamic_sampling, has_dynamic_sampling
+from sentry.dynamic_sampling.utils import has_dynamic_sampling
 from sentry.grouping.enhancer import EnhancementsConfig
 from sentry.grouping.enhancer.exceptions import InvalidEnhancerConfig
 from sentry.grouping.fingerprinting import FingerprintingConfig
@@ -268,23 +272,27 @@ E.g. `{'user': ['id', 'email']}`""",
 E.g. `['release', 'environment']`""",
     )
     digestsMinDelay = serializers.IntegerField(
+        required=False,
         min_value=60,
         max_value=3600,
         help_text="Minimum time in seconds to wait before sending an issue digest email.",
     )
     digestsMaxDelay = serializers.IntegerField(
+        required=False,
         min_value=60,
         max_value=3600,
         help_text="Maximum time in seconds to wait before sending an issue digest email.",
     )
     securityToken = serializers.RegexField(
         r"^[-a-zA-Z0-9+/=\s]+$",
+        required=False,
         max_length=255,
         allow_blank=True,
         help_text="Token sent with security reports (CSP, Expect-CT, HPKP) so Sentry can verify their origin.",
     )
     securityTokenHeader = serializers.RegexField(
         r"^[a-zA-Z0-9_\-]+$",
+        required=False,
         max_length=64,
         allow_blank=True,
         help_text="Name of the header carrying the security token on inbound security reports.",
@@ -398,12 +406,6 @@ E.g. `['release', 'environment']`""",
         required=False,
         help_text="ID of a project whose settings, teams, and keys should be copied into this one.",
     )
-    targetSampleRate = serializers.FloatField(
-        required=False,
-        min_value=0,
-        max_value=1,
-        help_text="Target proportion of transactions to retain, from `0` to `1`. Requires manual dynamic sampling mode.",
-    )
     dynamicSamplingBiases = DynamicSamplingBiasSerializer(
         required=False,
         many=True,
@@ -465,7 +467,7 @@ E.g. `['release', 'environment']`""",
         other = (
             Project.objects.filter(slug=slug, organization=project.organization)
             .exclude(id=project.id)
-            .first()
+            .get_or_none()
         )
         if other is not None:
             raise serializers.ValidationError(
@@ -600,24 +602,6 @@ E.g. `['release', 'environment']`""",
     def validate_safeFields(self, value: list[str]) -> list[str]:
         return validate_pii_selectors(value)
 
-    def validate_targetSampleRate(self, value: float) -> float:
-        organization = self.context["project"].organization
-        actor = self.context["request"].user
-        if not has_custom_dynamic_sampling(organization, actor=actor):
-            raise serializers.ValidationError(
-                "Organization does not have the custom dynamic sample rate feature enabled."
-            )
-
-        if (
-            organization.get_option("sentry:sampling_mode", SAMPLING_MODE_DEFAULT)
-            != DynamicSamplingMode.PROJECT.value
-        ):
-            raise serializers.ValidationError(
-                "Must enable Manual Mode to configure project sample rates."
-            )
-
-        return value
-
     def validate_tempestFetchScreenshots(self, value: bool) -> bool:
         organization = self.context["project"].organization
         if not has_tempest_access(organization):
@@ -691,6 +675,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         request=None,
         responses={
             200: DetailedProjectSerializer,
+            400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
@@ -741,8 +726,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
         request=ProjectAdminSerializer,
         responses={
             200: DetailedProjectSerializer,
+            400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
+            409: RESPONSE_CONFLICT,
         },
         examples=ProjectExamples.DETAILED_PROJECT,
     )
@@ -968,13 +955,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:enable_native_source_server_mapping"] = result[
                     "enableNativeSourceServerMapping"
                 ]
-        if result.get("targetSampleRate") is not None:
-            if project.update_option(
-                "sentry:target_sample_rate", round(result["targetSampleRate"], 4)
-            ):
-                changed_proj_settings["sentry:target_sample_rate"] = round(
-                    result["targetSampleRate"], 4
-                )
         if "dynamicSamplingBiases" in result:
             updated_biases = get_user_biases(user_set_biases=result["dynamicSamplingBiases"])
             if project.update_option("sentry:dynamic_sampling_biases", updated_biases):

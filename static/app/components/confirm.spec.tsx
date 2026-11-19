@@ -9,7 +9,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {Confirm} from './confirm';
+import {Confirm} from '@sentry/scraps/confirm';
 
 describe('Confirm', () => {
   beforeEach(() => {

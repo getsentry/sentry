@@ -11,15 +11,41 @@ bootstrap:
 	@echo "you probably want to run devenv sync to bring the"
 	@echo "sentry dev environment up to date!"
 
-build-platform-assets \
-clean \
-init-config \
-run-dependent-services \
-drop-db \
-create-db \
-apply-migrations \
-reset-db :
-	@./scripts/do.sh $@
+.PHONY: init-config run-dependent-services build-platform-assets clean create-db drop-db apply-migrations reset-db
+init-config:
+	sentry init --dev --no-clobber
+
+run-dependent-services:
+	devservices up
+
+build-platform-assets:
+	@echo "--> Building platform assets"
+	python3 -m sentry.build._integration_docs
+	@# make sure this didn't silently do nothing
+	@test -f src/sentry/integration-docs/android.json
+
+clean:
+	@echo "--> Cleaning static cache"
+	rm -rf dist/* src/sentry/static/sentry/dist/*
+	@echo "--> Cleaning integration docs cache"
+	rm -rf src/sentry/integration-docs
+	@echo "--> Cleaning pyc files"
+	find . -name "*.pyc" -delete
+	@echo "--> Cleaning python build artifacts"
+	rm -rf build/ dist/ src/sentry/assets.json
+
+create-db:
+	@python3 -m tools.dev_db create
+
+drop-db:
+	@python3 -m tools.dev_db drop
+
+apply-migrations:
+	@python3 -m tools.dev_db migrate
+
+# One invocation keeps drop, migrate and createuser ordered under `make -j`.
+reset-db:
+	@python3 -m tools.dev_db reset
 
 develop \
 install-js-dev \
@@ -48,6 +74,12 @@ build-api-docs: build-deprecated-docs build-spectacular-docs
 	@echo "--> Dereference the json schema for ease of use"
 	pnpm run deref-api-docs
 
+# The internal RPC method schema, which CI's openapi-diff checks for breaking changes.
+# It also ships with @sentry/api releases (static/packages/api) next to the API spec.
+build-rpc-schema:
+	@mkdir -p .artifacts
+	sentry rpcschema --loglevel=WARNING > .artifacts/rpc_method_schema.json
+
 # Opt-in private schema for local review; never included in the public docs build.
 build-investigation-api-docs: build-deprecated-docs
 	@mkdir -p .artifacts/investigation-api-docs
@@ -60,12 +92,28 @@ api-owner-map:
 	@mkdir -p .artifacts
 	@sentry django api_endpoint_owners --output .artifacts/api-endpoint-owners.json
 
+# Writes api_exceptions/exceptions.json, or updates it with ARGS="--files example_file" (only those files) or ARGS="--update" (every file).
+# Updates keep each entry's status, reason and first_seen. (note: needs the owner map from `make api-owner-map`)
+api-baseline:
+	@echo "--> Generating the API exceptions baseline"
+	@python3 -m tools.api_guidelines.generate_baseline $(ARGS)
+
+# Every team's API rule findings, read from api_exceptions/exceptions.json (`make api-baseline` writes it).
+# Pass ARGS, i.e `make api-report-card ARGS="--team issues-feed"`, ARGS="--format markdown"
+# or ARGS="--compare older-exceptions.json" for the new, fixed and changed-count entries since an older file
+api-report-card:
+	@python3 -m tools.api_guidelines.report_card $(ARGS)
+
 watch-api-docs:
 	@cd api-docs/ && node ./watch.ts
 
+# Compares tests/apidocs/openapi-derefed.json (from build-api-docs) with the
+# master spec where this branch started, the same way CI's openapi-diff does.
+# Needs gh (logged in) and docker.
 diff-api-docs:
-	@echo "--> diffing local api docs against sentry-api-schema/openapi-derefed.json"
-	pnpm run diff-docs
+	@echo "--> diffing local api docs against the merge-base's spec"
+	.github/workflows/scripts/openapi-diff.sh baseline .artifacts/openapi-baseline
+	.github/workflows/scripts/openapi-diff.sh changelog .artifacts/openapi-baseline/openapi-derefed.json tests/apidocs/openapi-derefed.json
 
 build: locale
 
@@ -98,9 +146,12 @@ build-chartcuterie-config:
 	@echo "--> Building chartcuterie config module"
 	pnpm run build-chartcuterie-config
 
+# CI sets this to pytest-selected.py when it has test durations to balance
+# shards with.
+ACCEPTANCE_PYTEST ?= -m pytest
 run-acceptance:
 	@echo "--> Running acceptance tests"
-	python3 -b -m pytest tests/acceptance --reuse-db --json-report --json-report-file=".artifacts/pytest.acceptance.json" --json-report-omit=log --junit-xml=".artifacts/acceptance.junit.xml" -o junit_suite_name=acceptance
+	python3 -b $(ACCEPTANCE_PYTEST) tests/acceptance --reuse-db --json-report --json-report-file=".artifacts/pytest.acceptance.json" --json-report-omit=log --junit-xml=".artifacts/acceptance.junit.xml" -o junit_suite_name=acceptance
 	@echo ""
 
 test-cli: create-db
@@ -116,7 +167,7 @@ test-cli: create-db
 
 test-js-build:
 	@echo "--> Running type check"
-	@pnpm run tsc -p tsconfig.json
+	@pnpm run typecheck
 	@echo "--> Building static assets"
 	@NODE_ENV=production pnpm run build-profile > .artifacts/webpack-stats.json
 

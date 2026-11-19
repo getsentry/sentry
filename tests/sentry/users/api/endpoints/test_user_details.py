@@ -1,7 +1,9 @@
 from collections.abc import Generator
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from django.test import override_settings
+from django.urls import reverse
 from pytest import fixture
 
 from sentry import audit_log
@@ -12,6 +14,7 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.deletedorganization import DeletedOrganization
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
+from sentry.seer import agent_token
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
@@ -122,6 +125,98 @@ class UserDetailsGetTest(UserDetailsTest):
 
         resp = self.get_success_response(self.staff_user.id)
         assert resp.data["permissions"] == ["broadcasts.admin", "users.admin"]
+
+
+@control_silo_test
+@override_settings(SEER_API_SHARED_SECRET="test-secret")
+class UserDetailsGetTokenTest(APITestCase):
+    """GET with a bearer token and no session, the way the Sentry CLI calls it."""
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.user = self.create_user(email="a@example.com")
+        self.organization = self.create_organization(owner=self.user)
+        # No `login_as`: the bearer token must be the only credential on the request.
+
+    def _get(self, token: str, user_id: int | str = "me", method: str = "get") -> Any:
+        url = reverse("sentry-api-0-user-details", args=[user_id])
+        return getattr(self.client, method)(url, HTTP_AUTHORIZATION=f"Bearer {token}")
+
+    def test_personal_token_without_scopes_reads_self(self) -> None:
+        token = self.create_user_auth_token(user=self.user, scope_list=[])
+
+        response = self._get(token.plaintext_token)
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == str(self.user.id)
+        assert response.data["email"] == "a@example.com"
+        assert response.data["options"]["theme"] == "system"
+        assert response.data["permissions"] == []
+
+    def test_oauth_application_token_reads_self(self) -> None:
+        app = self.create_api_application(owner=self.create_user())
+        token = self.create_user_auth_token(user=self.user, scope_list=["openid"], application=app)
+
+        response = self._get(token.plaintext_token)
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == str(self.user.id)
+
+    def test_token_reads_self_by_id(self) -> None:
+        token = self.create_user_auth_token(user=self.user, scope_list=["org:read"])
+
+        response = self._get(token.plaintext_token, self.user.id)
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == str(self.user.id)
+
+    def test_token_cannot_read_another_user(self) -> None:
+        other = self.create_user(email="b@example.com")
+        token = self.create_user_auth_token(user=self.user, scope_list=["org:admin"])
+
+        response = self._get(token.plaintext_token, other.id)
+
+        assert response.status_code == 403, response.content
+
+    def test_superuser_token_cannot_read_another_user(self) -> None:
+        superuser = self.create_user(is_superuser=True)
+        token = self.create_user_auth_token(user=superuser, scope_list=["org:admin"])
+
+        response = self._get(token.plaintext_token, self.user.id)
+
+        assert response.status_code == 403, response.content
+
+    def test_agent_token_is_rejected(self) -> None:
+        token, _ = agent_token.encode_agent_token(
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            scopes=["org:read"],
+            session_id="s1",
+        )
+
+        with self.feature(agent_token.FEATURE_FLAG):
+            response = self._get(token)
+
+        assert response.status_code in {401, 403}, response.content
+
+    def test_internal_integration_token_is_rejected(self) -> None:
+        internal_app = self.create_internal_integration(
+            name="Internal App", organization=self.organization, scopes=["org:read"]
+        )
+        token = self.create_internal_integration_token(
+            user=self.user, internal_integration=internal_app
+        )
+
+        response = self._get(token.plaintext_token)
+
+        assert response.status_code == 403, response.content
+
+    def test_token_cannot_update_or_delete(self) -> None:
+        token = self.create_user_auth_token(user=self.user, scope_list=["org:admin"])
+        bearer = token.plaintext_token
+
+        assert self._get(bearer, method="put").status_code == 403
+        assert self._get(bearer, method="delete").status_code == 403
 
 
 @control_silo_test

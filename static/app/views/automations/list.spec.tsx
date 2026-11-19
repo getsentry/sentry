@@ -477,7 +477,7 @@ describe('AutomationsList', () => {
           '/organizations/org-slug/workflows/',
           expect.objectContaining({
             data: {enabled: true},
-            query: {id: ['2'], query: undefined, project: undefined},
+            query: {id: ['2'], query: undefined, project: undefined, type: 'alert'},
           })
         );
       });
@@ -516,7 +516,7 @@ describe('AutomationsList', () => {
           '/organizations/org-slug/workflows/',
           expect.objectContaining({
             data: {enabled: false},
-            query: {id: ['1'], query: undefined, project: undefined},
+            query: {id: ['1'], query: undefined, project: undefined, type: 'alert'},
           })
         );
       });
@@ -553,7 +553,7 @@ describe('AutomationsList', () => {
         expect(deleteRequest).toHaveBeenCalledWith(
           '/organizations/org-slug/workflows/',
           expect.objectContaining({
-            query: {id: ['1'], query: undefined, project: undefined},
+            query: {id: ['1'], query: undefined, project: undefined, type: 'alert'},
           })
         );
       });
@@ -635,7 +635,7 @@ describe('AutomationsList', () => {
         expect(deleteRequest).toHaveBeenCalledWith(
           '/organizations/org-slug/workflows/',
           expect.objectContaining({
-            query: {id: undefined, query: 'action:slack', project: [1]},
+            query: {id: undefined, query: 'action:slack', project: [1], type: 'alert'},
           })
         );
       });
@@ -777,7 +777,6 @@ describe('AutomationsList', () => {
     function renderAndReadNode() {
       let getLLMContext: ReturnType<typeof useLLMContext>['getLLMContext'] | undefined;
       function Component() {
-        // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
         ({getLLMContext} = useLLMContext());
         return <AutomationsList />;
       }

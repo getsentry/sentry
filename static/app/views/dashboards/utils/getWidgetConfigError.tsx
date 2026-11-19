@@ -23,10 +23,12 @@ export function getWidgetConfigError(widget: Widget): string | undefined {
     return t('The widget configuration is not valid. Please add a "Visualize" field.');
   }
 
+  // A trace metrics table with columns but no aggregates is a samples table,
+  // which narrows to a metric through its conditions instead.
   if (
     widget.widgetType === WidgetType.TRACEMETRICS &&
     widget.displayType === DisplayType.TABLE &&
-    widget.queries.every(q => q.aggregates.length === 0)
+    widget.queries.every(q => q.aggregates.length === 0 && q.columns.length === 0)
   ) {
     return t('This widget is missing a metric aggregation to visualize.');
   }

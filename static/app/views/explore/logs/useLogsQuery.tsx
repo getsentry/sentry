@@ -8,6 +8,7 @@ import {defined} from 'sentry/utils/defined';
 import {type EventsMetaType} from 'sentry/utils/discover/eventView';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
+import {useExploreQuerySpeed} from 'sentry/views/explore/hooks/useExploreQuerySpeed';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {useQueryParamsSortBys} from 'sentry/views/explore/queryParams/context';
 import {getStaleTimeForEventView} from 'sentry/views/insights/common/queries/useSpansQuery';
@@ -67,6 +68,7 @@ export function useInfiniteLogsQuery({
 } = {}) {
   const _referrer = 'api.explore.logs-table';
   const autoRefresh = useLogsAutoRefreshEnabled();
+  const {isReady: querySpeedReady} = useExploreQuerySpeed();
 
   const {infiniteApiOptions: anchoredApiOptions} = useLogsApiOptionsWithInfinite({
     referrer: _referrer,
@@ -146,7 +148,8 @@ export function useInfiniteLogsQuery({
         if (
           !response.json?.data?.length && // no matches found
           response.json?.meta?.dataScanned === 'partial' && // partial scan performed
-          !baseOptions?.data?.highFidelity // not high fidelity mode
+          !baseOptions?.data?.highFidelity && // not high fidelity mode
+          baseOptions?.query?.sampling !== SAMPLING_MODE.LOW_PRIORITY
         ) {
           const retryOptions: QueryKeyEndpointOptions = {
             ...baseOptions,
@@ -198,7 +201,7 @@ export function useInfiniteLogsQuery({
     getPreviousPageParam,
     getNextPageParam,
     initialPageParam,
-    enabled: !disabled,
+    enabled: !disabled && querySpeedReady,
     staleTime:
       staleTimeOverride ??
       (autoRefresh ? Infinity : getStaleTimeForEventView(other.eventView)),

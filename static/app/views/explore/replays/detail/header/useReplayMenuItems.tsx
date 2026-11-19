@@ -11,6 +11,7 @@ import {toast} from '@sentry/scraps/toast';
 import {ExternalLink} from 'sentry/components/links/externalLink';
 import {useConfigureReplayMenuItem} from 'sentry/components/replays/header/configureReplayMenuItem';
 import {t, tct} from 'sentry/locale';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 import {defined} from 'sentry/utils/defined';
 import {downloadObjectAsJson} from 'sentry/utils/downloadObjectAsJson';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
@@ -93,7 +94,6 @@ export function useReplayMenuItems({
             try {
               const json = JSON.stringify(replay.getRRWebFrames());
               await navigator.clipboard.writeText(json);
-              // oxlint-disable-next-line react/immutability
               window.location.href = 'sentry-replay-debugger://open';
             } catch (error) {
               Sentry.captureException(error);
@@ -109,7 +109,9 @@ export function useReplayMenuItems({
               leadingItems: <IconDownload variant="muted" />,
               onAction: () =>
                 window.location.assign(
-                  `/api/0/projects/${organization.slug}/${projectSlug}/replays/${replayId}/videos/0/`
+                  resolveHostname(
+                    `/api/0/projects/${organization.slug}/${projectSlug}/replays/${replayId}/videos/0/`
+                  )
                 ),
               disabled: !canDownload,
             }

@@ -37,6 +37,8 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.models.workflow import VISIBLE_WORKFLOW_TYPES
+from sentry.workflow_engine.types import DataConditionHandler
 
 InputData = dict[str, Any]
 ListInputData = list[InputData]
@@ -48,6 +50,7 @@ class ActionFilterInput(DataConditionGroupInput):
 
 
 class ActionFilterValidator(BaseDataConditionGroupValidator):
+    handler_group = DataConditionHandler.Group.ACTION_FILTER
     actions = serializers.ListField(child=serializers.DictField())
 
     def validate_actions(self, value: ListInputData) -> ListInputData:
@@ -93,6 +96,7 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
 
     triggers = BaseDataConditionGroupValidator(
         required=False,
+        handler_group=DataConditionHandler.Group.WORKFLOW_TRIGGER,
         help_text=WORKFLOW_TRIGGERS_HELP_TEXT,
     )
     action_filters = ActionFilterValidator(
@@ -344,6 +348,9 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         organization = self.context["organization"]
         request = self.context["request"]
 
+        # The workflow's primary key comes from the URL and must never be written from the payload.
+        validated_data.pop("id", None)
+
         detector_ids = None
         if "detector_ids" in validated_data:
             detector_ids = validated_data.pop("detector_ids")
@@ -390,7 +397,12 @@ class WorkflowValidator(CamelSnakeSerializer[Any]):
         """
         org = self.context["organization"]
         assert isinstance(org, Organization)
-        workflow_count = Workflow.objects.filter(organization_id=org.id).count()
+
+        # hidden workflows do not count towards user limit
+        workflow_count = Workflow.objects.filter(
+            organization_id=org.id, type__in=VISIBLE_WORKFLOW_TYPES
+        ).count()
+
         if features.has("organizations:more-workflows", org):
             max_workflows = options.get("workflow_engine.max_more_workflows_per_org")
         else:

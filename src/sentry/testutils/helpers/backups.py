@@ -129,9 +129,9 @@ from sentry.services.nodestore.django.models import Node
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.snuba.models import QuerySubscriptionDataSourceHandler
-from sentry.telemetry_classifiers.models import (
-    TelemetryClassifier,
-    TelemetryClassifierDataset,
+from sentry.telemetry_classifiers.models import TelemetryClassifier
+from sentry.telemetry_classifiers.types import (
+    Dataset,
     TelemetryClassifierOutputType,
     TelemetryClassifierStatus,
 )
@@ -140,6 +140,7 @@ from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import Factories, get_fixture_path
 from sentry.testutils.fixtures import Fixtures
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.timeseries_annotations.models import AnnotationType, TimeseriesAnnotation
 from sentry.types.token import AuthTokenType
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.user import User
@@ -536,13 +537,21 @@ class ExhaustiveFixtures(Fixtures):
         TelemetryClassifier.objects.create(
             project=project,
             name=f"conversation-classifier-{slug}",
-            result_attribute="sentry.classifier.result",
-            dataset=TelemetryClassifierDataset.CONVERSATION,
+            result_attribute="result",
+            dataset=Dataset.CONVERSATION,
             filter_query="",
             status=TelemetryClassifierStatus.ENABLED,
             natural_language_prompt="Is this conversation useful?",
             compiled_prompt="Return yes when this conversation is useful.",
             output_type=TelemetryClassifierOutputType.BINARY,
+            created_by_id=owner_id,
+        )
+        TimeseriesAnnotation.objects.create(
+            organization=org,
+            project=project,
+            start_timestamp=timezone.now(),
+            annotation_type=AnnotationType.INBOUND_FILTER_CHANGE,
+            description=f"inbound filter changed in {slug}",
             created_by_id=owner_id,
         )
 
@@ -709,6 +718,13 @@ class ExhaustiveFixtures(Fixtures):
         GroupSearchViewProject.objects.create(
             group_search_view=group_search_view,
             project=project,
+        )
+        GroupSearchView.objects.create(
+            name=f"View 2 for {slug}",
+            created_by_service_account_id=service_account.id,
+            organization=org,
+            query=f"some other query for {slug}",
+            query_sort="date",
         )
         GroupSearchViewLastVisited.objects.create(
             organization=org,

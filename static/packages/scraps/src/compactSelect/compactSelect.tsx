@@ -209,18 +209,6 @@ export function CompactSelect<Value extends SelectKey>({
       isOptionDisabled={isOptionDisabled}
       value={value}
       clearable={clearable}
-      onOpenChange={newOpenState => {
-        controlProps.onOpenChange?.(newOpenState);
-        if (newOpenState) {
-          queueMicrotask(() => {
-            trackVirtualizationMetrics(
-              allItemsWithKey,
-              virtualizeThreshold,
-              componentTitle
-            );
-          });
-        }
-      }}
       onClear={({overlayState}) => {
         if (clearable) {
           if (multiple) {
@@ -282,35 +270,4 @@ function shouldVirtualize<Value extends SelectKey>(
   }
 
   return items.length > virtualizeThreshold;
-}
-
-function trackVirtualizationMetrics<Value extends SelectKey>(
-  items: Array<SelectOptionOrSectionWithKey<Value>>,
-  virtualizeThreshold = 150,
-  title = 'unknown'
-) {
-  const hasSections = items.some(item => 'options' in item);
-  const optionCount = items.reduce((sum, item) => {
-    return 'options' in item ? sum + item.options.length : sum + 1;
-  }, 0);
-
-  const threshold = virtualizeThreshold ?? 150;
-
-  if (optionCount > threshold) {
-    Sentry.metrics.count('scraps.compactSelect.virtualize_over_threshold', 1, {
-      attributes: {
-        has_sections: hasSections,
-        component_title: title,
-        count: optionCount,
-        threshold,
-      },
-    });
-  }
-
-  Sentry.metrics.distribution('scraps.compactSelect.option_count', optionCount, {
-    attributes: {
-      has_sections: hasSections,
-      component_title: title,
-    },
-  });
 }

@@ -10,7 +10,7 @@ import type {OrganizationSummary} from 'sentry/types/organization';
 type OrganizationSelectHeaderProps = {
   handleOrgChange: (orgId: string) => void;
   organizationId: string | undefined;
-  organizations: OrganizationSummary[];
+  organizations: readonly OrganizationSummary[];
 };
 
 export function OrganizationSelectHeader({

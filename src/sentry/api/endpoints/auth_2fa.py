@@ -19,6 +19,12 @@ from sentry.api.serializers.models.auth import (
     serialize_auth_mfa_required,
 )
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_TOO_MANY_REQUESTS,
+    RESPONSE_UNAUTHORIZED,
+)
 from sentry.auth.authenticators.base import (
     ActivationChallengeResult,
     ActivationMessageResult,
@@ -100,7 +106,7 @@ class AuthTwoFactorEndpoint(Endpoint):
 
     @extend_schema(
         operation_id="Get available methods for a pending two-factor authentication login",
-        responses={200: AuthMfaRequiredSerializer},
+        responses={200: AuthMfaRequiredSerializer, 404: RESPONSE_NOT_FOUND},
     )
     def get(self, request: Request) -> Response:
         user = auth.get_pending_2fa_user(request)
@@ -117,7 +123,13 @@ class AuthTwoFactorEndpoint(Endpoint):
     @extend_schema(
         operation_id="Complete a pending two-factor authentication login",
         request=AuthTwoFactorRequestSerializer,
-        responses={200: AuthSuccessSerializer, 403: AuthDetailSerializer},
+        responses={
+            200: AuthSuccessSerializer,
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: AuthDetailSerializer,
+            429: RESPONSE_TOO_MANY_REQUESTS,
+        },
     )
     def post(self, request: Request) -> Response:
         serializer = AuthTwoFactorRequestSerializer(data=request.data)
@@ -208,7 +220,12 @@ class AuthTwoFactorChallengeEndpoint(Endpoint):
     @extend_schema(
         operation_id="Activate a two-factor authentication challenge",
         request=AuthTwoFactorChallengeRequestSerializer,
-        responses={200: AuthMfaChallengeSerializer},
+        responses={
+            200: AuthMfaChallengeSerializer,
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            429: RESPONSE_TOO_MANY_REQUESTS,
+        },
     )
     def post(self, request: Request) -> Response:
         serializer = AuthTwoFactorChallengeRequestSerializer(data=request.data)

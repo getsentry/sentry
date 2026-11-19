@@ -6,13 +6,28 @@ import {CategorizedStoryTree} from './storyTree';
 
 jest.mock('sentry/stories/storyManifest.generated', () => ({
   storyFiles: [
-    'app/components/core/drawer/drawer.mdx',
+    'app/components/core/avatar/avatar.mdx',
+    'packages/scraps/src/tabs/tabs.mdx',
+    'packages/scraps/src/drawer/drawer.mdx',
+    'packages/scraps/src/link/link.mdx',
     'gsApp/components/upsellModal/upsellModal.stories.tsx',
   ],
   storyFrontmatterIndex: {
-    'app/components/core/drawer/drawer.mdx': {
+    'app/components/core/avatar/avatar.mdx': {
+      category: 'display',
+      title: 'Avatar',
+    },
+    'packages/scraps/src/tabs/tabs.mdx': {
+      category: 'navigation',
+      title: 'Tabs',
+    },
+    'packages/scraps/src/drawer/drawer.mdx': {
       category: 'overlays',
       title: 'GlobalDrawer',
+    },
+    'packages/scraps/src/link/link.mdx': {
+      category: 'navigation',
+      title: 'Link',
     },
   },
 }));
@@ -30,15 +45,30 @@ describe('CategorizedStoryTree', () => {
     ConfigStore.set('sentryMode', 'SAAS');
   });
 
-  it('uses the documented title without changing the filename-based route', async () => {
+  it('routes app and Scraps package docs to core by filename, not title', async () => {
     render(<CategorizedStoryTree />);
 
+    await userEvent.click(screen.getByText('Display'));
     await userEvent.click(screen.getByText('Overlays'));
 
+    expect(screen.getByRole('link', {name: 'Avatar'})).toHaveAttribute(
+      'href',
+      expect.stringContaining('/scraps/core/avatar/')
+    );
     expect(screen.getByRole('link', {name: 'GlobalDrawer'})).toHaveAttribute(
       'href',
       expect.stringContaining('/scraps/core/drawer/')
     );
+  });
+
+  it('sorts app and Scraps package docs together by component', async () => {
+    render(<CategorizedStoryTree />);
+
+    await userEvent.click(screen.getByText('Navigation'));
+
+    expect(
+      screen.getAllByRole('link', {name: /^(Link|Tabs)$/}).map(link => link.textContent)
+    ).toEqual(['Link', 'Tabs']);
   });
 
   it('lists gsApp stories in their own section', async () => {

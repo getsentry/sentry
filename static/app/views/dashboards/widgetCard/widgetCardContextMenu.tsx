@@ -1,8 +1,8 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
-import qs from 'query-string';
 
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -11,17 +11,21 @@ import {
   openAddToDashboardModal,
   openDashboardWidgetQuerySelectorModal,
 } from 'sentry/actionCreators/modal';
-import {openConfirmModal} from 'sentry/components/confirm';
 import {t, tct} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import * as qs from 'sentry/utils/url/qs';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
-import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import type {
+  DashboardFilters,
+  DashboardQueryPriority,
+  Widget,
+} from 'sentry/views/dashboards/types';
 import {
   DashboardWidgetSource,
   PREBUILT_DASHBOARD_LABEL,
@@ -169,6 +173,20 @@ const StyledText = styled(Text)`
   padding-bottom: ${p => p.theme.space.xs};
 `;
 
+export function withMenuActionCallback(
+  options: MenuItemProps[],
+  callback: (key: string) => void
+): MenuItemProps[] {
+  return options.map(option => ({
+    ...option,
+    children: option.children && withMenuActionCallback(option.children, callback),
+    onAction: () => {
+      callback(option.key);
+      option.onAction?.();
+    },
+  }));
+}
+
 export function getMenuOptions(
   dashboardFilters: DashboardFilters | undefined,
   organization: Organization,
@@ -182,7 +200,8 @@ export function getMenuOptions(
   onDuplicate?: () => void,
   onEdit?: () => void,
   timeseriesResults?: WidgetTimeSeries[],
-  onAskSeer?: () => void
+  onAskSeer?: () => void,
+  queryPriority?: DashboardQueryPriority
 ) {
   const menuOptions: MenuItemProps[] = [];
 
@@ -276,7 +295,8 @@ export function getMenuOptions(
             widget.queries.some(q => q.aggregates.length > 0)
               ? Mode.AGGREGATE
               : Mode.SAMPLES,
-            getReferrer(widget.displayType)
+            getReferrer(widget.displayType),
+            queryPriority
           ) ?? undefined),
     });
   }
@@ -355,7 +375,13 @@ export function getMenuOptions(
     menuOptions.push({
       key: 'open-in-metrics',
       label: t('Open in Explore'),
-      to: getWidgetMetricsUrl(widget, dashboardFilters, selection, organization),
+      to: getWidgetMetricsUrl(
+        widget,
+        dashboardFilters,
+        selection,
+        organization,
+        queryPriority
+      ),
       onAction: () => {
         trackAnalytics('dashboards_views.open_in_metrics.opened', {
           organization,

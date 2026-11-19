@@ -1,15 +1,24 @@
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 from urllib.parse import urlsplit
 
 from django.conf import settings
 from django.test import override_settings
 from rest_framework.test import APIClient
 
-from sentry.agent_handoff.codes import HandoffFlow, consume_handoff
+from sentry.agent_handoff.codes import (
+    AddFeatureContext,
+    AddFeatureProduct,
+    HandoffFlow,
+    ProjectSetupContext,
+    consume_handoff,
+)
 from sentry.agent_handoff.endpoints.organization_agent_handoff import HANDOFF_SCOPES
+from sentry.analytics.events.agent_handoff import AgentHandoffPromptCreatedEvent
 from sentry.models.apiapplication import ApiApplicationStatus
 from sentry.models.apisetupcode import ApiSetupCode
+from sentry.projects.services.project.model import RpcProject
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.impersonation import simulate_impersonation
 from sentry.testutils.silo import control_silo_test
 
@@ -41,21 +50,24 @@ class OrganizationAgentHandoffTest(APITestCase):
             status_code=201,
         )
         url = urlsplit(response.data["guideUrl"])
-        assert url.path == "/agent-handoff/"
+        assert url.path == "/agent-handoff.md"
         assert not url.query
         assert not url.fragment
-        code = response.data["prompt"].split("`")[1]
+        code = response.data["code"]
+        assert code.startswith("sntryh_")
         assert response.data["prompt"] == (
-            f"Fetch and follow the instructions at {response.data['guideUrl']}. "
-            f"Your secret token is `{code}`."
+            f"Follow the instructions verbatim at {response.data['guideUrl']}. "
+            f"Your handoff code is `{code}`."
         )
-        record = consume_handoff(code)
+        record = consume_handoff(code, ip_address="127.0.0.1")
         assert record is not None
+        assert record.handoff_id == response.data["handoffId"]
         assert record.flow is HandoffFlow.GUIDED_NEXT_STEPS
         assert record.user_id == self.user.id
         assert record.organization_id == self.organization.id
         assert record.application_id == self.application.id
         assert record.scope_list == HANDOFF_SCOPES
+        assert record.ip_address == "127.0.0.1"
         assert not ApiSetupCode.objects.filter(user=self.user).exists()
         assert "no-store" in response["Cache-Control"]
         assert "private" in response["Cache-Control"]
@@ -65,17 +77,124 @@ class OrganizationAgentHandoffTest(APITestCase):
         response = self.get_success_response(
             self.organization.slug, flow="guided_next_steps", status_code=201
         )
-        handoff = consume_handoff(response.data["prompt"].split("`")[1])
+        handoff = consume_handoff(response.data["code"], ip_address="127.0.0.1")
         assert handoff is not None
         assert handoff.flow is HandoffFlow.GUIDED_NEXT_STEPS
 
     def test_select_onboarding_flow(self) -> None:
-        response = self.get_success_response(
-            self.organization.slug, flow="onboarding", status_code=201
+        with patch(
+            "sentry.agent_handoff.flows.onboarding.organization_service.has_active_onboarding_run",
+            return_value=True,
+        ) as validate:
+            response = self.get_success_response(
+                self.organization.slug,
+                flow="onboarding",
+                context={"runId": "a" * 32},
+                status_code=201,
+            )
+        validate.assert_called_once_with(
+            organization_id=self.organization.id, user_id=self.user.id, run_id="a" * 32
         )
-        handoff = consume_handoff(response.data["prompt"].split("`")[1])
+        handoff = consume_handoff(response.data["code"], ip_address="127.0.0.1")
         assert handoff is not None
         assert handoff.flow is HandoffFlow.ONBOARDING
+        assert handoff.context == ProjectSetupContext(run_id="a" * 32)
+
+    @patch("sentry.analytics.record")
+    def test_records_prompt_created(self, record: MagicMock) -> None:
+        with patch(
+            "sentry.agent_handoff.flows.common.organization_service.has_active_onboarding_run",
+            return_value=True,
+        ):
+            response = self.get_success_response(
+                self.organization.slug,
+                flow="onboarding",
+                context={"runId": "a" * 32},
+                disableIpPinning=True,
+                status_code=201,
+            )
+        assert_last_analytics_event(
+            record,
+            AgentHandoffPromptCreatedEvent(
+                handoff_id=response.data["handoffId"],
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+                flow=HandoffFlow.ONBOARDING.value,
+                ip_pinning=False,
+            ),
+        )
+
+    @patch("sentry.analytics.record")
+    def test_records_prompt_created_for_guided_next_steps(self, record: MagicMock) -> None:
+        response = self.get_success_response(self.organization.slug, status_code=201)
+        assert_last_analytics_event(
+            record,
+            AgentHandoffPromptCreatedEvent(
+                handoff_id=response.data["handoffId"],
+                user_id=self.user.id,
+                organization_id=self.organization.id,
+                flow=HandoffFlow.GUIDED_NEXT_STEPS.value,
+                ip_pinning=True,
+            ),
+        )
+
+    def test_select_create_project_flow(self) -> None:
+        with patch(
+            "sentry.agent_handoff.flows.common.organization_service.has_active_onboarding_run",
+            return_value=True,
+        ):
+            response = self.get_success_response(
+                self.organization.slug,
+                flow="create_project",
+                context={"runId": "a" * 32},
+                status_code=201,
+            )
+        handoff = consume_handoff(response.data["code"], ip_address="127.0.0.1")
+        assert handoff is not None
+        assert handoff.flow is HandoffFlow.CREATE_PROJECT
+        assert handoff.context == ProjectSetupContext(run_id="a" * 32)
+
+    def test_onboarding_requires_run_context(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug, flow="onboarding", status_code=400
+        )
+        assert "context" in response.data
+
+    def test_guided_next_steps_rejects_run_context(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug,
+            flow="guided_next_steps",
+            context={"runId": "a" * 32},
+            status_code=400,
+        )
+        assert "context" in response.data
+
+    def test_onboarding_rejects_unavailable_run(self) -> None:
+        with patch(
+            "sentry.agent_handoff.flows.onboarding.organization_service.has_active_onboarding_run",
+            return_value=False,
+        ):
+            response = self.get_error_response(
+                self.organization.slug,
+                flow="onboarding",
+                context={"runId": "a" * 32},
+                status_code=400,
+            )
+        assert response.data == {"context": {"runId": ["Onboarding run is unavailable."]}}
+
+    def test_rejects_invalid_run_identifier(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug, flow="onboarding", context={"runId": "invalid"}, status_code=400
+        )
+        assert response.data == {
+            "context": {"runId": ["This value does not match the required pattern."]}
+        }
+
+    def test_onboarding_requires_run_identifier(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug, flow="onboarding", context={}, status_code=400
+        )
+        assert response.data == {"context": {"runId": ["This field is required."]}}
 
     def test_unknown_flow(self) -> None:
         response = self.get_error_response(
@@ -162,3 +281,75 @@ class OrganizationAgentHandoffTest(APITestCase):
             extra_headers={"HTTP_X_CSRFTOKEN": csrf_token},
             status_code=201,
         )
+
+    def test_pins_to_request_ip(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug,
+            extra_headers={"REMOTE_ADDR": "192.0.2.1"},
+            ipAddress="192.0.2.2",
+            status_code=201,
+        )
+        handoff = consume_handoff(response.data["code"], ip_address="192.0.2.1")
+        assert handoff is not None
+        assert handoff.ip_address == "192.0.2.1"
+
+    def test_disable_ip_pinning(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug, disableIpPinning=True, status_code=201
+        )
+        handoff = consume_handoff(response.data["code"], ip_address="192.0.2.2")
+        assert handoff is not None
+        assert handoff.ip_address == "127.0.0.1"
+        assert handoff.disable_ip_pinning
+
+    def test_rejects_invalid_disable_ip_pinning(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug, disableIpPinning="invalid", status_code=400
+        )
+        assert "disableIpPinning" in response.data
+
+    def test_select_add_feature_flow(self) -> None:
+        with patch(
+            "sentry.agent_handoff.flows.add_feature.get_accessible_project",
+            return_value=RpcProject(id=42, slug="my-app", organization_id=self.organization.id),
+        ):
+            response = self.get_success_response(
+                self.organization.slug,
+                flow="add_feature",
+                context={"product": "tracing", "projectId": str(42)},
+                status_code=201,
+            )
+        handoff = consume_handoff(response.data["code"], ip_address="127.0.0.1")
+        assert handoff is not None
+        assert handoff.flow is HandoffFlow.ADD_FEATURE
+        assert handoff.context == AddFeatureContext(
+            product=AddFeatureProduct.TRACING, project_id=42
+        )
+
+    def test_add_feature_rejects_unavailable_project(self) -> None:
+        with patch(
+            "sentry.agent_handoff.flows.add_feature.get_accessible_project",
+            return_value=None,
+        ):
+            response = self.get_error_response(
+                self.organization.slug,
+                flow="add_feature",
+                context={"product": "tracing", "projectId": 99},
+                status_code=400,
+            )
+        assert response.data == {"context": {"projectId": ["Project is unavailable."]}}
+
+    def test_add_feature_rejects_unknown_product(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug,
+            flow="add_feature",
+            context={"product": "logs", "projectId": 1},
+            status_code=400,
+        )
+        assert "context" in response.data
+
+    def test_add_feature_requires_context(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug, flow="add_feature", status_code=400
+        )
+        assert "context" in response.data

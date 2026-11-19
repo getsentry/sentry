@@ -4,7 +4,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {getApiQueryData, setApiQueryData} from 'sentry/utils/queryClient';
+import {toast} from '@sentry/scraps/toast';
+
 import * as llmContextModule from 'sentry/views/seerExplorer/contexts/llmContext';
 import {
   SeerExplorerChatStateProvider,
@@ -337,6 +338,30 @@ describe('useSeerExplorer', () => {
       });
     });
 
+    it('flags a send refused for credits', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/explorer-chat/`,
+        method: 'POST',
+        statusCode: 402,
+        body: {detail: 'Not enough credits'},
+      });
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
+      });
+
+      act(() => {
+        result.current.sendMessage('Test query');
+      });
+      await waitFor(() => {
+        expect(result.current.requestError).toEqual({
+          query: 'Test query',
+          isOutOfCredits: true,
+        });
+      });
+    });
+
     it('keeps the existing chat and exposes the failed query when sending fails', async () => {
       const runId = 'run-with-history';
       const existingBlocks = [
@@ -381,7 +406,10 @@ describe('useSeerExplorer', () => {
       });
 
       await waitFor(() => {
-        expect(result.current.requestError).toEqual({query: 'Second question'});
+        expect(result.current.requestError).toEqual({
+          query: 'Second question',
+          isOutOfCredits: false,
+        });
       });
       expect(postMock).toHaveBeenCalled();
       expect(result.current.sessionData?.status).toBe('completed');
@@ -399,7 +427,10 @@ describe('useSeerExplorer', () => {
       act(() => {
         result.current.sendMessage('Second question');
       });
-      expect(result.current.requestError).toEqual({query: 'Second question'});
+      expect(result.current.requestError).toEqual({
+        query: 'Second question',
+        isOutOfCredits: false,
+      });
       await waitFor(() => {
         expect(result.current.requestError).toBeNull();
       });
@@ -537,10 +568,9 @@ describe('useSeerExplorer', () => {
 
       // The old chat's optimistic "processing" status is rolled back in the background.
       expect(
-        getApiQueryData<SeerExplorerResponse>(
-          queryClient,
+        queryClient.getQueryData(
           seerExplorerUtils.makeSeerExplorerQueryKey(organization.slug, runId)
-        )?.session?.status
+        )?.json.session?.status
       ).toBe('completed');
     });
 
@@ -593,7 +623,11 @@ describe('useSeerExplorer', () => {
         statusCode: 500,
         // Polling stores fresher server data after the optimistic update, before the failure.
         body: () => {
-          setApiQueryData<SeerExplorerResponse>(queryClient, queryKey, freshData);
+          queryClient.setQueryData(queryKey, {
+            json: freshData,
+            headers: {'X-Hits': 7},
+            status: 200,
+          });
           return {detail: 'Server error'};
         },
       });
@@ -608,12 +642,17 @@ describe('useSeerExplorer', () => {
         result.current.sendMessage('Question');
       });
       await waitFor(() => {
-        expect(result.current.requestError).toEqual({query: 'Question'});
+        expect(result.current.requestError).toEqual({
+          query: 'Question',
+          isOutOfCredits: false,
+        });
       });
 
-      expect(getApiQueryData<SeerExplorerResponse>(queryClient, queryKey)).toEqual(
-        freshData
-      );
+      expect(queryClient.getQueryData(queryKey)?.json).toEqual(freshData);
+      expect(queryClient.getQueryData(queryKey)).toMatchObject({
+        headers: {'X-Hits': 7},
+        status: 200,
+      });
     });
 
     it('keeps the alert when an older send succeeds after a newer send failed', async () => {
@@ -662,7 +701,10 @@ describe('useSeerExplorer', () => {
         result.current.sendMessage('Second question');
       });
       await waitFor(() => {
-        expect(result.current.requestError).toEqual({query: 'Second question'});
+        expect(result.current.requestError).toEqual({
+          query: 'Second question',
+          isOutOfCredits: false,
+        });
       });
 
       // Let the first request succeed and its callbacks run to completion.
@@ -673,7 +715,10 @@ describe('useSeerExplorer', () => {
         }
       });
 
-      expect(result.current.requestError).toEqual({query: 'Second question'});
+      expect(result.current.requestError).toEqual({
+        query: 'Second question',
+        isOutOfCredits: false,
+      });
     });
 
     // TanStack only calls per-call `mutate` callbacks for an observer's latest mutation, so
@@ -783,7 +828,10 @@ describe('useSeerExplorer', () => {
         result.current.sendMessage('Will fail');
       });
       await waitFor(() => {
-        expect(result.current.requestError).toEqual({query: 'Will fail'});
+        expect(result.current.requestError).toEqual({
+          query: 'Will fail',
+          isOutOfCredits: false,
+        });
       });
 
       act(() => {
@@ -1143,6 +1191,68 @@ describe('useSeerExplorer', () => {
       await waitFor(() => {
         expect(result.current.isPolling).toBe(false);
       });
+    });
+  });
+
+  describe('PR creation errors', () => {
+    const chatUrl = `/organizations/${organization.slug}/seer/explorer-chat/`;
+    const runId = 789;
+
+    function mockPRState(prState: Record<string, unknown>) {
+      MockApiClient.addMockResponse({
+        url: `${chatUrl}${runId}/`,
+        method: 'GET',
+        body: {
+          session: {
+            status: 'completed',
+            blocks: [],
+            updated_at: new Date().toISOString(),
+            repo_pr_states: {
+              'acme/web': {repo_name: 'acme/web', pr_number: null, ...prState},
+            },
+          },
+        },
+      });
+    }
+
+    beforeEach(() => {
+      jest.useFakeTimers();
+    });
+
+    afterEach(async () => {
+      try {
+        await act(() => jest.runOnlyPendingTimersAsync());
+      } finally {
+        jest.useRealTimers();
+      }
+    });
+
+    it('toasts out-of-credits copy instead of the raw error', async () => {
+      const errorSpy = jest.spyOn(toast, 'error');
+      mockPRState({pr_creation_status: 'creating'});
+
+      const {result} = renderHookWithProviders(() => useSeerExplorer(), {
+        organization,
+        additionalWrapper: SeerExplorerChatStateProvider,
+      });
+      act(() => {
+        result.current.switchToRun(runId);
+      });
+      await waitFor(() => expect(result.current.isPolling).toBe(true));
+
+      mockPRState({
+        pr_creation_status: 'error',
+        pr_creation_error: "Your organization doesn't have enough Seer credits for this.",
+        pr_creation_error_code: 'out_of_credits',
+      });
+
+      // The next poll picks up the failure.
+      await act(() => jest.advanceTimersByTimeAsync(500));
+      await waitFor(() =>
+        expect(errorSpy).toHaveBeenCalledWith(
+          "Seer couldn't open a pull request in acme/web because your organization is out of credits."
+        )
+      );
     });
   });
 
