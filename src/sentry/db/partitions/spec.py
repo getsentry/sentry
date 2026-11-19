@@ -57,8 +57,8 @@ class RangePartitioning:
 
     ``premake`` is how many partitions after the current one are kept created ahead
     of time. ``retention`` is how long partitions are kept before the partition
-    maintenance task drops them. ``None`` means partitions are only dropped by
-    ``sentry cleanup`` or explicitly.
+    maintenance task drops them. ``None`` means partitions are never dropped
+    automatically.
     """
 
     field: str

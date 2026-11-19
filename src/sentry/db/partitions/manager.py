@@ -210,24 +210,6 @@ def expire_partitions(
     return expire_range_partitions(target, before, now=now, dry_run=dry_run)
 
 
-def drop_partitions_for_cleanup(
-    model: type[models.Model], dtfield: str, before: datetime
-) -> list[str]:
-    """
-    Used by ``sentry cleanup`` before it deletes old rows one by one.
-
-    Partitions are only dropped when cleanup deletes by the partition field, so this
-    never removes rows cleanup wouldn't have deleted.
-    """
-    target = get_range_table(model)
-    if target is None:
-        return []
-    field = model._meta.get_field(dtfield)
-    if not isinstance(field, models.Field) or field.column != target.column:
-        return []
-    return expire_range_partitions(target, before)
-
-
 def maintain_partitions() -> None:
     """Create upcoming partitions and drop expired ones for every range partitioned table."""
     for model, spec in iter_partitioned_models():

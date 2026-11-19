@@ -12,7 +12,6 @@ from fixtures.partitions import (
 from sentry.db.partitions import manager
 from sentry.db.partitions.catalog import PartitionInfo, list_partitions
 from sentry.db.partitions.manager import (
-    drop_partitions_for_cleanup,
     ensure_partitions,
     expire_partitions,
     get_range_table,
@@ -180,16 +179,6 @@ class ExpirePartitionsTest(TransactionTestCase):
                 f'ALTER TABLE "{RANGE_TABLE}" DETACH PARTITION "{week(4)}" FINALIZE',
                 f'DROP TABLE "{week(4)}"',
             ]
-
-    @freeze_time(CREATED_AT)
-    def test_drop_partitions_for_cleanup(self) -> None:
-        with fixture_tables():
-            before = datetime(2024, 3, 12, tzinfo=UTC)
-            with freeze_time(datetime(2024, 3, 20, tzinfo=UTC)):
-                assert drop_partitions_for_cleanup(RangePartitionedFixture, "value", before) == []
-                assert drop_partitions_for_cleanup(
-                    RangePartitionedFixture, "date_added", before
-                ) == [week(4)]
 
 
 class MaintainPartitionsTest(TransactionTestCase):
