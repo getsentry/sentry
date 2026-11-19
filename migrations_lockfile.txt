@@ -23,7 +23,7 @@ insights: 0001_squashed_0002_backfill_team_starred
 
 investigations: 0018_add_orchestration_run_notebook_fk
 
-monitors: 0030_backfill_incident_last_successful_timestamp
+monitors: 0031_drop_checkin_env_status_index
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
@@ -51,7 +51,7 @@ telemetry_classifiers: 0001_create_telemetry_classifier
 
 tempest: 0001_squashed_0003_use_encrypted_char_field
 
-timeseries_annotations: 0001_create_timeseries_annotation
+timeseries_annotations: 0002_add_environment_and_severity
 
 uptime: 0056_encrypt_uptime_subscription_headers_body
 

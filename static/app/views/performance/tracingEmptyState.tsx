@@ -32,7 +32,6 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformIntegration, Project, ProjectKey} from 'sentry/types/project';
-import {trackAnalytics} from 'sentry/utils/analytics';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useApi} from 'sentry/utils/useApi';
 import {useEventWaiter} from 'sentry/utils/useEventWaiter';
@@ -64,12 +63,21 @@ const serializeTraceRedirect = createSerializer({
   guidedStep: parseAsInteger,
 });
 
-function TakeMeToTraceButton({traceId}: {traceId: string | undefined}) {
+function TakeMeToTraceButton({
+  traceId,
+  projectId,
+}: {
+  projectId: string;
+  traceId: string | undefined;
+}) {
   return (
     <Button
       variant="primary"
       busy={!traceId}
       tooltipProps={{title: traceId ? undefined : t('Processing trace\u2026')}}
+      analyticsEventKey="product_empty_state.view_data_clicked"
+      analyticsEventName="Product Empty State: View Data Clicked"
+      analyticsParams={{product: 'tracing', project_id: projectId}}
       onClick={() => {
         testableWindowLocation.assign(
           serializeTraceRedirect(`${window.location.pathname}${window.location.search}`, {
@@ -259,7 +267,7 @@ export function TracingEmptyState({organization, project}: Props) {
   const footer = (
     <Flex align="center" justify="between" gap="md">
       {received ? <EventReceivedIndicator /> : <EventWaitingIndicator />}
-      {received && <TakeMeToTraceButton traceId={traceId} />}
+      {received && <TakeMeToTraceButton traceId={traceId} projectId={project.id} />}
     </Flex>
   );
 
@@ -295,14 +303,6 @@ export function TracingEmptyState({organization, project}: Props) {
             projectKeyId={projectKeyId}
           />
         }
-        onPromptCopied={_handoffId => {
-          trackAnalytics('onboarding.ai_prompt_copied', {
-            organization,
-            platform: project.platform ?? 'unknown',
-            product: 'traces',
-            source: 'prompt',
-          });
-        }}
         footer={footer}
       />
     </Container>

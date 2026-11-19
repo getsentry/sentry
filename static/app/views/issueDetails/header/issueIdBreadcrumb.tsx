@@ -10,6 +10,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {ProjectsBadge} from 'sentry/components/core/badge/projectsBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {ShortId} from 'sentry/components/shortId';
 import {t, tct} from 'sentry/locale';
@@ -50,12 +51,8 @@ export function useIssueIdBreadcrumbItem({project, group}: ShortIdBreadcrumbProp
     type: 'page-title',
     label: group.shortId,
     leadingGraphic: (
-      <ProjectBadge
-        disableLink
-        project={project}
-        avatarSize={16}
-        hideName
-        avatarProps={{hasTooltip: true, tooltip: project.slug}}
+      <ProjectsBadge
+        projectPlatforms={project.platform ? [project.platform] : ['default']}
       />
     ),
     labelTooltip: t(

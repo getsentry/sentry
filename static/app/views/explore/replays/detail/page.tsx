@@ -38,13 +38,23 @@ export function ReplayDetailsPage({readerResult}: Props) {
           <NotFound />
         </Stack>
       )}
-      renderProcessingError={() => (
-        <Stack flex={1} padding="2xl 3xl">
-          <Stack>
-            <ReplayProcessingError />
+      renderProcessingError={({replay}) =>
+        replay?.hasTimelineData() ? (
+          // The player shows the error in its place, and the activity,
+          // network, and console tabs still work.
+          <ReplayLayout
+            isVideoReplay={replay.isVideoReplay()}
+            replayRecord={replay.getReplay()}
+            isLoading={false}
+          />
+        ) : (
+          <Stack flex={1} padding="2xl 3xl">
+            <Stack>
+              <ReplayProcessingError replay={replay} />
+            </Stack>
           </Stack>
-        </Stack>
-      )}
+        )
+      }
     >
       {({replay}) => (
         <ReplayLayout

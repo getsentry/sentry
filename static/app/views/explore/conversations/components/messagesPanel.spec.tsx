@@ -1024,6 +1024,30 @@ describe('MessagesPanel', () => {
       expect(screen.getByText('Query agent answer')).toBeVisible();
     });
 
+    it('reopens a collapsed sub-agent when the selection moves to another span in it', async () => {
+      const nodes = createNodes();
+      const {rerender} = render(
+        <MessagesPanel
+          nodes={nodes as any}
+          selectedNodeId="q1"
+          onSelectNode={mockOnSelectNode}
+        />
+      );
+      await userEvent.click(screen.getByText('assisted_query'));
+      expect(screen.getByText('Query agent answer')).not.toBeVisible();
+
+      // The tool call the sub-agent replaced is also inside its row.
+      rerender(
+        <MessagesPanel
+          nodes={nodes as any}
+          selectedNodeId="t1"
+          onSelectNode={mockOnSelectNode}
+        />
+      );
+
+      expect(screen.getByText('Query agent answer')).toBeVisible();
+    });
+
     it('opens the sub-agent that contains the selected span', () => {
       render(
         <MessagesPanel

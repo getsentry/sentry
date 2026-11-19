@@ -14,7 +14,16 @@ export interface SourceContextResponse {
 interface UseSourceContextProps {
   event: Partial<Pick<Event, 'platform' | 'release' | 'sdk' | 'groupID'>>;
   frame: Partial<
-    Pick<Frame, 'absPath' | 'filename' | 'function' | 'module' | 'package' | 'lineNo'>
+    Pick<
+      Frame,
+      | 'absPath'
+      | 'fileRevision'
+      | 'filename'
+      | 'function'
+      | 'module'
+      | 'package'
+      | 'lineNo'
+    >
   >;
   orgSlug: string;
   projectSlug: string | undefined;

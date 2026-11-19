@@ -176,7 +176,7 @@ function InvestigationActions({
       trigger={triggerProps => (
         <OverlayTrigger.IconButton
           {...triggerProps}
-          size="sm"
+          size="zero"
           variant="transparent"
           icon={<IconEllipsis />}
           aria-label={t('More options for %s', investigation.title)}

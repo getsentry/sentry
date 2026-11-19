@@ -10,7 +10,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 import {ConversationClassifierWizard} from './components/conversationClassifierWizard';
-import {CLASSIFIER_DATASETS} from './types';
+import {CLASSIFIER_DATASETS} from './constants';
 import {getClassifiersPath} from './utils';
 
 const PREVIEW_SELECTION = {datetime: {period: '7d', start: null, end: null, utc: null}};

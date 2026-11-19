@@ -192,7 +192,7 @@ describe('DetectorDetails', () => {
       });
 
       expect(heading.parentElement?.parentElement).toContainElement(
-        screen.getByTestId('platform-icon-javascript')
+        screen.getByAltText('javascript')
       );
     });
 

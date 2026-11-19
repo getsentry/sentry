@@ -408,6 +408,46 @@ describe('ReplayReader', () => {
       });
 
       expect(replay?.processingErrors()).toEqual(['Missing Full Snapshot Frame']);
+      expect(replay?.isMissingFullSnapshot()).toBe(true);
+      expect(replay?.hasTimelineData()).toBe(true);
+    });
+
+    it('reports a missing meta frame when the replay only has a full snapshot', () => {
+      const replay = ReplayReader.factory({
+        attachments: [RRWebFullSnapshotFrameEventFixture({timestamp})],
+        errors: [],
+        fetching: false,
+        replayRecord,
+      });
+
+      expect(replay?.processingErrors()).toEqual(['Missing Meta Frame']);
+      expect(replay?.isMissingMeta()).toBe(true);
+      expect(replay?.isMissingFullSnapshot()).toBe(false);
+      expect(replay?.hasTimelineData()).toBe(true);
+    });
+
+    it('has timeline data when the replay only has breadcrumbs', () => {
+      const replay = ReplayReader.factory({
+        attachments: [ReplayConsoleEventFixture({timestamp})],
+        errors: [],
+        fetching: false,
+        replayRecord,
+      });
+
+      expect(replay?.hasProcessingErrors()).toBeTruthy();
+      expect(replay?.hasTimelineData()).toBe(true);
+    });
+
+    it('has no timeline data when the replay has no frames at all', () => {
+      const replay = ReplayReader.factory({
+        attachments: [],
+        errors: [],
+        fetching: false,
+        replayRecord,
+      });
+
+      expect(replay?.processingErrors()).toContain('Missing Meta Frame');
+      expect(replay?.hasTimelineData()).toBe(false);
     });
 
     it('reports no missing full snapshot when the replay is a video replay', () => {

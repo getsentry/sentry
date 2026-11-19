@@ -9,6 +9,7 @@ import {
 import {
   getNumberAttr,
   getStringAttr,
+  getTraceNodeAttribute,
   hasError,
   resolveAgentName,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
@@ -35,6 +36,7 @@ import {
   getIsAiGenerationSpan,
   getIsExecuteToolSpan,
 } from 'sentry/views/insights/pages/agents/utils/query';
+import {getRawToolOutput} from 'sentry/views/insights/pages/agents/utils/toolOutput';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
@@ -352,10 +354,11 @@ type SpanKind =
   | 'generation'
   | 'tool';
 
-// Evaluations, extractions, embeddings and memory operations are recognized by
-// gen_ai.operation.name first: until Relay sets a dedicated operation.type they
-// report "ai_client" like LLM calls (and memory spans may be nested under tool
-// calls), so matching by name keeps them out of the generation and tool kinds.
+// Evaluations, extractions, embeddings and memory operations report the
+// "ai_client" operation type like LLM calls, so their tokens and cost count in
+// the usual aggregates. They're recognized by gen_ai.operation.name first, which
+// keeps them out of the generation and tool kinds (memory spans may also be
+// nested under tool calls).
 function getSpanKind(node: AITraceSpanNode): SpanKind | null {
   if (isEvaluationNode(node)) {
     return 'evaluation';
@@ -824,11 +827,8 @@ function getNodeDuration(node: AITraceSpanNode): number | undefined {
 }
 
 function getToolResult(tool: AITraceSpanNode): string | null {
-  return blankToNull(
-    getStringAttr(tool, 'gen_ai.tool.call.result') ||
-      getStringAttr(tool, 'gen_ai.tool.output') ||
-      null
-  );
+  const output = getRawToolOutput(key => getTraceNodeAttribute(key, tool));
+  return output === undefined ? null : blankToNull(String(output));
 }
 
 // When the sub-agent ran as a tool, the tool's result is what it returned to

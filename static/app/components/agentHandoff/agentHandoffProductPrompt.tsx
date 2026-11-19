@@ -42,7 +42,7 @@ export function AgentHandoffProductPrompt({
   onSelect,
 }: AgentHandoffProductPromptProps) {
   const sentryUrl = useStore(ConfigStore, state => state.links.sentryUrl);
-  const previewUrl = getHandoffPreviewUrl(AgentHandoffFlow.ADD_FEATURE, sentryUrl);
+  const previewUrl = getHandoffPreviewUrl(sentryUrl);
 
   const {copyPrompt, copyDisabled, handoff, useIpPinning, toggleIpPinning} =
     useHandoffPromptCopy({flow: AgentHandoffFlow.ADD_FEATURE, context, onCopySuccess});

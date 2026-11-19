@@ -9,6 +9,7 @@ import {CollapsibleChatRow} from 'sentry/components/ai/chat/collapsibleContent';
 import {TurnMeta} from 'sentry/components/ai/chat/turnMeta';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useSelectionOpenState} from 'sentry/views/explore/conversations/hooks/useSelectionOpenState';
 import {
   callContainsNode,
   type ConversationMessage,
@@ -51,15 +52,20 @@ export function SubAgentRow({
 }: SubAgentRowProps) {
   const organization = useOrganization();
   const node = nodeMap.get(call.nodeId);
+  // Opens when the selection is the sub-agent or inside it, so a deep-linked or
+  // timeline-selected span stays visible instead of hidden.
+  const [isOpen, setIsOpen] = useSelectionOpenState(
+    selectedNodeId !== null && callContainsNode(call, selectedNodeId)
+      ? selectedNodeId
+      : null
+  );
 
   return (
     <CollapsibleChatRow
       // The pill after the name shows the open state instead.
       showCaret={false}
-      // Open when the selection is the sub-agent or inside it, so a deep-linked
-      // or timeline-selected span stays visible instead of hidden.
-      openWhen={selectedNodeId !== null && callContainsNode(call, selectedNodeId)}
-      title={isOpen => (
+      open={isOpen}
+      title={
         <Flex align="center" gap="sm" minWidth={0}>
           {node && <AiSpanStatusIcon node={node} />}
           <ToolTag name={call.name} hasError={call.hasError} />
@@ -70,7 +76,7 @@ export function SubAgentRow({
             </Text>
           )}
         </Flex>
-      )}
+      }
       meta={
         <TurnMeta
           metric={null}
@@ -83,12 +89,13 @@ export function SubAgentRow({
           }
         />
       }
-      onToggle={open =>
+      onOpenChange={open => {
+        setIsOpen(open);
         trackAnalytics('conversations.detail.expand-subagent', {
           organization,
           expanded: open,
-        })
-      }
+        });
+      }}
     >
       <Container padding="xs 0 xs sm">
         <Container borderLeft="muted" paddingLeft="md">

@@ -20,6 +20,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {useSelectionOpenState} from 'sentry/views/explore/conversations/hooks/useSelectionOpenState';
 import {
   callContainsNode,
   type ConversationMessage,
@@ -440,11 +441,12 @@ const EmbeddingTurn = memo(function EmbeddingTurnImpl({
   const organization = useOrganization();
   const input = message.embeddingInput ?? '';
   const tokens = message.embeddingTokens;
+  const [isOpen, setIsOpen] = useSelectionOpenState(isSelected ? message.nodeId : null);
 
   return (
     <MessageRow from="assistant" density="line">
       <CollapsibleChatRow
-        openWhen={isSelected}
+        open={isOpen}
         title={
           <Text
             size="sm"
@@ -473,12 +475,13 @@ const EmbeddingTurn = memo(function EmbeddingTurnImpl({
             }
           />
         }
-        onToggle={open =>
+        onOpenChange={open => {
+          setIsOpen(open);
           trackAnalytics('conversations.detail.expand-embedding', {
             organization,
             expanded: open,
-          })
-        }
+          });
+        }}
       >
         <Flex>
           <Container paddingTop="xs" paddingBottom="xs" flex="1" minWidth={0}>
@@ -661,7 +664,7 @@ function ReasoningSection({
           {t('Thinking...')} {isOpen ? null : <ScrubbedText>{reasoning}</ScrubbedText>}
         </Text>
       )}
-      onToggle={open =>
+      onOpenChange={open =>
         trackAnalytics('conversations.detail.expand-thinking', {
           organization,
           expanded: open,

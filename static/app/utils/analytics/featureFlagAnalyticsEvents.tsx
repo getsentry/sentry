@@ -12,6 +12,7 @@ export type FeatureFlagEventParameters = {
     numSuspectFlags: number;
     numTotalFlags: number;
   };
+  'flags.layer_toggled': {selected: boolean};
   'flags.logs-paginated': {direction: 'next' | 'prev'; surface: string};
   'flags.setup_sidebar_selection': {platform?: string; provider?: SdkProviderEnum};
   'flags.sort_flags': {sortMethod: string};
@@ -33,6 +34,7 @@ export const featureFlagEventMap: Record<FeatureFlagEventKey, string | null> = {
   'flags.drawer_details_rendered': 'Viewed Feature Flag Drawer Details',
   'flags.drawer_rendered': 'Viewed Feature Flag Drawer',
   'flags.event_and_suspect_flags_found': 'Number of Event and Suspect Flags',
+  'flags.layer_toggled': 'Toggled Feature Flags Chart Layer',
   'flags.logs-paginated': 'Feature Flag Logs Paginated',
   'flags.setup_sidebar_selection':
     'Selected Provider or Project in Feature Flag Onboarding Sidebar',

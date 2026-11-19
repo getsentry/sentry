@@ -35,6 +35,7 @@ from sentry.replays.usecases.query import (
     make_full_aggregation_query,
     query_using_optimized_search,
 )
+from sentry.replays.usecases.query.conditions.ip_address import IP_ADDRESS_TEXT
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.utils import get_dataset
 from sentry.types.actor import Actor
@@ -957,13 +958,7 @@ TAG_QUERY_ALIAS_COLUMN_MAP = {
     "user.id": Column("user_id"),
     "user.username": Column("user_name"),
     "user.email": Column("user_email"),
-    "user.ip": Function(
-        "coalesce",
-        parameters=[
-            Function("IPv4NumToString", parameters=[Column("ip_address_v4")]),
-            Function("IPv6NumToString", parameters=[Column("ip_address_v6")]),
-        ],
-    ),
+    "user.ip": IP_ADDRESS_TEXT,
     "sdk.name": Column("sdk_name"),
     "sdk.version": Column("sdk_version"),
     "os.name": Column("os_name"),

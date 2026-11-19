@@ -195,7 +195,7 @@ export function ProjectDetail() {
                 label: project?.slug ?? params.projectId,
                 leadingGraphic: project ? (
                   <ProjectsBadge
-                    projectPlatforms={project.platform ? [project.platform] : []}
+                    projectPlatforms={project.platform ? [project.platform] : ['default']}
                   />
                 ) : (
                   <Placeholder width="16px" height="16px" />

@@ -1043,7 +1043,7 @@
     "@sentry/scraps/no-dom-coupling": {"count": 6},
     "@sentry/scraps/prefer-primitives": {"count": 1}
   },
-  "stories/view/storyFooter.tsx": {"@sentry/scraps/no-dom-coupling": {"count": 3}},
+  "stories/view/storyFooter.tsx": {"@sentry/scraps/no-dom-coupling": {"count": 1}},
   "stories/view/storyHeader.tsx": {
     "@sentry/scraps/no-dom-coupling": {"count": 1},
     "@sentry/scraps/prefer-primitives": {"count": 1}
@@ -1924,9 +1924,6 @@
   "views/issueList/pages/inbox/issuePreview/issuePreviewAutofixProposalSection.tsx": {
     "@sentry/scraps/no-dom-coupling": {"count": 2}
   },
-  "views/navigation/primary/components.tsx": {
-    "@sentry/scraps/no-dom-coupling": {"count": 1}
-  },
   "views/navigation/primary/whatsNew.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {"count": 5}
   },
@@ -2122,7 +2119,6 @@
     "@sentry/scraps/prefer-primitives": {"count": 1}
   },
   "views/preprod/buildComparison/main/sizeCompareSelectedBuilds.tsx": {
-    "@sentry/scraps/no-dom-coupling": {"count": 1},
     "@sentry/scraps/prefer-primitives": {"count": 1}
   },
   "views/preprod/buildDetails/buildDetails.spec.tsx": {
@@ -2174,7 +2170,7 @@
     "@sentry/scraps/no-dom-coupling": {"count": 3}
   },
   "views/preprod/snapshots/main/snapshotMainContent.tsx": {
-    "@sentry/scraps/no-dom-coupling": {"count": 2},
+    "@sentry/scraps/no-dom-coupling": {"count": 1},
     "@sentry/scraps/prefer-primitives": {"count": 1}
   },
   "views/preprod/snapshots/main/snapshotsToolbar.tsx": {
@@ -2226,9 +2222,6 @@
     "@sentry/scraps/prefer-primitives": {"count": 1}
   },
   "views/routeError.tsx": {"@sentry/scraps/prefer-primitives": {"count": 1}},
-  "views/seerExplorer/components/askSeerButton.tsx": {
-    "@sentry/scraps/no-dom-coupling": {"count": 1}
-  },
   "views/seerExplorer/components/askUserQuestionBlock.tsx": {
     "@sentry/scraps/prefer-primitives": {"count": 1}
   },
@@ -2240,9 +2233,6 @@
   },
   "views/seerExplorer/components/chat/toolUse.tsx": {
     "@sentry/scraps/no-dom-coupling": {"count": 3}
-  },
-  "views/seerExplorer/components/emptyState.tsx": {
-    "@sentry/scraps/no-dom-coupling": {"count": 1}
   },
   "views/seerExplorer/components/explorerMenu.tsx": {
     "@sentry/scraps/prefer-primitives": {"count": 2}

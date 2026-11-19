@@ -14,6 +14,12 @@ import {type OurLogsResponseItem} from 'sentry/views/explore/logs/types';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 
+/**
+ * Spans are complete for this many days. After that, some plans keep only a
+ * downsampled part of them, so a trace can miss spans.
+ */
+export const FULL_TRACE_DATA_DAYS = 30;
+
 interface PartialTraceDataWarningProps {
   logs: OurLogsResponseItem[] | undefined;
   timestamp: number | undefined;
@@ -47,7 +53,9 @@ export function PartialTraceDataWarning({
   }
 
   const now = moment();
-  const isTraceTooYoung = moment(timestamp * 1000).isAfter(now.subtract(30, 'days'));
+  const isTraceTooYoung = moment(timestamp * 1000).isAfter(
+    now.subtract(FULL_TRACE_DATA_DAYS, 'days')
+  );
 
   if (isTraceTooYoung) {
     return null;

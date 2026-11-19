@@ -54,8 +54,12 @@ export function Button({
         onClick={handleClick}
         role="button"
       >
+        {/* `data-button-label` is the supported hook for styling the label from
+            outside. Target it with `&& > [data-button-label]`: the doubled class
+            outranks the button's base label rule but not its state rules. */}
         <Flex
           as="span"
+          data-button-label
           align="center"
           justify="center"
           minWidth="0"

@@ -3,8 +3,8 @@ import type {Location} from 'history';
 
 import type {TabsComponents} from '@sentry/scraps/tabs';
 
+import {ProjectsBadge} from 'sentry/components/core/badge/projectsBadge';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
-import {IdBadge} from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {ReplayCountBadge} from 'sentry/components/replays/replayCountBadge';
 import {t} from 'sentry/locale';
@@ -167,7 +167,9 @@ export function TransactionHeader({
         type: 'page-title' as const,
         label: transactionName,
         leadingGraphic: project && (
-          <IdBadge disableLink project={project} avatarSize={16} hideName />
+          <ProjectsBadge
+            projectPlatforms={project.platform ? [project.platform] : ['default']}
+          />
         ),
       },
       hideDefaultTabs: true,

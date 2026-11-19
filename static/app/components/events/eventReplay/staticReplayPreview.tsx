@@ -57,7 +57,7 @@ export function StaticReplayPreview({
     >
       <PlayerContainer>
         {replay?.hasProcessingErrors() ? (
-          <ReplayProcessingError />
+          <ReplayProcessingError replay={replay} />
         ) : (
           <Fragment>
             <StaticPanel>
