@@ -1,13 +1,14 @@
-"""Discover new error issue families and their distinct-user crossings."""
+"""Discover new error issues by their distinct-user threshold crossings."""
 
 from __future__ import annotations
 
 import math
 from collections import defaultdict
 from collections.abc import Iterator, Mapping, Sequence
+from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from statistics import median
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NamedTuple
 
 from snuba_sdk import (
     Column,
@@ -40,6 +41,7 @@ from sentry.models.group import Group
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.models.project import Project
+    from sentry.search.events.types import SnubaRow
 
 _REFERRER = "anomaly-detection.enrich"
 _ISSUE_LIFETIME = timedelta(hours=1)
@@ -47,6 +49,21 @@ _MAX_NEW_GROUPS = 100  # candidate groups per project
 _MAX_NEW_ISSUE_TITLES = 25  # Queried titles per project and environment.
 _ISSUE_USER_PAGE_SIZE = 10_000  # SnQL limits each page to 10,000 rows.
 _MIN_NEW_USERS = 10
+
+
+@dataclass(frozen=True)
+class _FailureScope:
+    project: Project
+    environment: str
+    start: datetime
+    end: datetime
+    threshold: float
+
+
+class _IssueCandidate(NamedTuple):
+    group: Group
+    estimated_users: float
+    event_count: float
 
 
 def new_failure_thresholds(hourly_rows: Sequence[Row]) -> dict[tuple[str, str], float]:
@@ -75,11 +92,32 @@ def collect_new_failure_modes(
     """Find new failure modes and weaker corroborating issues in [start, end)."""
     projects_by_id = _project_map(organization, projects)
     start, end = _utc(start), _utc(end)
-    changes: list[ChangeEvent] = []
     if start >= end:
-        return changes
-    current_environments: dict[str, set[str]] = defaultdict(set)
-    for minute, signal, metric, project_id, env, dimension, value in current_rows:
+        return []
+
+    active_environments = _active_error_environments(current_rows, start, end)
+    changes: list[ChangeEvent] = []
+    for project_id, project in projects_by_id.items():
+        environments = sorted(active_environments.get(project_id, ()))[:MAX_ENVIRONMENTS]
+        if not environments:
+            continue
+        groups_by_id = _recent_error_groups(project, start, end)
+        if not groups_by_id:
+            continue
+        for environment in environments:
+            threshold = thresholds.get((project_id, environment), float(_MIN_NEW_USERS))
+            if not math.isfinite(threshold) or threshold <= 0:
+                threshold = float(_MIN_NEW_USERS)
+            scope = _FailureScope(project, environment, start, end, threshold)
+            changes.extend(_collect_environment_failures(organization, scope, groups_by_id))
+    return sorted(changes, key=lambda change: (change.detected_at or change.start, change.key))
+
+
+def _active_error_environments(
+    rows: Sequence[Row], start: datetime, end: datetime
+) -> dict[str, set[str]]:
+    environments_by_project: dict[str, set[str]] = defaultdict(set)
+    for minute, signal, metric, project_id, environment, dimension, value in rows:
         if (
             start <= _utc(minute) < end
             and signal == "errors"
@@ -88,115 +126,114 @@ def collect_new_failure_modes(
             and value is not None
             and value > 0
         ):
-            current_environments[project_id].add(env)
-    for project_id, project in projects_by_id.items():
-        environments = sorted(current_environments.get(project_id, ()))[:MAX_ENVIRONMENTS]
-        if not environments:
+            environments_by_project[project_id].add(environment)
+    return environments_by_project
+
+
+def _recent_error_groups(project: Project, start: datetime, end: datetime) -> dict[int, Group]:
+    groups = Group.objects.filter(
+        project_id=project.id,
+        type=ErrorGroupType.type_id,
+        first_seen__gte=(start - _ISSUE_LIFETIME).replace(tzinfo=UTC),
+        first_seen__lt=end.replace(tzinfo=UTC),
+    ).order_by("-first_seen", "id")[:_MAX_NEW_GROUPS]
+    return {group.id: group for group in groups}
+
+
+def _collect_environment_failures(
+    organization: Organization, scope: _FailureScope, groups_by_id: Mapping[int, Group]
+) -> Iterator[ChangeEvent]:
+    candidates = _run_errors(
+        organization,
+        Query(
+            match=Entity("events"),
+            select=[Function("uniq", [Column(ERROR_USER)], "users"), Function("count", [])],
+            groupby=[Column("group_id")],
+            where=[
+                *_error_where(scope.project, scope.start - _ISSUE_LIFETIME, scope.end),
+                Condition(_error_env(), Op.EQ, scope.environment),
+                Condition(Column("group_id"), Op.IN, list(groups_by_id)),
+            ],
+            limit=Limit(_MAX_NEW_GROUPS + 1),
+        ),
+        _REFERRER,
+    )
+    issue_titles = _rank_issue_titles(candidates, groups_by_id)
+    for title, members in issue_titles[:_MAX_NEW_ISSUE_TITLES]:
+        yield from _collect_title_crossings(organization, scope, title, members)
+
+
+def _rank_issue_titles(
+    rows: Sequence[SnubaRow], groups_by_id: Mapping[int, Group]
+) -> list[tuple[str, list[_IssueCandidate]]]:
+    """Use estimated users to prioritize queries, never to decide a crossing."""
+    issue_groups_by_title: dict[str, list[_IssueCandidate]] = defaultdict(list)
+    for row in rows:
+        group = groups_by_id.get(row["group_id"])
+        estimated_users = _number(row.get("users"))
+        event_count = _number(row.get("count()"))
+        if group is None or estimated_users is None or event_count is None:
             continue
-        oldest = start - _ISSUE_LIFETIME
-        groups = list(
-            Group.objects.filter(
-                project_id=project.id,
-                type=ErrorGroupType.type_id,
-                first_seen__gte=oldest.replace(tzinfo=UTC),
-                first_seen__lt=end.replace(tzinfo=UTC),
-            ).order_by("-first_seen", "id")[:_MAX_NEW_GROUPS]
+        has_structured_title = group.data and ("title" in group.data or "metadata" in group.data)
+        title = group.title if has_structured_title else group.message
+        issue_groups_by_title[title].append(_IssueCandidate(group, estimated_users, event_count))
+
+    def estimated_impact(entry: tuple[str, list[_IssueCandidate]]) -> tuple[float, str]:
+        title, members = entry
+        return -sum(member.estimated_users for member in members), title
+
+    return sorted(issue_groups_by_title.items(), key=estimated_impact)
+
+
+def _collect_title_crossings(
+    organization: Organization,
+    scope: _FailureScope,
+    title: str,
+    members: Sequence[_IssueCandidate],
+) -> Iterator[ChangeEvent]:
+    if sum(member.event_count for member in members) < min(scope.threshold, _MIN_NEW_USERS):
+        return
+    ordered_members = sorted(members, key=lambda member: (member.group.first_seen, member.group.id))
+    first_group = ordered_members[0].group
+    first_seen = _utc(first_group.first_seen)
+    window_end = min(first_seen + _ISSUE_LIFETIME, scope.end)
+    if window_end <= scope.start:
+        return
+
+    first_minute = first_seen.replace(second=0, microsecond=0)
+    issue_ids = tuple(member.group.id for member in ordered_members)
+    threshold = scope.threshold
+    cutoffs = (float(_MIN_NEW_USERS), threshold) if threshold > _MIN_NEW_USERS else (threshold,)
+    first_user_times = _first_user_times(
+        organization,
+        [
+            *_error_where(scope.project, first_minute, window_end),
+            Condition(_error_env(), Op.EQ, scope.environment),
+            Condition(Column("group_id"), Op.IN, list(issue_ids)),
+        ],
+        math.ceil(cutoffs[-1]),
+    )
+    for cutoff, crossed_at, users in _crossings(first_user_times, cutoffs):
+        if not scope.start <= crossed_at < window_end:
+            continue
+        yield ChangeEvent(
+            key=SeriesKey(
+                str(scope.project.id),
+                scope.environment,
+                "new_issue",
+                "count_unique(user)",
+                str(first_group.id),
+            ),
+            change_type=ChangeType.NEW_FAILURE_MODE,
+            start=first_minute,
+            actual=users,
+            expected=threshold,
+            confidence=0.9 if cutoff == threshold else 0.5,
+            detected_at=crossed_at.replace(second=0, microsecond=0) + timedelta(minutes=1),
+            peak_ratio=users / threshold,
+            evidence=[title[:200]],
+            issue_ids=issue_ids,
         )
-        if not groups:
-            continue
-        groups_by_id = {group.id: group for group in groups}
-        group_id = Column("group_id")
-        for env in environments:
-            threshold = thresholds.get((project_id, env), float(_MIN_NEW_USERS))
-            if not math.isfinite(threshold) or threshold <= 0:
-                threshold = float(_MIN_NEW_USERS)
-            conditions = [Condition(_error_env(), Op.EQ, env)]
-            candidates = _run_errors(
-                organization,
-                Query(
-                    match=Entity("events"),
-                    select=[Function("uniq", [Column(ERROR_USER)], "users"), Function("count", [])],
-                    groupby=[group_id],
-                    where=[
-                        *_error_where(project, oldest, end),
-                        *conditions,
-                        Condition(group_id, Op.IN, list(groups_by_id)),
-                    ],
-                    limit=Limit(_MAX_NEW_GROUPS + 1),
-                ),
-                _REFERRER,
-            )
-            issue_groups_by_title: dict[str, list[tuple[Group, float, float]]] = defaultdict(list)
-            for row in candidates:
-                group = groups_by_id.get(row["group_id"])
-                estimate = _number(row.get("users"))
-                count = _number(row.get("count()"))
-                if group is None or estimate is None or count is None:
-                    continue
-                # Keep same-title fragments together, but compute their actual
-                # joint audience from the events (never sum users to trigger).
-                title = (
-                    group.title
-                    if group.data and ("title" in group.data or "metadata" in group.data)
-                    else group.message
-                )
-                issue_groups_by_title[title].append((group, estimate, count))
-            titles_by_impact = sorted(
-                issue_groups_by_title.items(),
-                key=lambda entry: (-sum(users for _, users, _ in entry[1]), entry[0]),
-            )
-            for title, members in titles_by_impact[:_MAX_NEW_ISSUE_TITLES]:
-                if sum(count for _, _, count in members) < min(threshold, _MIN_NEW_USERS):
-                    continue
-                members.sort(key=lambda member: (member[0].first_seen, member[0].id))
-                first_group = members[0][0]
-                first_seen = _utc(first_group.first_seen)
-                window_end = min(first_seen + _ISSUE_LIFETIME, end)
-                if window_end <= start:
-                    continue
-                ids = tuple(group.id for group, _, _ in members)
-                cutoffs = (
-                    (float(_MIN_NEW_USERS), threshold)
-                    if threshold > _MIN_NEW_USERS
-                    else (threshold,)
-                )
-                first_user_times = _first_user_times(
-                    organization,
-                    [
-                        *_error_where(
-                            project, first_seen.replace(second=0, microsecond=0), window_end
-                        ),
-                        *conditions,
-                        Condition(group_id, Op.IN, list(ids)),
-                    ],
-                    math.ceil(cutoffs[-1]),
-                )
-                for cutoff, crossed_at, users in _crossings(first_user_times, cutoffs):
-                    if not start <= crossed_at < window_end:
-                        continue
-                    confirmed = cutoff == threshold
-                    changes.append(
-                        ChangeEvent(
-                            key=SeriesKey(
-                                project_id,
-                                env,
-                                "new_issue",
-                                "count_unique(user)",
-                                str(first_group.id),
-                            ),
-                            change_type=ChangeType.NEW_FAILURE_MODE,
-                            start=first_seen.replace(second=0, microsecond=0),
-                            actual=users,
-                            expected=threshold,
-                            confidence=0.9 if confirmed else 0.5,
-                            detected_at=crossed_at.replace(second=0, microsecond=0)
-                            + timedelta(minutes=1),
-                            peak_ratio=users / threshold,
-                            evidence=[title[:200]],
-                            issue_ids=ids,
-                        )
-                    )
-    return sorted(changes, key=lambda change: (change.detected_at or change.start, change.key))
 
 
 def _first_user_times(

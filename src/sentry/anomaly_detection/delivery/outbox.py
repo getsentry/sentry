@@ -86,47 +86,60 @@ def _deliver_one(
                 extra={"organization_id": organization_id, "detector_id": pending.detector_id},
             )
             delivery.retire_owner(pending.logical_key)
-        else:
-            handler = get_anomaly_handler(detector)
-            fingerprint = hash_fingerprint(handler.get_issue_fingerprint(transition.group_key))
-            group = get_group_from_fingerprint(transition.project_id, fingerprint)
-            # Wait for opens and updates to be visible before sending a close: a
-            # broker acknowledgement does not mean the consumer has applied them.
-            # A manually resolved issue already has the intended close state.
-            if group is not None and (
-                group.status == GroupStatus.RESOLVED
-                if transition.is_resolved
-                else group.last_seen >= transition.timestamp_utc
-            ):
-                delivery.pending.pop(index)
-            elif group is None and _is_tombstoned(transition.project_id, fingerprint):
-                metrics.incr("anomaly_detection.delivery_tombstoned")
-                delivery.retire_activation(pending)
-            elif group is None and not pending.is_open:
-                # This activation's open was already observed. Its issue was
-                # removed; neither recreate it with an update nor send an orphan close.
-                logger.warning(
-                    "anomaly_detection.delivery_issue_removed",
-                    extra={"organization_id": organization_id, "detector_id": detector.id},
-                )
-                delivery.retire_activation(pending)
-            else:
-                now = timezone.now()
-                published = (
-                    pending.broker_acked_at is None
-                    or now - pending.broker_acked_at >= _INGEST_RETRY_DELAY
-                )
-                if published:
-                    publish_anomaly_transition(detector, transition)
-                    pending.broker_acked_at = now
-                waiting.add(transition.group_key)
-                moved = delivery.defer_activation(transition.group_key)
-                if published or moved:
-                    state_rows.update(delivery=delivery.to_json(), date_updated=now)
-                metrics.incr("anomaly_detection.delivery_waiting_for_ingest")
-                return published, True
+        elif not _acknowledge_or_retire(delivery, index, detector, organization_id):
+            now = timezone.now()
+            published = (
+                pending.broker_acked_at is None
+                or now - pending.broker_acked_at >= _INGEST_RETRY_DELAY
+            )
+            if published:
+                publish_anomaly_transition(detector, transition)
+                pending.broker_acked_at = now
+            waiting.add(transition.group_key)
+            moved = delivery.defer_activation(transition.group_key)
+            if published or moved:
+                state_rows.update(delivery=delivery.to_json(), date_updated=now)
+            metrics.incr("anomaly_detection.delivery_waiting_for_ingest")
+            return published, True
+
         state_rows.update(delivery=delivery.to_json(), date_updated=timezone.now())
         return True, bool(delivery.pending)
+
+
+def _acknowledge_or_retire(
+    delivery: DeliveryState, index: int, detector: Detector, organization_id: int
+) -> bool:
+    """Remove a confirmed transition or retire an activation that cannot be delivered."""
+    pending = delivery.pending[index]
+    transition = pending.transition
+    handler = get_anomaly_handler(detector)
+    fingerprint = hash_fingerprint(handler.get_issue_fingerprint(transition.group_key))
+    group = get_group_from_fingerprint(transition.project_id, fingerprint)
+    if group is not None:
+        # Wait for opens and updates to be visible before sending a close. A
+        # manually resolved issue already has the intended close state.
+        if transition.is_resolved:
+            confirmed = group.status == GroupStatus.RESOLVED
+        else:
+            confirmed = group.last_seen >= transition.timestamp_utc
+        if confirmed:
+            delivery.pending.pop(index)
+        return confirmed
+
+    if _is_tombstoned(transition.project_id, fingerprint):
+        metrics.incr("anomaly_detection.delivery_tombstoned")
+    elif not pending.is_open:
+        # The issue was removed after the open was observed. Don't recreate it
+        # with an update or send a close for a missing issue.
+        logger.warning(
+            "anomaly_detection.delivery_issue_removed",
+            extra={"organization_id": organization_id, "detector_id": detector.id},
+        )
+    else:
+        return False
+
+    delivery.retire_activation(pending)
+    return True
 
 
 def _is_tombstoned(project_id: int, fingerprint: Sequence[str]) -> bool:
