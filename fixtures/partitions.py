@@ -4,7 +4,8 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import timedelta
 
-from django.db import connection, models
+import psycopg2
+from django.db import OperationalError, connection, models
 from django.db.migrations.state import ModelState, ProjectState
 from django.test import override_settings
 from django.utils import timezone
@@ -96,3 +97,32 @@ def fixture_tables(partitioned: bool = True) -> Iterator[None]:
             yield
         finally:
             drop_fixture_tables()
+
+
+def leave_detach_pending(partition: str) -> None:
+    """
+    Leave a partition of the range fixture table "detach pending", like a concurrent
+    detach that hit its lock timeout: an open transaction on the table makes the
+    second phase of the detach wait until the timeout cancels it.
+    """
+    table = connection.ops.quote_name(RangePartitionedFixture._meta.db_table)
+    reader = psycopg2.connect(**connection.get_connection_params())
+    try:
+        with reader.cursor() as cursor:
+            cursor.execute(f"SELECT 1 FROM {table} LIMIT 1")
+        with connection.cursor() as cursor:
+            cursor.execute("SET lock_timeout TO '100ms'")
+            try:
+                cursor.execute(
+                    f"ALTER TABLE {table} DETACH PARTITION "
+                    f"{connection.ops.quote_name(partition)} CONCURRENTLY"
+                )
+            except OperationalError as e:
+                if "lock timeout" not in str(e):
+                    raise
+            else:
+                raise AssertionError(f"Detaching {partition} wasn't interrupted.")
+            finally:
+                cursor.execute("SET lock_timeout TO DEFAULT")
+    finally:
+        reader.close()

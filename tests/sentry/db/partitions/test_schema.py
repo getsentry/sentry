@@ -21,6 +21,7 @@ from fixtures.partitions import (
     drop_fixture_tables,
     fixture_project_state,
     fixture_tables,
+    leave_detach_pending,
 )
 from sentry.db.models import FlexibleForeignKey
 from sentry.db.partitions import HashPartitioning, sql
@@ -372,24 +373,7 @@ class PartitionedIndexTest(TransactionTestCase):
     def test_add_index_refuses_while_a_partition_is_being_detached(self) -> None:
         with fixture_tables():
             partition = list_partitions(connection, RANGE_TABLE)[0].name
-            # An open transaction on the table makes the second phase of a concurrent
-            # detach wait, and the lock timeout cancels it halfway.
-            reader = psycopg2.connect(**connection.get_connection_params())
-            try:
-                with reader.cursor() as cursor:
-                    cursor.execute(f'SELECT 1 FROM "{RANGE_TABLE}" LIMIT 1')
-                with pytest.raises(OperationalError, match="lock timeout"):
-                    with connection.cursor() as cursor:
-                        cursor.execute("SET lock_timeout TO '100ms'")
-                        try:
-                            cursor.execute(
-                                f'ALTER TABLE "{RANGE_TABLE}" DETACH PARTITION "{partition}" '
-                                "CONCURRENTLY"
-                            )
-                        finally:
-                            cursor.execute("SET lock_timeout TO DEFAULT")
-            finally:
-                reader.close()
+            leave_detach_pending(partition)
             assert [p.detach_pending for p in list_partitions(connection, RANGE_TABLE)] == [
                 True,
                 False,

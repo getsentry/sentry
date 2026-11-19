@@ -12,6 +12,7 @@ from fixtures.partitions import (
     HashPartitionedFixture,
     RangePartitionedFixture,
     fixture_tables,
+    leave_detach_pending,
 )
 from sentry.db.partitions import manager, sql
 from sentry.db.partitions.catalog import (
@@ -384,6 +385,43 @@ class ExpirePartitionsTest(TransactionTestCase):
                 before=datetime(2024, 3, 26, tzinfo=UTC),
                 now=datetime(2024, 3, 27, tzinfo=UTC),
             ) == [week(18), week(4), week(11)]
+
+    @freeze_time(CREATED_AT)
+    def test_pending_detach_that_is_no_longer_expired_is_finished_and_kept(self) -> None:
+        with fixture_tables():
+            # Expiry marked it, then the detach hit the lock timeout and left it pending.
+            mark_expiring(week(11))
+            leave_detach_pending(week(11))
+            # While it's pending, no other partition can be detached concurrently.
+            with pytest.raises(OperationalError, match="already pending detach"):
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        f'ALTER TABLE "{RANGE_TABLE}" DETACH PARTITION "{week(4)}" CONCURRENTLY'
+                    )
+            # Retention was raised, so it isn't expired anymore, but the week of 03-04 is.
+            assert expire_partitions(
+                RangePartitionedFixture,
+                before=datetime(2024, 3, 12, tzinfo=UTC),
+                now=datetime(2024, 3, 20, tzinfo=UTC),
+            ) == [week(4)]
+            assert partition_names() == [week(18)]
+            # Kept like a partition detached by hand.
+            assert list_detached_range_partitions(connection, RANGE_TABLE) == [
+                DetachedPartition(week(11), datetime(2024, 3, 11, tzinfo=UTC), expiring=False)
+            ]
+
+    @freeze_time(CREATED_AT)
+    def test_expired_pending_detach_is_finished_before_other_detaches(self) -> None:
+        with fixture_tables():
+            # Sorts after the week of 03-04, which is detached concurrently.
+            leave_detach_pending(week(11))
+            assert expire_partitions(
+                RangePartitionedFixture,
+                before=datetime(2024, 3, 19, tzinfo=UTC),
+                now=datetime(2024, 3, 20, tzinfo=UTC),
+            ) == [week(11), week(4)]
+            assert partition_names() == [week(18)]
+            assert list_detached_range_partitions(connection, RANGE_TABLE) == []
 
     @freeze_time(CREATED_AT)
     def test_finishes_interrupted_detach(self) -> None:

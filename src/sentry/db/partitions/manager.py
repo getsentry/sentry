@@ -189,17 +189,23 @@ def expire_range_partitions(
     """
     Drop every partition that only holds rows older than ``before``.
 
-    Each partition is marked as expiring with a table comment, detached
-    concurrently and then dropped. A detach of an expired partition that was
-    interrupted earlier is finished with FINALIZE. A partition this detached but
-    failed to drop, for example because the drop timed out, is no longer attached to
-    the table, so it is found by its name and its mark and dropped as well, if it is
-    still older than ``before``. Partitions detached any other way, e.g. by hand to
-    keep their data, don't have the mark and are never dropped. A partition that
-    carries the mark but isn't expired anymore, e.g. because its detach failed and
-    retention was raised since, has the mark removed, so detaching it by hand later
-    keeps it. Returns the names of the dropped partitions, or of the partitions that
-    would be dropped with ``dry_run``.
+    Each expired partition is marked with a table comment, detached concurrently and
+    then dropped.
+
+    - A detach that was interrupted earlier, e.g. by the lock timeout, is finished
+      first with FINALIZE, because it blocks every other concurrent detach on the
+      table. If that partition isn't expired anymore, e.g. because retention was
+      raised since, it is kept without the mark, like a partition detached by hand.
+    - A partition this detached but failed to drop, e.g. because the drop timed out,
+      is no longer attached to the table. It is found by its name and its mark, and
+      dropped if it is still older than ``before``.
+    - Partitions detached any other way, e.g. by hand to keep their data, don't have
+      the mark and are never dropped.
+    - An attached partition that carries the mark but isn't expired anymore has the
+      mark removed, so detaching it by hand later keeps it.
+
+    Returns the names of the dropped partitions, or of the partitions that would be
+    dropped with ``dry_run``.
     """
     now = now if now is not None else timezone.now()
     if before > now:
@@ -208,9 +214,54 @@ def expire_range_partitions(
         raise RuntimeError("Partitions can't be detached concurrently inside a transaction.")
 
     expired = []
+    table = _quote(target.connection, target.table)
 
     def is_expired(start: datetime) -> bool:
         return target.spec.interval.advance(start) <= before
+
+    def drop(partition: str, detach: str, concurrently: bool) -> None:
+        name = _quote(target.connection, partition)
+        # Lets a later run tell this partition apart from ones detached by hand, if
+        # the drop below fails.
+        _execute_ddl(target.connection, sql.MARK_PARTITION_EXPIRING.format(partition=name))
+        _execute_ddl(
+            target.connection,
+            detach.format(table=table, partition=name),
+            concurrently=concurrently,
+        )
+        _execute_ddl(target.connection, sql.DROP_TABLE.format(table=name))
+        logger.info(
+            "partitions.expire.dropped", extra={"table": target.table, "partition": partition}
+        )
+
+    partitions = _range_partitions(target)
+
+    # While one partition's detach is pending, Postgres refuses to detach any other
+    # partition of the table concurrently, so pending detaches are finished first,
+    # whether or not the partition is still expired.
+    for partition in partitions:
+        if not partition.detach_pending:
+            continue
+        _, end = partition.range_bounds()
+        if end is not None and end <= before:
+            expired.append(partition.name)
+            if not dry_run:
+                drop(partition.name, sql.FINALIZE_DETACH_PARTITION, concurrently=False)
+            continue
+        if dry_run:
+            continue
+        # Not expired anymore, e.g. because retention was raised since. Finished
+        # without the mark, it counts as detached by hand: it's kept and reported.
+        name = _quote(target.connection, partition.name)
+        if partition.expiring:
+            _execute_ddl(target.connection, sql.UNMARK_PARTITION_EXPIRING.format(partition=name))
+        _execute_ddl(
+            target.connection, sql.FINALIZE_DETACH_PARTITION.format(table=table, partition=name)
+        )
+        logger.warning(
+            "partitions.expire.kept_unexpired_detach",
+            extra={"table": target.table, "partition": partition.name},
+        )
 
     for detached in list_detached_range_partitions(target.connection, target.table):
         # The mark alone never decides a drop, it could be stale.
@@ -228,7 +279,9 @@ def expire_range_partitions(
             extra={"table": target.table, "partition": detached.name},
         )
 
-    for partition in _range_partitions(target):
+    for partition in partitions:
+        if partition.detach_pending:
+            continue
         _, end = partition.range_bounds()
         if end is None or end > before:
             if partition.expiring and not dry_run:
@@ -244,28 +297,8 @@ def expire_range_partitions(
                 )
             continue
         expired.append(partition.name)
-        if dry_run:
-            continue
-        table = _quote(target.connection, target.table)
-        name = _quote(target.connection, partition.name)
-        template = (
-            sql.FINALIZE_DETACH_PARTITION
-            if partition.detach_pending
-            else sql.DETACH_PARTITION_CONCURRENTLY
-        )
-        # Lets a later run tell this partition apart from ones detached by hand, if
-        # the drop below fails.
-        _execute_ddl(target.connection, sql.MARK_PARTITION_EXPIRING.format(partition=name))
-        _execute_ddl(
-            target.connection,
-            template.format(table=table, partition=name),
-            concurrently=not partition.detach_pending,
-        )
-        _execute_ddl(target.connection, sql.DROP_TABLE.format(table=name))
-        logger.info(
-            "partitions.expire.dropped",
-            extra={"table": target.table, "partition": partition.name},
-        )
+        if not dry_run:
+            drop(partition.name, sql.DETACH_PARTITION_CONCURRENTLY, concurrently=True)
 
     if not dry_run:
         metrics.incr("db.partitions.dropped", amount=len(expired), tags={"table": target.table})
