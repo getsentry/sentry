@@ -8,7 +8,7 @@ import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLib
 import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 
 import {
-  allSeerProjectsSettingsQueryKey,
+  allSeerProjectsSettingsFilter,
   getInfiniteSeerProjectsSettingsQueryOptions,
   getMutateSeerProjectSettingsOptions,
   getMutateSeerProjectsSettingsOptions,
@@ -778,10 +778,7 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
 
       await waitFor(() => {
         expect(invalidateSpy).toHaveBeenCalledWith(
-          expect.objectContaining({
-            queryKey: allSeerProjectsSettingsQueryKey(organization),
-            exact: false,
-          })
+          expect.objectContaining(allSeerProjectsSettingsFilter(organization))
         );
       });
     });

@@ -205,22 +205,20 @@ export function invalidateIssueQueries({
 }) {
   if (itemIds !== undefined) {
     for (const itemId of itemIds) {
-      queryClient.invalidateQueries({
-        queryKey: apiOptions.partialQueryKey(
-          '/organizations/$organizationIdOrSlug/issues/$issueId/',
-          {path: {organizationIdOrSlug: organizationSlug, issueId: itemId}}
-        ),
-      });
+      queryClient.invalidateQueries(
+        apiOptions.queryFilter('/organizations/$organizationIdOrSlug/issues/$issueId/', {
+          path: {organizationIdOrSlug: organizationSlug, issueId: itemId},
+        })
+      );
     }
     return;
   }
 
-  queryClient.invalidateQueries({
-    queryKey: apiOptions.partialQueryKey(
-      '/organizations/$organizationIdOrSlug/issues/*',
-      {path: {organizationIdOrSlug: organizationSlug}}
-    ),
-  });
+  queryClient.invalidateQueries(
+    apiOptions.queryFilter('/organizations/$organizationIdOrSlug/issues/*', {
+      path: {organizationIdOrSlug: organizationSlug},
+    })
+  );
 }
 
 function getBulkUpdateErrorMessage(error: unknown): string {

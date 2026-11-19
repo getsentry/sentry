@@ -23,8 +23,8 @@ import type {
 /**
  * Matches the project's seer repos lists for every filter.
  */
-function allSeerProjectReposQueryKey(organization: Organization, project: AvatarProject) {
-  return apiOptions.partialQueryKey(
+function allSeerProjectReposFilter(organization: Organization, project: AvatarProject) {
+  return apiOptions.queryFilter(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/seer/repos/',
     {path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug}}
   );
@@ -139,10 +139,7 @@ export function getMutateSeerProjectRepoOptions({
     },
     onMutate: async (data: SeerProjectMutateRepoPayload) => {
       await queryClient.cancelQueries({queryKey: singleQueryKey});
-      await queryClient.cancelQueries({
-        queryKey: allSeerProjectReposQueryKey(organization, project),
-        exact: false,
-      });
+      await queryClient.cancelQueries(allSeerProjectReposFilter(organization, project));
 
       const previousSingle = queryClient.getQueryData(singleQueryKey);
       const previousInfinite = queryClient.getQueryData(infiniteQueryKey);
@@ -172,7 +169,7 @@ export function getMutateSeerProjectRepoOptions({
       );
 
       queryClient.setQueriesData(
-        {queryKey: allSeerProjectReposQueryKey(organization, project), exact: false},
+        allSeerProjectReposFilter(organization, project),
         (prev: InfiniteData<ApiResponse<SeerProjectReposResponse[]>> | undefined) => {
           if (prev) {
             return {
@@ -193,17 +190,11 @@ export function getMutateSeerProjectRepoOptions({
     },
     onError: (_error, _data, context) => {
       queryClient.setQueryData(singleQueryKey, context?.previousSingle);
-      queryClient.invalidateQueries({
-        queryKey: allSeerProjectReposQueryKey(organization, project),
-        exact: false,
-      });
+      queryClient.invalidateQueries(allSeerProjectReposFilter(organization, project));
     },
     onSettled: () => {
       queryClient.invalidateQueries({queryKey: singleQueryKey});
-      queryClient.invalidateQueries({
-        queryKey: allSeerProjectReposQueryKey(organization, project),
-        exact: false,
-      });
+      queryClient.invalidateQueries(allSeerProjectReposFilter(organization, project));
     },
   });
 }
@@ -242,10 +233,7 @@ export function getDeleteSeerProjectRepoOptions({
       }).queryKey;
 
       await queryClient.cancelQueries({queryKey: singleQueryKey});
-      await queryClient.cancelQueries({
-        queryKey: allSeerProjectReposQueryKey(organization, project),
-        exact: false,
-      });
+      await queryClient.cancelQueries(allSeerProjectReposFilter(organization, project));
 
       const previousSingle = queryClient.getQueryData(singleQueryKey);
       const previousInfinite = queryClient.getQueryData(infiniteQueryKey);
@@ -253,7 +241,7 @@ export function getDeleteSeerProjectRepoOptions({
       queryClient.removeQueries({queryKey: singleQueryKey});
 
       queryClient.setQueriesData(
-        {queryKey: allSeerProjectReposQueryKey(organization, project), exact: false},
+        allSeerProjectReposFilter(organization, project),
         (prev: InfiniteData<ApiResponse<SeerProjectReposResponse[]>> | undefined) => {
           if (prev) {
             return {
@@ -276,19 +264,13 @@ export function getDeleteSeerProjectRepoOptions({
       if (context?.singleQueryKey) {
         queryClient.setQueryData(context.singleQueryKey, context.previousSingle);
       }
-      queryClient.invalidateQueries({
-        queryKey: allSeerProjectReposQueryKey(organization, project),
-        exact: false,
-      });
+      queryClient.invalidateQueries(allSeerProjectReposFilter(organization, project));
     },
     onSettled: (_data, _error, _variables, context) => {
       if (context?.singleQueryKey) {
         queryClient.invalidateQueries({queryKey: context.singleQueryKey});
       }
-      queryClient.invalidateQueries({
-        queryKey: allSeerProjectReposQueryKey(organization, project),
-        exact: false,
-      });
+      queryClient.invalidateQueries(allSeerProjectReposFilter(organization, project));
     },
   });
 }
@@ -428,10 +410,7 @@ export function getMutateSeerProjectReposOptionsAddRepo({
       return fetchMutation({method: 'POST', url: infiniteUrl, data});
     },
     onMutate: async (data: {repos: SeerProjectRepoCreateInput[]}) => {
-      await queryClient.cancelQueries({
-        queryKey: allSeerProjectReposQueryKey(organization, project),
-        exact: false,
-      });
+      await queryClient.cancelQueries(allSeerProjectReposFilter(organization, project));
 
       const previousInfinite = queryClient.getQueryData(infiniteQueryKey);
       const repoLookup = getRepoLookupFromCache(queryClient, organization);
@@ -440,7 +419,7 @@ export function getMutateSeerProjectReposOptionsAddRepo({
       );
 
       queryClient.setQueriesData(
-        {queryKey: allSeerProjectReposQueryKey(organization, project), exact: false},
+        allSeerProjectReposFilter(organization, project),
         (prev: InfiniteData<ApiResponse<SeerProjectReposResponse[]>> | undefined) => {
           if (prev && prev.pages.length > 0) {
             const lastPageIndex = prev.pages.length - 1;
@@ -460,10 +439,7 @@ export function getMutateSeerProjectReposOptionsAddRepo({
       return {previousInfinite};
     },
     onError: () => {
-      queryClient.invalidateQueries({
-        queryKey: allSeerProjectReposQueryKey(organization, project),
-        exact: false,
-      });
+      queryClient.invalidateQueries(allSeerProjectReposFilter(organization, project));
     },
     onSettled: (_data, _error, variables, _context) => {
       for (const repo of variables.repos) {
@@ -475,10 +451,7 @@ export function getMutateSeerProjectReposOptionsAddRepo({
           }).queryKey,
         });
       }
-      queryClient.invalidateQueries({
-        queryKey: allSeerProjectReposQueryKey(organization, project),
-        exact: false,
-      });
+      queryClient.invalidateQueries(allSeerProjectReposFilter(organization, project));
     },
   });
 }

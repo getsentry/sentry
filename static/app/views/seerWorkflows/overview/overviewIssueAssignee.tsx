@@ -68,24 +68,19 @@ export function OverviewIssueAssignee({
       // filter's options/counts update without a full (Snuba-heavy) refetch.
       const path = {organizationIdOrSlug: organization.slug};
       queryClient.setQueriesData<ApiResponse<AutofixOverviewResponse>>(
-        {
-          queryKey: apiOptions.partialQueryKey(
-            '/organizations/$organizationIdOrSlug/seer/autofix-overview/',
-            {path}
-          ),
-        },
+        apiOptions.queryFilter(
+          '/organizations/$organizationIdOrSlug/seer/autofix-overview/',
+          {path}
+        ),
         previous =>
           previous && {
             ...previous,
             json: withRunAssignee(previous.json, groupId, nextAssignedTo),
           }
       );
-      void queryClient.invalidateQueries({
-        queryKey: apiOptions.partialQueryKey(
-          '/organizations/$organizationIdOrSlug/issues/',
-          {path}
-        ),
-      });
+      void queryClient.invalidateQueries(
+        apiOptions.queryFilter('/organizations/$organizationIdOrSlug/issues/', {path})
+      );
     },
     [groupId, organization.slug, queryClient]
   );

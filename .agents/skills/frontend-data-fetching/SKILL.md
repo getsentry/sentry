@@ -43,33 +43,33 @@ The layout of an api query key is internal. **Never build an api query key by ha
 
 ### Filters: `invalidateQueries`, `setQueriesData`, `cancelQueries`, ...
 
-Use `apiOptions.partialQueryKey(url, options)` to build a filter. It is typed against the known api urls.
+Use `apiOptions.queryFilter(url, options)` to build a filter. It is typed against the known api urls.
 
 ```typescript
 // One url, with any query, cursor or other options, infinite or not
-queryClient.invalidateQueries({
-  queryKey: apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/issues/', {
+queryClient.invalidateQueries(
+  apiOptions.queryFilter('/organizations/$organizationIdOrSlug/issues/', {
     path: {organizationIdOrSlug: organization.slug},
-  }),
-});
+  })
+);
 
 // A url and everything below it: end a known url prefix with `/*`.
 // Path params can stay open, here `$issueId`. `path: {}` matches every organization.
-queryClient.invalidateQueries({
-  queryKey: apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/issues/*', {
+queryClient.invalidateQueries(
+  apiOptions.queryFilter('/organizations/$organizationIdOrSlug/issues/*', {
     path: {organizationIdOrSlug: organization.slug},
-  }),
-});
+  })
+);
 
 // Narrow the match with `infinite: true` or options such as `query`
-apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/issues/', {
+apiOptions.queryFilter('/organizations/$organizationIdOrSlug/issues/', {
   path: {organizationIdOrSlug: organization.slug},
   query: {query: 'is:unresolved'},
 });
 ```
 
-- **`apiOptions.partialQueryKey` is a filter, never a cache key.** Its result is always partial, also without `*`, so it only works where TanStack Query matches partially: `invalidateQueries`, `refetchQueries`, `cancelQueries`, `removeQueries`, `resetQueries`, `getQueriesData`, `setQueriesData`, `isFetching`, `useIsFetching` and `queryCache.findAll`.
-- ❌ Do not use it with `exact: true`, `getQueryData`, `getQueryState` or `queryCache.find` (which is exact by default): they never match. With `setQueryData` it silently creates a second, wrong cache entry. With `useQuery`, `fetchQuery`, `ensureQueryData` or `prefetchQuery` it can not fetch. For these, use the `queryKey` of a full `apiOptions(...)` call.
+- Pass the filter directly to cache operations such as `invalidateQueries`, `setQueriesData`, and `queryCache.findAll`. Spread it to add options such as `refetchType`. The filter sets `exact: false` even for a URL without `*`.
+- Use the full `queryKey` from `apiOptions.as` or `apiOptions.asInfinite` for exact access such as `getQueryData`, `setQueryData`, or `queryCache.find` with its default matching behavior.
 - A url without `*` needs every path param. A `/*` prefix needs a `path` object, but each param in it is optional.
 - The `queryKey` of a full `apiOptions(...)` call is also a valid filter, for example `queryClient.invalidateQueries({queryKey: itemOptions.queryKey})`.
 - Prefer a filter over a `predicate`. Use a `predicate` only when a filter can not express the match, for example a regular expression on the url.

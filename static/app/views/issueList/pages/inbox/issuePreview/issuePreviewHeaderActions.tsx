@@ -20,7 +20,7 @@ import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {GroupResolutionActions} from 'sentry/views/issueDetails/actions/index';
-import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
+import {groupQueryFilter} from 'sentry/views/issueDetails/useGroup';
 import {useInvalidateInboxQueries} from 'sentry/views/issueList/pages/inbox/useInvalidateInboxQueries';
 
 import {IssuePreviewActions} from './issuePreviewActions';
@@ -114,9 +114,12 @@ function IssuePreviewResolutionActions({
       );
       IssueListCacheStore.reset();
       invalidateInboxQueries();
-      void queryClient.invalidateQueries({
-        queryKey: groupQueryKey({organizationSlug: organization.slug, groupId: group.id}),
-      });
+      void queryClient.invalidateQueries(
+        groupQueryFilter({
+          organizationSlug: organization.slug,
+          groupId: group.id,
+        })
+      );
     } catch {
       // GroupStore already shows the error
     }

@@ -98,11 +98,11 @@ export function useFetchSpanTimeSeries<
   );
 }
 
-export function makeEventsTimeSeriesQueryKeyPrefix(
+export function makeEventsTimeSeriesFilter(
   organizationSlug: string,
   options?: QueryKeyEndpointOptions
 ) {
-  return apiOptions.partialQueryKey(
+  return apiOptions.queryFilter(
     '/organizations/$organizationIdOrSlug/events-timeseries/',
     {
       path: {organizationIdOrSlug: organizationSlug},

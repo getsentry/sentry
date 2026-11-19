@@ -116,12 +116,12 @@ export function PrivateGamingSdkAccessModal({
         setSubmittedPlatforms(successfulPlatforms);
       }
 
-      queryClient.invalidateQueries({
-        queryKey: apiOptions.partialQueryKey(
+      queryClient.invalidateQueries(
+        apiOptions.queryFilter(
           '/organizations/$organizationIdOrSlug/console-sdk-invites/',
           {path: {organizationIdOrSlug: organization.slug}}
-        ),
-      });
+        )
+      );
     },
     onError: errorResponse => {
       const errorMessage = tct('[error] - [detail]', {

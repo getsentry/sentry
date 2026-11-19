@@ -14,7 +14,7 @@ import {uniqueId} from 'sentry/utils/guid';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 
-import {groupQueryKey} from './useGroup';
+import {groupQueryFilter} from './useGroup';
 
 type AssignedBy = 'suggested_assignee' | 'assignee_selector';
 
@@ -75,19 +75,19 @@ export function useAssignIssueMutation() {
       return {changeId};
     },
     onSuccess: (response, variables, onMutateResult) => {
-      const queryKey = groupQueryKey({
+      const groupFilter = groupQueryFilter({
         organizationSlug: variables.orgSlug,
         groupId: variables.groupId,
       });
 
       // Update react query cache so that useGroup() reflects the new assignee.
-      queryClient.setQueriesData<ApiResponse<Group>>({queryKey}, prev =>
+      queryClient.setQueriesData<ApiResponse<Group>>(groupFilter, prev =>
         prev ? {...prev, json: {...prev.json, assignedTo: response.assignedTo}} : prev
       );
       // Dual-write to GroupStore
       // TODO: Remove this when we no longer rely on GroupStore for updates
       GroupStore.onAssignToSuccess(onMutateResult.changeId, variables.groupId, response);
-      queryClient.invalidateQueries({queryKey});
+      queryClient.invalidateQueries(groupFilter);
       toast.success(getAssignIssueSuccessMessage(response.assignedTo));
     },
     onError: (error, variables, onMutateResult) => {

@@ -39,9 +39,9 @@ export function useMutateUserOptions() {
     onSuccess: () => {
       // Pages that fetch the user, like account settings, would otherwise keep
       // showing the old preferences
-      queryClient.invalidateQueries({
-        queryKey: apiOptions.partialQueryKey('/users/$userId/', {path: {userId: 'me'}}),
-      });
+      queryClient.invalidateQueries(
+        apiOptions.queryFilter('/users/$userId/', {path: {userId: 'me'}})
+      );
     },
     onError: () => {
       toast.error('Failed to save user preference');

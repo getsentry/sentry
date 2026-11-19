@@ -32,7 +32,7 @@ import {
 export function BroadcastDetails() {
   const {broadcastId} = useParams<{broadcastId: string}>();
   const broadcastUrl = getApiUrl('/broadcasts/$broadcastId/', {path: {broadcastId}});
-  const broadcastQueryKey = apiOptions.partialQueryKey('/broadcasts/$broadcastId/', {
+  const broadcastFilter = apiOptions.queryFilter('/broadcasts/$broadcastId/', {
     path: {broadcastId},
   });
   const queryClient = useQueryClient();
@@ -50,9 +50,7 @@ export function BroadcastDetails() {
       fetchMutation({url: broadcastUrl, method: 'PUT', data: params}),
     onSuccess: () => {
       toast.success('Broadcast updated.');
-      queryClient.invalidateQueries({
-        queryKey: broadcastQueryKey,
-      });
+      queryClient.invalidateQueries(broadcastFilter);
     },
     onError: () => {
       toast.error('There was an internal error updating this broadcast.');

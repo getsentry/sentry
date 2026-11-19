@@ -115,23 +115,23 @@ export function useNextAction({
     });
     try {
       await config.trigger(autofix, run.seerRunId);
-      queryClient.invalidateQueries({
-        queryKey: apiOptions.partialQueryKey(
+      queryClient.invalidateQueries(
+        apiOptions.queryFilter(
           '/organizations/$organizationIdOrSlug/seer/autofix-overview/',
           {path: {organizationIdOrSlug: organization.slug}}
-        ),
-      });
+        )
+      );
     } catch (error) {
       if (config.errorFallback) {
         const detail = (error as RequestError)?.responseJSON?.detail;
         toast.error(typeof detail === 'string' ? detail : config.errorFallback);
       }
-      queryClient.removeQueries({
-        queryKey: apiOptions.partialQueryKey(
+      queryClient.removeQueries(
+        apiOptions.queryFilter(
           '/organizations/$organizationIdOrSlug/issues/$issueId/autofix/',
           {path: {organizationIdOrSlug: organization.slug, issueId: run.groupId}}
-        ),
-      });
+        )
+      );
       setIsDispatched(false);
     }
   }, [

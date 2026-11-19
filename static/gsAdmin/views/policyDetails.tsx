@@ -30,14 +30,13 @@ export function PolicyDetails() {
     path: {policySlug},
     staleTime: 0,
   });
-  const revisionsQueryKey = apiOptions.partialQueryKey(
-    '/policies/$policySlug/revisions/',
-    {path: {policySlug}}
-  );
+  const revisionsFilter = apiOptions.queryFilter('/policies/$policySlug/revisions/', {
+    path: {policySlug},
+  });
   const invalidatePolicyQueries = () =>
     Promise.all([
       queryClient.invalidateQueries({queryKey: policyQueryOptions.queryKey}),
-      queryClient.invalidateQueries({queryKey: revisionsQueryKey}),
+      queryClient.invalidateQueries(revisionsFilter),
     ]);
 
   const {data: policy, isPending, isError, refetch} = useQuery(policyQueryOptions);

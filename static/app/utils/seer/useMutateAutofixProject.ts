@@ -15,7 +15,7 @@ import {
 } from './preferredAgent';
 import {getSeerProjectReposInfiniteQueryOptions} from './seerProjectRepos';
 import {
-  allSeerProjectsSettingsQueryKey,
+  allSeerProjectsSettingsFilter,
   getSeerProjectSettingsQueryOptions,
 } from './seerProjectSettings';
 import {getTuningFromStoppingPoint, resolveStoppingPoint} from './stoppingPoint';
@@ -161,10 +161,7 @@ export function useMutateAutofixProject() {
       // Invalidate the org-level infinite seer projects list so the
       // /settings/seer/projects/ table reflects the newly added project
       // without waiting for its 60s staleTime to expire.
-      queryClient.invalidateQueries({
-        queryKey: allSeerProjectsSettingsQueryKey(organization),
-        exact: false,
-      });
+      queryClient.invalidateQueries(allSeerProjectsSettingsFilter(organization));
     },
   });
 }

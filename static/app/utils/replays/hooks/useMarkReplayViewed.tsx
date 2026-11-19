@@ -28,8 +28,8 @@ export function useMarkReplayViewed() {
       return fetchMutation({method: 'POST', url});
     },
     onSuccess(_data, {projectSlug, replayId}) {
-      queryClient.refetchQueries({
-        queryKey: apiOptions.partialQueryKey(
+      queryClient.refetchQueries(
+        apiOptions.queryFilter(
           '/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/$replayId/viewed-by/',
           {
             path: {
@@ -38,8 +38,8 @@ export function useMarkReplayViewed() {
               replayId,
             },
           }
-        ),
-      });
+        )
+      );
     },
     retry: false,
   });

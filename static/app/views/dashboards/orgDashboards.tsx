@@ -150,12 +150,12 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
     // Clean up the query cache when the dashboard unmounts to prevent
     // a flicker from stale data on refetch
     return () => {
-      queryClient.removeQueries({
-        queryKey: apiOptions.partialQueryKey(
+      queryClient.removeQueries(
+        apiOptions.queryFilter(
           '/organizations/$organizationIdOrSlug/dashboards/$dashboardId/',
           {path: {organizationIdOrSlug: organization.slug, dashboardId}}
-        ),
-      });
+        )
+      );
     };
   }, [dashboardId, organization.slug, queryClient]);
 

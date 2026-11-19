@@ -124,7 +124,19 @@ function _apiOptions<
 
 const isExactMatch = (url: KnownApiUrlPattern): url is KnownApiUrl => !url.endsWith('*');
 
-function _partialQueryKey(
+type ApiQueryFilter = {
+  readonly exact: false;
+  readonly queryKey: readonly [typeof API_QUERY_KEY_MARKER, Partial<ParsedQueryKey>];
+};
+
+function queryFilter<TPattern extends KnownApiUrlPattern>(
+  ...args: TPattern extends KnownApiUrlPattern
+    ? PatternPathOptions<TPattern> extends {path: unknown}
+      ? [url: TPattern, options: QueryKeyOptions<TPattern>]
+      : [url: TPattern, options?: QueryKeyOptions<TPattern>]
+    : never
+): ApiQueryFilter;
+function queryFilter(
   url: KnownApiUrlPattern,
   {
     path,
@@ -134,7 +146,7 @@ function _partialQueryKey(
     infinite?: true;
     path?: Record<string, string>;
   } = {}
-) {
+): ApiQueryFilter {
   const exact = isExactMatch(url);
   const keyOptions = stripUndefinedValues({
     ...options,
@@ -149,7 +161,7 @@ function _partialQueryKey(
     ...(infinite ? {infinite} : {}),
   };
 
-  return [API_QUERY_KEY_MARKER, params] as const;
+  return {queryKey: [API_QUERY_KEY_MARKER, params], exact: false};
 }
 
 function parsePageParam<TQueryFnData = unknown>(dir: 'previous' | 'next') {
@@ -252,10 +264,8 @@ export const apiOptions = {
       _apiOptionsInfinite<TManualData>(path, options as never),
 
   /**
-   * A partial query key, only for filters that match partially, like
-   * `invalidateQueries`, `setQueriesData` or `queryCache.findAll`. It never
-   * matches with `exact: true`, `getQueryData`, `setQueryData`, `getQueryState` or
-   * `queryCache.find`, and it can not be used with `useQuery` or `fetchQuery`.
+   * A cache filter for operations such as `invalidateQueries`,
+   * `setQueriesData`, and `queryCache.findAll`. Pass it directly to those operations.
    *
    * A url without `*` matches exactly that url, with any other options. A prefix
    * ending in `/*` matches that url and everything below it, and leaves path
@@ -263,18 +273,13 @@ export const apiOptions = {
    *
    * @example
    * ```ts
-   * apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/repos/', {
+   * apiOptions.queryFilter('/organizations/$organizationIdOrSlug/repos/', {
    *   path: {organizationIdOrSlug: organization.slug},
    * });
-   * apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/issues/*', {
+   * apiOptions.queryFilter('/organizations/$organizationIdOrSlug/issues/*', {
    *   path: {organizationIdOrSlug: organization.slug},
    * });
    * ```
    */
-  partialQueryKey: <TPattern extends KnownApiUrlPattern>(
-    url: TPattern,
-    ...[options]: PatternPathOptions<TPattern> extends {path: unknown}
-      ? [QueryKeyOptions<TPattern>]
-      : [QueryKeyOptions<TPattern>?]
-  ) => _partialQueryKey(url, options as never),
+  queryFilter,
 };

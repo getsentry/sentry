@@ -72,11 +72,11 @@ export function BroadcastEditForm({broadcastId, data, onCancel, onSaved}: Props)
       }),
     onSuccess: () => {
       toast.success('Broadcast updated.');
-      queryClient.invalidateQueries({
-        queryKey: apiOptions.partialQueryKey('/broadcasts/$broadcastId/', {
+      queryClient.invalidateQueries(
+        apiOptions.queryFilter('/broadcasts/$broadcastId/', {
           path: {broadcastId},
-        }),
-      });
+        })
+      );
       onSaved();
     },
     onError: error => {

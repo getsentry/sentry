@@ -223,12 +223,12 @@ function ToggleConsolePlatformsModal({
         setPendingRevocations([]);
       })
       .finally(() => {
-        queryClient.invalidateQueries({
-          queryKey: apiOptions.partialQueryKey(
+        queryClient.invalidateQueries(
+          apiOptions.queryFilter(
             '/organizations/$organizationIdOrSlug/console-sdk-invites/',
             {path: {organizationIdOrSlug: organization.slug}}
-          ),
-        });
+          )
+        );
       });
   };
 

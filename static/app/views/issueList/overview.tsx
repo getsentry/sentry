@@ -703,12 +703,11 @@ function IssueListOverviewInner({
   };
 
   const invalidateIssueCounts = () => {
-    queryClient.invalidateQueries({
-      queryKey: apiOptions.partialQueryKey(
-        '/organizations/$organizationIdOrSlug/issues-count/',
-        {path: {organizationIdOrSlug: organization.slug}}
-      ),
-    });
+    queryClient.invalidateQueries(
+      apiOptions.queryFilter('/organizations/$organizationIdOrSlug/issues-count/', {
+        path: {organizationIdOrSlug: organization.slug},
+      })
+    );
   };
 
   const undoAction = async ({

@@ -14,7 +14,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
  * panel leaves the inbox showing the issue in its old bucket until the reader
  * navigates or refocuses the window.
  *
- * `apiOptions.partialQueryKey` without a `*` matches the URL with any other options, so
+ * `apiOptions.queryFilter` without a `*` matches the URL with any other options, so
  * it reaches every filter, sort, cursor and expand variant these pages
  * mount. That breadth is deliberate — the panel can't see which page is behind
  * it — and it does sweep in other readers of the same endpoints, such as the
@@ -28,30 +28,30 @@ export function useRefreshAutofixProgressQueries(groupId: string) {
   return useCallback(() => {
     const path = {organizationIdOrSlug: organization.slug};
 
-    const queryKeys = [
+    const filters = [
       // The inbox sections, bucketed and sorted on `issue.progress:`, which each
       // completed step advances. Not the legacy issue stream — that reads
       // through GroupStore and IssueListCacheStore, which this cannot reach.
-      apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/issues/', {path}),
+      apiOptions.queryFilter('/organizations/$organizationIdOrSlug/issues/', {path}),
       // Counts on the inbox's my / my teams / all tabs.
-      apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/issues-count/', {
+      apiOptions.queryFilter('/organizations/$organizationIdOrSlug/issues-count/', {
         path,
       }),
       // Pull request badge on the inbox row, filled in once a PR is opened.
-      apiOptions.partialQueryKey(
+      apiOptions.queryFilter(
         '/organizations/$organizationIdOrSlug/issues/$issueId/pull-requests/',
         {path: {...path, issueId: groupId}}
       ),
       // Seer workflows overview cards, including the issue stats and project
       // config expands that never poll.
-      apiOptions.partialQueryKey(
+      apiOptions.queryFilter(
         '/organizations/$organizationIdOrSlug/seer/autofix-overview/',
         {path}
       ),
     ];
 
-    for (const queryKey of queryKeys) {
-      queryClient.invalidateQueries({queryKey});
+    for (const filter of filters) {
+      queryClient.invalidateQueries(filter);
     }
   }, [groupId, organization.slug, queryClient]);
 }

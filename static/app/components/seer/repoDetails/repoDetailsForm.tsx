@@ -71,12 +71,11 @@ export function RepoDetailsForm({organization, repoWithSettings}: Props) {
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({
-        queryKey: apiOptions.partialQueryKey(
-          '/organizations/$organizationIdOrSlug/repos/',
-          {path: {organizationIdOrSlug: organization.slug}}
-        ),
-      });
+      queryClient.invalidateQueries(
+        apiOptions.queryFilter('/organizations/$organizationIdOrSlug/repos/', {
+          path: {organizationIdOrSlug: organization.slug},
+        })
+      );
       queryClient.invalidateQueries({
         queryKey: getSeerOnboardingCheckQueryOptions({organization}).queryKey,
       });

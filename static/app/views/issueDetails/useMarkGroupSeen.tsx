@@ -7,7 +7,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {groupQueryKey} from './useGroup';
+import {groupQueryFilter} from './useGroup';
 
 export function useMarkGroupSeen() {
   const organization = useOrganization();
@@ -24,7 +24,7 @@ export function useMarkGroupSeen() {
       }),
     onSuccess: (updatedGroup, groupId) => {
       queryClient.setQueriesData(
-        {queryKey: groupQueryKey({organizationSlug: organization.slug, groupId})},
+        groupQueryFilter({organizationSlug: organization.slug, groupId}),
         (previous: ApiResponse<Group> | undefined) =>
           previous
             ? {...previous, json: {...previous.json, hasSeen: updatedGroup.hasSeen}}
@@ -33,15 +33,10 @@ export function useMarkGroupSeen() {
 
       // Inbox sections are infinite queries against the organization issues endpoint.
       queryClient.setQueriesData<InfiniteData<ApiResponse<Group[]>>>(
-        {
-          queryKey: apiOptions.partialQueryKey(
-            '/organizations/$organizationIdOrSlug/issues/',
-            {
-              path: {organizationIdOrSlug: organization.slug},
-              infinite: true,
-            }
-          ),
-        },
+        apiOptions.queryFilter('/organizations/$organizationIdOrSlug/issues/', {
+          path: {organizationIdOrSlug: organization.slug},
+          infinite: true,
+        }),
         previous =>
           previous
             ? {
@@ -59,10 +54,9 @@ export function useMarkGroupSeen() {
       );
 
       void queryClient.invalidateQueries({
-        queryKey: apiOptions.partialQueryKey(
-          '/organizations/$organizationIdOrSlug/issues/',
-          {path: {organizationIdOrSlug: organization.slug}}
-        ),
+        ...apiOptions.queryFilter('/organizations/$organizationIdOrSlug/issues/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
         refetchType: 'none',
       });
     },

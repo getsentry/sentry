@@ -8,7 +8,7 @@ import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
+import {groupQueryFilter} from 'sentry/views/issueDetails/useGroup';
 
 import {issueCommentsQueryOptions} from './issueCommentsQueryOptions';
 
@@ -24,11 +24,11 @@ interface Props {
 
 export function useMutateActivity({organization, group}: Props) {
   const queryClient = useQueryClient();
-  const queryKey = groupQueryKey({
+  const groupFilter = groupQueryFilter({
     organizationSlug: organization.slug,
     groupId: group.id,
   });
-  const activityQueryKey = apiOptions.partialQueryKey(
+  const activityFilter = apiOptions.queryFilter(
     '/organizations/$organizationIdOrSlug/issues/$issueId/activities/',
     {path: {organizationIdOrSlug: organization.slug, issueId: group.id}}
   );
@@ -62,7 +62,7 @@ export function useMutateActivity({organization, group}: Props) {
       });
     },
     onSuccess: (result, mutation) => {
-      queryClient.setQueriesData<ApiResponse<Group>>({queryKey}, prev => {
+      queryClient.setQueriesData<ApiResponse<Group>>(groupFilter, prev => {
         if (!prev) {
           return prev;
         }
@@ -105,7 +105,7 @@ export function useMutateActivity({organization, group}: Props) {
           groupId: group.id,
         }).queryKey,
       });
-      void queryClient.invalidateQueries({queryKey: activityQueryKey});
+      void queryClient.invalidateQueries(activityFilter);
     },
   });
 

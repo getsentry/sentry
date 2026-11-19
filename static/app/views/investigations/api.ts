@@ -62,14 +62,14 @@ export function getInvestigationDetailQueryOptions(
 
 export const INVESTIGATION_COMMENTS_PAGE_SIZE = 100;
 
-function allInvestigationCommentsQueryKey({
+function allInvestigationCommentsFilter({
   organizationSlug,
   investigationId,
 }: {
   investigationId: string;
   organizationSlug: string;
 }) {
-  return apiOptions.partialQueryKey(
+  return apiOptions.queryFilter(
     '/organizations/$organizationIdOrSlug/notebooks/$notebookId/comments/',
     {path: {organizationIdOrSlug: organizationSlug, notebookId: investigationId}}
   );
@@ -148,9 +148,9 @@ function useInvalidateInvestigationComments(
   const queryClient = useQueryClient();
   return () =>
     Promise.all([
-      queryClient.invalidateQueries({
-        queryKey: allInvestigationCommentsQueryKey({organizationSlug, investigationId}),
-      }),
+      queryClient.invalidateQueries(
+        allInvestigationCommentsFilter({organizationSlug, investigationId})
+      ),
       queryClient.invalidateQueries({
         queryKey: investigationCommentCountsQueryOptions(
           organizationSlug,
@@ -179,7 +179,7 @@ export function useUpdateInvestigationCommentMutation(
       }),
     onSuccess: updated => {
       queryClient.setQueriesData(
-        {queryKey: allInvestigationCommentsQueryKey({organizationSlug, investigationId})},
+        allInvestigationCommentsFilter({organizationSlug, investigationId}),
         (prev: ApiResponse<InvestigationComment[]> | undefined) =>
           prev && {
             ...prev,
@@ -211,7 +211,7 @@ export function useDeleteInvestigationCommentMutation(
       }),
     onSuccess: (_data, {commentId}) => {
       queryClient.setQueriesData(
-        {queryKey: allInvestigationCommentsQueryKey({organizationSlug, investigationId})},
+        allInvestigationCommentsFilter({organizationSlug, investigationId}),
         (prev: ApiResponse<InvestigationComment[]> | undefined) =>
           prev && {...prev, json: prev.json.filter(comment => comment.id !== commentId)}
       );
@@ -379,8 +379,8 @@ export function investigationCandidatesQueryOptions({
   );
 }
 
-function allInvestigationCandidatesQueryKey(organizationSlug: string) {
-  return apiOptions.partialQueryKey(
+function allInvestigationCandidatesFilter(organizationSlug: string) {
+  return apiOptions.queryFilter(
     '/organizations/$organizationIdOrSlug/investigations/candidates/',
     {path: {organizationIdOrSlug: organizationSlug}}
   );
@@ -419,9 +419,9 @@ function useInvestigationMutation<TData, TVariables>(
           queryKey: investigationListQueryOptions({organizationSlug}).queryKey,
         }),
         invalidateCandidates
-          ? queryClient.invalidateQueries({
-              queryKey: allInvestigationCandidatesQueryKey(organizationSlug),
-            })
+          ? queryClient.invalidateQueries(
+              allInvestigationCandidatesFilter(organizationSlug)
+            )
           : Promise.resolve(),
       ]);
       await options?.onSuccess?.(data, variables, onMutateResult, context);

@@ -348,15 +348,12 @@ export function useReplayData({replayId, orgSlug}: Options): Result {
     }
     // Invalidate fetched replay error events for all replayIds. Narrow to
     // `referrer=replay_details` so unrelated /events/ queries aren't refetched.
-    queryClient.invalidateQueries({
-      queryKey: apiOptions.partialQueryKey(
-        '/organizations/$organizationIdOrSlug/events/',
-        {
-          path: {organizationIdOrSlug: orgSlug},
-          query: {referrer: 'replay_details'},
-        }
-      ),
-    });
+    queryClient.invalidateQueries(
+      apiOptions.queryFilter('/organizations/$organizationIdOrSlug/events/', {
+        path: {organizationIdOrSlug: orgSlug},
+        query: {referrer: 'replay_details'},
+      })
+    );
   }, [orgSlug, replayId, projectSlug, queryClient]);
 
   const {allErrors, feedbackEventIds} = useMemo(() => {

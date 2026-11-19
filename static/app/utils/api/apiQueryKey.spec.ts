@@ -1,4 +1,5 @@
-import {QueryClient} from '@tanstack/react-query';
+import {QueryClient, type QueryFilters, type QueryKey} from '@tanstack/react-query';
+import {expectTypeOf} from 'expect-type';
 
 import {apiOptions} from './apiOptions';
 import {parseQueryKey, safeParseQueryKey} from './apiQueryKey';
@@ -37,18 +38,18 @@ function seedCache() {
   };
   Object.values(keys).forEach(queryKey => queryClient.setQueryData(queryKey, {}));
 
-  const matching = (queryKey: readonly unknown[]) =>
+  const matching = (filter: QueryFilters) =>
     Object.entries(keys)
       .filter(([, key]) =>
         queryClient
           .getQueryCache()
-          .findAll({queryKey})
+          .findAll(filter)
           .some(query => query.queryKey === key)
       )
       .map(([name]) => name)
       .sort();
 
-  return {keys, matching};
+  return {keys, matching, queryClient};
 }
 
 describe('apiQueryKey', () => {
@@ -78,6 +79,15 @@ describe('apiQueryKey', () => {
       );
     });
 
+    it('rejects keys from API filters', () => {
+      expect(
+        safeParseQueryKey(apiOptions.queryFilter('/users/').queryKey)
+      ).toBeUndefined();
+      expect(
+        safeParseQueryKey(apiOptions.queryFilter('/users/*').queryKey)
+      ).toBeUndefined();
+    });
+
     it('returns undefined for keys that are not api keys', () => {
       expect(safeParseQueryKey([])).toBeUndefined();
       expect(safeParseQueryKey(['bootstrap-projects'])).toBeUndefined();
@@ -91,7 +101,7 @@ describe('apiQueryKey', () => {
     it('match both variants of the url, with any other options', () => {
       const {matching} = seedCache();
 
-      expect(matching(issuesOptions('acme').queryKey)).toEqual([
+      expect(matching({queryKey: issuesOptions('acme').queryKey})).toEqual([
         'acmeIssues',
         'acmeIssuesFiltered',
         'acmeIssuesInfinite',
@@ -101,7 +111,7 @@ describe('apiQueryKey', () => {
     it('match only infinite queries when built with asInfinite', () => {
       const {matching} = seedCache();
 
-      expect(matching(issuesInfiniteOptions('acme').queryKey)).toEqual([
+      expect(matching({queryKey: issuesInfiniteOptions('acme').queryKey})).toEqual([
         'acmeIssuesInfinite',
       ]);
     });
@@ -109,22 +119,26 @@ describe('apiQueryKey', () => {
     it('narrow the match by their options', () => {
       const {matching} = seedCache();
 
-      expect(matching(issuesOptions('acme', {query: 'is:unresolved'}).queryKey)).toEqual([
-        'acmeIssuesFiltered',
-      ]);
+      expect(
+        matching({queryKey: issuesOptions('acme', {query: 'is:unresolved'}).queryKey})
+      ).toEqual(['acmeIssuesFiltered']);
     });
   });
 
-  describe('apiOptions.partialQueryKey', () => {
+  describe('apiOptions.queryFilter', () => {
     it('matches exactly one url without a glob, with any other options', () => {
-      const {matching} = seedCache();
-      const queryKey = apiOptions.partialQueryKey(
+      const {matching, queryClient} = seedCache();
+      const filter = apiOptions.queryFilter(
         '/organizations/$organizationIdOrSlug/issues/',
         {path: {organizationIdOrSlug: 'acme'}}
       );
 
-      expect(queryKey).toEqual(['_api', {url: '/organizations/acme/issues/'}]);
-      expect(matching(queryKey)).toEqual([
+      expect(filter).toEqual({
+        exact: false,
+        queryKey: ['_api', {url: '/organizations/acme/issues/'}],
+      });
+      expect(queryClient.getQueryCache().find(filter)).toBeDefined();
+      expect(matching(filter)).toEqual([
         'acmeIssues',
         'acmeIssuesFiltered',
         'acmeIssuesInfinite',
@@ -136,7 +150,7 @@ describe('apiQueryKey', () => {
 
       expect(
         matching(
-          apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/issues/*', {
+          apiOptions.queryFilter('/organizations/$organizationIdOrSlug/issues/*', {
             path: {organizationIdOrSlug: 'acme'},
           })
         )
@@ -148,7 +162,7 @@ describe('apiQueryKey', () => {
 
       expect(
         matching(
-          apiOptions.partialQueryKey(
+          apiOptions.queryFilter(
             '/organizations/$organizationIdOrSlug/issues/$issueId/*',
             {path: {organizationIdOrSlug: 'acme'}}
           )
@@ -156,7 +170,7 @@ describe('apiQueryKey', () => {
       ).toEqual(['acmeIssue']);
       expect(
         matching(
-          apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/issues/*', {
+          apiOptions.queryFilter('/organizations/$organizationIdOrSlug/issues/*', {
             path: {},
           })
         )
@@ -175,7 +189,7 @@ describe('apiQueryKey', () => {
 
       expect(
         matching(
-          apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/issues/', {
+          apiOptions.queryFilter('/organizations/$organizationIdOrSlug/issues/', {
             path,
             infinite: true,
           })
@@ -183,7 +197,7 @@ describe('apiQueryKey', () => {
       ).toEqual(['acmeIssuesInfinite']);
       expect(
         matching(
-          apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/issues/', {
+          apiOptions.queryFilter('/organizations/$organizationIdOrSlug/issues/', {
             path,
             query: {query: 'is:unresolved'},
           })
@@ -199,40 +213,46 @@ describe('apiQueryKey', () => {
 
       it('builds a key from url parts and the given params only', () => {
         expect(
-          apiOptions.partialQueryKey(
+          apiOptions.queryFilter(
             '/organizations/$organizationIdOrSlug/issues/$issueId/autofix/setup/*',
             {path: {organizationIdOrSlug: 'acme'}}
           )
-        ).toEqual([
-          '_api',
-          {
-            urlParts: [
-              'organizations',
-              '$organizationIdOrSlug',
-              'issues',
-              '$issueId',
-              'autofix',
-              'setup',
-            ],
-            options: {path: {organizationIdOrSlug: 'acme'}},
-          },
-        ]);
+        ).toEqual({
+          exact: false,
+          queryKey: [
+            '_api',
+            {
+              urlParts: [
+                'organizations',
+                '$organizationIdOrSlug',
+                'issues',
+                '$issueId',
+                'autofix',
+                'setup',
+              ],
+              options: {path: {organizationIdOrSlug: 'acme'}},
+            },
+          ],
+        });
       });
 
       it('builds a key from the full url without a glob', () => {
         expect(
-          apiOptions.partialQueryKey(
+          apiOptions.queryFilter(
             '/organizations/$organizationIdOrSlug/issues/$issueId/autofix/setup/',
             {path: {organizationIdOrSlug: 'acme', issueId: '123'}}
           )
-        ).toEqual(['_api', {url: '/organizations/acme/issues/123/autofix/setup/'}]);
+        ).toEqual({
+          exact: false,
+          queryKey: ['_api', {url: '/organizations/acme/issues/123/autofix/setup/'}],
+        });
       });
 
       it('matches the same cache entry with both keys', () => {
         const queryClient = new QueryClient();
         queryClient.setQueryData(autofixSetupKey, {});
-        const matches = (queryKey: readonly unknown[]) =>
-          queryClient.getQueryCache().findAll({queryKey}).length;
+        const matches = (filter: QueryFilters) =>
+          queryClient.getQueryCache().findAll(filter).length;
 
         expect(autofixSetupKey).toEqual([
           '_api',
@@ -251,7 +271,7 @@ describe('apiQueryKey', () => {
         ]);
         expect(
           matches(
-            apiOptions.partialQueryKey(
+            apiOptions.queryFilter(
               '/organizations/$organizationIdOrSlug/issues/$issueId/autofix/setup/*',
               {path: {organizationIdOrSlug: 'acme'}}
             )
@@ -259,7 +279,7 @@ describe('apiQueryKey', () => {
         ).toBe(1);
         expect(
           matches(
-            apiOptions.partialQueryKey(
+            apiOptions.queryFilter(
               '/organizations/$organizationIdOrSlug/issues/$issueId/autofix/setup/',
               {path: {organizationIdOrSlug: 'acme', issueId: '123'}}
             )
@@ -267,7 +287,7 @@ describe('apiQueryKey', () => {
         ).toBe(1);
         expect(
           matches(
-            apiOptions.partialQueryKey(
+            apiOptions.queryFilter(
               '/organizations/$organizationIdOrSlug/issues/$issueId/autofix/setup/*',
               {path: {organizationIdOrSlug: 'other'}}
             )
@@ -277,67 +297,79 @@ describe('apiQueryKey', () => {
     });
   });
 
-  describe('apiOptions.partialQueryKey types', () => {
+  describe('apiOptions.queryFilter types', () => {
+    it('rejects a filter as a cache key', () => {
+      const filter = apiOptions.queryFilter('/users/');
+      expectTypeOf(filter).not.toExtend<QueryKey>();
+    });
+
+    it('requires path parameters when a URL can contain parameters', () => {
+      const buildFilter = (
+        url: '/users/' | '/organizations/$organizationIdOrSlug/issues/'
+      ) => {
+        // @ts-expect-error the URL can require a path object
+        return apiOptions.queryFilter(url);
+      };
+      expect(buildFilter('/users/')).toEqual(apiOptions.queryFilter('/users/'));
+    });
+
     it('needs every path param for an exact url', () => {
       expect(() =>
-        apiOptions.partialQueryKey(
+        apiOptions.queryFilter(
           '/organizations/$organizationIdOrSlug/issues/$issueId/autofix/setup/',
           // @ts-expect-error `issueId` is missing
           {path: {organizationIdOrSlug: 'acme'}}
         )
       ).toThrow('Missing path param: issueId');
       // @ts-expect-error an exact url needs a path object
-      apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/issues/');
+      apiOptions.queryFilter('/organizations/$organizationIdOrSlug/issues/');
     });
 
     it('leaves every path param optional for a prefix', () => {
-      apiOptions.partialQueryKey(
+      apiOptions.queryFilter(
         '/organizations/$organizationIdOrSlug/issues/$issueId/autofix/setup/*',
         {path: {organizationIdOrSlug: 'acme'}}
       );
-      apiOptions.partialQueryKey(
+      apiOptions.queryFilter(
         '/organizations/$organizationIdOrSlug/issues/$issueId/autofix/setup/*',
         {path: {issueId: '123'}}
       );
-      apiOptions.partialQueryKey(
+      apiOptions.queryFilter(
         '/organizations/$organizationIdOrSlug/issues/$issueId/autofix/setup/*',
         {path: {}}
       );
       // @ts-expect-error a prefix still needs a path object, use `path: {}` for any value
-      apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/issues/*');
+      apiOptions.queryFilter('/organizations/$organizationIdOrSlug/issues/*');
     });
 
     it('only accepts the path params of the url, as strings', () => {
-      apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/issues/*', {
+      apiOptions.queryFilter('/organizations/$organizationIdOrSlug/issues/*', {
         // @ts-expect-error `issueId` is not a param of this prefix
         path: {organizationIdOrSlug: 'acme', issueId: '123'},
       });
-      apiOptions.partialQueryKey(
-        '/organizations/$organizationIdOrSlug/issues/$issueId/',
-        {
-          // @ts-expect-error path params must be strings
-          path: {organizationIdOrSlug: 'acme', issueId: 123},
-        }
-      );
+      apiOptions.queryFilter('/organizations/$organizationIdOrSlug/issues/$issueId/', {
+        // @ts-expect-error path params must be strings
+        path: {organizationIdOrSlug: 'acme', issueId: 123},
+      });
       // @ts-expect-error a url without params takes no path
-      apiOptions.partialQueryKey('/users/', {path: {}});
-      apiOptions.partialQueryKey('/users/');
-      apiOptions.partialQueryKey('/users/*');
+      apiOptions.queryFilter('/users/', {path: {}});
+      apiOptions.queryFilter('/users/');
+      apiOptions.queryFilter('/users/*');
     });
 
     it('only accepts known urls and prefixes that end in a full segment', () => {
       // @ts-expect-error unknown url
-      apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/isues/', {
+      apiOptions.queryFilter('/organizations/$organizationIdOrSlug/isues/', {
         path: {organizationIdOrSlug: 'acme'},
       });
       // @ts-expect-error unknown prefix
-      apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/isues/*', {
+      apiOptions.queryFilter('/organizations/$organizationIdOrSlug/isues/*', {
         path: {},
       });
       // @ts-expect-error a glob has to follow a slash
-      apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/iss*', {path: {}});
+      apiOptions.queryFilter('/organizations/$organizationIdOrSlug/iss*', {path: {}});
       // @ts-expect-error a glob has to be at the end
-      apiOptions.partialQueryKey('/organizations/*/issues/', {path: {}});
+      apiOptions.queryFilter('/organizations/*/issues/', {path: {}});
     });
   });
 });

@@ -139,15 +139,15 @@ export function useTransactionThreshold({
           onApply={(newThreshold, metric) => {
             // The modal writes the threshold itself, so refetch rather than
             // patching the cache by hand.
-            queryClient.invalidateQueries({
-              queryKey: apiOptions.partialQueryKey(
+            queryClient.invalidateQueries(
+              apiOptions.queryFilter(
                 '/organizations/$organizationIdOrSlug/project-transaction-threshold-override/',
                 {path: {organizationIdOrSlug: organization.slug}}
-              ),
-            });
+              )
+            );
             if (project) {
-              queryClient.invalidateQueries({
-                queryKey: apiOptions.partialQueryKey(
+              queryClient.invalidateQueries(
+                apiOptions.queryFilter(
                   '/projects/$organizationIdOrSlug/$projectIdOrSlug/transaction-threshold/configure/',
                   {
                     path: {
@@ -155,8 +155,8 @@ export function useTransactionThreshold({
                       projectIdOrSlug: project.slug,
                     },
                   }
-                ),
-              });
+                )
+              );
             }
             onChangeThreshold?.(newThreshold, metric);
           }}

@@ -62,7 +62,23 @@ export type ParsedQueryKey = ApiQueryKeyParams | InfiniteApiQueryKeyParams;
 function isApiQueryKey(
   queryKey: readonly unknown[]
 ): queryKey is ApiQueryKey | InfiniteApiQueryKey {
-  return queryKey[0] === API_QUERY_KEY_MARKER;
+  if (queryKey[0] !== API_QUERY_KEY_MARKER) {
+    return false;
+  }
+
+  const params = queryKey[1];
+  return (
+    typeof params === 'object' &&
+    params !== null &&
+    'url' in params &&
+    typeof params.url === 'string' &&
+    'urlParts' in params &&
+    Array.isArray(params.urlParts) &&
+    'options' in params &&
+    typeof params.options === 'object' &&
+    params.options !== null &&
+    !Array.isArray(params.options)
+  );
 }
 
 /**

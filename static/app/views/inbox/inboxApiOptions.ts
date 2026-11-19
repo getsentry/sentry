@@ -94,8 +94,8 @@ function isTargetedItem(item: InboxItem, target: InboxItemsTarget) {
 /**
  * Matches the cached inbox lists for every combination of filters.
  */
-function getInboxListsQueryKey(organization: Organization) {
-  return apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/inbox/', {
+function getInboxListsFilter(organization: Organization) {
+  return apiOptions.queryFilter('/organizations/$organizationIdOrSlug/inbox/', {
     path: {organizationIdOrSlug: organization.slug},
   });
 }
@@ -115,10 +115,10 @@ async function updateCachedInboxItems({
   target: InboxItemsTarget;
   updateItem: (item: InboxItem) => InboxItem | null;
 }) {
-  const queryKey = getInboxListsQueryKey(organization);
-  await queryClient.cancelQueries({queryKey});
+  const filter = getInboxListsFilter(organization);
+  await queryClient.cancelQueries(filter);
 
-  queryClient.setQueriesData<InboxListData>({queryKey}, prev =>
+  queryClient.setQueriesData<InboxListData>(filter, prev =>
     prev
       ? {
           ...prev,
@@ -148,8 +148,8 @@ function applyReadState(item: InboxItem, isRead: boolean): InboxItem {
   };
 }
 
-function getInboxCountQueryKey(organization: Organization) {
-  return apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/inbox/count/', {
+function getInboxCountFilter(organization: Organization) {
+  return apiOptions.queryFilter('/organizations/$organizationIdOrSlug/inbox/count/', {
     path: {organizationIdOrSlug: organization.slug},
   });
 }
@@ -161,7 +161,7 @@ export function removeInboxItemsMutationOptions({
   organization: Organization;
   queryClient: QueryClient;
 }) {
-  const queryKey = getInboxListsQueryKey(organization);
+  const filter = getInboxListsFilter(organization);
 
   return mutationOptions({
     mutationFn: ({ids}: {ids: string[]}) =>
@@ -181,8 +181,11 @@ export function removeInboxItemsMutationOptions({
       });
     },
     onSettled: () => {
-      queryClient.invalidateQueries({queryKey, refetchType: 'active'});
-      queryClient.invalidateQueries({queryKey: getInboxCountQueryKey(organization)});
+      queryClient.invalidateQueries({
+        ...filter,
+        refetchType: 'active',
+      });
+      queryClient.invalidateQueries(getInboxCountFilter(organization));
     },
   });
 }
@@ -197,7 +200,7 @@ export function updateInboxItemsMutationOptions({
   organization: Organization;
   queryClient: QueryClient;
 }) {
-  const queryKey = getInboxListsQueryKey(organization);
+  const filter = getInboxListsFilter(organization);
 
   return mutationOptions({
     mutationFn: ({update, ...target}: UpdateInboxItemsVariables) =>
@@ -225,14 +228,14 @@ export function updateInboxItemsMutationOptions({
     },
     onSettled: (_data, error, {update}) => {
       queryClient.invalidateQueries({
-        queryKey,
+        ...filter,
         // Failed updates are refetched rather than restored from a snapshot, which could
         // overwrite overlapping updates. Restored items are not in the cache, so they only
         // show up after a refetch. Otherwise the read state is already applied, and lists
         // are only marked stale in case they loaded during the request.
         refetchType: error || update.undoRemoval ? 'active' : 'none',
       });
-      queryClient.invalidateQueries({queryKey: getInboxCountQueryKey(organization)});
+      queryClient.invalidateQueries(getInboxCountFilter(organization));
     },
   });
 }

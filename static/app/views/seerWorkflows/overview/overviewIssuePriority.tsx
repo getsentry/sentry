@@ -40,12 +40,11 @@ export function OverviewIssuePriority({group}: OverviewIssuePriorityProps) {
   const handleSuccess = useCallback(
     (nextPriority: PriorityLevel) => {
       setPriorityOverride({groupId: group.id, priority: nextPriority});
-      void queryClient.invalidateQueries({
-        queryKey: apiOptions.partialQueryKey(
-          '/organizations/$organizationIdOrSlug/issues/',
-          {path: {organizationIdOrSlug: organization.slug}}
-        ),
-      });
+      void queryClient.invalidateQueries(
+        apiOptions.queryFilter('/organizations/$organizationIdOrSlug/issues/', {
+          path: {organizationIdOrSlug: organization.slug},
+        })
+      );
     },
     [group.id, organization.slug, queryClient]
   );

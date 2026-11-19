@@ -81,8 +81,8 @@ export function seerCreditCheckApiOptions(
  * Matches the org's credit checks for every operation, so they can all be
  * rechecked at once, for example after credits are added.
  */
-export function seerCreditChecksQueryKey(organization: Organization) {
-  return apiOptions.partialQueryKey(
+export function seerCreditChecksFilter(organization: Organization) {
+  return apiOptions.queryFilter(
     '/organizations/$organizationIdOrSlug/seer/credit-check/',
     {path: {organizationIdOrSlug: organization.slug}}
   );
