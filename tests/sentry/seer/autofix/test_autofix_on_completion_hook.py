@@ -1879,7 +1879,17 @@ class TestFailedRunCompletionHook(TestCase):
         AutofixOnCompletionHook.execute(self.organization, 123)
 
         mock_process.assert_not_called()
-        assert mock_broadcast.call_args.kwargs["event_name"] == "errored"
+        mock_broadcast.assert_called_once_with(
+            resource_name="seer",
+            event_name="errored",
+            organization_id=self.organization.id,
+            payload={
+                "run_id": 123,
+                "sentry_run_id": None,
+                "group_id": self.group.id,
+                "failure_reason": None,
+            },
+        )
 
     @patch(f"{HOOK_PATH}.process_autofix_updates.apply_async")
     @patch(f"{HOOK_PATH}.SeerAutofixOperator.has_access", return_value=True)
@@ -2200,10 +2210,11 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
                 "organization_id": self.organization.id,
             }
         )
-        assert mock_broadcast.call_args.kwargs["event_name"] == "errored"
-        assert (
-            mock_broadcast.call_args.kwargs["payload"]
-            == mock_process.call_args.kwargs["kwargs"]["event_payload"]
+        mock_broadcast.assert_called_once_with(
+            resource_name="seer",
+            event_name="errored",
+            organization_id=self.organization.id,
+            payload=mock_process.call_args.kwargs["kwargs"]["event_payload"],
         )
 
     @patch("sentry.seer.autofix.on_completion_hook.process_autofix_updates.apply_async")
@@ -2239,10 +2250,11 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
                 "organization_id": self.organization.id,
             }
         )
-        assert mock_broadcast.call_args.kwargs["event_name"] == "errored"
-        assert (
-            mock_broadcast.call_args.kwargs["payload"]
-            == mock_process.call_args.kwargs["kwargs"]["event_payload"]
+        mock_broadcast.assert_called_once_with(
+            resource_name="seer",
+            event_name="errored",
+            organization_id=self.organization.id,
+            payload=mock_process.call_args.kwargs["kwargs"]["event_payload"],
         )
 
     @patch("sentry.seer.autofix.on_completion_hook.emit_pr_ready_for_review")
