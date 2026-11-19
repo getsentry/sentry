@@ -1,10 +1,12 @@
+import type {Meta} from 'sentry/types/group';
+
 import {AnnotatedTextErrors} from './annotatedTextErrors';
 import {AnnotatedTextValue} from './annotatedTextValue';
 
 type Props = {
   value: React.ReactNode;
   className?: string;
-  meta?: Record<any, any>;
+  meta?: Partial<Meta>;
   withOnlyFormattedText?: boolean;
 };
 

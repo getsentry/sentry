@@ -20,9 +20,17 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {useAlwaysMatchesCaseDetails} from 'sentry/views/explore/caseInsensitivityDefault';
-import {ChartVisualization} from 'sentry/views/explore/components/chart/chartVisualization';
+import {
+  ChartVisualization,
+  useChartVisualizationPlottables,
+} from 'sentry/views/explore/components/chart/chartVisualization';
+import {
+  ExtrapolationConfidenceFooter,
+  hasLowConfidencePlottables,
+} from 'sentry/views/explore/components/chart/extrapolationConfidenceFooter';
 import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
+import {useHasExtrapolationConfidenceFooter} from 'sentry/views/explore/components/chart/useHasExtrapolationConfidenceFooter';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {determineDefaultChartType} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {useAddCompareQueryToDashboard} from 'sentry/views/explore/multiQueryMode/hooks/useAddCompareQueryToDashboard';
@@ -58,7 +66,7 @@ export function MultiQueryModeChart({
   const yAxes = queryParts.yAxes;
   const isTopN = mode === Mode.AGGREGATE;
 
-  const [interval, setInterval, intervalOptions] = useChartInterval();
+  const [chartInterval, setChartInterval, intervalOptions] = useChartInterval();
 
   const formattedYAxes = yAxes.map(yaxis => {
     const func = parseFunction(yaxis);
@@ -88,6 +96,9 @@ export function MultiQueryModeChart({
       samplingMode: undefined,
     };
   }, [chartType, isTopN, timeseriesResult, yAxes]);
+
+  const plottables = useChartVisualizationPlottables(chartInfo);
+  const hasExtrapolationConfidenceFooter = useHasExtrapolationConfidenceFooter();
 
   const organization = useOrganization();
   const {addToDashboard} = useAddCompareQueryToDashboard(queryParts);
@@ -134,7 +145,7 @@ export function MultiQueryModeChart({
           aggregate: yAxes[0],
           organization,
           dataset: Dataset.EVENTS_ANALYTICS_PLATFORM,
-          interval,
+          interval: chartInterval,
         }),
         onAction: () => {
           trackAnalytics('trace_explorer.save_as', {
@@ -197,8 +208,8 @@ export function MultiQueryModeChart({
           title={t('Time interval displayed in this visualization (ex. 5m)')}
         >
           <CompactSelect
-            value={interval}
-            onChange={({value}) => setInterval(value)}
+            value={chartInterval}
+            onChange={({value}) => setChartInterval(value)}
             trigger={triggerProps => (
               <OverlayTrigger.Button
                 {...triggerProps}
@@ -230,16 +241,23 @@ export function MultiQueryModeChart({
         ),
       ]}
       revealActions="always"
-      Visualization={<ChartVisualization chartInfo={chartInfo} />}
+      Visualization={<ChartVisualization chartInfo={chartInfo} plottables={plottables} />}
       Footer={
-        <ConfidenceFooter
-          sampleCount={chartInfo.sampleCount}
-          isLoading={chartInfo.timeseriesResult?.isPending || false}
-          isSampled={chartInfo.isSampled}
-          confidence={chartInfo.confidence}
-          topEvents={isTopN ? chartInfo.series.length : undefined}
-          dataScanned={chartInfo.dataScanned}
-        />
+        hasExtrapolationConfidenceFooter ? (
+          !chartInfo.timeseriesResult?.isPending &&
+          hasLowConfidencePlottables(plottables) && (
+            <ExtrapolationConfidenceFooter plottables={plottables} />
+          )
+        ) : (
+          <ConfidenceFooter
+            sampleCount={chartInfo.sampleCount}
+            isLoading={chartInfo.timeseriesResult?.isPending || false}
+            isSampled={chartInfo.isSampled}
+            confidence={chartInfo.confidence}
+            topEvents={isTopN ? chartInfo.series.length : undefined}
+            dataScanned={chartInfo.dataScanned}
+          />
+        )
       }
     />
   );

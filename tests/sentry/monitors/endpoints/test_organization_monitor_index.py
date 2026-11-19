@@ -344,6 +344,10 @@ class ListOrganizationMonitorsTest(MonitorTestCase):
         )
         self.check_valid_response(response, [])
 
+        # Unknown owner
+        response = self.get_error_response(self.organization.slug, owner=["me"], status_code=400)
+        assert response.data["detail"] == "Invalid owner"
+
     def test_all_monitor_environments(self) -> None:
         monitor = self._create_monitor()
         monitor_environment = self._create_monitor_environment(

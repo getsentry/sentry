@@ -128,12 +128,8 @@ class PerformanceDetector(ABC):
             return False
 
         try:
-            creation_option_value: bool | float | None = options.get(system_option)
-            if isinstance(creation_option_value, bool):
-                return not creation_option_value
-            elif isinstance(
-                creation_option_value, float
-            ):  # If the option is a float, we are controlling it with a rate. TODO - make all detectors use boolean
+            creation_option_value: float | None = options.get(system_option)
+            if isinstance(creation_option_value, float):
                 return creation_option_value > random.random()
             return False
 

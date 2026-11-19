@@ -27,11 +27,13 @@ jobs:
 
       - name: Create GitHub job
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          FILE_CHANGES: ${{ toJson(steps.changes.outputs) }}
         with:
           script: |
             const { updateChangeType } = await import(`${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/deploy.js`);
             await updateChangeType({
               github,
               context,
-              fileChanges: ${{ toJson(steps.changes.outputs) }}
+              fileChanges: JSON.parse(process.env.FILE_CHANGES),
             });

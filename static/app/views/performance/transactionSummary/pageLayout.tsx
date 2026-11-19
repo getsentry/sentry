@@ -11,7 +11,6 @@ import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Tabs} from '@sentry/scraps/tabs';
 import {toast} from '@sentry/scraps/toast';
 
-import {Feature} from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
@@ -36,8 +35,8 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {
   getPerformanceBaseUrl,
   getSelectedProjectPlatforms,
@@ -245,33 +244,30 @@ export function PageLayout(props: Props) {
       orgSlug={organization.slug}
       projectSlug={project?.slug}
     >
-      <Feature
-        features={['performance-view']}
-        organization={organization}
-        renderDisabled={NoAccess}
-      >
-        <MetricsCardinalityProvider location={location} organization={organization}>
-          <PageFiltersContainer
-            shouldForceProject={defined(project)}
-            forceProject={project}
-            specificProjectSlugs={defined(project) ? [project.slug] : []}
-            maxPickableDays={datePageFilterProps.maxPickableDays}
-            defaultSelection={
-              datePageFilterProps.defaultPeriod
-                ? {
-                    datetime: {
-                      period: datePageFilterProps.defaultPeriod,
-                      start: null,
-                      end: null,
-                      utc: null,
-                    },
-                  }
-                : undefined
-            }
-          >
-            <Tabs value={tab} onChange={onTabChange}>
+      <MetricsCardinalityProvider location={location} organization={organization}>
+        <PageFiltersContainer
+          shouldForceProject={defined(project)}
+          forceProject={project}
+          specificProjectSlugs={defined(project) ? [project.slug] : []}
+          maxPickableDays={datePageFilterProps.maxPickableDays}
+          defaultSelection={
+            datePageFilterProps.defaultPeriod
+              ? {
+                  datetime: {
+                    period: datePageFilterProps.defaultPeriod,
+                    start: null,
+                    end: null,
+                    utc: null,
+                  },
+                }
+              : undefined
+          }
+        >
+          <Tabs value={tab} onChange={onTabChange}>
+            {({TabList}) => (
               <Stack flex={1}>
                 <TransactionHeader
+                  TabList={TabList}
                   eventView={eventView}
                   location={location}
                   organization={organization}
@@ -302,21 +298,11 @@ export function PageLayout(props: Props) {
                   </TransactionSummaryContext>
                 </StyledBody>
               </Stack>
-            </Tabs>
-          </PageFiltersContainer>
-        </MetricsCardinalityProvider>
-      </Feature>
+            )}
+          </Tabs>
+        </PageFiltersContainer>
+      </MetricsCardinalityProvider>
     </SentryDocumentTitle>
-  );
-}
-
-function NoAccess() {
-  return (
-    <Alert.Container>
-      <Alert variant="warning" showIcon={false}>
-        {t("You don't have access to this feature")}
-      </Alert>
-    </Alert.Container>
   );
 }
 

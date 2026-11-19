@@ -1,8 +1,10 @@
 from collections.abc import Generator
-from unittest.mock import patch
+from contextlib import AbstractContextManager
+from unittest.mock import MagicMock, patch
 
 import pytest
-from django.db.models import Q
+from django.db import router, transaction
+from django.db.models import F, Q, QuerySet
 from jsonschema import ValidationError
 
 from sentry.constants import ObjectStatus
@@ -21,6 +23,7 @@ from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector import get_detector_project_type_cache_key
 from sentry.workflow_engine.registry import DetectorSettingsRegistry, detector_settings_registry
 from sentry.workflow_engine.types import DetectorPriorityLevel, DetectorSettings, DetectorType
+from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -336,7 +339,8 @@ def test_unknown_stored_type_can_be_read_but_is_reported_when_used(
     factories: Factories, default_project: Project
 ) -> None:
     detector = factories.create_detector(project=default_project, type=DetectorType.METRIC_ISSUE)
-    Detector.objects.filter(id=detector.id).update(type="legacy_unknown_type")
+    # Use Django's `update()` directly, since `Detector.objects` would reject the unknown type
+    QuerySet.update(Detector.objects.filter(id=detector.id), type="legacy_unknown_type")
 
     with patch("sentry.workflow_engine.models.detector.logger") as logger:
         detector = Detector.objects.get(id=detector.id)
@@ -352,6 +356,17 @@ def test_unknown_stored_type_can_be_read_but_is_reported_when_used(
 
         with pytest.raises(ValueError, match="Detector type 'legacy_unknown_type' not registered"):
             detector.save()
+
+
+@django_db_all
+def test_update_to_unknown_type_is_rejected(factories: Factories, default_project: Project) -> None:
+    detector = factories.create_detector(project=default_project, type=DetectorType.METRIC_ISSUE)
+
+    with pytest.raises(ValueError, match="Detector type 'unknown' not registered"):
+        Detector.objects.filter(id=detector.id).update(type="unknown")
+
+    detector.refresh_from_db()
+    assert detector.type == DetectorType.METRIC_ISSUE  # No change
 
 
 @django_db_all
@@ -426,3 +441,249 @@ def test_performance_detector_settings_preserve_legacy_validation(
     assert detector.settings.validator is None
     assert detector.settings.config_schema is None
     assert detector.detector_handler is None
+
+
+class DetectorQuerySetConfigValidationTest(BaseWorkflowTest):
+    def setUp(self) -> None:
+        self.valid_static_config = {"detection_type": "static"}
+        self.valid_percent_config = {"detection_type": "percent", "comparison_delta": 3600}
+        self.invalid_type_config = {"detection_type": "not_a_real_type"}
+        self.detector = self.create_detector(
+            project=self.project, type=MetricIssue.slug, config=self.valid_static_config
+        )
+
+    def spy_on_enforce_config_schema(self) -> AbstractContextManager[MagicMock]:
+        return patch.object(
+            Detector,
+            "enforce_config_schema",
+            # A plain `wraps` won't pass `self` to the mock method, so we have to use a combo of
+            # `autospec` and `side_effect` here
+            autospec=True,
+            side_effect=Detector.enforce_config_schema,
+        )
+
+    def test_queryset_update_accepts_valid_config(self) -> None:
+        assert self.detector.config == self.valid_static_config
+
+        with self.spy_on_enforce_config_schema() as enforce_config_schema_spy:
+            Detector.objects.filter(id=self.detector.id).update(config=self.valid_percent_config)
+            enforce_config_schema_spy.assert_called_once()
+
+        self.detector.refresh_from_db()
+        assert self.detector.config == self.valid_percent_config  # Update successful
+
+    def test_locked_queryset_update_accepts_valid_config(self) -> None:
+        assert self.detector.config == self.valid_static_config
+
+        # Validating a config update reads the queryset's distinct types, which would fail with
+        # the row lock still on (Postgres doesn't allow `SELECT DISTINCT ... FOR UPDATE`)
+        with (
+            transaction.atomic(router.db_for_write(Detector)),
+            self.spy_on_enforce_config_schema() as enforce_config_schema_spy,
+        ):
+            Detector.objects.select_for_update().filter(id=self.detector.id).update(
+                config=self.valid_percent_config
+            )
+            enforce_config_schema_spy.assert_called_once()
+
+        self.detector.refresh_from_db()
+        assert self.detector.config == self.valid_percent_config  # Update successful
+
+    def test_locked_queryset_update_accepts_type_valid_for_current_config(self) -> None:
+        # Error and issue stream detectors both accept an empty config
+        non_metric_detector = self.create_detector(project=self.project, type=ErrorGroupType.slug)
+        assert non_metric_detector.config == {}
+
+        with (
+            transaction.atomic(router.db_for_write(Detector)),
+            self.spy_on_enforce_config_schema() as enforce_config_schema_spy,
+        ):
+            Detector.objects.select_for_update().filter(id=non_metric_detector.id).update(
+                type=IssueStreamGroupType.slug
+            )
+            enforce_config_schema_spy.assert_called_once()
+
+        non_metric_detector.refresh_from_db()
+        assert non_metric_detector.type == IssueStreamGroupType.slug  # Update successful
+
+    def test_queryset_update_rejects_invalid_config(self) -> None:
+        assert self.detector.config == self.valid_static_config
+
+        with pytest.raises(ValidationError):
+            Detector.objects.filter(id=self.detector.id).update(config=self.invalid_type_config)
+
+        self.detector.refresh_from_db()
+        assert self.detector.config == self.valid_static_config  # No change
+
+    def test_locked_queryset_update_rejects_invalid_config(self) -> None:
+        assert self.detector.config == self.valid_static_config
+
+        with transaction.atomic(router.db_for_write(Detector)):
+            with pytest.raises(ValidationError):
+                Detector.objects.select_for_update().filter(id=self.detector.id).update(
+                    config=self.invalid_type_config
+                )
+
+        self.detector.refresh_from_db()
+        assert self.detector.config == self.valid_static_config  # No change
+
+    def test_queryset_update_with_post_update_signal_rejects_invalid_config(self) -> None:
+        assert self.detector.config == self.valid_static_config
+
+        with pytest.raises(ValidationError):
+            Detector.objects.filter(id=self.detector.id).with_post_update_signal(True).update(
+                config=self.invalid_type_config
+            )
+
+        self.detector.refresh_from_db()
+        assert self.detector.config == self.valid_static_config  # No change
+
+    def test_queryset_update_rejects_config_expression(self) -> None:
+        with pytest.raises(ValueError):
+            Detector.objects.filter(id=self.detector.id).update(config=F("config"))
+
+    def test_queryset_update_checks_config_against_each_detector_type(self) -> None:
+        error_detector = self.create_detector(project=self.project, type=ErrorGroupType.slug)
+
+        assert self.detector.config == self.valid_static_config
+        assert error_detector.config == {}
+
+        with pytest.raises(ValidationError):
+            # `self.valid_percent_config` is valid for a metric detector, but the error detector
+            # schema allows no config at all
+            Detector.objects.filter(id__in=[self.detector.id, error_detector.id]).update(
+                config=self.valid_percent_config
+            )
+
+        self.detector.refresh_from_db()
+        error_detector.refresh_from_db()
+        assert self.detector.config == self.valid_static_config  # No change
+        assert error_detector.config == {}  # No change
+
+    def test_queryset_update_checks_new_type_against_current_config(self) -> None:
+        assert self.detector.config == self.valid_static_config
+        assert self.detector.type == MetricIssue.slug
+
+        with pytest.raises(ValidationError):
+            # Error detectors don't accept any config so the current config blocks the update to
+            # error type
+            Detector.objects.filter(id=self.detector.id).update(type=ErrorGroupType.slug)
+
+        self.detector.refresh_from_db()
+        assert self.detector.type == MetricIssue.slug  # No change
+
+    def test_queryset_update_without_config_or_type_skips_validation(self) -> None:
+        with (
+            self.spy_on_enforce_config_schema() as enforce_config_schema_spy,
+            # Just the update itself, with no query to look up types or configs
+            self.assertNumQueries(1),
+        ):
+            Detector.objects.filter(id=self.detector.id).update(name="dogs are great!")
+            enforce_config_schema_spy.assert_not_called()
+
+    def test_instance_update_accepts_valid_config(self) -> None:
+        assert self.detector.config == self.valid_static_config
+
+        with self.spy_on_enforce_config_schema() as enforce_config_schema_spy:
+            self.detector.update(config=self.valid_percent_config)
+            enforce_config_schema_spy.assert_called_once()
+
+        self.detector.refresh_from_db()
+        assert self.detector.config == self.valid_percent_config  # Update successful
+
+    def test_instance_update_rejects_invalid_config(self) -> None:
+        assert self.detector.config == self.valid_static_config
+
+        with pytest.raises(ValidationError):
+            self.detector.update(config=self.invalid_type_config)
+
+        self.detector.refresh_from_db()
+        assert self.detector.config == self.valid_static_config  # No change
+
+    def test_bulk_update_accepts_valid_config(self) -> None:
+        assert self.detector.config == self.valid_static_config
+
+        self.detector.config = self.valid_percent_config
+        with self.spy_on_enforce_config_schema() as enforce_config_schema_spy:
+            Detector.objects.bulk_update([self.detector], ["config"])
+            enforce_config_schema_spy.assert_called_once()
+
+        self.detector.refresh_from_db()
+        assert self.detector.config == self.valid_percent_config  # Update successful
+
+    def test_bulk_update_accepts_type_valid_for_current_config(self) -> None:
+        # Error and issue stream detectors both accept an empty config
+        non_metric_detector = self.create_detector(project=self.project, type=ErrorGroupType.slug)
+        assert non_metric_detector.config == {}
+
+        non_metric_detector.type = IssueStreamGroupType.slug
+        with self.spy_on_enforce_config_schema() as enforce_config_schema_spy:
+            Detector.objects.bulk_update([non_metric_detector], ["type"])
+            enforce_config_schema_spy.assert_called_once()
+
+        non_metric_detector.refresh_from_db()
+        assert non_metric_detector.type == IssueStreamGroupType.slug  # Update successful
+
+    def test_bulk_update_rejects_invalid_config(self) -> None:
+        assert self.detector.config == self.valid_static_config
+
+        self.detector.config = self.invalid_type_config
+        with pytest.raises(ValidationError):
+            Detector.objects.bulk_update([self.detector], ["config"])
+
+        self.detector.refresh_from_db()
+        assert self.detector.config == self.valid_static_config  # No change
+
+    def test_bulk_update_rejects_type_invalid_for_current_config(self) -> None:
+        assert self.detector.config == self.valid_static_config
+        assert self.detector.type == MetricIssue.slug
+
+        self.detector.type = ErrorGroupType.slug
+        with pytest.raises(ValidationError):
+            # Error detectors don't accept any config, so the current config blocks the update to
+            # error type
+            Detector.objects.bulk_update([self.detector], ["type"])
+
+        self.detector.refresh_from_db()
+        assert self.detector.type == MetricIssue.slug  # No change
+
+    def test_bulk_update_without_config_or_type_skips_validation(self) -> None:
+        self.detector.name = "dogs are great!"
+        with self.spy_on_enforce_config_schema() as enforce_config_schema_spy:
+            Detector.objects.bulk_update([self.detector], ["name"])
+            enforce_config_schema_spy.assert_not_called()
+
+        self.detector.refresh_from_db()
+        assert self.detector.name == "dogs are great!"  # Update successful
+
+    def test_bulk_create_accepts_valid_config(self) -> None:
+        with self.spy_on_enforce_config_schema() as enforce_config_schema_spy:
+            Detector.objects.bulk_create(
+                [
+                    Detector(
+                        project=self.project,
+                        name="dogs are great!",
+                        type=MetricIssue.slug,
+                        config=self.valid_percent_config,
+                    )
+                ]
+            )
+            enforce_config_schema_spy.assert_called_once()
+
+        assert Detector.objects.filter(name="dogs are great!").exists()
+        assert Detector.objects.get(name="dogs are great!").config == self.valid_percent_config
+
+    def test_bulk_create_rejects_invalid_config(self) -> None:
+        with pytest.raises(ValidationError):
+            Detector.objects.bulk_create(
+                [
+                    Detector(
+                        project=self.project,
+                        name="dogs are great!",
+                        type=MetricIssue.slug,
+                        config=self.invalid_type_config,
+                    )
+                ]
+            )
+
+        assert not Detector.objects.filter(name="dogs are great!").exists()

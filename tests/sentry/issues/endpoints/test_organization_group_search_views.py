@@ -251,6 +251,16 @@ class OrganizationGroupSearchViewsGetTest(GroupSearchViewAPITestCase):
 
         assert len(response.data) == 0
 
+    def test_per_page(self) -> None:
+        self.login_as(user=self.user)
+        response = self.get_success_response(self.organization.slug, per_page=2)
+
+        assert [view["id"] for view in response.data] == [
+            str(self.my_view_2.id),
+            str(self.my_view_3.id),
+        ]
+        assert 'rel="next"; results="true"' in response["Link"]
+
 
 class OrganizationGroupSearchViewsInvalidPostTest(APITestCase):
     endpoint = "sentry-api-0-organization-group-search-views"
@@ -494,7 +504,8 @@ class OrganizationGroupSearchViewsPostTest(APITestCase):
         assert "query" in response.data
         assert str(response.data["query"][0]) == (
             "Invalid issue search query: Boolean statements containing "
-            '"OR" or "AND" are not supported in this search'
+            '"OR" or "AND" are not supported in this search. '
+            "To match any of several values for one key, use a list, such as `key:[foo, bar]`"
         )
 
         assert not GroupSearchView.objects.filter(
@@ -517,7 +528,8 @@ class OrganizationGroupSearchViewsPostTest(APITestCase):
         assert "query" in response.data
         assert str(response.data["query"][0]) == (
             "Invalid issue search query: Invalid quote at '\"unterminated': "
-            "quotes must enclose text or be escaped."
+            "quotes must enclose text or be escaped. To match text with spaces, quote the "
+            'whole value, wildcards included, such as `key:"*foo bar*"`'
         )
 
         assert not GroupSearchView.objects.filter(

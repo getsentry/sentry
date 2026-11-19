@@ -10,6 +10,7 @@ from sentry.apidocs.formats import (
     ApiFormat,
     GitRef,
     IsoDateTime,
+    JsonValue,
     Url,
 )
 from sentry.apidocs.spectacular_ports import resolve_type_hint
@@ -125,6 +126,32 @@ def test_annotated_field_formats() -> None:
         },
         "custom": {"type": "string", "format": "email", "maxLength": 10},
         "optional": {"type": "string", "format": "uri", "description": "An optional link"},
+    }
+
+
+JSON_VALUE_SCHEMA = {
+    "description": "Any JSON value",
+    "anyOf": [
+        {"type": "object", "additionalProperties": True, "nullable": True},
+        {"type": "array", "items": {}},
+        {"type": "string"},
+        {"type": "number"},
+        {"type": "boolean"},
+    ],
+}
+
+
+class JsonValueResponse(TypedDict):
+    data: Annotated[JsonValue, ApiDescription("Data an SDK sent")]
+    by_key: dict[str, JsonValue]
+    optional: NotRequired[JsonValue]
+
+
+def test_json_value() -> None:
+    assert resolve_type_hint(JsonValueResponse)["properties"] == {
+        "data": {**JSON_VALUE_SCHEMA, "description": "Data an SDK sent"},
+        "by_key": {"type": "object", "additionalProperties": JSON_VALUE_SCHEMA},
+        "optional": JSON_VALUE_SCHEMA,
     }
 
 

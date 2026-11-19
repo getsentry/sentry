@@ -254,6 +254,11 @@ const Wrapper = styled('div')<{
   background: var(--prism-block-background);
   border-radius: ${p => (p.isRounded ? p.theme.radius.md : '0px')};
 
+  && code[class*='language-'] {
+    white-space: ${p => (p.wrapMode === 'wrap' ? 'pre-wrap' : 'pre')};
+    overflow-wrap: ${p => (p.wrapMode === 'wrap' ? 'anywhere' : 'normal')};
+  }
+
   && pre[class*='language-'] {
     margin: 0;
     height: 100%;

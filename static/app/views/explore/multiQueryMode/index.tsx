@@ -1,7 +1,6 @@
 import {Stack} from '@sentry/scraps/layout';
 
 import {Feature} from 'sentry/components/acl/feature';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {NoAccess} from 'sentry/components/noAccess';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
@@ -48,14 +47,6 @@ export default function MultiQueryMode() {
             ]}
           />
         )}
-        <TopBar.Slot name="feedback">
-          <FeedbackButton
-            aria-label={t('Give Feedback')}
-            tooltipProps={{title: t('Give Feedback')}}
-          >
-            {null}
-          </FeedbackButton>
-        </TopBar.Slot>
         <Stack flex={1}>
           <MultiQueryModeContent />
         </Stack>

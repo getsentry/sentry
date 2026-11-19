@@ -5,10 +5,10 @@ import {useQuery} from '@tanstack/react-query';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
 
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Link} from '@sentry/scraps/link';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
-import {DateTime} from 'sentry/components/dateTime';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingError} from 'sentry/components/loadingError';
 import {URL_PARAM} from 'sentry/components/pageFilters/constants';
@@ -21,8 +21,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Release} from 'sentry/types/release';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 
 import {MissingReleasesButtons} from './missingFeatureButtons/missingReleasesButtons';
@@ -66,21 +64,21 @@ function useHasOlderReleases({
     !project?.id ||
     !isProjectStabilized;
 
-  const {data: olderReleases, isPending} = useApiQuery<Release[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/releases/stats/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
+  const {data: olderReleases, isPending} = useQuery({
+    ...apiOptions.as<Release[]>()(
+      '/organizations/$organizationIdOrSlug/releases/stats/',
       {
+        path: {organizationIdOrSlug: organization.slug},
         query: {
           statsPeriod: '90d',
           project: project?.id,
           per_page: 1,
         },
-      },
-    ],
-    {staleTime: 0, enabled: !skipOldReleaseCheck}
-  );
+        staleTime: 0,
+      }
+    ),
+    enabled: !skipOldReleaseCheck,
+  });
 
   if (skipOldReleaseCheck) {
     return true;

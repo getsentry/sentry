@@ -639,8 +639,7 @@ function getImportedBinding(
 ): {exportName: string; moduleSpecifier: string} | undefined {
   const definition = variable.defs.find(candidate => candidate.type === 'ImportBinding');
   if (
-    !definition ||
-    definition.parent?.type !== 'ImportDeclaration' ||
+    definition?.parent?.type !== 'ImportDeclaration' ||
     typeof definition.parent.source.value !== 'string'
   ) {
     return undefined;

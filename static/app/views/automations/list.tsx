@@ -5,7 +5,7 @@ import {parseAsString, useQueryState, useQueryStates} from 'nuqs';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
-import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
+import {Pagination} from '@sentry/scraps/pagination';
 
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
@@ -15,6 +15,7 @@ import {WorkflowEngineListLayout as ListLayout} from 'sentry/components/workflow
 import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps, useGetPaginationCaption} from 'sentry/utils/pagination';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -146,7 +147,7 @@ function AutomationsListInner() {
             />
           </VisuallyCompleteWithData>
           <Pagination
-            pageLinks={pageLinks}
+            {...getPaginationProps(pageLinks)}
             caption={paginationCaption}
             onCursor={newCursor => {
               setCursor(newCursor ?? null);

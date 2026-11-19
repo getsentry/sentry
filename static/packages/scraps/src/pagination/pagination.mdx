@@ -1,0 +1,157 @@
+---
+title: Pagination
+description: Cursor-based pagination controls with configurable navigation.
+category: navigation
+source: '@sentry/scraps/pagination'
+resources:
+  js: https://github.com/getsentry/sentry/blob/master/static/packages/scraps/src/pagination/pagination.tsx
+  a11y:
+    WCAG 2.4.5: https://www.w3.org/TR/WCAG22/#multiple-ways
+---
+
+import {useState} from 'react';
+
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Pagination} from '@sentry/scraps/pagination';
+
+import {getPaginationProps} from 'sentry/utils/pagination';
+
+import * as Storybook from 'sentry/stories';
+
+export const documentation = import('!!type-loader!@sentry/scraps/pagination');
+
+The `Pagination` component renders Previous / Next controls from opaque cursors and direction availability. The application configures default URL navigation once through `PaginationBehaviorContextProvider`; pass `onCursor` to override it for a particular list. Sentry API headers are converted separately by `getPaginationProps`.
+
+## Standalone Controlled Pagination
+
+The portable component from `@sentry/scraps/pagination` accepts opaque cursors and availability. It does not parse API headers or require a router:
+
+```tsx
+import {Pagination} from '@sentry/scraps/pagination';
+
+<Pagination
+  previous={{cursor: 'previous-page'}}
+  next={{cursor: 'next-page'}}
+  onCursor={(cursor, delta) => setCursor(cursor)}
+/>;
+```
+
+Omit `previous` or `next` to disable that direction, or set its `disabled` property. Sentry consumers use the same primitive. The examples below convert API metadata with `getPaginationProps`; the application-wide provider handles URL navigation.
+
+## Basic usage
+
+Render `Pagination` below a paginated list and convert the response's `Link` header with `getPaginationProps`. Clicking Previous or Next navigates with the parsed cursor merged into the current query string.
+
+export const samplePageLinks =
+  '<https://sentry.io/api/0/items/?&cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", ' +
+  '<https://sentry.io/api/0/items/?&cursor=0:25:0>; rel="next"; results="true"; cursor="0:25:0"';
+
+<Storybook.Demo>
+  <Flex width="100%" justify="end">
+    <Pagination {...getPaginationProps(samplePageLinks)} />
+  </Flex>
+</Storybook.Demo>
+
+```tsx
+<Pagination {...getPaginationProps(response.getResponseHeader('Link'))} />
+```
+
+Reach for `apiOptions` with `selectJsonWithHeaders` to get the `Link` header from a TanStack Query response — see the frontend docs for [accessing response headers](https://github.com/getsentry/sentry/blob/master/static/AGENTS.md#accessing-response-headers-pagination-hit-counts).
+
+## Sizes
+
+The `size` prop is derived from `Button`'s `size` prop, so values stay in sync with the rest of the design system. The default is `sm`.
+
+<Storybook.Demo>
+  <Stack width="100%" gap="lg">
+    <Pagination {...getPaginationProps(samplePageLinks)} size="md" />
+    <Pagination {...getPaginationProps(samplePageLinks)} size="sm" />
+    <Pagination {...getPaginationProps(samplePageLinks)} size="xs" />
+    <Pagination {...getPaginationProps(samplePageLinks)} size="zero" />
+  </Stack>
+</Storybook.Demo>
+
+```tsx
+<Pagination {...getPaginationProps(pageLinks)} size="md" />
+<Pagination {...getPaginationProps(pageLinks)} size="sm" />
+<Pagination {...getPaginationProps(pageLinks)} size="xs" />
+<Pagination {...getPaginationProps(pageLinks)} size="zero" />
+```
+
+## Caption
+
+Pass a `caption` to render helper text to the left of the controls. The `useGetPaginationCaption` hook returns a function that produces a canonical `"[start]-[end] of [total]"` label when you have access to the current `cursor`, page `limit`, current `pageLength`, and `total` count.
+
+<Storybook.Demo>
+  <Flex width="100%" justify="end">
+    <Pagination {...getPaginationProps(samplePageLinks)} caption="1-25 of 100" />
+  </Flex>
+</Storybook.Demo>
+
+```tsx
+function PaginatedList({cursor, items, limit, pageLinks, total}) {
+  const getPaginationCaption = useGetPaginationCaption();
+
+  return (
+    <Pagination
+      {...getPaginationProps(pageLinks)}
+      caption={getPaginationCaption({
+        cursor,
+        limit,
+        pageLength: items.length,
+        total,
+      })}
+    />
+  );
+}
+```
+
+## Custom cursor handler
+
+By default, `Pagination` uses the application's Nuqs-backed behavior provider to update the URL's `cursor` query parameter. Pass `onCursor` when the cursor should live somewhere other than the URL — for example, local component state for a non-routed list inside a modal.
+
+```tsx
+function PaginatedList() {
+  const [cursor, setCursor] = useState<string | undefined>();
+  const {data} = useQuery({
+    ...apiOptions.as<Item[]>()('/items/', {query: {cursor}}),
+    select: selectJsonWithHeaders,
+  });
+
+  return (
+    <Fragment>
+      {/* ...render items... */}
+      <Pagination {...getPaginationProps(data?.headers.Link)} onCursor={setCursor} />
+    </Fragment>
+  );
+}
+```
+
+The `onCursor` signature is `(cursor, delta) => void`, where `delta` is `-1` for Previous and `1` for Next. Override it when the cursor lives under a different query parameter — reach for Nuqs (`useQueryState('myCursor')`) rather than `useNavigate`, so the rest of the query string is preserved for you. The package does not expose a router-specific location contract.
+
+## Disabled state
+
+Pass `disabled` to force both controls off (e.g. while a mutation is in flight). Pagination also disables either side automatically when the parsed `Link` header reports `results="false"` for that direction.
+
+<Storybook.Demo>
+  <Flex width="100%" justify="end">
+    <Pagination {...getPaginationProps(samplePageLinks)} disabled />
+  </Flex>
+</Storybook.Demo>
+
+```tsx
+<Pagination {...getPaginationProps(pageLinks)} disabled={isMutating} />
+```
+
+## Analytics
+
+Pass `onPageChange` to observe navigation, for example to record analytics, without replacing the configured `onCursor` behavior. Both callbacks receive `(cursor, delta)`.
+
+```tsx
+<Pagination
+  {...getPaginationProps(pageLinks)}
+  onPageChange={(_cursor, delta) =>
+    trackAnalytics('list.paginated', {direction: delta === -1 ? 'Previous' : 'Next'})
+  }
+/>
+```

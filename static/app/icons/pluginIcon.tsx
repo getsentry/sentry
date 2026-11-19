@@ -18,6 +18,7 @@ import heroku from 'sentry-logos/logo-heroku.svg';
 import jiraserver from 'sentry-logos/logo-jira-server.svg';
 import jira from 'sentry-logos/logo-jira.svg';
 import jumpcloud from 'sentry-logos/logo-jumpcloud.svg';
+import linear from 'sentry-logos/logo-linear.svg';
 import msteams from 'sentry-logos/logo-msteams.svg';
 import opsgenie from 'sentry-logos/logo-opsgenie.svg';
 import pagerduty from 'sentry-logos/logo-pagerduty.svg';
@@ -29,6 +30,7 @@ import segment from 'sentry-logos/logo-segment.svg';
 import sentry from 'sentry-logos/logo-sentry.svg';
 import slack from 'sentry-logos/logo-slack.svg';
 import splunk from 'sentry-logos/logo-splunk.svg';
+import supabase from 'sentry-logos/logo-supabase.svg';
 import trello from 'sentry-logos/logo-trello.svg';
 import twilio from 'sentry-logos/logo-twilio.svg';
 import vercel from 'sentry-logos/logo-vercel.svg';
@@ -71,6 +73,7 @@ const PLUGIN_ICONS = {
   jira,
   jira_server: jiraserver,
   jumpcloud,
+  linear,
   msteams,
   opsgenie,
   pagerduty,
@@ -82,6 +85,7 @@ const PLUGIN_ICONS = {
   slack,
   slack_staging: slack,
   splunk,
+  supabase,
   trello,
   twilio,
   visualstudio,

@@ -1,4 +1,4 @@
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict, get_args
 from uuid import UUID
 
 from drf_spectacular.utils import extend_schema
@@ -22,11 +22,18 @@ from sentry.api.serializers.models.agentic_onboarding import (
     AgenticOnboardingRunSerializer,
 )
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_CONFLICT,
+    RESPONSE_GONE,
+    RESPONSE_NOT_FOUND,
+)
 from sentry.auth.principal import require_user
 from sentry.models.organization import Organization
 from sentry.onboarding.agentic_progress.model import (
     MAX_EVENT_NOTE_LENGTH,
     STAGE_INDEX,
+    ConnectionMethod,
     InvalidProgressUpdate,
     OnboardingRun,
     OnboardingRunExpired,
@@ -68,7 +75,7 @@ STAGE_INPUT_ALIASES: dict[str, Stage] = {"connect_agent": Stage.CONNECT_MCP}
 
 class AgenticOnboardingRunRequest(TypedDict):
     client_run_id: UUID
-    onboarding_code: str
+    onboarding_code: str | None
     origin: RunOrigin | None
 
 
@@ -97,8 +104,12 @@ class AgenticOnboardingPermission(OrganizationPermission):
 
 class AgenticOnboardingRunRequestSerializer(CamelSnakeSerializer[AgenticOnboardingRunRequest]):
     client_run_id = serializers.UUIDField()
-    onboarding_code = serializers.RegexField(r"^[A-Za-z0-9]{10}$")
+    onboarding_code = serializers.RegexField(r"^[A-Za-z0-9]{10}$", required=False, default=None)
     origin = serializers.ChoiceField(choices=list(RunOrigin), required=False, default=None)
+
+
+class ConnectExtraSerializer(CamelSnakeSerializer[dict[str, Any]]):
+    method = serializers.ChoiceField(choices=get_args(ConnectionMethod))
 
 
 class CreateProjectExtraSerializer(CamelSnakeSerializer[dict[str, Any]]):
@@ -110,6 +121,7 @@ class VerificationErrorExtraSerializer(CamelSnakeSerializer[dict[str, Any]]):
 
 
 EXTRA_SERIALIZER_BY_STAGE = {
+    Stage.CONNECT_MCP: ConnectExtraSerializer,
     Stage.CREATE_PROJECT: CreateProjectExtraSerializer,
     Stage.RECEIVE_VERIFICATION_ERROR: VerificationErrorExtraSerializer,
 }
@@ -234,7 +246,11 @@ class OrganizationAgenticOnboardingRunIndexEndpoint(OrganizationEndpoint):
 
     @extend_schema(
         request=AgenticOnboardingRunRequestSerializer,
-        responses={201: AgenticOnboardingRunSerializer},
+        responses={
+            201: AgenticOnboardingRunSerializer,
+            404: RESPONSE_NOT_FOUND,
+            409: RESPONSE_CONFLICT,
+        },
     )
     def post(self, request: Request, organization: Organization) -> Response:
         serializer = AgenticOnboardingRunRequestSerializer(data=request.data)
@@ -274,7 +290,13 @@ class OrganizationAgenticOnboardingStatusEndpoint(OrganizationEndpoint):
 
     @extend_schema(
         request=AgenticOnboardingStatusRequestSerializer,
-        responses={200: AgenticOnboardingRunSerializer},
+        responses={
+            200: AgenticOnboardingRunSerializer,
+            400: RESPONSE_BAD_REQUEST,
+            404: RESPONSE_NOT_FOUND,
+            409: RESPONSE_CONFLICT,
+            410: RESPONSE_GONE,
+        },
     )
     def post(self, request: Request, organization: Organization) -> Response:
         serializer = AgenticOnboardingStatusRequestSerializer(data=request.data)

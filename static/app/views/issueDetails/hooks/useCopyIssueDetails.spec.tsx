@@ -120,7 +120,9 @@ describe('useCopyIssueDetails', () => {
           organization,
         });
 
-        expect(result).toContain(`**Issue ID:** ${group.id}`);
+        expect(result).toContain(
+          `**Issue ID:** ${group.id}\n**Short ID:** ${group.shortId}\n**Project:** ${group.project?.slug}\n`
+        );
         expect(result).toContain('**Date:** 2023-01-01 00:00:00 UTC');
         // the server body carries the only date; the header must not add a local-time one
         expect(result.match(/\*\*Date:\*\*/g)).toHaveLength(1);

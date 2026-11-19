@@ -1,16 +1,15 @@
 import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
-import {useQueryClient} from '@tanstack/react-query';
-import moment from 'moment-timezone';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Confirm} from '@sentry/scraps/confirm';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Flex} from '@sentry/scraps/layout';
 
 import {disconnectIdentity} from 'sentry/actionCreators/account';
-import {DateTime} from 'sentry/components/dateTime';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -23,15 +22,15 @@ import {IdentityIcon} from 'sentry/icons/identityIcon';
 import {t, tct} from 'sentry/locale';
 import type {UserIdentityConfig} from 'sentry/types/auth';
 import {UserIdentityCategory, UserIdentityStatus} from 'sentry/types/auth';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 const EMPTY_ARRAY: any = [];
-const IDENTITIES_ENDPOINT = getApiUrl('/users/$userId/user-identities/', {
-  path: {userId: 'me'},
-});
+const identitiesOptions = apiOptions.as<UserIdentityConfig[]>()(
+  '/users/$userId/user-identities/',
+  {path: {userId: 'me'}, staleTime: 0}
+);
 
 function itemOrder(a: UserIdentityConfig, b: UserIdentityConfig) {
   function categoryRank(c: UserIdentityConfig) {
@@ -65,7 +64,7 @@ function IdentityItem({identity, onDisconnect}: IdentityItemProps) {
         <IdentityIcon providerId={identity.provider.key} />
         <IdentityText isSingleLine={!identity.dateAdded}>
           <IdentityName>{identity.provider.name}</IdentityName>
-          {identity.dateAdded && <IdentityDateTime date={moment(identity.dateAdded)} />}
+          {identity.dateAdded && <IdentityDateTime date={identity.dateAdded} />}
         </IdentityText>
       </Flex>
       <Flex justify="center">
@@ -139,9 +138,7 @@ function AccountIdentities() {
     isPending,
     isError,
     refetch,
-  } = useApiQuery<UserIdentityConfig[]>([IDENTITIES_ENDPOINT], {
-    staleTime: 0,
-  });
+  } = useQuery(identitiesOptions);
 
   const appIdentities = useMemo(
     () =>
@@ -164,13 +161,11 @@ function AccountIdentities() {
   const handleDisconnect = useCallback(
     (identity: UserIdentityConfig) => {
       disconnectIdentity(identity, () => {
-        setApiQueryData(queryClient, [IDENTITIES_ENDPOINT], oldData => {
-          if (!Array.isArray(oldData)) {
-            return oldData;
-          }
-
-          return oldData.filter(i => i.id !== identity.id);
-        });
+        queryClient.setQueryData(identitiesOptions.queryKey, response =>
+          response && Array.isArray(response.json)
+            ? {...response, json: response.json.filter(i => i.id !== identity.id)}
+            : response
+        );
       });
     },
     [queryClient]

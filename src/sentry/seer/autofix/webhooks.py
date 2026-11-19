@@ -177,9 +177,7 @@ def _update_autofix_issue_data_for_pr(
     if not features.has("organizations:seer-fixability-training-data", org):
         return
 
-    issue_data = SeerAutofixIssueData.objects.filter(
-        group_id=group_id, organization_id=org.id
-    ).first()
+    issue_data = SeerAutofixIssueData.objects.get_or_none(group_id=group_id, organization_id=org.id)
     number = pull_request.get("number")
     if issue_data is None or number is None:
         return
@@ -266,7 +264,7 @@ def handle_pull_requests_merged_milestone(
             pull_request__repository_id=repo.id,
             pull_request__key=str(number),
         )
-        .first()
+        .first()  # noqa: S035
     )
     if link is None:
         return

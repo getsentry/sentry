@@ -5,7 +5,7 @@ import {parseAsStringLiteral, useQueryState} from 'nuqs';
 
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 
 import {removeSentryApp, sentryAppsApiOptions} from 'sentry/actionCreators/sentryApps';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
@@ -30,7 +30,7 @@ import {CreateIntegrationButton} from 'sentry/views/settings/organizationIntegra
 
 import {SentryApplicationRow} from './sentryApplicationRow';
 
-const TABS = ['public', 'internal'] as const;
+const TABS = ['internal', 'public'] as const;
 
 type Tab = (typeof TABS)[number];
 
@@ -155,11 +155,13 @@ function OrganizationDeveloperSettings() {
       <TabsContainer>
         <Flex align="center" justify="between" gap="md">
           <Tabs value={tab} onChange={setTab}>
-            <TabList>
-              {Object.entries(TAB_LABELS).map(([key, label]) => (
-                <TabList.Item key={key}>{label}</TabList.Item>
-              ))}
-            </TabList>
+            {({TabList}) => (
+              <TabList>
+                {TABS.map(key => (
+                  <TabList.Item key={key}>{TAB_LABELS[key]}</TabList.Item>
+                ))}
+              </TabList>
+            )}
           </Tabs>
           {inlineActions}
         </Flex>

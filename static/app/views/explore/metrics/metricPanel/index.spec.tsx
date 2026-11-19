@@ -1,5 +1,4 @@
 import type {ReactNode} from 'react';
-import qs from 'query-string';
 import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {
@@ -15,6 +14,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import * as qs from 'sentry/utils/url/qs';
 import * as useMetricTraceDetailModule from 'sentry/views/explore/metrics/hooks/useMetricTraceDetail';
 import {MetricDetails} from 'sentry/views/explore/metrics/metricInfoTabs/metricDetails';
 import {MetricsSamplesTable} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTable';
@@ -183,6 +183,39 @@ describe('MetricPanel', () => {
     ).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Table bottom'})).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Table right'})).not.toBeInTheDocument();
+  });
+
+  it('does not filter raw counts by unit when the y-axis has a dash unit', async () => {
+    const noneUnitTraceMetric: TraceMetric = {
+      name: 'bar',
+      type: 'distribution',
+      unit: 'none',
+    };
+    const rawCountRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {data: [{'count(value)': 11}]},
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.explore.tracemetrics.raw-count.normal',
+          query: '( metric.name:bar metric.type:distribution )',
+        }),
+      ],
+    });
+
+    render(
+      <MetricPanel traceMetric={noneUnitTraceMetric} queryIndex={0} queryLabel="A" />,
+      {
+        organization,
+        additionalWrapper: createWrapper({
+          traceMetric: noneUnitTraceMetric,
+          queryParams: queryParams.replace({
+            aggregateFields: [new VisualizeFunction('p50(value,bar,distribution,-)')],
+          }),
+        }),
+      }
+    );
+
+    await waitFor(() => expect(rawCountRequest).toHaveBeenCalled());
   });
 
   it('counts each top-N group once across transformed series', async () => {

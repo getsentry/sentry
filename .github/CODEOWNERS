@@ -637,6 +637,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/api/urls.py                                     @getsentry/owners-api
 /api-docs/                                                  @getsentry/owners-api
 /tests/apidocs/                                             @getsentry/owners-api
+/static/packages/api/                                       @getsentry/owners-api @getsentry/ocpo
 /.github/workflows/openapi.yml                              @getsentry/owners-api
 /.github/workflows/openapi-diff.yml                         @getsentry/owners-api
 /src/sentry/conf/api_pagination_allowlist_do_not_modify.py  @getsentry/owners-api
@@ -728,6 +729,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/utils/analytics/conversationsAnalyticsEvents.tsx                           @getsentry/agent-tracing
 /static/app/utils/analytics/mcpMonitoringAnalyticsEvents.tsx                           @getsentry/agent-tracing
 /static/app/views/explore/conversations/                                               @getsentry/agent-tracing
+/static/app/views/classifiers/                                                         @getsentry/agent-tracing
 /static/app/views/performance/traceDetails/traceDrawer/details/span/eapSections/ai*    @getsentry/data-browsing @getsentry/agent-tracing
 /static/app/views/performance/traceDetails/traceDrawer/details/span/eapSections/mcp*   @getsentry/data-browsing @getsentry/agent-tracing
 /static/app/views/performance/traceDetails/traceDrawer/tabs/traceAi*                   @getsentry/data-browsing @getsentry/agent-tracing
@@ -749,6 +751,14 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/views/projectInstall/                                                @getsentry/value-discovery
 /src/sentry/onboarding_tasks/                                                    @getsentry/value-discovery
 /static/app/components/pipeline/                                                 @getsentry/value-discovery
+/static/app/components/onboarding/                                               @getsentry/value-discovery
+/static/app/components/onboardingWizard/                                         @getsentry/value-discovery
+/static/app/components/platformPicker*                                           @getsentry/value-discovery
+/static/app/stores/onboardingDrawerStore.tsx                                     @getsentry/value-discovery
+/static/app/types/onboarding.tsx                                                 @getsentry/value-discovery
+/static/app/utils/analytics/onboardingAnalyticsEvents.tsx                        @getsentry/value-discovery
+/static/app/utils/analytics/projectCreationAnalyticsEvents.tsx                   @getsentry/value-discovery
+/tests/js/sentry-test/onboarding/                                                @getsentry/value-discovery
 ## End of Value Discovery
 
 ## ML & AI
@@ -884,6 +894,26 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/api/endpoints/organization_onboarding_tasks.py                       @getsentry/value-discovery
 /src/sentry/api/endpoints/organization_onboarding_continuation_email.py          @getsentry/value-discovery
 /src/sentry/api/endpoints/project_create_sample.py                               @getsentry/value-discovery
+/src/sentry/api/endpoints/organization_agentic_onboarding*.py                    @getsentry/value-discovery
+/src/sentry/api/serializers/models/agentic_onboarding.py                         @getsentry/value-discovery
+/src/sentry/onboarding/                                                          @getsentry/value-discovery
+/src/sentry/models/organizationonboardingtask.py                                 @getsentry/value-discovery
+/src/sentry/receivers/onboarding.py                                              @getsentry/value-discovery
+/src/sentry/analytics/events/agentic_onboarding.py                               @getsentry/value-discovery
+/src/sentry/analytics/events/onboarding_complete.py                              @getsentry/value-discovery
+/src/sentry/analytics/events/onboarding_continuation_sent.py                     @getsentry/value-discovery
+/src/sentry/agent_handoff/flows/onboarding.py                                    @getsentry/value-discovery
+/src/sentry/templates/sentry/agent_handoff/onboarding.md                         @getsentry/value-discovery
+/src/sentry/templates/sentry/emails/onboarding-continuation.*                    @getsentry/value-discovery
+/src/sentry/web/frontend/debug/debug_onboarding_continuation_email.py            @getsentry/value-discovery
+/tests/sentry/api/endpoints/test_onboarding.py                                   @getsentry/value-discovery
+/tests/sentry/api/endpoints/test_organization_agentic_onboarding*.py             @getsentry/value-discovery
+/tests/sentry/api/endpoints/test_organization_onboarding_continuation.py         @getsentry/value-discovery
+/tests/sentry/api/endpoints/test_organization_onboarding_tasks.py                @getsentry/value-discovery
+/tests/sentry/api/endpoints/test_project_create_sample.py                        @getsentry/value-discovery
+/tests/sentry/onboarding/                                                        @getsentry/value-discovery
+/tests/sentry/onboarding_tasks/                                                  @getsentry/value-discovery
+/tests/sentry/receivers/test_onboarding.py                                       @getsentry/value-discovery
 ## End of Onboarding
 
 ## Billing
@@ -964,7 +994,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /static/app/components/dnd/                           @getsentry/design-engineering
 /static/app/stories/                                  @getsentry/design-engineering
 /static/app/views/navigation/                         @getsentry/design-engineering
-/static/less/                                         @getsentry/design-engineering
+/static/css/                                          @getsentry/design-engineering
 /static/app/views/nav/                                @getsentry/design-engineering
 # Config files
 /figma.config.json                                     @getsentry/design-engineering

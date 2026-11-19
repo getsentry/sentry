@@ -5,7 +5,10 @@ import {exec} from 'node:child_process';
 import fs from 'node:fs';
 import {promisify} from 'node:util';
 
+import * as ts from 'typescript';
+
 const execAsync = promisify(exec);
+const typePrinter = ts.createPrinter({removeComments: true});
 
 export type CoverageItem = {
   column: number;
@@ -86,16 +89,40 @@ export function parseGitDiffText(diff: string): Map<string, GitDiffChange> {
   return changes;
 }
 
+function normalizeTargetType(targetType: string): string {
+  // Reprint the type with consistent formatting and without comments.
+  // The printer preserves whitespace inside literals.
+  const source = ts.createSourceFile(
+    'assertion.ts',
+    `type Target = ${targetType};`,
+    ts.ScriptTarget.Latest
+  );
+  const declaration = source.statements[0];
+  if (
+    !declaration ||
+    !ts.isTypeAliasDeclaration(declaration) ||
+    declaration.type.getWidth(source) !== targetType.length
+  ) {
+    throw new Error(`Could not parse assertion target type: ${targetType}`);
+  }
+  return typePrinter.printNode(ts.EmitHint.Unspecified, declaration.type, source);
+}
+
 function semanticKey(item: CoverageItem): string {
   // Include the target even when the code preview was truncated before the cast.
-  return JSON.stringify([item.kind, item.name, item.code, item.targetType]);
+  return JSON.stringify([
+    item.kind,
+    item.name,
+    item.code,
+    item.targetType === undefined ? undefined : normalizeTargetType(item.targetType),
+  ]);
 }
 
 function assertionKey(item: CoverageItem): string | undefined {
   if (item.kind === 'type(as)' || item.kind === 'type(angle)') {
     return item.targetType === undefined
       ? undefined
-      : JSON.stringify([item.kind, item.targetType]);
+      : JSON.stringify([item.kind, normalizeTargetType(item.targetType)]);
   }
   if (
     item.kind === 'as-any' ||
@@ -156,8 +183,8 @@ export function compareItems<T extends CoverageItem>(
 
   // Reserve unchanged occurrences first, so an added duplicate cannot use them.
   match(
-    [...current].sort((a, b) => Number(isAdded(a)) - Number(isAdded(b))),
-    [...old].sort((a, b) => Number(isRemoved(a)) - Number(isRemoved(b))),
+    current.toSorted((a, b) => Number(isAdded(a)) - Number(isAdded(b))),
+    old.toSorted((a, b) => Number(isRemoved(a)) - Number(isRemoved(b))),
     item => JSON.stringify([item.file, semanticKey(item)]),
     item =>
       JSON.stringify([

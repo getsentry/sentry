@@ -18,6 +18,7 @@ import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
 import {getQueryErrorMessage} from 'sentry/utils/discover/genericDiscoverQuery';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -118,8 +119,10 @@ export function TracesTable({tracesTableResult}: TracesTableProps) {
         ))}
       </SimpleTable>
       <Pagination
-        pageLinks={result.data?.headers.Link}
-        paginationAnalyticsEvent={paginationAnalyticsEvent}
+        {...getPaginationProps(result.data?.headers.Link)}
+        onPageChange={(_cursor, delta) =>
+          paginationAnalyticsEvent(delta === -1 ? 'Previous' : 'Next')
+        }
       />
     </Fragment>
   );

@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import math
 from datetime import datetime, timedelta
-from typing import Literal, TypedDict, TypeVar
+from typing import TypeVar
 
 from django.conf import settings
 from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
@@ -28,6 +28,7 @@ from sentry.snuba.models import QuerySubscription
 from sentry.utils import metrics, redis
 from sentry.utils.dates import to_datetime
 from sentry.utils.memory import track_memory_usage
+from sentry.workflow_engine.generated_schema_types import MetricIssueDetectorConfig
 from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.processors import DetectorEvaluation
 from sentry.workflow_engine.processors.data_packet import process_data_packet
@@ -43,15 +44,6 @@ REDIS_TTL = int(timedelta(days=7).total_seconds())
 CRASH_RATE_ALERT_MINIMUM_THRESHOLD: int | None = None
 
 T = TypeVar("T")
-
-
-class MetricIssueDetectorConfig(TypedDict):
-    """
-    Schema for Metric Issue Detector.config.
-    """
-
-    comparison_delta: int | None
-    detection_type: Literal["static", "percent", "dynamic"]
 
 
 class SubscriptionProcessor:

@@ -37,6 +37,8 @@ export function callRecordLabel(record: CallRecord): string | null {
 const PROVIDER_SHORT_LABELS: Record<string, string> = {
   datadog: 'Datadog',
   gcp: 'GCP',
+  linear: 'Linear',
+  supabase: 'Supabase',
 };
 
 /**

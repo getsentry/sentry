@@ -2,6 +2,8 @@ import type {CloudResourceContext} from '@sentry/core';
 
 import type {AppContext} from 'sentry/components/events/contexts/knownContext/app';
 import type {CultureContext} from 'sentry/components/events/contexts/knownContext/culture';
+import type {GPUContext} from 'sentry/components/events/contexts/knownContext/gpu';
+import type {GPUCrashContext} from 'sentry/components/events/contexts/knownContext/gpuCrash';
 import type {MissingInstrumentationContext} from 'sentry/components/events/contexts/knownContext/missingInstrumentation';
 import type {WERContext} from 'sentry/components/events/contexts/knownContext/wer';
 import type {
@@ -178,6 +180,7 @@ export type Frame = {
   trust: any | null;
   vars: Record<string, any> | null;
   addrMode?: string;
+  fileRevision?: string | null;
   lock?: Lock | null;
   // map exists if the frame has a source map
   map?: string | null;
@@ -518,6 +521,25 @@ type OSContext = {
   name: string;
   type: string;
   version: string;
+  raw_description?: string;
+};
+
+type UnrealContext = {
+  build_config?: string;
+  build_version?: string;
+  cpu_brand?: string;
+  crash_type?: string;
+  engine_mode?: string;
+  engine_version?: string;
+  error_message?: string;
+  game?: string;
+  is_assert?: boolean;
+  is_ensure?: boolean;
+  is_stall?: boolean;
+  os?: string;
+  platform?: string;
+  seconds_since_start?: number | string;
+  total_ram_gb?: number | string;
 };
 
 enum OtelContextKey {
@@ -660,7 +682,8 @@ export type EventContexts = {
   device?: DeviceContext;
   feedback?: Record<string, any>;
   flags?: Flags;
-  gpu_crash?: Record<string, any>;
+  gpu?: GPUContext;
+  gpu_crash?: GPUCrashContext;
   memory_info?: MemoryInfoContext;
   metric_alert?: MetricAlertContextType;
   missing_instrumentation?: MissingInstrumentationContext;
@@ -676,6 +699,7 @@ export type EventContexts = {
   threadpool_info?: ThreadPoolInfoContext;
   trace?: TraceContextType;
   unity?: UnityContext;
+  unreal?: UnrealContext;
   wer?: WERContext;
 };
 

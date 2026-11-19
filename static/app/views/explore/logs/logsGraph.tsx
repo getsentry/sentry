@@ -11,8 +11,8 @@ import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
+import {ChartLayersControl} from 'sentry/components/charts/chartLayersControl';
 import {DroppedDataFilterNote} from 'sentry/components/droppedData/droppedDataFilterNote';
-import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
 import {DroppedDataLLMContext} from 'sentry/components/droppedData/droppedDataLLMContext';
 import {useDroppedDataLayer} from 'sentry/components/droppedData/useDroppedDataLayer';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -44,8 +44,10 @@ import {
   ChartVisualization,
   useChartVisualizationPlottables,
 } from 'sentry/views/explore/components/chart/chartVisualization';
+import {ExtrapolationConfidenceFooter} from 'sentry/views/explore/components/chart/extrapolationConfidenceFooter';
 import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
+import {useHasExtrapolationConfidenceFooter} from 'sentry/views/explore/components/chart/useHasExtrapolationConfidenceFooter';
 import {
   AddTransformationButton,
   VisualizeTransformationRows,
@@ -181,10 +183,10 @@ function Graph({
   const {selection} = usePageFilters();
   const groupBys = useQueryParamsGroupBys();
 
-  const [interval, setInterval, intervalOptions] = useChartInterval();
+  const [chartInterval, setChartInterval, intervalOptions] = useChartInterval();
   const droppedData = useDroppedDataLayer(
-    {dataset: DiscoverDatasets.OURLOGS, interval},
-    {hidden: tableIsEmpty || tableIsPending}
+    {dataset: DiscoverDatasets.OURLOGS, interval: chartInterval},
+    {source: 'explore', hidden: tableIsEmpty || tableIsPending}
   );
 
   // Invalid `_if` filters skip the backend request; surface that as a chart error
@@ -248,6 +250,7 @@ function Graph({
   ]);
 
   const plottables = useChartVisualizationPlottables(chartInfo);
+  const hasExtrapolationConfidenceFooter = useHasExtrapolationConfidenceFooter();
 
   const Title = (
     <Widget.WidgetTitle
@@ -284,7 +287,7 @@ function Graph({
   const Actions = visualize.visible ? (
     <Fragment>
       {droppedData.layerControl ? (
-        <DroppedDataLayerControl {...droppedData.layerControl} />
+        <ChartLayersControl {...droppedData.layerControl} />
       ) : null}
       <CompactSelect
         trigger={triggerProps => (
@@ -305,8 +308,8 @@ function Graph({
         onChange={option => onChartTypeChange(option.value)}
       />
       <CompactSelect
-        value={interval}
-        onChange={({value}) => setInterval(value)}
+        value={chartInterval}
+        onChange={({value}) => setChartInterval(value)}
         trigger={triggerProps => (
           <OverlayTrigger.Button
             {...triggerProps}
@@ -322,7 +325,7 @@ function Graph({
         menuTitle="Interval"
         options={intervalOptions}
       />
-      <ContextMenu interval={interval} visualize={visualize} />
+      <ContextMenu interval={chartInterval} visualize={visualize} />
       <Button
         aria-label={t('Collapse chart')}
         icon={<IconContract />}
@@ -340,7 +343,7 @@ function Graph({
   );
 
   const {period, start, end} = selection.datetime;
-  const chartRemountKey = `${period}|${start}|${end}|${userQuery}|${aggregate}|${visualize.chartType}|${interval}|${topEventsLimit}|${groupBys.join(',')}`;
+  const chartRemountKey = `${period}|${start}|${end}|${userQuery}|${aggregate}|${visualize.chartType}|${chartInterval}|${topEventsLimit}|${groupBys.join(',')}`;
 
   return (
     <Container minWidth="0" border="primary" radius="md" background="primary">
@@ -354,6 +357,7 @@ function Graph({
               key={chartRemountKey}
               chartInfo={chartInfo}
               droppedData={droppedData.band}
+              plottables={plottables}
               isDroppedDataLoading={droppedData.isLoading}
             />
           )
@@ -370,16 +374,22 @@ function Graph({
                   justify="between"
                   gap={{zero: 'xs', xl: 'md'}}
                 >
-                  <ConfidenceFooter
-                    chartInfo={chartInfo}
-                    isLoading={chartInfo.timeseriesResult.isPending}
-                    rawLogCounts={rawLogCounts}
-                    hasUserQuery={!!userQuery}
-                    disabled={
-                      !hasValidConditionalFilter ||
-                      (tableIsPending ? false : tableIsEmpty)
-                    }
-                  />
+                  {hasExtrapolationConfidenceFooter ? (
+                    !chartInfo.timeseriesResult.isPending && (
+                      <ExtrapolationConfidenceFooter plottables={plottables} />
+                    )
+                  ) : (
+                    <ConfidenceFooter
+                      chartInfo={chartInfo}
+                      isLoading={chartInfo.timeseriesResult.isPending}
+                      rawLogCounts={rawLogCounts}
+                      hasUserQuery={!!userQuery}
+                      disabled={
+                        !hasValidConditionalFilter ||
+                        (tableIsPending ? false : tableIsEmpty)
+                      }
+                    />
+                  )}
                   {droppedData.filterNote ? (
                     <DroppedDataFilterNote
                       {...droppedData.filterNote}

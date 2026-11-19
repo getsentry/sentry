@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections import Counter
 from typing import TYPE_CHECKING, Any, Literal
 
 import sentry_sdk
@@ -28,10 +29,14 @@ from sentry.seer.autofix.autofix_agent import (
 )
 from sentry.seer.autofix.coding_agent import IntegrationNotFound
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.exceptions import SeerOutOfCreditsException
+from sentry.seer.autofix.feature.dispatch import get_run_billing_feature
 from sentry.seer.autofix.feature.models import FEATURE_ID as AUTOFIX_FEATURE_ID
 from sentry.seer.autofix.feature.models import LEGACY_FEATURE_ID as LEGACY_AUTOFIX_FEATURE_ID
+from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 from sentry.seer.autofix.pr_iteration.completion import (
     continue_pr_iteration,
+    drain_single_run_feedback_queue,
     fail_pr_iteration,
     fail_pr_iteration_missing_group,
     iteration_completed_webhook_fields,
@@ -40,20 +45,31 @@ from sentry.seer.autofix.pr_iteration.completion import (
     record_failed_tool_calls,
 )
 from sentry.seer.autofix.pr_iteration.completion_reactions import react_to_completed_iteration
-from sentry.seer.autofix.pr_iteration.iterations import get_latest_iteration_index
+from sentry.seer.autofix.pr_iteration.iterations import (
+    get_latest_iteration_index,
+    is_pr_feedback_turn,
+)
 from sentry.seer.autofix.pr_iteration.run_markers import record_run_extras
 from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
 from sentry.seer.autofix.pr_ready_for_review import (
     emit_pr_ready_for_review,
     format_pull_requests_payload,
 )
-from sentry.seer.autofix.single_run import is_single_run, single_run_root_cause_payload
+from sentry.seer.autofix.single_run import (
+    SingleRunStop,
+    hands_off_to_coding_agent,
+    is_single_run,
+    single_run_relevant_repos,
+    single_run_root_cause_payload,
+    single_run_stop_payload,
+)
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     clear_preference_automation_handoff,
     get_automation_handoff,
 )
+from sentry.seer.credits import OUT_OF_CREDITS
 from sentry.seer.entrypoints.operator import (
     SeerActivityAttribution,
     SeerAutofixOperator,
@@ -103,7 +119,7 @@ def _stopping_point_from_run(organization: Organization, run_id: int) -> str | N
             source__in=(AUTOFIX_FEATURE_ID, LEGACY_AUTOFIX_FEATURE_ID),
         )
         .values_list("extras__stopping_point", flat=True)
-        .first()
+        .first()  # noqa: S035
     )
 
 
@@ -118,8 +134,11 @@ def get_run_stopping_point(
     )
 
 
-SingleRunStage = Literal["root_cause", "coding", "pr_created"]
+SingleRunStage = Literal["root_cause", "coding", "pr_created", "stopped"]
 SINGLE_RUN_ANNOUNCED_STAGES_KEY = "single_run_announced_stages"
+# Set once the completion hook has launched a single run's coding agent, so later
+# completions (replies) don't launch it again.
+SINGLE_RUN_HANDED_OFF_KEY = "single_run_handed_off"
 
 
 def _single_run_referrer(state: SeerRunState) -> AutofixReferrer | None:
@@ -226,10 +245,32 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         group_id: int | None,
         run_referrer: AutofixReferrer | None,
     ) -> None:
+        feedback_turn = is_pr_feedback_turn(state)
+        if feedback_turn and state.status == "error":
+            fail_pr_iteration(organization, run_id, state, group_id)
+            return
         group = cls._fetch_group(organization, run_id, group_id)
         if group is None:
+            if feedback_turn and state.status == "completed":
+                fail_pr_iteration_missing_group(organization, state, group_id)
             return
-        if not cls._run_completed(organization, run_id, state):
+        if state.status == "completed":
+            if feedback_turn:
+                _, referrer = get_current_step(state)
+                continue_pr_iteration(
+                    organization,
+                    group,
+                    run_id,
+                    state,
+                    referrer or run_referrer or AutofixReferrer.ON_COMPLETION_HOOK,
+                )
+                cls._log_reaction_outcomes(
+                    organization, run_id, react_to_completed_iteration(organization, run_id, state)
+                )
+            else:
+                drain_single_run_feedback_queue(organization, group, run_id, state)
+        paused = state.status == "awaiting_user_input"
+        if not cls._run_completed(organization, run_id, state) and not paused:
             if state.status == "error":
                 cls._notify_entrypoints_of_failure(
                     organization, run_id, group, state.failure_reason
@@ -237,7 +278,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             return
         seer_run = SeerRun.objects.filter(
             organization_id=organization.id, seer_run_state_id=run_id
-        ).first()
+        ).first()  # noqa: S035
         if seer_run is None:
             logger.warning(
                 "autofix.on_completion_hook.single_run_missing_seer_run",
@@ -258,13 +299,30 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             reached.append("coding")
         if pull_requests:
             reached.append("pr_created")
+        stop = single_run_stop_payload(state)
+        if stop is not None and not {"coding", "pr_created"} & set(reached):
+            reached.append("stopped")
 
         reconcile_milestones(seer_run, state)
+
+        # The coding agent writes the fix once Seer names a root cause and a repo for it.
+        # A stopped run (transient, ambiguous, not a code fix) never hands off.
+        agent_run = SeerAgentRun.objects.get_or_none(run=seer_run, source=SINGLE_RUN_FEATURE_ID)
+        ready_to_hand_off = (
+            not paused
+            and stop is None
+            and agent_run is not None
+            and hands_off_to_coding_agent(agent_run)
+            and bool(single_run_relevant_repos(state))
+        )
 
         with record_run_extras(seer_run) as extras:
             announced = extras.get(SINGLE_RUN_ANNOUNCED_STAGES_KEY) or []
             new_stages = [stage for stage in reached if stage not in announced]
             extras[SINGLE_RUN_ANNOUNCED_STAGES_KEY] = [*announced, *new_stages]
+            hand_off = ready_to_hand_off and not extras.get(SINGLE_RUN_HANDED_OFF_KEY)
+            if hand_off:
+                extras[SINGLE_RUN_HANDED_OFF_KEY] = True
 
         cls._announce_single_run(
             organization=organization,
@@ -275,8 +333,34 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             stages=new_stages,
             root_cause=root_cause,
             pull_requests=pull_requests,
+            stop=stop,
             referrer=_single_run_referrer(state) or run_referrer,
         )
+        if hand_off:
+            cls._hand_off_single_run(
+                organization,
+                run_id,
+                group,
+                _single_run_referrer(state) or run_referrer or AutofixReferrer.ON_COMPLETION_HOOK,
+            )
+
+    @classmethod
+    def _hand_off_single_run(
+        cls,
+        organization: Organization,
+        run_id: int,
+        group: Group,
+        referrer: AutofixReferrer,
+    ) -> None:
+        handoff_config = get_automation_handoff(group.project.get_option)
+        if handoff_config is None:
+            # The project dropped its coding agent after the run started.
+            logger.info(
+                "autofix.on_completion_hook.single_run_handoff_unconfigured",
+                extra={"run_id": run_id, "organization_id": organization.id},
+            )
+            return
+        cls._trigger_coding_agent_handoff(organization, run_id, group, handoff_config, referrer)
 
     @classmethod
     def _announce_single_run(
@@ -290,12 +374,20 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         stages: list[SingleRunStage],
         root_cause: dict[str, Any] | None,
         pull_requests: list[dict[str, Any]],
+        stop: SingleRunStop | None,
         referrer: AutofixReferrer | None,
     ) -> None:
         cls._record_triggered(organization, run_id, group)
         base = {"run_id": run_id, "sentry_run_id": str(seer_run.uuid), "group_id": group.id}
         actor_user_id = get_acting_user_id(get_viewer_context())
         for stage in stages:
+            if stage == "stopped":
+                cls._notify_entrypoints(
+                    organization,
+                    SentryAppEventType.SEER_STOPPED,
+                    {"run_id": run_id, "group_id": group.id, "stop": stop},
+                )
+                continue
             if stage == "root_cause":
                 action_type = SeerActionType.ROOT_CAUSE_COMPLETED
                 payload: dict[str, object] = {**base, "root_cause": root_cause}
@@ -373,7 +465,14 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
 
         record_failed_tool_calls(organization, group, state)
 
-        reaction_outcomes = react_to_completed_iteration(organization, run_id, state)
+        cls._log_reaction_outcomes(
+            organization, run_id, react_to_completed_iteration(organization, run_id, state)
+        )
+
+    @classmethod
+    def _log_reaction_outcomes(
+        cls, organization: Organization, run_id: int, reaction_outcomes: Counter[str]
+    ) -> None:
         if reaction_outcomes:
             logger.info(
                 "autofix.on_completion_hook.completion_reaction.summary",
@@ -411,24 +510,33 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         group: Group,
         failure_reason: str | None,
     ) -> None:
+        cls._notify_entrypoints(
+            organization,
+            SentryAppEventType.SEER_ERRORED,
+            {"run_id": run_id, "group_id": group.id, "failure_reason": failure_reason},
+        )
+
+    @classmethod
+    def _notify_entrypoints(
+        cls,
+        organization: Organization,
+        event_type: SentryAppEventType,
+        event_payload: dict[str, Any],
+    ) -> None:
         """
-        Tells entrypoints (e.g. a Slack thread waiting on the run) that the run failed.
-        SEER_ERRORED is internal only: no Sentry App webhook and no issue activity.
+        Tells entrypoints (e.g. a Slack thread waiting on the run) about the run.
+        No Sentry App webhook; mapped event types also get an issue activity.
         """
         if not SeerAutofixOperator.has_access(organization=organization):
             return
         metrics.incr(
             "autofix.on_completion_hook.process_autofix_updates",
-            tags={"event_type": str(SentryAppEventType.SEER_ERRORED)},
+            tags={"event_type": str(event_type)},
         )
         process_autofix_updates.apply_async(
             kwargs={
-                "event_type": SentryAppEventType.SEER_ERRORED,
-                "event_payload": {
-                    "run_id": run_id,
-                    "group_id": group.id,
-                    "failure_reason": failure_reason,
-                },
+                "event_type": event_type,
+                "event_payload": event_payload,
                 "organization_id": organization.id,
             }
         )
@@ -488,7 +596,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         seer_run = SeerRun.objects.filter(
             organization_id=organization.id,
             seer_run_state_id=run_id,
-        ).first()
+        ).first()  # noqa: S035
 
         sentry_run_id = str(seer_run.uuid) if seer_run is not None else None
         webhook_payload: dict[str, object] = {
@@ -515,8 +623,15 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             if state.repo_pr_states and not pull_requests:
                 # Seer adds one entry per repository before asking the provider to open
                 # a PR. If every request fails, the entries remain but there is no PR.
+                out_of_credits = any(
+                    pr.pr_creation_error_code == OUT_OF_CREDITS
+                    for pr in state.repo_pr_states.values()
+                )
                 cls._notify_entrypoints_of_failure(
-                    organization, run_id, group, PR_CREATION_FAILED_REASON
+                    organization,
+                    run_id,
+                    group,
+                    OUT_OF_CREDITS if out_of_credits else PR_CREATION_FAILED_REASON,
                 )
                 return
 
@@ -732,7 +847,13 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             return
 
         stopping_point = AutofixStoppingPoint(raw_stopping_point)
-        if current_step == STOPPING_POINT_TO_STEP.get(stopping_point):
+        stopping_step = STOPPING_POINT_TO_STEP.get(stopping_point)
+        # A manual continue can take an automated run past its stopping point; don't advance it.
+        if (
+            stopping_step is not None
+            and current_step in PIPELINE_ORDER
+            and PIPELINE_ORDER.index(current_step) >= PIPELINE_ORDER.index(stopping_step)
+        ):
             return
 
         # Check if we should trigger coding agent handoff instead of continuing
@@ -786,12 +907,23 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 "iteration_index": get_latest_iteration_index(state),
             },
         )
-        trigger_autofix_agent(
-            group=group,
-            step=next_step,
-            referrer=referrer,
-            run_id=run_id,
-        )
+        try:
+            trigger_autofix_agent(
+                group=group,
+                step=next_step,
+                referrer=referrer,
+                run_id=run_id,
+                billing_feature=get_run_billing_feature(state),
+            )
+        except SeerOutOfCreditsException:
+            logger.info(
+                "autofix.on_completion_hook.next_step_out_of_credits",
+                extra={
+                    "run_id": run_id,
+                    "organization_id": organization.id,
+                    "next_step": next_step,
+                },
+            )
 
     @classmethod
     def _push_changes(
@@ -841,6 +973,12 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 state=state,
                 verify_content=True,
             )
+        except SeerOutOfCreditsException:
+            logger.info(
+                "autofix.on_completion_hook.push_changes_out_of_credits",
+                extra={"run_id": run_id, "organization_id": group.organization.id},
+            )
+            return False
         except Exception:
             logger.exception(
                 "autofix.on_completion_hook.push_changes_failed",

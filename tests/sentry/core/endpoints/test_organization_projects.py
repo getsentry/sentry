@@ -376,6 +376,18 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
         self.check_valid_response(response, sorted_projects)
         assert "latestDeploy" not in response.data[0]
 
+    def test_collapse_documented_values(self) -> None:
+        project = self.create_project(teams=[self.team], name="bar", slug="bar")
+
+        response = self.get_success_response(self.organization.slug)
+        assert "latestDeploys" in response.data[0]
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"collapse": ["latestDeploys", "unusedFeatures"]}
+        )
+        self.check_valid_response(response, [project])
+        assert "latestDeploys" not in response.data[0]
+
     def test_user_projects(self) -> None:
         self.foo_user = self.create_user("foo@example.com")
         self.login_as(user=self.foo_user)

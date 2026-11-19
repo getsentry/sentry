@@ -1,6 +1,5 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import {Navigate, Outlet} from 'react-router';
-import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
@@ -86,6 +85,7 @@ import {useEngagedViewTracking} from './useEngagedViewTracking';
 import {groupApiOptions, useGroup} from './useGroup';
 import {useGroupDetailsRoute} from './useGroupDetailsRoute';
 import {RESERVED_EVENT_IDS, useGroupEvent} from './useGroupEvent';
+import {ISSUE_DRAWER_TABS, useIssueDrawerReturnPath} from './useIssueDrawerReturnPath';
 import {
   getGroupReprocessingStatus,
   markEventSeen,
@@ -237,7 +237,7 @@ function useSyncGroupStore(groupId: string, incomingEnvs: string[]) {
 
   // It's possible the overview page is still unloading the store
   useEffect(() => {
-    return GroupStore.listen(() => {
+    return GroupStore.subscribe(() => {
       const [storeGroup] = GroupStore.getState();
       if (
         defined(storeGroup) &&
@@ -256,7 +256,7 @@ function useSyncGroupStore(groupId: string, incomingEnvs: string[]) {
           prev => (prev ? {...prev, json: storeGroup as Group} : prev)
         );
       }
-    }, undefined) as () => void;
+    });
   }, [groupId, incomingEnvs, organization, queryClient]);
 }
 
@@ -573,9 +573,7 @@ function GroupDetailsContentError({
   switch (errorType) {
     case ERROR_TYPES.GROUP_NOT_FOUND:
       return (
-        <StyledLoadingError
-          message={t('The issue you were looking for was not found.')}
-        />
+        <GroupLoadingError message={t('The issue you were looking for was not found.')} />
       );
 
     case ERROR_TYPES.MISSING_MEMBERSHIP:
@@ -585,7 +583,7 @@ function GroupDetailsContentError({
         </Container>
       );
     default:
-      return <StyledLoadingError onRetry={onRetry} />;
+      return <GroupLoadingError onRetry={onRetry} />;
   }
 }
 
@@ -638,18 +636,28 @@ function GroupDetailsContentInner({
   const includeFlagDistributions = featureFlagDrawerPlatforms.includes(
     project.platform ?? 'other'
   );
+  const {currentTab, baseUrl} = useGroupDetailsRoute();
+  const location = useLocation();
+  const getReturnPath = useIssueDrawerReturnPath({
+    baseUrl,
+    currentTab,
+    pathname: location.pathname,
+  });
   const {openDistributionsDrawer} = useGroupDistributionsDrawer({
+    getReturnPath,
     group,
     includeFeatureFlagsTab: includeFlagDistributions,
   });
-  const {openSimilarIssuesDrawer} = useSimilarIssuesDrawer({group, project});
-  const {openMergedIssuesDrawer} = useMergedIssuesDrawer({group, project});
-  const {openIssueActivityDrawer} = useIssueActivityDrawer({group});
+  const {openSimilarIssuesDrawer} = useSimilarIssuesDrawer({
+    getReturnPath,
+    group,
+    project,
+  });
+  const {openMergedIssuesDrawer} = useMergedIssuesDrawer({getReturnPath, group, project});
+  const {openIssueActivityDrawer} = useIssueActivityDrawer({getReturnPath, group});
   const {openSeerDrawer} = useOpenSeerDrawer({group, project});
   const {isAnyDrawerOpen} = useDrawer();
 
-  const {currentTab} = useGroupDetailsRoute();
-  const location = useLocation();
   const autofixPage = hasAutofixPage(organization);
   // nuqs flips this as soon as the drawer closes, before the URL catches up, so
   // closing the drawer doesn't reopen it.
@@ -749,13 +757,8 @@ function GroupDetailsContentInner({
     ...(tagKey ? {tagKey} : {}),
   });
 
-  const isDisplayingEventDetails = [
-    Tab.DETAILS,
-    Tab.DISTRIBUTIONS,
-    Tab.SIMILAR_ISSUES,
-    Tab.MERGED,
-    Tab.ACTIVITY,
-  ].includes(currentTab);
+  const isDisplayingEventDetails =
+    currentTab === Tab.DETAILS || ISSUE_DRAWER_TABS.has(currentTab);
 
   if (redirectToAutofixTab) {
     return (
@@ -844,12 +847,12 @@ function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
   }
 
   if (errorFetchingProjects) {
-    return <StyledLoadingError message={t('Error loading the specified project')} />;
+    return <GroupLoadingError message={t('Error loading the specified project')} />;
   }
 
   if (projectSlug && !errorFetchingProjects && projectsLoaded && !projectWithFallback) {
     return (
-      <StyledLoadingError message={t('The project %s does not exist', projectSlug)} />
+      <GroupLoadingError message={t('The project %s does not exist', projectSlug)} />
     );
   }
 
@@ -931,6 +934,10 @@ function GroupDetailsContainer() {
 
 export default Sentry.withProfiler(GroupDetailsContainer);
 
-const StyledLoadingError = styled(LoadingError)`
-  margin: ${p => p.theme.space.xl};
-`;
+function GroupLoadingError(props: React.ComponentProps<typeof LoadingError>) {
+  return (
+    <Container padding="xl">
+      <LoadingError {...props} />
+    </Container>
+  );
+}

@@ -191,7 +191,7 @@ Use `field.Select` for form choices. Do not compose a form select from bare `Men
 
 ### Checkbox Group (Multiple Selections)
 
-Use `field.Checkbox.Group` and `field.Checkbox.Item` for multiple selections stored as one string array. Read the [checkbox group docs](../../../static/app/components/core/form/fields.mdx#checkbox-group) for the example, layout, validation, disabled state, and auto-save behavior.
+Use `field.CheckboxGroup` with a render callback `{({Item}) => ...}` for multiple selections stored as one string array. Pass `field.state.value` as `value` and `field.handleChange` as `onChange` so that item values use the array's element type. Read the [checkbox group docs](../../../static/app/components/core/form/fields.mdx#checkbox-group) for the example, layout, validation, disabled state, and auto-save behavior.
 
 ### TextArea Field
 
@@ -228,42 +228,11 @@ Use `field.Checkbox.Group` and `field.Checkbox.Item` for multiple selections sto
 </form.AppField>
 ```
 
-### Radio Field
+### Radio Group
 
-Radio fields use a composable API with `Radio.Group` and `Radio.Item`. `Radio.Group` provides group context that changes how the label is rendered for proper accessibility semantics.
+Use `field.RadioGroup` with a render callback `{({Item}) => ...}`. Pass `field.state.value` as `value` and `field.handleChange` as `onChange` so that item values and changes use the field's value type.
 
-> **Important**: The layout (and its label) **must** be rendered _inside_ `Radio.Group`. The group context is provided by `Radio.Group`, so placing the layout outside will result in incorrect accessibility semantics.
-
-```tsx
-<form.AppField name="priority">
-  {field => (
-    <field.Radio.Group value={field.state.value} onChange={field.handleChange}>
-      <field.Layout.Stack label="Priority">
-        <field.Radio.Item value="low">Low</field.Radio.Item>
-        <field.Radio.Item value="medium">Medium</field.Radio.Item>
-        <field.Radio.Item value="high" description="Urgent issues">
-          High
-        </field.Radio.Item>
-      </field.Layout.Stack>
-    </field.Radio.Group>
-  )}
-</form.AppField>
-```
-
-For horizontal arrangement of radio items, use a `Flex` or `Stack` wrapper inside the layout:
-
-```tsx
-import {Flex} from '@sentry/scraps/layout';
-
-<field.Radio.Group value={field.state.value} onChange={field.handleChange}>
-  <field.Layout.Row label="Priority">
-    <Flex gap="lg">
-      <field.Radio.Item value="low">Low</field.Radio.Item>
-      <field.Radio.Item value="high">High</field.Radio.Item>
-    </Flex>
-  </field.Layout.Row>
-</field.Radio.Group>;
-```
+Render the layout and its label inside the callback to preserve the group's accessibility semantics. Read the [radio group docs](../../../static/app/components/core/form/fields.mdx#radio) for vertical and horizontal examples.
 
 ### Custom Fields with BaseField
 

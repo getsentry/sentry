@@ -21,8 +21,8 @@ from sentry.investigations.services import agentic_breached_metric_source_key
 from sentry.investigations.services.breached_metrics import resolve_investigation_sources
 from sentry.models.organization import Organization
 from sentry.notebooks.endpoints.base import (
-    OrganizationInvestigationsBaseEndpoint,
-    can_request_actor_create_investigation,
+    OrganizationNotebooksBaseEndpoint,
+    can_request_actor_create_notebook,
     organization_project_ids,
     service_error,
 )
@@ -31,7 +31,7 @@ from sentry.notebooks.models import Notebook, NotebookSourceType, NotebookStatus
 
 @extend_schema(tags=["Investigations"])
 @cell_silo_endpoint
-class OrganizationInvestigationCandidatesEndpoint(OrganizationInvestigationsBaseEndpoint):
+class OrganizationInvestigationCandidatesEndpoint(OrganizationNotebooksBaseEndpoint):
     owner = ApiOwner.ML_AI
     publish_status = {"POST": ApiPublishStatus.PRIVATE}
 
@@ -105,7 +105,7 @@ class OrganizationInvestigationCandidatesEndpoint(OrganizationInvestigationsBase
             investigation.source_key: investigation for investigation in existing
         }
         orchestration_by_investigation = orchestration_summaries_by_investigation(existing)
-        can_create = can_request_actor_create_investigation(request)
+        can_create = can_request_actor_create_notebook(request)
         items: list[InvestigationCandidateResponse] = []
         for source in resolved_sources:
             if source is None:

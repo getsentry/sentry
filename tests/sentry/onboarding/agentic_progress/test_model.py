@@ -659,3 +659,8 @@ def test_restore_run_without_origin() -> None:
     persisted = make_run(datetime(2020, 1, 1, tzinfo=timezone.utc)).to_dict()
     del persisted["origin"]
     assert OnboardingRun.from_dict(persisted).origin is None
+
+
+def test_round_trip_run_awaiting_reporting_code() -> None:
+    run = replace(make_run(datetime(2020, 1, 1, tzinfo=timezone.utc)), token_hash=None)
+    assert OnboardingRun.from_dict(run.to_dict()) == run

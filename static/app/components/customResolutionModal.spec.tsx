@@ -206,7 +206,7 @@ describe('CustomResolutionModal', () => {
     );
 
     await userEvent.click(screen.getByRole('button', {name: /version/i}));
-    const searchInput = await screen.findByRole('textbox');
+    const searchInput = await screen.findByRole('searchbox');
     await userEvent.click(searchInput);
     await userEvent.paste('.0');
 
@@ -266,7 +266,7 @@ describe('CustomResolutionModal', () => {
 
     const trigger = screen.getByRole('button', {name: /version/i});
     await userEvent.click(trigger);
-    const searchInput = await screen.findByRole('textbox');
+    const searchInput = await screen.findByRole('searchbox');
     await userEvent.click(searchInput);
     await userEvent.paste('search-me@3.0.0');
 
@@ -311,7 +311,7 @@ describe('CustomResolutionModal', () => {
 
     const trigger = screen.getByRole('button', {name: /version/i});
     await userEvent.click(trigger);
-    const searchInput = await screen.findByRole('textbox');
+    const searchInput = await screen.findByRole('searchbox');
     await userEvent.click(searchInput);
     await userEvent.paste('ancient-release');
 

@@ -8,6 +8,7 @@ import {IconFire} from '@sentry/icons/fire';
 import {IconUser} from '@sentry/icons/user';
 
 import {Tag} from '@sentry/scraps/badge';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -15,7 +16,6 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Count} from 'sentry/components/count';
-import {DateTime} from 'sentry/components/dateTime';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Placeholder} from 'sentry/components/placeholder';
@@ -240,7 +240,7 @@ export function ConversationSummary({
                     size="sm"
                     title={<TimeSince date={startTimestamp} disabledAbsoluteTooltip />}
                   >
-                    <DateTime date={startTimestamp} year timeZone />
+                    <DateTime date={startTimestamp} year="always" showTimezone />
                   </InfoText>
                 </Flex>
               )}
@@ -715,7 +715,7 @@ function CostCount({
     return <LLMCosts cost={total} />;
   }
 
-  const sortedBreakdowns = [...breakdowns].sort((a, b) => b.totalCost - a.totalCost);
+  const sortedBreakdowns = breakdowns.toSorted((a, b) => b.totalCost - a.totalCost);
   return (
     <Tooltip title={<CostBreakdownTooltip breakdowns={sortedBreakdowns} />}>
       <BreakdownValue>{formatLLMCosts(total)}</BreakdownValue>
@@ -737,7 +737,7 @@ function ModelMetricBreakdown({
   }
 
   const formatValue = metric === 'llmCalls' ? formatAbbreviatedNumber : formatLLMCosts;
-  const sortedBreakdowns = [...breakdowns].sort((a, b) => b[metric] - a[metric]);
+  const sortedBreakdowns = breakdowns.toSorted((a, b) => b[metric] - a[metric]);
 
   return (
     <Tooltip

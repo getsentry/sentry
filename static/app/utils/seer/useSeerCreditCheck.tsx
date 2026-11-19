@@ -1,6 +1,13 @@
-import {skipToken, useQuery} from '@tanstack/react-query';
+import {SEARCH_HTTP__RESPONSE_STATUS_CODE} from '@sentry/conventions/attributes/search';
+import * as Sentry from '@sentry/react';
+import {useQuery} from '@tanstack/react-query';
 
+import type {Organization} from 'sentry/types/organization';
+import {apiFetch} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 /**
@@ -15,11 +22,77 @@ export type SeerCreditOperation =
   | 'autofix_open_pr'
   | 'autofix_pr_iteration';
 
+/**
+ * Why the check denied credit:
+ *
+ * - `not_enough_credits`: the wallet can't cover the operation.
+ * - `daily_cap_exceeded`: the operation would take today's spend over the
+ *   org's daily usage limit.
+ */
+export type SeerCreditDenialReason = 'not_enough_credits' | 'daily_cap_exceeded';
+
 interface SeerCreditCheckResponse {
+  /**
+   * Null when the check allows the operation, or doesn't say why it doesn't.
+   */
+  denialReason: SeerCreditDenialReason | null;
   hasEnoughCredits: boolean;
 }
 
+export function seerCreditCheckApiOptions(
+  organization: Organization,
+  operation: SeerCreditOperation,
+  billingFeature?: number
+) {
+  const options = apiOptions.as<SeerCreditCheckResponse>()(
+    '/organizations/$organizationIdOrSlug/seer/credit-check/',
+    {
+      path: {organizationIdOrSlug: organization.slug},
+      query:
+        billingFeature === undefined
+          ? {operation}
+          : {operation, billing_feature: billingFeature},
+      staleTime: 0,
+    }
+  );
+
+  return {
+    ...options,
+    // The alert and action can use the same query. Report once per request.
+    queryFn: async ({queryKey}: {queryKey: ApiQueryKey}) => {
+      try {
+        return await apiFetch<SeerCreditCheckResponse>({queryKey});
+      } catch (error) {
+        const status = error instanceof RequestError ? error.status : undefined;
+        if (status === 400 || status === 429 || (status !== undefined && status >= 500)) {
+          Sentry.logger.error('Seer credit check request failed', {
+            feature: 'seer_credit_check',
+            operation,
+            billing_feature: billingFeature,
+            [SEARCH_HTTP__RESPONSE_STATUS_CODE]: status,
+          });
+        }
+        throw error;
+      }
+    },
+  };
+}
+
+/**
+ * Matches the org's credit checks for every operation, so they can all be
+ * rechecked at once, for example after credits are added.
+ */
+export function seerCreditChecksQueryKey(organization: Organization) {
+  return [
+    getApiUrl('/organizations/$organizationIdOrSlug/seer/credit-check/', {
+      path: {organizationIdOrSlug: organization.slug},
+    }),
+  ];
+}
+
 interface UseSeerCreditCheckOptions {
+  /** The concrete billing feature saved on an existing run. */
+  billingFeature?: number;
   /**
    * Skip the check, for example while the trigger it gates is not on screen.
    */
@@ -34,33 +107,24 @@ interface UseSeerCreditCheckOptions {
  * Seer on this plan" and is mounted on many pages that should not make a
  * billing call. Only mount this where a Seer trigger is about to be shown.
  *
- * The check fails open. Without `seer-credit-checks` and
- * `token-billed-seer-enabled`, or when the request fails, `hasEnoughCredits`
- * is `true` and the backend has the final say.
+ * The check fails open. Without `token-billed-seer-enabled`, or when the
+ * request fails, `hasEnoughCredits` is `true` and the backend has the final say.
  */
 export function useSeerCreditCheck(
   operation: SeerCreditOperation,
-  {enabled = true}: UseSeerCreditCheckOptions = {}
+  {billingFeature, enabled = true}: UseSeerCreditCheckOptions = {}
 ) {
   const organization = useOrganization();
   // Orgs without token-billed Seer have no wallet to check, so they make no
   // billing call.
   const isChecking =
-    enabled &&
-    organization.features.includes('seer-credit-checks') &&
-    organization.features.includes('token-billed-seer-enabled');
+    enabled && organization.features.includes('token-billed-seer-enabled');
 
   const query = useQuery({
-    ...apiOptions.as<SeerCreditCheckResponse>()(
-      '/organizations/$organizationIdOrSlug/seer/credit-check/',
-      {
-        path: isChecking ? {organizationIdOrSlug: organization.slug} : skipToken,
-        query: {operation},
-        staleTime: 0,
-      }
-    ),
+    ...seerCreditCheckApiOptions(organization, operation, billingFeature),
+    enabled: isChecking,
     // Credits move outside this page: a run elsewhere spends them and a billing
-    // member can top up from another tab. Recheck on every mount and window
+    // member can turn on auto-reload from another tab. Recheck on every mount and window
     // focus (which the app's query client turns off by default) so a gate
     // never outlives the balance it was based on.
     refetchOnWindowFocus: true,
@@ -71,6 +135,14 @@ export function useSeerCreditCheck(
 
   return {
     hasEnoughCredits: isChecking ? (query.data?.hasEnoughCredits ?? true) : true,
+    denialReason: isChecking ? (query.data?.denialReason ?? null) : null,
+    /**
+     * Whether the check has answered, or failed, since the caller mounted. A
+     * cached answer from an earlier mount doesn't count, since credits can
+     * change in between. Wait on this rather than `isPending` before acting on
+     * the answer automatically.
+     */
+    hasCheckedSinceMount: !isChecking || query.isFetchedAfterMount,
     // A disabled query reports `isPending` forever, so only a running check
     // counts as pending.
     isPending: isChecking && query.isPending,

@@ -671,7 +671,7 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
 
         # The redis set expires on its own TTL, so a cold cache is a normal state.
         key = FeatureAdoption.objects.cache_backend.key_tpl.format(org_id)
-        FeatureAdoption.objects.cache_backend.get_client(key).delete(key)
+        FeatureAdoption.objects.cache_backend.cluster.delete(key)
 
         # This batch mixes a feature that is already in the database with a new one.
         FeatureAdoption.objects.bulk_record(org_id, ["python", "source_maps"])

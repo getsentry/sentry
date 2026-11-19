@@ -713,7 +713,7 @@ class GetAccessTokenTest(TestCase):
                 "refresh_token": "linear-refresh-token-2",
                 "expires_in": 3600,
                 "token_type": "Bearer",
-                "scope": "read",
+                "scope": "read write",
             },
         )
 
@@ -914,7 +914,7 @@ class GetAccessTokenTest(TestCase):
                 "refresh_token": "linear-refresh-token-3",
                 "expires_in": 86400,
                 "token_type": "Bearer",
-                "scope": "read",
+                "scope": "read write",
             },
         )
 
@@ -958,7 +958,7 @@ class GetAccessTokenTest(TestCase):
             return (
                 200,
                 {"Content-Type": "application/json"},
-                '{"access_token":"stale-token","refresh_token":"stale-refresh-token","expires_in":3600,"token_type":"Bearer","scope":"read"}',
+                '{"access_token":"stale-token","refresh_token":"stale-refresh-token","expires_in":3600,"token_type":"Bearer","scope":"read write"}',
             )
 
         responses.add_callback(responses.POST, LINEAR_TOKEN_URL, callback=replace_credentials)

@@ -29,7 +29,6 @@ export type DisabledProducts = Partial<Record<ProductSolution, DisabledProduct>>
 export function getDisabledProducts(organization: Organization): DisabledProducts {
   const disabledProducts: DisabledProducts = {};
   const hasSessionReplay = organization.features.includes('session-replay');
-  const hasPerformance = organization.features.includes('performance-view');
   const hasProfiling = organization.features.includes('profiling-view');
   const hasLogs = organization.features.includes('ourlogs-enabled');
   const hasMetrics = organization.features.includes('tracemetrics-enabled');
@@ -56,12 +55,6 @@ export function getDisabledProducts(organization: Organization): DisabledProduct
     disabledProducts[ProductSolution.SESSION_REPLAY] = {
       reason,
       onClick: createClickHandler('organizations:session-replay', 'Session Replay'),
-    };
-  }
-  if (!hasPerformance) {
-    disabledProducts[ProductSolution.PERFORMANCE_MONITORING] = {
-      reason,
-      onClick: createClickHandler('organizations:performance-view', 'Tracing'),
     };
   }
   if (!hasProfiling) {

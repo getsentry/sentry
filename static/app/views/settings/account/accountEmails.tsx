@@ -2,7 +2,7 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconDelete} from '@sentry/icons/delete';
 import {IconStack} from '@sentry/icons/stack';
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {AlertLink} from '@sentry/scraps/alert';
@@ -22,13 +22,13 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import type {UserEmail} from 'sentry/types/user';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
+
+import {emailsOptions} from './emailsOptions';
 
 const ENDPOINT = getApiUrl('/users/$userId/emails/', {path: {userId: 'me'}});
 
@@ -47,7 +47,7 @@ function AccountEmails() {
         data,
       }),
     onSuccess: response => {
-      queryClient.invalidateQueries({queryKey: makeEmailsEndpointKey()});
+      queryClient.invalidateQueries({queryKey: emailsOptions.queryKey});
       if (response?.detail) {
         toast.success(response.detail);
       }
@@ -125,10 +125,6 @@ function AccountEmails() {
 
 export default AccountEmails;
 
-function makeEmailsEndpointKey(): ApiQueryKey {
-  return [ENDPOINT];
-}
-
 export function EmailAddresses() {
   const api = useApi();
   const [isUpdating, setIsUpdating] = useState(false);
@@ -137,7 +133,7 @@ export function EmailAddresses() {
     isPending,
     isError,
     refetch,
-  } = useApiQuery<UserEmail[]>(makeEmailsEndpointKey(), {staleTime: 0, gcTime: 0});
+  } = useQuery({...emailsOptions, gcTime: 0});
 
   if (isPending || isUpdating) {
     return (
