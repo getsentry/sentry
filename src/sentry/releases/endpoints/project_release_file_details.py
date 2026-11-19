@@ -139,8 +139,6 @@ class ReleaseFileDetailsMixin:
             raise ResourceDoesNotExist
         if isinstance(id, int):
             try:
-                # Fetching a file through the API does not renew its `date_accessed`: only the
-                # lookups that symbolication does count as a use.
                 return ReleaseFile.public_objects.get(release_id=release.id, id=file_id)
             except ReleaseFile.DoesNotExist:
                 raise ResourceDoesNotExist
