@@ -9,6 +9,8 @@ concurrency:
 
 jobs:
   enforce-license-compliance:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     steps:
       - name: 'Enforce License Compliance'
