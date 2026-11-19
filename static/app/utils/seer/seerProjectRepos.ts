@@ -26,9 +26,7 @@ import type {
 function allSeerProjectReposQueryKey(organization: Organization, project: AvatarProject) {
   return apiOptions.partialQueryKey(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/seer/repos/',
-    {
-      path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
-    }
+    {path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug}}
   );
 }
 
@@ -195,12 +193,10 @@ export function getMutateSeerProjectRepoOptions({
     },
     onError: (_error, _data, context) => {
       queryClient.setQueryData(singleQueryKey, context?.previousSingle);
-      if (context) {
-        queryClient.invalidateQueries({
-          queryKey: allSeerProjectReposQueryKey(organization, project),
-          exact: false,
-        });
-      }
+      queryClient.invalidateQueries({
+        queryKey: allSeerProjectReposQueryKey(organization, project),
+        exact: false,
+      });
     },
     onSettled: () => {
       queryClient.invalidateQueries({queryKey: singleQueryKey});
@@ -280,12 +276,10 @@ export function getDeleteSeerProjectRepoOptions({
       if (context?.singleQueryKey) {
         queryClient.setQueryData(context.singleQueryKey, context.previousSingle);
       }
-      if (context) {
-        queryClient.invalidateQueries({
-          queryKey: allSeerProjectReposQueryKey(organization, project),
-          exact: false,
-        });
-      }
+      queryClient.invalidateQueries({
+        queryKey: allSeerProjectReposQueryKey(organization, project),
+        exact: false,
+      });
     },
     onSettled: (_data, _error, _variables, context) => {
       if (context?.singleQueryKey) {
@@ -465,13 +459,11 @@ export function getMutateSeerProjectReposOptionsAddRepo({
 
       return {previousInfinite};
     },
-    onError: (_error, _data, context) => {
-      if (context) {
-        queryClient.invalidateQueries({
-          queryKey: allSeerProjectReposQueryKey(organization, project),
-          exact: false,
-        });
-      }
+    onError: () => {
+      queryClient.invalidateQueries({
+        queryKey: allSeerProjectReposQueryKey(organization, project),
+        exact: false,
+      });
     },
     onSettled: (_data, _error, variables, _context) => {
       for (const repo of variables.repos) {

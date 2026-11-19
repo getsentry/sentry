@@ -56,7 +56,7 @@ function getPrefixSearchCacheKey(
   queryKey: readonly unknown[]
 ): PrefixSearchCacheKey | undefined {
   const parsed = safeParseQueryKey(queryKey);
-  if (!parsed || parsed.infinite || queryKey.length !== 2) {
+  if (!parsed || parsed.infinite) {
     return undefined;
   }
 

@@ -32,9 +32,7 @@ export function useRefreshAutofixProgressQueries(groupId: string) {
       // The inbox sections, bucketed and sorted on `issue.progress:`, which each
       // completed step advances. Not the legacy issue stream — that reads
       // through GroupStore and IssueListCacheStore, which this cannot reach.
-      apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/issues/', {
-        path,
-      }),
+      apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/issues/', {path}),
       // Counts on the inbox's my / my teams / all tabs.
       apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/issues-count/', {
         path,
@@ -48,9 +46,7 @@ export function useRefreshAutofixProgressQueries(groupId: string) {
       // config expands that never poll.
       apiOptions.partialQueryKey(
         '/organizations/$organizationIdOrSlug/seer/autofix-overview/',
-        {
-          path,
-        }
+        {path}
       ),
     ];
 

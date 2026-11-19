@@ -61,9 +61,7 @@ export function useMarkGroupSeen() {
       void queryClient.invalidateQueries({
         queryKey: apiOptions.partialQueryKey(
           '/organizations/$organizationIdOrSlug/issues/',
-          {
-            path: {organizationIdOrSlug: organization.slug},
-          }
+          {path: {organizationIdOrSlug: organization.slug}}
         ),
         refetchType: 'none',
       });

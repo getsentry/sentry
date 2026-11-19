@@ -47,9 +47,7 @@ export const seerProjectSettingsSchema = z.object({
 export function allSeerProjectsSettingsQueryKey(organization: Organization) {
   return apiOptions.partialQueryKey(
     '/organizations/$organizationIdOrSlug/seer/projects/',
-    {
-      path: {organizationIdOrSlug: organization.slug},
-    }
+    {path: {organizationIdOrSlug: organization.slug}}
   );
 }
 
@@ -210,12 +208,10 @@ export function getMutateSeerProjectSettingsOptions({
     },
     onError: (_error, _data, context) => {
       queryClient.setQueryData(queryKey, context?.previousData);
-      if (context) {
-        queryClient.invalidateQueries({
-          queryKey: allSeerProjectsSettingsQueryKey(organization),
-          exact: false,
-        });
-      }
+      queryClient.invalidateQueries({
+        queryKey: allSeerProjectsSettingsQueryKey(organization),
+        exact: false,
+      });
     },
     onSettled: () => {
       queryClient.invalidateQueries({queryKey});

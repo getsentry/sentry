@@ -83,9 +83,7 @@ export function OverviewIssueAssignee({
       void queryClient.invalidateQueries({
         queryKey: apiOptions.partialQueryKey(
           '/organizations/$organizationIdOrSlug/issues/',
-          {
-            path,
-          }
+          {path}
         ),
       });
     },

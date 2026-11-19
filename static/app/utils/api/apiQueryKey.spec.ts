@@ -150,9 +150,7 @@ describe('apiQueryKey', () => {
         matching(
           apiOptions.partialQueryKey(
             '/organizations/$organizationIdOrSlug/issues/$issueId/*',
-            {
-              path: {organizationIdOrSlug: 'acme'},
-            }
+            {path: {organizationIdOrSlug: 'acme'}}
           )
         )
       ).toEqual(['acmeIssue']);

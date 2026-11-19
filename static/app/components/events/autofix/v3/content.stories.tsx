@@ -274,8 +274,7 @@ class SimulatedCreditsQueryClient extends QueryClient {
       return defaulted;
     }
 
-    const {queryKey} = defaulted;
-    const url = safeParseQueryKey(queryKey)?.url ?? '';
+    const url = safeParseQueryKey(defaulted.queryKey)?.url ?? '';
     let json: unknown = [];
     if (url.includes('/seer/credit-check/')) {
       json = {hasEnoughCredits: this.hasEnoughCredits};

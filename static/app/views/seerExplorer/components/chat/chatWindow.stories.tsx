@@ -92,8 +92,7 @@ class FixtureQueryClient extends QueryClient {
 
   override defaultQueryOptions: QueryClient['defaultQueryOptions'] = options => {
     const defaulted = super.defaultQueryOptions(options);
-    const {queryKey} = defaulted;
-    const url = safeParseQueryKey(queryKey)?.url ?? '';
+    const url = safeParseQueryKey(defaulted.queryKey)?.url ?? '';
     // `then` turns a fixture that throws into a failed query.
     const queryFn = () =>
       Promise.resolve().then(() => ({json: this.respond(url), headers: {}}));

@@ -40,9 +40,7 @@ export function useMutateUserOptions() {
       // Pages that fetch the user, like account settings, would otherwise keep
       // showing the old preferences
       queryClient.invalidateQueries({
-        queryKey: apiOptions.partialQueryKey('/users/$userId/', {
-          path: {userId: 'me'},
-        }),
+        queryKey: apiOptions.partialQueryKey('/users/$userId/', {path: {userId: 'me'}}),
       });
     },
     onError: () => {

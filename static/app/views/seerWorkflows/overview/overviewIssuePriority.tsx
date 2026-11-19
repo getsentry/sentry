@@ -43,9 +43,7 @@ export function OverviewIssuePriority({group}: OverviewIssuePriorityProps) {
       void queryClient.invalidateQueries({
         queryKey: apiOptions.partialQueryKey(
           '/organizations/$organizationIdOrSlug/issues/',
-          {
-            path: {organizationIdOrSlug: organization.slug},
-          }
+          {path: {organizationIdOrSlug: organization.slug}}
         ),
       });
     },

@@ -188,8 +188,7 @@ class SimulatedRunQueryClient extends QueryClient {
 
   override defaultQueryOptions: QueryClient['defaultQueryOptions'] = options => {
     const defaulted = super.defaultQueryOptions(options);
-    const {queryKey} = defaulted;
-    const url = safeParseQueryKey(queryKey)?.url ?? '';
+    const url = safeParseQueryKey(defaulted.queryKey)?.url ?? '';
     const queryFn = () =>
       Promise.resolve({
         json: url.includes('/seer/explorer-chat/') ? simulatedRun() : [],

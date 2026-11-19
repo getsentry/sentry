@@ -84,9 +84,7 @@ export function seerCreditCheckApiOptions(
 export function seerCreditChecksQueryKey(organization: Organization) {
   return apiOptions.partialQueryKey(
     '/organizations/$organizationIdOrSlug/seer/credit-check/',
-    {
-      path: {organizationIdOrSlug: organization.slug},
-    }
+    {path: {organizationIdOrSlug: organization.slug}}
   );
 }
 

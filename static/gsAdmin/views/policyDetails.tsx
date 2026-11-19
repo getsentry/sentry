@@ -32,9 +32,7 @@ export function PolicyDetails() {
   });
   const revisionsQueryKey = apiOptions.partialQueryKey(
     '/policies/$policySlug/revisions/',
-    {
-      path: {policySlug},
-    }
+    {path: {policySlug}}
   );
   const invalidatePolicyQueries = () =>
     Promise.all([

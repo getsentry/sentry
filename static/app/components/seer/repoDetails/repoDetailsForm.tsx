@@ -74,9 +74,7 @@ export function RepoDetailsForm({organization, repoWithSettings}: Props) {
       queryClient.invalidateQueries({
         queryKey: apiOptions.partialQueryKey(
           '/organizations/$organizationIdOrSlug/repos/',
-          {
-            path: {organizationIdOrSlug: organization.slug},
-          }
+          {path: {organizationIdOrSlug: organization.slug}}
         ),
       });
       queryClient.invalidateQueries({

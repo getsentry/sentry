@@ -71,9 +71,7 @@ function allInvestigationCommentsQueryKey({
 }) {
   return apiOptions.partialQueryKey(
     '/organizations/$organizationIdOrSlug/notebooks/$notebookId/comments/',
-    {
-      path: {organizationIdOrSlug: organizationSlug, notebookId: investigationId},
-    }
+    {path: {organizationIdOrSlug: organizationSlug, notebookId: investigationId}}
   );
 }
 

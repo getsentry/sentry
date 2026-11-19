@@ -129,9 +129,7 @@ export function useNextAction({
       queryClient.removeQueries({
         queryKey: apiOptions.partialQueryKey(
           '/organizations/$organizationIdOrSlug/issues/$issueId/autofix/',
-          {
-            path: {organizationIdOrSlug: organization.slug, issueId: run.groupId},
-          }
+          {path: {organizationIdOrSlug: organization.slug, issueId: run.groupId}}
         ),
       });
       setIsDispatched(false);

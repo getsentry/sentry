@@ -218,9 +218,7 @@ export function invalidateIssueQueries({
   queryClient.invalidateQueries({
     queryKey: apiOptions.partialQueryKey(
       '/organizations/$organizationIdOrSlug/issues/*',
-      {
-        path: {organizationIdOrSlug: organizationSlug},
-      }
+      {path: {organizationIdOrSlug: organizationSlug}}
     ),
   });
 }
