@@ -3,8 +3,8 @@ from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import db_control_tasks, db_tasks
 
-# Each silo maintains the range partitioned tables of its own models. Models of the
-# other silo aren't available there and are skipped.
+# Each silo's task maintains the range partitioned tables of its own models only, so
+# the two don't overlap in a monolith, which runs both.
 
 
 @instrumented_task(
@@ -14,8 +14,8 @@ from sentry.taskworker.namespaces import db_control_tasks, db_tasks
     silo_mode=SiloMode.CELL,
 )
 def maintain_partitions() -> None:
-    """Create upcoming range partitions and drop expired ones, in a cell silo."""
-    manager.maintain_partitions()
+    """Create upcoming range partitions and drop expired ones for cell silo models."""
+    manager.maintain_partitions(SiloMode.CELL)
 
 
 @instrumented_task(
@@ -25,5 +25,5 @@ def maintain_partitions() -> None:
     silo_mode=SiloMode.CONTROL,
 )
 def maintain_partitions_control() -> None:
-    """Create upcoming range partitions and drop expired ones, in the control silo."""
-    manager.maintain_partitions()
+    """Create upcoming range partitions and drop expired ones for control silo models."""
+    manager.maintain_partitions(SiloMode.CONTROL)

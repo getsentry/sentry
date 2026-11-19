@@ -18,6 +18,7 @@ from sentry.db.partitions import manager, sql
 from sentry.db.partitions.catalog import (
     DetachedPartition,
     PartitionInfo,
+    default_partition_problem,
     list_detached_range_partitions,
     list_partitions,
     verify_partition_state,
@@ -453,7 +454,7 @@ class MaintainPartitionsTest(TransactionTestCase):
     def test_creates_and_expires(self) -> None:
         with fixture_tables():
             with freeze_time(datetime(2024, 4, 9, tzinfo=UTC)):
-                maintain_partitions()
+                maintain_partitions(SiloMode.CELL)
             # Weeks before 03-11 are past the four week retention, 04-08 is current and
             # two more are premade. Missed weeks in between are not backfilled.
             assert partition_names() == [
@@ -476,7 +477,7 @@ class MaintainPartitionsTest(TransactionTestCase):
                 freeze_time(datetime(2024, 4, 9, tzinfo=UTC)),
                 mock.patch("sentry.db.partitions.manager.metrics.incr") as incr,
             ):
-                maintain_partitions()
+                maintain_partitions(SiloMode.CELL)
             errors = [
                 c for c in incr.call_args_list if c.args[0] == "db.partitions.maintenance.error"
             ]
@@ -493,14 +494,14 @@ class MaintainPartitionsTest(TransactionTestCase):
                 ),
                 mock.patch("sentry.db.partitions.manager.metrics.incr") as incr,
             ):
-                maintain_partitions()
+                maintain_partitions(SiloMode.CELL)
             incr.assert_any_call(
                 "db.partitions.maintenance.error", tags={"table": RANGE_TABLE, "step": "ensure"}
             )
 
     def gauges(self) -> dict[str, int]:
         with mock.patch("sentry.db.partitions.manager.metrics.gauge") as gauge:
-            maintain_partitions()
+            maintain_partitions(SiloMode.CELL)
         return {
             c.args[0]: c.args[1]
             for c in gauge.call_args_list
@@ -538,40 +539,81 @@ class MaintainPartitionsTest(TransactionTestCase):
                     "db.partitions.detached_drop_failed": 1,
                 }
 
+    def add_default_partition(self) -> str:
+        # A likely reaction to "no partition of relation found for row" errors.
+        default = f"{RANGE_TABLE}_default"
+        with connection.cursor() as cursor:
+            cursor.execute(f'CREATE TABLE "{default}" PARTITION OF "{RANGE_TABLE}" DEFAULT')
+        return default
+
     @freeze_time(CREATED_AT)
-    def test_default_partition_stops_maintenance_with_a_clear_error(self) -> None:
+    def test_default_partition_only_stops_expiry(self) -> None:
         with fixture_tables():
-            # A likely reaction to "no partition of relation found for row" errors.
-            with connection.cursor() as cursor:
-                cursor.execute(
-                    f'CREATE TABLE "{RANGE_TABLE}_default" PARTITION OF "{RANGE_TABLE}" DEFAULT'
-                )
+            default = self.add_default_partition()
+            # A backdated row, which no partition covers, lands in the default partition.
+            RangePartitionedFixture.objects.create(date_added=datetime(2023, 6, 1, tzinfo=UTC))
             with (
+                freeze_time(datetime(2024, 4, 9, tzinfo=UTC)),
                 mock.patch("sentry.db.partitions.manager.metrics.incr") as incr,
-                mock.patch.object(manager.logger, "exception") as log_exception,
+                mock.patch.object(manager.logger, "exception"),
             ):
                 gauges = self.gauges()
+                with pytest.raises(DefaultPartitionError):
+                    expire_partitions(RangePartitionedFixture)
             errors = [
                 c for c in incr.call_args_list if c.args[0] == "db.partitions.maintenance.error"
             ]
-            assert [c.kwargs["tags"]["step"] for c in errors] == ["ensure", "expire"]
-            assert log_exception.call_count == 2
-            # The metrics are still reported.
+            # New partitions are still created, so new rows don't go to the default
+            # partition, but nothing is dropped.
+            assert [c.kwargs["tags"]["step"] for c in errors] == ["expire"]
+            assert f"{RANGE_TABLE}_p20240422" in partition_names()
+            assert week(4) in partition_names()
             assert gauges["db.partitions.ahead"] == 2
-            with pytest.raises(DefaultPartitionError, match="has a default partition"):
-                ensure_partitions(RangePartitionedFixture)
             with override_settings(SENTRY_PARTITIONED_TABLES=FIXTURE_TABLES):
-                assert verify_partition_state() == [
-                    f"{RANGE_TABLE}_default is a default partition of {RANGE_TABLE}, which stops "
-                    "partition maintenance. Move its rows into regular partitions and drop it."
-                ]
+                assert verify_partition_state() == [default_partition_problem(RANGE_TABLE, default)]
 
-    def test_only_maintains_models_of_the_current_silo(self) -> None:
-        # The fixture range model is a cell silo model.
-        with mock.patch.object(manager, "get_range_table", return_value=None) as get_range:
-            with assume_test_silo_mode(SiloMode.CONTROL):
-                maintain_partitions()
-            assert RangePartitionedFixture not in [c.args[0] for c in get_range.call_args_list]
-            with assume_test_silo_mode(SiloMode.CELL):
-                maintain_partitions()
-            assert RangePartitionedFixture in [c.args[0] for c in get_range.call_args_list]
+    @freeze_time(CREATED_AT)
+    def test_removing_a_default_partition_as_the_error_describes(self) -> None:
+        with fixture_tables():
+            default = self.add_default_partition()
+            # Backdated, so no partition covers it. It can't be put back.
+            RangePartitionedFixture.objects.create(date_added=datetime(2023, 6, 1, tzinfo=UTC))
+            # No partition covers this week yet.
+            ahead = RangePartitionedFixture.objects.create(
+                date_added=datetime(2024, 3, 26, tzinfo=UTC)
+            )
+            problem = default_partition_problem(RANGE_TABLE, default)
+            assert f"`ALTER TABLE {RANGE_TABLE} DETACH PARTITION {default}`" in problem
+            with connection.cursor() as cursor:
+                cursor.execute(f'ALTER TABLE "{RANGE_TABLE}" DETACH PARTITION "{default}"')
+            ensure_partitions(RangePartitionedFixture, now=datetime(2024, 3, 20, tzinfo=UTC))
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f'INSERT INTO "{RANGE_TABLE}" SELECT * FROM "{default}" '
+                    "WHERE date_added >= '2024-03-04'"
+                )
+                cursor.execute(f'DROP TABLE "{default}"')
+            assert list(RangePartitionedFixture.objects.values_list("id", flat=True)) == [ahead.id]
+            assert expire_partitions(
+                RangePartitionedFixture,
+                before=datetime(2024, 3, 12, tzinfo=UTC),
+                now=datetime(2024, 3, 20, tzinfo=UTC),
+            ) == [week(4)]
+
+    def test_each_silo_only_maintains_its_own_models(self) -> None:
+        # In a monolith every model is available, and both silos' tasks run. The
+        # fixture range model is a cell silo model.
+        with (
+            assume_test_silo_mode(SiloMode.MONOLITH),
+            mock.patch.object(manager, "get_range_table", return_value=None) as get_range,
+        ):
+            maintain_partitions(SiloMode.CONTROL)
+            assert get_range.call_args_list == []
+            maintain_partitions(SiloMode.CELL)
+            assert [c.args[0] for c in get_range.call_args_list] == [RangePartitionedFixture]
+        with (
+            assume_test_silo_mode(SiloMode.CONTROL),
+            mock.patch.object(manager, "get_range_table", return_value=None) as get_range,
+        ):
+            maintain_partitions(SiloMode.CELL)
+            assert get_range.call_args_list == []

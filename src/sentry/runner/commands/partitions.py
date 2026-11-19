@@ -68,10 +68,14 @@ def status(table: str | None) -> None:
 @configuration
 def ensure(table: str | None) -> None:
     """Create the current and upcoming partitions of range partitioned tables."""
-    from sentry.db.partitions.manager import ensure_partitions
+    from sentry.db.partitions.manager import PartitionMaintenanceError, ensure_partitions
 
     for model in _selected_models(table):
-        for name in ensure_partitions(model):
+        try:
+            created = ensure_partitions(model)
+        except PartitionMaintenanceError as e:
+            raise click.ClickException(str(e))
+        for name in created:
             click.echo(f"Created {name}")
 
 
@@ -81,11 +85,15 @@ def ensure(table: str | None) -> None:
 @configuration
 def expire(table: str | None, execute: bool) -> None:
     """List, or with --execute drop, partitions older than the declared retention."""
-    from sentry.db.partitions.manager import expire_partitions
+    from sentry.db.partitions.manager import PartitionMaintenanceError, expire_partitions
 
     verb = "Dropped" if execute else "Would drop"
     for model in _selected_models(table):
-        for name in expire_partitions(model, dry_run=not execute):
+        try:
+            expired = expire_partitions(model, dry_run=not execute)
+        except PartitionMaintenanceError as e:
+            raise click.ClickException(str(e))
+        for name in expired:
             click.echo(f"{verb} {name}")
     if not execute:
         click.echo("Dry run. Pass --execute to drop these partitions.")

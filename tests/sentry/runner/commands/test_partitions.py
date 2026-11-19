@@ -1,6 +1,7 @@
 from datetime import UTC, datetime
 
 from click.testing import CliRunner, Result
+from django.db import connection
 from django.test import override_settings
 
 from fixtures.partitions import (
@@ -78,3 +79,17 @@ class PartitionsCommandTest(TransactionTestCase):
                 result = invoke("expire", "--execute")
                 assert result.exit_code == 0, result.output
                 assert result.output == ""
+
+    def test_expire_reports_a_default_partition_without_a_traceback(self) -> None:
+        with fixture_tables():
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f'CREATE TABLE "{RANGE_TABLE}_default" PARTITION OF "{RANGE_TABLE}" DEFAULT'
+                )
+            result = invoke("expire", "--table", RANGE_TABLE)
+        assert result.exit_code == 1
+        assert result.exception is not None
+        assert isinstance(result.exception, SystemExit)
+        assert result.output.startswith(
+            f"Error: {RANGE_TABLE}_default is a default partition of {RANGE_TABLE}."
+        )

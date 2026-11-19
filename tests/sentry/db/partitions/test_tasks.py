@@ -19,7 +19,7 @@ def test_maintain_partitions(
 ) -> None:
     with assume_test_silo_mode(silo_mode):
         task()
-    maintain.assert_called_once_with()
+    maintain.assert_called_once_with(silo_mode)
 
 
 def test_scheduled_in_both_silos() -> None:

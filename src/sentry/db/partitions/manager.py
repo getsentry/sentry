@@ -19,6 +19,7 @@ from django.utils import timezone
 from sentry.db.partitions import sql
 from sentry.db.partitions.catalog import (
     PartitionInfo,
+    default_partition_problem,
     get_connection,
     get_partitioned_table_info,
     list_detached_range_partitions,
@@ -35,7 +36,7 @@ from sentry.db.partitions.spec import (
     RangePartitioning,
     premade_range_partition_bounds,
 )
-from sentry.silo.base import SiloLimit
+from sentry.silo.base import SiloLimit, SiloMode
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
@@ -66,28 +67,27 @@ def get_range_table(
     return RangeTable(connection, table, get_partition_column(model, spec), spec)
 
 
-class DefaultPartitionError(Exception):
+class PartitionMaintenanceError(Exception):
+    """Partition maintenance can't proceed for a table. The message says what to do."""
+
+
+class DefaultPartitionError(PartitionMaintenanceError):
     pass
 
 
-def _range_partitions(target: RangeTable) -> list[PartitionInfo]:
+def _expirable_partitions(target: RangeTable) -> list[PartitionInfo]:
     """
     The partitions of ``target``, refusing tables with a default partition.
 
-    Postgres can't detach a partition concurrently while the table has a default
-    partition, and attaching one has to scan the default partition for rows that
-    belong in it. A default partition is likely added by hand after inserts failed
-    with "no partition of relation found for row", so this explains what to do.
+    Postgres can't detach any partition concurrently while the table has a default
+    partition, so nothing can be expired. A default partition is likely added by hand
+    after inserts failed with "no partition of relation found for row", so the error
+    explains how to remove it.
     """
     partitions = list_partitions(target.connection, target.table)
     for partition in partitions:
         if partition.is_default:
-            raise DefaultPartitionError(
-                f"{target.table} has a default partition, {partition.name}, which partition "
-                f"maintenance doesn't support: partitions can't be detached concurrently "
-                f"while it exists. Move its rows into regular partitions, created with "
-                f"`sentry partitions ensure`, and drop it."
-            )
+            raise DefaultPartitionError(default_partition_problem(target.table, partition.name))
     return partitions
 
 
@@ -131,7 +131,9 @@ def ensure_range_partitions(target: RangeTable, now: datetime | None = None) -> 
     partitions.
     """
     now = now if now is not None else timezone.now()
-    existing = _range_partitions(target)
+    # Attaching still works while a default partition exists, as long as it holds no
+    # rows in the new range. It locks the default partition while it scans it.
+    existing = [p for p in list_partitions(target.connection, target.table) if not p.is_default]
     existing_names = {p.name for p in existing}
     existing_ranges = [p.range_bounds() for p in existing]
 
@@ -234,7 +236,25 @@ def expire_range_partitions(
             "partitions.expire.dropped", extra={"table": target.table, "partition": partition}
         )
 
-    partitions = _range_partitions(target)
+    # Partitions this detached earlier but failed to drop. Done first, so a failure
+    # below doesn't keep them around.
+    for detached in list_detached_range_partitions(target.connection, target.table):
+        # The mark alone never decides a drop, it could be stale.
+        if not detached.expiring or not is_expired(detached.start):
+            continue
+        expired.append(detached.name)
+        if dry_run:
+            continue
+        _execute_ddl(
+            target.connection,
+            sql.DROP_TABLE.format(table=_quote(target.connection, detached.name)),
+        )
+        logger.info(
+            "partitions.expire.dropped_detached",
+            extra={"table": target.table, "partition": detached.name},
+        )
+
+    partitions = _expirable_partitions(target)
 
     # While one partition's detach is pending, Postgres refuses to detach any other
     # partition of the table concurrently, so pending detaches are finished first,
@@ -261,22 +281,6 @@ def expire_range_partitions(
         logger.warning(
             "partitions.expire.kept_unexpired_detach",
             extra={"table": target.table, "partition": partition.name},
-        )
-
-    for detached in list_detached_range_partitions(target.connection, target.table):
-        # The mark alone never decides a drop, it could be stale.
-        if not detached.expiring or not is_expired(detached.start):
-            continue
-        expired.append(detached.name)
-        if dry_run:
-            continue
-        _execute_ddl(
-            target.connection,
-            sql.DROP_TABLE.format(table=_quote(target.connection, detached.name)),
-        )
-        logger.info(
-            "partitions.expire.dropped_detached",
-            extra={"table": target.table, "partition": detached.name},
         )
 
     for partition in partitions:
@@ -369,18 +373,26 @@ def _report_failure(table: str, step: str) -> None:
     metrics.incr("db.partitions.maintenance.error", tags={"table": table, "step": step})
 
 
-def maintain_partitions() -> None:
-    """
-    Create upcoming partitions and drop expired ones for every range partitioned table.
+def belongs_to_silo(model: type[models.Model], silo_mode: SiloMode) -> bool:
+    """Whether ``model`` is maintained by ``silo_mode``'s task. Undecorated models are cell's."""
+    silo_limit = getattr(model._meta, "silo_limit", None)
+    if isinstance(silo_limit, SiloLimit):
+        return silo_mode in silo_limit.modes and silo_limit.is_available()
+    return silo_mode == SiloMode.CELL
 
-    Each step runs on its own, so one that keeps failing, e.g. creating a partition
-    whose name is taken, doesn't stop the others.
+
+def maintain_partitions(silo_mode: SiloMode) -> None:
+    """
+    Create upcoming partitions and drop expired ones for every range partitioned table
+    of ``silo_mode``.
+
+    Each silo's task only handles its own models. A monolith runs both tasks, which
+    would otherwise race on the same tables. Each step runs on its own, so one that
+    keeps failing, e.g. creating a partition whose name is taken, doesn't stop the
+    others.
     """
     for model, spec in iter_partitioned_models():
-        if not isinstance(spec, RangePartitioning):
-            continue
-        silo_limit = getattr(model._meta, "silo_limit", None)
-        if isinstance(silo_limit, SiloLimit) and not silo_limit.is_available():
+        if not isinstance(spec, RangePartitioning) or not belongs_to_silo(model, silo_mode):
             continue
         table = model._meta.db_table
         try:

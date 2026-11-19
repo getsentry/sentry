@@ -74,6 +74,20 @@ def _parse_bound_value(value: str) -> datetime | None:
     return parsed
 
 
+def default_partition_problem(table: str, partition: str) -> str:
+    """What a default partition breaks, and how to remove it."""
+    return (
+        f"{partition} is a default partition of {table}. Postgres can't detach any "
+        f"partition concurrently while it exists, so expired partitions aren't dropped. "
+        f"New partitions are still created, so it only receives rows outside them. To "
+        f"remove it: detach it with `ALTER TABLE {table} DETACH PARTITION {partition}`, "
+        f"which briefly locks the whole table; run `sentry partitions ensure --table "
+        f"{table}`; copy back the rows that a partition now covers with `INSERT INTO "
+        f"{table} SELECT * FROM {partition} WHERE ...`; then drop {partition}. Rows that "
+        f"no partition covers can't be put back: keep the table if they're needed."
+    )
+
+
 def get_connection(model: type[models.Model]) -> BaseDatabaseWrapper:
     return connections[router.db_for_write(model)]
 
@@ -188,11 +202,7 @@ def verify_partition_state(tables: Collection[str] | None = None) -> list[str]:
         else:
             for partition in list_partitions(connection, table):
                 if partition.is_default:
-                    problems.append(
-                        f"{partition.name} is a default partition of {table}, which stops "
-                        f"partition maintenance. Move its rows into regular partitions and "
-                        f"drop it."
-                    )
+                    problems.append(default_partition_problem(table, partition.name))
             for detached in list_detached_range_partitions(connection, table):
                 if detached.expiring:
                     problems.append(
