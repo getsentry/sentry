@@ -982,6 +982,23 @@ def test_writes_without_secondary() -> None:
         assert secondary_client.get(key) is None
 
 
+@override_options({"crons.system_incidents.secondary_redis_writes": False})
+def test_secondary_writes_killswitch(
+    secondary_client: RedisCluster[str] | StrictRedis[str],
+) -> None:
+    now = timezone.now().replace(second=0, microsecond=0)
+    update_check_in_volume([now])
+    record_last_incident_ts(now)
+
+    keys = [
+        MONITOR_VOLUME_HISTORY.format(ts=_make_reference_ts(now)),
+        MONITOR_LAST_SYSTEM_INCIDENT_TS,
+    ]
+    for key in keys:
+        assert redis_client.get(key) is not None
+        assert secondary_client.get(key) is None
+
+
 @mock.patch("sentry.monitors.system_incidents.metrics")
 def test_secondary_write_error(
     mock_metrics: MagicMock,

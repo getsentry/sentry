@@ -75,12 +75,15 @@ def _write_monitors_redis(
 ) -> None:
     """
     Run one write on the monitors Redis cluster, then on the secondary cluster
-    when SENTRY_MONITORS_SECONDARY_REDIS_CLUSTER is set.
+    when SENTRY_MONITORS_SECONDARY_REDIS_CLUSTER is set and the
+    crons.system_incidents.secondary_redis_writes killswitch is on.
     """
     write(redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER))
 
     secondary_cluster = settings.SENTRY_MONITORS_SECONDARY_REDIS_CLUSTER
     if not secondary_cluster:
+        return
+    if not options.get("crons.system_incidents.secondary_redis_writes"):
         return
     # The secondary only mirrors the primary while US crons state moves
     # between clusters (INFRENG-1051). Its failure must not fail the primary
