@@ -44,6 +44,7 @@ DEFAULT_OPTIONS = {
     "spans.buffer.flusher.backpressure-seconds": 10,
     "spans.buffer.flusher.max-unhealthy-seconds": 60,
     "spans.buffer.flusher.use-stuck-detector": False,
+    "spans.buffer.flusher.wait-for-drift-seconds": 0,
     "spans.buffer.flusher.flush-lock-ttl": 0,
     "spans.buffer.flusher-cumulative-logger-enabled": False,
     "spans.buffer.flusher.log-flushed-segments": False,
