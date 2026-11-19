@@ -348,6 +348,8 @@ jobs:
     runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
       # The generator is standard library only, so no sentry env is needed.
       - name: Check the Seer nav snapshot
