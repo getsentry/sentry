@@ -25,6 +25,6 @@ export function setExploreAttributeBounds(
  * `0.0000001`. The locale is pinned since the grammar only accepts `.` as the
  * decimal separator.
  */
-function formatSearchNumber(value: number): string {
+export function formatSearchNumber(value: number): string {
   return value.toLocaleString('en-US', {useGrouping: false, maximumFractionDigits: 20});
 }

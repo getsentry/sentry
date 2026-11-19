@@ -648,7 +648,6 @@ describe('ExploreCharts', () => {
         body: {
           data: [
             {
-              'min(span.duration)': 1,
               'p95(span.duration)': 100,
               'p99(span.duration)': 200,
               'max(span.duration)': 100_000,

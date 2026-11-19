@@ -50,13 +50,15 @@ interface UseSpansHeatMapOutlierBoundOptions {
  * Picks default heat map Y-axis bounds so a handful of extreme spans don't
  * squash the rest of the distribution into the bottom few rows.
  *
- * Fetches p0, p95, p99 and max over the most recent hour of the selected window
+ * Fetches p95, p99 and max over the most recent hour of the selected window
  * at the highest accuracy tier, then extrapolates each cutoff from a log-normal fit
  * through p95 and p99. Fitting only the tail matters: an unfiltered query mixes
  * very different span types, so a fit through p50 badly overshoots.
  *
  * A cutoff is skipped when it would fall below one span in the sample, or when
  * the slowest span isn't far enough past it for clipping to buy much resolution.
+ * Only the top is clipped: durations are never negative, and the sample hour's
+ * fastest span can be slower than spans earlier in the window.
  */
 export function useSpansHeatMapOutlierBound({
   enabled,
@@ -72,7 +74,6 @@ export function useSpansHeatMapOutlierBound({
   const isActive = enabled && defined(yAxis) && isReady;
 
   const fields = {
-    p0: `min(${yAxis})`,
     p95: `p95(${yAxis})`,
     p99: `p99(${yAxis})`,
     max: `max(${yAxis})`,
@@ -110,7 +111,6 @@ export function useSpansHeatMapOutlierBound({
     isPending,
     bounds: row
       ? estimateBounds({
-          p0: row[fields.p0] ?? null,
           p95: row[fields.p95] ?? null,
           p99: row[fields.p99] ?? null,
           max: row[fields.max] ?? null,
@@ -138,15 +138,14 @@ function sampleWindow(datetime: PageFilters['datetime']): PageFilters['datetime'
  * so a cutoff with quantile z lands at p99 · (p99 / p95)^((z − z99) / (z99 − z95)).
  */
 function estimateBounds({
-  p0,
   p95,
   p99,
   max,
   count,
-}: Record<'p0' | 'p95' | 'p99' | 'max' | 'count', number | null>): Partial<
+}: Record<'p95' | 'p99' | 'max' | 'count', number | null>): Partial<
   Record<OutlierCutoff, HeatMapYBounds>
 > {
-  if (!defined(p0) || !p95 || !p99 || !max || !count || p99 <= p95) {
+  if (!p95 || !p99 || !max || !count || p99 <= p95) {
     return {};
   }
 
@@ -157,8 +156,8 @@ function estimateBounds({
       continue;
     }
     const yMax = p99 * Math.pow(p99 / p95, (z - Z_P99) / (Z_P99 - Z_P95));
-    if (max - p0 >= MIN_CLIP_GAIN * (yMax - p0)) {
-      bounds[cutoff] = {yMin: p0, yMax};
+    if (max >= MIN_CLIP_GAIN * yMax) {
+      bounds[cutoff] = {yMin: 0, yMax};
     }
   }
   return bounds;

@@ -13,6 +13,7 @@ import {defined} from 'sentry/utils/defined';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -44,7 +45,10 @@ import {
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
 import {HEATMAP_AGGREGATE} from 'sentry/views/explore/utils/heatMapAggregate';
-import {setExploreAttributeBounds} from 'sentry/views/explore/utils/setExploreAttributeBounds';
+import {
+  formatSearchNumber,
+  setExploreAttributeBounds,
+} from 'sentry/views/explore/utils/setExploreAttributeBounds';
 import {SpanFields} from 'sentry/views/insights/types';
 
 export const SPANS_HEAT_MAP_Y_AXES = [
@@ -122,6 +126,17 @@ export function SpansHeatMap({
   const containerRef = useRef<HTMLDivElement>(null);
   const {width, height} = useDimensions({elementRef: containerRef});
 
+  // The endpoint clamps values outside the bounds into the edge rows, so filter
+  // out spans above the clip instead or they pile up into a solid band. The clip
+  // is added to the attribute's filters rather than replacing them, so a range
+  // the user zoomed into still applies.
+  let heatMapQuery = query;
+  if (yBounds) {
+    const search = new MutableSearch(query);
+    search.addFilterValue(yAxis, `<${formatSearchNumber(yBounds.yMax)}`, false);
+    heatMapQuery = search.formatString();
+  }
+
   const bucketDimensions = calculateHeatMapBucketDimensions(
     selection,
     {width, height},
@@ -135,11 +150,7 @@ export function SpansHeatMap({
       selection,
       timeWindow: dateTimeAsHeatMapWindow(selection.datetime),
       yAxis,
-      // The endpoint clamps values outside the bounds into the edge rows, so
-      // filter them out instead or they pile up into a solid band.
-      query: yBounds
-        ? setExploreAttributeBounds(query, yAxis, yBounds.yMin, yBounds.yMax)
-        : query,
+      query: heatMapQuery,
       referrer: 'api.explore.spans-heatmap',
       interval: bucketDimensions?.interval,
       sampling: samplingMode,
