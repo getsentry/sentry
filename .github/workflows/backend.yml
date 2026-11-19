@@ -63,7 +63,7 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Setup sentry python env
-        uses: ./.github/actions/setup-sentry
+        uses: $/.github/actions/setup-sentry
         id: setup
         with:
           skip-devservices: 'true'
@@ -81,7 +81,7 @@ jobs:
           sentry init
           python3 .github/actions/setup-sentry/devservices-bg.py start
 
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: $/.github/actions/setup-node-pnpm
 
       - name: Build and validate API docs
         run: make validate-api-docs
@@ -118,11 +118,11 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup sentry python env
-        uses: ./.github/actions/setup-sentry
+        uses: $/.github/actions/setup-sentry
         with:
           skip-devservices: 'true'
 
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: $/.github/actions/setup-node-pnpm
 
       - name: Configure sentry
         run: sentry init
@@ -337,7 +337,7 @@ jobs:
         run: python3 .github/workflows/scripts/bootstrap-snuba.py --start
 
       - name: Setup sentry env
-        uses: ./.github/actions/setup-sentry
+        uses: $/.github/actions/setup-sentry
         id: setup
         with:
           mode: backend-ci
@@ -536,7 +536,7 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Setup sentry env
-        uses: ./.github/actions/setup-sentry
+        uses: $/.github/actions/setup-sentry
         id: setup
         with:
           mode: migrations
@@ -598,7 +598,7 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Setup sentry env
-        uses: ./.github/actions/setup-sentry
+        uses: $/.github/actions/setup-sentry
         id: setup
         with:
           mode: migrations
@@ -674,7 +674,7 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Setup sentry env
-        uses: ./.github/actions/setup-sentry
+        uses: $/.github/actions/setup-sentry
         with:
           mode: backend-ci
 
@@ -700,7 +700,7 @@ jobs:
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Setup sentry env
-        uses: ./.github/actions/setup-sentry
+        uses: $/.github/actions/setup-sentry
         id: setup
         with:
           mode: migrations
@@ -734,7 +734,7 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Setup sentry env
-        uses: ./.github/actions/setup-sentry
+        uses: $/.github/actions/setup-sentry
         id: setup
         with:
           mode: migrations

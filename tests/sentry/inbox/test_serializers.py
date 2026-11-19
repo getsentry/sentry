@@ -1,27 +1,33 @@
 from typing import assert_type
 from unittest.mock import patch
 
+import orjson
 import pytest
+from openapi_schema_validator import OAS30Validator
 
 from sentry.api.serializers import serialize
-from sentry.inbox.event_data import InboxEventData
+from sentry.apidocs.spectacular_ports import resolve_type_hint
+from sentry.inbox.event_data import (
+    InboxEventData,
+    IssueAssignedDataResponse,
+    IssueMentionedDataResponse,
+    IssuePRReadyForReviewDataResponse,
+    NotebookCompletedDataResponse,
+    NotebookMentionedDataResponse,
+)
 from sentry.inbox.issue import (
     IssueAssignedData,
-    IssueAssignedDataResponse,
     IssueMentionedData,
-    IssueMentionedDataResponse,
     IssuePRReadyForReviewData,
-    IssuePRReadyForReviewDataResponse,
 )
 from sentry.inbox.notebook import (
     NOTEBOOK,
     NotebookCompletedData,
-    NotebookCompletedDataResponse,
     NotebookMentionedData,
-    NotebookMentionedDataResponse,
     NotebookParticipantAddedData,
 )
 from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
+from sentry.inbox.response_types import InboxItemEventResponse
 from sentry.inbox.serializers import InboxItemEventSerializer, InboxItemSerializer
 from sentry.inbox.types import SYSTEM_ACTOR
 from sentry.models.activity import ActivityIntegration
@@ -175,7 +181,7 @@ class InboxItemSerializerTest(TestCase):
         assert results[0]["unreadEventCount"] == 1
         assert results[0]["eventTypes"] == ["issue.user_assigned", "issue.user_mentioned"]
         assert results[0]["latestEvent"]["id"] == str(latest.id)
-        assert results[0]["latestEvent"]["data"] == {"commentId": "123"}
+        assert dict(results[0]["latestEvent"]["data"]) == {"commentId": "123"}
         assert results[0]["url"] == self.organization.absolute_url(
             f"/organizations/{self.organization.slug}/inbox/issue/{first.id}/",
             fragment="activity-123",
@@ -285,7 +291,7 @@ class TestNotebookEvents:
         assert item.subject_id == str(notebook.id)
         assert result["type"] == event_type
         assert result["summary"] == event_type_definition.summary
-        assert result["data"] == expected_data
+        assert dict(result["data"]) == expected_data
         expected_url = default_organization.absolute_url(
             f"/organizations/{default_organization.slug}/inbox/notebook/{notebook.id}/"
         )
@@ -313,7 +319,7 @@ class InboxItemEventSerializerTest(TestCase):
             result = serialize(event, self.user, InboxItemEventSerializer())
 
             assert result["summary"] == "Mentioned you in a comment"
-            assert result["data"] == {"commentId": "123"}
+            assert dict(result["data"]) == {"commentId": "123"}
 
     def test_bulk_parent_loading(self) -> None:
         read_at = before_now(minutes=1)
@@ -369,7 +375,7 @@ class InboxItemEventSerializerTest(TestCase):
         assert results[0]["actor"]["id"] == str(actor.id)
         assert results[0]["isUnread"] is False
         assert results[1]["isUnread"] is True
-        assert results[1]["data"] == {"prUrl": "https://example.com/pr/1", "seerRunId": "12"}
+        assert dict(results[1]["data"]) == {"prUrl": "https://example.com/pr/1", "seerRunId": "12"}
         assert results[2]["actor"] == {
             "type": "system",
             "id": None,
@@ -426,9 +432,19 @@ class InboxItemEventSerializerTest(TestCase):
             {"seerRunId": "456", "prUrl": "https://example.com/pr/1"},
         ),
         (
+            "notebook.completed",
+            {"seer_run_id": 456, "generation": 2},
+            {"seerRunId": "456", "generation": 2},
+        ),
+        (
             "notebook.user_mentioned",
             {"comment_id": 123},
             {"commentId": "123", "blockId": None},
+        ),
+        (
+            "notebook.team_mentioned",
+            {"comment_id": 123, "block_id": 456},
+            {"commentId": "123", "blockId": "456"},
         ),
         (
             "notebook.participant_added",
@@ -442,7 +458,9 @@ class InboxItemEventSerializerTest(TestCase):
         "unknown-fields",
         "string-id",
         "pull-request",
+        "completed-investigation",
         "default-block-id",
+        "block-comment",
         "empty-payload",
     ],
 )
@@ -462,10 +480,12 @@ def test_stored_payload_serialization(
         data=data,
     )
 
-    result = serialize(event, default_user, InboxItemEventSerializer())
+    serialized = serialize(event, default_user, InboxItemEventSerializer())
+    result = orjson.loads(orjson.dumps(serialized))
 
     assert result["data"] == expected_data
     assert event.data == original_data
+    OAS30Validator(resolve_type_hint(InboxItemEventResponse)).validate(result)
 
 
 def test_payload_response_types() -> None:

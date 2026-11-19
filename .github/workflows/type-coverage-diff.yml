@@ -52,7 +52,7 @@ jobs:
           # (the base branch tip) and run type-coverage there.
           fetch-depth: 0
 
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: $/.github/actions/setup-node-pnpm
 
       - name: Get base branch commit
         id: merge_base
