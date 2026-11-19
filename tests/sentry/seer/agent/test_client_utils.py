@@ -112,6 +112,19 @@ class CollectUserOrgContextTest(TestCase):
         all_project_ids = {p["id"] for p in context["all_org_projects"]}
         assert all_project_ids == {self.project1.id, self.project2.id, self.other_project.id}
 
+    @mock.patch("sentry.seer.agent.client_utils.user_option_service.get_many", return_value=[])
+    def test_skip_project_and_team_queries(self, mock_options: mock.MagicMock) -> None:
+        user = self.user
+        organization = self.organization
+        with self.assertNumQueries(0):
+            context = collect_user_org_context(user, organization, include_projects_and_teams=False)
+
+        mock_options.assert_called_once_with(filter={"user_ids": [user.id], "key": "timezone"})
+        assert context["user_id"] == user.id
+        assert "all_org_projects" not in context
+        assert "user_projects" not in context
+        assert "user_teams" not in context
+
     def test_collect_context_with_multiple_teams(self) -> None:
         """Test context collection for a user in multiple teams"""
         team2 = self.create_team(organization=self.organization, slug="team-2")

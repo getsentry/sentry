@@ -22,7 +22,7 @@ from rest_framework.request import Request
 from urllib3 import BaseHTTPResponse, HTTPConnectionPool
 
 from sentry import features
-from sentry.auth.principal import RequestPrincipal, has_user
+from sentry.auth.principal import RequestPrincipal, acting_user
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.models.outbox import (
     CellOutbox,
@@ -42,8 +42,6 @@ from sentry.seer.models import SeerApiError, SeerUnavailableError
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.seer.seer_setup import has_seer_access_with_detail
 from sentry.seer.signed_seer_api import SeerViewerContext, make_signed_seer_api_request
-from sentry.users.models.user import User as SentryUser
-from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user_option import user_option_service
 from sentry.users.services.user_option.service import get_option_from_list
 from sentry.utils import metrics
@@ -424,96 +422,77 @@ def has_seer_agent_access_with_detail(
     return True, None
 
 
-def build_sender_context(
-    user: SentryUser | RpcUser, org_slug: str, request: HttpRequest | Request | None
-) -> UserOrgContext:
-    user_options = user_option_service.get_many(filter={"user_ids": [user.id], "key": "timezone"})
-    context = UserOrgContext(
-        org_slug=org_slug,
-        user_id=user.id,
-        user_email=user.email,
-        user_timezone=get_option_from_list(user_options, key="timezone"),
-        user_ip=request.META.get("REMOTE_ADDR") if request is not None else None,
-    )
-    if user.name.strip():
-        context["user_name"] = user.name
-    return context
-
-
 def collect_user_org_context(
     user: RequestPrincipal | None,
     organization: Organization,
     request: HttpRequest | Request | None = None,
     *,
+    include_projects_and_teams: bool = True,
     priority_project_repo_ids: Collection[int] = (),
 ) -> UserOrgContext:
-    """Collect user and organization context for a new agent run."""
-    all_projects = Project.objects.filter(
-        organization=organization, status=ObjectStatus.ACTIVE
-    ).values("id", "slug")
+    """Collect sender context and optionally the organization's projects and teams."""
+    context = UserOrgContext(org_slug=organization.slug)
+    sender = acting_user(user) if user is not None else None
 
-    prefs_by_pid = bulk_read_preferences_from_sentry_db(
-        organization.id,
-        [p["id"] for p in all_projects],
-        limit_repos=True,
-        priority_project_repo_ids=priority_project_repo_ids,
-    )
-    repos_by_pid = {
-        str(pid): [repo.dict() for repo in pref.repositories] for pid, pref in prefs_by_pid.items()
-    }
-
-    all_org_projects: list[UserOrgContextProject] = [
-        {"id": p["id"], "slug": p["slug"], "repos": repos_by_pid.get(str(p["id"])) or []}
-        for p in all_projects
-    ]
-
-    if user is None or not has_user(user):
-        return {
-            "org_slug": organization.slug,
-            "all_org_projects": all_org_projects,
-        }
-
-    try:
-        member = OrganizationMember.objects.get(organization=organization, user_id=user.id)
-    except OrganizationMember.DoesNotExist:
-        # User is not a member of this organization (e.g., superuser accessing foreign org)
-        logger.warning(
-            "User attempted to access Seer Agent for organization they are not a member of",
-            extra={
-                "user_id": user.id,
-                "organization_id": organization.id,
-                "organization_slug": organization.slug,
-            },
+    if include_projects_and_teams:
+        all_projects = Project.objects.filter(
+            organization=organization, status=ObjectStatus.ACTIVE
+        ).values("id", "slug")
+        prefs_by_pid = bulk_read_preferences_from_sentry_db(
+            organization.id,
+            [p["id"] for p in all_projects],
+            limit_repos=True,
+            priority_project_repo_ids=priority_project_repo_ids,
         )
-        return {
-            "org_slug": organization.slug,
-            "all_org_projects": all_org_projects,
+        repos_by_pid = {
+            str(pid): [repo.dict() for repo in pref.repositories]
+            for pid, pref in prefs_by_pid.items()
         }
-    user_teams: list[UserOrgContextTeam] = [
-        {"id": t.id, "slug": t.slug} for t in member.get_teams()
-    ]
-    my_projects = (
-        Project.objects.filter(
-            organization=organization,
-            teams__organizationmember__user_id=user.id,
-            status=ObjectStatus.ACTIVE,
-        )
-        .distinct()
-        .values("id", "slug")
-    )
-    user_projects: list[UserOrgContextProject] = [
-        {"id": p["id"], "slug": p["slug"], "repos": repos_by_pid.get(str(p["id"])) or []}
-        for p in my_projects
-    ]
+        context["all_org_projects"] = [
+            {"id": p["id"], "slug": p["slug"], "repos": repos_by_pid.get(str(p["id"])) or []}
+            for p in all_projects
+        ]
+        if sender is None:
+            return context
 
-    context = build_sender_context(user, organization.slug, request)
-    context.update(
-        {
-            "user_teams": user_teams,
-            "user_projects": user_projects,
-            "all_org_projects": all_org_projects,
-        }
-    )
+        try:
+            member = OrganizationMember.objects.get(organization=organization, user_id=sender.id)
+        except OrganizationMember.DoesNotExist:
+            # A superuser accessing another organization may not be a member.
+            logger.warning(
+                "User attempted to access Seer Agent for organization they are not a member of",
+                extra={
+                    "user_id": sender.id,
+                    "organization_id": organization.id,
+                    "organization_slug": organization.slug,
+                },
+            )
+            return context
+        context["user_teams"] = [{"id": t.id, "slug": t.slug} for t in member.get_teams()]
+        my_projects = (
+            Project.objects.filter(
+                organization=organization,
+                teams__organizationmember__user_id=sender.id,
+                status=ObjectStatus.ACTIVE,
+            )
+            .distinct()
+            .values("id", "slug")
+        )
+        context["user_projects"] = [
+            {"id": p["id"], "slug": p["slug"], "repos": repos_by_pid.get(str(p["id"])) or []}
+            for p in my_projects
+        ]
+
+    if sender is not None:
+        user_options = user_option_service.get_many(
+            filter={"user_ids": [sender.id], "key": "timezone"}
+        )
+        context["user_id"] = sender.id
+        context["user_email"] = sender.email
+        context["user_timezone"] = get_option_from_list(user_options, key="timezone")
+        context["user_ip"] = request.META.get("REMOTE_ADDR") if request is not None else None
+        if sender.name.strip():
+            context["user_name"] = sender.name
     return context
 
 
