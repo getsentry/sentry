@@ -52,6 +52,7 @@ import {
   countMenuItems,
   filterMenuItems,
   getDisabledKeys,
+  getSelectedKeys,
   isMenuSection,
   removeHiddenItemsAndSetHref,
 } from './utils';
@@ -604,11 +605,15 @@ export function DropdownMenuContent({
     () => getDisabledKeys(visibleItems),
     [visibleItems]
   );
+  // React Aria marks items as menuitemradio and derives aria-checked from the
+  // selected keys, so `isSelected` must reach it as well as the checkmark.
+  const selectedKeys = useMemo(() => getSelectedKeys(visibleItems), [visibleItems]);
   return (
     <DropdownMenuList
       {...props}
       size={size}
       disabledKeys={disabledKeys ?? defaultDisabledKeys}
+      selectedKeys={selectedKeys}
       items={visibleItems}
       isVirtualized={isVirtualized}
       isDismissable={isDismissable ?? inheritedIsDismissable}

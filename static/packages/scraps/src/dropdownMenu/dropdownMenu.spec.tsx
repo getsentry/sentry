@@ -1714,6 +1714,62 @@ describe('DropdownMenu', () => {
       }
     );
   });
+
+  it('exposes selected items to assistive technology', async () => {
+    render(
+      <DropdownMenu
+        triggerLabel="Theme"
+        items={[
+          {key: 'light', label: 'Light', isSelected: true},
+          {key: 'dark', label: 'Dark', isSelected: false},
+          {
+            key: 'section',
+            label: 'More',
+            children: [{key: 'system', label: 'System', isSelected: false}],
+          },
+        ]}
+      />,
+      {wrapper: ThemeWrapper}
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Theme'}));
+
+    expect(screen.getByRole('menuitemradio', {name: 'Light'})).toBeChecked();
+    expect(screen.getByRole('menuitemradio', {name: 'Dark'})).not.toBeChecked();
+    expect(screen.getByRole('menuitemradio', {name: 'System'})).not.toBeChecked();
+  });
+
+  it('exposes selected items inside sections and submenus', async () => {
+    render(
+      <DropdownMenu
+        triggerLabel="Projects"
+        items={[
+          {
+            key: 'all',
+            label: 'All Projects',
+            submenu: true,
+            children: [
+              {
+                key: 'mine',
+                label: 'My Projects',
+                children: [
+                  {key: 'javascript', label: 'javascript', isSelected: true},
+                  {key: 'python', label: 'python', isSelected: false},
+                ],
+              },
+            ],
+          },
+        ]}
+      />,
+      {wrapper: ThemeWrapper}
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
+    await userEvent.hover(screen.getByRole('menuitem', {name: 'All Projects'}));
+
+    expect(await screen.findByRole('menuitemradio', {name: 'javascript'})).toBeChecked();
+    expect(screen.getByRole('menuitemradio', {name: 'python'})).not.toBeChecked();
+  });
 });
 
 function ThemeWrapper({children}: {children: React.ReactNode}) {

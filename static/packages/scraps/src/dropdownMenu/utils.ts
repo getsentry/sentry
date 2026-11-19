@@ -99,3 +99,16 @@ export function getDisabledKeys(source: MenuItemProps[]): Array<MenuItemProps['k
     return acc;
   }, []);
 }
+
+/**
+ * Keys of the items marked `isSelected`, including those inside sections.
+ * Submenus are separate menus and report their own selection.
+ */
+export function getSelectedKeys(source: MenuItemProps[]): Array<MenuItemProps['key']> {
+  return source.flatMap(item => {
+    if (isMenuSection(item)) {
+      return getSelectedKeys(item.children ?? []);
+    }
+    return item.isSelected ? [item.key] : [];
+  });
+}
