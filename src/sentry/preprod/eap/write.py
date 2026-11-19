@@ -215,7 +215,7 @@ def produce_preprod_build_distribution_to_eap(
         # Android-specific fields
         attributes["has_proguard_mapping"] = artifact.extras.get("has_proguard_mapping")
 
-    attributes["has_installable_file"] = artifact.installable_app_file_id is not None
+    attributes["has_installable_file"] = artifact.has_installable_file
 
     # Sum download counts across all installable links for this artifact
     total_downloads = (

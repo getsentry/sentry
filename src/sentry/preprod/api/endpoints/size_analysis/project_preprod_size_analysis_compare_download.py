@@ -92,7 +92,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpoint(ProjectEndpoint)
         if head_artifact.date_added < cutoff or base_artifact.date_added < cutoff:
             return Response({"detail": "This build's size data has expired."}, status=404)
 
-        if comparison_obj.file_id is None:
+        if comparison_obj.file_id is None and comparison_obj.storage_path is None:
             logger.info(
                 "preprod.size_analysis.compare.api.download.no_file_id",
                 extra={"comparison_id": comparison_obj.id},
@@ -100,7 +100,7 @@ class ProjectPreprodArtifactSizeAnalysisCompareDownloadEndpoint(ProjectEndpoint)
             return Response({"detail": "Comparison not found."}, status=404)
 
         try:
-            file_obj = File.objects.get(id=comparison_obj.file_id)
+            file_obj = comparison_obj.get_result_file()
         except File.DoesNotExist:
             logger.info(
                 "preprod.size_analysis.compare.api.download.no_file",

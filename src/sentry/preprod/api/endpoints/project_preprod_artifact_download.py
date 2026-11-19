@@ -2,7 +2,12 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 
-from django.http.response import HttpResponse, HttpResponseBase, StreamingHttpResponse
+from django.http.response import (
+    HttpResponse,
+    HttpResponseBase,
+    HttpResponseRedirect,
+    StreamingHttpResponse,
+)
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -15,6 +20,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import StaffPermission
 from sentry.models.files.file import File
 from sentry.models.project import Project
+from sentry.objectstore import UsecaseId, get_download_redirect_url, get_session
 from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
 from sentry.preprod.authentication import LaunchpadRpcSignatureAuthentication
 from sentry.preprod.models import PreprodArtifact
@@ -72,9 +78,16 @@ class ProjectPreprodArtifactDownloadEndpoint(PreprodArtifactEndpoint):
         head_artifact_id: int,
         head_artifact: PreprodArtifact,
     ) -> HttpResponseBase:
-        file_obj = self._get_file_object(head_artifact)
+        if head_artifact.storage_path:
+            metadata = get_session(UsecaseId.PREPROD_ARTIFACTS, project).head(
+                head_artifact.storage_path
+            )
+            if metadata is None:
+                raise ResourceDoesNotExist
+            file_size = metadata.size
+        else:
+            file_size = self._get_file_object(head_artifact).size
         filename = self._get_filename(head_artifact)
-        file_size = file_obj.size
 
         if file_size is None or file_size < 0:
             return Response({"detail": "File size unavailable"}, status=500)
@@ -108,6 +121,14 @@ class ProjectPreprodArtifactDownloadEndpoint(PreprodArtifactEndpoint):
         :pparam string head_artifact_id: the ID of the preprod artifact to download.
         :auth: required
         """
+
+        if head_artifact.storage_path:
+            session = get_session(UsecaseId.PREPROD_ARTIFACTS, project)
+            return HttpResponseRedirect(
+                get_download_redirect_url(
+                    request, session, project.organization_id, head_artifact.storage_path
+                )
+            )
 
         file_obj = self._get_file_object(head_artifact)
         filename = self._get_filename(head_artifact)

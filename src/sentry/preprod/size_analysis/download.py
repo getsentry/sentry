@@ -113,22 +113,25 @@ def get_size_analysis_response(
             status=200,
         )
 
-    analysis_file_ids = [m.analysis_file_id for m in all_size_metrics if m.analysis_file_id]
+    files = {
+        m.analysis_storage_path or m.analysis_file_id: m
+        for m in all_size_metrics
+        if m.analysis_storage_path or m.analysis_file_id
+    }
 
-    if not analysis_file_ids:
+    if not files:
         logger.info(
             "preprod.size_analysis.download.no_analysis_file",
             extra={"size_metrics_ids": [m.id for m in all_size_metrics]},
         )
         raise SizeAnalysisResultsUnavailableError()
 
-    unique_file_ids = set(analysis_file_ids)
-    if len(unique_file_ids) > 1:
+    if len(files) > 1:
         raise SizeAnalysisMultipleResultsError()
 
-    analysis_file_id = analysis_file_ids[0]
+    analysis_file_id, metric = next(iter(files.items()))
     try:
-        file_obj = File.objects.get(id=analysis_file_id)
+        file_obj = metric.get_analysis_file()
     except File.DoesNotExist:
         logger.warning(
             "Analysis file not found for size metrics",

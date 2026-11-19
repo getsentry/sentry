@@ -94,6 +94,8 @@ class UsecaseId(Enum):
     PREPROD = "preprod"
     PREPROD_SNAPSHOTS = "preprod_snapshots"
     PREPROD_SIZE = "preprod_size"
+    PREPROD_ARTIFACTS = "preprod_artifacts"
+    PREPROD_DISTRIBUTION = "preprod_distribution"
 
     def create(self) -> ObjectstoreClientUsecase:
         match self:
@@ -117,6 +119,9 @@ class UsecaseId(Enum):
                     self.value,
                     expiration_policy=TimeToLive(timedelta(days=default_attachment_retention())),
                 )
+            case UsecaseId.PREPROD_ARTIFACTS | UsecaseId.PREPROD_DISTRIBUTION:
+                # Writers supply the organization-specific TTL for these products.
+                return ObjectstoreClientUsecase(self.value, compression="none")
             case UsecaseId.PREPROD | UsecaseId.PREPROD_SNAPSHOTS | UsecaseId.PREPROD_SIZE:
                 return ObjectstoreClientUsecase(
                     self.value,

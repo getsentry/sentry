@@ -166,6 +166,8 @@ class PreprodArtifactAdminInfoEndpoint(Endpoint):
             # File information
             "files": {
                 "file_id": preprod_artifact.file_id,
+                "storage_path": preprod_artifact.storage_path,
+                "installable_app_storage_path": preprod_artifact.installable_app_storage_path,
                 "installable_app_file_id": preprod_artifact.installable_app_file_id,
             },
             # Build configuration
@@ -255,6 +257,7 @@ class PreprodArtifactAdminInfoEndpoint(Endpoint):
                     "min_download_size": metric.min_download_size,
                     "max_download_size": metric.max_download_size,
                     "analysis_file_id": metric.analysis_file_id,
+                    "analysis_storage_path": metric.analysis_storage_path,
                     "date_added": metric.date_added.isoformat() if metric.date_added else None,
                     "date_updated": (
                         metric.date_updated.isoformat() if metric.date_updated else None

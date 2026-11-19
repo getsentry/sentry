@@ -20,13 +20,20 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.commitcomparison import CommitComparison
+from sentry.models.files.file import File
+from sentry.objectstore import UsecaseId
+from sentry.preprod.storage import ObjectstoreFile
+
+HAS_INSTALLABLE_FILE = models.Q(installable_app_file_id__isnull=False) | models.Q(
+    installable_app_storage_path__isnull=False
+)
 
 
 class PreprodArtifactQuerySet(BaseQuerySet["PreprodArtifact"]):
     def annotate_installable(self) -> Self:
         return self.annotate(
             installable=Case(
-                When(installable_app_file_id__isnull=False, then=Value(True)),
+                When(HAS_INSTALLABLE_FILE, then=Value(True)),
                 default=Value(False),
                 output_field=BooleanField(),
             )
@@ -190,6 +197,7 @@ class PreprodArtifact(DefaultFieldsModel):
 
     # Nullable in case the file upload fails
     file_id = BoundedBigIntegerField(db_index=True, null=True)
+    storage_path = models.TextField(null=True)
 
     # The date the artifact was built. E.g. an artifact could be built on 05/21/2025,
     # but the user uploaded it on 05/22/2025.
@@ -228,6 +236,7 @@ class PreprodArtifact(DefaultFieldsModel):
 
     # Installable file like IPA or APK
     installable_app_file_id = BoundedBigIntegerField(db_index=True, null=True)
+    installable_app_storage_path = models.TextField(null=True)
 
     # The identifier of the app, e.g. "com.myapp.MyApp"
     app_id = models.CharField(max_length=255, null=True)
@@ -239,6 +248,20 @@ class PreprodArtifact(DefaultFieldsModel):
         choices=InstallableAppErrorCode.as_choices(), null=True
     )
     installable_app_error_message = models.TextField(null=True)
+
+    @property
+    def has_installable_file(self) -> bool:
+        return (
+            self.installable_app_storage_path is not None
+            or self.installable_app_file_id is not None
+        )
+
+    def get_installable_file(self) -> File | ObjectstoreFile:
+        if self.installable_app_storage_path:
+            return ObjectstoreFile.lookup(
+                UsecaseId.PREPROD_DISTRIBUTION, self.project, self.installable_app_storage_path
+            )
+        return File.objects.get(id=self.installable_app_file_id)
 
     def get_mobile_app_info(self) -> PreprodArtifactMobileAppInfo | None:
         """Safely access the related mobile_app_info without raising RelatedObjectDoesNotExist."""
@@ -633,6 +656,14 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
 
     # Size analysis wont necessarily be run on every artifact (based on quotas)
     analysis_file_id = BoundedBigIntegerField(db_index=True, null=True)
+    analysis_storage_path = models.TextField(null=True)
+
+    def get_analysis_file(self) -> File | ObjectstoreFile:
+        if self.analysis_storage_path:
+            return ObjectstoreFile.lookup(
+                UsecaseId.PREPROD_SIZE, self.preprod_artifact.project, self.analysis_storage_path
+            )
+        return File.objects.get(id=self.analysis_file_id)
 
     class Meta:
         app_label = "preprod"
@@ -700,8 +731,18 @@ class PreprodArtifactSizeComparison(DefaultFieldsModel):
 
     organization_id = BoundedBigIntegerField(db_index=True)
 
+    def get_result_file(self) -> File | ObjectstoreFile:
+        if self.storage_path:
+            return ObjectstoreFile.lookup(
+                UsecaseId.PREPROD_SIZE,
+                self.head_size_analysis.preprod_artifact.project,
+                self.storage_path,
+            )
+        return File.objects.get(id=self.file_id)
+
     # File id of the size diff json in filestore
     file_id = BoundedBigIntegerField(db_index=True, null=True)
+    storage_path = models.TextField(null=True)
 
     class State(IntEnum):
         PENDING = 0

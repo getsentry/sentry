@@ -57,11 +57,11 @@ class ProjectInstallablePreprodArtifactDownloadEndpoint(ProjectEndpoint):
             return Response({"error": "Install link expired"}, status=410)
 
         preprod_artifact = installable.preprod_artifact
-        if preprod_artifact.installable_app_file_id is None:
+        if not preprod_artifact.has_installable_file:
             return Response({"error": "No installable file available"}, status=404)
 
         try:
-            file_obj = File.objects.get(id=preprod_artifact.installable_app_file_id)
+            file_obj = preprod_artifact.get_installable_file()
         except File.DoesNotExist:
             return Response({"error": "Installable file not found"}, status=404)
 
