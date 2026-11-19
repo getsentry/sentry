@@ -59,6 +59,7 @@ jest.mock('sentry/actionCreators/modal');
 
 describe('ExploreToolbar', () => {
   const organization = OrganizationFixture();
+  let validateMock: jest.Mock;
 
   beforeEach(() => {
     const project = ProjectFixture({
@@ -105,7 +106,7 @@ describe('ExploreToolbar', () => {
         },
       ],
     });
-    MockApiClient.addMockResponse({
+    validateMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/validate/`,
       body: {
         dataset: [],
@@ -209,6 +210,19 @@ describe('ExploreToolbar', () => {
     await userEvent.click(within(section).getByRole('button', {name: 'count'}));
     await userEvent.click(within(section).getByRole('option', {name: 'epm'}));
 
+    // The field button is also disabled for count, so wait for the epm change and
+    // the validation request it triggers. On a slow runner both can land after the
+    // click, and an update after the test ends is not wrapped in act.
+    expect(await within(section).findByRole('button', {name: 'epm'})).toBeInTheDocument();
+    await waitFor(() =>
+      expect(validateMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/events/validate/`,
+        expect.objectContaining({
+          query: expect.objectContaining({field: expect.arrayContaining(['epm()'])}),
+        })
+      )
+    );
+    expect(visualizes).toEqual([new VisualizeFunction('epm()')]);
     expect(within(section).getByRole('button', {name: 'spans'})).toBeDisabled();
   });
 
