@@ -91,11 +91,14 @@ export default function AutomationDetail() {
   }
   // Start each tab at the top. Reset every ancestor's scroll on tab change.
   const pageRef = useRef<HTMLDivElement>(null);
+  const scrolledTabRef = useRef(activeTab);
   useEffect(() => {
-    for (let node = pageRef.current?.parentElement; node; node = node.parentElement) {
-      node.scrollTop = 0;
+    if (scrolledTabRef.current !== activeTab) {
+      scrolledTabRef.current = activeTab;
+      for (let node = pageRef.current?.parentElement; node; node = node.parentElement) {
+        node.scrollTop = 0;
+      }
     }
-    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [activeTab]);
   // Show who last updated the automation, falling back to who created it
   const displayUserId = config?.updatedBy || config?.createdBy;
