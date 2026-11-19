@@ -1,7 +1,6 @@
 import {ProjectAvatar} from '@sentry/scraps/avatar';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {groupProjectsByMembership} from 'sentry/utils/project/groupProjectsByMembership';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -44,14 +43,10 @@ export function ProjectCrumb({
         }
       }}
       search={{onChange: onSearch}}
-      options={groupProjectsByMembership(projects).map(group => ({
-        key: group.key,
-        label: group.label,
-        options: group.projects.map(project => ({
-          value: project.slug,
-          leadingItems: <ProjectAvatar project={project} size={20} />,
-          label: project.slug,
-        })),
+      options={projects.map(project => ({
+        value: project.slug,
+        leadingItems: <ProjectAvatar project={project} size={20} />,
+        label: project.slug,
       }))}
     >
       {children}
