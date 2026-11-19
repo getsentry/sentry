@@ -11,7 +11,7 @@ import SeerUsageStats from '.';
 describe('SeerUsageStats', () => {
   const organization = OrganizationFixture({
     features: ['token-billed-seer-enabled'],
-    access: ['org:read', 'org:billing'],
+    access: ['org:read'],
   });
   const endpoint = `/customers/${organization.slug}/seer-usage-stats/`;
   const initialRouterConfig = {
@@ -87,26 +87,9 @@ describe('SeerUsageStats', () => {
     ).toBeInTheDocument();
   });
 
-  it('asks members without billing access to contact a billing member', async () => {
-    const member = OrganizationFixture({
-      features: ['token-billed-seer-enabled'],
-      access: ['org:read'],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${member.slug}/members/`,
-      body: [],
-    });
-    const request = MockApiClient.addMockResponse({url: endpoint, body: {}});
-
-    render(<SeerUsageStats />, {organization: member, initialRouterConfig});
-
-    expect(await screen.findByText('Insufficient Access')).toBeInTheDocument();
-    expect(request).not.toHaveBeenCalled();
-  });
-
   it('redirects orgs without token-billed Seer to the Usage tab', async () => {
     const {router} = render(<SeerUsageStats />, {
-      organization: OrganizationFixture({access: ['org:read', 'org:billing']}),
+      organization: OrganizationFixture(),
       initialRouterConfig,
     });
 

@@ -27,8 +27,6 @@ import {StatsHeader} from 'sentry/views/organizationStats/header';
 import {makeStatsPathname} from 'sentry/views/organizationStats/pathname';
 import {isDisplayUtc} from 'sentry/views/organizationStats/utils';
 
-import {ContactBillingMembers} from 'getsentry/views/contactBillingMembers';
-
 import type {SeerUsageStatsResponse, ProductCredits} from './utils';
 import {
   formatCredits,
@@ -161,18 +159,14 @@ export default function SeerUsageStats() {
       <PageFiltersContainer>
         <StatsHeader organization={organization} activeTab="seer" />
         <Layout.Main width="full">
-          {organization.access.includes('org:billing') ? (
-            <Stack gap="xl">
-              <Flex>
-                <PageFilterBar>
-                  <DatePageFilter />
-                </PageFilterBar>
-              </Flex>
-              <SeerCredits />
-            </Stack>
-          ) : (
-            <ContactBillingMembers />
-          )}
+          <Stack gap="xl">
+            <Flex>
+              <PageFilterBar>
+                <DatePageFilter />
+              </PageFilterBar>
+            </Flex>
+            <SeerCredits />
+          </Stack>
         </Layout.Main>
       </PageFiltersContainer>
     </SentryDocumentTitle>

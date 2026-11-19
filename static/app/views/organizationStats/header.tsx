@@ -14,18 +14,8 @@ type Props = {
   organization: Organization;
 };
 
-/**
- * Only billing members of orgs that pay for Seer by token usage see Seer usage.
- */
-function hasSeerUsageTab(organization: Organization) {
-  return (
-    organization.features.includes('token-billed-seer-enabled') &&
-    organization.access.includes('org:billing')
-  );
-}
-
 export function StatsHeader({organization, activeTab}: Props) {
-  const showSeerTab = hasSeerUsageTab(organization);
+  const showSeerTab = organization.features.includes('token-billed-seer-enabled');
   const showTeamInsightsTabs = organization.features.includes('team-insights');
 
   return (

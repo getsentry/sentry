@@ -5,10 +5,10 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {StatsHeader} from './header';
 
 describe('StatsHeader', () => {
-  it('shows the Seer tab to billing members of token-billed Seer orgs', () => {
+  it('shows the Seer tab in token-billed Seer orgs', () => {
     const organization = OrganizationFixture({
       features: ['token-billed-seer-enabled'],
-      access: ['org:read', 'org:billing'],
+      access: ['org:read'],
     });
 
     render(<StatsHeader organization={organization} activeTab="seer" />, {
@@ -27,7 +27,6 @@ describe('StatsHeader', () => {
   it('puts the Seer tab after the team insights tabs', () => {
     const organization = OrganizationFixture({
       features: ['token-billed-seer-enabled', 'team-insights'],
-      access: ['org:read', 'org:billing'],
     });
 
     render(<StatsHeader organization={organization} activeTab="stats" />, {
@@ -42,11 +41,8 @@ describe('StatsHeader', () => {
     ]);
   });
 
-  it('hides the Seer tab from members without billing access', () => {
-    const organization = OrganizationFixture({
-      features: ['token-billed-seer-enabled', 'team-insights'],
-      access: ['org:read'],
-    });
+  it('hides the Seer tab in orgs without token-billed Seer', () => {
+    const organization = OrganizationFixture({features: ['team-insights']});
 
     render(<StatsHeader organization={organization} activeTab="stats" />, {
       organization,
@@ -57,7 +53,7 @@ describe('StatsHeader', () => {
   });
 
   it('shows no tabs when the org has only the Usage tab', () => {
-    const organization = OrganizationFixture({access: ['org:read', 'org:billing']});
+    const organization = OrganizationFixture();
 
     render(<StatsHeader organization={organization} activeTab="stats" />, {
       organization,
