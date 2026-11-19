@@ -40,10 +40,7 @@ export function useSimilarIssuesDrawer({
         navigate(
           {
             pathname: getReturnPath(),
-            query: {
-              ...location.query,
-              cursor: undefined,
-            },
+            query: location.query,
           },
           {replace: true, preventScrollReset: true}
         );
