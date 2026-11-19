@@ -92,10 +92,14 @@ describe('AccountAppearance', () => {
       expect(ConfigStore.get('user').options.theme).toBe('dark');
     });
 
-    it('removes the theme field from Account Details', async () => {
+    it('links to Appearance instead of the theme field in Account Details', async () => {
       render(<AccountDetails />, {organization});
 
-      expect(await screen.findByLabelText('Language')).toBeInTheDocument();
+      expect(await screen.findByRole('link', {name: 'Appearance'})).toHaveAttribute(
+        'href',
+        '/settings/account/appearance/'
+      );
+      expect(screen.getByLabelText('Language')).toBeInTheDocument();
       expect(screen.queryByLabelText('Theme')).not.toBeInTheDocument();
     });
   });

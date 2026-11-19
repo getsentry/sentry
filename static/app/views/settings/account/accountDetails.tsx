@@ -2,7 +2,9 @@ import {Fragment} from 'react';
 import {useQuery, mutationOptions, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {AutoSaveForm, FieldGroup, FormSearch} from '@sentry/scraps/form';
+import {AutoSaveForm, DisplayField, FieldGroup, FormSearch} from '@sentry/scraps/form';
+import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {updateUser} from 'sentry/actionCreators/account';
 import {AvatarChooser} from 'sentry/components/avatarChooser';
@@ -11,7 +13,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {languages} from 'sentry/data/languages';
 import {timezoneOptions} from 'sentry/data/timezones';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {StacktraceOrder, type User} from 'sentry/types/user';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -242,7 +244,16 @@ function AccountDetails() {
         </FieldGroup>
 
         <FieldGroup title={t('Preferences')}>
-          {!hasThemeVariants && (
+          {hasThemeVariants ? (
+            // We'll eventually remove this link once people know where to find theme settings
+            <DisplayField.Row label={t('Theme')}>
+              <Text>
+                {tct('Theme settings moved to [link:Appearance].', {
+                  link: <Link to="/settings/account/appearance/" />,
+                })}
+              </Text>
+            </DisplayField.Row>
+          ) : (
             <AutoSaveForm
               name="theme"
               schema={preferencesSchema}
