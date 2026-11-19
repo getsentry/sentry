@@ -205,7 +205,7 @@ describe('OrganizationCreate', () => {
     expect(testableWindowLocation.assign).not.toHaveBeenCalled();
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Data Storage Location'}),
+      screen.getByRole('combobox', {name: 'Data Storage Location'}),
       '🇺🇸 United States of America (US)'
     );
     await userEvent.click(screen.getByText('Create Organization'));
@@ -242,7 +242,7 @@ describe('OrganizationCreate', () => {
     expect(link.href).toBe(DATA_STORAGE_DOCS_LINK);
     await userEvent.type(screen.getByPlaceholderText('e.g. My Company'), 'Good Burger');
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Data Storage Location'}),
+      screen.getByRole('combobox', {name: 'Data Storage Location'}),
       '🇪🇺 European Union (EU)'
     );
     await userEvent.click(screen.getByText('Create Organization'));
@@ -293,7 +293,7 @@ describe('OrganizationCreate', () => {
     expect(link.href).toBe(DATA_STORAGE_DOCS_LINK);
     await userEvent.type(screen.getByPlaceholderText('e.g. My Company'), 'Good Burger');
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Data Storage Location'}),
+      screen.getByRole('combobox', {name: 'Data Storage Location'}),
       '🇪🇺 European Union (EU)'
     );
     await userEvent.click(screen.getByText('Create Organization'));

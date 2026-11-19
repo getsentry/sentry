@@ -479,7 +479,7 @@ describe('EditAutomation', () => {
       const readNode = renderAndReadNode();
 
       await selectEvent.select(
-        await screen.findByRole('textbox', {name: 'Add action'}),
+        await screen.findByRole('combobox', {name: 'Add action'}),
         'Slack'
       );
       // The saved alert already has a Slack action, so its Target box is on

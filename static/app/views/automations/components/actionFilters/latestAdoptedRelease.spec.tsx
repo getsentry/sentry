@@ -55,12 +55,12 @@ describe('LatestAdoptedReleaseNode', () => {
       {organization}
     );
 
-    const environmentSelect = await screen.findByRole('textbox', {
+    const environmentSelect = await screen.findByRole('combobox', {
       name: 'Environment',
     });
     await userEvent.click(environmentSelect);
     await userEvent.click(
-      screen.getByRole('menuitemradio', {
+      screen.getByRole('option', {
         name: 'production',
       })
     );

@@ -1994,11 +1994,11 @@ describe('Customer Details', () => {
 
       await userEvent.click(screen.getByText('Fork Customer'));
       await selectEvent.openMenu(
-        screen.getByRole('textbox', {name: 'Duplicate into Region'})
+        screen.getByRole('combobox', {name: 'Duplicate into Region'})
       );
       ['foo', 'bar'].forEach(step => expect(screen.getByText(step)).toBeInTheDocument());
       await selectEvent.select(
-        screen.getByRole('textbox', {name: 'Duplicate into Region'}),
+        screen.getByRole('combobox', {name: 'Duplicate into Region'}),
         'bar'
       );
 
@@ -2427,7 +2427,7 @@ describe('Customer Details', () => {
 
       renderGlobalModal();
 
-      const selectSponsoredType = await screen.findByRole('textbox', {
+      const selectSponsoredType = await screen.findByRole('combobox', {
         name: 'Sponsored Type',
       });
       // Click for dropdown
@@ -2477,7 +2477,9 @@ describe('Customer Details', () => {
 
       renderGlobalModal();
 
-      await userEvent.click(await screen.findByRole('textbox', {name: 'Sponsored Type'}));
+      await userEvent.click(
+        await screen.findByRole('combobox', {name: 'Sponsored Type'})
+      );
       await userEvent.click(screen.getByTestId('remove'));
 
       await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));

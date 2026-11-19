@@ -133,7 +133,7 @@ describe('IntegrationOrganizationLink', () => {
     expect(getOrgMock).toHaveBeenCalled();
 
     // Select organization
-    await selectEvent.select(await screen.findByRole('textbox'), org2.name);
+    await selectEvent.select(await screen.findByRole('combobox'), org2.name);
     expect(testableWindowLocation.assign).toHaveBeenCalledWith(
       generateOrgSlugUrl(org2.slug)
     );
@@ -157,7 +157,7 @@ describe('IntegrationOrganizationLink', () => {
       initialRouterConfig,
     });
     // Select the same organization as the domain
-    await selectEvent.select(await screen.findByRole('textbox'), org2.name);
+    await selectEvent.select(await screen.findByRole('combobox'), org2.name);
     expect(testableWindowLocation.assign).not.toHaveBeenCalled();
 
     expect(screen.getByRole('button', {name: 'Install Vercel'})).toBeEnabled();
@@ -181,7 +181,7 @@ describe('IntegrationOrganizationLink', () => {
     });
     renderGlobalModal({organization: org2});
 
-    await selectEvent.select(await screen.findByRole('textbox'), org2.name);
+    await selectEvent.select(await screen.findByRole('combobox'), org2.name);
     await userEvent.click(screen.getByRole('button', {name: 'Install Vercel'}));
 
     await waitFor(() => {
@@ -213,7 +213,7 @@ describe('IntegrationOrganizationLink', () => {
     });
     renderGlobalModal({organization: org2});
 
-    await selectEvent.select(await screen.findByRole('textbox'), org2.name);
+    await selectEvent.select(await screen.findByRole('combobox'), org2.name);
     await userEvent.click(screen.getByRole('button', {name: 'Install Vercel'}));
 
     await waitFor(() => {
@@ -257,7 +257,7 @@ describe('IntegrationOrganizationLink', () => {
       },
     });
 
-    await selectEvent.select(await screen.findByRole('textbox'), org2.name);
+    await selectEvent.select(await screen.findByRole('combobox'), org2.name);
 
     expect(
       await screen.findByText(/Sentry does not support installing/)

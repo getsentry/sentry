@@ -483,9 +483,7 @@ describe('DetectorEdit', () => {
 
       // Update environment
       await userEvent.click(screen.getByText('All Environments'));
-      await userEvent.click(
-        await screen.findByRole('menuitemradio', {name: 'production'})
-      );
+      await userEvent.click(await screen.findByRole('option', {name: 'production'}));
 
       await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
@@ -551,11 +549,11 @@ describe('DetectorEdit', () => {
       // Start with errors dataset and select 1 minute interval
       const datasetField = screen.getByLabelText('Dataset');
       await userEvent.click(datasetField);
-      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Errors'}));
+      await userEvent.click(screen.getByRole('option', {name: 'Errors'}));
 
       const intervalField = screen.getByLabelText('Interval');
       await userEvent.click(intervalField);
-      await userEvent.click(screen.getByRole('menuitemradio', {name: '1 minute'}));
+      await userEvent.click(screen.getByRole('option', {name: '1 minute'}));
 
       // For errors dataset with 1 minute interval, verify the display options
       const initialDisplayButton = screen.getByRole('button', {name: /Display/});
@@ -570,7 +568,7 @@ describe('DetectorEdit', () => {
 
       // Switch to spans dataset
       await userEvent.click(datasetField);
-      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Spans'}));
+      await userEvent.click(screen.getByRole('option', {name: 'Spans'}));
 
       // Verify interval automatically changed from 1 minute to 5 minutes (spans excludes 1 minute)
       expect(await screen.findByText('5 minutes')).toBeInTheDocument();
@@ -747,7 +745,7 @@ describe('DetectorEdit', () => {
       // Change dataset to releases
       const datasetField = screen.getByLabelText('Dataset');
       await userEvent.click(datasetField);
-      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Releases'}));
+      await userEvent.click(screen.getByRole('option', {name: 'Releases'}));
 
       // Verify detection type options are no longer available
       expect(screen.queryByText('Change')).not.toBeInTheDocument();
@@ -818,7 +816,7 @@ describe('DetectorEdit', () => {
       // Set interval to 1 day
       const intervalField = screen.getByLabelText('Interval');
       await userEvent.click(intervalField);
-      await userEvent.click(screen.getByRole('menuitemradio', {name: '1 day'}));
+      await userEvent.click(screen.getByRole('option', {name: '1 day'}));
 
       // Switch to dynamic detection
       await userEvent.click(screen.getByRole('radio', {name: 'Dynamic'}));
@@ -985,7 +983,7 @@ describe('DetectorEdit', () => {
         // Change dataset to releases
         const datasetField = screen.getByLabelText('Dataset');
         await userEvent.click(datasetField);
-        await userEvent.click(screen.getByRole('menuitemradio', {name: 'Releases'}));
+        await userEvent.click(screen.getByRole('option', {name: 'Releases'}));
 
         await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
@@ -1063,14 +1061,12 @@ describe('DetectorEdit', () => {
       await userEvent.click(datasetField);
 
       // Verify transactions option IS available when editing existing transactions detector
-      expect(
-        screen.getByRole('menuitemradio', {name: 'Transactions'})
-      ).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Transactions'})).toBeInTheDocument();
 
       // Verify other datasets are also available
-      expect(screen.getByRole('menuitemradio', {name: 'Errors'})).toBeInTheDocument();
-      expect(screen.getByRole('menuitemradio', {name: 'Spans'})).toBeInTheDocument();
-      expect(screen.getByRole('menuitemradio', {name: 'Releases'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Errors'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Spans'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Releases'})).toBeInTheDocument();
     });
 
     it('disables interval, aggregate, and query when using the transactions dataset', async () => {

@@ -766,7 +766,7 @@ describe('add to dashboard modal', () => {
     await selectEvent.openMenu(screen.getByText('Select Dashboard'));
 
     // Check that "Create New Dashboard" option exists but is disabled
-    const createNewOption = await screen.findByRole('menuitemradio', {
+    const createNewOption = await screen.findByRole('option', {
       name: '+ Create New Dashboard',
     });
     expect(createNewOption).toBeInTheDocument();

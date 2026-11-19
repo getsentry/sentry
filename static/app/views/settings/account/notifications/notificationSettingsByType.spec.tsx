@@ -120,7 +120,7 @@ describe('NotificationSettingsByType', () => {
     });
 
     // There is only one field and it is the default and it is set to "off".
-    await screen.findByRole('textbox', {name: 'Issue Alerts'});
+    await screen.findByRole('combobox', {name: 'Issue Alerts'});
     expect(screen.getByText('Off')).toBeInTheDocument();
   });
 
@@ -152,7 +152,7 @@ describe('NotificationSettingsByType', () => {
     renderComponent({notificationType: 'spikeProtection'});
 
     expect(
-      await screen.findByRole('textbox', {name: 'Spike Protection Notifications'})
+      await screen.findByRole('combobox', {name: 'Spike Protection Notifications'})
     ).toBeInTheDocument();
     expect(
       screen.getByText('This is the default for all projects under all organizations.')
@@ -266,7 +266,7 @@ describe('NotificationSettingsByType', () => {
       method: 'PUT',
       body: [],
     });
-    const multiSelect = await screen.findByRole('textbox', {name: 'Delivery Method'});
+    const multiSelect = await screen.findByRole('combobox', {name: 'Delivery Method'});
     await selectEvent.select(multiSelect, ['Email']);
     await userEvent.tab();
     expect(changeProvidersMock).toHaveBeenCalledTimes(1);

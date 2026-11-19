@@ -93,8 +93,8 @@ describe('InviteMembersModal', () => {
   const setupMemberInviteState = async () => {
     await userEvent.click(screen.getByRole('button', {name: 'Send invite'}));
 
-    const emailInputs = screen.getByRole('textbox', {name: 'Email Addresses'});
-    const roleInputs = screen.getByRole('textbox', {name: 'Role'});
+    const emailInputs = screen.getByRole('combobox', {name: 'Email Addresses'});
+    const roleInputs = screen.getByRole('combobox', {name: 'Role'});
 
     await userEvent.type(emailInputs, 'test1@test.com');
     await userEvent.tab();
@@ -110,9 +110,11 @@ describe('InviteMembersModal', () => {
 
     // We have two roles loaded from the members/me endpoint, defaulting to the
     // 'member' role.
-    await userEvent.click(screen.getByRole('textbox', {name: 'Role'}));
-    expect(screen.getAllByRole('menuitemradio')).toHaveLength(2);
-    expect(screen.getByRole('menuitemradio', {name: 'Member'})).toBeChecked();
+    await userEvent.click(screen.getByRole('combobox', {name: 'Role'}));
+    expect(screen.getAllByRole('option')).toHaveLength(2);
+    expect(
+      screen.getByRole('option', {name: 'Member', selected: true})
+    ).toBeInTheDocument();
   });
 
   it('renders for superuser', async () => {
@@ -132,9 +134,11 @@ describe('InviteMembersModal', () => {
 
     expect(await screen.findByRole('button', {name: 'Send invite'})).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('textbox', {name: 'Role'}));
-    expect(screen.getAllByRole('menuitemradio')).toHaveLength(ORG_ROLES.length);
-    expect(screen.getByRole('menuitemradio', {name: 'Member'})).toBeChecked();
+    await userEvent.click(screen.getByRole('combobox', {name: 'Role'}));
+    expect(screen.getAllByRole('option')).toHaveLength(ORG_ROLES.length);
+    expect(
+      screen.getByRole('option', {name: 'Member', selected: true})
+    ).toBeInTheDocument();
   });
 
   it('renders without organization.access', async () => {
@@ -147,10 +151,10 @@ describe('InviteMembersModal', () => {
     setupView();
 
     expect(
-      await screen.findByRole('textbox', {name: 'Email Addresses'})
+      await screen.findByRole('combobox', {name: 'Email Addresses'})
     ).toBeInTheDocument();
 
-    const emailInput = screen.getByRole('textbox', {name: 'Email Addresses'});
+    const emailInput = screen.getByRole('combobox', {name: 'Email Addresses'});
     await userEvent.type(emailInput, 'test@test.com test2@test.com');
     await userEvent.tab();
 
@@ -165,7 +169,7 @@ describe('InviteMembersModal', () => {
     expect(await screen.findByRole('button', {name: 'Send invite'})).toBeInTheDocument();
     await setupMemberInviteState();
 
-    const teamInputs = screen.getAllByRole('textbox', {name: 'Add to Team'});
+    const teamInputs = screen.getAllByRole('combobox', {name: 'Add to Team'});
     await selectEvent.select(teamInputs[0]!, '#team-slug');
 
     await userEvent.click(screen.getByRole('button', {name: 'Send invite'}));
@@ -209,7 +213,7 @@ describe('InviteMembersModal', () => {
     expect(await screen.findByRole('button', {name: 'Send invite'})).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Send invite'}));
-    const teamInputs = screen.getAllByRole('textbox', {name: 'Add to Team'});
+    const teamInputs = screen.getAllByRole('combobox', {name: 'Add to Team'});
     expect(teamInputs).toHaveLength(1);
     expect(teamInputs[0]).toHaveValue('');
   });
@@ -231,10 +235,10 @@ describe('InviteMembersModal', () => {
       mockApiResponses: [defaultMockOrganizationRoles, failedCreateMemberMock],
     });
     expect(
-      await screen.findByRole('textbox', {name: 'Email Addresses'})
+      await screen.findByRole('combobox', {name: 'Email Addresses'})
     ).toBeInTheDocument();
     await userEvent.type(
-      screen.getByRole('textbox', {name: 'Email Addresses'}),
+      screen.getByRole('combobox', {name: 'Email Addresses'}),
       'bademail'
     );
     await userEvent.tab();

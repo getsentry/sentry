@@ -76,11 +76,11 @@ describe('MessagingIntegrationAlertRule', () => {
   });
 
   const getComponent = () => <MessagingIntegrationAlertRule {...notificationProps} />;
-  const getChannelSelect = () => screen.getByRole('textbox', {name: 'channel'});
+  const getChannelSelect = () => screen.getByRole('combobox', {name: 'channel'});
 
   it('renders', () => {
     render(getComponent());
-    expect(screen.getAllByRole('textbox')).toHaveLength(3);
+    expect(screen.getAllByRole('combobox')).toHaveLength(3);
   });
 
   it('clears the channel select when channel prop becomes undefined', () => {
@@ -191,9 +191,7 @@ describe('MessagingIntegrationAlertRule', () => {
     );
 
     await selectEvent.openMenu(getChannelSelect());
-    expect(
-      await screen.findByRole('menuitemradio', {name: 'channel'})
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('option', {name: 'channel'})).toBeInTheDocument();
     expect(mockSetChannel).not.toHaveBeenCalled();
   });
 

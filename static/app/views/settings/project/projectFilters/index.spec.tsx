@@ -857,7 +857,7 @@ describe('ProjectFilters', () => {
     expect(
       within(dialog).queryByRole('combobox', {name: 'Add a search term'})
     ).not.toBeInTheDocument();
-    expect(within(dialog).getByRole('textbox', {name: 'Data Type'})).toBeDisabled();
+    expect(within(dialog).getByRole('combobox', {name: 'Data Type'})).toBeDisabled();
 
     const lines = within(dialog).getByRole('textbox', {name: 'Error Message'});
     expect(lines).toHaveValue('*timeout*\n# retired\n*refused*');
@@ -1137,8 +1137,8 @@ describe('ProjectFilters', () => {
 
     // Every data type carries the client IP, so the condition stays valid after
     // the switch, the way a release condition does.
-    await userEvent.click(within(dialog).getByRole('textbox', {name: 'Data Type'}));
-    await userEvent.click(within(dialog).getByRole('menuitemradio', {name: 'Spans'}));
+    await userEvent.click(within(dialog).getByRole('combobox', {name: 'Data Type'}));
+    await userEvent.click(within(dialog).getByRole('option', {name: 'Spans'}));
     expect(
       within(dialog).getByRole('row', {name: 'ip_address:10.0.0.0/8'})
     ).toHaveAttribute('aria-invalid', 'false');
@@ -1255,9 +1255,9 @@ describe('ProjectFilters', () => {
     // The stored data type stays selectable even though the org lacks the logs
     // ingestion feature.
     expect(within(dialog).getByText('Logs')).toBeInTheDocument();
-    await userEvent.click(within(dialog).getByRole('textbox', {name: 'Data Type'}));
-    expect(within(dialog).getByRole('menuitemradio', {name: 'Logs'})).toBeInTheDocument();
-    await userEvent.click(within(dialog).getByRole('menuitemradio', {name: 'Logs'}));
+    await userEvent.click(within(dialog).getByRole('combobox', {name: 'Data Type'}));
+    expect(within(dialog).getByRole('option', {name: 'Logs'})).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole('option', {name: 'Logs'}));
 
     await userEvent.click(
       within(dialog).getAllByRole('combobox', {name: 'Add a search term'}).at(-1)!
@@ -1297,21 +1297,17 @@ describe('ProjectFilters', () => {
 
     await userEvent.click(await screen.findByRole('button', {name: 'Add Filter'}));
     const dialog = await screen.findByRole('dialog');
-    await userEvent.click(within(dialog).getByRole('textbox', {name: 'Data Type'}));
+    await userEvent.click(within(dialog).getByRole('combobox', {name: 'Data Type'}));
 
-    expect(
-      within(dialog).getByRole('menuitemradio', {name: 'Errors'})
-    ).toBeInTheDocument();
+    expect(within(dialog).getByRole('option', {name: 'Errors'})).toBeInTheDocument();
     // The catch-all needs no ingestion feature: it filters whichever data types
     // the organization does ingest.
     expect(
-      within(dialog).getByRole('menuitemradio', {name: 'All Data Types'})
+      within(dialog).getByRole('option', {name: 'All Data Types'})
     ).toBeInTheDocument();
+    expect(within(dialog).queryByRole('option', {name: 'Logs'})).not.toBeInTheDocument();
     expect(
-      within(dialog).queryByRole('menuitemradio', {name: 'Logs'})
-    ).not.toBeInTheDocument();
-    expect(
-      within(dialog).queryByRole('menuitemradio', {name: 'Metrics'})
+      within(dialog).queryByRole('option', {name: 'Metrics'})
     ).not.toBeInTheDocument();
   });
 
@@ -1336,12 +1332,10 @@ describe('ProjectFilters', () => {
 
     await userEvent.click(await screen.findByRole('button', {name: 'Add Filter'}));
     const dialog = await screen.findByRole('dialog');
-    await userEvent.click(within(dialog).getByRole('textbox', {name: 'Data Type'}));
+    await userEvent.click(within(dialog).getByRole('combobox', {name: 'Data Type'}));
 
-    expect(within(dialog).getByRole('menuitemradio', {name: 'Logs'})).toBeInTheDocument();
-    expect(
-      within(dialog).getByRole('menuitemradio', {name: 'Metrics'})
-    ).toBeInTheDocument();
+    expect(within(dialog).getByRole('option', {name: 'Logs'})).toBeInTheDocument();
+    expect(within(dialog).getByRole('option', {name: 'Metrics'})).toBeInTheDocument();
   });
 
   it('only offers condition properties for the selected data type', async () => {
@@ -1545,10 +1539,8 @@ describe('ProjectFilters', () => {
     await userEvent.click(within(dialog).getByRole('textbox', {name: 'Name'}));
     await userEvent.paste('Bad release');
 
-    await userEvent.click(within(dialog).getByRole('textbox', {name: 'Data Type'}));
-    await userEvent.click(
-      within(dialog).getByRole('menuitemradio', {name: 'All Data Types'})
-    );
+    await userEvent.click(within(dialog).getByRole('combobox', {name: 'Data Type'}));
+    await userEvent.click(within(dialog).getByRole('option', {name: 'All Data Types'}));
 
     // The catch-all can only match a field every data type carries, so the
     // key menu narrows to those and the note says why.
@@ -1652,8 +1644,8 @@ describe('ProjectFilters', () => {
       'false'
     );
 
-    await userEvent.click(within(dialog).getByRole('textbox', {name: 'Data Type'}));
-    await userEvent.click(within(dialog).getByRole('menuitemradio', {name: 'Metrics'}));
+    await userEvent.click(within(dialog).getByRole('combobox', {name: 'Data Type'}));
+    await userEvent.click(within(dialog).getByRole('option', {name: 'Metrics'}));
 
     // Metrics carry no error message, so the condition stays for the user to fix
     // and blocks the save until then.

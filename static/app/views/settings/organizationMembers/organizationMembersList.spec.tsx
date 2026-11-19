@@ -628,7 +628,7 @@ describe('OrganizationMembersList', () => {
 
       expect(await screen.findByText('Pending Members')).toBeInTheDocument();
       await selectEvent.select(
-        screen.getByRole('textbox', {name: 'Role: Member'}),
+        screen.getByRole('combobox', {name: 'Role: Member'}),
         ['Admin'],
         {container: document.body}
       );

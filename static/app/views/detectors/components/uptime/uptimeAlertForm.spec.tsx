@@ -55,7 +55,7 @@ describe('Uptime Alert Form', () => {
     expect(document.querySelectorAll('[data-tooltip]')).toHaveLength(0);
 
     // Change one field (Method) to trigger first-change validation
-    await selectEvent.select(input('Method'), 'POST');
+    await selectEvent.select(screen.getByRole('combobox', {name: 'Method'}), 'POST');
 
     // Validation error tooltips should now appear on other required empty fields
     await waitFor(() => {
@@ -67,8 +67,11 @@ describe('Uptime Alert Form', () => {
     render(<UptimeAlertForm />, {organization});
     await screen.findByText('Configure Request');
 
-    await selectEvent.select(input('Project'), project.slug);
-    await selectEvent.select(input('Environment'), 'prod');
+    await selectEvent.select(
+      screen.getByRole('combobox', {name: 'Project'}),
+      project.slug
+    );
+    await selectEvent.select(screen.getByRole('combobox', {name: 'Environment'}), 'prod');
 
     const timeout = screen.getByRole('slider', {name: 'Timeout'});
     fireEvent.change(timeout, {target: {value: '10000'}});
@@ -76,8 +79,7 @@ describe('Uptime Alert Form', () => {
     await userEvent.clear(input('URL'));
     await userEvent.type(input('URL'), 'http://example.com');
 
-    await selectEvent.clearAll(input('Method'));
-    await selectEvent.select(input('Method'), 'POST');
+    await selectEvent.select(screen.getByRole('combobox', {name: 'Method'}), 'POST');
 
     await userEvent.clear(input('Body'));
     await userEvent.type(input('Body'), '{{"key": "value"}');
@@ -103,7 +105,7 @@ describe('Uptime Alert Form', () => {
     await userEvent.clear(name);
     await userEvent.type(name, 'New Uptime Rule');
 
-    await selectEvent.select(input('Owner'), 'Foo Bar');
+    await selectEvent.select(screen.getByRole('combobox', {name: 'Owner'}), 'Foo Bar');
 
     const updateMock = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/uptime/`,
@@ -135,8 +137,11 @@ describe('Uptime Alert Form', () => {
     render(<UptimeAlertForm />, {organization});
     await screen.findByText('Configure Request');
 
-    await selectEvent.select(input('Project'), project.slug);
-    await selectEvent.select(input('Environment'), 'prod');
+    await selectEvent.select(
+      screen.getByRole('combobox', {name: 'Project'}),
+      project.slug
+    );
+    await selectEvent.select(screen.getByRole('combobox', {name: 'Environment'}), 'prod');
     await userEvent.clear(input('URL'));
     await userEvent.type(input('URL'), 'http://example.com');
 
@@ -197,10 +202,16 @@ describe('Uptime Alert Form', () => {
     expect(input('Name of header 2')).toHaveValue('X-Test2');
     expect(input('Value of X-Test1')).toHaveValue('value 1');
     expect(input('Value of X-Test2')).toHaveValue('value 2');
-    await selectEvent.openMenu(input('Method'));
-    expect(screen.getByRole('menuitemradio', {name: 'POST'})).toBeChecked();
-    await selectEvent.openMenu(input('Environment'));
-    expect(screen.getByRole('menuitemradio', {name: 'prod'})).toBeChecked();
+    await selectEvent.openMenu(screen.getByRole('combobox', {name: 'Method'}));
+    expect(screen.getByRole('option', {name: 'POST'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    await selectEvent.openMenu(screen.getByRole('combobox', {name: 'Environment'}));
+    expect(screen.getByRole('option', {name: 'prod'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
     expect(screen.getByRole('checkbox', {name: 'Allow Sampling'})).toBeChecked();
     expect(screen.getByRole('slider', {name: 'Timeout'})).toHaveValue('7500');
     expect(numberInput('Failure Tolerance')).toHaveValue(4);
@@ -255,8 +266,11 @@ describe('Uptime Alert Form', () => {
     render(<UptimeAlertForm rule={rule} />, {organization});
     await screen.findByText('Configure Request');
 
-    await selectEvent.select(input('Interval'), 'Every 10 minutes');
-    await selectEvent.select(input('Environment'), 'dev');
+    await selectEvent.select(
+      screen.getByRole('combobox', {name: 'Interval'}),
+      'Every 10 minutes'
+    );
+    await selectEvent.select(screen.getByRole('combobox', {name: 'Environment'}), 'dev');
 
     const timeout = screen.getByRole('slider', {name: 'Timeout'});
     fireEvent.change(timeout, {target: {value: '7500'}});
@@ -264,8 +278,7 @@ describe('Uptime Alert Form', () => {
     await userEvent.clear(input('URL'));
     await userEvent.type(input('URL'), 'http://another-url.com');
 
-    await selectEvent.clearAll(input('Method'));
-    await selectEvent.select(input('Method'), 'POST');
+    await selectEvent.select(screen.getByRole('combobox', {name: 'Method'}), 'POST');
 
     await userEvent.clear(input('Body'));
     await userEvent.type(input('Body'), '{{"different": "value"}');
@@ -288,7 +301,7 @@ describe('Uptime Alert Form', () => {
     await userEvent.clear(name);
     await userEvent.type(name, 'Updated name');
 
-    await selectEvent.select(input('Owner'), 'Foo Bar');
+    await selectEvent.select(screen.getByRole('combobox', {name: 'Owner'}), 'Foo Bar');
 
     const updateMock = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/uptime/${rule.id}/`,
@@ -330,18 +343,15 @@ describe('Uptime Alert Form', () => {
     await screen.findByText('Configure Request');
 
     // GET
-    await selectEvent.clearAll(input('Method'));
-    await selectEvent.select(input('Method'), 'GET');
+    await selectEvent.select(screen.getByRole('combobox', {name: 'Method'}), 'GET');
     expect(screen.queryByRole('textbox', {name: 'Body'})).not.toBeInTheDocument();
 
     // HEAD
-    await selectEvent.clearAll(input('Method'));
-    await selectEvent.select(input('Method'), 'HEAD');
+    await selectEvent.select(screen.getByRole('combobox', {name: 'Method'}), 'HEAD');
     expect(screen.queryByRole('textbox', {name: 'Body'})).not.toBeInTheDocument();
 
     // POST
-    await selectEvent.clearAll(input('Method'));
-    await selectEvent.select(input('Method'), 'POST');
+    await selectEvent.select(screen.getByRole('combobox', {name: 'Method'}), 'POST');
     expect(input('Body')).toBeInTheDocument();
   });
 
@@ -360,37 +370,44 @@ describe('Uptime Alert Form', () => {
     await screen.findByText('Configure Request');
 
     // Select project 1
-    await selectEvent.openMenu(input('Project'));
-    expect(screen.getByRole('menuitemradio', {name: 'project-1'})).toBeInTheDocument();
-    expect(screen.getByRole('menuitemradio', {name: 'project-2'})).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'project-1'}));
+    await selectEvent.openMenu(screen.getByRole('combobox', {name: 'Project'}));
+    expect(screen.getByRole('option', {name: 'project-1'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'project-2'})).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('option', {name: 'project-1'}));
 
     // Verify correct envs
-    await selectEvent.openMenu(input('Environment'));
-    expect(screen.getByRole('menuitemradio', {name: 'dev-1'})).toBeInTheDocument();
-    expect(screen.getByRole('menuitemradio', {name: 'prod-1'})).toBeInTheDocument();
+    await selectEvent.openMenu(screen.getByRole('combobox', {name: 'Environment'}));
+    expect(screen.getByRole('option', {name: 'dev-1'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'prod-1'})).toBeInTheDocument();
 
     // Select project 2
-    await selectEvent.openMenu(input('Project'));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'project-2'}));
+    await selectEvent.openMenu(screen.getByRole('combobox', {name: 'Project'}));
+    await userEvent.click(screen.getByRole('option', {name: 'project-2'}));
 
     // Verify correct envs
-    await selectEvent.openMenu(input('Environment'));
-    expect(screen.getByRole('menuitemradio', {name: 'dev-2'})).toBeInTheDocument();
-    expect(screen.getByRole('menuitemradio', {name: 'prod-2'})).toBeInTheDocument();
+    await selectEvent.openMenu(screen.getByRole('combobox', {name: 'Environment'}));
+    expect(screen.getByRole('option', {name: 'dev-2'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'prod-2'})).toBeInTheDocument();
   });
 
   it('can create a new environment', async () => {
     render(<UptimeAlertForm />, {organization});
     await screen.findByText('Configure Request');
 
-    await selectEvent.select(input('Project'), project.slug);
-    await userEvent.type(input('Environment'), 'my-custom-env');
-    await userEvent.click(
-      screen.getByRole('menuitemradio', {name: 'Create "my-custom-env"'})
+    await selectEvent.select(
+      screen.getByRole('combobox', {name: 'Project'}),
+      project.slug
     );
+    await userEvent.type(
+      screen.getByRole('combobox', {name: 'Environment'}),
+      'my-custom-env'
+    );
+    await userEvent.click(screen.getByRole('option', {name: 'Create "my-custom-env"'}));
 
-    await selectEvent.select(input('Interval'), 'Every 10 minutes');
+    await selectEvent.select(
+      screen.getByRole('combobox', {name: 'Interval'}),
+      'Every 10 minutes'
+    );
 
     await userEvent.clear(input('URL'));
     await userEvent.type(input('URL'), 'http://example.com');
@@ -436,8 +453,11 @@ describe('Uptime Alert Form', () => {
     // Verify the Verification section is shown
     expect(screen.getByText('Verification')).toBeInTheDocument();
 
-    await selectEvent.select(input('Project'), project.slug);
-    await selectEvent.select(input('Environment'), 'prod');
+    await selectEvent.select(
+      screen.getByRole('combobox', {name: 'Project'}),
+      project.slug
+    );
+    await selectEvent.select(screen.getByRole('combobox', {name: 'Environment'}), 'prod');
     await userEvent.clear(input('URL'));
     await userEvent.type(input('URL'), 'http://example.com');
 
@@ -533,8 +553,11 @@ describe('Uptime Alert Form', () => {
     render(<UptimeAlertForm />, {organization});
     await screen.findByText('Verification');
 
-    await selectEvent.select(input('Project'), project.slug);
-    await selectEvent.select(input('Environment'), 'prod');
+    await selectEvent.select(
+      screen.getByRole('combobox', {name: 'Project'}),
+      project.slug
+    );
+    await selectEvent.select(screen.getByRole('combobox', {name: 'Environment'}), 'prod');
     await userEvent.clear(input('URL'));
     await userEvent.type(input('URL'), 'http://example.com');
 
@@ -582,8 +605,11 @@ describe('Uptime Alert Form', () => {
     render(<UptimeAlertForm />, {organization});
     await screen.findByText('Verification');
 
-    await selectEvent.select(input('Project'), project.slug);
-    await selectEvent.select(input('Environment'), 'prod');
+    await selectEvent.select(
+      screen.getByRole('combobox', {name: 'Project'}),
+      project.slug
+    );
+    await selectEvent.select(screen.getByRole('combobox', {name: 'Environment'}), 'prod');
     await userEvent.clear(input('URL'));
     await userEvent.type(input('URL'), 'http://example.com');
 

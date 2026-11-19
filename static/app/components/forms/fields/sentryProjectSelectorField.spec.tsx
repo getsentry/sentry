@@ -83,7 +83,7 @@ describe('SentryProjectSelectorField', () => {
       </Form>
     );
 
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('combobox');
 
     await selectEvent.select(input, 'project-a');
     expect(mock).toHaveBeenLastCalledWith(['1'], expect.anything());

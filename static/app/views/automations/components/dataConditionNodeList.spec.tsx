@@ -78,17 +78,13 @@ describe('DataConditionNodeList', () => {
       </AutomationBuilderTestProvider>,
       {organization}
     );
-    await userEvent.click(screen.getByRole('textbox', {name: 'Add condition'}));
+    await userEvent.click(screen.getByRole('combobox', {name: 'Add condition'}));
 
-    expect(screen.getAllByRole('menuitemradio')).toHaveLength(5);
-    expect(screen.getByRole('menuitemradio', {name: 'Issue age'})).toBeInTheDocument();
-    expect(
-      screen.getByRole('menuitemradio', {name: 'Issue priority'})
-    ).toBeInTheDocument();
-    expect(screen.getByRole('menuitemradio', {name: 'Issue type'})).toBeInTheDocument();
-    expect(
-      screen.getByRole('menuitemradio', {name: 'Number of events'})
-    ).toBeInTheDocument();
+    expect(screen.getAllByRole('option')).toHaveLength(5);
+    expect(screen.getByRole('option', {name: 'Issue age'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Issue priority'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Issue type'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Number of events'})).toBeInTheDocument();
   });
 
   it('adds conditions', async () => {
@@ -99,8 +95,8 @@ describe('DataConditionNodeList', () => {
       {organization}
     );
 
-    await userEvent.click(screen.getByRole('textbox', {name: 'Add condition'}));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Issue age'}));
+    await userEvent.click(screen.getByRole('combobox', {name: 'Add condition'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Issue age'}));
 
     expect(mockOnAddRow).toHaveBeenCalledWith(DataConditionType.AGE_COMPARISON);
   });
@@ -114,7 +110,7 @@ describe('DataConditionNodeList', () => {
     );
 
     // Wait until the request for tags is completed and the select is no longer disabled
-    const tagInput = await screen.findByRole('textbox', {name: 'Tag'});
+    const tagInput = await screen.findByRole('combobox', {name: 'Tag'});
     await waitFor(() => {
       expect(tagInput).toBeEnabled();
     });
@@ -144,9 +140,9 @@ describe('DataConditionNodeList', () => {
 
     expect(screen.getByRole('textbox', {name: 'Value'})).toBeInTheDocument();
 
-    const matchInput = await screen.findByRole('textbox', {name: 'Match type'});
+    const matchInput = await screen.findByRole('combobox', {name: 'Match type'});
     await userEvent.click(matchInput);
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'is set'}));
+    await userEvent.click(screen.getByRole('option', {name: 'is set'}));
 
     await waitFor(() => {
       expect(mockUpdateCondition).toHaveBeenCalledWith('1', {
@@ -177,9 +173,9 @@ describe('DataConditionNodeList', () => {
 
     expect(screen.getByRole('textbox', {name: 'Value'})).toBeInTheDocument();
 
-    const matchInput = await screen.findByRole('textbox', {name: 'Match type'});
+    const matchInput = await screen.findByRole('combobox', {name: 'Match type'});
     await userEvent.click(matchInput);
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'is set'}));
+    await userEvent.click(screen.getByRole('option', {name: 'is set'}));
 
     await waitFor(() => {
       expect(mockUpdateCondition).toHaveBeenCalledWith('1', {
@@ -303,9 +299,9 @@ describe('DataConditionNodeList', () => {
     );
 
     // Open dropdown
-    await userEvent.click(screen.getByRole('textbox', {name: 'Add condition'}));
+    await userEvent.click(screen.getByRole('combobox', {name: 'Add condition'}));
     // Find the "Number of events" option which should have a warning icon
-    const numberOfEventsOption = screen.getByRole('menuitemradio', {
+    const numberOfEventsOption = screen.getByRole('option', {
       name: 'Number of events',
     });
     // Hover over the warning icon within the "Number of events" option
@@ -338,25 +334,23 @@ describe('DataConditionNodeList', () => {
       );
 
       await userEvent.click(await screen.findByLabelText('Include or exclude'));
-      await userEvent.click(screen.getByRole('menuitemradio', {name: 'not equal to'}));
+      await userEvent.click(screen.getByRole('option', {name: 'not equal to'}));
 
       expect(mockUpdateCondition).toHaveBeenLastCalledWith('issue-category', {
         comparison: {value: 1, include: false},
       });
 
       await userEvent.click(await screen.findByLabelText('Issue category'));
-      expect(
-        screen.getByRole('menuitemradio', {name: 'configuration'})
-      ).toBeInTheDocument();
-      expect(screen.getByRole('menuitemradio', {name: 'preprod'})).toBeInTheDocument();
-      await userEvent.click(screen.getByRole('menuitemradio', {name: 'metric'}));
+      expect(screen.getByRole('option', {name: 'configuration'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'preprod'})).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('option', {name: 'metric'}));
 
       expect(mockUpdateCondition).toHaveBeenLastCalledWith('issue-category', {
         comparison: {value: 11, include: false},
       });
 
       await userEvent.click(await screen.findByLabelText('Issue category'));
-      await userEvent.click(screen.getByRole('menuitemradio', {name: 'configuration'}));
+      await userEvent.click(screen.getByRole('option', {name: 'configuration'}));
 
       expect(mockUpdateCondition).toHaveBeenLastCalledWith('issue-category', {
         comparison: {value: 19, include: false},
@@ -382,7 +376,7 @@ describe('DataConditionNodeList', () => {
 
       await userEvent.click(await screen.findByLabelText('Issue type'));
       await userEvent.click(
-        screen.getByRole('menuitemradio', {name: 'Issue Detected by Metric Monitor'})
+        screen.getByRole('option', {name: 'Issue Detected by Metric Monitor'})
       );
 
       expect(mockUpdateCondition).toHaveBeenLastCalledWith('issue-type', {
@@ -406,7 +400,7 @@ describe('DataConditionNodeList', () => {
 
       await userEvent.click(await screen.findByLabelText('Comparison type'));
       await userEvent.click(
-        screen.getByRole('menuitemradio', {name: 'relatively higher than...'})
+        screen.getByRole('option', {name: 'relatively higher than...'})
       );
 
       expect(mockUpdateCondition).toHaveBeenLastCalledWith('event-frequency', {

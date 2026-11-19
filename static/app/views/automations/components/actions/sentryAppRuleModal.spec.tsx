@@ -156,7 +156,7 @@ describe('SentryAppRuleModal', () => {
       await userEvent.type(descriptionInput, 'some description');
 
       await selectEvent.select(
-        screen.getByRole('textbox', {name: 'Team Channel'}),
+        screen.getByRole('combobox', {name: 'Team Channel'}),
         'valor'
       );
 
@@ -318,7 +318,7 @@ describe('SentryAppRuleModal', () => {
       await waitFor(() => expect(mockApi).toHaveBeenCalled());
 
       // Check if complexity options are loaded
-      const complexityInput = await screen.findByRole('textbox', {
+      const complexityInput = await screen.findByRole('combobox', {
         name: 'What is the estimated complexity?',
       });
 

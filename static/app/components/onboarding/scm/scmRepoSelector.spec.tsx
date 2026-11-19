@@ -1,4 +1,3 @@
-import {useVirtualizer} from '@tanstack/react-virtual';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 import {RepositoryFixture} from 'sentry-fixture/repository';
@@ -87,7 +86,7 @@ describe('ScmRepoSelector', () => {
     });
 
     expect(
-      screen.getByRole('textbox', {name: 'Search repositories'})
+      screen.getByRole('combobox', {name: 'Search repositories'})
     ).toBeInTheDocument();
   });
 
@@ -101,7 +100,7 @@ describe('ScmRepoSelector', () => {
       organization,
     });
 
-    await userEvent.click(screen.getByRole('textbox'));
+    await userEvent.click(screen.getByRole('combobox'));
 
     expect(
       await screen.findByText(
@@ -121,7 +120,7 @@ describe('ScmRepoSelector', () => {
       organization,
     });
 
-    await userEvent.click(screen.getByRole('textbox'));
+    await userEvent.click(screen.getByRole('combobox'));
 
     expect(
       await screen.findByText('Failed to load repositories. Please try again.')
@@ -143,12 +142,10 @@ describe('ScmRepoSelector', () => {
       organization,
     });
 
-    await userEvent.click(screen.getByRole('textbox'));
+    await userEvent.click(screen.getByRole('combobox'));
 
-    expect(
-      await screen.findByRole('menuitemradio', {name: 'sentry'})
-    ).toBeInTheDocument();
-    expect(screen.getByRole('menuitemradio', {name: 'relay'})).toBeInTheDocument();
+    expect(await screen.findByRole('option', {name: 'sentry'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'relay'})).toBeInTheDocument();
   });
 
   it('ranks exact name and token matches without searching the organization slug', async () => {
@@ -220,12 +217,10 @@ describe('ScmRepoSelector', () => {
       {organization}
     );
 
-    await userEvent.click(screen.getByRole('textbox'));
+    await userEvent.click(screen.getByRole('combobox'));
     await userEvent.keyboard('cli');
 
-    expect(
-      screen.getAllByRole('menuitemradio').map(option => option.textContent)
-    ).toEqual([
+    expect(screen.getAllByRole('option').map(option => option.textContent)).toEqual([
       'cli',
       'cli-tools',
       'sentry-cli',
@@ -233,7 +228,7 @@ describe('ScmRepoSelector', () => {
       'clickhouse-sdk',
       'clickhouse-backup',
     ]);
-    expect(screen.queryByRole('menuitemradio', {name: 'relay'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'relay'})).not.toBeInTheDocument();
 
     await userEvent.keyboard('{Enter}');
     expect(onRepositoryChange).toHaveBeenNthCalledWith(
@@ -259,36 +254,21 @@ describe('ScmRepoSelector', () => {
       organization,
     });
 
-    await userEvent.click(screen.getByRole('textbox'));
-
-    expect(useVirtualizer).toHaveBeenCalledWith(
-      expect.objectContaining({
-        paddingStart: 4,
-        paddingEnd: 4,
-        scrollPaddingStart: 4,
-        scrollPaddingEnd: 4,
-      })
-    );
-    const firstOption = screen.getByRole('menuitemradio', {name: 'repo-0'});
-    expect(firstOption.parentElement).toHaveStyle({transform: 'translateY(4px)'});
-    expect(firstOption.parentElement?.parentElement?.parentElement).toHaveStyle({
-      maxHeight: '296px',
-    });
-    expect(screen.getByRole('menuitemradio', {name: 'repo-7'}).parentElement).toHaveStyle(
-      {
-        transform: 'translateY(256px)',
-      }
-    );
+    await userEvent.click(screen.getByRole('combobox'));
 
     mockScrollToIndex.mockClear();
     await userEvent.keyboard(
       '{ArrowDown}{ArrowDown}{ArrowDown}{ArrowDown}{ArrowDown}{ArrowDown}{ArrowDown}{ArrowDown}{ArrowDown}{ArrowDown}'
     );
 
+    expect(screen.getByRole('combobox')).toHaveAttribute(
+      'aria-activedescendant',
+      screen.getByRole('option', {name: 'repo-10'}).id
+    );
     expect(mockScrollToIndex).toHaveBeenLastCalledWith(10, {align: 'auto'});
 
     mockScrollToIndex.mockClear();
-    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'repo-15'}));
+    await userEvent.hover(screen.getByRole('option', {name: 'repo-15'}));
     expect(mockScrollToIndex).not.toHaveBeenCalled();
   });
 
@@ -349,8 +329,8 @@ describe('ScmRepoSelector', () => {
       {organization}
     );
 
-    await userEvent.click(screen.getByRole('textbox'));
-    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'sentry'}));
+    await userEvent.click(screen.getByRole('combobox'));
+    await userEvent.click(await screen.findByRole('option', {name: 'sentry'}));
 
     await waitFor(() => expect(reposLookup).toHaveBeenCalled());
     expect(onRepositoryChange).toHaveBeenCalled();
@@ -389,8 +369,8 @@ describe('ScmRepoSelector', () => {
       {organization}
     );
 
-    await userEvent.click(screen.getByRole('textbox'));
-    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'sentry'}));
+    await userEvent.click(screen.getByRole('combobox'));
+    await userEvent.click(await screen.findByRole('option', {name: 'sentry'}));
 
     expect(trackAnalyticsSpy).toHaveBeenCalledWith(
       'project_creation.connect_repo_selected',
@@ -431,15 +411,11 @@ describe('ScmRepoSelector', () => {
 
     expect(screen.getByText('getsentry/old-repo')).toBeInTheDocument();
 
-    // react-select sets aria-hidden on the clear indicator, so the button has no
-    // role to query; reach it by its label. Activate it with Enter: a mouse click
-    // fires mousedown, which react-select already answers by refocusing the
-    // input, so only the keyboard path observes the refocus in handleChange.
-    (await screen.findByLabelText('Clear choices')).focus();
+    (await screen.findByRole('button', {name: 'Clear choices'})).focus();
     await userEvent.keyboard('{Enter}');
 
     await waitFor(() => expect(onRepositoryChange).toHaveBeenCalledWith(undefined));
-    expect(screen.getByRole('textbox', {name: 'Search repositories'})).toHaveFocus();
+    expect(screen.getByRole('combobox', {name: 'Search repositories'})).toHaveFocus();
   });
 
   it('does not duplicate selected repo when it appears in results', async () => {
@@ -468,16 +444,16 @@ describe('ScmRepoSelector', () => {
       {organization}
     );
 
-    await userEvent.click(screen.getByRole('textbox'));
+    await userEvent.click(screen.getByRole('combobox'));
 
-    expect(await screen.findByRole('menuitemradio', {name: 'relay'})).toBeInTheDocument();
-    expect(screen.getByRole('menuitemradio', {name: 'sentry'})).toBeInTheDocument();
+    expect(await screen.findByRole('option', {name: 'relay'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'sentry'})).toBeInTheDocument();
 
     // If the options-prepend logic fires incorrectly, it adds an extra option
     // with label 'getsentry/sentry' (selectedRepository.name) alongside the
     // result option with label 'sentry' (repo.name).
     expect(
-      screen.queryByRole('menuitemradio', {name: 'getsentry/sentry'})
+      screen.queryByRole('option', {name: 'getsentry/sentry'})
     ).not.toBeInTheDocument();
   });
 
@@ -519,11 +495,11 @@ describe('ScmRepoSelector', () => {
       {organization}
     );
 
-    await userEvent.click(screen.getByRole('textbox'));
-    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'sentry'}));
+    await userEvent.click(screen.getByRole('combobox'));
+    await userEvent.click(await screen.findByRole('option', {name: 'sentry'}));
 
     await waitFor(() => expect(onRepositoryChange).toHaveBeenCalled());
     expect(onClearDerivedState).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole('textbox', {name: 'Search repositories'})).toHaveFocus();
+    expect(screen.getByRole('combobox', {name: 'Search repositories'})).toHaveFocus();
   });
 });

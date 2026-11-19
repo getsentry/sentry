@@ -26,12 +26,12 @@ describe('PermissionSelection', () => {
         onChange={noop}
       />
     );
-    expect(await screen.findByRole('textbox', {name: 'Project'})).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: 'Team'})).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: 'Release'})).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: 'Issue & Event'})).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: 'Organization'})).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: 'Member'})).toBeInTheDocument();
+    expect(await screen.findByRole('combobox', {name: 'Project'})).toBeInTheDocument();
+    expect(screen.getByRole('combobox', {name: 'Team'})).toBeInTheDocument();
+    expect(screen.getByRole('combobox', {name: 'Release'})).toBeInTheDocument();
+    expect(screen.getByRole('combobox', {name: 'Issue & Event'})).toBeInTheDocument();
+    expect(screen.getByRole('combobox', {name: 'Organization'})).toBeInTheDocument();
+    expect(screen.getByRole('combobox', {name: 'Member'})).toBeInTheDocument();
     expect(
       screen.getByRole('checkbox', {name: 'Continuous Integration (CI)'})
     ).toBeInTheDocument();
@@ -46,10 +46,10 @@ describe('PermissionSelection', () => {
         onChange={noop}
       />
     );
-    await screen.findByRole('textbox', {name: 'Project'});
+    await screen.findByRole('combobox', {name: 'Project'});
     const expectOptions = async (name: string, options: string[]) => {
       for (const option of options) {
-        await selectEvent.select(screen.getByRole('textbox', {name}), option);
+        await selectEvent.select(screen.getByRole('combobox', {name}), option);
       }
     };
 
@@ -71,9 +71,9 @@ describe('PermissionSelection', () => {
         onChange={onChange}
       />
     );
-    await screen.findByRole('textbox', {name: 'Project'});
+    await screen.findByRole('combobox', {name: 'Project'});
     const selectByValue = (name: string, value: string) =>
-      selectEvent.select(screen.getByRole('textbox', {name}), value);
+      selectEvent.select(screen.getByRole('combobox', {name}), value);
 
     await selectByValue('Project', 'Read & Write');
     await selectByValue('Team', 'Read');
@@ -153,12 +153,12 @@ describe('PermissionSelection', () => {
         onChange={noop}
       />
     );
-    expect(screen.getByRole('textbox', {name: 'Project'})).toBeDisabled();
-    expect(screen.getByRole('textbox', {name: 'Team'})).toBeDisabled();
-    expect(screen.getByRole('textbox', {name: 'Release'})).toBeDisabled();
-    expect(screen.getByRole('textbox', {name: 'Issue & Event'})).toBeDisabled();
-    expect(screen.getByRole('textbox', {name: 'Organization'})).toBeDisabled();
-    expect(screen.getByRole('textbox', {name: 'Member'})).toBeDisabled();
+    expect(screen.getByRole('combobox', {name: 'Project'})).toBeDisabled();
+    expect(screen.getByRole('combobox', {name: 'Team'})).toBeDisabled();
+    expect(screen.getByRole('combobox', {name: 'Release'})).toBeDisabled();
+    expect(screen.getByRole('combobox', {name: 'Issue & Event'})).toBeDisabled();
+    expect(screen.getByRole('combobox', {name: 'Organization'})).toBeDisabled();
+    expect(screen.getByRole('combobox', {name: 'Member'})).toBeDisabled();
     expect(
       screen.getByRole('checkbox', {name: 'Continuous Integration (CI)'})
     ).toBeDisabled();
@@ -198,9 +198,11 @@ describe('PermissionSelection', () => {
         ]}
       />
     );
-    expect(screen.getByRole('textbox', {name: 'Project'})).toBeInTheDocument();
-    expect(screen.queryByRole('textbox', {name: 'Team'})).not.toBeInTheDocument();
-    expect(screen.queryByRole('textbox', {name: 'Organization'})).not.toBeInTheDocument();
+    expect(screen.getByRole('combobox', {name: 'Project'})).toBeInTheDocument();
+    expect(screen.queryByRole('combobox', {name: 'Team'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('combobox', {name: 'Organization'})
+    ).not.toBeInTheDocument();
   });
 
   it('renders permission errors', () => {

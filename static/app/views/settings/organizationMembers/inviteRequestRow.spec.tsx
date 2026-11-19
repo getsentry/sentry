@@ -215,14 +215,14 @@ describe('InviteRequestRow', () => {
     );
 
     // Select role from first select input
-    await selectEvent.select(screen.getAllByRole('textbox')[0]!, 'Member', {
+    await selectEvent.select(screen.getAllByRole('combobox')[0]!, 'Member', {
       container: document.body,
     });
     expect(mockUpdate).toHaveBeenCalledWith({role: 'member'});
 
     // Select teams from first select input
     expect(await screen.findByText('#myteam')).toBeInTheDocument();
-    await selectEvent.select(screen.getAllByRole('textbox')[1]!, ['#one'], {
+    await selectEvent.select(screen.getAllByRole('combobox')[1]!, ['#one'], {
       container: document.body,
     });
     expect(mockUpdate).toHaveBeenCalledWith({teams: ['myteam', 'one']});

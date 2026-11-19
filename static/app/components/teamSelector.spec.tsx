@@ -241,7 +241,7 @@ describe('Team Selector', () => {
       <TeamSelector allowCreate multiple value={['team1']} onChange={onChangeMock} />
     );
 
-    await selectEvent.select(screen.getByRole('textbox'), ['#team2', 'Create team']);
+    await selectEvent.select(screen.getByRole('combobox'), ['#team2', 'Create team']);
     // it opens the create team modal since the create team option is selected
     expect(openCreateTeamModal).toHaveBeenCalled();
   });

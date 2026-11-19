@@ -162,7 +162,7 @@ describe('Relocation', () => {
 
       await userEvent.type(screen.getByLabelText('org-slugs'), fakeOrgSlug);
       await userEvent.type(screen.getByLabelText('region'), fakeLocalities.Earth!.name);
-      await userEvent.click(screen.getByRole('menuitemradio'));
+      await userEvent.click(screen.getByRole('option'));
       expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled();
 
       await userEvent.click(screen.getByText('Got a promo code?', {exact: false}));
@@ -200,7 +200,7 @@ describe('Relocation', () => {
 
       await userEvent.type(screen.getByLabelText('org-slugs'), fakeOrgSlug);
       await userEvent.type(screen.getByLabelText('region'), fakeLocalities.Earth!.name);
-      await userEvent.click(screen.getByRole('menuitemradio'));
+      await userEvent.click(screen.getByRole('option'));
       expect(screen.getByRole('button', {name: 'Continue'})).toBeEnabled();
 
       await userEvent.click(screen.getByText('Got a promo code?', {exact: false}));
@@ -472,7 +472,7 @@ describe('Relocation', () => {
       await waitForRenderSuccess('get-started');
       await userEvent.type(screen.getByLabelText('org-slugs'), fakeOrgSlug);
       await userEvent.type(screen.getByLabelText('region'), fakeLocalities.Earth!.name);
-      await userEvent.click(screen.getByRole('menuitemradio'));
+      await userEvent.click(screen.getByRole('option'));
       await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
       await waitForRenderSuccess('upload-backup');
@@ -504,7 +504,7 @@ describe('Relocation', () => {
       await waitForRenderSuccess('get-started');
       await userEvent.type(screen.getByLabelText('org-slugs'), fakeOrgSlug);
       await userEvent.type(screen.getByLabelText('region'), fakeLocalities.Earth!.name);
-      await userEvent.click(screen.getByRole('menuitemradio'));
+      await userEvent.click(screen.getByRole('option'));
       await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
       await waitForRenderSuccess('upload-backup');
@@ -529,7 +529,7 @@ describe('Relocation', () => {
       await waitForRenderSuccess('get-started');
       await userEvent.type(screen.getByLabelText('org-slugs'), fakeOrgSlug);
       await userEvent.type(screen.getByLabelText('region'), fakeLocalities.Earth!.name);
-      await userEvent.click(screen.getByRole('menuitemradio'));
+      await userEvent.click(screen.getByRole('option'));
       await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
       await waitForRenderSuccess('upload-backup');
@@ -554,7 +554,7 @@ describe('Relocation', () => {
       await waitForRenderSuccess('get-started');
       await userEvent.type(screen.getByLabelText('org-slugs'), fakeOrgSlug);
       await userEvent.type(screen.getByLabelText('region'), fakeLocalities.Earth!.name);
-      await userEvent.click(screen.getByRole('menuitemradio'));
+      await userEvent.click(screen.getByRole('option'));
       await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
       await waitForRenderSuccess('upload-backup');
@@ -577,7 +577,7 @@ describe('Relocation', () => {
       await waitForRenderSuccess('get-started');
       await userEvent.type(screen.getByLabelText('org-slugs'), fakeOrgSlug);
       await userEvent.type(screen.getByLabelText('region'), fakeLocalities.Earth!.name);
-      await userEvent.click(screen.getByRole('menuitemradio'));
+      await userEvent.click(screen.getByRole('option'));
       await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
       await waitForRenderSuccess('upload-backup');

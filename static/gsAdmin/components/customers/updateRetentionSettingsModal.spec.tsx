@@ -19,12 +19,12 @@ describe('UpdateRetentionSettingsModal', () => {
   const organization = OrganizationFixture();
 
   function getSelect(name: string) {
-    return screen.getByRole('textbox', {name});
+    return screen.getByRole('combobox', {name});
   }
 
   function getSelectContainer(name: string) {
     // scope assertions to a single select, since several share option labels
-    return getSelect(name).closest<HTMLElement>('[class$="-container"]')!;
+    return getSelect(name).closest<HTMLElement>('[data-scraps-select]')!;
   }
 
   function expectSelectValue(name: string, value: string | null) {
@@ -117,9 +117,7 @@ describe('UpdateRetentionSettingsModal', () => {
 
     await selectEvent.openMenu(getSelect('Spans Standard'));
 
-    const options = screen
-      .getAllByRole('menuitemradio')
-      .map(option => option.textContent);
+    const options = screen.getAllByRole('option').map(option => option.textContent);
 
     expect(options).toEqual([
       '30 days',
@@ -163,9 +161,7 @@ describe('UpdateRetentionSettingsModal', () => {
 
     await selectEvent.openMenu(getSelect('Spans Downsampled'));
 
-    const options = screen
-      .getAllByRole('menuitemradio')
-      .map(option => option.textContent);
+    const options = screen.getAllByRole('option').map(option => option.textContent);
 
     // Downsampled fields get exactly the same choices as standard ones; there
     // is no longer a zero option, and 30 is the smallest selectable retention.
@@ -251,9 +247,7 @@ describe('UpdateRetentionSettingsModal', () => {
     // their mind can no longer restore what the subscription started with.
     await selectEvent.openMenu(getSelect('Logs Standard'));
 
-    const options = screen
-      .getAllByRole('menuitemradio')
-      .map(option => option.textContent);
+    const options = screen.getAllByRole('option').map(option => option.textContent);
 
     expect(options[0]).toBe('45 days (current)');
 

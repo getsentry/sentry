@@ -44,7 +44,7 @@ describe('SelectMembers', () => {
     );
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Member'}),
+      await screen.findByRole('combobox', {name: 'Member'}),
       'Project Member'
     );
 
@@ -73,7 +73,7 @@ describe('SelectMembers', () => {
     expect(screen.getByText('Project Member')).toBeInTheDocument();
     expect(screen.queryByText(projectUser.email)).not.toBeInTheDocument();
 
-    await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Member'}));
+    await selectEvent.openMenu(screen.getByRole('combobox', {name: 'Member'}));
     expect(screen.getByText(projectUser.email)).toBeInTheDocument();
     await userEvent.keyboard('{Escape}');
     expect(screen.getByText('Project Member')).toBeInTheDocument();
@@ -130,14 +130,14 @@ describe('SelectMembers', () => {
       {organization}
     );
 
-    const input = await screen.findByRole('textbox', {name: 'Member'});
+    const input = await screen.findByRole('combobox', {name: 'Member'});
     await waitFor(() => expect(projectMembersRequest).toHaveBeenCalled());
 
     await selectEvent.openMenu(input);
     await userEvent.type(input, 'outside');
 
     const outsideMemberOption = (await screen.findByText('Outside Member')).closest(
-      '[role="menuitemradio"]'
+      '[role="option"]'
     );
 
     expect(memberSearchRequest).toHaveBeenCalled();

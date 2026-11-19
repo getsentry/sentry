@@ -19,7 +19,7 @@ describe('DatadogCredentialsStep', () => {
     );
     expect(screen.getByLabelText('API Key')).toBeInTheDocument();
     expect(screen.getByLabelText('Application Key')).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: 'Datadog Site'})).toBeInTheDocument();
+    expect(screen.getByRole('combobox', {name: 'Datadog Site'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Continue'})).toBeInTheDocument();
   });
 
@@ -39,7 +39,7 @@ describe('DatadogCredentialsStep', () => {
 
     // Regional sites already carry their region as a subdomain, so no app. prefix.
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Datadog Site'}),
+      screen.getByRole('combobox', {name: 'Datadog Site'}),
       'us3.datadoghq.com (US3)'
     );
     expect(screen.getByRole('link', {name: /API Keys/})).toHaveAttribute(
@@ -53,7 +53,7 @@ describe('DatadogCredentialsStep', () => {
 
     // Primary sites take the app. prefix.
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Datadog Site'}),
+      screen.getByRole('combobox', {name: 'Datadog Site'}),
       'datadoghq.com (US1)'
     );
     expect(screen.getByRole('link', {name: /API Keys/})).toHaveAttribute(
@@ -71,7 +71,7 @@ describe('DatadogCredentialsStep', () => {
     render(<DatadogCredentialsStep {...makeStepProps({stepData: {}, advance})} />);
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Datadog Site'}),
+      screen.getByRole('combobox', {name: 'Datadog Site'}),
       'datadoghq.com (US1)'
     );
     await userEvent.type(screen.getByLabelText('API Key'), 'api-key');

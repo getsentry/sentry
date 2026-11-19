@@ -177,7 +177,7 @@ describe('Project Ownership', () => {
 
       render(<ProjectOwnership />, {organization, outletContext: {project}});
 
-      const select = await screen.findByRole('textbox', {
+      const select = await screen.findByRole('combobox', {
         name: 'Prioritize Auto Assignment',
       });
       const refresh = Promise.withResolvers<void>();
@@ -189,7 +189,7 @@ describe('Project Ownership', () => {
       });
       await userEvent.click(select);
       await userEvent.click(
-        screen.getByRole('menuitemradio', {name: 'Turn off auto-assignment'})
+        screen.getByRole('option', {name: 'Turn off auto-assignment'})
       );
 
       await waitFor(() => expect(refetchOwnership).toHaveBeenCalled());
@@ -214,11 +214,9 @@ describe('Project Ownership', () => {
       const autoAssignText = await screen.findByText('Auto-assign to suspect commits');
       expect(autoAssignText).toBeInTheDocument();
 
-      // The select input should be disabled - find the textbox closest to the label
-      const selectInput = autoAssignText
-        .closest('[class*="container"]')
-        ?.querySelector('input');
-      expect(selectInput).toBeDisabled();
+      expect(
+        screen.getByRole('combobox', {name: 'Prioritize Auto Assignment'})
+      ).toBeDisabled();
     });
 
     it('disables codeownersAutoSync when no codeowners exist', async () => {

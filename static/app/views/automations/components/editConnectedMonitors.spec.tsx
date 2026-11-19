@@ -543,12 +543,12 @@ describe('EditConnectedMonitors', () => {
       </Form>
     );
 
-    await selectEvent.select(await screen.findByRole('textbox'), project.slug);
+    await selectEvent.select(await screen.findByRole('combobox'), project.slug);
     await userEvent.click(screen.getByRole('button', {name: 'All Environments'}));
     expect(screen.queryByRole('option', {name: 'staging'})).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('option', {name: 'production'}));
 
-    await selectEvent.select(screen.getByRole('textbox'), otherProject.slug);
+    await selectEvent.select(screen.getByRole('combobox'), otherProject.slug);
 
     await userEvent.click(screen.getAllByLabelText('Remove item')[0]!);
     expect(screen.getByRole('button', {name: 'production'})).toBeInTheDocument();

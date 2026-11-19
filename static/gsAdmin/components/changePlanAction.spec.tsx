@@ -80,20 +80,24 @@ describe('ChangePlanAction', () => {
 
     // Selecting an AM3 plan shows its checkout categories (spans, not transactions)
     await userEvent.click(screen.getByRole('radio', {name: /am3_business\b/}));
-    expect(screen.getByRole('textbox', {name: 'Spans'})).toBeInTheDocument();
-    expect(screen.queryByRole('textbox', {name: 'Transactions'})).not.toBeInTheDocument();
+    expect(screen.getByRole('combobox', {name: 'Spans'})).toBeInTheDocument();
     expect(
-      screen.queryByRole('textbox', {name: 'Performance units'})
+      screen.queryByRole('combobox', {name: 'Transactions'})
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('textbox', {name: 'Continuous profile hours'})
+      screen.queryByRole('combobox', {name: 'Performance units'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('combobox', {name: 'Continuous profile hours'})
     ).not.toBeInTheDocument();
 
     // Selecting an AM2 plan swaps to its categories (performance units, not spans)
     await userEvent.click(screen.getByRole('radio', {name: /am2_business\b/}));
-    expect(screen.getByRole('textbox', {name: 'Performance units'})).toBeInTheDocument();
-    expect(screen.queryByRole('textbox', {name: 'Spans'})).not.toBeInTheDocument();
-    expect(screen.queryByRole('textbox', {name: 'Transactions'})).not.toBeInTheDocument();
+    expect(screen.getByRole('combobox', {name: 'Performance units'})).toBeInTheDocument();
+    expect(screen.queryByRole('combobox', {name: 'Spans'})).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('combobox', {name: 'Transactions'})
+    ).not.toBeInTheDocument();
   });
 
   it('switches between monthly and annual plans', async () => {
@@ -160,22 +164,25 @@ describe('ChangePlanAction', () => {
     await userEvent.click(await screen.findByRole('radio', {name: /am3_business\b/}));
 
     // Select reserved volumes
-    await selectEvent.select(screen.getByRole('textbox', {name: 'Errors'}), '100,000');
-    await selectEvent.select(screen.getByRole('textbox', {name: 'Replays'}), '50');
-    await selectEvent.select(screen.getByRole('textbox', {name: 'Spans'}), '10,000,000');
-    await selectEvent.select(screen.getByRole('textbox', {name: 'Cron monitors'}), '1');
-    await selectEvent.select(screen.getByRole('textbox', {name: 'Uptime monitors'}), '1');
+    await selectEvent.select(screen.getByRole('combobox', {name: 'Errors'}), '100,000');
+    await selectEvent.select(screen.getByRole('combobox', {name: 'Replays'}), '50');
+    await selectEvent.select(screen.getByRole('combobox', {name: 'Spans'}), '10,000,000');
+    await selectEvent.select(screen.getByRole('combobox', {name: 'Cron monitors'}), '1');
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Attachments (GB)'}),
+      screen.getByRole('combobox', {name: 'Uptime monitors'}),
       '1'
     );
-    await selectEvent.select(screen.getByRole('textbox', {name: 'Logs (GB)'}), '5');
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Size analysis builds'}),
+      screen.getByRole('combobox', {name: 'Attachments (GB)'}),
+      '1'
+    );
+    await selectEvent.select(screen.getByRole('combobox', {name: 'Logs (GB)'}), '5');
+    await selectEvent.select(
+      screen.getByRole('combobox', {name: 'Size analysis builds'}),
       '100'
     );
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Build distribution installs'}),
+      screen.getByRole('combobox', {name: 'Build distribution installs'}),
       '-1'
     );
 
@@ -201,22 +208,25 @@ describe('ChangePlanAction', () => {
 
     await userEvent.click(await screen.findByRole('radio', {name: /am3_business\b/}));
 
-    await selectEvent.select(screen.getByRole('textbox', {name: 'Errors'}), '100,000');
-    await selectEvent.select(screen.getByRole('textbox', {name: 'Replays'}), '50');
-    await selectEvent.select(screen.getByRole('textbox', {name: 'Spans'}), '10,000,000');
-    await selectEvent.select(screen.getByRole('textbox', {name: 'Cron monitors'}), '1');
-    await selectEvent.select(screen.getByRole('textbox', {name: 'Uptime monitors'}), '1');
+    await selectEvent.select(screen.getByRole('combobox', {name: 'Errors'}), '100,000');
+    await selectEvent.select(screen.getByRole('combobox', {name: 'Replays'}), '50');
+    await selectEvent.select(screen.getByRole('combobox', {name: 'Spans'}), '10,000,000');
+    await selectEvent.select(screen.getByRole('combobox', {name: 'Cron monitors'}), '1');
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Attachments (GB)'}),
+      screen.getByRole('combobox', {name: 'Uptime monitors'}),
       '1'
     );
-    await selectEvent.select(screen.getByRole('textbox', {name: 'Logs (GB)'}), '5');
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Size analysis builds'}),
+      screen.getByRole('combobox', {name: 'Attachments (GB)'}),
+      '1'
+    );
+    await selectEvent.select(screen.getByRole('combobox', {name: 'Logs (GB)'}), '5');
+    await selectEvent.select(
+      screen.getByRole('combobox', {name: 'Size analysis builds'}),
       '100'
     );
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Build distribution installs'}),
+      screen.getByRole('combobox', {name: 'Build distribution installs'}),
       '-1'
     );
 
@@ -334,28 +344,31 @@ describe('ChangePlanAction', () => {
       await userEvent.click(seerCheckbox);
 
       // Select required reserved volumes
-      await selectEvent.select(screen.getByRole('textbox', {name: 'Errors'}), '100,000');
-      await selectEvent.select(screen.getByRole('textbox', {name: 'Replays'}), '50');
+      await selectEvent.select(screen.getByRole('combobox', {name: 'Errors'}), '100,000');
+      await selectEvent.select(screen.getByRole('combobox', {name: 'Replays'}), '50');
       await selectEvent.select(
-        screen.getByRole('textbox', {name: 'Spans'}),
+        screen.getByRole('combobox', {name: 'Spans'}),
         '10,000,000'
       );
-      await selectEvent.select(screen.getByRole('textbox', {name: 'Cron monitors'}), '1');
       await selectEvent.select(
-        screen.getByRole('textbox', {name: 'Uptime monitors'}),
+        screen.getByRole('combobox', {name: 'Cron monitors'}),
         '1'
       );
       await selectEvent.select(
-        screen.getByRole('textbox', {name: 'Attachments (GB)'}),
+        screen.getByRole('combobox', {name: 'Uptime monitors'}),
         '1'
       );
-      await selectEvent.select(screen.getByRole('textbox', {name: 'Logs (GB)'}), '5');
       await selectEvent.select(
-        screen.getByRole('textbox', {name: 'Size analysis builds'}),
+        screen.getByRole('combobox', {name: 'Attachments (GB)'}),
+        '1'
+      );
+      await selectEvent.select(screen.getByRole('combobox', {name: 'Logs (GB)'}), '5');
+      await selectEvent.select(
+        screen.getByRole('combobox', {name: 'Size analysis builds'}),
         '100'
       );
       await selectEvent.select(
-        screen.getByRole('textbox', {name: 'Build distribution installs'}),
+        screen.getByRole('combobox', {name: 'Build distribution installs'}),
         '-1'
       );
 
@@ -389,28 +402,31 @@ describe('ChangePlanAction', () => {
       expect(seerCheckbox).not.toBeChecked();
 
       // Select required reserved volumes
-      await selectEvent.select(screen.getByRole('textbox', {name: 'Errors'}), '100,000');
-      await selectEvent.select(screen.getByRole('textbox', {name: 'Replays'}), '50');
+      await selectEvent.select(screen.getByRole('combobox', {name: 'Errors'}), '100,000');
+      await selectEvent.select(screen.getByRole('combobox', {name: 'Replays'}), '50');
       await selectEvent.select(
-        screen.getByRole('textbox', {name: 'Spans'}),
+        screen.getByRole('combobox', {name: 'Spans'}),
         '10,000,000'
       );
-      await selectEvent.select(screen.getByRole('textbox', {name: 'Cron monitors'}), '1');
       await selectEvent.select(
-        screen.getByRole('textbox', {name: 'Uptime monitors'}),
+        screen.getByRole('combobox', {name: 'Cron monitors'}),
         '1'
       );
       await selectEvent.select(
-        screen.getByRole('textbox', {name: 'Attachments (GB)'}),
+        screen.getByRole('combobox', {name: 'Uptime monitors'}),
         '1'
       );
-      await selectEvent.select(screen.getByRole('textbox', {name: 'Logs (GB)'}), '5');
       await selectEvent.select(
-        screen.getByRole('textbox', {name: 'Size analysis builds'}),
+        screen.getByRole('combobox', {name: 'Attachments (GB)'}),
+        '1'
+      );
+      await selectEvent.select(screen.getByRole('combobox', {name: 'Logs (GB)'}), '5');
+      await selectEvent.select(
+        screen.getByRole('combobox', {name: 'Size analysis builds'}),
         '100'
       );
       await selectEvent.select(
-        screen.getByRole('textbox', {name: 'Build distribution installs'}),
+        screen.getByRole('combobox', {name: 'Build distribution installs'}),
         '-1'
       );
 

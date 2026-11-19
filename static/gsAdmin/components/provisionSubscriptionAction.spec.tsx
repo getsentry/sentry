@@ -103,10 +103,10 @@ describe('provisionSubscriptionAction', () => {
     expect(getSpinbutton('Price for PCSS')).toBeInTheDocument();
     expect(getSpinbutton('Annual Contract Value')).toBeInTheDocument();
 
-    await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Plan'}));
+    await selectEvent.openMenu(screen.getByRole('combobox', {name: 'Plan'}));
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Plan'}),
+      screen.getByRole('combobox', {name: 'Plan'}),
       'Enterprise (Business) (am3_business_ent)'
     );
 
@@ -115,28 +115,28 @@ describe('provisionSubscriptionAction', () => {
     expect(screen.getAllByText(/Soft Cap Type/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Price for/).length).toBeGreaterThan(1);
 
-    await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Billing Interval'}));
+    await selectEvent.openMenu(screen.getByRole('combobox', {name: 'Billing Interval'}));
 
     ['Annual', 'Monthly'].forEach(plan =>
-      expect(screen.getByRole('menuitemradio', {name: plan})).toBeInTheDocument()
+      expect(screen.getByRole('option', {name: plan})).toBeInTheDocument()
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Billing Interval'}),
+      screen.getByRole('combobox', {name: 'Billing Interval'}),
       'Annual'
     );
 
-    await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Billing Type'}));
+    await selectEvent.openMenu(screen.getByRole('combobox', {name: 'Billing Type'}));
 
     ['Invoiced', 'Credit Card'].forEach(plan =>
-      expect(screen.getByRole('menuitemradio', {name: plan})).toBeInTheDocument()
+      expect(screen.getByRole('option', {name: plan})).toBeInTheDocument()
     );
 
     await selectEvent.openMenu(
-      screen.getByRole('textbox', {name: 'Soft Cap Type Errors'})
+      screen.getByRole('combobox', {name: 'Soft Cap Type Errors'})
     );
     ['On Demand', 'True Forward'].forEach(softCapType =>
-      expect(screen.getByRole('menuitemradio', {name: softCapType})).toBeInTheDocument()
+      expect(screen.getByRole('option', {name: softCapType})).toBeInTheDocument()
     );
 
     expect(screen.getByLabelText('Start Date')).toBeRequired();
@@ -163,7 +163,7 @@ describe('provisionSubscriptionAction', () => {
     loadModal();
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Plan'}),
+      screen.getByRole('combobox', {name: 'Plan'}),
       'Enterprise (Business) (am2_business_ent)'
     );
 
@@ -175,7 +175,7 @@ describe('provisionSubscriptionAction', () => {
     expect(screen.queryByLabelText('Price for Spans')).not.toBeInTheDocument();
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Plan'}),
+      screen.getByRole('combobox', {name: 'Plan'}),
       'Enterprise (Business) (am3_business_ent)'
     );
 
@@ -209,7 +209,7 @@ describe('provisionSubscriptionAction', () => {
         name: /Apply Changes at the End of the Current Billing/,
       })
     ).toBeDisabled();
-    expect(screen.getByRole('textbox', {name: 'Billing Interval'})).toBeDisabled();
+    expect(screen.getByRole('combobox', {name: 'Billing Interval'})).toBeDisabled();
   });
 
   it('select atPeriodEnd disables coterm and effectiveAt', async () => {
@@ -241,7 +241,7 @@ describe('provisionSubscriptionAction', () => {
     const container = modal.baseElement;
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Billing Type'}),
+      screen.getByRole('combobox', {name: 'Billing Type'}),
       'Credit Card'
     );
 
@@ -277,7 +277,7 @@ describe('provisionSubscriptionAction', () => {
     const container = modal.baseElement;
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Billing Type'}),
+      screen.getByRole('combobox', {name: 'Billing Type'}),
       'Invoiced'
     );
 
@@ -313,12 +313,12 @@ describe('provisionSubscriptionAction', () => {
     const container = modal.baseElement;
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Plan'}),
+      screen.getByRole('combobox', {name: 'Plan'}),
       'Enterprise (Business) (am3_business_ent)'
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Billing Type'}),
+      screen.getByRole('combobox', {name: 'Billing Type'}),
       'Invoiced'
     );
     expect(
@@ -326,7 +326,7 @@ describe('provisionSubscriptionAction', () => {
     ).not.toBeInTheDocument();
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Pay-as-you-go Max Spend Setting'}),
+      screen.getByRole('combobox', {name: 'Pay-as-you-go Max Spend Setting'}),
       'Shared'
     );
     expect(
@@ -334,7 +334,7 @@ describe('provisionSubscriptionAction', () => {
     ).toBeGreaterThan(0);
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Pay-as-you-go Max Spend Setting'}),
+      screen.getByRole('combobox', {name: 'Pay-as-you-go Max Spend Setting'}),
       'Disable'
     );
     expect(
@@ -352,7 +352,7 @@ describe('provisionSubscriptionAction', () => {
 
     loadModal();
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Plan'}),
+      screen.getByRole('combobox', {name: 'Plan'}),
       'Enterprise (Business) (am3_business_ent)'
     );
     const enabledSoftCapFields = screen.getAllByLabelText(/Soft Cap Type/);
@@ -360,11 +360,11 @@ describe('provisionSubscriptionAction', () => {
     enabledSoftCapFields.forEach(field => expect(field).toBeEnabled());
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Billing Type'}),
+      screen.getByRole('combobox', {name: 'Billing Type'}),
       'Invoiced'
     );
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Pay-as-you-go Max Spend Setting'}),
+      screen.getByRole('combobox', {name: 'Pay-as-you-go Max Spend Setting'}),
       'Shared'
     );
     const disabledSoftCapFields = screen.getAllByLabelText(/Soft Cap Type/);
@@ -382,15 +382,15 @@ describe('provisionSubscriptionAction', () => {
 
     loadModal();
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Plan'}),
+      screen.getByRole('combobox', {name: 'Plan'}),
       'Enterprise (Business) (am3_business_ent)'
     );
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Billing Type'}),
+      screen.getByRole('combobox', {name: 'Billing Type'}),
       'Invoiced'
     );
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Pay-as-you-go Max Spend Setting'}),
+      screen.getByRole('combobox', {name: 'Pay-as-you-go Max Spend Setting'}),
       'Disable'
     );
     const enabledSoftCapFields = screen.getAllByLabelText(/Soft Cap Type/);
@@ -410,7 +410,7 @@ describe('provisionSubscriptionAction', () => {
     const container = modal.baseElement;
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Plan'}),
+      screen.getByRole('combobox', {name: 'Plan'}),
       'Enterprise (Business) (am3_business_ent)'
     );
 
@@ -441,7 +441,7 @@ describe('provisionSubscriptionAction', () => {
     loadModal();
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Plan'}),
+      screen.getByRole('combobox', {name: 'Plan'}),
       'Enterprise (Business) (am3_business_ent)'
     );
     expect(screen.getByLabelText('Reserved Cost-Per-Event Issue Fixes')).toBeEnabled();
@@ -456,7 +456,7 @@ describe('provisionSubscriptionAction', () => {
     expect(screen.getByLabelText('Reserved Issue Scans')).toHaveValue(-2);
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Plan'}),
+      screen.getByRole('combobox', {name: 'Plan'}),
       'Enterprise (Business) (am2_business_ent)'
     );
     // the reserved CPEs were reset, so the reserved fields are editable again
@@ -597,7 +597,7 @@ describe('provisionSubscriptionAction', () => {
     expect(getSpinbutton('Price for PCSS')).toBeDisabled();
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Plan'}),
+      screen.getByRole('combobox', {name: 'Plan'}),
       'Enterprise (Business) (am1_business_ent)'
     );
 
@@ -622,26 +622,26 @@ describe('provisionSubscriptionAction', () => {
     loadModal();
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Plan'}),
+      screen.getByRole('combobox', {name: 'Plan'}),
       'Enterprise (Business) (am1_business_ent)'
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Billing Interval'}),
+      screen.getByRole('combobox', {name: 'Billing Interval'}),
       'Annual'
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Billing Type'}),
+      screen.getByRole('combobox', {name: 'Billing Type'}),
       'Invoiced'
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Soft Cap Type Errors'}),
+      screen.getByRole('combobox', {name: 'Soft Cap Type Errors'}),
       'On Demand'
     );
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Soft Cap Type Replays'}),
+      screen.getByRole('combobox', {name: 'Soft Cap Type Replays'}),
       'True Forward'
     );
     await clickCheckbox('Apply Changes To Current Subscription');
@@ -747,19 +747,19 @@ describe('provisionSubscriptionAction', () => {
     loadModal();
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Plan'}),
+      await screen.findByRole('combobox', {name: 'Plan'}),
       'Enterprise (Business) (am2_business_ent)'
     );
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Billing Interval'}),
+      await screen.findByRole('combobox', {name: 'Billing Interval'}),
       'Annual'
     );
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Billing Type'}),
+      await screen.findByRole('combobox', {name: 'Billing Type'}),
       'Invoiced'
     );
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
+      await screen.findByRole('combobox', {name: 'On-Demand Max Spend Setting'}),
       'Shared'
     );
     await clickCheckbox('Retain On-Demand Budget');
@@ -893,11 +893,11 @@ describe('provisionSubscriptionAction', () => {
     const container = modal.baseElement;
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Billing Type'}),
+      await screen.findByRole('combobox', {name: 'Billing Type'}),
       'Invoiced'
     );
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Pay-as-you-go Max Spend Setting'}),
+      await screen.findByRole('combobox', {name: 'Pay-as-you-go Max Spend Setting'}),
       'Shared'
     );
 
@@ -906,7 +906,7 @@ describe('provisionSubscriptionAction', () => {
     ).toBeInTheDocument();
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Pay-as-you-go Max Spend Setting'}),
+      await screen.findByRole('combobox', {name: 'Pay-as-you-go Max Spend Setting'}),
       'Per Category'
     );
 
@@ -915,12 +915,12 @@ describe('provisionSubscriptionAction', () => {
     ).not.toBeInTheDocument();
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Plan'}),
+      await screen.findByRole('combobox', {name: 'Plan'}),
       'Enterprise (Business) (am2_business_ent)'
     );
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Billing Interval'}),
+      await screen.findByRole('combobox', {name: 'Billing Interval'}),
       'Annual'
     );
 
@@ -1040,34 +1040,34 @@ describe('provisionSubscriptionAction', () => {
     loadModal();
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Plan'}),
+      await screen.findByRole('combobox', {name: 'Plan'}),
       'Enterprise (Business) (am2_business_ent)'
     );
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Billing Interval'}),
+      await screen.findByRole('combobox', {name: 'Billing Interval'}),
       'Annual'
     );
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Billing Type'}),
+      await screen.findByRole('combobox', {name: 'Billing Type'}),
       'Invoiced'
     );
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Soft Cap Type Errors'}),
+      await screen.findByRole('combobox', {name: 'Soft Cap Type Errors'}),
       'True Forward'
     );
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Soft Cap Type Replays'}),
+      await screen.findByRole('combobox', {name: 'Soft Cap Type Replays'}),
       'On Demand'
     );
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Soft Cap Type Cron Monitors'}),
+      await screen.findByRole('combobox', {name: 'Soft Cap Type Cron Monitors'}),
       'On Demand'
     );
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Soft Cap Type Uptime Monitors'}),
+      await screen.findByRole('combobox', {name: 'Soft Cap Type Uptime Monitors'}),
       'True Forward'
     );
 
@@ -1174,37 +1174,37 @@ describe('provisionSubscriptionAction', () => {
     await loadModal();
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Plan'}),
+      await screen.findByRole('combobox', {name: 'Plan'}),
       'Enterprise (Business) (am3_business_ent)'
     );
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Billing Interval'}),
+      await screen.findByRole('combobox', {name: 'Billing Interval'}),
       'Annual'
     );
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Billing Type'}),
+      await screen.findByRole('combobox', {name: 'Billing Type'}),
       'Invoiced'
     );
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Soft Cap Type Errors'}),
+      await screen.findByRole('combobox', {name: 'Soft Cap Type Errors'}),
       'On Demand'
     );
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Soft Cap Type Replays'}),
+      await screen.findByRole('combobox', {name: 'Soft Cap Type Replays'}),
       'True Forward'
     );
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Soft Cap Type Spans'}),
+      await screen.findByRole('combobox', {name: 'Soft Cap Type Spans'}),
       'On Demand'
     );
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Soft Cap Type Uptime Monitors'}),
+      await screen.findByRole('combobox', {name: 'Soft Cap Type Uptime Monitors'}),
       'True Forward'
     );
 
@@ -1314,22 +1314,22 @@ describe('provisionSubscriptionAction', () => {
     await loadModal();
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Plan'}),
+      await screen.findByRole('combobox', {name: 'Plan'}),
       'Enterprise (Business) (am3_business_ent)'
     );
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Billing Interval'}),
+      await screen.findByRole('combobox', {name: 'Billing Interval'}),
       'Annual'
     );
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Billing Type'}),
+      await screen.findByRole('combobox', {name: 'Billing Type'}),
       'Invoiced'
     );
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Pay-as-you-go Max Spend Setting'}),
+      await screen.findByRole('combobox', {name: 'Pay-as-you-go Max Spend Setting'}),
       'Disable'
     );
 
@@ -1442,7 +1442,7 @@ describe('provisionSubscriptionAction', () => {
     await loadModal();
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Plan'}),
+      await screen.findByRole('combobox', {name: 'Plan'}),
       'Enterprise (Business) (am3_business_ent)'
     );
 
@@ -1467,22 +1467,22 @@ describe('provisionSubscriptionAction', () => {
     await loadModal();
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Plan'}),
+      await screen.findByRole('combobox', {name: 'Plan'}),
       'Enterprise (Business) (am3_business_ent)'
     );
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Billing Interval'}),
+      await screen.findByRole('combobox', {name: 'Billing Interval'}),
       'Annual'
     );
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Billing Type'}),
+      await screen.findByRole('combobox', {name: 'Billing Type'}),
       'Invoiced'
     );
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Pay-as-you-go Max Spend Setting'}),
+      await screen.findByRole('combobox', {name: 'Pay-as-you-go Max Spend Setting'}),
       'Disable'
     );
 
@@ -1593,22 +1593,22 @@ describe('provisionSubscriptionAction', () => {
     await loadModal();
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Plan'}),
+      await screen.findByRole('combobox', {name: 'Plan'}),
       'Enterprise (Business) (am2_business_ent)'
     );
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Billing Interval'}),
+      await screen.findByRole('combobox', {name: 'Billing Interval'}),
       'Annual'
     );
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Billing Type'}),
+      await screen.findByRole('combobox', {name: 'Billing Type'}),
       'Invoiced'
     );
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'On-Demand Max Spend Setting'}),
+      await screen.findByRole('combobox', {name: 'On-Demand Max Spend Setting'}),
       'Shared'
     );
 
@@ -1729,17 +1729,17 @@ describe('provisionSubscriptionAction', () => {
     loadModal();
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Plan'}),
+      await screen.findByRole('combobox', {name: 'Plan'}),
       'Enterprise (Business) (am1_business_ent)'
     );
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Billing Interval'}),
+      await screen.findByRole('combobox', {name: 'Billing Interval'}),
       'Annual'
     );
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Billing Type'}),
+      await screen.findByRole('combobox', {name: 'Billing Type'}),
       'Invoiced'
     );
 
@@ -1784,17 +1784,17 @@ describe('provisionSubscriptionAction', () => {
     loadModal();
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Plan'}),
+      await screen.findByRole('combobox', {name: 'Plan'}),
       'Enterprise (Business) (am1_business_ent)'
     );
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Billing Interval'}),
+      await screen.findByRole('combobox', {name: 'Billing Interval'}),
       'Annual'
     );
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Billing Type'}),
+      await screen.findByRole('combobox', {name: 'Billing Type'}),
       'Invoiced'
     );
 
@@ -1907,7 +1907,7 @@ describe('provisionSubscriptionAction', () => {
     await loadModal();
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Plan'}),
+      await screen.findByRole('combobox', {name: 'Plan'}),
       'Enterprise (Business) (am1_business_ent)'
     );
 
@@ -1928,7 +1928,7 @@ describe('provisionSubscriptionAction', () => {
     await loadModal();
 
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Plan'}),
+      await screen.findByRole('combobox', {name: 'Plan'}),
       'Enterprise (Business) (am1_business_ent)'
     );
 
@@ -1953,22 +1953,22 @@ describe('provisionSubscriptionAction', () => {
       await loadModal();
 
       await selectEvent.select(
-        await screen.findByRole('textbox', {name: 'Plan'}),
+        await screen.findByRole('combobox', {name: 'Plan'}),
         'Enterprise (Business) (am3_business_ent)'
       );
 
       await selectEvent.select(
-        await screen.findByRole('textbox', {name: 'Billing Interval'}),
+        await screen.findByRole('combobox', {name: 'Billing Interval'}),
         'Annual'
       );
 
       await selectEvent.select(
-        await screen.findByRole('textbox', {name: 'Billing Type'}),
+        await screen.findByRole('combobox', {name: 'Billing Type'}),
         'Invoiced'
       );
 
       await selectEvent.select(
-        await screen.findByRole('textbox', {name: 'Pay-as-you-go Max Spend Setting'}),
+        await screen.findByRole('combobox', {name: 'Pay-as-you-go Max Spend Setting'}),
         'Disable'
       );
 
@@ -2021,17 +2021,17 @@ describe('provisionSubscriptionAction', () => {
       await loadModal();
 
       await selectEvent.select(
-        await screen.findByRole('textbox', {name: 'Plan'}),
+        await screen.findByRole('combobox', {name: 'Plan'}),
         'Enterprise (Business) (am3_business_ent)'
       );
 
       await selectEvent.select(
-        await screen.findByRole('textbox', {name: 'Billing Interval'}),
+        await screen.findByRole('combobox', {name: 'Billing Interval'}),
         'Annual'
       );
 
       await selectEvent.select(
-        await screen.findByRole('textbox', {name: 'Billing Type'}),
+        await screen.findByRole('combobox', {name: 'Billing Type'}),
         'Invoiced'
       );
 
@@ -2083,17 +2083,17 @@ describe('provisionSubscriptionAction', () => {
       await loadModal();
 
       await selectEvent.select(
-        await screen.findByRole('textbox', {name: 'Plan'}),
+        await screen.findByRole('combobox', {name: 'Plan'}),
         'Enterprise (Business) (am3_business_ent)'
       );
 
       await selectEvent.select(
-        await screen.findByRole('textbox', {name: 'Billing Interval'}),
+        await screen.findByRole('combobox', {name: 'Billing Interval'}),
         'Annual'
       );
 
       await selectEvent.select(
-        await screen.findByRole('textbox', {name: 'Billing Type'}),
+        await screen.findByRole('combobox', {name: 'Billing Type'}),
         'Invoiced'
       );
 

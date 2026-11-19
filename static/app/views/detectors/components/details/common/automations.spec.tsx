@@ -359,7 +359,7 @@ describe('DetectorDetailsAutomations', () => {
 
     // Fill in the drawer form — add an action
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Add action'}),
+      await screen.findByRole('combobox', {name: 'Add action'}),
       'Slack'
     );
     await userEvent.type(screen.getByRole('textbox', {name: 'Target'}), '#alerts');

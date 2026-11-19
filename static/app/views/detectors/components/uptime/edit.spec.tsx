@@ -59,8 +59,10 @@ describe('uptime/edit', () => {
     const name = screen.getByRole('textbox', {name: 'Uptime rule name'});
     expect(name).toHaveValue(uptimeRule.name);
 
-    await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Owner'}));
-    expect(screen.getByRole('menuitemradio', {name: 'Foo Bar'})).toBeChecked();
+    await selectEvent.openMenu(screen.getByRole('combobox', {name: 'Owner'}));
+    expect(
+      screen.getByRole('option', {name: 'Foo Bar', selected: true})
+    ).toBeInTheDocument();
   });
 
   it('can delete rule', async () => {

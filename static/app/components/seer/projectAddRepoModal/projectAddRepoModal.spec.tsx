@@ -82,11 +82,11 @@ describe('ProjectAddRepoModal', () => {
   it('keeps the agent dropdown enabled for a GitHub repo', async () => {
     openAddRepoModal();
 
-    expect(await screen.findByRole('textbox', {name: 'Handoff to Agent'})).toBeEnabled();
+    expect(await screen.findByRole('combobox', {name: 'Handoff to Agent'})).toBeEnabled();
 
     await addRepository(/getsentry\/sentry/);
 
-    expect(screen.getByRole('textbox', {name: 'Handoff to Agent'})).toBeEnabled();
+    expect(screen.getByRole('combobox', {name: 'Handoff to Agent'})).toBeEnabled();
     expect(screen.queryByText(NON_GITHUB_HANDOFF_WARNING)).not.toBeInTheDocument();
   });
 
@@ -96,15 +96,15 @@ describe('ProjectAddRepoModal', () => {
     await addRepository(/gitlab-repo/);
 
     await waitFor(() =>
-      expect(screen.getByRole('textbox', {name: 'Handoff to Agent'})).toBeDisabled()
+      expect(screen.getByRole('combobox', {name: 'Handoff to Agent'})).toBeDisabled()
     );
     expect(screen.getByText(NON_GITHUB_HANDOFF_WARNING)).toBeInTheDocument();
   });
 
   async function selectCodingAgent() {
-    await userEvent.click(screen.getByRole('textbox', {name: 'Handoff to Agent'}));
+    await userEvent.click(screen.getByRole('combobox', {name: 'Handoff to Agent'}));
     await userEvent.click(
-      await screen.findByRole('menuitemradio', {name: 'Cursor Cloud Agent'})
+      await screen.findByRole('option', {name: 'Cursor Cloud Agent'})
     );
   }
 
@@ -112,14 +112,14 @@ describe('ProjectAddRepoModal', () => {
     openAddRepoModal();
 
     // The user picks a coding agent.
-    await screen.findByRole('textbox', {name: 'Handoff to Agent'});
+    await screen.findByRole('combobox', {name: 'Handoff to Agent'});
     await selectCodingAgent();
     expect(screen.getByText('Cursor Cloud Agent')).toBeInTheDocument();
 
     // Adding a GitLab repo forces the selection to Seer and disables it.
     await addRepository(/gitlab-repo/);
     await waitFor(() =>
-      expect(screen.getByRole('textbox', {name: 'Handoff to Agent'})).toBeDisabled()
+      expect(screen.getByRole('combobox', {name: 'Handoff to Agent'})).toBeDisabled()
     );
     expect(screen.getByText('Seer')).toBeInTheDocument();
     expect(screen.queryByText('Cursor Cloud Agent')).not.toBeInTheDocument();
@@ -128,7 +128,7 @@ describe('ProjectAddRepoModal', () => {
     // prior coding-agent selection is not restored (hard reset).
     await userEvent.click(screen.getByRole('button', {name: 'Remove repository'}));
     await waitFor(() =>
-      expect(screen.getByRole('textbox', {name: 'Handoff to Agent'})).toBeEnabled()
+      expect(screen.getByRole('combobox', {name: 'Handoff to Agent'})).toBeEnabled()
     );
     expect(screen.getByText('Seer')).toBeInTheDocument();
     expect(screen.queryByText('Cursor Cloud Agent')).not.toBeInTheDocument();
@@ -155,7 +155,7 @@ describe('ProjectAddRepoModal', () => {
 
     await addRepository(/gitlab-repo/);
     await waitFor(() =>
-      expect(screen.getByRole('textbox', {name: 'Handoff to Agent'})).toBeDisabled()
+      expect(screen.getByRole('combobox', {name: 'Handoff to Agent'})).toBeDisabled()
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Save Project'}));

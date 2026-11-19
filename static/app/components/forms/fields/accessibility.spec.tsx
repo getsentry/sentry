@@ -203,7 +203,7 @@ describe('Field accessibility', () => {
     // Select field
     //
     // The input is a textbox, and we can test with `selectEvent`
-    const select = screen.getByRole('textbox', {name: 'My Select'});
+    const select = screen.getByRole('combobox', {name: 'My Select'});
 
     await selectEvent.select(select, ['Item 1']);
     expect(model.getValue('mySelectbox')).toBe('item1');
@@ -214,7 +214,7 @@ describe('Field accessibility', () => {
     // Multiple Select field
     //
     // The input is a textbox, and we can test with `selectEvent`
-    const multiSelect = screen.getByRole('textbox', {name: 'My Multiple Select'});
+    const multiSelect = screen.getByRole('combobox', {name: 'My Multiple Select'});
 
     await selectEvent.select(multiSelect, ['Item 1']);
     expect(model.getValue('myMultiSelectBox')).toEqual(['item1']);

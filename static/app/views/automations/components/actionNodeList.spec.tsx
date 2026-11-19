@@ -84,19 +84,17 @@ describe('ActionNodeList', () => {
       </AutomationBuilderTestProvider>,
       {organization}
     );
-    await userEvent.click(screen.getByRole('textbox', {name: 'Add action'}));
+    await userEvent.click(screen.getByRole('combobox', {name: 'Add action'}));
 
-    expect(screen.getAllByRole('menuitemradio')).toHaveLength(5);
-    expect(screen.getByRole('menuitemradio', {name: 'Slack'})).toBeInTheDocument();
+    expect(screen.getAllByRole('option')).toHaveLength(5);
+    expect(screen.getByRole('option', {name: 'Slack'})).toBeInTheDocument();
     expect(
-      screen.getByRole('menuitemradio', {name: 'Notify on preferred channel'})
+      screen.getByRole('option', {name: 'Notify on preferred channel'})
     ).toBeInTheDocument();
 
-    expect(screen.getByRole('menuitemradio', {name: 'Pagerduty'})).toBeInTheDocument();
-    expect(
-      screen.getByRole('menuitemradio', {name: 'My Sentry App'})
-    ).toBeInTheDocument();
-    expect(screen.getByRole('menuitemradio', {name: 'Jira'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Pagerduty'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'My Sentry App'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Jira'})).toBeInTheDocument();
   });
 
   it('does not show plugin actions in the dropdown', async () => {
@@ -118,11 +116,11 @@ describe('ActionNodeList', () => {
       </AutomationBuilderTestProvider>,
       {organization}
     );
-    await userEvent.click(screen.getByRole('textbox', {name: 'Add action'}));
+    await userEvent.click(screen.getByRole('combobox', {name: 'Add action'}));
 
-    expect(screen.getAllByRole('menuitemradio')).toHaveLength(5);
+    expect(screen.getAllByRole('option')).toHaveLength(5);
     expect(
-      screen.queryByRole('menuitemradio', {name: 'Legacy integrations'})
+      screen.queryByRole('option', {name: 'Legacy integrations'})
     ).not.toBeInTheDocument();
   });
 
@@ -133,8 +131,8 @@ describe('ActionNodeList', () => {
       </AutomationBuilderTestProvider>,
       {organization}
     );
-    await userEvent.click(screen.getByRole('textbox', {name: 'Add action'}));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Slack'}));
+    await userEvent.click(screen.getByRole('combobox', {name: 'Add action'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Slack'}));
 
     expect(mockOnAddRow).toHaveBeenCalledWith(slackActionHandler);
   });

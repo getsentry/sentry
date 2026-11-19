@@ -35,11 +35,11 @@ describe('OrganizationFeatureFlagsNewSecret', () => {
     });
 
     await userEvent.type(screen.getByLabelText('Secret'), SecretFixture().secret);
-    const providerDropdown = screen.getByRole('textbox', {
+    const providerDropdown = screen.getByRole('combobox', {
       name: 'Provider',
     });
     await userEvent.click(providerDropdown);
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'LaunchDarkly'}));
+    await userEvent.click(screen.getByRole('option', {name: 'LaunchDarkly'}));
     await userEvent.click(screen.getByRole('button', {name: 'Add Provider'}));
 
     expect(screen.getByRole('textbox', {name: 'Secret'})).toHaveValue(
@@ -75,11 +75,11 @@ describe('OrganizationFeatureFlagsNewSecret', () => {
     });
 
     await userEvent.type(screen.getByLabelText('Secret'), SecretFixture().secret);
-    const providerDropdown = screen.getByRole('textbox', {
+    const providerDropdown = screen.getByRole('combobox', {
       name: 'Provider',
     });
     await userEvent.click(providerDropdown);
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'LaunchDarkly'}));
+    await userEvent.click(screen.getByRole('option', {name: 'LaunchDarkly'}));
     await userEvent.click(screen.getByRole('button', {name: 'Add Provider'}));
 
     // Check that the error is displayed in an Alert component

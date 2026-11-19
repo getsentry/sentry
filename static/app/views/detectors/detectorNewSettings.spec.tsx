@@ -202,9 +202,9 @@ describe('DetectorEdit', () => {
       .closest('section')!;
     expect(within(projectSection).getByText(writableProject.slug)).toBeInTheDocument();
 
-    await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Select Project'}));
+    await selectEvent.openMenu(screen.getByRole('combobox', {name: 'Select Project'}));
     expect(
-      await screen.findByRole('menuitemradio', {
+      await screen.findByRole('option', {
         name: otherWritableProject.slug,
       })
     ).toBeInTheDocument();
@@ -760,7 +760,7 @@ describe('DetectorEdit', () => {
 
       // Switch to spans dataset to access span aggregates
       await userEvent.click(screen.getByText('Errors'));
-      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Spans'}));
+      await userEvent.click(await screen.findByRole('option', {name: 'Spans'}));
 
       // Change aggregate from count() to p75(span.duration)
       await userEvent.click(screen.getByRole('button', {name: 'count'}));
@@ -774,7 +774,7 @@ describe('DetectorEdit', () => {
 
       // Change dataset from Spans to Errors
       await userEvent.click(screen.getByText('Spans'));
-      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Errors'}));
+      await userEvent.click(await screen.findByRole('option', {name: 'Errors'}));
 
       await waitFor(() => {
         expect(screen.getByTestId('editable-text-label')).toHaveTextContent(
@@ -784,7 +784,7 @@ describe('DetectorEdit', () => {
 
       // Change interval from 1 hour to 4 hours
       await userEvent.click(screen.getByText('1 hour'));
-      await userEvent.click(screen.getByRole('menuitemradio', {name: '4 hours'}));
+      await userEvent.click(screen.getByRole('option', {name: '4 hours'}));
 
       await waitFor(() => {
         expect(screen.getByTestId('editable-text-label')).toHaveTextContent(
@@ -1214,9 +1214,9 @@ describe('DetectorEdit', () => {
       ).not.toBeInTheDocument();
 
       // Verify other datasets are still available
-      expect(screen.getByRole('menuitemradio', {name: 'Errors'})).toBeInTheDocument();
-      expect(screen.getByRole('menuitemradio', {name: 'Spans'})).toBeInTheDocument();
-      expect(screen.getByRole('menuitemradio', {name: 'Releases'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Errors'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Spans'})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Releases'})).toBeInTheDocument();
     });
 
     it('creates detector with dynamic detection and no resolution thresholds', async () => {
@@ -1240,15 +1240,15 @@ describe('DetectorEdit', () => {
 
       // Set sensitivity to High
       await userEvent.click(
-        screen.getByRole('textbox', {name: 'Level of responsiveness'})
+        screen.getByRole('combobox', {name: 'Level of responsiveness'})
       );
-      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'High'}));
+      await userEvent.click(await screen.findByRole('option', {name: 'High'}));
 
       // Set threshold type to Above
       await userEvent.click(
-        screen.getByRole('textbox', {name: 'Direction of anomaly movement'})
+        screen.getByRole('combobox', {name: 'Direction of anomaly movement'})
       );
-      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Above'}));
+      await userEvent.click(await screen.findByRole('option', {name: 'Above'}));
 
       await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
 
@@ -1315,7 +1315,7 @@ describe('DetectorEdit', () => {
 
       // Switch to Spans dataset to access apdex aggregate
       await userEvent.click(screen.getByText('Errors'));
-      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Spans'}));
+      await userEvent.click(await screen.findByRole('option', {name: 'Spans'}));
 
       // Change aggregate from count to apdex
       await userEvent.click(screen.getByRole('button', {name: 'count'}));
@@ -1608,7 +1608,7 @@ describe('DetectorEdit', () => {
       // Open dataset dropdown
       await userEvent.click(screen.getByText('Errors'));
 
-      expect(screen.getByRole('menuitemradio', {name: /Metrics/})).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: /Metrics/})).toBeInTheDocument();
     });
 
     it('auto-generates names using application metrics wording', () => {
@@ -1728,7 +1728,7 @@ describe('DetectorEdit', () => {
       );
 
       // Change method to POST
-      await selectEvent.select(screen.getByRole('textbox', {name: 'Method'}), 'POST');
+      await selectEvent.select(screen.getByRole('combobox', {name: 'Method'}), 'POST');
 
       // Add headers
       await pasteInto(
@@ -1837,7 +1837,7 @@ describe('DetectorEdit', () => {
         await screen.findByRole('textbox', {name: 'URL'}),
         'https://uptime.example.com'
       );
-      await selectEvent.select(screen.getByRole('textbox', {name: 'Method'}), 'POST');
+      await selectEvent.select(screen.getByRole('combobox', {name: 'Method'}), 'POST');
       await pasteInto(
         screen.getByRole('textbox', {name: 'Name of header 1'}),
         'Authorization'
@@ -2203,7 +2203,7 @@ describe('DetectorEdit', () => {
       });
 
       await selectEvent.select(
-        await screen.findByRole('textbox', {name: /^Schedule/}),
+        await screen.findByRole('combobox', {name: /^Schedule/}),
         'Interval'
       );
 

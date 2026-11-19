@@ -339,7 +339,7 @@ describe('SelectField', () => {
     render(<TestForm label="Favorite Fruit" />);
 
     expect(screen.getByText('Favorite Fruit')).toBeInTheDocument();
-    expect(screen.getByRole('textbox')).toBeInTheDocument();
+    expect(screen.getByRole('combobox')).toBeInTheDocument();
   });
 
   it('displays the selected value', () => {
@@ -351,18 +351,18 @@ describe('SelectField', () => {
   it('shows options when clicked', async () => {
     render(<TestForm label="Favorite Fruit" />);
 
-    await userEvent.click(screen.getByRole('textbox'));
+    await userEvent.click(screen.getByRole('combobox'));
 
-    expect(screen.getByRole('menuitemradio', {name: 'Apple'})).toBeInTheDocument();
-    expect(screen.getByRole('menuitemradio', {name: 'Banana'})).toBeInTheDocument();
-    expect(screen.getByRole('menuitemradio', {name: 'Cherry'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Apple'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Banana'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Cherry'})).toBeInTheDocument();
   });
 
   it('allows selecting an option', async () => {
     render(<TestForm label="Favorite Fruit" />);
 
-    await userEvent.click(screen.getByRole('textbox'));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Cherry'}));
+    await userEvent.click(screen.getByRole('combobox'));
+    await userEvent.click(screen.getByRole('option', {name: 'Cherry'}));
 
     expect(screen.getByText('Cherry')).toBeInTheDocument();
   });
@@ -398,7 +398,7 @@ it('shows an empty selection when the current object value has no matching optio
 
   render(<UnmatchedValueForm />);
 
-  expect(screen.getByRole('textbox')).toHaveValue('');
+  expect(screen.getByRole('combobox')).toHaveValue('');
   expect(screen.queryByText('Mango')).not.toBeInTheDocument();
 });
 
@@ -406,13 +406,13 @@ describe('SelectField disabled', () => {
   it('is disabled when disabled prop is true', () => {
     render(<TestForm label="Favorite Fruit" disabled />);
 
-    expect(screen.getByRole('textbox')).toBeDisabled();
+    expect(screen.getByRole('combobox')).toBeDisabled();
   });
 
   it('shows lock icon with tooltip when disabled is a string', async () => {
     render(<TestForm label="Favorite Fruit" disabled="Feature not available" />);
 
-    expect(screen.getByRole('textbox')).toBeDisabled();
+    expect(screen.getByRole('combobox')).toBeDisabled();
 
     // Lock icon should be visible
     const lockIcon = screen.getByRole('img', {name: 'Disabled'});
@@ -433,8 +433,8 @@ describe('SelectField auto-save', () => {
 
     render(<AutoSaveTestForm mutationFn={mutationFn} initialValue="apple" />);
 
-    await userEvent.click(screen.getByRole('textbox'));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Banana'}));
+    await userEvent.click(screen.getByRole('combobox'));
+    await userEvent.click(screen.getByRole('option', {name: 'Banana'}));
 
     expect(await screen.findByRole('status', {name: 'Saving fruit'})).toBeInTheDocument();
     expect(mutationFn).toHaveBeenCalledWith({fruit: 'banana'}, expect.anything());
@@ -445,8 +445,8 @@ describe('SelectField auto-save', () => {
 
     render(<AutoSaveTestForm mutationFn={mutationFn} initialValue="apple" />);
 
-    await userEvent.click(screen.getByRole('textbox'));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Banana'}));
+    await userEvent.click(screen.getByRole('combobox'));
+    await userEvent.click(screen.getByRole('option', {name: 'Banana'}));
 
     expect(await screen.findByTestId('icon-check-mark')).toBeInTheDocument();
     expect(mutationFn).toHaveBeenCalledWith({fruit: 'banana'}, expect.anything());
@@ -457,7 +457,7 @@ describe('SelectField auto-save', () => {
 
     render(<AutoSaveTestForm mutationFn={mutationFn} initialValue="apple" />);
 
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('combobox');
     await userEvent.click(input);
     await userEvent.keyboard('{ArrowDown}{Enter}');
 
@@ -473,11 +473,11 @@ describe('SelectField auto-save', () => {
 
     render(<AutoSaveTestForm mutationFn={mutationFn} initialValue="apple" />);
 
-    await userEvent.click(screen.getByRole('textbox'));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Banana'}));
+    await userEvent.click(screen.getByRole('combobox'));
+    await userEvent.click(screen.getByRole('option', {name: 'Banana'}));
 
     await waitFor(() => {
-      expect(screen.getByRole('textbox')).toBeDisabled();
+      expect(screen.getByRole('combobox')).toBeDisabled();
     });
   });
 
@@ -486,8 +486,8 @@ describe('SelectField auto-save', () => {
 
     render(<AutoSaveTestForm mutationFn={mutationFn} initialValue="apple" />);
 
-    await userEvent.click(screen.getByRole('textbox'));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Apple'}));
+    await userEvent.click(screen.getByRole('combobox'));
+    await userEvent.click(screen.getByRole('option', {name: 'Apple'}));
 
     expect(mutationFn).not.toHaveBeenCalled();
   });
@@ -497,34 +497,32 @@ describe('SelectField keyboard navigation', () => {
   it('opens menu with arrow down key', async () => {
     render(<TestForm label="Favorite Fruit" />);
 
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('combobox');
     await userEvent.click(input);
     await userEvent.keyboard('{Escape}'); // Close menu first
 
-    expect(screen.queryByRole('menuitemradio')).not.toBeInTheDocument();
+    expect(screen.queryByRole('option')).not.toBeInTheDocument();
 
     await userEvent.keyboard('{ArrowDown}');
 
-    expect(screen.getByRole('menuitemradio', {name: 'Apple'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Apple'})).toBeInTheDocument();
   });
 
   it('navigates options with arrow keys', async () => {
     render(<TestForm label="Favorite Fruit" />);
 
-    await userEvent.click(screen.getByRole('textbox'));
+    await userEvent.click(screen.getByRole('combobox'));
 
     // First option is focused by default
-    expect(screen.getByRole('menuitemradio', {name: 'Apple'})).toHaveClass(
+    expect(screen.getByRole('option', {name: 'Apple'})).toHaveClass('option--is-focused');
+
+    await userEvent.keyboard('{ArrowDown}');
+    expect(screen.getByRole('option', {name: 'Banana'})).toHaveClass(
       'option--is-focused'
     );
 
     await userEvent.keyboard('{ArrowDown}');
-    expect(screen.getByRole('menuitemradio', {name: 'Banana'})).toHaveClass(
-      'option--is-focused'
-    );
-
-    await userEvent.keyboard('{ArrowDown}');
-    expect(screen.getByRole('menuitemradio', {name: 'Cherry'})).toHaveClass(
+    expect(screen.getByRole('option', {name: 'Cherry'})).toHaveClass(
       'option--is-focused'
     );
   });
@@ -532,12 +530,12 @@ describe('SelectField keyboard navigation', () => {
   it('selects option with Enter key', async () => {
     render(<TestForm label="Favorite Fruit" />);
 
-    await userEvent.click(screen.getByRole('textbox'));
+    await userEvent.click(screen.getByRole('combobox'));
     await userEvent.keyboard('{ArrowDown}'); // Move to Banana
     await userEvent.keyboard('{Enter}');
 
     expect(screen.getByText('Banana')).toBeInTheDocument();
-    expect(screen.queryByRole('menuitemradio')).not.toBeInTheDocument();
+    expect(screen.queryByRole('option')).not.toBeInTheDocument();
   });
 
   it('keeps focus on the input after selecting an option with the keyboard', async () => {
@@ -548,13 +546,13 @@ describe('SelectField keyboard navigation', () => {
       </div>
     );
 
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('combobox');
     await userEvent.tab();
     await userEvent.keyboard('{ArrowDown}');
     await userEvent.keyboard('{ArrowDown}{Enter}');
 
     expect(screen.getByText('Banana')).toBeInTheDocument();
-    expect(screen.queryByRole('menuitemradio')).not.toBeInTheDocument();
+    expect(screen.queryByRole('option')).not.toBeInTheDocument();
     expect(input).toHaveFocus();
 
     await userEvent.tab();
@@ -564,12 +562,12 @@ describe('SelectField keyboard navigation', () => {
   it('closes menu with Escape key', async () => {
     render(<TestForm label="Favorite Fruit" />);
 
-    await userEvent.click(screen.getByRole('textbox'));
-    expect(screen.getByRole('menuitemradio', {name: 'Apple'})).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('combobox'));
+    expect(screen.getByRole('option', {name: 'Apple'})).toBeInTheDocument();
 
     await userEvent.keyboard('{Escape}');
 
-    expect(screen.queryByRole('menuitemradio')).not.toBeInTheDocument();
+    expect(screen.queryByRole('option')).not.toBeInTheDocument();
   });
 });
 
@@ -577,21 +575,21 @@ describe('SelectField filtering', () => {
   it('filters options when typing', async () => {
     render(<TestForm label="Favorite Fruit" />);
 
-    await userEvent.click(screen.getByRole('textbox'));
+    await userEvent.click(screen.getByRole('combobox'));
     await userEvent.keyboard('ban');
 
-    expect(screen.getByRole('menuitemradio', {name: 'Banana'})).toBeInTheDocument();
-    expect(screen.queryByRole('menuitemradio', {name: 'Apple'})).not.toBeInTheDocument();
-    expect(screen.queryByRole('menuitemradio', {name: 'Cherry'})).not.toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'Banana'})).toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'Apple'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'Cherry'})).not.toBeInTheDocument();
   });
 
   it('shows no options message when filter matches nothing', async () => {
     render(<TestForm label="Favorite Fruit" />);
 
-    await userEvent.click(screen.getByRole('textbox'));
+    await userEvent.click(screen.getByRole('combobox'));
     await userEvent.keyboard('xyz');
 
-    expect(screen.queryByRole('menuitemradio')).not.toBeInTheDocument();
+    expect(screen.queryByRole('option')).not.toBeInTheDocument();
     expect(screen.getByText('No options')).toBeInTheDocument();
   });
 });
@@ -629,7 +627,7 @@ describe('SelectField a11y', () => {
 
     await userEvent.click(screen.getByText('Favorite Fruit'));
 
-    expect(screen.getByRole('textbox')).toHaveFocus();
+    expect(screen.getByRole('combobox')).toHaveFocus();
   });
 
   it('includes required text for screen readers when required is true', () => {
@@ -648,7 +646,7 @@ describe('SelectField a11y', () => {
   it('has aria-invalid false by default', () => {
     render(<TestForm label="Favorite Fruit" />);
 
-    expect(screen.getByRole('textbox')).toHaveAttribute('aria-invalid', 'false');
+    expect(screen.getByRole('combobox')).toHaveAttribute('aria-invalid', 'false');
   });
 
   it('has aria-invalid true when validation fails', async () => {
@@ -658,7 +656,7 @@ describe('SelectField a11y', () => {
 
     render(<TestForm label="Favorite Fruit" validator={validationSchema} />);
 
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('combobox');
     await userEvent.click(input);
     await userEvent.tab(); // blur to trigger validation
 
@@ -712,7 +710,7 @@ describe('SelectField multiple', () => {
     render(<MultiTestForm label="Tags" />);
 
     expect(screen.getByText('Tags')).toBeInTheDocument();
-    expect(screen.getByRole('textbox')).toBeInTheDocument();
+    expect(screen.getByRole('combobox')).toBeInTheDocument();
   });
 
   it('displays selected values as chips', () => {
@@ -725,11 +723,11 @@ describe('SelectField multiple', () => {
   it('allows selecting multiple options', async () => {
     render(<MultiTestForm label="Tags" />);
 
-    await userEvent.click(screen.getByRole('textbox'));
-    await userEvent.click(screen.getByRole('menuitemcheckbox', {name: 'Tag 1'}));
+    await userEvent.click(screen.getByRole('combobox'));
+    await userEvent.click(screen.getByRole('option', {name: 'Tag 1'}));
 
     // Menu stays open for multi-select
-    await userEvent.click(screen.getByRole('menuitemcheckbox', {name: 'Tag 2'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Tag 2'}));
 
     // Close menu by pressing Escape
     await userEvent.keyboard('{Escape}');
@@ -752,13 +750,13 @@ describe('SelectField multiple', () => {
   it('is disabled when disabled prop is true', () => {
     render(<MultiTestForm label="Tags" disabled />);
 
-    expect(screen.getByRole('textbox')).toBeDisabled();
+    expect(screen.getByRole('combobox')).toBeDisabled();
   });
 
   it('shows lock icon with tooltip when disabled is a string', async () => {
     render(<MultiTestForm label="Tags" disabled="Feature not available" />);
 
-    expect(screen.getByRole('textbox')).toBeDisabled();
+    expect(screen.getByRole('combobox')).toBeDisabled();
 
     // Lock icon should be visible
     const lockIcon = screen.getByRole('img', {name: 'Disabled'});
@@ -848,14 +846,14 @@ describe('SelectField multiple auto-save', () => {
     render(<MultiAutoSaveTestForm mutationFn={mutationFn} initialValue={[]} />);
 
     // Open menu and select options
-    await userEvent.click(screen.getByRole('textbox'));
-    await userEvent.click(screen.getByRole('menuitemcheckbox', {name: 'Tag 1'}));
+    await userEvent.click(screen.getByRole('combobox'));
+    await userEvent.click(screen.getByRole('option', {name: 'Tag 1'}));
 
     // Should not have triggered save yet (menu is still open)
     expect(mutationFn).not.toHaveBeenCalled();
 
     // Select another option
-    await userEvent.click(screen.getByRole('menuitemcheckbox', {name: 'Tag 2'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Tag 2'}));
 
     // Still should not have triggered save
     expect(mutationFn).not.toHaveBeenCalled();
@@ -867,9 +865,9 @@ describe('SelectField multiple auto-save', () => {
     render(<MultiAutoSaveTestForm mutationFn={mutationFn} initialValue={[]} />);
 
     // Open menu and select options
-    await userEvent.click(screen.getByRole('textbox'));
-    await userEvent.click(screen.getByRole('menuitemcheckbox', {name: 'Tag 1'}));
-    await userEvent.click(screen.getByRole('menuitemcheckbox', {name: 'Tag 2'}));
+    await userEvent.click(screen.getByRole('combobox'));
+    await userEvent.click(screen.getByRole('option', {name: 'Tag 1'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Tag 2'}));
 
     // Close menu
     await userEvent.keyboard('{Escape}');
@@ -929,7 +927,7 @@ describe('SelectField multiple auto-save', () => {
     await userEvent.click(removeButtons[0]!);
 
     await waitFor(() => {
-      expect(screen.getByRole('textbox')).toBeDisabled();
+      expect(screen.getByRole('combobox')).toBeDisabled();
     });
   });
 });

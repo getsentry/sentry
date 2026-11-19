@@ -190,9 +190,9 @@ describe('IntegrationExternalMappingForm', () => {
     expect(postResponse).not.toHaveBeenCalled();
 
     // Open select and wait for options to load
-    await userEvent.click(screen.getByRole('textbox', {name: 'Sentry User'}));
-    await screen.findByRole('menuitemradio', {name: 'option1'});
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'option2'}));
+    await userEvent.click(screen.getByRole('combobox', {name: 'Sentry User'}));
+    await screen.findByRole('option', {name: 'option1'});
+    await userEvent.click(screen.getByRole('option', {name: 'option2'}));
 
     await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
 
@@ -227,8 +227,8 @@ describe('IntegrationExternalMappingForm', () => {
     expect(putResponse).not.toHaveBeenCalled();
 
     // Select option3 from the select
-    await userEvent.click(screen.getByRole('textbox'));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'option3'}));
+    await userEvent.click(screen.getByRole('combobox'));
+    await userEvent.click(screen.getByRole('option', {name: 'option3'}));
 
     await waitFor(() => {
       expect(baseProps.getBaseFormEndpoint).toHaveBeenCalledWith(
@@ -269,16 +269,16 @@ describe('IntegrationExternalMappingForm', () => {
     expect(await screen.findByText('option1')).toBeInTheDocument();
 
     // Select option3 (different from the initial teamId '1' = option1)
-    await userEvent.click(screen.getByRole('textbox'));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'option3'}));
+    await userEvent.click(screen.getByRole('combobox'));
+    await userEvent.click(screen.getByRole('option', {name: 'option3'}));
 
     await waitFor(() => {
       expect(putResponse).toHaveBeenCalledTimes(1);
     });
 
     // Now re-select option1 (the original value) — this should trigger another mutation
-    await userEvent.click(screen.getByRole('textbox'));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'option1'}));
+    await userEvent.click(screen.getByRole('combobox'));
+    await userEvent.click(screen.getByRole('option', {name: 'option1'}));
 
     await waitFor(() => {
       expect(putResponse).toHaveBeenCalledTimes(2);
@@ -303,18 +303,18 @@ describe('IntegrationExternalMappingForm', () => {
     );
 
     // Open select and wait for initial options
-    await userEvent.click(screen.getByRole('textbox', {name: 'Sentry User'}));
-    await screen.findByRole('menuitemradio', {name: 'option1'});
+    await userEvent.click(screen.getByRole('combobox', {name: 'Sentry User'}));
+    await screen.findByRole('option', {name: 'option1'});
 
     // Type a search query
-    await userEvent.type(screen.getByRole('textbox', {name: 'Sentry User'}), 'searched');
+    await userEvent.type(screen.getByRole('combobox', {name: 'Sentry User'}), 'searched');
 
     await waitFor(() => {
       expect(searchResponse).toHaveBeenCalled();
     });
 
     expect(
-      await screen.findByRole('menuitemradio', {name: 'searched-option'})
+      await screen.findByRole('option', {name: 'searched-option'})
     ).toBeInTheDocument();
   });
 
@@ -339,9 +339,9 @@ describe('IntegrationExternalMappingForm', () => {
     ).toBeInTheDocument();
 
     // Open the select and verify options are available
-    await userEvent.click(screen.getByRole('textbox', {name: 'Sentry User'}));
-    expect(screen.getByRole('menuitemradio', {name: 'option1'})).toBeInTheDocument();
-    expect(screen.getByRole('menuitemradio', {name: 'option2'})).toBeInTheDocument();
-    expect(screen.getByRole('menuitemradio', {name: 'option3'})).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('combobox', {name: 'Sentry User'}));
+    expect(screen.getByRole('option', {name: 'option1'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'option2'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'option3'})).toBeInTheDocument();
   });
 });

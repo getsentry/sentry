@@ -93,13 +93,13 @@ describe('Subscription > Notifications', () => {
     render(<Notifications subscription={subscription} />, {organization});
 
     expect(await screen.findByText('90%')).toBeInTheDocument();
-    const textbox = screen.getByRole('textbox', {
+    const textbox = screen.getByRole('combobox', {
       name: 'Subscription consumption',
     });
 
     await userEvent.click(textbox);
-    await userEvent.click(screen.getByRole('menuitemcheckbox', {name: '70%'}));
-    await userEvent.click(screen.getByRole('menuitemcheckbox', {name: '50%'}));
+    await userEvent.click(screen.getByRole('option', {name: '70%'}));
+    await userEvent.click(screen.getByRole('option', {name: '50%'}));
     expect(screen.getByRole('button', {name: 'Reset'})).toBeEnabled();
     await userEvent.click(document.body); // click outside to close the dropdown
     expect(screen.getByText('70%')).toBeInTheDocument();
@@ -119,12 +119,12 @@ describe('Subscription > Notifications', () => {
 
     expect(await screen.findByText('On-Demand consumption')).toBeInTheDocument();
 
-    const onDemandInput = screen.getByRole('textbox', {
+    const onDemandInput = screen.getByRole('combobox', {
       name: 'On-Demand consumption',
     });
     await userEvent.click(onDemandInput);
-    await userEvent.click(screen.getByRole('menuitemcheckbox', {name: '80%'}));
-    await userEvent.click(screen.getByRole('menuitemcheckbox', {name: '50%'}));
+    await userEvent.click(screen.getByRole('option', {name: '80%'}));
+    await userEvent.click(screen.getByRole('option', {name: '50%'}));
 
     // Close the menu, then submit — defaultFormOptions validates on submit
     await userEvent.keyboard('{Escape}');
@@ -146,11 +146,11 @@ describe('Subscription > Notifications', () => {
 
     expect(await screen.findByText('90%')).toBeInTheDocument();
     await userEvent.click(
-      screen.getByRole('textbox', {
+      screen.getByRole('combobox', {
         name: 'Subscription consumption',
       })
     );
-    await userEvent.click(screen.getByRole('menuitemcheckbox', {name: '60%'}));
+    await userEvent.click(screen.getByRole('option', {name: '60%'}));
     await userEvent.click(screen.getByRole('button', {name: 'Save changes'}));
 
     expect(postMock).toHaveBeenCalledWith(

@@ -1,5 +1,16 @@
-import {createFilter as createReactSelectFilter} from './reactSelectWrapper';
 import type {SelectValue} from './types';
+
+function normalize(text: string) {
+  return text
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .replaceAll('æ', 'ae')
+    .replaceAll('œ', 'oe')
+    .replaceAll('ø', 'o')
+    .replaceAll('ł', 'l');
+}
 
 export function createFilter<
   TValue = unknown,
@@ -7,19 +18,11 @@ export function createFilter<
 >(config?: {
   stringify: (option: TOption) => string;
 }): (option: TOption, input: string) => boolean {
-  const filter = createReactSelectFilter({
-    stringify: ({data}: {data: TOption}) =>
-      config?.stringify(data) ??
-      data.textValue ??
-      `${typeof data.label === 'string' || typeof data.label === 'number' ? data.label : ''} ${data.value}`,
-  });
-  return (option, input) =>
-    filter(
-      {
-        data: option,
-        label: typeof option.label === 'string' ? option.label : '',
-        value: String(option.value),
-      },
-      input
-    );
+  return (option, input) => {
+    const text =
+      config?.stringify(option) ??
+      option.textValue ??
+      `${typeof option.label === 'string' || typeof option.label === 'number' ? option.label : ''} ${option.value}`;
+    return normalize(text).includes(normalize(input));
+  };
 }

@@ -20,9 +20,9 @@ describe('legacy SelectField options', () => {
     );
 
     expect(screen.getByText('Choose fruit')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('textbox', {name: 'Fruit'}));
-    expect(screen.getAllByRole('menuitemradio')).toHaveLength(2);
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Apple'}));
+    await userEvent.click(screen.getByRole('combobox', {name: 'Fruit'}));
+    expect(screen.getAllByRole('option')).toHaveLength(2);
+    await userEvent.click(screen.getByRole('option', {name: 'Apple'}));
     expect(onChange).toHaveBeenCalledWith('apple', expect.anything());
   });
 
@@ -76,8 +76,8 @@ describe('legacy SelectField options', () => {
     );
 
     expect(screen.getByText('Apple')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('textbox', {name: 'Fruit'}));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Cherry'}));
+    await userEvent.click(screen.getByRole('combobox', {name: 'Fruit'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Cherry'}));
 
     expect(onChange).toHaveBeenCalledWith('cherry', expect.anything());
   });
@@ -93,8 +93,11 @@ describe('legacy SelectField options', () => {
     );
 
     expect(screen.getByText('Selected fruit')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('textbox', {name: 'Fruit'}));
-    expect(screen.getByRole('menuitemradio', {name: 'Selected fruit'})).toBeChecked();
+    await userEvent.click(screen.getByRole('combobox', {name: 'Fruit'}));
+    expect(screen.getByRole('option', {name: 'Selected fruit'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
   });
 
   it('prefers explicit options for both the selected value and the menu', async () => {
@@ -109,11 +112,12 @@ describe('legacy SelectField options', () => {
     );
 
     expect(screen.getByText('Apple')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('textbox', {name: 'Fruit'}));
-    expect(screen.getByRole('menuitemradio', {name: 'Apple'})).toBeChecked();
-    expect(
-      screen.queryByRole('menuitemradio', {name: 'Legacy choice'})
-    ).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('combobox', {name: 'Fruit'}));
+    expect(screen.getByRole('option', {name: 'Apple'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+    expect(screen.queryByRole('option', {name: 'Legacy choice'})).not.toBeInTheDocument();
   });
 
   it('supports creatable fields without predefined choices', () => {

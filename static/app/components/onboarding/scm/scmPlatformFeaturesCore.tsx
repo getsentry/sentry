@@ -403,7 +403,7 @@ export function ScmPlatformFeaturesCore({
     container: base => ({...base, width: '100%'}),
     menu: base => ({
       ...base,
-      '& [role="menuitemradio"]': {
+      '& [role="option"]': {
         paddingLeft: theme.space.md,
       },
     }),

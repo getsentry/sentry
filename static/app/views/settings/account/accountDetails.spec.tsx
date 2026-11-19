@@ -70,7 +70,7 @@ describe('AccountDetails', () => {
       document.body.classList.add('theme-light');
 
       await userEvent.click(screen.getByText('Light'));
-      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Dark'}));
+      await userEvent.click(await screen.findByRole('option', {name: 'Dark'}));
 
       await waitFor(() => {
         expect(mockUserUpdate).toHaveBeenCalledWith(

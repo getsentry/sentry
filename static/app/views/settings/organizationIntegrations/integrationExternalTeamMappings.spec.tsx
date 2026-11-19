@@ -88,9 +88,7 @@ describe('IntegrationExternalTeamMappings', () => {
     await userEvent.type(selectInputs[selectInputs.length - 1]!, 'far');
 
     // Select far-away-team from search results
-    await userEvent.click(
-      await screen.findByRole('menuitemradio', {name: 'far-away-team'})
-    );
+    await userEvent.click(await screen.findByRole('option', {name: 'far-away-team'}));
 
     // Submit the modal form
     await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));

@@ -1,109 +1,114 @@
 import type * as React from 'react';
-import {Fragment} from 'react';
-import {ClassNames} from '@emotion/react';
-import styled from '@emotion/styled';
+import {Fragment, useRef} from 'react';
+import {ClassNames, type CSSObject} from '@emotion/react';
+import {useListBoxSection, useOption} from '@react-aria/listbox';
+import {mergeProps, mergeRefs} from '@react-aria/utils';
+import type {ListState} from '@react-stately/list';
 import {IconAdd} from '@sentry/icons/add';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 
-import {ListItem} from '@sentry/scraps/menu';
+import {ListItem, SectionGroup, SectionList} from '@sentry/scraps/menu';
+import type {FormSize} from '@sentry/scraps/theme';
+import type {VirtualRow} from '@sentry/scraps/useVirtualCollection';
 
-import type {components as selectComponents} from './reactSelectWrapper';
-import type {BaseSelectProps} from './select';
 import {CheckWrap} from './styles';
-import type {SelectValue} from './types';
+import type {SelectComponents, SelectValue, StylesConfig} from './types';
 
-type Props<TValue, TOption extends SelectValue<TValue>> = Omit<
-  React.ComponentProps<typeof selectComponents.Option>,
-  'selectProps' | 'data'
-> & {
-  data: TOption & {__isNew__?: boolean; selectionMode?: 'single' | 'multiple'};
-  selectProps: Pick<
-    BaseSelectProps<TValue, TOption>,
-    'showCreateOptionIcon' | 'showDividers'
-  > & {
-    contentComponents?: BaseSelectProps<TValue, TOption>['components'];
-    size?: BaseSelectProps<TValue, TOption>['size'];
-  };
-};
-
-export function SelectOption<TValue, TOption extends SelectValue<TValue>>(
-  props: Props<TValue, TOption>
-) {
+export function SelectOption<TValue, TOption extends SelectValue<TValue>>({
+  row,
+  state,
+  option,
+  size,
+  multiple,
+  virtualized,
+  showDividers,
+  showCreateOptionIcon,
+  OptionLabel,
+  styleOption,
+  create,
+}: {
+  create: boolean;
+  multiple: boolean;
+  option: TOption | undefined;
+  row: VirtualRow<unknown>;
+  size: FormSize;
+  state: ListState<unknown>;
+  virtualized: boolean;
+  OptionLabel?: SelectComponents<TOption>['OptionLabel'];
+  showCreateOptionIcon?: boolean;
+  showDividers?: boolean;
+  styleOption?: StylesConfig<TValue, TOption>['option'];
+}) {
+  const ref = useRef<HTMLLIElement>(null);
   const {
-    label,
-    data,
-    selectProps,
-    isMulti,
+    optionProps,
+    labelProps,
+    descriptionProps,
     isSelected,
     isFocused,
+    isPressed,
     isDisabled,
-    innerProps,
-    innerRef,
-  } = props;
-  const {showDividers, size = 'md'} = selectProps;
-  const leadingItems =
-    typeof data.leadingItems === 'function'
-      ? data.leadingItems({disabled: isDisabled, isFocused, isSelected})
-      : data.leadingItems;
-  const OptionLabel = selectProps.contentComponents?.OptionLabel;
-  const renderedLabel = OptionLabel ? <OptionLabel option={data} /> : label;
-  const {value, selectionMode, priority, ...itemProps} = data;
-
-  const isMultiple = selectionMode == null ? isMulti : selectionMode === 'multiple';
-
-  // Unless the priority prop is explicitly defined, use 'default' for all items.
-  const itemPriority = priority ?? 'default';
-  const innerWrapProps: React.ComponentProps<typeof ListItem>['innerWrapProps'] & {
-    'data-test-id'?: string;
-  } = {'data-test-id': value == null ? undefined : String(value)};
+  } = useOption(
+    {key: row.node.key, isVirtualized: virtualized, shouldUseVirtualFocus: true},
+    state,
+    ref
+  );
+  const leading =
+    typeof option?.leadingItems === 'function'
+      ? option.leadingItems({disabled: isDisabled, isFocused, isSelected})
+      : option?.leadingItems;
+  const label =
+    OptionLabel && option ? <OptionLabel option={option} /> : row.node.rendered;
 
   return (
     <ClassNames>
-      {({cx}) => (
+      {({css, cx}) => (
         <ListItem
-          {...itemProps}
+          {...option}
+          {...mergeProps(optionProps, {
+            onClick: (event: React.MouseEvent) => event.preventDefault(),
+          })}
+          {...row.props}
+          ref={mergeRefs<HTMLLIElement>(ref, row.props?.ref)}
           {...{
-            ...innerProps,
-            role: isMultiple ? 'menuitemcheckbox' : 'menuitemradio',
-            'aria-checked': isSelected,
-            className: cx({
-              option: true,
-              'option--is-disabled': isDisabled,
-              'option--is-focused': isFocused,
-              'option--is-selected': isSelected,
-            }),
-            value,
-            showDivider: showDividers,
+            className: cx(
+              {
+                option: true,
+                'option--is-selected': isSelected,
+                'option--is-focused': isFocused,
+                'option--is-disabled': isDisabled,
+              },
+              option &&
+                styleOption &&
+                css(styleOption({}, {data: option, isDisabled, isSelected}))
+            ),
           }}
-          ref={innerRef}
-          as="div"
-          label={renderedLabel}
+          data-test-id={option?.value == null ? undefined : String(option.value)}
+          label={label}
+          labelProps={labelProps}
+          detailsProps={descriptionProps}
           disabled={isDisabled}
           isFocused={isFocused}
-          priority={itemPriority}
+          isSelected={isSelected}
+          isPressed={isPressed}
+          {...{showDivider: showDividers}}
           size={size}
-          innerWrapProps={innerWrapProps}
-          labelProps={{as: typeof renderedLabel === 'string' ? 'p' : 'div'}}
           leadingItems={
-            itemProps.__isNew__ && selectProps.showCreateOptionIcon !== false ? (
-              <Fragment>
+            <Fragment>
+              {create && showCreateOptionIcon !== false ? (
                 <IconAdd size="sm" />
-                {leadingItems}
-              </Fragment>
-            ) : (
-              <Fragment>
-                <CheckWrap isMultiple={isMultiple} isSelected={isSelected} size={size}>
-                  {isSelected && (
-                    <StyledIconCheckmark
-                      size={isMultiple ? 'xs' : 'sm'}
-                      isMultiple={isMultiple}
-                    />
-                  )}
+              ) : (
+                <CheckWrap
+                  aria-hidden="true"
+                  isMultiple={multiple}
+                  isSelected={isSelected}
+                  size={size}
+                >
+                  {isSelected && <IconCheckmark size={multiple ? 'xs' : 'sm'} />}
                 </CheckWrap>
-
-                {leadingItems}
-              </Fragment>
-            )
+              )}
+              {leading}
+            </Fragment>
           }
         />
       )}
@@ -111,8 +116,27 @@ export function SelectOption<TValue, TOption extends SelectValue<TValue>>(
   );
 }
 
-const StyledIconCheckmark = styled(IconCheckmark, {
-  shouldForwardProp: prop => prop !== 'isMultiple',
-})<{isMultiple: boolean}>`
-  color: ${p => (p.isMultiple ? p.theme.colors.white : undefined)};
-`;
+export function SelectSection({
+  row,
+  headingStyle,
+  children,
+}: {
+  children: React.ReactNode;
+  headingStyle: CSSObject;
+  row: VirtualRow<unknown>;
+}) {
+  const heading = row.node.rendered;
+  const {itemProps, headingProps, groupProps} = useListBoxSection({heading});
+  return (
+    <SectionGroup {...itemProps}>
+      <div {...row.props}>
+        {heading && (
+          <div {...headingProps} css={headingStyle}>
+            {heading}
+          </div>
+        )}
+      </div>
+      <SectionList {...groupProps}>{children}</SectionList>
+    </SectionGroup>
+  );
+}

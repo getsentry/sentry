@@ -83,9 +83,9 @@ describe('AddCodeOwnerModal', () => {
       />
     );
 
-    await userEvent.click(await screen.findByRole('textbox'));
+    await userEvent.click(await screen.findByRole('combobox'));
     await userEvent.click(
-      await screen.findByRole('menuitemradio', {
+      await screen.findByRole('option', {
         name: `Repo Name: ${codeMapping.repoName}, Stack Trace Root: ${codeMapping.stackRoot}, Source Code Root: ${codeMapping.sourceRoot}`,
       })
     );
@@ -117,9 +117,9 @@ describe('AddCodeOwnerModal', () => {
       />
     );
 
-    await userEvent.click(await screen.findByRole('textbox'));
+    await userEvent.click(await screen.findByRole('combobox'));
     await userEvent.click(
-      await screen.findByRole('menuitemradio', {
+      await screen.findByRole('option', {
         name: `Repo Name: ${codeMapping.repoName}, Stack Trace Root: ${codeMapping.stackRoot}, Source Code Root: ${codeMapping.sourceRoot}`,
       })
     );
@@ -154,9 +154,9 @@ describe('AddCodeOwnerModal', () => {
       />
     );
 
-    await userEvent.click(await screen.findByRole('textbox'));
+    await userEvent.click(await screen.findByRole('combobox'));
     await userEvent.click(
-      await screen.findByRole('menuitemradio', {
+      await screen.findByRole('option', {
         name: `Repo Name: ${codeMapping.repoName}, Stack Trace Root: ${codeMapping.stackRoot}, Source Code Root: ${codeMapping.sourceRoot}`,
       })
     );

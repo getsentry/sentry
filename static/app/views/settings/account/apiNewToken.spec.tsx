@@ -36,7 +36,7 @@ describe('ApiNewToken', () => {
     const createButton = screen.getByRole('button', {name: 'Create Token'});
 
     const selectByValue = (name: string, value: string) =>
-      selectEvent.select(screen.getByRole('textbox', {name}), value);
+      selectEvent.select(screen.getByRole('combobox', {name}), value);
 
     // Assigning Admin here will also grant read + write access to the resource
     await selectByValue('Project', 'Admin');
@@ -89,7 +89,7 @@ describe('ApiNewToken', () => {
     const createButton = screen.getByRole('button', {name: 'Create Token'});
 
     const selectByValue = (name: string, value: string) =>
-      selectEvent.select(screen.getByRole('textbox', {name}), value);
+      selectEvent.select(screen.getByRole('combobox', {name}), value);
 
     await selectByValue('Project', 'Admin');
     await selectByValue('Release', 'Admin');
@@ -127,7 +127,7 @@ describe('ApiNewToken', () => {
     const createButton = screen.getByRole('button', {name: 'Create Token'});
 
     const selectByValue = (name: string, value: string) =>
-      selectEvent.select(screen.getByRole('textbox', {name}), value);
+      selectEvent.select(screen.getByRole('combobox', {name}), value);
 
     await selectByValue('Project', 'Admin');
     await selectByValue('Release', 'Admin');
@@ -163,7 +163,7 @@ describe('ApiNewToken', () => {
     render(<ApiNewToken />);
     renderGlobalModal();
 
-    await selectEvent.select(screen.getByRole('textbox', {name: 'Project'}), 'Read');
+    await selectEvent.select(screen.getByRole('combobox', {name: 'Project'}), 'Read');
 
     await userEvent.click(screen.getByRole('button', {name: 'Create Token'}));
 
@@ -175,10 +175,10 @@ describe('ApiNewToken', () => {
   it('displays permissions preview when scopes are selected', async () => {
     render(<ApiNewToken />);
 
-    await selectEvent.select(screen.getByRole('textbox', {name: 'Project'}), 'Read');
+    await selectEvent.select(screen.getByRole('combobox', {name: 'Project'}), 'Read');
     expect(screen.getByText(/project:read/)).toBeInTheDocument();
 
-    await selectEvent.select(screen.getByRole('textbox', {name: 'Team'}), 'Admin');
+    await selectEvent.select(screen.getByRole('combobox', {name: 'Team'}), 'Admin');
     expect(screen.getByText(/team:admin/)).toBeInTheDocument();
   });
 
@@ -194,7 +194,7 @@ describe('ApiNewToken', () => {
 
     render(<ApiNewToken />);
 
-    await selectEvent.select(screen.getByRole('textbox', {name: 'Project'}), 'Read');
+    await selectEvent.select(screen.getByRole('combobox', {name: 'Project'}), 'Read');
 
     await userEvent.click(screen.getByRole('button', {name: 'Create Token'}));
 
@@ -210,14 +210,14 @@ describe('ApiNewToken', () => {
 
   it('does not render granular permissions without the flag', () => {
     render(<ApiNewToken />);
-    expect(screen.getByRole('textbox', {name: 'Project'})).toBeInTheDocument();
-    expect(screen.queryByRole('textbox', {name: 'Dashboards'})).not.toBeInTheDocument();
+    expect(screen.getByRole('combobox', {name: 'Project'})).toBeInTheDocument();
+    expect(screen.queryByRole('combobox', {name: 'Dashboards'})).not.toBeInTheDocument();
   });
 
   it('does not render service account permissions without the service-accounts flag', () => {
     render(<ApiNewToken />);
     expect(
-      screen.queryByRole('textbox', {name: 'Service Accounts'})
+      screen.queryByRole('combobox', {name: 'Service Accounts'})
     ).not.toBeInTheDocument();
   });
 
@@ -233,7 +233,7 @@ describe('ApiNewToken', () => {
     });
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Service Accounts'}),
+      screen.getByRole('combobox', {name: 'Service Accounts'}),
       'Read & Write'
     );
 
@@ -258,8 +258,8 @@ describe('ApiNewToken', () => {
 
     it('replaces the existing permissions with granular ones', () => {
       render(<ApiNewToken />, {organization});
-      expect(screen.getByRole('textbox', {name: 'Dashboards'})).toBeInTheDocument();
-      expect(screen.queryByRole('textbox', {name: 'Project'})).not.toBeInTheDocument();
+      expect(screen.getByRole('combobox', {name: 'Dashboards'})).toBeInTheDocument();
+      expect(screen.queryByRole('combobox', {name: 'Project'})).not.toBeInTheDocument();
     });
 
     it('submits the selected levels and the levels before them', async () => {
@@ -272,12 +272,12 @@ describe('ApiNewToken', () => {
       render(<ApiNewToken />, {organization});
 
       await selectEvent.select(
-        screen.getByRole('textbox', {name: 'Dashboards'}),
+        screen.getByRole('combobox', {name: 'Dashboards'}),
         'Write'
       );
-      await selectEvent.select(screen.getByRole('textbox', {name: 'Members'}), 'Read');
+      await selectEvent.select(screen.getByRole('combobox', {name: 'Members'}), 'Read');
       await selectEvent.select(
-        screen.getByRole('textbox', {name: 'Member Invites'}),
+        screen.getByRole('combobox', {name: 'Member Invites'}),
         'Invite'
       );
 

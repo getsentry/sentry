@@ -50,10 +50,10 @@ describe('MergeAccountsModal', () => {
     renderGlobalModal();
 
     await userEvent.click(
-      await screen.findByRole('textbox', {name: 'Accounts to merge'})
+      await screen.findByRole('combobox', {name: 'Accounts to merge'})
     );
     expect(
-      await screen.findByRole('menuitemcheckbox', {name: 'other@example.com'})
+      await screen.findByRole('option', {name: 'other@example.com'})
     ).toBeInTheDocument();
   });
 
@@ -73,11 +73,9 @@ describe('MergeAccountsModal', () => {
     renderGlobalModal();
 
     await userEvent.click(
-      await screen.findByRole('textbox', {name: 'Accounts to merge'})
+      await screen.findByRole('combobox', {name: 'Accounts to merge'})
     );
-    await userEvent.click(
-      await screen.findByRole('menuitemcheckbox', {name: 'user@example.com'})
-    );
+    await userEvent.click(await screen.findByRole('option', {name: 'user@example.com'}));
     await userEvent.click(screen.getByRole('button', {name: 'Merge Account(s)'}));
 
     await waitFor(() => {
@@ -108,14 +106,14 @@ describe('MergeAccountsModal', () => {
     openModal(deps => <MergeAccountsModal {...deps} userId="1" onAction={jest.fn()} />);
     renderGlobalModal();
 
-    const input = await screen.findByRole('textbox', {name: 'Accounts to merge'});
+    const input = await screen.findByRole('combobox', {name: 'Accounts to merge'});
     await userEvent.click(input);
     await userEvent.click(
-      await screen.findByRole('menuitemcheckbox', {name: 'suggested@example.com'})
+      await screen.findByRole('option', {name: 'suggested@example.com'})
     );
     await userEvent.type(input, 'searched');
     await userEvent.click(
-      await screen.findByRole('menuitemcheckbox', {name: 'searched@example.com'})
+      await screen.findByRole('option', {name: 'searched@example.com'})
     );
     await userEvent.click(screen.getByRole('button', {name: 'Merge Account(s)'}));
 

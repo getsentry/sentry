@@ -263,7 +263,7 @@ describe('AutomateSection', () => {
     const drawer = await screen.findByRole('complementary', {name: 'Create New Alert'});
 
     await selectEvent.select(
-      within(drawer).getByRole('textbox', {name: 'Add action'}),
+      within(drawer).getByRole('combobox', {name: 'Add action'}),
       'Slack'
     );
     await userEvent.type(

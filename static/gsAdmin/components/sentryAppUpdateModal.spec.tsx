@@ -47,8 +47,8 @@ describe('SentryAppUpdateModal', () => {
     });
     await userEvent.clear(popularity);
     await userEvent.type(popularity, '20');
-    await userEvent.click(screen.getByRole('textbox', {name: 'Features'}));
-    await userEvent.click(screen.getByRole('menuitemcheckbox', {name: 'issue-basic'}));
+    await userEvent.click(screen.getByRole('combobox', {name: 'Features'}));
+    await userEvent.click(screen.getByRole('option', {name: 'issue-basic'}));
     await userEvent.keyboard('{Escape}');
     await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 

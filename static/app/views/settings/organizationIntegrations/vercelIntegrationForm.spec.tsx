@@ -281,9 +281,7 @@ describe('VercelIntegrationForm', () => {
     expect(
       screen.queryByRole('menuitemradio', {name: /my-vercel-project/})
     ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole('menuitemradio', {name: /another-project/})
-    ).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: /another-project/})).toBeInTheDocument();
   });
 
   it('lets a Sentry project be linked more than once', async () => {
@@ -294,12 +292,8 @@ describe('VercelIntegrationForm', () => {
     const modal = await screen.findByRole('dialog');
     await userEvent.click(within(modal).getByText('Choose Sentry project'));
 
-    expect(
-      screen.getByRole('menuitemradio', {name: /sentry-frontend/})
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('menuitemradio', {name: /sentry-backend/})
-    ).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: /sentry-frontend/})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: /sentry-backend/})).toBeInTheDocument();
   });
 
   it('opens project creation in a new tab', async () => {

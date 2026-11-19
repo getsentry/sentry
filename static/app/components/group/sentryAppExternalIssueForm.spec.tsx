@@ -61,7 +61,11 @@ describe('SentryAppExternalIssueForm', () => {
       expect(component.schema.create.required_fields).toHaveLength(3);
       await screen.findByRole('textbox', {name: 'Title'});
       for (const field of component.schema.create.required_fields) {
-        expect(screen.getByRole('textbox', {name: field.label})).toBeInTheDocument();
+        expect(
+          screen.getByRole(field.type === 'select' ? 'combobox' : 'textbox', {
+            name: field.label,
+          })
+        ).toBeInTheDocument();
       }
 
       // Prevents submission if required fields are not set
@@ -69,8 +73,8 @@ describe('SentryAppExternalIssueForm', () => {
       await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
       expect(externalIssueRequest).not.toHaveBeenCalled();
 
-      await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Numbers'}));
-      await userEvent.type(screen.getByRole('textbox', {name: 'Numbers'}), '1');
+      await selectEvent.openMenu(screen.getByRole('combobox', {name: 'Numbers'}));
+      await userEvent.type(screen.getByRole('combobox', {name: 'Numbers'}), '1');
       await userEvent.click(screen.getByText('one'));
 
       // Sets required fields
@@ -225,7 +229,7 @@ describe('SentryAppExternalIssueForm Async Field', () => {
     );
 
     await selectEvent.openMenu(screen.getByText('Numbers'));
-    await userEvent.type(screen.getByRole('textbox'), 'I');
+    await userEvent.type(screen.getByRole('combobox'), 'I');
 
     expect(mockGetOptions).toHaveBeenCalled();
     expect(await screen.findByText('Issue 1')).toBeInTheDocument();
@@ -294,22 +298,25 @@ describe('SentryAppExternalIssueForm Dependent fields', () => {
       />
     );
 
-    await userEvent.type(await screen.findByRole('textbox', {name: 'Project'}), 'p');
+    await userEvent.type(await screen.findByRole('combobox', {name: 'Project'}), 'p');
 
     expect(await screen.findByText('project A')).toBeInTheDocument();
     expect(screen.getByText('project B')).toBeInTheDocument();
 
     // project select should be disabled and we shouldn't fetch the options yet
-    expect(screen.getByRole('textbox', {name: 'Board'})).toBeDisabled();
+    expect(screen.getByRole('combobox', {name: 'Board'})).toBeDisabled();
     expect(boardMock).not.toHaveBeenCalled();
 
     // when we set the value for project we should get the values for the board
-    await selectEvent.select(screen.getByRole('textbox', {name: 'Project'}), 'project A');
+    await selectEvent.select(
+      screen.getByRole('combobox', {name: 'Project'}),
+      'project A'
+    );
 
     expect(boardMock).toHaveBeenCalled();
-    expect(screen.getByRole('textbox', {name: 'Board'})).toBeEnabled();
+    expect(screen.getByRole('combobox', {name: 'Board'})).toBeEnabled();
 
-    await userEvent.type(screen.getByRole('textbox', {name: 'Board'}), 'b');
+    await userEvent.type(screen.getByRole('combobox', {name: 'Board'}), 'b');
 
     expect(await screen.findByText('board R')).toBeInTheDocument();
     expect(screen.getByText('board S')).toBeInTheDocument();

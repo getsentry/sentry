@@ -228,10 +228,10 @@ describe('AutomationNewSettings', () => {
 
     // Add an action filter (tagged event)
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Add filter'}),
+      screen.getByRole('combobox', {name: 'Add filter'}),
       /tagged event/i
     );
-    const tagInput = await screen.findByRole('textbox', {name: 'Tag'});
+    const tagInput = await screen.findByRole('combobox', {name: 'Tag'});
     await userEvent.click(tagInput);
     await userEvent.paste('env');
     await userEvent.keyboard('{enter}');
@@ -239,20 +239,20 @@ describe('AutomationNewSettings', () => {
     await userEvent.paste('prod');
 
     // Add an action to the block (Slack), also updates the automatic naming
-    await selectEvent.select(screen.getByRole('textbox', {name: 'Add action'}), 'Slack');
+    await selectEvent.select(screen.getByRole('combobox', {name: 'Add action'}), 'Slack');
     await userEvent.click(screen.getByRole('textbox', {name: 'Target'}));
     await userEvent.paste('#alerts');
 
     // Add an email action
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Add action'}),
+      screen.getByRole('combobox', {name: 'Add action'}),
       'Notify on preferred channel'
     );
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Notification target type'}),
+      screen.getByRole('combobox', {name: 'Notification target type'}),
       'Member'
     );
-    await selectEvent.select(screen.getByRole('textbox', {name: 'User'}), 'Moo Deng');
+    await selectEvent.select(screen.getByRole('combobox', {name: 'User'}), 'Moo Deng');
 
     // Submit the form
     await userEvent.click(screen.getByRole('button', {name: 'Create Alert'}));
@@ -356,7 +356,7 @@ describe('AutomationNewSettings', () => {
     });
 
     const addAction = async (label: string) => {
-      await selectEvent.select(screen.getByRole('textbox', {name: 'Add action'}), label);
+      await selectEvent.select(screen.getByRole('combobox', {name: 'Add action'}), label);
     };
 
     await addAction('Slack');
@@ -385,10 +385,10 @@ describe('AutomationNewSettings', () => {
 
     await addAction('Notify on preferred channel');
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Notification target type'}),
+      screen.getByRole('combobox', {name: 'Notification target type'}),
       'Member'
     );
-    await selectEvent.select(screen.getByRole('textbox', {name: 'User'}), 'Moo Deng');
+    await selectEvent.select(screen.getByRole('combobox', {name: 'User'}), 'Moo Deng');
 
     await addAction('Send a notification via an integration');
     await addAction('My Sentry App');
@@ -570,7 +570,7 @@ describe('AutomationNewSettings', () => {
       },
     });
 
-    await selectEvent.select(screen.getByRole('textbox', {name: 'Add action'}), 'Slack');
+    await selectEvent.select(screen.getByRole('combobox', {name: 'Add action'}), 'Slack');
     await userEvent.type(screen.getByRole('textbox', {name: 'Target'}), '#alerts');
     await userEvent.click(screen.getByRole('button', {name: 'Send Test Notification'}));
 
@@ -615,7 +615,7 @@ describe('AutomationNewSettings', () => {
     render(<AutomationNewSettings />, {organization});
 
     // Add an action so the builder validation passes
-    await selectEvent.select(screen.getByRole('textbox', {name: 'Add action'}), 'Slack');
+    await selectEvent.select(screen.getByRole('combobox', {name: 'Add action'}), 'Slack');
     await userEvent.type(screen.getByRole('textbox', {name: 'Target'}), '#alerts');
 
     // Submit with no projects or monitors selected
@@ -732,7 +732,7 @@ describe('AutomationNewSettings', () => {
     });
 
     // Add an action so builder validation passes
-    await selectEvent.select(screen.getByRole('textbox', {name: 'Add action'}), 'Slack');
+    await selectEvent.select(screen.getByRole('combobox', {name: 'Add action'}), 'Slack');
     await userEvent.type(screen.getByRole('textbox', {name: 'Target'}), '#alerts');
 
     await userEvent.click(screen.getByRole('button', {name: 'Create Alert'}));
@@ -764,7 +764,7 @@ describe('AutomationNewSettings', () => {
       },
     });
 
-    await selectEvent.select(screen.getByRole('textbox', {name: 'Add action'}), 'Slack');
+    await selectEvent.select(screen.getByRole('combobox', {name: 'Add action'}), 'Slack');
     await userEvent.type(screen.getByRole('textbox', {name: 'Target'}), '#alerts');
 
     await userEvent.click(screen.getByRole('button', {name: 'Create Alert'}));
@@ -793,7 +793,7 @@ describe('AutomationNewSettings', () => {
 
     render(<AutomationNewSettings />, {organization});
 
-    await selectEvent.select(screen.getByRole('textbox', {name: 'Add action'}), 'Slack');
+    await selectEvent.select(screen.getByRole('combobox', {name: 'Add action'}), 'Slack');
     await userEvent.type(screen.getByRole('textbox', {name: 'Target'}), '#alerts');
     await userEvent.click(screen.getByRole('button', {name: 'Send Test Notification'}));
 

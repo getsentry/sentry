@@ -227,7 +227,7 @@ describe('InstrumentationGuide', () => {
       expect(await screen.findByText('Auto-Instrument with PHP')).toBeInTheDocument();
 
       // Change to node project
-      const projectSelector = screen.getByRole('textbox', {name: 'Project'});
+      const projectSelector = screen.getByRole('combobox', {name: 'Project'});
       await selectEvent.select(projectSelector, 'node-proj');
 
       // Should now show NodeJS guide

@@ -90,7 +90,7 @@ describe('AutofixAgent', () => {
 
     render(<AutofixAgent canWrite project={project} />, {organization});
 
-    const select = await screen.findByRole('textbox', {name: 'Handoff to Agent'});
+    const select = await screen.findByRole('combobox', {name: 'Handoff to Agent'});
     await waitFor(() => expect(select).toBeEnabled());
     expect(screen.queryByText(NON_GITHUB_HANDOFF_WARNING)).not.toBeInTheDocument();
   });
@@ -105,7 +105,7 @@ describe('AutofixAgent', () => {
 
     render(<AutofixAgent canWrite project={project} />, {organization});
 
-    const select = await screen.findByRole('textbox', {name: 'Handoff to Agent'});
+    const select = await screen.findByRole('combobox', {name: 'Handoff to Agent'});
     await waitFor(() => expect(select).toBeDisabled());
     expect(screen.getByText(NON_GITHUB_HANDOFF_WARNING)).toBeInTheDocument();
   });
@@ -115,7 +115,7 @@ describe('AutofixAgent', () => {
 
     render(<AutofixAgent canWrite project={project} />, {organization});
 
-    const select = await screen.findByRole('textbox', {name: 'Handoff to Agent'});
+    const select = await screen.findByRole('combobox', {name: 'Handoff to Agent'});
     await waitFor(() => expect(select).toBeDisabled());
     expect(screen.getByText(NON_GITHUB_HANDOFF_WARNING)).toBeInTheDocument();
   });
@@ -131,7 +131,7 @@ describe('AutofixAgent', () => {
 
     render(<AutofixAgent canWrite project={project} />, {organization});
 
-    const select = await screen.findByRole('textbox', {name: 'Handoff to Agent'});
+    const select = await screen.findByRole('combobox', {name: 'Handoff to Agent'});
     expect(select).toBeDisabled();
   });
 
@@ -169,7 +169,7 @@ describe('AutofixAgent', () => {
 
     render(<AutofixAgent canWrite project={project} />, {organization});
 
-    const select = await screen.findByRole('textbox', {name: 'Handoff to Agent'});
+    const select = await screen.findByRole('combobox', {name: 'Handoff to Agent'});
     await waitFor(() => expect(select).toBeEnabled());
     expect(putMock).not.toHaveBeenCalled();
   });
@@ -184,7 +184,7 @@ describe('AutofixAgent', () => {
 
     render(<AutofixAgent canWrite={false} project={project} />, {organization});
 
-    const select = await screen.findByRole('textbox', {name: 'Handoff to Agent'});
+    const select = await screen.findByRole('combobox', {name: 'Handoff to Agent'});
     await waitFor(() => expect(select).toBeDisabled());
     expect(putMock).not.toHaveBeenCalled();
   });
@@ -210,7 +210,7 @@ describe('AutofixAgent', () => {
     await waitFor(() => expect(failingPut).toHaveBeenCalledTimes(1));
     // Let the rollback + refetch settle; the effect must not re-fire.
     await waitFor(() =>
-      expect(screen.getByRole('textbox', {name: 'Handoff to Agent'})).toBeDisabled()
+      expect(screen.getByRole('combobox', {name: 'Handoff to Agent'})).toBeDisabled()
     );
     expect(failingPut).toHaveBeenCalledTimes(1);
   });
@@ -220,7 +220,7 @@ describe('AutofixAgent', () => {
 
     render(<AutofixAgent canWrite project={project} />, {organization});
 
-    const select = await screen.findByRole('textbox', {name: 'Auto-Iterate on PRs'});
+    const select = await screen.findByRole('combobox', {name: 'Auto-Iterate on PRs'});
     expect(select).toBeEnabled();
     expect(screen.getByText('Off')).toBeInTheDocument();
   });
@@ -231,9 +231,9 @@ describe('AutofixAgent', () => {
     render(<AutofixAgent canWrite project={project} />, {organization});
 
     await userEvent.click(
-      await screen.findByRole('textbox', {name: 'Auto-Iterate on PRs'})
+      await screen.findByRole('combobox', {name: 'Auto-Iterate on PRs'})
     );
-    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Off'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Off'}));
 
     await waitFor(() =>
       expect(putMock).toHaveBeenCalledWith(
@@ -249,7 +249,7 @@ describe('AutofixAgent', () => {
     render(<AutofixAgent canWrite={false} project={project} />, {organization});
 
     expect(
-      await screen.findByRole('textbox', {name: 'Auto-Iterate on PRs'})
+      await screen.findByRole('combobox', {name: 'Auto-Iterate on PRs'})
     ).toBeDisabled();
   });
 });

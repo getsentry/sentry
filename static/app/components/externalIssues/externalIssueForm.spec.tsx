@@ -112,7 +112,7 @@ describe('ExternalIssueForm', () => {
 
       await renderComponent();
 
-      const labelsSelect = screen.getByRole('textbox', {name: 'Labels'});
+      const labelsSelect = screen.getByRole('combobox', {name: 'Labels'});
       await selectEvent.select(labelsSelect, 'bug');
       await selectEvent.select(labelsSelect, 'feature');
 
@@ -204,7 +204,7 @@ describe('ExternalIssueForm', () => {
       expect(assigneeRequest).toHaveBeenCalledTimes(1);
       expect(labelsRequest).toHaveBeenCalledTimes(1);
 
-      await userEvent.click(screen.getByRole('textbox', {name: 'Assignee'}));
+      await userEvent.click(screen.getByRole('combobox', {name: 'Assignee'}));
       expect(await screen.findByText('octocat')).toBeInTheDocument();
     });
 
@@ -310,7 +310,7 @@ describe('ExternalIssueForm', () => {
       expect(linkConfig).toHaveBeenCalled();
 
       // Should show link config fields, not create config fields
-      expect(await screen.findByRole('textbox', {name: 'Issue'})).toBeInTheDocument();
+      expect(await screen.findByRole('combobox', {name: 'Issue'})).toBeInTheDocument();
       expect(screen.queryByRole('textbox', {name: 'Title'})).not.toBeInTheDocument();
 
       // Link action should show "Link Issue" button
@@ -450,7 +450,7 @@ describe('ExternalIssueForm', () => {
 
       // Should show inline validation errors on the required fields
       expect(screen.getByRole('textbox', {name: /title/i})).toBeInvalid();
-      expect(screen.getByRole('textbox', {name: /repo/i})).toBeInvalid();
+      expect(screen.getByRole('combobox', {name: /repo/i})).toBeInvalid();
     });
 
     it('should show an error toast when the submit request fails', async () => {
@@ -573,23 +573,23 @@ describe('ExternalIssueForm', () => {
         />,
         {organization}
       );
-      await screen.findByRole('textbox', {name: 'Project'});
+      await screen.findByRole('combobox', {name: 'Project'});
       expect(initialQuery).toHaveBeenCalled();
 
       // Initial query may only have a few fields
       expect(screen.queryByRole('textbox', {name: 'Summary'})).not.toBeInTheDocument();
-      expect(screen.queryByRole('textbox', {name: 'Reporter'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('combobox', {name: 'Reporter'})).not.toBeInTheDocument();
 
       // If the field has `updatesForm`, refetch the config.
       // If new fields are in the response, they should be visible.
       await selectEvent.select(
-        screen.getByRole('textbox', {name: 'Project'}),
+        screen.getByRole('combobox', {name: 'Project'}),
         'Project 1'
       );
       expect(projectOneQuery).toHaveBeenCalled();
 
       expect(screen.getByRole('textbox', {name: 'Summary'})).toBeInTheDocument();
-      expect(screen.getByRole('textbox', {name: 'Reporter'})).toBeInTheDocument();
+      expect(screen.getByRole('combobox', {name: 'Reporter'})).toBeInTheDocument();
 
       // jsdom keeps disabled inputs focused. Leave the project field before
       // selecting it again so react-select receives a new focus event.
@@ -597,13 +597,13 @@ describe('ExternalIssueForm', () => {
 
       // Swapping projects should refetch, and remove stale fields
       await selectEvent.select(
-        screen.getByRole('textbox', {name: 'Project'}),
+        screen.getByRole('combobox', {name: 'Project'}),
         'Project 2'
       );
       expect(projectTwoQuery).toHaveBeenCalled();
 
       expect(screen.queryByRole('textbox', {name: 'Summary'})).not.toBeInTheDocument();
-      expect(screen.queryByRole('textbox', {name: 'Reporter'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('combobox', {name: 'Reporter'})).not.toBeInTheDocument();
     });
 
     it('should preserve user-entered stable field values but reset other dynamic fields on refetch', async () => {
@@ -705,14 +705,14 @@ describe('ExternalIssueForm', () => {
 
       // User picks an issue type that will not exist in the next project config.
       await selectEvent.select(
-        screen.getByRole('textbox', {name: 'Issue Type'}),
+        screen.getByRole('combobox', {name: 'Issue Type'}),
         'Story'
       );
       expect(screen.getByText('Story')).toBeInTheDocument();
 
       // User changes project (a dynamic field that triggers a refetch)
       await selectEvent.select(
-        screen.getByRole('textbox', {name: 'Project'}),
+        screen.getByRole('combobox', {name: 'Project'}),
         'Project 1'
       );
 
@@ -820,7 +820,7 @@ describe('ExternalIssueForm', () => {
       await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
       // Search for the hidden project via async select
-      const projectField = screen.getByRole('textbox', {name: 'Project'});
+      const projectField = screen.getByRole('combobox', {name: 'Project'});
       await userEvent.click(projectField);
       await userEvent.type(projectField, 'Hidden');
 
@@ -918,7 +918,7 @@ describe('ExternalIssueForm', () => {
       await renderComponent('Link');
 
       // The Issue field has a url property (async select), so it should be rendered
-      expect(screen.getByRole('textbox', {name: 'Issue'})).toBeInTheDocument();
+      expect(screen.getByRole('combobox', {name: 'Issue'})).toBeInTheDocument();
     });
 
     describe('options loaded', () => {
@@ -953,7 +953,7 @@ describe('ExternalIssueForm', () => {
         });
 
         await renderComponent('Link');
-        const textbox = screen.getByRole('textbox', {name: 'Issue'});
+        const textbox = screen.getByRole('combobox', {name: 'Issue'});
         await userEvent.click(textbox);
         await userEvent.type(textbox, 'faster');
 

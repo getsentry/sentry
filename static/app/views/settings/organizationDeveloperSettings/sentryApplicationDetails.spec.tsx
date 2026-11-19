@@ -86,9 +86,9 @@ describe('Sentry Application Details', () => {
       await userEvent.paste('{}');
       await userEvent.click(screen.getByRole('checkbox', {name: 'Alert Action'}));
 
-      await selectEvent.select(screen.getByRole('textbox', {name: 'Member'}), 'Admin');
+      await selectEvent.select(screen.getByRole('combobox', {name: 'Member'}), 'Admin');
       await selectEvent.select(
-        screen.getByRole('textbox', {name: 'Issue & Event'}),
+        screen.getByRole('combobox', {name: 'Issue & Event'}),
         'Admin'
       );
       await userEvent.click(
@@ -214,7 +214,7 @@ describe('Sentry Application Details', () => {
       await userEvent.click(screen.getByRole('textbox', {name: 'Name'}));
       await userEvent.paste('Test App');
       await selectEvent.select(
-        screen.getByRole('textbox', {name: 'Issue & Event'}),
+        screen.getByRole('combobox', {name: 'Issue & Event'}),
         'Read'
       );
       await userEvent.click(screen.getByRole('checkbox', {name: 'issue'}));
@@ -484,8 +484,11 @@ describe('Sentry Application Details', () => {
       expect(screen.getByRole('textbox', {name: 'Client ID'})).toBeInTheDocument();
       expect(screen.getByRole('textbox', {name: 'Client Secret'})).toBeInTheDocument();
 
-      await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Project'}));
-      expect(screen.getByRole('menuitemradio', {name: 'Read'})).toBeChecked();
+      await selectEvent.openMenu(screen.getByRole('combobox', {name: 'Project'}));
+      expect(screen.getByRole('option', {name: 'Read'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
     });
 
     it('prefills webhook headers from the app', async () => {
@@ -813,7 +816,7 @@ describe('Sentry Application Details', () => {
       await userEvent.paste('{}');
 
       await selectEvent.select(
-        screen.getByRole('textbox', {name: 'Issue & Event'}),
+        screen.getByRole('combobox', {name: 'Issue & Event'}),
         'No Access'
       );
 
