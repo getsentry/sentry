@@ -178,7 +178,7 @@ jobs:
       # Must run before "Setup sentry env" starts in the background: it parses
       # $GITHUB_EVENT_PATH, which the runner truncates whenever a step starts,
       # including the background step's inner steps (getsentry/sentry#127566).
-      - uses: ./.github/actions/setup-node-toolchain
+      - uses: $/.github/actions/setup-node-toolchain
 
       # Starts per-worker ClickHouse bootstrap as soon as its dependencies are
       # healthy, instead of after snuba-snuba-1's own bootstrap.
@@ -191,7 +191,7 @@ jobs:
       # The python env and devservices don't depend on the frontend build, so
       # bring them up in the background while webpack runs.
       - name: Setup sentry env
-        uses: ./.github/actions/setup-sentry
+        uses: $/.github/actions/setup-sentry
         id: setup
         background: true
         with:
@@ -210,7 +210,7 @@ jobs:
           path: ${{ steps.config.outputs.webpack-path }}
           key: ${{ runner.os }}-v2-webpack-cache-${{ hashFiles('rsbuild.config.ts', 'pnpm-lock.yaml', 'package.json') }}
 
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: $/.github/actions/setup-node-pnpm
         with:
           setup-toolchain: 'false'
 

@@ -67,7 +67,7 @@ jobs:
           path: ${{ steps.config.outputs.webpack-path }}
           key: ${{ runner.os }}-self-hosted-webpack-cache-${{ hashFiles('rsbuild.config.ts', 'pnpm-lock.yaml', 'package.json') }}
 
-      - uses: ./.github/actions/node-modules-cache-paths
+      - uses: $/.github/actions/node-modules-cache-paths
         id: workspace-cache
 
       - name: node_modules cache
