@@ -36,7 +36,7 @@ env:
   ACCEPTANCE_COVERAGE_DB: .artifacts/acceptance.coverage
   ACCEPTANCE_COVERAGE_CACHE_PREFIX: acceptance-coverage-
   # Per-file durations from the same scheduled run, which balance the shards.
-  ACCEPTANCE_DURATIONS: .artifacts/acceptance-durations.json
+  ACCEPTANCE_DURATIONS: .github/workflows/scripts/acceptance-test-durations.json
   ACCEPTANCE_DURATIONS_CACHE_PREFIX: acceptance-durations-
   ACCEPTANCE_SHARD_DURATIONS: .artifacts/acceptance-durations.shard.json
 
