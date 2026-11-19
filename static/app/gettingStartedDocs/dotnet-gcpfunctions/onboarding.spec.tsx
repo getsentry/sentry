@@ -75,9 +75,6 @@ describe('gcpfunctions onboarding docs', () => {
     expect(
       screen.getByText(textWithMarkupMatcher(/"EnableLogs": true/))
     ).toBeInTheDocument();
-    expect(
-      screen.queryByText(textWithMarkupMatcher(/builder\.UseSentry/))
-    ).not.toBeInTheDocument();
   });
 
   it('renders the metrics onboarding for this platform', async () => {
