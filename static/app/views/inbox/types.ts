@@ -73,7 +73,7 @@ interface BaseInboxSubject {
   title: string;
 }
 
-export type InboxSubject = BaseInboxSubject &
+type InboxSubject = BaseInboxSubject &
   (
     | {metadata: {project: {id: string; slug: string}; shortId: string}; type: 'issue'}
     | {metadata: Record<string, never>; type: 'notebook'}
