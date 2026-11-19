@@ -1,10 +1,15 @@
-import type {UIMatch} from 'react-router';
+import {useEffect} from 'react';
+import {Outlet, useMatches, type UIMatch} from 'react-router';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {ProjectFixture} from 'getsentry-test/fixtures/project';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
-import {act, renderHook} from 'sentry-test/reactTestingLibrary';
+import {act, render, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+
+import {translateSentryRoute} from 'sentry/router/translateSentryRoute';
+import type {SentryRouteObject} from 'sentry/router/types';
+import {useLocation} from 'sentry/utils/useLocation';
 
 import {
   DELAY_TIME_MS,
@@ -71,7 +76,7 @@ describe('useRouteActivatedHook', () => {
 
   it('calls rawTrackAnalyticsEvent after one seconds if org is set', () => {
     jest.useFakeTimers();
-    const {result} = renderHook(useRouteActivatedHook, {
+    const {result} = renderHookWithProviders(useRouteActivatedHook, {
       initialProps: props,
     });
     act(() => result.current.setOrganization(organization));
@@ -95,7 +100,7 @@ describe('useRouteActivatedHook', () => {
 
   it('does not call rawTrackAnalyticsEvent if org is not set', () => {
     jest.useFakeTimers();
-    renderHook(useRouteActivatedHook, {
+    renderHookWithProviders(useRouteActivatedHook, {
       initialProps: props,
     });
     act(() => jest.advanceTimersByTime(DEFAULT_ADVANCE_PERIOD));
@@ -104,7 +109,7 @@ describe('useRouteActivatedHook', () => {
 
   it('only calls rawTrackAnalyticsEvent once and ignores later param updates', () => {
     jest.useFakeTimers();
-    const {result} = renderHook(useRouteActivatedHook, {
+    const {result} = renderHookWithProviders(useRouteActivatedHook, {
       initialProps: props,
     });
     const loadTime = Date.now();
@@ -129,7 +134,7 @@ describe('useRouteActivatedHook', () => {
 
   it('only calls rawTrackAnalyticsEvent once when URL query params are updated', () => {
     jest.useFakeTimers();
-    const {result, rerender} = renderHook(useRouteActivatedHook, {
+    const {result, rerender} = renderHookWithProviders(useRouteActivatedHook, {
       initialProps: props,
     });
     act(() => result.current.setOrganization(organization));
@@ -149,7 +154,7 @@ describe('useRouteActivatedHook', () => {
 
   it('disable route analytics', () => {
     jest.useFakeTimers();
-    const {result} = renderHook(useRouteActivatedHook, {
+    const {result} = renderHookWithProviders(useRouteActivatedHook, {
       initialProps: props,
     });
     act(() => result.current.setOrganization(organization));
@@ -160,7 +165,7 @@ describe('useRouteActivatedHook', () => {
 
   it('disables and re-enables analytics', () => {
     jest.useFakeTimers();
-    const {result} = renderHook(useRouteActivatedHook, {
+    const {result} = renderHookWithProviders(useRouteActivatedHook, {
       initialProps: props,
     });
     act(() => result.current.setOrganization(organization));
@@ -174,7 +179,7 @@ describe('useRouteActivatedHook', () => {
 
   it('re-initializes after route changes', () => {
     jest.useFakeTimers();
-    const {result, rerender} = renderHook(useRouteActivatedHook, {
+    const {result, rerender} = renderHookWithProviders(useRouteActivatedHook, {
       initialProps: props,
     });
     act(() => result.current.setOrganization(organization));
@@ -211,7 +216,7 @@ describe('useRouteActivatedHook', () => {
 
   it('overrwite event names', () => {
     jest.useFakeTimers();
-    const {result} = renderHook(useRouteActivatedHook, {
+    const {result} = renderHookWithProviders(useRouteActivatedHook, {
       initialProps: props,
     });
     act(() => result.current.setOrganization(organization));
@@ -236,7 +241,7 @@ describe('useRouteActivatedHook', () => {
     jest.useFakeTimers();
     let loadTime = Date.now();
 
-    const {result, rerender} = renderHook(useRouteActivatedHook, {
+    const {result, rerender} = renderHookWithProviders(useRouteActivatedHook, {
       initialProps: props,
     });
     act(() => result.current.setOrganization(organization));
@@ -287,7 +292,7 @@ describe('useRouteActivatedHook', () => {
     jest.useFakeTimers();
 
     // Page load on project settings
-    const {result, rerender} = renderHook(useRouteActivatedHook, {
+    const {result, rerender} = renderHookWithProviders(useRouteActivatedHook, {
       initialProps: genProps({matches: SETTINGS_MATCHES}),
     });
     act(() => result.current.setOrganization(organization));
@@ -316,5 +321,110 @@ describe('useRouteActivatedHook', () => {
         previousPath: 'organizations.:org_id.releases.:release',
       },
     ]);
+  });
+
+  describe('with a real router', () => {
+    function Root() {
+      const {setOrganization} = useRouteActivatedHook({
+        location: useLocation(),
+        matches: useMatches(),
+      });
+      useEffect(() => setOrganization(organization), [setOrganization]);
+      return <Outlet />;
+    }
+
+    function Layout() {
+      return <Outlet />;
+    }
+
+    function Page() {
+      return null;
+    }
+
+    const childRoutes: SentryRouteObject[] = [
+      {path: '/organizations/:orgId/issues/', component: Page},
+      {path: '/account/', redirectTo: '/settings/account/details/'},
+      {
+        path: '/settings/account/',
+        component: Layout,
+        children: [
+          {index: true, redirectTo: 'details/'},
+          {path: 'details/', component: Page},
+        ],
+      },
+    ];
+
+    function renderRouter(pathname: string) {
+      return render(<Root />, {
+        initialRouterConfig: {
+          location: {pathname},
+          route: '/',
+          children: childRoutes.map(translateSentryRoute),
+        },
+      }).router;
+    }
+
+    function getPageViews() {
+      return jest.mocked(rawTrackAnalyticsEvent).mock.calls.map(([event]) => ({
+        path: event.parameterized_path,
+        previousPath: event.previous_parameterized_path,
+      }));
+    }
+
+    const issuesUrl = `/organizations/${organization.slug}/issues/`;
+
+    it('does not count a redirect route as the previous route', () => {
+      jest.useFakeTimers();
+      const router = renderRouter(issuesUrl);
+      act(() => jest.advanceTimersByTime(DEFAULT_ADVANCE_PERIOD));
+
+      router.navigate('/settings/account/');
+      act(() => jest.advanceTimersByTime(DEFAULT_ADVANCE_PERIOD));
+
+      expect(getPageViews()).toEqual([
+        {path: 'organizations.:org_id.issues', previousPath: undefined},
+        {path: 'settings.account.details', previousPath: 'organizations.:org_id.issues'},
+      ]);
+    });
+
+    it('does not count a top-level redirect route as the previous route', () => {
+      jest.useFakeTimers();
+      const router = renderRouter(issuesUrl);
+      act(() => jest.advanceTimersByTime(DEFAULT_ADVANCE_PERIOD));
+
+      router.navigate('/account/');
+      act(() => jest.advanceTimersByTime(DEFAULT_ADVANCE_PERIOD));
+
+      expect(getPageViews()).toEqual([
+        {path: 'organizations.:org_id.issues', previousPath: undefined},
+        {path: 'settings.account.details', previousPath: 'organizations.:org_id.issues'},
+      ]);
+    });
+
+    it('still counts a page the user leaves right away', () => {
+      jest.useFakeTimers();
+      const router = renderRouter(issuesUrl);
+
+      router.navigate('/settings/account/details/');
+      act(() => jest.advanceTimersByTime(DEFAULT_ADVANCE_PERIOD));
+
+      expect(getPageViews()).toEqual([
+        {path: 'organizations.:org_id.issues', previousPath: undefined},
+        {path: 'settings.account.details', previousPath: 'organizations.:org_id.issues'},
+      ]);
+    });
+
+    it.each(['/settings/account/', '/account/'])(
+      'sends no previous route when the page load starts on the redirect %s',
+      url => {
+        jest.useFakeTimers();
+        renderRouter(url);
+        act(() => jest.advanceTimersByTime(DEFAULT_ADVANCE_PERIOD));
+
+        expect(getPageViews()).toEqual([
+          {path: 'settings.account.details', previousPath: undefined},
+        ]);
+      }
+    );
   });
 });
