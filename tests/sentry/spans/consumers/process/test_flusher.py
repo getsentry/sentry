@@ -164,6 +164,92 @@ def test_flusher_produces_flushed_segments_to_process_segment_task() -> None:
     assert buffer.client.zscore(queue_key, segment_key) is None
 
 
+@override_options({**DEFAULT_OPTIONS, "spans.buffer.memory-metrics-interval-seconds": 10})
+def test_flusher_main_reports_process_memory_across_iterations() -> None:
+    # No segments are queued in this slice, so every iteration sleeps.
+    buffer = SpansBuffer(assigned_shards=[0, 5], slice_id=999_003)
+    stopped = cast("Synchronized[int]", SimpleNamespace(value=0))
+    current_drift = cast("Synchronized[int]", SimpleNamespace(value=0))
+    backpressure_since = cast("Synchronized[int]", SimpleNamespace(value=0))
+    healthy_since = cast("Synchronized[int]", SimpleNamespace(value=0))
+
+    def stop_after_three_iterations(seconds: float) -> None:
+        stopped.value = int(fake_sleep.call_count >= 3)
+
+    with (
+        mock.patch(
+            "sentry.spans.consumers.process.flusher.time.sleep",
+            side_effect=stop_after_three_iterations,
+        ) as fake_sleep,
+        # One clock read per iteration. The second one is within the interval,
+        # so only the first and third iterations report. A reporter created
+        # again on each iteration would report on all three.
+        mock.patch(
+            "sentry.spans.consumers.process.memory.monotonic",
+            side_effect=[1000.0, 1005.0, 1010.0],
+        ),
+        mock.patch(
+            "sentry.spans.consumers.process.memory.read_process_memory",
+            return_value={"rss": 4096},
+        ),
+        mock.patch("sentry.spans.consumers.process.memory.metrics.gauge") as gauge,
+    ):
+        SpanFlusher.main(
+            buffer,
+            shards=[0, 5],
+            stopped=stopped,
+            current_drift=current_drift,
+            backpressure_since=backpressure_since,
+            healthy_since=healthy_since,
+            produce_to_pipe=None,
+        )
+
+    assert fake_sleep.call_count == 3
+    assert gauge.call_args_list == 2 * [
+        mock.call(
+            "spans.buffer.process_memory.rss",
+            4096,
+            tags={"buffer_component": "flusher", "shards": "0,5"},
+            sample_rate=1.0,
+            unit="byte",
+        )
+    ]
+
+
+def test_poll_reports_consumer_process_memory() -> None:
+    buffer = SpansBuffer(assigned_shards=[0, 1, 2])
+    next_step = mock.Mock()
+
+    # The flusher processes are not needed to test the consumer's reports.
+    with (
+        mock.patch.object(SpanFlusher, "_create_processes"),
+        mock.patch.object(SpanFlusher, "_wait_for_process_to_become_healthy"),
+    ):
+        flusher = SpanFlusher(buffer, next_step=next_step, max_processes=2)
+
+    with (
+        mock.patch(
+            "sentry.spans.consumers.process.memory.read_process_memory",
+            return_value={"rss": 4096},
+        ),
+        mock.patch("sentry.spans.consumers.process.memory.metrics.gauge") as gauge,
+        override_options({"spans.buffer.memory-metrics-interval-seconds": 10}),
+    ):
+        # The second poll is within the interval, so it does not report.
+        flusher.poll()
+        flusher.poll()
+
+    # The consumer reports once, for all shards of the SpanFlusher.
+    gauge.assert_called_once_with(
+        "spans.buffer.process_memory.rss",
+        4096,
+        tags={"buffer_component": "consumer", "shards": "0,1,2"},
+        sample_rate=1.0,
+        unit="byte",
+    )
+    assert next_step.poll.call_count == 2
+
+
 @override_options({**DEFAULT_OPTIONS, "spans.buffer.max-flush-segments": 1})
 def test_backpressure() -> None:
     # Flush very aggressively to make join() faster

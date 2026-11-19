@@ -14,6 +14,7 @@ from sentry.spans.buffer_types import (
     FlushCandidate,
     FlushedSegment,
     InsertedSubsegment,
+    LoadedBytes,
     LoadedSegment,
     QueueKey,
     SegmentIngestMetadata,
@@ -335,19 +336,20 @@ class SpansBufferStore:
         flush_candidates: Sequence[FlushCandidate],
         *,
         decompress_payload: DecompressPayload,
-    ) -> tuple[list[LoadedSegment], int, int]:
+    ) -> tuple[list[LoadedSegment], int, int, LoadedBytes]:
         """
         Load payload keys, span payload bytes, and ingest metadata for candidates.
 
         Returns loaded segments plus total load latency and payload
-        decompression latency, both in milliseconds.
+        decompression latency, both in milliseconds, and the payload bytes
+        loaded.
         """
         data_start = time.monotonic()
         segment_keys = [candidate.segment_key for candidate in flush_candidates]
         with metrics.timer("spans.buffer.flush_segments.load_segment_data"):
             page_size = options.get("spans.buffer.segment-page-size")
             payload_keys = self.load_payload_keys(segment_keys)
-            payloads, decompress_latency_ms = self.load_payloads_from_keys(
+            payloads, decompress_latency_ms, loaded_bytes = self.load_payloads_from_keys(
                 segment_keys,
                 payload_keys,
                 page_size,
@@ -365,7 +367,7 @@ class SpansBufferStore:
             for flush_candidate in flush_candidates
         ]
 
-        return loaded_segments, load_data_latency_ms, decompress_latency_ms
+        return loaded_segments, load_data_latency_ms, decompress_latency_ms, loaded_bytes
 
     def load_payload_keys(
         self, segment_keys: Sequence[SegmentKey]
@@ -424,12 +426,15 @@ class SpansBufferStore:
         page_size: int,
         *,
         decompress_payload: DecompressPayload,
-    ) -> tuple[dict[SegmentKey, list[bytes]], int]:
+    ) -> tuple[dict[SegmentKey, list[bytes]], int, LoadedBytes]:
         """
-        Scan payload keys and return decompressed payloads grouped by segment key.
+        Scan payload keys and return decompressed payloads grouped by segment
+        key, the decompression latency and the payload bytes loaded.
         """
         payloads: dict[SegmentKey, list[bytes]] = {key: [] for key in segment_keys}
         decompress_latency_ms = 0.0
+        compressed_bytes = 0
+        decompressed_bytes = 0
         segment_by_payload_key = {
             payload_key: segment_key
             for segment_key, segment_payload_keys in payload_keys.items()
@@ -438,12 +443,14 @@ class SpansBufferStore:
         cursors = {payload_key: 0 for payload_key in segment_by_payload_key}
 
         def _add_spans(key: SegmentKey, raw_data: bytes) -> None:
-            nonlocal decompress_latency_ms
+            nonlocal decompress_latency_ms, compressed_bytes, decompressed_bytes
 
             decompress_start = time.monotonic()
             decompressed = decompress_payload(raw_data)
             decompress_latency_ms += (time.monotonic() - decompress_start) * 1000
             payloads[key].extend(decompressed)
+            compressed_bytes += len(raw_data)
+            decompressed_bytes += sum(map(len, decompressed))
 
         while cursors:
             with self.client.pipeline(transaction=False) as p:
@@ -465,7 +472,11 @@ class SpansBufferStore:
                 else:
                     cursors[key] = cursor
 
-        return payloads, int(decompress_latency_ms)
+        return (
+            payloads,
+            int(decompress_latency_ms),
+            LoadedBytes(compressed_bytes, decompressed_bytes),
+        )
 
     def get_current_queue_deadlines(
         self, loaded_segments: Sequence[LoadedSegment]
