@@ -8,7 +8,7 @@ partitioning on it doesn't convert it, so that is reported as an error.
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Iterator, Sequence
+from collections.abc import Collection, Iterable, Iterator, Sequence
 from dataclasses import dataclass
 
 from django.db import models
@@ -44,16 +44,28 @@ def iter_created_models(loader: MigrationLoader) -> Iterator[CreatedModel]:
 
 
 def get_partitioning_migration_errors(
-    created_models: Iterable[CreatedModel], all_models: Iterable[type[models.Model]]
+    created_models: Iterable[CreatedModel],
+    all_models: Iterable[type[models.Model]],
+    migrated_apps: Collection[str],
 ) -> list[str]:
+    """
+    ``migrated_apps`` are the app labels that have migrations. Models of other apps,
+    like test fixtures, only get tables from the models themselves.
+    """
     # A model that is deleted and created again is created by its last CreateModel.
     by_model = {(c.app_label, c.operation.name_lower): c for c in created_models}
     errors = []
     for model in all_models:
+        declared = get_declared_partitioning(model)
         created = by_model.get((model._meta.app_label, model._meta.model_name or ""))
         if created is None:
+            if declared is not None and model._meta.app_label in migrated_apps:
+                errors.append(
+                    f"{model._meta.label} declares `__partitioning__`, but no migration "
+                    f"creates it, e.g. because it was renamed. Only models created with "
+                    f"CreatePartitionedModel can be partitioned."
+                )
             continue
-        declared = get_declared_partitioning(model)
         recorded = (
             created.operation.partitioning
             if isinstance(created.operation, CreatePartitionedModel)

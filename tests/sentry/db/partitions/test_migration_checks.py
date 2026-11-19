@@ -19,6 +19,7 @@ from sentry.db.partitions.migration_checks import (
 from sentry.new_migrations.operations import CreatePartitionedModel
 
 WEEKLY = RangePartitioning("date_added", PartitionInterval.WEEK)
+MIGRATED = {"fixtures"}
 
 
 def test_declarations_match_migrations() -> None:
@@ -27,7 +28,7 @@ def test_declarations_match_migrations() -> None:
         loader = MigrationLoader(None, ignore_no_migrations=True)
     created = list(iter_created_models(loader))
     assert len(created) > 100
-    assert get_partitioning_migration_errors(created, apps.get_models()) == []
+    assert get_partitioning_migration_errors(created, apps.get_models(), loader.migrated_apps) == []
 
 
 def created(name: str, partitioning: RangePartitioning | HashPartitioning | None) -> CreatedModel:
@@ -70,21 +71,33 @@ def test_mismatches() -> None:
                 created("Plain", None),
             ],
             [Declared, Plain],
+            MIGRATED,
         )
         == []
     )
 
-    assert get_partitioning_migration_errors([created("Declared", None)], [Declared]) == [
+    assert get_partitioning_migration_errors([created("Declared", None)], [Declared], MIGRATED) == [
         "fixtures.Declared declares `__partitioning__`, but its table is created by a plain "
         "CreateModel in fixtures.0001_initial. Only new models can be partitioned, with "
         "CreatePartitionedModel. Declaring partitioning doesn't convert an existing table."
     ]
-    assert get_partitioning_migration_errors([created("Plain", WEEKLY)], [Plain]) == [
+    assert get_partitioning_migration_errors([created("Plain", WEEKLY)], [Plain], MIGRATED) == [
         "fixtures.Plain is created by CreatePartitionedModel in fixtures.0001_initial, but "
         "doesn't declare `__partitioning__`."
     ]
     daily = RangePartitioning("date_added", PartitionInterval.DAY, retention=timedelta(days=7))
-    assert get_partitioning_migration_errors([created("Declared", daily)], [Declared]) == [
+    assert get_partitioning_migration_errors(
+        [created("Declared", daily)], [Declared], MIGRATED
+    ) == [
         f"fixtures.Declared declares {WEEKLY}, but fixtures.0001_initial created its table "
         f"with {daily}. How a table is partitioned can't change."
     ]
+
+    # Declared, but nothing creates it, e.g. after a RenameModel.
+    assert get_partitioning_migration_errors([], [Declared, Plain], MIGRATED) == [
+        "fixtures.Declared declares `__partitioning__`, but no migration creates it, e.g. "
+        "because it was renamed. Only models created with CreatePartitionedModel can be "
+        "partitioned."
+    ]
+    # Apps without migrations only get tables from their models.
+    assert get_partitioning_migration_errors([], [Declared, Plain], set()) == []
