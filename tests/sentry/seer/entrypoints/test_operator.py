@@ -771,7 +771,7 @@ class SeerOperatorTest(TestCase):
     def test_can_trigger_autofix_returns_false_without_quota(self, mock_quota: MagicMock) -> None:
         assert SeerAutofixOperator.can_trigger_autofix(group=self.group) is False
 
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @with_feature("organizations:token-billed-seer-enabled")
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(has_enough_credits=False),
@@ -785,13 +785,13 @@ class SeerOperatorTest(TestCase):
 
     @patch("sentry.seer_credit.backend.check_seer_credits")
     @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
-    def test_can_trigger_autofix_skips_credit_check_when_flag_off(
+    def test_can_trigger_autofix_skips_credit_check_when_not_token_billed(
         self, _mock_quota: MagicMock, mock_check_seer_credits: MagicMock
     ) -> None:
         assert SeerAutofixOperator.can_trigger_autofix(group=self.group) is True
         mock_check_seer_credits.assert_not_called()
 
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @with_feature("organizations:token-billed-seer-enabled")
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(has_enough_credits=True),

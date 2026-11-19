@@ -6,6 +6,7 @@ import styled from '@emotion/styled';
 
 import {Container} from '@sentry/scraps/layout';
 
+import type {AnnotationItem} from 'sentry/components/charts/annotations/types';
 import {TransparentLoadingMask} from 'sentry/components/charts/transparentLoadingMask';
 import type {ChartXRangeSelectionProps} from 'sentry/components/charts/useChartXRangeSelection';
 import type {DroppedDataProps} from 'sentry/components/droppedData/types';
@@ -13,7 +14,6 @@ import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {markDelayedData} from 'sentry/utils/timeSeries/markDelayedData';
 import {usePrevious} from 'sentry/utils/usePrevious';
-import type {Release} from 'sentry/views/dashboards/widgets/common/types';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
@@ -32,6 +32,7 @@ import type {ChartInfo} from './types';
 
 interface ChartVisualizationProps {
   chartInfo: ChartInfo;
+  annotations?: AnnotationItem[];
   chartRef?: Ref<ReactEchartsRef>;
   chartXRangeSelection?: Partial<ChartXRangeSelectionProps>;
   droppedData?: DroppedDataProps;
@@ -41,10 +42,6 @@ interface ChartVisualizationProps {
    * aggregates are plotted on the same chart.
    */
   plottables?: Plottable[];
-  /**
-   * Releases drawn as a band under the plot.
-   */
-  releases?: Release[];
   /**
    * Maximum number of series listed in the tooltip, see
    * `TimeSeriesWidgetVisualization`.
@@ -106,13 +103,13 @@ export function useChartInfosPlottables(chartInfos: ChartInfo[]) {
 }
 
 export function ChartVisualization({
+  annotations,
   chartXRangeSelection,
   chartInfo,
   chartRef,
   droppedData,
   isDroppedDataLoading = false,
   plottables: plottablesOverride,
-  releases,
   tooltipLimit,
 }: ChartVisualizationProps) {
   const defaultPlottables = useChartVisualizationPlottables(chartInfo);
@@ -170,8 +167,7 @@ export function ChartVisualization({
         plottables={activePlottables}
         chartXRangeSelection={chartXRangeSelection}
         droppedData={activeDroppedData}
-        releases={releases}
-        showReleaseAs="band"
+        annotations={annotations}
         renderTooltipSeriesDetails={renderTooltipSeriesDetails}
         tooltipLimit={tooltipLimit}
       />

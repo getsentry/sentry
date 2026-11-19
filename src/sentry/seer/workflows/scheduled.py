@@ -44,7 +44,6 @@ from sentry.seer.models.workflow import (
 )
 from sentry.seer.workflows.base import (
     AllProjects,
-    AutomationAction,
     AutomationDefinition,
     AutomationTrigger,
     ConfigUpdate,
@@ -52,10 +51,8 @@ from sentry.seer.workflows.base import (
     SelectedMonitors,
     SelectedProjects,
     WorkflowUpdateError,
-    lock_config,
     validate_project_ids,
 )
-from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import seer_tasks
@@ -80,13 +77,6 @@ class ScheduleSettings(BaseModel):
         return value
 
 
-class PromptSettings(BaseModel):
-    prompt: str | None = None
-
-    class Config:
-        extra = "forbid"
-
-
 class ScheduledRunInputs(BaseModel):
     """The inputs of a scheduled run, recorded in its snapshot."""
 
@@ -103,7 +93,7 @@ def _daily() -> CronSchedule:
 
 def schedule_for(config: SeerWorkflowConfig) -> Schedule | None:
     """The schedule a scheduled `config` should run on, or None while it is disabled."""
-    if not config.enabled:
+    if not AutomationDefinition.is_enabled(config):
         return None
     extras = SeerWorkflowConfigExtras.parse_obj(config.extras)
     settings = ScheduleSettings.parse_obj(extras.trigger_settings or {})
@@ -204,22 +194,6 @@ class ScheduleTrigger(AutomationTrigger[ScheduledRunInputs]):
         )
 
 
-class PromptedInvestigationAction(AutomationAction[BaseModel]):
-    """Run an investigation from a prompt, whatever started the run."""
-
-    settings_type = PromptSettings
-
-    def dispatch(
-        self, config: SeerWorkflowConfig, run: SeerWorkflowRunLifecycle, inputs: BaseModel
-    ) -> None:
-        """Persist the execution plan and durable dispatch before admission commits.
-
-        Seer result/status delivery must complete those executions. Raising here rolls back
-        admission if the execution flag is enabled before this implementation is supplied.
-        """
-        raise NotImplementedError("Scheduled Seer automation dispatch is not implemented")
-
-
 def trigger_key_for(scheduled_for: datetime) -> str:
     """Identifies a scheduled run, so the same run delivered twice is only created once."""
     return f"cron:{scheduled_for.astimezone(UTC):%Y-%m-%dT%H:%M}"
@@ -308,32 +282,5 @@ def _run(organization_id: int, config_id: int, scheduled_for: datetime) -> Sched
     # Firings consumed during this stage are not replayed when execution is enabled later.
     if not features.has(SCHEDULED_EXECUTION_FEATURE, config.organization):
         return ScheduledRunOutcome("ignored", reason="execution_disabled")
-    return _record_scheduled_run(definition, config.organization_id, config.id, scheduled_for)
-
-
-def _record_scheduled_run(
-    definition: AutomationDefinition[Any],
-    organization_id: int,
-    config_id: int,
-    scheduled_for: datetime,
-) -> ScheduledRunOutcome:
-    """Admit and dispatch the run scheduled for `scheduled_for`, once per config."""
-    try:
-        with lock_config(organization_id, config_id) as config:
-            if not config.enabled:
-                return ScheduledRunOutcome("ignored", reason="config_disabled")
-
-            run = definition.trigger_run(
-                config,
-                trigger_key=trigger_key_for(scheduled_for),
-                inputs=ScheduledRunInputs(scheduled_for=scheduled_for),
-            )
-            if not run.created:
-                return ScheduledRunOutcome("duplicate", run=run.lifecycle.get_run())
-            if run.rejection is not None:
-                return ScheduledRunOutcome(
-                    "rejected", reason=run.rejection, run=run.lifecycle.get_run()
-                )
-            return ScheduledRunOutcome("accepted", run=run.lifecycle.get_run())
-    except SeerWorkflowConfig.DoesNotExist:
-        return ScheduledRunOutcome("ignored", reason="configuration_unavailable")
+    # TODO(telkins): Scheduled automations don't start runs yet.
+    return ScheduledRunOutcome("ignored", reason="not_implemented")

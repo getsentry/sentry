@@ -4,7 +4,6 @@ from typing import Any
 from unittest.mock import patch
 
 from django.db import connections, router
-from django.db.models import F
 from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
@@ -88,7 +87,7 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
                 {
                     "id": str(run.id),
                     "configId": str(self.config.id),
-                    "configName": None,
+                    "configName": "Seer automation",
                     "strategy": "breached_metric_investigation",
                     "trigger": None,
                     "status": "running",
@@ -434,10 +433,7 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
             Factories.create_seer_workflow_run_execution(run)
         runs = list(
             SeerWorkflowRun.objects.filter(id__in=[run.id for run in created])
-            .annotate(
-                strategy=F("workflow_config__strategy"),
-                config_extras=F("workflow_config__extras"),
-            )
+            .select_related("workflow_config__backing_workflow")
             .order_by("id")
         )
         using = router.db_for_read(SeerWorkflowRunExecution)
@@ -510,7 +506,11 @@ class OrganizationSeerWorkflowRunsTest(APITestCase):
         }
 
     def test_returns_the_config_name(self) -> None:
-        self.config.update(extras={"name": "Checkout latency"})
+        self.config.update(
+            backing_workflow=self.create_workflow(
+                organization=self.organization, name="Checkout latency"
+            )
+        )
         self.create_run()
 
         response = self.get_success_response(self.organization.slug)

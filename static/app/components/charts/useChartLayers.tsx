@@ -13,6 +13,7 @@ import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 
+import type {AnnotationItem} from './annotations/types';
 import type {ChartLayer, ChartLayersControlProps} from './chartLayersControl';
 
 const RELEASES_LAYER = 'releases';
@@ -47,14 +48,19 @@ export function useChartLayers({
   });
   const [isReleasesLayerOn, setIsReleasesLayerOn] = useState(true);
   const hasReleases = (releaseStats?.length ?? 0) > 0;
-  const isReleaseBandShown = hasReleases && isReleasesLayerOn && !hidden;
+  const areReleasesShown = hasReleases && isReleasesLayerOn && !hidden;
 
-  const releases = useMemo(
+  const annotations = useMemo(
     () =>
-      isReleaseBandShown
-        ? releaseStats?.map(({date, version}) => ({timestamp: date, version}))
+      areReleasesShown
+        ? releaseStats?.map(({date, version}): AnnotationItem => ({
+            id: `release:${version}`,
+            kind: 'release',
+            start: new Date(date).getTime(),
+            title: version,
+          }))
         : undefined,
-    [isReleaseBandShown, releaseStats]
+    [areReleasesShown, releaseStats]
   );
 
   const releasesLayer: ChartLayer | undefined =
@@ -84,5 +90,5 @@ export function useChartLayers({
   const layerControl: ChartLayersControlProps | undefined =
     layers.length > 0 ? {layers, onChange: onLayerChange} : undefined;
 
-  return {droppedData, releases, layerControl};
+  return {droppedData, annotations, layerControl};
 }

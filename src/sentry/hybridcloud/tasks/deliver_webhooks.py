@@ -168,7 +168,8 @@ def _record_lost_head(
 def _set_webhook_delivery_sentry_context(mailbox_name: str | None, provider: str) -> None:
     """Set Sentry context at the delivery entrypoint for easier debugging."""
     sentry_sdk.set_tag("mailbox_name", mailbox_name)
-    sentry_sdk.set_attribute("mailbox_name", mailbox_name)
+    if mailbox_name is not None:
+        sentry_sdk.set_attribute("mailbox_name", mailbox_name)
     context: dict[str, Any] = {"mailbox_name": mailbox_name, "provider": provider}
     sentry_sdk.set_context("webhook_delivery", context)
     sentry_sdk.set_attribute("webhook_delivery.provider", provider)

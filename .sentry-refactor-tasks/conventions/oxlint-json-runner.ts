@@ -106,10 +106,10 @@ if (result.error || (result.status !== 0 && result.status !== 1)) {
   );
 }
 
-// The type-aware backend (tsgolint) can panic while oxlint still exits 0 with
+// The type-aware backend can panic while oxlint still exits 0 with
 // whatever it gathered before the crash.
 if (/panic:|Error running tsgolint/.test(stderr)) {
-  die(failure('the type-aware backend (tsgolint) crashed, so the run is incomplete.'));
+  die(failure('the type-aware backend crashed, so the run is incomplete.'));
 }
 
 interface OxlintOutput {

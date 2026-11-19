@@ -419,6 +419,7 @@ type BaseGetLogsUrlParams = {
   mode?: Mode;
   pinnedRowIds?: string[];
   query?: string;
+  queryPriority?: 'normal' | 'faster';
   referrer?: string;
   rowId?: string;
   selection?: PageFilters;
@@ -434,6 +435,7 @@ export function getLogsUrl({
   organization,
   selection,
   query,
+  queryPriority,
   field,
   groupBy,
   id,
@@ -460,6 +462,7 @@ export function getLogsUrl({
     start,
     end,
     [LOGS_QUERY_KEY]: query,
+    queryPriority,
     utc,
     [LOGS_FIELDS_KEY]: field,
     [LOGS_GROUP_BY_KEY]: groupBy,
@@ -535,6 +538,7 @@ export function getLogsUrlFromSavedQueryUrl({
       projects: savedQuery.projects ? [...savedQuery.projects] : [],
     },
     caseInsensitive: firstQuery.caseInsensitive ? '1' : '0',
+    queryPriority: savedQuery.queryPriority,
   });
 }
 

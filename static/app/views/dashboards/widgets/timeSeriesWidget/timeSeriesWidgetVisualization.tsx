@@ -12,10 +12,11 @@ import unescape from 'lodash/unescape';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
+import type {AnnotationItem} from 'sentry/components/charts/annotations/types';
 import type {BandBucket} from 'sentry/components/charts/bands/bandShapes';
 import {useBandTooltips} from 'sentry/components/charts/bands/bandTooltip';
 import {mergeChartBands} from 'sentry/components/charts/bands/mergeChartBands';
-import {useReleaseBand} from 'sentry/components/charts/bands/useReleaseBand';
+import {useAnnotationBand} from 'sentry/components/charts/bands/useAnnotationBand';
 import {BaseChart} from 'sentry/components/charts/baseChart';
 import type {LegendItem} from 'sentry/components/charts/chartLegend';
 import {ChartLegend} from 'sentry/components/charts/chartLegend';
@@ -82,6 +83,12 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
    * An array of `Plottable` objects. This can be any object that implements the `Plottable` interface.
    */
   plottables: Plottable[];
+
+  /**
+   * Releases, flag changes, and other annotations, drawn as a band under the
+   * plot that marks each chart bucket with annotations.
+   */
+  annotations?: AnnotationItem[];
 
   /**
    * Sets the range of the Y axis.
@@ -234,7 +241,6 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const location = useLocation();
   const hasReleaseBubbles =
     props.showReleaseAs !== 'none' && props.showReleaseAs === 'bubble';
-  const hasReleaseBand = props.showReleaseAs === 'band';
 
   // Local legend selection state used when the parent doesn't manage it
   const [localLegendSelection, setLocalLegendSelection] = useState<
@@ -499,23 +505,24 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     'offset' in releaseBubbleXAxis ? releaseBubbleXAxis.offset : 0;
   const releaseGridBottom = 'bottom' in releaseBubbleGrid ? releaseBubbleGrid.bottom : 0;
 
+  const hasAnnotations = (props.annotations?.length ?? 0) > 0;
   const bandBuckets = useMemo(
-    () => (hasReleaseBand ? getBandBuckets(props.plottables) : []),
-    [hasReleaseBand, props.plottables]
+    () => (hasAnnotations ? getBandBuckets(props.plottables) : []),
+    [hasAnnotations, props.plottables]
   );
-  const releaseBand = useReleaseBand({
+  const annotationBand = useAnnotationBand({
     buckets: bandBuckets,
-    releases: hasReleaseBand ? props.releases : undefined,
+    items: props.annotations,
   });
 
   const droppedDataBand = useDroppedDataBand({droppedData: props.droppedData});
-  const bands = useBandTooltips([droppedDataBand, releaseBand], {chartRef, utc});
+  const bands = useBandTooltips([droppedDataBand, annotationBand], {chartRef, utc});
 
   const showYAxisProp = props.showYAxis ?? 'auto';
   const showYAxis = showYAxisProp === 'auto';
 
   const releaseSeries =
-    props.releases && props.showReleaseAs !== 'none' && !hasReleaseBand
+    props.releases && props.showReleaseAs !== 'none'
       ? hasReleaseBubbles
         ? releaseBubbleSeries
         : createReleaseSeriesOptions(

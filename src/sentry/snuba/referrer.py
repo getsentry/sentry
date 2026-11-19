@@ -644,6 +644,7 @@ class Referrer(StrEnum):
     EXPORT_EVENTS = "export-events"
     FETCH_EVENTS_FOR_DELETION = "fetch_events_for_deletion"
     GETSENTRY_API_CUSTOMER_LLM_COST_STATS = "getsentry.api.customer-llm-cost-stats"
+    GETSENTRY_API_CUSTOMER_SEER_USAGE_STATS = "getsentry.api.customer-seer-usage-stats"
     GETSENTRY_API_PENDO_DETAILS = "getsentry.api.pendo-details"
     GETSENTRY_EXPORT_SPANS_GET_TRACES = "getsentry.export.spans.get_traces"
     GETSENTRY_EXPORT_SPANS_GET_ITEM_DETAILS = "getsentry.export.spans.get_item_details"
