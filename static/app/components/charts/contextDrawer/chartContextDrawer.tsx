@@ -36,7 +36,7 @@ import {AnnotationsPanel} from './annotationsPanel';
 const CHART_CONTEXT_TABS = ['dropped-data', 'annotations'] as const;
 const CHART_CONTEXT_SECTIONS = ['activity', 'severe'] as const;
 
-export type ChartContextTab = (typeof CHART_CONTEXT_TABS)[number];
+type ChartContextTab = (typeof CHART_CONTEXT_TABS)[number];
 export type ChartContextSection = (typeof CHART_CONTEXT_SECTIONS)[number];
 
 export interface ChartContextDrawerTarget {
