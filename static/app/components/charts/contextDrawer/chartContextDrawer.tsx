@@ -1,5 +1,4 @@
 import {Fragment, useState, type ReactNode} from 'react';
-import {ClassNames} from '@emotion/react';
 import {parseAsStringLiteral, useQueryStates} from 'nuqs';
 
 import {Badge} from '@sentry/scraps/badge';
@@ -170,7 +169,7 @@ export function ChartContextDrawer({
           }}
           size="sm"
         >
-          {({TabList, TabPanels}) => (
+          {({TabList}) => (
             <ChartContextDrawerLayout
               title={
                 <TabList aria-label={t('Chart context')} variant="floating">
@@ -186,22 +185,7 @@ export function ChartContextDrawer({
               }
               actions={scopeControl}
             >
-              <ClassNames>
-                {({css}) => (
-                  <TabPanels
-                    className={css`
-                      display: flex;
-                      flex-direction: column;
-                      flex-grow: 1;
-                      padding-top: 0;
-                    `}
-                  >
-                    {tabs.map(({key, panel}) => (
-                      <TabPanels.Item key={key}>{panel}</TabPanels.Item>
-                    ))}
-                  </TabPanels>
-                )}
-              </ClassNames>
+              {tabs.find(({key}) => key === tab)?.panel}
             </ChartContextDrawerLayout>
           )}
         </Tabs>
