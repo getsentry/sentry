@@ -3245,7 +3245,7 @@ class TestSingleRunCompletion(TestCase):
         assert self._events(mocks) == ["pr_created"]
 
     def test_pr_still_creating_or_failed_still_announces_earlier_stages(self) -> None:
-        for status in ("creating", "error"):
+        for status, ended in (("creating", []), ("error", ["errored"])):
             with self.subTest(status=status):
                 SeerRun.objects.filter(id=self.seer_run.id).update(extras={})
                 state = self._state(single_run_memory_block(_ROOT_CAUSE, with_code=True))
@@ -3255,7 +3255,7 @@ class TestSingleRunCompletion(TestCase):
 
                 mocks = self._execute(state)
 
-                assert self._events(mocks) == ["root_cause_completed", "coding_completed"]
+                assert self._events(mocks) == ["root_cause_completed", "coding_completed", *ended]
 
     def test_failed_pr_is_sent_to_entrypoints_once(self) -> None:
         for error_code, reason in (
