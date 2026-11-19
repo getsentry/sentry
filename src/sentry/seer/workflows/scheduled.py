@@ -41,6 +41,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowFilters,
     SeerWorkflowRun,
     SeerWorkflowSchedule,
+    SeerWorkflowStrategy,
 )
 from sentry.seer.workflows.base import (
     AllProjects,
@@ -255,14 +256,10 @@ def record_scheduled_automation_run(
 
 
 def _run(organization_id: int, config_id: int, scheduled_for: datetime) -> ScheduledRunOutcome:
-    # Imported here because definitions imports this module for its strategy table.
-    from sentry.seer.workflows.definitions import find_definition
-
     config = SeerWorkflowConfig.objects.get_or_none(id=config_id, organization_id=organization_id)
-    definition = find_definition(config.strategy) if config is not None else None
     if (
         config is None
-        or not isinstance(definition, ScheduleDefinition)
+        or config.strategy != SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
         or schedule_for(config) is None
     ):
         # The config was deleted, disabled, or no longer runs on a schedule, but its

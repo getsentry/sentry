@@ -343,16 +343,12 @@ class SeerInvestigationActionHandler(ActionHandler):
             .values_list("id", "strategy", named=True)
             .get_or_none()
         )
-        # Imported here because definitions imports this module for its strategy table.
-        from sentry.seer.workflows.definitions import find_definition
-
-        definition = find_definition(config.strategy) if config is not None else None
-        if config is None or not isinstance(definition, MetricAlertDefinition):
+        if config is None or config.strategy != SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
             _record_trigger_outcome(IgnoredMetricBreach("configuration_unavailable"), extra)
             return
 
         extra.update(workflow_config_id=config.id)
-        admission = definition.admit_breach(
+        admission = MetricAlertDefinition().admit_breach(
             group,
             event,
             config_id=config.id,
