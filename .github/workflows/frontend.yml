@@ -314,16 +314,11 @@ jobs:
         run: node scripts/extractFormFields.ts
 
       - name: Check for changes
-        run: |
-          if ! git diff --exit-code static/app/views/settings/fieldRegistry.generated.ts; then
-            echo ""
-            echo "❌ Form field registry is out of sync!"
-            echo ""
-            echo "Run the following command and commit the changes:"
-            echo "  node scripts/extractFormFields.ts"
-            echo ""
-            exit 1
-          fi
+        run: >-
+          .github/workflows/scripts/check-generated-file.sh
+          static/app/views/settings/fieldRegistry.generated.ts
+          'Form field registry'
+          'node scripts/extractFormFields.ts'
 
   embed-widgets:
     if: needs.files-changed.outputs.embed_widget_schema == 'true'
@@ -341,16 +336,11 @@ jobs:
         run: pnpm run gen:embed-widgets
 
       - name: Check for changes
-        run: |
-          if ! git diff --exit-code src/sentry/seer/agent/embed_widgets.generated.json; then
-            echo ""
-            echo "❌ Embed widgets JSON schema is out of sync!"
-            echo ""
-            echo "Run the following command and commit the changes:"
-            echo "  pnpm run gen:embed-widgets"
-            echo ""
-            exit 1
-          fi
+        run: >-
+          .github/workflows/scripts/check-generated-file.sh
+          src/sentry/seer/agent/embed_widgets.generated.json
+          'Embed widgets JSON schema'
+          'pnpm run gen:embed-widgets'
 
   # This check runs once all dependant jobs have passed
   # It symbolizes that all required Frontend checks have succesfully passed (Or skipped)
