@@ -219,6 +219,7 @@ class OrganizationDashboardGenerateEndpoint(OrganizationEndpoint):
                 category_key="dashboard_generate",
                 category_value=str(organization.id),
                 reasoning_effort="medium",
+                enable_code_mode_tools="only",
             )
             run = client.start_run(
                 prompt=prompt,

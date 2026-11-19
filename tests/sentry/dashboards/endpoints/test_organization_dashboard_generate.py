@@ -57,6 +57,7 @@ class OrganizationDashboardGenerateEndpointTest(APITestCase):
             category_key="dashboard_generate",
             category_value=str(self.organization.id),
             reasoning_effort="medium",
+            enable_code_mode_tools="only",
         )
         call_kwargs = mock_client.start_run.call_args[1]
         assert "Show me error rates by project" in call_kwargs["prompt"]
@@ -151,6 +152,7 @@ class OrganizationDashboardGenerateEndpointTest(APITestCase):
             category_key="dashboard_generate",
             category_value=str(self.organization.id),
             reasoning_effort="medium",
+            enable_code_mode_tools="only",
         )
 
         # Verify on_page_context includes the current dashboard JSON
