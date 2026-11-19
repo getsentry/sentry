@@ -7,6 +7,7 @@ import type {EntityHeaderMetadataItemProps} from './items/entityHeaderMetadataIt
 import {
   EntityHeaderMetadataItem,
   EntityHeaderMetadataItemSkeleton,
+  getFilteredEntries,
 } from './items/entityHeaderMetadataItem';
 import type {EntityHeaderPeopleProps} from './items/entityHeaderPeople';
 import {EntityHeaderPeople} from './items/entityHeaderPeople';
@@ -121,8 +122,12 @@ export function EntityHeader({
     );
   const visibleMetadata = (metadata?.items ?? [])
     .map((item, index) => ({item, index}))
-    .filter((entry): entry is {index: number; item: EntityHeaderMetadataItemProps} =>
-      Boolean(entry.item)
+    .filter(
+      (entry): entry is {index: number; item: EntityHeaderMetadataItemProps} =>
+        Boolean(entry.item) &&
+        // A list its `filter` empties renders nothing, so it must not count
+        // as the row's last item.
+        (entry.item?.type !== 'list' || getFilteredEntries(entry.item).length > 0)
     );
 
   const peopleLoading = Boolean(people) && (isLoading || Boolean(people?.isLoading));
@@ -188,22 +193,27 @@ export function EntityHeader({
                 role="list"
                 aria-label={metadata.label}
                 align="center"
-                gap="md xl"
+                gap="md"
                 wrap="wrap"
                 minWidth={0}
                 minHeight={METADATA_TEXT_HEIGHT}
               >
-                {metadataSlots.map(({item, index}) =>
-                  item ? (
+                {metadataSlots.map(({item, index}, position) => {
+                  const hasTrailingDivider = position < metadataSlots.length - 1;
+                  return item ? (
                     <EntityHeaderMetadataItem
                       key={index}
                       {...item}
+                      hasTrailingDivider={hasTrailingDivider}
                       isLoading={isLoading}
                     />
                   ) : (
-                    <EntityHeaderMetadataItemSkeleton key={index} />
-                  )
-                )}
+                    <EntityHeaderMetadataItemSkeleton
+                      key={index}
+                      hasTrailingDivider={hasTrailingDivider}
+                    />
+                  );
+                })}
               </Flex>
             )}
           </Stack>

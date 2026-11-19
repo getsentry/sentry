@@ -2,6 +2,14 @@ import {MemoryRouter} from 'react-router';
 
 import type {EntityHeaderProps} from '@sentry/scraps/entityHeader';
 import {EntityHeader} from '@sentry/scraps/entityHeader';
+import type {TranslationContextValue} from '@sentry/scraps/translation';
+import {TranslationContextProvider} from '@sentry/scraps/translation';
+
+const translation: TranslationContextValue = {
+  t: (string, ...args) =>
+    string.replace('%s', typeof args[0] === 'number' ? String(args[0]) : ''),
+  tct: template => template,
+};
 
 /**
  * No case here carries an avatar, and none should until the harness loads the
@@ -41,6 +49,19 @@ const props: EntityHeaderProps = {
     ],
   },
 };
+
+const toolNames = [
+  'search_flights',
+  'book_hotel',
+  'get_weather',
+  'convert_currency',
+  'translate',
+  'find_restaurants',
+  'rent_car',
+  'check_visa',
+  'plan_route',
+  'send_itinerary',
+];
 
 describe('EntityHeader', () => {
   // The stats sit beside the title above the `lg` container breakpoint (640px)
@@ -159,4 +180,43 @@ describe('EntityHeader', () => {
       })
     );
   });
+
+  // Past `maxVisible` the entries collapse into "+N more"; the rest wrap onto
+  // further lines rather than overflow a narrow header, under a label that
+  // stays on the first line. The harness renders on the server, where there is
+  // no container to measure, so `maxVisible` resolves to its `zero` value at
+  // every width.
+  it.snapshot.each([480, 900])(
+    'metadata list at %s',
+    () => (
+      // The harness mounts no translation provider, and the context's default
+      // `t` does not interpolate.
+      <TranslationContextProvider value={translation}>
+        <EntityHeader
+          title={{type: 'text', label: 'Conversation', value: 'Trip planning'}}
+          metadata={{
+            label: 'Conversation properties',
+            items: [
+              {label: 'Model', type: 'text', value: 'gpt-5', mode: 'full'},
+              {
+                label: 'Tools',
+                type: 'list',
+                mode: 'full',
+                maxVisible: {zero: 6, md: 8},
+                items: toolNames.map(name => ({
+                  key: name,
+                  label: 'Tool',
+                  type: 'text',
+                  value: name,
+                  variant: name === 'book_hotel' ? 'danger' : undefined,
+                })),
+              },
+              {label: 'Started at', type: 'text', value: '2h ago'},
+            ],
+          }}
+        />
+      </TranslationContextProvider>
+    ),
+    viewport => ({viewport, tags: {area: 'core'}})
+  );
 });

@@ -727,7 +727,7 @@ People related to the entity, such as who viewed a replay or who is involved in 
 
 ## Metadata
 
-The metadata row is a list of properties. Each item has a `label` saying what it is and a `value`. Add `secondary` for a qualifier such as a browser's version rather than joining both into one string; its `label` composes with the parent's, so "version" under "Browser" is read "Browser version". A property needing a third value is two properties.
+The metadata row is a list of properties that wraps onto as many lines as it needs, with a small (`md`) gap between boxes. Every property but the last ends with a pipe, drawn inside it after the value, so the pipe wraps with its property. When the row wraps, a line can end on a pipe. Each item has a `label` saying what it is and a `value`. Add `secondary` for a qualifier such as a browser's version rather than joining both into one string; its `label` composes with the parent's, so "version" under "Browser" is read "Browser version". A property needing a third value is two properties.
 
 `type: 'link'` makes the value a link, with `to` or `externalHref` as on the title. Its name includes the key ("Release 8.42.0"), because the key is usually hidden. `tooltip` explains the value on hover or focus, with an underline. `mode: 'full'` draws the key beside the value; the default, `compact`, keeps it for screen readers only.
 
@@ -1074,6 +1074,80 @@ A metadata `leadingGraphic` takes an icon from `@sentry/icons`, a `PlatformIcon`
 />
 ```
 
+### Lists
+
+`type: 'list'` holds several entries under one key, such as the tools a conversation called. Each entry is a text or link metadata value with a `key`, and draws the way a metadata item does, so it takes its own `variant`, `tooltip`, `secondary` and `leadingGraphic`. An entry cannot be a list. `maxVisible` caps how many are shown and collapses the rest behind "+N more", which lists them on hover or focus. It is responsive: plain keys resolve against the header's width, `screen:` keys against the viewport. `filter` then `sort` run before the cut, so the entries that matter stay in view. A list takes no `tooltip`, `secondary` or `variant` of its own, and renders nothing once `filter` leaves it empty. Its entries flow into the metadata row and wrap with it, as if each were a property. What groups them is that no pipe falls between them. The list's `leadingGraphic` and, in `full` mode, its label travel with the first entry. Its pipe follows its last visible element, "+N more" when entries are collapsed and the last entry otherwise, unless the list is the row's last property. A list that `filter` empties counts as absent, so the property before it ends the row without a pipe.
+
+export const tools = [
+  {name: 'search_flights', hasError: false},
+  {name: 'book_hotel', hasError: true},
+  {name: 'get_weather', hasError: false},
+  {name: 'convert_currency', hasError: false},
+  {name: 'translate', hasError: true},
+  {name: 'find_restaurants', hasError: false},
+  {name: 'internal_ping', hasError: false},
+];
+export const erroredTools = new Set(
+  tools.filter(tool => tool.hasError).map(tool => tool.name)
+);
+
+<Storybook.Demo resizable direction="column" align="stretch">
+  <EntityHeader
+    title={{type: 'text', label: 'Conversation', value: 'Trip planning'}}
+    metadata={{
+      label: 'Conversation properties',
+      items: [
+        {label: 'Model', type: 'text', value: 'gpt-5', mode: 'full'},
+        {
+          label: 'Tools',
+          type: 'list',
+          mode: 'full',
+          maxVisible: {zero: 2, md: 4},
+          items: tools.map(tool => ({
+            key: tool.name,
+            label: 'Tool',
+            type: 'text',
+            value: tool.name,
+            variant: tool.hasError ? 'danger' : undefined,
+          })),
+          sort: (a, b) =>
+            Number(erroredTools.has(b.key)) - Number(erroredTools.has(a.key)),
+          filter: entry => entry.key !== 'internal_ping',
+        },
+      ],
+    }}
+  />
+</Storybook.Demo>
+
+```jsx
+<EntityHeader
+  title={{type: 'text', label: t('Conversation'), value: conversation.title}}
+  metadata={{
+    label: t('Conversation properties'),
+    items: [
+      {label: t('Model'), type: 'text', value: conversation.model, mode: 'full'},
+      {
+        label: t('Tools'),
+        type: 'list',
+        mode: 'full',
+        // Two entries in a narrow header, four once it reaches `md`.
+        maxVisible: {zero: 2, md: 4},
+        items: tools.map(tool => ({
+          key: tool.name,
+          label: t('Tool'),
+          type: 'text',
+          value: tool.name,
+          variant: tool.hasError ? 'danger' : undefined,
+        })),
+        // Errored tools first, so they survive the cut.
+        sort: (a, b) => Number(erroredTools.has(b.key)) - Number(erroredTools.has(a.key)),
+        filter: entry => entry.key !== 'internal_ping',
+      },
+    ],
+  }}
+/>
+```
+
 ## Accessibility
 
 - **Title:** an `h2`, named "label, value" ("Replay user, anonymous@example.com"). A link title carries the same name.
@@ -1082,7 +1156,8 @@ A metadata `leadingGraphic` takes an icon from `@sentry/icons`, a `PlatformIcon`
 - **Tab order:** only halves that link or have a tooltip are tab stops, label first. A tooltip on a link attaches to the link, so it adds no extra stop.
 - **No data:** the dash is hidden from screen readers and "No data" is read instead.
 - **People:** read as text ("Viewed by: Alice Chen, Bob Diaz"). The avatars are decorative and can't be focused.
-- **Metadata:** every key is in the DOM, as hidden text or in a link's name, so a value is never announced unexplained: "Browser, Chrome, Browser version, 144.0.0". Leading graphics are hidden from assistive technology.
+- **Metadata:** every key is in the DOM, as hidden text or in a link's name, so a value is never announced unexplained: "Browser, Chrome, Browser version, 144.0.0". Leading graphics are hidden from assistive technology, and the pipes that end properties are decorative and never announced.
+- **Metadata lists:** a nested list named by its `label`. Collapsed entries stay in it, visually hidden, so a screen reader hears every entry and the true count. Collapsed entries are read-only: a link reads as text and a tooltip is dropped, so nothing hidden is a tab stop. "+N more" is the list's last item, read after every entry, and the only tab stop for the collapsed entries. It opens them in a tooltip.
 - **Color:** accent marks a link and an underline marks a tooltip. Links also show a focus ring on keyboard focus, so a keyboard user does not have to rely on color alone.
 - **Loading:** the header sets `aria-busy` while any slot is loading. This is a state, not an announcement.
 
