@@ -22,7 +22,7 @@ from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.files.file import File
 from sentry.objectstore import UsecaseId
-from sentry.preprod.storage import ObjectstoreFile
+from sentry.preprod.objectstore import ObjectstoreFile
 
 HAS_INSTALLABLE_FILE = models.Q(installable_app_file_id__isnull=False) | models.Q(
     installable_app_storage_path__isnull=False

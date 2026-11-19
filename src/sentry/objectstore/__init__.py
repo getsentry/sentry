@@ -119,10 +119,18 @@ class UsecaseId(Enum):
                     self.value,
                     expiration_policy=TimeToLive(timedelta(days=default_attachment_retention())),
                 )
-            case UsecaseId.PREPROD_ARTIFACTS | UsecaseId.PREPROD_DISTRIBUTION:
-                # Writers supply the organization-specific TTL for these products.
-                return ObjectstoreClientUsecase(self.value, compression="none")
-            case UsecaseId.PREPROD | UsecaseId.PREPROD_SNAPSHOTS | UsecaseId.PREPROD_SIZE:
+            case (
+                UsecaseId.PREPROD_ARTIFACTS
+                | UsecaseId.PREPROD_DISTRIBUTION
+                | UsecaseId.PREPROD_SIZE
+            ):
+                # Both products offer 30-day retention. Writers can pass the organization's TTL.
+                return ObjectstoreClientUsecase(
+                    self.value,
+                    compression="zstd" if self is UsecaseId.PREPROD_SIZE else "none",
+                    expiration_policy=TimeToLive(timedelta(days=30)),
+                )
+            case UsecaseId.PREPROD | UsecaseId.PREPROD_SNAPSHOTS:
                 return ObjectstoreClientUsecase(
                     self.value,
                     expiration_policy=TimeToIdle(timedelta(days=30)),

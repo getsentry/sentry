@@ -10,9 +10,9 @@ from django.utils import timezone
 
 from sentry.models.files.file import File
 from sentry.preprod.models import PreprodArtifactSizeComparison, PreprodArtifactSizeMetrics
+from sentry.preprod.objectstore import ObjectstoreFile
 from sentry.preprod.size_analysis.compare import compare_size_analysis
 from sentry.preprod.size_analysis.models import ComparisonResults, SizeAnalysisResults
-from sentry.preprod.storage import ObjectstoreFile
 from sentry.preprod.vcs.pr_comments.size_tasks import create_preprod_size_pr_comment_task
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 from sentry.utils.json import dumps_htmlsafe
