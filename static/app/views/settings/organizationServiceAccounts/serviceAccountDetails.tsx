@@ -72,12 +72,12 @@ function ServiceAccountActions({account}: {account: ServiceAccount}) {
           confirmText={t('Delete Service Account')}
           confirmInput={account.name}
           message={t(
-            'This also revokes its access tokens. Anything using them will stop working. Its history stays in the audit log. You can’t undo this.'
+            'Its access tokens stop working right away, so anything using them will fail. Its history stays in the audit log. You can’t undo this.'
           )}
           onConfirm={() =>
             deleteAccount.mutate(undefined, {
               onSuccess: () => {
-                toast.success(t('Service account deleted and its tokens revoked.'));
+                toast.success(t('Service account deleted.'));
                 navigate(listPath);
               },
               onError: error => {
