@@ -25,7 +25,7 @@ jobs:
           ref: ${{ github.sha }}
           persist-credentials: false
 
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: $/.github/actions/setup-node-pnpm
 
       - name: Prune suppression budgets
         run: pnpm run lint:suppressions --prune

@@ -35,9 +35,13 @@ export function getCurrentUrl(
       'navigation.push',
     ].includes(mostRecentFrame.op)
   ) {
+    const {description} = mostRecentFrame as NavigationFrame;
+    if (description === undefined) {
+      return origin;
+    }
     // navigation.push will have the pathname while the other `navigate.*`
     // operations will have a full url.
-    return origin + stripURLOrigin((mostRecentFrame as NavigationFrame).description);
+    return origin + stripURLOrigin(description);
   }
 
   throw new Error('Unknown frame type in getCurrentUrl');

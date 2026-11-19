@@ -19,6 +19,7 @@ from sentry.issues.related.contributing import (
     UNSUPPORTED_DATASET_DETAIL,
     UNSUPPORTED_QUERY_DETAIL,
 )
+from sentry.issues.related.same_title import ERRORS_ONLY_DETAIL, NO_EVENT_DETAIL
 from sentry.issues.related.same_trace import NO_TRACE_DETAIL, TRACE_SEARCH_UNAVAILABLE_DETAIL
 from sentry.issues.related.similar_stacktrace import (
     NO_STACKTRACE_DETAIL,
@@ -37,6 +38,7 @@ from sentry.utils.snuba import QueryExecutionError
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 TRACE_ID = "a7d67cf796774551a95be6543cacd459"
+ERROR_TITLE = "ZeroDivisionError: division by zero"
 
 
 def trace_contexts(trace_id: str = TRACE_ID) -> dict[str, dict[str, str]]:
@@ -324,8 +326,8 @@ class GroupRelatedEndpointTest(
         response = self.client.get(path)
 
         assert response.status_code == 200
-        # The older event has a stack trace and TRACE_ID. The latest has no stack trace, and ingest
-        # gave it a trace of its own.
+        # The older event has a stack trace, TRACE_ID and the title of setUp's issue. The latest has no
+        # stack trace, ingest gave it a trace of its own, and no other issue has its title.
         assert response.data == {
             "data": [],
             "meta": {
@@ -346,6 +348,12 @@ class GroupRelatedEndpointTest(
                         "type": "contributing",
                         "status": "not_applicable",
                         "detail": NOT_A_METRIC_ISSUE_DETAIL,
+                    },
+                    {
+                        "type": "same_title",
+                        "status": "ok",
+                        "eventId": latest_event.event_id,
+                        "title": "No stack trace here",
                     },
                 ]
             },
@@ -386,6 +394,12 @@ class GroupRelatedEndpointTest(
                     "type": "contributing",
                     "status": "not_applicable",
                     "detail": NOT_A_METRIC_ISSUE_DETAIL,
+                },
+                {
+                    "type": "same_title",
+                    "status": "ok",
+                    "eventId": self.event.event_id,
+                    "title": ERROR_TITLE,
                 },
             ]
         }
@@ -499,6 +513,11 @@ class GroupRelatedEndpointTest(
                     "status": "not_applicable",
                     "detail": NOT_A_METRIC_ISSUE_DETAIL,
                 },
+                {
+                    "type": "same_title",
+                    "status": "not_applicable",
+                    "detail": NO_EVENT_DETAIL,
+                },
             ]
         }
         mock_seer_request.assert_not_called()
@@ -509,7 +528,7 @@ class GroupRelatedEndpointTest(
 
         response = self.client.get(
             f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/related/",
-            {"type": "similar_stacktrace"},
+            {"type": ["similar_stacktrace", "same_title"]},
         )
 
         assert response.status_code == 200
@@ -519,7 +538,12 @@ class GroupRelatedEndpointTest(
                     "type": "similar_stacktrace",
                     "status": "not_applicable",
                     "detail": NOT_AN_ERROR_DETAIL,
-                }
+                },
+                {
+                    "type": "same_title",
+                    "status": "not_applicable",
+                    "detail": ERRORS_ONLY_DETAIL,
+                },
             ]
         }
         mock_seer_request.assert_not_called()
@@ -572,6 +596,12 @@ class GroupRelatedEndpointTest(
                         "status": "not_applicable",
                         "detail": NOT_A_METRIC_ISSUE_DETAIL,
                     },
+                    {
+                        "type": "same_title",
+                        "status": "ok",
+                        "eventId": self.event.event_id,
+                        "title": ERROR_TITLE,
+                    },
                 ]
             },
         }
@@ -600,6 +630,12 @@ class GroupRelatedEndpointTest(
                     "type": "contributing",
                     "status": "not_applicable",
                     "detail": NOT_A_METRIC_ISSUE_DETAIL,
+                },
+                {
+                    "type": "same_title",
+                    "status": "ok",
+                    "eventId": self.event.event_id,
+                    "title": ERROR_TITLE,
                 },
             ]
         }
@@ -731,6 +767,98 @@ class GroupRelatedEndpointTest(
             ]
         }
 
+    def test_same_title(self) -> None:
+        # The same error from other places in the code: grouping makes each one its own issue
+        recent_match = self.store_event(
+            data={
+                **ERROR_EVENT_DATA,
+                "fingerprint": ["recent"],
+                "timestamp": before_now(minutes=2).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        older_match = self.store_event(
+            data={
+                **ERROR_EVENT_DATA,
+                "fingerprint": ["older"],
+                "timestamp": before_now(days=3).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        # Left out: in another project, and last seen before the 14 days searched
+        self.store_event(
+            data={**ERROR_EVENT_DATA, "timestamp": before_now(minutes=2).isoformat()},
+            project_id=self.create_project(organization=self.organization).id,
+        )
+        self.store_event(
+            data={
+                **ERROR_EVENT_DATA,
+                "fingerprint": ["stale"],
+                "timestamp": before_now(days=15).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        assert recent_match.group is not None and older_match.group is not None
+
+        response = self.client.get(self.path, {"type": "same_title"})
+
+        assert response.status_code == 200
+        # Most recently seen first, without this issue
+        assert response.data == {
+            "data": [
+                {
+                    "issue": serialize(Group.objects.get(id=recent_match.group.id), self.user),
+                    "relations": [{"type": "same_title"}],
+                },
+                {
+                    "issue": serialize(Group.objects.get(id=older_match.group.id), self.user),
+                    "relations": [{"type": "same_title"}],
+                },
+            ],
+            "meta": {
+                "types": [
+                    {
+                        "type": "same_title",
+                        "status": "ok",
+                        "eventId": self.event.event_id,
+                        "title": ERROR_TITLE,
+                    }
+                ]
+            },
+        }
+
+        response = self.client.get(self.path, {"type": "same_title", "limit": "1"})
+
+        assert response.status_code == 200
+        assert [item["issue"]["id"] for item in response.data["data"]] == [
+            str(recent_match.group.id)
+        ]
+
+    def test_same_title_matches_the_whole_title_exactly(self) -> None:
+        def error(value: str, fingerprint: str) -> dict[str, Any]:
+            return {
+                "exception": {"values": [{"type": "ValueError", "value": value}]},
+                "fingerprint": [fingerprint],
+                "timestamp": before_now(minutes=2).isoformat(),
+            }
+
+        # Quotes, a backslash, and a * that issue search would read as a wildcard
+        value = 'Bad "a*b" in C:\\tmp'
+        event = self.store_event(data=error(value, "this"), project_id=self.project.id)
+        match = self.store_event(data=error(value, "match"), project_id=self.project.id)
+        self.store_event(data=error('Bad "aXb" in C:\\tmp', "wildcard"), project_id=self.project.id)
+        self.store_event(data=error(f"{value}, again", "longer"), project_id=self.project.id)
+
+        response = self.client.get(
+            f"/api/0/organizations/{self.organization.slug}/issues/{event.group_id}/related/",
+            {"type": "same_title"},
+        )
+
+        assert response.status_code == 200
+        assert [item["issue"]["id"] for item in response.data["data"]] == [str(match.group_id)]
+        [meta] = response.data["meta"]["types"]
+        assert meta["title"] == f"ValueError: {value}"
+
     @mock.patch(ISSUE_SEARCH_SNUBA_QUERY, side_effect=QueryExecutionError("timeout"))
     def test_issue_search_error(self, mock_snuba_query: mock.MagicMock) -> None:
         _, metric_issue = self.store_metric_issue(detector_query())
@@ -742,6 +870,11 @@ class GroupRelatedEndpointTest(
         )
 
         # The only requested type failed
+        assert response.status_code == 503
+        assert response.data == {"detail": ALL_TYPES_UNAVAILABLE_DETAIL}
+
+        response = self.client.get(self.path, {"type": "same_title"})
+
         assert response.status_code == 503
         assert response.data == {"detail": ALL_TYPES_UNAVAILABLE_DETAIL}
         mock_snuba_query.assert_called()

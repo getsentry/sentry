@@ -27,10 +27,18 @@ class CellResolutionStrategy(ABC):
     def _get_from_mapping(**query: Any) -> Cell:
         from sentry.models.organizationmapping import OrganizationMapping
 
+        mapping = None
         try:
-            mapping = OrganizationMapping.objects.get_from_cache(**query)
-        except OrganizationMapping.DoesNotExist as e:
-            raise CellMappingNotFound from e
+            mapping = OrganizationMapping.objects.get_from_cache(**query, use_replica=True)
+        except OrganizationMapping.DoesNotExist:
+            pass
+
+        if mapping is None:
+            # We could have missed because of replica lag. Try the primary.
+            try:
+                mapping = OrganizationMapping.objects.get_from_cache(**query)
+            except OrganizationMapping.DoesNotExist as e:
+                raise CellMappingNotFound from e
 
         return get_cell_by_name(mapping.cell_name)
 

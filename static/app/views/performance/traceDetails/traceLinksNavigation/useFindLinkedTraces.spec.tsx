@@ -1,4 +1,4 @@
-import {SEARCH_SENTRY__LINK__TYPE} from '@sentry/conventions/attributes/search';
+import {SEARCH_LINK__TYPE} from '@sentry/conventions/attributes/search';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -22,9 +22,7 @@ describe('useFindAdjacentTrace', () => {
       traceId: LINK_TRACE_ID,
       itemId: LINK_SPAN_ID,
       sampled: true,
-      attributes: [
-        {name: SEARCH_SENTRY__LINK__TYPE, type: 'str', value: 'previous_trace'},
-      ],
+      attributes: [{name: SEARCH_LINK__TYPE, type: 'str', value: 'previous_trace'}],
       ...overrides,
     };
   }

@@ -12,6 +12,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.requests import drf_request_from_request
 from sentry.testutils.silo import assume_test_silo_mode
 
 
@@ -606,7 +607,8 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
         assert "query" in response.data
         assert str(response.data["query"][0]) == (
             "Invalid issue search query: Boolean statements containing "
-            '"OR" or "AND" are not supported in this search'
+            '"OR" or "AND" are not supported in this search. '
+            "To match any of several values for one key, use a list, such as `key:[foo, bar]`"
         )
 
         unchanged_view = GroupSearchView.objects.get(id=self.view_id)
@@ -642,6 +644,23 @@ class GroupSearchViewPermissionTest(TestCase):
 
         starred = MagicMock(spec=GroupSearchViewStarred)
         assert permission.has_object_permission(request, view, starred) is False
+
+    def test_userless_request_cannot_edit_view_without_user_creator(self) -> None:
+        service_account = self.create_service_account(organization=self.organization)
+        view_obj = GroupSearchView.objects.create(
+            organization=self.organization,
+            created_by_service_account_id=service_account.id,
+            name="Service account view",
+            query="is:unresolved",
+        )
+        request = drf_request_from_request(self.make_request(method="PUT"))
+        request.access = MagicMock()
+        request.access.has_scope.return_value = False
+
+        assert (
+            GroupSearchViewPermission().has_object_permission(request, MagicMock(), view_obj)
+            is False
+        )
 
 
 @with_feature(["organizations:granular-permission-scopes", "organizations:issue-views"])

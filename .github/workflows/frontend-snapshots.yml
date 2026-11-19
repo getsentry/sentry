@@ -11,6 +11,11 @@ env:
   NODE_OPTIONS: '--max-old-space-size=4096'
   SNAPSHOT_OUTPUT_DIR: .artifacts/snapshots
   VCS_METADATA_FILE: .artifacts/vcs-metadata.json
+
+permissions:
+  # actions/checkout and `gh api .../compare` in "Compute merge base SHA"
+  contents: read
+
 jobs:
   snapshots:
     name: snapshot tests
@@ -30,6 +35,7 @@ jobs:
           # Explicitly need to do this to avoid cases where the merge commit is used instead of the PR head,
           # which can introduce diffs that aren't explicitly caused by the PR changes.
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
 
       - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
         with:
@@ -37,7 +43,7 @@ jobs:
 
       - uses: pnpm/action-setup@36de12bed180fa130ed56a35e7344f2fa7a820ab # v4
 
-      - uses: ./.github/actions/node-modules-cache-paths
+      - uses: $/.github/actions/node-modules-cache-paths
         id: workspace-cache
 
       - name: node_modules cache

@@ -17,6 +17,8 @@ defaults:
 
 jobs:
   bump-sentry:
+    permissions:
+      contents: read
     runs-on: ubuntu-24.04
     steps:
       - name: getsentry token
@@ -29,12 +31,14 @@ jobs:
           repositories: |
             sentry
             getsentry
+          permission-contents: write
 
       - name: checkout
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           # For getsentry/bin/bump-sentry, sentry needs to be at ../sentry relative to getsentry.
           path: sentry
+          persist-credentials: true
 
       - name: checkout getsentry
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -42,6 +46,7 @@ jobs:
           repository: 'getsentry/getsentry'
           path: getsentry
           token: ${{ steps.getsentry.outputs.token }}
+          persist-credentials: true
 
       - name: bump-sentry ${{ github.sha }}
         run: |

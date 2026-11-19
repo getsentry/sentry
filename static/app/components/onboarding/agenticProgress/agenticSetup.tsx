@@ -22,6 +22,7 @@ interface AgenticSetupProps {
   feedbackSource: string;
   hasInitFailed: boolean;
   hasProgressFailed: boolean;
+  hasRunFailed: boolean;
   isAgentConnected: boolean;
   issueLinkReferrer: string;
   onCopyCommand: (source: AgentSetupCopySource, handoffId: string) => void;
@@ -48,13 +49,13 @@ export function AgenticSetup({
   feedbackSource,
   issueLinkReferrer,
   hasProgressFailed,
+  hasRunFailed,
   onRefresh,
   run,
   handoffFlow = AgentHandoffFlow.ONBOARDING,
   layered = false,
   metaAction,
 }: AgenticSetupProps) {
-  const hasRunFailed = run?.runStatus === 'failed' || run?.runStatus === 'cancelled';
   const showsProgress =
     Boolean(run) && (isAgentConnected || run?.runStatus === 'completed' || hasRunFailed);
 

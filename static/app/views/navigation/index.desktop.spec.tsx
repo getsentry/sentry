@@ -9,12 +9,13 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {
   act,
+  cleanup,
   render,
+  type RouterConfig,
   screen,
   userEvent,
   waitFor,
   within,
-  type RouterConfig,
 } from 'sentry-test/reactTestingLibrary';
 
 import * as modal from 'sentry/actionCreators/modal';
@@ -1871,6 +1872,7 @@ describe('desktop navigation', () => {
 
         afterEach(() => {
           try {
+            cleanup();
             act(() => jest.runOnlyPendingTimers());
           } finally {
             jest.useRealTimers();

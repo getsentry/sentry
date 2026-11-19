@@ -338,7 +338,7 @@
   "scripts": {
     "build": "rslib build",
     "test": "NODE_ENV=test jest --config jest.config.mjs",
-    "typecheck": "tsc --build tsconfig.test.json",
+    "typecheck": "tsrs --build tsconfig.test.json",
     "prepack": "pnpm run build",
     "lint": "pnpm run lint:js && pnpm run lint:css",
     "lint:js": "oxlint --type-aware --report-unused-disable-directives",
@@ -378,7 +378,7 @@
     "@react-stately/tree": "3.10.1",
     "@react-types/shared": "3.36.0",
     "@sentry/icons": "workspace:*",
-    "@sentry/react": "11.14.0",
+    "@sentry/react": "11.15.0",
     "@tanstack/react-hotkeys": "0.18.0",
     "@tanstack/react-pacer": "^0.22.1",
     "@tanstack/react-virtual": "3.14.6",
