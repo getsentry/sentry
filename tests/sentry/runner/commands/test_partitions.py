@@ -52,10 +52,19 @@ class PartitionsCommandTest(TransactionTestCase):
                     f"Created {RANGE_TABLE}_p20240422",
                 ]
 
-                result = invoke("expire", "--dry-run")
-                assert result.exit_code == 0, result.output
-                assert result.output.splitlines() == [f"Would drop {RANGE_TABLE}_p20240304"]
+                # Without --execute nothing is dropped.
+                for _ in range(2):
+                    result = invoke("expire")
+                    assert result.exit_code == 0, result.output
+                    assert result.output.splitlines() == [
+                        f"Would drop {RANGE_TABLE}_p20240304",
+                        "Dry run. Pass --execute to drop these partitions.",
+                    ]
 
-                result = invoke("expire")
+                result = invoke("expire", "--execute")
                 assert result.exit_code == 0, result.output
                 assert result.output.splitlines() == [f"Dropped {RANGE_TABLE}_p20240304"]
+
+                result = invoke("expire", "--execute")
+                assert result.exit_code == 0, result.output
+                assert result.output == ""

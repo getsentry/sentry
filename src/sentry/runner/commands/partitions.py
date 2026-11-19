@@ -77,13 +77,15 @@ def ensure(table: str | None) -> None:
 
 @partitions.command()
 @click.option("--table", help="Only this table.")
-@click.option("--dry-run", is_flag=True, help="Only list the partitions that would be dropped.")
+@click.option("--execute", is_flag=True, help="Drop the partitions. Without it, only list them.")
 @configuration
-def expire(table: str | None, dry_run: bool) -> None:
-    """Drop partitions older than the declared retention."""
+def expire(table: str | None, execute: bool) -> None:
+    """List, or with --execute drop, partitions older than the declared retention."""
     from sentry.db.partitions.manager import expire_partitions
 
-    verb = "Would drop" if dry_run else "Dropped"
+    verb = "Dropped" if execute else "Would drop"
     for model in _selected_models(table):
-        for name in expire_partitions(model, dry_run=dry_run):
+        for name in expire_partitions(model, dry_run=not execute):
             click.echo(f"{verb} {name}")
+    if not execute:
+        click.echo("Dry run. Pass --execute to drop these partitions.")
