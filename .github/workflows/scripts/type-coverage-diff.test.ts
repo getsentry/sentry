@@ -211,6 +211,23 @@ test('exact assertions can move between hunks', () => {
   });
 });
 
+test('an assertion with a truncated preview can move and have its target wrapped', () => {
+  const old = assertion({
+    code: 'a very long expression…',
+    targetType: "Record<ErrorSelectOption['qs'], string[]>",
+  });
+  const current = assertion({
+    code: old.code,
+    line: 20,
+    targetType: "Record<\n  ErrorSelectOption['qs'],\n  string[]\n>",
+  });
+  const changes = diff('@@ -1 +0,0 @@\n-assertion\n@@ -20,0 +20 @@\n+assertion');
+  assert.deepEqual(compareItems([current], [old], changes), {
+    added: [],
+    removed: [],
+  });
+});
+
 test('exact assertions can move out of a deleted file into a new file', () => {
   const old = assertion();
   const current = assertion({file: 'static/app/moved.tsx'});

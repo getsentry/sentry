@@ -89,21 +89,23 @@ export function parseGitDiffText(diff: string): Map<string, GitDiffChange> {
   return changes;
 }
 
-function normalizeTargetType(targetType: string | undefined): string | undefined {
-  if (targetType === undefined) {
-    return undefined;
-  }
-  // Parse and print the type so line wrapping does not affect matching and
-  // whitespace inside literals is preserved.
+function normalizeTargetType(targetType: string): string {
+  // Reprint the type with consistent formatting and without comments.
+  // The printer preserves whitespace inside literals.
   const source = ts.createSourceFile(
     'assertion.ts',
     `type Target = ${targetType};`,
     ts.ScriptTarget.Latest
   );
   const declaration = source.statements[0];
-  return declaration && ts.isTypeAliasDeclaration(declaration)
-    ? typePrinter.printNode(ts.EmitHint.Unspecified, declaration.type, source)
-    : targetType;
+  if (
+    !declaration ||
+    !ts.isTypeAliasDeclaration(declaration) ||
+    declaration.type.getWidth(source) !== targetType.length
+  ) {
+    throw new Error(`Could not parse assertion target type: ${targetType}`);
+  }
+  return typePrinter.printNode(ts.EmitHint.Unspecified, declaration.type, source);
 }
 
 function semanticKey(item: CoverageItem): string {
@@ -112,7 +114,7 @@ function semanticKey(item: CoverageItem): string {
     item.kind,
     item.name,
     item.code,
-    normalizeTargetType(item.targetType),
+    item.targetType === undefined ? undefined : normalizeTargetType(item.targetType),
   ]);
 }
 
