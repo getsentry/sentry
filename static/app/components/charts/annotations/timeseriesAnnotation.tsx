@@ -27,7 +27,7 @@ export interface TimeseriesAnnotation {
   dateUpdated: string;
   description: string;
   endTimestamp: string | null;
-  environment: string | null;
+  environmentId: string | null;
   id: string;
   intervalType: 'point' | 'range';
   organizationId: string;

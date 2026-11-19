@@ -11,6 +11,6 @@ export interface AnnotationItem {
   kind: AnnotationKind;
   start: number;
   title: string;
-  environment?: TimeseriesAnnotation['environment'];
+  environmentId?: TimeseriesAnnotation['environmentId'];
   severity?: TimeseriesAnnotation['severity'];
 }
