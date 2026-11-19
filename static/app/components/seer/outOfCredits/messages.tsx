@@ -155,20 +155,10 @@ export function getRefusedPRMessage(
   denialReason: SeerCreditDenialReason | null
 ): string {
   if (denialReason !== 'daily_cap_exceeded') {
-    if (!state) {
-      return t(
-        "Seer couldn't open a pull request because your organization is out of credits."
-      );
-    }
-    return state.pr_number
-      ? t(
-          "Seer couldn't push changes to %s#%s because your organization is out of credits.",
-          state.repo_name,
-          state.pr_number
-        )
+    return state
+      ? getOutOfCreditsPRMessage(state)
       : t(
-          "Seer couldn't open a pull request in %s because your organization is out of credits.",
-          state.repo_name
+          "Seer couldn't open a pull request because your organization ran out of credits."
         );
   }
   if (!state) {
