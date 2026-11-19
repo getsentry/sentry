@@ -21,8 +21,14 @@ from sentry.seer.autofix.prompt_redaction import AUTOFIX_PROMPT_PLACEHOLDER
 from sentry.seer.endpoints.organization_seer_agent_chat import SeerAgentChatSerializer
 from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunMirrorStatus, SeerRunType
+from sentry.service_accounts.models import ServiceAccountToken
+from sentry.service_accounts.tokens import generate_token as generate_service_account_token
+from sentry.service_accounts.tokens import stored_token_fields
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import json
 from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
@@ -609,7 +615,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         assert response.data["code"] == "run_in_flight"
         mock_continue.assert_not_called()
 
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @with_feature("organizations:token-billed-seer-enabled")
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_reply_to_single_run_without_credits_is_402(self, mock_client_class: MagicMock) -> None:
         run = self._single_run(user_id=self.user.id)
@@ -827,6 +833,40 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
         assert response.status_code == 403
         assert response.data == {"detail": "A user account is required to continue a conversation."}
+        mock_client_class.assert_not_called()
+
+    @with_feature("organizations:service-accounts")
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_post_with_service_account_token_is_user_required(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        service_account = self.create_service_account(
+            organization=self.organization, scope_list=["org:read"]
+        )
+        token_str = generate_service_account_token(
+            self.organization.slug, "https://test-region.sentry.io"
+        )
+        stored = stored_token_fields(token_str)
+        with assume_test_silo_mode(SiloMode.CONTROL), outbox_runner():
+            ServiceAccountToken.objects.create(
+                service_account=service_account,
+                organization_id=self.organization.id,
+                name="ci",
+                token_hashed=stored.token_hashed,
+                token_last_characters=stored.token_last_characters,
+                scope_list=["org:read"],
+                created_by=self.user,
+            )
+
+        response = self.client.post(
+            self.url,
+            {"query": "What is this error about?"},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token_str}",
+        )
+
+        assert response.status_code == 403, response.data
+        assert response.data["detail"]["code"] == "user-required"
         mock_client_class.assert_not_called()
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
@@ -1063,7 +1103,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
         assert response.status_code == 403
 
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @with_feature("organizations:token-billed-seer-enabled")
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_post_new_conversation_without_credits_returns_402(
         self, mock_client_class: MagicMock
@@ -1090,7 +1130,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
                 }
         mock_client_class.assert_not_called()
 
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @with_feature("organizations:token-billed-seer-enabled")
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(has_enough_credits=True),
@@ -1108,7 +1148,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         assert response.status_code == 200
         mock_client.start_run.assert_called_once()
 
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @with_feature("organizations:token-billed-seer-enabled")
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(has_enough_credits=False),
@@ -1133,7 +1173,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         }
         mock_client_class.assert_not_called()
 
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @with_feature("organizations:token-billed-seer-enabled")
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(has_enough_credits=False),

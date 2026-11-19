@@ -6,7 +6,7 @@ import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {Access} from 'sentry/components/acl/access';
-import {AgentHandoffFlow} from 'sentry/components/agentHandoff/useAgentHandoff';
+import {AgentHandoffFlow} from 'sentry/components/agentHandoff/types';
 import {AgenticSetup} from 'sentry/components/onboarding/agenticProgress/agenticSetup';
 import type {AgentSetupCopySource} from 'sentry/components/onboarding/agenticProgress/agentSetupCard';
 import type {AgenticRunSession} from 'sentry/components/onboarding/agenticProgress/types';
@@ -68,7 +68,6 @@ export function AgenticCreateProject({
   const [hasOpenedManualSetup, setHasOpenedManualSetup] = useState(false);
   const {
     run,
-    onboardingCode,
     isAgentConnected,
     isSetupComplete,
     hasRunFailed,
@@ -120,10 +119,10 @@ export function AgenticCreateProject({
               <AgenticSetup
                 handoffFlow={AgentHandoffFlow.CREATE_PROJECT}
                 run={run}
-                onboardingCode={onboardingCode}
                 isAgentConnected={isAgentConnected}
                 hasInitFailed={hasInitFailed}
                 hasProgressFailed={hasProgressFailed}
+                hasRunFailed={hasRunFailed}
                 onRefresh={() => void refreshRun()}
                 onRetry={restartRun}
                 onCopyCommand={handleCopyCommand}

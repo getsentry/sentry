@@ -5,7 +5,6 @@ import logging
 from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any, cast
 
-from django.conf import settings
 from django.utils.crypto import constant_time_compare
 from rest_framework import status as status_
 from rest_framework.request import Request
@@ -107,9 +106,6 @@ class SlackRequest:
         self._set_viewer_context_actor()
 
     def _set_viewer_context_actor(self) -> None:
-        if not settings.SENTRY_VIEWER_CONTEXT_ENABLED:
-            return
-
         user = self.get_identity_user() if self.user_id and not self.is_bot() else None
         current = get_viewer_context()
         # Slack authenticates the webhook, not a Django user. Attribute work to

@@ -4,8 +4,6 @@ import {IconSeer} from '@sentry/icons/seer';
 import type {SVGIconProps} from '@sentry/icons/svgIcon';
 
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 
 import {
   INBOX_SUBJECT_TYPES,
@@ -78,13 +76,6 @@ export function hasInboxFilters(filters: InboxFilters) {
     filters.subjectType.length > 0 ||
     filters.eventType.length > 0 ||
     filters.recipient.length > 0
-  );
-}
-
-export function getInboxItemPath(organization: Organization, item: InboxSubject) {
-  const {pathSegment} = INBOX_SUBJECT_CONFIG[item.subjectType];
-  return normalizeUrl(
-    `/organizations/${organization.slug}/inbox/${pathSegment}/${item.subjectId}/`
   );
 }
 

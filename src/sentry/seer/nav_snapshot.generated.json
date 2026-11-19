@@ -9,14 +9,7 @@
       "crumbs": "Explore → Traces",
       "path": "/explore/traces/",
       "when": {
-        "all": [
-          {
-            "flag": "performance-view"
-          },
-          {
-            "flag": "visibility-explore-view"
-          }
-        ]
+        "flag": "visibility-explore-view"
       }
     },
     {
@@ -67,23 +60,13 @@
     },
     {
       "crumbs": "Explore → Agents",
-      "path": "/explore/agents/",
-      "when": {
-        "flag": "gen-ai-conversations"
-      }
+      "path": "/explore/agents/"
     },
     {
       "crumbs": "Explore → Saved Queries",
       "path": "/explore/saved-queries/",
       "when": {
-        "all": [
-          {
-            "flag": "visibility-explore-view"
-          },
-          {
-            "flag": "performance-view"
-          }
-        ]
+        "flag": "visibility-explore-view"
       }
     },
     {
@@ -93,9 +76,6 @@
         "all": [
           {
             "flag": "visibility-explore-view"
-          },
-          {
-            "flag": "performance-view"
           },
           {
             "flag": "explore-saved-formulas"
@@ -616,16 +596,9 @@
       "crumbs": "Settings → Organization → Projects → <project> → Processing → Performance",
       "path": "/settings/projects/{project_slug}/performance/",
       "when": {
-        "all": [
-          {
-            "flag": "performance-view"
-          },
-          {
-            "not": {
-              "deployment": "self_hosted_errors_only"
-            }
-          }
-        ]
+        "not": {
+          "deployment": "self_hosted_errors_only"
+        }
       }
     },
     {
@@ -746,14 +719,7 @@
       "crumbs": "Explore → Traces → Compare",
       "path": "/explore/traces/compare/",
       "when": {
-        "all": [
-          {
-            "flag": "performance-view"
-          },
-          {
-            "flag": "visibility-explore-view"
-          }
-        ]
+        "flag": "visibility-explore-view"
       },
       "sub_page": true
     },
@@ -788,9 +754,6 @@
         "all": [
           {
             "flag": "visibility-explore-view"
-          },
-          {
-            "flag": "performance-view"
           },
           {
             "flag": "explore-saved-formulas"
@@ -889,5 +852,109 @@
       "path": "/settings/projects/{project_slug}/security-headers/csp/",
       "sub_page": true
     }
-  ]
+  ],
+  "summary": {
+    "sections": {
+      "dashboards": ["Dashboards", "All Dashboards", "Starred Dashboards"],
+      "explore": [
+        "Explore",
+        "Traces",
+        "Logs",
+        "Metrics",
+        "Errors",
+        "Errors",
+        "Profiles",
+        "Replays",
+        "Releases",
+        "Agents",
+        "Automations",
+        "Investigations",
+        "Saved Queries",
+        "Saved Formulas",
+        "Starred Queries"
+      ],
+      "insights": ["Insights", "AI", "Moved", "Crons", "Moved", "Uptime"],
+      "issues": [
+        "Issues",
+        "Feed",
+        "Inbox",
+        "User Feedback",
+        "Autofix",
+        "Overview",
+        "Recently Run",
+        "All Views"
+      ],
+      "monitors": [
+        "Monitors",
+        "All Monitors",
+        "My Monitors",
+        "By Monitor Type",
+        "Error",
+        "Metric",
+        "Cron",
+        "Uptime",
+        "Mobile Build",
+        "Alerts"
+      ],
+      "projects": ["Projects"],
+      "seer": ["Seer", "Automations", "Investigations", "Classifiers"]
+    },
+    "prebuilt_dashboards": [
+      "AI Agents Model Details",
+      "AI Agents Overview",
+      "AI Agents Tool Details",
+      "Backend Overview",
+      "Caches",
+      "Domain Details",
+      "Frontend Assets",
+      "Frontend Assets Summary",
+      "Frontend Overview",
+      "Laravel Overview",
+      "MCP Overview",
+      "MCP Prompt Details",
+      "MCP Resource Details",
+      "MCP Tool Details",
+      "Mobile Vitals",
+      "Mobile Vitals App Starts",
+      "Mobile Vitals Screen Loads",
+      "Mobile Vitals Screen Rendering",
+      "Next.js Overview",
+      "Node.js Runtime Metrics",
+      "Outbound API Requests",
+      "Queries",
+      "Query Details",
+      "Queue Summary",
+      "Queues",
+      "Web Vitals",
+      "Web Vitals Page Summary"
+    ],
+    "explore_tabs": [
+      "Span Samples",
+      "Trace Samples",
+      "Aggregates",
+      "Attribute Breakdowns",
+      "Edit Table"
+    ],
+    "flags": [
+      "dashboards-prebuilt-insights-dashboards",
+      "dashboards-starred",
+      "dashboards-user-last-visited",
+      "discover-basic",
+      "explore-errors",
+      "explore-saved-formulas",
+      "gen-ai-conversations",
+      "insights-to-dashboards-ui-rollout",
+      "issue-inbox",
+      "ourlogs-enabled",
+      "preprod-size-monitors-frontend",
+      "profiling",
+      "seer-night-shift-ui",
+      "seer-primary-nav",
+      "session-replay-ui",
+      "tracemetrics-enabled",
+      "universal-inbox",
+      "uptime",
+      "visibility-explore-view"
+    ]
+  }
 }

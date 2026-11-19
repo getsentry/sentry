@@ -27,6 +27,7 @@ import {
   useSetQueryParamsSortBys,
 } from 'sentry/views/explore/queryParams/context';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+import {isHeatMapAggregate} from 'sentry/views/explore/utils/heatMapAggregate';
 
 export function ToolbarSortBy() {
   const mode = useQueryParamsMode();
@@ -53,7 +54,7 @@ export function ToolbarSortBy() {
   const fieldOptions = useSortByFields({
     config: spansConfig,
     fields,
-    yAxes: visualizes.map(v => v.yAxis),
+    yAxes: visualizes.map(v => v.yAxis).filter(yAxis => !isHeatMapAggregate(yAxis)),
     groupBys,
     mode,
   });

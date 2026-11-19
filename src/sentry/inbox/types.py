@@ -16,6 +16,7 @@ from django.utils import timezone
 
 from sentry import features, options
 from sentry.constants import ObjectStatus
+from sentry.inbox.event_data import InboxEventData
 from sentry.inbox.event_retention import cleanup_inbox_item_events
 from sentry.inbox.item_retention import cleanup_inbox_items
 from sentry.models.organization import Organization
@@ -83,7 +84,7 @@ class InboxItemType[SubjectT](ABC):
 
     @abstractmethod
     def get_url(self, *, organization: Organization, subject_id: str) -> str:
-        """Subject URL, independent of inbox items or events."""
+        """Subject's inbox URL, independent of recorded inbox items or events."""
 
     @abstractmethod
     def filter_recipients(self, *, subject: SubjectT, user_ids: Sequence[int]) -> list[int]:
@@ -100,16 +101,6 @@ class InboxEventSummary(StrEnum):
     NOTEBOOK_USER_MENTIONED = "Mentioned you"
     NOTEBOOK_TEAM_MENTIONED = "Mentioned your team"
     NOTEBOOK_PARTICIPANT_ADDED = "Added you"
-
-
-@dataclass(frozen=True, kw_only=True)
-class InboxEventData:
-    def get_url(self, subject_url: str) -> str:
-        """
-        URL for this event, built from the subject URL. Override to point at something on the
-        subject's page, such as the comment that mentioned you.
-        """
-        return subject_url
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -131,6 +122,15 @@ class InboxEventType[SubjectT, DataT: InboxEventData]:
         """URL for an event of this type."""
         subject_url = self.item_type.get_url(organization=organization, subject_id=subject_id)
         return data.get_url(subject_url)
+
+    def get_event_url(self, *, organization: Organization, event: InboxItemEvent) -> str:
+        """URL for a recorded event, or the subject URL if its payload lacks required fields."""
+        subject_id = event.inbox_item.subject_id
+        try:
+            data = self.data_class.from_payload(event.data)
+        except TypeError:
+            return self.item_type.get_url(organization=organization, subject_id=subject_id)
+        return self.get_url(organization=organization, subject_id=subject_id, data=data)
 
     def record(
         self,
@@ -208,6 +208,12 @@ class InboxEventType[SubjectT, DataT: InboxEventData]:
 
             transaction.on_commit(
                 lambda: metrics.incr("inbox.events.processed", amount=len(recipients), tags=tags),
+                using=using,
+            )
+            transaction.on_commit(
+                partial(
+                    metrics.distribution, "inbox.record.events_created", len(events), tags=tags
+                ),
                 using=using,
             )
         return events

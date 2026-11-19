@@ -9,6 +9,7 @@ import {Button} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {ExternalLink} from '@sentry/scraps/link';
 
+import type {AnnotationItem} from 'sentry/components/charts/annotations/types';
 import {ConfigStore} from 'sentry/stores/configStore';
 import * as Storybook from 'sentry/stories';
 import type {DateString} from 'sentry/types/core';
@@ -77,6 +78,23 @@ const releases = [
     ).toISOString(),
   },
 ].filter(hasTimestamp);
+
+const releaseAnnotations: AnnotationItem[] = releases.map(({timestamp, version}) => ({
+  id: `release:${version}`,
+  kind: 'release',
+  start: new Date(timestamp).getTime(),
+  title: version,
+}));
+
+const flagAnnotations: AnnotationItem[] = [
+  {flag: 'new-checkout', index: 2},
+  {flag: 'search-v2', index: 12},
+].map(({flag, index}) => ({
+  id: `flag:${flag}`,
+  kind: 'flag',
+  start: new Date(sampleThroughputTimeSeries.values.at(index)!.timestamp).getTime(),
+  title: flag,
+}));
 
 export default Storybook.story('TimeSeriesWidgetVisualization', story => {
   story('Getting Started', () => {
@@ -1203,6 +1221,13 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
           inside of the flyout.
         </p>
 
+        <p>
+          Releases and flag changes can also be passed as <code>annotations</code>, which
+          draws a band that marks each of the chart's time buckets that has annotations,
+          so it lines up with the other bands under the plot, like dropped data. Its
+          tooltip counts each kind of annotation in the bucket.
+        </p>
+
         <Storybook.SideBySide>
           <MediumWidget>
             <TimeSeriesWidgetVisualization
@@ -1239,6 +1264,17 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
               ]}
               releases={releases}
               showReleaseAs="bubble"
+            />
+          </MediumWidget>
+
+          <MediumWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                new Line(sampleThroughputTimeSeries),
+                new Line(sampleDurationTimeSeries),
+                new Line(sampleDurationTimeSeriesP50),
+              ]}
+              annotations={[...releaseAnnotations, ...flagAnnotations]}
             />
           </MediumWidget>
         </Storybook.SideBySide>

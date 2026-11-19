@@ -3,10 +3,11 @@ import type {Location} from 'history';
 
 import type {BuiltinSymbolSource, CustomRepo} from 'sentry/types/debugFiles';
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
+import type {DetailedProject} from 'sentry/types/project';
 
 import {BuiltInRepositories} from './builtInRepositories';
 import {CustomRepositories} from './customRepositories';
+import {SourceServerMapping} from './sourceServerMapping';
 
 type Props = {
   builtinSymbolSourceOptions: BuiltinSymbolSource[];
@@ -14,7 +15,7 @@ type Props = {
   customRepositories: CustomRepo[];
   location: Location;
   organization: Organization;
-  project: Project;
+  project: DetailedProject;
 };
 
 export function Sources({
@@ -39,6 +40,7 @@ export function Sources({
         customRepositories={customRepositories}
         project={project}
       />
+      <SourceServerMapping organization={organization} project={project} />
     </Fragment>
   );
 }

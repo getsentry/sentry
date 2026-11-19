@@ -51,7 +51,7 @@ function defaultProps(overrides: Partial<Record<string, unknown>> = {}) {
 
 describe('ScmFeatureSelectionPanel', () => {
   const organization = OrganizationFixture({
-    features: ['performance-view', 'session-replay', 'profiling-view'],
+    features: ['session-replay', 'profiling-view'],
   });
 
   it('shows the trial banner and per-feature volumes during onboarding', async () => {

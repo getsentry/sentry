@@ -157,7 +157,7 @@ class BaseQueryBuilder:
             projects = []
 
         if "organization_id" in params and isinstance(params["organization_id"], int):
-            organization = Organization.objects.filter(id=params["organization_id"]).first()
+            organization = Organization.objects.get_or_none(id=params["organization_id"])
         else:
             organization = projects[0].organization if projects else None
 

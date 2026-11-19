@@ -338,7 +338,7 @@ export default function IntegrationDetailedView() {
         `/settings/${organization.slug}/integrations/${integration.provider.key}/${integration.id}/`
       );
     },
-    [organization.slug, integrationSlug, navigate, queryClient, provider?.features]
+    [organization.slug, integrationSlug, navigate, queryClient, provider]
   );
 
   const {mutate: onRemove} = useMutation({

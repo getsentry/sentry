@@ -2,7 +2,11 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {AgentHandoffFlow, useAgentHandoff} from './useAgentHandoff';
+import {AgentHandoffFlow} from './types';
+import {useAgentHandoff} from './useAgentHandoff';
+
+const addFeaturePrompt =
+  'Read and follow https://sentry-jest-tests.example.com/agent-handoff.md verbatim to set up tracing. Your handoff code is `sntryh_example`.';
 
 describe('useAgentHandoff', () => {
   const organization = OrganizationFixture();
@@ -162,6 +166,49 @@ describe('useAgentHandoff', () => {
       resolve();
       await Promise.all([firstCopy, secondCopy]);
     });
+  });
+
+  it('add_feature flow names the product and mints a new code when projectId changes', async () => {
+    const mint = MockApiClient.addMockResponse({
+      url,
+      method: 'POST',
+      body: {code, handoffId, expiresAt: new Date(Date.now() + 300_000).toISOString()},
+    });
+    const contextA = {product: 'tracing' as const, projectId: 'proj-aaa'};
+    const contextB = {product: 'tracing' as const, projectId: 'proj-bbb'};
+
+    const {result, rerender} = renderHookWithProviders(
+      ({ctx}: {ctx: typeof contextA}) =>
+        useAgentHandoff(AgentHandoffFlow.ADD_FEATURE, ctx),
+      {organization, initialProps: {ctx: contextA}}
+    );
+
+    await act(async () => {
+      await result.current.copyPrompt(options);
+    });
+    expect(mint).toHaveBeenCalledTimes(1);
+    expect(mint).toHaveBeenCalledWith(
+      url,
+      expect.objectContaining({
+        data: {context: contextA, disableIpPinning: false, flow: 'add_feature'},
+      })
+    );
+    const itemA = write.mock.calls[0]![0][0] as {data: Record<string, Promise<Blob>>};
+    await expect(itemA.data['text/plain']!.then(b => b.text())).resolves.toBe(
+      addFeaturePrompt
+    );
+
+    rerender({ctx: contextB});
+    await act(async () => {
+      await result.current.copyPrompt(options);
+    });
+    expect(mint).toHaveBeenCalledTimes(2);
+    expect(mint).toHaveBeenLastCalledWith(
+      url,
+      expect.objectContaining({
+        data: {context: contextB, disableIpPinning: false, flow: 'add_feature'},
+      })
+    );
   });
 
   it('finishes a user-initiated copy after unmounting', async () => {

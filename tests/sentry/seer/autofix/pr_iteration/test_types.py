@@ -15,6 +15,7 @@ from sentry.seer.autofix.pr_iteration.check_suites import (
 )
 from sentry.seer.autofix.pr_iteration.feedback import (
     Feedback,
+    feedback_allowed_by_project,
     parse_feedback,
     serialize_feedback,
 )
@@ -679,6 +680,56 @@ class IsExplicitRequestTest(TestCase):
         )
         parsed = parse_feedback(Feedback(source=source).json())
         assert parsed[0].source.is_explicit_request is True
+
+
+class FeedbackAllowedByProjectTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group(project=self.project)
+
+    def _allowed(self, feedback: Feedback, *, organization_id: int | None = None) -> Decision:
+        return feedback_allowed_by_project(
+            organization_id=organization_id or self.organization.id,
+            group_id=self.group.id,
+            feedback=feedback,
+        )
+
+    def _human_review(self, body: str = "rename this") -> Feedback:
+        return Feedback(source=GithubPrReviewCommentFeedbackSource(comment={"id": 1, "body": body}))
+
+    def test_opt_in_with_setting_off_rejects_ci(self) -> None:
+        self.project.update_option("sentry:seer_pr_iteration", False)
+        with self.feature("organizations:token-billed-seer-enabled"):
+            decision = self._allowed(Feedback(source=_check_suite_source()))
+        assert decision == Decision(ok=False, reason="not_requested")
+
+    def test_opt_in_with_setting_off_rejects_human_review_without_mention(self) -> None:
+        self.project.update_option("sentry:seer_pr_iteration", False)
+        with self.feature("organizations:token-billed-seer-enabled"):
+            decision = self._allowed(self._human_review())
+        assert decision == Decision(ok=False, reason="not_requested")
+
+    def test_opt_in_with_setting_off_allows_explicit_request(self) -> None:
+        self.project.update_option("sentry:seer_pr_iteration", False)
+        with self.feature("organizations:token-billed-seer-enabled"):
+            decision = self._allowed(self._human_review("@sentry rename this"))
+        assert decision == Decision(ok=True, reason="explicit_request")
+
+    def test_opt_in_with_setting_on_allows_ci(self) -> None:
+        self.project.update_option("sentry:seer_pr_iteration", True)
+        with self.feature("organizations:token-billed-seer-enabled"):
+            decision = self._allowed(Feedback(source=_check_suite_source()))
+        assert decision == Decision(ok=True, reason="project_enabled")
+
+    def test_without_flag_allows_everything(self) -> None:
+        # ``automated_iteration_allowed`` keeps applying the setting to CI and bots.
+        self.project.update_option("sentry:seer_pr_iteration", False)
+        decision = self._allowed(Feedback(source=_check_suite_source()))
+        assert decision == Decision(ok=True, reason="flag_disabled")
+
+    def test_missing_organization_reads_as_allowed(self) -> None:
+        decision = self._allowed(self._human_review(), organization_id=self.organization.id + 1000)
+        assert decision == Decision(ok=True, reason="organization_not_found")
 
 
 class ConsumeTaskTest(TestCase):

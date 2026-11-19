@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 from threading import Barrier
 from typing import Any, assert_type
@@ -11,6 +11,7 @@ from openapi_schema_validator import OAS30Validator
 
 from sentry.apidocs.spectacular_ports import resolve_type_hint
 from sentry.constants import ObjectStatus
+from sentry.inbox.event_data import InboxEventData
 from sentry.inbox.event_retention import cleanup_inbox_item_events
 from sentry.inbox.issue import ISSUE_USER_MENTIONED, IssueMentionedData
 from sentry.inbox.item_retention import cleanup_inbox_items
@@ -23,7 +24,6 @@ from sentry.inbox.response_types import (
 from sentry.inbox.types import (
     SYSTEM_ACTOR,
     InboxActor,
-    InboxEventData,
     InboxEventSummary,
     InboxEventType,
     InboxItemType,
@@ -83,10 +83,33 @@ class ReferenceItemType(StubItemType[SubjectReference]):
 class MentionedData(InboxEventData):
     comment_id: int
 
+    def serialize(self) -> Mapping[str, object]:
+        return {"commentId": str(self.comment_id)}
+
 
 @dataclass(frozen=True, kw_only=True)
 class StructuredData(InboxEventData):
     details: dict[str, Any]
+
+    def serialize(self) -> Mapping[str, object]:
+        return {"details": self.details}
+
+
+@dataclass(frozen=True, kw_only=True)
+class EmptyData(InboxEventData):
+    def serialize(self) -> dict[str, object]:
+        return {}
+
+
+def test_data_from_payload_ignores_unknown_keys() -> None:
+    assert MentionedData.from_payload({"comment_id": 123, "summary": "Old wording"}) == (
+        MentionedData(comment_id=123)
+    )
+
+
+def test_data_from_payload_requires_fields() -> None:
+    with pytest.raises(TypeError):
+        MentionedData.from_payload({})
 
 
 def test_idempotency_key_uses_only_event_data() -> None:
@@ -115,9 +138,7 @@ def test_idempotency_key_sorts_nested_data() -> None:
 
 
 @dataclass(frozen=True, kw_only=True)
-class LinkedMentionData(InboxEventData):
-    comment_id: int
-
+class LinkedMentionData(MentionedData):
     def get_url(self, subject_url: str) -> str:
         return urlsplit(subject_url)._replace(fragment=f"comment-{self.comment_id}").geturl()
 
@@ -644,13 +665,13 @@ class RecordTest(TestCase):
             event_type="test.reference.updated",
             summary=InboxEventSummary.ISSUE_USER_MENTIONED,
             item_type=item_type,
-            data_class=InboxEventData,
+            data_class=EmptyData,
             notification_setting=NotificationSettingEnum.INBOX_MENTIONS,
         )
 
         event_type.record(
             subject=SubjectReference(organization_id=self.organization.id, subject_id="period-1"),
-            data=InboxEventData(),
+            data=EmptyData(),
             recipient_user_ids=[self.user.id],
             actor=SYSTEM_ACTOR,
         )

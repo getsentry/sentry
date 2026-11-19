@@ -956,7 +956,6 @@ export function CustomerDetails() {
                 orgId,
                 onSuccess: reloadData,
               }),
-            ...actionRequiresBillingAdmin,
           },
           {
             key: 'deleteBillingMetricHistory',

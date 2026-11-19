@@ -15,12 +15,14 @@ from sentry.hybridcloud.services.replica import cell_replica_service
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.project import Project
 from sentry.service_accounts.models import (
+    InvalidScopeError,
     ServiceAccount,
     ServiceAccountProject,
     ServiceAccountProjectReplica,
     ServiceAccountReplica,
     ServiceAccountToken,
     ServiceAccountTokenReplica,
+    parse_grantable_scopes,
     validate_grantable_scopes,
 )
 from sentry.service_accounts.services.service_account import service_account_service
@@ -40,6 +42,23 @@ def test_validate_grantable_scopes_accepts_api_scopes() -> None:
 def test_validate_grantable_scopes_rejects_non_grantable(scope: str) -> None:
     with pytest.raises(ValidationError):
         validate_grantable_scopes(["org:read", scope])
+
+
+@pytest.mark.parametrize("scopes", [["project:write", "org:read", "project:write"], []])
+def test_parse_grantable_scopes_preserves_values(scopes: list[str]) -> None:
+    assert parse_grantable_scopes(scopes) == scopes
+
+
+def test_parse_grantable_scopes_preserves_one_shot_iterable() -> None:
+    scopes = ["org:read", "project:write", "event:admin"]
+    assert parse_grantable_scopes(scope for scope in scopes) == scopes
+
+
+@pytest.mark.parametrize("scope", ["openid", "profile", "email", "not:a-scope"])
+def test_parse_grantable_scopes_rejects_non_grantable(scope: str) -> None:
+    with pytest.raises(InvalidScopeError) as excinfo:
+        parse_grantable_scopes(["org:read", scope])
+    assert excinfo.value.messages == [f"{scope} is not a scope a service account can hold."]
 
 
 @control_silo_test

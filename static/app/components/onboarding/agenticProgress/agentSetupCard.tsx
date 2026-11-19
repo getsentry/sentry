@@ -1,12 +1,11 @@
-import {Fragment, type ReactNode} from 'react';
-import {IconCheckmark} from '@sentry/icons/checkmark';
+import {Fragment} from 'react';
 
-import {Tag} from '@sentry/scraps/badge';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {AgentHandoffPrompt} from 'sentry/components/agentHandoff/agentHandoffPrompt';
-import {AgentHandoffFlow} from 'sentry/components/agentHandoff/useAgentHandoff';
+import {AgentHandoffFlow} from 'sentry/components/agentHandoff/types';
+import {Benefit} from 'sentry/components/onboarding/benefit';
 import {t} from 'sentry/locale';
 
 import type {AgenticProgressRun} from './types';
@@ -31,12 +30,9 @@ export function AgentSetupCard({
   return (
     <Fragment>
       <Stack gap="2xs">
-        <Flex align="center" justify="between" gap="md" wrap="wrap">
-          <Heading as="h3" size="lg">
-            {t('Let your agent set up Sentry')}
-          </Heading>
-          <Tag variant="info">{t('Recommended')}</Tag>
-        </Flex>
+        <Heading as="h3" size="lg">
+          {t('Let your agent set up Sentry')}
+        </Heading>
         <Text as="p" size="lg" variant="secondary">
           {t('Paste one prompt and your agent does the rest')}
         </Text>
@@ -56,14 +52,5 @@ export function AgentSetupCard({
         onSelect={() => onSelectSnippet('prompt')}
       />
     </Fragment>
-  );
-}
-
-function Benefit({children}: {children: ReactNode}) {
-  return (
-    <Flex as="li" align="center" gap="sm">
-      <IconCheckmark size="sm" variant="success" />
-      <Text size="md">{children}</Text>
-    </Flex>
   );
 }

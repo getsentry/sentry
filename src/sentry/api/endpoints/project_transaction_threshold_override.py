@@ -83,9 +83,6 @@ class ProjectTransactionThresholdOverrideEndpoint(OrganizationEventsEndpointBase
         return projects[0]
 
     def get(self, request: Request, organization: Organization) -> Response:
-        if not self.has_feature(organization, request):
-            return self.respond(status=status.HTTP_404_NOT_FOUND)
-
         project = self.get_project(request, organization)
 
         try:
@@ -106,9 +103,6 @@ class ProjectTransactionThresholdOverrideEndpoint(OrganizationEventsEndpointBase
         )
 
     def post(self, request: Request, organization: Organization) -> Response:
-        if not self.has_feature(organization, request):
-            return self.respond(status=status.HTTP_404_NOT_FOUND)
-
         project = self.get_project(request, organization)
         serializer = ProjectTransactionThresholdOverrideSerializer(
             data=request.data,
@@ -147,9 +141,6 @@ class ProjectTransactionThresholdOverrideEndpoint(OrganizationEventsEndpointBase
         )
 
     def delete(self, request: Request, organization: Organization) -> Response:
-        if not self.has_feature(organization, request):
-            return self.respond(status=status.HTTP_404_NOT_FOUND)
-
         project = self.get_project(request, organization)
         transaction = request.data.get("transaction")
         if not transaction:

@@ -79,7 +79,7 @@ def user_has_billing_access(*, organization_id: int, user_id: int | None) -> boo
     """Whether the user can manage the organization's billing."""
     if user_id is None:
         return False
-    organization = Organization.objects.filter(id=organization_id).first()
+    organization = Organization.objects.get_or_none(id=organization_id)
     if not organization:
         return False
     user = user_service.get_user(user_id)

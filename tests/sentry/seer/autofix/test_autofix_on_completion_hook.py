@@ -64,7 +64,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
 from sentry.seer.autofix.pr_iteration.out_of_credits import (
-    OutOfCredits,
+    OutOfCreditsMarker,
     StrandedAction,
     get_out_of_credits,
     mark_out_of_credits,
@@ -491,6 +491,52 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
         )
         AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
         mock_trigger.assert_not_called()
+
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_agent")
+    def test_maybe_continue_pipeline_past_stopping_point(self, mock_trigger: MagicMock) -> None:
+        """Does not continue when a user ran a step past the stopping point."""
+        state = run_state(
+            blocks=[root_cause_memory_block(), solution_memory_block()],
+            metadata={
+                "group_id": self.group.id,
+                "stopping_point": AutofixStoppingPoint.ROOT_CAUSE.value,
+            },
+        )
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
+        mock_trigger.assert_not_called()
+
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_agent")
+    def test_maybe_continue_pipeline_continues_from_a_later_step(
+        self, mock_trigger: MagicMock
+    ) -> None:
+        """Continues from a step after the first one when the stopping point is still ahead."""
+        state = run_state(
+            blocks=[root_cause_memory_block(), solution_memory_block()],
+            metadata={
+                "group_id": self.group.id,
+                "stopping_point": AutofixStoppingPoint.CODE_CHANGES.value,
+            },
+        )
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
+        mock_trigger.assert_called_once()
+        assert mock_trigger.call_args.kwargs["step"] == AutofixStep.CODE_CHANGES
+
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_push_changes")
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_agent")
+    def test_maybe_continue_pipeline_ignores_a_step_outside_the_pipeline(
+        self, mock_trigger: MagicMock, mock_push_changes: MagicMock
+    ) -> None:
+        """Does nothing after a step that has no place in the pipeline order."""
+        state = run_state(
+            blocks=[root_cause_memory_block(), pr_iteration_memory_block()],
+            metadata={
+                "group_id": self.group.id,
+                "stopping_point": AutofixStoppingPoint.ROOT_CAUSE.value,
+            },
+        )
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
+        mock_trigger.assert_not_called()
+        mock_push_changes.assert_not_called()
 
     @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_agent")
     def test_maybe_continue_pipeline_continues_to_next_step(self, mock_trigger: MagicMock) -> None:
@@ -1348,16 +1394,14 @@ class TestPrIterationCompletionHook(TestCase):
     def test_a_branch_moved_retry_refused_for_credits_marks_the_run(
         self, mock_check_seer_credits: MagicMock
     ) -> None:
-        with self.feature(
-            ["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"]
-        ):
+        with self.feature("organizations:token-billed-seer-enabled"):
             outcome, retried = self._branch_moved_push(self._branch_moved())
 
         assert outcome == PrIterationOutcome.SENTRY_OUT_OF_CREDITS
         assert retried is False
-        assert get_out_of_credits(run_id=123, organization_id=self.organization.id) == OutOfCredits(
-            stranded_action=StrandedAction.BRANCH_MOVED_RETRY
-        )
+        assert get_out_of_credits(
+            run_id=123, organization_id=self.organization.id
+        ) == OutOfCreditsMarker(stranded_action=StrandedAction.BRANCH_MOVED_RETRY)
 
     @patch(f"{COMPLETION_PATH}.complete_pr_iteration_details")
     @patch(f"{COMPLETION_PATH}.consume_queued_feedback")
@@ -1442,9 +1486,9 @@ class TestPrIterationCompletionHook(TestCase):
         )
 
         assert is_pr_iteration_paused(run_id=123, organization_id=self.organization.id) is False
-        assert get_out_of_credits(run_id=123, organization_id=self.organization.id) == OutOfCredits(
-            stranded_action=StrandedAction.PUSH
-        )
+        assert get_out_of_credits(
+            run_id=123, organization_id=self.organization.id
+        ) == OutOfCreditsMarker(stranded_action=StrandedAction.PUSH)
         assert (
             mock_complete.call_args.kwargs["outcome"]
             == PrIterationOutcome.SENTRY_OUT_OF_CREDITS.value
@@ -1467,9 +1511,9 @@ class TestPrIterationCompletionHook(TestCase):
         )
 
         mock_push.assert_called_once()
-        assert get_out_of_credits(run_id=123, organization_id=self.organization.id) == OutOfCredits(
-            stranded_action=StrandedAction.PUSH
-        )
+        assert get_out_of_credits(
+            run_id=123, organization_id=self.organization.id
+        ) == OutOfCreditsMarker(stranded_action=StrandedAction.PUSH)
 
     def test_a_redone_branch_moved_retry_past_the_retry_cap_pauses_as_an_error(self) -> None:
         self.create_seer_run(organization=self.organization, seer_run_state_id=123)
@@ -1501,9 +1545,9 @@ class TestPrIterationCompletionHook(TestCase):
         )
 
         assert is_pr_iteration_paused(run_id=123, organization_id=self.organization.id) is False
-        assert get_out_of_credits(run_id=123, organization_id=self.organization.id) == OutOfCredits(
-            stranded_action=StrandedAction.PUSH
-        )
+        assert get_out_of_credits(
+            run_id=123, organization_id=self.organization.id
+        ) == OutOfCreditsMarker(stranded_action=StrandedAction.PUSH)
         mock_push.assert_not_called()
 
     @patch(f"{COMPLETION_PATH}.complete_pr_iteration_details")
@@ -1523,9 +1567,9 @@ class TestPrIterationCompletionHook(TestCase):
             self.organization, self.group, 123, state, AutofixReferrer.ON_COMPLETION_HOOK
         )
 
-        assert get_out_of_credits(run_id=123, organization_id=self.organization.id) == OutOfCredits(
-            stranded_action=None
-        )
+        assert get_out_of_credits(
+            run_id=123, organization_id=self.organization.id
+        ) == OutOfCreditsMarker(stranded_action=None)
         mock_push.assert_not_called()
 
 
@@ -1642,9 +1686,9 @@ class TestFailedRunCompletionHook(TestCase):
 
         assert is_pr_iteration_paused(run_id=123, organization_id=self.organization.id) is False
         # Nothing was refused in Sentry: the next iteration pushes the partial changes.
-        assert get_out_of_credits(run_id=123, organization_id=self.organization.id) == OutOfCredits(
-            stranded_action=None
-        )
+        assert get_out_of_credits(
+            run_id=123, organization_id=self.organization.id
+        ) == OutOfCreditsMarker(stranded_action=None)
 
     @patch(f"{COMPLETION_PATH}.consume_queued_feedback")
     @patch(f"{COMPLETION_PATH}.trigger_push_changes")

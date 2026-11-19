@@ -8,6 +8,12 @@ on:
       - master
       - releases/**
   pull_request:
+    # `labeled` lets the override label start a full run without a new push.
+    # Other labels are ignored below. Job `if`, job `name`, and concurrency
+    # can't read env, so the label condition is repeated in each of them.
+    types: [opened, synchronize, reopened, labeled]
+  merge_group:
+    types: [checks_requested]
   # Records the per-test coverage that select-tests maps Python changes with.
   schedule:
     - cron: '0 6 * * *'
@@ -16,7 +22,8 @@ on:
 # Cancel in progress workflows on pull_requests.
 # https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  # Ignored label events get their own group so they don't cancel the real run.
+  group: "${{ github.workflow }}-${{ (github.event.action == 'labeled' && github.event.label.name != 'Trigger: Override Selective Testing') && github.run_id || github.head_ref || github.run_id }}"
   cancel-in-progress: true
 
 # hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
@@ -31,7 +38,9 @@ env:
 
 jobs:
   files-changed:
-    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    if: >-
+      (github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group') &&
+      !(github.event.action == 'labeled' && github.event.label.name != 'Trigger: Override Selective Testing')
     name: detect what files changed
     runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 3
@@ -323,8 +332,11 @@ jobs:
 
   # Only after every shard passed and uploaded its coverage, so the combined
   # coverage includes every test. A failing day keeps the previous coverage.
+  # files-changed and select-tests are skipped on schedule, and without a
+  # status function the implicit success() skips this job because of them.
   acceptance-coverage:
     if: >-
+      !cancelled() &&
       needs.acceptance.result == 'success' &&
       (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
     needs: acceptance
@@ -364,7 +376,9 @@ jobs:
   acceptance-required-checks:
     # this is a required check so we need this job to always run and report a status.
     if: always()
-    name: Acceptance
+    # A skipped job counts as passing, so an ignored label event must not
+    # report `Acceptance`, or it could replace a real failure on this commit.
+    name: "${{ (github.event.action == 'labeled' && github.event.label.name != 'Trigger: Override Selective Testing') && 'Acceptance (ignored label event)' || 'Acceptance' }}"
     needs: [acceptance, files-changed]
     runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 3

@@ -1,5 +1,6 @@
 import {
   mutationOptions,
+  skipToken,
   type InfiniteData,
   type QueryClient,
 } from '@tanstack/react-query';
@@ -34,6 +35,22 @@ type InboxItemsTarget =
 type UpdateInboxItemsVariables = InboxItemsTarget & {update: InboxItemsUpdate};
 
 type InboxListData = InfiniteData<ApiResponse<InboxItem[]>>;
+
+export function inboxUnreadCountApiOptions(organization: Organization | null) {
+  return {
+    ...apiOptions.as<{count: number}>()(
+      '/organizations/$organizationIdOrSlug/inbox/count/',
+      {
+        path: organization?.features.includes('universal-inbox')
+          ? {organizationIdOrSlug: organization.slug}
+          : skipToken,
+        query: {is_read: 'false'},
+        staleTime: 0,
+      }
+    ),
+    refetchOnWindowFocus: 'always' as const,
+  };
+}
 
 export function inboxItemsApiOptions(organization: Organization, filters: InboxFilters) {
   return {

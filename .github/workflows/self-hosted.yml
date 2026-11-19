@@ -139,7 +139,7 @@ jobs:
       packages: write
     steps:
       - name: Docker Login
-        run: docker login --username '${{ github.actor }}' --password-stdin ghcr.io <<< "$GHCR_TOKEN"
+        run: docker login --username "$GITHUB_ACTOR" --password-stdin ghcr.io <<< "$GHCR_TOKEN"
         env:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

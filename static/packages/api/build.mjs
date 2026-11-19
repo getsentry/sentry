@@ -30,9 +30,11 @@ await generateClient("./openapi-normalized.json", "src");
 // 2. Copy hand-written utilities into the generated src/ directory
 cpSync("lib/sentry-pagination.ts", "src/sentry-pagination.ts");
 cpSync("lib/sentry-errors.ts", "src/sentry-errors.ts");
+cpSync("lib/query-serializer.ts", "src/query-serializer.ts");
 cpSync("lib/auth-challenges.ts", "src/auth-challenges.ts");
 cpSync("lib/browser-client.ts", "src/browser-client.ts");
 cpSync("lib/source-analysis.ts", "src/source-analysis.ts");
+cpSync("lib/project-rename.ts", "src/project-rename.ts");
 cpSync("lib/api-client", "src/api-client", { recursive: true });
 
 // 3. Patch the generated output and generate the rest from it, in this order,
@@ -48,6 +50,8 @@ const steps = [
   // Keep the pinned Fetch generator's runtime and types aligned with our contract.
   "generate-response-contract",
   "generate-request-preparation",
+  // Sort keys and write `null` as a bare key in every query (lib/query-serializer.ts).
+  "replace-query-serializer",
   "generate-base-url-resolver",
   // Typed fetchPage / paginateAll / paginateUpTo wrappers for every operation
   // that accepts a `cursor` query parameter.
@@ -96,6 +100,8 @@ appendFileSync(
     "export * from './pagination.gen.ts';",
     "export { createSentryClient } from './sentry-client.gen.ts';",
     "export type { SentryClient } from './sentry-client.gen.ts';",
+    "export { getSentryProjectRename } from './project-rename.ts';",
+    "export type { SentryProjectRename } from './project-rename.ts';",
     "export type { BaseUrlRequest, BaseUrlResolver, Config } from './client/index.ts';",
     "",
   ].join("\n"),

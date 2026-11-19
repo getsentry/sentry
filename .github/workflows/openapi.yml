@@ -128,7 +128,7 @@ jobs:
 
       - name: Prepare release
         if: steps.preflight.outputs.version != ''
-        uses: getsentry/craft@v3
+        uses: getsentry/craft@b2a6fa4904f37b46f34b82330e0f3bf02a40f681 # 3.13.0
         env:
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
         with:
