@@ -1,4 +1,5 @@
 from rest_framework import serializers
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -40,7 +41,7 @@ class OrganizationAuditLogsEndpoint(ControlSiloOrganizationEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.FOUNDATIONS
-    permission_classes = (OrganizationAuditPermission,)
+    permission_classes: tuple[type[BasePermission], ...] = (OrganizationAuditPermission,)
 
     def get(
         self,
