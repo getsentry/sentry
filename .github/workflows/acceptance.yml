@@ -161,6 +161,7 @@ jobs:
       # 156.0.8078.47 is what the x64 image shipped when this was pinned.
       CHROME_FOR_TESTING_VERSION: '156.0.8078.47'
       CHROME_FOR_TESTING_DIR: /home/runner/.cache/chrome-for-testing
+      DEVSERVICES_MODE: acceptance-ci
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
@@ -174,6 +175,22 @@ jobs:
       # chartcuterie polls for the config file until it shows up.
       - name: Create chartcuterie config directory
         run: mkdir -p "$CHARTCUTERIE_CONFIG_PATH"
+
+      # Pulling and starting the services is the slowest part of the setup, so
+      # start it before anything else. It only needs uv and the checkout.
+      # "Setup sentry env" then waits for it instead of starting it again.
+      - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
+        with:
+          version: '0.13.7'
+          enable-cache: false
+
+      - name: Start devservices in the background
+        env:
+          ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES: '1'
+          DEVSERVICES_WORKDIR: .
+          DEVSERVICES_LOCKFILE: uv.lock
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 .github/actions/setup-sentry/devservices-bg.py start
 
       # Must run before "Setup sentry env" starts in the background: it parses
       # $GITHUB_EVENT_PATH, which the runner truncates whenever a step starts,
@@ -195,7 +212,7 @@ jobs:
         id: setup
         background: true
         with:
-          mode: acceptance-ci
+          mode: ${{ env.DEVSERVICES_MODE }}
           early-devservices: 'true'
 
       - name: Step configurations
