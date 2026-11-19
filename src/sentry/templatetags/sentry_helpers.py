@@ -20,6 +20,7 @@ from packaging.version import parse as parse_version
 from sentry import options
 from sentry.api.serializers import serialize as serialize_func
 from sentry.utils import json
+from sentry.utils.latest_version import get_latest_version
 from sentry.utils.strings import soft_break as _soft_break
 from sentry.utils.strings import soft_hyphenate, truncatechars
 
@@ -283,7 +284,7 @@ def get_sentry_version(context: Context) -> str:
 
     current = sentry.VERSION
 
-    latest = options.get("sentry:latest_version") or current
+    latest = get_latest_version() or current
     update_available = parse_version(latest) > parse_version(current)
     build = sentry.__build__ or current
 

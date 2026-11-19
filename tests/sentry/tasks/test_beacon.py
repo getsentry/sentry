@@ -17,6 +17,7 @@ from sentry.tasks.beacon import BEACON_URL, send_beacon, send_beacon_metric
 from sentry.testutils.cases import OutcomesSnubaTest
 from sentry.testutils.silo import no_silo_test
 from sentry.utils import json
+from sentry.utils.latest_version import get_latest_version
 from sentry.utils.outcomes import Outcome
 
 
@@ -171,7 +172,7 @@ class SendBeaconTest(OutcomesSnubaTest):
         )
         safe_urlread.assert_called_once_with(safe_urlopen.return_value)
 
-        assert options.get("sentry:latest_version") == "1.0.0"
+        assert get_latest_version() == "1.0.0"
 
     @patch("sentry.tasks.beacon.get_all_package_versions")
     @patch("sentry.tasks.beacon.safe_urlopen")
@@ -231,7 +232,7 @@ class SendBeaconTest(OutcomesSnubaTest):
         )
         safe_urlread.assert_called_once_with(safe_urlopen.return_value)
 
-        assert options.get("sentry:latest_version") == "1.0.0"
+        assert get_latest_version() == "1.0.0"
 
     @patch("sentry.tasks.beacon.get_all_package_versions")
     @patch("sentry.tasks.beacon.safe_urlopen")
@@ -290,7 +291,7 @@ class SendBeaconTest(OutcomesSnubaTest):
         )
         safe_urlread.assert_called_once_with(safe_urlopen.return_value)
 
-        assert options.get("sentry:latest_version") == "1.0.0"
+        assert get_latest_version() == "1.0.0"
 
     @patch("sentry.tasks.beacon.get_all_package_versions")
     @patch("sentry.tasks.beacon.safe_urlopen")
