@@ -92,7 +92,7 @@ export function MetricSelectRow({
    */
   disabledAggregates?: Record<string, string>;
   /**
-   * Aggregates a new, empty row must not land on when the selector picks a
+   * Aggregates that a new, empty row must not land on when the selector picks a
    * default metric. A metric is skipped only if picking it would produce one of
    * these exact aggregates; every metric stays selectable by hand.
    */
