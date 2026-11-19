@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useState} from 'react';
-import {useNavigationType} from 'react-router';
 
+import {REDIRECT_HANDLE} from 'sentry/router/translateSentryRoute';
 import type {Organization} from 'sentry/types/organization';
 import type {Overrides} from 'sentry/types/overrides';
 import {usePrevious} from 'sentry/utils/usePrevious';
@@ -16,14 +16,12 @@ import {trackMetric} from 'getsentry/utils/trackMetric';
 
 export const DELAY_TIME_MS = 7000;
 
-/**
- * A route replaced this soon after it mounted is a redirect, such as a
- * `redirectTo` route, `withDomainRedirect` or `AppRoot`. It is not a page the
- * user saw, so it sends no page view and is not counted as the previous route.
- */
-const REDIRECT_WINDOW_MS = 1000;
-
 type Props = Parameters<Overrides['react-hook:route-activated']>[0];
+
+function isRedirect(matches: Props['matches']) {
+  const handle = matches.at(-1)?.handle as Record<string, unknown> | undefined;
+  return handle?.[REDIRECT_HANDLE] === true;
+}
 
 export function useRouteActivatedHook({location, matches}: Props) {
   const [analyticsParams, _setRouteAnalyticsParams] = useState({});
@@ -33,7 +31,6 @@ export function useRouteActivatedHook({location, matches}: Props) {
   const [mountTime, setMountTime] = useState(0);
   const prevMatches = usePrevious(matches);
   const prevLocation = usePrevious(location);
-  const navigationType = useNavigationType();
   // Reload event name
   const [_eventKey, setEventKey] = useState<string | undefined>(undefined);
   // Amplitude event name
@@ -97,18 +94,15 @@ export function useRouteActivatedHook({location, matches}: Props) {
   // we need to send analytics for the previous route if we haven't yet
   // then reset the route params
   useEffect(() => {
-    const prevRouteWasRedirect =
-      navigationType === 'REPLACE' && Date.now() - mountTime < REDIRECT_WINDOW_MS;
-
     // if the only reason we haven't analytics is because we haven't hit DELAY_TIME_MS
     // the we need to emit it immediately before handing the new route
-    if (considerSendingAnalytics && !readyToSend && !prevRouteWasRedirect) {
+    if (considerSendingAnalytics && !readyToSend) {
       sendRouteParams(prevRoute, organization);
     }
 
     // On mount prevRoute equals currentRoute, so the first page keeps no referrer.
-    // After a redirect the page keeps the referrer of the redirect route.
-    if (prevRoute !== currentRoute && !prevRouteWasRedirect) {
+    // A redirect route is skipped, so the page after it keeps the same referrer.
+    if (prevRoute !== currentRoute && !isRedirect(prevMatches)) {
       setReferrerRoute(prevRoute);
     }
 

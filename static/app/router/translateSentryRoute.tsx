@@ -12,6 +12,11 @@ import {withDomainRequired} from 'sentry/utils/withDomainRequired';
 import {PRELOAD_HANDLE} from './preload';
 import type {SentryRouteObject} from './types';
 
+/**
+ * Set in the handle of `redirectTo` routes, which render nothing but a redirect.
+ */
+export const REDIRECT_HANDLE = '_redirect';
+
 interface RedirectProps extends Omit<NavigateProps, 'to'> {
   /**
    * Our Redirect only supports string to
@@ -67,7 +72,12 @@ export function translateSentryRoute(tree: SentryRouteObject): RouteObject {
   }
 
   if (redirectTo !== undefined) {
-    return {index: tree.index, path, element: <Redirect to={redirectTo} replace />};
+    return {
+      index: tree.index,
+      path,
+      element: <Redirect to={redirectTo} replace />,
+      handle: {[REDIRECT_HANDLE]: true},
+    };
   }
 
   // XXX(epurkhiser)

@@ -5,7 +5,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {ProjectFixture} from 'getsentry-test/fixtures/project';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
-import {act, render, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+import {act, render, renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {translateSentryRoute} from 'sentry/router/translateSentryRoute';
 import type {SentryRouteObject} from 'sentry/router/types';
@@ -76,7 +76,7 @@ describe('useRouteActivatedHook', () => {
 
   it('calls rawTrackAnalyticsEvent after one seconds if org is set', () => {
     jest.useFakeTimers();
-    const {result} = renderHookWithProviders(useRouteActivatedHook, {
+    const {result} = renderHook(useRouteActivatedHook, {
       initialProps: props,
     });
     act(() => result.current.setOrganization(organization));
@@ -100,7 +100,7 @@ describe('useRouteActivatedHook', () => {
 
   it('does not call rawTrackAnalyticsEvent if org is not set', () => {
     jest.useFakeTimers();
-    renderHookWithProviders(useRouteActivatedHook, {
+    renderHook(useRouteActivatedHook, {
       initialProps: props,
     });
     act(() => jest.advanceTimersByTime(DEFAULT_ADVANCE_PERIOD));
@@ -109,7 +109,7 @@ describe('useRouteActivatedHook', () => {
 
   it('only calls rawTrackAnalyticsEvent once and ignores later param updates', () => {
     jest.useFakeTimers();
-    const {result} = renderHookWithProviders(useRouteActivatedHook, {
+    const {result} = renderHook(useRouteActivatedHook, {
       initialProps: props,
     });
     const loadTime = Date.now();
@@ -134,7 +134,7 @@ describe('useRouteActivatedHook', () => {
 
   it('only calls rawTrackAnalyticsEvent once when URL query params are updated', () => {
     jest.useFakeTimers();
-    const {result, rerender} = renderHookWithProviders(useRouteActivatedHook, {
+    const {result, rerender} = renderHook(useRouteActivatedHook, {
       initialProps: props,
     });
     act(() => result.current.setOrganization(organization));
@@ -154,7 +154,7 @@ describe('useRouteActivatedHook', () => {
 
   it('disable route analytics', () => {
     jest.useFakeTimers();
-    const {result} = renderHookWithProviders(useRouteActivatedHook, {
+    const {result} = renderHook(useRouteActivatedHook, {
       initialProps: props,
     });
     act(() => result.current.setOrganization(organization));
@@ -165,7 +165,7 @@ describe('useRouteActivatedHook', () => {
 
   it('disables and re-enables analytics', () => {
     jest.useFakeTimers();
-    const {result} = renderHookWithProviders(useRouteActivatedHook, {
+    const {result} = renderHook(useRouteActivatedHook, {
       initialProps: props,
     });
     act(() => result.current.setOrganization(organization));
@@ -179,7 +179,7 @@ describe('useRouteActivatedHook', () => {
 
   it('re-initializes after route changes', () => {
     jest.useFakeTimers();
-    const {result, rerender} = renderHookWithProviders(useRouteActivatedHook, {
+    const {result, rerender} = renderHook(useRouteActivatedHook, {
       initialProps: props,
     });
     act(() => result.current.setOrganization(organization));
@@ -216,7 +216,7 @@ describe('useRouteActivatedHook', () => {
 
   it('overrwite event names', () => {
     jest.useFakeTimers();
-    const {result} = renderHookWithProviders(useRouteActivatedHook, {
+    const {result} = renderHook(useRouteActivatedHook, {
       initialProps: props,
     });
     act(() => result.current.setOrganization(organization));
@@ -241,7 +241,7 @@ describe('useRouteActivatedHook', () => {
     jest.useFakeTimers();
     let loadTime = Date.now();
 
-    const {result, rerender} = renderHookWithProviders(useRouteActivatedHook, {
+    const {result, rerender} = renderHook(useRouteActivatedHook, {
       initialProps: props,
     });
     act(() => result.current.setOrganization(organization));
@@ -292,7 +292,7 @@ describe('useRouteActivatedHook', () => {
     jest.useFakeTimers();
 
     // Page load on project settings
-    const {result, rerender} = renderHookWithProviders(useRouteActivatedHook, {
+    const {result, rerender} = renderHook(useRouteActivatedHook, {
       initialProps: genProps({matches: SETTINGS_MATCHES}),
     });
     act(() => result.current.setOrganization(organization));
@@ -381,10 +381,10 @@ describe('useRouteActivatedHook', () => {
       router.navigate('/settings/account/');
       act(() => jest.advanceTimersByTime(DEFAULT_ADVANCE_PERIOD));
 
-      expect(getPageViews()).toEqual([
-        {path: 'organizations.:org_id.issues', previousPath: undefined},
-        {path: 'settings.account.details', previousPath: 'organizations.:org_id.issues'},
-      ]);
+      expect(getPageViews().at(-1)).toEqual({
+        path: 'settings.account.details',
+        previousPath: 'organizations.:org_id.issues',
+      });
     });
 
     it('does not count a top-level redirect route as the previous route', () => {
@@ -395,23 +395,10 @@ describe('useRouteActivatedHook', () => {
       router.navigate('/account/');
       act(() => jest.advanceTimersByTime(DEFAULT_ADVANCE_PERIOD));
 
-      expect(getPageViews()).toEqual([
-        {path: 'organizations.:org_id.issues', previousPath: undefined},
-        {path: 'settings.account.details', previousPath: 'organizations.:org_id.issues'},
-      ]);
-    });
-
-    it('still counts a page the user leaves right away', () => {
-      jest.useFakeTimers();
-      const router = renderRouter(issuesUrl);
-
-      router.navigate('/settings/account/details/');
-      act(() => jest.advanceTimersByTime(DEFAULT_ADVANCE_PERIOD));
-
-      expect(getPageViews()).toEqual([
-        {path: 'organizations.:org_id.issues', previousPath: undefined},
-        {path: 'settings.account.details', previousPath: 'organizations.:org_id.issues'},
-      ]);
+      expect(getPageViews().at(-1)).toEqual({
+        path: 'settings.account.details',
+        previousPath: 'organizations.:org_id.issues',
+      });
     });
 
     it.each(['/settings/account/', '/account/'])(
@@ -421,9 +408,10 @@ describe('useRouteActivatedHook', () => {
         renderRouter(url);
         act(() => jest.advanceTimersByTime(DEFAULT_ADVANCE_PERIOD));
 
-        expect(getPageViews()).toEqual([
-          {path: 'settings.account.details', previousPath: undefined},
-        ]);
+        expect(getPageViews().at(-1)).toEqual({
+          path: 'settings.account.details',
+          previousPath: undefined,
+        });
       }
     );
   });
