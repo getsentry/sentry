@@ -40,6 +40,7 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           fetch-depth: 1
+          persist-credentials: false
 
       - name: Check for frontend file changes
         uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
@@ -56,6 +57,8 @@ jobs:
     runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
       - uses: ./.github/actions/setup-node-pnpm
 
@@ -84,6 +87,7 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           fetch-depth: ${{ github.event_name == 'pull_request' && '100' || '1' }}
+          persist-credentials: false
 
       - uses: ./.github/actions/setup-node-pnpm
 
@@ -164,6 +168,8 @@ jobs:
         command: [knip, 'knip:prod', 'knip:cycles']
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
       - uses: ./.github/actions/setup-node-pnpm
 
@@ -184,6 +190,7 @@ jobs:
         with:
           # PRs need history for git merge-base to find the fork point.
           fetch-depth: ${{ github.event_name == 'pull_request' && '100' || '1' }}
+          persist-credentials: false
 
       - uses: ./.github/actions/setup-node-pnpm
 
@@ -235,6 +242,8 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         name: Checkout sentry
+        with:
+          persist-credentials: false
 
       # Must run before the parallel group: it parses $GITHUB_EVENT_PATH, which the
       # runner truncates whenever a step starts (getsentry/sentry#127566). It is also
@@ -293,6 +302,8 @@ jobs:
     runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
       - uses: ./.github/actions/setup-node-pnpm
 
@@ -318,6 +329,8 @@ jobs:
     runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
       - uses: ./.github/actions/setup-node-pnpm
 

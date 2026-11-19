@@ -31,6 +31,7 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           ref: master
+          persist-credentials: false
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
@@ -49,6 +50,7 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           clean: false
+          persist-credentials: false
 
       - name: Apply migrations (again)
         env:
