@@ -59,6 +59,59 @@ class RangePartitioning:
     of time. ``retention`` is how long partitions are kept before the partition
     maintenance task drops them. ``None`` means partitions are never dropped
     automatically.
+
+    Example::
+
+        from datetime import timedelta
+
+        from django.db import models
+        from django.utils import timezone
+
+        from sentry.backup.scopes import RelocationScope
+        from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model
+        from sentry.db.partitions import PartitionInterval, RangePartitioning
+
+
+        @cell_silo_model
+        class ExampleCheckIn(Model):
+            __relocation_scope__ = RelocationScope.Excluded
+            # One partition per week, four weeks created ahead of time, partitions
+            # dropped once all of their rows are older than 90 days.
+            __partitioning__ = RangePartitioning(
+                "date_added",
+                PartitionInterval.WEEK,
+                premake=4,
+                retention=timedelta(days=90),
+            )
+
+            # The partition field must be a non-nullable DateTimeField.
+            date_added = models.DateTimeField(default=timezone.now)
+            # Foreign keys from a partitioned table to other tables are fine.
+            project = FlexibleForeignKey("sentry.Project")
+            # Uniqueness can only be enforced together with the partition field,
+            # so `guid` can't be `unique=True` on its own.
+            guid = models.UUIDField()
+            status = models.PositiveSmallIntegerField(default=0)
+
+            class Meta:
+                app_label = "sentry"
+                db_table = "sentry_examplecheckin"
+                indexes = [models.Index(fields=["project", "date_added"])]
+                constraints = [
+                    models.UniqueConstraint(
+                        fields=["guid", "date_added"],
+                        name="sentry_examplecheckin_guid_date_added_uniq",
+                    )
+                ]
+
+    In Postgres the primary key becomes ``(id, date_added)``, while Django keeps
+    ``id`` as the primary key. Other models can't have database foreign keys to a
+    range partitioned model: reference it with a plain id column or a
+    ``FlexibleForeignKey(..., db_constraint=False)``. Queries should filter on
+    ``date_added`` (or ``id``), otherwise they scan every partition.
+
+    The table is only created partitioned in environments that list
+    ``sentry_examplecheckin`` in ``SENTRY_PARTITIONED_TABLES``.
     """
 
     field: str
@@ -71,7 +124,60 @@ class RangePartitioning:
 
 @dataclass(frozen=True)
 class HashPartitioning:
-    """Partition by the hash of an integer field into ``modulus`` partitions."""
+    """
+    Partition by the hash of an integer field into ``modulus`` partitions.
+
+    All partitions are created together with the table, and the number of partitions
+    can't change afterwards.
+
+    Example::
+
+        from django.db import models
+
+        from sentry.backup.scopes import RelocationScope
+        from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model
+        from sentry.db.partitions import HashPartitioning
+
+
+        @cell_silo_model
+        class ExampleIssue(Model):
+            __relocation_scope__ = RelocationScope.Excluded
+            # Rows are spread over 16 partitions by the hash of their id.
+            __partitioning__ = HashPartitioning("id", modulus=16)
+
+            project = FlexibleForeignKey("sentry.Project")
+            # Uniqueness can only be enforced together with the partition field,
+            # so `(project, short_id)` can't be unique on its own.
+            short_id = models.BigIntegerField()
+            title = models.TextField()
+
+            class Meta:
+                app_label = "sentry"
+                db_table = "sentry_exampleissue"
+                indexes = [models.Index(fields=["project", "short_id"])]
+
+
+        @cell_silo_model
+        class ExampleIssueComment(Model):
+            __relocation_scope__ = RelocationScope.Excluded
+
+            # Allowed: the referenced table is hash partitioned on its primary key.
+            issue = FlexibleForeignKey(ExampleIssue)
+            text = models.TextField()
+
+            class Meta:
+                app_label = "sentry"
+                db_table = "sentry_exampleissuecomment"
+
+    Partitioning on ``id`` keeps the Postgres primary key as just ``id``, which is
+    what lets other tables keep database foreign keys to it. Hash partitioning on
+    any other field, for example ``HashPartitioning("project", modulus=16)``, makes
+    the primary key ``(id, project_id)`` and rules out foreign keys into the table,
+    like range partitioning does. Hash partitions are never dropped automatically.
+
+    The table is only created partitioned in environments that list
+    ``sentry_exampleissue`` in ``SENTRY_PARTITIONED_TABLES``.
+    """
 
     field: str
     modulus: int
