@@ -39,7 +39,6 @@ jobs:
       frontend_all_files: ${{ steps.changes.outputs.frontend_all_files }}
       frontend_lint: ${{ steps.changes.outputs.frontend_lint }}
       embed_widget_schema: ${{ steps.changes.outputs.embed_widget_schema }}
-      seer_nav_sources: ${{ steps.changes.outputs.seer_nav_sources }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
@@ -353,9 +352,8 @@ jobs:
             exit 1
           fi
 
+  # Runs on every PR: nav files import constants from anywhere, so no path filter is complete.
   seer-nav-snapshot:
-    if: needs.files-changed.outputs.seer_nav_sources == 'true'
-    needs: files-changed
     name: seer nav snapshot
     runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     steps:
