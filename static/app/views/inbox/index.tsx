@@ -30,7 +30,12 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 import {inboxItemsApiOptions, updateInboxItemsMutationOptions} from './inboxApiOptions';
 import {InboxItemList} from './inboxItemList';
 import {InboxListHeader} from './inboxListHeader';
-import type {InboxFilters, InboxItem, InboxRouteHandle, InboxSubject} from './types';
+import {
+  INBOX_SUBJECT_TYPES,
+  type InboxFilters,
+  type InboxItem,
+  type InboxSubject,
+} from './types';
 import {useInboxFilters, type SetInboxFilters} from './useInboxFilters';
 import {hasInboxFilters} from './utils';
 
@@ -203,8 +208,11 @@ function InboxListBody({
 function InboxContent() {
   const [filters, setFilters] = useInboxFilters();
   const previewMatch = useMatches().at(-1);
-  const subjectType = (previewMatch?.handle as InboxRouteHandle | undefined)
-    ?.inboxSubjectType;
+  const handle = previewMatch?.handle;
+  const subjectType =
+    handle && typeof handle === 'object' && 'inboxSubjectType' in handle
+      ? INBOX_SUBJECT_TYPES.find(type => type === handle.inboxSubjectType)
+      : undefined;
   const subjectId = previewMatch?.params.id;
   const selectedSubject = subjectType && subjectId ? {subjectType, subjectId} : null;
   const listContainerRef = useRef<HTMLDivElement>(null);
