@@ -11,3 +11,9 @@ export const CLASSIFIER_DETAIL_DEFAULT_SELECTION = {
 export const CLASSIFIER_PREVIEW_PER_PAGE = 10;
 
 export const ENRICHMENT_ATTRIBUTE_PREFIX = 'sentry.enrichment.';
+
+export enum Referrer {
+  DETAIL_CONVERSATIONS = 'api.classifiers.detail.conversations',
+  DETAIL_CONVERSATION_COUNT = 'api.classifiers.detail.conversation-count',
+  DETAIL_INSTANCES_CHART = 'api.classifiers.detail.instances-chart',
+}
