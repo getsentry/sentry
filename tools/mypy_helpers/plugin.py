@@ -5,10 +5,10 @@ from collections.abc import Callable
 from typing import Any
 
 from mypy.build import PRI_MYPY
-from mypy.errorcodes import ATTR_DEFINED
+from mypy.errorcodes import ATTR_DEFINED, ErrorCode
 from mypy.lookup import lookup_fully_qualified
 from mypy.messages import format_type
-from mypy.nodes import ARG_POS, DictExpr, ListExpr, MypyFile, StrExpr, TypeInfo
+from mypy.nodes import ARG_POS, DictExpr, Expression, ListExpr, MypyFile, StrExpr, TypeInfo
 from mypy.plugin import (
     AttributeContext,
     ClassDefContext,
@@ -328,26 +328,30 @@ def _dict_literal_matches_typeddict(
     mypy's `check_typeddict_call_with_dict` because that method emits errors
     directly on the call site — the plugin needs to probe silently across
     union arms.
+
+    Each value is inferred against its declared field type, so nested dict
+    literals can satisfy nested TypedDict fields. Errors and inferred types
+    from that probe are discarded, the way mypy probes overloads.
     """
-    literal_keys: set[str] = set()
-    literal_items: dict[str, Type] = {}
+    items: list[tuple[str, Expression]] = []
     for k_expr, v_expr in body.items:
         if not isinstance(k_expr, StrExpr):
             return False
-        literal_keys.add(k_expr.value)
-        try:
-            literal_items[k_expr.value] = expr_checker.accept(v_expr)
-        except Exception:
-            return False
+        items.append((k_expr.value, v_expr))
+    literal_keys = {key for key, _ in items}
     if not td.required_keys.issubset(literal_keys):
         return False
     if literal_keys - set(td.items.keys()):
         return False
-    for key, value_type in literal_items.items():
-        declared = td.items.get(key)
-        if declared is None:
+    chk = expr_checker.chk
+    for key, v_expr in items:
+        declared = td.items[key]
+        try:
+            with chk.msg.filter_errors() as watcher, chk.local_type_map:
+                value_type = expr_checker.accept(v_expr, type_context=declared)
+        except Exception:
             return False
-        if not _is_subtype(value_type, declared):
+        if watcher.has_new_errors() or not _is_subtype(value_type, declared):
             return False
     return True
 
@@ -378,6 +382,50 @@ def _empty_list_matches_arm(arm_T: Type) -> bool:
     return False
 
 
+_RESPONSE_BODY = ErrorCode(
+    "response-body",
+    "Check that Response() dict-literal bodies match a declared TypedDict arm",
+    "General",
+)
+
+
+def _check_dict_literal_not_caught_by_loose_arm(
+    ctx: FunctionContext,
+    response_arms: list[Instance],
+    typeddict_arms: list[TypedDictType],
+) -> None:
+    """Error when a dict-literal body matches none of the TypedDict arms but
+    still type-checks through a loose arm such as `Response[dict[str, Any]]`.
+
+    Without this, a loose arm (e.g. `ValidationErrorResponse`) accepts every
+    dict literal, so a body with a typo'd key or a wrong `Literal` value
+    silently passes even though the endpoint declares the intended shape. When
+    no loose arm accepts the literal, mypy already reports an incompatible
+    return, so stay quiet to avoid a duplicate error.
+    """
+    inferred = get_proper_type(ctx.default_return_type)
+    loose_arm = next(
+        (
+            inst
+            for inst in response_arms
+            if not isinstance(get_proper_type(inst.args[0]), TypedDictType)
+            and _is_subtype(inferred, inst)
+        ),
+        None,
+    )
+    if loose_arm is None:
+        return
+    names = ", ".join(sorted({format_type(td, ctx.api.options) for td in typeddict_arms}))
+    ctx.api.fail(
+        f"Dict literal body matches none of the declared TypedDict arms ({names}) "
+        f"and only type-checks through {format_type(loose_arm, ctx.api.options)}. "
+        "Fix the body, declare a TypedDict arm for its shape, or assign it to a "
+        "variable annotated with the loose type.",
+        ctx.context,
+        code=_RESPONSE_BODY,
+    )
+
+
 def _narrow_response_literal_in_union(ctx: FunctionContext) -> Type:
     """Narrow `Response(<literal>, ...)` to a matching arm of the enclosing
     function's union return type.
@@ -395,8 +443,10 @@ def _narrow_response_literal_in_union(ctx: FunctionContext) -> Type:
       - empty `ListExpr` `[]` → matches `list[T]` arms
 
     Returns `Response[that_T]` when exactly one arm accepts the literal. Zero
-    or multiple matches → returns default (mypy errors). Non-literal bodies
-    are untouched. Name-agnostic: no hardcoded TypedDict names.
+    or multiple matches → returns default (mypy errors). A non-empty dict
+    literal that matches no TypedDict arm is also reported when a loose arm
+    would accept it. Non-literal bodies are untouched. Name-agnostic: no
+    hardcoded TypedDict names.
     """
     if not ctx.args or not ctx.args[0]:
         return ctx.default_return_type
@@ -426,10 +476,12 @@ def _narrow_response_literal_in_union(ctx: FunctionContext) -> Type:
 
     expr_checker = ctx.api.expr_checker  # type: ignore[attr-defined]
     matching: list[Instance] = []
+    typeddict_arms: list[TypedDictType] = []
     for inst in response_arms:
         T_arg = get_proper_type(inst.args[0])
         if is_nonempty_dict and isinstance(T_arg, TypedDictType):
             assert isinstance(body_expr, DictExpr)
+            typeddict_arms.append(T_arg)
             if _dict_literal_matches_typeddict(body_expr, T_arg, expr_checker):
                 matching.append(inst)
         elif is_empty_dict and _empty_dict_matches_arm(T_arg):
@@ -437,6 +489,8 @@ def _narrow_response_literal_in_union(ctx: FunctionContext) -> Type:
         elif is_empty_list and _empty_list_matches_arm(T_arg):
             matching.append(inst)
 
+    if not matching and typeddict_arms:
+        _check_dict_literal_not_caught_by_loose_arm(ctx, response_arms, typeddict_arms)
     if len(matching) != 1:
         # Zero matches (real drift) or multiple (ambiguous) — fall back to
         # default and let mypy emit its standard error.

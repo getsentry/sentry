@@ -379,6 +379,14 @@ export interface BaseChartProps {
   yAxis?: YAXisComponentOption | null;
 }
 
+// Merged updates re-show the tooltip with the old series/axis indices, which throws if they're gone.
+function removesTooltipTargets(prev: EChartsOption, next: EChartsOption) {
+  const count = (value: unknown) => (Array.isArray(value) ? value.length : value ? 1 : 0);
+  return (['series', 'xAxis', 'yAxis'] as const).some(
+    key => count(next[key]) < count(prev[key])
+  );
+}
+
 const DEFAULT_CHART_READY = () => {};
 const DEFAULT_OPTIONS = {};
 const DEFAULT_SERIES: SeriesOption[] = [];
@@ -803,9 +811,20 @@ export function BaseChart({
   // update is safe: once the instance is (re)created, echarts-for-react applies
   // the current `option` prop. Called from `componentDidUpdate`, so reading the
   // ref here happens outside of render.
-  const shouldSetOption = () => {
+  const shouldSetOption = (prevProps: ReactEchartProps, nextProps: ReactEchartProps) => {
     const instance = echartsInstanceRef.current?.getEchartsInstance();
-    return !!instance && !instance.isDisposed();
+    if (!instance || instance.isDisposed()) {
+      return false;
+    }
+
+    if (
+      !nextProps.notMerge &&
+      removesTooltipTargets(prevProps.option, nextProps.option)
+    ) {
+      instance.dispatchAction({type: 'hideTip'}, {silent: true});
+    }
+
+    return true;
   };
 
   return (

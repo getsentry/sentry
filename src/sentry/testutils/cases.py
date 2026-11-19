@@ -205,6 +205,7 @@ if TYPE_CHECKING:
     from sentry.models.releaseheadcommit import ReleaseHeadCommit
     from sentry.models.team import Team
     from sentry.replays.lib.event_linking import EventLinkKafkaMessage
+    from sentry.testutils.pytest.savepoints import SavepointUsage
     from sentry.testutils.pytest.stale_database_reads import StaleDatabaseReads
     from sentry.users.services.user import RpcUser
 
@@ -280,6 +281,10 @@ class BaseTestCase(Fixtures):
     @pytest.fixture(autouse=True)
     def expose_stale_database_reads(self, stale_database_reads: StaleDatabaseReads) -> None:
         self.stale_database_reads = stale_database_reads
+
+    @pytest.fixture(autouse=True)
+    def expose_savepoint_usage(self, savepoint_usage: SavepointUsage) -> None:
+        self.savepoint_usage = savepoint_usage
 
     def feature(
         self, names: str | Iterable[str] | dict[str, bool | list[str]]
@@ -4481,4 +4486,41 @@ class ProcessingErrorTestCase(BaseTestCase):
             received=timestamp_proto,
             retention_days=90,
             attributes=attributes_proto,
+        )
+
+
+class EnrichmentAttributesTestCase(BaseTestCase):
+    def create_enrichment_attributes(
+        self,
+        attributes: Mapping[str, str | int | float | bool],
+        *,
+        organization: Organization | None = None,
+        project: Project | None = None,
+        timestamp: datetime | None = None,
+        trace_id: str | None = None,
+    ) -> TraceItem:
+        if organization is None:
+            organization = self.organization
+        if project is None:
+            project = self.project
+        if timestamp is None:
+            timestamp = datetime.now(UTC) - timedelta(minutes=1)
+        if trace_id is None:
+            trace_id = uuid4().hex
+
+        timestamp_proto = Timestamp()
+        timestamp_proto.FromDatetime(timestamp)
+
+        return TraceItem(
+            organization_id=organization.id,
+            project_id=project.id,
+            item_type=TraceItemType.TRACE_ITEM_TYPE_ENRICHMENT_ATTRIBUTES,
+            timestamp=timestamp_proto,
+            trace_id=trace_id,
+            item_id=uuid4().bytes,
+            received=timestamp_proto,
+            retention_days=90,
+            attributes={key: scalar_to_any_value(value) for key, value in attributes.items()},
+            client_sample_rate=1.0,
+            server_sample_rate=1.0,
         )

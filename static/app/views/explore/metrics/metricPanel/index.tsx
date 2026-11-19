@@ -28,6 +28,7 @@ import {
 } from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeTransformations';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {useMetricsPanelAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
+import {useExploreQuerySpeed} from 'sentry/views/explore/hooks/useExploreQuerySpeed';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {
@@ -132,7 +133,7 @@ export function MetricPanel({
   const showTransformationControls =
     !isHeatmap && organization.features.includes('explore-interpolation-and-smoothing');
 
-  const [interval, setInterval, intervalOptions] = useChartInterval({
+  const [chartInterval, setChartInterval, intervalOptions] = useChartInterval({
     unspecifiedStrategy: ChartIntervalUnspecifiedStrategy.USE_SMALLEST,
   });
 
@@ -179,6 +180,7 @@ export function MetricPanel({
   });
 
   const areHeatMapsEnabled = canUseMetricsHeatMap(organization);
+  const {isReady: querySpeedReady, samplingMode} = useExploreQuerySpeed();
 
   const {result: timeseriesResult} = useMetricTimeseries({
     traceMetric,
@@ -207,12 +209,13 @@ export function MetricPanel({
     traceMetric,
     query: userQuery,
     interval: heatMapBucketDimensions?.interval,
+    sampling: samplingMode,
     yBuckets: heatMapBucketDimensions?.yBuckets,
-    enabled: areHeatMapsEnabled && isHeatmap && !isMetricOptionsEmpty,
+    enabled: areHeatMapsEnabled && isHeatmap && !isMetricOptionsEmpty && querySpeedReady,
   });
 
   useMetricsPanelAnalytics({
-    interval,
+    interval: chartInterval,
     isTopN: !!topEvents,
     metricAggregatesTableResult,
     metricSamplesTableResult,
@@ -279,9 +282,11 @@ export function MetricPanel({
         onChange={option => handleChartTypeChange(option.value)}
       />
       <CompactSelect
-        value={isHeatmap ? (heatMapBucketDimensions?.interval ?? interval) : interval}
+        value={
+          isHeatmap ? (heatMapBucketDimensions?.interval ?? chartInterval) : chartInterval
+        }
         disabled={isHeatmap}
-        onChange={({value}) => setInterval(value)}
+        onChange={({value}) => setChartInterval(value)}
         trigger={triggerProps => (
           <OverlayTrigger.Button
             tooltipProps={{

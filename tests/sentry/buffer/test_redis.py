@@ -204,7 +204,8 @@ class TestRedisBuffer:
 
         assert result == {"i+times_seen": b"1", "m": b"unittest.mock.Mock"}
 
-        pending = client.zrange("b:p", 0, -1)
+        pending_key = f"b:p:{crc32(key.encode()) % PENDING_SLICES}"
+        pending = client.zrange(pending_key, 0, -1)
         assert pending == [key.encode("utf-8")]
         self.buf.incr(model, columns, filters, extra={"foo": "baz", "datetime": now})
         result = _hgetall_decode_keys(client, key)
@@ -214,7 +215,7 @@ class TestRedisBuffer:
         assert load_value(result.pop("e+foo")) == "baz"
         assert result == {"i+times_seen": b"2", "m": b"unittest.mock.Mock"}
 
-        pending = client.zrange("b:p", 0, -1)
+        pending = client.zrange(pending_key, 0, -1)
         assert pending == [key.encode("utf-8")]
 
     def test_incr_bounds_pending_key(self) -> None:
@@ -228,7 +229,7 @@ class TestRedisBuffer:
         self.buf.incr(model, {"times_seen": 1}, filters)
 
         row_ttl = client.ttl(key)
-        pending_ttl = client.ttl("b:p")
+        pending_ttl = client.ttl(f"b:p:{crc32(key.encode()) % PENDING_SLICES}")
         # Both keys are bounded.
         assert 0 < row_ttl <= self.buf.key_expire
         assert 0 < pending_ttl <= self.buf.pending_key_expire
@@ -265,7 +266,7 @@ class TestRedisBuffer:
             },
         )
         # A non-sorted-set value makes ZREM fail, as a dead shard would.
-        client.set("b:p", "not-a-zset")
+        client.set(f"b:p:{crc32(b'foo') % PENDING_SLICES}", "not-a-zset")
 
         self.buf.process("foo")
 
@@ -294,11 +295,7 @@ class TestRedisBuffer:
         assert client.hgetall(key) == {}
 
     @mock.patch("sentry.buffer.base.Buffer.process")
-    def test_split_lists_and_clears_row_in_its_slice(
-        self,
-        process: mock.MagicMock,
-        set_sentry_option: Callable[[str, object], AbstractContextManager[None]],
-    ) -> None:
+    def test_split_lists_and_clears_row_in_its_slice(self, process: mock.MagicMock) -> None:
         client = self.buf.cluster
         model = mock.Mock()
         model.__name__ = "Mock"
@@ -306,14 +303,13 @@ class TestRedisBuffer:
         key = make_key(model, filters=filters)
         pending_key = f"b:p:{crc32(key.encode()) % PENDING_SLICES}"
 
-        with set_sentry_option("buffer.split-pending-set", True):
-            self.buf.incr(model, {"times_seen": 1}, filters)
+        self.buf.incr(model, {"times_seen": 1}, filters)
 
-            assert client.zrange("b:p", 0, -1) == []
-            assert len(client.zrange(pending_key, 0, -1)) == 1
-            assert 0 < client.ttl(pending_key) <= self.buf.pending_key_expire
+        assert client.zrange("b:p", 0, -1) == []
+        assert len(client.zrange(pending_key, 0, -1)) == 1
+        assert 0 < client.ttl(pending_key) <= self.buf.pending_key_expire
 
-            self.buf.process(key=key)
+        self.buf.process(key=key)
 
         assert client.zrange(pending_key, 0, -1) == []
 

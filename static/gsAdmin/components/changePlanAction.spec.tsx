@@ -96,6 +96,24 @@ describe('ChangePlanAction', () => {
     expect(screen.queryByRole('textbox', {name: 'Transactions'})).not.toBeInTheDocument();
   });
 
+  it('switches between monthly and annual plans', async () => {
+    await openAndLoadModal();
+
+    expect(screen.getByRole('radio', {name: 'Monthly'})).toBeChecked();
+    expect(screen.getByTestId('change-plan-label-am3_business')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('change-plan-label-am3_business_auf')
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('radio', {name: 'Annual (Upfront)'}));
+
+    expect(screen.getByRole('radio', {name: 'Annual (Upfront)'})).toBeChecked();
+    expect(screen.getByTestId('change-plan-label-am3_business_auf')).toBeInTheDocument();
+    expect(
+      screen.queryByTestId('change-plan-label-am3_business')
+    ).not.toBeInTheDocument();
+  });
+
   it('only displays current plan for NT customers', async () => {
     const ntSubscription = SubscriptionFixture({
       organization: mockOrg,

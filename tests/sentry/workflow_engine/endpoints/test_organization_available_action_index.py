@@ -31,11 +31,11 @@ from sentry.workflow_engine.types import ActionHandler
 @django_db_all
 @cell_silo_test
 @pytest.mark.parametrize("automation_enabled", [False, True], ids=["disabled", "enabled"])
-def test_seer_workflow_hidden_from_action_picker(
+def test_seer_investigation_hidden_from_action_picker(
     default_organization: Organization, default_user: User, automation_enabled: bool
 ) -> None:
     registry = Registry[type[ActionHandler]](enable_reverse_lookup=False)
-    registry.register(Action.Type.SEER_WORKFLOW)(ActionHandler)
+    registry.register(Action.Type.SEER_INVESTIGATION)(ActionHandler)
     client = APIClient()
     client.force_authenticate(user=default_user)
 

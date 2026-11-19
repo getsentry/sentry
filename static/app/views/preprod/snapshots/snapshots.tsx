@@ -30,6 +30,7 @@ import {BuildProcessing} from 'sentry/views/preprod/components/buildProcessing';
 import {
   DiffStatus,
   getImageName,
+  getSnapshotImageBaseUrls,
   isPairSidebarItem,
 } from 'sentry/views/preprod/types/snapshotTypes';
 import type {
@@ -748,8 +749,10 @@ export default function SnapshotsPage() {
   const isComparisonProcessing =
     data?.comparison_state === 'pending' || data?.comparison_state === 'processing';
 
-  const imageBaseUrl = `/api/0/projects/${organization.slug}/${data?.project_id ?? ''}/files/images/`;
-  const diffImageBaseUrl = imageBaseUrl;
+  const {imageBaseUrl, diffImageBaseUrl} = getSnapshotImageBaseUrls(
+    organization.slug,
+    data?.project_id ?? ''
+  );
 
   const processingContent = (
     <Flex width="100%" justify="center" align="center">

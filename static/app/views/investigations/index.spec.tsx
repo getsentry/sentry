@@ -5,6 +5,7 @@ import {UserFixture} from 'sentry-fixture/user';
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {
   act,
+  cleanup,
   render,
   renderGlobalModal,
   screen,
@@ -313,6 +314,7 @@ describe('Explore Investigations', () => {
 
     afterEach(async () => {
       try {
+        cleanup();
         await act(() => jest.runOnlyPendingTimersAsync());
       } finally {
         jest.useRealTimers();
@@ -523,7 +525,7 @@ describe('Explore Investigations', () => {
     await waitFor(() =>
       expect(deleteRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/notebooks/1/',
-        expect.objectContaining({data: {investigationVersion: 3}})
+        expect.objectContaining({data: {notebookVersion: 3}})
       )
     );
     await waitFor(() =>

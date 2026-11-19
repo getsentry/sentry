@@ -16,7 +16,7 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import {ReplayReader} from 'sentry/utils/replays/replayReader';
-import {IncrementalSource} from 'sentry/utils/replays/types';
+import {IncrementalSource, type RecordingFrame} from 'sentry/utils/replays/types';
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
@@ -146,7 +146,9 @@ describe('ReplayDetails', () => {
     renderDetails();
 
     expect(
-      screen.getByRole('button', {name: 'Previous replay based on search query'})
+      screen.getByRole('button', {
+        name: 'Previous replay based on search query',
+      })
     ).toBeInTheDocument();
     expect(
       screen.getByRole('button', {name: 'Next replay based on search query'})
@@ -162,13 +164,16 @@ describe('ReplayDetails', () => {
       'Share',
       'Download JSON',
       'Delete',
-      'Configure Replay',
     ]) {
       expect(within(menu).getByRole('menuitemradio', {name})).toBeVisible();
     }
+    // Opens a submenu
+    expect(within(menu).getByRole('menuitem', {name: 'Configure Replay'})).toBeVisible();
 
     expect(
-      screen.queryByRole('button', {name: 'Copy link to replay at current timestamp'})
+      screen.queryByRole('button', {
+        name: 'Copy link to replay at current timestamp',
+      })
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole('group', {name: 'Sentry Employee Features'})
@@ -183,9 +188,14 @@ describe('ReplayDetails', () => {
     renderDetails();
     await openReplayActions();
 
-    expect(
-      screen.getAllByRole('menuitemradio').map(el => el.textContent?.trim())
-    ).toEqual([
+    // Submenu triggers are `menuitem`s, the others `menuitemradio`s.
+    const items = [
+      ...screen.getAllByRole('menuitemradio'),
+      ...screen.getAllByRole('menuitem'),
+    ].sort((a, b) =>
+      a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1
+    );
+    expect(items.map(el => el.textContent?.trim())).toEqual([
       'Copy replay ID to clipboard',
       'Share',
       'Download JSON',
@@ -203,7 +213,9 @@ describe('ReplayDetails', () => {
 
     await openReplayActions();
     await userEvent.click(
-      screen.getByRole('menuitemradio', {name: 'Copy replay ID to clipboard'})
+      screen.getByRole('menuitemradio', {
+        name: 'Copy replay ID to clipboard',
+      })
     );
 
     expect(writeText).toHaveBeenCalledWith('test-replay-id');
@@ -214,13 +226,19 @@ describe('ReplayDetails', () => {
     renderDetails();
     await openReplayActions();
 
-    const section = screen.getByRole('group', {name: 'Sentry Employee Features'});
+    const section = screen.getByRole('group', {
+      name: 'Sentry Employee Features',
+    });
 
     expect(
-      within(section).getByRole('menuitemradio', {name: 'Download Replay Record'})
+      within(section).getByRole('menuitemradio', {
+        name: 'Download Replay Record',
+      })
     ).toBeVisible();
     expect(
-      within(section).getByRole('menuitemradio', {name: /Sentry Replay Debugger/})
+      within(section).getByRole('menuitemradio', {
+        name: /Sentry Replay Debugger/,
+      })
     ).toBeVisible();
     expect(
       within(section).queryByRole('menuitemradio', {name: 'Download JSON'})
@@ -235,7 +253,7 @@ describe('ReplayDetails', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Replay Actions'}));
     await userEvent.hover(
-      await screen.findByRole('menuitemradio', {name: 'Configure Replay'})
+      await screen.findByRole('menuitem', {name: 'Configure Replay'})
     );
 
     expect(
@@ -273,7 +291,12 @@ describe('ReplayDetails', () => {
         fetching: false,
         replayRecord,
       });
-      return {...defaultReaderResult, replay, replayId: replaySlug, replayRecord};
+      return {
+        ...defaultReaderResult,
+        replay,
+        replayId: replaySlug,
+        replayRecord,
+      };
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/replays/other-replay-id/',
@@ -308,6 +331,90 @@ describe('ReplayDetails', () => {
     router.navigate('/organizations/org-slug/replays/other-replay-id/');
 
     expect(await screen.findByRole('button', {name: 'Play'})).toBeInTheDocument();
+  });
+
+  function mockProcessingErrorReplay(attachments: RecordingFrame[]) {
+    const startedAt = new Date('2023-12-25T00:00:00');
+    const replayRecord = ReplayRecordFixture({
+      id: 'test-replay-id',
+      duration: duration(60_000),
+      finished_at: new Date(startedAt.getTime() + 60_000),
+      has_viewed: true,
+      started_at: startedAt,
+    });
+    const replay = ReplayReader.factory({
+      attachments,
+      errors: [],
+      fetching: false,
+      replayRecord,
+    });
+    mockUseLoadReplayReader.mockReturnValue({
+      ...defaultReaderResult,
+      replay,
+      replayRecord,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/seer/setup-check/',
+      body: AutofixSetupFixture({}),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sdk-updates/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/replays/',
+      body: {data: []},
+    });
+
+    // jsdom gives every element a zero size, and the player area only renders
+    // once the layout has measured some space for it
+    jest.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(1000);
+    jest.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(800);
+  }
+
+  it.each([
+    {
+      name: 'no full snapshot',
+      attachments: () =>
+        RRWebInitFrameEventsFixture({
+          timestamp: new Date('2023-12-25T00:00:00'),
+        }),
+      heading: 'No Screen Recording',
+    },
+    {
+      name: 'no meta frame',
+      attachments: () => [
+        RRWebFullSnapshotFrameEventFixture({
+          timestamp: new Date('2023-12-25T00:00:00'),
+        }),
+      ],
+      heading: 'Recording Cannot Be Played',
+    },
+  ])(
+    'keeps the replay tabs when the recording has $name',
+    async ({attachments, heading}) => {
+      mockProcessingErrorReplay(attachments());
+
+      renderDetails();
+
+      expect(await screen.findByText(heading)).toBeInTheDocument();
+      expect(
+        screen.getByRole('link', {name: 'Session Replay troubleshooting docs'})
+      ).toHaveAttribute(
+        'href',
+        'https://docs.sentry.io/platforms/javascript/session-replay/troubleshooting/'
+      );
+      expect(screen.getByRole('tab', {name: 'Console'})).toBeInTheDocument();
+      expect(screen.getByRole('tab', {name: 'Network'})).toBeInTheDocument();
+    }
+  );
+
+  it('shows replay not found when the replay has nothing to show', async () => {
+    mockProcessingErrorReplay([]);
+
+    renderDetails();
+
+    expect(await screen.findByText('Replay Not Found')).toBeInTheDocument();
   });
 
   it('should show access denied and not fetch data when user does not have granular replay permissions', () => {

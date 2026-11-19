@@ -44,6 +44,30 @@ test('an operand edit preserves the existing type assertion', () => {
   });
 });
 
+test('collapsing an object and wrapping its assertion target preserves the assertion', () => {
+  const old = assertion({
+    code: "{ f_e_level: [], f_e_project: [], } as Record<ErrorSelectOption['qs'], …",
+    targetType: "Record<ErrorSelectOption['qs'], string[]>",
+  });
+  const current = assertion({
+    code: "{f_e_level: [], f_e_project: []} as Record< ErrorSelectOption['qs'], string[] >",
+    targetType: "Record<\n  ErrorSelectOption['qs'],\n  string[]\n>",
+  });
+  assert.deepEqual(compareItems([current], [old], replacement), {
+    added: [],
+    removed: [],
+  });
+});
+
+test('whitespace inside a literal type is part of the assertion target', () => {
+  const old = assertion({targetType: "Record<'a  b', string>"});
+  const current = assertion({targetType: "Record<'a b', string>"});
+  assert.deepEqual(compareItems([current], [old], replacement), {
+    added: [current],
+    removed: [old],
+  });
+});
+
 test('the reported form refactor preserves its assertion after line shifts', () => {
   const changes = diff(
     '@@ -338 +335 @@\n-checked={fieldApi.state.value as boolean}\n+checked={fieldApi.value as boolean}'
@@ -180,6 +204,23 @@ test('different hunks do not cancel edited assertions with the same target', () 
 test('exact assertions can move between hunks', () => {
   const old = assertion();
   const current = assertion({line: 20, column: 9});
+  const changes = diff('@@ -1 +0,0 @@\n-assertion\n@@ -20,0 +20 @@\n+assertion');
+  assert.deepEqual(compareItems([current], [old], changes), {
+    added: [],
+    removed: [],
+  });
+});
+
+test('an assertion with a truncated preview can move and have its target wrapped', () => {
+  const old = assertion({
+    code: 'a very long expression…',
+    targetType: "Record<ErrorSelectOption['qs'], string[]>",
+  });
+  const current = assertion({
+    code: old.code,
+    line: 20,
+    targetType: "Record<\n  ErrorSelectOption['qs'],\n  string[]\n>",
+  });
   const changes = diff('@@ -1 +0,0 @@\n-assertion\n@@ -20,0 +20 @@\n+assertion');
   assert.deepEqual(compareItems([current], [old], changes), {
     added: [],

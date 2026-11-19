@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {getRelativeDate} from '@sentry/scraps/relativeTime';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
@@ -12,7 +13,6 @@ import {
   TimeRangeSelector,
   TimeRangeSelectTrigger,
 } from 'sentry/components/timeRangeSelector';
-import {getRelativeDate} from 'sentry/components/timeSince';
 import {TourElement} from 'sentry/components/tours/components';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -166,7 +166,10 @@ export function EventDetailsHeader({
                                 ? {
                                     [defaultStatsPeriod.statsPeriod]: t(
                                       'Last %s (since first seen)',
-                                      getRelativeDate(group.firstSeen)
+                                      getRelativeDate(group.firstSeen, {
+                                        suffix: '',
+                                        prefix: '',
+                                      })
                                         .replace(/^a (?=\w+$)/, '1 ')
                                         .replace(/^an (?=\w+$)/, '1 ')
                                     ),
@@ -204,7 +207,10 @@ export function EventDetailsHeader({
                               !defaultStatsPeriod.isMaxRetention &&
                               shouldShowSinceFirstSeenOption
                                 ? tct('Since First Seen ([period])', {
-                                    period: getRelativeDate(group.firstSeen)
+                                    period: getRelativeDate(group.firstSeen, {
+                                      suffix: '',
+                                      prefix: '',
+                                    })
                                       .replace(/^a (?=\w+$)/, '1 ')
                                       .replace(/^an (?=\w+$)/, '1 '),
                                   })

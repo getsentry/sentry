@@ -110,13 +110,13 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
     // Search for "General Settings" so it appears as a clickable action item.
     // Use "Project Settings" in the pattern to disambiguate from the org-level
     // "General Settings" entry that also appears in search results.
-    const input = await screen.findByRole('textbox', {name: 'Search commands'});
+    const input = await screen.findByRole('searchbox', {name: 'Search commands'});
     await userEvent.type(input, 'General Settings');
     await userEvent.click(
       await screen.findByRole('option', {name: /Project Settings.*General Settings/})
     );
     // The search query is cleared when drilling in; wait for project options to appear.
-    await screen.findByRole('textbox', {name: 'Search commands'});
+    await screen.findByRole('searchbox', {name: 'Search commands'});
   }
 
   it.isKnownFlake(
@@ -306,11 +306,7 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
 
 describe('GlobalCommandPaletteActions - search recall', () => {
   const organization = OrganizationFixture({
-    features: [
-      'session-replay-ui',
-      'performance-view',
-      'dashboards-prebuilt-insights-dashboards',
-    ],
+    features: ['session-replay-ui', 'dashboards-prebuilt-insights-dashboards'],
   });
   const project = ProjectFixture({id: '1', slug: 'project-a', organization});
 
@@ -393,7 +389,7 @@ describe('GlobalCommandPaletteActions - search recall', () => {
   ])('finds expected actions for %s', async (query, ...expectedOptions) => {
     renderPalette();
 
-    const input = await screen.findByRole('textbox', {name: 'Search commands'});
+    const input = await screen.findByRole('searchbox', {name: 'Search commands'});
     await userEvent.type(input, query);
 
     for (const expectedOption of expectedOptions) {
@@ -455,7 +451,7 @@ describe('GlobalCommandPaletteActions - search recall', () => {
 
       renderPalette();
 
-      const input = await screen.findByRole('textbox', {name: 'Search commands'});
+      const input = await screen.findByRole('searchbox', {name: 'Search commands'});
       await userEvent.type(input, query);
 
       expect(
@@ -480,7 +476,7 @@ describe('GlobalCommandPaletteActions - search recall', () => {
 
     renderPalette();
 
-    const input = await screen.findByRole('textbox', {name: 'Search commands'});
+    const input = await screen.findByRole('searchbox', {name: 'Search commands'});
     await userEvent.type(input, 'test');
 
     expect(await screen.findByRole('option', {name: 'test-project'})).toBeInTheDocument();
@@ -506,7 +502,7 @@ describe('GlobalCommandPaletteActions - search recall', () => {
 
     renderPalette();
 
-    const input = await screen.findByRole('textbox', {name: 'Search commands'});
+    const input = await screen.findByRole('searchbox', {name: 'Search commands'});
 
     // Navigate to the Dashboards section
     await userEvent.type(input, 'Dashboards');
@@ -584,25 +580,25 @@ describe('GlobalCommandPaletteActions - settings-v3', () => {
   it('lists account pages under Account Settings', async () => {
     renderPalette(OrganizationFixture({features: ['settings-v3']}));
 
-    const input = await screen.findByRole('textbox', {name: 'Search commands'});
+    const input = await screen.findByRole('searchbox', {name: 'Search commands'});
     await userEvent.type(input, 'Personal Tokens');
 
     expect(
       await screen.findByRole('option', {name: /Account Settings.*Personal Tokens/})
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('option', {name: /Org Settings.*Personal Tokens/})
+      screen.queryByRole('option', {name: /Organization Settings.*Personal Tokens/})
     ).not.toBeInTheDocument();
   });
 
   it('titles the organization index page "General"', async () => {
     renderPalette(OrganizationFixture({features: ['settings-v3']}));
 
-    const input = await screen.findByRole('textbox', {name: 'Search commands'});
+    const input = await screen.findByRole('searchbox', {name: 'Search commands'});
     await userEvent.type(input, 'General');
 
     expect(
-      await screen.findByRole('option', {name: /Org Settings.*General/})
+      await screen.findByRole('option', {name: /Organization Settings.*General/})
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('option', {name: /General Settings/})
@@ -612,7 +608,7 @@ describe('GlobalCommandPaletteActions - settings-v3', () => {
   it('keeps account pages under Settings without the flag', async () => {
     renderPalette(OrganizationFixture({features: []}));
 
-    const input = await screen.findByRole('textbox', {name: 'Search commands'});
+    const input = await screen.findByRole('searchbox', {name: 'Search commands'});
     await userEvent.type(input, 'Personal Tokens');
 
     expect(
@@ -646,7 +642,7 @@ describe('GlobalCommandPaletteActions - Seer XRay Mode gating', () => {
     mockOrgApis(organization);
     renderPalette(organization);
 
-    const input = await screen.findByRole('textbox', {name: 'Search commands'});
+    const input = await screen.findByRole('searchbox', {name: 'Search commands'});
     await userEvent.type(input, 'xray');
 
     expect(
@@ -659,7 +655,7 @@ describe('GlobalCommandPaletteActions - Seer XRay Mode gating', () => {
     mockOrgApis(organization);
     renderPalette(organization);
 
-    const input = await screen.findByRole('textbox', {name: 'Search commands'});
+    const input = await screen.findByRole('searchbox', {name: 'Search commands'});
     await userEvent.type(input, 'xray');
 
     expect(
@@ -734,7 +730,7 @@ describe('GlobalCommandPaletteActions - Open my current replay session', () => {
       }
     );
 
-    const input = await screen.findByRole('textbox', {name: 'Search commands'});
+    const input = await screen.findByRole('searchbox', {name: 'Search commands'});
     await userEvent.type(input, 'current replay');
     await userEvent.click(
       await screen.findByRole('option', {name: /Open my current replay session/})

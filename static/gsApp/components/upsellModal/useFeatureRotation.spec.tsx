@@ -1,4 +1,4 @@
-import {act, renderHook} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, renderHook} from 'sentry-test/reactTestingLibrary';
 
 import type {Feature} from 'getsentry/components/upsellModal/types';
 import {useFeatureRotation} from 'getsentry/components/upsellModal/useFeatureRotation';
@@ -23,6 +23,7 @@ describe('useFeatureRotation', () => {
 
   afterEach(() => {
     try {
+      cleanup();
       act(() => jest.runOnlyPendingTimers());
     } finally {
       jest.useRealTimers();

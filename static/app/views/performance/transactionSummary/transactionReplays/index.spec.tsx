@@ -33,7 +33,7 @@ const mockReplaysUrl = '/organizations/org-slug/replays/';
 
 const renderComponent = ({
   location,
-  organizationProps = {features: ['performance-view', 'session-replay']},
+  organizationProps = {features: ['session-replay']},
 }: InitializeOrgProps = {}) => {
   const {organization, projects} = initializeOrg({
     organization: {
@@ -265,9 +265,7 @@ describe('TransactionReplays', () => {
 
   it("should show a message when the organization doesn't have access to the replay feature", async () => {
     renderComponent({
-      organizationProps: {
-        features: ['performance-view'],
-      },
+      organizationProps: {},
     });
 
     await waitFor(() => {
@@ -280,7 +278,7 @@ describe('TransactionReplays', () => {
   it('should hide replay content when user does not have granular replay permissions', async () => {
     renderComponent({
       organizationProps: {
-        features: ['performance-view', 'session-replay'],
+        features: ['session-replay'],
         hasGranularReplayPermissions: true,
         replayAccessMembers: [999], // User ID 1 is not in this list
       },

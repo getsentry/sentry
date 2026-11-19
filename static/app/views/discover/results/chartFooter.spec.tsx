@@ -129,9 +129,9 @@ describe('Discover > ChartFooter', () => {
           topEvents="5"
           eventView={queryEventView}
           droppedDataLayer={{
-            dataset: DiscoverDatasets.ERRORS,
-            hasDroppedData: true,
-            showDroppedData: hasFilterNote,
+            layers: [
+              {value: 'dropped-data', label: 'Dropped Errors', selected: hasFilterNote},
+            ],
             onChange: () => {},
           }}
           droppedDataFilterNote={

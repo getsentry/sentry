@@ -9,7 +9,7 @@ import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {openConfirmModal} from '@sentry/scraps/confirm';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {LinkTabs} from '@sentry/scraps/tabs';
 import {Heading, Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
@@ -42,6 +42,7 @@ import type {MetricAutomationFormHandle} from 'sentry/views/seerWorkflows/automa
 import {STRATEGY_META} from 'sentry/views/seerWorkflows/strategies';
 import type {WorkflowStrategy} from 'sentry/views/seerWorkflows/types';
 import {
+  AUTO_REFRESH_INTERVAL,
   getAutomationDetailPath,
   getAutomationsPath,
   useAutomationsEnabled,
@@ -61,7 +62,10 @@ export default function AutomationDetail() {
   const basePath = getAutomationDetailPath(organization.slug, automationId);
   const navigate = useNavigate();
 
-  const {data, isPending, isError, refetch} = useFetchConfigs({ids: [automationId]});
+  const {data, isPending, isError, refetch} = useFetchConfigs(
+    {ids: [automationId]},
+    {refetchInterval: AUTO_REFRESH_INTERVAL}
+  );
   const config: AutomationConfig | undefined = data?.[0];
   const strategy = config?.strategy ?? '';
   const strategyMeta = Object.hasOwn(STRATEGY_META, strategy)
@@ -332,24 +336,26 @@ export default function AutomationDetail() {
               {headerCosts}
             </Stack>
           </Flex>
-          <Tabs value={activeTab} size="sm">
-            <TabList>
-              <TabList.Item
-                key="configuration"
-                to={basePath}
-                textValue={t('Configuration')}
-              >
-                <Text bold={activeTab === 'configuration'} variant="inherit">
-                  {t('Configuration')}
-                </Text>
-              </TabList.Item>
-              <TabList.Item key="runs" to={`${basePath}runs/`} textValue={t('Runs')}>
-                <Text bold={activeTab === 'runs'} variant="inherit">
-                  {t('Runs')}
-                </Text>
-              </TabList.Item>
-            </TabList>
-          </Tabs>
+          <LinkTabs value={activeTab} size="sm">
+            {({TabList}) => (
+              <TabList>
+                <TabList.Item
+                  key="configuration"
+                  to={basePath}
+                  textValue={t('Configuration')}
+                >
+                  <Text bold={activeTab === 'configuration'} variant="inherit">
+                    {t('Configuration')}
+                  </Text>
+                </TabList.Item>
+                <TabList.Item key="runs" to={`${basePath}runs/`} textValue={t('Runs')}>
+                  <Text bold={activeTab === 'runs'} variant="inherit">
+                    {t('Runs')}
+                  </Text>
+                </TabList.Item>
+              </TabList>
+            )}
+          </LinkTabs>
         </Stack>
         <Container padding="xl">
           <Outlet

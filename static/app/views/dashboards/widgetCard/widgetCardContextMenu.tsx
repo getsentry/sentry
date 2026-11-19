@@ -1,7 +1,6 @@
 import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
-import qs from 'query-string';
 
 import {openConfirmModal} from '@sentry/scraps/confirm';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
@@ -18,10 +17,15 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isEquation, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import * as qs from 'sentry/utils/url/qs';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
-import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import type {
+  DashboardFilters,
+  DashboardQueryPriority,
+  Widget,
+} from 'sentry/views/dashboards/types';
 import {
   DashboardWidgetSource,
   PREBUILT_DASHBOARD_LABEL,
@@ -196,7 +200,8 @@ export function getMenuOptions(
   onDuplicate?: () => void,
   onEdit?: () => void,
   timeseriesResults?: WidgetTimeSeries[],
-  onAskSeer?: () => void
+  onAskSeer?: () => void,
+  queryPriority?: DashboardQueryPriority
 ) {
   const menuOptions: MenuItemProps[] = [];
 
@@ -290,7 +295,8 @@ export function getMenuOptions(
             widget.queries.some(q => q.aggregates.length > 0)
               ? Mode.AGGREGATE
               : Mode.SAMPLES,
-            getReferrer(widget.displayType)
+            getReferrer(widget.displayType),
+            queryPriority
           ) ?? undefined),
     });
   }
@@ -369,7 +375,13 @@ export function getMenuOptions(
     menuOptions.push({
       key: 'open-in-metrics',
       label: t('Open in Explore'),
-      to: getWidgetMetricsUrl(widget, dashboardFilters, selection, organization),
+      to: getWidgetMetricsUrl(
+        widget,
+        dashboardFilters,
+        selection,
+        organization,
+        queryPriority
+      ),
       onAction: () => {
         trackAnalytics('dashboards_views.open_in_metrics.opened', {
           organization,

@@ -21,9 +21,19 @@ import type {LLMContextSnapshot} from 'sentry/views/seerExplorer/contexts/llmCon
 import {AutofixSection} from './autofixSection';
 
 const mockOpenSeerExplorer = jest.fn();
+let mockIsExplorerOpen = false;
 jest.mock('sentry/views/seerExplorer/useSeerExplorerContext', () => ({
   ...jest.requireActual('sentry/views/seerExplorer/useSeerExplorerContext'),
-  useSeerExplorerContext: () => ({openSeerExplorer: mockOpenSeerExplorer}),
+  useSeerExplorerContext: () => ({
+    openSeerExplorer: mockOpenSeerExplorer,
+    isOpen: mockIsExplorerOpen,
+  }),
+}));
+
+let mockOpenRunId: number | null = null;
+jest.mock('sentry/views/seerExplorer/seerExplorerChatStateContext', () => ({
+  ...jest.requireActual('sentry/views/seerExplorer/seerExplorerChatStateContext'),
+  useSeerExplorerChatState: () => ({runId: mockOpenRunId}),
 }));
 
 jest.mock('sentry/utils/cells');
@@ -74,7 +84,6 @@ describe('AutofixSection', () => {
       body: {
         hasSupportedScmIntegration: true,
         isAutofixEnabled: true,
-        isCodeReviewEnabled: true,
         isSeerConfigured: true,
       },
     });
@@ -209,6 +218,10 @@ describe('AutofixSection', () => {
   it('starts collapsed on the autofix tab even when saved as open', async () => {
     mockUseMatches.mockImplementation(() => matchesForTab(Tab.AUTOFIX));
     localStorage.setItem('issue-details-fold-section-collapse:seer', 'false');
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      body: {autofix: null},
+    });
 
     render(<AutofixSection group={mockGroup} project={mockProject} />, {
       organization,
@@ -298,9 +311,59 @@ describe('AutofixSection', () => {
 
     beforeEach(() => {
       mockOpenSeerExplorer.mockClear();
+      mockIsExplorerOpen = false;
+      mockOpenRunId = null;
     });
 
-    it('opens the Explorer panel on Open Autofix', async () => {
+    it('collapses the section while the run is open in the Explorer panel', async () => {
+      mockIsExplorerOpen = true;
+      mockOpenRunId = 776;
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+        body: singleRunBody,
+      });
+
+      render(<AutofixSection group={mockGroup} project={mockProject} />, {organization});
+
+      await waitFor(() =>
+        expect(screen.getByRole('button', {name: 'View Section'})).toHaveAttribute(
+          'aria-expanded',
+          'false'
+        )
+      );
+      expect(screen.getByText('Seer Autofix')).toBeInTheDocument();
+    });
+
+    it('collapses an expanded autofix-tab section when the run opens in the panel', async () => {
+      mockUseMatches.mockImplementation(() => matchesForTab(Tab.AUTOFIX));
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+        body: singleRunBody,
+      });
+
+      const {rerender} = render(
+        <AutofixSection group={mockGroup} project={mockProject} />,
+        {organization}
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'View Section'}));
+      expect(screen.getByRole('button', {name: 'Collapse Section'})).toBeInTheDocument();
+
+      mockIsExplorerOpen = true;
+      mockOpenRunId = 776;
+      rerender(<AutofixSection group={mockGroup} project={mockProject} />);
+
+      await waitFor(() =>
+        expect(screen.getByRole('button', {name: 'View Section'})).toHaveAttribute(
+          'aria-expanded',
+          'false'
+        )
+      );
+    });
+
+    it('keeps the section while the Explorer panel shows another chat', async () => {
+      mockIsExplorerOpen = true;
+      mockOpenRunId = 123;
       MockApiClient.addMockResponse({
         url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
         body: singleRunBody,
@@ -309,9 +372,53 @@ describe('AutofixSection', () => {
       render(<AutofixSection group={mockGroup} project={mockProject} />, {organization});
 
       expect(await screen.findByText('Divides by zero')).toBeInTheDocument();
+      expect(screen.getByText('Seer Autofix')).toBeInTheDocument();
+    });
+
+    it('opens the Autofix tab and the Explorer panel on Open Autofix', async () => {
+      const autofixPageOrganization = OrganizationFixture({
+        hideAiFeatures: false,
+        features: ['autofix-page'],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+        body: singleRunBody,
+      });
+
+      const {router} = render(
+        <AutofixSection group={mockGroup} project={mockProject} />,
+        {
+          organization: autofixPageOrganization,
+        }
+      );
+
+      expect(await screen.findByText('Divides by zero')).toBeInTheDocument();
       await userEvent.click(screen.getByRole('button', {name: 'Open Autofix'}));
 
       expect(mockOpenSeerExplorer).toHaveBeenCalledWith({runId: 776});
+      expect(router.location.pathname).toBe(
+        `/organizations/${autofixPageOrganization.slug}/issues/${mockGroup.id}/autofix/`
+      );
+    });
+
+    it('only opens the Explorer panel on Open Autofix without the Autofix tab', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+        body: singleRunBody,
+      });
+
+      const {router} = render(
+        <AutofixSection group={mockGroup} project={mockProject} />,
+        {
+          organization,
+        }
+      );
+
+      expect(await screen.findByText('Divides by zero')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Open Autofix'}));
+
+      expect(mockOpenSeerExplorer).toHaveBeenCalledWith({runId: 776});
+      expect(router.location.query.seerDrawer).toBeUndefined();
     });
 
     it('opens the Explorer panel when Start Analysis starts a single run', async () => {
@@ -630,7 +737,6 @@ describe('AutofixSection', () => {
       body: {
         hasSupportedScmIntegration: false,
         isAutofixEnabled: false,
-        isCodeReviewEnabled: false,
         isSeerConfigured: false,
       },
     });
@@ -720,7 +826,6 @@ describe('AutofixSection', () => {
       body: {
         hasSupportedScmIntegration: false,
         isAutofixEnabled: false,
-        isCodeReviewEnabled: false,
         isSeerConfigured: false,
       },
     });
@@ -759,6 +864,27 @@ describe('AutofixSection', () => {
     expect(screen.getByRole('button', {name: 'Start Analysis'})).toBeInTheDocument();
   });
 
+  it('shows the redesigned start card with autofix-single-run', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      body: {autofix: null},
+    });
+
+    render(<AutofixSection group={mockGroup} project={mockProject} />, {
+      organization: OrganizationFixture({
+        hideAiFeatures: false,
+        features: ['autofix-single-run'],
+      }),
+    });
+
+    expect(
+      await screen.findByText('Let Seer find the root cause and fix it')
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Have Seer...')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Add Context'})).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Start Analysis'})).toBeInTheDocument();
+  });
+
   it('keeps the start card on screen while a run is starting', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
@@ -791,7 +917,6 @@ describe('AutofixSection', () => {
 
     function ContextCapture() {
       const {getLLMContext} = useLLMContext();
-      // oxlint-disable-next-line react/immutability
       snapshotRef.current = getLLMContext;
       return null;
     }
@@ -877,7 +1002,7 @@ describe('AutofixSection', () => {
   describe('out of Seer credits', () => {
     const creditCheckOrganization = OrganizationFixture({
       hideAiFeatures: false,
-      features: ['seer-credit-checks', 'token-billed-seer-enabled'],
+      features: ['token-billed-seer-enabled'],
     });
     const creditCheckUrl = `/organizations/${organization.slug}/seer/credit-check/`;
 

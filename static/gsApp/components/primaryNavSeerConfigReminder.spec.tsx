@@ -35,7 +35,6 @@ describe('PrimaryNavSeerConfigReminder', () => {
       body: {
         hasSupportedScmIntegration: true,
         isAutofixEnabled,
-        isCodeReviewEnabled: false,
         isSeerConfigured: false,
       },
     });
@@ -56,9 +55,7 @@ describe('PrimaryNavSeerConfigReminder', () => {
   });
 
   it('shows the reminder for a token-billed org', async () => {
-    const organization = OrganizationFixture({
-      features: ['seer-token-based-billing-onboarding', 'token-billed-seer-enabled'],
-    });
+    const organization = OrganizationFixture({features: ['token-billed-seer-enabled']});
     mockOnboardingCheck(organization, false);
 
     renderReminder(organization);
@@ -67,12 +64,8 @@ describe('PrimaryNavSeerConfigReminder', () => {
     expect(await screen.findByText('Start using Autofix')).toBeInTheDocument();
   });
 
-  it.each([
-    ['neither billing model', []],
-    ['only the token billing onboarding flag', ['seer-token-based-billing-onboarding']],
-    ['only the token-billed flag', ['token-billed-seer-enabled']],
-  ])('hides the reminder for an org with %s', async (_, features) => {
-    const organization = OrganizationFixture({features});
+  it('hides the reminder for an org with neither billing model', async () => {
+    const organization = OrganizationFixture({features: []});
     mockOnboardingCheck(organization, false);
 
     renderReminder(organization);
@@ -84,9 +77,7 @@ describe('PrimaryNavSeerConfigReminder', () => {
   });
 
   it('hides the reminder for a token-billed org with repos connected', async () => {
-    const organization = OrganizationFixture({
-      features: ['seer-token-based-billing-onboarding', 'token-billed-seer-enabled'],
-    });
+    const organization = OrganizationFixture({features: ['token-billed-seer-enabled']});
     mockOnboardingCheck(organization, true);
 
     renderReminder(organization);

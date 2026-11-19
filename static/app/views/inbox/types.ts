@@ -4,6 +4,14 @@ export const INBOX_SUBJECT_TYPES = ['issue', 'notebook'] as const;
 
 export type InboxSubjectType = (typeof INBOX_SUBJECT_TYPES)[number];
 
+export interface InboxRouteHandle {
+  inboxSubjectType: InboxSubjectType;
+}
+
+export const INBOX_RECIPIENTS = ['team', 'user'] as const;
+
+export type InboxRecipient = (typeof INBOX_RECIPIENTS)[number];
+
 export const INBOX_EVENT_TYPES = [
   'issue.user_assigned',
   'issue.team_assigned',
@@ -86,11 +94,13 @@ export interface InboxItem {
   subtitle: string;
   title: string | null;
   unreadEventCount: number;
+  url: string;
 }
 
 export type InboxSubject = Pick<InboxItem, 'subjectId' | 'subjectType'>;
 
 export interface InboxFilters {
   eventType: InboxEventType[];
+  recipient: InboxRecipient[];
   subjectType: InboxSubjectType[];
 }

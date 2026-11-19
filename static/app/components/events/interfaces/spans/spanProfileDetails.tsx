@@ -374,8 +374,8 @@ export function SpanProfileDetails({metadata, span}: SpanProfileDetailsProps) {
 
 function getTopNodes(
   profile: Profile,
-  startTimestamp: any,
-  stopTimestamp: any
+  startTimestamp: number,
+  stopTimestamp: number
 ): CallTreeNode[] {
   let duration = profile.startedAt;
 

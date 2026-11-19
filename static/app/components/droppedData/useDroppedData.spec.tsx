@@ -5,6 +5,7 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {
   act,
+  cleanup,
   render,
   renderHookWithProviders,
   screen,
@@ -54,10 +55,6 @@ function ChartWithLateConsumer() {
 describe('useDroppedData', () => {
   beforeEach(() => {
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
-  });
-
-  afterEach(() => {
-    PageFiltersStore.reset();
   });
 
   it('requests dropped events and returns them', async () => {
@@ -164,6 +161,7 @@ describe('useDroppedData', () => {
 
     afterEach(async () => {
       try {
+        cleanup();
         await act(() => jest.runOnlyPendingTimersAsync());
       } finally {
         jest.useRealTimers();

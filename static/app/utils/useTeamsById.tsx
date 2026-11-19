@@ -1,8 +1,9 @@
 import {useEffect, useMemo} from 'react';
 import {useQuery} from '@tanstack/react-query';
+import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import {TeamStore} from 'sentry/stores/teamStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Team} from 'sentry/types/organization';
 
 import {apiOptions} from './api/apiOptions';
@@ -50,7 +51,10 @@ function teamsApiOptions(orgSlug: string, property: 'id' | 'slug', values: strin
  */
 export function useTeamsById(options: UseTeamOptions = {}): UseTeamsResult {
   const organization = useOrganization({allowNull: true});
-  const storeState = useLegacyStore(TeamStore);
+  const storeState = useStore(
+    TeamStore,
+    useShallow(state => ({loading: state.loading, teams: state.teams}))
+  );
 
   const teamQueryValues = useMemo<{
     property: 'id' | 'slug';

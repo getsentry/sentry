@@ -41,6 +41,7 @@ describe('Onboarding', () => {
     TeamStore.loadInitialData([TeamFixture()]);
   });
   beforeEach(() => {
+    ProjectsStore.reset();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/config/integrations/',
       body: {providers: [GitHubIntegrationProviderFixture()]},
@@ -56,7 +57,6 @@ describe('Onboarding', () => {
   });
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    ProjectsStore.reset();
     sessionStorage.clear();
     jest.clearAllMocks();
   });
@@ -543,18 +543,17 @@ describe('Onboarding', () => {
       const {router} = renderOnboarding('welcome');
 
       expect(await screen.findByText('sntryh_****')).toBeInTheDocument();
-      expect(screen.getByText('Recommended')).toBeInTheDocument();
+      expect(agenticRunRequestMock.mock.calls[0]?.[1]?.data.origin).toBe('onboarding');
       expect(
         screen.getByRole('heading', {name: 'Let your agent set up Sentry'})
       ).toBeInTheDocument();
-      expect(screen.getByText('Detects your stack')).toBeInTheDocument();
+      expect(
+        screen.getByText('Detects your stack and installs the Sentry CLI')
+      ).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Advanced options'})).toBeInTheDocument();
       expect(
         screen.getByRole('link', {name: 'See the full instructions'})
-      ).toHaveAttribute(
-        'href',
-        'https://sentry.io/agent-handoff/?preview=1&flow=onboarding'
-      );
+      ).toHaveAttribute('href', 'https://sentry.io/agent-handoff.md');
       expect(screen.getByRole('button', {name: /Set up manually/})).toBeInTheDocument();
       expect(screen.queryByTestId('onboarding-welcome-start')).not.toBeInTheDocument();
       expect(screen.queryByText('Error monitoring')).not.toBeInTheDocument();
@@ -600,25 +599,40 @@ describe('Onboarding', () => {
       expect(screen.queryByText('sntryh_****')).not.toBeInTheDocument();
     });
 
+    it('opens Issues while agent setup is still in progress', async () => {
+      const {router} = renderOnboarding('welcome');
+
+      act(resolveAgenticRunRequest);
+
+      await userEvent.click(await screen.findByRole('button', {name: "I'm finished"}));
+
+      expect(router.location.pathname).toBe(
+        `/organizations/${scmOrganization.slug}/issues/`
+      );
+    });
+
     it.each([
       {
         runStatus: 'failed',
         connectionStatus: 'failed',
         heading: 'Setup Didn’t Finish',
+        showsFinishButton: true,
       },
       {
         runStatus: 'cancelled',
         connectionStatus: 'failed',
         heading: 'Setup Didn’t Finish',
+        showsFinishButton: true,
       },
       {
         runStatus: 'completed',
         connectionStatus: null,
         heading: "You're All Set",
+        showsFinishButton: false,
       },
     ] as const)(
       'shows the $runStatus heading when the agent is disconnected',
-      async ({runStatus, connectionStatus, heading}) => {
+      async ({runStatus, connectionStatus, heading, showsFinishButton}) => {
         const run = AgenticProgressRunFixture({
           runStatus,
           stages: [
@@ -636,15 +650,20 @@ describe('Onboarding', () => {
         });
 
         renderOnboarding('welcome');
-        expect(screen.getByRole('heading', {name: /Code breaks/})).toBeInTheDocument();
+        expect(
+          screen.getByRole('heading', {name: 'Code breaks. Fix it faster'})
+        ).toBeInTheDocument();
 
         act(resolveAgenticRunRequest);
 
         expect(await screen.findByRole('heading', {name: heading})).toBeInTheDocument();
         expect(
-          screen.queryByRole('heading', {name: /Code breaks/})
+          screen.queryByRole('heading', {name: 'Code breaks. Fix it faster'})
         ).not.toBeInTheDocument();
         expect(screen.queryByText('sntryh_****')).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', {name: "I'm finished"}) !== null).toBe(
+          showsFinishButton
+        );
       }
     );
 

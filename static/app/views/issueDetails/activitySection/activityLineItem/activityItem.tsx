@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 import * as Sentry from '@sentry/react';
 
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Link} from '@sentry/scraps/link';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {Duration} from 'sentry/components/duration';
 import {t, tct, tn} from 'sentry/locale';
 import type {
@@ -627,6 +627,17 @@ function getActivityItemContent({
         details,
       };
     }
+    case GroupActivityType.SEER_STOPPED:
+      return {
+        title: t('Seer stopped early'),
+        details: (
+          <Fragment>
+            {activity.data.reason}
+            {activity.data.suggestion &&
+              ` ${t('Suggestion: %s', activity.data.suggestion)}`}
+          </Fragment>
+        ),
+      };
     case GroupActivityType.TRIGGER_AUTOFIX:
       switch (activity.data.referrer) {
         case 'slack':

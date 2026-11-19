@@ -70,6 +70,14 @@ repos:
         entry: python3 -m tools.mypy_helpers.prevent_weaklist_additions
         files: ^pyproject\.toml$
         language: python
+      - id: seer-nav-snapshot
+        name: seer nav snapshot
+        entry: python3 -m tools.seer_nav.generate_snapshot --hook
+        # Runs on every commit: nav files import constants from anywhere, so no file list
+        # is complete. It takes well under a second.
+        always_run: true
+        pass_filenames: false
+        language: python
       - id: prevent-push
         name: prevent pushing master
         stages: [pre-push]
@@ -139,6 +147,14 @@ repos:
       - id: check-github-workflows
         args: []
 
+  - repo: https://github.com/zizmorcore/zizmor-pre-commit
+    rev: v1.32.0
+    hooks:
+      - id: zizmor
+        # Online audits (impostor-commit, known-vulnerable-actions, ...) need
+        # a GitHub token and network access, so keep the local hook offline.
+        args: [--no-progress, --offline]
+
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
     hooks:
@@ -167,3 +183,9 @@ repos:
         types: [file]
         files: ^\.envrc$
         args: [--external-sources]
+      - id: shellcheck
+        name: shellcheck (POSIX sh)
+        # Workflow scripts whose shebang is sh.
+        files: ^\.github/workflows/scripts/
+        types: [sh]
+        args: [--shell=sh, --enable=check-extra-masked-returns]
