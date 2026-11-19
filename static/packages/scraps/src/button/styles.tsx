@@ -23,7 +23,7 @@ interface ButtonStyleProps {
    */
   disabled: boolean;
   shapeVariant: 'rectangular' | 'square';
-  size: ButtonSize;
+  size: SizeTokens;
   theme: Theme;
 }
 
@@ -47,7 +47,7 @@ export function DO_NOT_USE_getButtonStyles(
     busy: Boolean(p.busy),
     disabled,
     shapeVariant: p.shapeVariant,
-    size: p.size,
+    size: getSizeTokens(p.size, p.theme),
     theme: p.theme,
   };
 
@@ -58,7 +58,10 @@ export function DO_NOT_USE_getButtonStyles(
     case 'link':
       return getLinkStyles(props);
     default:
-      return getChonkyStyles(props, chonkyTokens[variant](p.theme));
+      return getChonkyStyles(
+        props,
+        chonkyTokens[variant](p.theme.tokens.interactive.chonky.embossed, p.theme)
+      );
   }
 }
 
@@ -66,10 +69,7 @@ export function DO_NOT_USE_getButtonStyles(
  * Rules every variant uses unchanged. No variant sets any of these keys, so
  * spreading this first can't replace part of a variant's nested rule.
  */
-function getBaseStyles(
-  p: ButtonStyleProps,
-  size: ReturnType<typeof getSizeTokens>
-): StrictCSSObject {
+function getBaseStyles(p: ButtonStyleProps): StrictCSSObject {
   return {
     position: 'relative',
     display: 'inline-flex',
@@ -78,12 +78,12 @@ function getBaseStyles(
     whiteSpace: 'nowrap',
 
     fontWeight: p.theme.font.weight.sans.medium,
-    fontSize: size.fontSize,
-    lineHeight: size.lineHeight,
+    fontSize: p.size.fontSize,
+    lineHeight: p.size.lineHeight,
 
     opacity: p.disabled ? 0.6 : undefined,
 
-    borderRadius: size.borderRadius,
+    borderRadius: p.size.borderRadius,
     border: 'none',
     background: 'none',
 
@@ -107,34 +107,39 @@ interface ChonkyTokens {
   surface: string;
 }
 
-const chonkyTokens: Record<ChonkyVariant, (theme: Theme) => ChonkyTokens> = {
-  primary: theme => ({
-    surface: theme.tokens.interactive.chonky.embossed.accent.background,
-    chonk: theme.tokens.interactive.chonky.embossed.accent.chonk,
-    content: theme.tokens.interactive.chonky.embossed.accent.content,
+type EmbossedTokens = Theme['tokens']['interactive']['chonky']['embossed'];
+
+const chonkyTokens: Record<
+  ChonkyVariant,
+  (embossed: EmbossedTokens, theme: Theme) => ChonkyTokens
+> = {
+  primary: (embossed, theme) => ({
+    surface: embossed.accent.background,
+    chonk: embossed.accent.chonk,
+    content: embossed.accent.content,
     focus: {border: `2px dotted ${theme.tokens.focus.onVibrant.light}`},
   }),
-  secondary: theme => ({
-    surface: theme.tokens.interactive.chonky.embossed.neutral.background,
-    chonk: theme.tokens.interactive.chonky.embossed.neutral.chonk,
-    content: theme.tokens.interactive.chonky.embossed.neutral.content.primary,
+  secondary: (embossed, theme) => ({
+    surface: embossed.neutral.background,
+    chonk: embossed.neutral.chonk,
+    content: embossed.neutral.content.primary,
     focus: {
       // Three layers: the chonk color masks the offset ring copy, then
       // the ring is drawn at the lift offset and again at rest, so it
       // closes around the surface and chonk as a single outline.
-      boxShadow: `0 var(--button-lift) 0 0 ${theme.tokens.interactive.chonky.embossed.neutral.chonk}, 0 var(--button-lift) 0 2px ${theme.tokens.focus.default}, 0 0 0 2px ${theme.tokens.focus.default}`,
+      boxShadow: `0 var(--button-lift) 0 0 ${embossed.neutral.chonk}, 0 var(--button-lift) 0 2px ${theme.tokens.focus.default}, 0 0 0 2px ${theme.tokens.focus.default}`,
     },
   }),
-  warning: theme => ({
-    surface: theme.tokens.interactive.chonky.embossed.warning.background,
-    chonk: theme.tokens.interactive.chonky.embossed.warning.chonk,
-    content: theme.tokens.interactive.chonky.embossed.warning.content,
+  warning: (embossed, theme) => ({
+    surface: embossed.warning.background,
+    chonk: embossed.warning.chonk,
+    content: embossed.warning.content,
     focus: {border: `2px dotted ${theme.tokens.focus.onVibrant.dark}`},
   }),
-  danger: theme => ({
-    surface: theme.tokens.interactive.chonky.embossed.danger.background,
-    chonk: theme.tokens.interactive.chonky.embossed.danger.chonk,
-    content: theme.tokens.interactive.chonky.embossed.danger.content,
+  danger: (embossed, theme) => ({
+    surface: embossed.danger.background,
+    chonk: embossed.danger.chonk,
+    content: embossed.danger.content,
     focus: {border: `2px dotted ${theme.tokens.focus.onVibrant.light}`},
   }),
 };
@@ -145,20 +150,18 @@ const chonkyTokens: Record<ChonkyVariant, (theme: Theme) => ChonkyTokens> = {
  * disabled rules, which share its specificity and must win over it.
  */
 function getChonkyStyles(p: ButtonStyleProps, tokens: ChonkyTokens): StrictCSSObject {
-  const size = getSizeTokens(p.size, p.theme);
-
   return {
-    ...getBaseStyles(p, size),
+    ...getBaseStyles(p),
 
-    '--button-lift': size.lift,
+    '--button-lift': p.size.lift,
 
-    padding: p.shapeVariant === 'square' ? '0' : size.padding,
-    height: size.height,
-    minHeight: size.minHeight,
+    padding: p.shapeVariant === 'square' ? '0' : p.size.padding,
+    height: p.size.height,
+    minHeight: p.size.minHeight,
     // Use min width as a progressive enhancement for square buttons.
     // We can't yet swap to width because I'm not entirely condifent that
     // that would not break existing buttons.
-    minWidth: p.shapeVariant === 'square' ? size.height : undefined,
+    minWidth: p.shapeVariant === 'square' ? p.size.height : undefined,
     color: tokens.content,
 
     '&::before': {
@@ -166,10 +169,10 @@ function getChonkyStyles(p: ButtonStyleProps, tokens: ChonkyTokens): StrictCSSOb
       display: 'block',
       position: 'absolute',
       inset: '0',
-      height: `calc(100% - ${size.lift})`,
-      top: size.lift,
-      transform: `translateY(-${size.lift})`,
-      boxShadow: `0 ${size.lift} 0 0px ${tokens.chonk}`,
+      height: `calc(100% - ${p.size.lift})`,
+      top: p.size.lift,
+      transform: `translateY(-${p.size.lift})`,
+      boxShadow: `0 ${p.size.lift} 0 0px ${tokens.chonk}`,
       background: tokens.chonk,
       borderRadius: 'inherit',
     },
@@ -214,7 +217,7 @@ function getChonkyStyles(p: ButtonStyleProps, tokens: ChonkyTokens): StrictCSSOb
     },
 
     '&:hover': {
-      '--button-lift': `calc(${size.lift} + 1px)`,
+      '--button-lift': `calc(${p.size.lift} + 1px)`,
       color: p.disabled || p.busy ? undefined : tokens.content,
     },
 
@@ -242,15 +245,13 @@ function getChonkyStyles(p: ButtonStyleProps, tokens: ChonkyTokens): StrictCSSOb
  * background must win.
  */
 function getTransparentStyles(p: ButtonStyleProps): StrictCSSObject {
-  const size = getSizeTokens(p.size, p.theme);
-
   return {
-    ...getBaseStyles(p, size),
+    ...getBaseStyles(p),
 
-    padding: p.shapeVariant === 'square' ? '0' : size.padding,
-    height: size.height,
-    minHeight: size.minHeight,
-    minWidth: p.shapeVariant === 'square' ? size.height : undefined,
+    padding: p.shapeVariant === 'square' ? '0' : p.size.padding,
+    height: p.size.height,
+    minHeight: p.size.minHeight,
+    minWidth: p.shapeVariant === 'square' ? p.size.height : undefined,
     color: p.theme.tokens.interactive.transparent.neutral.content.primary,
     transform: 'translateY(0px)',
 
@@ -277,10 +278,8 @@ function getTransparentStyles(p: ButtonStyleProps): StrictCSSObject {
 }
 
 function getLinkStyles(p: ButtonStyleProps): StrictCSSObject {
-  const size = getSizeTokens(p.size, p.theme);
-
   return {
-    ...getBaseStyles(p, size),
+    ...getBaseStyles(p),
 
     padding: '0',
     height: 'auto',
@@ -312,7 +311,17 @@ function getLinkStyles(p: ButtonStyleProps): StrictCSSObject {
   };
 }
 
-function getSizeTokens(size: ButtonSize, theme: Theme) {
+interface SizeTokens {
+  borderRadius: string;
+  fontSize: string;
+  height: string;
+  lift: string;
+  lineHeight: string;
+  minHeight: string;
+  padding: string;
+}
+
+function getSizeTokens(size: ButtonSize, theme: Theme): SizeTokens {
   switch (size) {
     case 'md':
       return {
