@@ -25,7 +25,6 @@ interface ActivityLineNoteProps {
   inputVariant: ActivityLineVariant;
   onDelete: () => Promise<void>;
   onUpdate: (data: NoteType) => Promise<void>;
-  highlightedActivityId?: string;
   timestampUnitStyle?: React.ComponentProps<typeof TimeSince>['unitStyle'];
 }
 
@@ -35,7 +34,6 @@ export function isActivityNote(activity: GroupActivity): activity is GroupActivi
 
 export function ActivityLineNote({
   activity,
-  highlightedActivityId,
   inputVariant,
   onDelete,
   onUpdate,
@@ -47,7 +45,6 @@ export function ActivityLineNote({
   );
   return (
     <Timeline.Item
-      highlightedActivityId={highlightedActivityId}
       marker={<ActivityLineMarker item={activity} />}
       headline={
         <ActivityLineNoteHeadline

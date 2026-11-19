@@ -48,8 +48,6 @@ interface InboxIssuePreviewProps {
 }
 
 export function InboxIssuePreview({groupId}: InboxIssuePreviewProps) {
-  const {hash} = useLocation();
-  const highlightedActivityId = hash.match(/^#activity[-=](.+)$/)?.[1];
   const organization = useOrganization();
   const {projects} = useProjects();
   const [tab, setTab] = useState<InboxIssueTab>('overview');
@@ -96,12 +94,7 @@ export function InboxIssuePreview({groupId}: InboxIssuePreviewProps) {
                 {layoutProps => (
                   <TabPanels {...layoutProps}>
                     <TabPanels.Item key="overview">
-                      <InboxIssueOverview
-                        group={group}
-                        project={project}
-                        event={event}
-                        highlightedActivityId={highlightedActivityId}
-                      />
+                      <InboxIssueOverview group={group} project={project} event={event} />
                     </TabPanels.Item>
                     <TabPanels.Item key="telemetry">
                       <PageFiltersContainer
@@ -185,12 +178,10 @@ function InboxIssuePreviewHeader({group, project, event}: InboxIssueSectionProps
   );
 }
 
-function InboxIssueOverview({
-  group,
-  project,
-  event,
-  highlightedActivityId,
-}: InboxIssueSectionProps & {highlightedActivityId?: string}) {
+function InboxIssueOverview({group, project, event}: InboxIssueSectionProps) {
+  const {hash} = useLocation();
+  const highlightedActivityId = hash.match(/^#activity[-=](.+)$/)?.[1];
+
   return (
     <IssueDetailsContextProvider scrollContext="pane">
       <Grid flex={1} columns={{zero: 'minmax(0, 1fr)', xl: 'minmax(0, 1fr) 300px'}}>

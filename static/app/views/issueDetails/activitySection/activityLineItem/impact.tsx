@@ -31,12 +31,10 @@ export function isImpactActivity(
 export function ActivityLineImpact({
   activity,
   group,
-  highlightedActivityId,
   timestampUnitStyle,
 }: {
   activity: GroupActivityImpactAssessment;
   group: Group;
-  highlightedActivityId?: string;
   timestampUnitStyle?: React.ComponentProps<typeof TimeSince>['unitStyle'];
 }) {
   const {level, score} = activity.data;
@@ -44,7 +42,6 @@ export function ActivityLineImpact({
 
   return (
     <Timeline.Item
-      highlightedActivityId={highlightedActivityId}
       marker={<ActivityLineMarker item={activity} />}
       headline={
         <ActivityLineHeadline

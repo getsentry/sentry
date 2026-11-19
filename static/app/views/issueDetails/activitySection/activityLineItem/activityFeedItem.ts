@@ -291,16 +291,14 @@ export function collapseFlappingStatusActivities(
 interface BuildActivityFeedItemsOptions {
   activities: GroupActivity[];
   filterComments?: boolean;
-  highlightedActivityId?: string;
 }
 
 export function buildActivityFeedItems({
   activities,
   filterComments,
-  highlightedActivityId,
 }: BuildActivityFeedItemsOptions): DisplayedActivityFeedItem[] {
   const {activities: deduplicatedActivities, actorActivityById} =
-    deduplicatePullRequestActivities(activities, highlightedActivityId);
+    deduplicatePullRequestActivities(activities);
   const filteredActivities = deduplicatedActivities.filter(
     item => !filterComments || item.type === GroupActivityType.NOTE
   );

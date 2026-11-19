@@ -47,13 +47,9 @@ export function ActivityFeed({
   }
 
   function renderActivity(item: DisplayedActivityFeedItem): React.ReactNode {
-    const {activity} = item;
-    const key = isActivityNote(activity)
-      ? `comment:${activity.commentId}`
-      : `activity:${activity.id}`;
-
     if (item.type === 'collapsed_status_activities') {
       const containsHighlight = item.activities.some(isHighlighted);
+      const key = `activity:${item.activity.id}`;
       return (
         <CollapsedStatusActivityRow
           key={containsHighlight ? `${key}:${highlightedActivityId}` : key}
@@ -65,56 +61,53 @@ export function ActivityFeed({
       );
     }
 
-    const highlight = isHighlighted(item) ? highlightedActivityId : undefined;
+    const {activity} = item;
+    const key = isActivityNote(activity)
+      ? `comment:${activity.commentId}`
+      : `activity:${activity.id}`;
 
+    let line: React.ReactNode;
     if (isActivityNote(activity)) {
-      return (
+      line = (
         <ActivityLineNote
-          key={key}
           activity={activity}
-          highlightedActivityId={highlight}
           inputVariant={inputVariant}
           onDelete={() => onCommentDelete(activity)}
           onUpdate={data => onCommentUpdate(activity, data)}
           timestampUnitStyle={timestampUnitStyle}
         />
       );
-    }
-
-    if (isImpactActivity(activity)) {
-      return (
+    } else if (isImpactActivity(activity)) {
+      line = (
         <ActivityLineImpact
-          key={key}
           activity={activity}
-          highlightedActivityId={highlight}
           group={group}
           timestampUnitStyle={timestampUnitStyle}
         />
       );
-    }
-
-    if (isInvestigationLinkedActivity(activity)) {
-      return (
+    } else if (isInvestigationLinkedActivity(activity)) {
+      line = (
         <ActivityLineInvestigationLinked
-          key={key}
           activity={activity}
-          highlightedActivityId={highlight}
           variant={inputVariant}
           timestampUnitStyle={timestampUnitStyle}
         />
       );
+    } else {
+      line = (
+        <ActivityLine item={item} group={group} timestampUnitStyle={timestampUnitStyle}>
+          {item.body}
+        </ActivityLine>
+      );
     }
 
     return (
-      <ActivityLine
+      <Timeline.Highlight
         key={key}
-        item={item}
-        highlightedActivityId={highlight}
-        group={group}
-        timestampUnitStyle={timestampUnitStyle}
+        value={isHighlighted(item) ? highlightedActivityId : undefined}
       >
-        {item.body}
-      </ActivityLine>
+        {line}
+      </Timeline.Highlight>
     );
   }
 

@@ -143,7 +143,6 @@ export function ActivitySection({
     buildActivityFeedItems({
       activities,
       filterComments,
-      highlightedActivityId: isStandalone ? highlightedActivityId : undefined,
     });
   const inputVariant = isStandalone ? 'full' : 'compact';
   const timestampUnitStyle = isStandalone ? undefined : 'short';
