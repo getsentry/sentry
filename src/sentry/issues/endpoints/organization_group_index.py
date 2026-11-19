@@ -92,6 +92,7 @@ def inbox_search(
     date_to: datetime | None = None,
     max_hits: int | None = None,
     actor: Any | None = None,
+    paginator_options: Mapping[str, Any] | None = None,
 ) -> CursorResult[Group]:
     now: datetime = timezone.now()
     end: datetime | None = None
@@ -156,7 +157,9 @@ def inbox_search(
             assigned_or_suggested_filter(owner_search, projects, field_filter="group_id")
         )
 
-    paginator = DateTimePaginator(qs.order_by("date_added"), "-date_added")
+    paginator = DateTimePaginator(
+        qs.order_by("date_added"), "-date_added", **(paginator_options or {})
+    )
     results = paginator.get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits)
 
     # We want to return groups from the endpoint, but have the cursor be related to the
