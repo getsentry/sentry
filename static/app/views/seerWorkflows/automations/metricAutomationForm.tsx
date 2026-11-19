@@ -39,6 +39,7 @@ import {
   getAutomationDetailPath,
   getAutomationsPath,
 } from 'sentry/views/seerWorkflows/utils';
+import {getDefaultServiceAccountScopes} from 'sentry/views/settings/organizationServiceAccounts/scopes';
 
 import {useCreateConfig, useUpdateConfig} from './hooks/configs';
 import {ConnectMonitorsDrawer} from './connectMonitorsDrawer';
@@ -63,14 +64,6 @@ const schema = z.object({
     .array(z.string())
     .min(1, t('Give the service account at least one permission.')),
 });
-
-const DEFAULT_SERVICE_ACCOUNT_SCOPES = [
-  'event:read',
-  'member:read',
-  'org:read',
-  'project:read',
-  'team:read',
-];
 
 export type MetricAutomationFormHandle = {reset: () => void};
 
@@ -110,7 +103,6 @@ export function MetricAutomationForm(props: Props) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const serviceAccount = props.mode === 'edit' ? props.config.serviceAccount : null;
-  const grantableScopes = new Set<string>(organization.access);
   const readOnly = props.mode === 'edit' && props.readOnly;
   const createConfig = useCreateConfig();
   // Only called in edit mode, where the config ID is known
@@ -157,9 +149,7 @@ export function MetricAutomationForm(props: Props) {
           : (props.config.name ?? t('Breached metrics')),
       monitorIds: props.mode === 'create' ? [] : props.config.monitorIds.map(String),
       serviceAccountProjects: getServiceAccountProjectSelection(serviceAccount),
-      scopes:
-        serviceAccount?.scopes ??
-        DEFAULT_SERVICE_ACCOUNT_SCOPES.filter(scope => grantableScopes.has(scope)),
+      scopes: serviceAccount?.scopes ?? getDefaultServiceAccountScopes(organization),
     },
     validators: {onDynamic: schema},
     onSubmit: async ({value, formApi}) => {
