@@ -1,6 +1,5 @@
 /* eslint import/no-nodejs-modules:0 */
 import fs from 'node:fs';
-import {createRequire} from 'node:module';
 import path from 'node:path';
 
 import {defineConfig} from '@rsbuild/core';
@@ -18,7 +17,6 @@ import {ReactRefreshRspackPlugin} from '@rspack/plugin-react-refresh';
 import {sentryWebpackPlugin} from '@sentry/bundler-plugins/webpack';
 import CompressionPlugin from 'compression-webpack-plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
-import {TsCheckerRspackPlugin} from 'ts-checker-rspack-plugin';
 
 import {
   createHostCheckMiddleware,
@@ -79,8 +77,6 @@ const HAS_WEBPACK_DEV_SERVER_CONFIG =
 
 // User/tooling configurable environment variables
 const NO_DEV_SERVER = !!env.NO_DEV_SERVER; // Do not run webpack dev server
-// Type checking is resource intensive, enable it explicitly with ENABLE_TS_CHECKER=1.
-const SHOULD_CHECK_TYPES = DEV_MODE && Boolean(env.ENABLE_TS_CHECKER);
 const SHOULD_HOT_MODULE_RELOAD = DEV_MODE && !!env.SENTRY_UI_HOT_RELOAD;
 const SHOULD_ADD_RSDOCTOR = Boolean(env.RSDOCTOR);
 // Only entry points are eagerly built, lazy build routes. Saves memory and startup time.
@@ -94,8 +90,6 @@ const DEPLOY_PREVIEW_CONFIG = IS_DEPLOY_PREVIEW && {
   githubOrg: env.NOW_GITHUB_COMMIT_ORG,
   githubRepo: env.NOW_GITHUB_COMMIT_REPO,
 };
-
-const require = createRequire(import.meta.url);
 
 // When deploy previews are enabled always enable experimental SPA mode --
 // deploy previews are served standalone. Otherwise fallback to the environment
@@ -471,18 +465,6 @@ const appConfig: Configuration = {
      * Defines environment specific flags.
      */
     new rspack.DefinePlugin(DEFINED_ENV_VARS),
-
-    ...(SHOULD_CHECK_TYPES
-      ? [
-          new TsCheckerRspackPlugin({
-            typescript: {
-              configFile: path.resolve(import.meta.dirname, './tsconfig.json'),
-              typescriptPath: require.resolve('typescript-7/package.json'),
-            },
-            devServer: false,
-          }),
-        ]
-      : []),
 
     new StoryManifestPlugin(),
 
