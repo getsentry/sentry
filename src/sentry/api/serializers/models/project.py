@@ -35,7 +35,7 @@ from sentry.issues.highlights import HighlightPreset, get_highlight_preset_for_p
 from sentry.lang.native.sources import parse_sources, redact_source_secrets
 from sentry.lang.native.utils import convert_crashreport_count
 from sentry.models.environment import Environment, EnvironmentProject
-from sentry.models.options.project_option import OPTION_KEYS, ProjectOption
+from sentry.models.options.project_option import EXPOSED_OPTION_KEYS, OPTION_KEYS, ProjectOption
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
@@ -672,10 +672,10 @@ class ProjectSerializer(Serializer):
         # no options specified
         option_list: list[str] = []
 
-        # must be a safe key
+        # Internal option keys are not all safe to expose.
         if self.expand_context.get("options"):
             option_list = [
-                option for option in self.expand_context["options"] if option in OPTION_KEYS
+                option for option in self.expand_context["options"] if option in EXPOSED_OPTION_KEYS
             ]
 
         queryset = ProjectOption.objects.filter(project__in=projects, key__in=option_list)
@@ -1172,13 +1172,13 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     securityToken: Annotated[
         str,
         ApiDescription(
-            "Token sent with security reports (CSP, Expect-CT, HPKP) so Sentry can verify their origin"
+            "Token sent with outbound source-scraping requests. Returns an empty string without project:write or project:admin access"
         ),
     ]
     securityTokenHeader: Annotated[
         str | None,
         ApiDescription(
-            "Name of the header carrying the security token on inbound security reports"
+            "Name of the header carrying the outbound source-scraping token. Defaults to X-Sentry-Token"
         ),
     ]
     verifySSL: Annotated[
@@ -1414,7 +1414,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 "sensitiveFields": attrs["options"].get("sentry:sensitive_fields", []),
                 "subjectTemplate": attrs["options"].get("mail:subject_template")
                 or DEFAULT_SUBJECT_TEMPLATE.template,
-                "securityToken": attrs["options"].get("sentry:token") or obj.get_security_token(),
+                "securityToken": "",
                 "securityTokenHeader": attrs["options"].get("sentry:token_header"),
                 "verifySSL": bool(attrs["options"].get("sentry:verify_ssl", False)),
                 "scrubIPAddresses": bool(attrs["options"].get("sentry:scrub_ip_address", False)),
@@ -1478,6 +1478,10 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 ),
             },
         )
+
+        access: Access | None = kwargs.get("access")
+        if access and access.has_any_project_scope(obj, ["project:write", "project:admin"]):
+            data["securityToken"] = attrs["options"].get("sentry:token") or obj.get_security_token()
 
         if has_tempest_access(obj.organization):
             data["tempestFetchScreenshots"] = attrs["options"].get(
