@@ -1,4 +1,5 @@
 import {
+  SEARCH_PAGE__SERVER_RENDERING__AGE,
   SEARCH_PAGE__SERVER_RENDERING__TYPE,
   SEARCH_SENTRY__LINK__TYPE,
 } from '@sentry/conventions/attributes/search';
@@ -25,6 +26,9 @@ const RENDER_SPAN_ID = 'b415e097df49bf1c';
 const RENDER_TRACE_ID = '6edf623ed48e4172a54e7fbee3b40c5d';
 const REQUEST_SPAN_ID = 'c526f1a8e05ac02d';
 const REQUEST_TRACE_ID = '7fe0734fe59f5283b65f8acff4c51d6e';
+// Recent, so the render is inside span retention when it has no age.
+const PAGELOAD_START = Math.floor(Date.now() / 1000) - 60;
+const DAY = 24 * 60 * 60;
 
 describe('ServerRenderingSection', () => {
   const organization = OrganizationFixture();
@@ -33,13 +37,22 @@ describe('ServerRenderingSection', () => {
   function makeNode(op = 'pageload') {
     return new EapSpanNode(
       null,
-      makeEAPSpan({event_id: 'pageload-span-id', op, is_transaction: true}),
+      makeEAPSpan({
+        event_id: 'pageload-span-id',
+        op,
+        is_transaction: true,
+        start_timestamp: PAGELOAD_START,
+      }),
       {organization}
     );
   }
 
   function typeAttribute(value: string): TraceItemResponseAttribute[] {
     return [{name: SEARCH_PAGE__SERVER_RENDERING__TYPE, type: 'str', value}];
+  }
+
+  function ageAttribute(seconds: number): TraceItemResponseAttribute {
+    return {name: SEARCH_PAGE__SERVER_RENDERING__AGE, type: 'int', value: seconds};
   }
 
   function makeLink(
@@ -102,6 +115,40 @@ describe('ServerRenderingSection', () => {
       expect.stringContaining(`/trace/${RENDER_TRACE_ID}/`)
     );
     expect(screen.queryByText('Dynamic part')).not.toBeInTheDocument();
+  });
+
+  it('opens the trace of the render around the render start', () => {
+    renderSection({
+      attributes: [...typeAttribute('static'), ageAttribute(2 * DAY)],
+      links: [makeLink('cache_origin')],
+    });
+
+    expect(screen.getByRole('link', {name: 'Open trace'})).toHaveAttribute(
+      'href',
+      expect.stringContaining(`timestamp=${PAGELOAD_START - 2 * DAY}`)
+    );
+  });
+
+  it('opens the trace of the render around the pageload start without an age', () => {
+    renderSection({
+      attributes: typeAttribute('static'),
+      links: [makeLink('cache_origin')],
+    });
+
+    expect(screen.getByRole('link', {name: 'Open trace'})).toHaveAttribute(
+      'href',
+      expect.stringContaining(`timestamp=${PAGELOAD_START}`)
+    );
+  });
+
+  it('does not open a render whose trace can miss spans', () => {
+    renderSection({
+      attributes: [...typeAttribute('static'), ageAttribute(31 * DAY)],
+      links: [makeLink('cache_origin')],
+    });
+
+    expect(screen.getByText('Older than 30 days')).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: 'Open trace'})).not.toBeInTheDocument();
   });
 
   it('says when the render of a static page has no trace', () => {
