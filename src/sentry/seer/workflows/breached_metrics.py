@@ -32,7 +32,6 @@ from sentry.seer.models.workflow import (
 )
 from sentry.seer.workflows.base import (
     AutomationDefinition,
-    AutomationTrigger,
     ConfigUpdate,
     NoSettings,
     RejectionReason,
@@ -80,7 +79,7 @@ class MetricBreachInputs(BaseModel):
     action_id: int
 
 
-class MetricAlertTrigger(AutomationTrigger[MetricBreachInputs]):
+class MetricAlertDefinition(AutomationDefinition[MetricBreachInputs]):
     """Runs when a connected metric monitor opens an issue.
 
     The config's backing alert workflow holds the monitor connections, so the automation
@@ -302,7 +301,7 @@ class SeerInvestigationActionHandler(ActionHandler):
                 if not AutomationDefinition.is_enabled(config):
                     return IgnoredMetricBreach("config_disabled")
                 definition = _definition_for(config)
-                if definition is None or not isinstance(definition.trigger, MetricAlertTrigger):
+                if not isinstance(definition, MetricAlertDefinition):
                     return IgnoredMetricBreach("configuration_unavailable")
                 if not definition.covers(config, group.project_id, inputs.environment):
                     return IgnoredMetricBreach("out_of_scope")
@@ -561,7 +560,7 @@ def _replace_monitor_connections(
 
 
 def _definition_for(config: SeerWorkflowConfig) -> AutomationDefinition[Any] | None:
-    # Imported here because definitions imports this module for its table of pairings.
+    # Imported here because definitions imports this module for its strategy table.
     from sentry.seer.workflows.definitions import find_definition
 
     return find_definition(config.strategy)
