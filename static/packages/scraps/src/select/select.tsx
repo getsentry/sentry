@@ -724,7 +724,7 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
         }}
       >
         {controlLeadingItems != null && typeof controlLeadingItems !== 'boolean' && (
-          <Flex align="center" flexShrink={0} gap="xs" paddingLeft="lg">
+          <Flex align="center" flexShrink={0} gap="xs" css={css.leadingItems}>
             {controlLeadingItems}
           </Flex>
         )}

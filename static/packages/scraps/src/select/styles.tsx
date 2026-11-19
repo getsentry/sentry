@@ -61,6 +61,7 @@ export function getSelectStyles(
   const color = disabled ? theme.tokens.content.disabled : theme.tokens.content.primary;
   const insetShadow = `0 1px 0 0 ${background.chonk} inset`;
   const form = theme.form[size];
+  const controlInset = theme.space.lg;
   return {
     container: {position: 'relative'},
     control: {
@@ -78,6 +79,7 @@ export function getSelectStyles(
       cursor: disabled ? 'not-allowed' : searchable ? 'default' : 'pointer',
       opacity: disabled ? 0.6 : undefined,
     },
+    leadingItems: {paddingInlineStart: controlInset},
     values: {
       display: hasChips ? 'flex' : 'grid',
       flex: 1,
@@ -120,7 +122,8 @@ export function getSelectStyles(
       display: 'flex',
       alignItems: 'center',
       gap: theme.space.xs,
-      marginInline: theme.space.sm,
+      marginInlineStart: theme.space.sm,
+      marginInlineEnd: controlInset,
     },
     chip: {
       display: 'flex',
