@@ -51,14 +51,15 @@ export function ReplayProcessingError({className, replay: replayProp}: Props) {
   const {sdk} = replay?.getReplay() || {};
 
   useEffect(() => {
-    replay?.processingErrors().forEach(error => {
-      Sentry.metrics.count('replay.processing-error', 1, {
-        attributes: {
-          error,
-          sdkName: sdk?.name ?? 'unknown',
-          sdkVersion: sdk?.version ?? 'unknown',
-        },
-      });
+    const errors = replay?.processingErrors() ?? [];
+    if (!errors.length) {
+      return;
+    }
+    Sentry.logger.warn('Replay: processing error', {
+      replayId: replay?.getReplay()?.id,
+      errors: errors.join(', '),
+      sdkName: sdk?.name ?? 'unknown',
+      sdkVersion: sdk?.version ?? 'unknown',
     });
   }, [replay, sdk]);
 
