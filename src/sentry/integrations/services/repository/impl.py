@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+from collections import Counter
 from datetime import timedelta
 from functools import partial
 from typing import Any
 
-from django.db import IntegrityError, connections, router, transaction
+from django.contrib.postgres.fields import ArrayField
+from django.db import IntegrityError, router, transaction
+from django.db.models import Case, Func, JSONField, Q, TextField, Value, When
+from django.db.models.functions import Cast, Coalesce, NullIf
 from django.utils import timezone
 
 from sentry.api.serializers import serialize
@@ -200,64 +204,74 @@ class DatabaseBackedRepositoryService(RepositoryService):
         provider: str,
         renames: list[RpcRepositoryRename],
     ) -> list[int]:
-        if not renames:
-            return []
-        # One conditional UPDATE, so only rows that get renamed are locked, and
-        # config["name"] is merged into the config as it is at write time.
-        values = ", ".join(
-            ["(%s::bigint, %s::text, %s::text, %s::text, %s::text, %s::text, %s::text)"]
-            * len(renames)
-        )
-        params: list[Any] = []
+        id_counts = Counter(rename.id for rename in renames)
+        matches = Q()
+        names = []
+        urls = []
         for rename in renames:
-            params.extend(
-                [
-                    rename.id,
-                    rename.external_id,
-                    rename.expected_name,
-                    rename.expected_url,
-                    rename.expected_config_name,
-                    rename.name,
-                    rename.url,
-                ]
+            if (
+                rename.expected_name == rename.name
+                and rename.expected_url == rename.url
+                and rename.expected_config_name == rename.name
+            ):
+                continue
+
+            match = Q(
+                id=rename.id,
+                external_id=rename.external_id,
+                name=rename.expected_name,
+                url=rename.expected_url,
+                config_name=rename.expected_config_name,
             )
-        params.extend(
-            [
-                organization_id,
-                integration_id,
-                provider,
-                ObjectStatus.ACTIVE,
-                ObjectStatus.DISABLED,
-            ]
+            matches |= match
+            # For repeated IDs, take values only from an entry whose snapshot matched.
+            target = match if id_counts[rename.id] > 1 else Q(id=rename.id)
+            names.append(When(target, then=Value(rename.name)))
+            urls.append(When(target, then=Value(rename.url)))
+
+        if not names:
+            return []
+
+        # Repository.config is backed by text. Patch the current document in the
+        # UPDATE so that unrelated config keys written by a webhook are preserved.
+        config = Cast(
+            Coalesce(NullIf("config", Value("")), Value("{}"), output_field=TextField()),
+            JSONField(),
         )
-        config = "COALESCE(NULLIF(r.config, ''), '{}')::jsonb"
-        sql = f"""
-            UPDATE sentry_repository AS r
-            SET name = v.name,
-                url = v.url,
-                config = jsonb_set({config}, '{{name}}', to_jsonb(v.name))::text
-            FROM (VALUES {values}) AS v(
-                id, external_id, expected_name, expected_url, expected_config_name, name, url
+        new_name = Case(*names)
+        rows = (
+            Repository.objects.get_queryset()
+            .alias(
+                config_name=Func(
+                    config,
+                    Value("name"),
+                    function="jsonb_extract_path_text",
+                    output_field=TextField(),
+                ),
             )
-            WHERE r.id = v.id
-                AND r.organization_id = %s
-                AND r.integration_id = %s
-                AND r.provider = %s
-                AND r.status IN (%s, %s)
-                AND r.external_id = v.external_id
-                AND r.name = v.expected_name
-                AND r.url IS NOT DISTINCT FROM v.expected_url
-                AND ({config} ->> 'name') IS NOT DISTINCT FROM v.expected_config_name
-                AND NOT (
-                    r.name = v.name
-                    AND r.url IS NOT DISTINCT FROM v.url
-                    AND ({config} ->> 'name') IS NOT DISTINCT FROM v.name
-                )
-            RETURNING r.id
-        """
-        with connections[router.db_for_write(Repository)].cursor() as cursor:
-            cursor.execute(sql, params)
-            return sorted(row[0] for row in cursor.fetchall())
+            .filter(
+                matches,
+                organization_id=organization_id,
+                integration_id=integration_id,
+                provider=provider,
+                status__in=(ObjectStatus.ACTIVE, ObjectStatus.DISABLED),
+            )
+            .update_with_returning(
+                ["id"],
+                name=new_name,
+                url=Case(*urls),
+                config=Cast(
+                    Func(
+                        config,
+                        Value(["name"], output_field=ArrayField(TextField())),
+                        Func(new_name, function="to_jsonb"),
+                        function="jsonb_set",
+                    ),
+                    TextField(),
+                ),
+            )
+        )
+        return sorted(repo_id for (repo_id,) in rows)
 
     def enable_repositories_by_external_ids(
         self,
