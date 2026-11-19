@@ -741,7 +741,7 @@ class SeerAgentClient:
         artifact_key: str | None = None,
         artifact_schema: type[BaseModel] | None = None,
         ui_tools: str | None = None,
-        request: Request | None = None,
+        request: HttpRequest | Request | None = None,
     ) -> SeerRun:
         """
         Continue an existing Seer Agent session. This allows you to add follow-up queries to an ongoing conversation.
@@ -773,6 +773,10 @@ class SeerAgentClient:
         if run is None:
             raise SeerPermissionError(UNKNOWN_RUN_ID_FOR_GROUP)
 
+        user_org_context = collect_user_org_context(
+            self.user, self.organization, request=request, include_projects_and_teams=False
+        )
+
         agent_run_options: dict[str, Any] = {
             "enable_coding": self.enable_coding,
             "enable_code_mode_tools": self.enable_code_mode_tools,
@@ -800,10 +804,8 @@ class SeerAgentClient:
             proxy_headers=get_proxy_headers() if self.enable_code_mode_tools != "off" else None,
         )
 
-        if self.user is not None and has_user(self.user):
-            chat_body["user_org_context"] = collect_user_org_context(
-                self.user, self.organization, request=request, include_projects_and_teams=False
-            )
+        if "user_id" in user_org_context:
+            chat_body["user_org_context"] = user_org_context
 
         if prompt_metadata:
             chat_body["query_metadata"] = prompt_metadata
