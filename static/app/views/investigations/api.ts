@@ -8,7 +8,6 @@ import {z} from 'zod';
 
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -63,7 +62,6 @@ export function getInvestigationDetailQueryOptions(
 
 export const INVESTIGATION_COMMENTS_PAGE_SIZE = 100;
 
-/** Newest first. Without `blockId`, page-level and block comments together. */
 function allInvestigationCommentsQueryKey({
   organizationSlug,
   investigationId,
@@ -79,6 +77,7 @@ function allInvestigationCommentsQueryKey({
   );
 }
 
+/** Newest first. Without `blockId`, page-level and block comments together. */
 export function investigationCommentsQueryOptions({
   organizationSlug,
   investigationId,
@@ -104,12 +103,6 @@ export function useCreateInvestigationCommentMutation(
   investigationId: string,
   options?: MutationOptions<InvestigationComment, {body: string; blockId?: string}>
 ) {
-  const commentsUrl = parseQueryKey(
-    investigationCommentsQueryOptions({
-      organizationSlug,
-      investigationId,
-    }).queryKey
-  ).url;
   const invalidateComments = useInvalidateInvestigationComments(
     organizationSlug,
     investigationId
@@ -119,7 +112,10 @@ export function useCreateInvestigationCommentMutation(
     ...options,
     mutationFn: ({body, blockId}) =>
       fetchMutation<InvestigationComment>({
-        url: commentsUrl,
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/notebooks/$notebookId/comments/',
+          {path: {organizationIdOrSlug: organizationSlug, notebookId: investigationId}}
+        ),
         method: 'POST',
         data: blockId === undefined ? {body} : {body, blockId},
       }),
