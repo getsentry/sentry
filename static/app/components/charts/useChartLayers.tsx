@@ -120,7 +120,7 @@ export function useChartLayers({
 
   const {openContextDrawer} = droppedData;
   const onAnnotationClick = useCallback(
-    () => openContextDrawer('annotations'),
+    () => openContextDrawer({tab: 'annotations', section: 'activity'}),
     [openContextDrawer]
   );
 

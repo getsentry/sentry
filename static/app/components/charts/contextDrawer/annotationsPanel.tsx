@@ -1,7 +1,7 @@
-import type {ReactNode} from 'react';
+import {useEffect, useRef, type ReactNode, type Ref} from 'react';
 
 import {Badge} from '@sentry/scraps/badge';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack, type StackProps} from '@sentry/scraps/layout';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -16,19 +16,50 @@ import type {
 } from 'sentry/components/charts/annotations/types';
 import {t} from 'sentry/locale';
 
+import type {ChartContextSection} from './chartContextDrawer';
+
 interface AnnotationsPanelProps {
   items: readonly AnnotationItem[];
   kinds: readonly AnnotationKind[];
+  section?: ChartContextSection | null;
 }
 
-export function AnnotationsPanel({items, kinds}: AnnotationsPanelProps) {
+export function AnnotationsPanel({items, kinds, section}: AnnotationsPanelProps) {
+  const activityRef = useRef<HTMLElement>(null);
+  const severeRef = useRef<HTMLElement>(null);
   const activityItems = items.filter(item => !isSevere(item));
   const severeItems = items.filter(isSevere);
   const activityKinds = ANNOTATION_KINDS.filter(kind => kinds.includes(kind));
 
+  useEffect(() => {
+    const sectionRefs = {activity: activityRef, severe: severeRef};
+    if (section) {
+      sectionRefs[section].current?.scrollIntoView({block: 'start'});
+    }
+  }, [section]);
+
   return (
     <Stack flex="1">
-      <Stack gap="2xl" padding="2xl">
+      <AnnotationsSection
+        ref={severeRef}
+        title={t('Severe')}
+        count={severeItems.length}
+        padding="2xl"
+      >
+        <Text variant="muted">
+          {severeItems.length > 0
+            ? t('Table coming soon')
+            : t('No severe annotations in this time range')}
+        </Text>
+      </AnnotationsSection>
+      <Separator orientation="horizontal" border="primary" />
+      <Stack
+        ref={activityRef}
+        as="section"
+        aria-label={t('Activity')}
+        gap="2xl"
+        padding="2xl"
+      >
         {activityKinds.length > 0 ? (
           activityKinds.map(kind => (
             <AnnotationsSection
@@ -43,16 +74,6 @@ export function AnnotationsPanel({items, kinds}: AnnotationsPanelProps) {
           <Text variant="muted">{t('No annotations in this time range')}</Text>
         )}
       </Stack>
-      <Separator orientation="horizontal" border="primary" />
-      <Stack padding="2xl">
-        <AnnotationsSection title={t('Severe')} count={severeItems.length}>
-          <Text variant="muted">
-            {severeItems.length > 0
-              ? t('Table coming soon')
-              : t('No severe annotations in this time range')}
-          </Text>
-        </AnnotationsSection>
-      </Stack>
     </Stack>
   );
 }
@@ -61,11 +82,19 @@ interface AnnotationsSectionProps {
   children: ReactNode;
   count: number;
   title: string;
+  padding?: StackProps['padding'];
+  ref?: Ref<HTMLElement>;
 }
 
-function AnnotationsSection({title, count, children}: AnnotationsSectionProps) {
+function AnnotationsSection({
+  title,
+  count,
+  padding,
+  ref,
+  children,
+}: AnnotationsSectionProps) {
   return (
-    <Stack as="section" aria-label={title} gap="md">
+    <Stack ref={ref} as="section" aria-label={title} gap="md" padding={padding}>
       <Flex align="center" gap="sm">
         <Heading as="h3" size="lg">
           {title}

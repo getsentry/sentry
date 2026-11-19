@@ -124,7 +124,7 @@ export function useAnnotationBand({
       height: BAND_HEIGHT,
       onClick: start => {
         const bucket = bucketsByStart.get(start);
-        if (bucket && bucket.items.length > 0) {
+        if (bucket) {
           onClick?.(bucket.items);
         }
       },

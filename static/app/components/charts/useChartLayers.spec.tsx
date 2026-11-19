@@ -206,7 +206,8 @@ describe('useChartLayers', () => {
       });
     });
 
-    it('opens the drawer on the annotations tab when a bucket is clicked', async () => {
+    it('opens the drawer on the activity section when a bucket is clicked', async () => {
+      Element.prototype.scrollIntoView = jest.fn();
       const {result, router} = renderAnnotationsHook({
         releases: [release],
         flags: [flagChange],
@@ -216,12 +217,14 @@ describe('useChartLayers', () => {
       act(() => result.current.onAnnotationClick());
 
       await waitFor(() => expect(router.location.query.contextTab).toBe('annotations'));
+      expect(router.location.query.contextSection).toBe('activity');
       expect(router.location.query.droppedData).toBe('spans');
       expect(trackAnalytics).toHaveBeenCalledWith('explore.chart_context.drawer_opened', {
         organization: annotationsOrganization,
         dataset: DiscoverDatasets.SPANS,
         source: 'explore',
         tab: 'annotations',
+        section: 'activity',
       });
     });
 

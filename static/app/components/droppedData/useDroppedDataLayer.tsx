@@ -2,7 +2,7 @@ import {useCallback, useState} from 'react';
 
 import type {AnnotationKind} from 'sentry/components/charts/annotations/types';
 import type {ChartLayersControlProps} from 'sentry/components/charts/chartLayersControl';
-import type {ChartContextTab} from 'sentry/components/charts/contextDrawer/chartContextDrawer';
+import type {ChartContextDrawerTarget} from 'sentry/components/charts/contextDrawer/chartContextDrawer';
 import {useChartContextDrawer} from 'sentry/components/charts/contextDrawer/useChartContextDrawer';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -43,7 +43,7 @@ interface DroppedDataLayer {
   filterNote: Pick<DroppedDataFilterNoteProps, 'dataset' | 'environments'> | undefined;
   isLoading: boolean;
   layerControl: ChartLayersControlProps | undefined;
-  openContextDrawer: (tab?: ChartContextTab) => void;
+  openContextDrawer: (target?: ChartContextDrawerTarget) => void;
 }
 
 /**

@@ -21,7 +21,7 @@ import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerC
 import {
   CHART_CONTEXT_TAB_PARSERS,
   ChartContextDrawer,
-  type ChartContextTab,
+  type ChartContextDrawerTarget,
 } from './chartContextDrawer';
 
 const CHART_CONTEXT_DRAWER_PARSERS = {
@@ -115,7 +115,7 @@ export function useChartContextDrawer(
           loadDroppedDataQuery(nextLocation.search ?? '').droppedData !== paramValue,
         onClose: () => {
           void setDrawerQuery(
-            {droppedData: null, contextTab: null},
+            {droppedData: null, contextTab: null, contextSection: null},
             {history: 'replace'}
           );
         },
@@ -140,7 +140,7 @@ export function useChartContextDrawer(
   ]);
 
   return useCallback(
-    (tab: ChartContextTab = 'dropped-data') => {
+    ({tab = 'dropped-data', section}: ChartContextDrawerTarget = {}) => {
       if (tab === 'dropped-data') {
         trackAnalytics('explore.dropped_data.drawer_opened', {
           organization,
@@ -153,10 +153,15 @@ export function useChartContextDrawer(
           dataset,
           source,
           tab,
+          section,
         });
       }
       void setDrawerQuery(
-        {droppedData: paramValue, contextTab: tab === 'dropped-data' ? null : tab},
+        {
+          droppedData: paramValue,
+          contextTab: tab === 'dropped-data' ? null : tab,
+          contextSection: section ?? null,
+        },
         {history: 'push'}
       );
     },

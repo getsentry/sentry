@@ -91,7 +91,9 @@ function DroppedDataTrigger({
   return (
     <Fragment>
       <Button onClick={() => openContextDrawer()}>Open dropped data</Button>
-      <Button onClick={() => openContextDrawer('annotations')}>Open annotations</Button>
+      <Button onClick={() => openContextDrawer({tab: 'annotations', section: 'severe'})}>
+        Open severe annotations
+      </Button>
     </Fragment>
   );
 }
@@ -752,7 +754,11 @@ describe('useChartContextDrawer', () => {
   });
 
   describe('annotation tabs', () => {
+    let scrollIntoView: jest.Mock;
+
     beforeEach(() => {
+      scrollIntoView = jest.fn();
+      Element.prototype.scrollIntoView = scrollIntoView;
       mockDroppedData(10, '14d');
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/releases/stats/`,
@@ -895,30 +901,37 @@ describe('useChartContextDrawer', () => {
       ).toBeInTheDocument();
     });
 
-    it('opens on the tab it is asked for', async () => {
+    it('opens on the tab and section it is asked for', async () => {
       const {router} = render(
         <DroppedDataTrigger dataset={DiscoverDatasets.SPANS} showAnnotationTabs />,
         {organization, initialRouterConfig: {location: {pathname: '/explore/traces/'}}}
       );
 
-      await userEvent.click(screen.getByRole('button', {name: 'Open annotations'}));
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Open severe annotations'})
+      );
 
       expect(await screen.findByRole('tab', {name: /Annotations/})).toHaveAttribute(
         'aria-selected',
         'true'
       );
+      expect(scrollIntoView.mock.contexts).toEqual([
+        screen.getByRole('region', {name: 'Severe'}),
+      ]);
       expect(router.location.query.contextTab).toBe('annotations');
+      expect(router.location.query.contextSection).toBe('severe');
       expect(trackAnalytics).toHaveBeenCalledWith(
         'explore.chart_context.drawer_opened',
         expect.objectContaining({
           dataset: DiscoverDatasets.SPANS,
           source: 'explore',
           tab: 'annotations',
+          section: 'severe',
         })
       );
     });
 
-    it('removes the tab from the URL when closed', async () => {
+    it('scrolls to the section when it changes while open', async () => {
       const {router} = render(
         <DroppedDataTrigger dataset={DiscoverDatasets.SPANS} showAnnotationTabs />,
         {
@@ -926,7 +939,46 @@ describe('useChartContextDrawer', () => {
           initialRouterConfig: {
             location: {
               pathname: '/explore/traces/',
-              query: {droppedData: 'spans', contextTab: 'annotations'},
+              query: {
+                droppedData: 'spans',
+                contextTab: 'annotations',
+                contextSection: 'activity',
+              },
+            },
+          },
+        }
+      );
+
+      const activity = await screen.findByRole('region', {name: 'Activity'});
+      expect(scrollIntoView.mock.contexts).toEqual([activity]);
+
+      act(() =>
+        router.navigate(
+          '/explore/traces/?droppedData=spans&contextTab=annotations&contextSection=severe'
+        )
+      );
+
+      await waitFor(() =>
+        expect(scrollIntoView.mock.contexts).toEqual([
+          activity,
+          screen.getByRole('region', {name: 'Severe'}),
+        ])
+      );
+    });
+
+    it('removes the tab and section from the URL when closed', async () => {
+      const {router} = render(
+        <DroppedDataTrigger dataset={DiscoverDatasets.SPANS} showAnnotationTabs />,
+        {
+          organization,
+          initialRouterConfig: {
+            location: {
+              pathname: '/explore/traces/',
+              query: {
+                droppedData: 'spans',
+                contextTab: 'annotations',
+                contextSection: 'severe',
+              },
             },
           },
         }
@@ -938,6 +990,7 @@ describe('useChartContextDrawer', () => {
 
       await waitFor(() => expect(router.location.query.droppedData).toBeUndefined());
       expect(router.location.query.contextTab).toBeUndefined();
+      expect(router.location.query.contextSection).toBeUndefined();
     });
 
     it('opens on annotations when dropped data is not enabled', async () => {

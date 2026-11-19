@@ -34,11 +34,19 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {AnnotationsPanel} from './annotationsPanel';
 
 const CHART_CONTEXT_TABS = ['dropped-data', 'annotations'] as const;
+const CHART_CONTEXT_SECTIONS = ['activity', 'severe'] as const;
 
 export type ChartContextTab = (typeof CHART_CONTEXT_TABS)[number];
+export type ChartContextSection = (typeof CHART_CONTEXT_SECTIONS)[number];
+
+export interface ChartContextDrawerTarget {
+  section?: ChartContextSection;
+  tab?: ChartContextTab;
+}
 
 export const CHART_CONTEXT_TAB_PARSERS = {
   contextTab: parseAsStringLiteral(CHART_CONTEXT_TABS),
+  contextSection: parseAsStringLiteral(CHART_CONTEXT_SECTIONS),
 };
 
 interface ChartContextDrawerProps extends UseDroppedDataParams {
@@ -59,7 +67,9 @@ export function ChartContextDrawer({
 }: ChartContextDrawerProps) {
   const organization = useOrganization();
   const [scope, setScope] = useState<DroppedDataScope>('unexpected');
-  const [{contextTab}, setTabQuery] = useQueryStates(CHART_CONTEXT_TAB_PARSERS);
+  const [{contextTab, contextSection}, setTabQuery] = useQueryStates(
+    CHART_CONTEXT_TAB_PARSERS
+  );
   const hasDroppedDataTab = organization.features.includes(
     'explore-data-fidelity-annotations'
   );
@@ -125,7 +135,13 @@ export function ChartContextDrawer({
       key: 'annotations',
       label: t('Annotations'),
       badge: annotationItems.length,
-      panel: <AnnotationsPanel items={annotationItems} kinds={annotationKinds} />,
+      panel: (
+        <AnnotationsPanel
+          items={annotationItems}
+          kinds={annotationKinds}
+          section={contextSection}
+        />
+      ),
     },
   ];
 
@@ -136,7 +152,7 @@ export function ChartContextDrawer({
           value={tab}
           onChange={nextTab => {
             void setTabQuery(
-              {contextTab: nextTab === defaultTab ? null : nextTab},
+              {contextTab: nextTab === defaultTab ? null : nextTab, contextSection: null},
               {history: 'replace'}
             );
             trackAnalytics('explore.chart_context.tab_selected', {
