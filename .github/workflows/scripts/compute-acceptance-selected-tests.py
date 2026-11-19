@@ -96,6 +96,13 @@ IGNORED: list[re.Pattern[str]] = [
     re.compile(r"^\.github/"),
     re.compile(r"^\.agents/"),
     re.compile(r"^\.cursor/"),
+    # Editor and agent settings, and developer tooling that runs outside the
+    # app: type stubs, node scripts under scripts/, Seer helper scripts.
+    re.compile(r"^\.(claude|vscode|sentry-refactor-tasks)/"),
+    re.compile(r"^\.(mcp\.json|git-blame-ignore-revs)$"),
+    re.compile(r"^fixtures/stubs-for-mypy/.+\.pyi$"),
+    re.compile(r"^scripts/[^/]+\.ts$"),
+    re.compile(r"^bin/seer/"),
     re.compile(r"^api-docs/"),
     re.compile(r"^tools/"),
     re.compile(r"^devenv/"),

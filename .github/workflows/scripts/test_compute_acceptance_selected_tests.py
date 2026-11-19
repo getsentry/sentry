@@ -127,6 +127,7 @@ class TestFullSuite:
             ["src/sentry/conf/server.py"],
             ["src/sentry/templates/sentry/layout.html"],
             ["bin/some-new-script"],
+            ["scripts/__init__.py"],
         ],
     )
     def test_runs_everything(self, repo: Path, changed: list[str]) -> None:
@@ -169,6 +170,10 @@ class TestSelection:
             ["CLAUDE.md", "static/app/views/issueDetails/README.md"],
             ["src/sentry/migrations/1234_add_thing.py", "migrations_lockfile.txt"],
             [".github/workflows/frontend.yml"],
+            [".vscode/settings.json", ".claude/settings.json", ".mcp.json"],
+            [".sentry-refactor-tasks/conventions/oxlint-json-runner.ts"],
+            ["fixtures/stubs-for-mypy/google/api_core/exceptions.pyi"],
+            ["scripts/oxlint-suppressions.ts", "bin/seer/trigger-metric-breach"],
         ],
     )
     def test_ignored_files_select_nothing(self, repo: Path, changed: list[str]) -> None:
