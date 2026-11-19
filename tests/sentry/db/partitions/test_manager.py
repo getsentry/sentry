@@ -4,6 +4,7 @@ from unittest import mock
 import pytest
 from django.db import OperationalError, connection, transaction
 from django.db.backends.base.base import BaseDatabaseWrapper
+from django.test.utils import CaptureQueriesContext
 
 from fixtures.partitions import (
     HashPartitionedFixture,
@@ -216,27 +217,52 @@ class ExpirePartitionsTest(TransactionTestCase):
     def test_dropping_locks_no_other_table(self) -> None:
         with fixture_tables():
             locked: list[str] = []
-            execute = manager._execute_outside_transaction
+            execute = manager._execute_ddl
 
-            def execute_and_record_locks(conn: BaseDatabaseWrapper, statement: str) -> None:
+            def execute_and_record_locks(
+                conn: BaseDatabaseWrapper, statement: str, **kwargs: bool
+            ) -> None:
                 if not statement.startswith("DROP TABLE"):
-                    execute(conn, statement)
+                    execute(conn, statement, **kwargs)
                     return
                 # Hold the locks until after they are recorded. The dropped partition
                 # itself no longer shows up.
                 with transaction.atomic(using="default"):
-                    execute(conn, statement)
+                    execute(conn, statement, **kwargs)
                     locked.extend(locked_tables())
 
-            with mock.patch.object(
-                manager, "_execute_outside_transaction", side_effect=execute_and_record_locks
-            ):
+            with mock.patch.object(manager, "_execute_ddl", side_effect=execute_and_record_locks):
                 assert expire_partitions(
                     RangePartitionedFixture,
                     before=datetime(2024, 3, 12, tzinfo=UTC),
                     now=datetime(2024, 3, 20, tzinfo=UTC),
                 ) == [week(4)]
             assert locked == []
+
+    @freeze_time(CREATED_AT)
+    def test_lock_timeout_is_only_set_for_the_session_to_detach_concurrently(self) -> None:
+        with fixture_tables():
+            with CaptureQueriesContext(connection) as queries:
+                expire_partitions(
+                    RangePartitionedFixture,
+                    before=datetime(2024, 3, 12, tzinfo=UTC),
+                    now=datetime(2024, 3, 20, tzinfo=UTC),
+                )
+            statements = [
+                q["sql"]
+                for q in queries.captured_queries
+                if q["sql"].startswith(("SET", "COMMENT", "ALTER", "DROP"))
+            ]
+            assert statements == [
+                "SET LOCAL lock_timeout TO '5s'",
+                f'COMMENT ON TABLE "{week(4)}" IS '
+                "'Expired: dropped by Sentry partition maintenance.'",
+                "SET lock_timeout TO '5s'",
+                f'ALTER TABLE "{RANGE_TABLE}" DETACH PARTITION "{week(4)}" CONCURRENTLY',
+                "SET lock_timeout TO DEFAULT",
+                "SET LOCAL lock_timeout TO '5s'",
+                f'DROP TABLE "{week(4)}"',
+            ]
 
     @freeze_time(CREATED_AT)
     def test_keeps_partitions_detached_by_hand(self) -> None:
@@ -262,18 +288,16 @@ class ExpirePartitionsTest(TransactionTestCase):
     @freeze_time(CREATED_AT)
     def test_failed_drop_is_retried(self) -> None:
         with fixture_tables():
-            execute = manager._execute_outside_transaction
+            execute = manager._execute_ddl
             failed: list[str] = []
 
-            def fail_first_drop(conn: BaseDatabaseWrapper, statement: str) -> None:
+            def fail_first_drop(conn: BaseDatabaseWrapper, statement: str, **kwargs: bool) -> None:
                 if statement.startswith("DROP TABLE") and not failed:
                     failed.append(statement)
                     raise OperationalError("canceling statement due to lock timeout")
-                execute(conn, statement)
+                execute(conn, statement, **kwargs)
 
-            expire = mock.patch.object(
-                manager, "_execute_outside_transaction", side_effect=fail_first_drop
-            )
+            expire = mock.patch.object(manager, "_execute_ddl", side_effect=fail_first_drop)
             with expire, pytest.raises(OperationalError):
                 expire_partitions(
                     RangePartitionedFixture,
@@ -365,7 +389,7 @@ class ExpirePartitionsTest(TransactionTestCase):
             )
             with (
                 mock.patch.object(manager, "list_partitions", return_value=[pending]),
-                mock.patch.object(manager, "_execute_outside_transaction") as execute,
+                mock.patch.object(manager, "_execute_ddl") as execute,
             ):
                 expire_partitions(
                     RangePartitionedFixture,

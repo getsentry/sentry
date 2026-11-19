@@ -130,7 +130,25 @@ def ensure_range_partitions(target: RangeTable, now: datetime | None = None) -> 
     return created
 
 
-def _execute_outside_transaction(connection: BaseDatabaseWrapper, statement: str) -> None:
+def _execute_ddl(
+    connection: BaseDatabaseWrapper, statement: str, *, concurrently: bool = False
+) -> None:
+    """
+    Run ``statement`` with a lock timeout.
+
+    Statements run in their own transaction with ``SET LOCAL``, so the timeout can't
+    outlive them, even through a pooler that hands each transaction a different
+    server connection. ``DETACH ... CONCURRENTLY`` can't run in a transaction, so it
+    sets the timeout for the session and resets it right after. Through a pooler in
+    transaction mode those three statements could run on different server
+    connections, so the task should connect to Postgres directly or through session
+    pooling.
+    """
+    if not concurrently:
+        with transaction.atomic(using=connection.alias), connection.cursor() as cursor:
+            cursor.execute(sql.SET_LOCAL_LOCK_TIMEOUT.format(timeout=sql.DEFAULT_LOCK_TIMEOUT))
+            cursor.execute(statement)
+        return
     with connection.cursor() as cursor:
         cursor.execute(sql.SET_LOCK_TIMEOUT.format(timeout=sql.DEFAULT_LOCK_TIMEOUT))
         try:
@@ -175,7 +193,7 @@ def expire_range_partitions(
         expired.append(detached.name)
         if dry_run:
             continue
-        _execute_outside_transaction(
+        _execute_ddl(
             target.connection,
             sql.DROP_TABLE.format(table=_quote(target.connection, detached.name)),
         )
@@ -188,7 +206,7 @@ def expire_range_partitions(
         _, end = partition.range_bounds()
         if end is None or end > before:
             if partition.expiring and not dry_run:
-                _execute_outside_transaction(
+                _execute_ddl(
                     target.connection,
                     sql.UNMARK_PARTITION_EXPIRING.format(
                         partition=_quote(target.connection, partition.name)
@@ -211,13 +229,13 @@ def expire_range_partitions(
         )
         # Lets a later run tell this partition apart from ones detached by hand, if
         # the drop below fails.
-        _execute_outside_transaction(
-            target.connection, sql.MARK_PARTITION_EXPIRING.format(partition=name)
+        _execute_ddl(target.connection, sql.MARK_PARTITION_EXPIRING.format(partition=name))
+        _execute_ddl(
+            target.connection,
+            template.format(table=table, partition=name),
+            concurrently=not partition.detach_pending,
         )
-        _execute_outside_transaction(
-            target.connection, template.format(table=table, partition=name)
-        )
-        _execute_outside_transaction(target.connection, sql.DROP_TABLE.format(table=name))
+        _execute_ddl(target.connection, sql.DROP_TABLE.format(table=name))
         logger.info(
             "partitions.expire.dropped",
             extra={"table": target.table, "partition": partition.name},
