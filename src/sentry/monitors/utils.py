@@ -1,6 +1,6 @@
 import logging
 from collections import defaultdict
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from typing import Any, cast
 
@@ -9,6 +9,7 @@ from django.http.request import HttpRequest
 from rest_framework.request import Request
 
 from sentry import audit_log
+from sentry.api.helpers.creator import CreatorReference
 from sentry.constants import ObjectStatus
 from sentry.db.models import BoundedPositiveIntegerField
 from sentry.middleware import is_frontend_request
@@ -352,9 +353,12 @@ def fetch_associated_groups(
     return trace_groups
 
 
-def ensure_cron_detector(monitor: Monitor) -> Detector | None:
+def ensure_cron_detector(
+    monitor: Monitor, creator: CreatorReference | None = None
+) -> Detector | None:
     from sentry.monitors.grouptype import MonitorIncidentType
 
+    creator_fields: Mapping[str, object] = creator or {}
     try:
         with atomic_transaction(using=router.db_for_write(DataSource)):
             data_source, created = DataSource.objects.get_or_create(
@@ -371,6 +375,7 @@ def ensure_cron_detector(monitor: Monitor) -> Detector | None:
                     owner_team_id=monitor.owner_team_id,
                     enabled=monitor.status == ObjectStatus.ACTIVE,
                     config={},
+                    **creator_fields,
                 )
                 DataSourceDetector.objects.create(data_source=data_source, detector=detector)
                 return detector

@@ -27,10 +27,12 @@ def get_creator_reference(request: Request) -> CreatorReference:
         "created_by_service_account_id": None,
         "created_by_org_auth_token_id": None,
     }
-    if is_service_account_auth(request.auth):
-        reference["created_by_service_account_id"] = request.auth.entity_id
-    elif is_org_auth_token_auth(request.auth):
-        reference["created_by_org_auth_token_id"] = get_org_auth_token_id_from_auth(request.auth)
+    # Some callers pass a plain Django request, which has no `auth`.
+    auth = getattr(request, "auth", None)
+    if is_service_account_auth(auth):
+        reference["created_by_service_account_id"] = auth.entity_id
+    elif is_org_auth_token_auth(auth):
+        reference["created_by_org_auth_token_id"] = get_org_auth_token_id_from_auth(auth)
     else:
         reference["created_by_id"] = acting_user_id(request.user)
     return reference

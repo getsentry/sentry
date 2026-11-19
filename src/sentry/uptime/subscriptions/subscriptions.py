@@ -1,5 +1,5 @@
 import logging
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timezone
 from typing import Any
 
@@ -10,6 +10,7 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
 )
 
 from sentry import quotas
+from sentry.api.helpers.creator import CreatorReference
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.issues.producer import PayloadType, produce_occurrence_to_kafka
@@ -278,6 +279,7 @@ def create_uptime_detector(
     downtime_threshold: int = DEFAULT_DOWNTIME_THRESHOLD,
     assertion: Any | None = None,
     response_capture_enabled: bool = True,
+    creator: CreatorReference | None = None,
 ) -> Detector:
     """
     Creates an UptimeSubscription and associated Detector
@@ -345,6 +347,7 @@ def create_uptime_detector(
             condition_group=condition_group,
         )
         env = environment.name if environment else None
+        creator_fields: Mapping[str, object] = creator or {}
         detector = Detector.objects.create(
             type=GROUP_TYPE_UPTIME_DOMAIN_CHECK_FAILURE,
             project=project,
@@ -358,6 +361,7 @@ def create_uptime_detector(
                 "downtime_threshold": downtime_threshold,
             },
             workflow_condition_group=condition_group,
+            **creator_fields,
         )
         DataSourceDetector.objects.create(data_source=data_source, detector=detector)
 
