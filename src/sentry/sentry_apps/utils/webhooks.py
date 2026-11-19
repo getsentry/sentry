@@ -112,6 +112,8 @@ EVENT_EXPANSION: Final[dict[SentryAppResourceType, list[SentryAppEventType]]] = 
         SentryAppEventType.SEER_PR_READY_FOR_REVIEW,
         SentryAppEventType.SEER_ITERATION_STARTED,
         SentryAppEventType.SEER_ITERATION_COMPLETED,
+        SentryAppEventType.SEER_STOPPED,
+        SentryAppEventType.SEER_ERRORED,
     ],
     SentryAppResourceType.PREPROD_ARTIFACT: [
         SentryAppEventType.PREPROD_ARTIFACT_SIZE_ANALYSIS_COMPLETED,
