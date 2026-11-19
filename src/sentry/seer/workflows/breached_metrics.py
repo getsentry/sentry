@@ -155,101 +155,8 @@ class MetricAlertDefinition(AutomationDefinition[MetricBreachInputs]):
             using=router.db_for_write(SeerWorkflowConfig),
         )
 
-
-@dataclass(frozen=True)
-class AcceptedMetricBreach:
-    run: SeerWorkflowRun
-    created: bool
-
-
-@dataclass(frozen=True)
-class IgnoredMetricBreach:
-    reason: Literal[
-        "unsupported_trigger",
-        "invalid_source",
-        "feature_disabled",
-        "config_disabled",
-        "configuration_unavailable",
-        "out_of_scope",
-    ]
-
-
-@dataclass(frozen=True)
-class RejectedMetricBreach:
-    run: SeerWorkflowRun
-    reason: RejectionReason
-    created: bool
-
-
-@action_handler_registry.register(Action.Type.SEER_INVESTIGATION)
-class SeerInvestigationActionHandler(ActionHandler):
-    group = ActionHandler.Group.OTHER
-    required_features = (FeatureGate("organizations:seer-automations"),)
-    config_schema = {"type": "object", "properties": {}, "additionalProperties": False}
-    data_schema = {"type": "object", "properties": {}, "additionalProperties": False}
-
-    @classmethod
-    @override
-    def get_dedup_key(cls, action: Action) -> str:
-        return f"{action.type}:{action.id}"
-
-    @staticmethod
-    @override
-    def execute(invocation: ActionInvocation) -> None:
-        # TODO(telkins): WFE reports an arbitrary workflow when an action is attached to
-        # several. If that becomes possible here, store the config id in Action.data.
-        config_id = (
-            SeerWorkflowConfig.objects.filter(backing_workflow_id=invocation.workflow_id)
-            .values_list("id", flat=True)
-            .get_or_none()
-        )
-        SeerInvestigationActionHandler._handle(invocation, config_id)
-
-    @staticmethod
-    def _handle(invocation: ActionInvocation, config_id: int | None) -> None:
-        event = invocation.event_data.event
-        if not isinstance(event, GroupEvent):
-            return
-        group = invocation.event_data.require_group()
-        extra: dict[str, object] = {
-            "organization_id": group.project.organization_id,
-            "group_id": group.id,
-            "event_id": event.event_id,
-            "detector_id": invocation.detector.id,
-            "workflow_id": invocation.workflow_id,
-            "action_id": invocation.action.id,
-        }
-        if config_id is None:
-            _record_trigger_outcome("ignored", extra, reason="configuration_unavailable")
-            return
-
-        extra.update(workflow_config_id=config_id)
-        admission = SeerInvestigationActionHandler._admit(
-            group,
-            event,
-            config_id=config_id,
-            action_id=invocation.action.id,
-            workflow_id=invocation.workflow_id,
-        )
-        outcome: Literal["accepted", "rejected", "ignored"]
-        reason: str | None = None
-        deduplicated = False
-        if isinstance(admission, AcceptedMetricBreach):
-            outcome = "accepted"
-            deduplicated = not admission.created
-            extra.update(run_id=admission.run.id, run_created=admission.created)
-        elif isinstance(admission, RejectedMetricBreach):
-            outcome = "rejected"
-            reason = admission.reason
-            deduplicated = not admission.created
-            extra.update(run_id=admission.run.id, run_created=admission.created)
-        else:
-            outcome = "ignored"
-            reason = admission.reason
-        _record_trigger_outcome(outcome, extra, reason=reason, deduplicated=deduplicated)
-
-    @staticmethod
-    def _admit(
+    def admit_breach(
+        self,
         group: Group,
         event: GroupEvent,
         *,
@@ -291,42 +198,36 @@ class SeerInvestigationActionHandler(ActionHandler):
 
         try:
             with lock_config(group.organization.id, config_id) as config:
-                if not AutomationDefinition.is_enabled(config):
+                if not self.is_enabled(config):
                     return IgnoredMetricBreach("config_disabled")
-                definition = _definition_for(config)
-                if not isinstance(definition, MetricAlertDefinition):
-                    return IgnoredMetricBreach("configuration_unavailable")
-                if not definition.covers(config, group.project_id, inputs.environment):
+                if not self.covers(config, group.project_id, inputs.environment):
                     return IgnoredMetricBreach("out_of_scope")
 
-                run = definition.admit_run(
-                    config, trigger_key=f"issue_created:{group.id}", inputs=inputs
-                )
+                run = self.admit_run(config, trigger_key=f"issue_created:{group.id}", inputs=inputs)
                 if run.rejection is not None:
                     return RejectedMetricBreach(
                         run=run.lifecycle.get_run(), reason=run.rejection, created=run.created
                     )
                 if run.created:
                     run.lifecycle.start()
-                    SeerInvestigationActionHandler.dispatch(config, run.lifecycle, inputs)
+                    self.dispatch(config, run.lifecycle, inputs)
                 return AcceptedMetricBreach(run=run.lifecycle.get_run(), created=run.created)
         except SeerWorkflowConfig.DoesNotExist:
             return IgnoredMetricBreach("configuration_unavailable")
 
-    @staticmethod
     def dispatch(
-        config: SeerWorkflowConfig, run: SeerWorkflowRunLifecycle, inputs: MetricBreachInputs
+        self, config: SeerWorkflowConfig, run: SeerWorkflowRunLifecycle, inputs: MetricBreachInputs
     ) -> None:
         (execution,) = run.create_executions([SeerWorkflowExecutionExtras()])
         run.start_execution(execution.id)
-        error = SeerInvestigationActionHandler._start_investigation(config, inputs, execution)
+        error = self.start_investigation(config, inputs, execution)
         if error is not None:
             run.complete_execution(execution.id, error=error)
         else:
             finish_execution_if_outputs_done(execution, organization_id=config.organization_id)
 
-    @staticmethod
-    def _start_investigation(
+    def start_investigation(
+        self,
         config: SeerWorkflowConfig,
         inputs: MetricBreachInputs,
         execution: SeerWorkflowRunExecution,
@@ -383,13 +284,100 @@ class SeerInvestigationActionHandler(ActionHandler):
         return None
 
 
+@dataclass(frozen=True)
+class AcceptedMetricBreach:
+    run: SeerWorkflowRun
+    created: bool
+
+
+@dataclass(frozen=True)
+class IgnoredMetricBreach:
+    reason: Literal[
+        "unsupported_trigger",
+        "invalid_source",
+        "feature_disabled",
+        "config_disabled",
+        "configuration_unavailable",
+        "out_of_scope",
+    ]
+
+
+@dataclass(frozen=True)
+class RejectedMetricBreach:
+    run: SeerWorkflowRun
+    reason: RejectionReason
+    created: bool
+
+
+@action_handler_registry.register(Action.Type.SEER_INVESTIGATION)
+class SeerInvestigationActionHandler(ActionHandler):
+    group = ActionHandler.Group.OTHER
+    required_features = (FeatureGate("organizations:seer-automations"),)
+    config_schema = {"type": "object", "properties": {}, "additionalProperties": False}
+    data_schema = {"type": "object", "properties": {}, "additionalProperties": False}
+
+    @classmethod
+    @override
+    def get_dedup_key(cls, action: Action) -> str:
+        return f"{action.type}:{action.id}"
+
+    @staticmethod
+    @override
+    def execute(invocation: ActionInvocation) -> None:
+        event = invocation.event_data.event
+        if not isinstance(event, GroupEvent):
+            return
+        group = invocation.event_data.require_group()
+        extra: dict[str, object] = {
+            "organization_id": group.project.organization_id,
+            "group_id": group.id,
+            "event_id": event.event_id,
+            "detector_id": invocation.detector.id,
+            "workflow_id": invocation.workflow_id,
+            "action_id": invocation.action.id,
+        }
+        # TODO(telkins): WFE reports an arbitrary workflow when an action is attached to
+        # several. If that becomes possible here, store the config id in Action.data.
+        config = (
+            SeerWorkflowConfig.objects.filter(backing_workflow_id=invocation.workflow_id)
+            .values_list("id", "strategy", named=True)
+            .get_or_none()
+        )
+        definition = _find_definition(config.strategy) if config is not None else None
+        if config is None or not isinstance(definition, MetricAlertDefinition):
+            _record_trigger_outcome(IgnoredMetricBreach("configuration_unavailable"), extra)
+            return
+
+        extra.update(workflow_config_id=config.id)
+        admission = definition.admit_breach(
+            group,
+            event,
+            config_id=config.id,
+            action_id=invocation.action.id,
+            workflow_id=invocation.workflow_id,
+        )
+        _record_trigger_outcome(admission, extra)
+
+
 def _record_trigger_outcome(
-    outcome: Literal["accepted", "rejected", "ignored"],
+    admission: AcceptedMetricBreach | RejectedMetricBreach | IgnoredMetricBreach,
     extra: dict[str, object],
-    *,
-    reason: str | None = None,
-    deduplicated: bool = False,
 ) -> None:
+    outcome: Literal["accepted", "rejected", "ignored"]
+    reason: str | None = None
+    deduplicated = False
+    if isinstance(admission, AcceptedMetricBreach):
+        outcome = "accepted"
+        deduplicated = not admission.created
+        extra.update(run_id=admission.run.id, run_created=admission.created)
+    elif isinstance(admission, RejectedMetricBreach):
+        outcome = "rejected"
+        reason = admission.reason
+        deduplicated = not admission.created
+        extra.update(run_id=admission.run.id, run_created=admission.created)
+    else:
+        outcome = "ignored"
+        reason = admission.reason
     metrics.incr(
         "seer.workflow.trigger",
         tags={
@@ -511,8 +499,8 @@ def _replace_monitor_connections(
     )
 
 
-def _definition_for(config: SeerWorkflowConfig) -> AutomationDefinition[Any] | None:
+def _find_definition(strategy: str) -> AutomationDefinition[Any] | None:
     # Imported here because definitions imports this module for its strategy table.
     from sentry.seer.workflows.definitions import find_definition
 
-    return find_definition(config.strategy)
+    return find_definition(strategy)
