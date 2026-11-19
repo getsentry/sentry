@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 import type {SVGIconProps} from '@sentry/icons/svgIcon';
 import type {PlatformIcon} from 'platformicons';
@@ -138,20 +137,16 @@ export type EntityHeaderMetadataItemProps =
  */
 export function MetadataDivider() {
   return (
-    <Pipe
+    <Container
       width="1px"
       height="14px"
       flexShrink={0}
+      borderLeft="primary"
       aria-hidden
       data-test-id="metadata-divider"
     />
   );
 }
-
-// `Container`'s border props only take the container edge variants.
-const Pipe = styled(Container)`
-  border-left: 1px solid ${p => p.theme.tokens.border.neutral.muted};
-`;
 
 /**
  * A 16px box for a leading graphic. Left empty while loading, so the box keeps
