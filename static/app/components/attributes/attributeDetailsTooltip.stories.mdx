@@ -78,4 +78,6 @@ described as a tag and credited to nobody.
 
 `AttributesTree` opts in per product through `config.attributeDetailsType`, which is
 the registry its attributes belong to. Logs pass `"log"`. Without it, keys render as
-plain text with the browser tooltip naming them in full.
+plain text with the browser tooltip naming them in full. When the organization has
+attribute management and the tree knows the item's project, it also passes `to`, so
+log, span and metric keys link to their attribute details page.
