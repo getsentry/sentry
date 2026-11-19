@@ -9,9 +9,7 @@ import {Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
-import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import type {
   TraceItemResponseAttribute,
   TraceItemResponseLink,
@@ -27,6 +25,7 @@ import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/trace
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
 import type {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/eapSpanNode';
+import {FULL_TRACE_DATA_DAYS} from 'sentry/views/performance/traceDetails/traceTypeWarnings/partialTraceDataWarning';
 
 import {useLinkedSpanTarget} from './useLinkedSpanTarget';
 
@@ -213,14 +212,12 @@ function OpenTraceLink({
   // Without an age (older SDKs), the trace query searches around the pageload
   // start. It does not find renders much older than that.
   const renderStart = props.node.value.start_timestamp - (age ?? 0);
-  const {maxPickableDays: retentionDays} = useMaxPickableDays({
-    dataCategories: [DataCategory.SPANS],
-  });
   const [nowMs] = useState(Date.now);
   const linkedSpan = useLinkedSpanTarget({...props, link, timestamp: renderStart});
 
-  if (renderStart < nowMs / 1000 - retentionDays * 24 * 60 * 60) {
-    return <Text variant="muted">{t('Past %s-day retention', retentionDays)}</Text>;
+  // An older trace can miss spans, also the render span.
+  if (renderStart < nowMs / 1000 - FULL_TRACE_DATA_DAYS * 24 * 60 * 60) {
+    return <Text variant="muted">{t('Older than %s days', FULL_TRACE_DATA_DAYS)}</Text>;
   }
 
   return (

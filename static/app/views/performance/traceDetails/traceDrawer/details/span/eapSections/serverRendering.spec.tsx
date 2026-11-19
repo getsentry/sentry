@@ -140,13 +140,13 @@ describe('ServerRenderingSection', () => {
     );
   });
 
-  it('does not open a render that is past span retention', () => {
+  it('does not open a render whose trace can miss spans', () => {
     renderSection({
-      attributes: [...typeAttribute('static'), ageAttribute(50 * DAY)],
+      attributes: [...typeAttribute('static'), ageAttribute(31 * DAY)],
       links: [makeLink('cache_origin')],
     });
 
-    expect(screen.getByText('Past 30-day retention')).toBeInTheDocument();
+    expect(screen.getByText('Older than 30 days')).toBeInTheDocument();
     expect(screen.queryByRole('link', {name: 'Open trace'})).not.toBeInTheDocument();
   });
 
