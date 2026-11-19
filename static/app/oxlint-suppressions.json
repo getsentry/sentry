@@ -2083,7 +2083,7 @@
   },
   "styles/global.tsx": {
     "@sentry/scraps/no-dom-coupling": {
-      "count": 24
+      "count": 23
     }
   },
   "styles/text.tsx": {
