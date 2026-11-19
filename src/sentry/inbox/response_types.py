@@ -44,7 +44,7 @@ class InboxSubjectProjectResponse(TypedDict):
 
 
 class InboxIssueSubjectMetadataResponse(TypedDict):
-    shortId: Annotated[str | None, ApiDescription("The issue's short ID, or null if unassigned")]
+    shortId: Annotated[str, ApiDescription("The issue's short ID, such as PROJECT-1A")]
     project: Annotated[InboxSubjectProjectResponse, ApiDescription("The issue's project")]
 
 

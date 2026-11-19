@@ -33,18 +33,22 @@ class IssueItemType(InboxItemType[Group]):
         groups = Group.objects.filter(
             project__organization_id=organization.id, id__in=ids
         ).select_related("project")
-        return {
-            str(group.id): {
+        subjects: dict[str, InboxIssueSubjectResponse] = {}
+        for group in groups:
+            # Groups created by current ingestion always have a short ID. Treat legacy groups
+            # without one as unavailable.
+            if (short_id := group.qualified_short_id) is None:
+                continue
+            subjects[str(group.id)] = {
                 "id": str(group.id),
                 "type": "issue",
                 "title": group.title,
                 "metadata": {
-                    "shortId": group.qualified_short_id,
+                    "shortId": short_id,
                     "project": {"id": str(group.project_id), "slug": group.project.slug},
                 },
             }
-            for group in groups
-        }
+        return subjects
 
     def get_url(self, *, organization: Organization, subject_id: str) -> str:
         return organization.absolute_url(

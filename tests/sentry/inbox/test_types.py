@@ -213,6 +213,9 @@ def test_subject_response_schema() -> None:
     assert not validator.is_valid({**notebook, "type": "unknown"})
     assert not validator.is_valid({**issue, "title": None})
     assert not validator.is_valid({**issue, "metadata": {"shortId": "WEB-1"}})
+    assert not validator.is_valid(
+        {**issue, "metadata": {"shortId": None, "project": {"id": "2", "slug": "web"}}}
+    )
     assert not validator.is_valid({**notebook, "metadata": issue["metadata"]})
 
 
