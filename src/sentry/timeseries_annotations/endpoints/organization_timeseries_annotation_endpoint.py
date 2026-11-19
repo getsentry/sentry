@@ -13,7 +13,7 @@ from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
@@ -38,6 +38,13 @@ from sentry.timeseries_annotations.service import (
 from sentry.viewer_context import ActorId, ActorType
 
 
+class TimeseriesAnnotationPermission(OrganizationPermission):
+    scope_map = {
+        "GET": ["org:read", "org:write", "org:admin"],
+        "POST": ["org:read", "org:write", "org:admin"],
+    }
+
+
 @extend_schema(tags=["Timeseries Annotations"])
 @cell_silo_endpoint
 class OrganizationTimeseriesAnnotationEndpoint(OrganizationEndpoint):
@@ -46,6 +53,7 @@ class OrganizationTimeseriesAnnotationEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
+    permission_classes = (TimeseriesAnnotationPermission,)
 
     def get(self, request: Request, organization: Organization) -> Response:
         """
