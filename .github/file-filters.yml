@@ -80,6 +80,8 @@ nav_snapshot_codegen:
 
 # What tools/seer_nav parses, kept broad: nav files also import constants from elsewhere.
 seer_nav_sources:
+  - *sentry_frontend_workflow_file
+  - added|modified: '.github/file-filters.yml'
   - 'static/app/views/navigation/**'
   - 'static/app/views/settings/**'
   - 'static/app/views/issueList/taxonomies.tsx'
