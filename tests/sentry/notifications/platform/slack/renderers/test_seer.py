@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+from typing import Any
 from unittest.mock import Mock, patch
 
 from django.test import override_settings
@@ -25,8 +27,10 @@ from sentry.notifications.platform.slack.renderers.seer_agent_write_approval imp
     SeerAgentWriteApprovalSlackRenderer,
 )
 from sentry.notifications.platform.templates.seer import (
+    AGENT_DAILY_LIMIT_MESSAGE,
     AGENT_OUT_OF_CREDITS_MESSAGE,
     AGENT_OUT_OF_CREDITS_NO_RELOADS_MESSAGE,
+    AUTOFIX_DAILY_LIMIT_MESSAGE,
     AUTOFIX_OUT_OF_CREDITS_MESSAGE,
     AUTOFIX_OUT_OF_CREDITS_NO_RELOADS_MESSAGE,
     SeerAgentError,
@@ -58,6 +62,7 @@ from sentry.notifications.platform.types import (
 from sentry.seer.agent.client_models import RepoPRState
 from sentry.seer.autofix.utils import AutofixStoppingPoint
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 
 
@@ -368,11 +373,52 @@ def assert_configure_auto_reload_button(
     assert routing.organization_id == organization_id
 
 
+DAILY_LIMIT_FROZEN_NOW = datetime(2024, 1, 15, 18, 30, tzinfo=UTC)
+DAILY_LIMIT_RESETS_AT = int(datetime(2024, 1, 16, tzinfo=UTC).timestamp())
+
+
+def assert_daily_limit_reset_and_billing_button(
+    renderable: SlackRenderable, *, organization_id: int, billing_slug: str
+) -> None:
+    blocks = renderable["blocks"]
+    assert len(blocks) == 3
+    reset = blocks[1]
+    assert isinstance(reset, SectionBlock)
+    assert reset.text is not None
+    assert reset.text.text == (
+        f"<!date^{DAILY_LIMIT_RESETS_AT}^This will reset at {{time}}."
+        "|This will reset at 12:00 AM UTC.>"
+    )
+    actions = blocks[2]
+    assert isinstance(actions, ActionsBlock)
+    assert len(actions.elements) == 1
+    button = actions.elements[0]
+    assert isinstance(button, ButtonElement)
+    assert button.text is not None
+    assert button.text.text == "View billing"
+    assert button.url is not None
+    assert f"/settings/{billing_slug}/billing/overview/" in button.url
+    assert button.action_id is not None
+    routing = decode_action_id(button.action_id)
+    assert routing.action == SlackAction.SEER_VIEW_BILLING.value
+    assert routing.organization_id == organization_id
+
+
 class SeerSlackRendererAutofixOutOfCreditsTest(TestCase):
-    def _render(self, **kwargs: bool) -> SlackRenderable:
+    def _render(self, **kwargs: Any) -> SlackRenderable:
         data = SeerAutofixOutOfCredits(organization_id=self.organization.id, **kwargs)
         return render_seer(
             data=data, rendered_template=SeerAutofixOutOfCreditsTemplate().render(data)
+        )
+
+    @freeze_time(DAILY_LIMIT_FROZEN_NOW)
+    def test_daily_limit_links_to_billing(self) -> None:
+        renderable = self._render(denial_reason="daily_cap_exceeded")
+        assert_out_of_credits_message(renderable, AUTOFIX_DAILY_LIMIT_MESSAGE)
+        assert_daily_limit_reset_and_billing_button(
+            renderable,
+            organization_id=self.organization.id,
+            billing_slug=self.organization.slug,
         )
 
     def test_links_to_auto_reload_settings(self) -> None:
@@ -403,10 +449,20 @@ class SeerSlackRendererAutofixOutOfCreditsTest(TestCase):
 
 
 class SeerSlackRendererAgentOutOfCreditsTest(TestCase):
-    def _render(self, **kwargs: bool) -> SlackRenderable:
+    def _render(self, **kwargs: Any) -> SlackRenderable:
         data = SeerAgentOutOfCredits(organization_id=self.organization.id, **kwargs)
         return render_seer(
             data=data, rendered_template=SeerAgentOutOfCreditsTemplate().render(data)
+        )
+
+    @freeze_time(DAILY_LIMIT_FROZEN_NOW)
+    def test_daily_limit_links_to_billing(self) -> None:
+        renderable = self._render(denial_reason="daily_cap_exceeded")
+        assert_out_of_credits_message(renderable, AGENT_DAILY_LIMIT_MESSAGE)
+        assert_daily_limit_reset_and_billing_button(
+            renderable,
+            organization_id=self.organization.id,
+            billing_slug=self.organization.slug,
         )
 
     def test_links_to_auto_reload_settings(self) -> None:

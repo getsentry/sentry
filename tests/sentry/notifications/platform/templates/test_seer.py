@@ -5,8 +5,10 @@ import pytest
 from fixtures.seer.webhooks import MOCK_GROUP_ID, MOCK_RUN_ID
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT
 from sentry.notifications.platform.templates.seer import (
+    AGENT_DAILY_LIMIT_MESSAGE,
     AGENT_OUT_OF_CREDITS_MESSAGE,
     AGENT_OUT_OF_CREDITS_NO_RELOADS_MESSAGE,
+    AUTOFIX_DAILY_LIMIT_MESSAGE,
     AUTOFIX_OUT_OF_CREDITS_MESSAGE,
     AUTOFIX_OUT_OF_CREDITS_NO_RELOADS_MESSAGE,
     SeerAgentError,
@@ -184,6 +186,32 @@ def test_agent_out_of_credits_template(auto_reload_enabled: bool, message: str) 
     assert len(rendered.body) == 1
     assert isinstance(rendered.body[0], ParagraphSection)
     assert rendered.body[0].blocks[0].text == message
+
+
+def test_autofix_daily_limit_template() -> None:
+    rendered = SeerAutofixOutOfCreditsTemplate().render(
+        SeerAutofixOutOfCredits(organization_id=1, denial_reason="daily_cap_exceeded")
+    )
+
+    assert rendered.subject == AUTOFIX_DAILY_LIMIT_MESSAGE
+    assert rendered.body[0].blocks[0].text == AUTOFIX_DAILY_LIMIT_MESSAGE
+
+
+def test_agent_daily_limit_template() -> None:
+    rendered = SeerAgentOutOfCreditsTemplate().render(
+        SeerAgentOutOfCredits(organization_id=1, denial_reason="daily_cap_exceeded")
+    )
+
+    assert rendered.subject == AGENT_DAILY_LIMIT_MESSAGE
+    assert rendered.body[0].blocks[0].text == AGENT_DAILY_LIMIT_MESSAGE
+
+
+def test_not_enough_credits_keeps_the_out_of_credits_message() -> None:
+    autofix = SeerAutofixOutOfCredits(organization_id=1, denial_reason="not_enough_credits")
+    agent = SeerAgentOutOfCredits(organization_id=1, denial_reason="not_enough_credits")
+
+    assert autofix.message == AUTOFIX_OUT_OF_CREDITS_MESSAGE
+    assert agent.message == AGENT_OUT_OF_CREDITS_MESSAGE
 
 
 class SeerInvestigationStartedTemplateTest(TestCase):
