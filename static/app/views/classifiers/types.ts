@@ -6,10 +6,6 @@ export type ClassifierDataset = (typeof CLASSIFIER_DATASETS)[number];
 
 export type ClassifierOutputType = 'binary' | 'choice' | 'score';
 
-export const CLASSIFIER_RESULT_FILTERS = ['all', 'matches', 'non-matches'] as const;
-
-export type ClassifierResultFilter = (typeof CLASSIFIER_RESULT_FILTERS)[number];
-
 export interface TelemetryClassifier {
   binaryThreshold: number | null;
   createdBy: User | null;
