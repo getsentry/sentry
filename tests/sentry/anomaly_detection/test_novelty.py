@@ -4,13 +4,13 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from sentry.anomaly_detection import quality
-from sentry.anomaly_detection.baseline import Baseline
-from sentry.anomaly_detection.changepoint import RateShiftTracker
 from sentry.anomaly_detection.contracts import ChangeEvent, ChangeType, SeriesKey
-from sentry.anomaly_detection.novelty import Novelty, mask_dim
-from sentry.anomaly_detection.series import Series, samples_key
-from sentry.anomaly_detection.shared import learn
+from sentry.anomaly_detection.correlation.shared_dependencies import learn
+from sentry.anomaly_detection.evaluation import quality
+from sentry.anomaly_detection.evaluation.baseline import Baseline
+from sentry.anomaly_detection.evaluation.novelty import Novelty, mask_dim
+from sentry.anomaly_detection.evaluation.rate_shifts import RateShiftTracker
+from sentry.anomaly_detection.evaluation.series import Series, samples_key
 
 T0 = datetime(2024, 11, 4, 8)
 MINUTE = timedelta(minutes=1)

@@ -7,8 +7,8 @@ from typing import Any
 from uuid import uuid4
 
 from sentry.anomaly_detection.contracts import Urgency
-from sentry.anomaly_detection.grouptype import AnomalyTransition
-from sentry.anomaly_detection.pipeline import AnomalyDecision
+from sentry.anomaly_detection.delivery.transition import AnomalyTransition
+from sentry.anomaly_detection.evaluation.organization import AnomalyDecision
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 _STATE_VERSION = 2

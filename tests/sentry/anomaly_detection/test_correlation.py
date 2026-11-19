@@ -5,10 +5,10 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from sentry.anomaly_detection.checkpoint import _restore, _snapshot
+from sentry.anomaly_detection.checkpoint.codec import _restore, _snapshot
 from sentry.anomaly_detection.contracts import ChangeEvent, ChangeType, SeriesKey, Urgency
-from sentry.anomaly_detection.correlate import Correlator, episode_key
-from sentry.anomaly_detection.footprint import (
+from sentry.anomaly_detection.correlation.correlator import Correlator, episode_key
+from sentry.anomaly_detection.correlation.footprint import (
     FOOTPRINT_DEFERRED,
     Footprint,
     FootprintResult,
@@ -16,8 +16,8 @@ from sentry.anomaly_detection.footprint import (
     service_of,
     slice_of,
 )
-from sentry.anomaly_detection.pipeline import OrgEvaluator
-from sentry.anomaly_detection.shared import learn
+from sentry.anomaly_detection.correlation.shared_dependencies import learn
+from sentry.anomaly_detection.evaluation.organization import OrgEvaluator
 from tests.sentry.anomaly_detection.test_parity import make_handlers
 
 START = datetime(2024, 1, 1)

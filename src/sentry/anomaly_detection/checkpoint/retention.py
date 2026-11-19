@@ -1,0 +1,301 @@
+"""Bound retained evaluator state and reconcile changes to enabled projects."""
+
+from collections import defaultdict
+from collections.abc import Set as AbstractSet
+from dataclasses import replace
+from datetime import datetime, timedelta
+
+from sentry.anomaly_detection.contracts import ChangeEvent, ChangeType, SeriesKey
+from sentry.anomaly_detection.correlation.correlator import Correlator, EpisodeKey, episode_key
+from sentry.anomaly_detection.evaluation.baseline import MINUTE
+from sentry.anomaly_detection.evaluation.organization import (
+    _CONTEXT_HORIZON,
+    AnomalyDecision,
+    OrgEvaluator,
+)
+from sentry.anomaly_detection.evaluation.series_history import RULES
+from sentry.anomaly_detection.inputs.measurements import MAX_ENVIRONMENTS, MAX_SLICES
+
+# Preserve the current and one previous full collector cohort per project/signal.
+# Cardinality is bounded even when every poll selects different dimensions;
+# history size depends on the retained minute window, not on compression ratios.
+_RETAINED_SLICE_GROUPS = 2 * MAX_ENVIRONMENTS * MAX_SLICES
+# Errors and spans discover environments independently.
+_RETAINED_ENVIRONMENTS = 2 * 2 * MAX_ENVIRONMENTS
+# Keep more cohorts for learning than for the minute-level detector. The recent
+# excursion cap is well above the recurrence rates the novelty model distinguishes.
+_NOVELTY_COHORTS = 4
+_NOVELTY_RECORDS_PER_SERIES = 64
+
+
+def _prune_for_snapshot(evaluator: OrgEvaluator, cursor: datetime) -> None:
+    _prune_group_members(evaluator.corr, cursor)
+    _prune_novelty(evaluator, cursor)
+
+
+def _history_floor(evaluator: OrgEvaluator, cursor: datetime) -> datetime:
+    baseline_cfg = evaluator.baseline.cfg
+    # Include the 60m baseline plus its reach-back for excluded minutes. A new
+    # episode refits at its first persistence hit, up to one rule window earlier.
+    # Already-open episodes carry their frozen reference level and sigma.
+    anchor_lookback = max(rule.persist[1] for rule in RULES) - 1
+    return cursor - timedelta(
+        minutes=baseline_cfg.window_min + baseline_cfg.reach_back_min + anchor_lookback
+    )
+
+
+def _prune_group_members(corr: Correlator, cursor: datetime) -> None:
+    # A continuous group can contain arbitrarily many completed episodes. Keep
+    # its root, ongoing members and the same recent context used for late issues.
+    floor = cursor - _CONTEXT_HORIZON
+    for group in corr.groups:
+        root_key = episode_key(group.root)
+        expired = {
+            key
+            for key, member in group.members.items()
+            if key != root_key and member.closed_at is not None and member.closed_at < floor
+        }
+        if not expired:
+            continue
+
+        # Retained members must not point to a representative that no longer
+        # exists. Preserve the alias classes even if the old parent is expired.
+        aliases: dict[EpisodeKey, list[EpisodeKey]] = defaultdict(list)
+        for key, member in group.members.items():
+            if key not in expired:
+                aliases[corr._representative(group, member)].append(key)
+        for members in aliases.values():
+            representative = min(members)
+            for key in members:
+                group.members[key].representative = (
+                    None if key == representative else representative
+                )
+
+        for key in expired:
+            del group.members[key]
+            if corr.by_event.get(key) is group:
+                del corr.by_event[key]
+        group.group.change_events[:] = [
+            event for event in group.group.change_events if episode_key(event) not in expired
+        ]
+
+
+def _prune_novelty(evaluator: OrgEvaluator, cursor: datetime) -> None:
+    novelty = evaluator.novelty
+    novelty.prune(cursor)
+    cohorts: dict[tuple[str, str, str, bool], list[tuple[datetime, SeriesKey]]] = defaultdict(list)
+    for key in novelty.coverage.keys() | novelty.history.keys():
+        hours = novelty.coverage.get(key, {})
+        latest_observation = datetime.min
+        if hours:
+            latest_hour = max(hours)
+            latest_observation = latest_hour + (hours[latest_hour].bit_length() - 1) * MINUTE
+        latest_excursion = max(
+            (record.start for record in novelty.history.get(key, ())), default=datetime.min
+        )
+        cohorts[key.project, key.signal, key.metric, bool(key.dim_value)].append(
+            (max(latest_observation, latest_excursion), key)
+        )
+    retained = evaluator.series_history.watched.keys() | evaluator.rate_shifts.state.keys()
+    for (_, _, _, sliced), candidates in cohorts.items():
+        limit = _NOVELTY_COHORTS * MAX_ENVIRONMENTS * (MAX_SLICES if sliced else 2)
+        retained.update(key for _, key in sorted(candidates, reverse=True)[:limit])
+    for key in novelty.coverage.keys() - retained:
+        del novelty.coverage[key]
+    for key in novelty.history.keys() - retained:
+        del novelty.history[key]
+    for records in novelty.history.values():
+        if len(records) > _NOVELTY_RECORDS_PER_SERIES:
+            del records[:-_NOVELTY_RECORDS_PER_SERIES]
+
+
+def _reconcile_correlation(
+    evaluator: OrgEvaluator, projects: AbstractSet[str], boundary: datetime
+) -> list[AnomalyDecision]:
+    corr = evaluator.corr
+    state = corr.state
+
+    def service_in_scope(service: str) -> bool:
+        return service.partition("/")[0] in projects
+
+    retired = set()
+    discarded_open = set()
+    for groups in (state.open_groups, state.closed_groups):
+        for group_id, group in list(groups.items()):
+            previous = evaluator.qualified.get(group_id)
+            if (
+                (previous is not None and str(previous.project_id) not in projects)
+                or group.root.key.project not in projects
+                or any(key[0].project not in projects for key in group.members)
+            ):
+                retired.add(group_id)
+                if group.closed_at is None:
+                    discarded_open.add(group_id)
+                del groups[group_id]
+                for key, member in group.members.items():
+                    if corr.by_event.get(key) is not group:
+                        continue
+                    del corr.by_event[key]
+                    # Keep ongoing changes as support only. Reopening one as a
+                    # standalone finding could recreate the retired group's ID.
+                    if (
+                        group.closed_at is None
+                        and member.closed_at is None
+                        and member.event.ended_at is None
+                        and member.event.change_type != ChangeType.NEW_FAILURE_MODE
+                        and key[0].project in projects
+                    ):
+                        state.latent[key] = member.event
+                        evaluator.absorbed.pop(key, None)
+                        evaluator.next_look.pop(key, None)
+            else:
+                for member in group.members.values():
+                    if (footprint := member.footprint) is not None:
+                        for slice_key in list(footprint.slices):
+                            if slice_key[0] not in projects:
+                                del footprint.slices[slice_key]
+                        for edge in list(footprint.edges):
+                            if not service_in_scope(edge[0]) or not service_in_scope(edge[2]):
+                                del footprint.edges[edge]
+
+    for group in corr.groups:
+        group.group.possibly_related[:] = [
+            key for key in group.group.possibly_related if key not in retired
+        ]
+    closes = []
+    for group_id, decision in list(evaluator.qualified.items()):
+        owner_enabled = str(decision.project_id) in projects
+        if group_id in discarded_open and owner_enabled and not decision.is_resolved:
+            # The current root may differ from the published owner. Close the
+            # original lifecycle at the scope boundary, never migrate it.
+            closes.append(replace(decision, timestamp=boundary, is_resolved=True))
+        if group_id in retired or not owner_enabled:
+            del evaluator.qualified[group_id]
+    for edges in (state.edges, state.edge_seen_at):
+        for edge in list(edges):
+            if not service_in_scope(edge[0]) or not service_in_scope(edge[2]):
+                del edges[edge]
+    for pair_key, pair in list(state.shared.pairs.items()):
+        if not service_in_scope(pair.a[0]) or not service_in_scope(pair.b[0]):
+            del state.shared.pairs[pair_key]
+    return closes
+
+
+def _reconcile_projects(
+    evaluator: OrgEvaluator, projects: AbstractSet[str], boundary: datetime
+) -> list[AnomalyDecision]:
+    detector, cp, novelty = evaluator.series_history, evaluator.rate_shifts, evaluator.novelty
+    for mapping in (
+        evaluator.series,
+        detector.watched,
+        detector.state,
+        cp.exclude,
+        cp.state,
+        cp.spike_minutes,
+        cp._spike_seen,
+        novelty.coverage,
+        novelty.history,
+    ):
+        for key in list(mapping):
+            if key.project not in projects:
+                del mapping[key]
+    cp.watched[:] = [key for key in cp.watched if key.project in projects]
+    detector.exclude = {
+        key: reason for key, reason in detector.exclude.items() if key.project in projects
+    }
+    for key, hour in list(detector._pseudo):
+        if key.project not in projects:
+            del detector._pseudo[key, hour]
+
+    for episodes in (evaluator.absorbed, evaluator.next_look, evaluator.corr.state.latent):
+        for episode in list(episodes):
+            if episode[0].project not in projects:
+                del episodes[episode]
+    for service in list(evaluator.harm):
+        if service[0] not in projects:
+            del evaluator.harm[service]
+    evaluator.pending_issues[:] = [e for e in evaluator.pending_issues if e.key.project in projects]
+    evaluator.known_issues[:] = [e for e in evaluator.known_issues if e.key.project in projects]
+    evaluator.point_closes[:] = [
+        (ts, e) for ts, e in evaluator.point_closes if e.key.project in projects
+    ]
+    return _reconcile_correlation(evaluator, projects, boundary)
+
+
+def _evict_stale_series(
+    evaluator: OrgEvaluator, cursor: datetime, at: datetime
+) -> list[AnomalyDecision]:
+    floor = _history_floor(evaluator, cursor)
+    slices: dict[tuple[str, str], dict[tuple[str, str], datetime]] = defaultdict(dict)
+    environments: dict[str, dict[str, datetime]] = defaultdict(dict)
+    last_seen = {
+        key: next(reversed(points), datetime.min) for key, points in evaluator.series.items()
+    }
+    for key, seen in last_seen.items():
+        if key.dim_value:
+            if seen >= floor:
+                group = key.env, key.dim_value
+                members = slices[key.project, key.signal]
+                members[group] = max(seen, members.get(group, seen))
+        else:
+            envs = environments[key.project]
+            envs[key.env] = max(seen, envs.get(key.env, seen))
+
+    # Rank scope groups, not metric keys, so a latency/share never loses its
+    # sample-count companion under churn. Ties do not depend on collection order.
+    kept_slices = {
+        scope: set(
+            sorted(groups, key=lambda group: (groups[group], group), reverse=True)[
+                :_RETAINED_SLICE_GROUPS
+            ]
+        )
+        for scope, groups in slices.items()
+    }
+    kept_envs = {
+        project: set(
+            sorted(envs, key=lambda env: (envs[env], env), reverse=True)[:_RETAINED_ENVIRONMENTS]
+        )
+        for project, envs in environments.items()
+    }
+    evicted: set[SeriesKey] = set()
+    for key, seen in last_seen.items():
+        if key.dim_value:
+            if seen < floor or (key.env, key.dim_value) not in kept_slices[key.project, key.signal]:
+                evicted.add(key)
+        elif key.env not in kept_envs[key.project]:
+            # Empty aggregate keys preserve the presence of request instrumentation
+            # for this environment, but environments themselves are bounded.
+            evicted.add(key)
+    if not evicted:
+        return []
+
+    det, cp = evaluator.series_history, evaluator.rate_shifts
+    expirations: list[tuple[str, ChangeEvent]] = []
+    maps = (
+        evaluator.series,
+        det.watched,
+        det.state,
+        cp.exclude,
+        cp.state,
+        cp.spike_minutes,
+        cp._spike_seen,
+    )
+    for key in sorted(evicted):
+        for states in (det.state, cp.state):
+            if (state := states.get(key)) is not None and (event := state.open) is not None:
+                event.ended_at = at
+                event.evidence.append("expired: measurements no longer collected")
+                expirations.append(("expire", event))
+        for mapping in maps:
+            mapping.pop(key, None)
+    cp.watched[:] = [key for key in cp.watched if key not in evicted]
+    det.exclude = {key: reason for key, reason in det.exclude.items() if key not in evicted}
+    for pseudo_key in list(det._pseudo):
+        if pseudo_key[0] in evicted:
+            del det._pseudo[pseudo_key]
+
+    # Retain novelty and existing correlation context on their own horizons.
+    # Unlike a recovery, expiration does not imply an observed return to normal.
+    if expirations:
+        return evaluator._decisions(evaluator.corr.step(at, evaluator._judge(at, expirations)))
+    return []

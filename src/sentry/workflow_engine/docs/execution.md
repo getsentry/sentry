@@ -69,6 +69,12 @@ and calls `process_detectors` for the pinned project detector. Workflow Engine r
 artifacts and dispatches outcomes. The source keeps a transition pending until Issue Platform
 ingestion is observed, so the handler must not drop retries before publication.
 
+Start with [`schedule.py`](../../anomaly_detection/schedule.py) for task execution or
+[`detector_handler.py`](../../anomaly_detection/detector_handler.py) for detector behavior.
+The anomaly package separates input queries (`inputs/`), measurement scoring and the minute
+loop (`evaluation/`), group matching (`correlation/`), replay and storage (`checkpoint/`),
+and issue publication (`delivery/`).
+
 ### 3. Evaluate each detector
 
 `process_detectors` obtains `detector.detector_handler` from the `DetectorSettings`

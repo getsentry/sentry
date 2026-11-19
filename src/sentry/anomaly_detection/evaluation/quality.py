@@ -3,7 +3,7 @@
 from collections.abc import Mapping
 
 from sentry.anomaly_detection.contracts import SeriesKey
-from sentry.anomaly_detection.series import Series, samples_key
+from sentry.anomaly_detection.evaluation.series import Series, samples_key
 
 ZERO_SHARE = 0.5
 MIN_MINUTES = 30

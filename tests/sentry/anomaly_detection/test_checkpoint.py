@@ -9,22 +9,22 @@ from typing import Any
 import orjson
 import pytest
 
-from sentry.anomaly_detection.checkpoint import (
+from sentry.anomaly_detection.checkpoint.codec import (
     CHECKPOINT_VERSION,
-    _history_floor,
     _restore,
     _snapshot,
-    advance_org,
     retained_group_keys,
 )
-from sentry.anomaly_detection.collection import MAX_ENVIRONMENTS, MAX_SLICES, SPAN_SLICES
+from sentry.anomaly_detection.checkpoint.replay import advance_org
+from sentry.anomaly_detection.checkpoint.retention import _history_floor
 from sentry.anomaly_detection.contracts import ChangeEvent, ChangeType, SeriesKey, Urgency
-from sentry.anomaly_detection.correlate import MemberState, episode_key
-from sentry.anomaly_detection.detect import DISPERSION_MIN, CountTotals
-from sentry.anomaly_detection.footprint import Footprint, SliceStats
-from sentry.anomaly_detection.pipeline import AnomalyDecision, OrgEvaluator
-from sentry.anomaly_detection.series import SeriesRow
-from sentry.anomaly_detection.shared import PairStats
+from sentry.anomaly_detection.correlation.correlator import MemberState, episode_key
+from sentry.anomaly_detection.correlation.footprint import Footprint, SliceStats
+from sentry.anomaly_detection.correlation.shared_dependencies import PairStats
+from sentry.anomaly_detection.evaluation.count_windows import DISPERSION_MIN, CountTotals
+from sentry.anomaly_detection.evaluation.organization import AnomalyDecision, OrgEvaluator
+from sentry.anomaly_detection.evaluation.series import SeriesRow
+from sentry.anomaly_detection.inputs.measurements import MAX_ENVIRONMENTS, MAX_SLICES, SPAN_SLICES
 from sentry.utils import json
 from tests.sentry.anomaly_detection.test_parity import make_handlers
 

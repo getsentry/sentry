@@ -13,8 +13,12 @@ from itertools import combinations
 from typing import Protocol
 
 from sentry.anomaly_detection.contracts import SeriesKey
-from sentry.anomaly_detection.footprint import DEPENDENCY_SIGNALS, base_signal, service_of
-from sentry.anomaly_detection.novelty import HourlyCoverage, coverage_between
+from sentry.anomaly_detection.correlation.footprint import (
+    DEPENDENCY_SIGNALS,
+    base_signal,
+    service_of,
+)
+from sentry.anomaly_detection.evaluation.novelty import HourlyCoverage, coverage_between
 
 DependencySlice = tuple[str, str, str]  # service, signal, dimension
 

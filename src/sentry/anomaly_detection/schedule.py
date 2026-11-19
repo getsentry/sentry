@@ -1,38 +1,29 @@
 from __future__ import annotations
 
-import logging
 import zlib
 from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
 
 import orjson
-from django.db import router, transaction
-from django.db.models import F
+from django.db import router
 from django.utils import timezone
 from taskbroker_client.retry import Retry
 
 from sentry import features
-from sentry.anomaly_detection.checkpoint import advance_org, retained_group_keys
-from sentry.anomaly_detection.collection import Row, collect
-from sentry.anomaly_detection.enrichment import (
-    TraceLookup,
+from sentry.anomaly_detection.checkpoint.codec import retained_group_keys
+from sentry.anomaly_detection.checkpoint.replay import advance_org
+from sentry.anomaly_detection.delivery.outbox import drain_pending_transitions
+from sentry.anomaly_detection.delivery.pending_transitions import DeliveryState
+from sentry.anomaly_detection.detector_handler import enabled_anomaly_detectors, get_anomaly_handler
+from sentry.anomaly_detection.grouptype import AnomalyDetection
+from sentry.anomaly_detection.inputs.measurements import Row, collect
+from sentry.anomaly_detection.inputs.new_failures import (
     collect_new_failure_modes,
     new_failure_thresholds,
 )
-from sentry.anomaly_detection.grouptype import (
-    AnomalyDetection,
-    AnomalyDetectionDetectorHandler,
-    publish_anomaly_transition,
-)
-from sentry.anomaly_detection.state import DeliveryState
-from sentry.constants import ObjectStatus
-from sentry.db.models.manager.base_query_set import BaseQuerySet
-from sentry.issues.ingest import hash_fingerprint
-from sentry.issues.status_change_consumer import get_group_from_fingerprint
+from sentry.anomaly_detection.inputs.trace_lookup import TraceLookup
 from sentry.locks import locks
 from sentry.models.anomaly_detection_state import AnomalyDetectionState
-from sentry.models.group import GroupStatus
-from sentry.models.grouphash import GroupHash
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode
@@ -42,10 +33,6 @@ from sentry.types.cell import get_local_cell
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
-from sentry.workflow_engine.models import Detector
-from sentry.workflow_engine.types import DetectorType
-
-logger = logging.getLogger(__name__)
 
 FEATURE = "organizations:anomaly-detector"
 _MINUTE = timedelta(minutes=1)
@@ -55,26 +42,7 @@ _HOURLY_LOOKBACK = timedelta(days=16)
 _MAX_CATCHUP = timedelta(minutes=15)
 _MAX_ORGS_PER_TICK = 20
 _MAX_PROJECTS = 10
-_MAX_DELIVERIES = 4
 _MAX_CACHE_BYTES = 900_000
-_INGEST_RETRY_DELAY = timedelta(minutes=5)
-
-
-def _enabled_detectors() -> BaseQuerySet[Detector]:
-    return Detector.objects.filter(
-        type=DetectorType.ANOMALY_DETECTION.value,
-        status=ObjectStatus.ACTIVE,
-        enabled=True,
-        project__status=ObjectStatus.ACTIVE,
-        project__organization__status=OrganizationStatus.ACTIVE,
-    )
-
-
-def _anomaly_handler(detector: Detector) -> AnomalyDetectionDetectorHandler:
-    handler = detector.detector_handler
-    if not isinstance(handler, AnomalyDetectionDetectorHandler):
-        raise TypeError("Anomaly detector settings must register an anomaly handler")
-    return handler
 
 
 def _eligible(organization: Organization) -> bool:
@@ -97,7 +65,7 @@ def schedule_anomaly_detectors() -> None:
     cursor_key = f"anomaly-detection:fanout:v1:{cell}"
     after = cache.get(cursor_key, 0)
     candidates = (
-        _enabled_detectors()
+        enabled_anomaly_detectors()
         .order_by("project__organization_id")
         .values_list("project__organization_id", flat=True)
         .distinct()
@@ -142,121 +110,6 @@ def _hourly_rows(
     return rows
 
 
-def _deliver_one(
-    state_id: int, organization_id: int, db: str, waiting: set[str]
-) -> tuple[bool, bool] | None:
-    """Check one activation's head. Return (made progress, pending remains), if checked.
-
-    The row lock fences retries even if the org lease expires. Kafka and Postgres
-    cannot share a commit: a crash in between replays the deterministic transition ID.
-    """
-    with transaction.atomic(using=db):
-        state_rows = AnomalyDetectionState.objects.using(db).filter(
-            id=state_id, organization_id=organization_id
-        )
-        try:
-            raw_delivery = (
-                state_rows.select_for_update(skip_locked=True)
-                .values_list("delivery", flat=True)
-                .get()
-            )
-        except AnomalyDetectionState.DoesNotExist:
-            return None
-        delivery = DeliveryState.from_json(raw_delivery)
-        index = next(
-            (
-                i
-                for i, item in enumerate(delivery.pending)
-                if item.transition.group_key not in waiting
-            ),
-            None,
-        )
-        if index is None:
-            return None
-        pending = delivery.pending[index]
-        transition = pending.transition
-        detector = (
-            _enabled_detectors()
-            .annotate(project_organization_id=F("project__organization_id"))
-            .get_or_none(
-                id=pending.detector_id,
-                project_id=transition.project_id,
-                project__organization_id=organization_id,
-            )
-        )
-        if detector is None:
-            # Disabling/removing a detector cancels only its affected publications.
-            # Never reroute that lifecycle, even if the project has a new detector.
-            logger.warning(
-                "anomaly_detection.delivery_detector_inactive",
-                extra={"organization_id": organization_id, "detector_id": pending.detector_id},
-            )
-            delivery.retire_owner(pending.logical_key)
-        else:
-            handler = _anomaly_handler(detector)
-            fingerprint = hash_fingerprint(handler.get_issue_fingerprint(transition.group_key))
-            group = get_group_from_fingerprint(transition.project_id, fingerprint)
-            # Wait for opens and updates to be visible before sending a close: a
-            # broker acknowledgement does not mean the consumer has applied them.
-            # A manually resolved issue already has the intended close state.
-            if group is not None and (
-                group.status == GroupStatus.RESOLVED
-                if transition.is_resolved
-                else group.last_seen >= transition.timestamp_utc
-            ):
-                delivery.pending.pop(index)
-            elif group is None and _is_tombstoned(transition.project_id, fingerprint):
-                metrics.incr("anomaly_detection.delivery_tombstoned")
-                delivery.retire_activation(pending)
-            elif group is None and not pending.is_open:
-                # This activation's open was already observed. Its issue was
-                # removed; neither recreate it with an update nor send an orphan close.
-                logger.warning(
-                    "anomaly_detection.delivery_issue_removed",
-                    extra={"organization_id": organization_id, "detector_id": detector.id},
-                )
-                delivery.retire_activation(pending)
-            else:
-                now = timezone.now()
-                published = (
-                    pending.broker_acked_at is None
-                    or now - pending.broker_acked_at >= _INGEST_RETRY_DELAY
-                )
-                if published:
-                    publish_anomaly_transition(detector, transition)
-                    pending.broker_acked_at = now
-                waiting.add(transition.group_key)
-                moved = delivery.defer_activation(transition.group_key)
-                if published or moved:
-                    state_rows.update(delivery=delivery.to_json(), date_updated=now)
-                metrics.incr("anomaly_detection.delivery_waiting_for_ingest")
-                return published, True
-        state_rows.update(delivery=delivery.to_json(), date_updated=timezone.now())
-        return True, bool(delivery.pending)
-
-
-def _is_tombstoned(project_id: int, fingerprint: Sequence[str]) -> bool:
-    return GroupHash.objects.filter(
-        project_id=project_id, hash__in=fingerprint, group_tombstone_id__isnull=False
-    ).exists()
-
-
-def _drain(state_id: int, organization_id: int, db: str) -> tuple[bool, bool]:
-    """Return (pending remains, enqueue continuation) after a bounded drain."""
-    waiting: set[str] = set()
-    made_progress = False
-    for _ in range(_MAX_DELIVERIES):
-        result = _deliver_one(state_id, organization_id, db, waiting)
-        if result is None:
-            return True, False
-        progressed, pending_remains = result
-        if not pending_remains:
-            return False, False
-        made_progress |= progressed
-    # If the whole pass was waiting on ingestion, let the next cron tick retry.
-    return True, made_progress
-
-
 def _run_organization(organization_id: int, target: datetime) -> bool:
     """Make one bounded unit of progress; return whether to enqueue a continuation."""
     organization = Organization.objects.get_or_none(
@@ -272,7 +125,9 @@ def _run_organization(organization_id: int, target: datetime) -> bool:
     if saved_delivery is not None:
         state_id, _, delivery_data = saved_delivery
         if DeliveryState.from_json(delivery_data).pending:
-            pending_remains, continue_draining = _drain(state_id, organization_id, db)
+            pending_remains, continue_draining = drain_pending_transitions(
+                state_id, organization_id, db
+            )
             if pending_remains:
                 # Commit at most one evaluation batch while there is work to deliver.
                 return continue_draining
@@ -287,7 +142,7 @@ def _run_organization(organization_id: int, target: datetime) -> bool:
         return False
 
     detector_rows = list(
-        _enabled_detectors()
+        enabled_anomaly_detectors()
         .filter(project__organization_id=organization_id)
         .order_by("project_id", "id")
         .distinct("project_id")
@@ -300,7 +155,7 @@ def _run_organization(organization_id: int, target: datetime) -> bool:
     projects = [detector.linked_project for detector in detector_rows]
     detector_ids = {detector.linked_project.id: detector.id for detector in detector_rows}
     handlers = {
-        str(detector.linked_project.id): _anomaly_handler(detector) for detector in detector_rows
+        str(detector.linked_project.id): get_anomaly_handler(detector) for detector in detector_rows
     }
 
     if saved_delivery is None:
@@ -376,7 +231,9 @@ def _run_organization(organization_id: int, target: datetime) -> bool:
     if not updated:
         return False
     if delivery.pending:
-        pending_remains, continue_draining = _drain(state_id, organization_id, db)
+        pending_remains, continue_draining = drain_pending_transitions(
+            state_id, organization_id, db
+        )
         if pending_remains:
             return continue_draining
     return end < target

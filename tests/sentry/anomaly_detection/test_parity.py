@@ -1,10 +1,11 @@
 from collections.abc import Sequence
 from datetime import datetime, timedelta
 
-from sentry.anomaly_detection import pipeline
 from sentry.anomaly_detection.contracts import ChangeEvent, Urgency
-from sentry.anomaly_detection.grouptype import AnomalyDetection, AnomalyDetectionDetectorHandler
-from sentry.anomaly_detection.series import SeriesRow
+from sentry.anomaly_detection.detector_handler import AnomalyDetectionDetectorHandler
+from sentry.anomaly_detection.evaluation import organization as pipeline
+from sentry.anomaly_detection.evaluation.series import SeriesRow
+from sentry.anomaly_detection.grouptype import AnomalyDetection
 from sentry.workflow_engine.models import Detector
 
 START = datetime(2024, 1, 8, 12)  # Collector timestamps are naive UTC.

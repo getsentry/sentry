@@ -1,10 +1,10 @@
 from datetime import timedelta
 from unittest import mock
 
-from sentry.anomaly_detection import enrichment
-from sentry.anomaly_detection.collection import MAX_SLICES, collect
 from sentry.anomaly_detection.contracts import SeriesKey
-from sentry.anomaly_detection.series import build
+from sentry.anomaly_detection.evaluation.series import build
+from sentry.anomaly_detection.inputs import new_failures
+from sentry.anomaly_detection.inputs.measurements import MAX_SLICES, collect
 from sentry.testutils.cases import SnubaTestCase, SpanTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 
@@ -206,8 +206,8 @@ class TestAnomalyDetectionIssueEnrichment(TestCase, SnubaTestCase):
             )
 
         # Force a small SnQL page to exercise aggregate ordering and pagination.
-        with mock.patch.object(enrichment, "_ISSUE_USER_PAGE_SIZE", 4):
-            (change,) = enrichment.collect_new_failure_modes(
+        with mock.patch.object(new_failures, "_ISSUE_USER_PAGE_SIZE", 4):
+            (change,) = new_failures.collect_new_failure_modes(
                 self.organization,
                 [self.project],
                 {},

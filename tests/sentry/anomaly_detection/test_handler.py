@@ -6,19 +6,19 @@ import pytest
 from confluent_kafka import KafkaException
 from django.test import override_settings
 
-from sentry.anomaly_detection.baseline import Baseline
-from sentry.anomaly_detection.changepoint import RateShiftTracker
 from sentry.anomaly_detection.contracts import ChangeType, SeriesKey
-from sentry.anomaly_detection.detect import SeriesHistory
-from sentry.anomaly_detection.grouptype import (
-    AnomalyDetection,
+from sentry.anomaly_detection.delivery.outbox import publish_anomaly_transition
+from sentry.anomaly_detection.delivery.transition import AnomalyTransition
+from sentry.anomaly_detection.detector_handler import (
     AnomalyDetectionDetectorHandler,
-    AnomalyTransition,
     MeasurementEvaluation,
     MinuteMeasurements,
-    publish_anomaly_transition,
 )
-from sentry.anomaly_detection.series import SeriesRow
+from sentry.anomaly_detection.evaluation.baseline import Baseline
+from sentry.anomaly_detection.evaluation.rate_shifts import RateShiftTracker
+from sentry.anomaly_detection.evaluation.series import SeriesRow
+from sentry.anomaly_detection.evaluation.series_history import SeriesHistory
+from sentry.anomaly_detection.grouptype import AnomalyDetection
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import Group, GroupStatus

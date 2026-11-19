@@ -7,20 +7,23 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from math import isfinite
 
-from sentry.anomaly_detection import shared
-from sentry.anomaly_detection.baseline import Baseline
-from sentry.anomaly_detection.changepoint import RateShiftTracker
 from sentry.anomaly_detection.contracts import ChangeEvent, ChangeType, SeriesKey, Urgency
-from sentry.anomaly_detection.correlate import (
+from sentry.anomaly_detection.correlation import shared_dependencies
+from sentry.anomaly_detection.correlation.correlator import (
     ERROR_SIGNALS,
     Correlator,
     FootprintSource,
     GroupAction,
 )
-from sentry.anomaly_detection.detect import SeriesHistory
-from sentry.anomaly_detection.grouptype import AnomalyDetectionDetectorHandler, MinuteMeasurements
-from sentry.anomaly_detection.novelty import Novelty, size_of
-from sentry.anomaly_detection.series import Series, SeriesRow
+from sentry.anomaly_detection.detector_handler import (
+    AnomalyDetectionDetectorHandler,
+    MinuteMeasurements,
+)
+from sentry.anomaly_detection.evaluation.baseline import Baseline
+from sentry.anomaly_detection.evaluation.novelty import Novelty, size_of
+from sentry.anomaly_detection.evaluation.rate_shifts import RateShiftTracker
+from sentry.anomaly_detection.evaluation.series import Series, SeriesRow
+from sentry.anomaly_detection.evaluation.series_history import SeriesHistory
 from sentry.workflow_engine.models import DataPacket
 
 _MINUTE = timedelta(minutes=1)
@@ -188,7 +191,7 @@ class OrgEvaluator:
         if minute.minute == 0:
             self._prune_context(minute)
             if minute.hour == 0:
-                self.corr.shared = shared.learn(
+                self.corr.shared = shared_dependencies.learn(
                     self.novelty.history, minute, coverage=self.novelty.coverage
                 )
 

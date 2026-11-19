@@ -8,10 +8,10 @@ from sentry.anomaly_detection.contracts import (
     SeriesKey,
     Urgency,
 )
-from sentry.anomaly_detection.correlate import GroupAction
-from sentry.anomaly_detection.footprint import Footprint
-from sentry.anomaly_detection.pipeline import OrgEvaluator, evaluate_org
-from sentry.anomaly_detection.series import SeriesRow
+from sentry.anomaly_detection.correlation.correlator import GroupAction
+from sentry.anomaly_detection.correlation.footprint import Footprint
+from sentry.anomaly_detection.evaluation.organization import OrgEvaluator, evaluate_org
+from sentry.anomaly_detection.evaluation.series import SeriesRow
 from tests.sentry.anomaly_detection.test_parity import make_handlers
 
 T0 = datetime(2020, 11, 2, 12)

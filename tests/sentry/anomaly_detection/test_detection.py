@@ -2,12 +2,15 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from sentry.anomaly_detection.baseline import Baseline
-from sentry.anomaly_detection.changepoint import ChangePointConfig, RateShiftTracker
 from sentry.anomaly_detection.contracts import ChangeEvent, ChangeType, SeriesKey
-from sentry.anomaly_detection.detect import DetectConfig, SeriesHistory
-from sentry.anomaly_detection.grouptype import AnomalyDetectionDetectorHandler, MinuteMeasurements
-from sentry.anomaly_detection.series import Series, SeriesRow, build, samples_key
+from sentry.anomaly_detection.detector_handler import (
+    AnomalyDetectionDetectorHandler,
+    MinuteMeasurements,
+)
+from sentry.anomaly_detection.evaluation.baseline import Baseline
+from sentry.anomaly_detection.evaluation.rate_shifts import ChangePointConfig, RateShiftTracker
+from sentry.anomaly_detection.evaluation.series import Series, SeriesRow, build, samples_key
+from sentry.anomaly_detection.evaluation.series_history import DetectConfig, SeriesHistory
 from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.types import DetectorType
 

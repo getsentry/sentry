@@ -8,7 +8,7 @@ from functools import partial
 from statistics import median
 
 from sentry.anomaly_detection.contracts import ExpectedValue, SeriesKey
-from sentry.anomaly_detection.series import Series, is_share, rate_parts, samples_key
+from sentry.anomaly_detection.evaluation.series import Series, is_share, rate_parts, samples_key
 
 MINUTE = timedelta(minutes=1)
 

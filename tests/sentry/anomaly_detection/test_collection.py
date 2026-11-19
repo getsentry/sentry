@@ -12,16 +12,16 @@ from sentry_protos.snuba.v1.endpoint_time_series_pb2 import (
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
 from snuba_sdk import Column, Op
 
-from sentry.anomaly_detection import collection, enrichment
-from sentry.anomaly_detection.collection import (
+from sentry.anomaly_detection.contracts import ChangeEvent, ChangeType, SeriesKey
+from sentry.anomaly_detection.correlation.footprint import FOOTPRINT_DEFERRED, Footprint
+from sentry.anomaly_detection.inputs import measurements, new_failures, trace_lookup
+from sentry.anomaly_detection.inputs.measurements import (
     ERROR_RELEASE,
     ERROR_USER,
     IncompleteCollection,
     Row,
     collect,
 )
-from sentry.anomaly_detection.contracts import ChangeEvent, ChangeType, SeriesKey
-from sentry.anomaly_detection.footprint import FOOTPRINT_DEFERRED, Footprint
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.spans_rpc import Spans
@@ -59,7 +59,7 @@ class TestCollection(TestCase):
             },
         ]
         with (
-            mock.patch.object(collection, "raw_snql_query", side_effect=replies) as raw,
+            mock.patch.object(measurements, "raw_snql_query", side_effect=replies) as raw,
             mock.patch.object(Spans, "filter_project", return_value=False),
         ):
             rows = collect(self.organization, [self.project], start, start + 2 * MINUTE, "1m")
@@ -150,7 +150,7 @@ class TestCollection(TestCase):
             ]
 
         with (
-            mock.patch.object(collection, "raw_snql_query", return_value={"data": []}),
+            mock.patch.object(measurements, "raw_snql_query", return_value={"data": []}),
             mock.patch.object(Spans, "filter_project", return_value=True),
             mock.patch.object(Spans, "run_table_query", side_effect=discover),
             mock.patch.object(snuba_rpc, "timeseries_rpc", side_effect=timeseries) as rpc,
@@ -201,7 +201,7 @@ class TestCollection(TestCase):
     def test_propagates_failure_and_rejects_unexpected_pagination(self) -> None:
         with (
             mock.patch.object(
-                collection,
+                measurements,
                 "raw_snql_query",
                 side_effect=[
                     {"data": [{"env": "prod"}]},
@@ -216,7 +216,7 @@ class TestCollection(TestCase):
                 collect(self.organization, [self.project], START, START + MINUTE, "1m")
 
         with (
-            mock.patch.object(collection, "raw_snql_query", return_value={"data": []}),
+            mock.patch.object(measurements, "raw_snql_query", return_value={"data": []}),
             mock.patch.object(Spans, "filter_project", return_value=True),
             mock.patch.object(
                 Spans,
@@ -236,7 +236,7 @@ class TestCollection(TestCase):
 
     def test_hourly_request_and_reject_foreign_project(self) -> None:
         foreign = self.create_project(organization=self.create_organization())
-        with mock.patch.object(collection, "raw_snql_query") as raw:
+        with mock.patch.object(measurements, "raw_snql_query") as raw:
             with pytest.raises(ValueError, match="belong to the organization"):
                 collect(
                     self.organization,
@@ -248,7 +248,7 @@ class TestCollection(TestCase):
             raw.assert_not_called()
         with (
             mock.patch.object(
-                collection,
+                measurements,
                 "raw_snql_query",
                 side_effect=[
                     {"data": [{"env": "test"}]},
@@ -292,7 +292,7 @@ class TestEnrichment(TestCase):
         project = str(self.project.id)
         thresholds = {(project, "prod"): 2.0}
         with mock.patch.object(
-            enrichment,
+            new_failures,
             "_run_errors",
             side_effect=[
                 [
@@ -305,7 +305,7 @@ class TestEnrichment(TestCase):
                 ],
             ],
         ) as query:
-            (change,) = enrichment.collect_new_failure_modes(
+            (change,) = new_failures.collect_new_failure_modes(
                 self.organization,
                 [self.project],
                 thresholds,
@@ -336,9 +336,9 @@ class TestEnrichment(TestCase):
         project = str(self.project.id)
         thresholds = {(project, "prod"): 11.5}
         with (
-            mock.patch.object(enrichment, "_ISSUE_USER_PAGE_SIZE", 10),
+            mock.patch.object(new_failures, "_ISSUE_USER_PAGE_SIZE", 10),
             mock.patch.object(
-                enrichment,
+                new_failures,
                 "_run_errors",
                 side_effect=[
                     [{"group_id": group.id, "users": 12, "count()": 13}],
@@ -347,7 +347,7 @@ class TestEnrichment(TestCase):
                 ],
             ) as query,
         ):
-            weak, strong = enrichment.collect_new_failure_modes(
+            weak, strong = new_failures.collect_new_failure_modes(
                 self.organization,
                 [self.project],
                 thresholds,
@@ -379,14 +379,14 @@ class TestEnrichment(TestCase):
         )
         project = str(self.project.id)
         with mock.patch.object(
-            enrichment,
+            new_failures,
             "_run_errors",
             side_effect=[
                 [{"group_id": group.id, "users": 10, "count()": 10}],
                 [{"first_seen": START}] * 10,
             ],
         ) as query:
-            (change,) = enrichment.collect_new_failure_modes(
+            (change,) = new_failures.collect_new_failure_modes(
                 self.organization,
                 [self.project],
                 {(project, "historical"): 40.0},
@@ -447,7 +447,7 @@ class TestEnrichment(TestCase):
                 ],
             ) as table,
         ):
-            lookup = enrichment.TraceLookup(self.organization, [self.project])
+            lookup = trace_lookup.TraceLookup(self.organization, [self.project])
             footprint = lookup.footprint(change, observation_end)
             assert isinstance(footprint, Footprint)
             assert lookup.footprint(change, observation_end) is footprint
@@ -479,11 +479,11 @@ class TestEnrichment(TestCase):
         with (
             mock.patch.object(Spans, "filter_project", return_value=True),
             mock.patch.object(
-                enrichment, "_run_errors", return_value=[{"contexts[trace.trace_id]": trace}]
+                trace_lookup, "_run_errors", return_value=[{"contexts[trace.trace_id]": trace}]
             ) as errors,
             mock.patch.object(Spans, "run_table_query", return_value={"data": []}) as spans,
         ):
-            lookup = enrichment.TraceLookup(self.organization, [self.project])
+            lookup = trace_lookup.TraceLookup(self.organization, [self.project])
             assert lookup.footprint(change, detected + MINUTE) is None
 
         errors.assert_called_once()
@@ -512,10 +512,10 @@ class TestEnrichment(TestCase):
         )
         with (
             mock.patch.object(Spans, "filter_project", return_value=True),
-            mock.patch.object(enrichment, "_run_errors", return_value=[{}]) as errors,
+            mock.patch.object(trace_lookup, "_run_errors", return_value=[{}]) as errors,
             mock.patch.object(Spans, "run_table_query") as spans,
         ):
-            lookup = enrichment.TraceLookup(self.organization, [self.project])
+            lookup = trace_lookup.TraceLookup(self.organization, [self.project])
             assert lookup.footprint(change, START + MINUTE) is None
         errors.assert_called_once()
         spans.assert_not_called()
@@ -532,9 +532,9 @@ class TestEnrichment(TestCase):
         with (
             mock.patch.object(Spans, "filter_project", return_value=True),
             mock.patch.object(Spans, "run_table_query", return_value={"data": []}) as spans,
-            mock.patch.object(enrichment, "_MAX_FOOTPRINTS", 1),
+            mock.patch.object(trace_lookup, "_MAX_FOOTPRINTS", 1),
         ):
-            lookup = enrichment.TraceLookup(self.organization, [self.project])
+            lookup = trace_lookup.TraceLookup(self.organization, [self.project])
             assert lookup.footprint(change, START + MINUTE) is None
             assert lookup.footprint(change, START + 2 * MINUTE) is FOOTPRINT_DEFERRED
             assert lookup.footprint(change, START + MINUTE) is None
@@ -549,4 +549,7 @@ def test_failure_thresholds_use_only_observed_hourly_error_users() -> None:
         (START, "errors_by_release", "count_unique(user)", "10", "stage", "v1", 2000.0),
         (START, "errors", "count_unique(user)", "10", "unobserved", "", None),
     ]
-    assert enrichment.new_failure_thresholds(rows) == {("10", "prod"): 15.0, ("10", "stage"): 10.0}
+    assert new_failures.new_failure_thresholds(rows) == {
+        ("10", "prod"): 15.0,
+        ("10", "stage"): 10.0,
+    }

@@ -12,17 +12,16 @@ from django.test import override_settings
 
 from sentry import features
 from sentry.anomaly_detection import schedule
-from sentry.anomaly_detection.checkpoint import CHECKPOINT_VERSION
+from sentry.anomaly_detection.checkpoint.codec import CHECKPOINT_VERSION
 from sentry.anomaly_detection.contracts import Urgency
-from sentry.anomaly_detection.enrichment import TraceLookup
-from sentry.anomaly_detection.grouptype import (
-    AnomalyDetection,
-    AnomalyDetectionDetectorHandler,
-    AnomalyTransition,
-)
-from sentry.anomaly_detection.pipeline import AnomalyDecision
-from sentry.anomaly_detection.series import SeriesRow
-from sentry.anomaly_detection.state import DeliveryState
+from sentry.anomaly_detection.delivery import outbox
+from sentry.anomaly_detection.delivery.pending_transitions import DeliveryState
+from sentry.anomaly_detection.delivery.transition import AnomalyTransition
+from sentry.anomaly_detection.detector_handler import AnomalyDetectionDetectorHandler
+from sentry.anomaly_detection.evaluation.organization import AnomalyDecision
+from sentry.anomaly_detection.evaluation.series import SeriesRow
+from sentry.anomaly_detection.grouptype import AnomalyDetection
+from sentry.anomaly_detection.inputs.trace_lookup import TraceLookup
 from sentry.conf.types.kafka_definition import Topic
 from sentry.constants import ObjectStatus
 from sentry.issues.ingest import hash_fingerprint
@@ -229,12 +228,12 @@ class TestAnomalySchedule(TestCase):
             patch.object(schedule, "_hourly_rows", return_value=[]),
             patch.object(schedule, "collect_new_failure_modes", return_value=[]),
             patch.object(schedule, "advance_org", return_value=(decisions, checkpoint)) as advance,
-            patch.object(schedule, "publish_anomaly_transition") as publish,
+            patch.object(outbox, "publish_anomaly_transition") as publish,
         ):
             assert schedule._run_organization(self.organization.id, END)
-            assert publish.call_count == schedule._MAX_DELIVERIES
+            assert publish.call_count == outbox._MAX_DELIVERIES
             assert schedule._run_organization(self.organization.id, END + timedelta(minutes=1))
-            assert publish.call_count == 2 * schedule._MAX_DELIVERIES
+            assert publish.call_count == 2 * outbox._MAX_DELIVERIES
 
         advance.assert_called_once()
         state = AnomalyDetectionState.objects.get(organization=self.organization)
@@ -344,9 +343,9 @@ class TestAnomalySchedule(TestCase):
                     {"version": CHECKPOINT_VERSION, "qualified": [{"group_key": "group"}]},
                 ),
             ) as advance,
-            patch.object(schedule, "get_group_from_fingerprint", return_value=None) as lookup,
+            patch.object(outbox, "get_group_from_fingerprint", return_value=None) as lookup,
             patch.object(
-                schedule,
+                outbox,
                 "publish_anomaly_transition",
                 side_effect=TimeoutError("Kafka acknowledgement"),
             ) as publish,
@@ -428,11 +427,11 @@ class TestAnomalySchedule(TestCase):
             patch.object(schedule, "collect_new_failure_modes", return_value=[]),
             patch.object(schedule, "advance_org", return_value=(decisions, checkpoint)) as advance,
             patch.object(
-                schedule,
+                outbox,
                 "get_group_from_fingerprint",
                 side_effect=lambda _project_id, fingerprint: groups.get(tuple(fingerprint)),
             ),
-            patch.object(schedule, "publish_anomaly_transition") as publish,
+            patch.object(outbox, "publish_anomaly_transition") as publish,
         ):
             assert not schedule._run_organization(self.organization.id, target)
             first_open, second_open = [entry.args[1] for entry in publish.call_args_list]
@@ -508,7 +507,7 @@ class TestAnomalySchedule(TestCase):
                     ([decision(self.project.id, timestamp=END)], checkpoint),
                 ],
             ),
-            patch.object(schedule, "publish_anomaly_transition") as publish,
+            patch.object(outbox, "publish_anomaly_transition") as publish,
             patch("sentry.issues.status_change_consumer.kick_off_status_syncs"),
         ):
             schedule._run_organization(self.organization.id, END)
@@ -585,13 +584,13 @@ class TestAnomalySchedule(TestCase):
         with (
             self.feature(FEATURES),
             patch.object(
-                schedule,
+                outbox,
                 "_is_tombstoned",
                 side_effect=lambda _project_id, fingerprint: (
                     tombstoned and fingerprint == original_fingerprint
                 ),
             ),
-            patch.object(schedule, "publish_anomaly_transition") as publish,
+            patch.object(outbox, "publish_anomaly_transition") as publish,
         ):
             schedule._run_organization(self.organization.id, target)
 
@@ -623,8 +622,8 @@ class TestAnomalySchedule(TestCase):
             self.feature(FEATURES),
             patch.object(schedule, "_MAX_PROJECTS", 1),
             patch.object(schedule, "collect") as collect,
-            patch.object(schedule, "get_group_from_fingerprint", return_value=None) as lookup,
-            patch.object(schedule, "publish_anomaly_transition") as publish,
+            patch.object(outbox, "get_group_from_fingerprint", return_value=None) as lookup,
+            patch.object(outbox, "publish_anomaly_transition") as publish,
         ):
             target = END + timedelta(minutes=1)
             schedule._run_organization(self.organization.id, target)
@@ -654,7 +653,7 @@ class TestAnomalySchedule(TestCase):
         detector.update(enabled=False)
         with (
             self.feature(FEATURES),
-            patch.object(schedule, "publish_anomaly_transition") as publish,
+            patch.object(outbox, "publish_anomaly_transition") as publish,
         ):
             schedule._run_organization(self.organization.id, END)
         publish.assert_not_called()

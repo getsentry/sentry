@@ -15,9 +15,9 @@ from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Literal, NamedTuple
 
-from sentry.anomaly_detection.baseline import Baseline
 from sentry.anomaly_detection.contracts import ChangeEvent, ChangeType, SeriesKey
-from sentry.anomaly_detection.series import Series, rate_parts
+from sentry.anomaly_detection.evaluation.baseline import Baseline
+from sentry.anomaly_detection.evaluation.series import Series, rate_parts
 
 MINUTE = timedelta(minutes=1)
 RATE_FLOOR = 1e-6
