@@ -1,9 +1,10 @@
 """
 Every SQL statement used for table partitioning lives in this module.
 
-Production runs Postgres 14 while local development and CI run Postgres 18, so all
-statements here must stay compatible with Postgres 14 until the production upgrade
-is finished. Features we rely on, all available in Postgres 14:
+Production, CI and the default local development database run Postgres 14, and
+production is being upgraded to 18. All statements here must work on both, and
+stay compatible with Postgres 14 until the upgrade is finished. Features we rely on,
+all available in Postgres 14:
 
 - ``PARTITION BY RANGE`` / ``PARTITION BY HASH``
 - ``ALTER TABLE ... ATTACH PARTITION``

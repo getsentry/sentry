@@ -12,6 +12,7 @@ from fixtures.partitions import (
     FIXTURE_TABLES,
     HashPartitionedFixture,
     RangePartitionedFixture,
+    create_target_table,
     drop_fixture_tables,
     fixture_project_state,
     fixture_tables,
@@ -59,6 +60,7 @@ def roundtrip(value: object) -> object:
 class CreatePartitionedModelTest(TransactionTestCase):
     def test_creates_partitioned_table(self) -> None:
         drop_fixture_tables()
+        create_target_table()
         try:
             with override_settings(SENTRY_PARTITIONED_TABLES=FIXTURE_TABLES):
                 run(create_hash_fixture())
@@ -70,6 +72,7 @@ class CreatePartitionedModelTest(TransactionTestCase):
 
     def test_creates_plain_table_when_not_enabled(self) -> None:
         drop_fixture_tables()
+        create_target_table()
         try:
             with override_settings(SENTRY_PARTITIONED_TABLES=[]):
                 run(create_hash_fixture())

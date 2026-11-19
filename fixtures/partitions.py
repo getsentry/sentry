@@ -12,9 +12,23 @@ from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model
-from sentry.db.models.fields.bounded import BoundedBigAutoField
 from sentry.db.partitions import HashPartitioning, PartitionInterval, RangePartitioning
 from sentry.db.partitions.catalog import list_detached_range_partitions
+
+# Every model here only references other fixture models. A foreign key to a real model,
+# like Project, would make deleting that model's rows query these tables, which only
+# exist while a test creates them.
+
+
+@cell_silo_model
+class PartitionedFixtureTarget(Model):
+    """A plain table the hash fixture has a database foreign key to."""
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    class Meta:
+        app_label = "fixtures"
+        db_table = "fixtures_partitions_target"
 
 
 @cell_silo_model
@@ -24,7 +38,7 @@ class HashPartitionedFixture(Model):
 
     name = models.CharField(max_length=64)
     # Hash partitioned tables can have database foreign keys to other tables.
-    project = FlexibleForeignKey("sentry.Project", null=True)
+    target = FlexibleForeignKey(PartitionedFixtureTarget, null=True)
 
     class Meta:
         app_label = "fixtures"
@@ -52,17 +66,21 @@ class RangePartitionedFixture(Model):
         indexes = [models.Index(fields=["value"], name="fx_partitions_range_value_idx")]
 
 
-FIXTURE_MODELS: tuple[type[Model], ...] = (HashPartitionedFixture, RangePartitionedFixture)
-FIXTURE_TABLES = frozenset(model._meta.db_table for model in FIXTURE_MODELS)
+# In the order the tables are created.
+FIXTURE_MODELS: tuple[type[Model], ...] = (
+    PartitionedFixtureTarget,
+    HashPartitionedFixture,
+    RangePartitionedFixture,
+)
+# The tables that declare partitioning.
+FIXTURE_TABLES = frozenset(
+    model._meta.db_table for model in FIXTURE_MODELS if model.__partitioning__ is not None
+)
 
 
 def fixture_project_state() -> ProjectState:
     """Migration state with the fixture models, as historical models see them."""
     state = ProjectState()
-    # Stands in for the real model, which the hash fixture has a foreign key to.
-    state.add_model(
-        ModelState("sentry", "Project", [("id", BoundedBigAutoField(primary_key=True))])
-    )
     for model in FIXTURE_MODELS:
         state.add_model(ModelState.from_model(model))
     return state
@@ -83,6 +101,12 @@ def drop_fixture_tables() -> None:
     with connection.cursor() as cursor:
         for partition in detached:
             cursor.execute(f"DROP TABLE {connection.ops.quote_name(partition.name)}")
+
+
+def create_target_table() -> None:
+    """For tests that create the hash fixture table on its own, e.g. from migration state."""
+    with connection.schema_editor() as editor:
+        editor.create_model(PartitionedFixtureTarget)
 
 
 @contextmanager

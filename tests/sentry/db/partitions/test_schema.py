@@ -15,9 +15,11 @@ from django.utils import timezone
 from django_zero_downtime_migrations.backends.postgres.schema import UnsafeOperationException
 
 from fixtures.partitions import (
+    FIXTURE_MODELS,
     FIXTURE_TABLES,
     HashPartitionedFixture,
     RangePartitionedFixture,
+    create_target_table,
     drop_fixture_tables,
     fixture_project_state,
     fixture_tables,
@@ -132,7 +134,7 @@ class CreatePartitionedTableTest(TransactionTestCase):
             )
             assert primary_key_columns(HASH_TABLE) == ["id"]
             # Created with the table, which Postgres 14 can't do NOT VALID.
-            assert foreign_keys(HASH_TABLE) == ["sentry_project"]
+            assert foreign_keys(HASH_TABLE) == ["fixtures_partitions_target"]
             assert [p.bound for p in list_partitions(connection, HASH_TABLE)] == [
                 f"FOR VALUES WITH (modulus 4, remainder {remainder})" for remainder in range(4)
             ]
@@ -170,6 +172,7 @@ class CreatePartitionedTableTest(TransactionTestCase):
         historical = fixture_project_state().apps.get_model("fixtures", "HashPartitionedFixture")
         assert getattr(historical, "__partitioning__", None) is None
         drop_fixture_tables()
+        create_target_table()
         with override_settings(SENTRY_PARTITIONED_TABLES=FIXTURE_TABLES):
             with safe_editor() as editor:
                 if partitioned:
@@ -201,6 +204,7 @@ class CreatePartitionedTableTest(TransactionTestCase):
     def test_create_partitioned_model_when_not_enabled(self) -> None:
         historical = fixture_project_state().apps.get_model("fixtures", "HashPartitionedFixture")
         drop_fixture_tables()
+        create_target_table()
         try:
             with override_settings(SENTRY_PARTITIONED_TABLES=[]), safe_editor() as editor:
                 editor.create_partitioned_model(historical, HashPartitionedFixture.__partitioning__)
@@ -533,3 +537,14 @@ class GeneratedDdlTest(TestCase):
             assert create_sql() == baseline
         assert len(baseline) > len(all_models)
         assert not any("PARTITION BY" in s for s in baseline)
+
+
+def test_fixtures_only_reference_fixture_models() -> None:
+    # A relation to a real model would make deleting that model's rows query fixture
+    # tables, which only exist while a test creates them.
+    assert [
+        f"{model.__name__}.{field.name}"
+        for model in FIXTURE_MODELS
+        for field in model._meta.get_fields()
+        if field.related_model is not None and field.related_model not in FIXTURE_MODELS
+    ] == []
