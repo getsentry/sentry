@@ -5,9 +5,12 @@ describe('comment attachment upload client', () => {
   let fetchSpy: jest.SpyInstance;
 
   beforeEach(() => {
-    fetchSpy = jest
-      .spyOn(window, 'fetch')
-      .mockResolvedValue(Response.json({id: '5'}, {status: 201}));
+    fetchSpy = jest.spyOn(window, 'fetch').mockResolvedValue(
+      new Response('{"id": "5"}', {
+        status: 201,
+        headers: {'Content-Type': 'application/json'},
+      })
+    );
   });
 
   afterEach(() => {
