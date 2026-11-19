@@ -77,6 +77,7 @@ jobs:
           token: ${{ steps.token.outputs.token }}
           # A rolling PR's branch is compared with the default branch.
           fetch-depth: 0
+          persist-credentials: true
 
       # Callers use this workflow from master, so the script comes from there too.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
