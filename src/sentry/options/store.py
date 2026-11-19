@@ -13,7 +13,7 @@ from django.utils import timezone
 from sentry_sdk.integrations.logging import ignore_logger_for_events
 
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
-from sentry.options.manager import UpdateChannel, _validate_write_channel
+from sentry.options.manager import UpdateChannel
 from sentry.utils.types import Type
 
 if TYPE_CHECKING:
@@ -77,9 +77,11 @@ class OptionsStore:
     Abstraction for the Option storage logic that should be driven
     by the OptionsManager.
 
-    OptionsStore validates write channels but does not validate option values.
-    Direct callers must validate their data; OptionsManager provides the normal
-    option validation and permissions.
+    OptionsStore is gooey and raw. It provides no protection over
+    what goes into the store. It only knows that it's reading/writing
+    to the right place. If using the OptionsStore directly, it's your
+    job to do validation of the data. You should probably go through
+    OptionsManager instead, unless you need raw access to something.
     """
 
     def __init__(
@@ -249,7 +251,7 @@ class OptionsStore:
 
     def get_last_update_channel(self, key: Key) -> UpdateChannel | None:
         """
-        Gets the update channel recorded for the stored option.
+        Gets how the option was last updated to check for drift.
         """
         model = self.model
         try:
@@ -266,14 +268,12 @@ class OptionsStore:
         If cache fails, we ignore silently since it'll get repaired later by sync_options.
         A boolean is returned to indicate if the network cache was set successfully.
         """
-        _validate_write_channel(channel)
         assert self.cache is not None, "cache must be configured before mutating options"
 
         self.set_store(key, value, channel)
         return self.set_cache(key, value)
 
     def set_store(self, key: Key, value: object, channel: UpdateChannel) -> None:
-        _validate_write_channel(channel)
         self.model.objects.update_or_create(
             key=key.name,
             defaults={
