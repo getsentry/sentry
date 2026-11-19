@@ -1048,6 +1048,9 @@ importers:
       typescript:
         specifier: npm:@typescript/typescript6@6.0.2
         version: '@typescript/typescript6@6.0.2'
+      typescript-7:
+        specifier: npm:typescript@^7.0.2
+        version: typescript@7.0.2
       valibot:
         specifier: 1.4.2
         version: 1.4.2(@typescript/typescript6@6.0.2)

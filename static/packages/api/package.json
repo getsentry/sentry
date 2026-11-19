@@ -102,6 +102,7 @@
     "fast-check": "4.10.2",
     "oxlint": "1.94.0",
     "typescript": "npm:@typescript/typescript6@6.0.2",
+    "typescript-7": "npm:typescript@^7.0.2",
     "valibot": "1.4.2",
     "vitest": "5.1.0",
     "zod": "4.6.7"

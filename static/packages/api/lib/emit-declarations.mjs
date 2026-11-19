@@ -1,34 +1,25 @@
 /**
- * Emit the declarations `tsc --emitDeclarationOnly` would, from tsconfig.json,
- * in parallel worker threads.
- *
- * Checking the Valibot and Zod schemas takes most of tsc's time, and neither
- * file imports anything else in src/. Each worker builds a program from one
- * group of root files, reports its diagnostics, and writes its declarations;
- * the files outside every group form one more program.
+ * Emit the declarations tsconfig.json describes with TypeScript 7's tsc, then
+ * add file extensions to the relative imports in them.
  *
  * Hey API's modules import each other without file extensions, which NodeNext
- * resolution rejects, so the emit gives those specifiers the `.ts` extension
- * the rest of src/ uses. Declaration files resolve `.ts` to `.d.ts`.
+ * resolution rejects, so each such specifier gets the `.ts` extension the rest
+ * of src/ uses. Declaration files resolve `.ts` to `.d.ts`.
+ *
+ * TypeScript 7 has no stable API for emit transformers, so the specifiers are
+ * rewritten in the emitted files. TypeScript 6 only parses them to find each
+ * specifier.
  */
-import { existsSync } from "node:fs";
+import { execFile } from "node:child_process";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { parentPort, Worker, workerData } from "node:worker_threads";
+import { promisify } from "node:util";
 import ts from "typescript";
 
-const CONFIG = fileURLToPath(new URL("../tsconfig.json", import.meta.url));
-const formatHost = {
-  getCanonicalFileName: name => name,
-  getCurrentDirectory: ts.sys.getCurrentDirectory,
-  getNewLine: () => ts.sys.newLine,
-};
-
-function readConfig() {
-  const { config, error } = ts.readConfigFile(CONFIG, ts.sys.readFile);
-  if (error) throw new Error(ts.flattenDiagnosticMessageText(error.messageText, "\n"));
-  return ts.parseJsonConfigFileContent(config, ts.sys, fileURLToPath(new URL("..", import.meta.url)));
-}
+const ROOT = fileURLToPath(new URL("..", import.meta.url));
+const TSC = path.join(path.dirname(createRequire(import.meta.url).resolve("typescript-7/package.json")), "bin", "tsc");
 
 /** Extensions NodeNext resolves; Hey API's `.gen` suffix is not one. */
 const MODULE_EXTENSIONS = new Set([".ts", ".mts", ".cts", ".js", ".mjs", ".cjs", ".json"]);
@@ -42,71 +33,55 @@ function withExtension(specifier, fromFile) {
   throw new Error(`${fromFile} imports ${specifier}, which is not a module in src/`);
 }
 
-/** A declaration transformer that adds extensions to relative module specifiers. */
-const addImportExtensions = context => file => {
-  const { factory } = context;
+/** The string literals that name a module, including inferred `import("./module").Name` types. */
+function moduleSpecifiers(file) {
+  const found = [];
   const visit = node => {
-    // Inferred types can be written as `import("./module").Name`.
-    if (ts.isImportTypeNode(node) && ts.isLiteralTypeNode(node.argument) && ts.isStringLiteral(node.argument.literal)) {
-      const before = node.argument.literal.text;
-      const after = withExtension(before, file.fileName);
-      const argument = after === before
-        ? node.argument
-        : factory.updateLiteralTypeNode(node.argument, factory.createStringLiteral(after));
-      return factory.updateImportTypeNode(
-        node,
-        argument,
-        node.attributes,
-        node.qualifier,
-        ts.visitNodes(node.typeArguments, visit, ts.isTypeNode),
-        node.isTypeOf,
-      );
+    if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier) {
+      found.push(node.moduleSpecifier);
+    } else if (ts.isImportTypeNode(node) && ts.isLiteralTypeNode(node.argument) && ts.isStringLiteral(node.argument.literal)) {
+      found.push(node.argument.literal);
     }
-    if (!(ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) || !node.moduleSpecifier) {
-      return ts.visitEachChild(node, visit, context);
-    }
-    const before = node.moduleSpecifier.text;
-    const after = withExtension(before, file.fileName);
-    if (after === before) return node;
-    const specifier = factory.createStringLiteral(after);
-    return ts.isImportDeclaration(node)
-      ? factory.updateImportDeclaration(node, node.modifiers, node.importClause, specifier, node.attributes)
-      : factory.updateExportDeclaration(node, node.modifiers, node.isTypeOnly, node.exportClause, specifier, node.attributes);
+    ts.forEachChild(node, visit);
   };
-  return ts.visitNode(file, visit);
-};
-
-/** Emit `rootNames`' declarations; returns tsc's formatted diagnostics, if any. */
-function emit(rootNames) {
-  const { options } = readConfig();
-  const program = ts.createProgram({ rootNames, options });
-  const result = program.emit(undefined, undefined, undefined, true, { afterDeclarations: [addImportExtensions] });
-  const diagnostics = [...ts.getPreEmitDiagnostics(program), ...result.diagnostics];
-  return ts.formatDiagnosticsWithColorAndContext(diagnostics, formatHost);
+  visit(file);
+  return found;
 }
 
-/** Emit every declaration, one program per group of src/ paths plus one for the rest. */
-export async function emitDeclarations(groups) {
-  const { fileNames, errors } = readConfig();
-  if (errors.length) throw new Error(ts.formatDiagnostics(errors, formatHost));
-  const grouped = groups.map(names => names.map(name => fileURLToPath(new URL(`../src/${name}`, import.meta.url))));
-  // tsc reports POSIX separators even on Windows, so compare resolved paths.
-  const claimed = new Set(grouped.flat().map(name => path.resolve(name)));
-  const rest = fileNames.filter(name => !claimed.has(path.resolve(name)));
-  if (fileNames.length - rest.length !== claimed.size) {
-    throw new Error("A declaration group names a file outside tsconfig.json's files");
+/** Add extensions to the relative imports in `declarationFile`, resolved from `sourceFile`'s directory. */
+function addImportExtensions(declarationFile, sourceFile) {
+  const text = readFileSync(declarationFile, "utf8");
+  const file = ts.createSourceFile(declarationFile, text, ts.ScriptTarget.Latest, true);
+  let result = text;
+  // From the end, so earlier offsets stay valid.
+  for (const literal of moduleSpecifiers(file).reverse()) {
+    const after = withExtension(literal.text, sourceFile);
+    if (after === literal.text) continue;
+    // Keep the emitted quote character.
+    const start = literal.getStart(file) + 1;
+    result = result.slice(0, start) + after + result.slice(literal.end - 1);
   }
-  const reports = await Promise.all([...grouped, rest].map(rootNames => new Promise((resolve, reject) => {
-    const worker = new Worker(new URL(import.meta.url), { workerData: { declarations: rootNames } });
-    worker.once("message", resolve);
-    worker.once("error", reject);
-    worker.once("exit", code => reject(new Error(`Declaration worker exited with code ${code}`)));
-  })));
-  const failures = reports.filter(Boolean);
-  if (failures.length) {
-    process.stderr.write(failures.join(""));
+  if (result !== text) writeFileSync(declarationFile, result);
+}
+
+/** Emit every declaration from tsconfig.json into dist/. */
+export async function emitDeclarations() {
+  let stdout;
+  try {
+    ({ stdout } = await promisify(execFile)(
+      process.execPath,
+      [TSC, "-p", path.join(ROOT, "tsconfig.json"), "--listEmittedFiles"],
+      { cwd: ROOT, maxBuffer: 64 * 1024 * 1024 },
+    ));
+  } catch (error) {
+    const output = `${error.stdout ?? ""}${error.stderr ?? ""}`;
+    process.stderr.write(output.split("\n").filter(line => !line.startsWith("TSFILE: ")).join("\n"));
     throw new Error("Declaration emit failed");
   }
+  const dist = path.join(ROOT, "dist");
+  for (const line of stdout.split("\n")) {
+    if (!line.startsWith("TSFILE: ")) continue;
+    const file = line.slice("TSFILE: ".length).trim();
+    addImportExtensions(file, path.join(ROOT, "src", path.relative(dist, file)));
+  }
 }
-
-if (workerData?.declarations) parentPort.postMessage(emit(workerData.declarations));
