@@ -254,14 +254,7 @@ jobs:
       # Launch it once here, while webpack builds, so the test workers don't
       # pay that.
       - name: Warm up Chrome in the background
-        run: |
-          if command -v google-chrome && command -v chromedriver; then
-            setsid nohup timeout 60 google-chrome --headless --no-sandbox --disable-gpu \
-              --disable-dev-shm-usage --user-data-dir="$(mktemp -d)" --window-size=1680,1050 \
-              --screenshot="$RUNNER_TEMP/chrome-warmup.png" 'data:text/html,<p>warm</p>' \
-              >"$RUNNER_TEMP/chrome-warmup.log" 2>&1 &
-            setsid nohup chromedriver --version >/dev/null 2>&1 &
-          fi
+        run: .github/workflows/scripts/warm-up-chrome.sh
 
       - name: webpack
         env:
@@ -320,16 +313,7 @@ jobs:
           ACCEPTANCE_COVERAGE_ARGS: ${{ env.COLLECT_COVERAGE == 'true' && '-p acceptance_coverage_warmup --cov=src --cov-context=test --cov-report=' || '' }}
           PYTHONPATH: ${{ env.COLLECT_COVERAGE == 'true' && format('{0}/.github/workflows/scripts', github.workspace) || '' }}
           COVERAGE_FILE: ${{ github.workspace }}/${{ env.ACCEPTANCE_COVERAGE_DB }}
-        run: |
-          export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -n ${XDIST_WORKERS} --dist=loadfile"
-          # Pins the Chrome for Testing build, not the image's Chrome, and skips
-          # the Selenium Manager lookup Selenium would run on every launch.
-          chrome=$(command -v google-chrome)
-          chromedriver=$(command -v chromedriver)
-          PYTEST_ADDOPTS="$PYTEST_ADDOPTS --chrome-path=$chrome --chromedriver-path=$chromedriver $ACCEPTANCE_COVERAGE_ARGS"
-          timeout -k 30 1200 make run-acceptance || rc=$?
-          [ "${rc:-0}" -ne 124 ] || echo "::error::Test run timed out after 20 minutes (possible xdist hang)"
-          exit "${rc:-0}"
+        run: .github/workflows/scripts/run-acceptance-tests.sh
 
       - name: Extract test durations
         if: env.COLLECT_COVERAGE == 'true'
@@ -366,17 +350,7 @@ jobs:
 
       - name: Inspect failure
         if: failure()
-        run: |
-          if command -v devservices; then
-            devservices logs
-          fi
-
-          if [ "${XDIST_PER_WORKER_SNUBA}" = "1" ]; then
-            for i in $(seq 0 $(( ${XDIST_WORKERS} - 1 ))); do
-              echo "--- snuba-gw${i} logs ---"
-              docker logs "snuba-gw${i}" 2>&1 | tail -30 || true
-            done
-          fi
+        run: .github/workflows/scripts/inspect-failure.sh
 
   # Only after every shard passed and uploaded its coverage, so the combined
   # coverage includes every test. A failing day keeps the previous coverage.
