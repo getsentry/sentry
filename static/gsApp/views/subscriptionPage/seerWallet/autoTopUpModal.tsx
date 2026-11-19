@@ -214,14 +214,10 @@ function useSeerStatus(
 }
 
 /**
- * Members without billing access can't read or change auto-reload. Members of
- * self-serve orgs can email their admins, about what stopped Seer when the
- * modal knows; members of orgs that buy through an account team only see who to
- * ask. Loads the subscription itself, so the modal doesn't depend on the page
- * having loaded it.
+ * Loads the subscription itself, so the modal doesn't depend on the page having
+ * loaded it. Who the member can ask depends on it.
  */
-const AutoTopUpContactAdmin = withSubscription(function AutoTopUpContactAdmin({
-  Header,
+const ContactAdminContent = withSubscription(function ContactAdminContent({
   Body,
   Footer,
   closeModal,
@@ -230,35 +226,32 @@ const AutoTopUpContactAdmin = withSubscription(function AutoTopUpContactAdmin({
 }: AutoTopUpModalProps & {subscription: Subscription}) {
   const {escalation, isLoading, hasRequested, isRequesting, requestCredits} =
     useSeerTopUpRequest(organization);
-  const {denialReason, isPending, recheck} = useSeerStatus(
+  const {denialReason, isAvailable, isPending, recheck} = useSeerStatus(
     organization,
     linkDenialReason
   );
   const [isRechecking, setIsRechecking] = useState(false);
-  // Set when the check on click finds Seer running again.
-  const [isAvailableAgain, setIsAvailableAgain] = useState(false);
 
   async function handleContactAdmin() {
     setIsRechecking(true);
+    // The recheck updates the check this renders from, so finding Seer running
+    // again also swaps the message.
     const current = await recheck();
     setIsRechecking(false);
     // Don't email admins about credits or a limit that has since reset.
-    if (current.isAvailable) {
-      setIsAvailableAgain(true);
-      return;
+    if (!current.isAvailable) {
+      requestCredits(current.denialReason);
     }
-    requestCredits(current.denialReason);
   }
 
   return (
     <Fragment>
-      <AutoTopUpHeader Header={Header} />
       <Body>
         {isPending ? (
           <LoadingIndicator />
-        ) : isAvailableAgain ? (
+        ) : isAvailable ? (
           <Text as="p" size="lg">
-            {t('Seer is available again, so there is no need to contact your admin.')}
+            {t('Seer is available, so there is no need to contact your admin.')}
           </Text>
         ) : (
           <Stack gap="md">
@@ -280,7 +273,7 @@ const AutoTopUpContactAdmin = withSubscription(function AutoTopUpContactAdmin({
       <Footer>
         <Grid flow="column" align="center" gap="md">
           <Button onClick={closeModal}>{t('Close')}</Button>
-          {escalation === 'request' && !isLoading && !isPending && !isAvailableAgain && (
+          {escalation === 'request' && !isLoading && !isPending && !isAvailable && (
             <SeerContactAdminButton
               variant="primary"
               onRequestCredits={handleContactAdmin}
@@ -293,6 +286,23 @@ const AutoTopUpContactAdmin = withSubscription(function AutoTopUpContactAdmin({
     </Fragment>
   );
 });
+
+/**
+ * Members without billing access can't read or change auto-reload. Members of
+ * self-serve orgs can email their admins, about what stopped Seer when the
+ * modal knows; members of orgs that buy through an account team only see who to
+ * ask.
+ */
+function AutoTopUpContactAdmin(props: AutoTopUpModalProps) {
+  // Outside the subscription loader, so the modal keeps its title and close
+  // button while the subscription loads or if it fails to.
+  return (
+    <Fragment>
+      <AutoTopUpHeader Header={props.Header} />
+      <ContactAdminContent {...props} />
+    </Fragment>
+  );
+}
 
 /**
  * Loads the wallet itself so the modal can be opened from anywhere; on the

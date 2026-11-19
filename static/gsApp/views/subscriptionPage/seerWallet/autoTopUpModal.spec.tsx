@@ -943,17 +943,21 @@ describe('openSeerAutoTopUpModal', () => {
         );
       });
 
-      it('drops the link reason once Seer is no longer stopped', async () => {
-        openWithCreditCheck({
+      it('tells members Seer is available once it is no longer stopped', async () => {
+        const request = openWithCreditCheck({
           linkDenialReason: 'daily_cap_exceeded',
           creditCheck: {hasEnoughCredits: true, denialReason: null},
         });
 
         expect(
           await screen.findByText(
-            'Only owners and billing members can manage auto-reload. Ask your admin to turn it on or increase your daily usage limit.'
+            'Seer is available, so there is no need to contact your admin.'
           )
         ).toBeInTheDocument();
+        expect(
+          screen.queryByRole('button', {name: 'Contact Admin'})
+        ).not.toBeInTheDocument();
+        expect(request).not.toHaveBeenCalled();
       });
 
       it('does not email admins when Seer is available again by the time of the click', async () => {
@@ -972,7 +976,7 @@ describe('openSeerAutoTopUpModal', () => {
 
         expect(
           await screen.findByText(
-            'Seer is available again, so there is no need to contact your admin.'
+            'Seer is available, so there is no need to contact your admin.'
           )
         ).toBeInTheDocument();
         expect(recheck).toHaveBeenCalled();
@@ -998,6 +1002,11 @@ describe('openSeerAutoTopUpModal', () => {
         openSeerAutoTopUpModal({organization: member, denialReason: 'not_enough_credits'})
       );
 
+      // The title and close button stay up while the subscription loads.
+      expect(
+        screen.getByRole('heading', {name: 'Auto-reload credits'})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Close Modal'})).toBeInTheDocument();
       expect(await screen.findByRole('button', {name: 'Contact Admin'})).toBeEnabled();
     });
 
