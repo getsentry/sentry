@@ -50,6 +50,49 @@ describe('markScrubbedValue', () => {
     ]);
   });
 
+  it('marks the ranges of one rule with a shared reference to it', () => {
+    const value = '[{"role":"user","content":"Mail [email] or [email]"}]';
+    const first = value.indexOf('[email]');
+    const second = value.lastIndexOf('[email]');
+    const rem: Array<[string, string, number, number]> = [
+      ['@email:replace', 's', first, first + '[email]'.length],
+      ['@email:replace', 's', second, second + '[email]'.length],
+    ];
+    const marked = markScrubbedValue(ATTRIBUTE, value, meta(rem), 'project');
+    const rule = JSON.stringify({
+      ruleId: '@email:replace',
+      remark: 's',
+      projectSlug: 'project',
+    });
+
+    // Each range only adds an opening mark, a reference, a separator, and a
+    // closing mark, rather than its own copy of the rule.
+    expect(marked).toHaveLength(value.length + 2 * 4);
+    const content: string = JSON.parse(marked)[0].content;
+    const [firstMarked, secondMarked] = content.slice('Mail '.length).split(' or ');
+    expect(firstMarked).toBe(secondMarked);
+    expect(splitAnnotations(content)).toEqual([
+      'Mail ',
+      {text: '[email]', data: rule},
+      ' or ',
+      {text: '[email]', data: rule},
+    ]);
+
+    // The same rule in another project links elsewhere, so it gets its own.
+    const otherContent: string = JSON.parse(
+      markScrubbedValue(ATTRIBUTE, value, meta(rem), 'other-project')
+    )[0].content;
+    expect(otherContent).not.toBe(content);
+    expect(splitAnnotations(otherContent)[1]).toEqual({
+      text: '[email]',
+      data: JSON.stringify({
+        ruleId: '@email:replace',
+        remark: 's',
+        projectSlug: 'other-project',
+      }),
+    });
+  });
+
   it('reads the ranges as UTF-8 byte offsets', () => {
     // Relay counts bytes: "é" takes 2, "🙂" takes 4 (and 2 UTF-16 code units).
     const value = '[{"role":"user","content":"Café 🙂 mail [email] now"}]';

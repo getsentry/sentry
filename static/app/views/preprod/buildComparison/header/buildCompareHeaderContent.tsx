@@ -6,7 +6,7 @@ import type {BreadcrumbListProps} from '@sentry/scraps/breadcrumbList';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import type {EntityHeaderProps} from '@sentry/scraps/entityHeader';
 
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {ProjectsBadge} from 'sentry/components/core/badge/projectsBadge';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
@@ -88,7 +88,9 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
       label: headArtifactId,
       to: headBuildPath,
       leadingGraphic: project && (
-        <ProjectBadge disableLink project={project} avatarSize={16} hideName />
+        <ProjectsBadge
+          projectPlatforms={project.platform ? [project.platform] : ['default']}
+        />
       ),
     });
   }

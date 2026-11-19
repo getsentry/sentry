@@ -61,4 +61,12 @@ describe('getCurrentUrl', () => {
 
     expect(url).toBe('http://localhost:3000/report/jquery.min.js');
   });
+
+  it('should return only the origin when the navigation frame has no description', () => {
+    const {description: _description, ...frame} = NAV_FRAME;
+    const offsetMS = Number(NAVIGATION_DATE) - Number(START_DATE) + 10;
+    const url = getCurrentUrl(ReplayRecordFixture(), [PAGELOAD_FRAME, frame], offsetMS);
+
+    expect(url).toBe('http://localhost:3000');
+  });
 });

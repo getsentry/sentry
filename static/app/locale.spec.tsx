@@ -1,4 +1,4 @@
-import {act, render, screen} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, render, screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {formatTimezone} from '@sentry/scraps/dateTime';
@@ -136,6 +136,7 @@ describe('shared formatter translations', () => {
   });
   afterEach(() => {
     try {
+      cleanup();
       jest.runOnlyPendingTimers();
     } finally {
       jest.useRealTimers();
