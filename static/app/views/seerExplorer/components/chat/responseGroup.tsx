@@ -140,6 +140,8 @@ export function deriveThinkingTitle(group: Block[]): string {
 interface ResponseGroupProps {
   blockIndex: number;
   group: Block[];
+  /** When the response ended, for one that ended without a settled answer. */
+  endedAt?: string;
   getPageReferrer?: () => string;
   interactionPending?: boolean;
   /** The conversation's newest todo snapshot, from `findLatestTodos`. */
@@ -153,11 +155,6 @@ interface ResponseGroupProps {
   readOnly?: boolean;
   runId?: SeerExplorerRunId;
   showThinking?: boolean;
-  /**
-   * When the run stopped, if the response stopped before answering. Ends the
-   * ThinkingBlock's timer, which otherwise waits for a settled answer.
-   */
-  stoppedAt?: string;
 }
 
 /**
@@ -195,7 +192,7 @@ export const ResponseGroup = memo(function ResponseGroup({
   readOnly,
   runId,
   showThinking,
-  stoppedAt,
+  endedAt,
 }: ResponseGroupProps) {
   // `answer` identifies the block whose content is the visible response — used to exclude it
   // from the ThinkingBlock trace. `settledAnswer` is the same block once it has finished
@@ -222,8 +219,8 @@ export const ResponseGroup = memo(function ResponseGroup({
   const [startTime] = useState(() => new Date(group[0]!.timestamp));
   // `settledAnswer` is the stable "response is done" signal. `block.loading` flickers false
   // between tool calls, but answer settles once.
-  // If the response stopped before answering, end at `stoppedAt`, the timestamp of the last block.
-  const endTimestamp = settledAnswer ? group[group.length - 1]!.timestamp : stoppedAt;
+  // Without a settled answer, end at `endedAt` if the caller passed it.
+  const endTimestamp = settledAnswer ? group[group.length - 1]!.timestamp : endedAt;
   const endTime = !endTimestamp || pendingInput ? undefined : new Date(endTimestamp);
 
   return (

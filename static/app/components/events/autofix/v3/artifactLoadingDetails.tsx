@@ -73,26 +73,32 @@ function useStepTranscript(blocks: AutofixSection['blocks']) {
     [blocks]
   );
   const latestTodos = useMemo(() => findLatestTodos(blocks), [blocks]);
-  return {responses, latestTodos};
+  return {blocks, responses, latestTodos};
 }
 
 /**
  * A step's responses, the way the Seer Agent chat draws them.
  */
 function StepResponses({
+  blocks,
   responses,
   latestTodos,
   stoppedAt,
 }: ReturnType<typeof useStepTranscript> & {stoppedAt?: string}) {
-  return responses.map(segment => (
-    <ResponseGroup
-      key={segment.indices[0]}
-      group={segment.blocks}
-      blockIndex={segment.indices[0]!}
-      latestTodos={latestTodos}
-      readOnly
-      showThinking
-      stoppedAt={stoppedAt}
-    />
-  ));
+  return responses.map((segment, i) => {
+    const nextBlock = blocks[segment.indices.at(-1)! + 1];
+    return (
+      <ResponseGroup
+        key={segment.indices[0]}
+        group={segment.blocks}
+        blockIndex={segment.indices[0]!}
+        latestTodos={latestTodos}
+        readOnly
+        showThinking
+        // The timestamp of Seer's error block for the last segment, or of the user
+        // message that ended an earlier one.
+        endedAt={i === responses.length - 1 ? stoppedAt : nextBlock?.timestamp}
+      />
+    );
+  });
 }

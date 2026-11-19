@@ -348,25 +348,21 @@ describe('ResponseGroup', () => {
     );
   });
 
-  it('ends the timer when the run stopped before answering', () => {
-    const group = [toolUseBlock('t1')];
+  it('ends the timer at the answer when the run stopped after it', () => {
+    const group = [toolUseBlock('t1'), assistantBlock('a1', 'Done')];
 
-    const {container} = render(
+    render(
       <ResponseGroup
         group={group}
         blockIndex={1}
         latestTodos={findLatestTodos(group)}
         showThinking
-        stoppedAt="2024-01-01T00:03:30Z"
+        endedAt="2024-01-01T00:05:00Z"
       />,
       {organization}
     );
 
-    expect(reasoningBox(container).querySelector('button')).toHaveAttribute(
-      'aria-expanded',
-      'false'
-    );
-    expect(screen.getByText('2m 30s')).toBeInTheDocument();
+    expect(screen.getByText('1m 0s')).toBeInTheDocument();
   });
 
   it('spins inside the box while a tool works', () => {

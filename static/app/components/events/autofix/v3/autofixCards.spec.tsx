@@ -2752,6 +2752,24 @@ describe('out of credits', () => {
     };
   }
 
+  function makeToolUseBlock(
+    id: string,
+    content: string,
+    timestamp: string,
+    metadata?: Record<string, string>
+  ): AutofixSection['blocks'][number] {
+    return {
+      id,
+      timestamp,
+      message: {
+        role: 'tool_use',
+        content,
+        tool_calls: [{id: `${id}-call`, function: 'telemetry_live_search', args: '{}'}],
+        metadata,
+      },
+    };
+  }
+
   // Seer appends this when it stops a run for credits.
   const seerErrorBlock = makeBlock(
     'error-1',
@@ -2832,33 +2850,43 @@ describe('out of credits', () => {
     });
   });
 
-  it('ends the timer when root cause stopped mid-tool-call', () => {
+  it("ends each response's timer when root cause stopped mid-tool-call", () => {
     mockCreditCheck('autofix_root_cause', false);
     render(
       <RootCauseCard
         autofix={{...mockAutofix, runState: stoppedRunState}}
         groupId="1"
         section={makeOutOfCreditsSection('root_cause', [
+          makeToolUseBlock(
+            'block-1',
+            'Asking which repo to use.',
+            '2026-01-01T00:00:05Z',
+            {step: 'root_cause'}
+          ),
           {
-            id: 'block-1',
-            timestamp: '2026-01-01T00:00:00Z',
-            message: {
-              role: 'tool_use',
-              content: 'Searching for the cache key.',
-              tool_calls: [{id: 'call-1', function: 'telemetry_live_search', args: '{}'}],
-              metadata: {step: 'root_cause'},
-            },
+            id: 'user-1',
+            timestamp: '2026-01-01T00:00:25Z',
+            message: {role: 'user', content: 'getsentry/sentry'},
           },
+          makeToolUseBlock(
+            'block-2',
+            'Searching for the cache key.',
+            '2026-01-01T00:00:30Z'
+          ),
           {...seerErrorBlock, timestamp: '2026-01-01T00:02:30Z'},
         ])}
       />,
       {organization}
     );
 
-    expect(
-      screen.getByRole('button', {name: /See thinking and tool calls/})
-    ).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.getByText('2m 30s')).toBeInTheDocument();
+    for (const button of screen.getAllByRole('button', {
+      name: /See thinking and tool calls/,
+    })) {
+      expect(button).toHaveAttribute('aria-expanded', 'false');
+    }
+    // The earlier response ends at the user's message, the last one at Seer's error block.
+    expect(screen.getByText('20.0s')).toBeInTheDocument();
+    expect(screen.getByText('2m 0s')).toBeInTheDocument();
   });
 
   it('keeps what the plan step wrote and disables Re-run while out of credits', async () => {
