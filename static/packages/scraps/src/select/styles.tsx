@@ -22,7 +22,6 @@ export const CheckWrap = styled('div')<{
           background: ${p.theme.tokens.background.primary};
           border-radius: 2px;
           height: 1em;
-          margin-top: 2px;
           ${
             p.isSelected &&
             css`
@@ -40,6 +39,8 @@ export const CheckWrap = styled('div')<{
           }
         `}
 `;
+
+const chipLabelHeights = {xs: 16, sm: 18, md: 20} satisfies Record<FormSize, number>;
 
 export function getSelectStyles(
   theme: Theme,
@@ -134,10 +135,18 @@ export function getSelectStyles(
       boxShadow: `0 1px 0 0 ${border}`,
       marginBlock: 2,
     },
-    chipLabel: {display: 'flex', alignItems: 'center', paddingInline: theme.space.xs},
+    chipLabel: {
+      display: 'flex',
+      alignItems: 'center',
+      fontSize: '85%',
+      minHeight: chipLabelHeights[size],
+      paddingInline: size === 'md' ? theme.space.xs : theme.space['2xs'],
+    },
     chipRemove: {
       display: 'flex',
-      padding: 2,
+      alignItems: 'center',
+      alignSelf: 'stretch',
+      padding: `0 ${theme.space.xs}`,
       border: 0,
       background: 'transparent',
       color: 'inherit',
@@ -146,6 +155,7 @@ export function getSelectStyles(
         background: theme.tokens.interactive.transparent.neutral.background.hover,
       },
     },
+    chipRemoveIcon: {width: 8, height: 8},
     menu: {
       background: theme.tokens.background.primary,
       borderRadius: theme.radius.md,

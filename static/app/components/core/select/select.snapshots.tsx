@@ -55,6 +55,23 @@ describe('Select', () => {
     size => ({tags: {area: 'core', size, state: 'leading-icon'}})
   );
 
+  it.snapshot.each(['xs', 'sm', 'md'] as const)(
+    'selected chips at size %s',
+    size => (
+      <Stack padding="md" width="300px">
+        <Select
+          aria-label="Environments"
+          options={options}
+          value={['production', 'staging']}
+          size={size}
+          multiple
+          onChange={() => {}}
+        />
+      </Stack>
+    ),
+    size => ({tags: {area: 'core', size, state: 'selected-chips'}})
+  );
+
   it.snapshot(
     'empty, clearable multiple, and disabled',
     () => (
@@ -79,7 +96,6 @@ describe('Select', () => {
           options={options}
           value={['production', 'staging']}
           multiple
-          clearable
           onChange={() => {}}
         />
         <Select
@@ -108,5 +124,23 @@ describe('Select', () => {
       </Stack>
     ),
     {tags: {area: 'core', state: 'open'}}
+  );
+
+  it.snapshot(
+    'open multi-select with checked and unchecked options',
+    () => (
+      <Stack padding="md" width="300px" height="200px">
+        <Select
+          aria-label="Environments"
+          options={options}
+          value={['production']}
+          multiple
+          isOpen
+          styles={{menu: base => ({...base, position: 'initial'})}}
+          onChange={() => {}}
+        />
+      </Stack>
+    ),
+    {tags: {area: 'core', state: 'open-multiple'}}
   );
 });

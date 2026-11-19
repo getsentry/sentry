@@ -151,7 +151,7 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
     placeholder,
     isValueEqual,
     multiple = false,
-    clearable,
+    clearable = multiple,
     disabled,
     creatable,
     searchable = true,
@@ -523,7 +523,7 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
       (event.key === 'Backspace' || event.key === 'Delete')
     ) {
       remove(focusedChip, 'pop-value');
-    } else if (event.key === 'Backspace' && (clearable ?? multiple)) {
+    } else if (event.key === 'Backspace' && clearable) {
       event.preventDefault();
       if (multiple) {
         remove(selected.length - 1, 'pop-value');
@@ -764,7 +764,7 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
                     onMouseDown={event => event.preventDefault()}
                     onClick={() => remove(index)}
                   >
-                    <IconClose size="xs" />
+                    <IconClose css={css.chipRemoveIcon} />
                   </button>
                 )}
               </div>

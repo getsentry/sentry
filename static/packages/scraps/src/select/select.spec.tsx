@@ -430,6 +430,24 @@ it('keeps the last selected item on Backspace when clearable is false', async ()
   await userEvent.tab();
   await userEvent.keyboard('{Backspace}');
   expect(onChange).not.toHaveBeenCalled();
+  expect(screen.queryByRole('button', {name: 'Clear choices'})).not.toBeInTheDocument();
+});
+
+it('clears all selected items in a multi-select by default', async () => {
+  const onChange = jest.fn();
+  render(
+    <Select
+      multiple
+      aria-label="Fruit"
+      options={options}
+      value={['apple', 'cherry']}
+      onChange={onChange}
+    />,
+    {wrapper: ThemeWrapper}
+  );
+
+  await userEvent.click(screen.getByRole('button', {name: 'Clear choices'}));
+  expect(onChange).toHaveBeenCalledWith([], expect.anything());
 });
 
 it('customizes indicators while retaining the clear control', async () => {

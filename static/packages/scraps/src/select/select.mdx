@@ -409,13 +409,12 @@ Set `multiple` to enable multi-select mode, allowing users to select multiple op
 
 ### Multiple Selection with Clear
 
-Combine `multiple` and `clearable` to allow clearing all selections at once.
+Multi-selects show a button to clear all selections by default. Set `clearable={false}` to hide it.
 
 <Storybook.Demo>
   <Storybook.Grid>
     <MultipleSelectDemo
       multiple
-      clearable
       initialValue={['item1', 'item3']}
       size="md"
       placeholder="medium"
@@ -426,7 +425,6 @@ Combine `multiple` and `clearable` to allow clearing all selections at once.
       ]}
     />
     <MultipleSelectDemo
-      clearable
       multiple
       size="sm"
       placeholder="small"
@@ -438,7 +436,6 @@ Combine `multiple` and `clearable` to allow clearing all selections at once.
       ]}
     />
     <MultipleSelectDemo
-      clearable
       multiple
       initialValue={['item1', 'item3']}
       size="xs"
@@ -456,7 +453,6 @@ Combine `multiple` and `clearable` to allow clearing all selections at once.
 <Select
   onChange={options => setValue(options.map(option => option.value))}
   multiple
-  clearable
   value={value}
   options={options}
 />
