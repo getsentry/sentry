@@ -12,6 +12,7 @@ import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
@@ -87,6 +88,16 @@ function formatInvoiceDay(iso: string): string {
   return utcDay(Date.parse(iso)).slice(5).replace('-', '/');
 }
 
+// Most invoices land just after 00:00 UTC, so a side's dates are often the
+// same day; the full time and guid tell them apart.
+function describeInvoice(invoice: InvoiceRef): string {
+  const created = new Date(invoice.date_added)
+    .toISOString()
+    .slice(0, 16)
+    .replace('T', ' ');
+  return `Invoice ${invoice.guid}, created ${created} UTC`;
+}
+
 // Render a side's total followed by the day of each of its invoices, each
 // deep-linked to the admin invoice detail page. AdminInvoiceDetailsEndpoint
 // resolves legacy and platform invoices alike by guid, and unlike the
@@ -125,11 +136,13 @@ function InvoiceSide({
         return (
           <Fragment key={invoice.guid}>
             {i > 0 && ', '}
-            {region ? (
-              <Link to={`/_admin/invoices/${region}/${invoice.guid}/`}>{day}</Link>
-            ) : (
-              day
-            )}
+            <Tooltip title={describeInvoice(invoice)} skipWrapper>
+              {region ? (
+                <Link to={`/_admin/invoices/${region}/${invoice.guid}/`}>{day}</Link>
+              ) : (
+                <span>{day}</span>
+              )}
+            </Tooltip>
           </Fragment>
         );
       })}

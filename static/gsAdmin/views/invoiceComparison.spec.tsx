@@ -123,6 +123,11 @@ describe('InvoiceComparison', () => {
       '$10.00 (11/18, 11/19)'
     );
     expect(screen.queryByRole('link', {name: /\$/})).not.toBeInTheDocument();
+
+    await userEvent.hover(legacyDay!);
+    expect(
+      await screen.findByText('Invoice legacy-b, created 2026-11-19 00:05 UTC')
+    ).toBeInTheDocument();
   });
 
   it('notes how many small mismatches are hidden', async () => {
