@@ -39,7 +39,7 @@ export function useClassifierTimeSeries(
   );
 }
 
-export function toPlottable(
+export function createPlottable(
   chartType: ChartType,
   timeSeries: TimeSeries | undefined,
   {alias, color}: {alias: string; color?: string}
@@ -47,14 +47,15 @@ export function toPlottable(
   if (!timeSeries) {
     return null;
   }
-  const PlottableConstructor =
-    chartType === ChartType.LINE ? Line : chartType === ChartType.AREA ? Area : Bars;
-  return new PlottableConstructor(timeSeries, {
-    alias,
-    color,
-    name: alias,
-    stack: 'results',
-  });
+  const config = {alias, color, name: alias};
+  switch (chartType) {
+    case ChartType.LINE:
+      return new Line(timeSeries, config);
+    case ChartType.AREA:
+      return new Area(timeSeries, config);
+    default:
+      return new Bars(timeSeries, {...config, stack: 'results'});
+  }
 }
 
 interface BaseClassifierVisualizationProps {

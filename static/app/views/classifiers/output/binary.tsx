@@ -10,7 +10,7 @@ import {getHasResultQuery, getResultField} from 'sentry/views/classifiers/utils'
 
 import {
   BaseClassifierVisualization,
-  toPlottable,
+  createPlottable,
   useClassifierTimeSeries,
 } from './baseVisualization';
 import type {ClassifierOutput, ClassifierVisualizationProps} from './types';
@@ -74,14 +74,16 @@ function BinaryClassifierVisualization({
       plottables={
         isGrouped
           ? [
-              toPlottable(chartType, primary.data?.timeSeries[0], {alias: t('Matches')}),
-              toPlottable(chartType, nonMatches.data?.timeSeries[0], {
+              createPlottable(chartType, primary.data?.timeSeries[0], {
+                alias: t('Matches'),
+              }),
+              createPlottable(chartType, nonMatches.data?.timeSeries[0], {
                 alias: t('Non-matches'),
                 color: neutral,
               }),
             ]
           : [
-              toPlottable(chartType, primary.data?.timeSeries[0], {
+              createPlottable(chartType, primary.data?.timeSeries[0], {
                 alias: t('Instances'),
                 color: isNonMatches ? neutral : undefined,
               }),
