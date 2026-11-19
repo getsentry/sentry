@@ -31,7 +31,6 @@ from sentry.seer.models.workflow import (
     WorkflowRunError,
 )
 from sentry.seer.workflows.base import (
-    AutomationAction,
     AutomationDefinition,
     AutomationTrigger,
     ConfigUpdate,
@@ -120,10 +119,7 @@ class MetricAlertTrigger(AutomationTrigger[MetricBreachInputs]):
         )
         workflow.when_condition_group = triggers
         workflow.save(update_fields=["when_condition_group", "date_updated"])
-        action = Action.objects.create(type=Action.Type.SEER_WORKFLOW, config={}, data={})
-        SeerWorkflowTriggerBinding.objects.create(
-            workflow_config=update.config, trigger_action=action
-        )
+        action = Action.objects.create(type=Action.Type.SEER_INVESTIGATION, config={}, data={})
         action_group = DataConditionGroup.objects.create(
             organization_id=organization_id, logic_type=DataConditionGroup.Type.ALL
         )
@@ -161,78 +157,6 @@ class MetricAlertTrigger(AutomationTrigger[MetricBreachInputs]):
             ),
             using=router.db_for_write(SeerWorkflowConfig),
         )
-
-
-class InvestigateBreachedMetricAction(AutomationAction[MetricBreachInputs]):
-    settings_type = NoSettings
-
-    def dispatch(
-        self, config: SeerWorkflowConfig, run: SeerWorkflowRunLifecycle, inputs: MetricBreachInputs
-    ) -> None:
-        (execution,) = run.create_executions([SeerWorkflowExecutionExtras()])
-        run.start_execution(execution.id)
-        error = self._start_investigation(config, inputs, execution)
-        if error is not None:
-            run.complete_execution(execution.id, error=error)
-        else:
-            finish_execution_if_outputs_done(execution, organization_id=config.organization_id)
-
-    def _start_investigation(
-        self,
-        config: SeerWorkflowConfig,
-        inputs: MetricBreachInputs,
-        execution: SeerWorkflowRunExecution,
-    ) -> WorkflowRunError | None:
-        try:
-            with transaction.atomic(router.db_for_write(Notebook)):
-                group = Group.objects.select_related("project__organization").get(
-                    id=inputs.group_id,
-                    project_id=inputs.project_id,
-                    project__organization_id=config.organization_id,
-                )
-                open_period = get_latest_open_period(group)
-                if open_period is None:
-                    return WorkflowRunError(
-                        code="source_unavailable", message="The metric issue has no open period."
-                    )
-                source_ref = (group.id, open_period.id)
-                source = resolve_breached_metric_sources(
-                    organization=group.organization,
-                    source_refs=[source_ref],
-                    accessible_project_ids={group.project_id},
-                ).get(source_ref)
-                if source is None:
-                    return WorkflowRunError(
-                        code="source_unavailable", message="Could not resolve the breached metric."
-                    )
-                if config.service_account_id is None:
-                    return WorkflowRunError(
-                        code="service_account_unavailable",
-                        message="The automation has no service account.",
-                    )
-                notebook, _ = create_agentic_breached_metric_investigation(
-                    organization=group.organization,
-                    creator=ActorId(ActorType.SERVICE_ACCOUNT, config.service_account_id),
-                    title=None,
-                    resolved_source=source,
-                    project_ids=[source.project_id],
-                    filters={},
-                )
-                SeerWorkflowOutputLink.objects.get_or_create(execution=execution, notebook=notebook)
-        except Exception:
-            logger.exception(
-                "seer.workflow.investigation_dispatch_failed",
-                extra={
-                    "organization_id": config.organization_id,
-                    "workflow_config_id": config.id,
-                    "execution_id": execution.id,
-                    "group_id": inputs.group_id,
-                },
-            )
-            return WorkflowRunError(
-                code="dispatch_failed", message="Could not start the investigation."
-            )
-        return None
 
 
 @dataclass(frozen=True)
@@ -383,16 +307,88 @@ class SeerInvestigationActionHandler(ActionHandler):
                 if not definition.covers(config, group.project_id, inputs.environment):
                     return IgnoredMetricBreach("out_of_scope")
 
-                run = definition.trigger_run(
+                run = definition.admit_run(
                     config, trigger_key=f"issue_created:{group.id}", inputs=inputs
                 )
                 if run.rejection is not None:
                     return RejectedMetricBreach(
                         run=run.lifecycle.get_run(), reason=run.rejection, created=run.created
                     )
+                if run.created:
+                    run.lifecycle.start()
+                    SeerInvestigationActionHandler.dispatch(config, run.lifecycle, inputs)
                 return AcceptedMetricBreach(run=run.lifecycle.get_run(), created=run.created)
         except SeerWorkflowConfig.DoesNotExist:
             return IgnoredMetricBreach("configuration_unavailable")
+
+    @staticmethod
+    def dispatch(
+        config: SeerWorkflowConfig, run: SeerWorkflowRunLifecycle, inputs: MetricBreachInputs
+    ) -> None:
+        (execution,) = run.create_executions([SeerWorkflowExecutionExtras()])
+        run.start_execution(execution.id)
+        error = SeerInvestigationActionHandler._start_investigation(config, inputs, execution)
+        if error is not None:
+            run.complete_execution(execution.id, error=error)
+        else:
+            finish_execution_if_outputs_done(execution, organization_id=config.organization_id)
+
+    @staticmethod
+    def _start_investigation(
+        config: SeerWorkflowConfig,
+        inputs: MetricBreachInputs,
+        execution: SeerWorkflowRunExecution,
+    ) -> WorkflowRunError | None:
+        try:
+            with transaction.atomic(router.db_for_write(Notebook)):
+                group = Group.objects.select_related("project__organization").get(
+                    id=inputs.group_id,
+                    project_id=inputs.project_id,
+                    project__organization_id=config.organization_id,
+                )
+                open_period = get_latest_open_period(group)
+                if open_period is None:
+                    return WorkflowRunError(
+                        code="source_unavailable", message="The metric issue has no open period."
+                    )
+                source_ref = (group.id, open_period.id)
+                source = resolve_breached_metric_sources(
+                    organization=group.organization,
+                    source_refs=[source_ref],
+                    accessible_project_ids={group.project_id},
+                ).get(source_ref)
+                if source is None:
+                    return WorkflowRunError(
+                        code="source_unavailable", message="Could not resolve the breached metric."
+                    )
+                if config.service_account_id is None:
+                    return WorkflowRunError(
+                        code="service_account_unavailable",
+                        message="The automation has no service account.",
+                    )
+                notebook, _ = create_agentic_breached_metric_investigation(
+                    organization=group.organization,
+                    creator=ActorId(ActorType.SERVICE_ACCOUNT, config.service_account_id),
+                    title=None,
+                    resolved_source=source,
+                    project_ids=[source.project_id],
+                    filters={},
+                )
+                SeerWorkflowOutputLink.objects.get_or_create(execution=execution, notebook=notebook)
+        except Exception:
+            logger.exception(
+                "seer.workflow.investigation_dispatch_failed",
+                extra={
+                    "organization_id": config.organization_id,
+                    "workflow_config_id": config.id,
+                    "execution_id": execution.id,
+                    "group_id": inputs.group_id,
+                },
+            )
+            return WorkflowRunError(
+                code="dispatch_failed", message="Could not start the investigation."
+            )
+        return None
 
 
 @action_handler_registry.register(Action.Type.SEER_WORKFLOW)
