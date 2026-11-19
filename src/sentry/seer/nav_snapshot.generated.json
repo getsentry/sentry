@@ -291,6 +291,13 @@
       "path": "/settings/members/"
     },
     {
+      "crumbs": "Settings → Organization → Service Accounts",
+      "path": "/settings/service-accounts/",
+      "when": {
+        "flag": "service-accounts"
+      }
+    },
+    {
       "crumbs": "Settings → Organization → Security & Privacy",
       "path": "/settings/security-and-privacy/"
     },
