@@ -9,8 +9,9 @@ on:
       - releases/**
   pull_request:
     # `labeled` lets the override label start a full run without a new push.
-    # Other labels are ignored below. Job `if`, job `name`, and concurrency
-    # can't read env, so the label condition is repeated in each of them.
+    # Every label event runs normally and reports `Acceptance`, like
+    # backend.yml. If the newest run on a commit doesn't report `Acceptance`,
+    # the merge box waits for it even when an older run on that commit passed.
     types: [opened, synchronize, reopened, labeled]
   merge_group:
     types: [checks_requested]
@@ -19,11 +20,12 @@ on:
     - cron: '0 6 * * *'
   workflow_dispatch:
 
+permissions: {}
+
 # Cancel in progress workflows on pull_requests.
 # https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
 concurrency:
-  # Ignored label events get their own group so they don't cancel the real run.
-  group: "${{ github.workflow }}-${{ (github.event.action == 'labeled' && github.event.label.name != 'Trigger: Override Selective Testing') && github.run_id || github.head_ref || github.run_id }}"
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
 # hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
@@ -35,12 +37,14 @@ env:
   COLLECT_COVERAGE: ${{ github.event_name == 'schedule' || github.event_name == 'workflow_dispatch' }}
   ACCEPTANCE_COVERAGE_DB: .artifacts/acceptance.coverage
   ACCEPTANCE_COVERAGE_CACHE_PREFIX: acceptance-coverage-
+  # Per-file durations from the same scheduled run, which balance the shards.
+  ACCEPTANCE_DURATIONS: .artifacts/acceptance-durations.json
+  ACCEPTANCE_DURATIONS_CACHE_PREFIX: acceptance-durations-
+  ACCEPTANCE_SHARD_DURATIONS: .artifacts/acceptance-durations.shard.json
 
 jobs:
   files-changed:
-    if: >-
-      (github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group') &&
-      !(github.event.action == 'labeled' && github.event.label.name != 'Trigger: Override Selective Testing')
+    if: github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
     name: detect what files changed
     runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 3
@@ -50,11 +54,11 @@ jobs:
     # Map a step output to a job output
     outputs:
       acceptance: ${{ steps.changes.outputs.acceptance }}
-      backend_all: ${{ steps.changes.outputs.backend_all }}
-      frontend_all: ${{ steps.changes.outputs.frontend_all }}
       skip_selective_testing: "${{ github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'Trigger: Override Selective Testing') }}"
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
       - name: Check for backend file changes
         uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
@@ -85,6 +89,8 @@ jobs:
       shard-indices: ${{ steps.select.outputs.shard-indices }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
       - name: Get changed files
         id: changed
@@ -147,12 +153,12 @@ jobs:
       # and reducing the risk that one of many runs would turn red again (read: intermittent tests)
       fail-fast: false
       matrix:
-        # XXX: Use 5 runners when backend changes are present, 10 runners for frontend-only changes,
-        # and the shards select-tests asks for when it selected tests.
-        instance: ${{ needs.select-tests.outputs.selected == 'true' && fromJSON(needs.select-tests.outputs.shard-indices) || (needs.files-changed.outputs.backend_all == 'true' && fromJSON('[0, 1, 2, 3, 4]') || fromJSON('[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]')) }}
+        # The shards select-tests asks for when it selected tests. Otherwise
+        # the whole suite, on MAX_SHARDS of compute-acceptance-selected-tests.py.
+        instance: ${{ needs.select-tests.outputs.selected == 'true' && fromJSON(needs.select-tests.outputs.shard-indices) || fromJSON('[0, 1, 2, 3, 4, 5, 6]') }}
     env:
       # XXX: MATRIX_INSTANCE_TOTAL must match the matrix size
-      MATRIX_INSTANCE_TOTAL: ${{ needs.select-tests.outputs.selected == 'true' && needs.select-tests.outputs.shard-count || (needs.files-changed.outputs.backend_all == 'true' && '5' || '10') }}
+      MATRIX_INSTANCE_TOTAL: ${{ needs.select-tests.outputs.selected == 'true' && needs.select-tests.outputs.shard-count || '7' }}
       TEST_GROUP_STRATEGY: roundrobin
       PYTHONHASHSEED: '0'
       XDIST_PER_WORKER_SNUBA: '1'
@@ -166,6 +172,8 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         name: Checkout sentry
+        with:
+          persist-credentials: false
 
       - name: Start resource monitor
         run: python3 .github/workflows/scripts/monitor-resources.py --start
@@ -195,7 +203,7 @@ jobs:
       # Must run before "Setup sentry env" starts in the background: it parses
       # $GITHUB_EVENT_PATH, which the runner truncates whenever a step starts,
       # including the background step's inner steps (getsentry/sentry#127566).
-      - uses: ./.github/actions/setup-node-toolchain
+      - uses: $/.github/actions/setup-node-toolchain
 
       # Starts per-worker ClickHouse bootstrap as soon as its dependencies are
       # healthy, instead of after snuba-snuba-1's own bootstrap.
@@ -208,7 +216,7 @@ jobs:
       # The python env and devservices don't depend on the frontend build, so
       # bring them up in the background while webpack runs.
       - name: Setup sentry env
-        uses: ./.github/actions/setup-sentry
+        uses: $/.github/actions/setup-sentry
         id: setup
         background: true
         with:
@@ -227,7 +235,7 @@ jobs:
           path: ${{ steps.config.outputs.webpack-path }}
           key: ${{ runner.os }}-v2-webpack-cache-${{ hashFiles('rsbuild.config.ts', 'pnpm-lock.yaml', 'package.json') }}
 
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: $/.github/actions/setup-node-pnpm
         with:
           setup-toolchain: 'false'
 
@@ -246,14 +254,7 @@ jobs:
       # Launch it once here, while webpack builds, so the test workers don't
       # pay that.
       - name: Warm up Chrome in the background
-        run: |
-          if command -v google-chrome && command -v chromedriver; then
-            setsid nohup timeout 60 google-chrome --headless --no-sandbox --disable-gpu \
-              --disable-dev-shm-usage --user-data-dir="$(mktemp -d)" --window-size=1680,1050 \
-              --screenshot="$RUNNER_TEMP/chrome-warmup.png" 'data:text/html,<p>warm</p>' \
-              >"$RUNNER_TEMP/chrome-warmup.log" 2>&1 &
-            setsid nohup chromedriver --version >/dev/null 2>&1 &
-          fi
+        run: .github/workflows/scripts/warm-up-chrome.sh
 
       - name: webpack
         env:
@@ -289,31 +290,45 @@ jobs:
           name: acceptance-selected-tests-${{ github.run_id }}
           path: .artifacts/
 
+      # The newest durations that acceptance-coverage saved on master. Without
+      # them, the sentry pytest plugin splits the tests by hash.
+      - name: Restore acceptance durations
+        uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          path: ${{ env.ACCEPTANCE_DURATIONS }}
+          key: ${{ env.ACCEPTANCE_DURATIONS_CACHE_PREFIX }}latest
+          restore-keys: ${{ env.ACCEPTANCE_DURATIONS_CACHE_PREFIX }}
+
       - name: Run acceptance tests (#${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         env:
+          # pytest-selected.py gives each shard whole files, heaviest first onto
+          # the lightest shard. A full run splits files heavier than a quarter
+          # of a shard by test, so one file can't outlast an xdist worker.
+          ACCEPTANCE_PYTEST: ${{ hashFiles(env.ACCEPTANCE_DURATIONS) != '' && '.github/workflows/scripts/pytest-selected.py' || '-m pytest' }}
+          PYTEST_DURATIONS_FILE: ${{ env.ACCEPTANCE_DURATIONS }}
+          PYTEST_PIECES_PER_SHARD: '4'
           SELECTED_TESTS_FILE: ${{ needs.select-tests.outputs.selected == 'true' && '.artifacts/acceptance-selected-tests.txt' || '' }}
           # Per-test coverage for select-tests. acceptance_coverage_warmup.py
           # explains the plugin.
           ACCEPTANCE_COVERAGE_ARGS: ${{ env.COLLECT_COVERAGE == 'true' && '-p acceptance_coverage_warmup --cov=src --cov-context=test --cov-report=' || '' }}
           PYTHONPATH: ${{ env.COLLECT_COVERAGE == 'true' && format('{0}/.github/workflows/scripts', github.workspace) || '' }}
           COVERAGE_FILE: ${{ github.workspace }}/${{ env.ACCEPTANCE_COVERAGE_DB }}
+        run: .github/workflows/scripts/run-acceptance-tests.sh
+
+      - name: Extract test durations
+        if: env.COLLECT_COVERAGE == 'true'
         run: |
-          export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -n ${XDIST_WORKERS} --dist=loadfile"
-          # Pins the Chrome for Testing build, not the image's Chrome, and skips
-          # the Selenium Manager lookup Selenium would run on every launch.
-          chrome=$(command -v google-chrome)
-          chromedriver=$(command -v chromedriver)
-          PYTEST_ADDOPTS="$PYTEST_ADDOPTS --chrome-path=$chrome --chromedriver-path=$chromedriver $ACCEPTANCE_COVERAGE_ARGS"
-          timeout -k 30 1200 make run-acceptance || rc=$?
-          [ "${rc:-0}" -ne 124 ] || echo "::error::Test run timed out after 20 minutes (possible xdist hang)"
-          exit "${rc:-0}"
+          python3 .github/workflows/scripts/backend-test-durations.py extract \
+            .artifacts/pytest.acceptance.json "$ACCEPTANCE_SHARD_DURATIONS"
 
       - name: Upload acceptance coverage
         if: env.COLLECT_COVERAGE == 'true'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: acceptance-coverage-shard-${{ matrix.instance }}
-          path: ${{ env.ACCEPTANCE_COVERAGE_DB }}
+          path: |
+            ${{ env.ACCEPTANCE_COVERAGE_DB }}
+            ${{ env.ACCEPTANCE_SHARD_DURATIONS }}
           if-no-files-found: error
           retention-days: 1
 
@@ -335,17 +350,7 @@ jobs:
 
       - name: Inspect failure
         if: failure()
-        run: |
-          if command -v devservices; then
-            devservices logs
-          fi
-
-          if [ "${XDIST_PER_WORKER_SNUBA}" = "1" ]; then
-            for i in $(seq 0 $(( ${XDIST_WORKERS} - 1 ))); do
-              echo "--- snuba-gw${i} logs ---"
-              docker logs "snuba-gw${i}" 2>&1 | tail -30 || true
-            done
-          fi
+        run: .github/workflows/scripts/inspect-failure.sh
 
   # Only after every shard passed and uploaded its coverage, so the combined
   # coverage includes every test. A failing day keeps the previous coverage.
@@ -367,6 +372,8 @@ jobs:
       COVERAGE_VERSION: '7.6.4'
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
       - name: Download shard coverage
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
@@ -390,12 +397,22 @@ jobs:
           path: ${{ env.ACCEPTANCE_COVERAGE_DB }}
           key: ${{ env.ACCEPTANCE_COVERAGE_CACHE_PREFIX }}${{ github.run_id }}-${{ github.run_attempt }}
 
+      - name: Merge test durations
+        run: |
+          python3 .github/workflows/scripts/backend-test-durations.py merge \
+            "$ACCEPTANCE_DURATIONS" .artifacts/shards/*/acceptance-durations.shard.json
+
+      # The shards restore the newest of these.
+      - name: Save acceptance durations
+        uses: actions/cache/save@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
+        with:
+          path: ${{ env.ACCEPTANCE_DURATIONS }}
+          key: ${{ env.ACCEPTANCE_DURATIONS_CACHE_PREFIX }}${{ github.run_id }}-${{ github.run_attempt }}
+
   acceptance-required-checks:
     # this is a required check so we need this job to always run and report a status.
     if: always()
-    # A skipped job counts as passing, so an ignored label event must not
-    # report `Acceptance`, or it could replace a real failure on this commit.
-    name: "${{ (github.event.action == 'labeled' && github.event.label.name != 'Trigger: Override Selective Testing') && 'Acceptance (ignored label event)' || 'Acceptance' }}"
+    name: Acceptance
     needs: [acceptance, files-changed]
     runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 3

@@ -845,11 +845,6 @@ class SeerInvestigationActionConfig(TypedDict):
     pass
 
 
-# config_schema of the seer_workflow action handler
-class SeerWorkflowActionConfig(TypedDict):
-    pass
-
-
 # config_schema of the sentry_app action handler
 class SentryAppActionConfig(TypedDict):
     """The configuration schema for a Sentry App Action"""
@@ -1175,11 +1170,6 @@ class SeerInvestigationActionData(TypedDict):
     pass
 
 
-# data_schema of the seer_workflow action handler
-class SeerWorkflowActionData(TypedDict):
-    pass
-
-
 # data_schema of the sentry_app action handler
 class SentryAppActionData(TypedDict):
     """The data schema for a Sentry App Action"""
@@ -1242,7 +1232,6 @@ ActionConfig: TypeAlias = (
     | PagerdutyActionConfig
     | PluginActionConfig
     | SeerInvestigationActionConfig
-    | SeerWorkflowActionConfig
     | SentryAppActionConfig
     | SlackActionConfig
     | SlackStagingActionConfig
@@ -1264,7 +1253,6 @@ ActionConfigResponse: TypeAlias = (
     | PagerdutyActionConfigResponse
     | PluginActionConfigResponse
     | SeerInvestigationActionConfig
-    | SeerWorkflowActionConfig
     | SentryAppActionConfigResponse
     | SlackActionConfigResponse
     | SlackStagingActionConfigResponse
@@ -1286,7 +1274,6 @@ ActionData: TypeAlias = (
     | PagerdutyActionData
     | PluginActionData
     | SeerInvestigationActionData
-    | SeerWorkflowActionData
     | SentryAppActionData
     | SlackActionData
     | SlackStagingActionData
@@ -1308,7 +1295,6 @@ ActionDataResponse: TypeAlias = (
     | PagerdutyActionData
     | PluginActionData
     | SeerInvestigationActionData
-    | SeerWorkflowActionData
     | SentryAppActionData
     | SlackActionData
     | SlackStagingActionData

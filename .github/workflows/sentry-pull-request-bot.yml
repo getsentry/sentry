@@ -15,6 +15,8 @@ concurrency:
 jobs:
   # TODO(billy): Move this into an external action as we add more functionality
   test-getsentry:
+    permissions:
+      contents: read
     name: test getsentry
     runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
 
@@ -50,6 +52,9 @@ jobs:
           repositories: |
             sentry
             getsentry
+          # Read the PR's merge commit, then dispatch workflows in getsentry.
+          permission-pull-requests: read
+          permission-actions: write
 
       - name: Wait for PR merge commit
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0

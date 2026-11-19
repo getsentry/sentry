@@ -132,6 +132,25 @@ describe('useAnnotationBand', () => {
     expect(screen.getByText('0')).toBeInTheDocument();
   });
 
+  it('passes the annotations of a clicked bucket to onClick', () => {
+    const onClick = jest.fn();
+    const items = [release('1.1.0', 5 * MINUTE), release('1.1.1', 5 * MINUTE)];
+    const {result} = renderHookWithProviders(() =>
+      useAnnotationBand({
+        buckets,
+        items: [release('1.0.0', 2 * MINUTE), ...items],
+        onClick,
+      })
+    );
+
+    result.current!.onClick?.(5 * MINUTE);
+    expect(onClick).toHaveBeenCalledWith(items);
+
+    onClick.mockClear();
+    result.current!.onClick?.(3 * MINUTE);
+    expect(onClick).not.toHaveBeenCalled();
+  });
+
   it('counts each kind in the band on its own tooltip row', () => {
     const flag: AnnotationItem = {
       id: 'flag-1',

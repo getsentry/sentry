@@ -1,6 +1,7 @@
 import {useCallback, useMemo} from 'react';
 import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
 
+import type {QuerySpeed} from 'sentry/components/querySpeedMenu';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import type {DateString} from 'sentry/types/core';
 import type {
@@ -146,7 +147,7 @@ export type ReadableSavedQuery = {
   environment?: string[];
   errorsOnly?: boolean;
   isPrebuilt?: boolean;
-  queryPriority?: 'normal' | 'faster';
+  queryPriority?: QuerySpeed;
   start?: string;
   statsPeriod?: string;
 };
@@ -172,7 +173,7 @@ export class SavedQuery {
   environment?: string[];
   errorsOnly?: boolean;
   isPrebuilt?: boolean;
-  queryPriority?: 'normal' | 'faster';
+  queryPriority?: QuerySpeed;
   start?: string | DateString;
   statsPeriod?: string;
 

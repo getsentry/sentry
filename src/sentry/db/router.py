@@ -92,6 +92,7 @@ class SiloRouter:
         "prevent_ai_configuration": SiloMode.CELL,
         "releases_commit": SiloMode.CELL,
         "releases_commitfilechange": SiloMode.CELL,
+        "seer_workflowtriggerbinding": SiloMode.CELL,
         "sentry_actor": SiloMode.CELL,
         "sentry_alertruleactivations": SiloMode.CELL,
         "sentry_alertruleactivationcondition": SiloMode.CELL,
