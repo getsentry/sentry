@@ -826,7 +826,7 @@ class TestSeerAgentClient(TestCase):
         mock_conns.assert_called_once_with(self.organization, None)
         mock_available.assert_not_called()
         body = mock_post.call_args[0][0]
-        assert "user_org_context" not in body
+        assert body["user_org_context"] == {"org_slug": self.organization.slug}
         assert body["monitoring_providers"][0]["provider_key"] == "datadog"
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")

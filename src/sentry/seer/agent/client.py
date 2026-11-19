@@ -799,13 +799,11 @@ class SeerAgentClient:
             page_name=page_name,
             page_location=page_location,
             sent_at=sent_at,
+            user_org_context=user_org_context,
             is_interactive=self.is_interactive,
             agent_run_options=agent_run_options,
             proxy_headers=get_proxy_headers() if self.enable_code_mode_tools != "off" else None,
         )
-
-        if "user_id" in user_org_context:
-            chat_body["user_org_context"] = user_org_context
 
         if prompt_metadata:
             chat_body["query_metadata"] = prompt_metadata
