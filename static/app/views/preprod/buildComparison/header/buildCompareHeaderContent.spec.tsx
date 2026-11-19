@@ -75,6 +75,22 @@ describe('BuildCompareHeaderContent', () => {
     expect(screen.queryByRole('link', {name: 'Compare Builds'})).not.toBeInTheDocument();
   });
 
+  it('shows the default platform icon for a project without a platform', () => {
+    ProjectsStore.loadInitialData([
+      ProjectFixture({slug: 'test-project', platform: undefined}),
+    ]);
+
+    render(
+      <BuildCompareHeaderContent
+        buildDetails={buildDetails}
+        headArtifactId="artifact-1"
+      />,
+      {organization}
+    );
+
+    expect(screen.getByAltText('default')).toBeInTheDocument();
+  });
+
   it('renders the shared build entity header', () => {
     render(
       <BuildCompareHeaderContent

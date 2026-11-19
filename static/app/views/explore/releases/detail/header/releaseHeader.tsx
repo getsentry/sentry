@@ -175,7 +175,7 @@ export function ReleaseHeader({
           label: formatVersion(version),
           leadingGraphic: (
             <ProjectsBadge
-              projectPlatforms={project.platform ? [project.platform] : []}
+              projectPlatforms={project.platform ? [project.platform] : ['default']}
             />
           ),
           pagination: {

@@ -51,7 +51,9 @@ export function useIssueIdBreadcrumbItem({project, group}: ShortIdBreadcrumbProp
     type: 'page-title',
     label: group.shortId,
     leadingGraphic: (
-      <ProjectsBadge projectPlatforms={project.platform ? [project.platform] : []} />
+      <ProjectsBadge
+        projectPlatforms={project.platform ? [project.platform] : ['default']}
+      />
     ),
     labelTooltip: t(
       'This identifier is unique across your organization, and can be used to reference an issue in various places, like commit messages.'

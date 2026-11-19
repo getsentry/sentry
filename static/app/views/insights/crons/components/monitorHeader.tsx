@@ -35,7 +35,7 @@ export function MonitorHeader({monitor, orgSlug, onUpdate}: Props) {
           leadingGraphic: (
             <ProjectsBadge
               projectPlatforms={
-                monitor.project.platform ? [monitor.project.platform] : []
+                monitor.project.platform ? [monitor.project.platform] : ['default']
               }
             />
           ),

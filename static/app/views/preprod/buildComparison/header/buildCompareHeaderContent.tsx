@@ -88,7 +88,9 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
       label: headArtifactId,
       to: headBuildPath,
       leadingGraphic: project && (
-        <ProjectsBadge projectPlatforms={project.platform ? [project.platform] : []} />
+        <ProjectsBadge
+          projectPlatforms={project.platform ? [project.platform] : ['default']}
+        />
       ),
     });
   }

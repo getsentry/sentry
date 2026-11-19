@@ -71,7 +71,9 @@ export function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
         type: 'page-title',
         label: replayRecord?.id ? getShortEventId(replayRecord.id) : t('Unknown Replay'),
         leadingGraphic: project ? (
-          <ProjectsBadge projectPlatforms={project.platform ? [project.platform] : []} />
+          <ProjectsBadge
+            projectPlatforms={project.platform ? [project.platform] : ['default']}
+          />
         ) : (
           <Placeholder width="16px" height="16px" />
         ),

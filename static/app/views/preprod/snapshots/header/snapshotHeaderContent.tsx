@@ -48,7 +48,9 @@ function SnapshotBreadcrumbs({
         type: 'page-title',
         label: snapshotId,
         leadingGraphic: project ? (
-          <ProjectsBadge projectPlatforms={project.platform ? [project.platform] : []} />
+          <ProjectsBadge
+            projectPlatforms={project.platform ? [project.platform] : ['default']}
+          />
         ) : (
           <Placeholder width="16px" height="16px" />
         ),

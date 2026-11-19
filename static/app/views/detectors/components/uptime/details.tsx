@@ -138,7 +138,7 @@ export default function UptimeAlertDetails() {
           label: detector.name,
           leadingGraphic: (
             <ProjectsBadge
-              projectPlatforms={project.platform ? [project.platform] : []}
+              projectPlatforms={project.platform ? [project.platform] : ['default']}
             />
           ),
         }}

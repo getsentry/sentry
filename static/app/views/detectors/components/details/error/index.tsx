@@ -89,7 +89,7 @@ export function ErrorDetectorDetails({detector, project}: ErrorDetectorDetailsPr
           label: project.slug,
           leadingGraphic: (
             <ProjectsBadge
-              projectPlatforms={project.platform ? [project.platform] : []}
+              projectPlatforms={project.platform ? [project.platform] : ['default']}
             />
           ),
         }}

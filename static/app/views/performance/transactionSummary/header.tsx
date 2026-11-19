@@ -173,7 +173,9 @@ export function TransactionHeader({
         type: 'page-title' as const,
         label: transactionName,
         leadingGraphic: project && (
-          <ProjectsBadge projectPlatforms={project.platform ? [project.platform] : []} />
+          <ProjectsBadge
+            projectPlatforms={project.platform ? [project.platform] : ['default']}
+          />
         ),
       },
       hideDefaultTabs: true,

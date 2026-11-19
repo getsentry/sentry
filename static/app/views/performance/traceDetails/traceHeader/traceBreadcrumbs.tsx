@@ -110,7 +110,9 @@ export function TraceBreadcrumbs({
         type: 'page-title',
         label: formatVersion(traceSlug),
         leadingGraphic: project ? (
-          <ProjectsBadge projectPlatforms={project.platform ? [project.platform] : []} />
+          <ProjectsBadge
+            projectPlatforms={project.platform ? [project.platform] : ['default']}
+          />
         ) : (
           <Placeholder width="16px" height="16px" />
         ),

@@ -191,7 +191,9 @@ function TransactionBreadcrumbsContent({
         type: 'page-title',
         label: transactionName,
         leadingGraphic: project ? (
-          <ProjectsBadge projectPlatforms={project.platform ? [project.platform] : []} />
+          <ProjectsBadge
+            projectPlatforms={project.platform ? [project.platform] : ['default']}
+          />
         ) : (
           <Placeholder width="16px" height="16px" />
         ),

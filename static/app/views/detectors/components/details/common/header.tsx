@@ -32,7 +32,9 @@ function DetectorDetailsDefaultHeaderContent({detector}: {detector: Detector}) {
         type: 'page-title',
         label: detector.name,
         leadingGraphic: project ? (
-          <ProjectsBadge projectPlatforms={project.platform ? [project.platform] : []} />
+          <ProjectsBadge
+            projectPlatforms={project.platform ? [project.platform] : ['default']}
+          />
         ) : (
           <Placeholder width="16px" height="16px" />
         ),

@@ -77,7 +77,9 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     type: 'page-title',
     label: artifactId,
     leadingGraphic: project && (
-      <ProjectsBadge projectPlatforms={project.platform ? [project.platform] : []} />
+      <ProjectsBadge
+        projectPlatforms={project.platform ? [project.platform] : ['default']}
+      />
     ),
   } as const;
 

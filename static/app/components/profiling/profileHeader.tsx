@@ -50,7 +50,9 @@ export function ProfileHeader({
   const project = projects.find(p => p.slug === projectId);
 
   const projectGraphic = project ? (
-    <ProjectsBadge projectPlatforms={project.platform ? [project.platform] : []} />
+    <ProjectsBadge
+      projectPlatforms={project.platform ? [project.platform] : ['default']}
+    />
   ) : (
     <Placeholder width="16px" height="16px" />
   );
