@@ -77,7 +77,7 @@ AUTOFIX_CONFIG: dict[AutofixStoppingPoint, AutofixStageConfig] = {
     AutofixStoppingPoint.ROOT_CAUSE: AutofixStageConfig(
         heading=":mag:  *Root Cause Analysis*",
         label="Fix with Seer",
-        working_text="Seer is peering into the void...",
+        working_text="Seer is on it. Updates will appear in this thread.",
         completed_text="Seer's eye has seen the root cause",
     ),
     AutofixStoppingPoint.SOLUTION: AutofixStageConfig(

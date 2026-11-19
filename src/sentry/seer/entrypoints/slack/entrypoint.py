@@ -30,6 +30,7 @@ from sentry.seer.agent.client_models import (
     RepoPRState,
     SeerRunState,
 )
+from sentry.seer.autofix.single_run import single_run_stopping_point
 from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
 from sentry.seer.credits import OUT_OF_CREDITS
 from sentry.seer.endpoints.agent_request import (
@@ -528,6 +529,10 @@ class SlackAutofixEntrypoint(
                         "reasoning_header": "Why did this happen?",
                         "steps_header": "Reproduction Steps",
                         "handoff_target": cache_payload.get("handoff_target"),
+                        "hide_next_trigger": single_run_stopping_point(
+                            cache_payload["organization_id"], event_payload["run_id"]
+                        )
+                        is not None,
                     }
                 )
             case SentryAppEventType.SEER_SOLUTION_COMPLETED:
@@ -579,6 +584,10 @@ class SlackAutofixEntrypoint(
                     {
                         "current_point": AutofixStoppingPoint.CODE_CHANGES,
                         "changes": changes_list,
+                        "hide_next_trigger": single_run_stopping_point(
+                            cache_payload["organization_id"], event_payload["run_id"]
+                        )
+                        == AutofixStoppingPoint.OPEN_PR,
                     }
                 )
             # Skipped for now, as it would repeat PR_CREATED's message. Seer will eventually always
