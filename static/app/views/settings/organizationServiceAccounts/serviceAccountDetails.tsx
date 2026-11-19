@@ -14,6 +14,7 @@ import {useParams} from 'sentry/utils/useParams';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import {serviceAccountApiOptions} from './serviceAccountApi';
+import {ServiceAccountOwnerKind} from './serviceAccountOwnerKind';
 import {
   PermissionCount,
   ServiceAccountPermissionTable,
@@ -62,7 +63,10 @@ export default function ServiceAccountDetails() {
         }
       />
       <Stack gap="2xl">
-        <Grid columns={{zero: '1fr 1fr', md: 'repeat(3, minmax(0, 1fr))'}} gap="xl">
+        <Grid columns={{zero: '1fr 1fr', md: 'repeat(4, minmax(0, 1fr))'}} gap="xl">
+          <Detail label={t('Owner')}>
+            <ServiceAccountOwnerKind ownerKind={account.ownerKind} />
+          </Detail>
           <Detail label={t('Permissions')}>
             <PermissionCount scopes={account.scopes} />
           </Detail>

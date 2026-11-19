@@ -46,6 +46,9 @@ describe('ServiceAccountDetails', () => {
 
     expect(await screen.findByText('github-actions-deploy')).toBeInTheDocument();
     expect(screen.getByText('frontend')).toBeInTheDocument();
+    expect(screen.getByText('Owner').parentElement).toHaveTextContent(
+      'OwnerOrganization'
+    );
 
     const projectRow = screen.getByText('Project').closest('[role="row"]');
     expect(

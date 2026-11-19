@@ -1,7 +1,6 @@
 import {Fragment} from 'react';
 import {useQuery} from '@tanstack/react-query';
 
-import {Tag} from '@sentry/scraps/badge';
 import {DateTime} from '@sentry/scraps/dateTime';
 import {EmptyState} from '@sentry/scraps/emptyState';
 import {Link} from '@sentry/scraps/link';
@@ -15,9 +14,9 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import {serviceAccountsApiOptions} from './serviceAccountApi';
+import {ServiceAccountOwnerKind} from './serviceAccountOwnerKind';
 import {PermissionCount} from './serviceAccountPermissionTable';
 import {ProjectAccessSummary} from './serviceAccountProjectAccess';
-import type {ServiceAccount} from './types';
 
 const COLUMNS: TableColumnConfig[] = [
   {key: 'name', width: 'minmax(0, 2fr)'},
@@ -26,17 +25,6 @@ const COLUMNS: TableColumnConfig[] = [
   {key: 'projects', width: 'minmax(0, 1fr)'},
   {key: 'created', width: 'max-content'},
 ];
-
-function OwnerKind({ownerKind}: {ownerKind: ServiceAccount['ownerKind']}) {
-  switch (ownerKind) {
-    case 'organization':
-      return <Text>{t('Organization')}</Text>;
-    case 'seer_workflow_config':
-      return <Tag variant="muted">{t('Seer automation')}</Tag>;
-    default:
-      return <Text variant="muted">{t('Unknown')}</Text>;
-  }
-}
 
 export default function OrganizationServiceAccounts() {
   const organization = useOrganization();
@@ -93,7 +81,7 @@ export default function OrganizationServiceAccounts() {
               <Link to={`${basePath}${account.id}/`}>{account.name}</Link>
             </SimpleTable.RowCell>
             <SimpleTable.RowCell>
-              <OwnerKind ownerKind={account.ownerKind} />
+              <ServiceAccountOwnerKind ownerKind={account.ownerKind} />
             </SimpleTable.RowCell>
             <SimpleTable.RowCell>
               <PermissionCount scopes={account.scopes} />
