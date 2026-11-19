@@ -320,6 +320,79 @@ describe('Onboarding', () => {
     expect(await screen.findByText('Configure Next.js SDK')).toBeInTheDocument();
   });
 
+  it('keeps a legacy session on the setup docs step after a refresh', async () => {
+    // Sessions written before createdProject existed hold only the slug under
+    // createdProjectSlug. A refresh on setup-docs must resolve it on the first
+    // render rather than redirect before the context lifts it.
+    const organization = OrganizationFixture();
+    const nextJsProject = ProjectFixture({
+      platform: 'javascript-nextjs',
+      id: '2',
+      slug: 'javascript-nextjs-slug',
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sdks/`,
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${nextJsProject.slug}/docs/javascript-nextjs-with-error-monitoring/`,
+      body: null,
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${nextJsProject.slug}/`,
+      body: [nextJsProject],
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${nextJsProject.slug}/issues/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${nextJsProject.slug}/keys/`,
+      method: 'GET',
+      body: [ProjectKeysFixture()[0]],
+    });
+
+    const recentCreatedProjectSpy = jest
+      .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
+      .mockImplementation(() => ({project: nextJsProject, isProjectActive: false}));
+
+    sessionStorage.setItem(
+      'onboarding',
+      JSON.stringify({
+        selectedPlatform: {
+          key: 'javascript-nextjs',
+          type: 'framework',
+          language: 'javascript',
+          category: 'browser',
+          name: 'Next.js',
+          link: 'https://docs.sentry.io/platforms/javascript/guides/nextjs/',
+        },
+        createdProjectSlug: nextJsProject.slug,
+      })
+    );
+
+    const {router} = render(
+      <OnboardingContextProvider>
+        <OnboardingWithoutContext />
+      </OnboardingContextProvider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: `/onboarding/${organization.slug}/setup-docs/`,
+          },
+          route: '/onboarding/:orgId/:step/',
+        },
+      }
+    );
+
+    expect(await screen.findByText('Configure Next.js SDK')).toBeInTheDocument();
+    expect(router.location.pathname).toBe(`/onboarding/${organization.slug}/setup-docs/`);
+    expect(recentCreatedProjectSpy).toHaveBeenCalledWith(
+      expect.objectContaining({projectSlug: nextJsProject.slug})
+    );
+  });
+
   it('does not render SDK data removal modal when going back', async () => {
     const organization = OrganizationFixture();
     const reactProject = ProjectFixture({
