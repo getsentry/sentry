@@ -48,6 +48,15 @@ export function findImageForAddress({event, addrMode, address}: ImageForAddressP
   return image;
 }
 
+/**
+ * Binary name of a debug image, used for frames that have no `package`.
+ * MetricKit images can lack `code_file`, in which case Symbolicator fills in
+ * the dSYM name on `debug_file`.
+ */
+export function getImageName(image: Image | null | undefined) {
+  return image?.code_file ?? image?.debug_file ?? undefined;
+}
+
 export function isRepeatedFrame(frame: Frame, nextFrame?: Frame) {
   if (!nextFrame) {
     return false;

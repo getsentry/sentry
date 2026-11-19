@@ -49,7 +49,7 @@ import {
 } from './frame/utils';
 import {useStacktraceContext} from './stackTraceContext';
 import {SymbolicatorStatus} from './types';
-import {formatAddress, parseAddress} from './utils';
+import {formatAddress, getImageName, parseAddress} from './utils';
 
 type Props = {
   emptySourceNotation: boolean;
@@ -280,9 +280,7 @@ export function NativeFrame({
   const addressTooltip = getAddressTooltip();
   const functionName = getFunctionName();
   const status = getStatus();
-  // Some symbolicated frames are stored without a `package`; fall back to the
-  // matched debug image's binary name so the frame title still names it.
-  const packageName = frame.package ?? image?.code_file ?? image?.debug_file ?? undefined;
+  const packageName = frame.package ?? getImageName(image);
 
   return (
     <StackTraceFrame data-test-id="stack-trace-frame">
