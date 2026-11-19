@@ -1,6 +1,6 @@
 import {Badge} from '@sentry/scraps/badge';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -18,6 +18,11 @@ type FilterSelectorTriggerButtonProps = React.ComponentProps<
   typeof OverlayTrigger.Button
 > & {
   globalFilter: GlobalFilter;
+  /**
+   * Untruncated text of the filter, shown in the tooltip because the trigger
+   * truncates long keys and values.
+   */
+  filterSummary?: string;
   showDatasetLabel?: boolean;
 };
 
@@ -28,6 +33,7 @@ type FilterSelectorTriggerButtonProps = React.ComponentProps<
  */
 export function FilterSelectorTriggerButton({
   globalFilter,
+  filterSummary,
   showDatasetLabel,
   children,
   ...triggerProps
@@ -36,7 +42,19 @@ export function FilterSelectorTriggerButton({
 
   return (
     <Tooltip
-      title={t('%s Filter', datasetLabel)}
+      title={
+        filterSummary ? (
+          <Stack gap="xs">
+            <Text bold>{t('%s Filter', datasetLabel)}</Text>
+            <Text align="left" wordBreak="break-word">
+              {filterSummary}
+            </Text>
+          </Stack>
+        ) : (
+          t('%s Filter', datasetLabel)
+        )
+      }
+      maxWidth={400}
       // The open menu already shows the dataset in its title
       disabled={!!triggerProps['aria-expanded']}
       skipWrapper
@@ -62,6 +80,30 @@ type FilterSelectorTriggerProps = {
   options: Array<SelectOption<string>>;
 };
 
+function getOperatorLabel(operator: TermOperator) {
+  return operator === TermOperator.DEFAULT ? ':' : OP_LABELS[operator];
+}
+
+export function getFilterSummary({
+  globalFilter,
+  activeFilterValues,
+  operator,
+  options,
+}: FilterSelectorTriggerProps) {
+  const values = activeFilterValues.length
+    ? activeFilterValues
+        .map(value => {
+          const label = options.find(option => option.value === value)?.label;
+          return typeof label === 'string' && label ? label : value;
+        })
+        .join(', ')
+    : t('All');
+
+  const separator =
+    operator === TermOperator.DEFAULT ? ':' : ` ${getOperatorLabel(operator)}`;
+  return `${prettifyTagKey(globalFilter.tag.key)}${separator} ${values}`;
+}
+
 export function FilterSelectorTrigger({
   globalFilter,
   activeFilterValues,
@@ -80,8 +122,7 @@ export function FilterSelectorTrigger({
 
   const tagKey = prettifyTagKey(tag.key);
   const filterValue = activeFilterValues[0] ?? '';
-  const isDefaultOperator = operator === TermOperator.DEFAULT;
-  const opLabel = isDefaultOperator ? ':' : OP_LABELS[operator];
+  const opLabel = getOperatorLabel(operator);
   const label =
     options.find(option => option.value === filterValue)?.label || filterValue;
 

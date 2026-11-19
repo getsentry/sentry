@@ -183,6 +183,22 @@ describe('FilterSelector', () => {
     expect(screen.queryByText('All')).not.toBeInTheDocument();
   });
 
+  it('shows the full filter in the trigger tooltip', async () => {
+    render(
+      <FilterSelector
+        globalFilter={{...mockGlobalFilter, value: 'browser:[firefox,safari]'}}
+        searchBarData={mockSearchBarData}
+        onUpdateFilter={mockOnUpdateFilter}
+        onRemoveFilter={mockOnRemoveFilter}
+      />
+    );
+
+    await userEvent.hover(await screen.findByRole('button', {name: /browser/}));
+
+    expect(await screen.findByText('Errors Filter')).toBeInTheDocument();
+    expect(screen.getByText('browser: firefox, safari')).toBeInTheDocument();
+  });
+
   it('translates subregion codes to human-readable names for spans dataset', async () => {
     const subregionFilter: GlobalFilter = {
       dataset: WidgetType.SPANS,

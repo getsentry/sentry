@@ -9,6 +9,7 @@ import type {CollectionChildren, Node} from '@react-types/shared';
 
 import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {
   ConditionalFilterArgumentInput,
@@ -622,51 +623,59 @@ function FunctionArgumentInput(props: FunctionArgumentInputProps) {
 
   return (
     <ArgumentGridRow {...rowProps} tabIndex={isFocused ? 0 : -1} ref={gridCellRef}>
-      <ArgumentGridCell {...gridCellProps}>
-        <ComboBox
-          items={items}
-          ref={inputRef}
-          placeholder={
-            parameterDefinition?.kind === 'value' && 'placeholder' in parameterDefinition
-              ? (argument.label ?? parameterDefinition.placeholder)
-              : resolveDisplayLabel(argument.label)
-          }
-          inputLabel={
-            parameterDefinition?.kind === 'column'
-              ? t('Select an attribute')
-              : t('Select an option')
-          }
-          inputValue={displayValue}
-          filterValue={inputValue}
-          tabIndex={isFocused ? 0 : -1}
-          shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
-          onInputBlur={onInputBlur}
-          onInputChange={onInputChange}
-          onInputCommit={onInputCommit}
-          onInputEscape={onInputEscape}
-          onInputFocus={onInputFocus}
-          onKeyDown={onKeyDown}
-          onKeyDownCapture={onKeyDownCapture}
-          onOptionSelected={onOptionSelected}
-          data-test-id={dataTestId}
-        >
-          {keyItem =>
-            itemIsSection(keyItem) ? (
-              <Section title={keyItem.label} key={keyItem.key}>
-                {keyItem.options.map(child => (
-                  <Item {...child} key={child.key}>
-                    {child.label}
-                  </Item>
-                ))}
-              </Section>
-            ) : (
-              <Item {...keyItem} key={keyItem.key}>
-                {keyItem.label}
-              </Item>
-            )
-          }
-        </ComboBox>
-      </ArgumentGridCell>
+      <Tooltip
+        title={displayValue}
+        disabled={isCurrentlyEditing}
+        showOnlyOnOverflow
+        skipWrapper
+      >
+        <ArgumentGridCell {...gridCellProps}>
+          <ComboBox
+            items={items}
+            ref={inputRef}
+            placeholder={
+              parameterDefinition?.kind === 'value' &&
+              'placeholder' in parameterDefinition
+                ? (argument.label ?? parameterDefinition.placeholder)
+                : resolveDisplayLabel(argument.label)
+            }
+            inputLabel={
+              parameterDefinition?.kind === 'column'
+                ? t('Select an attribute')
+                : t('Select an option')
+            }
+            inputValue={displayValue}
+            filterValue={inputValue}
+            tabIndex={isFocused ? 0 : -1}
+            shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
+            onInputBlur={onInputBlur}
+            onInputChange={onInputChange}
+            onInputCommit={onInputCommit}
+            onInputEscape={onInputEscape}
+            onInputFocus={onInputFocus}
+            onKeyDown={onKeyDown}
+            onKeyDownCapture={onKeyDownCapture}
+            onOptionSelected={onOptionSelected}
+            data-test-id={dataTestId}
+          >
+            {keyItem =>
+              itemIsSection(keyItem) ? (
+                <Section title={keyItem.label} key={keyItem.key}>
+                  {keyItem.options.map(child => (
+                    <Item {...child} key={child.key}>
+                      {child.label}
+                    </Item>
+                  ))}
+                </Section>
+              ) : (
+                <Item {...keyItem} key={keyItem.key}>
+                  {keyItem.label}
+                </Item>
+              )
+            }
+          </ComboBox>
+        </ArgumentGridCell>
+      </Tooltip>
     </ArgumentGridRow>
   );
 }
