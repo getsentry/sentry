@@ -252,3 +252,37 @@ def test_range_partitioned_tables_cannot_have_foreign_keys() -> None:
     ]
     # Hash partitions are never attached or dropped after the table is created.
     assert get_model_partitioning_errors(Partitioned, HashPartitioning("id", modulus=4)) == []
+
+
+@isolate_apps("fixtures")
+def test_hash_partitioning_on_a_lazy_foreign_key() -> None:
+    # Defining a model with a foreign key to a model defined later must not fail.
+    class Partitioned(Model):
+        __relocation_scope__ = RelocationScope.Excluded
+        __partitioning__ = HashPartitioning("parent", modulus=4)
+
+        parent = FlexibleForeignKey("fixtures.LaterParent")
+        other = FlexibleForeignKey("fixtures.LaterUuidParent", related_name="+")
+
+        class Meta:
+            app_label = "fixtures"
+
+    class LaterParent(Model):
+        __relocation_scope__ = RelocationScope.Excluded
+
+        class Meta:
+            app_label = "fixtures"
+
+    class LaterUuidParent(Model):
+        __relocation_scope__ = RelocationScope.Excluded
+
+        id = models.UUIDField(primary_key=True)  # type: ignore[assignment]
+
+        class Meta:
+            app_label = "fixtures"
+
+    # Once every model is loaded, the referenced primary key is checked.
+    validate_all_models([Partitioned, LaterParent, LaterUuidParent])
+    assert get_model_partitioning_errors(Partitioned, HashPartitioning("other", modulus=4)) == [
+        "Hash partitioning needs an integer field, `other` is a FlexibleForeignKey."
+    ]

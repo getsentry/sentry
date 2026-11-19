@@ -34,8 +34,13 @@ def has_db_constraint(field: models.Field[Any, Any]) -> bool:
     return field.remote_field is not None and bool(getattr(field, "db_constraint", False))
 
 
-def _is_integer_field(field: models.Field[Any, Any]) -> bool:
+def _is_integer_field(field: models.Field[Any, Any]) -> bool | None:
+    """``None`` when it can't be told yet."""
     if isinstance(field, models.ForeignKey):
+        # A string reference to a model defined later is only resolved once that model
+        # is loaded. `validate_all_models` checks it again once every model is.
+        if isinstance(field.remote_field.model, str):
+            return None
         return _is_integer_field(field.target_field)
     return isinstance(field, models.IntegerField)
 
@@ -74,7 +79,7 @@ def _partition_field_errors(model: type[models.Model], spec: PartitioningSpec) -
             )
         if field.primary_key:
             errors.append("Range partitioning on the primary key is not supported.")
-    elif not _is_integer_field(field):
+    elif _is_integer_field(field) is False:
         errors.append(
             f"Hash partitioning needs an integer field, `{spec.field}` is a {type(field).__name__}."
         )
