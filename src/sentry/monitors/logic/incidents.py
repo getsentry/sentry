@@ -112,7 +112,7 @@ def try_incident_threshold(
 
         incident: MonitorIncident | None
         # get_or_create only calls the callable default when it creates the incident.
-        incident, _ = MonitorIncident.objects.get_or_create(
+        incident, created = MonitorIncident.objects.get_or_create(
             monitor_environment=monitor_env,
             resolving_checkin=None,
             defaults={
@@ -123,6 +123,16 @@ def try_incident_threshold(
                 "grouphash": monitor_env.build_occurrence_fingerprint(),
             },
         )
+
+        # An open incident here means the env went back to OK without resolving
+        # it, so OK check-ins since then never reached the incident.
+        if not created:
+            last_successful = last_successful_timestamp()
+            if last_successful is not None and (
+                incident.last_successful_timestamp is None
+                or last_successful > incident.last_successful_timestamp
+            ):
+                incident.update(last_successful_timestamp=last_successful)
 
     elif monitor_env.status == MonitorStatus.ERROR:
         # If the monitor was already in an incident there are no previous

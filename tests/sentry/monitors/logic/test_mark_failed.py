@@ -546,6 +546,50 @@ class MarkFailedTestCase(TestCase):
         assert evidence[2].value == last_ok.date_added.isoformat()
 
     @mock.patch("sentry.monitors.logic.incident_occurrence.produce_occurrence_to_kafka")
+    def test_mark_failed_orphaned_incident_moves_last_successful_timestamp(
+        self, mock_produce_occurrence_to_kafka: mock.MagicMock
+    ) -> None:
+        monitor_environment = self._create_monitor_environment(failure_issue_threshold=1)
+        now = timezone.now().replace(microsecond=0)
+
+        old_ok = self.create_monitor_checkin(
+            monitor_environment=monitor_environment,
+            status=CheckInStatus.OK,
+            date_added=now - timedelta(hours=2),
+        )
+        old_failure = self.create_monitor_checkin(
+            monitor_environment=monitor_environment,
+            status=CheckInStatus.ERROR,
+            date_added=now - timedelta(hours=1),
+        )
+        orphaned = MonitorIncident.objects.create(
+            monitor=monitor_environment.monitor,
+            monitor_environment=monitor_environment,
+            starting_checkin=old_failure,
+            starting_timestamp=old_failure.date_added,
+            last_successful_timestamp=old_ok.date_added,
+            grouphash=monitor_environment.build_occurrence_fingerprint(),
+        )
+        new_ok = self.create_monitor_checkin(
+            monitor_environment=monitor_environment,
+            status=CheckInStatus.OK,
+            date_added=now - timedelta(minutes=5),
+        )
+        failure = self.create_monitor_checkin(
+            monitor_environment=monitor_environment,
+            status=CheckInStatus.ERROR,
+            date_added=now,
+        )
+        assert mark_failed(failure, failed_at=failure.date_added)
+
+        incident = MonitorIncident.objects.get(monitor_environment=monitor_environment)
+        assert incident.id == orphaned.id
+        assert incident.last_successful_timestamp == new_ok.date_added
+
+        evidence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"].evidence_display
+        assert evidence[2].value == new_ok.date_added.isoformat()
+
+    @mock.patch("sentry.monitors.logic.incident_occurrence.produce_occurrence_to_kafka")
     def test_mark_failed_no_successful_checkin(
         self, mock_produce_occurrence_to_kafka: mock.MagicMock
     ) -> None:
