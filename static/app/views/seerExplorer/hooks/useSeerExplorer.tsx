@@ -5,7 +5,7 @@ import moment from 'moment-timezone';
 import {useTimezone} from '@sentry/scraps/dateTime';
 import {toast} from '@sentry/scraps/toast';
 
-import {getOutOfCreditsPRMessage} from 'sentry/components/seer/outOfCredits/messages';
+import {getRefusedPRMessage} from 'sentry/components/seer/outOfCredits/messages';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
@@ -653,7 +653,7 @@ export const useSeerExplorer = () => {
       ) {
         toast.error(
           isOutOfCreditsPRState(currentState)
-            ? getOutOfCreditsPRMessage(currentState)
+            ? getRefusedPRMessage(currentState, null)
             : (currentState.pr_creation_error ?? 'Failed to create PR')
         );
       }

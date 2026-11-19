@@ -1303,11 +1303,11 @@ describe('useExplorerAutofix - createPR', () => {
   it.each([
     [
       null,
-      "Seer couldn't push changes to org/repo#7 because your organization ran out of credits.",
+      "Seer couldn't push changes to org/repo#7 because your organization is out of credits.",
     ],
     [
       'not_enough_credits',
-      "Seer couldn't push changes to org/repo#7 because your organization ran out of credits.",
+      "Seer couldn't push changes to org/repo#7 because your organization is out of credits.",
     ],
     [
       'daily_cap_exceeded',

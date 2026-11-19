@@ -146,19 +146,29 @@ export function getOutOfCreditsPRMessage(
 }
 
 /**
- * Toast for a pull request the backend refused to open or push for credits,
- * with the 402's `denialReason`. Without a repo, the request was for every
- * repo in the run.
+ * Toast for a pull request Seer couldn't open or push for credits, with the
+ * 402's `denialReason` when the backend refused the request. Without a repo,
+ * the request was for every repo in the run.
  */
 export function getRefusedPRMessage(
   state: Pick<RepoPRState, 'pr_number' | 'repo_name'> | undefined,
   denialReason: SeerCreditDenialReason | null
 ): string {
   if (denialReason !== 'daily_cap_exceeded') {
-    return state
-      ? getOutOfCreditsPRMessage(state)
+    if (!state) {
+      return t(
+        "Seer couldn't open a pull request because your organization is out of credits."
+      );
+    }
+    return state.pr_number
+      ? t(
+          "Seer couldn't push changes to %s#%s because your organization is out of credits.",
+          state.repo_name,
+          state.pr_number
+        )
       : t(
-          "Seer couldn't open a pull request because your organization ran out of credits."
+          "Seer couldn't open a pull request in %s because your organization is out of credits.",
+          state.repo_name
         );
   }
   if (!state) {
