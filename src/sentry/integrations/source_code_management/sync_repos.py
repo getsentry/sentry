@@ -12,15 +12,17 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
+from typing import Any
 
 from django.utils import timezone
 from taskbroker_client.retry import Retry
 
 from sentry.constants import ObjectStatus
+from sentry.integrations.github.repository import GitHubRepositoryProvider
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
-from sentry.integrations.services.repository.model import RpcRepository
+from sentry.integrations.services.repository.model import RpcRepository, RpcRepositoryRename
 from sentry.integrations.services.repository.service import repository_service
 from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
@@ -69,8 +71,9 @@ SCM_SYNC_PROVIDERS = [
     "cursor_origin",
 ]
 
-# Providers whose rename handling matches get_repo_rename. The others store
-# their name and URL in provider-specific shapes.
+# Providers whose rename handling matches get_repo_rename and
+# GitHubRepositoryProvider.build_repository_url. The others store their name
+# and URL in provider-specific shapes.
 RENAME_SYNC_PROVIDERS = frozenset({"github", "github_enterprise"})
 
 SYNC_BATCH_SIZE = 100
@@ -253,14 +256,15 @@ def _sync_repos_for_org(organization_integration_id: int) -> None:
         removed_ids = set() if fetch_truncated else sentry_active_ids - provider_external_ids
         restored_ids = sentry_disabled_ids & provider_external_ids
 
-        if provider_key in RENAME_SYNC_PROVIDERS:
-            _apply_renames(
+        renames = (
+            _find_renames(
                 integration=integration,
-                rpc_org=rpc_org,
-                provider_key=provider_key,
                 repos=active_repos + disabled_repos,
                 provider_repos=provider_repos,
             )
+            if provider_key in RENAME_SYNC_PROVIDERS
+            else []
+        )
 
         metric_tags = {
             "provider": provider_key,
@@ -384,58 +388,44 @@ def _sync_repos_for_org(organization_integration_id: int) -> None:
                 }
             )
 
+        for rename_batch in chunked(renames, SYNC_BATCH_SIZE):
+            rename_repos_batch.apply_async(
+                kwargs={
+                    "organization_integration_id": organization_integration_id,
+                    "renames": rename_batch,
+                }
+            )
 
-def _apply_renames(
+
+def _find_renames(
     *,
     integration: RpcIntegration,
-    rpc_org: RpcOrganization,
-    provider_key: str,
     repos: list[RpcRepository],
     provider_repos: list[RepositoryInfo],
-) -> None:
+) -> list[dict[str, Any]]:
     """
-    Write the provider's current name and URL to repos it renamed. A rename keeps
-    the external id, so the diff above sees these repos as unchanged.
+    Find repos whose stored name or URL no longer matches the provider. A rename
+    keeps the external id, so the diff above sees these repos as unchanged.
     """
+    repo_provider = get_integration_repository_provider(integration)
+    assert isinstance(repo_provider, GitHubRepositoryProvider)
     provider_repos_by_external_id = {repo["external_id"]: repo for repo in provider_repos}
-    integration_repo_provider = get_integration_repository_provider(integration)
 
+    renames: list[dict[str, Any]] = []
     for repo in repos:
-        provider_repo = provider_repos_by_external_id.get(repo.external_id or "")
+        if repo.external_id is None:
+            continue
+        provider_repo = provider_repos_by_external_id.get(repo.external_id)
         if provider_repo is None:
             continue
-        identifier = str(provider_repo["identifier"])
-        # Skip build_repository_config for unchanged repos: for GitHub Enterprise
-        # it looks up the integration on every call.
-        if repo.name == identifier and repo.config.get("name") == identifier:
+        name = str(provider_repo["identifier"])
+        url = repo_provider.build_repository_url(integration, name)
+        if get_repo_rename(repo, name=name, url=url) is None:
             continue
-
-        repo_config = integration_repo_provider.build_repository_config(
-            organization=rpc_org,
-            data={**provider_repo, "identifier": identifier, "integration_id": integration.id},
+        renames.append(
+            RpcRepositoryRename(id=repo.id, external_id=repo.external_id, name=name, url=url).dict()
         )
-        rename = get_repo_rename(repo, name=repo_config["name"], url=repo_config["url"])
-        if rename is None:
-            continue
-
-        old_name = repo.name
-        repo.name = rename["name"]
-        repo.url = rename["url"]
-        repo.config = rename["config"]
-        repository_service.update_repository(organization_id=rpc_org.id, update=repo)
-
-        logger.info(
-            "scm.repo_sync.renamed",
-            extra={
-                "provider": provider_key,
-                "integration_id": integration.id,
-                "organization_id": rpc_org.id,
-                "repository_id": repo.id,
-                "old_name": old_name,
-                "new_name": repo.name,
-            },
-        )
-        metrics.incr("scm.repo_sync.renamed", tags={"provider": provider_key}, sample_rate=1.0)
+    return renames
 
 
 def _get_sync_context(
@@ -615,6 +605,48 @@ def restore_repos_batch(
                         "repository_id": repo.id,
                     },
                 )
+
+
+@instrumented_task(
+    name="sentry.integrations.source_code_management.sync_repos.rename_repos_batch",
+    namespace=integrations_control_tasks,
+    retry=Retry(times=3, delay=120, on=(Exception,)),
+    processing_deadline_duration=120,
+    silo_mode=SiloMode.CONTROL,
+)
+def rename_repos_batch(
+    organization_integration_id: int,
+    renames: list[dict[str, Any]],
+) -> None:
+    ctx = _get_sync_context(organization_integration_id)
+    if ctx is None:
+        return
+    integration, rpc_org, provider_key = ctx
+
+    renamed_ids = repository_service.rename_repositories(
+        organization_id=rpc_org.id,
+        integration_id=integration.id,
+        provider=f"integrations:{provider_key}",
+        renames=[RpcRepositoryRename(**rename) for rename in renames],
+    )
+    if not renamed_ids:
+        return
+
+    logger.info(
+        "scm.repo_sync.renamed",
+        extra={
+            "provider": provider_key,
+            "integration_id": integration.id,
+            "organization_id": rpc_org.id,
+            "repository_ids": renamed_ids,
+        },
+    )
+    metrics.incr(
+        "scm.repo_sync.renamed",
+        amount=len(renamed_ids),
+        tags={"provider": provider_key},
+        sample_rate=1.0,
+    )
 
 
 @instrumented_task(

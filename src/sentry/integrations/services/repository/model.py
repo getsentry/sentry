@@ -32,6 +32,13 @@ class RpcCreateRepository(RpcModel):
     url: str
 
 
+class RpcRepositoryRename(RpcModel):
+    id: int
+    external_id: str
+    name: str
+    url: str
+
+
 class RpcRepointIntegrationResult(RpcModel):
     repositories: int
     code_mappings: int

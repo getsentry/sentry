@@ -12,6 +12,7 @@ from sentry.integrations.services.repository import RpcRepository
 from sentry.integrations.services.repository.model import (
     RpcCreateRepository,
     RpcRepointIntegrationResult,
+    RpcRepositoryRename,
 )
 from sentry.silo.base import SiloMode
 from sentry.users.services.user.model import RpcUser
@@ -102,6 +103,26 @@ class RepositoryService(RpcService):
     @abstractmethod
     def update_repositories(self, *, organization_id: int, updates: list[RpcRepository]) -> None:
         pass
+
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def rename_repositories(
+        self,
+        *,
+        organization_id: int,
+        integration_id: int,
+        provider: str,
+        renames: list[RpcRepositoryRename],
+    ) -> list[int]:
+        """
+        Writes a new name and URL to repositories that the provider renamed, and
+        returns the ids of the repositories that changed.
+
+        Each rename applies to the current row and writes only ``name``, ``url``, and
+        ``config["name"]``. It skips a repository that is no longer active or disabled,
+        such as one pending deletion, or that no longer has the given integration,
+        provider, and external id.
+        """
 
     @cell_rpc_method(resolve=ByOrganizationId())
     @abstractmethod

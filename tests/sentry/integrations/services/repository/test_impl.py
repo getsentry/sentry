@@ -7,7 +7,10 @@ from sentry.constants import ObjectStatus
 from sentry.hybridcloud.rpc.service import dispatch_to_local_service
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.external_issue import ExternalIssue
-from sentry.integrations.services.repository.model import RpcRepointIntegrationResult
+from sentry.integrations.services.repository.model import (
+    RpcRepointIntegrationResult,
+    RpcRepositoryRename,
+)
 from sentry.integrations.services.repository.serial import serialize_repository
 from sentry.integrations.services.repository.service import repository_service
 from sentry.integrations.types import ExternalProviders
@@ -647,6 +650,92 @@ class RepointOrganizationIntegrationDataTest(TestCase):
             "external_actors": 0,
             "project_options": 0,
         }
+
+
+@cell_silo_test
+class RenameRepositoriesTest(TestCase):
+    def setUp(self) -> None:
+        self.integration = self.create_integration(
+            organization=self.organization, external_id="1", provider="github"
+        )
+        self.repo = self.create_repo(
+            project=self.project,
+            name="getsentry/old-name",
+            provider="integrations:github",
+            integration_id=self.integration.id,
+            external_id="100",
+            url="https://github.com/getsentry/old-name",
+        )
+        self.repo.update(config={"name": "getsentry/old-name", "other": "kept"})
+
+    def _rename(self, **overrides: Any) -> list[int]:
+        rename = {
+            "id": self.repo.id,
+            "external_id": "100",
+            "name": "getsentry/new-name",
+            "url": "https://github.com/getsentry/new-name",
+            **overrides,
+        }
+        return repository_service.rename_repositories(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            provider="integrations:github",
+            renames=[RpcRepositoryRename(**rename)],
+        )
+
+    def test_writes_only_rename_fields_to_current_row(self) -> None:
+        # Written after the caller read the repo; the rename must keep it.
+        self.repo.update(config={**self.repo.config, "webhook_id": 10})
+
+        assert self._rename() == [self.repo.id]
+
+        self.repo.refresh_from_db()
+        assert self.repo.name == "getsentry/new-name"
+        assert self.repo.url == "https://github.com/getsentry/new-name"
+        assert self.repo.config == {"name": "getsentry/new-name", "other": "kept", "webhook_id": 10}
+        assert self.repo.status == ObjectStatus.ACTIVE
+
+    def test_renames_disabled_repository(self) -> None:
+        self.repo.update(status=ObjectStatus.DISABLED)
+
+        assert self._rename() == [self.repo.id]
+
+        self.repo.refresh_from_db()
+        assert self.repo.name == "getsentry/new-name"
+        assert self.repo.status == ObjectStatus.DISABLED
+
+    def test_skips_repository_pending_deletion(self) -> None:
+        self.repo.update(status=ObjectStatus.PENDING_DELETION)
+
+        assert self._rename() == []
+
+        self.repo.refresh_from_db()
+        assert self.repo.name == "getsentry/old-name"
+        assert self.repo.status == ObjectStatus.PENDING_DELETION
+
+    def test_skips_repository_moved_to_another_integration(self) -> None:
+        other_integration = self.create_integration(
+            organization=self.organization, external_id="2", provider="github"
+        )
+        self.repo.update(integration_id=other_integration.id)
+
+        assert self._rename() == []
+
+        self.repo.refresh_from_db()
+        assert self.repo.name == "getsentry/old-name"
+        assert self.repo.integration_id == other_integration.id
+
+    def test_skips_repository_with_another_external_id(self) -> None:
+        assert self._rename(external_id="200") == []
+
+        self.repo.refresh_from_db()
+        assert self.repo.name == "getsentry/old-name"
+
+    def test_skips_unchanged_repository(self) -> None:
+        assert (
+            self._rename(name="getsentry/old-name", url="https://github.com/getsentry/old-name")
+            == []
+        )
 
 
 @cell_silo_test

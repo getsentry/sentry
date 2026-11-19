@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -14,6 +15,7 @@ from sentry.integrations.gitlab.integration import GitlabIntegration
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.perforce.integration import PerforceIntegrationProvider
+from sentry.integrations.source_code_management import sync_repos as sync_repos_module
 from sentry.integrations.source_code_management.sync_repos import (
     sync_repos_for_org,
 )
@@ -201,12 +203,8 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
             assert repo.status == ObjectStatus.ACTIVE
 
     @responses.activate
-    @patch(
-        "sentry.integrations.source_code_management.sync_repos.repository_service.update_repository"
-    )
-    def test_does_not_update_unchanged_repos(
-        self, mock_update_repository: MagicMock, _: MagicMock
-    ) -> None:
+    @patch("sentry.integrations.source_code_management.sync_repos.rename_repos_batch.apply_async")
+    def test_does_not_rename_unchanged_repos(self, mock_rename: MagicMock, _: MagicMock) -> None:
         with assume_test_silo_mode(SiloMode.CELL):
             Repository.objects.create(
                 organization_id=self.organization.id,
@@ -224,7 +222,98 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
         with self.tasks():
             sync_repos_for_org(self.oi.id)
 
-        mock_update_repository.assert_not_called()
+        mock_rename.assert_not_called()
+
+    @responses.activate
+    def test_repairs_url_when_only_url_is_stale(self, _: MagicMock) -> None:
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="getsentry/sentry",
+                url=None,
+                config={"name": "getsentry/sentry"},
+                external_id="1",
+                provider="integrations:github",
+                integration_id=self.integration.id,
+                status=ObjectStatus.ACTIVE,
+            )
+
+        self._add_repos_response([{"id": 1, "full_name": "getsentry/sentry", "name": "sentry"}])
+
+        with self.tasks():
+            sync_repos_for_org(self.oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo.refresh_from_db()
+            assert repo.name == "getsentry/sentry"
+            assert repo.url == "https://github.com/getsentry/sentry"
+
+    @responses.activate
+    @patch("sentry.integrations.source_code_management.sync_repos.SYNC_BATCH_SIZE", 2)
+    @patch("sentry.integrations.source_code_management.sync_repos.rename_repos_batch.apply_async")
+    def test_dispatches_renames_in_batches(self, mock_rename: MagicMock, _: MagicMock) -> None:
+        with assume_test_silo_mode(SiloMode.CELL):
+            for i in range(1, 4):
+                Repository.objects.create(
+                    organization_id=self.organization.id,
+                    name=f"old-org/repo-{i}",
+                    url=f"https://github.com/old-org/repo-{i}",
+                    config={"name": f"old-org/repo-{i}"},
+                    external_id=str(i),
+                    provider="integrations:github",
+                    integration_id=self.integration.id,
+                    status=ObjectStatus.ACTIVE,
+                )
+
+        self._add_repos_response(
+            [{"id": i, "full_name": f"new-org/repo-{i}", "name": f"repo-{i}"} for i in range(1, 4)]
+        )
+
+        sync_repos_for_org(self.oi.id)
+
+        batches = [call.kwargs["kwargs"]["renames"] for call in mock_rename.call_args_list]
+        assert [len(batch) for batch in batches] == [2, 1]
+        assert {rename["name"] for batch in batches for rename in batch} == {
+            "new-org/repo-1",
+            "new-org/repo-2",
+            "new-org/repo-3",
+        }
+
+    @responses.activate
+    def test_rename_skips_repo_deleted_after_sync_read_it(self, _: MagicMock) -> None:
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="getsentry/old-name",
+                url="https://github.com/getsentry/old-name",
+                config={"name": "getsentry/old-name"},
+                external_id="1",
+                provider="integrations:github",
+                integration_id=self.integration.id,
+                status=ObjectStatus.ACTIVE,
+            )
+
+        self._add_repos_response([{"id": 1, "full_name": "getsentry/new-name", "name": "new-name"}])
+
+        find_renames = sync_repos_module._find_renames
+
+        def find_renames_then_delete(**kwargs: Any) -> list[dict[str, Any]]:
+            renames = find_renames(**kwargs)
+            with assume_test_silo_mode(SiloMode.CELL):
+                Repository.objects.filter(id=repo.id).update(status=ObjectStatus.PENDING_DELETION)
+            return renames
+
+        with (
+            patch.object(sync_repos_module, "_find_renames", side_effect=find_renames_then_delete),
+            self.tasks(),
+        ):
+            sync_repos_for_org(self.oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo.refresh_from_db()
+            assert repo.status == ObjectStatus.PENDING_DELETION
+            assert repo.name == "getsentry/old-name"
+            assert repo.url == "https://github.com/getsentry/old-name"
 
     @responses.activate
     def test_skips_disable_for_repo_with_recent_activity(self, _: MagicMock) -> None:

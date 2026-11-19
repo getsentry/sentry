@@ -5,6 +5,7 @@ from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.github.client import GitHubBaseClient
 from sentry.integrations.github.repository import GitHubRepositoryProvider
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers.integration_repository import RepositoryConfig
@@ -36,6 +37,12 @@ class GitHubEnterpriseRepositoryProvider(GitHubRepositoryProvider):
 
         return repo_data
 
+    def build_repository_url(self, integration: RpcIntegration | None, identifier: str) -> str:
+        if integration is None:
+            raise IntegrationError("Could not find the requested GitHub Enterprise integration")
+        base_url = integration.metadata["domain_name"].split("/")[0]
+        return f"https://{base_url}/{identifier}"
+
     def build_repository_config(
         self, organization: RpcOrganization, data: Mapping[str, Any]
     ) -> RepositoryConfig:
@@ -45,11 +52,10 @@ class GitHubEnterpriseRepositoryProvider(GitHubRepositoryProvider):
         if integration is None:
             raise IntegrationError("Could not find the requested GitHub Enterprise integration")
 
-        base_url = integration.metadata["domain_name"].split("/")[0]
         return {
             "name": data["identifier"],
             "external_id": data["external_id"],
-            "url": "https://{}/{}".format(base_url, data["identifier"]),
+            "url": self.build_repository_url(integration, data["identifier"]),
             "config": {"name": data["identifier"]},
             "integration_id": data["integration_id"],
         }

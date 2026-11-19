@@ -8,6 +8,7 @@ from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationInstallation
 from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
@@ -60,13 +61,16 @@ class GitHubRepositoryProvider(IntegrationRepositoryProvider["GitHubIntegration"
 
         return config
 
+    def build_repository_url(self, integration: RpcIntegration | None, identifier: str) -> str:
+        return f"https://github.com/{identifier}"
+
     def build_repository_config(
         self, organization: RpcOrganization, data: Mapping[str, Any]
     ) -> RepositoryConfig:
         return {
             "name": data["identifier"],
             "external_id": data["external_id"],
-            "url": "https://github.com/{}".format(data["identifier"]),
+            "url": self.build_repository_url(None, data["identifier"]),
             "config": {"name": data["identifier"]},
             "integration_id": data["integration_id"],
         }

@@ -18,9 +18,11 @@ from sentry.integrations.services.repository import RepositoryService, RpcReposi
 from sentry.integrations.services.repository.model import (
     RpcCreateRepository,
     RpcRepointIntegrationResult,
+    RpcRepositoryRename,
 )
 from sentry.integrations.services.repository.serial import serialize_repository
 from sentry.integrations.source_code_management.auto_link_repos import auto_link_repos_by_name
+from sentry.integrations.source_code_management.repo_rename import get_repo_rename
 from sentry.models.code_review_event import CodeReviewEvent
 from sentry.models.commit import Commit
 from sentry.models.grouplink import GroupLink
@@ -190,6 +192,43 @@ class DatabaseBackedRepositoryService(RepositoryService):
                     setattr(repository, field_name, field_value)
 
             Repository.objects.bulk_update(repositories, fields=list(fields_to_update))
+
+    def rename_repositories(
+        self,
+        *,
+        organization_id: int,
+        integration_id: int,
+        provider: str,
+        renames: list[RpcRepositoryRename],
+    ) -> list[int]:
+        renames_by_id = {rename.id: rename for rename in renames}
+        renamed: list[Repository] = []
+        with transaction.atomic(router.db_for_write(Repository)):
+            repositories = (
+                Repository.objects.filter(
+                    organization_id=organization_id,
+                    integration_id=integration_id,
+                    provider=provider,
+                    id__in=renames_by_id.keys(),
+                    status__in=(ObjectStatus.ACTIVE, ObjectStatus.DISABLED),
+                )
+                .select_for_update()
+                .order_by("id")
+            )
+            for repository in repositories:
+                rename = renames_by_id[repository.id]
+                if repository.external_id != rename.external_id:
+                    continue
+                changes = get_repo_rename(repository, name=rename.name, url=rename.url)
+                if changes is None:
+                    continue
+                repository.name = changes["name"]
+                repository.url = changes["url"]
+                repository.config = changes["config"]
+                renamed.append(repository)
+
+            Repository.objects.bulk_update(renamed, fields=["name", "url", "config"])
+        return [repository.id for repository in renamed]
 
     def transfer_repository_to_integration(
         self,
