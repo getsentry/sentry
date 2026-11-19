@@ -34,9 +34,8 @@ verification reads that, so it keeps the login client ID in every mode.
 The symbolicator, symbol server, and chart rendering enablement flags are
 also deployment settings; they no longer change while the process is running.
 
-Client configuration reads support email from `SENTRY_SYSTEM_SUPPORT_EMAIL`.
-The admin API rejects the retired `system.support-email` option; change the
-deployment setting and restart the process to update the address.
+`system.support-email` and `system.security-email` remain runtime options:
+self-hosted administrators edit them on the admin settings page.
 
 | Option key                            | Django setting                           |
 | ------------------------------------- | ---------------------------------------- |
@@ -102,8 +101,6 @@ deployment setting and restart the process to update the address.
 | `releasefile.cache-path`              | `SENTRY_RELEASEFILE_CACHE_PATH`          |
 | `mail.enable-replies`                 | `SENTRY_MAIL_ENABLE_REPLIES`             |
 | `mail.reply-hostname`                 | `SENTRY_MAIL_REPLY_HOSTNAME`             |
-| `system.support-email`                | `SENTRY_SYSTEM_SUPPORT_EMAIL`            |
-| `system.security-email`               | `SENTRY_SYSTEM_SECURITY_EMAIL`           |
 | `u2f.facets`                          | `SENTRY_U2F_FACETS`                      |
 | `sms.twilio-account`                  | `SENTRY_SMS_TWILIO_ACCOUNT`              |
 | `sms.twilio-number`                   | `SENTRY_SMS_TWILIO_NUMBER`               |

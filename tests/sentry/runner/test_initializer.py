@@ -567,8 +567,6 @@ DEPLOYMENT_OPTION_CASES = [
     ("releasefile.cache-path", "SENTRY_RELEASEFILE_CACHE_PATH", "configured-value"),
     ("mail.enable-replies", "SENTRY_MAIL_ENABLE_REPLIES", True),
     ("mail.reply-hostname", "SENTRY_MAIL_REPLY_HOSTNAME", "configured-value"),
-    ("system.support-email", "SENTRY_SYSTEM_SUPPORT_EMAIL", "configured-value"),
-    ("system.security-email", "SENTRY_SYSTEM_SECURITY_EMAIL", "configured-value"),
     ("u2f.facets", "SENTRY_U2F_FACETS", ["configured-value"]),
     ("sms.twilio-account", "SENTRY_SMS_TWILIO_ACCOUNT", "configured-value"),
     ("sms.twilio-number", "SENTRY_SMS_TWILIO_NUMBER", "configured-value"),

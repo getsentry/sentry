@@ -5,6 +5,7 @@ from django.urls import reverse
 
 import sentry
 from sentry import options
+from sentry.templatetags.sentry_helpers import security_contact
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.web.client_config import get_client_config
@@ -13,19 +14,23 @@ from sentry.web.client_config import get_client_config
 class SystemOptionsTest(APITestCase):
     url = reverse("sentry-api-0-system-options")
 
-    def test_support_email_reads_setting_while_option_is_retained(self) -> None:
+    def test_admin_contact_emails_take_effect(self) -> None:
         self.login_as(user=self.user, superuser=True)
         self.add_user_permission(self.user, "options.admin")
 
-        with override_settings(
-            SENTRY_SYSTEM_SUPPORT_EMAIL="configured@example.com",
-            SENTRY_OPTIONS={},  # noqa: S011
-        ):
-            response = self.client.put(self.url, {"system.support-email": "support@example.com"})
+        with override_settings(SENTRY_OPTIONS={}):  # noqa: S011
+            response = self.client.put(
+                self.url,
+                {
+                    "system.support-email": "support@example.com",
+                    "system.security-email": "security@example.com",
+                },
+            )
 
             assert response.status_code == 200
             with patch("sentry.web.client_config._get_version_info"):
-                assert get_client_config()["supportEmail"] == "configured@example.com"
+                assert get_client_config()["supportEmail"] == "support@example.com"
+            assert security_contact() == "security@example.com"
 
     def test_without_superuser(self) -> None:
         self.login_as(user=self.user, superuser=False)

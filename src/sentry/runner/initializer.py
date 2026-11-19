@@ -179,8 +179,6 @@ migrated_options_mapper = {
     "releasefile.cache-path": "SENTRY_RELEASEFILE_CACHE_PATH",
     "mail.enable-replies": "SENTRY_MAIL_ENABLE_REPLIES",
     "mail.reply-hostname": "SENTRY_MAIL_REPLY_HOSTNAME",
-    "system.support-email": "SENTRY_SYSTEM_SUPPORT_EMAIL",
-    "system.security-email": "SENTRY_SYSTEM_SECURITY_EMAIL",
     "u2f.facets": "SENTRY_U2F_FACETS",
     "sms.twilio-account": "SENTRY_SMS_TWILIO_ACCOUNT",
     "sms.twilio-number": "SENTRY_SMS_TWILIO_NUMBER",
