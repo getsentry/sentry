@@ -4,6 +4,7 @@ import {createLoader, parseAsString, useQueryStates} from 'nuqs';
 
 import {useDrawer} from '@sentry/scraps/drawer';
 
+import {buildAskSeerPrompt} from 'sentry/components/droppedData/drawer/askSeer';
 import {droppedAndFilteredLabel} from 'sentry/components/droppedData/outcomes';
 import type {ReasonRow} from 'sentry/components/droppedData/outcomeSections';
 import type {UseDroppedDataParams} from 'sentry/components/droppedData/useDroppedData';
@@ -15,21 +16,20 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
-import {buildAskSeerPrompt} from './askSeer';
-import {DroppedDataDrawer} from './droppedDataDrawer';
+import {ChartContextDrawer} from './chartContextDrawer';
 
-const DROPPED_DATA_DRAWER_PARSERS = {droppedData: parseAsString};
+const CHART_CONTEXT_DRAWER_PARSERS = {droppedData: parseAsString};
 
-const loadDroppedDataQuery = createLoader(DROPPED_DATA_DRAWER_PARSERS);
+const loadDroppedDataQuery = createLoader(CHART_CONTEXT_DRAWER_PARSERS);
 
-interface UseDroppedDataDrawerOptions {
+interface UseChartContextDrawerOptions {
   source: DroppedDataAnalyticsSource;
   enabled?: boolean;
 }
 
-export function useDroppedDataDrawer(
+export function useChartContextDrawer(
   {dataset, interval, projects}: UseDroppedDataParams,
-  {source, enabled = true}: UseDroppedDataDrawerOptions
+  {source, enabled = true}: UseChartContextDrawerOptions
 ) {
   const organization = useOrganization();
   const {openDrawer, isDrawerOpen, isAnyDrawerOpen} = useDrawer();
@@ -37,7 +37,7 @@ export function useDroppedDataDrawer(
   // The param carries the dataset so a page with several charts opens the drawer
   // for the chart whose dataset matches, not whichever mounts first.
   const paramValue = DiscoverDatasetToUrlParam[dataset];
-  const [{droppedData}, setDrawerQuery] = useQueryStates(DROPPED_DATA_DRAWER_PARSERS);
+  const [{droppedData}, setDrawerQuery] = useQueryStates(CHART_CONTEXT_DRAWER_PARSERS);
   const isDrawerInUrl = droppedData === paramValue;
   const renderedQueryRef = useRef({interval, projects});
 
@@ -79,7 +79,7 @@ export function useDroppedDataDrawer(
     renderedQueryRef.current = query;
     openDrawer(
       () => (
-        <DroppedDataDrawer
+        <ChartContextDrawer
           dataset={dataset}
           interval={interval}
           projects={projects}

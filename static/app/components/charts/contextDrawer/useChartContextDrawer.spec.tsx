@@ -23,7 +23,7 @@ import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplo
 import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/seerExplorerContextProvider';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
 
-import {useDroppedDataDrawer} from './useDroppedDataDrawer';
+import {useChartContextDrawer} from './useChartContextDrawer';
 
 jest.mock('sentry/utils/analytics');
 
@@ -81,14 +81,14 @@ function DroppedDataTrigger({
   interval?: string;
   projects?: number[];
 }) {
-  const openDroppedDataDrawer = useDroppedDataDrawer(
+  const openDroppedDataDrawer = useChartContextDrawer(
     {dataset, interval, projects},
     {source: 'explore', enabled}
   );
   return <Button onClick={openDroppedDataDrawer}>Open dropped data</Button>;
 }
 
-describe('useDroppedDataDrawer', () => {
+describe('useChartContextDrawer', () => {
   beforeEach(() => {
     PageFiltersStore.onInitializeUrlState(
       PageFiltersFixture({

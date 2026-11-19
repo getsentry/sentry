@@ -1,6 +1,7 @@
 import {useState} from 'react';
 
 import type {ChartLayersControlProps} from 'sentry/components/charts/chartLayersControl';
+import {useChartContextDrawer} from 'sentry/components/charts/contextDrawer/useChartContextDrawer';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {DroppedDataAnalyticsSource} from 'sentry/utils/analytics/exploreAnalyticsEvents';
@@ -8,7 +9,6 @@ import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {useDroppedDataDrawer} from './drawer/useDroppedDataDrawer';
 import {hasDroppedData} from './buckets';
 import type {DroppedDataFilterNoteProps} from './droppedDataFilterNote';
 import {datasetNoun, droppedDataLabel} from './outcomes';
@@ -56,7 +56,7 @@ export function useDroppedDataLayer(
     enabled: isEnabled,
   });
   const [isLayerOn, setIsLayerOn] = useState(true);
-  const openDroppedDataDrawer = useDroppedDataDrawer(params, {
+  const openDroppedDataDrawer = useChartContextDrawer(params, {
     source,
     enabled: isEnabled,
   });
