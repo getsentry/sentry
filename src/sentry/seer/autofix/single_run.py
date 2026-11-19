@@ -3,11 +3,10 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Any, TypedDict
 
 from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
-from sentry.seer.models.run import SeerAgentRun
+from sentry.seer.models.run import SeerAgentRun, SeerRun
 
 if TYPE_CHECKING:
     from sentry.seer.agent.client_models import SeerRunState
-    from sentry.seer.models.run import SeerRun
 
 SINGLE_RUN_ROOT_CAUSE_KEY = "single_run_root_cause"
 SINGLE_RUN_STOP_KEY = "stop"
