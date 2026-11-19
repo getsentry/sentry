@@ -350,7 +350,7 @@ class MatrixAuthentication(StrEnum):
 
 
 # The same service account, authenticated through each path. Both must give every row the
-# same outcome.
+# same outcome, except the rows in SERVICE_ACCOUNT_TOKEN_USER_REQUIRED.
 SERVICE_ACCOUNT_AUTHENTICATIONS = (
     MatrixAuthentication.SERVICE_ACCOUNT_VIEWER_CONTEXT,
     MatrixAuthentication.SERVICE_ACCOUNT_TOKEN,
@@ -706,6 +706,11 @@ SERVICE_ACCOUNT_USER_REQUIRED = frozenset(
         "TeamProjects_post",
     }
 )
+
+# Rows that start a Seer run. Seer's callbacks get a viewer context that names the service
+# account but not the token, so the token's narrower scopes would be lost. Only the token is
+# denied with user-required; the service account's viewer context still matches the oracle.
+SERVICE_ACCOUNT_TOKEN_USER_REQUIRED = frozenset({"GroupAutofix_post"})
 
 
 PUBLIC_GET_AUTHENTICATIONS = (
@@ -2419,10 +2424,14 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
     def _assert_service_account_outcome(
         self,
         endpoint: PublicGetEndpoint | PublicMutationEndpoint,
+        authentication: MatrixAuthentication,
         authorization_oracle: Response,
         response: Response,
     ) -> None:
-        if endpoint.test_id in SERVICE_ACCOUNT_USER_REQUIRED:
+        if endpoint.test_id in SERVICE_ACCOUNT_USER_REQUIRED or (
+            authentication is MatrixAuthentication.SERVICE_ACCOUNT_TOKEN
+            and endpoint.test_id in SERVICE_ACCOUNT_TOKEN_USER_REQUIRED
+        ):
             assert response.status_code == 403, (endpoint.path_template, response.content)
             assert json.loads(response.content)["detail"]["code"] == "user-required"
             return
@@ -2750,7 +2759,9 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
             )
             return
         if authentication in SERVICE_ACCOUNT_AUTHENTICATIONS:
-            self._assert_service_account_outcome(endpoint, authorization_oracle, response)
+            self._assert_service_account_outcome(
+                endpoint, authentication, authorization_oracle, response
+            )
             return
 
         # Successful representations can legitimately differ by credential (for
@@ -2930,7 +2941,9 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
             )
             return
         if authentication in SERVICE_ACCOUNT_AUTHENTICATIONS:
-            self._assert_service_account_outcome(endpoint, authorization_oracle, response)
+            self._assert_service_account_outcome(
+                endpoint, authentication, authorization_oracle, response
+            )
             return
 
         if (

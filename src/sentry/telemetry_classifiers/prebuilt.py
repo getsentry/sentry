@@ -15,6 +15,7 @@ ALL_PREBUILT_CLASSIFIERS: tuple[PrebuiltClassifier, ...] = (
         name="User frustration",
         description="When your users become frustrated with the agent they are speaking with.",
         result_attribute="user_frustration",
+        binary_threshold=0.8,
     ),
 )
 

@@ -19,6 +19,7 @@ import {TimeSince} from 'sentry/components/timeSince';
 import {UnreadIndicator} from 'sentry/components/unreadIndicator';
 import {t} from 'sentry/locale';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
+import * as qs from 'sentry/utils/url/qs';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {
@@ -26,7 +27,7 @@ import {
   updateInboxItemsMutationOptions,
 } from './inboxApiOptions';
 import type {InboxFilters, InboxItem} from './types';
-import {getInboxItemPath, INBOX_SUBJECT_CONFIG} from './utils';
+import {INBOX_SUBJECT_CONFIG} from './utils';
 
 interface InboxItemListProps {
   filters: InboxFilters;
@@ -61,6 +62,7 @@ function InboxItemListItem({item, isSelected, filters}: InboxItemListItemProps) 
   const checkboxId = useId();
   const SubjectIcon = INBOX_SUBJECT_CONFIG[item.subjectType].icon;
   const title = item.title ?? t('Unavailable');
+  const {pathname, search, hash} = new URL(item.url);
   const queryClient = useQueryClient();
   const {mutate: updateInboxItems, isPending: isUpdating} = useMutation(
     updateInboxItemsMutationOptions({organization, queryClient})
@@ -111,8 +113,9 @@ function InboxItemListItem({item, isSelected, filters}: InboxItemListItemProps) 
                   <ItemLink
                     {...linkProps}
                     to={{
-                      pathname: getInboxItemPath(organization, item),
-                      query: {...filters},
+                      pathname,
+                      query: {...filters, ...qs.parse(search)},
+                      hash,
                     }}
                     aria-current={isSelected ? 'true' : undefined}
                   >
@@ -133,7 +136,7 @@ function InboxItemListItem({item, isSelected, filters}: InboxItemListItemProps) 
                   <Text data-inbox-item-timestamp size="sm" variant="muted" wrap="nowrap">
                     <TimeSince
                       date={item.lastActivityAt}
-                      unitStyle="extraShort"
+                      unitStyle="narrow"
                       suffix=""
                       disabledAbsoluteTooltip
                     />

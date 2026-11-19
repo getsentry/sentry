@@ -14,6 +14,7 @@ import {
   collectPatches,
   getAutofixArtifactFromSection,
   getOutOfCreditsStep,
+  getPrIterationWaitingAction,
   isCodeChangesArtifact,
   isPrIterationBlock,
   isPrIterationPaused,
@@ -22,7 +23,10 @@ import {
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
-import {OUT_OF_CREDITS_STEP_MESSAGE} from 'sentry/components/seer/outOfCredits/messages';
+import {
+  getPrIterationOutOfCreditsMessage,
+  OUT_OF_CREDITS_STEP_MESSAGE,
+} from 'sentry/components/seer/outOfCredits/messages';
 import {useOutOfCreditsRetry} from 'sentry/components/seer/outOfCredits/useOutOfCreditsRetry';
 import {t, tn} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
@@ -95,7 +99,10 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
   const outOfCreditsRetry = useOutOfCreditsRetry(
     // A single run is retried with a new one, which starts at the root cause.
     isSingleRun ? 'root_cause' : (stoppedStep ?? 'code_changes'),
-    {enabled: isOutOfCredits}
+    {
+      billingFeature: isSingleRun ? undefined : autofix.runState?.billing_feature,
+      enabled: isOutOfCredits,
+    }
   );
 
   // The blocks of the step that is running, or that stopped for credits.
@@ -138,6 +145,15 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
     Object.values(autofix.runState?.coding_agents ?? {}).length === 0;
 
   const isPaused = isPrIterationPaused(autofix.runState);
+
+  const outOfCredits = autofix.runState?.pr_iteration_out_of_credits;
+  const outOfCreditsMessage = outOfCredits
+    ? getPrIterationOutOfCreditsMessage(
+        getPrIterationWaitingAction(autofix.runState),
+        autofix.runState?.queued_feedback?.length ?? 0,
+        outOfCredits.denial_reason
+      )
+    : null;
 
   // Once a PR exists, reset opens the PR iteration form, so it stays available
   // while an iteration is processing.
@@ -220,6 +236,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
   // The form starts another PR iteration, the same billable step as the one at
   // the bottom of the drawer, so it is held on the same check.
   const prIterationCreditsDisabled = useAutofixCreditsDisabled('pr_iteration', {
+    billingFeature: autofix.runState?.billing_feature,
     enabled: shouldShowReset && showPrIterationForm,
   });
 
@@ -346,6 +363,8 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
       );
     } else if (isResetAvailable) {
       // An iteration is retried with feedback, through the PR iteration form.
+      // TODO(CW-3102): Retry the stopped iteration's own feedback once the
+      // organization has credits, instead of asking for it again.
       retry = (
         <Flex>
           <Button
@@ -458,6 +477,13 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
       resetTooltip={isPaused ? PR_ITERATION_PAUSED_TOOLTIP : outOfCreditsRetry.tooltip}
     >
       <FeedbackList items={feedback} />
+      {/* TODO(CW-3102): Add a Retry button, enabled once the organization has
+          credits, so the work doesn't wait for the next iteration. */}
+      {/* A step that stopped for credits has its own line, with its retry, in
+          `content`. */}
+      {outOfCreditsMessage && !isOutOfCredits && (
+        <OutOfCreditsStatus message={outOfCreditsMessage} />
+      )}
       {content}
     </ArtifactCard>
   );

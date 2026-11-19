@@ -247,8 +247,14 @@ export type PendingUserInput = {
     | 'file_change_approval'
     | 'agent_write_approval'
     | 'ask_user_question'
-    | 'reauth_monitoring_provider';
+    | 'reauth_monitoring_provider'
+    | 'connect_scm';
 };
+
+export interface ConnectScmData {
+  failure_reason: string;
+  repo_name: string;
+}
 
 export interface ReauthMonitoringProviderData {
   auth_method: 'oauth' | 'pat';

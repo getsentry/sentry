@@ -332,7 +332,7 @@ export function formatSpanEvidenceToMarkdown(event: Event, group: Group): string
     // stays bounded, not each group independently.
     let sampleBudget = MAX_SAMPLE_SPANS_PER_SECTION;
 
-    const causeSpans: EvidenceSpan[] = spanInfo?.causeSpans?.filter(Boolean) ?? [];
+    const causeSpans: EvidenceSpan[] = spanInfo?.causeSpans ?? [];
     const preceding = summarizeSpanGroup(
       'Preceding Spans',
       causeSpans,
@@ -342,8 +342,7 @@ export function formatSpanEvidenceToMarkdown(event: Event, group: Group): string
     lines.push(...preceding.lines);
     sampleBudget = preceding.remaining;
 
-    const offendingSpans: EvidenceSpan[] =
-      spanInfo?.offendingSpans?.filter(Boolean) ?? [];
+    const offendingSpans: EvidenceSpan[] = spanInfo?.offendingSpans ?? [];
     const offending = summarizeSpanGroup(
       'Offending Spans',
       offendingSpans,

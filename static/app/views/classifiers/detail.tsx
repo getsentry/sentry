@@ -1,12 +1,12 @@
 import {Fragment} from 'react';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {InfoText} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
-import {DateTime} from 'sentry/components/dateTime';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -24,15 +24,18 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
+import {TableUrlParams} from 'sentry/views/insights/pages/agents/utils/urlParams';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
 import {ClassifiedConversationsTable} from './components/classifiedConversationsTable';
 import {ClassifierFilters} from './components/classifierFilters';
 import {ClassifierInstancesChart} from './components/classifierInstancesChart';
+import {ClassifierResultFilterSelect} from './components/classifierResultFilterSelect';
 import {
   ClassifierDisabledAlert,
   ClassifierStatusToggle,
 } from './components/classifierStatus';
+import {DeleteClassifierButton} from './components/deleteClassifierButton';
 import {ResultAttributeName} from './components/resultAttributeName';
 import {useClassifier} from './hooks/useClassifier';
 import {usePrebuiltClassifiers} from './hooks/usePrebuiltClassifiers';
@@ -45,6 +48,8 @@ import {
   getDatasetLabel,
   getOutputTypeLabel,
 } from './utils';
+
+const RESET_PARAMS_ON_CHANGE = [TableUrlParams.CURSOR];
 
 function OverflowValue({value}: {value: string}) {
   return (
@@ -150,7 +155,7 @@ function ClassifierDetails({
         )}
         <DescriptionList.Term>{t('Date created')}</DescriptionList.Term>
         <DescriptionList.Details>
-          <DateTime date={classifier.dateAdded} dateOnly year />
+          <DateTime date={classifier.dateAdded} mode="date" year="always" />
         </DescriptionList.Details>
         <DescriptionList.Term>{t('Last modified')}</DescriptionList.Term>
         <DescriptionList.Details>
@@ -197,14 +202,18 @@ function ClassifierDetailContent({classifier}: {classifier: TelemetryClassifier}
       <Layout.Main>
         <Stack gap="xl">
           <Flex align="center" gap="sm" justify="between" wrap="wrap">
-            <PageFilterBar condensed>
-              {showEnvironmentFilter && (
-                <EnvironmentPageFilter resetParamsOnChange={['cursor']} />
-              )}
-              <DatePageFilter resetParamsOnChange={['cursor']} />
-            </PageFilterBar>
+            <Flex align="center" gap="sm" wrap="wrap">
+              <PageFilterBar condensed>
+                {showEnvironmentFilter && (
+                  <EnvironmentPageFilter resetParamsOnChange={RESET_PARAMS_ON_CHANGE} />
+                )}
+                <DatePageFilter resetParamsOnChange={RESET_PARAMS_ON_CHANGE} />
+              </PageFilterBar>
+              <ClassifierResultFilterSelect classifier={classifier} />
+            </Flex>
             <Flex align="center" gap="sm" marginLeft="auto">
               <ClassifierStatusToggle classifier={classifier} />
+              <DeleteClassifierButton classifier={classifier} />
             </Flex>
           </Flex>
           <ClassifierDisabledAlert classifier={classifier} />

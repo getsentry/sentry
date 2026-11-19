@@ -201,56 +201,75 @@ describe('ConfigureIntegration settings tab', () => {
     expect(screen.queryByRole('link', {name: 'Slack'})).not.toBeInTheDocument();
   });
 
-  it('reconnects Linear through app authorization instead of editing credentials', async () => {
-    const provider = IntegrationProviderFixture({
+  it.each([
+    {
       key: 'linear',
-      slug: 'linear',
-      name: 'Linear for Seer',
-      features: ['seer-context'],
-      canAdd: false,
-    });
-    mockRequests(
-      OrganizationIntegrationsFixture({
-        name: 'Linear (Example)',
-        domainName: null,
-        provider: {...provider, aspects: {}},
-        configOrganization: [],
-        configData: {},
-      }),
-      provider
-    );
-    const initialize = MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/pipeline/integration_pipeline/`,
-      method: 'POST',
-      body: {
-        step: 'oauth_login',
-        stepIndex: 0,
-        totalSteps: 1,
-        provider: 'linear',
-        data: {oauthUrl: 'https://linear.app/oauth/authorize?actor=app'},
-      },
-    });
-    renderGlobalModal({organization: org});
-    render(<ConfigureIntegration />, {
-      organization: org,
-      initialRouterConfig: {
-        location: {
-          pathname: `/settings/${org.slug}/integrations/linear/${integrationId}/`,
+      name: 'Linear',
+      oauthUrl: 'https://linear.app/oauth/authorize?actor=app',
+    },
+    {
+      key: 'supabase',
+      name: 'Supabase',
+      oauthUrl: 'https://api.supabase.com/v1/oauth/authorize',
+    },
+  ])(
+    'reconnects a disabled $name integration through OAuth',
+    async ({key, name, oauthUrl}) => {
+      const provider = IntegrationProviderFixture({
+        key,
+        slug: key,
+        name: `${name} for Seer`,
+        features: ['seer-context'],
+        canAdd: false,
+      });
+      mockRequests(
+        OrganizationIntegrationsFixture({
+          name: `${name} (Example)`,
+          domainName: null,
+          status: 'disabled',
+          provider: {...provider, aspects: {}},
+          configOrganization: [],
+          configData: {},
+        }),
+        provider
+      );
+      const initialize = MockApiClient.addMockResponse({
+        url: `/organizations/${org.slug}/pipeline/integration_pipeline/`,
+        method: 'POST',
+        body: {
+          step: 'oauth_login',
+          stepIndex: 0,
+          totalSteps: 1,
+          provider: key,
+          data: {oauthUrl},
         },
-        route: '/settings/:orgId/integrations/:providerKey/:integrationId/',
-      },
-    });
+      });
+      renderGlobalModal({organization: org});
+      render(<ConfigureIntegration />, {
+        organization: org,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/${org.slug}/integrations/${key}/${integrationId}/`,
+          },
+          route: '/settings/:orgId/integrations/:providerKey/:integrationId/',
+        },
+      });
 
-    await userEvent.click(await screen.findByRole('button', {name: 'Reconnect Linear'}));
+      await userEvent.click(
+        await screen.findByRole('button', {name: `Reconnect ${name}`})
+      );
 
-    expect(await screen.findByRole('button', {name: 'Authorize Linear'})).toBeEnabled();
-    expect(initialize).toHaveBeenCalledWith(
-      `/organizations/${org.slug}/pipeline/integration_pipeline/`,
-      expect.objectContaining({data: {action: 'initialize', provider: 'linear'}})
-    );
-    expect(screen.queryByRole('textbox', {name: 'Client ID'})).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Client secret')).not.toBeInTheDocument();
-  });
+      expect(
+        await screen.findByRole('button', {name: `Authorize ${name}`})
+      ).toBeEnabled();
+      expect(initialize).toHaveBeenCalledWith(
+        `/organizations/${org.slug}/pipeline/integration_pipeline/`,
+        expect.objectContaining({data: {action: 'initialize', provider: key}})
+      );
+      expect(screen.queryByRole('textbox', {name: 'Client ID'})).not.toBeInTheDocument();
+      expect(screen.queryByLabelText('Client secret')).not.toBeInTheDocument();
+    }
+  );
 
   it('hides the Settings tab when there is no settings content', async () => {
     mockRequests(

@@ -157,6 +157,26 @@ class ProjectCreateSampleTest(APITestCase):
         assert "groupID" in orjson.loads(response.content)
         assert mock_create_sample_event.call_args.kwargs["platform"] == "react-native"
 
+    def test_php_bref_uses_php_sample(self) -> None:
+        project = self.create_project(teams=[self.team], name="foo", platform="php-bref")
+
+        url = reverse(
+            "sentry-api-0-project-create-sample",
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
+        )
+        with patch(
+            "sentry.api.endpoints.project_create_sample.create_sample_event",
+            wraps=create_sample_event,
+        ) as mock_create_sample_event:
+            response = self.client.post(url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert "groupID" in orjson.loads(response.content)
+        assert mock_create_sample_event.call_args.kwargs["platform"] == "php"
+
     def test_ruby(self) -> None:
         project = self.create_project(teams=[self.team], name="foo", platform="ruby")
 

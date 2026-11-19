@@ -1,9 +1,10 @@
-import {memo, useMemo} from 'react';
+import {memo, useCallback, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {MessageRow} from '@sentry/scraps/chat';
+import {getDuration} from '@sentry/scraps/duration';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -17,15 +18,17 @@ import {Count} from 'sentry/components/count';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {
+  callContainsNode,
   type ConversationMessage,
   extractMessagesFromNodes,
   NOT_REPORTED,
+  someMessageDeep,
 } from 'sentry/views/explore/conversations/utils/conversationMessages';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
+import {ScrubbedText} from 'sentry/views/insights/pages/agents/components/scrubbedText';
 import {EMPTY_TEXT_CONTENT} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import {
   getNumberAttr,
@@ -43,6 +46,7 @@ import {AIContentRenderer} from 'sentry/views/performance/traceDetails/traceDraw
 
 import {ConversationMissingMessagesAlert} from './conversationMissingMessagesAlert';
 import {MessageToolCalls} from './messageToolCalls';
+import {SubAgentRow, type RenderTranscriptMessages} from './subAgentRow';
 import {ToolTag} from './toolTag';
 import {TranscriptSpanRow} from './transcriptSpanRow';
 
@@ -70,18 +74,6 @@ export function MessagesPanel({
 }: MessagesPanelProps) {
   const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
 
-  // Detect XML once per list so selection re-renders don't re-parse every message.
-  const hasXmlByMessageId = useMemo(() => {
-    const map = new Map<string, boolean>();
-    for (const message of messages) {
-      map.set(
-        message.id,
-        detectAIContentType(message.content).type === 'markdown-with-xml'
-      );
-    }
-    return map;
-  }, [messages]);
-
   const nodeMap = useMemo(() => {
     const map = new Map<string, AITraceSpanNode>();
     for (const node of nodes) {
@@ -104,101 +96,189 @@ export function MessagesPanel({
     );
   }
 
-  const hasNotReportedContent = messages.some(
+  const hasNotReportedContent = someMessageDeep(
+    messages,
     message => message.content === NOT_REPORTED
   );
 
   return (
     <PanelContainer>
       {hasNotReportedContent && <NotReportedAlert nodes={nodes} />}
-      <Stack gap="0" width="100%">
-        {messages.map(message => {
-          const hasXmlTags = hasXmlByMessageId.get(message.id) ?? false;
-
-          if (message.role === 'user') {
-            return (
-              <UserTurn
-                key={message.id}
-                nodeId={message.nodeId}
-                content={message.content}
-                hasXmlTags={hasXmlTags}
-              />
-            );
-          }
-
-          if (message.role === 'embedding') {
-            return (
-              <EmbeddingTurn
-                key={message.id}
-                message={message}
-                isSelected={message.nodeId === selectedNodeId}
-              />
-            );
-          }
-
-          if (message.role === 'evaluation') {
-            return (
-              <EvaluationTurn
-                key={message.id}
-                message={message}
-                node={nodeMap.get(message.nodeId)}
-                isSelected={message.nodeId === selectedNodeId}
-                onSelectNode={onSelectNode}
-              />
-            );
-          }
-
-          if (message.role === 'extraction') {
-            return (
-              <ExtractionTurn
-                key={message.id}
-                message={message}
-                node={nodeMap.get(message.nodeId)}
-                isSelected={message.nodeId === selectedNodeId}
-                onSelectNode={onSelectNode}
-              />
-            );
-          }
-
-          if (message.role === 'memory') {
-            return (
-              <MemoryTurn
-                key={message.id}
-                message={message}
-                node={nodeMap.get(message.nodeId)}
-                isSelected={message.nodeId === selectedNodeId}
-                onSelectNode={onSelectNode}
-              />
-            );
-          }
-
-          // Pass each turn only the selection state that concerns it, rather
-          // than the shared `selectedNodeId`. A turn's props stay referentially
-          // stable when the selection moves to an unrelated turn, so once these
-          // rows are memoized only the turns that gain/lose selection re-render.
-          const isSelected = message.nodeId === selectedNodeId;
-          const selectedToolCallId = message.toolCalls?.some(
-            tool => tool.nodeId === selectedNodeId
-          )
-            ? selectedNodeId
-            : null;
-
-          return (
-            <AssistantTurn
-              key={message.id}
-              message={message}
-              hasXmlTags={hasXmlTags}
-              isSelected={isSelected}
-              selectedToolCallId={selectedToolCallId}
-              nodeMap={nodeMap}
-              onSelectNode={onSelectNode}
-            />
-          );
-        })}
-      </Stack>
+      <TranscriptMessages
+        messages={messages}
+        nodeMap={nodeMap}
+        selectedNodeId={selectedNodeId}
+        onSelectNode={onSelectNode}
+      />
     </PanelContainer>
   );
 }
+
+interface TranscriptMessagesProps {
+  messages: ConversationMessage[];
+  nodeMap: Map<string, AITraceSpanNode>;
+  onSelectNode: (node: AITraceSpanNode) => void;
+  selectedNodeId: string | null;
+  /** Rendered inside a sub-agent row, which already provides the row gutter. */
+  nested?: boolean;
+}
+
+/**
+ * The transcript's message list. Also renders a sub-agent's own transcript
+ * inside its expanded row.
+ */
+function TranscriptMessages({
+  messages,
+  nodeMap,
+  selectedNodeId,
+  onSelectNode,
+  nested = false,
+}: TranscriptMessagesProps) {
+  // Detect XML once per list so selection re-renders don't re-parse every message.
+  const hasXmlByMessageId = useMemo(() => {
+    const map = new Map<string, boolean>();
+    for (const message of messages) {
+      map.set(
+        message.id,
+        detectAIContentType(message.content).type === 'markdown-with-xml'
+      );
+    }
+    return map;
+  }, [messages]);
+
+  // Depends only on stable props: callers pass the selection scoped to them, so
+  // memoized turns keep bailing out when the selection moves elsewhere.
+  const renderNestedMessages = useCallback<RenderTranscriptMessages>(
+    (nestedMessages, nestedSelectedNodeId) => (
+      <TranscriptMessages
+        nested
+        messages={nestedMessages}
+        nodeMap={nodeMap}
+        selectedNodeId={nestedSelectedNodeId}
+        onSelectNode={onSelectNode}
+      />
+    ),
+    [nodeMap, onSelectNode]
+  );
+
+  const List = nested ? NestedMessageList : Stack;
+
+  return (
+    <List gap="0" width="100%">
+      {messages.map(message => {
+        const hasXmlTags = hasXmlByMessageId.get(message.id) ?? false;
+
+        if (message.role === 'user') {
+          return (
+            <UserTurn
+              key={message.id}
+              nodeId={message.nodeId}
+              content={message.content}
+              hasXmlTags={hasXmlTags}
+            />
+          );
+        }
+
+        if (message.role === 'embedding') {
+          return (
+            <EmbeddingTurn
+              key={message.id}
+              message={message}
+              isSelected={message.nodeId === selectedNodeId}
+            />
+          );
+        }
+
+        if (message.role === 'evaluation') {
+          return (
+            <EvaluationTurn
+              key={message.id}
+              message={message}
+              node={nodeMap.get(message.nodeId)}
+              isSelected={message.nodeId === selectedNodeId}
+              onSelectNode={onSelectNode}
+            />
+          );
+        }
+
+        if (message.role === 'extraction') {
+          return (
+            <ExtractionTurn
+              key={message.id}
+              message={message}
+              node={nodeMap.get(message.nodeId)}
+              isSelected={message.nodeId === selectedNodeId}
+              onSelectNode={onSelectNode}
+            />
+          );
+        }
+
+        if (message.role === 'memory') {
+          return (
+            <MemoryTurn
+              key={message.id}
+              message={message}
+              node={nodeMap.get(message.nodeId)}
+              isSelected={message.nodeId === selectedNodeId}
+              onSelectNode={onSelectNode}
+            />
+          );
+        }
+
+        if (message.subAgent) {
+          return (
+            <MessageRow
+              key={message.id}
+              from="assistant"
+              density="line"
+              data-node-id={message.nodeId}
+            >
+              <SubAgentRow
+                call={message.subAgent}
+                nodeMap={nodeMap}
+                selectedNodeId={selectedNodeId}
+                renderMessages={renderNestedMessages}
+              />
+            </MessageRow>
+          );
+        }
+
+        // Pass each turn only the selection state that concerns it, rather
+        // than the shared `selectedNodeId`. A turn's props stay referentially
+        // stable when the selection moves to an unrelated turn, so once these
+        // rows are memoized only the turns that gain/lose selection re-render.
+        const isSelected = message.nodeId === selectedNodeId;
+        const selectedToolCallId =
+          selectedNodeId !== null &&
+          message.toolCalls?.some(call => callContainsNode(call, selectedNodeId))
+            ? selectedNodeId
+            : null;
+
+        return (
+          <AssistantTurn
+            key={message.id}
+            message={message}
+            hasXmlTags={hasXmlTags}
+            isSelected={isSelected}
+            selectedToolCallId={selectedToolCallId}
+            nodeMap={nodeMap}
+            onSelectNode={onSelectNode}
+            renderMessages={renderNestedMessages}
+          />
+        );
+      })}
+    </List>
+  );
+}
+
+// Rows inside a sub-agent row cancel their own horizontal gutter (`MessageRow`'s
+// `xl` padding): the sub-agent row's indent already provides it, and doubling it
+// pushes nested bubbles inward and the meta column out of line with the rows
+// around it. Layout props can't express a negative margin, hence the styled
+// wrapper.
+const NestedMessageList = styled(Stack)`
+  margin: 0 -${p => p.theme.space.xl};
+`;
 
 // User turns carry no selection state, so their props never change on a
 // selection change — memoized, they render once and always bail out after.
@@ -237,10 +317,11 @@ interface AssistantTurnProps {
   message: ConversationMessage;
   nodeMap: Map<string, AITraceSpanNode>;
   onSelectNode: (node: AITraceSpanNode) => void;
+  renderMessages: RenderTranscriptMessages;
   /**
-   * The selected node id when it belongs to one of this turn's tool calls,
-   * otherwise null. Scoping it to the turn keeps the prop stable for turns
-   * unaffected by a selection change.
+   * The selected node id when it belongs to one of this turn's calls (or a
+   * span inside a sub-agent call), otherwise null. Scoping it to the turn keeps
+   * the prop stable for turns unaffected by a selection change.
    */
   selectedToolCallId: string | null;
 }
@@ -255,6 +336,7 @@ const AssistantTurn = memo(function AssistantTurnImpl({
   selectedToolCallId,
   nodeMap,
   onSelectNode,
+  renderMessages,
 }: AssistantTurnProps) {
   const organization = useOrganization();
   const theme = useTheme();
@@ -283,17 +365,18 @@ const AssistantTurn = memo(function AssistantTurnImpl({
   return (
     <Container display="contents" data-node-id={message.nodeId}>
       {message.toolCalls && message.toolCalls.length > 0 && (
-        <MessageRow from="assistant" density="compact">
+        <MessageRow from="assistant" density="line">
           <MessageToolCalls
             toolCalls={message.toolCalls}
             selectedToolCallId={selectedToolCallId}
             nodeMap={nodeMap}
             onSelectNode={onSelectNode}
+            renderMessages={renderMessages}
           />
         </MessageRow>
       )}
       {message.reasoning && (
-        <MessageRow from="assistant" density="compact">
+        <MessageRow from="assistant" density="line">
           <Container
             width="100%"
             radius="xs"
@@ -316,7 +399,7 @@ const AssistantTurn = memo(function AssistantTurnImpl({
         // meta itself, so skip this fallback then.
         hasMeta &&
         !message.reasoning && (
-          <MessageRow from="assistant" density="compact">
+          <MessageRow from="assistant" density="line">
             <Flex
               justify="end"
               width="100%"
@@ -363,7 +446,7 @@ function AssistantMeta({cost, duration}: {cost?: number; duration?: number}) {
       duration={
         duration === undefined || duration <= 0 ? null : (
           <Text size="xs" variant="muted" tabular align="right">
-            {getDuration(duration, 2, true)}
+            {getDuration(duration, {precision: 2, style: 'short'})}
           </Text>
         )
       }
@@ -387,9 +470,9 @@ const EmbeddingTurn = memo(function EmbeddingTurnImpl({
   const tokens = message.embeddingTokens;
 
   return (
-    <MessageRow from="assistant" density="compact" data-node-id={message.nodeId}>
+    <MessageRow from="assistant" density="line" data-node-id={message.nodeId}>
       <CollapsibleChatRow
-        defaultOpen={isSelected}
+        openWhen={isSelected}
         title={
           <Text
             size="sm"
@@ -412,7 +495,7 @@ const EmbeddingTurn = memo(function EmbeddingTurnImpl({
             duration={
               message.duration === undefined || message.duration <= 0 ? null : (
                 <Text size="xs" variant="muted" tabular align="right">
-                  {getDuration(message.duration, 2, true)}
+                  {getDuration(message.duration, {precision: 2, style: 'short'})}
                 </Text>
               )
             }
@@ -473,7 +556,7 @@ const EvaluationTurn = memo(function EvaluationTurnImpl({
   };
 
   return (
-    <MessageRow from="assistant" density="compact" data-node-id={message.nodeId}>
+    <MessageRow from="assistant" density="line" data-node-id={message.nodeId}>
       <TranscriptSpanRow
         node={node}
         isSelected={isSelected}
@@ -519,7 +602,7 @@ const ExtractionTurn = memo(function ExtractionTurnImpl({
   };
 
   return (
-    <MessageRow from="assistant" density="compact" data-node-id={message.nodeId}>
+    <MessageRow from="assistant" density="line" data-node-id={message.nodeId}>
       <TranscriptSpanRow
         node={node}
         isSelected={isSelected}
@@ -559,7 +642,7 @@ const MemoryTurn = memo(function MemoryTurnImpl({
   };
 
   return (
-    <MessageRow from="assistant" density="compact" data-node-id={message.nodeId}>
+    <MessageRow from="assistant" density="line" data-node-id={message.nodeId}>
       <TranscriptSpanRow
         node={node}
         isSelected={isSelected}
@@ -603,7 +686,7 @@ function ReasoningSection({
       meta={meta}
       title={isOpen => (
         <Text size="sm" variant="muted" ellipsis monospace>
-          {t('Thinking...')} {isOpen ? null : reasoning}
+          {t('Thinking...')} {isOpen ? null : <ScrubbedText>{reasoning}</ScrubbedText>}
         </Text>
       )}
       onToggle={open =>

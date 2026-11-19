@@ -67,6 +67,8 @@ export function createOperationMatcher<Operation extends ApiOperationTemplate>(
     root ??= buildIndex(operations);
     if (!URL.canParse(path, PLACEHOLDER_ORIGIN)) return;
     let pathname = new URL(path, PLACEHOLDER_ORIGIN).pathname;
+    // Only at the start of the path. Sentry isn't supported when served under
+    // a path prefix, so `/sentry/api/0/...` is deliberately not an API path.
     if (pathname === API_BASE_PATH || pathname.startsWith(`${API_BASE_PATH}/`)) {
       pathname = pathname.slice(API_BASE_PATH.length);
     }

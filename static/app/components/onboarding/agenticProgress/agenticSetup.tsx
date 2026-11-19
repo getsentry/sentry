@@ -6,7 +6,7 @@ import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {AgentHandoffFlow} from 'sentry/components/agentHandoff/useAgentHandoff';
+import {AgentHandoffFlow} from 'sentry/components/agentHandoff/types';
 import {ScmCollapsibleReveal} from 'sentry/components/onboarding/scm/scmCollapsibleReveal';
 import {t, tct} from 'sentry/locale';
 
@@ -34,13 +34,13 @@ interface AgenticSetupProps {
   handoffFlow?: AgentHandoffFlow;
   /** Tilts the setup card and adds the stacked brand border and shadows. */
   layered?: boolean;
-  onboardingCode?: string;
+  /** Rendered at the end of the row under the progress list. */
+  metaAction?: React.ReactNode;
 }
 
 export function AgenticSetup({
   hasInitFailed,
   isAgentConnected,
-  onboardingCode,
   onCopyCommand,
   onRetry,
   onSelectSnippet,
@@ -52,6 +52,7 @@ export function AgenticSetup({
   run,
   handoffFlow = AgentHandoffFlow.ONBOARDING,
   layered = false,
+  metaAction,
 }: AgenticSetupProps) {
   const hasRunFailed = run?.runStatus === 'failed' || run?.runStatus === 'cancelled';
   const showsProgress =
@@ -108,8 +109,8 @@ export function AgenticSetup({
             >
               <AgenticProgress
                 run={run}
-                onboardingCode={onboardingCode}
                 issueLinkReferrer={issueLinkReferrer}
+                metaAction={metaAction}
               />
             </MotionContainer>
           ) : (

@@ -4,7 +4,6 @@ import {useQuery} from '@tanstack/react-query';
 import {usePrompts} from 'sentry/actionCreators/prompts';
 import type {SeerOutOfCreditsCtaProps} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
 import type {Organization} from 'sentry/types/organization';
-import type {SeerCreditDenialReason} from 'sentry/utils/seer/useSeerCreditCheck';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -21,16 +20,10 @@ import {seerWalletAutoTopUpOptions} from 'getsentry/views/subscriptionPage/seerW
 
 function getEscalation(
   organization: Organization,
-  subscription: Subscription | null,
-  denialReason: SeerCreditDenialReason | null | undefined
+  subscription: Subscription | null
 ): SeerOutOfCreditsEscalation {
   if (organization.access.includes('org:billing')) {
     return 'configure';
-  }
-  // "Contact Admin" asks the admins for more credits, which doesn't lift the
-  // daily usage limit, so members are only told to ask them about the limit.
-  if (denialReason === 'daily_cap_exceeded') {
-    return 'contact';
   }
   // Members of orgs that buy through an account team have nobody to send a
   // self-serve request to, same as the upgrade and trial CTAs.
@@ -52,7 +45,7 @@ export function SeerOutOfCreditsCta({
   const organization = useOrganization();
   const subscription = useSubscription();
   const [isRequestingCredits, setIsRequestingCredits] = useState(false);
-  const escalation = getEscalation(organization, subscription, denialReason);
+  const escalation = getEscalation(organization, subscription);
 
   const {
     isLoading: isPromptLoading,
@@ -81,6 +74,7 @@ export function SeerOutOfCreditsCta({
     await sendSeerTopUpRequest({
       api,
       organization,
+      denialReason,
       handleSuccess: () => snoozePrompt(TOP_UP_REQUESTED_PROMPT),
     });
     setIsRequestingCredits(false);

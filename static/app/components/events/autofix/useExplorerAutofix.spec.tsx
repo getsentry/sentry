@@ -1210,9 +1210,7 @@ describe('useExplorerAutofix - startStep', () => {
       method: 'POST',
       body: {run_id: 776, feature_id: 'autofix_single_run'},
     });
-    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP), {
-      organization: OrganizationFixture({features: ['autofix-browser-notifications']}),
-    });
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
     const run = await act(() => result.current.startStep('root_cause'));
 
     expect(run).toEqual({runId: 776, isSingleRun: true});
@@ -1319,9 +1317,7 @@ describe('useExplorerAutofix - createPR', () => {
     'says a push was refused for credits (denialReason %s) and rechecks credits',
     async (denialReason, message) => {
       const errorSpy = jest.spyOn(toast, 'error');
-      const organization = OrganizationFixture({
-        features: ['seer-credit-checks', 'token-billed-seer-enabled'],
-      });
+      const organization = OrganizationFixture({features: ['token-billed-seer-enabled']});
       const creditCheck = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/seer/credit-check/`,
         body: {hasEnoughCredits: true},
@@ -1505,6 +1501,50 @@ describe('useExplorerAutofix - startStep pr_iteration', () => {
     );
 
     expect(result.current.runState?.queued_feedback).toHaveLength(1);
+  });
+
+  it('refetches the run when feedback is refused for credits', async () => {
+    const errorSpy = jest.spyOn(toast, 'error');
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'POST',
+      statusCode: 402,
+      body: {
+        detail:
+          'Your organization does not have enough credits to continue your Autofix run.',
+        code: 'seer_out_of_credits',
+      },
+    });
+
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
+    await waitFor(() => expect(result.current.runState?.run_id).toBe(42));
+
+    // The backend holds the refused feedback on the queue.
+    MockApiClient.addMockResponse({
+      url: AUTOFIX_URL,
+      method: 'GET',
+      body: {
+        autofix: {
+          ...baseState,
+          status: 'completed',
+          pr_iteration_out_of_credits: {unfinished_action: null, denial_reason: null},
+          queued_feedback: [{text: 'make it blue', source: {type: 'user-ui'}}],
+        },
+      },
+    });
+
+    await expect(
+      act(() =>
+        result.current.startStep('pr_iteration', {runId: 42, userContext: 'make it blue'})
+      )
+    ).rejects.toThrow();
+
+    expect(errorSpy).toHaveBeenCalledWith(
+      "Seer couldn't start on this feedback because your organization is out of credits. Seer continues the next time it iterates on the pull request."
+    );
+    await waitFor(() =>
+      expect(result.current.runState?.pr_iteration_out_of_credits).toBeTruthy()
+    );
   });
 });
 
@@ -1864,9 +1904,7 @@ describe('useExplorerAutofix - startStep errors', () => {
     'says a kickoff was refused for credits (denialReason %s), rechecks credits, and paints no failed run',
     async (denialReason, message) => {
       const errorSpy = jest.spyOn(toast, 'error');
-      const organization = OrganizationFixture({
-        features: ['seer-credit-checks', 'token-billed-seer-enabled'],
-      });
+      const organization = OrganizationFixture({features: ['token-billed-seer-enabled']});
       const creditCheck = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/seer/credit-check/`,
         body: {hasEnoughCredits: true},
