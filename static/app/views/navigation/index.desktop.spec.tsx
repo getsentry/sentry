@@ -530,6 +530,35 @@ describe('desktop navigation', () => {
       }
     );
 
+    it('groups the project selector into my projects and other projects', async () => {
+      ProjectsStore.loadInitialData([
+        ProjectFixture({id: '1', slug: 'project-slug', isMember: true}),
+        ProjectFixture({id: '2', slug: 'python', isMember: false}),
+        ProjectFixture({id: '3', slug: 'go', isMember: true, isBookmarked: true}),
+      ]);
+      render(
+        <PrimaryNavigationContextProvider>
+          <Navigation />
+        </PrimaryNavigationContextProvider>,
+        navigationContext({
+          organization: settingsV3,
+          initialRouterConfig: {
+            location: {pathname: '/settings/org-slug/projects/project-slug/'},
+            route: '/settings/org-slug/projects/:projectId?/*',
+          },
+        })
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Select a project'}));
+
+      const optionNames = (name: string) =>
+        within(screen.getByRole('group', {name}))
+          .getAllByRole('option')
+          .map(option => option.textContent);
+      expect(optionNames('My Projects')).toEqual(['go', 'project-slug']);
+      expect(optionNames('Other Projects')).toEqual(['python']);
+    });
+
     it('returns to the last selected project after visiting org settings', async () => {
       const {router} = render(
         <PrimaryNavigationContextProvider>

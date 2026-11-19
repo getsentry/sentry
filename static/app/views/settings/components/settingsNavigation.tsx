@@ -12,6 +12,7 @@ import {Text} from '@sentry/scraps/text';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {groupProjectsByMembership} from 'sentry/utils/project/groupProjectsByMembership';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
@@ -142,10 +143,14 @@ function SettingsProjectSelector() {
               {t('Create Project')}
             </MenuComponents.CTALinkButton>
           }
-          options={projects.map(project => ({
-            value: project.slug,
-            label: project.slug,
-            leadingItems: <ProjectAvatar project={project} size={16} />,
+          options={groupProjectsByMembership(projects).map(group => ({
+            key: group.key,
+            label: group.label,
+            options: group.projects.map(project => ({
+              value: project.slug,
+              label: project.slug,
+              leadingItems: <ProjectAvatar project={project} size={16} />,
+            })),
           }))}
           onChange={selection => {
             trackAnalytics('settings.project_selector.changed', {organization});
