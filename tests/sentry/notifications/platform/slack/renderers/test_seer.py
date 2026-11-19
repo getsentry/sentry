@@ -25,11 +25,9 @@ from sentry.notifications.platform.slack.renderers.seer_agent_write_approval imp
     SeerAgentWriteApprovalSlackRenderer,
 )
 from sentry.notifications.platform.templates.seer import (
-    AGENT_OUT_OF_CREDITS_BILLING_MESSAGE,
-    AGENT_OUT_OF_CREDITS_MEMBER_MESSAGE,
+    AGENT_OUT_OF_CREDITS_MESSAGE,
     AGENT_OUT_OF_CREDITS_NO_RELOADS_MESSAGE,
-    AUTOFIX_OUT_OF_CREDITS_BILLING_MESSAGE,
-    AUTOFIX_OUT_OF_CREDITS_MEMBER_MESSAGE,
+    AUTOFIX_OUT_OF_CREDITS_MESSAGE,
     AUTOFIX_OUT_OF_CREDITS_NO_RELOADS_MESSAGE,
     SeerAgentError,
     SeerAgentOutOfCredits,
@@ -370,22 +368,6 @@ def assert_configure_auto_reload_button(
     assert routing.organization_id == organization_id
 
 
-def assert_contact_admin_button(renderable: SlackRenderable, *, organization_id: int) -> None:
-    blocks = renderable["blocks"]
-    assert len(blocks) == 2
-    assert isinstance(blocks[1], ActionsBlock)
-    assert len(blocks[1].elements) == 1
-    button = blocks[1].elements[0]
-    assert isinstance(button, ButtonElement)
-    assert button.url is None
-    assert button.text is not None
-    assert button.text.text == "Contact Admin"
-    assert button.action_id is not None
-    routing = decode_action_id(button.action_id)
-    assert routing.action == SlackAction.SEER_REQUEST_CREDITS.value
-    assert routing.organization_id == organization_id
-
-
 class SeerSlackRendererAutofixOutOfCreditsTest(TestCase):
     def _render(self, **kwargs: bool) -> SlackRenderable:
         data = SeerAutofixOutOfCredits(organization_id=self.organization.id, **kwargs)
@@ -393,22 +375,17 @@ class SeerSlackRendererAutofixOutOfCreditsTest(TestCase):
             data=data, rendered_template=SeerAutofixOutOfCreditsTemplate().render(data)
         )
 
-    def test_member_can_contact_admin(self) -> None:
+    def test_links_to_auto_reload_settings(self) -> None:
         renderable = self._render()
-        assert_out_of_credits_message(renderable, AUTOFIX_OUT_OF_CREDITS_MEMBER_MESSAGE)
-        assert_contact_admin_button(renderable, organization_id=self.organization.id)
-
-    def test_billing_member_can_configure_auto_reload(self) -> None:
-        renderable = self._render(has_billing_access=True)
-        assert_out_of_credits_message(renderable, AUTOFIX_OUT_OF_CREDITS_BILLING_MESSAGE)
+        assert_out_of_credits_message(renderable, AUTOFIX_OUT_OF_CREDITS_MESSAGE)
         assert_configure_auto_reload_button(
             renderable,
             organization_id=self.organization.id,
             billing_slug=self.organization.slug,
         )
 
-    def test_billing_member_with_auto_reload_on(self) -> None:
-        renderable = self._render(has_billing_access=True, auto_reload_enabled=True)
+    def test_auto_reload_already_on(self) -> None:
+        renderable = self._render(auto_reload_enabled=True)
         assert_out_of_credits_message(renderable, AUTOFIX_OUT_OF_CREDITS_NO_RELOADS_MESSAGE)
         assert_configure_auto_reload_button(
             renderable,
@@ -417,11 +394,11 @@ class SeerSlackRendererAutofixOutOfCreditsTest(TestCase):
         )
 
     def test_missing_organization(self) -> None:
-        data = SeerAutofixOutOfCredits(organization_id=0, has_billing_access=True)
+        data = SeerAutofixOutOfCredits(organization_id=0)
         renderable = render_seer(
             data=data, rendered_template=SeerAutofixOutOfCreditsTemplate().render(data)
         )
-        assert_out_of_credits_message(renderable, AUTOFIX_OUT_OF_CREDITS_BILLING_MESSAGE)
+        assert_out_of_credits_message(renderable, AUTOFIX_OUT_OF_CREDITS_MESSAGE)
         assert len(renderable["blocks"]) == 1
 
 
@@ -432,22 +409,17 @@ class SeerSlackRendererAgentOutOfCreditsTest(TestCase):
             data=data, rendered_template=SeerAgentOutOfCreditsTemplate().render(data)
         )
 
-    def test_member_can_contact_admin(self) -> None:
+    def test_links_to_auto_reload_settings(self) -> None:
         renderable = self._render()
-        assert_out_of_credits_message(renderable, AGENT_OUT_OF_CREDITS_MEMBER_MESSAGE)
-        assert_contact_admin_button(renderable, organization_id=self.organization.id)
-
-    def test_billing_member_can_configure_auto_reload(self) -> None:
-        renderable = self._render(has_billing_access=True)
-        assert_out_of_credits_message(renderable, AGENT_OUT_OF_CREDITS_BILLING_MESSAGE)
+        assert_out_of_credits_message(renderable, AGENT_OUT_OF_CREDITS_MESSAGE)
         assert_configure_auto_reload_button(
             renderable,
             organization_id=self.organization.id,
             billing_slug=self.organization.slug,
         )
 
-    def test_billing_member_with_auto_reload_on(self) -> None:
-        renderable = self._render(has_billing_access=True, auto_reload_enabled=True)
+    def test_auto_reload_already_on(self) -> None:
+        renderable = self._render(auto_reload_enabled=True)
         assert_out_of_credits_message(renderable, AGENT_OUT_OF_CREDITS_NO_RELOADS_MESSAGE)
         assert_configure_auto_reload_button(
             renderable,
