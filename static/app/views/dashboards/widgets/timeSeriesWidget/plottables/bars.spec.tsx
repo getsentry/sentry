@@ -1,6 +1,6 @@
+// eslint-disable-next-line no-restricted-imports
+import color from 'color';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
-
-import {defined} from 'sentry/utils/defined';
 
 import {Bars} from './bars';
 
@@ -20,35 +20,16 @@ describe('Bars', () => {
   };
 
   it.each([
-    {segmentBy: [], hatched: [false, false, false], faded: [false, false, false]},
-    {
-      segmentBy: ['completeness'],
-      hatched: [false, false, false],
-      faded: [false, false, true],
-    },
-    {
-      segmentBy: ['confidence'],
-      hatched: [false, true, false],
-      faded: [false, false, false],
-    },
-    {
-      segmentBy: ['completeness', 'confidence'],
-      hatched: [false, true, false],
-      faded: [false, false, true],
-    },
-  ] as const)('segments by $segmentBy', ({segmentBy, hatched, faded}) => {
+    {segmentBy: [], opacities: [1, 1, 1]},
+    {segmentBy: ['completeness'], opacities: [1, 1, 0.5]},
+    {segmentBy: ['confidence'], opacities: [1, 0.45, 1]},
+    {segmentBy: ['completeness', 'confidence'], opacities: [1, 0.45, 0.5]},
+  ] as const)('segments by $segmentBy', ({segmentBy, opacities}) => {
     const [series] = new Bars(timeSeries).toSeries({...plottingOptions, segmentBy});
     const getColor = series!.itemStyle!.color as (params: {dataIndex: number}) => string;
 
     expect(
-      series!.data!.map(datum =>
-        defined((datum as {itemStyle?: {decal?: unknown}}).itemStyle?.decal)
-      )
-    ).toEqual(hatched);
-    expect(
-      timeSeries.values.map(
-        (_, dataIndex) => getColor({dataIndex}) !== plottingOptions.color
-      )
-    ).toEqual(faded);
+      timeSeries.values.map((_, dataIndex) => color(getColor({dataIndex})).alpha())
+    ).toEqual(opacities);
   });
 });

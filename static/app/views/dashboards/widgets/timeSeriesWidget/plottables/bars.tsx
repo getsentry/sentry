@@ -3,13 +3,13 @@ import color from 'color';
 import type {BarSeriesOption, LineSeriesOption} from 'echarts';
 
 import {createBarSeries} from 'sentry/components/charts/series/barSeries';
+import {LOW_CONFIDENCE_OPACITY} from 'sentry/views/dashboards/widgets/timeSeriesWidget/settings';
 
 import {
   ContinuousTimeSeries,
   DEFAULT_SEGMENT_BY,
   type ContinuousTimeSeriesConfig,
   type ContinuousTimeSeriesPlottingOptions,
-  isLowConfidenceDataPoint,
 } from './continuousTimeSeries';
 import type {Plottable} from './plottable';
 
@@ -50,44 +50,20 @@ export class Bars extends ContinuousTimeSeries<BarsConfig> implements Plottable 
           color: params => {
             const datum = scaledTimeSeries.values[params.dataIndex]!;
 
-            return segmentBy.includes('completeness') && datum.incomplete
-              ? colorObject.alpha(0.5).string()
-              : colorValue;
+            if (segmentBy.includes('completeness') && datum.incomplete) {
+              return colorObject.alpha(0.5).string();
+            }
+
+            if (segmentBy.includes('confidence') && datum.confidence === 'low') {
+              return colorObject.alpha(LOW_CONFIDENCE_OPACITY).string();
+            }
+
+            return colorValue;
           },
           opacity: 1,
         },
-        data: scaledTimeSeries.values.map(datum => {
-          const dataPoint = this.toDataPoint(datum, segmentBy);
-
-          if (!isLowConfidenceDataPoint(dataPoint)) {
-            return dataPoint;
-          }
-
-          return {
-            ...dataPoint,
-            itemStyle: {
-              decal: {
-                ...LOW_CONFIDENCE_DECAL,
-                // The hatch has to contrast with the bar's own color, not the
-                // page background, so theme tokens don't apply here
-                color:
-                  colorObject.luminosity() > 0.5
-                    ? 'rgba(0, 0, 0, 0.35)'
-                    : 'rgba(255, 255, 255, 0.45)',
-              },
-            },
-          };
-        }),
+        data: scaledTimeSeries.values.map(datum => this.toDataPoint(datum, segmentBy)),
       }),
     ];
   }
 }
-
-// Diagonal hatch drawn over low-confidence bars
-const LOW_CONFIDENCE_DECAL = {
-  symbol: 'rect',
-  symbolSize: 1,
-  dashArrayX: [1, 0],
-  dashArrayY: [2, 4],
-  rotation: -Math.PI / 4,
-};
