@@ -72,6 +72,14 @@ function getAccountNavigationConfiguration({
           ),
         },
         {
+          id: 'account_appearance',
+          path: `${userSettingsPathPrefix}/appearance/`,
+          title: t('Appearance'),
+          keywords: [t('theme'), t('dark mode'), t('light mode')],
+          description: t('Choose how Sentry looks, like light or dark mode'),
+          show: ({organization}) => !!organization?.features.includes('theme-variants'),
+        },
+        {
           id: 'account_security',
           path: `${userSettingsPathPrefix}/security/`,
           icon: <IconLock />,

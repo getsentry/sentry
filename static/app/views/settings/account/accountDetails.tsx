@@ -17,6 +17,7 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {removeBodyTheme} from 'sentry/utils/removeBodyTheme';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {getSettingsScopeTitle} from 'sentry/views/settings/settingsScope';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
@@ -49,8 +50,10 @@ const accountDetailsSchema = z.object({
 const languageCodes = languages.map(([code]) => code);
 type Language = (typeof languageCodes)[number];
 
+export const themeSchema = z.enum(['light', 'dark', 'system']);
+
 const preferencesSchema = z.object({
-  theme: z.string(),
+  theme: themeSchema,
   language: z.enum(languageCodes),
   timezone: z.string(),
   stacktraceOrder: z.string(),
@@ -60,7 +63,7 @@ const preferencesSchema = z.object({
 
 type Preferences = z.infer<typeof preferencesSchema>;
 
-const THEME_OPTIONS = [
+export const THEME_OPTIONS: Array<{label: string; value: User['options']['theme']}> = [
   {value: 'light', label: t('Light')},
   {value: 'dark', label: t('Dark')},
   {value: 'system', label: t('Default to system')},
@@ -87,6 +90,9 @@ const userOptions = apiOptions.as<User>()('/users/$userId/', {
 
 function AccountDetails() {
   const settingsV3 = useSettingsV3();
+  const organization = useOrganization({allowNull: true});
+  // The theme field moves to the Appearance page when theme variants are on
+  const hasThemeVariants = organization?.features.includes('theme-variants') ?? false;
   const title = settingsV3 ? t('General') : t('Account Details');
   const queryClient = useQueryClient();
   const {data: user, isPending, isError, refetch} = useQuery(userOptions);
@@ -236,27 +242,29 @@ function AccountDetails() {
         </FieldGroup>
 
         <FieldGroup title={t('Preferences')}>
-          <AutoSaveForm
-            name="theme"
-            schema={preferencesSchema}
-            initialValue={user.options.theme}
-            mutationOptions={themeMutationOptions}
-          >
-            {field => (
-              <field.Layout.Row
-                label={t('Theme')}
-                hintText={t(
-                  "Select your theme preference. It can be synced to your system's theme, always light mode, or always dark mode."
-                )}
-              >
-                <field.Select
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  options={THEME_OPTIONS}
-                />
-              </field.Layout.Row>
-            )}
-          </AutoSaveForm>
+          {!hasThemeVariants && (
+            <AutoSaveForm
+              name="theme"
+              schema={preferencesSchema}
+              initialValue={user.options.theme}
+              mutationOptions={themeMutationOptions}
+            >
+              {field => (
+                <field.Layout.Row
+                  label={t('Theme')}
+                  hintText={t(
+                    "Select your theme preference. It can be synced to your system's theme, always light mode, or always dark mode."
+                  )}
+                >
+                  <field.Select
+                    value={field.state.value}
+                    onChange={field.handleChange}
+                    options={THEME_OPTIONS}
+                  />
+                </field.Layout.Row>
+              )}
+            </AutoSaveForm>
+          )}
 
           <AutoSaveForm
             name="language"
