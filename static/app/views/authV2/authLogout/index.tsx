@@ -1,4 +1,5 @@
 import {useMutation} from '@tanstack/react-query';
+import {parseAsString, useQueryState} from 'nuqs';
 import {useStore} from 'zustand';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -13,7 +14,6 @@ import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {useApi} from 'sentry/utils/useApi';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useUser} from 'sentry/utils/useUser';
 import {useAuthPageLoading} from 'sentry/views/authV2/useAuthPageLoading';
 
@@ -21,8 +21,8 @@ import {useAuthPageLoading} from 'sentry/views/authV2/useAuthPageLoading';
  * Only same-origin destinations are allowed, so a crafted logout link can't
  * send people to another site after they sign out.
  */
-function getSafeRedirectUrl(next: unknown): string | undefined {
-  if (typeof next !== 'string' || next === '') {
+function getSafeRedirectUrl(next: string | null): string | undefined {
+  if (!next) {
     return undefined;
   }
 
@@ -39,12 +39,12 @@ function getSafeRedirectUrl(next: unknown): string | undefined {
 
 export default function AuthLogout() {
   const api = useApi({persistInFlight: true});
-  const location = useLocation();
+  const [next] = useQueryState('next', parseAsString);
   const user = useUser();
   const isAuthenticated = useStore(ConfigStore, state => state.isAuthenticated);
   useAuthPageLoading(false);
 
-  const redirectUrl = getSafeRedirectUrl(location.query.next);
+  const redirectUrl = getSafeRedirectUrl(next);
   const logoutMutation = useMutation({
     mutationFn: () => logout(api, {redirectUrl}),
   });
