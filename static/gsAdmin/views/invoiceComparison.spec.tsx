@@ -88,6 +88,36 @@ describe('InvoiceComparison', () => {
     expect(screen.getByLabelText('Last day (UTC)')).toHaveValue('2026-11-09');
   });
 
+  it('shows the invoice day on each side and explains the invoice count', async () => {
+    const body = comparisonBody();
+    MockApiClient.addMockResponse({
+      url: COMPARISON_URL,
+      body: {
+        ...body,
+        rows: [
+          {
+            ...body.rows[0],
+            legacy_invoice_count: 2,
+            legacy_invoice_date_added: '2026-11-19T00:05:00+00:00',
+            platform_invoice_date_added: '2026-11-18T23:55:00+00:00',
+          },
+        ],
+      },
+    });
+
+    renderComparison({start: '2026-11-18', end: '2026-11-19'});
+
+    expect(await screen.findByText('11/19')).toBeInTheDocument();
+    expect(screen.getByText('11/18')).toBeInTheDocument();
+
+    await userEvent.hover(screen.getByText('(2)'));
+    expect(
+      await screen.findByText(
+        '2 legacy invoices created in this window; the amount is their total'
+      )
+    ).toBeInTheDocument();
+  });
+
   it('notes how many small mismatches are hidden', async () => {
     MockApiClient.addMockResponse({
       url: COMPARISON_URL,
@@ -185,7 +215,11 @@ describe('InvoiceComparison', () => {
         body: comparisonBody(),
       });
 
-      renderComparison({start: '2026-11-09', end: '2026-11-09', min_mismatch: '2.5'});
+      renderComparison({
+        start: '2026-11-09',
+        end: '2026-11-09',
+        min_mismatch: '2.5',
+      });
 
       expect(await screen.findByRole('link', {name: 'org-slug'})).toBeInTheDocument();
       expect(mock.mock.calls[0][1].query).toEqual(
@@ -200,7 +234,10 @@ describe('InvoiceComparison', () => {
         body: comparisonBody(),
       });
 
-      const {router} = renderComparison({start: '2026-11-09', end: '2026-11-09'});
+      const {router} = renderComparison({
+        start: '2026-11-09',
+        end: '2026-11-09',
+      });
       const input = screen.getByLabelText('Hide mismatches under ($)');
       await userEvent.clear(input);
       await userEvent.type(input, '0');

@@ -7,6 +7,7 @@ import {Alert} from '@sentry/scraps/alert';
 import {Tag, type TagProps} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {InfoText} from '@sentry/scraps/info';
 import {Input} from '@sentry/scraps/input';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -38,6 +39,10 @@ type Row = {
   platform_invoice_count: number;
   platform_invoice_guid: string | null;
   status: RowStatus;
+  // When the side's latest invoice in the window was created. Absent from
+  // backends that don't return it yet.
+  legacy_invoice_date_added?: string | null;
+  platform_invoice_date_added?: string | null;
 };
 
 type Summary = {
@@ -96,6 +101,58 @@ function InvoiceAmount({
     return amount;
   }
   return <Link to={`/_admin/invoices/${region}/${guid}/`}>{amount}</Link>;
+}
+
+// `MM/DD` of the UTC day, matching the whole-UTC-day window.
+function formatInvoiceDay(iso: string | null | undefined): string | null {
+  const ms = iso ? Date.parse(iso) : NaN;
+  return Number.isNaN(ms) ? null : utcDay(ms).slice(5).replace('-', '/');
+}
+
+function InvoiceSide({
+  cents,
+  count,
+  dateAdded,
+  guid,
+  region,
+  side,
+}: {
+  cents: number | null;
+  count: number;
+  dateAdded: string | null | undefined;
+  guid: string | null;
+  region: string | undefined;
+  side: 'legacy' | 'platform';
+}) {
+  const day = formatInvoiceDay(dateAdded);
+  const countTitle =
+    count === 0
+      ? `No ${side} invoices in this window`
+      : `${count} ${side} ${count === 1 ? 'invoice' : 'invoices'} created in this window; the amount is their total`;
+  return (
+    <Fragment>
+      <InvoiceAmount cents={cents} guid={guid} region={region} />
+      {day && (
+        <Fragment>
+          {' '}
+          <InfoText
+            size="sm"
+            variant="muted"
+            title={
+              count > 1
+                ? `Creation date (UTC) of the latest of ${count} ${side} invoices`
+                : `Creation date (UTC) of the ${side} invoice`
+            }
+          >
+            {day}
+          </InfoText>
+        </Fragment>
+      )}{' '}
+      <InfoText size="sm" variant="muted" title={countTitle}>
+        ({count})
+      </InfoText>
+    </Fragment>
+  );
 }
 
 function formatPercent(pct: number | null) {
@@ -280,7 +337,11 @@ export function InvoiceComparison() {
       navigate(
         {
           pathname: location.pathname,
-          query: {...location.query, ...pinnedWindow, page_size: String(pageSize)},
+          query: {
+            ...location.query,
+            ...pinnedWindow,
+            page_size: String(pageSize),
+          },
         },
         {replace: true}
       );
@@ -571,24 +632,24 @@ export function InvoiceComparison() {
                         )}
                       </td>
                       <RightCell>
-                        <InvoiceAmount
+                        <InvoiceSide
+                          side="legacy"
                           cents={row.legacy_amount}
+                          count={row.legacy_invoice_count}
+                          dateAdded={row.legacy_invoice_date_added}
                           guid={row.legacy_invoice_guid}
                           region={cell?.name}
-                        />{' '}
-                        <Text size="sm" variant="muted">
-                          ({row.legacy_invoice_count})
-                        </Text>
+                        />
                       </RightCell>
                       <RightCell>
-                        <InvoiceAmount
+                        <InvoiceSide
+                          side="platform"
                           cents={row.platform_amount}
+                          count={row.platform_invoice_count}
+                          dateAdded={row.platform_invoice_date_added}
                           guid={row.platform_invoice_guid}
                           region={cell?.name}
-                        />{' '}
-                        <Text size="sm" variant="muted">
-                          ({row.platform_invoice_count})
-                        </Text>
+                        />
                       </RightCell>
                       <RightCell>{formatPercent(row.delta_pct)}</RightCell>
                       <RightCell>{formatDollars(row.delta_cents)}</RightCell>
