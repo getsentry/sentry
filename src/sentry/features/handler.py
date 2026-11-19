@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 from collections.abc import Mapping, Sequence
-from typing import TYPE_CHECKING, Literal, overload
+from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import AnonymousUser
@@ -59,41 +59,6 @@ class FeatureHandler:
             for (obj, feature) in batch.get_feature_objects().items()
         }
 
-    @overload
-    def batch_has(
-        self,
-        feature_names: Sequence[str],
-        actor: User | RpcUser | AnonymousUser | None,
-        projects: Sequence[Project] | None = None,
-        organization: Organization | RpcOrganization | None = None,
-        batch: Literal[True] = True,
-        skip_experiment_exposure: bool = False,
-    ) -> dict[str, dict[str, bool | None]] | None: ...
-
-    @overload
-    def batch_has(
-        self,
-        feature_names: Sequence[str],
-        actor: User | RpcUser | AnonymousUser | None,
-        projects: Sequence[Project] | None,
-        organization: Organization | RpcOrganization | None,
-        batch: Literal[False],
-        skip_experiment_exposure: bool = False,
-    ) -> bool | None: ...
-
-    @overload
-    def batch_has(
-        self,
-        feature_names: Sequence[str],
-        actor: User | RpcUser | AnonymousUser | None,
-        projects: Sequence[Project] | None = None,
-        organization: Organization | RpcOrganization | None = None,
-        *,
-        batch: Literal[False],
-        skip_experiment_exposure: bool = False,
-    ) -> bool | None: ...
-
-    @overload
     def batch_has(
         self,
         feature_names: Sequence[str],
@@ -102,17 +67,7 @@ class FeatureHandler:
         organization: Organization | RpcOrganization | None = None,
         batch: bool = True,
         skip_experiment_exposure: bool = False,
-    ) -> dict[str, dict[str, bool | None]] | bool | None: ...
-
-    def batch_has(
-        self,
-        feature_names: Sequence[str],
-        actor: User | RpcUser | AnonymousUser | None,
-        projects: Sequence[Project] | None = None,
-        organization: Organization | RpcOrganization | None = None,
-        batch: bool = True,
-        skip_experiment_exposure: bool = False,
-    ) -> dict[str, dict[str, bool | None]] | bool | None:
+    ) -> dict[str, dict[str, bool | None]] | None:
         raise NotImplementedError
 
     def batch_has_for_organizations(
