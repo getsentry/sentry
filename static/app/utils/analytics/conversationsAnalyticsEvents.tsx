@@ -22,7 +22,6 @@ export type ConversationsEventParameters = {
   'conversations.message.click-extraction': Record<string, unknown>;
   'conversations.message.click-memory': Record<string, unknown>;
   'conversations.message.click-tool-call': Record<string, unknown>;
-  'conversations.message.click-user': Record<string, unknown>;
   'conversations.onboarding.interaction': {
     action:
       | 'collapse_prompt'
@@ -87,5 +86,4 @@ export const conversationsEventMap: Record<keyof ConversationsEventParameters, s
   'conversations.message.click-extraction': 'Conversations: Message Click Extraction',
   'conversations.message.click-memory': 'Conversations: Message Click Memory',
   'conversations.message.click-tool-call': 'Conversations: Message Click Tool Call',
-  'conversations.message.click-user': 'Conversations: Message Click User',
 };

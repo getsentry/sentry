@@ -586,7 +586,7 @@ describe('MessagesPanel', () => {
     expect(details).toHaveAttribute('open');
   });
 
-  it('selects user messages on the input tab and assistant messages on click', async () => {
+  it('selects assistant messages on click but not user messages', async () => {
     const node = createMockNode({
       id: 'span-1',
       attributes: {
@@ -605,50 +605,27 @@ describe('MessagesPanel', () => {
       />
     );
 
-    // User messages open the input of their LLM call
+    // User messages are not interactive
     await userEvent.click(screen.getByText('Hello there'));
-    expect(mockOnSelectNode).toHaveBeenCalledWith(node, 'input');
-    expect(screen.getByText('Hello there').closest('[role="button"]')).toHaveAttribute(
-      'aria-pressed',
-      'false'
-    );
+    expect(mockOnSelectNode).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', {name: /Hello there/})).not.toBeInTheDocument();
 
     // Assistant messages select the corresponding node
     await userEvent.click(screen.getByText('Assistant response'));
-    expect(mockOnSelectNode).toHaveBeenLastCalledWith(node);
+    expect(mockOnSelectNode).toHaveBeenCalledWith(node);
     expect(
       screen.getByText('Assistant response').closest('[role="button"]')
     ).toBeInTheDocument();
   });
 
-  it('selects a user message with the keyboard', async () => {
-    const node = createMockNode({
-      id: 'span-1',
-      attributes: {
-        [SpanFields.GEN_AI_REQUEST_MESSAGES]: JSON.stringify([
-          {role: 'user', content: 'Hello there'},
-        ]),
-        [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Assistant response',
-      },
+  it('shows the system prompt collapsed at the top of the transcript', async () => {
+    // An embedding that runs before the first LLM call renders above its
+    // turns; the system prompt still goes first.
+    const embeddingNode = createMockEmbeddingNode({
+      id: 'embed-1',
+      input: 'find labels',
+      startTimestamp: 500,
     });
-
-    render(
-      <MessagesPanel
-        nodes={[node] as any}
-        selectedNodeId="span-1"
-        onSelectNode={mockOnSelectNode}
-      />
-    );
-
-    const userBubble = screen.getByText('Hello there').closest('[role="button"]');
-    expect(userBubble).toHaveAttribute('aria-pressed', 'true');
-
-    (userBubble as HTMLElement).focus();
-    await userEvent.keyboard('{Enter}');
-    expect(mockOnSelectNode).toHaveBeenCalledWith(node, 'input');
-  });
-
-  it('shows the system prompt collapsed above the user message', async () => {
     const node = createMockNode({
       id: 'span-1',
       attributes: {
@@ -662,7 +639,7 @@ describe('MessagesPanel', () => {
 
     render(
       <MessagesPanel
-        nodes={[node] as any}
+        nodes={[node, embeddingNode] as any}
         selectedNodeId={null}
         onSelectNode={mockOnSelectNode}
       />
@@ -673,10 +650,40 @@ describe('MessagesPanel', () => {
     expect(details).not.toHaveAttribute('open');
     // The collapsed row previews the prompt
     expect(summary).toHaveTextContent('You sort emails into labels.');
+    expect(
+      summary.compareDocumentPosition(screen.getByText('Creating embedding...')) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
 
     await userEvent.click(summary);
     expect(details).toHaveAttribute('open');
     expect(mockOnSelectNode).not.toHaveBeenCalled();
+  });
+
+  it('renders XML sections of the system prompt', () => {
+    const node = createMockNode({
+      id: 'span-1',
+      attributes: {
+        [SpanFields.GEN_AI_INPUT_MESSAGES]: JSON.stringify([
+          {
+            role: 'system',
+            content: 'You are a helper.\n\n<rules>\nBe concise.\n</rules>',
+          },
+          {role: 'user', content: 'Hello there'},
+        ]),
+        [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Hi',
+      },
+    });
+
+    render(
+      <MessagesPanel
+        nodes={[node] as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    expect(screen.getByText('<rules>')).toBeInTheDocument();
   });
 
   it('reads the system prompt from gen_ai.system_instructions', () => {
@@ -706,7 +713,7 @@ describe('MessagesPanel', () => {
     );
   });
 
-  it('shows a system prompt again only when it changes', () => {
+  it('shows only the first system prompt of the conversation', () => {
     const turn = (id: string, startTimestamp: number, system: string, user: string) =>
       createMockNode({
         id,
@@ -724,9 +731,9 @@ describe('MessagesPanel', () => {
       <MessagesPanel
         nodes={
           [
+            turn('span-3', 3000, 'Prompt B', 'Third'),
             turn('span-1', 1000, 'Prompt A', 'First'),
             turn('span-2', 2000, 'Prompt A', 'Second'),
-            turn('span-3', 3000, 'Prompt B', 'Third'),
           ] as any
         }
         selectedNodeId={null}
@@ -735,9 +742,9 @@ describe('MessagesPanel', () => {
     );
 
     const rows = screen.getAllByText('System prompt', {exact: false});
-    expect(rows).toHaveLength(2);
+    expect(rows).toHaveLength(1);
     expect(rows[0]).toHaveTextContent('Prompt A');
-    expect(rows[1]).toHaveTextContent('Prompt B');
+    expect(screen.queryByText('Prompt B')).not.toBeInTheDocument();
   });
 
   it('keeps reasoning text in the DOM inside a collapsed details element', () => {

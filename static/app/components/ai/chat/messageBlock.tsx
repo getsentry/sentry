@@ -19,21 +19,9 @@ interface UserMessageBlockProps {
   className?: string;
   /** Fill the bubble to its max-width instead of shrinking to fit the content. */
   expand?: boolean;
-  /** Whether this message is currently selected. */
-  isSelected?: boolean;
-  /** Called when the user clicks the message bubble. */
-  onClick?: () => void;
 }
 
-export function UserMessageBlock({
-  children,
-  className,
-  expand,
-  isSelected,
-  onClick,
-}: UserMessageBlockProps) {
-  const theme = useTheme();
-
+export function UserMessageBlock({children, className, expand}: UserMessageBlockProps) {
   return (
     <MessageRow from="user" density="compact" className={className}>
       {/* Placeholder for spacing as we want to keep the right aligned look even on smaller screens */}
@@ -41,34 +29,6 @@ export function UserMessageBlock({
       <UserMessage
         maxWidth={AI_MESSAGE_MAX_WIDTH}
         width={expand ? '100%' : 'fit-content'}
-        data-selected={isSelected}
-        onClick={onClick}
-        onKeyDown={
-          onClick
-            ? e => {
-                // Keys pressed on controls inside the bubble are theirs.
-                if (e.target !== e.currentTarget) {
-                  return;
-                }
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  onClick();
-                }
-              }
-            : undefined
-        }
-        role={onClick ? 'button' : undefined}
-        tabIndex={onClick ? 0 : undefined}
-        aria-pressed={onClick ? Boolean(isSelected) : undefined}
-        // `UserMessage` owns its `css`, so selection and the pointer go through
-        // `style`, which doesn't replace it.
-        style={{
-          cursor: onClick ? 'pointer' : undefined,
-          ...(isSelected && {
-            outline: `2px solid ${theme.tokens.focus.default}`,
-            outlineOffset: '-2px',
-          }),
-        }}
       >
         {children}
       </UserMessage>

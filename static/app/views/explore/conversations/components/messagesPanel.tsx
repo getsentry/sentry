@@ -24,6 +24,7 @@ import {
   callContainsNode,
   type ConversationMessage,
   extractMessagesFromNodes,
+  getConversationSystemPrompt,
   NOT_REPORTED,
   someMessageDeep,
 } from 'sentry/views/explore/conversations/utils/conversationMessages';
@@ -45,21 +46,14 @@ import {detectAIContentType} from 'sentry/views/performance/traceDetails/traceDr
 import {AIContentRenderer} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 
 import {ConversationMissingMessagesAlert} from './conversationMissingMessagesAlert';
-import type {DetailTab} from './conversationSpanDetail';
 import {MessageToolCalls} from './messageToolCalls';
 import {SubAgentRow, type RenderTranscriptMessages} from './subAgentRow';
 import {ToolTag} from './toolTag';
 import {TranscriptSpanRow} from './transcriptSpanRow';
 
-/**
- * Selects a span. `detailTab` opens its detail on that tab, e.g. a user
- * message opens the input of its LLM call.
- */
-type SelectNode = (node: AITraceSpanNode, detailTab?: DetailTab) => void;
-
 interface MessagesPanelProps {
   nodes: AITraceSpanNode[];
-  onSelectNode: SelectNode;
+  onSelectNode: (node: AITraceSpanNode) => void;
   selectedNodeId: string | null;
   isLoading?: boolean;
   /**
@@ -80,6 +74,7 @@ export function MessagesPanel({
   isLoading,
 }: MessagesPanelProps) {
   const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
+  const systemPrompt = useMemo(() => getConversationSystemPrompt(nodes), [nodes]);
 
   const nodeMap = useMemo(() => {
     const map = new Map<string, AITraceSpanNode>();
@@ -111,6 +106,11 @@ export function MessagesPanel({
   return (
     <PanelContainer>
       {hasNotReportedContent && <NotReportedAlert nodes={nodes} />}
+      {systemPrompt && (
+        <MessageRow from="assistant" density="line">
+          <SystemPromptSection systemPrompt={systemPrompt} />
+        </MessageRow>
+      )}
       <TranscriptMessages
         messages={messages}
         nodeMap={nodeMap}
@@ -124,7 +124,7 @@ export function MessagesPanel({
 interface TranscriptMessagesProps {
   messages: ConversationMessage[];
   nodeMap: Map<string, AITraceSpanNode>;
-  onSelectNode: SelectNode;
+  onSelectNode: (node: AITraceSpanNode) => void;
   selectedNodeId: string | null;
   /** Rendered inside a sub-agent row, which already provides the row gutter. */
   nested?: boolean;
@@ -177,20 +177,11 @@ function TranscriptMessages({
 
         if (message.role === 'user') {
           return (
-            <Fragment key={message.id}>
-              {message.systemPrompt && (
-                <MessageRow from="assistant" density="line">
-                  <SystemPromptSection systemPrompt={message.systemPrompt} />
-                </MessageRow>
-              )}
-              <UserTurn
-                content={message.content}
-                hasXmlTags={hasXmlTags}
-                node={nodeMap.get(message.nodeId)}
-                isSelected={message.nodeId === selectedNodeId}
-                onSelectNode={onSelectNode}
-              />
-            </Fragment>
+            <UserTurn
+              key={message.id}
+              content={message.content}
+              hasXmlTags={hasXmlTags}
+            />
           );
         }
 
@@ -290,35 +281,18 @@ const NestedMessageList = styled(Stack)`
   margin: 0 -${p => p.theme.space.xl};
 `;
 
-// Memoized like assistant turns, so a selection change only re-renders the
-// turns that gain or lose selection.
+// User turns carry no selection state, so their props never change on a
+// selection change — memoized, they render once and always bail out after.
 const UserTurn = memo(function UserTurnImpl({
   content,
   hasXmlTags,
-  node,
-  isSelected,
-  onSelectNode,
 }: {
   content: string;
   hasXmlTags: boolean;
-  isSelected: boolean;
-  node: AITraceSpanNode | undefined;
-  onSelectNode: SelectNode;
 }) {
-  const organization = useOrganization();
-
-  // The message is the input of its LLM call, so open the call's input, where
-  // the full prompt (system prompt included) is shown.
-  const handleClick = node
-    ? () => {
-        trackAnalytics('conversations.message.click-user', {organization});
-        onSelectNode(node, 'input');
-      }
-    : undefined;
-
   if (content === NOT_REPORTED) {
     return (
-      <UserMessageBlock isSelected={isSelected} onClick={handleClick}>
+      <UserMessageBlock>
         <MessageText align="left" variant="muted">
           {content}
         </MessageText>
@@ -327,7 +301,7 @@ const UserTurn = memo(function UserTurnImpl({
   }
 
   return (
-    <UserMessageBlock expand={hasXmlTags} isSelected={isSelected} onClick={handleClick}>
+    <UserMessageBlock expand={hasXmlTags}>
       <MessageText align="left">
         <AIContentRenderer text={content} inline autoCollapseLimit={10} />
       </MessageText>
@@ -715,9 +689,8 @@ function ReasoningSection({
   );
 }
 
-// Collapsed by default: system prompts are long and usually the same across a
-// conversation's calls. Memoized since its only prop is a string, so selection
-// changes never re-render the (possibly long) prompt.
+// Collapsed by default: system prompts are long. Memoized since its only prop
+// is a string, so selection changes never re-render the (possibly long) prompt.
 const SystemPromptSection = memo(function SystemPromptSectionImpl({
   systemPrompt,
 }: {
@@ -742,7 +715,9 @@ const SystemPromptSection = memo(function SystemPromptSectionImpl({
     >
       <Flex>
         <Container paddingTop="xs" paddingBottom="xs" flex="1" minWidth={0}>
-          <MessageText size="sm" align="left" variant="muted" monospace>
+          {/* Rendered like a user message, not like the monospace thinking
+           * block: prompts are usually markdown with XML sections. */}
+          <MessageText align="left">
             <AIContentRenderer text={systemPrompt} inline autoCollapseLimit={10} />
           </MessageText>
         </Container>

@@ -126,12 +126,6 @@ export interface ConversationMessage {
   reasoning?: string;
   /** A sub-agent that wasn't called through one of the transcript's tool calls. */
   subAgent?: SubAgentCall;
-  /**
-   * On a user message: the system prompt its LLM call was sent with. Set only
-   * when it differs from the last one shown in the same transcript, so a
-   * prompt repeated on every call shows once.
-   */
-  systemPrompt?: string;
   toolCalls?: TurnCall[];
   userEmail?: string;
 }
@@ -145,7 +139,6 @@ interface ConversationTurn {
   userEmail: string | undefined;
   // Input carries history (>1 message). Single-message inputs are never deduped.
   hasInputHistory?: boolean;
-  systemPrompt?: string | null;
   toolSpanNodes?: AITraceSpanNode[];
   // User messages in the input history; a growing count marks a genuine repeat.
   userMessageCount?: number;
@@ -593,7 +586,6 @@ export function buildConversationTurns(
       userMessageCount: inputStats.userMessageCount,
       assistantContent: blankToNull(assistantContent),
       reasoning: blankToNull(reasoning),
-      systemPrompt: blankToNull(parseSystemPrompt(node)),
       userEmail,
     });
   }
@@ -1010,7 +1002,6 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
   const seenUserContent = new Set<string>();
   const seenAssistantContent = new Set<string>();
   let maxUserMessageCount = 0;
-  let shownSystemPrompt: string | null = null;
 
   for (const turn of turns) {
     const startTs = getNodeStartTimestamp(turn.generation);
@@ -1032,13 +1023,6 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
         !seenUserContent.has(turn.userContent))
     ) {
       seenUserContent.add(turn.userContent);
-      const systemPrompt: string | undefined =
-        turn.systemPrompt && turn.systemPrompt !== shownSystemPrompt
-          ? turn.systemPrompt
-          : undefined;
-      if (systemPrompt) {
-        shownSystemPrompt = systemPrompt;
-      }
       messages.push({
         id: `user-${turn.generation.id}`,
         role: 'user',
@@ -1046,7 +1030,6 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
         timestamp: startTs,
         nodeId: turn.generation.id,
         userEmail: turn.userEmail,
-        systemPrompt,
       });
     }
 
@@ -1140,6 +1123,28 @@ export function parseSystemPrompt(node: AITraceSpanNode): string | null {
   const {messages} = getAIInputMessages(node);
   const systemMessage = messages?.find(m => m.role === 'system');
   return typeof systemMessage?.content === 'string' ? systemMessage.content : null;
+}
+
+/**
+ * The system prompt of the conversation's first LLM call that has one. Later
+ * calls (follow-up turns, sub-agents) usually repeat it or set up a different
+ * agent, so only the first is shown, at the top of the transcript.
+ */
+export function getConversationSystemPrompt(nodes: AITraceSpanNode[]): string | null {
+  let firstPrompt: string | null = null;
+  let firstStart = Infinity;
+  for (const node of partitionSpansByType(nodes).generationSpans) {
+    const start = getNodeStartTimestamp(node);
+    if (start >= firstStart) {
+      continue;
+    }
+    const prompt = blankToNull(parseSystemPrompt(node));
+    if (prompt) {
+      firstPrompt = prompt;
+      firstStart = start;
+    }
+  }
+  return firstPrompt;
 }
 
 /**
