@@ -8,6 +8,7 @@ import {buildAskSeerPrompt} from 'sentry/components/droppedData/drawer/askSeer';
 import {droppedAndFilteredLabel} from 'sentry/components/droppedData/outcomes';
 import type {ReasonRow} from 'sentry/components/droppedData/outcomeSections';
 import type {UseDroppedDataParams} from 'sentry/components/droppedData/useDroppedData';
+import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {DroppedDataAnalyticsSource} from 'sentry/utils/analytics/exploreAnalyticsEvents';
 import {DiscoverDatasetToUrlParam} from 'sentry/utils/discover/types';
@@ -16,20 +17,24 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
-import {ChartContextDrawer} from './chartContextDrawer';
+import {CHART_CONTEXT_TAB_PARSERS, ChartContextDrawer} from './chartContextDrawer';
 
-const CHART_CONTEXT_DRAWER_PARSERS = {droppedData: parseAsString};
+const CHART_CONTEXT_DRAWER_PARSERS = {
+  droppedData: parseAsString,
+  ...CHART_CONTEXT_TAB_PARSERS,
+};
 
 const loadDroppedDataQuery = createLoader(CHART_CONTEXT_DRAWER_PARSERS);
 
 interface UseChartContextDrawerOptions {
   source: DroppedDataAnalyticsSource;
   enabled?: boolean;
+  showAnnotationTabs?: boolean;
 }
 
 export function useChartContextDrawer(
   {dataset, interval, projects}: UseDroppedDataParams,
-  {source, enabled = true}: UseChartContextDrawerOptions
+  {source, enabled = true, showAnnotationTabs = false}: UseChartContextDrawerOptions
 ) {
   const organization = useOrganization();
   const {openDrawer, isDrawerOpen, isAnyDrawerOpen} = useDrawer();
@@ -85,16 +90,22 @@ export function useChartContextDrawer(
           projects={projects}
           source={source}
           onAskSeer={onAskSeer}
+          showAnnotationTabs={showAnnotationTabs}
         />
       ),
       {
-        ariaLabel: droppedAndFilteredLabel(dataset),
+        ariaLabel: showAnnotationTabs
+          ? t('Chart Context')
+          : droppedAndFilteredLabel(dataset),
         drawerKey: 'dropped-data-drawer',
         shouldCloseOnLocationChange: nextLocation =>
           nextLocation.pathname !== pathname ||
           loadDroppedDataQuery(nextLocation.search ?? '').droppedData !== paramValue,
         onClose: () => {
-          void setDrawerQuery({droppedData: null}, {history: 'replace'});
+          void setDrawerQuery(
+            {droppedData: null, contextTab: null},
+            {history: 'replace'}
+          );
         },
       }
     );
@@ -110,12 +121,13 @@ export function useChartContextDrawer(
     projects,
     source,
     onAskSeer,
+    showAnnotationTabs,
     pathname,
     setDrawerQuery,
   ]);
 
   return useCallback(() => {
     trackAnalytics('explore.dropped_data.drawer_opened', {organization, dataset, source});
-    void setDrawerQuery({droppedData: paramValue}, {history: 'push'});
+    void setDrawerQuery({droppedData: paramValue, contextTab: null}, {history: 'push'});
   }, [organization, dataset, source, paramValue, setDrawerQuery]);
 }

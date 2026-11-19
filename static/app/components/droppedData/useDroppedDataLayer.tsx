@@ -32,6 +32,7 @@ interface UseDroppedDataLayerOptions {
   source: DroppedDataAnalyticsSource;
   enabled?: boolean;
   hidden?: boolean;
+  showAnnotationTabs?: boolean;
 }
 
 interface DroppedDataLayer {
@@ -47,7 +48,12 @@ interface DroppedDataLayer {
  */
 export function useDroppedDataLayer(
   {environments, ...params}: UseDroppedDataLayerParams,
-  {source, enabled = true, hidden = false}: UseDroppedDataLayerOptions
+  {
+    source,
+    enabled = true,
+    hidden = false,
+    showAnnotationTabs = false,
+  }: UseDroppedDataLayerOptions
 ): DroppedDataLayer {
   const organization = useOrganization();
   const {dataset} = params;
@@ -59,6 +65,7 @@ export function useDroppedDataLayer(
   const openDroppedDataDrawer = useChartContextDrawer(params, {
     source,
     enabled: isEnabled,
+    showAnnotationTabs,
   });
 
   const isLoaded = isEnabled && defined(droppedEvents);

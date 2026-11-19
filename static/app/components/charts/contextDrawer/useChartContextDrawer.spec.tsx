@@ -9,6 +9,7 @@ import {
   userEvent,
   waitFor,
   waitForDrawerToHide,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import {Button} from '@sentry/scraps/button';
@@ -75,15 +76,17 @@ function DroppedDataTrigger({
   enabled,
   interval = '1h',
   projects,
+  showAnnotationTabs,
 }: {
   dataset: DiscoverDatasets;
   enabled?: boolean;
   interval?: string;
   projects?: number[];
+  showAnnotationTabs?: boolean;
 }) {
   const openDroppedDataDrawer = useChartContextDrawer(
     {dataset, interval, projects},
-    {source: 'explore', enabled}
+    {source: 'explore', enabled, showAnnotationTabs}
   );
   return <Button onClick={openDroppedDataDrawer}>Open dropped data</Button>;
 }
@@ -746,6 +749,151 @@ describe('useChartContextDrawer', () => {
 
       expect(screen.getByText('10 dropped and filtered spans')).toBeInTheDocument();
       expect(screen.getAllByText('14.29%')).toHaveLength(2);
+    });
+  });
+
+  describe('annotation tabs', () => {
+    beforeEach(() => {
+      mockDroppedData(10, '14d');
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/releases/stats/`,
+        body: [
+          {date: '2026-11-03T12:00:00Z', version: 'ui@1.0.0'},
+          {date: '2026-11-04T12:00:00Z', version: 'ui@1.1.0'},
+        ],
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/flags/logs/`,
+        body: {
+          data: [
+            {
+              id: 1,
+              action: 'updated',
+              createdAt: '2026-11-03T13:00:00Z',
+              createdBy: 'user@example.com',
+              createdByType: 'email',
+              flag: 'new-checkout',
+              tags: {},
+            },
+          ],
+        },
+      });
+    });
+
+    it('shows a tab with a badge for dropped data, releases, and flags', async () => {
+      render(<DroppedDataTrigger dataset={DiscoverDatasets.SPANS} showAnnotationTabs />, {
+        organization,
+        initialRouterConfig: {location: {pathname: '/explore/traces/'}},
+      });
+
+      await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
+
+      expect(
+        await screen.findByRole('complementary', {name: 'Chart Context'})
+      ).toBeInTheDocument();
+      const droppedDataTab = screen.getByRole('tab', {name: /Dropped Spans/});
+      expect(droppedDataTab).toHaveAttribute('aria-selected', 'true');
+      expect(await within(droppedDataTab).findByText('10%')).toBeInTheDocument();
+      expect(
+        await within(screen.getByRole('tab', {name: /Releases/})).findByText('2')
+      ).toBeInTheDocument();
+      expect(
+        await within(screen.getByRole('tab', {name: /Flags/})).findByText('1')
+      ).toBeInTheDocument();
+      expect(screen.getByText('10 dropped and filtered spans')).toBeInTheDocument();
+    });
+
+    it('switches tabs and keeps the selected tab in the URL', async () => {
+      const {router} = render(
+        <DroppedDataTrigger dataset={DiscoverDatasets.SPANS} showAnnotationTabs />,
+        {
+          organization,
+          initialRouterConfig: {location: {pathname: '/explore/traces/'}},
+        }
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
+      await userEvent.click(await screen.findByRole('tab', {name: /Releases/}));
+
+      expect(await screen.findByText('Table coming soon')).toBeInTheDocument();
+      expect(screen.queryByText('10 dropped and filtered spans')).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('radiogroup', {name: 'Filter dropped events'})
+      ).not.toBeInTheDocument();
+      expect(router.location.query.contextTab).toBe('releases');
+      expect(router.location.query.droppedData).toBe('spans');
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'explore.chart_context.tab_selected',
+        expect.objectContaining({
+          dataset: DiscoverDatasets.SPANS,
+          source: 'explore',
+          tab: 'releases',
+        })
+      );
+
+      await userEvent.click(screen.getByRole('tab', {name: /Dropped Spans/}));
+
+      expect(
+        await screen.findByText('10 dropped and filtered spans')
+      ).toBeInTheDocument();
+      expect(router.location.query.contextTab).toBeUndefined();
+    });
+
+    it('opens on the tab named in the URL', async () => {
+      render(<DroppedDataTrigger dataset={DiscoverDatasets.SPANS} showAnnotationTabs />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/explore/traces/',
+            query: {droppedData: 'spans', contextTab: 'flags'},
+          },
+        },
+      });
+
+      expect(await screen.findByRole('tab', {name: /Flags/})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+      expect(screen.getByText('Table coming soon')).toBeInTheDocument();
+    });
+
+    it('removes the tab from the URL when closed', async () => {
+      const {router} = render(
+        <DroppedDataTrigger dataset={DiscoverDatasets.SPANS} showAnnotationTabs />,
+        {
+          organization,
+          initialRouterConfig: {
+            location: {
+              pathname: '/explore/traces/',
+              query: {droppedData: 'spans', contextTab: 'flags'},
+            },
+          },
+        }
+      );
+
+      await screen.findByRole('tab', {name: /Flags/});
+      await userEvent.click(screen.getByRole('button', {name: 'Close Drawer'}));
+      await waitForDrawerToHide('Chart Context');
+
+      await waitFor(() => expect(router.location.query.droppedData).toBeUndefined());
+      expect(router.location.query.contextTab).toBeUndefined();
+    });
+
+    it('shows only dropped data without annotation tabs', async () => {
+      render(<DroppedDataTrigger dataset={DiscoverDatasets.SPANS} />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: '/explore/traces/',
+            query: {droppedData: 'spans', contextTab: 'flags'},
+          },
+        },
+      });
+
+      expect(
+        await screen.findByText('10 dropped and filtered spans')
+      ).toBeInTheDocument();
+      expect(screen.queryByRole('tab')).not.toBeInTheDocument();
     });
   });
 
