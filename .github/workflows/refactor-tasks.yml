@@ -21,6 +21,8 @@ concurrency:
 
 jobs:
   scan-and-report:
+    permissions:
+      contents: read
     name: Scan conventions and report to Sentry
     runs-on: ubuntu-24.04
     timeout-minutes: 60
