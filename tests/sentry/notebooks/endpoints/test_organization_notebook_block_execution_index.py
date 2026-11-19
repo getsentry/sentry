@@ -51,6 +51,20 @@ class NotebookQueryExecutionEndpointTest(APITestCase):
         )
 
     @patch("sentry.notebooks.endpoints.organization_notebook_block_execution_index.SeerAgentClient")
+    def test_saved_embed_does_not_dispatch_a_run(self, mock_client: MagicMock) -> None:
+        block = self.create_notebook_block(notebook=self.notebook, position=1, kind="embed")
+        url = reverse(
+            "sentry-api-0-organization-notebook-block-executions",
+            args=[self.organization.slug, self.notebook.id, block.id],
+        )
+        response = self.client.post(
+            url, {"notebookVersion": self.notebook.version, "version": block.version}, format="json"
+        )
+        assert response.status_code == 400
+        assert not block.executions.exists()
+        mock_client.return_value.start_run.assert_not_called()
+
+    @patch("sentry.notebooks.endpoints.organization_notebook_block_execution_index.SeerAgentClient")
     def test_starts_and_persists_an_immutable_execution(self, mock_client: MagicMock) -> None:
         member = self.create_user()
         self.create_member(organization=self.organization, user=member, role="member", teams=[])
@@ -253,6 +267,12 @@ class NotebookTextExecutionEndpointTest(APITestCase):
 
     @patch("sentry.notebooks.endpoints.organization_notebook_block_execution_index.SeerAgentClient")
     def test_starts_text_generation_with_typed_context(self, mock_client: MagicMock) -> None:
+        rich = self.create_notebook_block(
+            notebook=self.notebook,
+            kind="embed",
+            embed_summary="Errors increased.\nsource-query",
+            embed_source="source-query",
+        )
         sibling_text = self.create_notebook_block(
             notebook=self.notebook,
             kind="text",
@@ -299,6 +319,7 @@ class NotebookTextExecutionEndpointTest(APITestCase):
         assert execution.executor == "text_generation"
         context = {item["block_id"]: item for item in execution.input_snapshot["context"]}
         assert set(context) == {
+            str(rich.id),
             str(self.context_block.id),
             str(sibling_text.id),
             str(failed_query.id),
@@ -311,5 +332,7 @@ class NotebookTextExecutionEndpointTest(APITestCase):
         assert "result" not in context[str(failed_query.id)]
         call = mock_client.return_value.start_run.call_args
         assert call.kwargs["record_in_history"] is False
+        assert "Errors increased." in call.args[0]
+        assert "source-query" in call.args[0]
         assert "is:unresolved" in call.args[0]
         assert "two or three short paragraphs" in call.args[0]

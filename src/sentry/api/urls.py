@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from django.conf.urls import include
 from django.urls import URLPattern, URLResolver, re_path
+from django.urls.converters import UUIDConverter
 
 from sentry.agent_handoff.endpoints.claim_agent_handoff import ClaimAgentHandoffEndpoint
 from sentry.agent_handoff.endpoints.organization_agent_handoff import (
@@ -496,6 +497,10 @@ from sentry.notebooks.endpoints.organization_notebook_presence import (
 )
 from sentry.notebooks.endpoints.organization_notebook_title_generation import (
     OrganizationNotebookTitleGenerationEndpoint,
+)
+from sentry.notebooks.endpoints.organization_notebook_workflow import (
+    OrganizationNotebookWorkflowEndpoint,
+    OrganizationNotebookWorkflowWriterEndpoint,
 )
 from sentry.notifications.api.endpoints.notification_actions_available import (
     NotificationActionsAvailableEndpoint,
@@ -2480,6 +2485,16 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<notebook_id>[^/]+)/orchestration/commands/$",
         OrganizationInvestigationOrchestrationCommandsEndpoint.as_view(),
         name="sentry-api-0-organization-investigation-orchestration-commands",
+    ),
+    re_path(
+        rf"^(?P<organization_id_or_slug>[^/]+)/notebooks/workflow-runs/(?P<workflow_run_id>{UUIDConverter.regex})/$",
+        OrganizationNotebookWorkflowEndpoint.as_view(),
+        name="sentry-api-0-organization-notebook-workflow",
+    ),
+    re_path(
+        rf"^(?P<organization_id_or_slug>[^/]+)/notebooks/workflow-runs/(?P<workflow_run_id>{UUIDConverter.regex})/writer/$",
+        OrganizationNotebookWorkflowWriterEndpoint.as_view(),
+        name="sentry-api-0-organization-notebook-workflow-writer",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/notebooks/$",

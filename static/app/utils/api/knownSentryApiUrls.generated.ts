@@ -290,6 +290,8 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/notebooks/$notebookId/favorite/'
   | '/organizations/$organizationIdOrSlug/notebooks/$notebookId/presence/'
   | '/organizations/$organizationIdOrSlug/notebooks/$notebookId/title-generation/'
+  | '/organizations/$organizationIdOrSlug/notebooks/workflow-runs/$workflowRunId/'
+  | '/organizations/$organizationIdOrSlug/notebooks/workflow-runs/$workflowRunId/writer/'
   | '/organizations/$organizationIdOrSlug/notifications/actions/'
   | '/organizations/$organizationIdOrSlug/notifications/actions/$actionId/'
   | '/organizations/$organizationIdOrSlug/notifications/available-actions/'

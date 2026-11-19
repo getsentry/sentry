@@ -35,6 +35,7 @@ from sentry.notebooks.models import (
 )
 from sentry.notebooks.services.action_requests import STALE
 from sentry.notebooks.services.producer import orchestration_summaries
+from sentry.notebooks.services.workflow import block_revision
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.viewer_context import ActorType
@@ -155,6 +156,8 @@ class NotebookDetailsSerializerResponse(NotebookSerializerResponse):
     re-checks them, newest report first, with that report's primary at the top.
     """
 
+    contentRevision: Annotated[str, ApiDescription("Revision of the ordered block contents")]
+
     template: Annotated[
         NotebookTemplateSerializerResponse | None,
         ApiDescription("The template the notebook started from, if any"),
@@ -262,9 +265,12 @@ class NotebookDetailsSerializer(NotebookSerializer):
         self.access = access
         super().__init__(**kwargs)
 
-    def _blocks_by_notebook(
-        self, item_list: Sequence[Notebook], user: User | RpcUser | AnonymousUser
-    ) -> MutableMapping[int, list[NotebookBlockSerializerResponse]]:
+    def _add_blocks(
+        self,
+        item_list: Sequence[Notebook],
+        user: User | RpcUser | AnonymousUser,
+        attrs: MutableMapping[Notebook, dict[str, Any]],
+    ) -> None:
         blocks = list(
             NotebookBlock.objects.filter(notebook__in=item_list, deleted_at__isnull=True).order_by(
                 "position", "id"
@@ -277,9 +283,15 @@ class NotebookDetailsSerializer(NotebookSerializer):
         )
 
         by_notebook: MutableMapping[int, list[NotebookBlockSerializerResponse]] = defaultdict(list)
+        revisions: dict[int, list[tuple[int, int, int | None]]] = defaultdict(list)
         for block, block_response in zip(blocks, serialized):
             by_notebook[block.notebook_id].append(block_response)
-        return by_notebook
+            revisions[block.notebook_id].append(
+                (block.id, block.version, block.result_execution_id)
+            )
+        for notebook in item_list:
+            attrs[notebook]["blocks"] = by_notebook[notebook.id]
+            attrs[notebook]["content_revision"] = block_revision(revisions[notebook.id])
 
     def _action_requests_by_notebook(
         self, item_list: Sequence[Notebook], user: User | RpcUser | AnonymousUser
@@ -311,7 +323,7 @@ class NotebookDetailsSerializer(NotebookSerializer):
     ) -> MutableMapping[Notebook, dict[str, Any]]:
         attrs = super().get_attrs(item_list, user, **kwargs)
 
-        blocks_by_notebook = self._blocks_by_notebook(item_list, user)
+        self._add_blocks(item_list, user, attrs)
         action_requests_by_notebook = self._action_requests_by_notebook(item_list, user)
 
         project_ids_by_notebook: MutableMapping[int, list[int]] = defaultdict(list)
@@ -323,7 +335,6 @@ class NotebookDetailsSerializer(NotebookSerializer):
             project_ids_by_notebook[notebook_id].append(project_id)
 
         for notebook in item_list:
-            attrs[notebook]["blocks"] = blocks_by_notebook[notebook.id]
             attrs[notebook]["project_ids"] = project_ids_by_notebook[notebook.id]
             attrs[notebook]["action_requests"] = action_requests_by_notebook[notebook.id]
 
@@ -354,6 +365,7 @@ class NotebookDetailsSerializer(NotebookSerializer):
             "projectIds": attrs["project_ids"],
             "parameters": [],
             "blocks": attrs["blocks"],
+            "contentRevision": attrs["content_revision"],
             "actionRequests": attrs["action_requests"],
             "titleGeneration": {"status": obj.title_generation_status},
         }

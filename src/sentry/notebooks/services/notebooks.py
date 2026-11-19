@@ -3,11 +3,14 @@ from __future__ import annotations
 from collections.abc import Callable, Iterable
 from copy import deepcopy
 from typing import Any
+from uuid import UUID
 
 from django.db import IntegrityError, router, transaction
 from django.db.models import Max
 from django.utils import timezone
+from rest_framework import serializers
 
+from sentry.api.exceptions import ConflictError
 from sentry.api.helpers.creator import CreatorReference
 from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
@@ -20,6 +23,7 @@ from sentry.notebooks.models import (
     NotebookProject,
     NotebookSourceType,
     NotebookStatus,
+    NotebookWorkflowRun,
 )
 from sentry.notebooks.services.producer_sources import ProducerSource
 
@@ -98,6 +102,32 @@ def _create_project_links(notebook: Notebook, project_ids: Iterable[int]) -> Non
     NotebookProject.objects.bulk_create(
         [NotebookProject(notebook=notebook, project_id=project_id) for project_id in requested]
     )
+
+
+def validate_evidence_scope(project_ids: list[int], evidence_ids: list[int] | None) -> None:
+    # A notebook with no project selection requires access to every project.
+    if (
+        project_ids
+        and evidence_ids is not None
+        and (not evidence_ids or not set(evidence_ids).issubset(project_ids))
+    ):
+        raise NotebookValidationError(
+            {"projectIds": "The notebook must cover every evidence project."}
+        )
+
+
+def require_workflow_writer(notebook: Notebook, run_id: UUID, writer_run_id: int) -> None:
+    """Fence a mutation against writer replacement while the caller holds the notebook lock."""
+    binding = (
+        NotebookWorkflowRun.objects.select_for_update(of=("self",))
+        .select_related("writer_run")
+        .filter(organization_id=notebook.organization_id, run_id=run_id, notebook=notebook)
+        .first()
+    )
+    if binding is None:
+        raise serializers.ValidationError({"workflowRunId": "Open this notebook first."})
+    if not binding.writer_run or binding.writer_run.seer_run_state_id != writer_run_id:
+        raise ConflictError("This writer is not the registered notebook writer.")
 
 
 def create_manual_notebook(
@@ -240,6 +270,7 @@ def duplicate_notebook(*, notebook: Notebook, creator: CreatorReference) -> Note
             **creator,
             title=_copy_title(source.title),
             filters=deepcopy(source.filters),
+            workflow_project_ids=source.workflow_project_ids,
         )
         _create_project_links(
             duplicate,
@@ -257,6 +288,9 @@ def duplicate_notebook(*, notebook: Notebook, creator: CreatorReference) -> Note
                 content="" if block.content_execution_id else block.content,
                 prompt=block.prompt,
                 generated_content="" if block.content_execution_id else block.generated_content,
+                embed=deepcopy(block.embed),
+                embed_source=block.embed_source,
+                embed_summary=block.embed_summary,
                 config=deepcopy(block.config),
                 display=deepcopy(block.display),
             )
@@ -303,9 +337,14 @@ def update_notebook_row(
             raise NotebookValidationError(
                 {"fields": f"Cannot be updated: {', '.join(unsupported)}."}
             )
+        if "title" in fields and fields["title"] != locked.title:
+            NotebookWorkflowRun.objects.filter(notebook=locked, preserve_title=False).update(
+                preserve_title=True
+            )
         for field, value in fields.items():
             setattr(locked, field, value)
         if project_ids is not None:
+            validate_evidence_scope(project_ids, locked.workflow_project_ids)
             NotebookProject.objects.filter(notebook=locked).delete()
             _create_project_links(locked, project_ids)
         bump_notebook_version(locked)
@@ -400,10 +439,18 @@ def update_block(
 
 
 def delete_block(
-    *, block: NotebookBlock, expected_notebook_version: int, expected_block_version: int
+    *,
+    block: NotebookBlock,
+    expected_notebook_version: int,
+    expected_block_version: int,
+    workflow_run_id: UUID | None = None,
+    writer_run_id: int | None = None,
 ) -> None:
     with transaction.atomic(using=router.db_for_write(Notebook)):
         notebook = lock_notebook(block.notebook, expected_notebook_version)
+        if workflow_run_id is not None:
+            assert writer_run_id is not None
+            require_workflow_writer(notebook, workflow_run_id, writer_run_id)
         try:
             locked = NotebookBlock.objects.select_for_update().get(id=block.id)
         except NotebookBlock.DoesNotExist:
