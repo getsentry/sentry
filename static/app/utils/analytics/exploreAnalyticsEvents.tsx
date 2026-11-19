@@ -25,6 +25,12 @@ type DroppedDataAnalyticsContext = {
 };
 
 export type ExploreAnalyticsEventParameters = {
+  'explore.chart_context.drawer_opened': DroppedDataAnalyticsContext & {
+    tab: string;
+  };
+  'explore.chart_context.tab_selected': DroppedDataAnalyticsContext & {
+    tab: string;
+  };
   'explore.dropped_data.ask_seer_clicked': DroppedDataAnalyticsContext & {
     outcome: string;
     reason: string;
@@ -103,6 +109,8 @@ export type ExploreAnalyticsEventParameters = {
 type ExploreAnalyticsEventKey = keyof ExploreAnalyticsEventParameters;
 
 export const exploreAnalyticsEventMap = {
+  'explore.chart_context.drawer_opened': 'Explore: Chart Context Drawer Opened',
+  'explore.chart_context.tab_selected': 'Explore: Chart Context Tab Selected',
   'explore.dropped_data.ask_seer_clicked': 'Explore: Dropped Data Ask Seer Clicked',
   'explore.dropped_data.drawer_opened': 'Explore: Dropped Data Drawer Opened',
   'explore.dropped_data.layer_toggled': 'Explore: Dropped Data Layer Toggled',
