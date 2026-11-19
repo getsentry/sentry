@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 
 import orjson
@@ -15,6 +16,7 @@ from sentry.integrations.jira.forge.invocation_token import (
 )
 from sentry.integrations.jira.tasks import sync_forge_installation
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.jira_forge_installation import JiraForgeInstallation
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -175,14 +177,38 @@ class SyncForgeInstallationTest(TestCase):
         responses.get(self.property_url, json={"value": "connect-client-key"})
 
         self.sync()
-        self.sync(installation_id="ari:cloud:ecosystem::installation/reinstalled")
+        # The hourly token refresh finds the recorded installation without the clientKey,
+        # which Atlassian stops serving at Connect end of support.
+        self.sync(system_token_expires_at=SYSTEM_TOKEN_EXPIRES_AT + 3600)
+        assert len(responses.calls) == 1
+        # A reinstall gets a new installation ID and replaces the old one.
+        self.sync(
+            installation_id="ari:cloud:ecosystem::installation/reinstalled",
+            system_token_expires_at=SYSTEM_TOKEN_EXPIRES_AT + 7200,
+        )
 
+        assert list(
+            JiraForgeInstallation.objects.values_list(
+                "integration_id", "installation_id", "cloud_id", "app_id", "system_token_expires_at"
+            )
+        ) == [
+            (
+                integration.id,
+                "ari:cloud:ecosystem::installation/reinstalled",
+                CLOUD_ID,
+                APP_ID,
+                datetime.fromtimestamp(SYSTEM_TOKEN_EXPIRES_AT + 7200, UTC),
+            )
+        ]
         integration.refresh_from_db()
         assert integration.external_id == "connect-client-key"
         assert integration.metadata == {
             "shared_secret": "secret",
             "base_url": "https://example.atlassian.net",
-            "forge": self.forge_metadata("ari:cloud:ecosystem::installation/reinstalled"),
+            "forge": {
+                **self.forge_metadata("ari:cloud:ecosystem::installation/reinstalled"),
+                "system_token_expires_at": SYSTEM_TOKEN_EXPIRES_AT + 7200,
+            },
         }
         assert responses.calls[0].request.headers["Authorization"] == f"Bearer {SYSTEM_TOKEN}"
 

@@ -195,6 +195,36 @@ class IntegrationServiceTest(BaseIntegrationServiceTest):
         )
         assert integration_service.get_gcp_service_account_email(organization_id=-1) is None
 
+    def test_get_jira_forge_integration(self) -> None:
+        # A site that moved from Connect, so its integration isn't keyed by cloud ID.
+        integration = self.create_provider_integration(
+            provider="jira", external_id="connect-client-key"
+        )
+        self.create_jira_forge_installation(
+            integration=integration, installation_id="installation-1", cloud_id="cloud-1"
+        )
+
+        result = integration_service.get_jira_forge_integration(
+            installation_id="installation-1", cloud_id="cloud-1"
+        )
+        assert result is not None
+        assert result.id == integration.id
+
+        assert (
+            integration_service.get_jira_forge_integration(
+                installation_id="installation-1", cloud_id="cloud-2"
+            )
+            is None
+        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration.update(status=ObjectStatus.DISABLED)
+        assert (
+            integration_service.get_jira_forge_integration(
+                installation_id="installation-1", cloud_id="cloud-1"
+            )
+            is None
+        )
+
     def test_update_integrations(self) -> None:
         new_metadata = {"new": "data"}
         integrations = [self.integration1, self.integration3]

@@ -41,7 +41,7 @@ seer: 0047_convert_seer_workflow_actions
 
 seer_workflow_outputs: 0001_initial
 
-sentry: 1262_remove_gal_project_option_value_id_index
+sentry: 1263_add_jiraforgeinstallation
 
 service_accounts: 0008_add_owner_kind
 

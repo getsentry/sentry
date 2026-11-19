@@ -8,7 +8,6 @@ import sentry_sdk
 from django.http import HttpResponse
 from django.http.response import HttpResponseBase
 
-from sentry.constants import ObjectStatus
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.integrations.jira.endpoints import JiraDescriptorEndpoint, JiraSearchEndpoint
 from sentry.integrations.jira.forge.invocation_token import (
@@ -37,6 +36,7 @@ from sentry.integrations.jira.webhooks.forge_issue_updated import (
 )
 from sentry.integrations.middleware.hybrid_cloud.parser import BaseRequestParser
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.jira_forge_installation import get_forge_installation_integration
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.atlassian_connect import (
     AtlassianConnectValidationError,
@@ -135,15 +135,13 @@ class JiraRequestParser(BaseRequestParser):
         if not has_applied_change(self.get_request_body()):
             return HttpResponse(status=202)
 
-        # Only Forge-native sites are keyed by cloud ID for now. Sites that moved from
-        # Connect keep their clientKey, so their events are dropped here and they keep
-        # getting the Connect issue-updated webhook until they're rekeyed to the cloud ID.
-        integration = Integration.objects.get_or_none(
-            provider=self.provider, external_id=cloud_id, status=ObjectStatus.ACTIVE
+        # Only the installation that owns the integration may update its issues. Sites that
+        # moved from Connect are dropped for now: they still get the Connect issue-updated
+        # webhook, and the cell can't find their integrations by cloud ID yet.
+        integration = get_forge_installation_integration(
+            installation_id=invocation.installation_id, cloud_id=cloud_id
         )
-        forge = (integration.metadata.get("forge") or {}) if integration else {}
-        # Only the installation that owns the integration may update its issues.
-        if integration is None or forge.get("installation_id") != invocation.installation_id:
+        if integration is None or "shared_secret" in integration.metadata:
             return HttpResponse(status=202)
 
         organizations = self.get_organizations_from_integration(integration)

@@ -8,7 +8,6 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
-from sentry.constants import ObjectStatus
 from sentry.integrations.jira.forge.client import ForgeUserClient
 from sentry.integrations.jira.forge.invocation_token import (
     ForgeInvocationTokenError,
@@ -17,8 +16,7 @@ from sentry.integrations.jira.forge.invocation_token import (
     verify_forge_request,
 )
 from sentry.integrations.jira.views.sentry_installation import build_configure_link
-from sentry.integrations.services.integration import integration_service
-from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.models.jira_forge_installation import get_forge_installation_integration
 from sentry.shared_integrations.exceptions import ApiError
 
 from .base import JiraWebhookBase
@@ -37,8 +35,8 @@ class JiraForgeConfigureLinkWebhook(JiraWebhookBase):
     }
     """
     Called by the Forge config page to get the link that connects the Jira site to a
-    Sentry organization. Only Forge-only integrations, keyed by cloud ID, are found here;
-    Connect installs keep using the Connect config page until they're rekeyed.
+    Sentry organization. It works for Forge-only integrations and for sites that moved
+    from Connect, since both are found through their Forge installation.
     """
 
     def post(self, request: Request, *args: object, **kwargs: object) -> Response:
@@ -74,16 +72,13 @@ class JiraForgeConfigureLinkWebhook(JiraWebhookBase):
         if not is_admin:
             return self.respond({"detail": "Only Jira admins can connect Sentry"}, status=403)
 
-        integration = integration_service.get_integration(
-            provider=IntegrationProviderSlug.JIRA.value,
-            external_id=cloud_id,
-            status=ObjectStatus.ACTIVE,
-        )
         # The installation task may not have finished yet. The integration must also belong
         # to the calling installation, so another trusted app on the same site can't mint
         # links for it.
-        forge = (integration.metadata.get("forge") or {}) if integration else {}
-        if integration is None or forge.get("installation_id") != invocation.installation_id:
+        integration = get_forge_installation_integration(
+            installation_id=invocation.installation_id, cloud_id=cloud_id
+        )
+        if integration is None:
             return self.respond({"detail": "Installation not found"}, status=404)
 
         return self.respond({"link": build_configure_link(integration.external_id)})

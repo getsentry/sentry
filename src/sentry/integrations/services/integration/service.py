@@ -371,5 +371,18 @@ class IntegrationService(RpcService):
     ) -> str | None:
         pass
 
+    @rpc_method
+    @abstractmethod
+    def get_jira_forge_integration(
+        self,
+        *,
+        installation_id: str,
+        cloud_id: str,
+    ) -> RpcIntegration | None:
+        """
+        Returns the active Jira integration a Forge installation belongs to, including
+        sites that moved from Connect, whose integrations aren't keyed by cloud ID.
+        """
+
 
 integration_service = IntegrationService.create_delegation()

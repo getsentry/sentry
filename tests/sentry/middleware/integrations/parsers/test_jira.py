@@ -283,6 +283,9 @@ class JiraForgeIssueUpdatedParserTest(TestCase):
             provider="jira",
             metadata={"forge": {"installation_id": INSTALLATION_ID}},
         )
+        self.create_jira_forge_installation(
+            integration=self.integration, installation_id=INSTALLATION_ID, cloud_id=CLOUD_ID
+        )
 
     def post(
         self, mock_verify: MagicMock, event: Mapping[str, Any] = STATUS_EVENT, **invocation: str
@@ -350,4 +353,7 @@ class JiraForgeIssueUpdatedParserTest(TestCase):
         assert self.post(mock_verify, module_key="issue-panel").status_code == 403
         # Another app installed on the same site.
         assert self.post(mock_verify, installation_id="other").status_code == 202
+        # A site that moved from Connect, which still gets the Connect webhook.
+        self.integration.update(metadata={**self.integration.metadata, "shared_secret": "s"})
+        assert self.post(mock_verify).status_code == 202
         assert_no_webhook_payloads()

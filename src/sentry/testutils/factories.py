@@ -82,6 +82,7 @@ from sentry.integrations.models.integration_feature import (
     IntegrationFeature,
     IntegrationTypes,
 )
+from sentry.integrations.models.jira_forge_installation import JiraForgeInstallation
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import RpcIntegration
@@ -2370,6 +2371,23 @@ class Factories:
         organization_integration.update(**(oi_params or {}))
 
         return integration
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_jira_forge_installation(
+        integration: Integration,
+        installation_id: str,
+        cloud_id: str,
+        app_id: str = "ari:cloud:ecosystem::app/test",
+        system_token_expires_at: datetime | None = None,
+    ) -> JiraForgeInstallation:
+        return JiraForgeInstallation.objects.create(
+            integration=integration,
+            installation_id=installation_id,
+            cloud_id=cloud_id,
+            app_id=app_id,
+            system_token_expires_at=system_token_expires_at or timezone.now(),
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)

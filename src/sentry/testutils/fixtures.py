@@ -19,6 +19,7 @@ from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.integrations.models.gcp_service_account import GcpServiceAccount
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.jira_forge_installation import JiraForgeInstallation
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.types import IntegrationProviderSlug
@@ -931,6 +932,9 @@ class Fixtures:
     ) -> Integration:
         """Create an integration and add an organization."""
         return Factories.create_integration(organization, external_id, oi_params, **kwargs)
+
+    def create_jira_forge_installation(self, *args: Any, **kwargs: Any) -> JiraForgeInstallation:
+        return Factories.create_jira_forge_installation(*args, **kwargs)
 
     def create_gcp_service_account(self, *args: Any, **kwargs: Any) -> GcpServiceAccount:
         return Factories.create_gcp_service_account(*args, **kwargs)

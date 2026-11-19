@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 import orjson
 from django.db import router, transaction
 from taskbroker_client.retry import Retry
@@ -5,6 +7,7 @@ from taskbroker_client.retry import Retry
 from sentry import options
 from sentry.integrations.jira.forge.client import ForgeInstallationClient
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.jira_forge_installation import JiraForgeInstallation
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
@@ -51,16 +54,28 @@ def sync_forge_installation(key_id: str, encrypted_payload: str) -> None:
         )
     )
     cloud_id = payload["cloud_id"]
+    installation_id = payload["installation_id"]
     api_base_url = payload["api_base_url"]
     system_token = payload["system_token"]
     client = ForgeInstallationClient(api_base_url, system_token)
 
-    # 1. The site already has an integration keyed by its cloud ID.
-    # 2. Otherwise, unless the app is Forge-native, it replaces the Connect app, so the
+    # 1. This installation was recorded before, which covers every hourly token refresh.
+    #    That matters after Connect end of support, when the clientKey lookup in case 3
+    #    stops working.
+    # 2. The site has an integration keyed by its cloud ID.
+    # 3. Otherwise, unless the app is Forge-native, it replaces the Connect app, so the
     #    site has a Connect integration keyed by its clientKey. A failed lookup is retried,
     #    never taken to mean there's no Connect integration.
-    # 3. Otherwise, create a Forge-only integration keyed by the cloud ID.
-    integration = Integration.objects.get_or_none(provider="jira", external_id=cloud_id)
+    # 4. Otherwise, create a Forge-only integration keyed by the cloud ID.
+    integration: Integration | None
+    try:
+        integration = (
+            JiraForgeInstallation.objects.select_related("integration")
+            .get(installation_id=installation_id)
+            .integration
+        )
+    except JiraForgeInstallation.DoesNotExist:
+        integration = Integration.objects.get_or_none(provider="jira", external_id=cloud_id)
     if integration is None and payload["app_id"] not in options.get("jira.forge.native-app-ids"):
         client_key = client.get_connect_client_key()
         integration = Integration.objects.get(provider="jira", external_id=client_key)
@@ -81,7 +96,7 @@ def sync_forge_installation(key_id: str, encrypted_payload: str) -> None:
 
     forge = {
         "cloud_id": cloud_id,
-        "installation_id": payload["installation_id"],
+        "installation_id": installation_id,
         "api_base_url": api_base_url,
         "system_token": system_token,
         "system_token_expires_at": payload["system_token_expires_at"],
@@ -96,3 +111,18 @@ def sync_forge_installation(key_id: str, encrypted_payload: str) -> None:
             return
         if existing != forge:
             integration.update(metadata={**integration.metadata, "forge": forge})
+        JiraForgeInstallation.objects.update_or_create(
+            installation_id=installation_id,
+            defaults={
+                "integration": integration,
+                "cloud_id": cloud_id,
+                "app_id": payload["app_id"],
+                "system_token_expires_at": datetime.fromtimestamp(
+                    forge["system_token_expires_at"], UTC
+                ),
+            },
+        )
+        # A reinstall gets a new installation ID; the old one no longer receives events.
+        JiraForgeInstallation.objects.filter(integration=integration).exclude(
+            installation_id=installation_id
+        ).delete()
