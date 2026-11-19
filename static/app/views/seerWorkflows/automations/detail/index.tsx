@@ -259,6 +259,7 @@ export default function AutomationDetail() {
       />
       <Button
         size="sm"
+        variant="primary"
         icon={<IconEdit />}
         disabled={isUpdatingConfig}
         onClick={() => {
@@ -270,7 +271,7 @@ export default function AutomationDetail() {
           }
         }}
       >
-        {t('Configure')}
+        {t('Edit')}
       </Button>
     </Flex>
   );

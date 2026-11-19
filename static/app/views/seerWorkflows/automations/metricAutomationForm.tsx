@@ -112,8 +112,6 @@ export function MetricAutomationForm(props: Props) {
   const serviceAccount = props.mode === 'edit' ? props.config.serviceAccount : null;
   const grantableScopes = new Set<string>(organization.access);
   const readOnly = props.mode === 'edit' && props.readOnly;
-  // Points read-only controls at the page header's button that unlocks them
-  const readOnlyTooltip = readOnly ? t('Click "Configure"') : undefined;
   const createConfig = useCreateConfig();
   // Only called in edit mode, where the config ID is known
   const updateConfig = useUpdateConfig({
@@ -308,7 +306,6 @@ export function MetricAutomationForm(props: Props) {
                           isPending={monitorsQuery.isLoading}
                           isError={hasMonitorsError}
                           disabled={readOnly}
-                          formTooltip={readOnlyTooltip}
                           onChange={next => {
                             const remaining = new Set(
                               monitors
@@ -391,7 +388,6 @@ export function MetricAutomationForm(props: Props) {
                                     value={field.state.value}
                                     monitors={connectedMonitors}
                                     disabled={readOnly}
-                                    formTooltip={readOnlyTooltip}
                                     onChange={field.handleChange}
                                   />
                                 </Stack>
@@ -415,7 +411,6 @@ export function MetricAutomationForm(props: Props) {
                                     <ServiceAccountPermissions
                                       value={field.state.value}
                                       disabled={readOnly}
-                                      formTooltip={readOnlyTooltip}
                                       onChange={field.handleChange}
                                     />
                                   </Stack>
@@ -475,7 +470,6 @@ function ConnectedMonitors({
   isPending,
   isError,
   disabled,
-  formTooltip,
   onChange,
 }: {
   disabled: boolean;
@@ -484,7 +478,6 @@ function ConnectedMonitors({
   monitorIds: string[];
   monitors: MetricDetector[];
   onChange: (monitorIds: string[]) => void;
-  formTooltip?: string;
 }) {
   const {openDrawer} = useDrawer();
   const selected = monitors.filter(monitor => monitorIds.includes(monitor.id));
@@ -502,7 +495,6 @@ function ConnectedMonitors({
           size="sm"
           icon={<IconAdd />}
           disabled={disabled}
-          tooltipProps={{title: formTooltip}}
           onClick={() =>
             openDrawer(
               () => (
@@ -536,7 +528,6 @@ function ConnectedMonitors({
             icon={<IconClose />}
             aria-label={t('Disconnect %s', monitor.name)}
             disabled={disabled}
-            tooltipProps={{title: formTooltip}}
             onClick={() => onChange(monitorIds.filter(id => id !== monitor.id))}
           />
         )}
