@@ -90,8 +90,8 @@ async function fetchTraceMetaInBatches(
     const results = await Promise.allSettled<ResponseEAPTraceMeta>(
       batch.map(trace =>
         queryClient
-          .fetchQuery(
-            apiOptions.as<ResponseEAPTraceMeta>()(
+          .fetchQuery({
+            ...apiOptions.as<ResponseEAPTraceMeta>()(
               '/organizations/$organizationIdOrSlug/trace-meta/$traceId/',
               {
                 path: {
@@ -105,10 +105,11 @@ async function fetchTraceMetaInBatches(
                   filters,
                   statsPeriodOverride
                 ),
-                staleTime: TRACE_META_STALE_TIME,
+                staleTime: 0,
               }
-            )
-          )
+            ),
+            retry: false,
+          })
           .then(response => response.json)
       )
     );
