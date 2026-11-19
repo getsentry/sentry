@@ -95,7 +95,9 @@ def _quote(connection: BaseDatabaseWrapper, name: str) -> str:
     return connection.ops.quote_name(name)
 
 
-def _attach_range_partition(target: RangeTable, bound: RangePartitionBound) -> None:
+def _attach_range_partition(
+    target: RangeTable, bound: RangePartitionBound, scans_default_partition: bool = False
+) -> None:
     quote = target.connection.ops.quote_name
     check_name = truncate_name(f"{bound.name}_bound", MAX_IDENTIFIER_LENGTH)
     values = {
@@ -109,6 +111,12 @@ def _attach_range_partition(target: RangeTable, bound: RangePartitionBound) -> N
     with transaction.atomic(using=target.connection.alias):
         with target.connection.cursor() as cursor:
             cursor.execute(sql.SET_LOCAL_LOCK_TIMEOUT.format(timeout=sql.DEFAULT_LOCK_TIMEOUT))
+            if scans_default_partition:
+                cursor.execute(
+                    sql.SET_LOCAL_STATEMENT_TIMEOUT.format(
+                        timeout=sql.DEFAULT_PARTITION_SCAN_TIMEOUT
+                    )
+                )
             cursor.execute(sql.CREATE_STANDALONE_PARTITION.format(**values))
             cursor.execute(sql.ADD_RANGE_BOUND_CHECK.format(**values))
             cursor.execute(sql.ATTACH_RANGE_PARTITION.format(**values))
@@ -132,8 +140,13 @@ def ensure_range_partitions(target: RangeTable, now: datetime | None = None) -> 
     """
     now = now if now is not None else timezone.now()
     # Attaching still works while a default partition exists, as long as it holds no
-    # rows in the new range. It locks the default partition while it scans it.
-    existing = [p for p in list_partitions(target.connection, target.table) if not p.is_default]
+    # rows in the new range. It scans the default partition under ACCESS EXCLUSIVE,
+    # which blocks every query on the table that can't skip it, so the scan is cut
+    # short with a statement timeout. A big default partition then fails creation
+    # with an error, and it's reported as a problem either way.
+    partitions = list_partitions(target.connection, target.table)
+    has_default = any(p.is_default for p in partitions)
+    existing = [p for p in partitions if not p.is_default]
     existing_names = {p.name for p in existing}
     existing_ranges = [p.range_bounds() for p in existing]
 
@@ -148,7 +161,7 @@ def ensure_range_partitions(target: RangeTable, now: datetime | None = None) -> 
                 extra={"table": target.table, "partition": bound.name},
             )
             continue
-        _attach_range_partition(target, bound)
+        _attach_range_partition(target, bound, scans_default_partition=has_default)
         created.append(bound.name)
         logger.info(
             "partitions.ensure.created", extra={"table": target.table, "partition": bound.name}

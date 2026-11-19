@@ -105,6 +105,12 @@ DROP_TABLE = "DROP TABLE {table}"
 DEFAULT_LOCK_TIMEOUT = "5s"
 SET_LOCK_TIMEOUT = "SET lock_timeout TO '{timeout}'"
 SET_LOCAL_LOCK_TIMEOUT = "SET LOCAL lock_timeout TO '{timeout}'"
+SET_LOCAL_STATEMENT_TIMEOUT = "SET LOCAL statement_timeout TO '{timeout}'"
+# Attaching a partition to a table with a default partition takes ACCESS EXCLUSIVE on
+# the default partition and scans all of it for rows in the new range, holding the
+# lock until commit. Every query on the table that can't skip the default partition
+# waits meanwhile, so the scan gets this long at most.
+DEFAULT_PARTITION_SCAN_TIMEOUT = "5s"
 RESET_LOCK_TIMEOUT = "SET lock_timeout TO DEFAULT"
 
 # Django schema editor templates, see `Index.create_sql` / `_create_index_sql`.

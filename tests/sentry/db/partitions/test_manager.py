@@ -102,10 +102,12 @@ class EnsurePartitionsTest(TransactionTestCase):
             locked: list[str] = []
             attach = manager._attach_range_partition
 
-            def attach_and_record_locks(target: RangeTable, bound: RangePartitionBound) -> None:
+            def attach_and_record_locks(
+                target: RangeTable, bound: RangePartitionBound, **kwargs: bool
+            ) -> None:
                 # Hold the locks until after they are recorded.
                 with transaction.atomic(using="default"):
-                    attach(target, bound)
+                    attach(target, bound, **kwargs)
                     locked.extend(locked_tables())
 
             with mock.patch.object(
@@ -571,6 +573,45 @@ class MaintainPartitionsTest(TransactionTestCase):
             assert gauges["db.partitions.ahead"] == 2
             with override_settings(SENTRY_PARTITIONED_TABLES=FIXTURE_TABLES):
                 assert verify_partition_state() == [default_partition_problem(RANGE_TABLE, default)]
+
+    @freeze_time(CREATED_AT)
+    def test_scanning_the_default_partition_has_a_statement_timeout(self) -> None:
+        def ensure_statements(now: datetime) -> list[str]:
+            with CaptureQueriesContext(connection) as queries:
+                assert len(ensure_partitions(RangePartitionedFixture, now=now)) == 1
+            return [q["sql"] for q in queries.captured_queries if "statement_timeout" in q["sql"]]
+
+        with fixture_tables():
+            # Creates the week of 03-25.
+            assert ensure_statements(datetime(2024, 3, 13, tzinfo=UTC)) == []
+            self.add_default_partition()
+            # Creates the week of 04-01.
+            assert ensure_statements(datetime(2024, 3, 20, tzinfo=UTC)) == [
+                "SET LOCAL statement_timeout TO '5s'"
+            ]
+
+    @freeze_time(CREATED_AT)
+    def test_slow_default_partition_scan_fails_creation(self) -> None:
+        with fixture_tables():
+            self.add_default_partition()
+            # Backdated rows, which the scan has to go through, though none are in the
+            # new range.
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f'INSERT INTO "{RANGE_TABLE}" (date_added) '
+                    "SELECT '2023-01-01'::timestamptz + n * interval '1 second' "
+                    "FROM generate_series(1, 300000) AS n"
+                )
+            with (
+                mock.patch.object(sql, "DEFAULT_PARTITION_SCAN_TIMEOUT", "1ms"),
+                pytest.raises(OperationalError, match="statement timeout"),
+            ):
+                ensure_partitions(RangePartitionedFixture, now=datetime(2024, 3, 13, tzinfo=UTC))
+            # Nothing is left behind.
+            assert week(25) not in partition_names()
+            with connection.cursor() as cursor:
+                cursor.execute(sql.TABLE_EXISTS, [week(25)])
+                assert cursor.fetchone() == (False,)
 
     @freeze_time(CREATED_AT)
     def test_removing_a_default_partition_as_the_error_describes(self) -> None:

@@ -79,7 +79,10 @@ def default_partition_problem(table: str, partition: str) -> str:
     return (
         f"{partition} is a default partition of {table}. Postgres can't detach any "
         f"partition concurrently while it exists, so expired partitions aren't dropped. "
-        f"New partitions are still created, so it only receives rows outside them. To "
+        f"New partitions are still created, so it only receives rows outside them, but "
+        f"each one has to scan it while holding a lock that blocks queries on the table. "
+        f"Once that scan takes longer than {sql.DEFAULT_PARTITION_SCAN_TIMEOUT}, creating "
+        f"partitions fails too, and inserts will fail once no partition is left ahead. To "
         f"remove it: detach it with `ALTER TABLE {table} DETACH PARTITION {partition}`, "
         f"which briefly locks the whole table; run `sentry partitions ensure --table "
         f"{table}`; copy back the rows that a partition now covers with `INSERT INTO "
