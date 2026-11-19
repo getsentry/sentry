@@ -556,6 +556,7 @@ class MonitorCheckIn(Model):
         on_delete=models.PROTECT,
         # Nothing looks up check-ins by config, and config rows are never deleted
         db_index=False,
+        db_constraint=False,
     )
     """
     References the MonitorCheckInConfig holding a snapshot of the monitor
