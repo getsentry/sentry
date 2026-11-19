@@ -40,14 +40,14 @@ class CellOutboxProducingModel(Model):
         abstract = True
 
     default_flush: bool | None = None
-    """The flush flag for outbox writes outside any outbox_context (None flushes)."""
+    """The flush flag for outbox writes when no caller passed one to outbox_context (None flushes)."""
     replication_version: int = 1
 
     @contextlib.contextmanager
     def prepare_outboxes(self, *, outbox_before_super: bool) -> Generator[None]:
-        from sentry.hybridcloud.models.outbox import get_outbox_flushing_enabled, outbox_context
+        from sentry.hybridcloud.models.outbox import get_outbox_flush_override, outbox_context
 
-        flush = get_outbox_flushing_enabled()
+        flush = get_outbox_flush_override()
         if flush is None:
             flush = self.default_flush
 
@@ -228,7 +228,7 @@ class ControlOutboxProducingModel(Model):
     """
 
     default_flush: bool | None = None
-    """The flush flag for outbox writes outside any outbox_context (None flushes)."""
+    """The flush flag for outbox writes when no caller passed one to outbox_context (None flushes)."""
     replication_version: int = 1
 
     class Meta:
@@ -236,9 +236,9 @@ class ControlOutboxProducingModel(Model):
 
     @contextlib.contextmanager
     def _maybe_prepare_outboxes(self, *, outbox_before_super: bool) -> Generator[None]:
-        from sentry.hybridcloud.models.outbox import get_outbox_flushing_enabled, outbox_context
+        from sentry.hybridcloud.models.outbox import get_outbox_flush_override, outbox_context
 
-        flush = get_outbox_flushing_enabled()
+        flush = get_outbox_flush_override()
         if flush is None:
             flush = self.default_flush
 
