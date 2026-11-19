@@ -392,10 +392,8 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         actor_user_id = get_acting_user_id(get_viewer_context())
         for stage in stages:
             if stage == "stopped":
-                cls._notify_entrypoints(
-                    organization,
-                    SentryAppEventType.SEER_STOPPED,
-                    {"run_id": run_id, "group_id": group.id, "stop": stop},
+                cls._announce_run_end(
+                    organization, SentryAppEventType.SEER_STOPPED, {**base, "stop": stop}
                 )
                 continue
             if stage == "pr_failed":
@@ -525,36 +523,55 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         group: Group,
         failure_reason: str | None,
     ) -> None:
-        cls._notify_entrypoints(
+        seer_run = SeerRun.objects.filter(
+            organization_id=organization.id, seer_run_state_id=run_id
+        ).first()  # noqa: S035
+        cls._announce_run_end(
             organization,
             SentryAppEventType.SEER_ERRORED,
-            {"run_id": run_id, "group_id": group.id, "failure_reason": failure_reason},
+            {
+                "run_id": run_id,
+                "sentry_run_id": str(seer_run.uuid) if seer_run is not None else None,
+                "group_id": group.id,
+                "failure_reason": failure_reason,
+            },
         )
 
     @classmethod
-    def _notify_entrypoints(
+    def _announce_run_end(
         cls,
         organization: Organization,
         event_type: SentryAppEventType,
         event_payload: dict[str, Any],
     ) -> None:
         """
-        Tells entrypoints (e.g. a Slack thread waiting on the run) about the run.
-        No Sentry App webhook; mapped event types also get an issue activity.
+        Tells entrypoints (e.g. a Slack thread waiting on the run) and Sentry Apps that the run
+        stopped or errored. Mapped event types also get an issue activity.
         """
-        if not SeerAutofixOperator.has_access(organization=organization):
-            return
-        metrics.incr(
-            "autofix.on_completion_hook.process_autofix_updates",
-            tags={"event_type": str(event_type)},
-        )
-        process_autofix_updates.apply_async(
-            kwargs={
-                "event_type": event_type,
-                "event_payload": event_payload,
-                "organization_id": organization.id,
-            }
-        )
+        if SeerAutofixOperator.has_access(organization=organization):
+            metrics.incr(
+                "autofix.on_completion_hook.process_autofix_updates",
+                tags={"event_type": str(event_type)},
+            )
+            process_autofix_updates.apply_async(
+                kwargs={
+                    "event_type": event_type,
+                    "event_payload": event_payload,
+                    "organization_id": organization.id,
+                }
+            )
+        try:
+            broadcast_webhooks_for_organization.delay(
+                resource_name="seer",
+                event_name=event_type.value.removeprefix("seer."),
+                organization_id=organization.id,
+                payload=event_payload,
+            )
+        except Exception:
+            logger.exception(
+                "autofix.on_completion_hook.webhook_failed",
+                extra={"organization_id": organization.id, "webhook_event": str(event_type)},
+            )
 
     @classmethod
     def _record_triggered(cls, organization: Organization, run_id: int, group: Group) -> None:
