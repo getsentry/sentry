@@ -35,6 +35,7 @@ jobs:
           # Explicitly need to do this to avoid cases where the merge commit is used instead of the PR head,
           # which can introduce diffs that aren't explicitly caused by the PR changes.
           ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          persist-credentials: false
 
       - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
         with:

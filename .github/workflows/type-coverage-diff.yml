@@ -27,6 +27,8 @@ jobs:
       frontend_all: ${{ steps.changes.outputs.frontend_all }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
       - name: Check for frontend file changes
         uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
@@ -51,6 +53,7 @@ jobs:
           # Needs enough depth for the script to check out HEAD^1
           # (the base branch tip) and run type-coverage there.
           fetch-depth: 0
+          persist-credentials: false
 
       - uses: $/.github/actions/setup-node-pnpm
 

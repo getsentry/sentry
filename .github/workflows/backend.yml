@@ -47,6 +47,8 @@ jobs:
       skip_selective_testing: "${{ github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'Trigger: Override Selective Testing') }}"
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
       - name: Check for backend file changes
         uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
@@ -64,6 +66,8 @@ jobs:
       DEVSERVICES_TIMEOUT: '10'
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
       - name: Setup sentry python env
         uses: $/.github/actions/setup-sentry
@@ -119,6 +123,8 @@ jobs:
       SENTRY_API_TARBALL: ${{ github.workspace }}/.artifacts/sentry-api.tgz
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup sentry python env
         uses: $/.github/actions/setup-sentry
@@ -188,6 +194,8 @@ jobs:
       test-item-count: ${{ steps.compute-tests.outputs.test-item-count }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
       - name: Get changed files
         id: changed
@@ -277,6 +285,8 @@ jobs:
 
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         if: needs.select-tests.outputs.has-selected-tests == 'true'
+        with:
+          persist-credentials: false
 
       - name: Download selected tests artifact
         if: needs.select-tests.outputs.has-selected-tests == 'true'
@@ -328,6 +338,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
       - name: Start resource monitor
         run: python3 .github/workflows/scripts/monitor-resources.py --start
@@ -537,6 +549,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
       - name: Setup sentry env
         uses: $/.github/actions/setup-sentry
@@ -599,6 +613,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
       - name: Setup sentry env
         uses: $/.github/actions/setup-sentry
@@ -705,6 +721,8 @@ jobs:
     steps:
       - name: Checkout sentry
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
       - name: Setup sentry env
         uses: $/.github/actions/setup-sentry
@@ -739,6 +757,8 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
       - name: Setup sentry env
         uses: $/.github/actions/setup-sentry
