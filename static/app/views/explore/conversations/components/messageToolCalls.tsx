@@ -10,6 +10,7 @@ import {t, tn} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useSelectionOpenState} from 'sentry/views/explore/conversations/hooks/useSelectionOpenState';
 import {
   isSubAgentCall,
   type ToolCall,
@@ -60,6 +61,9 @@ export function MessageToolCalls({
   renderMessages,
 }: MessageToolCallsProps) {
   const organization = useOrganization();
+  // Keeps the group open when one of its calls is (or holds) the selection, so
+  // a deep-linked or timeline-selected row stays visible instead of hidden.
+  const [isOpen, setIsOpen] = useSelectionOpenState(selectedToolCallId);
 
   const rows = (
     <Stack gap="xs" width="100%">
@@ -115,9 +119,7 @@ export function MessageToolCalls({
 
   return (
     <CollapsibleChatRow
-      // Keep the group open when one of its calls is the current selection so a
-      // deep-linked/timeline-selected row stays visible instead of hidden.
-      openWhen={selectedToolCallId !== null}
+      open={isOpen}
       title={
         <Flex align="center" gap="sm" minWidth={0}>
           <Text size="sm" variant="muted">
@@ -152,12 +154,13 @@ export function MessageToolCalls({
           }
         />
       }
-      onToggle={open =>
+      onOpenChange={open => {
+        setIsOpen(open);
         trackAnalytics('conversations.detail.expand-tool-calls', {
           organization,
           expanded: open,
-        })
-      }
+        });
+      }}
     >
       <Container paddingTop="xs">{rows}</Container>
     </CollapsibleChatRow>
