@@ -13,7 +13,6 @@ from sentry.models.group import Group
 from sentry.models.groupemailthread import GroupEmailThread
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.notifications.models.inboxitemevent import InboxItemEvent
 from sentry.notifications.platform.types import (
     CodeSection,
     CodeTextBlock,
@@ -37,6 +36,7 @@ from sentry.utils.email import group_id_to_email
 from sentry.utils.email.address import get_from_email_domain
 from sentry.utils.http import absolute_uri
 from sentry.utils.strings import is_valid_dot_atom
+from sentry.utils.urls import add_params_to_url
 from sentry.workflow_engine.models import Workflow
 
 logger = logging.getLogger(__name__)
@@ -267,10 +267,10 @@ def build_activity_notification_data(
     *,
     target: NotificationTarget,
     workflow_id: int | None = None,
-    inbox_event: InboxItemEvent | None = None,
+    inbox_url: str | None = None,
 ) -> ActivityNotificationData:
     """
-    With an inbox event, the notification links to the event in the inbox and to inbox
+    With an inbox URL, the notification links to the event in the inbox and to inbox
     notification settings instead of to the issue and workflow notification settings.
     """
     from sentry.integrations.messaging.message_builder import (
@@ -322,10 +322,8 @@ def build_activity_notification_data(
                     }
                 ),
             )
-    if inbox_event is not None:
-        issue_url = inbox_event.get_absolute_url(
-            params={"referrer": ACTIVITY_NOTIFICATION_REFERRER}
-        )
+    if inbox_url is not None:
+        issue_url = add_params_to_url(inbox_url, {"referrer": ACTIVITY_NOTIFICATION_REFERRER})
 
     action_data = dict(
         source=source,
@@ -365,7 +363,7 @@ def build_activity_notification_data(
     }:
         # Note: This is NOT backwards, a Workflow model comes from the workflow engine, powering alerts
         # The category of 'workflow' refers to subscribers to issues, which don't come from alerts.
-        notification_category = "inbox" if inbox_event else ("alerts" if workflow else "workflow")
+        notification_category = "inbox" if inbox_url else ("alerts" if workflow else "workflow")
         action_data.update(
             {
                 "user_settings_url": organization.absolute_url(

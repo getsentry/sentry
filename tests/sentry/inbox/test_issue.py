@@ -84,6 +84,16 @@ class IssueItemTypeTest(TestCase):
         with self.assertNumQueries(0):
             assert ISSUE.get_url(organization=organization, subject_id="123") == expected
 
+    def test_event_urls_link_to_activity(self) -> None:
+        subject_url = ISSUE.get_url(organization=self.organization, subject_id="123")
+
+        for data in (
+            IssueAssignedData(assignment_source=None, activity_id=456),
+            IssueMentionedData(comment_id=456),
+            IssuePRReadyForReviewData(activity_id=456, pr_urls=[], seer_run_id=1),
+        ):
+            assert data.get_url(subject_url) == f"{subject_url}#activity-456"
+
 
 @pytest.mark.parametrize(
     "event_type, data_class",

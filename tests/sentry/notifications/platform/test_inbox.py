@@ -12,6 +12,7 @@ from sentry.inbox.issue import (
 )
 from sentry.inbox.types import SYSTEM_ACTOR, InboxActor, InboxEventType
 from sentry.integrations.types import ExternalProviders
+from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwnerType
@@ -147,7 +148,7 @@ class InboxNotificationsTest(TestCase):
 
     def _mention(
         self, event_type: InboxEventType[Group, IssueMentionedData] = ISSUE_USER_MENTIONED
-    ) -> None:
+    ) -> Activity:
         note = self.create_group_activity(
             type=ActivityType.NOTE.value,
             user_id=self.user.id,
@@ -163,6 +164,7 @@ class InboxNotificationsTest(TestCase):
             user_ids=[self.recipient.id],
             actor=InboxActor.user(self.user.id),
         )
+        return note
 
     @with_feature(INBOX_FEATURES)
     def test_mention_notifies_recipient(self, notify_async: MagicMock) -> None:
@@ -212,14 +214,14 @@ class InboxNotificationsTest(TestCase):
         ]
 
     @with_feature(INBOX_FEATURES)
-    def test_links_to_inbox_event_and_inbox_settings(self, notify_async: MagicMock) -> None:
-        self._mention()
+    def test_links_to_inbox_activity_and_inbox_settings(self, notify_async: MagicMock) -> None:
+        note = self._mention()
 
-        event = InboxItemEvent.objects.get()
         data = notify_async.call_args.args[0].data
         assert data.issue_url == self.organization.absolute_url(
             f"/organizations/{self.organization.slug}/inbox/issue/{self.group.id}/",
-            query=f"referrer=activity_notification&event={event.id}",
+            query="referrer=activity_notification",
+            fragment=f"activity-{note.id}",
         )
         assert data.user_settings_url == self.organization.absolute_url(
             "settings/account/notifications/inbox/", query="referrer=activity_notification"

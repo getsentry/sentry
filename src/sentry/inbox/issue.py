@@ -23,7 +23,6 @@ from sentry.inbox.types import (
 from sentry.models.activity import Activity, ActivityIntegration
 from sentry.models.group import Group
 from sentry.models.organization import Organization
-from sentry.notifications.models.inboxitemevent import InboxItemEvent
 from sentry.notifications.types import NotificationSettingEnum
 
 if TYPE_CHECKING:
@@ -120,6 +119,9 @@ class IssuePRReadyForReviewData(InboxEventData):
             "seerRunId": str(self.seer_run_id),
         }
 
+    def get_url(self, subject_url: str) -> str:
+        return urlsplit(subject_url)._replace(fragment=f"activity-{self.activity_id}").geturl()
+
 
 @dataclass(frozen=True)
 class IssueActivityNotifier[DataT: InboxEventData](InboxNotifier[Group, DataT]):
@@ -132,7 +134,7 @@ class IssueActivityNotifier[DataT: InboxEventData](InboxNotifier[Group, DataT]):
         *,
         subject: Group,
         data: DataT,
-        event: InboxItemEvent,
+        url: str,
         target: NotificationTarget,
     ) -> NotificationData:
         from sentry.notifications.platform.templates.activity.base import (
@@ -140,7 +142,7 @@ class IssueActivityNotifier[DataT: InboxEventData](InboxNotifier[Group, DataT]):
         )
 
         activity = Activity.objects.get(id=self.get_activity_id(data), group=subject)
-        return build_activity_notification_data(activity, target=target, inbox_event=event)
+        return build_activity_notification_data(activity, target=target, inbox_url=url)
 
 
 def _get_activity_id(data: IssueAssignedData | IssuePRReadyForReviewData) -> int:

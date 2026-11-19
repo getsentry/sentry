@@ -118,20 +118,19 @@ def _send_notifications[SubjectT, DataT: InboxEventData](
     if notifier is None:
         return
 
-    events_by_user_id = {event.inbox_item.user_id: event for event in events}
+    url = event_type.get_url(
+        organization=organization,
+        subject_id=event_type.item_type.get_subject_id(subject),
+        data=data,
+    )
     strategy = InboxUserRoutingStrategy(
         organization_id=organization.id,
-        user_ids=list(events_by_user_id),
+        user_ids=[event.inbox_item.user_id for event in events],
         settings_key=event_type.notification_setting,
     )
     for target in strategy.get_targets():
-        user_id = (target.specific_data or {}).get("user_id")
-        if not isinstance(user_id, int) or user_id not in events_by_user_id:
-            continue
         NotificationService(
-            data=notifier.get_notification_data(
-                subject=subject, data=data, event=events_by_user_id[user_id], target=target
-            )
+            data=notifier.get_notification_data(subject=subject, data=data, url=url, target=target)
         ).notify_async(targets=[target])
 
 

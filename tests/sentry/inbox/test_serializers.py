@@ -61,7 +61,7 @@ from sentry.utils.registry import NoRegistrationExistsError
                 "pr_urls": ["https://github.com/example/repo/pull/1"],
                 "seer_run_id": 123,
             },
-            "",
+            "#activity-789",
         ),
     ],
 )

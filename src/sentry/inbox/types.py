@@ -127,9 +127,10 @@ class InboxNotifier[SubjectT, DataT: InboxEventData](ABC):
         *,
         subject: SubjectT,
         data: DataT,
-        event: InboxItemEvent,
+        url: str,
         target: NotificationTarget,
-    ) -> NotificationData: ...
+    ) -> NotificationData:
+        """`url` links to the event in the recipient's inbox."""
 
 
 @dataclass(frozen=True, kw_only=True)
