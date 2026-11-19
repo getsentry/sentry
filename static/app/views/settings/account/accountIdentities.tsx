@@ -1,16 +1,15 @@
 import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
-import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Confirm} from '@sentry/scraps/confirm';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Flex} from '@sentry/scraps/layout';
 
 import {disconnectIdentity} from 'sentry/actionCreators/account';
-import {DateTime} from 'sentry/components/dateTime';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -65,7 +64,7 @@ function IdentityItem({identity, onDisconnect}: IdentityItemProps) {
         <IdentityIcon providerId={identity.provider.key} />
         <IdentityText isSingleLine={!identity.dateAdded}>
           <IdentityName>{identity.provider.name}</IdentityName>
-          {identity.dateAdded && <IdentityDateTime date={moment(identity.dateAdded)} />}
+          {identity.dateAdded && <IdentityDateTime date={identity.dateAdded} />}
         </IdentityText>
       </Flex>
       <Flex justify="center">

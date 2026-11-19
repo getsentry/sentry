@@ -8,7 +8,7 @@ import {Button, ButtonBar} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
 import type {TableColumnConfig} from '@sentry/scraps/table';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {LinkTabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
@@ -276,22 +276,24 @@ export default function ProjectEnvironments() {
       <SentryDocumentTitle title={t('Environments')} projectSlug={params.projectId} />
       <SettingsPageHeader title={t('Manage Environments')} />
       <TabsContainer>
-        <Tabs value={isHidden ? 'hidden' : 'environments'}>
-          <TabList>
-            <TabList.Item
-              key="environments"
-              to={`/settings/${organization.slug}/projects/${params.projectId}/environments/`}
-            >
-              {t('Environments')}
-            </TabList.Item>
-            <TabList.Item
-              key="hidden"
-              to={`/settings/${organization.slug}/projects/${params.projectId}/environments/hidden/`}
-            >
-              {t('Hidden')}
-            </TabList.Item>
-          </TabList>
-        </Tabs>
+        <LinkTabs value={isHidden ? 'hidden' : 'environments'}>
+          {({TabList}) => (
+            <TabList>
+              <TabList.Item
+                key="environments"
+                to={`/settings/${organization.slug}/projects/${params.projectId}/environments/`}
+              >
+                {t('Environments')}
+              </TabList.Item>
+              <TabList.Item
+                key="hidden"
+                to={`/settings/${organization.slug}/projects/${params.projectId}/environments/hidden/`}
+              >
+                {t('Hidden')}
+              </TabList.Item>
+            </TabList>
+          )}
+        </LinkTabs>
       </TabsContainer>
       <ProjectPermissionAlert project={project} />
       <Flex paddingBottom="xl">

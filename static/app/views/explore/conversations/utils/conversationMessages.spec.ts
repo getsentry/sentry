@@ -1,7 +1,10 @@
+import {annotate} from '@sentry/scraps/markdown/annotation';
+
 import {SpanFields} from 'sentry/views/insights/types';
 
 import {
   buildConversationTurns,
+  callContainsNode,
   embeddingSpansToMessages,
   enrichAgentMessages,
   evaluationSpansToMessages,
@@ -9,6 +12,7 @@ import {
   extractMessagesFromNodes,
   getInputMessageStats,
   getNodeTimestamp,
+  type ConversationMessage,
   memorySpansToMessages,
   mergeEmptyTurns,
   messagesToMarkdown,
@@ -16,8 +20,16 @@ import {
   parseAssistantContent,
   parseUserContent,
   partitionSpansByType,
+  someMessageDeep,
+  type SubAgentCall,
   turnsToMessages,
 } from './conversationMessages';
+
+// How the conversation view marks a value that PII scrubbing replaced entirely.
+const MARKED_FILTERED = annotate(
+  '[Filtered]',
+  JSON.stringify({ruleId: '@password:filter', remark: 's'})
+);
 
 function createMockNode(overrides: {
   id: string;
@@ -220,6 +232,47 @@ function makeTurn(overrides: Partial<Turn> = {}): Turn {
   };
 }
 
+// A span with any operation type and an optional parent, for tests that
+// depend on the span hierarchy.
+function createSpan(overrides: {
+  id: string;
+  opType: string;
+  attributes?: Record<string, string | number>;
+  endTimestamp?: number;
+  name?: string;
+  parentId?: string;
+  startTimestamp?: number;
+}) {
+  const {
+    id,
+    opType,
+    attributes = {},
+    name = 'gen_ai.generate',
+    parentId,
+    startTimestamp = 1000,
+    endTimestamp,
+  } = overrides;
+  const end = endTimestamp ?? startTimestamp + 100;
+  return {
+    id,
+    type: 'span' as const,
+    op: name,
+    startTimestamp,
+    endTimestamp: end,
+    value: {
+      start_timestamp: startTimestamp,
+      end_timestamp: end,
+      parent_span_id: parentId,
+      name,
+    },
+    attributes: {
+      [SpanFields.GEN_AI_OPERATION_TYPE]: opType,
+      ...attributes,
+    },
+    errors: new Set(),
+  } as any;
+}
+
 describe('conversationMessages utilities', () => {
   describe('getNodeTimestamp', () => {
     it('returns end_timestamp from node value', () => {
@@ -349,6 +402,20 @@ describe('conversationMessages utilities', () => {
         },
       });
       expect(parseUserContent(node as any)).toBe('[Filtered]');
+    });
+
+    it('keeps the marks of scrubbed input messages', () => {
+      const node = createMockNode({
+        id: 'node-1',
+        attributes: {
+          [SpanFields.GEN_AI_INPUT_MESSAGES]: MARKED_FILTERED,
+        },
+      });
+      expect(parseUserContent(node as any)).toBe(MARKED_FILTERED);
+      expect(getInputMessageStats(node as any)).toEqual({
+        totalMessageCount: 0,
+        userMessageCount: 0,
+      });
     });
 
     it('parses parts-format user messages', () => {
@@ -506,6 +573,19 @@ describe('conversationMessages utilities', () => {
         },
       });
       expect(parseAssistantContent(node as any).content).toBe('[Filtered]');
+    });
+
+    it('keeps the marks of scrubbed output messages', () => {
+      const node = createMockNode({
+        id: 'node-1',
+        attributes: {
+          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: MARKED_FILTERED,
+        },
+      });
+      expect(parseAssistantContent(node as any)).toEqual({
+        content: MARKED_FILTERED,
+        reasoning: null,
+      });
     });
 
     it('treats a plain string output.messages as the assistant response', () => {
@@ -1121,23 +1201,26 @@ describe('conversationMessages utilities', () => {
       expect(assistantMessages).toHaveLength(1);
     });
 
-    it('does not deduplicate [Filtered] messages across turns', () => {
+    it.each([
+      ['[Filtered]', '[Filtered]'],
+      ['marked [Filtered]', MARKED_FILTERED],
+    ])('does not deduplicate %s messages across turns', (_, filtered) => {
       const turns = [
         makeTurn({
           generation: {
             id: 'gen-1',
             value: {start_timestamp: 1000, end_timestamp: 1100},
           } as any,
-          userContent: '[Filtered]',
-          assistantContent: '[Filtered]',
+          userContent: filtered,
+          assistantContent: filtered,
         }),
         makeTurn({
           generation: {
             id: 'gen-2',
             value: {start_timestamp: 2000, end_timestamp: 2100},
           } as any,
-          userContent: '[Filtered]',
-          assistantContent: '[Filtered]',
+          userContent: filtered,
+          assistantContent: filtered,
         }),
       ];
 
@@ -2004,45 +2087,6 @@ describe('conversationMessages utilities', () => {
       {role: 'assistant', parts: [{type: 'text', content: 'Sunny, 20°C'}]},
     ]);
 
-    function createSpan(overrides: {
-      id: string;
-      opType: string;
-      attributes?: Record<string, string | number>;
-      endTimestamp?: number;
-      name?: string;
-      parentId?: string;
-      startTimestamp?: number;
-    }) {
-      const {
-        id,
-        opType,
-        attributes = {},
-        name = 'gen_ai.generate',
-        parentId,
-        startTimestamp = 1000,
-        endTimestamp,
-      } = overrides;
-      const end = endTimestamp ?? startTimestamp + 100;
-      return {
-        id,
-        type: 'span' as const,
-        op: name,
-        startTimestamp,
-        endTimestamp: end,
-        value: {
-          start_timestamp: startTimestamp,
-          end_timestamp: end,
-          parent_span_id: parentId,
-          name,
-        },
-        attributes: {
-          [SpanFields.GEN_AI_OPERATION_TYPE]: opType,
-          ...attributes,
-        },
-        errors: new Set(),
-      } as any;
-    }
-
     function createAgentTurn(
       agentId: string,
       overrides: {input?: string; output?: string} = {}
@@ -2133,6 +2177,17 @@ describe('conversationMessages utilities', () => {
       expect(enrichAgentMessages(nodes)).toBe(nodes);
     });
 
+    it.each([
+      ['[Filtered]', '[Filtered]'],
+      ['marked [Filtered]', MARKED_FILTERED],
+    ])('does not backfill from an agent whose output is %s', (_, filtered) => {
+      const {agent, gen1, tool, gen2} = createAgentTurn('agent-1');
+      agent.attributes[SpanFields.GEN_AI_OUTPUT_MESSAGES] = filtered;
+      const nodes = [agent, gen1, tool, gen2];
+
+      expect(enrichAgentMessages(nodes)).toBe(nodes);
+    });
+
     it('keeps generation spans as the source when a child has its own messages', () => {
       const {agent, gen1, tool, gen2} = createAgentTurn('agent-1');
       gen1.attributes[SpanFields.GEN_AI_OUTPUT_MESSAGES] = JSON.stringify([
@@ -2162,42 +2217,6 @@ describe('conversationMessages utilities', () => {
   });
 
   describe('extractMessagesFromNodes without captured content', () => {
-    function createSpan(overrides: {
-      id: string;
-      opType: string;
-      attributes?: Record<string, string | number>;
-      endTimestamp?: number;
-      parentId?: string;
-      startTimestamp?: number;
-    }) {
-      const {
-        id,
-        opType,
-        attributes = {},
-        parentId,
-        startTimestamp = 1000,
-        endTimestamp,
-      } = overrides;
-      const end = endTimestamp ?? startTimestamp + 100;
-      return {
-        id,
-        type: 'span' as const,
-        op: 'gen_ai.generate',
-        startTimestamp,
-        endTimestamp: end,
-        value: {
-          start_timestamp: startTimestamp,
-          end_timestamp: end,
-          parent_span_id: parentId,
-        },
-        attributes: {
-          [SpanFields.GEN_AI_OPERATION_TYPE]: opType,
-          ...attributes,
-        },
-        errors: new Set(),
-      } as any;
-    }
-
     const INPUT_TOKENS = {[SpanFields.GEN_AI_USAGE_INPUT_TOKENS]: 10};
 
     it('renders each agent span as a not-reported exchange with its tool calls', () => {
@@ -2227,7 +2246,7 @@ describe('conversationMessages utilities', () => {
           endTimestamp: 1200,
           attributes: {[SpanFields.GEN_AI_TOOL_NAME]: 'search'},
         }),
-        // A sub-agent's generations form their own exchange within the outer one.
+        // A sub-agent's generations form their own exchange inside its row.
         createSpan({
           id: 'sub-agent',
           opType: 'agent',
@@ -2284,18 +2303,11 @@ describe('conversationMessages utilities', () => {
           reasoning: NOT_REPORTED,
           tools: undefined,
         },
-        {id: 'user-gen-2', content: NOT_REPORTED, reasoning: undefined, tools: undefined},
-        {
-          id: 'assistant-gen-2',
-          content: NOT_REPORTED,
-          reasoning: undefined,
-          tools: ['search'],
-        },
         {
           id: 'assistant-gen-3',
           content: NOT_REPORTED,
           reasoning: undefined,
-          tools: undefined,
+          tools: ['search', 'agent'],
         },
         {id: 'user-gen-4', content: NOT_REPORTED, reasoning: undefined, tools: undefined},
         {
@@ -2304,6 +2316,13 @@ describe('conversationMessages utilities', () => {
           reasoning: undefined,
           tools: undefined,
         },
+      ]);
+      const subAgent = messages
+        .find(m => m.id === 'assistant-gen-3')
+        ?.toolCalls?.find(call => call.nodeId === 'sub-agent') as SubAgentCall;
+      expect(subAgent?.messages.map(m => [m.id, m.content])).toEqual([
+        ['user-gen-2', NOT_REPORTED],
+        ['assistant-gen-2', NOT_REPORTED],
       ]);
     });
 
@@ -2362,6 +2381,341 @@ describe('conversationMessages utilities', () => {
       const messages = extractMessagesFromNodes(nodes);
 
       expect(messages.map(m => [m.id, m.content])).toEqual([['assistant-gen-2', 'Done']]);
+    });
+  });
+  describe('extractMessagesFromNodes with agent hierarchy', () => {
+    function agent(
+      id: string,
+      name: string,
+      start: number,
+      end: number,
+      parentId?: string
+    ) {
+      return createSpan({
+        id,
+        opType: 'agent',
+        parentId,
+        startTimestamp: start,
+        endTimestamp: end,
+        attributes: {[SpanFields.GEN_AI_AGENT_NAME]: name},
+      });
+    }
+
+    function tool(
+      id: string,
+      name: string,
+      start: number,
+      end: number,
+      parentId: string,
+      result?: string
+    ) {
+      return createSpan({
+        id,
+        opType: 'tool',
+        parentId,
+        startTimestamp: start,
+        endTimestamp: end,
+        attributes: {
+          [SpanFields.GEN_AI_TOOL_NAME]: name,
+          ...(result ? {'gen_ai.tool.call.result': result} : {}),
+        },
+      });
+    }
+
+    // `input` is a list of [role, content] pairs; a single user message by default.
+    function generation(
+      id: string,
+      start: number,
+      end: number,
+      parentId: string | undefined,
+      {input, output}: {input?: Array<[string, string]> | string; output?: string}
+    ) {
+      const messages =
+        typeof input === 'string' ? [['user', input] as [string, string]] : input;
+      return createSpan({
+        id,
+        opType: 'ai_client',
+        parentId,
+        startTimestamp: start,
+        endTimestamp: end,
+        attributes: {
+          ...(messages
+            ? {
+                [SpanFields.GEN_AI_INPUT_MESSAGES]: JSON.stringify(
+                  messages.map(([role, content]) => ({role, content}))
+                ),
+              }
+            : {}),
+          ...(output ? {[SpanFields.GEN_AI_RESPONSE_TEXT]: output} : {}),
+        },
+      });
+    }
+
+    function onlyMessage(messages: ConversationMessage[], id: string) {
+      const message = messages.find(m => m.id === id);
+      expect(message).toBeDefined();
+      return message!;
+    }
+
+    // A parent agent that calls a sub-agent through a tool, like a dashboard
+    // agent running a query agent from its "Execute Sentry Data Query" tool.
+    function agentAsToolNodes() {
+      return [
+        agent('dash', 'dashboard_generation', 0, 60),
+        generation('g1', 0, 10, 'dash', {input: 'Build a dashboard'}),
+        tool('t1', 'Execute Sentry Data Query', 11, 40, 'dash', 'Finalized query'),
+        agent('query', 'assisted_query', 12, 39, 't1'),
+        generation('q1', 12, 20, 'query', {input: 'find c2pa', output: '.'}),
+        tool('qt1', 'query_api', 21, 25, 'query'),
+        generation('q2', 26, 38, 'query', {
+          input: [
+            ['user', 'find c2pa'],
+            ['assistant', '.'],
+          ],
+          output: 'Finalized',
+        }),
+        generation('g2', 41, 60, 'dash', {output: 'Here is your dashboard'}),
+      ];
+    }
+
+    it('renders a sub-agent called through a tool in place of that tool call', () => {
+      const messages = extractMessagesFromNodes(agentAsToolNodes());
+
+      expect(messages.map(m => [m.id, m.content])).toEqual([
+        ['user-g1', 'Build a dashboard'],
+        ['assistant-g2', 'Here is your dashboard'],
+      ]);
+      const call = onlyMessage(messages, 'assistant-g2').toolCalls?.[0] as SubAgentCall;
+      expect(call).toMatchObject({
+        kind: 'subagent',
+        nodeId: 'query',
+        name: 'assisted_query',
+        viaNodeId: 't1',
+        preview: 'find c2pa',
+        duration: 27,
+        llmCallCount: 2,
+      });
+      // The task is the sub-agent's user message, and the tool's result is
+      // what it returned to the parent.
+      expect(
+        call.messages.map(m => [m.id, m.role, m.content, m.toolCalls?.map(tc => tc.name)])
+      ).toEqual([
+        ['user-q1', 'user', 'find c2pa', undefined],
+        ['assistant-q1', 'assistant', '.', undefined],
+        ['assistant-q2', 'assistant', 'Finalized', ['query_api']],
+        ['result-t1', 'assistant', 'Finalized query', undefined],
+      ]);
+    });
+
+    it('keeps parallel sub-agents and their tool calls apart', () => {
+      const nodes = [
+        agent('dash', 'dashboard_generation', 0, 60),
+        generation('g1', 0, 10, 'dash', {input: 'Compare errors and traces'}),
+        tool('t1', 'Execute Sentry Data Query', 11, 40, 'dash'),
+        tool('t2', 'Execute Sentry Data Query', 11, 40, 'dash'),
+        agent('errors', 'assisted_query', 12, 39, 't1'),
+        agent('traces', 'assisted_query', 12.5, 39, 't2'),
+        generation('e1', 12, 20, 'errors', {input: 'errors', output: '.'}),
+        generation('t-1', 12.5, 18, 'traces', {input: 'traces', output: '.'}),
+        tool('trace-tool', 'query_api', 19, 24, 'traces'),
+        tool('error-tool', 'query_api', 21, 22, 'errors'),
+        generation('t-2', 25, 35, 'traces', {
+          input: [
+            ['user', 'traces'],
+            ['assistant', '.'],
+          ],
+          output: 'traces done',
+        }),
+        generation('e2', 23, 30, 'errors', {
+          input: [
+            ['user', 'errors'],
+            ['assistant', '.'],
+          ],
+          output: 'errors done',
+        }),
+        generation('g2', 41, 60, 'dash', {output: 'Compared'}),
+      ];
+
+      const calls = onlyMessage(extractMessagesFromNodes(nodes), 'assistant-g2')
+        .toolCalls as SubAgentCall[];
+
+      expect(calls.map(call => [call.nodeId, call.preview])).toEqual([
+        ['errors', 'errors'],
+        ['traces', 'traces'],
+      ]);
+      expect(
+        calls[0]!.messages.flatMap(m => m.toolCalls ?? []).map(c => c.nodeId)
+      ).toEqual(['error-tool']);
+      expect(
+        calls[1]!.messages.flatMap(m => m.toolCalls ?? []).map(c => c.nodeId)
+      ).toEqual(['trace-tool']);
+    });
+
+    it("orders a sub-agent without a tool among the next turn's tool calls", () => {
+      const nodes = [
+        agent('main', 'orchestrator', 0, 50),
+        generation('g1', 0, 10, 'main', {input: 'Plan a trip', output: 'Delegating'}),
+        tool('search', 'search', 11, 12, 'main'),
+        agent('sub', 'researcher', 13, 30, 'main'),
+        generation('s1', 14, 29, 'sub', {input: 'Find flights', output: 'Found 3'}),
+        tool('book', 'book', 31, 32, 'main'),
+        generation('g2', 33, 40, 'main', {output: 'Booked'}),
+      ];
+
+      const messages = extractMessagesFromNodes(nodes);
+
+      expect(messages.map(m => m.id)).toEqual([
+        'user-g1',
+        'assistant-g1',
+        'assistant-g2',
+      ]);
+      const calls = onlyMessage(messages, 'assistant-g2').toolCalls!;
+      expect(calls.map(call => [call.kind ?? 'tool', call.nodeId])).toEqual([
+        ['tool', 'search'],
+        ['subagent', 'sub'],
+        ['tool', 'book'],
+      ]);
+      const subAgent = calls[1] as SubAgentCall;
+      expect(subAgent).toMatchObject({name: 'researcher', preview: 'Find flights'});
+      expect(subAgent.viaNodeId).toBeUndefined();
+      expect(subAgent.messages.map(m => [m.id, m.content])).toEqual([
+        ['user-s1', 'Find flights'],
+        ['assistant-s1', 'Found 3'],
+      ]);
+    });
+
+    it('keeps a sub-agent that no turn follows as its own row', () => {
+      const nodes = [
+        agent('main', 'orchestrator', 0, 40),
+        generation('g1', 0, 10, 'main', {input: 'Plan a trip', output: 'Delegating'}),
+        agent('sub', 'researcher', 11, 30, 'main'),
+        generation('s1', 12, 29, 'sub', {input: 'Find flights', output: 'Found 3'}),
+      ];
+
+      expect(
+        extractMessagesFromNodes(nodes).map(m => [m.id, m.role, m.subAgent?.name])
+      ).toEqual([
+        ['user-g1', 'user', undefined],
+        ['assistant-g1', 'assistant', undefined],
+        ['subagent-sub', 'subagent', 'researcher'],
+      ]);
+    });
+
+    it('nests sub-agents of sub-agents', () => {
+      const nodes = [
+        ...agentAsToolNodes(),
+        tool('qt2', 'lookup', 27, 37, 'query'),
+        agent('deep', 'lookup_agent', 28, 36, 'qt2'),
+        generation('d1', 28, 35, 'deep', {input: 'look up c2pa', output: 'c2pa'}),
+      ];
+
+      const call = onlyMessage(extractMessagesFromNodes(nodes), 'assistant-g2')
+        .toolCalls?.[0] as SubAgentCall;
+      const nested = call.messages.flatMap(m => m.toolCalls ?? []);
+
+      expect(nested.map(c => [c.kind ?? 'tool', c.nodeId])).toEqual([
+        ['tool', 'qt1'],
+        ['subagent', 'deep'],
+      ]);
+    });
+
+    it('keeps generations outside an agent turn as regular turns', () => {
+      const nodes = [
+        generation('pre', 0, 5, undefined, {
+          input: 'Classify the query',
+          output: 'dashboard',
+        }),
+        agent('main', 'dashboard_generation', 6, 50),
+        generation('g1', 6, 10, 'main', {input: 'Build a dashboard'}),
+        tool('t1', 'Summarize Results', 11, 20, 'main'),
+        generation('summary', 12, 19, 't1', {input: 'Summarize', output: 'Summary'}),
+        generation('g2', 21, 30, 'main', {output: 'Done'}),
+      ];
+
+      expect(extractMessagesFromNodes(nodes).map(m => [m.id, m.content])).toEqual([
+        ['user-pre', 'Classify the query'],
+        ['assistant-pre', 'dashboard'],
+        ['user-g1', 'Build a dashboard'],
+        ['user-summary', 'Summarize'],
+        ['assistant-summary', 'Summary'],
+        ['assistant-g2', 'Done'],
+      ]);
+    });
+
+    it('keeps generations under a non-tool span as turns of their agent', () => {
+      const nodes = [
+        agent('main', 'chat', 0, 20),
+        createSpan({
+          id: 'chain',
+          opType: 'chain',
+          parentId: 'main',
+          startTimestamp: 0,
+          endTimestamp: 20,
+        }),
+        generation('g1', 0, 10, 'chain', {input: 'Hi', output: 'Hello'}),
+      ];
+
+      expect(extractMessagesFromNodes(nodes).map(m => m.id)).toEqual([
+        'user-g1',
+        'assistant-g1',
+      ]);
+    });
+
+    it('keeps handed-off peer agents in the main flow with shared dedup', () => {
+      const nodes = [
+        agent('triage', 'triage', 0, 20),
+        generation('a1', 0, 10, 'triage', {input: 'Refund me', output: 'Transferring'}),
+        agent('billing', 'billing', 21, 40),
+        generation('b1', 21, 30, 'billing', {
+          input: [
+            ['user', 'Refund me'],
+            ['assistant', 'Transferring'],
+          ],
+          output: 'Refund issued',
+        }),
+      ];
+
+      expect(extractMessagesFromNodes(nodes).map(m => [m.id, m.content])).toEqual([
+        ['user-a1', 'Refund me'],
+        ['assistant-a1', 'Transferring'],
+        ['assistant-b1', 'Refund issued'],
+      ]);
+    });
+
+    it('treats agents with cyclic parent links as top-level', () => {
+      const nodes = [
+        agent('a', 'a', 0, 20, 'b'),
+        agent('b', 'b', 0, 20, 'a'),
+        generation('g1', 0, 10, 'a', {input: 'Hi', output: 'Hello'}),
+      ];
+
+      expect(extractMessagesFromNodes(nodes).map(m => m.id)).toEqual([
+        'user-g1',
+        'assistant-g1',
+      ]);
+    });
+
+    it('finds spans and placeholders inside sub-agents', () => {
+      const messages = extractMessagesFromNodes(agentAsToolNodes());
+      const call = onlyMessage(messages, 'assistant-g2').toolCalls![0]!;
+
+      expect(callContainsNode(call, 'query')).toBe(true);
+      // The tool call it replaced, and spans in its own transcript.
+      expect(callContainsNode(call, 't1')).toBe(true);
+      expect(callContainsNode(call, 'q2')).toBe(true);
+      expect(callContainsNode(call, 'qt1')).toBe(true);
+      expect(callContainsNode(call, 'g1')).toBe(false);
+      expect(someMessageDeep(messages, m => m.content === 'Finalized')).toBe(true);
+      expect(messages.some(m => m.content === 'Finalized')).toBe(false);
+    });
+
+    it('exports sub-agents as nested sections', () => {
+      const markdown = messagesToMarkdown(extractMessagesFromNodes(agentAsToolNodes()));
+
+      expect(markdown).toContain('> ### Sub-agent: assisted_query');
+      expect(markdown).toContain('> > ### User\n> > \n> > find c2pa');
+      expect(markdown).toContain('> > ### assisted_query\n> > \n> > Finalized query');
+      expect(markdown).not.toContain('`Execute Sentry Data Query`');
     });
   });
 });

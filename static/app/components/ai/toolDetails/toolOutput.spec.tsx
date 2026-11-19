@@ -61,3 +61,52 @@ it.each([
   await userEvent.click(screen.getByRole('button', {name: 'Copy output'}));
   expect(navigator.clipboard.writeText).toHaveBeenLastCalledWith(copied);
 });
+
+const REDACTION = {
+  type: 'redaction',
+  text: '[email]',
+  rule_id: '@email:replace',
+  remark: 's',
+};
+
+it('highlights the redacted values of text output', async () => {
+  render(
+    <ToolOutput
+      value="Mail [email]"
+      meta={{
+        '': {
+          rem: [['@email:replace', 's']],
+          chunks: [{type: 'text', text: 'Mail ', rule_id: ''}, REDACTION],
+        },
+      }}
+    />
+  );
+
+  await userEvent.hover(screen.getByText('[email]'));
+
+  expect(await screen.findByText(/Replaced because of/)).toBeInTheDocument();
+});
+
+it('highlights the redacted values of structured output', async () => {
+  render(
+    <ToolOutput
+      value={{note: 'Mail [email] now'}}
+      meta={{
+        note: {
+          '': {
+            rem: [['@email:replace', 's']],
+            chunks: [
+              {type: 'text', text: 'Mail ', rule_id: ''},
+              REDACTION,
+              {type: 'text', text: ' now', rule_id: ''},
+            ],
+          },
+        },
+      }}
+    />
+  );
+
+  await userEvent.hover(screen.getByText('[email]'));
+
+  expect(await screen.findByText(/Replaced because of/)).toBeInTheDocument();
+});

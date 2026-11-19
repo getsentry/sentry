@@ -1,9 +1,12 @@
 import type {RefObject} from 'react';
 import {useCallback, useMemo, useRef} from 'react';
-import * as Sentry from '@sentry/react';
 
 import {uniq} from 'sentry/utils/array/uniq';
-import {decodeList, decodeScalar} from 'sentry/utils/queryString';
+import {decodeScalar} from 'sentry/utils/queryString';
+import {
+  BREADCRUMB_TYPE_LABELS as TYPE_TO_LABEL,
+  type BreadcrumbType,
+} from 'sentry/utils/replays/breadcrumbTypes';
 import {useFiltersInLocationQuery} from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {getFrameOpOrCategory} from 'sentry/utils/replays/types';
@@ -14,45 +17,17 @@ type Options = {
 };
 
 type Return = {
+  clearAllFilters: () => void;
   expandPathsRef: RefObject<Map<number, Set<string>>>;
-  getBreadcrumbTypes: () => Array<{label: string; value: string}>;
+  getBreadcrumbTypes: () => Array<{label: string; value: BreadcrumbType}>;
   items: ReplayFrame[];
   searchTerm: string;
   setSearchTerm: (searchTerm: string) => void;
-  setType: (type: string[]) => void;
-  type: string[];
+  setType: (type: BreadcrumbType[]) => void;
+  type: BreadcrumbType[];
 };
 
-const TYPE_TO_LABEL: Record<string, string> = {
-  start: 'Replay Start',
-  feedback: 'User Feedback',
-  replay: 'Replay',
-  issue: 'Error',
-  console: 'Console',
-  nav: 'Navigation',
-  pageLoad: 'Page Load',
-  reload: 'Reload',
-  navBackForward: 'Navigate Back/Forward',
-  memory: 'Memory',
-  paint: 'Paint',
-  blur: 'User Blur',
-  action: 'User Action',
-  rageOrMulti: 'Rage & Multi Click',
-  rageOrDead: 'Rage & Dead Click',
-  hydrateError: 'Hydration Error',
-  webVital: 'Web Vital',
-  click: 'User Click',
-  keydown: 'KeyDown',
-  input: 'Input',
-  tap: 'User Tap',
-  swipe: 'User Swipe',
-  scroll: 'User Scroll',
-  device: 'Device',
-  app: 'App',
-  custom: 'Custom',
-};
-
-const OPORCATEGORY_TO_TYPE: Record<string, keyof typeof TYPE_TO_LABEL> = {
+const OPORCATEGORY_TO_TYPE: Record<string, BreadcrumbType> = {
   'replay.init': 'start',
   'replay.mutations': 'replay',
   issue: 'issue',
@@ -84,14 +59,6 @@ const OPORCATEGORY_TO_TYPE: Record<string, keyof typeof TYPE_TO_LABEL> = {
   'app.background': 'app',
 };
 
-function typeToLabel(val: string): string {
-  if (TYPE_TO_LABEL[val]) {
-    return TYPE_TO_LABEL[val];
-  }
-  Sentry.captureException('Unknown breadcrumb filter type');
-  return 'Unknown';
-}
-
 const FILTERS = {
   type: (item: ReplayFrame, type: string[]) =>
     type.length === 0 || type.includes(getFrameOpOrCategory(item)),
@@ -111,7 +78,6 @@ export function useBreadcrumbFilters({frames}: Options): Return {
   // re-render when items are expanded/collapsed, though it may work in state as well.
   const expandPathsRef = useRef(new Map<number, Set<string>>());
 
-  const type = useMemo(() => decodeList(query.f_b_type), [query.f_b_type]);
   const searchTerm = decodeScalar(query.f_b_search, '').toLowerCase();
 
   // add custom breadcrumbs to filter
@@ -121,6 +87,8 @@ export function useBreadcrumbFilters({frames}: Options): Return {
       OPORCATEGORY_TO_TYPE[getFrameOpOrCategory(frame)] = 'custom';
     }
   });
+
+  const type = query.f_b_type;
 
   const items = useMemo(() => {
     // flips OPORCATERGORY_TO_TYPE and prevents overwriting nav entry, nav entry becomes nav: ['navigation','navigation.push']
@@ -155,19 +123,28 @@ export function useBreadcrumbFilters({frames}: Options): Return {
         .sort()
         .map(value => ({
           value: value!,
-          label: typeToLabel(value!),
+          label: TYPE_TO_LABEL[value!],
         })),
     [frames, type]
   );
 
-  const setType = useCallback((f_b_type: string[]) => setFilter({f_b_type}), [setFilter]);
+  const setType = useCallback(
+    (f_b_type: BreadcrumbType[]) => setFilter({f_b_type}),
+    [setFilter]
+  );
 
   const setSearchTerm = useCallback(
     (f_b_search: string) => setFilter({f_b_search: f_b_search || undefined}),
     [setFilter]
   );
 
+  const clearAllFilters = useCallback(
+    () => setFilter({f_b_type: undefined, f_b_search: undefined}),
+    [setFilter]
+  );
+
   return {
+    clearAllFilters,
     expandPathsRef,
     getBreadcrumbTypes,
     items,

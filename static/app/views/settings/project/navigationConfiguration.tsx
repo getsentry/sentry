@@ -166,9 +166,7 @@ export function getNavigationConfiguration({
           id: 'project_performance',
           path: `${pathPrefix}/performance/`,
           title: t('Performance'),
-          show: () =>
-            !!organization?.features?.includes('performance-view') &&
-            !isSelfHostedErrorsOnly,
+          show: () => !isSelfHostedErrorsOnly,
         },
 
         {

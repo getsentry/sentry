@@ -1,5 +1,7 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {annotate, hasAnnotations} from '@sentry/scraps/markdown/annotation';
+
 import {EMPTY_TEXT_CONTENT} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import {SpanFields} from 'sentry/views/insights/types';
 
@@ -9,9 +11,10 @@ function createMockNode(overrides: {
   id: string;
   attributes?: Record<string, string | number>;
   endTimestamp?: number;
+  parentId?: string;
   startTimestamp?: number;
 }) {
-  const {id, attributes = {}, startTimestamp = 1000, endTimestamp} = overrides;
+  const {id, attributes = {}, parentId, startTimestamp = 1000, endTimestamp} = overrides;
   const end = endTimestamp ?? startTimestamp + 100;
   return {
     id,
@@ -19,7 +22,11 @@ function createMockNode(overrides: {
     op: 'gen_ai.generate',
     startTimestamp,
     endTimestamp: end,
-    value: {start_timestamp: startTimestamp, end_timestamp: end},
+    value: {
+      start_timestamp: startTimestamp,
+      end_timestamp: end,
+      parent_span_id: parentId,
+    },
     attributes: {
       [SpanFields.GEN_AI_OPERATION_TYPE]: 'ai_client',
       ...attributes,
@@ -34,6 +41,7 @@ function createMockToolNode(overrides: {
   endTimestamp?: number;
   hasError?: boolean;
   output?: string;
+  parentId?: string;
   startTimestamp?: number;
 }) {
   const {
@@ -42,6 +50,7 @@ function createMockToolNode(overrides: {
     startTimestamp = 1000,
     hasError = false,
     output,
+    parentId,
     endTimestamp,
   } = overrides;
   const end = endTimestamp ?? startTimestamp + 100;
@@ -51,7 +60,11 @@ function createMockToolNode(overrides: {
     op: 'gen_ai.execute_tool',
     startTimestamp,
     endTimestamp: end,
-    value: {start_timestamp: startTimestamp, end_timestamp: end},
+    value: {
+      start_timestamp: startTimestamp,
+      end_timestamp: end,
+      parent_span_id: parentId,
+    },
     attributes: {
       [SpanFields.GEN_AI_OPERATION_TYPE]: 'tool',
       [SpanFields.GEN_AI_TOOL_NAME]: toolName,
@@ -332,6 +345,38 @@ describe('MessagesPanel', () => {
 
     expect(screen.getByText('Hello there')).toBeInTheDocument();
     expect(screen.getByText('Assistant response text')).toBeInTheDocument();
+  });
+
+  it('marks the values PII scrubbing changed without showing their marks', async () => {
+    const rule = (ruleId: string) => JSON.stringify({ruleId, remark: 's'});
+    const email = annotate('[email]', rule('@email:replace'));
+    const node = createMockNode({
+      id: 'span-1',
+      attributes: {
+        [SpanFields.GEN_AI_INPUT_MESSAGES]: annotate(
+          '[Filtered]',
+          rule('@password:filter')
+        ),
+        [SpanFields.GEN_AI_OUTPUT_MESSAGES]: JSON.stringify([
+          {role: 'assistant', content: `Mail ${email} now`},
+        ]),
+      },
+    });
+
+    const {container} = render(
+      <MessagesPanel
+        nodes={[node] as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    expect(screen.getByText('[Filtered]')).toBeInTheDocument();
+    expect(hasAnnotations(container.textContent ?? '')).toBe(false);
+
+    await userEvent.hover(screen.getByText('[email]'));
+
+    expect(await screen.findByText(/Replaced because of/)).toBeInTheDocument();
   });
 
   it('does not render an agent header (name/model/email)', () => {
@@ -836,5 +881,186 @@ describe('MessagesPanel', () => {
     expect(text.indexOf('Creating embedding...')).toBeLessThan(
       text.indexOf('Here they are')
     );
+  });
+
+  describe('with sub-agents', () => {
+    function userInput(content: string) {
+      return JSON.stringify([{role: 'user', content}]);
+    }
+
+    // A dashboard agent running a query agent from its "Execute Sentry Data
+    // Query" tool.
+    function createNodes() {
+      return [
+        createMockNode({
+          id: 'dash',
+          startTimestamp: 6,
+          endTimestamp: 60,
+          attributes: {
+            [SpanFields.GEN_AI_OPERATION_TYPE]: 'agent',
+            [SpanFields.GEN_AI_AGENT_NAME]: 'dashboard_generation',
+          },
+        }),
+        createMockNode({
+          id: 'g1',
+          parentId: 'dash',
+          startTimestamp: 6,
+          endTimestamp: 10,
+          attributes: {
+            [SpanFields.GEN_AI_INPUT_MESSAGES]: userInput('Build a dashboard'),
+          },
+        }),
+        createMockToolNode({
+          id: 't1',
+          toolName: 'Execute Sentry Data Query',
+          output: 'Finalized query',
+          parentId: 'dash',
+          startTimestamp: 11,
+          endTimestamp: 40,
+        }),
+        createMockNode({
+          id: 'query',
+          parentId: 't1',
+          startTimestamp: 12,
+          endTimestamp: 39,
+          attributes: {
+            [SpanFields.GEN_AI_OPERATION_TYPE]: 'agent',
+            [SpanFields.GEN_AI_AGENT_NAME]: 'assisted_query',
+          },
+        }),
+        createMockNode({
+          id: 'q1',
+          parentId: 'query',
+          startTimestamp: 12,
+          endTimestamp: 38,
+          attributes: {
+            [SpanFields.GEN_AI_INPUT_MESSAGES]: userInput('Find c2pa failures'),
+            [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Query agent answer',
+          },
+        }),
+        createMockNode({
+          id: 'g2',
+          parentId: 'dash',
+          startTimestamp: 41,
+          endTimestamp: 60,
+          attributes: {[SpanFields.GEN_AI_RESPONSE_TEXT]: 'Here is your dashboard'},
+        }),
+      ];
+    }
+
+    it('renders a collapsed sub-agent row instead of its turns', () => {
+      render(
+        <MessagesPanel
+          nodes={createNodes() as any}
+          selectedNodeId={null}
+          onSelectNode={mockOnSelectNode}
+        />
+      );
+
+      expect(screen.getByText('assisted_query')).toBeInTheDocument();
+      // The task previews in the row; its bubble stays hidden until expanded.
+      expect(screen.getAllByText('Find c2pa failures')[0]).toBeVisible();
+      expect(screen.getByText('Query agent answer')).not.toBeVisible();
+      expect(screen.queryByText('Execute Sentry Data Query')).not.toBeInTheDocument();
+    });
+
+    it('expands a sub-agent into its transcript, ending with its result', async () => {
+      const {container} = render(
+        <MessagesPanel
+          nodes={createNodes() as any}
+          selectedNodeId={null}
+          onSelectNode={mockOnSelectNode}
+        />
+      );
+
+      await userEvent.click(screen.getByText('assisted_query'));
+
+      expect(screen.getByText('Query agent answer')).toBeVisible();
+      expect(screen.getByText('Finalized query')).toBeVisible();
+      // The task is a user bubble, so the collapsed preview is gone.
+      expect(screen.getAllByText('Find c2pa failures')).toHaveLength(1);
+      const text = container.textContent ?? '';
+      expect(text.indexOf('Find c2pa failures')).toBeLessThan(
+        text.indexOf('Query agent answer')
+      );
+      expect(text.indexOf('Query agent answer')).toBeLessThan(
+        text.indexOf('Finalized query')
+      );
+      expect(mockOnSelectNode).not.toHaveBeenCalled();
+    });
+
+    it('selects a span inside an expanded sub-agent', async () => {
+      const nodes = createNodes();
+      render(
+        <MessagesPanel
+          nodes={nodes as any}
+          selectedNodeId={null}
+          onSelectNode={mockOnSelectNode}
+        />
+      );
+
+      await userEvent.click(screen.getByText('assisted_query'));
+      await userEvent.click(screen.getByText('Query agent answer'));
+
+      expect(mockOnSelectNode).toHaveBeenCalledWith(nodes.find(node => node.id === 'q1'));
+    });
+
+    it('opens the sub-agent when the selected span inside it loads later', () => {
+      // The selected span is on a later page: the row first renders without it.
+      const nodes = createNodes();
+      const {rerender} = render(
+        <MessagesPanel
+          nodes={nodes.filter(node => node.id !== 'q1') as any}
+          selectedNodeId="q1"
+          onSelectNode={mockOnSelectNode}
+        />
+      );
+
+      rerender(
+        <MessagesPanel
+          nodes={nodes as any}
+          selectedNodeId="q1"
+          onSelectNode={mockOnSelectNode}
+        />
+      );
+
+      expect(screen.getByText('Query agent answer')).toBeVisible();
+    });
+
+    it('reopens a collapsed sub-agent when the selection moves to another span in it', async () => {
+      const nodes = createNodes();
+      const {rerender} = render(
+        <MessagesPanel
+          nodes={nodes as any}
+          selectedNodeId="q1"
+          onSelectNode={mockOnSelectNode}
+        />
+      );
+      await userEvent.click(screen.getByText('assisted_query'));
+      expect(screen.getByText('Query agent answer')).not.toBeVisible();
+
+      // The tool call the sub-agent replaced is also inside its row.
+      rerender(
+        <MessagesPanel
+          nodes={nodes as any}
+          selectedNodeId="t1"
+          onSelectNode={mockOnSelectNode}
+        />
+      );
+
+      expect(screen.getByText('Query agent answer')).toBeVisible();
+    });
+
+    it('opens the sub-agent that contains the selected span', () => {
+      render(
+        <MessagesPanel
+          nodes={createNodes() as any}
+          selectedNodeId="q1"
+          onSelectNode={mockOnSelectNode}
+        />
+      );
+
+      expect(screen.getByText('Query agent answer')).toBeVisible();
+    });
   });
 });

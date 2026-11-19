@@ -1,10 +1,10 @@
-import {useMemo, useState} from 'react';
+import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
-import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 import {Heading} from '@sentry/scraps/text';
 
 import {AnsiText} from 'sentry/components/ansiText';
@@ -19,6 +19,7 @@ import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {getMessage, getTitle} from 'sentry/utils/events';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {GroupActions} from 'sentry/views/issueDetails/actions/index';
@@ -81,29 +82,41 @@ export function InboxIssuePreview({groupId}: InboxIssuePreviewProps) {
       <Stack flex={1} containerType="inline-size">
         <InboxIssuePreviewHeader group={group} project={project} event={event} />
         <Tabs value={tab} onChange={setTab}>
-          <Container padding="0 2xl" borderBottom="primary">
-            <TabList>
-              <TabList.Item key="overview">{t('Overview')}</TabList.Item>
-              <TabList.Item key="telemetry">{t('Telemetry')}</TabList.Item>
-            </TabList>
-          </Container>
-          <FullHeightTabPanels>
-            <TabPanels.Item key="overview">
-              <InboxIssueOverview group={group} project={project} event={event} />
-            </TabPanels.Item>
-            <TabPanels.Item key="telemetry">
-              <PageFiltersContainer
-                key={project.id}
-                skipLoadLastUsed
-                skipInitializeUrlParams
-                disablePersistence
-                forceProject={project}
-                shouldForceProject
-              >
-                <InboxIssueTelemetry group={group} project={project} event={event} />
-              </PageFiltersContainer>
-            </TabPanels.Item>
-          </FullHeightTabPanels>
+          {({TabList, TabPanels}) => (
+            <Fragment>
+              <Container padding="0 2xl" borderBottom="primary">
+                <TabList>
+                  <TabList.Item key="overview">{t('Overview')}</TabList.Item>
+                  <TabList.Item key="telemetry">{t('Telemetry')}</TabList.Item>
+                </TabList>
+              </Container>
+              <Stack flex="1" height="auto" paddingTop="0">
+                {layoutProps => (
+                  <TabPanels {...layoutProps}>
+                    <TabPanels.Item key="overview">
+                      <InboxIssueOverview group={group} project={project} event={event} />
+                    </TabPanels.Item>
+                    <TabPanels.Item key="telemetry">
+                      <PageFiltersContainer
+                        key={project.id}
+                        skipLoadLastUsed
+                        skipInitializeUrlParams
+                        disablePersistence
+                        forceProject={project}
+                        shouldForceProject
+                      >
+                        <InboxIssueTelemetry
+                          group={group}
+                          project={project}
+                          event={event}
+                        />
+                      </PageFiltersContainer>
+                    </TabPanels.Item>
+                  </TabPanels>
+                )}
+              </Stack>
+            </Fragment>
+          )}
         </Tabs>
       </Stack>
     </GroupDataContextProvider>
@@ -166,6 +179,9 @@ function InboxIssuePreviewHeader({group, project, event}: InboxIssueSectionProps
 }
 
 function InboxIssueOverview({group, project, event}: InboxIssueSectionProps) {
+  const {hash} = useLocation();
+  const highlightedActivityId = hash.match(/^#activity[-=](.+)$/)?.[1];
+
   return (
     <IssueDetailsContextProvider scrollContext="pane">
       <Grid flex={1} columns={{zero: 'minmax(0, 1fr)', xl: 'minmax(0, 1fr) 300px'}}>
@@ -175,6 +191,7 @@ function InboxIssueOverview({group, project, event}: InboxIssueSectionProps) {
           </Heading>
           <ActivitySection
             group={group}
+            highlightedActivityId={highlightedActivityId}
             minHeight={40}
             variant="standalone"
             placeholder={t('Add a comment. Tag users with @, or teams with #')}
@@ -286,13 +303,4 @@ const IssueTitleLink = styled(Link)`
   &:hover {
     text-decoration: underline;
   }
-`;
-
-// Lets the selected panel fill the rest of the preview's height
-const FullHeightTabPanels = styled(TabPanels)`
-  flex: 1;
-  height: auto;
-  display: flex;
-  flex-direction: column;
-  padding-top: 0;
 `;

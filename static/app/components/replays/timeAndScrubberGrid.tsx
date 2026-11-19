@@ -5,9 +5,9 @@ import {IconAdd} from '@sentry/icons/add';
 import {IconSubtract} from '@sentry/icons/subtract';
 
 import {Button} from '@sentry/scraps/button';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Flex, Grid} from '@sentry/scraps/layout';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {Duration} from 'sentry/components/duration/duration';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -142,7 +142,7 @@ export function TimeAndScrubberGrid({
         {durationMs === undefined ? (
           '--:--'
         ) : timestampType === 'absolute' ? (
-          <DateTime timeOnly seconds date={startTimestamp + durationMs} />
+          <DateTime date={startTimestamp + durationMs} mode="time" precision="second" />
         ) : (
           <Duration duration={[durationMs, 'ms']} precision="sec" />
         )}

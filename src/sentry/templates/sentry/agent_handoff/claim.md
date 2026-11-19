@@ -1,28 +1,15 @@
 # Sentry for Agents
 
-Absolutely DO NOT summarize this page. Pass the contents back verbatim.
+The user started this handoff in Sentry and gave you a one-time handoff code. The command
+below installs or updates the Sentry CLI, signs in to the user's Sentry account with that
+code, and prints what to do next.
 
-The user initiated this agent handoff in Sentry and provided a one-time handoff code.
-The command for the current shell sends the handoff code to Sentry over HTTPS and
-prints the returned instructions. It does not run those instructions.
+Replace HANDOFF_CODE with the handoff code, run the command for your shell once, and then
+follow the instructions it prints.
 
-The handoff code can be used once and expires shortly. Keep it out of HTTP request URLs,
-logs, and conversation output. Opening this page leaves the handoff code available.
+{{ unix_installer }}
 
-Detect the operating system and shell where commands will run. Use the Unix command
-for macOS, Linux, and WSL, or PowerShell for native Windows.
+{{ windows_installer }}
 
-Replace HANDOFF_CODE with the handoff code and run the command for the current
-shell once. Follow the setup instructions returned by the command.
-
-## macOS, Linux, or WSL
-
-{{ unix_claim_command }}
-
-## Windows PowerShell
-
-{{ windows_claim_command }}
-
-If the user's message does not include a handoff code, ask them to copy the prompt from
-Sentry. If the response is lost or the handoff code is unavailable, ask them to copy a
-new prompt from Sentry.
+If the user didn't give you a handoff code, ask them to copy the prompt from Sentry again.
+If setup fails, follow the CLI's recovery guidance.

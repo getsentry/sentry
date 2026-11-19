@@ -13,9 +13,7 @@ import {SampledEventsTable} from './eapSampledEventsTable';
 
 describe('EAP SampledEventsTable', () => {
   const project = ProjectFixture({id: '1', platform: 'javascript'});
-  const organization = OrganizationFixture({
-    features: ['performance-view'],
-  });
+  const organization = OrganizationFixture();
 
   const META_FIELDS = {
     span_id: 'string',
@@ -89,7 +87,6 @@ describe('EAP SampledEventsTable', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    ProjectsStore.reset();
   });
 
   it('renders the table with data', async () => {

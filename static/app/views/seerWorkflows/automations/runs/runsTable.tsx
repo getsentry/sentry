@@ -7,6 +7,8 @@ import upperFirst from 'lodash/upperFirst';
 import {useQueryState} from 'nuqs';
 
 import {Tag} from '@sentry/scraps/badge';
+import {DateTime} from '@sentry/scraps/dateTime';
+import {getDuration} from '@sentry/scraps/duration';
 import {InfoText} from '@sentry/scraps/info';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -14,7 +16,6 @@ import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {Hovercard} from 'sentry/components/hovercard';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -22,7 +23,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tct, tn} from 'sentry/locale';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {getPaginationProps} from 'sentry/utils/pagination';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
@@ -338,8 +338,7 @@ function RunTiming({run}: {run: SeerAutomationRun}) {
     ? getDuration(
         (new Date(run.dateCompleted).getTime() - new Date(run.dateAdded).getTime()) /
           1000,
-        0,
-        true
+        {style: 'short'}
       )
     : null;
 
@@ -357,11 +356,11 @@ function RunTiming({run}: {run: SeerAutomationRun}) {
               justifyItems="start"
             >
               <Text variant="muted">{t('Started')}</Text>
-              <DateTime date={run.dateAdded} seconds timeZone />
+              <DateTime date={run.dateAdded} precision="second" showTimezone />
               {run.dateCompleted && (
                 <Fragment>
                   <Text variant="muted">{t('Finished')}</Text>
-                  <DateTime date={run.dateCompleted} seconds timeZone />
+                  <DateTime date={run.dateCompleted} precision="second" showTimezone />
                   <Text variant="muted">{t('Duration')}</Text>
                   <Text>{duration}</Text>
                 </Fragment>

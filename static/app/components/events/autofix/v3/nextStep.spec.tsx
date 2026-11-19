@@ -29,9 +29,9 @@ jest.mock('sentry/views/seerExplorer/useSeerExplorerContext', () => ({
 }));
 
 // The agent is only reachable when the Explorer is, so code mode needs the
-// Explorer's own prerequisites on top of its flag.
+// Explorer's own prerequisites.
 const codeModeOrganization = OrganizationFixture({
-  features: ['seer-explorer-code-mode-tools', 'seer-explorer'],
+  features: ['seer-explorer'],
   openMembership: true,
   hideAiFeatures: false,
 });
@@ -211,12 +211,7 @@ describe('SeerDrawerNextStep', () => {
         </AutofixChatProvider>,
         {
           organization: OrganizationFixture({
-            features: [
-              'autofix-page',
-              'seer-explorer-chat-prompts',
-              'seer-explorer-code-mode-tools',
-              'seer-explorer',
-            ],
+            features: ['autofix-page', 'seer-explorer-chat-prompts', 'seer-explorer'],
             openMembership: true,
             hideAiFeatures: false,
           }),
@@ -1289,7 +1284,7 @@ describe('SeerDrawerNextStep', () => {
   describe('out of Seer credits', () => {
     const creditCheckUrl = '/organizations/org-slug/seer/credit-check/';
     const creditCheckOrganization = OrganizationFixture({
-      features: ['seer-credit-checks', 'token-billed-seer-enabled'],
+      features: ['token-billed-seer-enabled'],
     });
 
     function mockCreditCheck(operation: string, hasEnoughCredits = false) {
@@ -1430,11 +1425,7 @@ describe('SeerDrawerNextStep', () => {
           operation: 'autofix_solution',
           organization: OrganizationFixture({
             ...codeModeOrganization,
-            features: [
-              ...codeModeOrganization.features,
-              'seer-credit-checks',
-              'token-billed-seer-enabled',
-            ],
+            features: [...codeModeOrganization.features, 'token-billed-seer-enabled'],
           }),
         }
       );

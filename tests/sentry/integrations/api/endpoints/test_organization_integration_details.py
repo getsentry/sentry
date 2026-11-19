@@ -1,3 +1,4 @@
+from time import time
 from unittest.mock import MagicMock, patch
 
 import responses
@@ -417,3 +418,86 @@ class IssueOrganizationIntegrationDetailsGetTest(APITestCase):
         assert "/rest/api/2/project/search" in jira_request_urls[0]
         assert "/rest/api/2/issue/createmeta" in jira_request_urls[1]
         assert all("/rest/api/2/statuses/search" not in url for url in jira_request_urls)
+
+    @responses.activate
+    def test_create_issue_config_jira_unreachable_returns_detail(self) -> None:
+        responses.add(
+            responses.GET, "https://example.atlassian.net/rest/api/2/project/search", status=503
+        )
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.integration.id,
+            qs_params={"action": "create"},
+            status_code=400,
+        )
+
+        assert response.data["detail"].startswith("Could not fetch project list from Jira.")
+
+    def test_create_issue_config_unsupported_integration(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            external_id="opsgenie:1",
+            provider="opsgenie",
+            name="Opsgenie",
+            metadata={"base_url": "https://api.opsgenie.com/", "domain_name": "test-app"},
+        )
+
+        response = self.get_error_response(
+            self.organization.slug,
+            integration.id,
+            qs_params={"action": "create"},
+            status_code=400,
+        )
+
+        assert response.data == {"detail": "This integration doesn't support creating issues."}
+
+
+@control_silo_test
+class AzureDevOpsBrokenAuthGetTest(APITestCase):
+    endpoint = "sentry-api-0-organization-integration-details"
+    projects_url = "https://fabrikam-fiber-inc.visualstudio.com/_apis/projects"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(self.user)
+        self.integration = self.create_provider_integration(
+            provider="vsts",
+            external_id="vsts_external_id",
+            name="fabrikam-fiber-inc",
+            metadata={"domain_name": "https://fabrikam-fiber-inc.visualstudio.com/"},
+        )
+        self.identity = Identity.objects.create(
+            idp=self.create_identity_provider(type="vsts"),
+            user=self.user,
+            external_id="vsts",
+            data={"access_token": "123456789", "expires": time() + 1234567},
+        )
+        self.integration.add_organization(self.organization, self.user, self.identity.id)
+
+    def assert_create_returns_generic_error(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug,
+            self.integration.id,
+            qs_params={"action": "create"},
+            status_code=400,
+        )
+        assert response.data["detail"].startswith("Couldn't load the issue form")
+
+    @responses.activate
+    def test_create_issue_config_unauthorized(self) -> None:
+        responses.add(responses.GET, self.projects_url, status=401, json={})
+        self.assert_create_returns_generic_error()
+
+    def test_create_issue_config_missing_identity(self) -> None:
+        self.identity.delete()
+        self.assert_create_returns_generic_error()
+
+    def test_settings_with_missing_identity_returns_base_fields(self) -> None:
+        self.identity.delete()
+
+        response = self.get_success_response(self.organization.slug, self.integration.id)
+
+        assert response.data["id"] == str(self.integration.id)
+        assert response.data["externalId"] == "vsts_external_id"
+        assert "configOrganization" not in response.data

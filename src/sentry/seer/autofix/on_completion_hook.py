@@ -30,21 +30,25 @@ from sentry.seer.autofix.autofix_agent import (
 from sentry.seer.autofix.coding_agent import IntegrationNotFound
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import SeerOutOfCreditsException
+from sentry.seer.autofix.feature.dispatch import get_run_billing_feature
 from sentry.seer.autofix.feature.models import FEATURE_ID as AUTOFIX_FEATURE_ID
 from sentry.seer.autofix.feature.models import LEGACY_FEATURE_ID as LEGACY_AUTOFIX_FEATURE_ID
+from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 from sentry.seer.autofix.pr_iteration.completion import (
     continue_pr_iteration,
     drain_single_run_feedback_queue,
     fail_pr_iteration,
     fail_pr_iteration_missing_group,
-    is_pr_feedback_turn,
     iteration_completed_webhook_fields,
     iteration_terminal_errored_repos,
     log_completion_received,
     record_failed_tool_calls,
 )
 from sentry.seer.autofix.pr_iteration.completion_reactions import react_to_completed_iteration
-from sentry.seer.autofix.pr_iteration.iterations import get_latest_iteration_index
+from sentry.seer.autofix.pr_iteration.iterations import (
+    get_latest_iteration_index,
+    is_pr_feedback_turn,
+)
 from sentry.seer.autofix.pr_iteration.run_markers import record_run_extras
 from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
 from sentry.seer.autofix.pr_ready_for_review import (
@@ -53,7 +57,9 @@ from sentry.seer.autofix.pr_ready_for_review import (
 )
 from sentry.seer.autofix.single_run import (
     SingleRunStop,
+    hands_off_to_coding_agent,
     is_single_run,
+    single_run_relevant_repos,
     single_run_root_cause_payload,
     single_run_stop_payload,
 )
@@ -113,7 +119,7 @@ def _stopping_point_from_run(organization: Organization, run_id: int) -> str | N
             source__in=(AUTOFIX_FEATURE_ID, LEGACY_AUTOFIX_FEATURE_ID),
         )
         .values_list("extras__stopping_point", flat=True)
-        .first()
+        .first()  # noqa: S035
     )
 
 
@@ -130,6 +136,9 @@ def get_run_stopping_point(
 
 SingleRunStage = Literal["root_cause", "coding", "pr_created", "stopped"]
 SINGLE_RUN_ANNOUNCED_STAGES_KEY = "single_run_announced_stages"
+# Set once the completion hook has launched a single run's coding agent, so later
+# completions (replies) don't launch it again.
+SINGLE_RUN_HANDED_OFF_KEY = "single_run_handed_off"
 
 
 def _single_run_referrer(state: SeerRunState) -> AutofixReferrer | None:
@@ -269,7 +278,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             return
         seer_run = SeerRun.objects.filter(
             organization_id=organization.id, seer_run_state_id=run_id
-        ).first()
+        ).first()  # noqa: S035
         if seer_run is None:
             logger.warning(
                 "autofix.on_completion_hook.single_run_missing_seer_run",
@@ -296,10 +305,24 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
 
         reconcile_milestones(seer_run, state)
 
+        # The coding agent writes the fix once Seer names a root cause and a repo for it.
+        # A stopped run (transient, ambiguous, not a code fix) never hands off.
+        agent_run = SeerAgentRun.objects.get_or_none(run=seer_run, source=SINGLE_RUN_FEATURE_ID)
+        ready_to_hand_off = (
+            not paused
+            and stop is None
+            and agent_run is not None
+            and hands_off_to_coding_agent(agent_run)
+            and bool(single_run_relevant_repos(state))
+        )
+
         with record_run_extras(seer_run) as extras:
             announced = extras.get(SINGLE_RUN_ANNOUNCED_STAGES_KEY) or []
             new_stages = [stage for stage in reached if stage not in announced]
             extras[SINGLE_RUN_ANNOUNCED_STAGES_KEY] = [*announced, *new_stages]
+            hand_off = ready_to_hand_off and not extras.get(SINGLE_RUN_HANDED_OFF_KEY)
+            if hand_off:
+                extras[SINGLE_RUN_HANDED_OFF_KEY] = True
 
         cls._announce_single_run(
             organization=organization,
@@ -313,6 +336,31 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             stop=stop,
             referrer=_single_run_referrer(state) or run_referrer,
         )
+        if hand_off:
+            cls._hand_off_single_run(
+                organization,
+                run_id,
+                group,
+                _single_run_referrer(state) or run_referrer or AutofixReferrer.ON_COMPLETION_HOOK,
+            )
+
+    @classmethod
+    def _hand_off_single_run(
+        cls,
+        organization: Organization,
+        run_id: int,
+        group: Group,
+        referrer: AutofixReferrer,
+    ) -> None:
+        handoff_config = get_automation_handoff(group.project.get_option)
+        if handoff_config is None:
+            # The project dropped its coding agent after the run started.
+            logger.info(
+                "autofix.on_completion_hook.single_run_handoff_unconfigured",
+                extra={"run_id": run_id, "organization_id": organization.id},
+            )
+            return
+        cls._trigger_coding_agent_handoff(organization, run_id, group, handoff_config, referrer)
 
     @classmethod
     def _announce_single_run(
@@ -548,7 +596,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         seer_run = SeerRun.objects.filter(
             organization_id=organization.id,
             seer_run_state_id=run_id,
-        ).first()
+        ).first()  # noqa: S035
 
         sentry_run_id = str(seer_run.uuid) if seer_run is not None else None
         webhook_payload: dict[str, object] = {
@@ -799,7 +847,13 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             return
 
         stopping_point = AutofixStoppingPoint(raw_stopping_point)
-        if current_step == STOPPING_POINT_TO_STEP.get(stopping_point):
+        stopping_step = STOPPING_POINT_TO_STEP.get(stopping_point)
+        # A manual continue can take an automated run past its stopping point; don't advance it.
+        if (
+            stopping_step is not None
+            and current_step in PIPELINE_ORDER
+            and PIPELINE_ORDER.index(current_step) >= PIPELINE_ORDER.index(stopping_step)
+        ):
             return
 
         # Check if we should trigger coding agent handoff instead of continuing
@@ -859,6 +913,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                 step=next_step,
                 referrer=referrer,
                 run_id=run_id,
+                billing_feature=get_run_billing_feature(state),
             )
         except SeerOutOfCreditsException:
             logger.info(

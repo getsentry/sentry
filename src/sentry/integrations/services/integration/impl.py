@@ -83,6 +83,7 @@ ACCESS_TOKEN_PROVIDERS = (
     IntegrationProviderSlug.CURSOR_ORIGIN.value,
     IntegrationProviderSlug.GITLAB.value,
     IntegrationProviderSlug.LINEAR.value,
+    IntegrationProviderSlug.SUPABASE.value,
 )
 
 # Not tuned: a caller uses the token within seconds, and a wider margin only means minting
@@ -708,11 +709,14 @@ class DatabaseBackedIntegrationService(IntegrationService):
             status=ObjectStatus.ACTIVE,
             organizationintegration__organization_id=organization_id,
             organizationintegration__status=ObjectStatus.ACTIVE,
-        ).first()
+        ).first()  # noqa: S035
         if integration is None:
             return None
 
-        if force_refresh and integration.provider != IntegrationProviderSlug.LINEAR.value:
+        if force_refresh and integration.provider not in (
+            IntegrationProviderSlug.LINEAR.value,
+            IntegrationProviderSlug.SUPABASE.value,
+        ):
             return None
 
         try:
