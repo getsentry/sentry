@@ -35,39 +35,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.number }}
           LABEL: 'Trigger: Override Decision Model Lint'
-          # Rules diff each file against the PR's base, it must match --base below
+          # Rules diff each file against the PR's base, it must match --base in the script
           DECISION_MODEL_LINT_BASE: HEAD^1
           OVERRIDDEN: "${{ contains(github.event.pull_request.labels.*.name, 'Trigger: Override Decision Model Lint') }}"
-        run: |
-          report="$RUNNER_TEMP/decision-model-lint.md"
-          status=0
-          pnpm exec decision-model-linter --config decisionModelLinter.config.ts \
-            --base HEAD^1 --format markdown > "$report" || status=$?
-
-          # Only 1 means findings; any other failure means the linter did not finish.
-          if [ "$status" -eq 1 ] && [ "$OVERRIDDEN" = true ]; then
-            printf '\nThe `%s` label keeps these errors from failing the check.\n' "$LABEL" >> "$report"
-          elif [ "$status" -eq 1 ]; then
-            printf '\nThese errors fail the check; fix the code to resolve them. If you and a reviewer are confident an error is wrong, a person can add the `%s` label to pass the check while the findings stay reported. Agents should never add this label.\n' "$LABEL" >> "$report"
-          elif [ "$status" -gt 1 ] && [ "$OVERRIDDEN" = true ]; then
-            printf 'The linter did not finish (exit %s), and the `%s` label passes the check anyway; see the job log.\n' "$status" "$LABEL" >> "$report"
-          fi
-
-          marker='<!-- decision-model-linter -->'
-          comment=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate \
-            --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | contains(\"$marker\"))) | .id" | head -n 1)
-          body=
-          if [ -s "$report" ] && { [ "$status" -le 1 ] || [ "$OVERRIDDEN" = true ]; }; then
-            body=$(printf '%s\n%s' "$marker" "$(cat "$report")")
-          elif [ "$status" -eq 0 ] && [ -n "$comment" ]; then
-            body=$(printf '%s\nNo findings on the latest commit.' "$marker")
-          fi
-          if [ -n "$body" ] && [ -n "$comment" ]; then
-            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$comment" -f body="$body" > /dev/null
-          elif [ -n "$body" ]; then
-            gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" -f body="$body" > /dev/null
-          fi
-          cat "$report" >> "$GITHUB_STEP_SUMMARY"
-
-          if [ "$status" -ne 0 ] && [ "$OVERRIDDEN" = true ]; then exit 0; fi
-          exit "$status"
+          CHANGED_FILES: ${{ github.event.pull_request.changed_files }}
+          MAX_FILES: 1000
+        run: .github/workflows/scripts/decision-model-lint.sh
