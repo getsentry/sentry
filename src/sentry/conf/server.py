@@ -612,6 +612,8 @@ TRUSTED_TYPES_ENABLED = False
 TRUSTED_TYPES_POLICIES: list[str] = []
 TRUSTED_TYPES_REPORT_URI: str | None = None
 
+REPORTING_ENDPOINTS: dict[str, str] = {}
+
 STATIC_ROOT = os.path.realpath(os.path.join(PROJECT_ROOT, "static"))
 STATIC_URL = "/_static/{version}/"
 # webpack assets live at a different URL that is unversioned
