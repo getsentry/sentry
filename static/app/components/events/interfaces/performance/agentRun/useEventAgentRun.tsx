@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import {skipToken, useQuery} from '@tanstack/react-query';
+import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {isWebVitalsEvent} from 'sentry/components/events/interfaces/performance/utils';
 import {getEventTimestampInSeconds} from 'sentry/components/events/interfaces/utils';
@@ -28,6 +28,8 @@ import {isEAPSpanNode} from 'sentry/views/performance/traceDetails/traceGuards';
 import {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/traceDetails/traceState/tracePreferences';
+
+import {fetchAgentRunTrace, isErrorDetachedFromSpans} from './agentRunFromSpans';
 
 export type EventAgentRun =
   | {type: 'none'}
@@ -153,8 +155,10 @@ function activeAiSpanOptions({
  */
 export function useEventAgentRun(event: Event, {enabled}: {enabled: boolean}) {
   const organization = useOrganization();
+  const queryClient = useQueryClient();
   const canHaveAgentRun = enabled && !isWebVitalsEvent(event);
   const traceId = canHaveAgentRun ? event.contexts.trace?.trace_id : undefined;
+  const spanId = event.contexts.trace?.span_id;
   const timestamp = getEventTimestampInSeconds(event);
 
   const activeAiSpan = useQuery(
@@ -172,17 +176,74 @@ export function useEventAgentRun(event: Event, {enabled}: {enabled: boolean}) {
     referrer: 'api.trace-view.issues.agent-run',
   });
 
+  const needsRunFromSpans = Boolean(
+    traceId &&
+    spanId &&
+    timestamp !== undefined &&
+    trace.data &&
+    isErrorDetachedFromSpans(trace.data, event.eventID)
+  );
+  const {eventID, groupID, projectID, title} = event;
+  // The query client only runs the requests, so it does not change the result.
+  // eslint-disable-next-line @tanstack/query/exhaustive-deps
+  const runFromSpans = useQuery({
+    queryKey: [
+      'issue-details-agent-run-from-spans',
+      organization.slug,
+      traceId,
+      spanId,
+      timestamp,
+      eventID,
+      groupID,
+      projectID,
+      title,
+    ],
+    queryFn:
+      needsRunFromSpans && traceId && spanId && timestamp !== undefined
+        ? () =>
+            fetchAgentRunTrace({
+              queryClient,
+              organizationSlug: organization.slug,
+              traceId,
+              timestamp,
+              attributes: AGENT_RUN_ATTRIBUTES,
+              spanId,
+              error: {
+                event_id: eventID,
+                issue_id: Number(groupID),
+                project_id: Number(projectID),
+                description: title,
+              },
+            })
+        : skipToken,
+    staleTime: Infinity,
+  });
+
   return useMemo((): EventAgentRun => {
-    if (activeAiSpan.isLoading || trace.isLoading) {
+    if (
+      activeAiSpan.isLoading ||
+      trace.isLoading ||
+      (needsRunFromSpans && runFromSpans.isPending)
+    ) {
       return {type: 'loading'};
     }
-    if (!trace.data) {
+    const agentRunTrace = needsRunFromSpans ? runFromSpans.data : trace.data;
+    if (!agentRunTrace) {
       return NO_AGENT_RUN;
     }
     try {
-      return getEventAgentRun(trace.data, event.eventID, organization);
+      return getEventAgentRun(agentRunTrace, event.eventID, organization);
     } catch {
       return NO_AGENT_RUN;
     }
-  }, [activeAiSpan.isLoading, trace.isLoading, trace.data, event.eventID, organization]);
+  }, [
+    activeAiSpan.isLoading,
+    trace.isLoading,
+    trace.data,
+    runFromSpans.isPending,
+    runFromSpans.data,
+    needsRunFromSpans,
+    event.eventID,
+    organization,
+  ]);
 }
