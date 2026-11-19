@@ -18,10 +18,11 @@ class Command(BaseCommand):
         from django.conf import settings
 
         from sentry.models.project import Project
+        from sentry.receivers.core import DEFAULT_SENTRY_PROJECT_ID
         from sentry.utils.samples import create_sample_event
 
         if not options["project"]:
-            project = Project.objects.get(id=settings.SENTRY_PROJECT)
+            project = Project.objects.get(id=settings.SENTRY_PROJECT or DEFAULT_SENTRY_PROJECT_ID)
         else:
             if cast(str, options["project"]).isdigit():
                 project = Project.objects.get(id=cast(str | int, options["project"]))
