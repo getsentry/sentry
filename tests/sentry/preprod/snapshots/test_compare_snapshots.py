@@ -140,7 +140,7 @@ def _dict_backed_session(stored: dict[str, bytes]) -> MagicMock:
         result.payload.read.return_value = stored[key]
         return result
 
-    def _put(contents: bytes, key: str, content_type: str) -> None:
+    def _put(contents: bytes, key: str, content_type: str, compress: str | None = None) -> None:
         stored[key] = contents
 
     session.get.side_effect = _get
@@ -202,8 +202,8 @@ class ProcessChunkTest(TestCase):
         prefix = f"{self.organization.id}/{self.project.id}/{head_artifact.id}/{base_artifact.id}"
         stored = {f"{prefix}/plan.json": orjson.dumps(plan.dict())}
         session = _mock_session_with_manifests(stored)
-        session.put.side_effect = lambda contents, key, content_type: stored.__setitem__(
-            key, contents
+        session.put.side_effect = (
+            lambda contents, key, content_type, compress=None: stored.__setitem__(key, contents)
         )
 
         diff = DiffResult(
@@ -399,8 +399,8 @@ class ProcessChunkTest(TestCase):
         prefix = f"{self.organization.id}/{self.project.id}/{head_artifact.id}/{base_artifact.id}"
         stored = {f"{prefix}/plan.json": orjson.dumps(plan.dict())}
         session = _mock_session_with_manifests(stored)
-        session.put.side_effect = lambda contents, key, content_type: stored.__setitem__(
-            key, contents
+        session.put.side_effect = (
+            lambda contents, key, content_type, compress=None: stored.__setitem__(key, contents)
         )
 
         with (
@@ -439,8 +439,8 @@ class ProcessChunkTest(TestCase):
         prefix = f"{self.organization.id}/{self.project.id}/{head_artifact.id}/{base_artifact.id}"
         stored = {f"{prefix}/plan.json": orjson.dumps(plan.dict())}
         session = _mock_session_with_manifests(stored)
-        session.put.side_effect = lambda contents, key, content_type: stored.__setitem__(
-            key, contents
+        session.put.side_effect = (
+            lambda contents, key, content_type, compress=None: stored.__setitem__(key, contents)
         )
 
         with (
@@ -480,8 +480,8 @@ class ProcessChunkTest(TestCase):
         prefix = f"{self.organization.id}/{self.project.id}/{head_artifact.id}/{base_artifact.id}"
         stored = {f"{prefix}/plan.json": orjson.dumps(plan.dict())}
         session = _mock_session_with_manifests(stored)
-        session.put.side_effect = lambda contents, key, content_type: stored.__setitem__(
-            key, contents
+        session.put.side_effect = (
+            lambda contents, key, content_type, compress=None: stored.__setitem__(key, contents)
         )
 
         unchanged_diff = DiffResult(
@@ -530,8 +530,8 @@ class ProcessChunkTest(TestCase):
         prefix = f"{self.organization.id}/{self.project.id}/{head_artifact.id}/{base_artifact.id}"
         stored = {f"{prefix}/plan.json": orjson.dumps(plan.dict())}
         session = _mock_session_with_manifests(stored)
-        session.put.side_effect = lambda contents, key, content_type: stored.__setitem__(
-            key, contents
+        session.put.side_effect = (
+            lambda contents, key, content_type, compress=None: stored.__setitem__(key, contents)
         )
 
         with (
@@ -566,8 +566,8 @@ class ProcessChunkTest(TestCase):
         prefix = f"{self.organization.id}/{self.project.id}/{head_artifact.id}/{base_artifact.id}"
         stored = {f"{prefix}/plan.json": orjson.dumps(plan.dict())}
         session = _mock_session_with_manifests(stored)
-        session.put.side_effect = lambda contents, key, content_type: stored.__setitem__(
-            key, contents
+        session.put.side_effect = (
+            lambda contents, key, content_type, compress=None: stored.__setitem__(key, contents)
         )
 
         with (
