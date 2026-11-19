@@ -6,6 +6,7 @@ from django.test import override_settings
 from rest_framework.response import Response
 
 from sentry.constants import ObjectStatus
+from sentry.integrations.models.integration import Integration
 from sentry.models.repository import REPOSITORY_NAME_LENGTH, Repository
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
@@ -33,8 +34,8 @@ class OrganizationSeerRepoAccessTest(APITestCase):
         )
         return response
 
-    def _connect_github(self) -> None:
-        self.create_integration(
+    def _connect_github(self) -> Integration:
+        return self.create_integration(
             organization=self.organization,
             provider="github",
             external_id="github:1",
@@ -42,13 +43,13 @@ class OrganizationSeerRepoAccessTest(APITestCase):
             metadata={"domain_name": "github.com/acme-labs"},
         )
 
-    def _add_repo(self) -> None:
-        Repository.objects.create(
-            organization_id=self.organization.id,
+    def _add_repo(self, integration_id: int | None) -> None:
+        self.create_repo(
             name="acme-labs/app",
             url="https://github.com/acme-labs/app",
             provider="integrations:github",
             external_id="1",
+            integration_id=integration_id,
         )
 
     def test_no_scm_integration(self) -> None:
@@ -77,14 +78,23 @@ class OrganizationSeerRepoAccessTest(APITestCase):
         assert response.data == {"status": "repo_not_in_sentry", "connectedAccounts": ["acme-labs"]}
 
     def test_found_once_the_repo_reaches_sentry(self) -> None:
-        self._connect_github()
-        self._add_repo()
+        self._add_repo(self._connect_github().id)
 
         response = self._get()
 
         # Only the outcome: none of the repository's details.
         assert response.status_code == 200
         assert response.data == {"status": "found", "connectedAccounts": []}
+
+    def test_no_scm_integration_when_the_repo_outlived_its_integration(self) -> None:
+        # Removing an integration in Sentry unlinks its repositories but leaves them active. Seer
+        # can't open one, so it isn't found.
+        self._add_repo(integration_id=None)
+
+        response = self._get()
+
+        assert response.status_code == 200
+        assert response.data == {"status": "no_scm_integration", "connectedAccounts": []}
 
     def test_unknown_when_the_reason_cant_be_named(self) -> None:
         # A name with no owner can't be under any account, so Sentry can't say why it missed.
@@ -133,7 +143,7 @@ class OrganizationSeerRepoAccessTest(APITestCase):
 
     def test_another_organizations_integration_and_repo_dont_count(self) -> None:
         other = self.create_organization(owner=self.create_user())
-        self.create_integration(
+        integration = self.create_integration(
             organization=other,
             provider="github",
             external_id="github:1",
@@ -146,6 +156,7 @@ class OrganizationSeerRepoAccessTest(APITestCase):
             url="https://github.com/acme-labs/app",
             provider="integrations:github",
             external_id="1",
+            integration_id=integration.id,
         )
 
         response = self._get()

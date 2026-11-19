@@ -3109,6 +3109,7 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
             url="https://gitlab.com/my-group/sub/app",
             provider="integrations:gitlab",
             external_id="1",
+            integration_id=123,
             config={"path": "my-group/sub/app"},
             **repo_params,
         )
@@ -3128,6 +3129,7 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
                 url=url,
                 provider=f"integrations:{provider}",
                 external_id="1",
+                integration_id=123,
                 config={"path": path},
             )
             with self.subTest(provider=provider):
@@ -3298,23 +3300,13 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
         assert result is None
 
     def test_get_repository_definition_no_integration_id(self) -> None:
-        """Test repository without integration_id"""
-        Repository.objects.create(
-            organization_id=self.organization.id,
-            name="getsentry/seer",
-            provider="integrations:github",
-            external_id="12345678",
-            integration_id=None,
-            status=ObjectStatus.ACTIVE,
-        )
+        """Removing an integration leaves its repositories active with no integration. Seer can't
+        open one, so it isn't found, and Seer is told why."""
+        self._create_repo(integration_id=None)
 
-        result = get_repository_definition(
-            organization_id=self.organization.id,
-            repo_full_name="getsentry/seer",
+        assert self._lookup(self.organization, "getsentry/seer") == RepositoryDefinitionFailure(
+            failure_reason="no_scm_integration"
         )
-
-        assert isinstance(result, RepositoryDefinitionResponse)
-        assert result.integration_id is None
 
     def test_get_repository_definition_unsupported_provider(self) -> None:
         """Test that repositories with unsupported providers are filtered out"""
