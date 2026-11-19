@@ -95,3 +95,28 @@ def test_latest_asks_pypi() -> None:
         calls = _run_main({**ENV, "VERSION": "latest"}, diff_returncode=0)
     latest.assert_called_once_with("sentry-arroyo")
     assert calls[0] == ("git", "checkout", "-b", "bot/bump-version/sentry-arroyo/9.9.9")
+
+
+@pytest.mark.parametrize(
+    ("curl_rc", "jq_rc", "expected_exit"),
+    [(6, 0, 6), (0, 5, 5), (6, 5, 5)],
+)
+def test_latest_version_fails_like_pipefail(curl_rc: int, jq_rc: int, expected_exit: int) -> None:
+    results = [
+        mock.Mock(returncode=curl_rc, stdout=b""),
+        mock.Mock(returncode=jq_rc, stdout=b""),
+    ]
+    with mock.patch("subprocess.run", side_effect=results):
+        with pytest.raises(SystemExit) as excinfo:
+            _mod.latest_version("pkg")
+    assert excinfo.value.code == expected_exit
+
+
+def test_latest_version_returns_jq_output() -> None:
+    results = [
+        mock.Mock(returncode=0, stdout=b'{"info": {"version": "1.2.3"}}'),
+        mock.Mock(returncode=0, stdout=b"1.2.3\n"),
+    ]
+    with mock.patch("subprocess.run", side_effect=results) as run:
+        assert _mod.latest_version("pkg") == "1.2.3"
+    assert run.call_args_list[0].args[0] == ["curl", "-sL", "https://pypi.org/pypi/pkg/json"]

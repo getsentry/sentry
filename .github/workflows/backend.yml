@@ -345,7 +345,11 @@ jobs:
       # probe instead (kafka-topics-healthcheck.sh).
       - name: Make the Kafka healthcheck cheap
         continue-on-error: true
-        run: .github/workflows/scripts/install-kafka-topics-healthcheck.sh
+        run: |
+          real=$(docker exec kafka-kafka-1 sh -c 'command -v kafka-topics')
+          docker exec -u 0 kafka-kafka-1 mv "$real" "$real.real"
+          docker cp .github/workflows/scripts/kafka-topics-healthcheck.sh "kafka-kafka-1:$real"
+          time docker exec kafka-kafka-1 kafka-topics --bootstrap-server 127.0.0.1:9092 --list
 
       # To profile pytest and its xdist workers (adds ~0.4 cores of overhead), uncomment
       # this step, run the test command through

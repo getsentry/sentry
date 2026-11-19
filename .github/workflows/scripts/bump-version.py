@@ -10,13 +10,11 @@ Exits without a pull request when the bump changes nothing.
 
 from __future__ import annotations
 
-import json
 import os
 import re
 import shlex
 import subprocess
 import sys
-import urllib.request
 
 
 def pr_option_args(pr_options: str) -> list[str]:
@@ -25,8 +23,17 @@ def pr_option_args(pr_options: str) -> list[str]:
 
 
 def latest_version(package: str) -> str:
-    with urllib.request.urlopen(f"https://pypi.org/pypi/{package}/json") as response:
-        return str(json.load(response)["info"]["version"])
+    """Return what `curl -sL URL | jq -r .info.version` prints, exiting like pipefail."""
+    url = f"https://pypi.org/pypi/{package}/json"
+    print(
+        f"+ {shlex.join(('curl', '-sL', url))} | jq -r .info.version", file=sys.stderr, flush=True
+    )
+    curl = subprocess.run(["curl", "-sL", url], stdout=subprocess.PIPE)
+    jq = subprocess.run(["jq", "-r", ".info.version"], input=curl.stdout, stdout=subprocess.PIPE)
+    for returncode in (jq.returncode, curl.returncode):
+        if returncode != 0:
+            sys.exit(returncode)
+    return jq.stdout.decode().rstrip("\n")
 
 
 def run(*args: str, check: bool = True) -> int:

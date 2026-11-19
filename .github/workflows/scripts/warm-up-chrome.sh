@@ -3,8 +3,6 @@
 # launch's cold disk and font cache cost is paid before the tests run.
 set -eu
 
-: "${RUNNER_TEMP:?}"
-
 if command -v google-chrome && command -v chromedriver; then
   user_data_dir=$(mktemp -d)
   setsid nohup timeout 60 google-chrome --headless --no-sandbox --disable-gpu \

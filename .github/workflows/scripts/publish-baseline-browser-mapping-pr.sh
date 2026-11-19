@@ -11,8 +11,7 @@ git add pnpm-lock.yaml
 git commit -m "chore(deps): update baseline-browser-mapping"
 git push -f origin "$BRANCH"
 # Create PR only if one doesn't already exist
-open_prs=$(gh pr list --head "$BRANCH" --state open)
-if [ -z "$open_prs" ]; then
+if ! gh pr list --head "$BRANCH" --state open | grep -q .; then
   gh pr create \
     --title "chore(deps): update baseline-browser-mapping" \
     --body "automated update of [\`baseline-browser-mapping\`](https://npmx.dev/package/baseline-browser-mapping) to suppress stale-data console warnings"

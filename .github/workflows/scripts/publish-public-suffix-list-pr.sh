@@ -4,8 +4,6 @@
 # Does nothing when PSL_PATH is unchanged.
 set -eu
 
-: "${PSL_PATH:?}"
-
 if git diff --quiet -- "$PSL_PATH"; then
   exit 0
 fi

@@ -177,7 +177,6 @@ repos:
             get-base-commit|
             get-snapshot-merge-base|
             inspect-failure|
-            install-kafka-topics-healthcheck|
             install-odiff|
             install-playwright|
             install-pyyaml|

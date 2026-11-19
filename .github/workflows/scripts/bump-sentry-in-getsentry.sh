@@ -4,8 +4,6 @@
 # sentry and getsentry checkouts.
 set -eux
 
-: "${GITHUB_SHA:?}"
-
 cd getsentry
 
 python -S -m bin.bump_sentry "$GITHUB_SHA"
