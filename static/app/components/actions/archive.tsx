@@ -5,6 +5,7 @@ import {Button, ButtonBar} from '@sentry/scraps/button';
 import {openConfirmModal} from '@sentry/scraps/confirm';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {getDuration} from '@sentry/scraps/duration';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {openModal} from '@sentry/scraps/modal';
@@ -16,7 +17,6 @@ import {CustomIgnoreDurationModal} from 'sentry/components/customIgnoreDurationM
 import {t, tct, tn} from 'sentry/locale';
 import type {GroupStatusResolution, IgnoredStatusDetails} from 'sentry/types/group';
 import {GroupStatus, GroupSubstatus} from 'sentry/types/group';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 
 const ONE_HOUR = 60;
 

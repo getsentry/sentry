@@ -1412,7 +1412,7 @@ wheels = [
 
 [[package]]
 name = "objectstore-client"
-version = "0.3.0"
+version = "0.3.1"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "filetype" },
@@ -1422,7 +1422,7 @@ dependencies = [
     { name = "zstandard" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/objectstore_client-0.3.0-py3-none-any.whl", hash = "sha256:a74942845c69fa58ee27acba3ae81aa978f7b5ebc246d4011cbfba262c649a02" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/objectstore_client-0.3.1-py3-none-any.whl", hash = "sha256:18238cdd8d868e1558260dc996e2b17f76d1124aea55ce77aec2e2306520f1d3" },
 ]
 
 [[package]]
@@ -2395,7 +2395,7 @@ requires-dist = [
     { name = "mmh3", specifier = ">=4.0.0" },
     { name = "msgpack", specifier = ">=1.2.3" },
     { name = "msgspec", specifier = ">=0.19.0" },
-    { name = "objectstore-client", specifier = ">=0.3.0" },
+    { name = "objectstore-client", specifier = ">=0.3.1" },
     { name = "orjson", specifier = ">=3.10.10" },
     { name = "packaging", specifier = ">=24.1" },
     { name = "parsimonious", specifier = ">=0.10.0" },
@@ -2433,7 +2433,7 @@ requires-dist = [
     { name = "sentry-redis-tools", specifier = ">=0.5.0" },
     { name = "sentry-relay", specifier = ">=0.10.2" },
     { name = "sentry-scm", specifier = ">=4.0.0" },
-    { name = "sentry-sdk", extras = ["http2"], specifier = "==3.0.0b4" },
+    { name = "sentry-sdk", extras = ["http2"], specifier = ">=3.0.0rc1" },
     { name = "sentry-usage-accountant", specifier = ">=0.0.10" },
     { name = "sentry-viewercontext", specifier = ">=0.2.0" },
     { name = "simplejson", specifier = ">=3.17.6" },
@@ -2662,14 +2662,14 @@ wheels = [
 
 [[package]]
 name = "sentry-sdk"
-version = "3.0.0b4"
+version = "3.0.0rc1"
 source = { registry = "https://pypi.devinfra.sentry.io/simple" }
 dependencies = [
     { name = "certifi" },
     { name = "urllib3" },
 ]
 wheels = [
-    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_sdk-3.0.0b4-py3-none-any.whl", hash = "sha256:e27ef8f59547dc063e2d2d46561705d4c77baa4c7534f7997e67802f4b7b0cea" },
+    { url = "https://pypi.devinfra.sentry.io/wheels/sentry_sdk-3.0.0rc1-py3-none-any.whl", hash = "sha256:4574e57e9b00965574115c3c604df1335a6dfb9a0ffa5dbec38b0b4e60e47601" },
 ]
 
 [package.optional-dependencies]

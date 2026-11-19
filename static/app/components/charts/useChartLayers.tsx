@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 
 import {
   DROPPED_DATA_LAYER,
@@ -13,9 +13,13 @@ import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 
+import type {AnnotationItem} from './annotations/types';
+import {useAnnotationFlagLog} from './annotations/useAnnotationFlagLog';
+import {annotationContextTab} from './contextDrawer/chartContextDrawer';
 import type {ChartLayer, ChartLayersControlProps} from './chartLayersControl';
 
 const RELEASES_LAYER = 'releases';
+const FLAGS_LAYER = 'flags';
 
 interface UseChartLayersParams {
   dataset: DiscoverDatasets;
@@ -38,27 +42,49 @@ export function useChartLayers({
 }: UseChartLayersParams) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const droppedData = useDroppedDataLayer({dataset, interval}, {source, enabled, hidden});
-
-  const isReleasesEnabled =
+  const areAnnotationsEnabled =
     enabled && organization.features.includes('timeseries-annotations');
+  const droppedData = useDroppedDataLayer(
+    {dataset, interval},
+    {source, enabled, hidden, showAnnotationTabs: areAnnotationsEnabled}
+  );
+
   const {releases: releaseStats} = useReleaseStats(selection, {
-    enabled: isReleasesEnabled,
+    enabled: areAnnotationsEnabled,
   });
   const [isReleasesLayerOn, setIsReleasesLayerOn] = useState(true);
   const hasReleases = (releaseStats?.length ?? 0) > 0;
-  const isReleaseBandShown = hasReleases && isReleasesLayerOn && !hidden;
+  const areReleasesShown = hasReleases && isReleasesLayerOn && !hidden;
 
-  const releases = useMemo(
-    () =>
-      isReleaseBandShown
-        ? releaseStats?.map(({date, version}) => ({timestamp: date, version}))
-        : undefined,
-    [isReleaseBandShown, releaseStats]
-  );
+  const {data: flagLog} = useAnnotationFlagLog({enabled: areAnnotationsEnabled});
+  const [isFlagsLayerOn, setIsFlagsLayerOn] = useState(true);
+  const hasFlags = (flagLog?.length ?? 0) > 0;
+  const areFlagsShown = hasFlags && isFlagsLayerOn && !hidden;
+
+  const annotations = useMemo(() => {
+    const items: AnnotationItem[] = [
+      ...(areReleasesShown
+        ? (releaseStats ?? []).map(({date, version}): AnnotationItem => ({
+            id: `release:${version}`,
+            kind: 'release',
+            start: new Date(date).getTime(),
+            title: version,
+          }))
+        : []),
+      ...(areFlagsShown
+        ? (flagLog ?? []).map(({id, createdAt, flag}): AnnotationItem => ({
+            id: `flag:${id}`,
+            kind: 'flag',
+            start: new Date(createdAt).getTime(),
+            title: flag,
+          }))
+        : []),
+    ];
+    return items.length > 0 ? items : undefined;
+  }, [areReleasesShown, releaseStats, areFlagsShown, flagLog]);
 
   const releasesLayer: ChartLayer | undefined =
-    isReleasesEnabled && defined(releaseStats)
+    areAnnotationsEnabled && defined(releaseStats)
       ? {
           value: RELEASES_LAYER,
           label: t('Releases'),
@@ -68,9 +94,22 @@ export function useChartLayers({
         }
       : undefined;
 
-  const layers = [...(droppedData.layerControl?.layers ?? []), releasesLayer].filter(
-    defined
-  );
+  const flagsLayer: ChartLayer | undefined =
+    areAnnotationsEnabled && defined(flagLog)
+      ? {
+          value: FLAGS_LAYER,
+          label: t('Flags'),
+          selected: hasFlags && isFlagsLayerOn,
+          disabled: !hasFlags,
+          tooltip: hasFlags ? undefined : t('No flag changes in this time range'),
+        }
+      : undefined;
+
+  const layers = [
+    ...(droppedData.layerControl?.layers ?? []),
+    releasesLayer,
+    flagsLayer,
+  ].filter(defined);
 
   function onLayerChange(value: string, selected: boolean) {
     if (value === DROPPED_DATA_LAYER) {
@@ -78,11 +117,25 @@ export function useChartLayers({
     } else if (value === RELEASES_LAYER) {
       setIsReleasesLayerOn(selected);
       trackAnalytics('releases.bubbles_legend', {organization, selected});
+    } else if (value === FLAGS_LAYER) {
+      setIsFlagsLayerOn(selected);
+      trackAnalytics('flags.layer_toggled', {organization, selected});
     }
   }
 
   const layerControl: ChartLayersControlProps | undefined =
     layers.length > 0 ? {layers, onChange: onLayerChange} : undefined;
 
-  return {droppedData, releases, layerControl};
+  const {openContextDrawer} = droppedData;
+  const onAnnotationClick = useCallback(
+    (items: AnnotationItem[]) => {
+      const tab = annotationContextTab(items);
+      if (tab) {
+        openContextDrawer(tab);
+      }
+    },
+    [openContextDrawer]
+  );
+
+  return {droppedData, annotations, layerControl, onAnnotationClick};
 }

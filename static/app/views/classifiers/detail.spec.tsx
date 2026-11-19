@@ -226,7 +226,7 @@ describe('ClassifierDetail', () => {
     expect(screen.queryByRole('heading', {name: 'Filters'})).not.toBeInTheDocument();
   });
 
-  it('shows the number of classified conversations', async () => {
+  it('shows the number of classified conversations and affected users', async () => {
     MockApiClient.addMockResponse({
       url: detailUrl,
       body: TelemetryClassifierFixture({
@@ -237,15 +237,20 @@ describe('ClassifierDetail', () => {
     });
     const countRequest = MockApiClient.addMockResponse({
       url: eventsUrl,
-      body: {data: [{'count_unique(gen_ai.conversation.id)': 1234}]},
+      body: {
+        data: [{'count_unique(gen_ai.conversation.id)': 1234, 'count_unique(user)': 56}],
+      },
       match: [
-        MockApiClient.matchQuery({field: ['count_unique(gen_ai.conversation.id)']}),
+        MockApiClient.matchQuery({
+          field: ['count_unique(gen_ai.conversation.id)', 'count_unique(user)'],
+        }),
       ],
     });
 
     renderDetail();
 
     expect(await screen.findByText('1.2K conversations')).toBeInTheDocument();
+    expect(screen.getByText('56 users')).toBeInTheDocument();
     expect(countRequest).toHaveBeenCalledWith(
       eventsUrl,
       expect.objectContaining({
@@ -289,7 +294,9 @@ describe('ClassifierDetail', () => {
       url: eventsUrl,
       body: {data: [{'count_unique(gen_ai.conversation.id)': 5}]},
       match: [
-        MockApiClient.matchQuery({field: ['count_unique(gen_ai.conversation.id)']}),
+        MockApiClient.matchQuery({
+          field: ['count_unique(gen_ai.conversation.id)', 'count_unique(user)'],
+        }),
       ],
     });
     const timeSeriesRequest = MockApiClient.addMockResponse({
@@ -339,7 +346,9 @@ describe('ClassifierDetail', () => {
       url: eventsUrl,
       body: {data: [{'count_unique(gen_ai.conversation.id)': 5}]},
       match: [
-        MockApiClient.matchQuery({field: ['count_unique(gen_ai.conversation.id)']}),
+        MockApiClient.matchQuery({
+          field: ['count_unique(gen_ai.conversation.id)', 'count_unique(user)'],
+        }),
       ],
     });
     ProjectsStore.loadInitialData([
@@ -648,7 +657,9 @@ describe('ClassifierDetail', () => {
       url: eventsUrl,
       body: {data: [{'count_unique(gen_ai.conversation.id)': 3}]},
       match: [
-        MockApiClient.matchQuery({field: ['count_unique(gen_ai.conversation.id)']}),
+        MockApiClient.matchQuery({
+          field: ['count_unique(gen_ai.conversation.id)', 'count_unique(user)'],
+        }),
       ],
     });
     const timeSeriesRequest = MockApiClient.addMockResponse({
@@ -795,7 +806,9 @@ describe('ClassifierDetail', () => {
         url: eventsUrl,
         body: {data: [{'count_unique(gen_ai.conversation.id)': 2}]},
         match: [
-          MockApiClient.matchQuery({field: ['count_unique(gen_ai.conversation.id)']}),
+          MockApiClient.matchQuery({
+            field: ['count_unique(gen_ai.conversation.id)', 'count_unique(user)'],
+          }),
         ],
       });
       const resultsRequest = MockApiClient.addMockResponse({
@@ -967,6 +980,81 @@ describe('ClassifierDetail', () => {
     );
 
     expect(await screen.findByRole('button', {name: 'Disable'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+  });
+
+  it('deletes the classifier after confirming', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: TelemetryClassifierFixture({id: '10', projectId: '1'}),
+    });
+    const deleteRequest = MockApiClient.addMockResponse({
+      url: detailUrl,
+      method: 'DELETE',
+    });
+
+    const {router} = renderDetail();
+    renderGlobalModal();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Delete'}));
+    const modal = await screen.findByRole('dialog');
+    expect(
+      within(modal).getByText(
+        'Are you sure you want to delete this classifier? This action cannot be undone.'
+      )
+    ).toBeInTheDocument();
+    expect(deleteRequest).not.toHaveBeenCalled();
+
+    await userEvent.click(within(modal).getByRole('button', {name: 'Delete'}));
+
+    expect(deleteRequest).toHaveBeenCalledWith(
+      detailUrl,
+      expect.objectContaining({method: 'DELETE'})
+    );
+    await waitFor(() =>
+      expect(router.location.pathname).toBe(
+        `/organizations/${organization.slug}/seer/classifiers/`
+      )
+    );
+  });
+
+  it('does not delete the classifier when cancelling', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: TelemetryClassifierFixture({id: '10', projectId: '1'}),
+    });
+    const deleteRequest = MockApiClient.addMockResponse({
+      url: detailUrl,
+      method: 'DELETE',
+    });
+
+    renderDetail();
+    renderGlobalModal();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Delete'}));
+    const modal = await screen.findByRole('dialog');
+    await userEvent.click(within(modal).getByRole('button', {name: 'Cancel'}));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(deleteRequest).not.toHaveBeenCalled();
+  });
+
+  it('disables the delete button without project access', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: TelemetryClassifierFixture({id: '10', projectId: '1'}),
+    });
+    ProjectsStore.loadInitialData([
+      ProjectFixture({id: '1', slug: 'frontend', access: []}),
+    ]);
+
+    renderDetail(
+      OrganizationFixture({features: ['classifiers-ui'], access: ['org:read']})
+    );
+
+    expect(await screen.findByRole('button', {name: 'Delete'})).toHaveAttribute(
       'aria-disabled',
       'true'
     );

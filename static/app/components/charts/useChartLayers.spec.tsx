@@ -4,10 +4,12 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import type {RawFlag} from 'sentry/components/featureFlags/utils';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 
+import type {AnnotationItem} from './annotations/types';
 import {useChartLayers} from './useChartLayers';
 
 jest.mock('sentry/utils/analytics');
@@ -86,15 +88,51 @@ describe('useChartLayers', () => {
     expect(result.current.droppedData.band).toBeUndefined();
   });
 
-  describe('releases', () => {
-    const releasesOrganization = OrganizationFixture({
+  describe('annotations', () => {
+    const annotationsOrganization = OrganizationFixture({
       features: ['explore-data-fidelity-annotations', 'timeseries-annotations'],
     });
 
-    function renderReleasesHook(releases: Array<{date: string; version: string}>) {
+    const release = {date: '2026-11-03T12:00:00Z', version: 'ui@1.0.0'};
+    const flagChange: RawFlag = {
+      id: 1,
+      action: 'updated',
+      createdAt: '2026-11-03T13:00:00Z',
+      createdBy: 'user@example.com',
+      createdByType: 'email',
+      flag: 'new-checkout',
+      tags: {},
+    };
+
+    const releaseAnnotation: AnnotationItem = {
+      id: 'release:ui@1.0.0',
+      kind: 'release',
+      start: new Date('2026-11-03T12:00:00Z').getTime(),
+      title: 'ui@1.0.0',
+    };
+    const flagAnnotation: AnnotationItem = {
+      id: 'flag:1',
+      kind: 'flag',
+      start: new Date('2026-11-03T13:00:00Z').getTime(),
+      title: 'new-checkout',
+    };
+
+    let flagLogRequest: jest.Mock;
+
+    function renderAnnotationsHook({
+      releases,
+      flags,
+    }: {
+      flags: RawFlag[];
+      releases: Array<{date: string; version: string}>;
+    }) {
       MockApiClient.addMockResponse({
-        url: `/organizations/${releasesOrganization.slug}/releases/stats/`,
+        url: `/organizations/${annotationsOrganization.slug}/releases/stats/`,
         body: releases,
+      });
+      flagLogRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${annotationsOrganization.slug}/flags/logs/`,
+        body: {data: flags},
       });
 
       return renderHookWithProviders(
@@ -104,45 +142,119 @@ describe('useChartLayers', () => {
             interval: '1h',
             source: 'explore',
           }),
-        {organization: releasesOrganization}
+        {organization: annotationsOrganization}
       );
     }
 
-    it('toggles the release band from the Releases layer', async () => {
-      const {result} = renderReleasesHook([
-        {date: '2026-11-03T12:00:00Z', version: 'ui@1.0.0'},
-      ]);
+    it('feeds releases and flag changes into the annotations band', async () => {
+      const {result} = renderAnnotationsHook({releases: [release], flags: [flagChange]});
 
       await waitFor(() =>
-        expect(result.current.releases).toEqual([
-          {timestamp: '2026-11-03T12:00:00Z', version: 'ui@1.0.0'},
-        ])
+        expect(result.current.annotations).toEqual([releaseAnnotation, flagAnnotation])
+      );
+      expect(result.current.layerControl?.layers).toEqual([
+        expect.objectContaining({value: 'dropped-data'}),
+        expect.objectContaining({value: 'releases', selected: true}),
+        expect.objectContaining({value: 'flags', label: 'Flags', selected: true}),
+      ]);
+    });
+
+    it('requests the flag log in a stable order so its pages line up', async () => {
+      renderAnnotationsHook({releases: [], flags: [flagChange]});
+
+      await waitFor(() =>
+        expect(flagLogRequest).toHaveBeenCalledWith(
+          `/organizations/${annotationsOrganization.slug}/flags/logs/`,
+          expect.objectContaining({
+            query: expect.objectContaining({sort: 'created_at'}),
+          })
+        )
+      );
+    });
+
+    it('toggles releases in the annotations band from the Releases layer', async () => {
+      const {result} = renderAnnotationsHook({releases: [release], flags: []});
+
+      await waitFor(() =>
+        expect(result.current.annotations).toEqual([releaseAnnotation])
       );
       act(() => result.current.layerControl!.onChange('releases', false));
 
-      expect(result.current.releases).toBeUndefined();
+      expect(result.current.annotations).toBeUndefined();
       expect(result.current.layerControl?.layers).toContainEqual(
         expect.objectContaining({value: 'releases', selected: false})
       );
       expect(trackAnalytics).toHaveBeenCalledWith('releases.bubbles_legend', {
-        organization: releasesOrganization,
+        organization: annotationsOrganization,
         selected: false,
       });
     });
 
-    it('disables the Releases layer when the range has no releases', async () => {
-      const {result} = renderReleasesHook([]);
+    it('toggles flag changes in the annotations band from the Flags layer', async () => {
+      const {result} = renderAnnotationsHook({releases: [release], flags: [flagChange]});
 
       await waitFor(() =>
-        expect(result.current.layerControl?.layers).toContainEqual({
-          value: 'releases',
-          label: 'Releases',
-          selected: false,
-          disabled: true,
-          tooltip: 'No releases in this time range',
-        })
+        expect(result.current.annotations).toEqual([releaseAnnotation, flagAnnotation])
       );
-      expect(result.current.releases).toBeUndefined();
+      act(() => result.current.layerControl!.onChange('flags', false));
+
+      expect(result.current.annotations).toEqual([releaseAnnotation]);
+      expect(result.current.layerControl?.layers).toContainEqual(
+        expect.objectContaining({value: 'flags', selected: false})
+      );
+      expect(trackAnalytics).toHaveBeenCalledWith('flags.layer_toggled', {
+        organization: annotationsOrganization,
+        selected: false,
+      });
+    });
+
+    it('opens the drawer on the first tab with annotations in a clicked bucket', async () => {
+      const {result, router} = renderAnnotationsHook({
+        releases: [release],
+        flags: [flagChange],
+      });
+      await waitFor(() => expect(result.current.annotations).toHaveLength(2));
+
+      act(() => result.current.onAnnotationClick([flagAnnotation, releaseAnnotation]));
+
+      await waitFor(() => expect(router.location.query.contextTab).toBe('releases'));
+      expect(router.location.query.droppedData).toBe('spans');
+      expect(trackAnalytics).toHaveBeenCalledWith('explore.chart_context.drawer_opened', {
+        organization: annotationsOrganization,
+        dataset: DiscoverDatasets.SPANS,
+        source: 'explore',
+        tab: 'releases',
+      });
+
+      act(() => result.current.onAnnotationClick([flagAnnotation]));
+
+      await waitFor(() => expect(router.location.query.contextTab).toBe('flags'));
+    });
+
+    it('disables the Releases and Flags layers when the range has neither', async () => {
+      const {result} = renderAnnotationsHook({releases: [], flags: []});
+
+      await waitFor(() =>
+        expect(result.current.layerControl?.layers).toEqual(
+          expect.arrayContaining([
+            {
+              value: 'releases',
+              label: 'Releases',
+              selected: false,
+              disabled: true,
+              tooltip: 'No releases in this time range',
+            },
+            {
+              value: 'flags',
+              label: 'Flags',
+              selected: false,
+              disabled: true,
+              tooltip: 'No flag changes in this time range',
+            },
+          ])
+        )
+      );
+      expect(result.current.annotations).toBeUndefined();
     });
   });
 

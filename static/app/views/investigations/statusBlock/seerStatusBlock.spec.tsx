@@ -1,4 +1,11 @@
-import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  userEvent,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {
   InvestigationHypothesisFixture,
@@ -133,6 +140,7 @@ describe('SeerStatusBlock', () => {
 
     afterEach(() => {
       try {
+        cleanup();
         act(() => jest.runOnlyPendingTimers());
       } finally {
         jest.useRealTimers();
