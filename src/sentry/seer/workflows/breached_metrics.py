@@ -84,6 +84,7 @@ class MetricAlertDefinition(AutomationDefinition[MetricBreachInputs]):
     covers whichever projects those monitors are in.
     """
 
+    strategy = SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
     inputs_type = MetricBreachInputs
     settings_type = NoSettings
     scoped_by: Literal["projects", "monitors"] = "monitors"
@@ -343,7 +344,7 @@ class SeerInvestigationActionHandler(ActionHandler):
             .values_list("id", "strategy", named=True)
             .get_or_none()
         )
-        if config is None or config.strategy != SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
+        if config is None or config.strategy != MetricAlertDefinition.strategy:
             _record_trigger_outcome(IgnoredMetricBreach("configuration_unavailable"), extra)
             return
 

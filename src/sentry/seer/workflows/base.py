@@ -155,6 +155,7 @@ class AdmittedRun:
 class AutomationDefinition[Inputs: BaseModel](Protocol):
     """An automation: how its runs start, and which projects those runs cover."""
 
+    strategy: SeerWorkflowStrategy
     # What a firing hands to the automation's action; recorded in the run's snapshot.
     inputs_type: type[Inputs]
     settings_type: type[BaseModel]
