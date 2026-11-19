@@ -24,16 +24,18 @@ from sentry.notebooks.models import Notebook
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
     SeerWorkflowExecutionExtras,
-    SeerWorkflowRun,
     SeerWorkflowRunExecution,
     SeerWorkflowStrategy,
     WorkflowRunError,
 )
 from sentry.seer.workflows.base import (
+    AcceptedRun,
+    ActionAdmission,
     AutomationDefinition,
     ConfigUpdate,
+    IgnoredRun,
     NoSettings,
-    RejectionReason,
+    RejectedRun,
     ScopeSelection,
     SelectedMonitors,
     WorkflowUpdateError,
@@ -55,6 +57,7 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition import Condition
+from sentry.workflow_engine.types import ActionInvocation
 
 logger = logging.getLogger(__name__)
 
@@ -153,20 +156,14 @@ class MetricAlertDefinition(AutomationDefinition[MetricBreachInputs]):
             using=router.db_for_write(SeerWorkflowConfig),
         )
 
-    def admit_breach(
-        self,
-        group: Group,
-        event: GroupEvent,
-        *,
-        config_id: int,
-        action_id: int,
-        workflow_id: int,
-    ) -> AcceptedMetricBreach | RejectedMetricBreach | IgnoredMetricBreach:
+    def admit_action(self, invocation: ActionInvocation, *, config_id: int) -> ActionAdmission:
         """Check eligibility, then record one admission decision per issue and config."""
+        group = invocation.event_data.require_group()
+        event = invocation.event_data.event
         if not features.has("organizations:seer-automations", group.organization):
-            return IgnoredMetricBreach("feature_disabled")
+            return IgnoredRun("feature_disabled")
         if group.type != MetricIssue.type_id or not isinstance(event, GroupEvent):
-            return IgnoredMetricBreach("unsupported_trigger")
+            return IgnoredRun("unsupported_trigger")
         occurrence = event.occurrence
         if (
             event.group_id != group.id
@@ -176,7 +173,7 @@ class MetricAlertDefinition(AutomationDefinition[MetricBreachInputs]):
             or occurrence.project_id != group.project_id
             or occurrence.event_id != event.event_id
         ):
-            return IgnoredMetricBreach("invalid_source")
+            return IgnoredRun("invalid_source")
         try:
             inputs = MetricBreachInputs(
                 event_id=event.event_id,
@@ -188,30 +185,30 @@ class MetricAlertDefinition(AutomationDefinition[MetricBreachInputs]):
                 group_id=group.id,
                 group_short_id=group.qualified_short_id,
                 project_id=group.project_id,
-                workflow_id=workflow_id,
-                action_id=action_id,
+                workflow_id=invocation.workflow_id,
+                action_id=invocation.action.id,
             )
         except ValidationError:
-            return IgnoredMetricBreach("invalid_source")
+            return IgnoredRun("invalid_source")
 
         try:
             with lock_config(group.organization.id, config_id) as config:
                 if not self.is_enabled(config):
-                    return IgnoredMetricBreach("config_disabled")
+                    return IgnoredRun("config_disabled")
                 if not self.covers(config, group.project_id, inputs.environment):
-                    return IgnoredMetricBreach("out_of_scope")
+                    return IgnoredRun("out_of_scope")
 
                 run = self.admit_run(config, trigger_key=f"issue_created:{group.id}", inputs=inputs)
                 if run.rejection is not None:
-                    return RejectedMetricBreach(
+                    return RejectedRun(
                         run=run.lifecycle.get_run(), reason=run.rejection, created=run.created
                     )
                 if run.created:
                     run.lifecycle.start()
                     self.dispatch(config, run.lifecycle, inputs)
-                return AcceptedMetricBreach(run=run.lifecycle.get_run(), created=run.created)
+                return AcceptedRun(run=run.lifecycle.get_run(), created=run.created)
         except SeerWorkflowConfig.DoesNotExist:
-            return IgnoredMetricBreach("configuration_unavailable")
+            return IgnoredRun("configuration_unavailable")
 
     def dispatch(
         self, config: SeerWorkflowConfig, run: SeerWorkflowRunLifecycle, inputs: MetricBreachInputs
@@ -280,31 +277,6 @@ class MetricAlertDefinition(AutomationDefinition[MetricBreachInputs]):
                 code="dispatch_failed", message="Could not start the investigation."
             )
         return None
-
-
-@dataclass(frozen=True)
-class AcceptedMetricBreach:
-    run: SeerWorkflowRun
-    created: bool
-
-
-@dataclass(frozen=True)
-class IgnoredMetricBreach:
-    reason: Literal[
-        "unsupported_trigger",
-        "invalid_source",
-        "feature_disabled",
-        "config_disabled",
-        "configuration_unavailable",
-        "out_of_scope",
-    ]
-
-
-@dataclass(frozen=True)
-class RejectedMetricBreach:
-    run: SeerWorkflowRun
-    reason: RejectionReason
-    created: bool
 
 
 class ConnectedMonitor(NamedTuple):

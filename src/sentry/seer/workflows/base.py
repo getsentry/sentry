@@ -35,6 +35,7 @@ from sentry.service_accounts.models import (
 from sentry.service_accounts.outbox import service_account_grant_update_outbox
 from sentry.utils import json
 from sentry.workflow_engine.models import Workflow
+from sentry.workflow_engine.types import ActionInvocation
 
 logger = logging.getLogger(__name__)
 
@@ -152,6 +153,34 @@ class AdmittedRun:
     rejection: RejectionReason | None = None
 
 
+@dataclass(frozen=True)
+class AcceptedRun:
+    run: SeerWorkflowRun
+    created: bool
+
+
+@dataclass(frozen=True)
+class RejectedRun:
+    run: SeerWorkflowRun
+    reason: RejectionReason
+    created: bool
+
+
+@dataclass(frozen=True)
+class IgnoredRun:
+    reason: Literal[
+        "unsupported_trigger",
+        "invalid_source",
+        "feature_disabled",
+        "config_disabled",
+        "configuration_unavailable",
+        "out_of_scope",
+    ]
+
+
+type ActionAdmission = AcceptedRun | RejectedRun | IgnoredRun
+
+
 class AutomationDefinition[Inputs: BaseModel](Protocol):
     """An automation: how its runs start, and which projects those runs cover."""
 
@@ -168,6 +197,10 @@ class AutomationDefinition[Inputs: BaseModel](Protocol):
     def setup(self, update: ConfigUpdate, workflow: Workflow) -> None:
         """Attach anything the trigger needs to a new automation's backing workflow."""
         return None
+
+    def admit_action(self, invocation: ActionInvocation, *, config_id: int) -> ActionAdmission:
+        """Decide whether the automation's backing workflow firing this action starts a run."""
+        return IgnoredRun("unsupported_trigger")
 
     def set_scope(self, update: ConfigUpdate, selection: ScopeSelection) -> None:
         """Replace the config's scope, marking ``update`` only when something changed."""

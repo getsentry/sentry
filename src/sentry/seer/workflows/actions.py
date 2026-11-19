@@ -4,12 +4,7 @@ import logging
 from typing import Literal, override
 
 from sentry.seer.models.workflow import SeerWorkflowConfig
-from sentry.seer.workflows.breached_metrics import (
-    AcceptedMetricBreach,
-    IgnoredMetricBreach,
-    MetricAlertDefinition,
-    RejectedMetricBreach,
-)
+from sentry.seer.workflows.base import AcceptedRun, ActionAdmission, IgnoredRun, RejectedRun
 from sentry.seer.workflows.definitions import find_definition
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import metrics
@@ -55,33 +50,27 @@ class SeerInvestigationActionHandler(ActionHandler):
             .get_or_none()
         )
         definition = find_definition(config.strategy) if config is not None else None
-        if config is None or not isinstance(definition, MetricAlertDefinition):
-            _record_trigger_outcome(IgnoredMetricBreach("configuration_unavailable"), extra)
+        if config is None or definition is None:
+            _record_trigger_outcome(IgnoredRun("configuration_unavailable"), extra)
             return
 
         extra.update(workflow_config_id=config.id)
-        admission = definition.admit_breach(
-            group,
-            event,
-            config_id=config.id,
-            action_id=invocation.action.id,
-            workflow_id=invocation.workflow_id,
-        )
+        admission = definition.admit_action(invocation, config_id=config.id)
         _record_trigger_outcome(admission, extra)
 
 
 def _record_trigger_outcome(
-    admission: AcceptedMetricBreach | RejectedMetricBreach | IgnoredMetricBreach,
+    admission: ActionAdmission,
     extra: dict[str, object],
 ) -> None:
     outcome: Literal["accepted", "rejected", "ignored"]
     reason: str | None = None
     deduplicated = False
-    if isinstance(admission, AcceptedMetricBreach):
+    if isinstance(admission, AcceptedRun):
         outcome = "accepted"
         deduplicated = not admission.created
         extra.update(run_id=admission.run.id, run_created=admission.created)
-    elif isinstance(admission, RejectedMetricBreach):
+    elif isinstance(admission, RejectedRun):
         outcome = "rejected"
         reason = admission.reason
         deduplicated = not admission.created
