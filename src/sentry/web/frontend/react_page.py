@@ -38,6 +38,7 @@ NON_CUSTOMER_DOMAIN_URL_NAMES = [
 # primary-domain-only when customer domains are enabled.
 MULTI_REGION_NON_CUSTOMER_DOMAIN_URL_NAMES = [
     "sentry-login",
+    "sentry-logout",
     "sentry-auth-organization",
     "sentry-oauth-authorize",
     "sentry-oauth-device",

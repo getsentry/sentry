@@ -22,7 +22,6 @@ from sentry.testutils.silo import (
     create_test_cells,
     no_silo_test,
 )
-from sentry.web.frontend.auth_logout import AuthLogoutView
 
 
 def _session(d: dict[str, str]) -> SessionBase:
@@ -232,7 +231,7 @@ urlpatterns = [
         OrganizationIdOrSlugTestEndpoint.as_view(),
         name="org-events-endpoint-id-or-slug",
     ),
-    re_path(r"^logout/$", AuthLogoutView.as_view(), name="sentry-logout"),
+    re_path(r"^logout/$", lambda request: HttpResponse(), name="sentry-logout"),
 ]
 
 
