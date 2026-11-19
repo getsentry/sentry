@@ -169,5 +169,28 @@ repos:
         args: [--external-sources]
       - id: shellcheck
         name: shellcheck (POSIX sh)
-        files: ^\.github/workflows/scripts/(openapi-diff|wait-for-api-release-on-npm)\.sh$
+        files: |
+          (?x)^\.github/workflows/scripts/(
+            bump-sentry-in-getsentry|
+            check-generated-file|
+            download-coverage-db|
+            get-base-commit|
+            get-snapshot-merge-base|
+            inspect-failure|
+            install-kafka-topics-healthcheck|
+            install-odiff|
+            install-playwright|
+            install-pyyaml|
+            openapi-diff|
+            publish-baseline-browser-mapping-pr|
+            publish-oxlint-suppressions-pr|
+            publish-public-suffix-list-pr|
+            reconnect-postgres-socket|
+            run-acceptance-tests|
+            run-backend-tests|
+            run-prek|
+            send-public-suffix-list-checkin|
+            wait-for-api-release-on-npm|
+            warm-up-chrome
+          )\.sh$
         args: [--shell=sh, --enable=check-extra-masked-returns]

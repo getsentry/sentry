@@ -100,13 +100,7 @@ jobs:
           # Linux caps a single environment variable at 128 KiB, so a huge file list
           # stops bash from starting. Leave it empty and lint every file instead.
           ALL_FILES: ${{ fromJSON(steps.changes.outputs.all_count) <= 1000 && steps.changes.outputs.all_files || '' }}
-        run: |
-          if [ -z "$ALL_FILES" ]; then
-            .venv/bin/prek run -q --all-files
-          else
-            jq '.[]' --raw-output <<< "$ALL_FILES" |
-              xargs .venv/bin/prek run -q --files
-          fi
+        run: .github/workflows/scripts/run-prek.sh
 
       - name: Prune suppression budgets
         if: github.event_name == 'pull_request' && !cancelled() && (steps.prek.outcome == 'success' || steps.prek.outcome == 'failure') && steps.changes.outputs.frontend == 'true'

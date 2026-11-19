@@ -97,10 +97,7 @@ jobs:
 
       - name: Inspect failure
         if: failure()
-        run: |
-          if command -v devservices; then
-            devservices logs
-          fi
+        run: .github/workflows/scripts/inspect-failure.sh
 
   # Builds, typechecks and tests the @sentry/api client against this commit's
   # API spec, so a spec change that breaks the client cannot merge. It builds
@@ -208,21 +205,7 @@ jobs:
 
       - name: Download coverage database
         id: download-coverage
-        run: |
-          mkdir -p .artifacts/coverage
-
-          GCS_PATH="gs://getsentry-coverage-data/latest/.coverage.combined"
-          echo "Fetching coverage DB from: $GCS_PATH"
-          gcloud storage ls -l "$GCS_PATH" 2>/dev/null || true
-
-          if ! gcloud storage cp "$GCS_PATH" \
-            .artifacts/coverage/.coverage.combined 2>/dev/null; then
-            echo "Warning: Failed to download coverage from GCS, will run full test suite"
-            echo "coverage-file=" >> "$GITHUB_OUTPUT"
-          else
-            ls -lh .artifacts/coverage/.coverage.combined
-            echo "coverage-file=.artifacts/coverage/.coverage.combined" >> "$GITHUB_OUTPUT"
-          fi
+        run: .github/workflows/scripts/download-coverage-db.sh
 
       - name: Compute selected tests
         id: compute-tests
@@ -347,46 +330,10 @@ jobs:
       # default, and each ORM call is multiple round-trips — switching to a Unix socket
       # eliminates TCP loopback overhead and saves ~36s per shard.
       - name: Reconnect postgres via Unix socket
-        run: |
-          mkdir -p /tmp/pg-sock
-          PG_IMAGE=$(docker inspect postgres-postgres-1 --format '{{.Config.Image}}')
-          docker stop postgres-postgres-1 && docker rm postgres-postgres-1
-          docker run -d --name postgres-postgres-1 \
-            --network devservices --label orchestrator=devservices \
-            -p 127.0.0.1:5432:5432 \
-            -v postgres-data:/var/lib/postgresql/data \
-            -v /tmp/pg-sock:/var/run/postgresql \
-            -e POSTGRES_HOST_AUTH_METHOD=trust -e POSTGRES_DB=sentry \
-            "$PG_IMAGE" postgres \
-              -c wal_level=logical -c max_replication_slots=1 -c max_wal_senders=1 \
-              -c fsync=off -c synchronous_commit=off -c full_page_writes=off
-          # On an empty volume, the image's entrypoint runs initdb with a temporary
-          # server that listens only on the socket, then stops it and starts the
-          # real one. The socket alone can vanish a moment after it appears, so also
-          # wait for TCP, which only the real server listens on. docker run -d
-          # returns 0 even if postgres dies right after, so the wait is bounded.
-          for _ in $(seq 1 60); do
-            if [ -S "/tmp/pg-sock/.s.PGSQL.5432" ] &&
-              docker exec postgres-postgres-1 pg_isready --quiet --host 127.0.0.1 --port 5432; then
-              echo "SENTRY_DB_SOCKET=/tmp/pg-sock" >> "$GITHUB_ENV"
-              exit 0
-            fi
-            sleep 1
-          done
-          echo "::error::postgres was not ready on its Unix socket after 60s"
-          docker logs postgres-postgres-1 2>&1 | tail -30 || true
-          exit 1
+        run: .github/workflows/scripts/reconnect-postgres-socket.sh
 
       - name: Download odiff binary
-        run: |
-          case "$(uname -m)" in
-            aarch64) odiff=odiff-linux-arm64 ;;
-            *) odiff=odiff-linux-x64 ;;
-          esac
-          curl -sL https://registry.npmjs.org/odiff-bin/-/odiff-bin-4.3.8.tgz \
-            | tar -xz --strip-components=2 "package/raw_binaries/$odiff"
-          sudo install -m 755 "$odiff" /usr/local/bin/odiff
-          rm "$odiff"
+        run: .github/workflows/scripts/install-odiff.sh
 
       - name: Bootstrap per-worker Snuba instances
         if: env.XDIST_PER_WORKER_SNUBA == '1'
@@ -398,11 +345,7 @@ jobs:
       # probe instead (kafka-topics-healthcheck.sh).
       - name: Make the Kafka healthcheck cheap
         continue-on-error: true
-        run: |
-          real=$(docker exec kafka-kafka-1 sh -c 'command -v kafka-topics')
-          docker exec -u 0 kafka-kafka-1 mv "$real" "$real.real"
-          docker cp .github/workflows/scripts/kafka-topics-healthcheck.sh "kafka-kafka-1:$real"
-          time docker exec kafka-kafka-1 kafka-topics --bootstrap-server 127.0.0.1:9092 --list
+        run: .github/workflows/scripts/install-kafka-topics-healthcheck.sh
 
       # To profile pytest and its xdist workers (adds ~0.4 cores of overhead), uncomment
       # this step, run the test command through
@@ -430,19 +373,7 @@ jobs:
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         env:
           SELECTED_TESTS_FILE: ${{ needs.select-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || '' }}
-        run: |
-          if [ -n "${XDIST_WORKERS}" ]; then
-            export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -n ${XDIST_WORKERS} --dist=loadfile"
-            timeout -k 30 1200 make test-python-ci || {
-              rc=$?
-              if [ "$rc" -eq 124 ]; then
-                echo "::error::Test run timed out after 20 minutes (possible xdist hang)"
-              fi
-              exit "$rc"
-            }
-          else
-            make test-python-ci
-          fi
+        run: .github/workflows/scripts/run-backend-tests.sh
 
       - name: Stop resource monitor
         if: always()
@@ -500,17 +431,7 @@ jobs:
 
       - name: Inspect failure
         if: failure()
-        run: |
-          if command -v devservices; then
-            devservices logs
-          fi
-
-          if [ "${XDIST_PER_WORKER_SNUBA}" = "1" ]; then
-            for i in $(seq 0 $(( ${XDIST_WORKERS} - 1 ))); do
-              echo "--- snuba-gw${i} logs ---"
-              docker logs "snuba-gw${i}" 2>&1 | tail -30 || true
-            done
-          fi
+        run: .github/workflows/scripts/inspect-failure.sh
 
   backend-migration-tests:
     if: >-
@@ -583,10 +504,7 @@ jobs:
 
       - name: Inspect failure
         if: failure()
-        run: |
-          if command -v devservices; then
-            devservices logs
-          fi
+        run: .github/workflows/scripts/inspect-failure.sh
 
   cli:
     if: needs.files-changed.outputs.backend == 'true'
@@ -613,10 +531,7 @@ jobs:
 
       - name: Inspect failure
         if: failure()
-        run: |
-          if command -v devservices; then
-            devservices logs
-          fi
+        run: .github/workflows/scripts/inspect-failure.sh
 
   requirements:
     if: needs.files-changed.outputs.backend_dependencies == 'true'
@@ -714,10 +629,7 @@ jobs:
 
       - name: Inspect failure
         if: failure()
-        run: |
-          if command -v devservices; then
-            devservices logs
-          fi
+        run: .github/workflows/scripts/inspect-failure.sh
 
   monolith-dbs:
     if: needs.files-changed.outputs.backend == 'true'
@@ -760,10 +672,7 @@ jobs:
 
       - name: Inspect failure
         if: failure()
-        run: |
-          if command -v devservices; then
-            devservices logs
-          fi
+        run: .github/workflows/scripts/inspect-failure.sh
 
   typing:
     if: needs.files-changed.outputs.backend == 'true'
