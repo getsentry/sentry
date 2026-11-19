@@ -11,10 +11,8 @@ from django.db.models import Q
 from django.utils import timezone
 from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
 
-from sentry import features
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
-from sentry.models.organization import Organization
 from sentry.utils import metrics, redis
 from sentry.workflow_engine.handlers.detector.base import (
     DataPacketEvaluationType,
@@ -461,7 +459,6 @@ class StatefulDetectorHandler(
         """
         dedupe_value = self.extract_dedupe_value(data_packet)
         state = self.state_manager.get_state_data(list(values.keys()))
-        regression_timeout = self._get_regression_timeout()
         unprocessed_values: dict[DetectorGroupKey, DataPacketEvaluationType] = {}
 
         for group_key, data_value in values.items():
@@ -509,7 +506,7 @@ class StatefulDetectorHandler(
             if new_priority == DetectorPriorityLevel.OK:
                 self.state_manager.enqueue_counter_reset(group_key)
 
-            activation_id = self._get_activation_id(state_data, new_priority, regression_timeout)
+            activation_id = self._get_activation_id(state_data, new_priority)
 
             self.state_manager.enqueue_state_update(
                 group_key,
@@ -630,28 +627,12 @@ class StatefulDetectorHandler(
 
         return None
 
-    def _get_regression_timeout(self) -> timedelta | None:
-        """
-        Returns the regression timeout for the detector, unless the organization
-        is not feature-flagged in
-        """
-        if self.regression_timeout is None:
-            return None
-
-        organization = self._get_detector_organization()
-
-        if not features.has("organizations:workflow-engine-rotate-activation-id", organization):
-            return None
-
-        return self.regression_timeout
-
     def _get_activation_id(
         self,
         state_data: DetectorStateData,
         new_priority: DetectorPriorityLevel,
-        regression_timeout: timedelta | None,
     ) -> int | None:
-        if regression_timeout is None:
+        if self.regression_timeout is None:
             return state_data.activation_id
 
         is_leaving_ok_state = (
@@ -660,7 +641,7 @@ class StatefulDetectorHandler(
         )
 
         if is_leaving_ok_state and self._has_been_in_current_state_for(
-            state_data, regression_timeout
+            state_data, self.regression_timeout
         ):
             return _get_unix_epoch_time_in_milliseconds()
 
@@ -676,21 +657,3 @@ class StatefulDetectorHandler(
         time_in_current_state = timezone.now() - state_data.date_updated
 
         return time_in_current_state >= duration
-
-    def _get_detector_organization(self) -> Organization:
-        """
-        Attempt to resolve organization from detector
-        "All projects detectors" don't have a linked project so resolve from the config,
-        similar to how we do it in `process_detectors`
-        """
-        if self.detector.project is not None:
-            return self.detector.project.organization
-
-        organization_id = self.detector.config.get("organization_id")
-
-        if organization_id is None:
-            raise ValueError(
-                f"Detector {self.detector.id} has neither a project nor an organization_id"
-            )
-
-        return Organization.objects.get_from_cache(id=organization_id)
