@@ -23,6 +23,7 @@ from sentry.silo.base import SiloMode
 from sentry.silo.util import WEBHOOK_DELIVERY_SIGNATURE_HEADER, verify_webhook_delivery_signature
 from sentry.testutils.cases import TestCase
 from sentry.testutils.cell import override_cells
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import (
     assert_no_webhook_payloads,
     assert_webhook_payloads_for_mailbox,
@@ -161,6 +162,22 @@ class JiraRequestParserTest(TestCase):
         assert_webhook_payloads_for_mailbox(
             mailbox_name=f"jira:{integration.id}", cell_names=[cell.name], request=request
         )
+
+    @override_settings(SILO_MODE=SiloMode.CONTROL)
+    @override_cells(cell_config)
+    def test_ignores_connect_webhook_for_integrations_on_forge_events(self) -> None:
+        request = self.factory.post(path=f"{self.path_base}/issue-updated/")
+        parser = JiraRequestParser(request, self.get_response)
+        integration = self.get_integration()
+
+        with (
+            override_options({"jira.forge.issue-events-integration-ids": [integration.id]}),
+            patch.object(parser, "get_integration_from_request", return_value=integration),
+        ):
+            response = parser.get_response()
+
+        assert response.status_code == status.HTTP_202_ACCEPTED
+        assert_no_webhook_payloads()
 
     @responses.activate
     @override_settings(SILO_MODE=SiloMode.CONTROL)
@@ -350,4 +367,15 @@ class JiraForgeIssueUpdatedParserTest(TestCase):
         assert self.post(mock_verify, module_key="issue-panel").status_code == 403
         # Another app installed on the same site.
         assert self.post(mock_verify, installation_id="other").status_code == 202
+        # A site that moved from Connect, which still gets the Connect webhook.
+        self.integration.update(metadata={**self.integration.metadata, "shared_secret": "s"})
+        assert self.post(mock_verify).status_code == 202
         assert_no_webhook_payloads()
+
+    def test_delivers_events_for_moved_sites_switched_to_forge(
+        self, mock_verify: MagicMock
+    ) -> None:
+        self.integration.update(metadata={**self.integration.metadata, "shared_secret": "s"})
+        with override_options({"jira.forge.issue-events-integration-ids": [self.integration.id]}):
+            assert self.post(mock_verify).status_code == 202
+        assert WebhookPayload.objects.count() == 1
