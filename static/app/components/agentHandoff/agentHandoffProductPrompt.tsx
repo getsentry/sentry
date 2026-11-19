@@ -1,6 +1,5 @@
 import {IconCopy} from '@sentry/icons/copy';
 import {IconOpen} from '@sentry/icons/open';
-import {useStore} from 'zustand';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -11,10 +10,9 @@ import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
-import {ConfigStore} from 'sentry/stores/configStore';
 
+import {getHandoffGuideUrl} from './handoffPrompt';
 import {
-  getHandoffPreviewUrl,
   HandoffAdvancedMenu,
   HandoffPromptAlerts,
   HandoffPromptBox,
@@ -41,8 +39,7 @@ export function AgentHandoffProductPrompt({
   onCopySuccess,
   onSelect,
 }: AgentHandoffProductPromptProps) {
-  const sentryUrl = useStore(ConfigStore, state => state.links.sentryUrl);
-  const previewUrl = getHandoffPreviewUrl(sentryUrl);
+  const guideUrl = getHandoffGuideUrl();
 
   const {copyPrompt, copyDisabled, handoff, useIpPinning, toggleIpPinning} =
     useHandoffPromptCopy({
@@ -109,7 +106,7 @@ export function AgentHandoffProductPrompt({
             )),
             <ListItem key="view-all-instructions">
               <Text size="sm">
-                <ExternalLink href={previewUrl}>
+                <ExternalLink href={guideUrl}>
                   <Flex as="span" align="center" gap="xs">
                     {t('View all instructions')}
                     <IconOpen size="xs" />
