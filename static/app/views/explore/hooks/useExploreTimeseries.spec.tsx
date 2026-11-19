@@ -132,6 +132,52 @@ describe('useExploreTimeseries', () => {
     );
   });
 
+  it('triggers the high accuracy request for a chart with only heat maps', async () => {
+    const mockTimeSeries = TimeSeriesFixture();
+
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {
+        timeSeries: [
+          {
+            ...mockTimeSeries,
+            yAxis: 'count(span.duration)',
+            values: [{...mockTimeSeries.values[0]!, value: 0}],
+            meta: {...mockTimeSeries.meta, dataScanned: 'partial'},
+          },
+        ],
+      },
+      match: [
+        function (_url: string, options: Record<string, any>) {
+          return options.query.sampling === SAMPLING_MODE.NORMAL;
+        },
+      ],
+    });
+    const mockHighAccuracyRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      match: [
+        function (_url: string, options: Record<string, any>) {
+          return options.query.sampling === SAMPLING_MODE.HIGH_ACCURACY;
+        },
+      ],
+    });
+
+    renderHookWithProviders(() => useExploreTimeseries({query: '', enabled: true}), {
+      organization: OrganizationFixture({features: ['explore-dev-features']}),
+      additionalWrapper: Wrapper,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/traces/',
+          query: {
+            aggregateField: [JSON.stringify({yAxes: ['heatmap(span.duration)']})],
+          },
+        },
+      },
+    });
+
+    await waitFor(() => expect(mockHighAccuracyRequest).toHaveBeenCalledTimes(1));
+  });
+
   it('disables extrapolation', async () => {
     const mockNonExtrapolatedRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-timeseries/',

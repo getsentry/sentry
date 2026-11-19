@@ -45,7 +45,7 @@ export const useExploreTimeseries = ({
   enabled,
   queryExtras,
 }: UseExploreTimeseriesOptions) => {
-  const visualizes = useQueryParamsVisualizes();
+  const visualizes = useQueryParamsVisualizes({validate: true});
   const extrapolate = useQueryParamsExtrapolate();
   const {isReady: querySpeedReady, samplingMode} = useExploreQuerySpeed();
   const topEvents = useTopEvents();
@@ -53,7 +53,13 @@ export const useExploreTimeseries = ({
 
   const canTriggerHighAccuracy = useCallback(
     (result: ReturnType<typeof useExploreTimeseriesImpl>['result']) => {
-      return shouldTriggerHighAccuracy(result.data, visualizes, isTopN);
+      // Heat maps are validated out of the query, so a chart with only heat maps
+      // relies on the DEFAULT_VISUALIZATION series that is always fetched.
+      return shouldTriggerHighAccuracy(
+        result.data,
+        visualizes.length ? visualizes : [new VisualizeFunction(DEFAULT_VISUALIZATION)],
+        isTopN
+      );
     },
     [visualizes, isTopN]
   );
