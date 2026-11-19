@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json  # noqa: S003 - tools tests run without the sentry package
 import os
+import shutil
 import subprocess
 import sys
 from collections.abc import Generator
@@ -247,7 +248,7 @@ def test_write_exceptions_writes_one_entry_per_line(tmp_path: Path) -> None:
     write_exceptions(entries, dest_file, generated=TODAY)
 
     assert dest_file.read_text() == (
-        '{"version": 1, "generated": "2026-11-09", "entries": [\n'
+        '{"version": 1, "generated": "2026-11-09", "commit": null, "entries": [\n'
         '{"rule": "S026", "count": 1},\n'
         '{"rule": "S028", "count": 2}\n'
         "]}\n"
@@ -255,6 +256,7 @@ def test_write_exceptions_writes_one_entry_per_line(tmp_path: Path) -> None:
     assert json.loads(dest_file.read_text()) == {
         "version": 1,
         "generated": TODAY,
+        "commit": None,
         "entries": entries,
     }
 
@@ -264,7 +266,10 @@ def test_write_exceptions_with_no_entries(tmp_path: Path) -> None:
 
     write_exceptions([], dest_file, generated=TODAY)
 
-    assert dest_file.read_text() == '{"version": 1, "generated": "2026-11-09", "entries": []}\n'
+    assert (
+        dest_file.read_text()
+        == '{"version": 1, "generated": "2026-11-09", "commit": null, "entries": []}\n'
+    )
 
 
 def test_main_writes_the_baseline(fake_repo: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -665,3 +670,112 @@ def test_files_updates_the_generated_date(fake_repo: Path) -> None:
     assert _run_main(fake_repo, "--files", PATH, "--date", "2026-11-16") == 0
 
     assert json.loads((fake_repo / "out.json").read_text())["generated"] == "2026-11-16"
+
+
+def test_update_stops_without_an_existing_file(fake_repo: Path) -> None:
+    assert _run_main(fake_repo, "--update") == 1
+    assert not (fake_repo / "out.json").exists()
+
+
+def test_update_cannot_be_combined_with_files_or_force(fake_repo: Path) -> None:
+    assert _run_main(fake_repo) == 0
+    assert _run_main(fake_repo, "--update", "--files", PATH) == 1
+    assert _run_main(fake_repo, "--update", "--force") == 1
+
+
+def test_update_rescans_every_file_and_keeps_reviewed_fields(
+    fake_repo: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert _run_main(fake_repo) == 0
+
+    output = fake_repo / "out.json"
+    entries = _entries(output)
+    reviewed = _find(entries, "ExampleEndpoint.get", "query:id")
+    assert reviewed is not None
+    reviewed["status"] = "accepted"
+    reviewed["reason"] = "id selects the object"
+    reviewed["first_seen"] = "2026-11-02"
+    reviewed["owner"] = "old-team"
+    write_exceptions(entries, output, generated="2026-11-02")
+
+    # a finding appears in a file the first run didn't have
+    other = fake_repo / OTHER_PATH
+    other.write_text(OTHER_ENDPOINT)
+
+    assert _run_main(fake_repo, "--update") == 0
+
+    entry = _find(_entries(output), "ExampleEndpoint.get", "query:id")
+    assert entry is not None
+    assert entry["status"] == "accepted"
+    assert entry["reason"] == "id selects the object"
+    assert entry["first_seen"] == "2026-11-02"
+    # the owner always comes from the current owner map
+    assert entry["owner"] == "issues-feed"
+    assert _find(_entries(output), "OtherEndpoint.get", "query:q") is not None
+    assert "1 new, 0 fixed" in capsys.readouterr().out
+
+
+def test_update_drops_fixed_findings(fake_repo: Path) -> None:
+    assert _run_main(fake_repo) == 0
+    before = len(_entries(fake_repo / "out.json"))
+
+    _edit_endpoint(fake_repo, '        b = request.GET.get("id") # line 6\n', "")
+    _edit_endpoint(fake_repo, '        a = request.GET.get("id")', "        a = 1")
+    assert _run_main(fake_repo, "--update") == 0
+
+    assert _find(_entries(fake_repo / "out.json"), "ExampleEndpoint.get", "query:id") is None
+    assert len(_entries(fake_repo / "out.json")) == before - 1
+
+
+def test_commit_is_written_to_the_header(fake_repo: Path) -> None:
+    assert _run_main(fake_repo, "--commit", "abc123") == 0
+    assert json.loads((fake_repo / "out.json").read_text())["commit"] == "abc123"
+
+
+def test_commit_is_none_outside_a_git_checkout(fake_repo: Path) -> None:
+    assert _run_main(fake_repo) == 0
+    assert json.loads((fake_repo / "out.json").read_text())["commit"] is None
+
+
+def _git_commit(repo: Path) -> str:
+    """Makes `repo` a git checkout with one empty commit
+    Returns the commit's sha
+    """
+    git = ["git", "-C", str(repo), "-c", "user.name=t", "-c", "user.email=t@example.com"]
+    git += ["-c", "core.hooksPath=/dev/null"]
+    subprocess.run([*git, "init", "-q"], check=True)
+    subprocess.run([*git, "commit", "-q", "--allow-empty", "-m", "init"], check=True)
+    result = subprocess.run([*git, "rev-parse", "HEAD"], check=True, capture_output=True, text=True)
+    return result.stdout.strip()
+
+
+def test_commit_is_the_scanned_checkouts_head(fake_repo: Path) -> None:
+    head = _git_commit(fake_repo)
+    assert _run_main(fake_repo) == 0
+    assert json.loads((fake_repo / "out.json").read_text())["commit"] == head
+
+
+def test_commit_is_none_for_a_copy_inside_another_repo(fake_repo: Path) -> None:
+    # git would answer with the outer repo's HEAD, which isn't what was scanned
+    _git_commit(fake_repo)
+    copy = fake_repo / "copy"
+    shutil.copytree(fake_repo / "src", copy / "src")
+
+    assert _run_main(fake_repo, "--root", str(copy)) == 0
+    assert json.loads((fake_repo / "out.json").read_text())["commit"] is None
+
+
+def test_files_keeps_the_previous_commit(fake_repo: Path) -> None:
+    assert _run_main(fake_repo, "--commit", "abc123") == 0
+    _git_commit(fake_repo)
+
+    assert _run_main(fake_repo, "--files", PATH) == 0
+    assert json.loads((fake_repo / "out.json").read_text())["commit"] == "abc123"
+
+
+def test_update_records_the_new_commit(fake_repo: Path) -> None:
+    assert _run_main(fake_repo, "--commit", "abc123") == 0
+    head = _git_commit(fake_repo)
+
+    assert _run_main(fake_repo, "--update") == 0
+    assert json.loads((fake_repo / "out.json").read_text())["commit"] == head
