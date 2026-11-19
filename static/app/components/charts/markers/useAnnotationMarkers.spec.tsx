@@ -104,6 +104,16 @@ describe('useAnnotationMarkers', () => {
     expect(ongoing).toMatchObject({children: [{shape: {x1: 120, x2: 600}}, {}, {}]});
   });
 
+  it('draws only the line from the left edge for ranges that started before the chart', () => {
+    const [earlier] = renderMarkers([
+      change('earlier', -2 * MINUTE, 'high', 3 * MINUTE + 30_000),
+    ]);
+
+    expect(earlier).toMatchObject({
+      children: [{type: 'line', shape: {x1: 0, y1: 10, x2: 180, y2: 10}}],
+    });
+  });
+
   it('keeps the longest range when severe annotations share a bucket', () => {
     const [merged] = renderMarkers([
       change('short', 2 * MINUTE, 'high', 3 * MINUTE),

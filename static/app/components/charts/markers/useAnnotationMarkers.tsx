@@ -24,17 +24,18 @@ const LINE_DASH = [2, 2];
 const RANGE_LINE_WIDTH = 2;
 
 interface AnnotationMarkerItem extends AnnotationBucket {
+  startsBeforeWindow: boolean;
   value: [start: number, y: number];
   rangeEnd?: number;
 }
 
 /**
  * Ranges that are ongoing or end after the last bucket run to the right edge,
- * and ranges that end in the bucket they start in have no end.
+ * and ranges that end at or before `lineStart` have no end.
  */
 function bucketRangeEnd(
   item: AnnotationItem,
-  bucket: BandBucket,
+  lineStart: number,
   buckets: readonly BandBucket[],
   starts: readonly number[]
 ): number | undefined {
@@ -47,7 +48,30 @@ function bucketRangeEnd(
   }
 
   const end = buckets[sortedLastIndex(starts, item.end) - 1]?.start;
-  return defined(end) && end > bucket.start ? end : undefined;
+  return defined(end) && end > lineStart ? end : undefined;
+}
+
+/**
+ * Markers for ranges that started before the first bucket have no circle or
+ * vertical line, and their range line starts at the left edge of the plot.
+ */
+function toMarker(
+  bucket: AnnotationBucket,
+  buckets: readonly BandBucket[],
+  starts: readonly number[],
+  startsBeforeWindow = false
+): AnnotationMarkerItem {
+  const lineStart = startsBeforeWindow ? -Infinity : bucket.start;
+  const rangeEnds = bucket.items
+    .map(item => bucketRangeEnd(item, lineStart, buckets, starts))
+    .filter(defined);
+
+  return {
+    ...bucket,
+    startsBeforeWindow,
+    value: [bucket.start, 0],
+    rangeEnd: rangeEnds.length > 0 ? Math.max(...rangeEnds) : undefined,
+  };
 }
 
 function annotationMarkerRenderItem(
@@ -60,9 +84,9 @@ function annotationMarkerRenderItem(
       return null;
     }
 
-    const [x] = api.coord([bucket.start, 0]);
     const plot = params.coordSys as CartesianCoordSys;
     const plotRight = plot.x + plot.width;
+    const x = bucket.startsBeforeWindow ? plot.x : api.coord([bucket.start, 0])[0];
     if (!defined(x) || x < plot.x || x > plotRight) {
       return null;
     }
@@ -86,18 +110,20 @@ function annotationMarkerRenderItem(
       });
     }
 
-    children.push(
-      {
-        type: 'line',
-        shape: {x1: x, y1: plot.y, x2: x, y2: plot.y + plot.height},
-        style: {stroke: color, lineWidth: 1, lineDash: LINE_DASH},
-      },
-      {
-        type: 'circle',
-        shape: {cx: x, cy: plot.y, r: CIRCLE_RADIUS},
-        style: {fill: color},
-      }
-    );
+    if (!bucket.startsBeforeWindow) {
+      children.push(
+        {
+          type: 'line',
+          shape: {x1: x, y1: plot.y, x2: x, y2: plot.y + plot.height},
+          style: {stroke: color, lineWidth: 1, lineDash: LINE_DASH},
+        },
+        {
+          type: 'circle',
+          shape: {cx: x, cy: plot.y, r: CIRCLE_RADIUS},
+          style: {fill: color},
+        }
+      );
+    }
 
     return {type: 'group', children};
   };
@@ -112,7 +138,8 @@ interface UseAnnotationMarkersParams {
  * A dotted vertical line with a circle on top, drawn over the plot at the
  * center of every chart bucket that has a severe annotation. When a severe
  * annotation covers a range that ends in a later bucket, a solid line runs
- * along the top of the plot to the center of that bucket.
+ * along the top of the plot to the center of that bucket. Ranges that started
+ * before the first bucket only get that line, from the left edge.
  */
 export function useAnnotationMarkers({
   buckets,
@@ -122,21 +149,24 @@ export function useAnnotationMarkers({
 
   return useMemo(() => {
     const starts = buckets.map(bucket => bucket.start);
-    const data: AnnotationMarkerItem[] = bucketAnnotations(
-      items?.filter(isSevere) ?? [],
-      buckets
-    )
+    const severeItems = items?.filter(isSevere) ?? [];
+    const firstBucket = buckets[0];
+    const earlierRanges = firstBucket
+      ? severeItems.filter(
+          item =>
+            item.start < firstBucket.start &&
+            defined(bucketRangeEnd(item, -Infinity, buckets, starts))
+        )
+      : [];
+
+    const data: AnnotationMarkerItem[] = bucketAnnotations(severeItems, buckets)
       .filter(bucket => bucket.items.length > 0)
-      .map(bucket => {
-        const rangeEnds = bucket.items
-          .map(item => bucketRangeEnd(item, bucket, buckets, starts))
-          .filter(defined);
-        return {
-          ...bucket,
-          value: [bucket.start, 0],
-          rangeEnd: rangeEnds.length > 0 ? Math.max(...rangeEnds) : undefined,
-        };
-      });
+      .map(bucket => toMarker(bucket, buckets, starts));
+    if (firstBucket && earlierRanges.length > 0) {
+      data.unshift(
+        toMarker({...firstBucket, items: earlierRanges}, buckets, starts, true)
+      );
+    }
     if (data.length === 0) {
       return null;
     }
