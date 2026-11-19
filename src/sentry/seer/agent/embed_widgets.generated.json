@@ -258,7 +258,7 @@
   },
   {
     "name": "chart",
-    "description": "Display numeric data as a compact Sentry-style chart. For line, area, and bar charts, prefer at least three points. Use x_axis \"time\" with ISO 8601 timestamps; timestamps without an offset are read as UTC. Category axes always render as bars. Duration values are milliseconds, percentage values are 0-100, and byte values are raw bytes.",
+    "description": "Display numeric data as a compact Sentry-style chart. For line, area, and bar charts, prefer at least three points. Use x_axis \"time\" with ISO 8601 timestamps; timestamps without an offset are read as UTC. Category axes always render as bars. Duration values are milliseconds, percentage values are 0-100, and byte values are raw bytes. Use y null for a bucket with no data and copy a null value as null; never write 0 for missing data. A count of 0 is data, so keep it as 0. When values come from a transformed time series, copy each row's filled and smoothed flags onto its point (comparisonFilled and comparisonSmoothed for a comparison series) so the chart tooltip can say they were derived rather than observed.",
     "level": ["block"],
     "body": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -310,7 +310,16 @@
                           "type": ["string", "number"]
                         },
                         "y": {
-                          "type": "number"
+                          "description": "Value at x, or null when there is no data. Never use 0 for missing data.",
+                          "type": ["number", "null"]
+                        },
+                        "filled": {
+                          "description": "Whether a fill transformation produced this value",
+                          "type": "boolean"
+                        },
+                        "smoothed": {
+                          "description": "Whether a smoothing transformation produced this value",
+                          "type": "boolean"
                         }
                       },
                       "required": ["x", "y"]
@@ -337,7 +346,16 @@
                           "type": ["string", "number"]
                         },
                         "y": {
-                          "type": "number"
+                          "description": "Value at x, or null when there is no data. Never use 0 for missing data.",
+                          "type": ["number", "null"]
+                        },
+                        "filled": {
+                          "description": "Whether a fill transformation produced this value",
+                          "type": "boolean"
+                        },
+                        "smoothed": {
+                          "description": "Whether a smoothing transformation produced this value",
+                          "type": "boolean"
                         }
                       },
                       "required": ["x", "y"]
@@ -430,6 +448,44 @@
                 {
                   "x": "2026-07-30T17:00:00Z",
                   "y": 38
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "label": "Gaps and filled values",
+        "data": {
+          "title": "p95 latency",
+          "subtitle": "Linear fill; the latest bucket has no data yet",
+          "visualization": "line",
+          "x_axis": "time",
+          "y_axis_unit": "duration",
+          "series": [
+            {
+              "label": "p95(span.duration)",
+              "data": [
+                {
+                  "x": "2026-07-30T12:00:00Z",
+                  "y": 120
+                },
+                {
+                  "x": "2026-07-30T13:00:00Z",
+                  "y": 135,
+                  "filled": true
+                },
+                {
+                  "x": "2026-07-30T14:00:00Z",
+                  "y": 150
+                },
+                {
+                  "x": "2026-07-30T15:00:00Z",
+                  "y": 142
+                },
+                {
+                  "x": "2026-07-30T16:00:00Z",
+                  "y": null
                 }
               ]
             }
