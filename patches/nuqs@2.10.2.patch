@@ -1,0 +1,50 @@
+diff --git a/dist/context-Mu913OAK.js b/dist/context-Mu913OAK.js
+index 118c015491c6f1eb9e9422ef13a475aebf5e41f4..101d93b3d04d15a47a13d5c9f30997cd47ff5fe9 100644
+--- a/dist/context-Mu913OAK.js
++++ b/dist/context-Mu913OAK.js
+@@ -19,16 +19,15 @@ function error(code) {
+ function renderQueryString(search) {
+ 	if (search.size === 0) return "";
+ 	const query = [];
+-	for (const [key, value] of search.entries()) {
+-		const safeKey = key.replace(/#/g, "%23").replace(/&/g, "%26").replace(/\+/g, "%2B").replace(/=/g, "%3D").replace(/\?/g, "%3F");
+-		query.push(`${safeKey}=${encodeQueryValue(value)}`);
+-	}
++	// Sentry patch: match the router's query strings (sentry/utils/url/qs).
++	const entries = [...search.entries()].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0);
++	for (const [key, value] of entries) query.push(`${encodeQueryValue(key)}=${encodeQueryValue(value)}`);
+ 	const queryString = "?" + query.join("&");
+ 	warnIfURLIsTooLong(queryString);
+ 	return queryString;
+ }
+ function encodeQueryValue(input) {
+-	return input.replace(/%/g, "%25").replace(/\+/g, "%2B").replace(/ /g, "+").replace(/#/g, "%23").replace(/&/g, "%26").replace(/"/g, "%22").replace(/'/g, "%27").replace(/`/g, "%60").replace(/</g, "%3C").replace(/>/g, "%3E").replace(/[\x00-\x1F]/g, (char) => encodeURIComponent(char));
++	return encodeURIComponent(input).replace(/[!'()*]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
+ }
+ const URL_MAX_LENGTH = 2e3;
+ function warnIfURLIsTooLong(queryString) {
+diff --git a/dist/server.js b/dist/server.js
+index a193803ae0acb96fefc3767d28d8cd09f0f5a2e4..48e518d36a1fda26786a60ce0facd039a775e457 100644
+--- a/dist/server.js
++++ b/dist/server.js
+@@ -555,16 +555,15 @@ function parseAsNativeArrayOf(itemParser) {
+ function renderQueryString(search) {
+ 	if (search.size === 0) return "";
+ 	const query = [];
+-	for (const [key, value] of search.entries()) {
+-		const safeKey = key.replace(/#/g, "%23").replace(/&/g, "%26").replace(/\+/g, "%2B").replace(/=/g, "%3D").replace(/\?/g, "%3F");
+-		query.push(`${safeKey}=${encodeQueryValue(value)}`);
+-	}
++	// Sentry patch: match the router's query strings (sentry/utils/url/qs).
++	const entries = [...search.entries()].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0);
++	for (const [key, value] of entries) query.push(`${encodeQueryValue(key)}=${encodeQueryValue(value)}`);
+ 	const queryString = "?" + query.join("&");
+ 	warnIfURLIsTooLong(queryString);
+ 	return queryString;
+ }
+ function encodeQueryValue(input) {
+-	return input.replace(/%/g, "%25").replace(/\+/g, "%2B").replace(/ /g, "+").replace(/#/g, "%23").replace(/&/g, "%26").replace(/"/g, "%22").replace(/'/g, "%27").replace(/`/g, "%60").replace(/</g, "%3C").replace(/>/g, "%3E").replace(/[\x00-\x1F]/g, (char) => encodeURIComponent(char));
++	return encodeURIComponent(input).replace(/[!'()*]/g, (char) => `%${char.charCodeAt(0).toString(16).toUpperCase()}`);
+ }
+ const URL_MAX_LENGTH = 2e3;
+ function warnIfURLIsTooLong(queryString) {

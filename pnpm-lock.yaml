@@ -176,6 +176,7 @@ patchedDependencies:
   css-tree@3.2.1: ec4e8a1e54e91be1bbca26a0c6047f0832c2fd45d01795becd6cc0144334a489
   jest-resolve@30.5.1: f2282b64ef6129c114392d79cc5894368f2712b69b366cc01b8f5fe8e683773f
   jest-runtime@30.5.1: 36dce404d135697664f0f47961ef7b7df4963b97984d55155c6719f3e2c5205b
+  nuqs@2.10.2: 76f09f7ef6019ee5b1591dddd7f6d20afed59658f1286ca0acabb7245a6a7e12
   zrender@6.1.0: 183ccabb66e5590ca8a810519f1df210e5a87bb8e48b4bae25e76a619954a193
 
 importers:
@@ -687,7 +688,7 @@ importers:
         version: 0.6.2
       nuqs:
         specifier: 2.10.2
-        version: 2.10.2(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
+        version: 2.10.2(patch_hash=76f09f7ef6019ee5b1591dddd7f6d20afed59658f1286ca0acabb7245a6a7e12)(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
       papaparse:
         specifier: ^5.3.2
         version: 5.3.2
@@ -853,7 +854,7 @@ importers:
         version: 0.6.2
       nuqs:
         specifier: 2.10.2
-        version: 2.10.2(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
+        version: 2.10.2(patch_hash=76f09f7ef6019ee5b1591dddd7f6d20afed59658f1286ca0acabb7245a6a7e12)(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
       papaparse:
         specifier: ^5.3.2
         version: 5.3.2
@@ -959,7 +960,7 @@ importers:
         version: 0.6.2
       nuqs:
         specifier: 2.10.2
-        version: 2.10.2(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
+        version: 2.10.2(patch_hash=76f09f7ef6019ee5b1591dddd7f6d20afed59658f1286ca0acabb7245a6a7e12)(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
       react:
         specifier: 19.3.0
         version: 19.3.0
@@ -1529,7 +1530,7 @@ importers:
         version: 0.6.2
       nuqs:
         specifier: 2.10.2
-        version: 2.10.2(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
+        version: 2.10.2(patch_hash=76f09f7ef6019ee5b1591dddd7f6d20afed59658f1286ca0acabb7245a6a7e12)(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0)
       peggy:
         specifier: 5.1.1
         version: 5.1.1
@@ -16582,7 +16583,7 @@ snapshots:
     dependencies:
       boolbase: 1.0.0
 
-  nuqs@2.10.2(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0):
+  nuqs@2.10.2(patch_hash=76f09f7ef6019ee5b1591dddd7f6d20afed59658f1286ca0acabb7245a6a7e12)(react-router@8.4.0(react-dom@19.3.0(react@19.3.0))(react@19.3.0))(react@19.3.0):
     dependencies:
       '@standard-schema/spec': 1.1.0
       react: 19.3.0
