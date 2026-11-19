@@ -801,7 +801,10 @@ def secondary_client() -> Generator[RedisCluster[str] | StrictRedis[str]]:
     """
     Mirror system incident writes to the test Redis Cluster and give its client.
     """
-    with override_settings(SENTRY_MONITORS_SECONDARY_REDIS_CLUSTER=SECONDARY_CLUSTER):
+    with (
+        override_settings(SENTRY_MONITORS_SECONDARY_REDIS_CLUSTER=SECONDARY_CLUSTER),
+        override_options({"crons.system_incidents.secondary_redis_writes": True}),
+    ):
         yield redis.redis_clusters.get(SECONDARY_CLUSTER)
 
 
