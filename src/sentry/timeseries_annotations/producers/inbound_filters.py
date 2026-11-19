@@ -14,9 +14,13 @@ from sentry.timeseries_annotations.service import (
     TimeseriesAnnotationData,
     create_timeseries_annotation,
 )
+from sentry.utils import metrics
 from sentry.viewer_context import ActorId, ActorType
 
 logger = logging.getLogger(__name__)
+
+# Names this producer in skip telemetry so each producer's skips are their own series.
+_PRODUCER = "inbound_filter"
 
 # Built-in inbound filters drop events from a single telemetry dataset. Most act on the
 # error pipeline; the health-check filter drops transactions (spans). The scope tells the
@@ -53,14 +57,19 @@ def _create_filter_change_annotation(
 ) -> None:
     organization = project.organization
     actor = acting_user(principal)
-    # This producer rolls out and off on its own use-case flag. The framework flag gates
-    # only consumption (the read endpoint), so production does not depend on it.
     if not features.has(
         "organizations:timeseries-annotations-usecase-filter-change", organization, actor=actor
     ):
+        metrics.incr(
+            "timeseries_annotations.producer_skipped_flag_off", tags={"producer": _PRODUCER}
+        )
         logger.info(
             "timeseries_annotations.producer_skipped_flag_off",
-            extra={"organization_id": organization.id, "project_id": project.id},
+            extra={
+                "producer": _PRODUCER,
+                "organization_id": organization.id,
+                "project_id": project.id,
+            },
         )
         return
     # Best-effort context: a producer failure must never break the filter write.
