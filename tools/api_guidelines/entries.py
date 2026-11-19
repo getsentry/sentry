@@ -25,7 +25,8 @@ def merge_entries(
     `old_entries` every entry in exceptions.json before this run
     `kept_entries` the old entries for files that weren't rescanned, kept as is (empty with `--update`)
     Returns every entry, sorted by path, scope, rule and key. A rescanned entry that was already
-    in the file keeps its status, reason and first_seen, and takes the new count and owner
+    in the file keeps its status, reason and first_seen, and takes the new count and owner. One
+    that wasn't is new since the baseline, so it gets that as its reason instead of "legacy"
     """
     # {(rule, path, scope, key) -> {entry dict}}
     old_by_signature: dict[tuple[object, object, object, object], dict[str, object]] = {}
@@ -45,6 +46,9 @@ def merge_entries(
             entry["status"] = old["status"]
             entry["reason"] = old["reason"]
             entry["first_seen"] = old["first_seen"]
+        # it was added after the baseline, so "legacy: predates xyz" would hide it as old debt
+        else:
+            entry["reason"] = "new since the baseline"
         merged.append(entry)
 
     merged.sort(key=_entry_sort_key)
