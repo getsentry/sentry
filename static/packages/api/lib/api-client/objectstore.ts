@@ -15,7 +15,9 @@
  * Like the Rust client's `Session::many()`, HEADs and small inserts are grouped
  * into multipart requests to `{url}/v1/objects:batch/{usecase}/{scope}/`. The
  * Sentry proxy in front of Objectstore rate-limits each HTTP request, so one
- * request per object trips it (HTTP 429) on larger uploads.
+ * request per object trips it (HTTP 429) on larger uploads. Batches use the
+ * JSON layout of the batch endpoint, which carries all operation data in form
+ * fields, so requests and responses go through web-standard `FormData`.
  *
  * Uses only web-standard APIs. Hosts supply file contents through
  * {@link ObjectUpload.read} and may inject `fetch` (e.g. for custom CAs).
@@ -37,11 +39,10 @@ const PUT_TIMEOUT_MS = 120_000;
 /** Timeout for one batch request (up to {@link MAX_BATCH_BODY_SIZE} bytes). */
 const BATCH_TIMEOUT_MS = 300_000;
 
-/** Per-part headers of the batch protocol. */
-const BATCH_KIND_HEADER = "x-sn-batch-operation-kind";
-const BATCH_KEY_HEADER = "x-sn-batch-operation-key";
-const BATCH_INDEX_HEADER = "x-sn-batch-operation-index";
-const BATCH_STATUS_HEADER = "x-sn-batch-operation-status";
+/** Suffix of the part name that carries an operation's object bytes (`"0.payload"`). */
+const PAYLOAD_SUFFIX = ".payload";
+/** Matches the name of a result part, which is its operation's index. */
+const INDEX_NAME = /^\d+$/;
 
 /** Server-enforced maximum number of operations per batch request. */
 const MAX_BATCH_OPS = 1000;
@@ -60,13 +61,7 @@ const BATCH_CONCURRENCY = 4;
 /** Concurrency for objects too large to batch (matches the Rust client). */
 const INDIVIDUAL_CONCURRENCY = 5;
 
-/** Matches the `boundary` parameter of a multipart `Content-Type`. */
-const BOUNDARY_PARAM = /boundary=(?:"([^"]+)"|([^;\s]+))/i;
-
 const encoder = new TextEncoder();
-const decoder = new TextDecoder();
-const CRLF = encoder.encode("\r\n");
-const HEADER_END = encoder.encode("\r\n\r\n");
 
 /**
  * Objectstore upload configuration, as returned (camelCase) by the Sentry
@@ -153,14 +148,6 @@ function percentEncode(value: string, reserved: string): string {
 }
 
 /**
- * Escape a value for an Objectstore header, matching `encode_header_value` in
- * `objectstore-types`: percent-encode control bytes, DEL, `%`, and non-ASCII.
- */
-function encodeHeaderValue(value: string): string {
-  return percentEncode(value, "%");
-}
-
-/**
  * Escape one key segment for an object URL, matching the Rust client, which
  * pushes each `/`-separated part of the key with the `url` crate's
  * `SPECIAL_PATH_SEGMENT` encode set (http(s) URLs). That set includes `\`,
@@ -210,94 +197,65 @@ async function putObject(
 /** One operation within a batch request. */
 type BatchOperation =
   | { kind: "head"; key: string }
-  | { kind: "insert"; key: string; body: Uint8Array };
+  | { kind: "insert"; key: string; body: Uint8Array<ArrayBuffer> };
 
-/** Outcome of one batch operation, as reported in its response part. */
+/** Outcome of one batch operation, as reported in its result part. */
 type BatchOperationResult = {
   /** HTTP status of this operation (e.g. 200, 201, 404, 429). */
   status: number;
-  /** Response part body (an error description for failed operations). */
+  /** Error description for a failed operation, or empty. */
   message: string;
 };
 
-/** Concatenate byte arrays into one. */
-function concatBytes(chunks: Uint8Array[]): Uint8Array<ArrayBuffer> {
-  const out = new Uint8Array(chunks.reduce((total, c) => total + c.byteLength, 0));
-  let offset = 0;
-  for (const c of chunks) {
-    out.set(c, offset);
-    offset += c.byteLength;
-  }
-  return out;
-}
-
-/** Serialize batch operations into a `multipart/form-data` request body. */
-function encodeBatchBody(
-  config: ObjectstoreConfig,
-  operations: BatchOperation[],
-  boundary: string,
-): Uint8Array<ArrayBuffer> {
-  const chunks: Uint8Array[] = [];
-  for (const op of operations) {
-    let head =
-      `--${boundary}\r\n` +
-      'content-disposition: form-data; name="part"\r\n' +
-      `${BATCH_KIND_HEADER}: ${op.kind}\r\n` +
-      `${BATCH_KEY_HEADER}: ${encodeHeaderValue(op.key)}\r\n`;
+/**
+ * Build a batch request in the JSON layout: a JSON descriptor field named by
+ * the operation index, followed for inserts by a `"<index>.payload"` file.
+ */
+function encodeBatchForm(config: ObjectstoreConfig, operations: BatchOperation[]): FormData {
+  const form = new FormData();
+  operations.forEach((op, index) => {
+    const name = String(index);
     if (op.kind === "insert") {
-      head += `${EXPIRATION_HEADER}: ${config.expirationPolicy}\r\n`;
+      const metadata = { expiration: config.expirationPolicy };
+      form.append(name, JSON.stringify({ kind: op.kind, key: op.key, metadata }));
+      form.append(`${name}${PAYLOAD_SUFFIX}`, new Blob([op.body]), name);
+    } else {
+      form.append(name, JSON.stringify({ kind: op.kind, key: op.key }));
     }
-    chunks.push(encoder.encode(`${head}\r\n`));
-    if (op.kind === "insert") {
-      chunks.push(op.body);
-    }
-    chunks.push(CRLF);
-  }
-  chunks.push(encoder.encode(`--${boundary}--\r\n`));
-  return concatBytes(chunks);
-}
-
-/** Index of `needle` in `haystack` at or after `from`, or -1. */
-function indexOfBytes(haystack: Uint8Array, needle: Uint8Array, from: number): number {
-  const last = haystack.length - needle.length;
-  outer: for (let i = from; i <= last; i++) {
-    for (let j = 0; j < needle.length; j++) {
-      if (haystack[i + j] !== needle[j]) {
-        continue outer;
-      }
-    }
-    return i;
-  }
-  return -1;
-}
-
-/** Parse the header block of one multipart part into a lowercase-keyed map. */
-function parsePartHeaders(block: string): Map<string, string> {
-  const headers = new Map<string, string>();
-  for (const line of block.split("\r\n")) {
-    const colon = line.indexOf(":");
-    if (colon > 0) {
-      headers.set(line.slice(0, colon).trim().toLowerCase(), line.slice(colon + 1).trim());
-    }
-  }
-  return headers;
+  });
+  return form;
 }
 
 /**
- * Parse a batch `multipart/form-data` response into per-operation results,
- * keyed by the operation index the server echoes on each part.
- *
- * Response parts only carry status headers and small error bodies, so the
- * whole response is buffered and split on the boundary.
+ * Read the result of one operation from the JSON body of its result part,
+ * such as `{"status":404,"kind":"head","key":"a"}`. A failure carries the
+ * standard error body in `error`, whose `detail` includes its causes.
  */
-function parseBatchResponse(
-  contentType: string,
-  body: Uint8Array,
+function parseResult(body: string): BatchOperationResult | undefined {
+  let result: { status?: unknown; error?: { detail?: unknown } | null } | null;
+  try {
+    result = JSON.parse(body);
+  } catch {
+    return undefined;
+  }
+  if (typeof result?.status !== "number") {
+    return undefined;
+  }
+  const detail = result.error?.detail;
+  return { status: result.status, message: typeof detail === "string" ? detail : "" };
+}
+
+/**
+ * Parse a batch response into per-operation results, keyed by operation
+ * index. Results arrive in completion order as JSON fields named by index;
+ * payload parts (`"<index>.payload"`) only follow GETs and are skipped.
+ */
+async function parseBatchResponse(
+  response: Response,
   url: string,
-): Map<number, BatchOperationResult> {
-  const match = BOUNDARY_PARAM.exec(contentType);
-  const boundary = match?.[1] ?? match?.[2];
-  if (!boundary) {
+): Promise<Map<number, BatchOperationResult>> {
+  const contentType = response.headers.get("content-type") ?? "";
+  if (!contentType.toLowerCase().startsWith("multipart/form-data")) {
     throw new ObjectstoreError(
       "Objectstore batch response is not multipart",
       502,
@@ -305,36 +263,27 @@ function parseBatchResponse(
       url,
     );
   }
+  let form: FormData;
+  try {
+    form = await response.formData();
+  } catch (error) {
+    throw new ObjectstoreError(
+      "Objectstore batch response is malformed",
+      502,
+      error instanceof Error ? error.message : String(error),
+      url,
+    );
+  }
 
-  const delimiter = encoder.encode(`--${boundary}`);
   const results = new Map<number, BatchOperationResult>();
-  let start = indexOfBytes(body, delimiter, 0);
-  while (start >= 0) {
-    let partStart = start + delimiter.length;
-    if (body[partStart] === 0x2d && body[partStart + 1] === 0x2d) {
-      break; // closing delimiter
+  for (const [name, value] of form) {
+    if (!INDEX_NAME.test(name)) {
+      continue;
     }
-    if (body[partStart] === 0x0d && body[partStart + 1] === 0x0a) {
-      partStart += 2;
+    const result = parseResult(typeof value === "string" ? value : await value.text());
+    if (result) {
+      results.set(Number(name), result);
     }
-    const next = indexOfBytes(body, delimiter, partStart);
-    let partEnd = next < 0 ? body.length : next;
-    if (body[partEnd - 2] === 0x0d && body[partEnd - 1] === 0x0a) {
-      partEnd -= 2;
-    }
-    const split = indexOfBytes(body, HEADER_END, partStart);
-    if (split >= 0 && split < partEnd) {
-      const headers = parsePartHeaders(decoder.decode(body.subarray(partStart, split)));
-      const index = Number.parseInt(headers.get(BATCH_INDEX_HEADER) ?? "", 10);
-      const status = Number.parseInt(headers.get(BATCH_STATUS_HEADER) ?? "", 10);
-      if (!Number.isNaN(index) && !Number.isNaN(status)) {
-        results.set(index, {
-          status,
-          message: decoder.decode(body.subarray(split + HEADER_END.length, partEnd)),
-        });
-      }
-    }
-    start = next;
   }
   return results;
 }
@@ -352,14 +301,11 @@ async function sendBatch(
   options: ObjectstoreOptions | undefined,
 ): Promise<BatchOperationResult[]> {
   const url = buildBatchUrl(config);
-  const boundary = `sentry-api-${crypto.randomUUID()}`;
   const response = await fetchFor(options)(url, {
     method: "POST",
-    headers: {
-      ...authHeaders(config),
-      "content-type": `multipart/form-data; boundary="${boundary}"`,
-    },
-    body: encodeBatchBody(config, operations, boundary),
+    // fetch sets the multipart `Content-Type` and boundary for a FormData body.
+    headers: authHeaders(config),
+    body: encodeBatchForm(config, operations),
     signal: AbortSignal.timeout(BATCH_TIMEOUT_MS),
   });
   if (!response.ok) {
@@ -371,11 +317,7 @@ async function sendBatch(
     );
   }
 
-  const parsed = parseBatchResponse(
-    response.headers.get("content-type") ?? "",
-    new Uint8Array(await response.arrayBuffer()),
-    url,
-  );
+  const parsed = await parseBatchResponse(response, url);
   return operations.map((op, index) => {
     const result = parsed.get(index);
     if (!result) {
