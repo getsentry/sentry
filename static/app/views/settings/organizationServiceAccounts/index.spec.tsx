@@ -18,7 +18,7 @@ describe('OrganizationServiceAccounts', () => {
     ]);
   });
 
-  it('lists service accounts with their permissions and project access', async () => {
+  it('lists service accounts with their owner, permissions and project access', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/service-accounts/`,
       body: [
@@ -51,6 +51,7 @@ describe('OrganizationServiceAccounts', () => {
       `/settings/${organization.slug}/service-accounts/10/`
     );
     expect(screen.getByText('All projects')).toBeInTheDocument();
+    expect(screen.getByText('Organization')).toBeInTheDocument();
     expect(screen.getByText('3 permissions')).toBeInTheDocument();
 
     expect(

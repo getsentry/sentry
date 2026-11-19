@@ -4,7 +4,6 @@ import {useQuery} from '@tanstack/react-query';
 import {Tag} from '@sentry/scraps/badge';
 import {DateTime} from '@sentry/scraps/dateTime';
 import {EmptyState} from '@sentry/scraps/emptyState';
-import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
@@ -18,13 +17,26 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 import {serviceAccountsApiOptions} from './serviceAccountApi';
 import {PermissionCount} from './serviceAccountPermissionTable';
 import {ProjectAccessSummary} from './serviceAccountProjectAccess';
+import type {ServiceAccount} from './types';
 
 const COLUMNS: TableColumnConfig[] = [
   {key: 'name', width: 'minmax(0, 2fr)'},
+  {key: 'owner', width: 'max-content'},
   {key: 'permissions', width: 'max-content'},
   {key: 'projects', width: 'minmax(0, 1fr)'},
   {key: 'created', width: 'max-content'},
 ];
+
+function OwnerKind({ownerKind}: {ownerKind: ServiceAccount['ownerKind']}) {
+  switch (ownerKind) {
+    case 'organization':
+      return <Text>{t('Organization')}</Text>;
+    case 'seer_workflow_config':
+      return <Tag variant="muted">{t('Seer automation')}</Tag>;
+    default:
+      return <Text variant="muted">{t('Unknown')}</Text>;
+  }
+}
 
 export default function OrganizationServiceAccounts() {
   const organization = useOrganization();
@@ -51,6 +63,7 @@ export default function OrganizationServiceAccounts() {
         header={
           <SimpleTable.HeaderRow>
             <SimpleTable.HeaderCell>{t('Name')}</SimpleTable.HeaderCell>
+            <SimpleTable.HeaderCell>{t('Owner')}</SimpleTable.HeaderCell>
             <SimpleTable.HeaderCell>{t('Permissions')}</SimpleTable.HeaderCell>
             <SimpleTable.HeaderCell>{t('Project access')}</SimpleTable.HeaderCell>
             <SimpleTable.HeaderCell>{t('Created')}</SimpleTable.HeaderCell>
@@ -77,12 +90,10 @@ export default function OrganizationServiceAccounts() {
         {accounts?.map(account => (
           <SimpleTable.Row key={account.id}>
             <SimpleTable.RowCell>
-              <Flex gap="sm" align="center" minWidth="0">
-                <Link to={`${basePath}${account.id}/`}>{account.name}</Link>
-                {account.ownerKind === 'seer_workflow_config' && (
-                  <Tag variant="muted">{t('Seer automation')}</Tag>
-                )}
-              </Flex>
+              <Link to={`${basePath}${account.id}/`}>{account.name}</Link>
+            </SimpleTable.RowCell>
+            <SimpleTable.RowCell>
+              <OwnerKind ownerKind={account.ownerKind} />
             </SimpleTable.RowCell>
             <SimpleTable.RowCell>
               <PermissionCount scopes={account.scopes} />
