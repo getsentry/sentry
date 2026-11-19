@@ -145,8 +145,6 @@ class ReleaseFilesMixin(BaseEndpointMixin):
                 data_sources.append(source)
 
         def on_results(release_files: list[ReleaseFile]) -> Any:
-            # Listing files is not a use of them: `date_accessed` is only renewed by the lookups
-            # that symbolication does, so that it tells which files events still need.
             return serialize(load_dist(release_files), request.user)
 
         # NOTE: Returned release files are ordered by name within their block,
