@@ -309,6 +309,138 @@ describe('ActivitySection', () => {
     expect(screen.getByText('10min ago')).toBeInTheDocument();
   });
 
+  it('plays uploaded comment videos inline', async () => {
+    const videoUrl = '/api/0/organizations/org-slug/issues/1339/comment-attachments/5/';
+    const videoGroup = GroupFixture({
+      id: '1339',
+      activity: [
+        {
+          type: GroupActivityType.NOTE,
+          id: 'note-1',
+          commentId: 'note-1',
+          data: {text: `[video_1.mp4](${videoUrl}) and [docs](https://docs.sentry.io/)`},
+          dateCreated: tenMinutesAgo(),
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={videoGroup} project={videoGroup.project}>
+        <ActivitySection group={videoGroup} />
+      </GroupDataContextProvider>
+    );
+
+    const videos = await screen.findAllByTestId('note-video');
+    expect(videos).toHaveLength(1);
+    expect(videos[0]).toHaveAttribute('src', videoUrl);
+    expect(screen.getByRole('link', {name: 'video_1.mp4'})).toHaveAttribute(
+      'href',
+      videoUrl
+    );
+    expect(screen.getByRole('link', {name: 'docs'})).toBeInTheDocument();
+  });
+
+  it('uploads a video and links it in the comment', async () => {
+    const organization = OrganizationFixture({features: ['issue-comment-attachments']});
+    const videoUrl = '/api/0/organizations/org-slug/issues/1337/comment-attachments/5/';
+    const uploadMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1337/comment-attachments/',
+      method: 'POST',
+      statusCode: 201,
+      body: {
+        id: '5',
+        name: 'video_1.mp4',
+        size: 4,
+        contentType: 'video/mp4',
+        url: videoUrl,
+      },
+    });
+    const postMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1337/comments/',
+      method: 'POST',
+      body: {
+        id: 'note-4',
+        commentId: 'note-4',
+        user,
+        type: 'note',
+        data: {text: `[video_1.mp4](${videoUrl})`},
+        dateCreated: '2024-10-31T00:00:00.000000Z',
+      },
+    });
+
+    render(
+      <GroupDataContextProvider group={group} project={group.project}>
+        <ActivitySection group={group} />
+      </GroupDataContextProvider>,
+      {organization}
+    );
+
+    await userEvent.click(getCommentEditor());
+    await userEvent.upload(
+      screen.getByLabelText('Video file'),
+      new File(['data'], 'video_1.mp4', {type: 'video/mp4'})
+    );
+
+    await waitFor(() => expect(uploadMock).toHaveBeenCalled());
+    const submitButton = screen.getByRole('button', {name: 'Submit comment'});
+    await waitFor(() => expect(submitButton).toBeEnabled());
+    await userEvent.click(submitButton);
+
+    expect(postMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/issues/1337/comments/',
+      expect.objectContaining({
+        method: 'POST',
+        data: {text: `[video_1.mp4](${videoUrl})`, mentions: []},
+      })
+    );
+  });
+
+  it('shows why a video upload was rejected', async () => {
+    jest.spyOn(toast, 'error');
+    const organization = OrganizationFixture({features: ['issue-comment-attachments']});
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1337/comment-attachments/',
+      method: 'POST',
+      statusCode: 413,
+      body: {detail: 'File is too large. The maximum size is 100 MB.'},
+    });
+
+    render(
+      <GroupDataContextProvider group={group} project={group.project}>
+        <ActivitySection group={group} />
+      </GroupDataContextProvider>,
+      {organization}
+    );
+
+    await userEvent.click(getCommentEditor());
+    await userEvent.upload(
+      screen.getByLabelText('Video file'),
+      new File(['data'], 'big.mp4', {type: 'video/mp4'})
+    );
+
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith(
+        'File is too large. The maximum size is 100 MB.'
+      )
+    );
+    expect(screen.getByRole('button', {name: 'Submit comment'})).toBeDisabled();
+  });
+
+  it('hides the video attach button without the feature', async () => {
+    render(
+      <GroupDataContextProvider group={group} project={group.project}>
+        <ActivitySection group={group} />
+      </GroupDataContextProvider>
+    );
+
+    await userEvent.click(getCommentEditor());
+
+    expect(screen.getByRole('button', {name: 'Submit comment'})).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Attach video'})).not.toBeInTheDocument();
+  });
+
   it('renders activity actor markers', async () => {
     const activityGroup = GroupFixture({
       id: '1338',

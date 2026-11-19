@@ -10,6 +10,7 @@ interface ActivityNoteInputProps {
   itemKey: string;
   onSubmit: (data: NoteType) => Promise<void>;
   storageKey: string;
+  attachmentIssueId?: string;
   minHeight?: number;
   placeholder?: string;
   variant?: 'compact' | 'full';
@@ -39,6 +40,7 @@ function saveToStorage(storageKey: string, drafts: DraftStorage) {
 }
 
 export function ActivityNoteInput({
+  attachmentIssueId,
   itemKey,
   storageKey,
   variant,
@@ -74,6 +76,7 @@ export function ActivityNoteInput({
   return (
     <ActivityInputFrame>
       <MentionComposer
+        attachmentIssueId={attachmentIssueId}
         initialValue={value}
         minHeight={minHeight}
         mode="create"
