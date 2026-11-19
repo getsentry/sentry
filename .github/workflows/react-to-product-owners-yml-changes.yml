@@ -6,6 +6,8 @@ on:
   workflow_dispatch:
 jobs:
   release:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     name: React to product-owners.yml changes
     steps:
