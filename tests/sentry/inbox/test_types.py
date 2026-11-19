@@ -1,4 +1,4 @@
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from threading import Barrier
 from typing import Any, assert_type
@@ -11,7 +11,12 @@ from openapi_schema_validator import OAS30Validator
 
 from sentry.apidocs.spectacular_ports import resolve_type_hint
 from sentry.constants import ObjectStatus
-from sentry.inbox.event_data import InboxEventData
+from sentry.inbox.event_data import (
+    InboxEventData,
+    InboxEventDataResponse,
+    IssueMentionedDataResponse,
+    NotebookParticipantAddedDataResponse,
+)
 from sentry.inbox.event_retention import cleanup_inbox_item_events
 from sentry.inbox.issue import ISSUE_USER_MENTIONED, IssueMentionedData
 from sentry.inbox.item_retention import cleanup_inbox_items
@@ -83,7 +88,7 @@ class ReferenceItemType(StubItemType[SubjectReference]):
 class MentionedData(InboxEventData):
     comment_id: int
 
-    def serialize(self) -> Mapping[str, object]:
+    def serialize(self) -> IssueMentionedDataResponse:
         return {"commentId": str(self.comment_id)}
 
 
@@ -91,13 +96,13 @@ class MentionedData(InboxEventData):
 class StructuredData(InboxEventData):
     details: dict[str, Any]
 
-    def serialize(self) -> Mapping[str, object]:
-        return {"details": self.details}
+    def serialize(self) -> InboxEventDataResponse:
+        raise NotImplementedError
 
 
 @dataclass(frozen=True, kw_only=True)
 class EmptyData(InboxEventData):
-    def serialize(self) -> dict[str, object]:
+    def serialize(self) -> NotebookParticipantAddedDataResponse:
         return {}
 
 

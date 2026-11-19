@@ -86,6 +86,30 @@ const releaseAnnotations: AnnotationItem[] = releases.map(({timestamp, version})
   title: version,
 }));
 
+const flagAnnotations: AnnotationItem[] = [
+  {flag: 'new-checkout', index: 2},
+  {flag: 'search-v2', index: 12},
+].map(({flag, index}) => ({
+  id: `flag:${flag}`,
+  kind: 'flag',
+  start: new Date(sampleThroughputTimeSeries.values.at(index)!.timestamp).getTime(),
+  title: flag,
+}));
+
+const changeAnnotations: AnnotationItem[] = (
+  [
+    [8, 'high', 'Sentry outage'],
+    [14, 'low', 'SDK update'],
+    [30, 'high', 'Infrastructure change'],
+  ] as const
+).map(([index, severity, title]) => ({
+  id: `change:${index}`,
+  kind: 'timeseriesAnnotation',
+  start: sampleThroughputTimeSeries.values.at(index)!.timestamp,
+  title,
+  severity,
+}));
+
 export default Storybook.story('TimeSeriesWidgetVisualization', story => {
   story('Getting Started', () => {
     return (
@@ -1212,10 +1236,10 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
         </p>
 
         <p>
-          Releases can also be passed as <code>annotations</code>, which draws a band that
-          marks each of the chart's time buckets that has annotations, so it lines up with
-          the other bands under the plot, like dropped data. Its tooltip counts each kind
-          of annotation, such as releases and flag changes.
+          Releases and flag changes can also be passed as <code>annotations</code>, which
+          draws a band that marks each of the chart's time buckets that has annotations,
+          so it lines up with the other bands under the plot, like dropped data. Its
+          tooltip counts each kind of annotation in the bucket.
         </p>
 
         <Storybook.SideBySide>
@@ -1264,10 +1288,30 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
                 new Line(sampleDurationTimeSeries),
                 new Line(sampleDurationTimeSeriesP50),
               ]}
-              annotations={releaseAnnotations}
+              annotations={[...releaseAnnotations, ...flagAnnotations]}
             />
           </MediumWidget>
         </Storybook.SideBySide>
+      </Fragment>
+    );
+  });
+
+  story('Annotation Markers', () => {
+    return (
+      <Fragment>
+        <p>
+          Severe <code>annotations</code> also get a marker on the plot: a dotted vertical
+          line with a circle on top, at the center of their time bucket. Severe
+          annotations in the same bucket share one marker. Every annotation, severe or
+          not, still counts toward the band under the plot.
+        </p>
+
+        <MediumWidget>
+          <TimeSeriesWidgetVisualization
+            plottables={[new Bars(sampleThroughputTimeSeries)]}
+            annotations={[...releaseAnnotations, ...changeAnnotations]}
+          />
+        </MediumWidget>
       </Fragment>
     );
   });

@@ -11,10 +11,8 @@ import {
 } from 'sentry/components/performance/spanSearchQueryBuilder';
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
 import {t} from 'sentry/locale';
-import {
-  CLASSIFIER_PREVIEW_PER_PAGE,
-  getEnvironmentsFilter,
-} from 'sentry/views/classifiers/utils';
+import {CLASSIFIER_PREVIEW_PER_PAGE} from 'sentry/views/classifiers/constants';
+import {getEnvironmentsFilter} from 'sentry/views/classifiers/utils';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {ConversationsTable} from 'sentry/views/explore/conversations/components/conversationsTable';
 import {useConversations} from 'sentry/views/explore/conversations/hooks/useConversations';

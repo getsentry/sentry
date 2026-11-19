@@ -85,12 +85,9 @@ type SentryAppTemplateAppliedParams = {
 // Event key to payload mappings
 export type IntegrationEventParameters = {
   'integrations.cloudformation_link_clicked': SingleIntegrationEventParams;
-  'integrations.config_saved': SingleIntegrationEventParams;
   'integrations.details_viewed': SingleIntegrationEventParams;
   'integrations.directory_category_selected': IntegrationCategorySelectEventParams;
   'integrations.directory_item_searched': IntegrationSearchEventParams;
-  'integrations.disabled': SingleIntegrationEventParams;
-  'integrations.enabled': SingleIntegrationEventParams;
   'integrations.index_viewed': MultipleIntegrationsEventParams;
   'integrations.install_modal_auto_opened': SingleIntegrationEventParams;
   'integrations.install_modal_opened': SingleIntegrationEventParams;
@@ -101,16 +98,13 @@ export type IntegrationEventParameters = {
   'integrations.installation_start': IntegrationInstallEventParams;
   'integrations.integration_tab_clicked': SingleIntegrationEventParams;
   'integrations.integration_viewed': SingleIntegrationEventParams;
-  'integrations.plugin_add_to_project_clicked': SingleIntegrationEventParams;
   'integrations.request_install': SingleIntegrationEventParams;
   'integrations.resolve_now_clicked': SingleIntegrationEventParams;
   'integrations.sentry_app_template_applied': SentryAppTemplateAppliedParams;
   'integrations.serverless_function_action': IntegrationServerlessFunctionActionParams;
   'integrations.serverless_functions_viewed': IntegrationServerlessFunctionsViewedParams;
-  'integrations.switch_manual_sdk_setup': SingleIntegrationEventParams;
   'integrations.uninstall_clicked': SingleIntegrationEventParams;
   'integrations.uninstall_completed': SingleIntegrationEventParams;
-  'integrations.upgrade_plan_modal_opened': SingleIntegrationEventParams;
   'project_ownership.modal_opened': ProjectOwnershipModalParams;
   'project_ownership.saved': ProjectOwnershipModalParams;
 } & PlatformEventParameters;
@@ -119,7 +113,6 @@ type IntegrationAnalyticsKey = keyof IntegrationEventParameters;
 
 // Event key to name mappings
 export const integrationEventMap: Record<IntegrationAnalyticsKey, string> = {
-  'integrations.upgrade_plan_modal_opened': 'Integrations: Upgrade Plan Modal Opened',
   'integrations.install_modal_opened': 'Integrations: Install Modal Opened',
   'integrations.install_modal_auto_opened': 'Integrations: Install Modal Auto Opened',
   'integrations.integration_viewed': 'Integrations: Integration Viewed',
@@ -129,12 +122,7 @@ export const integrationEventMap: Record<IntegrationAnalyticsKey, string> = {
   'integrations.installation_failed': 'Integrations: Installation Failed',
   'integrations.uninstall_clicked': 'Integrations: Uninstall Clicked',
   'integrations.uninstall_completed': 'Integrations: Uninstall Completed',
-  'integrations.enabled': 'Integrations: Enabled',
-  'integrations.disabled': 'Integrations: Disabled',
-  'integrations.config_saved': 'Integrations: Config Saved',
   'integrations.integration_tab_clicked': 'Integrations: Integration Tab Clicked',
-  'integrations.plugin_add_to_project_clicked':
-    'Integrations: Plugin Add to Project Clicked',
   'integrations.resolve_now_clicked': 'Integrations: Resolve Now Clicked',
   'integrations.request_install': 'Integrations: Request Install',
   'integrations.details_viewed': 'Integrations: Details Viewed',
@@ -147,7 +135,6 @@ export const integrationEventMap: Record<IntegrationAnalyticsKey, string> = {
   'integrations.sentry_app_template_applied': 'Integrations: Sentry App Template Applied',
   'integrations.serverless_function_action': 'Integrations: Serverless Function Action',
   'integrations.cloudformation_link_clicked': 'Integrations: CloudFormation Link Clicked',
-  'integrations.switch_manual_sdk_setup': 'Integrations: Switch Manual SDK Setup',
   'project_ownership.modal_opened': 'Project Ownership: Modal Opened',
   'project_ownership.saved': 'Project Ownership: Saved',
   ...platformEventMap,

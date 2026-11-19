@@ -74,7 +74,11 @@ class OrganizationDataConditionIndexEndpoint(OrganizationEndpoint):
         data_conditions = []
 
         for condition_type, handler in condition_handler_registry.registrations.items():
-            if condition_type not in LEGACY_CONDITIONS and handler.group == group:
+            if (
+                condition_type not in LEGACY_CONDITIONS
+                and not handler.is_internal
+                and handler.group == group
+            ):
                 serialized = serialize(
                     handler,
                     request.user,

@@ -78,7 +78,6 @@ class Action(DefaultFieldsModel, JSONConfigBase):
 
         PLUGIN = "plugin"
         WEBHOOK = "webhook"
-        SEER_WORKFLOW = "seer_workflow"
         SEER_INVESTIGATION = "seer_investigation"
 
         def is_integration(self) -> bool:
@@ -91,7 +90,6 @@ class Action(DefaultFieldsModel, JSONConfigBase):
                 Action.Type.SENTRY_APP,
                 Action.Type.PLUGIN,
                 Action.Type.WEBHOOK,
-                Action.Type.SEER_WORKFLOW,
                 Action.Type.SEER_INVESTIGATION,
             ]
 

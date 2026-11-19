@@ -8,7 +8,7 @@ from django.conf import settings
 from django.core.cache.backends.locmem import LocMemCache
 from django.test import override_settings
 
-from sentry.models.options.option import Option
+from sentry.models.options.option import ControlOption, Option
 from sentry.options.manager import OptionsManager, UpdateChannel
 from sentry.options.store import Key, OptionsStore
 from sentry.testutils.cases import TestCase
@@ -51,6 +51,13 @@ class OptionsStoreTest(TestCase):
 
     def test_not_in_store(self) -> None:
         assert self.store.get_last_update_channel(self.key) is None
+
+    def test_missing_key_while_silo_mode_changes(self) -> None:
+        # The model follows the silo mode, which another thread can switch between the
+        # query and the except clause. The miss must still read as a miss.
+        for lookup in (self.store.get_store, self.store.get_last_update_channel):
+            with patch.object(OptionsStore, "model_cls", side_effect=[Option, ControlOption]):
+                assert lookup(self.key) is None
 
     def test_simple_without_cache(self) -> None:
         store = OptionsStore(cache=None)

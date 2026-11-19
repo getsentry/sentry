@@ -5,35 +5,26 @@ import type {SVGIconProps} from '@sentry/icons/svgIcon';
 
 import {t} from 'sentry/locale';
 
-import {
-  INBOX_SUBJECT_TYPES,
-  type InboxEventType,
-  type InboxFilters,
-  type InboxRecipient,
-  type InboxSubject,
-  type InboxSubjectType,
+import type {
+  InboxEventType,
+  InboxFilters,
+  InboxRecipient,
+  InboxSubjectType,
 } from './types';
 
 interface InboxSubjectConfig {
   icon: ComponentType<SVGIconProps>;
   label: string;
-  /**
-   * URL segment for the subject within the inbox, e.g. `/inbox/{pathSegment}/{subjectId}/`.
-   * Must match the inbox child routes in `routes.tsx`.
-   */
-  pathSegment: string;
 }
 
 export const INBOX_SUBJECT_CONFIG: Record<InboxSubjectType, InboxSubjectConfig> = {
   issue: {
     icon: IconIssues,
     label: t('Issue'),
-    pathSegment: 'issue',
   },
   notebook: {
     icon: IconSeer,
     label: t('Investigation'),
-    pathSegment: 'notebook',
   },
 };
 
@@ -77,19 +68,4 @@ export function hasInboxFilters(filters: InboxFilters) {
     filters.eventType.length > 0 ||
     filters.recipient.length > 0
   );
-}
-
-export function getInboxSubjectFromPath(
-  pathname: string,
-  subjectId: string | undefined
-): InboxSubject | null {
-  if (!subjectId) {
-    return null;
-  }
-
-  const subjectType = INBOX_SUBJECT_TYPES.find(type =>
-    pathname.includes(`/inbox/${INBOX_SUBJECT_CONFIG[type].pathSegment}/`)
-  );
-
-  return subjectType ? {subjectType, subjectId} : null;
 }

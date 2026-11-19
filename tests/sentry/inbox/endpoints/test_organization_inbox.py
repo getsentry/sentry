@@ -100,7 +100,8 @@ class OrganizationInboxIndexTest(APITestCase):
         assert response.data[0]["title"] == self.group.title
         assert response.data[0]["subtitle"] == "Assigned to you"
         assert response.data[0]["url"] == self.organization.absolute_url(
-            f"/organizations/{self.organization.slug}/inbox/issue/{self.group.id}/"
+            f"/organizations/{self.organization.slug}/inbox/issue/{self.group.id}/",
+            fragment="activity-1",
         )
 
     @override_settings(
@@ -117,7 +118,7 @@ class OrganizationInboxIndexTest(APITestCase):
         response = self.get_success_response(self.organization.slug)
 
         assert response.data[0]["url"] == (
-            f"https://{self.organization.slug}.sentry.io/inbox/issue/{self.group.id}/"
+            f"https://{self.organization.slug}.sentry.io/inbox/issue/{self.group.id}/#activity-1"
         )
 
     def test_recording_works_while_ui_is_off(self) -> None:

@@ -35,12 +35,13 @@ import {
   ClassifierDisabledAlert,
   ClassifierStatusToggle,
 } from './components/classifierStatus';
+import {DeleteClassifierButton} from './components/deleteClassifierButton';
 import {ResultAttributeName} from './components/resultAttributeName';
 import {useClassifier} from './hooks/useClassifier';
 import {usePrebuiltClassifiers} from './hooks/usePrebuiltClassifiers';
+import {CLASSIFIER_DETAIL_DEFAULT_SELECTION} from './constants';
 import type {TelemetryClassifier} from './types';
 import {
-  CLASSIFIER_DETAIL_DEFAULT_SELECTION,
   getClassifiersPath,
   filterQueryHasEnvironment,
   getClassifierFilterParts,
@@ -212,6 +213,7 @@ function ClassifierDetailContent({classifier}: {classifier: TelemetryClassifier}
             </Flex>
             <Flex align="center" gap="sm" marginLeft="auto">
               <ClassifierStatusToggle classifier={classifier} />
+              <DeleteClassifierButton classifier={classifier} />
             </Flex>
           </Flex>
           <ClassifierDisabledAlert classifier={classifier} />
