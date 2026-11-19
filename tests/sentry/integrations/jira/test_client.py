@@ -16,6 +16,7 @@ from sentry.integrations.jira.client import (
 )
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.utils.atlassian_connect import get_query_hash
+from sentry.shared_integrations.exceptions import ApiUnauthorized
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
@@ -344,6 +345,33 @@ class JiraClientForgeTokenTest(TestCase):
         for client in (connect_client, forge_only_client):
             client.get_server_info()
             assert client.site_url == "https://example.atlassian.net"
+
+    @responses.activate
+    @mock.patch("sentry.integrations.jira.client.metrics")
+    def test_tags_responses_with_the_credential_used(self, mock_metrics: mock.MagicMock) -> None:
+        responses.get(f"{self.api_base_url}/rest/api/2/serverInfo", status=401)
+        responses.get("https://example.atlassian.net/rest/api/2/serverInfo", json={})
+        connect = self.integration_for({"shared_secret": secret, "forge": self.forge()})
+        connect_client = JiraCloudClient(connect, verify_ssl=True)
+        with override_options({"jira.forge.integration-ids": [connect.id]}):
+            forge_client = JiraCloudClient(connect, verify_ssl=True)
+
+        connect_client.get_server_info()
+        with pytest.raises(ApiUnauthorized):
+            forge_client.get_server_info()
+
+        assert mock_metrics.incr.call_args_list == [
+            mock.call(
+                "jira.client.http_response",
+                sample_rate=1.0,
+                tags={"auth": "connect", "status": 200},
+            ),
+            mock.call(
+                "jira.client.http_response",
+                sample_rate=1.0,
+                tags={"auth": "forge", "status": 401},
+            ),
+        ]
 
     @responses.activate
     def test_falls_back_without_an_unexpired_token(self) -> None:

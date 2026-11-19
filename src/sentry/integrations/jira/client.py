@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from typing import Any, cast
 from urllib.parse import parse_qs, urlsplit
 
-from requests import PreparedRequest
+from requests import PreparedRequest, Response
 
 from sentry import options
 from sentry.integrations.client import ApiClient
@@ -106,6 +106,21 @@ class JiraCloudClient(ApiClient):
             integration_id=integration.id,
             verify_ssl=verify_ssl,
             logging_context=logging_context,
+        )
+
+    def track_response_data(
+        self,
+        code: str | int,
+        error: Exception | None = None,
+        resp: Response | None = None,
+        extra: Mapping[str, str | int] | None = None,
+    ) -> None:
+        # Moving integrations to the Forge token needs its failures told apart from the
+        # Connect JWT's, since both reach the same handlers.
+        auth = "forge" if self.forge_token is not None else "connect"
+        super().track_response_data(code, error, resp, {**(extra or {}), "auth": auth})
+        metrics.incr(
+            "jira.client.http_response", sample_rate=1.0, tags={"auth": auth, "status": code}
         )
 
     def finalize_request(self, prepared_request: PreparedRequest) -> PreparedRequest:
