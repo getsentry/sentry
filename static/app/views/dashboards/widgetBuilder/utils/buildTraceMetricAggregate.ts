@@ -84,6 +84,7 @@ export function buildTraceMetricAggregate(
 /**
  * Sets (or clears, when `filter` is empty) the `_if` filter on a trace metric
  * aggregate column. Non-aggregate columns are returned unchanged.
+ * @public used by the upcoming unified visualize list's per-row filter bar
  */
 export function applyTraceMetricAggregateFilter(column: Column, filter: string): Column {
   const parts = getTraceMetricFunctionParts(column);
