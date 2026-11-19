@@ -1,12 +1,18 @@
 import {IconCopy} from '@sentry/icons/copy';
+import {IconOpen} from '@sentry/icons/open';
+import {useStore} from 'zustand';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {t} from 'sentry/locale';
+import {ConfigStore} from 'sentry/stores/configStore';
 
 import {
+  getHandoffPreviewUrl,
   HandoffAdvancedMenu,
   HandoffPromptAlerts,
   HandoffPromptBox,
@@ -30,6 +36,9 @@ export function AgentHandoffPrompt<Flow extends AgentHandoffFlow>({
   onCopySuccess,
   onSelect,
 }: AgentHandoffPromptProps<Flow>) {
+  const sentryUrl = useStore(ConfigStore, state => state.links.sentryUrl);
+  const previewUrl = getHandoffPreviewUrl(sentryUrl);
+
   const {copyPrompt, copyDisabled, handoff, useIpPinning, toggleIpPinning} =
     useHandoffPromptCopy({flow, context, onCopySuccess});
 
@@ -53,19 +62,30 @@ export function AgentHandoffPrompt<Flow extends AgentHandoffFlow>({
         }
       />
 
-      <Flex align="center" justify="end" gap="sm">
-        <FeedbackButton
-          size="xs"
-          feedbackOptions={{
-            tags: {'feedback.source': feedbackSource},
-          }}
-        />
+      <Flex align="center" justify="between" gap="lg">
+        <Text size="sm">
+          <ExternalLink href={previewUrl}>
+            <Flex as="span" align="center" gap="xs">
+              {t('See the full instructions')}
+              <IconOpen size="xs" />
+            </Flex>
+          </ExternalLink>
+        </Text>
 
-        <HandoffAdvancedMenu
-          disabled={copyDisabled}
-          useIpPinning={useIpPinning}
-          onToggle={toggleIpPinning}
-        />
+        <Flex align="center" gap="sm">
+          <FeedbackButton
+            size="xs"
+            feedbackOptions={{
+              tags: {'feedback.source': feedbackSource},
+            }}
+          />
+
+          <HandoffAdvancedMenu
+            disabled={copyDisabled}
+            useIpPinning={useIpPinning}
+            onToggle={toggleIpPinning}
+          />
+        </Flex>
       </Flex>
 
       <HandoffPromptAlerts useIpPinning={useIpPinning} error={handoff.error} />

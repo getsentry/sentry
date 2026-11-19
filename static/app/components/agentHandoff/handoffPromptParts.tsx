@@ -18,6 +18,10 @@ import {getHandoffGuideUrl, getHandoffPrompt} from './handoffPrompt';
 import {AgentHandoffFlow, type AgentHandoffContext} from './types';
 import {useHandoffPromptInteractions} from './useHandoffPromptInteractions';
 
+export function getHandoffPreviewUrl(sentryUrl: string): string {
+  return new URL('/agent-handoff.md', sentryUrl).href;
+}
+
 interface HandoffAdvancedMenuProps {
   disabled: boolean;
   onToggle: () => void;

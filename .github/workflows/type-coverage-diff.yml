@@ -72,9 +72,11 @@ jobs:
         if: steps.merge_base.outputs.skip != 'true'
         id: coverage
         continue-on-error: true
+        env:
+          BASE_COMMIT: ${{ steps.merge_base.outputs.commit }}
         run: |
           pnpm run type-coverage-diff \
-            --commit ${{ steps.merge_base.outputs.commit }} \
+            --commit "$BASE_COMMIT" \
             --output /tmp/type-coverage-report.json \
             --verbose
 
