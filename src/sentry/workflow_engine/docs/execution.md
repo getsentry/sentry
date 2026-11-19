@@ -61,23 +61,6 @@ paths can identify detectors through product-specific data and call
 [`process_detectors`](../processors/detector.py) directly. The handler contract is the
 same after detector selection.
 
-Anomaly detection sends each project's measurements as a `DataPacket` to its registered
-detector handler. The handler compares measurements with prior baselines and returns changes
-for the organization to correlate. This product-specific step does not publish issues. Once
-correlation is complete, the source commits its checkpoint and pending transitions together
-and calls `process_detectors` for the pinned project detector. Workflow Engine records evaluation
-artifacts and dispatches Issue Platform outcomes. Anomaly evaluation keeps advancing while a
-delivery awaits confirmation. The anomaly outbox preserves order within each issue activation
-and confirms the issue state in Issue Platform rather than treating broker acknowledgment as
-ingestion. It bounds retries and backlog, prioritizes closes for existing issues, and counts
-terminal drops in `anomaly_detection.delivery_dropped`.
-
-Start with [`schedule.py`](../../anomaly_detection/schedule.py) for task execution or
-[`detector_handler.py`](../../anomaly_detection/detector_handler.py) for detector behavior.
-The anomaly package separates input queries (`inputs/`), measurement scoring and the minute
-loop (`evaluation/`), group matching (`correlation/`), replay and storage (`checkpoint/`),
-and issue publication (`delivery/`).
-
 ### 3. Evaluate each detector
 
 `process_detectors` obtains `detector.detector_handler` from the `DetectorSettings`
