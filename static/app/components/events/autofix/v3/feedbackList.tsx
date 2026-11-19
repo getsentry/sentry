@@ -835,7 +835,7 @@ function getFeedbackErrorMessage(errorCode: string | null | undefined): string {
       );
     case 'out_of_credits':
       return t(
-        "This feedback couldn't finish because your organization is out of credits"
+        "This feedback couldn't finish because your organization ran out of credits"
       );
     default:
       return t('Changes from this feedback could not be pushed');

@@ -1514,7 +1514,7 @@ describe('InboxPage', () => {
       await userEvent.hover(retryButton);
       expect(
         await screen.findByText(
-          "Seer couldn't open a pull request in org/repository because your organization is out of credits."
+          "Seer couldn't open a pull request in org/repository because your organization ran out of credits."
         )
       ).toBeInTheDocument();
     });

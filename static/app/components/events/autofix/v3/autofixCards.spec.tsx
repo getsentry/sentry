@@ -3044,7 +3044,7 @@ describe('out of credits', () => {
   it.each([
     [
       null,
-      "Seer couldn't start on 2 feedback items because your organization is out of credits. Seer continues the next time it iterates on the pull request.",
+      "Seer couldn't start on 2 feedback items because your organization ran out of credits. Seer continues the next time it iterates on the pull request.",
     ],
     [
       'daily_cap_exceeded' as const,
@@ -3114,7 +3114,7 @@ describe('out of credits', () => {
 
       expect(
         screen.getByText(
-          "Seer couldn't open a pull request in org/api because your organization is out of credits."
+          "Seer couldn't open a pull request in org/api because your organization ran out of credits."
         )
       ).toBeInTheDocument();
 

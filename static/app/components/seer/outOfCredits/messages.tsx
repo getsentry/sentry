@@ -70,15 +70,15 @@ export function getRefusedStepMessage(
 // TODO(CW-3102): Point at the Retry button instead of the next iteration.
 const OUT_OF_CREDITS_PR_ITERATION_MESSAGE = {
   push: t(
-    "Seer couldn't push the latest changes because your organization is out of credits. Seer continues the next time it iterates on the pull request."
+    "Seer couldn't push the latest changes because your organization ran out of credits. Seer continues the next time it iterates on the pull request."
   ),
   branch_moved_retry: t(
-    "Seer couldn't redo the latest changes on the pull request's newer commits because your organization is out of credits. Seer continues the next time it iterates on the pull request."
+    "Seer couldn't redo the latest changes on the pull request's newer commits because your organization ran out of credits. Seer continues the next time it iterates on the pull request."
   ),
   queued: (count: number) =>
     tn(
-      "Seer couldn't start on %s feedback item because your organization is out of credits. Seer continues the next time it iterates on the pull request.",
-      "Seer couldn't start on %s feedback items because your organization is out of credits. Seer continues the next time it iterates on the pull request.",
+      "Seer couldn't start on %s feedback item because your organization ran out of credits. Seer continues the next time it iterates on the pull request.",
+      "Seer couldn't start on %s feedback items because your organization ran out of credits. Seer continues the next time it iterates on the pull request.",
       count
     ),
 };
@@ -117,7 +117,7 @@ export function getPrIterationOutOfCreditsMessage(
 }
 
 export const OUT_OF_CREDITS_CHAT_MESSAGE = t(
-  'Seer stopped because your organization is out of credits.'
+  'Seer stopped because your organization ran out of credits.'
 );
 
 /**
@@ -136,12 +136,12 @@ export function getOutOfCreditsPRMessage(
 ): string {
   return state.pr_number
     ? t(
-        "Seer couldn't push changes to %s#%s because your organization is out of credits.",
+        "Seer couldn't push changes to %s#%s because your organization ran out of credits.",
         state.repo_name,
         state.pr_number
       )
     : t(
-        "Seer couldn't open a pull request in %s because your organization is out of credits.",
+        "Seer couldn't open a pull request in %s because your organization ran out of credits.",
         state.repo_name
       );
 }
@@ -159,7 +159,7 @@ export function getRefusedPRMessage(
     return state
       ? getOutOfCreditsPRMessage(state)
       : t(
-          "Seer couldn't open a pull request because your organization is out of credits."
+          "Seer couldn't open a pull request because your organization ran out of credits."
         );
   }
   if (!state) {
@@ -188,7 +188,7 @@ export function getOutOfCreditsPRsMessage(states: RepoPRState[]): string {
     return getOutOfCreditsPRMessage(states[0]!);
   }
   return t(
-    "Seer couldn't finish %s pull requests because your organization is out of credits.",
+    "Seer couldn't finish %s pull requests because your organization ran out of credits.",
     states.length
   );
 }
