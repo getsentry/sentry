@@ -38,7 +38,7 @@ function WrappedComponent({data, ...rest}: any) {
             allowedCharts={[
               PerformanceWidgetSetting.TPM_AREA,
               PerformanceWidgetSetting.FAILURE_RATE_AREA,
-              PerformanceWidgetSetting.USER_MISERY_AREA,
+              PerformanceWidgetSetting.APDEX_AREA,
             ]}
             rowChartSettings={[]}
             {...data}
@@ -62,7 +62,7 @@ describe('Performance > Widgets > Query Batching', () => {
         data: [
           {
             'epm()': 53.12,
-            'user_misery()': 0.023,
+            'apdex()': 0.023,
             'failure_rate()': 0.012,
           },
         ],
@@ -99,7 +99,7 @@ describe('Performance > Widgets > Query Batching', () => {
           start: 1636822800,
           end: 1636995600,
         },
-        'user_misery()': {
+        'apdex()': {
           data: [
             [
               1636822800,
@@ -207,7 +207,7 @@ describe('Performance > Widgets > Query Batching', () => {
         />
         <WrappedComponent
           data={data}
-          defaultChartSetting={PerformanceWidgetSetting.USER_MISERY_AREA}
+          defaultChartSetting={PerformanceWidgetSetting.APDEX_AREA}
           isMEPEnabled={false}
         />
       </Fragment>,

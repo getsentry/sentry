@@ -29,7 +29,7 @@ const initializeData = (query = {}, rest: InitializeDataSettings = {}) => {
 const DEFAULT_ALLOWED_CHARTS = [
   PerformanceWidgetSetting.TPM_AREA,
   PerformanceWidgetSetting.FAILURE_RATE_AREA,
-  PerformanceWidgetSetting.USER_MISERY_AREA,
+  PerformanceWidgetSetting.APDEX_AREA,
 ];
 
 function WrappedComponent({data, withStaticFilters = false, ...rest}: any) {
@@ -293,66 +293,6 @@ describe('Performance > Widgets > WidgetContainer', () => {
     );
   });
 
-  it('User misery Widget', async () => {
-    const data = initializeData();
-
-    wrapper = render(
-      <WrappedComponent
-        data={data}
-        defaultChartSetting={PerformanceWidgetSetting.USER_MISERY_AREA}
-      />
-    );
-
-    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
-      'User Misery'
-    );
-    expect(eventStatsMock).toHaveBeenCalledTimes(1);
-    expect(eventStatsMock).toHaveBeenNthCalledWith(
-      1,
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          interval: '1h',
-          partial: '1',
-          query: 'transaction.op:pageload',
-          statsPeriod: '14d',
-          yAxis: 'user_misery()',
-        }),
-      })
-    );
-  });
-
-  it('Most errors widget', async () => {
-    const data = initializeData();
-
-    wrapper = render(
-      <WrappedComponent
-        data={data}
-        defaultChartSetting={PerformanceWidgetSetting.MOST_RELATED_ERRORS}
-      />
-    );
-
-    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
-      'Most Related Errors'
-    );
-    expect(eventsMock).toHaveBeenCalledTimes(1);
-    expect(eventsMock).toHaveBeenNthCalledWith(
-      1,
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          environment: ['prod'],
-          field: ['transaction', 'project.id', 'failure_count()'],
-          per_page: QUERY_LIMIT_PARAM,
-          project: ['-42'],
-          query: 'transaction.op:pageload failure_count():>0',
-          sort: '-failure_count()',
-          statsPeriod: '7d',
-        }),
-      })
-    );
-  });
-
   it('Most related issues widget', async () => {
     const data = initializeData();
 
@@ -384,7 +324,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
     );
   });
 
-  it('Switching from issues to errors widget', async () => {
+  it('Switching from issues to slow HTTP ops widget', async () => {
     const data = initializeData();
 
     wrapper = render(
@@ -406,15 +346,15 @@ describe('Performance > Widgets > WidgetContainer', () => {
     wrapper.rerender(
       <WrappedComponent
         data={data}
-        defaultChartSetting={PerformanceWidgetSetting.MOST_RELATED_ERRORS}
+        defaultChartSetting={PerformanceWidgetSetting.SLOW_HTTP_OPS}
       />
     );
 
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
-      'Most Related Errors'
+      'Slow HTTP Ops'
     );
     expect(eventsMock).toHaveBeenCalledTimes(1);
-    // Leftover issues list data must not trigger a chart request for errors
+    // Leftover issues list data must not trigger a chart request for slow HTTP ops
     expect(eventStatsMock).toHaveBeenCalledTimes(1);
   });
 
@@ -810,10 +750,10 @@ describe('Performance > Widgets > WidgetContainer', () => {
 
     // Open the interactive title dropdown and select a different widget type
     await userEvent.click(await screen.findByRole('button', {name: 'Failure Rate'}));
-    await userEvent.click(await screen.findByRole('option', {name: 'User Misery'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Apdex'}));
 
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
-      'User Misery'
+      'Apdex'
     );
     expect(eventStatsMock).toHaveBeenCalledTimes(2);
     expect(setRowChartSettings).toHaveBeenCalledTimes(1);
@@ -831,7 +771,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
         setRowChartSettings={setRowChartSettings}
         rowChartSettings={[
           PerformanceWidgetSetting.FAILURE_RATE_AREA,
-          PerformanceWidgetSetting.USER_MISERY_AREA,
+          PerformanceWidgetSetting.APDEX_AREA,
         ]}
       />
     );
@@ -843,10 +783,10 @@ describe('Performance > Widgets > WidgetContainer', () => {
     // Open the interactive title dropdown
     await userEvent.click(await screen.findByRole('button', {name: 'Failure Rate'}));
 
-    // Check that the "User Misery" option is disabled by clicking on it,
+    // Check that the "Apdex" option is disabled by clicking on it,
     // expecting that the selected option doesn't change
-    const userMiseryOption = await screen.findByRole('option', {name: 'User Misery'});
-    await userEvent.click(userMiseryOption);
+    const apdexOption = await screen.findByRole('option', {name: 'Apdex'});
+    await userEvent.click(apdexOption);
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'Failure Rate'
     );

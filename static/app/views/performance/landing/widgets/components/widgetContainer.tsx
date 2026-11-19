@@ -35,9 +35,7 @@ import {useWidgetDefinitions} from 'sentry/views/performance/landing/widgets/wid
 import {LineChartListWidget} from 'sentry/views/performance/landing/widgets/widgets/lineChartListWidget';
 import {MobileReleaseComparisonListWidget} from 'sentry/views/performance/landing/widgets/widgets/mobileReleaseComparisonListWidget';
 import {PerformanceScoreListWidget} from 'sentry/views/performance/landing/widgets/widgets/performanceScoreListWidget';
-import {PerformanceScoreWidget} from 'sentry/views/performance/landing/widgets/widgets/performanceScoreWidget';
 import {SingleFieldAreaWidget} from 'sentry/views/performance/landing/widgets/widgets/singleFieldAreaWidget';
-import {StackedAreaChartListWidget} from 'sentry/views/performance/landing/widgets/widgets/stackedAreaChartListWidget';
 
 import type {ChartRowProps} from './widgetChartRow';
 
@@ -140,12 +138,8 @@ export function WidgetContainer(props: Props) {
       return <SingleFieldAreaWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.LINE_LIST:
       return <LineChartListWidget {...passedProps} {...widgetProps} />;
-    case GenericPerformanceWidgetDataType.STACKED_AREA:
-      return <StackedAreaChartListWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.PERFORMANCE_SCORE_LIST:
       return <PerformanceScoreListWidget {...passedProps} {...widgetProps} />;
-    case GenericPerformanceWidgetDataType.PERFORMANCE_SCORE:
-      return <PerformanceScoreWidget {...passedProps} {...widgetProps} />;
     case GenericPerformanceWidgetDataType.SLOW_SCREENS_BY_TTID:
     case GenericPerformanceWidgetDataType.SLOW_SCREENS_BY_COLD_START:
     case GenericPerformanceWidgetDataType.SLOW_SCREENS_BY_WARM_START:

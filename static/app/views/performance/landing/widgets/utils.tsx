@@ -51,10 +51,7 @@ export function getMEPQueryParams(mepContext: MetricsEnhancedSettingContext) {
   return isEmptyObject(queryParams) ? undefined : queryParams;
 }
 
-export const WIDGET_MAP_DENY_LIST = [
-  PerformanceWidgetSetting.MOST_RELATED_ERRORS,
-  PerformanceWidgetSetting.MOST_RELATED_ISSUES,
-];
+export const WIDGET_MAP_DENY_LIST = [PerformanceWidgetSetting.MOST_RELATED_ISSUES];
 
 /**
  * Some widgets, such as Related Issues, are inherently not possible w/ metrics at the moment since they use event.type:error under the hood.
