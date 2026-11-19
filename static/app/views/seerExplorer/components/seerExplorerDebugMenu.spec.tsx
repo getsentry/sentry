@@ -1,4 +1,3 @@
-import {OrganizationFixture} from 'sentry-fixture/organization';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -7,18 +6,12 @@ import {ConfigStore} from 'sentry/stores/configStore';
 
 import {SeerExplorerDebugMenu} from './seerExplorerDebugMenu';
 
-function orgWith(...features: string[]) {
-  return OrganizationFixture({features});
-}
-
 function defaultProps(
   overrides: Partial<React.ComponentProps<typeof SeerExplorerDebugMenu>> = {}
 ) {
   return {
     overrideBashModeEnabled: false,
     onOverrideBashModeToggle: jest.fn(),
-    showThinking: false,
-    onShowThinkingToggle: jest.fn(),
     ...overrides,
   };
 }
@@ -38,38 +31,19 @@ describe('SeerExplorerDebugMenu', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Seer settings'}));
 
+    expect(screen.getByRole('listbox', {name: 'Debug'})).toBeInTheDocument();
     expect(screen.getByRole('option', {name: /Force bash mode on/})).toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', {name: 'Open agent trace'})
+    ).not.toBeInTheDocument();
   });
 
-  it('does not render for non-employees', () => {
+  it('renders nothing for non-employees', () => {
     ConfigStore.set('user', UserFixture());
-    render(<SeerExplorerDebugMenu {...defaultProps()} />);
+    const {container} = render(<SeerExplorerDebugMenu {...defaultProps()} />);
 
     expect(screen.queryByRole('button', {name: 'Seer settings'})).not.toBeInTheDocument();
-  });
-
-  it('renders the thinking toggle behind its flag', async () => {
-    render(<SeerExplorerDebugMenu {...defaultProps()} />, {
-      organization: orgWith('seer-explorer-thinking-blocks'),
-    });
-
-    await userEvent.click(screen.getByRole('button', {name: 'Seer settings'}));
-
-    expect(screen.getByRole('option', {name: /Show thinking/})).toBeInTheDocument();
-    expect(screen.getByRole('option', {name: /Force bash mode on/})).toBeInTheDocument();
-  });
-
-  it('hides the thinking toggle when code mode tools is enabled', async () => {
-    render(<SeerExplorerDebugMenu {...defaultProps()} />, {
-      organization: orgWith(
-        'seer-explorer-thinking-blocks',
-        'seer-explorer-code-mode-tools'
-      ),
-    });
-
-    await userEvent.click(screen.getByRole('button', {name: 'Seer settings'}));
-
-    expect(screen.queryByRole('option', {name: /Show thinking/})).not.toBeInTheDocument();
+    expect(container).toBeEmptyDOMElement();
   });
 
   it('toggles force bash mode', async () => {

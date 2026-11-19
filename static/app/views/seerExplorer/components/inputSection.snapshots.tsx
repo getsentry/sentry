@@ -1,5 +1,5 @@
 import {createRef, Fragment} from 'react';
-import {IconAdd} from '@sentry/icons/add';
+import {IconSlashForward} from '@sentry/icons/slashForward';
 import {IconSliders} from '@sentry/icons/sliders';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 
@@ -27,8 +27,8 @@ describe('Seer composer toolbar', () => {
           leadingToolbarItems={
             <Fragment>
               <Button
-                icon={<IconAdd />}
-                aria-label="Add to conversation"
+                icon={<IconSlashForward />}
+                aria-label="Commands"
                 size="zero"
                 variant="transparent"
               />
