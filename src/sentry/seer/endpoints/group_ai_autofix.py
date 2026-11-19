@@ -10,6 +10,8 @@ from rest_framework import serializers, status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.views import APIView
+from sentry_protos.billing.v1.common.v1 import seer_billing_feature_pb2 as billing
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -39,7 +41,7 @@ from sentry.issues.action_log import (
     action_context_scope,
 )
 from sentry.issues.action_log.request import resolve_action_actor, resolve_action_source
-from sentry.issues.action_log.types import GroupActorType
+from sentry.issues.action_log.types import ActionSource, GroupActorType
 from sentry.issues.endpoints.bases.group import GroupAiEndpoint, GroupAiPermission
 from sentry.issues.formatting.autofix import format_autofix
 from sentry.issues.formatting.mixin import VALID_FORMATS, FormattableResponseMixin
@@ -62,6 +64,7 @@ from sentry.seer.autofix.coding_agent import (
 from sentry.seer.autofix.commit_author import commit_author_for_user
 from sentry.seer.autofix.constants import PUBLISH_SCOPES, AutofixReferrer
 from sentry.seer.autofix.exceptions import NoSeerQuotaException, SeerOutOfCreditsException
+from sentry.seer.autofix.feature.dispatch import get_run_billing_feature
 from sentry.seer.autofix.feature.models import FEATURE_ID as AUTOFIX_FEATURE_ID
 from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 from sentry.seer.autofix.on_completion_hook import get_run_stopping_point
@@ -95,6 +98,7 @@ from sentry.seer.endpoints.utils import (
     SEER_PERMISSION_DENIED,
     SeerPaymentRequiredCode,
     get_seer_run,
+    refuse_service_account_token,
     resolve_seer_run,
     seer_out_of_credits_response,
 )
@@ -183,6 +187,11 @@ class GroupAutofixPermission(GroupAiPermission):
         **GroupAiPermission.scope_map,
         "POST": ["event:write", "event:admin", "seer:write"],
     }
+
+    def has_permission(self, request: Request, view: APIView) -> bool:
+        if request.method == "POST":
+            refuse_service_account_token(request)
+        return super().has_permission(request, view)
 
 
 # Steps that still need explicit user approval (`event:write`) because they act outside
@@ -567,6 +576,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                             status=status.HTTP_409_CONFLICT,
                         )
 
+                billing_feature: int | None = None
                 if resolved_run_id is not None:
                     try:
                         run_state = get_autofix_run_state(group, resolved_run_id)
@@ -574,6 +584,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                         if _is_unknown_run_id_error(e):
                             return Response(status=status.HTTP_404_NOT_FOUND)
                         raise PermissionDenied(SEER_PERMISSION_DENIED)
+                    billing_feature = get_run_billing_feature(run_state)
 
                     # A continued run keeps the stopping point it started with, and the
                     # completion hook acts on it after this step, so gate on it too.
@@ -615,10 +626,17 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                             status=status.HTTP_409_CONFLICT,
                         )
 
+                # The client can supply referrer. Resolve attribution from the request instead.
                 if is_autofix_kickoff:
+                    billing_feature = billing.SEER_BILLING_FEATURE_AUTOFIX_HEADLESS
                     actor = resolve_action_actor(request)
+                    source = resolve_action_source(request)
+                    if actor.actor_type == GroupActorType.SENTRY_APP:
+                        billing_feature = billing.SEER_BILLING_FEATURE_AUTOFIX_INTEGRATIONS
+                    elif source == ActionSource.WEB:
+                        billing_feature = billing.SEER_BILLING_FEATURE_AUTOFIX_WEB
                     with action_context_scope(
-                        source=resolve_action_source(request),
+                        source=source,
                         actor=actor,
                     ):
                         Activity.objects.create_group_activity(
@@ -636,6 +654,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                         group=group,
                         step=AutofixStep(step),
                         referrer=referrer,
+                        billing_feature=billing_feature,
                         stopping_point=(
                             AutofixStoppingPoint(stopping_point) if stopping_point else None
                         ),
@@ -766,6 +785,7 @@ class GroupAutofixEndpoint(ConditionalGetResponseMixin, FormattableResponseMixin
                     "feature_id": SINGLE_RUN_FEATURE_ID if single_run else AUTOFIX_FEATURE_ID,
                     "status": state.status,
                     "failure_reason": state.failure_reason,
+                    "billing_feature": state.billing_feature,
                     "blocks": blocks,
                     "updated_at": state.updated_at,
                     "pending_user_input": (

@@ -42,9 +42,9 @@ export class CursorPoller {
     // Remove collapse stats
     issueEndpoint.searchParams.delete('collapse');
 
-    this.pollingEndpoint = decodeURIComponent(
-      issueEndpoint.pathname + issueEndpoint.search
-    );
+    // Keep the query string encoded. Decoding it turns an encoded `#` (e.g.
+    // `assigned:#team`) into a URL fragment, which drops every parameter after it.
+    this.pollingEndpoint = issueEndpoint.pathname + issueEndpoint.search;
   }
 
   enable() {
@@ -95,16 +95,21 @@ export class CursorPoller {
 
       this.options.success(data, {queryCount});
     } catch (error) {
-      // If user does not have access to the endpoint, we should halt polling
-      // These errors could mean:
+      // Halt polling when retrying the same request cannot succeed:
+      // * the request is invalid
       // * the user lost access to a project
       // * project was renamed
       // * user needs to reauth
       if (
         error instanceof RequestError &&
-        (error.status === 404 || error.status === 403 || error.status === 401)
+        (error.status === 400 ||
+          error.status === 401 ||
+          error.status === 403 ||
+          error.status === 404)
       ) {
         this.disable();
+      } else if (this.active) {
+        this.reqsWithoutData += 1;
       }
     } finally {
       if (this.active) {

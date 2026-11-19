@@ -62,6 +62,9 @@ export function getWidgetMetricsUrl(
           const parsed = parseAggregateExpression(aggregate, queryString);
           const results: BaseMetricQuery[] = [...parsed.metricQueries];
           if (parsed.equationRow) {
+            const aggregateSortBys = query.orderby
+              ? decodeSorts(query.orderby).filter(sort => sort.field === aggregate)
+              : [];
             results.push({
               ...parsed.equationRow,
               queryParams: parsed.equationRow.queryParams.replace({
@@ -69,6 +72,7 @@ export function getWidgetMetricsUrl(
                   new VisualizeEquation(aggregate, {chartType}),
                   ...groupByFields,
                 ],
+                aggregateSortBys,
               }),
             });
           }

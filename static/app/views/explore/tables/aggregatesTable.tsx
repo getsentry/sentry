@@ -39,6 +39,7 @@ import {
   useSetQueryParamsAggregateSortBys,
 } from 'sentry/views/explore/queryParams/context';
 import {prettifyAggregation, viewSamplesTarget} from 'sentry/views/explore/utils';
+import {isHeatMapAggregate} from 'sentry/views/explore/utils/heatMapAggregate';
 import {SpanFields} from 'sentry/views/insights/types';
 import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
@@ -86,7 +87,7 @@ export function AggregatesTable({
         if (isGroupBy(aggregateField)) {
           return Boolean(aggregateField.groupBy);
         }
-        return true;
+        return !isHeatMapAggregate(aggregateField.yAxis);
       }),
     [aggregateFields]
   );

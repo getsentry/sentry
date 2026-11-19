@@ -21,6 +21,7 @@ from sentry.seer.models.workflow import (
 )
 from sentry.seer.workflows.base import (
     AllProjects,
+    AutomationDefinition,
     SeerServiceAccountGrant,
     SelectedMonitors,
     SelectedProjects,
@@ -32,6 +33,7 @@ from sentry.seer.workflows.workflow import (
 )
 from sentry.service_accounts.models import (
     ServiceAccount,
+    ServiceAccountOwnerKind,
     ServiceAccountProject,
     ServiceAccountReplica,
 )
@@ -110,7 +112,8 @@ class SeerWorkflowCreateTest(TestCase):
             schedule=SeerWorkflowSchedule.DAILY,
             scope=SelectedProjects((second.id, first.id)),
             environments=["production"],
-            extras=SeerWorkflowConfigExtras(name="Daily triage", created_by=self.user.id),
+            name="Daily triage",
+            created_by_id=self.user.id,
             service_account_grant=SeerServiceAccountGrant(
                 scopes=["event:read"], project_ids=[first.id]
             ),
@@ -132,7 +135,6 @@ class SeerWorkflowCreateTest(TestCase):
         assert config.enabled is True
         assert config.schedule == SeerWorkflowSchedule.DAILY
         assert config.filters == {"all_projects": False, "environments": ["production"]}
-        assert workflow.extras.name == "Daily triage"
         assert config.version == 1
         assert workflow.get_project_ids() == sorted([first.id, second.id])
 
@@ -150,7 +152,6 @@ class SeerWorkflowCreateTest(TestCase):
         config = workflow.get_config()
         assert config.enabled is False
         assert config.filters == {"all_projects": True, "environments": []}
-        assert workflow.extras.name is None
         assert not SeerWorkflowConfigProject.objects.filter(config=config).exists()
         assert workflow.get_project_ids() == [project.id]
 
@@ -281,7 +282,9 @@ class SeerWorkflowServiceAccountOutboxTest(TestCase):
             category=OutboxCategory.SERVICE_ACCOUNT_CREATE
         ).exists()
         with assume_test_silo_mode(SiloMode.CONTROL):
-            assert ServiceAccount.objects.get(id=account_id).scope_list == ["event:read"]
+            account = ServiceAccount.objects.get(id=account_id)
+        assert account.scope_list == ["event:read"]
+        assert account.owner_kind == ServiceAccountOwnerKind.SEER_WORKFLOW_CONFIG
 
     def test_flush_database_error_keeps_config_for_retry(self) -> None:
         organization, project = self.organization, self.project
@@ -359,7 +362,7 @@ class SeerWorkflowUpdateConfigTest(TestCase):
 
         config = self.workflow.get_config()
         assert config.version == 2
-        assert config.enabled is True
+        assert AutomationDefinition.is_enabled(config) is True
         assert self.workflow.filters.all_projects is True
 
     def test_unchanged_update_does_not_save(self) -> None:
@@ -373,10 +376,10 @@ class SeerWorkflowUpdateConfigTest(TestCase):
 
     def test_set_extras_saves_and_bumps_version(self) -> None:
         with self.workflow.update_config() as update:
-            update.set_extras(SeerWorkflowConfigExtras(name="Triage", updated_by="bot"))
+            update.set_extras(SeerWorkflowConfigExtras(updated_by="bot"))
 
         config = self.workflow.get_config()
-        assert config.extras == {"name": "Triage", "updated_by": "bot"}
+        assert config.extras == {"updated_by": "bot"}
         assert config.version == 2
 
     def test_unchanged_extras_does_not_save(self) -> None:
@@ -407,7 +410,7 @@ class SeerWorkflowUpdateConfigTest(TestCase):
 
         config = self.workflow.get_config()
         assert config.version == 1
-        assert config.enabled is False
+        assert AutomationDefinition.is_enabled(config) is False
         assert self.workflow.get_project_ids() == [self.selected.id]
 
 
@@ -450,7 +453,8 @@ class SeerWorkflowScopeTest(TestCase):
         assert workflow.matches_scope(self.project.id, "staging") is False
         assert workflow.matches_scope(self.project.id, None) is False
 
-        SeerWorkflowConfig.objects.filter(id=config.id).update(enabled=False)
+        assert config.backing_workflow is not None
+        config.backing_workflow.update(enabled=False)
 
         assert workflow.matches_scope(self.project.id, "production") is False
 
@@ -736,7 +740,7 @@ class SeerWorkflowServiceAccountTest(TestCase):
                 update.set_enabled(True)
                 raise WorkflowUpdateError("failed")
 
-        assert not self.workflow.get_config().enabled
+        assert not AutomationDefinition.is_enabled(self.workflow.get_config())
         assert not self.control_service_account(self.account.id).all_projects
         assert not CellOutbox.objects.filter(
             category=OutboxCategory.SERVICE_ACCOUNT_GRANT_UPDATE
@@ -747,7 +751,7 @@ class SeerWorkflowServiceAccountTest(TestCase):
             update.set_enabled(True)
 
         config = self.workflow.get_config()
-        assert config.enabled
+        assert AutomationDefinition.is_enabled(config)
         assert config.version == version + 1
         account = self.control_service_account(self.account.id)
         assert account.scope_list == ["project:read"]
@@ -898,7 +902,7 @@ class SeerWorkflowScheduleSyncTest(TestCase):
 
         updated = self.set_enabled(config, True)
 
-        assert updated.enabled
+        assert AutomationDefinition.is_enabled(updated)
         assert updated.version == 2
         assert self.next_scheduled_for(config) == datetime(2024, 3, 10, 10, 0, tzinfo=UTC)
 
@@ -910,7 +914,7 @@ class SeerWorkflowScheduleSyncTest(TestCase):
 
         updated = self.set_enabled(config, False)
 
-        assert not updated.enabled
+        assert not AutomationDefinition.is_enabled(updated)
         assert updated.version == 3
         assert self.next_scheduled_for(config) is None
 

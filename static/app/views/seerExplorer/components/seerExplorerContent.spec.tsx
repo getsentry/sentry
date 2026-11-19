@@ -1337,6 +1337,95 @@ describe('SeerExplorerContent', () => {
     });
   });
 
+  describe('Run stopped for credits', () => {
+    const stoppedBlocks = [
+      {
+        id: 'user-1',
+        message: {role: 'user' as const, content: 'Why is checkout slow?'},
+        timestamp: '2024-01-01T00:00:00Z',
+      },
+      {
+        id: 'tool-1',
+        message: {
+          role: 'tool_use' as const,
+          content: 'Looking at the slowest checkout spans.',
+        },
+        timestamp: '2024-01-01T00:00:10Z',
+      },
+      {
+        id: 'error-1',
+        message: {
+          role: 'assistant' as const,
+          content:
+            "Your organization doesn't have enough Seer credits for this, so I stopped here.",
+        },
+        timestamp: '2024-01-01T00:00:20Z',
+      },
+    ];
+
+    function renderContent() {
+      render(
+        <PictureInPictureProvider>
+          <SeerExplorerSessionsProvider>
+            <SeerExplorerContent
+              getPageReferrer={mockGetPageReferrer}
+              onClose={() => {}}
+            />
+          </SeerExplorerSessionsProvider>
+        </PictureInPictureProvider>,
+        {organization}
+      );
+    }
+
+    it("replaces Seer's error block with why it stopped and keeps the partial response", async () => {
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        runId: 123,
+        sessionData: {
+          blocks: stoppedBlocks,
+          status: 'error',
+          updated_at: '2024-01-01T00:00:20Z',
+          failure_reason: 'out_of_credits',
+        },
+      });
+
+      renderContent();
+
+      expect(
+        await screen.findByText(
+          'Seer stopped because your organization is out of credits.'
+        )
+      ).toBeInTheDocument();
+      expect(screen.queryByText(/so I stopped here/)).not.toBeInTheDocument();
+      expect(screen.queryByText('Response timed out.')).not.toBeInTheDocument();
+      // The reasoning before it stopped stays in the thinking block.
+      await userEvent.click(
+        screen.getByRole('button', {name: /See thinking and tool calls/})
+      );
+      expect(screen.getByText('Looking at the slowest checkout spans.')).toBeVisible();
+    });
+
+    it("leaves Seer's error block alone for other failures", async () => {
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
+        ...defaultHookReturn,
+        runId: 123,
+        sessionData: {
+          blocks: stoppedBlocks,
+          status: 'error',
+          updated_at: '2024-01-01T00:00:20Z',
+          failure_reason: null,
+        },
+      });
+
+      renderContent();
+
+      expect(await screen.findByText(/so I stopped here/)).toBeInTheDocument();
+      expect(
+        screen.queryByText('Seer stopped because your organization is out of credits.')
+      ).not.toBeInTheDocument();
+    });
+  });
+
   describe('Input Persistence', () => {
     it.each([
       ['legacy string', 'Ask @Alice #team'],
@@ -2206,12 +2295,7 @@ describe('SeerExplorerContent', () => {
   describe('Out of credits', () => {
     const creditsOrganization = OrganizationFixture({
       openMembership: true,
-      features: [
-        'seer-explorer',
-        'seer-credit-checks',
-        'token-billed-seer-enabled',
-        'investigations',
-      ],
+      features: ['seer-explorer', 'token-billed-seer-enabled', 'investigations'],
       hideAiFeatures: false,
     });
 
@@ -2485,6 +2569,65 @@ describe('SeerExplorerContent', () => {
       await userEvent.type(await getSeerExplorerInput(), 'Test message{Enter}');
 
       expect(sendMessage).toHaveBeenCalledWith('Test message', 0);
+      expect(
+        screen.queryByTestId('seer-explorer-out-of-credits')
+      ).not.toBeInTheDocument();
+    });
+
+    it('sends a reply to an Autofix single run even when a new chat is unaffordable', async () => {
+      jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockRestore();
+      mockCreditCheck(false);
+      const runId = 42;
+      const url = `/organizations/${creditsOrganization.slug}/seer/explorer-chat/${runId}/`;
+      MockApiClient.addMockResponse({
+        url,
+        body: {
+          feature_id: 'autofix_single_run',
+          session: {
+            blocks: [
+              {
+                id: 'analysis',
+                message: {role: 'assistant', content: 'Autofix found the root cause.'},
+                timestamp: '2024-01-01T00:01:00Z',
+              },
+            ],
+            run_id: runId,
+            status: 'completed',
+            updated_at: '2024-01-01T00:01:00Z',
+          },
+        },
+      });
+      const reply = MockApiClient.addMockResponse({
+        url,
+        method: 'POST',
+        body: {run_id: runId},
+      });
+
+      function OpenRun() {
+        const dispatch = useSeerExplorerChatDispatch();
+        useEffect(() => {
+          dispatch({type: 'set run id', payload: runId});
+        }, [dispatch]);
+        return null;
+      }
+
+      render(
+        <SeerExplorerChatStateProvider>
+          <OpenRun />
+          {contentTree()}
+        </SeerExplorerChatStateProvider>,
+        {organization: creditsOrganization}
+      );
+
+      await screen.findByText('Autofix found the root cause.');
+      await userEvent.type(await getSeerExplorerInput(), 'Continue with the fix{Enter}');
+
+      expect(reply).toHaveBeenCalledWith(
+        url,
+        expect.objectContaining({
+          data: expect.objectContaining({query: 'Continue with the fix'}),
+        })
+      );
       expect(
         screen.queryByTestId('seer-explorer-out-of-credits')
       ).not.toBeInTheDocument();
@@ -2791,7 +2934,7 @@ describe('SeerExplorerContent', () => {
       });
     });
 
-    it('does not check credits without seer-credit-checks', async () => {
+    it('does not check credits without token-billed Seer', async () => {
       const creditCheck = mockCreditCheck(false);
       const sendMessage = jest.fn();
       jest

@@ -396,6 +396,7 @@ class SeerAgentClient:
         ui_tools: str | None = None,
         record_in_history: bool = True,
         on_run_created: Callable[[SeerRun], None] | None = None,
+        billing_feature: int | None = None,
     ) -> SeerRun:
         """
         Start a new Seer Agent session.
@@ -451,6 +452,9 @@ class SeerAgentClient:
             agent_run_options=agent_run_options,
             proxy_headers=get_proxy_headers() if self.enable_code_mode_tools != "off" else None,
         )
+
+        if billing_feature is not None:
+            chat_body["billing_feature"] = billing_feature
 
         if self.reasoning_effort is not None:
             chat_body["reasoning_effort"] = self.reasoning_effort
@@ -543,6 +547,7 @@ class SeerAgentClient:
         agent_run_options: AgentRunOptions | None = None,
         user_org_context: UserOrgContext | None = None,
         proxy_headers: dict[str, str] | None = None,
+        billing_feature: int | None = None,
     ) -> SeerRun:
         """Dispatch a run to a registered Seer feature by feature_id via the
         SEER_RUN_CREATE outbox. The feature builds its own agent run from
@@ -587,6 +592,8 @@ class SeerAgentClient:
             agent_run_options=resolved_agent_run_options,
             referrer=referrer,
         )
+        if billing_feature is not None:
+            body["billing_feature"] = billing_feature
         if user_org_context is not None:
             body["user_org_context"] = user_org_context
         if proxy_headers is not None:
@@ -762,7 +769,7 @@ class SeerAgentClient:
         # the remote run (fail closed).
         run = SeerRun.objects.filter(
             organization_id=self.organization.id, seer_run_state_id=run_id
-        ).first()
+        ).first()  # noqa: S035
         if run is None:
             raise SeerPermissionError(UNKNOWN_RUN_ID_FOR_GROUP)
 

@@ -1390,6 +1390,9 @@ describe('Investigation detail', () => {
 
       afterEach(async () => {
         try {
+          // Unmount first: the page polls a pending re-check every 2s, and flushing
+          // the query cache's timers with it mounted re-renders it for minutes.
+          cleanup();
           await act(() => jest.runOnlyPendingTimersAsync());
         } finally {
           jest.useRealTimers();

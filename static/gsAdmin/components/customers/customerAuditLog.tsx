@@ -1,4 +1,5 @@
-import {DateTime} from 'sentry/components/dateTime';
+import {DateTime} from '@sentry/scraps/dateTime';
+
 import {ResultGrid} from 'sentry/components/resultGrid';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 

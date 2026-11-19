@@ -38,6 +38,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Organization scoped features that are in development or in customer trials. #
     ###############################################################################
 
+    # Enable the agent handoff prompt in the traces empty state
+    manager.add("organizations:agent-handoff-empty-states-tracing", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Kill switch for the agentic triage free cohort — enabling this flag shuts off agentic triage for all free cohort orgs
     manager.add("organizations:agentic-triage-free-cohort-killswitch", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable AI-based issue detection for an organization
@@ -86,6 +88,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:dashboards-user-last-visited", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Serve the prebuilt Web Vitals dashboards from the trace metrics dataset instead of spans
     manager.add("organizations:dashboards-web-vitals-trace-metrics", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable the unified visualize list (aggregates and equations side by side) for trace metrics widgets
+    manager.add("organizations:dashboards-trace-metrics-unified-visualize", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable data-fidelity annotations (dropped-data heatmap) on dashboard widget charts
     manager.add("organizations:dashboards-data-fidelity-annotations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable low-confidence indicators on data browsing time series charts
@@ -119,6 +123,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:explore-incremental-timeseries", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable interpolation and smoothing for Explore charts
     manager.add("organizations:explore-interpolation-and-smoothing", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable anomaly detection for Explore charts
+    manager.add("organizations:explore-anomaly-detection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable plotting multiple aggregates on one chart in Explore
     manager.add("organizations:explore-multi-aggregate-charts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable returning the migrated discover queries in explore saved queries
@@ -160,6 +166,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:integrations-grafana", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Show the Linear for Seer integration, which gives Seer read and write access to a Linear workspace
     manager.add("organizations:integrations-linear", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Give Seer read-only observability access across a Supabase organization's projects.
+    manager.add("organizations:integrations-supabase", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:integrations-slack-staging", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Lets Vercel builds call the API with Vercel's OIDC token instead of SENTRY_AUTH_TOKEN
     manager.add("organizations:integrations-vercel-oidc-auth", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
@@ -221,8 +229,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:objectstore-debugfiles-exclusive-write", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=False)
     # Double-write newly created debug files to Objectstore.
     manager.add("organizations:objectstore-debugfiles-write", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=False)
-    # Read debug files from Objectstore when an Objectstore copy is available.
-    manager.add("organizations:objectstore-debugfiles-read", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False, api_expose=False)
     # Enable large ownership rule file size limit
     manager.add("organizations:ownership-size-limit-large", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable xlarge ownership rule file size limit
@@ -253,6 +259,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:spans-monitor-equations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables the Heroku log drain endpoint in relay
     manager.add("organizations:relay-heroku-log-drain-endpoint", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enables the OTLP metrics endpoint in relay
+    manager.add("organizations:relay-otel-metrics-endpoint", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables the playstation ingestion in relay
     manager.add("organizations:relay-playstation-ingestion", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable granular permission scopes (e.g. dashboard:read/write) on API endpoints.
@@ -354,7 +362,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:autofix-pr-iteration-cap-assign", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Keep PR iteration turns on their PR's latest commit, and retry a push the branch moved under
     manager.add("organizations:autofix-pr-iteration-pin-to-pr-head", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    manager.add("organizations:autofix-single-run", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    manager.add("organizations:autofix-single-run", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Expose one-shot question answers on the Seer runs list (?expand=questions)
     manager.add("organizations:seer-run-questions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Show Seer run ID in Slack notification footers
@@ -365,10 +373,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-infra-telemetry-user-level-auth", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Cursor Origin as a supported SCM provider for Seer
     manager.add("organizations:seer-cursor-origin-support", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Seer onboarding changes for token-based billing
-    manager.add("organizations:seer-token-based-billing-onboarding", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Check Seer credits before running billable Seer operations under token-based billing
-    manager.add("organizations:seer-credit-checks", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Seer XRay Mode, the overlay that highlights LLM-context-registered DOM nodes
     manager.add("organizations:seer-xray", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the service account APIs (currently mocked)
@@ -451,6 +455,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:tag-values-sort-before-limit", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable the timeseries annotations framework
     manager.add("organizations:timeseries-annotations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable the inbound-filter-change producer for timeseries annotations
+    manager.add("organizations:timeseries-annotations-usecase-filter-change", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable dynamic grouping UI (top issues)
     manager.add("organizations:top-issues-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Extraction metrics for transactions during ingestion.
@@ -508,6 +514,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:tracemetrics-enabled", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace metrics product to be ingested via Relay
     manager.add("organizations:tracemetrics-ingestion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable querying OTLP histogram trace metrics by their buckets
+    manager.add("organizations:tracemetrics-otlp-histograms", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable showing expansion config (and expanded variables) in the UI
     manager.add("organizations:explore-automatic-json-expansion-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace metrics showing pii scrubbing

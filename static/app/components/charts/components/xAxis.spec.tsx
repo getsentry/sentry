@@ -1,17 +1,19 @@
 import {ThemeFixture} from 'sentry-fixture/theme';
+import {UserFixture} from 'sentry-fixture/user';
+
+import {ConfigStore} from 'sentry/stores/configStore';
 
 import type {XAxisProps} from './xAxis';
 import {createXAxisOptions} from './xAxis';
 
 const theme = ThemeFixture();
 
-jest.mock('moment-timezone', () => {
-  const moment = jest.requireActual('moment-timezone');
-  moment.tz.setDefault('America/Los_Angeles'); // Whatever timezone you want
-  return moment;
-});
-
 describe('Chart XAxis', () => {
+  beforeEach(() => {
+    const user = UserFixture();
+    user.options.timezone = 'America/Los_Angeles';
+    ConfigStore.set('user', user);
+  });
   let axisLabelFormatter: (value: string | number, index: number) => string;
   let xAxisObj!: ReturnType<typeof createXAxisOptions>;
   const props: XAxisProps = {

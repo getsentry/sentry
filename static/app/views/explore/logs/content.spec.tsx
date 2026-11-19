@@ -111,6 +111,31 @@ describe('LogsPage', () => {
     });
   });
 
+  it('keeps the sidebar hidden until Advanced is pressed', async () => {
+    render(<LogsPage />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: `/organizations/${organization.slug}/explore/logs/`},
+      },
+    });
+
+    expect(screen.queryByTestId('logs-toolbar')).not.toBeInTheDocument();
+    const expandSidebar = await screen.findByRole('button', {name: 'Expand sidebar'});
+    expect(expandSidebar).toHaveTextContent('Advanced');
+
+    await userEvent.click(expandSidebar);
+    expect(screen.getByTestId('logs-toolbar')).toBeInTheDocument();
+
+    const collapseSidebar = screen.getByRole('button', {name: 'Collapse sidebar'});
+    expect(collapseSidebar).not.toHaveTextContent('Advanced');
+    await userEvent.click(collapseSidebar);
+
+    expect(screen.queryByTestId('logs-toolbar')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Expand sidebar'})).toHaveTextContent(
+      'Advanced'
+    );
+  });
+
   it('should call APIs as expected', async () => {
     render(<LogsPage />, {
       organization,

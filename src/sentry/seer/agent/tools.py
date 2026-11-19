@@ -857,9 +857,11 @@ def rpc_get_profile_flamegraph(
             )
             break
 
-    # Determine profile type and actual ID to use
-    is_continuous = bool(full_profiler_id and not full_profile_id)
-    actual_profile_id = full_profiler_id or full_profile_id
+    # A span can carry both a transaction profile id and a continuous profiler id, and
+    # each is fetched differently, so use the one the caller asked for.
+    asked_for_transaction_profile = bool(full_profile_id and full_profile_id.startswith(profile_id))
+    is_continuous = bool(full_profiler_id) and not asked_for_transaction_profile
+    actual_profile_id = full_profiler_id if is_continuous else full_profile_id
 
     if not actual_profile_id:
         logger.info(
@@ -2904,11 +2906,11 @@ def get_dsn(
         logger.warning("Organization not found", extra={"organization_id": organization_id})
         return None
 
-    project = Project.objects.filter(
+    project = Project.objects.get_or_none(
         organization=organization,
         status=ObjectStatus.ACTIVE,
         slug=project_slug,
-    ).first()
+    )
     if project is None or not caller_can_access_project(project):
         return None
 

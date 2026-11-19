@@ -1,3 +1,4 @@
+from sentry.telemetry_classifiers.models import TelemetryClassifier
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import cell_silo_test
 
@@ -36,6 +37,7 @@ class OrganizationTelemetryClassifierDetailsGetTest(APITestCase):
             "prebuiltClassifierKey": None,
             "naturalLanguagePrompt": "Is the user frustrated?",
             "outputType": "binary",
+            "binaryThreshold": 0.8,
             "dateAdded": self.classifier.date_added,
             "dateUpdated": self.classifier.date_updated,
         }
@@ -125,6 +127,7 @@ class OrganizationTelemetryClassifierDetailsPutTest(APITestCase):
                 "prebuiltClassifierKey": "refusal",
                 "naturalLanguagePrompt": None,
                 "outputType": None,
+                "binaryThreshold": None,
                 "dateAdded": self.classifier.date_added,
                 "dateUpdated": self.classifier.date_updated,
             }
@@ -209,3 +212,84 @@ class OrganizationTelemetryClassifierDetailsPutTest(APITestCase):
             self.get_error_response(
                 self.organization.slug, self.classifier.id, status="disabled", status_code=404
             )
+
+
+@cell_silo_test
+class OrganizationTelemetryClassifierDetailsDeleteTest(APITestCase):
+    endpoint = "sentry-api-0-organization-telemetry-classifier-details"
+    method = "delete"
+    features = {"organizations:classifiers-ui": True}
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(self.user)
+        self.classifier = self.create_telemetry_classifier(created_by_id=self.user.id)
+
+    def test_requires_feature(self) -> None:
+        self.get_error_response(self.organization.slug, self.classifier.id, status_code=404)
+
+        assert TelemetryClassifier.objects.filter(id=self.classifier.id).exists()
+
+    def test_deletes_classifier(self) -> None:
+        other = self.create_telemetry_classifier()
+
+        with self.feature(self.features):
+            self.get_success_response(self.organization.slug, self.classifier.id, status_code=204)
+
+        assert not TelemetryClassifier.objects.filter(id=self.classifier.id).exists()
+        assert TelemetryClassifier.objects.filter(id=other.id).exists()
+
+    def test_deletes_prebuilt_classifier(self) -> None:
+        prebuilt = self.create_telemetry_classifier(
+            name="Refusals",
+            result_attribute="refusal",
+            prebuilt_classifier_key="refusal",
+            natural_language_prompt=None,
+            compiled_prompt=None,
+            output_type=None,
+        )
+
+        with self.feature(self.features):
+            self.get_success_response(self.organization.slug, prebuilt.id, status_code=204)
+
+        assert not TelemetryClassifier.objects.filter(id=prebuilt.id).exists()
+
+    def test_unknown_or_invalid_id(self) -> None:
+        with self.feature(self.features):
+            self.get_error_response(self.organization.slug, self.classifier.id + 1, status_code=404)
+            self.get_error_response(self.organization.slug, "not-an-id", status_code=404)
+
+    def test_classifier_in_other_organization(self) -> None:
+        other_org = self.create_organization()
+        other = self.create_telemetry_classifier(
+            project=self.create_project(organization=other_org)
+        )
+
+        with self.feature(self.features):
+            self.get_error_response(self.organization.slug, other.id, status_code=404)
+
+        assert TelemetryClassifier.objects.filter(id=other.id).exists()
+
+    def test_member_can_delete(self) -> None:
+        member = self.create_user()
+        self.create_member(
+            organization=self.organization, user=member, role="member", teams=[self.team]
+        )
+        self.login_as(member)
+
+        with self.feature(self.features):
+            self.get_success_response(self.organization.slug, self.classifier.id, status_code=204)
+
+        assert not TelemetryClassifier.objects.filter(id=self.classifier.id).exists()
+
+    def test_classifier_on_inaccessible_project(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, role="member", teams=[])
+        self.login_as(member)
+
+        with self.feature(self.features):
+            self.get_error_response(self.organization.slug, self.classifier.id, status_code=404)
+
+        assert TelemetryClassifier.objects.filter(id=self.classifier.id).exists()

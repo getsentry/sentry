@@ -1,4 +1,3 @@
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconLink} from '@sentry/icons/link';
 import type {LocationDescriptor} from 'history';
@@ -7,7 +6,6 @@ import {FeatureBadge} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
 import type {LinkProps} from '@sentry/scraps/link';
 import {Link} from '@sentry/scraps/link';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
@@ -73,53 +71,33 @@ export function ProjectQuickLinks({organization, project}: Props) {
         pathname: `${getPerformanceBaseUrl(organization.slug, domainView)}/`,
         query: {project: project?.id},
       },
-      disabled: !organization.features.includes('performance-view'),
     },
   ];
 
   return (
     <SidebarSection>
       <SectionHeading>{t('Quick Links')}</SectionHeading>
-      {quickLinks
-        // push disabled links to the bottom
-        .sort((link1, link2) => Number(!!link1.disabled) - Number(!!link2.disabled))
-        .map(({title, to, disabled, showNewBadge}) => (
-          <div key={title}>
-            <Tooltip
-              title={t("You don't have access to this feature")}
-              disabled={!disabled}
-            >
-              <QuickLink to={to} disabled={disabled}>
-                <IconLink />
-                <Flex align="center" gap="xs">
-                  <QuickLinkText>{title}</QuickLinkText>
-                  {showNewBadge && <FeatureBadge type="new" />}
-                </Flex>
-              </QuickLink>
-            </Tooltip>
-          </div>
-        ))}
+      {quickLinks.map(({title, to, showNewBadge}) => (
+        <div key={title}>
+          <QuickLink to={to}>
+            <IconLink />
+            <Flex align="center" gap="xs">
+              <QuickLinkText>{title}</QuickLinkText>
+              {showNewBadge && <FeatureBadge type="new" />}
+            </Flex>
+          </QuickLink>
+        </div>
+      ))}
     </SidebarSection>
   );
 }
 
 interface QuickLinkProps extends Omit<LinkProps, 'to'> {
   to: LocationDescriptor;
-  disabled?: boolean;
 }
 
-function QuickLinkComponent({
-  disabled,
-  to,
-  className,
-  children,
-  ...props
-}: QuickLinkProps) {
+function QuickLinkComponent({to, className, children, ...props}: QuickLinkProps) {
   const location = useLocation();
-
-  if (disabled) {
-    return <span className={className}>{children}</span>;
-  }
 
   const toWithQuery =
     typeof to === 'string'
@@ -133,21 +111,12 @@ function QuickLinkComponent({
   );
 }
 
-const QuickLink = styled(QuickLinkComponent)<{
-  disabled?: boolean;
-}>`
+const QuickLink = styled(QuickLinkComponent)`
   margin-bottom: ${p => p.theme.space.md};
   display: grid;
   align-items: center;
   gap: ${p => p.theme.space.md};
   grid-template-columns: auto 1fr;
-
-  ${p =>
-    p.disabled &&
-    css`
-      color: ${p.theme.colors.gray200};
-      cursor: not-allowed;
-    `}
 `;
 
 const QuickLinkText = styled('span')`

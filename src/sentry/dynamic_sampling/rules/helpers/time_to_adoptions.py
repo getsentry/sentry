@@ -89,6 +89,7 @@ LATEST_RELEASE_TTAS = {
     "objc": 4000209,
     "other": 12019,
     "php": 12112,
+    "php-bref": 12112,
     "php-laravel": 12382,
     "php-symfony": 13781,
     "python": 4358,

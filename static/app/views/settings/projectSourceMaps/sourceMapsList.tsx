@@ -9,13 +9,13 @@ import {parseAsString, useQueryStates} from 'nuqs';
 import {Button} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Confirm} from '@sentry/scraps/confirm';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Grid, Container} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Access} from 'sentry/components/acl/access';
-import {DateTime} from 'sentry/components/dateTime';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {
   getSourceMapsDocLinks,
@@ -378,7 +378,7 @@ function SourceMapUploadsList({
               <ItemTitle to={sourceMapUploadDetailLink(sourceMapUpload)}>
                 <IconUpload />
                 {tct('[date] ([fileCount] files)', {
-                  date: <DateTime year date={sourceMapUpload.date} />,
+                  date: <DateTime date={sourceMapUpload.date} year="always" />,
                   fileCount: sourceMapUpload.fileCount,
                 })}
               </ItemTitle>

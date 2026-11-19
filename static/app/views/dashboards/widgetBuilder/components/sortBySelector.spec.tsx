@@ -237,7 +237,7 @@ describe('WidgetBuilderSortBySelector', () => {
             dataset: 'spans',
             fields: ['transaction'],
             yAxis: ['avg(span.duration)', combinator],
-            sort: ['-avg(span.duration)'],
+            sort: [],
           },
         },
       },

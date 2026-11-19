@@ -8,6 +8,9 @@ from typing import Any
 from uuid import UUID
 
 import sentry_sdk
+from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE,
+)
 
 from sentry import features
 from sentry.api.serializers import EventSerializer, serialize
@@ -148,7 +151,7 @@ def deliver_agentic_triage_result(
             seer_run__uuid=run_uuid, run__organization_id=organization_id
         )
         .select_related("run", "run__organization", "seer_run")
-        .first()
+        .first()  # noqa: S035
     )
     if shard is None:
         logger.warning(
@@ -338,6 +341,7 @@ def _process_verdicts(
                     user_context=user_context,
                     allow_free_cohort=True,
                     single_run=single_run,
+                    billing_feature=SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE,
                 )
             except Exception:
                 logger.exception(

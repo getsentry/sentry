@@ -217,14 +217,17 @@ class OptionsStore:
         between a miss vs error, but not worth it now since the value
         is limited at the moment.
         """
+        # Read the model once: it follows the current silo mode, which another thread
+        # can switch between the query and the except clause.
+        model = self.model
         try:
             # NOTE: To greatly reduce test bugs due to cache leakage, we don't enforce cross db constraints
             # because in practice the option query is consistent with the process level silo mode.
             # If you do change the way the option class model is picked, keep in mind it may not be deeply
             # tested due to the core assumption it should be stable per process in practice.
             with in_test_hide_transaction_boundary():
-                value = self.model.objects.get(key=key.name).value
-        except (self.model.DoesNotExist, ProgrammingError, OperationalError):
+                value = model.objects.get(key=key.name).value
+        except (model.DoesNotExist, ProgrammingError, OperationalError):
             value = None
         except Exception:
             if settings.SENTRY_OPTIONS_COMPLAIN_ON_ERRORS:
@@ -250,9 +253,10 @@ class OptionsStore:
         """
         Gets how the option was last updated to check for drift.
         """
+        model = self.model
         try:
-            option = self.model.objects.get(key=key.name)
-        except self.model.DoesNotExist:
+            option = model.objects.get(key=key.name)
+        except model.DoesNotExist:
             return None
 
         return UpdateChannel(option.last_updated_by)

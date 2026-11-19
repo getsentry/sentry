@@ -57,7 +57,7 @@ describe('ProductUnavailableCTA', () => {
   describe('with no billing access', () => {
     it('renders no alert', () => {
       const organization = OrganizationFixture({
-        features: ['performance-view', 'session-replay'],
+        features: ['session-replay'],
       });
 
       renderMockRequests({
@@ -69,7 +69,7 @@ describe('ProductUnavailableCTA', () => {
       expect(container).toBeEmptyDOMElement();
     });
 
-    it('without performance and session replay', async () => {
+    it('without session replay on an ancient plan', async () => {
       const {organization} = initializeOrg();
 
       const mockRequests = renderMockRequests({
@@ -83,7 +83,7 @@ describe('ProductUnavailableCTA', () => {
         await screen.findByText(/request an owner in your organization to update/i)
       ).toBeInTheDocument();
 
-      expect(screen.getByText(/use performance and session replay/i)).toBeInTheDocument();
+      expect(screen.getByText(/use session replay/i)).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('button', {name: /request update/i}));
 
@@ -99,9 +99,7 @@ describe('ProductUnavailableCTA', () => {
 
     it('without session replay', async () => {
       const {organization} = initializeOrg({
-        organization: {
-          features: ['performance-view'],
-        },
+        organization: {},
       });
 
       const mockRequests = renderMockRequests({
@@ -132,7 +130,7 @@ describe('ProductUnavailableCTA', () => {
     it('renders no alert', () => {
       const organization = OrganizationFixture({
         access: ['org:billing'],
-        features: ['performance-view', 'session-replay'],
+        features: ['session-replay'],
       });
 
       renderMockRequests({
@@ -144,7 +142,7 @@ describe('ProductUnavailableCTA', () => {
       expect(container).toBeEmptyDOMElement();
     });
 
-    it('without performance and session replay', async () => {
+    it('without session replay on an ancient plan', async () => {
       const {organization} = initializeOrg({
         organization: {
           access: ['org:billing'] as any, // TODO(ts): Fix this type for organizations on a plan
@@ -159,7 +157,7 @@ describe('ProductUnavailableCTA', () => {
       render(<ProductUnavailableCTA organization={organization} />);
 
       expect(await screen.findByText(/update your organization/i)).toBeInTheDocument();
-      expect(screen.getByText(/use performance and session replay/i)).toBeInTheDocument();
+      expect(screen.getByText(/use session replay/i)).toBeInTheDocument();
 
       expect(screen.getByRole('button', {name: /manage subscription/i})).toHaveAttribute(
         'href',
@@ -171,7 +169,6 @@ describe('ProductUnavailableCTA', () => {
       const {organization} = initializeOrg({
         organization: {
           access: ['org:billing'] as any, // TODO(ts): Fix this type for organizations on a plan
-          features: ['performance-view'],
         },
       });
 
