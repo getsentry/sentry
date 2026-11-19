@@ -1320,6 +1320,10 @@ TASKWORKER_CONTROL_SCHEDULES: ScheduleConfigMap = {
         "task": "hybridcloud.control:sentry.tasks.enqueue_outbox_jobs_control",
         "schedule": timedelta(seconds=10),
     },
+    "maintain-partitions-control": {
+        "task": "db.control:sentry.db.partitions.tasks.maintain_partitions_control",
+        "schedule": crontab("17", "*", "*", "*", "*"),
+    },
     "schedule-deletions-control": {
         "task": "deletions.control:sentry.deletions.tasks.run_scheduled_deletions_control",
         "schedule": crontab("*/15", "*", "*", "*", "*"),

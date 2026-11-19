@@ -30,8 +30,10 @@ from sentry.db.partitions.manager import (
     maintain_partitions,
 )
 from sentry.db.partitions.spec import RangePartitionBound
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.silo import assume_test_silo_mode
 
 RANGE_TABLE = RangePartitionedFixture._meta.db_table
 # A Wednesday. Tables are created with the weeks of 03-04, 03-11 and 03-18.
@@ -525,3 +527,13 @@ class MaintainPartitionsTest(TransactionTestCase):
                     f"{RANGE_TABLE}_default is a default partition of {RANGE_TABLE}, which stops "
                     "partition maintenance. Move its rows into regular partitions and drop it."
                 ]
+
+    def test_only_maintains_models_of_the_current_silo(self) -> None:
+        # The fixture range model is a cell silo model.
+        with mock.patch.object(manager, "get_range_table", return_value=None) as get_range:
+            with assume_test_silo_mode(SiloMode.CONTROL):
+                maintain_partitions()
+            assert RangePartitionedFixture not in [c.args[0] for c in get_range.call_args_list]
+            with assume_test_silo_mode(SiloMode.CELL):
+                maintain_partitions()
+            assert RangePartitionedFixture in [c.args[0] for c in get_range.call_args_list]
