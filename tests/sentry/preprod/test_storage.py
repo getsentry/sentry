@@ -10,9 +10,9 @@ from sentry.models.files.file import File
 from sentry.models.files.fileblob import FileBlob
 from sentry.objectstore import UsecaseId, get_session
 from sentry.preprod.models import PreprodArtifactSizeComparison
+from sentry.preprod.objectstore import writes_to_objectstore
 from sentry.preprod.size_analysis.comparison_run import run_size_analysis_comparisons
 from sentry.preprod.size_analysis.models import ComparisonResults
-from sentry.preprod.objectstore import writes_to_objectstore
 from sentry.preprod.tasks import (
     assemble_preprod_artifact,
     assemble_preprod_artifact_installable_app,
