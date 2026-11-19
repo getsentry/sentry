@@ -30,11 +30,14 @@ def get_partitioned_model_for_table(db_table: str) -> type[models.Model] | None:
 
 def resolve_partitioning(model: type[models.Model]) -> PartitioningSpec | None:
     """
-    The partitioning declared for ``model``'s table.
+    The partitioning currently declared for ``model``'s table.
 
     Historical models built from migration state do not carry class attributes like
     ``__partitioning__``, so for those the declaration is looked up on the live model
-    with the same table name.
+    with the same table name. That's today's declaration, not the one the table was
+    created with, so only use this together with the database catalog. Never use it
+    to decide how to create a table: migrations record that in
+    ``CreatePartitionedModel``.
     """
     spec = get_declared_partitioning(model)
     if spec is not None:
@@ -48,13 +51,6 @@ def resolve_partitioning(model: type[models.Model]) -> PartitioningSpec | None:
 def is_partitioning_enabled(db_table: str) -> bool:
     """Whether this environment wants ``db_table`` to be created partitioned."""
     return db_table in settings.SENTRY_PARTITIONED_TABLES
-
-
-def get_enabled_partitioning(model: type[models.Model]) -> PartitioningSpec | None:
-    """The declaration to use when creating ``model``'s table in this environment."""
-    if not is_partitioning_enabled(model._meta.db_table):
-        return None
-    return resolve_partitioning(model)
 
 
 def get_partition_field(

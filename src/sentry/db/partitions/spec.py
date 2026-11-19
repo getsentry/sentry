@@ -3,8 +3,10 @@ Declarations for Postgres table partitioning.
 
 A model opts in by setting ``__partitioning__`` to a ``RangePartitioning`` or
 ``HashPartitioning``. The declaration is fixed in code and describes the shape the
-table has *when it is partitioned*. Whether a table is actually partitioned in a
-given environment is controlled by ``settings.SENTRY_PARTITIONED_TABLES``.
+table has *when it is partitioned*. Only new models can declare it: their migration
+creates the table with ``CreatePartitionedModel``, which records the declaration.
+Whether a table is actually partitioned in a given environment is controlled by
+``settings.SENTRY_PARTITIONED_TABLES``.
 """
 
 from __future__ import annotations
@@ -113,6 +115,8 @@ class RangePartitioning:
     model itself. Queries should filter on
     ``date_added`` (or ``id``), otherwise they scan every partition.
 
+    The model's migration creates its table with ``CreatePartitionedModel``, passing
+    the same declaration as ``partitioning``, instead of the generated ``CreateModel``.
     The table is only created partitioned in environments that list
     ``sentry_examplecheckin`` in ``SENTRY_PARTITIONED_TABLES``.
     """
@@ -123,6 +127,14 @@ class RangePartitioning:
     retention: timedelta | None = None
 
     method: ClassVar[str] = "RANGE"
+
+    def layout(self) -> tuple[object, ...]:
+        """What shapes the table. ``premake`` and ``retention`` can change later."""
+        return (self.method, self.field, self.interval)
+
+    def deconstruct(self) -> tuple[str, list[object], dict[str, object]]:
+        kwargs: dict[str, object] = {"premake": self.premake, "retention": self.retention}
+        return "sentry.db.partitions.RangePartitioning", [self.field, self.interval], kwargs
 
 
 @dataclass(frozen=True)
@@ -180,6 +192,8 @@ class HashPartitioning:
     the primary key ``(id, project_id)`` and rules out foreign keys into the table,
     like range partitioning does. Hash partitions are never dropped automatically.
 
+    The model's migration creates its table with ``CreatePartitionedModel``, passing
+    the same declaration as ``partitioning``, instead of the generated ``CreateModel``.
     The table is only created partitioned in environments that list
     ``sentry_exampleissue`` in ``SENTRY_PARTITIONED_TABLES``.
     """
@@ -188,6 +202,13 @@ class HashPartitioning:
     modulus: int
 
     method: ClassVar[str] = "HASH"
+
+    def layout(self) -> tuple[object, ...]:
+        """What shapes the table."""
+        return (self.method, self.field, self.modulus)
+
+    def deconstruct(self) -> tuple[str, list[object], dict[str, object]]:
+        return "sentry.db.partitions.HashPartitioning", [self.field], {"modulus": self.modulus}
 
 
 PartitioningSpec = RangePartitioning | HashPartitioning

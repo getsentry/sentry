@@ -6,6 +6,7 @@ from typing import Any
 import psycopg2
 import pytest
 from django.apps import apps
+from django.core.exceptions import ImproperlyConfigured
 from django.db import IntegrityError, OperationalError, connection, models, transaction
 from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
@@ -21,11 +22,12 @@ from fixtures.partitions import (
     fixture_tables,
 )
 from sentry.db.models import FlexibleForeignKey
-from sentry.db.partitions import sql
+from sentry.db.partitions import HashPartitioning, sql
 from sentry.db.partitions.catalog import (
     PartitionedTableInfo,
     get_partitioned_table_info,
     list_partitions,
+    table_exists,
 )
 from sentry.db.partitions.schema import partition_index_name
 from sentry.db.postgres.schema import DatabaseSchemaEditorProxy, SafePostgresDatabaseSchemaEditor
@@ -162,21 +164,54 @@ class CreatePartitionedTableTest(TransactionTestCase):
             with pytest.raises(IntegrityError, match="no partition of relation"):
                 RangePartitionedFixture.objects.create(date_added=timezone.now().replace(year=2023))
 
-    def test_historical_model_is_resolved_by_table(self) -> None:
-        state = fixture_project_state()
-        historical = state.apps.get_model("fixtures", "HashPartitionedFixture")
+    def create_historical(self, partitioned: bool) -> None:
+        historical = fixture_project_state().apps.get_model("fixtures", "HashPartitionedFixture")
         assert getattr(historical, "__partitioning__", None) is None
-
         drop_fixture_tables()
-        try:
-            with override_settings(SENTRY_PARTITIONED_TABLES=FIXTURE_TABLES):
-                with safe_editor() as editor:
+        with override_settings(SENTRY_PARTITIONED_TABLES=FIXTURE_TABLES):
+            with safe_editor() as editor:
+                if partitioned:
+                    editor.create_partitioned_model(
+                        historical, HashPartitionedFixture.__partitioning__
+                    )
+                else:
                     editor.create_model(historical)
+
+    def test_create_model_of_historical_model_is_never_partitioned(self) -> None:
+        # Replaying the original CreateModel of a table whose model declares
+        # partitioning today creates it the way existing databases have it.
+        try:
+            self.create_historical(partitioned=False)
+            assert table_exists(connection, HASH_TABLE)
+            assert get_partitioned_table_info(connection, HASH_TABLE) is None
+        finally:
+            drop_fixture_tables()
+
+    def test_create_partitioned_model_of_historical_model(self) -> None:
+        try:
+            self.create_historical(partitioned=True)
             assert get_partitioned_table_info(connection, HASH_TABLE) == PartitionedTableInfo(
                 "hash", ("id",)
             )
         finally:
             drop_fixture_tables()
+
+    def test_create_partitioned_model_when_not_enabled(self) -> None:
+        historical = fixture_project_state().apps.get_model("fixtures", "HashPartitionedFixture")
+        drop_fixture_tables()
+        try:
+            with override_settings(SENTRY_PARTITIONED_TABLES=[]), safe_editor() as editor:
+                editor.create_partitioned_model(historical, HashPartitionedFixture.__partitioning__)
+            assert table_exists(connection, HASH_TABLE)
+            assert get_partitioned_table_info(connection, HASH_TABLE) is None
+        finally:
+            drop_fixture_tables()
+
+    def test_partitioning_is_checked_against_the_historical_model(self) -> None:
+        historical = fixture_project_state().apps.get_model("fixtures", "HashPartitionedFixture")
+        with override_settings(SENTRY_PARTITIONED_TABLES=FIXTURE_TABLES), safe_editor() as editor:
+            with pytest.raises(ImproperlyConfigured, match="`missing` does not exist"):
+                editor.create_partitioned_model(historical, HashPartitioning("missing", 4))
 
 
 class PartitionedIndexTest(TransactionTestCase):

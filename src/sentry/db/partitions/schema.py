@@ -1,9 +1,12 @@
 """
 Schema editor support for partitioned tables.
 
-``PartitioningSchemaEditorMixin`` makes ``create_model`` create a partitioned table
-when the table is listed in ``SENTRY_PARTITIONED_TABLES``. For every other table the
-schema editor behaves exactly as before.
+``PartitioningSchemaEditorMixin`` adds ``create_partitioned_model``, which
+``CreatePartitionedModel`` migrations use to create a partitioned table when the table
+is listed in ``SENTRY_PARTITIONED_TABLES``. ``create_model`` only creates partitioned
+tables for live models that declare ``__partitioning__``, as when the test database
+is built from the models. For every other table the schema editor behaves exactly as
+before.
 
 ``SafePartitioningSchemaEditorMixin`` adds the rules for changing a table that is
 already partitioned. It is only used by the safe (checked migrations) editor.
@@ -42,8 +45,9 @@ from sentry.db.partitions.catalog import (
     table_exists,
 )
 from sentry.db.partitions.registry import (
-    get_enabled_partitioning,
+    get_declared_partitioning,
     get_partition_column,
+    is_partitioning_enabled,
     resolve_partitioning,
 )
 from sentry.db.partitions.spec import (
@@ -126,16 +130,31 @@ def _rewrite_sql(statement: Any, rewrite: Callable[[str], str]) -> Any:
 class PartitioningSchemaEditorMixin(PostgresDatabaseSchemaEditor):
     _partitioned_create: _PartitionedCreate | None = None
 
+    @property
+    def created_partitioned_tables(self) -> dict[str, PartitionedTableInfo]:
+        """Tables this editor created partitioned, for when SQL is only collected."""
+        return self.__dict__.setdefault("_created_partitioned_tables", {})
+
     def create_model(self, model: type[Model]) -> None:
-        spec = get_enabled_partitioning(model)
+        # Only live models carry `__partitioning__`, e.g. when the test database is
+        # created from the models directly. Migrations pass historical models, which
+        # never do, so a plain `CreateModel` always creates a plain table, and only
+        # `CreatePartitionedModel` creates a partitioned one.
+        spec = get_declared_partitioning(model)
         if spec is None:
             super().create_model(model)
             return
+        self.create_partitioned_model(model, spec)
 
-        # Historical models don't carry `__partitioning__`, so the class_prepared check
-        # never ran for them.
-        validate_model_partitioning(model, spec)
+    def create_partitioned_model(self, model: type[Model], spec: PartitioningSpec) -> None:
+        """Create ``model``'s table partitioned if this environment lists it."""
         table = model._meta.db_table
+        if not is_partitioning_enabled(table):
+            super().create_model(model)
+            return
+
+        # Checks the model as it is at this point of the migration history.
+        validate_model_partitioning(model, spec)
         key_column = get_partition_column(model, spec)
         assert model._meta.pk is not None
         pk_column = model._meta.pk.column
@@ -153,6 +172,9 @@ class PartitioningSchemaEditorMixin(PostgresDatabaseSchemaEditor):
 
         for statement in initial_partition_sql(self.quote_name, table, spec, timezone.now()):
             self.execute(statement)
+        self.created_partitioned_tables[table] = PartitionedTableInfo(
+            "range" if isinstance(spec, RangePartitioning) else "hash", (key_column,)
+        )
 
     @contextmanager
     def _plain_ddl_templates(self) -> Iterator[None]:
@@ -250,13 +272,7 @@ class SafePartitioningSchemaEditorMixin(PartitioningSchemaEditorMixin):
         if info is not None or table_exists(self.connection, table):
             return info
         # The table doesn't exist yet, e.g. when collecting SQL for `sqlmigrate`.
-        spec = get_enabled_partitioning(model)
-        if spec is None:
-            return None
-        return PartitionedTableInfo(
-            "range" if isinstance(spec, RangePartitioning) else "hash",
-            (get_partition_column(model, spec),),
-        )
+        return self.created_partitioned_tables.get(table)
 
     def add_index(self, model: type[Model], index: Index, concurrently: bool = False) -> None:
         if self._partitioned_table_info(model) is None:

@@ -3398,8 +3398,10 @@ ZERO_DOWNTIME_MIGRATIONS_STATEMENT_TIMEOUT: str | None = None
 ZERO_DOWNTIME_MIGRATIONS_IDEMPOTENT_SQL = False
 
 # Tables created as partitioned tables in this environment. Each one must belong to a
-# model that declares `__partitioning__`. Listing a table only affects how it is
-# created; an existing table is never converted. See `sentry.db.partitions`.
+# model that declares `__partitioning__` and is created with `CreatePartitionedModel`.
+# Listing a table only affects how it is created; an existing table is never
+# converted, including when migrations are replayed on a new database. See
+# `sentry.db.partitions`.
 SENTRY_PARTITIONED_TABLES: frozenset[str] = frozenset()
 
 if int(PG_VERSION.split(".", maxsplit=1)[0]) < 12:
