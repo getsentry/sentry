@@ -9,6 +9,7 @@ import {Container, Grid, Stack, useResponsivePropValue} from '@sentry/scraps/lay
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {DocumentationHint} from 'sentry/components/documentationHint';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {AgentFeedbackBreakdown} from 'sentry/components/feedback/agent/agentFeedbackBreakdown';
 import {FeedbackFilters} from 'sentry/components/feedback/feedbackFilters';
 import {FeedbackItemLoader} from 'sentry/components/feedback/feedbackItem/feedbackItemLoader';
 import {FeedbackSearch} from 'sentry/components/feedback/feedbackSearch';
@@ -208,6 +209,9 @@ export default function FeedbackListPage() {
         display={{zero: showItemPreview ? 'none' : 'flex', '3xl': 'flex'}}
       >
         <FeedbackSummaryCategories />
+        <ErrorBoundary mini>
+          <AgentFeedbackBreakdown />
+        </ErrorBoundary>
         <FeedbackPanel>
           <FeedbackList onItemSelect={handleItemSelect} />
           {selectedItemIndex !== null && (

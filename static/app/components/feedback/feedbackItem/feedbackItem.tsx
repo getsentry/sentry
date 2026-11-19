@@ -17,6 +17,14 @@ import {
   TracePreviewFullTraceButton,
 } from 'sentry/components/events/interfaces/performance/tracePreview';
 import {eventHasSyntheticTrace} from 'sentry/components/events/interfaces/performance/utils';
+import {
+  AGENT_TAG,
+  getEventTag,
+  isAgentFeedback,
+} from 'sentry/components/feedback/agent/agentFeedback';
+import {AgentFeedbackSignals} from 'sentry/components/feedback/agent/agentFeedbackSignals';
+import {AgentSessionSection} from 'sentry/components/feedback/agent/agentSessionSection';
+import {AgentToolHealthSection} from 'sentry/components/feedback/agent/agentToolHealthSection';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {KeyValueTableCardGrid} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
@@ -47,6 +55,8 @@ export function FeedbackItem({feedbackItem, eventData, onBackToList}: Props) {
   const crashReportId = eventData?.contexts?.feedback?.associated_event_id;
   const hasTracePreview =
     !!eventData?.contexts.trace?.trace_id && !eventHasSyntheticTrace(eventData);
+  const isAgent = isAgentFeedback(feedbackItem.metadata, eventData);
+  const reportedTool = getEventTag(eventData, AGENT_TAG.tool);
 
   const overflowRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -75,8 +85,21 @@ export function FeedbackItem({feedbackItem, eventData, onBackToList}: Props) {
         <OverflowPanelItem ref={overflowRef}>
           <FeedbackItemSection sectionKey="message">
             <MessageTitle eventData={eventData} feedbackItem={feedbackItem} />
+            {isAgent && eventData ? <AgentFeedbackSignals eventData={eventData} /> : null}
             <MessageSection eventData={eventData} feedbackItem={feedbackItem} />
           </FeedbackItemSection>
+
+          {isAgent && eventData ? (
+            <ErrorBoundary mini>
+              <AgentSessionSection eventData={eventData} feedbackItem={feedbackItem} />
+            </ErrorBoundary>
+          ) : null}
+
+          {isAgent && reportedTool ? (
+            <ErrorBoundary mini>
+              <AgentToolHealthSection tool={reportedTool} />
+            </ErrorBoundary>
+          ) : null}
 
           <FeedbackUrl eventData={eventData} feedbackItem={feedbackItem} />
 
@@ -103,7 +126,8 @@ export function FeedbackItem({feedbackItem, eventData, onBackToList}: Props) {
             organization={organization}
           />
 
-          {eventData && hasTracePreview ? (
+          {/* An agent's tool calls are separate traces, so its own trace is empty. */}
+          {eventData && hasTracePreview && !isAgent ? (
             <FeedbackItemSection
               actions={
                 <TracePreviewFullTraceButton

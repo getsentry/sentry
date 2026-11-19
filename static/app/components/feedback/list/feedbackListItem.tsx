@@ -5,10 +5,17 @@ import {IconPlay} from '@sentry/icons/play';
 import {parseAsString, useQueryState} from 'nuqs';
 
 import {ActorAvatar} from '@sentry/scraps/avatar';
+import {Tag} from '@sentry/scraps/badge';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {
+  getAgentClient,
+  isAgentFeedback,
+  parseAgentMessage,
+} from 'sentry/components/feedback/agent/agentFeedback';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {TextOverflow} from 'sentry/components/textOverflow';
@@ -48,6 +55,10 @@ export function FeedbackListItem({feedbackItem, onItemSelect}: Props) {
   const hasLinkedError = feedbackHasLinkedError(feedbackItem);
   const hasComments = feedbackItem.numComments > 0;
 
+  const isAgent = isAgentFeedback(feedbackItem.metadata);
+  const agentMessage = isAgent ? parseAgentMessage(feedbackItem.metadata.message) : null;
+  const agentClient = isAgent ? getAgentClient(feedbackItem.metadata.name) : null;
+
   return (
     <Container padding="xs xs 0 xs">
       <LinkedFeedbackCard
@@ -83,7 +94,8 @@ export function FeedbackListItem({feedbackItem, onItemSelect}: Props) {
         </Row>
 
         <ContactRow>
-          {feedbackItem.metadata.name ??
+          {agentMessage?.task ??
+            feedbackItem.metadata.name ??
             feedbackItem.metadata.contact_email ??
             t('Anonymous User')}
         </ContactRow>
@@ -97,7 +109,9 @@ export function FeedbackListItem({feedbackItem, onItemSelect}: Props) {
         )}
 
         <PreviewRow align="start" justify="start" area="message">
-          <StyledTextOverflow>{feedbackItem.metadata.message}</StyledTextOverflow>
+          <StyledTextOverflow>
+            {agentMessage?.body || feedbackItem.metadata.message}
+          </StyledTextOverflow>
         </PreviewRow>
 
         <Grid
@@ -117,6 +131,18 @@ export function FeedbackListItem({feedbackItem, onItemSelect}: Props) {
               />
             ) : null}
             <ShortId>{feedbackItem.shortId}</ShortId>
+            {agentMessage?.tool ? (
+              <Tag variant="muted">
+                <Text monospace size="xs" variant="inherit">
+                  {agentMessage.tool}
+                </Text>
+              </Tag>
+            ) : null}
+            {agentClient ? (
+              <Text size="xs" variant="muted" wrap="nowrap">
+                {agentClient}
+              </Text>
+            ) : null}
           </Row>
 
           <Row justify="end" gap="md">
