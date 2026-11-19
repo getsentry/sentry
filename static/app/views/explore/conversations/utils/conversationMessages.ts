@@ -1133,7 +1133,9 @@ export function parseSystemPrompt(node: AITraceSpanNode): string | null {
 export function getConversationSystemPrompt(nodes: AITraceSpanNode[]): string | null {
   let firstPrompt: string | null = null;
   let firstStart = Infinity;
-  for (const node of partitionSpansByType(nodes).generationSpans) {
+  // Enriched like the transcript, so a prompt sent on the agent span counts.
+  const {generationSpans} = partitionSpansByType(enrichAgentMessages(nodes));
+  for (const node of generationSpans) {
     const start = getNodeStartTimestamp(node);
     if (start >= firstStart) {
       continue;

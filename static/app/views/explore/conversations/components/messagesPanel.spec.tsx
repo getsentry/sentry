@@ -747,6 +747,42 @@ describe('MessagesPanel', () => {
     expect(screen.queryByText('Prompt B')).not.toBeInTheDocument();
   });
 
+  it('reads the system prompt from messages on the agent span', () => {
+    const agent = createMockNode({
+      id: 'agent',
+      startTimestamp: 1000,
+      endTimestamp: 2000,
+      attributes: {
+        [SpanFields.GEN_AI_OPERATION_TYPE]: 'agent',
+        [SpanFields.GEN_AI_INPUT_MESSAGES]: JSON.stringify([
+          {role: 'system', content: 'You sort emails into labels.'},
+          {role: 'user', content: 'Label this email'},
+        ]),
+        [SpanFields.GEN_AI_OUTPUT_MESSAGES]: JSON.stringify([
+          {role: 'assistant', content: 'newsletter'},
+        ]),
+      },
+    });
+    const generation = createMockNode({
+      id: 'gen-1',
+      parentId: 'agent',
+      startTimestamp: 1100,
+      endTimestamp: 1900,
+    });
+
+    render(
+      <MessagesPanel
+        nodes={[agent, generation] as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    expect(screen.getByText('System prompt', {exact: false})).toHaveTextContent(
+      'You sort emails into labels.'
+    );
+  });
+
   it('keeps reasoning text in the DOM inside a collapsed details element', () => {
     const node = createMockNode({
       id: 'span-1',
