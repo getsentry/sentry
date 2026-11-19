@@ -86,7 +86,7 @@ function StepResponses({
   latestTodos,
   stoppedAt,
 }: ReturnType<typeof useStepTranscript> & {stoppedAt?: string}) {
-  return responses.map((segment, i) => {
+  return responses.map(segment => {
     const lastIndex = segment.indices.at(-1);
     const nextBlock = defined(lastIndex) ? blocks[lastIndex + 1] : undefined;
     return (
@@ -97,9 +97,9 @@ function StepResponses({
         latestTodos={latestTodos}
         readOnly
         showThinking
-        // The timestamp of Seer's error block for the last segment, or of the user
-        // message that ended an earlier one.
-        endedAt={i === responses.length - 1 ? stoppedAt : nextBlock?.timestamp}
+        // The timestamp of the user message that ended the segment or, when nothing
+        // follows it, of Seer's error block.
+        endedAt={nextBlock?.timestamp ?? stoppedAt}
       />
     );
   });

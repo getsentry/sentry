@@ -92,6 +92,32 @@ function makePrIterationBlock(
   };
 }
 
+function makeToolUseBlock(
+  id: string,
+  content: string,
+  timestamp: string,
+  metadata?: Record<string, string>
+): AutofixSection['blocks'][number] {
+  return {
+    id,
+    timestamp,
+    message: {
+      role: 'tool_use',
+      content,
+      tool_calls: [{id: `${id}-call`, function: 'telemetry_live_search', args: '{}'}],
+      metadata,
+    },
+  };
+}
+
+function makeUserBlock(
+  id: string,
+  content: string,
+  timestamp: string
+): AutofixSection['blocks'][number] {
+  return {id, timestamp, message: {role: 'user', content}};
+}
+
 function makePatch(repoName: string, path: string): ExplorerFilePatch {
   return {
     repo_name: repoName,
@@ -339,6 +365,47 @@ describe('ArtifactCard', () => {
         screen.getByText('Files are under python/. Let me read them.')
       ).toBeInTheDocument();
       expect(screen.queryByText('Thinking...')).not.toBeInTheDocument();
+    });
+
+    it("ends a running step's response at the user's message and keeps the next one running", () => {
+      render(
+        <RootCauseCard
+          autofix={mockAutofix}
+          groupId="1"
+          section={makeSection(
+            'root_cause',
+            'processing',
+            [],
+            [
+              makeToolUseBlock(
+                'block-1',
+                'Reading the cache module.',
+                '2026-01-01T00:00:05Z',
+                {step: 'root_cause'}
+              ),
+              makeUserBlock(
+                'user-1',
+                'Also check the retry path.',
+                '2026-01-01T00:00:25Z'
+              ),
+              {
+                ...makeToolUseBlock(
+                  'block-2',
+                  'Reading the retry module.',
+                  '2026-01-01T00:00:30Z'
+                ),
+                loading: true,
+              },
+            ]
+          )}
+        />
+      );
+
+      expect(screen.getByText('20.0s')).toBeInTheDocument();
+      // Only the replied-to response collapses to its summary.
+      expect(
+        screen.getAllByRole('button', {name: /See thinking and tool calls/})
+      ).toHaveLength(1);
     });
 
     it('starts a new single run from Re-run', async () => {
@@ -2752,24 +2819,6 @@ describe('out of credits', () => {
     };
   }
 
-  function makeToolUseBlock(
-    id: string,
-    content: string,
-    timestamp: string,
-    metadata?: Record<string, string>
-  ): AutofixSection['blocks'][number] {
-    return {
-      id,
-      timestamp,
-      message: {
-        role: 'tool_use',
-        content,
-        tool_calls: [{id: `${id}-call`, function: 'telemetry_live_search', args: '{}'}],
-        metadata,
-      },
-    };
-  }
-
   // Seer appends this when it stops a run for credits.
   const seerErrorBlock = makeBlock(
     'error-1',
@@ -2850,7 +2899,7 @@ describe('out of credits', () => {
     });
   });
 
-  it("ends each response's timer when root cause stopped mid-tool-call", () => {
+  it("ends the timer at Seer's error block when root cause stopped mid-tool-call", () => {
     mockCreditCheck('autofix_root_cause', false);
     render(
       <RootCauseCard
@@ -2859,15 +2908,36 @@ describe('out of credits', () => {
         section={makeOutOfCreditsSection('root_cause', [
           makeToolUseBlock(
             'block-1',
-            'Asking which repo to use.',
+            'Reading the cache module.',
+            '2026-01-01T00:00:00Z',
+            {step: 'root_cause'}
+          ),
+          {...seerErrorBlock, timestamp: '2026-01-01T00:02:30Z'},
+        ])}
+      />,
+      {organization}
+    );
+
+    expect(
+      screen.getByRole('button', {name: /See thinking and tool calls/})
+    ).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByText('2m 30s')).toBeInTheDocument();
+  });
+
+  it('ends each response at what follows it when root cause stopped', () => {
+    mockCreditCheck('autofix_root_cause', false);
+    render(
+      <RootCauseCard
+        autofix={{...mockAutofix, runState: stoppedRunState}}
+        groupId="1"
+        section={makeOutOfCreditsSection('root_cause', [
+          makeToolUseBlock(
+            'block-1',
+            'Reading the cache module.',
             '2026-01-01T00:00:05Z',
             {step: 'root_cause'}
           ),
-          {
-            id: 'user-1',
-            timestamp: '2026-01-01T00:00:25Z',
-            message: {role: 'user', content: 'getsentry/sentry'},
-          },
+          makeUserBlock('user-1', 'Also check the retry path.', '2026-01-01T00:00:25Z'),
           makeToolUseBlock(
             'block-2',
             'Searching for the cache key.',
@@ -2879,14 +2949,32 @@ describe('out of credits', () => {
       {organization}
     );
 
-    for (const button of screen.getAllByRole('button', {
-      name: /See thinking and tool calls/,
-    })) {
-      expect(button).toHaveAttribute('aria-expanded', 'false');
-    }
     // The earlier response ends at the user's message, the last one at Seer's error block.
     expect(screen.getByText('20.0s')).toBeInTheDocument();
     expect(screen.getByText('2m 0s')).toBeInTheDocument();
+  });
+
+  it("ends the timer at the user's message when root cause stopped right after it", () => {
+    mockCreditCheck('autofix_root_cause', false);
+    render(
+      <RootCauseCard
+        autofix={{...mockAutofix, runState: stoppedRunState}}
+        groupId="1"
+        section={makeOutOfCreditsSection('root_cause', [
+          makeToolUseBlock(
+            'block-1',
+            'Reading the cache module.',
+            '2026-01-01T00:00:05Z',
+            {step: 'root_cause'}
+          ),
+          makeUserBlock('user-1', 'Also check the retry path.', '2026-01-01T00:00:25Z'),
+          {...seerErrorBlock, timestamp: '2026-01-01T00:02:30Z'},
+        ])}
+      />,
+      {organization}
+    );
+
+    expect(screen.getByText('20.0s')).toBeInTheDocument();
   });
 
   it('keeps what the plan step wrote and disables Re-run while out of credits', async () => {
