@@ -31,21 +31,7 @@ interface ButtonStyleProps {
   theme: Theme;
 }
 
-/**
- * Every variant lists its complete styles. Variants share no style objects,
- * so a nested rule such as `> span:last-child` or `&:hover` in one variant
- * can never replace part of another's. Keep the rules in the same order in
- * every variant: rules with equal specificity, such as `&:hover` and
- * `&:active`, resolve by source order.
- */
-const buttonVariants: Record<ButtonVariant, (p: ButtonStyleProps) => StrictCSSObject> = {
-  primary: p => getChonkyStyles(p, getChonkyTokens('primary', p.theme)),
-  secondary: p => getChonkyStyles(p, getChonkyTokens('secondary', p.theme)),
-  warning: p => getChonkyStyles(p, getChonkyTokens('warning', p.theme)),
-  danger: p => getChonkyStyles(p, getChonkyTokens('danger', p.theme)),
-  transparent: getTransparentStyles,
-  link: getLinkStyles,
-};
+type ChonkyVariant = Exclude<ButtonVariant, 'transparent' | 'link'>;
 
 export function DO_NOT_USE_getButtonStyles(
   p: Pick<CommonButtonProps, 'variant' | 'busy'> &
@@ -61,14 +47,58 @@ export function DO_NOT_USE_getButtonStyles(
   const disabled = Boolean(
     p.disabled || ariaDisabled === true || ariaDisabled === 'true'
   );
-
-  return buttonVariants[p.variant ?? 'secondary']({
+  const props: ButtonStyleProps = {
     disabled,
     inactive: disabled || Boolean(p.busy),
     shapeVariant: p.shapeVariant,
     size: p.size,
     theme: p.theme,
-  });
+  };
+
+  const variant = p.variant ?? 'secondary';
+  switch (variant) {
+    case 'transparent':
+      return getTransparentStyles(props);
+    case 'link':
+      return getLinkStyles(props);
+    default:
+      return getChonkyStyles(props, chonkyTokens[variant](p.theme));
+  }
+}
+
+/**
+ * Rules every variant uses unchanged. No variant sets any of these keys, so
+ * spreading this first can't replace part of a variant's nested rule.
+ */
+function getBaseStyles(
+  p: ButtonStyleProps,
+  size: ReturnType<typeof getSizeTokens>
+): StrictCSSObject {
+  return {
+    position: 'relative',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    whiteSpace: 'nowrap',
+
+    fontWeight: p.theme.font.weight.sans.medium,
+    fontSize: size.fontSize,
+    lineHeight: size.lineHeight,
+
+    opacity: p.disabled ? 0.6 : undefined,
+
+    borderRadius: size.borderRadius,
+    border: 'none',
+    background: 'none',
+
+    cursor: 'pointer',
+    '&[disabled], &[aria-disabled="true"]': {
+      cursor: 'not-allowed',
+    },
+    '&[aria-busy="true"]': {
+      cursor: 'progress',
+    },
+  };
 }
 
 interface ChonkyTokens {
@@ -81,86 +111,59 @@ interface ChonkyTokens {
   surface: string;
 }
 
-function getChonkyTokens(
-  variant: 'primary' | 'secondary' | 'warning' | 'danger',
-  theme: Theme
-): ChonkyTokens {
-  const {embossed} = theme.tokens.interactive.chonky;
+const chonkyTokens: Record<ChonkyVariant, (theme: Theme) => ChonkyTokens> = {
+  primary: theme => ({
+    surface: theme.tokens.interactive.chonky.embossed.accent.background,
+    chonk: theme.tokens.interactive.chonky.embossed.accent.chonk,
+    content: theme.tokens.interactive.chonky.embossed.accent.content,
+    focus: {border: `2px dotted ${theme.tokens.focus.onVibrant.light}`},
+  }),
+  secondary: theme => ({
+    surface: theme.tokens.interactive.chonky.embossed.neutral.background,
+    chonk: theme.tokens.interactive.chonky.embossed.neutral.chonk,
+    content: theme.tokens.interactive.chonky.embossed.neutral.content.primary,
+    focus: {
+      // Three layers: the chonk color masks the offset ring copy, then
+      // the ring is drawn at the lift offset and again at rest, so it
+      // closes around the surface and chonk as a single outline.
+      boxShadow: `0 var(--button-lift) 0 0 ${theme.tokens.interactive.chonky.embossed.neutral.chonk}, 0 var(--button-lift) 0 2px ${theme.tokens.focus.default}, 0 0 0 2px ${theme.tokens.focus.default}`,
+    },
+  }),
+  warning: theme => ({
+    surface: theme.tokens.interactive.chonky.embossed.warning.background,
+    chonk: theme.tokens.interactive.chonky.embossed.warning.chonk,
+    content: theme.tokens.interactive.chonky.embossed.warning.content,
+    focus: {border: `2px dotted ${theme.tokens.focus.onVibrant.dark}`},
+  }),
+  danger: theme => ({
+    surface: theme.tokens.interactive.chonky.embossed.danger.background,
+    chonk: theme.tokens.interactive.chonky.embossed.danger.chonk,
+    content: theme.tokens.interactive.chonky.embossed.danger.content,
+    focus: {border: `2px dotted ${theme.tokens.focus.onVibrant.light}`},
+  }),
+};
 
-  switch (variant) {
-    case 'primary':
-      return {
-        surface: embossed.accent.background,
-        chonk: embossed.accent.chonk,
-        content: embossed.accent.content,
-        focus: {border: `2px dotted ${theme.tokens.focus.onVibrant.light}`},
-      };
-    case 'secondary':
-      return {
-        surface: embossed.neutral.background,
-        chonk: embossed.neutral.chonk,
-        content: embossed.neutral.content.primary,
-        focus: {
-          // Three layers: the chonk color masks the offset ring copy, then
-          // the ring is drawn at the lift offset and again at rest, so it
-          // closes around the surface and chonk as a single outline.
-          boxShadow: `0 var(--button-lift) 0 0 ${embossed.neutral.chonk}, 0 var(--button-lift) 0 2px ${theme.tokens.focus.default}, 0 0 0 2px ${theme.tokens.focus.default}`,
-        },
-      };
-    case 'warning':
-      return {
-        surface: embossed.warning.background,
-        chonk: embossed.warning.chonk,
-        content: embossed.warning.content,
-        focus: {border: `2px dotted ${theme.tokens.focus.onVibrant.dark}`},
-      };
-    case 'danger':
-      return {
-        surface: embossed.danger.background,
-        chonk: embossed.danger.chonk,
-        content: embossed.danger.content,
-        focus: {border: `2px dotted ${theme.tokens.focus.onVibrant.light}`},
-      };
-  }
-}
-
+/**
+ * The chonky variants are the only ones with a lift: `--button-lift` drives
+ * the surface and label offset. Keep `&:hover` before the `&:active` and
+ * disabled rules, which share its specificity and must win over it.
+ */
 function getChonkyStyles(p: ButtonStyleProps, tokens: ChonkyTokens): StrictCSSObject {
   const size = getSizeTokens(p.size, p.theme);
 
   return {
+    ...getBaseStyles(p, size),
+
     '--button-lift': size.lift,
 
-    position: 'relative',
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    whiteSpace: 'nowrap',
-
-    fontWeight: p.theme.font.weight.sans.medium,
-
-    opacity: p.disabled ? 0.6 : undefined,
-
-    cursor: 'pointer',
-    '&[disabled], &[aria-disabled="true"]': {
-      cursor: 'not-allowed',
-    },
-
     padding: p.shapeVariant === 'square' ? '0' : size.padding,
-    borderRadius: size.borderRadius,
-    border: 'none',
-    color: tokens.content,
-
-    background: 'none',
-
     height: size.height,
+    minHeight: size.minHeight,
     // Use min width as a progressive enhancement for square buttons.
     // We can't yet swap to width because I'm not entirely condifent that
     // that would not break existing buttons.
     minWidth: p.shapeVariant === 'square' ? size.height : undefined,
-
-    minHeight: size.minHeight,
-    fontSize: size.fontSize,
-    lineHeight: size.lineHeight,
+    color: tokens.content,
 
     '&::before': {
       content: '""',
@@ -194,10 +197,6 @@ function getChonkyStyles(p: ButtonStyleProps, tokens: ChonkyTokens): StrictCSSOb
       '&::after': tokens.focus,
     },
 
-    '&[aria-busy="true"] > span:last-child': {
-      overflow: 'visible',
-    },
-
     '> span:last-child': {
       zIndex: 1,
       position: 'relative',
@@ -212,6 +211,10 @@ function getChonkyStyles(p: ButtonStyleProps, tokens: ChonkyTokens): StrictCSSOb
       whiteSpace: 'nowrap',
       transform: 'translateY(calc(-1 * var(--button-lift)))',
       transition: `transform ${p.theme.motion.snap.fast}`,
+    },
+
+    '&[aria-busy="true"] > span:last-child': {
+      overflow: 'visible',
     },
 
     '&:hover': {
@@ -235,57 +238,30 @@ function getChonkyStyles(p: ButtonStyleProps, tokens: ChonkyTokens): StrictCSSOb
     '&:disabled, &[aria-disabled="true"], &[aria-busy="true"]': {
       '--button-lift': '0px',
     },
-
-    '&[aria-busy="true"]': {
-      cursor: 'progress',
-    },
   };
 }
 
+/**
+ * Keep `&:hover` before `&:active`: they share specificity, and the pressed
+ * background must win.
+ */
 function getTransparentStyles(p: ButtonStyleProps): StrictCSSObject {
   const size = getSizeTokens(p.size, p.theme);
 
   return {
-    '--button-lift': size.lift,
-
-    position: 'relative',
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    whiteSpace: 'nowrap',
-
-    fontWeight: p.theme.font.weight.sans.medium,
-
-    opacity: p.disabled ? 0.6 : undefined,
-
-    cursor: 'pointer',
-    '&[disabled], &[aria-disabled="true"]': {
-      cursor: 'not-allowed',
-    },
+    ...getBaseStyles(p, size),
 
     padding: p.shapeVariant === 'square' ? '0' : size.padding,
-    borderRadius: size.borderRadius,
-    border: 'none',
-    color: p.theme.tokens.interactive.transparent.neutral.content.primary,
-
-    background: 'none',
-
     height: size.height,
-    minWidth: p.shapeVariant === 'square' ? size.height : undefined,
-
     minHeight: size.minHeight,
-    fontSize: size.fontSize,
-    lineHeight: size.lineHeight,
+    minWidth: p.shapeVariant === 'square' ? size.height : undefined,
+    color: p.theme.tokens.interactive.transparent.neutral.content.primary,
+    transform: 'translateY(0px)',
 
     '&::before': {display: 'none'},
-
     '&::after': {display: 'none'},
 
     '&:focus-visible': p.theme.focusRing(),
-
-    '&[aria-busy="true"] > span:last-child': {
-      overflow: 'visible',
-    },
 
     // No flex layout and no `overflow: hidden`. Call sites rely on this, for
     // example to let an avatar stack overflow a `zero` button. The button
@@ -295,38 +271,10 @@ function getTransparentStyles(p: ButtonStyleProps): StrictCSSObject {
     },
 
     '&:hover': {
-      '> span:last-child': {transform: 'translateY(0px)'},
       backgroundColor: p.inactive ? 'inherit' : p.theme.colors.gray100,
     },
 
-    '&:active, &[aria-expanded="true"], &[aria-checked="true"]': {
-      '--button-lift': '0px',
-    },
-
-    '&[aria-expanded="true"], &[aria-checked="true"]': {
-      '&::after': {
-        transition: 'none',
-      },
-      '> span:last-child': {
-        transition: 'none',
-      },
-    },
-
-    '&:disabled, &[aria-disabled="true"], &[aria-busy="true"]': {
-      '--button-lift': '0px',
-    },
-
-    '&[aria-busy="true"]': {
-      cursor: 'progress',
-    },
-
-    transform: 'translateY(0px)',
-
     '&:active': {
-      '> span:last-child': {
-        transform: 'translateY(0px)',
-      },
-
       backgroundColor: p.inactive ? 'inherit' : p.theme.colors.gray200,
     },
   };
@@ -336,84 +284,33 @@ function getLinkStyles(p: ButtonStyleProps): StrictCSSObject {
   const size = getSizeTokens(p.size, p.theme);
 
   return {
-    '--button-lift': size.lift,
-
-    position: 'relative',
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    whiteSpace: 'nowrap',
-
-    fontWeight: p.theme.font.weight.sans.medium,
-
-    opacity: p.disabled ? 0.6 : undefined,
-
-    cursor: 'pointer',
-    '&[disabled], &[aria-disabled="true"]': {
-      cursor: 'not-allowed',
-    },
+    ...getBaseStyles(p, size),
 
     padding: '0',
-    borderRadius: size.borderRadius,
-    border: 'none',
-    color: p.theme.tokens.interactive.link.accent.rest,
-
-    background: 'none',
-
     height: 'auto',
-    minWidth: 'auto',
-
     minHeight: 'auto',
-    fontSize: size.fontSize,
-    lineHeight: size.lineHeight,
+    minWidth: 'auto',
+    color: p.theme.tokens.interactive.link.accent.rest,
+    transform: 'translateY(0px)',
 
     '&::before': {display: 'none'},
-
     '&::after': {display: 'none'},
 
     '&:focus-visible': p.theme.focusRing(),
-
-    '&[aria-busy="true"] > span:last-child': {
-      overflow: 'visible',
-    },
 
     // Like transparent, no flex layout and no `overflow: hidden`.
     '> span:last-child': {
       color: 'inherit',
     },
 
+    // The label has no transform at rest. Applying one on hover and press
+    // makes it a containing block and stacking context for its children.
     '&:hover': {
       '> span:last-child': {transform: 'translateY(0px)'},
     },
 
-    '&:active, &[aria-expanded="true"], &[aria-checked="true"]': {
-      '--button-lift': '0px',
-    },
-
-    '&[aria-expanded="true"], &[aria-checked="true"]': {
-      '&::after': {
-        transition: 'none',
-      },
-      '> span:last-child': {
-        transition: 'none',
-      },
-    },
-
-    '&:disabled, &[aria-disabled="true"], &[aria-busy="true"]': {
-      '--button-lift': '0px',
-    },
-
-    '&[aria-busy="true"]': {
-      cursor: 'progress',
-    },
-
-    transform: 'translateY(0px)',
-
     '&:active': {
-      '> span:last-child': {
-        transform: 'translateY(0px)',
-      },
-
+      '> span:last-child': {transform: 'translateY(0px)'},
       backgroundColor: 'inherit',
     },
   };
