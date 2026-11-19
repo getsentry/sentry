@@ -1,0 +1,72 @@
+name: Refresh API baseline
+
+on:
+  schedule:
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/refresh-api-baseline.yml
+      - .github/workflows/scripts/publish-api-baseline.sh
+
+permissions:
+  contents: read
+
+concurrency:
+  group: refresh-api-baseline-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
+
+      - uses: ./.github/actions/setup-sentry
+        with:
+          mode: migrations
+
+      - run: make api-owner-map
+      - run: make api-baseline ARGS="--update"
+
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: api-exceptions
+          path: api_exceptions/exceptions.json
+          if-no-files-found: error
+          retention-days: 1
+
+  publish:
+    needs: scan
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: api-exceptions
+          path: ${{ runner.temp }}/api-exceptions
+
+      - name: Get internal bot token
+        id: bot
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
+          private-key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      - name: Publish baseline pull request
+        env:
+          GH_TOKEN: ${{ steps.bot.outputs.token }}
+          BOT_LOGIN: ${{ steps.bot.outputs.app-slug }}[bot]
+          NEW_BASELINE: ${{ runner.temp }}/api-exceptions/exceptions.json
+        run: ./.github/workflows/scripts/publish-api-baseline.sh

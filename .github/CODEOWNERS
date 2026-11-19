@@ -653,6 +653,7 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 # API lint tooling
 /tools/api_guidelines/                                      @getsentry/owners-api
 /tests/tools/api_guidelines/                                @getsentry/owners-api
+/api_exceptions/                                            @getsentry/owners-api
 
 # Permission scopes
 /src/sentry/models/apiscopes.py                             @getsentry/owners-api
