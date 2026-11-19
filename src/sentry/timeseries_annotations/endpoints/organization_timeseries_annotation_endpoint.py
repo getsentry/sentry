@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterable
 from datetime import datetime
 
@@ -19,6 +20,7 @@ from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import serialize
 from sentry.api.utils import get_date_range_from_params
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.timeseries_annotations.endpoints.serializers import TimeseriesAnnotationSerializer
 from sentry.timeseries_annotations.models import (
     AnnotationScope,
@@ -26,6 +28,11 @@ from sentry.timeseries_annotations.models import (
     IntervalType,
     TimeseriesAnnotation,
 )
+from sentry.timeseries_annotations.producers.sdk_config_change import (
+    sdk_config_change_as_annotations,
+)
+
+logger = logging.getLogger(__name__)
 
 
 @extend_schema(tags=["Timeseries Annotations"])
@@ -48,7 +55,16 @@ class OrganizationTimeseriesAnnotationEndpoint(OrganizationEndpoint):
         # Scope project-level annotations to projects the caller can access; org-wide
         # annotations (null project) apply to every chart. Unconditional: with no access the
         # caller still sees org-wide rows, never another project's.
-        project_ids = [p.id for p in self.get_projects(request, organization)]
+        projects = self.get_projects(request, organization)
+        project_ids = [p.id for p in projects]
+
+        if features.has(
+            "organizations:timeseries-annotations-usecase-sdk-config-experimental",
+            organization,
+            actor=request.user,
+        ):
+            self._persist_sdk_config_annotations(organization, projects, start, end)
+
         queryset = (
             TimeseriesAnnotation.objects.within_retention(organization)
             .filter(organization_id=organization.id)
@@ -77,6 +93,18 @@ class OrganizationTimeseriesAnnotationEndpoint(OrganizationEndpoint):
                 list(rows), request.user, TimeseriesAnnotationSerializer()
             ),
         )
+
+    def _persist_sdk_config_annotations(
+        self,
+        organization: Organization,
+        projects: list[Project],
+        start: datetime,
+        end: datetime,
+    ) -> None:
+        try:
+            sdk_config_change_as_annotations(organization, projects, start, end)
+        except Exception:
+            logger.exception("timeseries_annotations.sdk_config_producer_failed")
 
 
 def _window_overlap(start: datetime, end: datetime) -> Q:

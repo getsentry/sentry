@@ -44,7 +44,7 @@ from sentry.models.custominboundfilter import (
 )
 from sentry.models.project import Project
 from sentry.tasks.relay import schedule_invalidate_project_config
-from sentry.timeseries_annotations.producers.inbound_filters import (
+from sentry.timeseries_annotations.producers.inbound_filter_change import (
     record_custom_filter_change_as_annotation,
 )
 

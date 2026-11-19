@@ -580,6 +580,13 @@ class Referrer(StrEnum):
     API_OCCURRENCES_FREQUENCY_STATS_RPC = "api.occurrences.fields-stats.rpc"
     API_TRACE_METRICS_TAG_KEYS_RPC = "api.tracemetrics.tags-keys.rpc"
     API_TRACE_METRICS_TAG_VALUES_RPC = "api.tracemetrics.tags-values.rpc"
+    # Two queries, two referrers: a single grouped scan over all projects (cheap) vs. the
+    # per-distinct-hash payload fetches (the latency-sensitive fan-out). Separate referrers keep
+    # them distinct in query analytics so each can be measured on its own.
+    API_TIMESERIES_ANNOTATIONS_SDK_CONFIG_TIMELINE = (
+        "api.timeseries-annotations.sdk-config.timeline"
+    )
+    API_TIMESERIES_ANNOTATIONS_SDK_CONFIG_PAYLOAD = "api.timeseries-annotations.sdk-config.payload"
 
     API_SPAN_SAMPLE_GET_BOUNDS = "api.spans.sample-get-bounds"
     API_SPAN_SAMPLE_GET_SPAN_DATA = "api.spans.sample-get-span-data"

@@ -73,6 +73,7 @@ class AnnotationType(IntEnum):
     SDK_UPDATE = 2
     SENTRY_OUTAGE = 3
     CUSTOM = 4
+    SDK_CONFIG_CHANGE_EXPERIMENTAL = 5
 
     @classmethod
     def as_choices(cls) -> tuple[tuple[int, str], ...]:
@@ -82,6 +83,7 @@ class AnnotationType(IntEnum):
             (cls.SDK_UPDATE, "sdk_update"),
             (cls.SENTRY_OUTAGE, "sentry_outage"),
             (cls.CUSTOM, "custom"),
+            (cls.SDK_CONFIG_CHANGE_EXPERIMENTAL, "sdk_config_change_experimental"),
         )
 
 

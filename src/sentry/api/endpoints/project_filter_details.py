@@ -21,7 +21,7 @@ from sentry.apidocs.response_types import ValidationErrorResponse, as_validation
 from sentry.ingest import inbound_filters
 from sentry.ingest.inbound_filters import FilterStatKeys, _LegacyBrowserFilterSerializer
 from sentry.models.project import Project
-from sentry.timeseries_annotations.producers.inbound_filters import (
+from sentry.timeseries_annotations.producers.inbound_filter_change import (
     record_builtin_filter_change_as_annotation,
 )
 
