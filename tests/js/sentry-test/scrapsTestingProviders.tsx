@@ -12,7 +12,10 @@ import {SentryPaginationProvider} from 'sentry/scrapsProviders/pagination';
 
 const testTranslation: TranslationContextValue = {
   t: (string, ...args) =>
-    string.replace('%s', typeof args[0] === 'string' ? args[0] : ''),
+    string.replace(
+      '%s',
+      typeof args[0] === 'string' || typeof args[0] === 'number' ? String(args[0]) : ''
+    ),
   tct: template => template,
 };
 
