@@ -1390,6 +1390,9 @@ describe('Investigation detail', () => {
 
       afterEach(async () => {
         try {
+          // Unmount first: the page keeps polling while it waits for the run, and
+          // flushing the query cache's timers with it mounted polls for minutes.
+          cleanup();
           await act(() => jest.runOnlyPendingTimersAsync());
         } finally {
           jest.useRealTimers();
