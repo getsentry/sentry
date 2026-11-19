@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from dataclasses import replace
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -9,8 +10,9 @@ from sentry.inbox.issue import (
     IssueMentionedData,
     IssuePRReadyForReviewData,
 )
-from sentry.inbox.types import SYSTEM_ACTOR, InboxActor
+from sentry.inbox.types import SYSTEM_ACTOR, InboxActor, InboxEventType
 from sentry.integrations.types import ExternalProviders
+from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwnerType
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
@@ -143,7 +145,9 @@ class InboxNotificationsTest(TestCase):
         self.recipient = self.create_user(email="recipient@example.com")
         self.create_member(organization=self.organization, user=self.recipient)
 
-    def _mention(self) -> None:
+    def _mention(
+        self, event_type: InboxEventType[Group, IssueMentionedData] = ISSUE_USER_MENTIONED
+    ) -> None:
         note = self.create_group_activity(
             type=ActivityType.NOTE.value,
             user_id=self.user.id,
@@ -153,7 +157,7 @@ class InboxNotificationsTest(TestCase):
             },
         )
         create_inbox_items(
-            event_type=ISSUE_USER_MENTIONED,
+            event_type=event_type,
             subject=self.group,
             data=IssueMentionedData(comment_id=note.id),
             user_ids=[self.recipient.id],
@@ -233,6 +237,15 @@ class InboxNotificationsTest(TestCase):
             )
 
         self._mention()
+
+        assert InboxItemEvent.objects.filter(inbox_item__user_id=self.recipient.id).exists()
+        assert _sent(notify_async) == []
+
+    @with_feature(INBOX_FEATURES)
+    def test_records_without_notifying_when_event_type_has_no_notifier(
+        self, notify_async: MagicMock
+    ) -> None:
+        self._mention(replace(ISSUE_USER_MENTIONED, notifier=None))
 
         assert InboxItemEvent.objects.filter(inbox_item__user_id=self.recipient.id).exists()
         assert _sent(notify_async) == []

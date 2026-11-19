@@ -53,7 +53,13 @@ def create_inbox_items[SubjectT, DataT: InboxEventData](
         subject=subject, data=data, recipient_user_ids=recipient_user_ids, actor=actor
     )
     if events and features.has("organizations:universal-inbox-notifications", organization):
-        _send_notifications(event_type=event_type, data=data, events=events)
+        _send_notifications(
+            organization=organization,
+            event_type=event_type,
+            subject=subject,
+            data=data,
+            events=events,
+        )
 
 
 def get_inbox_notified_user_ids(activity: Activity) -> set[int]:
@@ -99,26 +105,22 @@ def get_inbox_notified_user_ids(activity: Activity) -> set[int]:
 
 def _send_notifications[SubjectT, DataT: InboxEventData](
     *,
+    organization: Organization,
     event_type: InboxEventType[SubjectT, DataT],
+    subject: SubjectT,
     data: DataT,
     events: Sequence[InboxItemEvent],
 ) -> None:
     from sentry.notifications.platform.service import NotificationService
-    from sentry.notifications.platform.strategies.actor_routing import UserRoutingStrategy
-    from sentry.notifications.platform.templates.activity.base import (
-        ActivityNotificationData,
-        build_activity_notification_data,
-    )
+    from sentry.notifications.platform.strategies.actor_routing import InboxUserRoutingStrategy
 
-    activity_id = data.get_activity_id()
-    if activity_id is None:
-        # TODO(ISWF-3737): Notify about notebook events.
+    notifier = event_type.notifier
+    if notifier is None:
         return
 
     events_by_user_id = {event.inbox_item.user_id: event for event in events}
-    activity = Activity.objects.get(id=activity_id)
-    strategy = UserRoutingStrategy(
-        project=activity.project,
+    strategy = InboxUserRoutingStrategy(
+        organization_id=organization.id,
         user_ids=list(events_by_user_id),
         settings_key=event_type.notification_setting,
     )
@@ -126,9 +128,9 @@ def _send_notifications[SubjectT, DataT: InboxEventData](
         user_id = (target.specific_data or {}).get("user_id")
         if not isinstance(user_id, int) or user_id not in events_by_user_id:
             continue
-        NotificationService[ActivityNotificationData](
-            data=build_activity_notification_data(
-                activity=activity, target=target, inbox_event=events_by_user_id[user_id]
+        NotificationService(
+            data=notifier.get_notification_data(
+                subject=subject, data=data, event=events_by_user_id[user_id], target=target
             )
         ).notify_async(targets=[target])
 

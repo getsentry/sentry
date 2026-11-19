@@ -1,5 +1,8 @@
-from collections.abc import Sequence
+from __future__ import annotations
+
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 from urllib.parse import urlsplit
 
 from sentry.inbox.event_data import (
@@ -10,11 +13,21 @@ from sentry.inbox.event_data import (
 )
 from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
 from sentry.inbox.response_types import InboxIssueSubjectResponse
-from sentry.inbox.types import InboxEventSummary, InboxEventType, InboxItemType, InboxSubject
-from sentry.models.activity import ActivityIntegration
+from sentry.inbox.types import (
+    InboxEventSummary,
+    InboxEventType,
+    InboxItemType,
+    InboxNotifier,
+    InboxSubject,
+)
+from sentry.models.activity import Activity, ActivityIntegration
 from sentry.models.group import Group
 from sentry.models.organization import Organization
+from sentry.notifications.models.inboxitemevent import InboxItemEvent
 from sentry.notifications.types import NotificationSettingEnum
+
+if TYPE_CHECKING:
+    from sentry.notifications.platform.types import NotificationData, NotificationTarget
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -82,9 +95,6 @@ class IssueAssignedData(InboxEventData):
     def get_url(self, subject_url: str) -> str:
         return urlsplit(subject_url)._replace(fragment=f"activity-{self.activity_id}").geturl()
 
-    def get_activity_id(self) -> int:
-        return self.activity_id
-
 
 @dataclass(frozen=True, kw_only=True)
 class IssueMentionedData(InboxEventData):
@@ -95,10 +105,6 @@ class IssueMentionedData(InboxEventData):
 
     def get_url(self, subject_url: str) -> str:
         return urlsplit(subject_url)._replace(fragment=f"activity-{self.comment_id}").geturl()
-
-    def get_activity_id(self) -> int:
-        # Issue comments are NOTE activities, so the comment ID is the activity ID.
-        return self.comment_id
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -114,8 +120,35 @@ class IssuePRReadyForReviewData(InboxEventData):
             "seerRunId": str(self.seer_run_id),
         }
 
-    def get_activity_id(self) -> int:
-        return self.activity_id
+
+@dataclass(frozen=True)
+class IssueActivityNotifier[DataT: InboxEventData](InboxNotifier[Group, DataT]):
+    """Sends the issue's activity notification for the Activity the event records."""
+
+    get_activity_id: Callable[[DataT], int]
+
+    def get_notification_data(
+        self,
+        *,
+        subject: Group,
+        data: DataT,
+        event: InboxItemEvent,
+        target: NotificationTarget,
+    ) -> NotificationData:
+        from sentry.notifications.platform.templates.activity.base import (
+            build_activity_notification_data,
+        )
+
+        activity = Activity.objects.get(id=self.get_activity_id(data), group=subject)
+        return build_activity_notification_data(activity, target=target, inbox_event=event)
+
+
+def _get_activity_id(data: IssueAssignedData | IssuePRReadyForReviewData) -> int:
+    return data.activity_id
+
+
+def _get_comment_activity_id(data: IssueMentionedData) -> int:
+    return data.comment_id
 
 
 ISSUE = IssueItemType()
@@ -127,6 +160,7 @@ ISSUE_USER_ASSIGNED = InboxEventType(
     item_type=ISSUE,
     data_class=IssueAssignedData,
     notification_setting=NotificationSettingEnum.INBOX_ASSIGNMENTS,
+    notifier=IssueActivityNotifier[IssueAssignedData](get_activity_id=_get_activity_id),
 )
 ISSUE_TEAM_ASSIGNED = InboxEventType(
     recipient="team",
@@ -135,6 +169,7 @@ ISSUE_TEAM_ASSIGNED = InboxEventType(
     item_type=ISSUE,
     data_class=IssueAssignedData,
     notification_setting=NotificationSettingEnum.INBOX_ASSIGNMENTS,
+    notifier=IssueActivityNotifier[IssueAssignedData](get_activity_id=_get_activity_id),
 )
 ISSUE_USER_MENTIONED = InboxEventType(
     event_type="issue.user_mentioned",
@@ -142,6 +177,7 @@ ISSUE_USER_MENTIONED = InboxEventType(
     item_type=ISSUE,
     data_class=IssueMentionedData,
     notification_setting=NotificationSettingEnum.INBOX_MENTIONS,
+    notifier=IssueActivityNotifier[IssueMentionedData](get_activity_id=_get_comment_activity_id),
 )
 ISSUE_TEAM_MENTIONED = InboxEventType(
     recipient="team",
@@ -150,6 +186,7 @@ ISSUE_TEAM_MENTIONED = InboxEventType(
     item_type=ISSUE,
     data_class=IssueMentionedData,
     notification_setting=NotificationSettingEnum.INBOX_MENTIONS,
+    notifier=IssueActivityNotifier[IssueMentionedData](get_activity_id=_get_comment_activity_id),
 )
 ISSUE_PR_READY_FOR_REVIEW = InboxEventType(
     event_type="issue.pr_ready_for_review",
@@ -157,6 +194,7 @@ ISSUE_PR_READY_FOR_REVIEW = InboxEventType(
     item_type=ISSUE,
     data_class=IssuePRReadyForReviewData,
     notification_setting=NotificationSettingEnum.INBOX_PULL_REQUESTS_READY,
+    notifier=IssueActivityNotifier[IssuePRReadyForReviewData](get_activity_id=_get_activity_id),
 )
 
 inbox_item_event_type_registry.register(ISSUE_USER_ASSIGNED.event_type)(ISSUE_USER_ASSIGNED)
