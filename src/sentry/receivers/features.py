@@ -550,11 +550,27 @@ def record_data_scrubber_enabled(organization: Organization, **kwargs: object) -
     )
 
 
-def deleted_and_discarded_issue(instance: GroupTombstone, created: bool, **kwargs: object) -> None:
-    if created:
-        FeatureAdoption.objects.record(
-            organization_id=instance.project.organization_id, feature_slug="delete_and_discard"
-        )
+def deleted_and_discarded_issue(
+    instance: GroupTombstone, created: bool, using: str, **kwargs: object
+) -> None:
+    if not created:
+        return
+
+    organization_id = instance.project.organization_id
+
+    # Record after commit so we are guaranteed not to call Redis inside a transaction
+    def on_commit() -> None:
+        try:
+            FeatureAdoption.objects.record(
+                organization_id=organization_id, feature_slug="delete_and_discard"
+            )
+        except Exception:
+            logger.exception(
+                "feature_adoption.delete_and_discard_failed",
+                extra={"organization_id": organization_id},
+            )
+
+    transaction.on_commit(on_commit, using)
 
 
 @repo_linked.connect(weak=False)
