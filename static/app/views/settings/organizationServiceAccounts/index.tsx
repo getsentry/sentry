@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {DateTime} from '@sentry/scraps/dateTime';
 import {EmptyState} from '@sentry/scraps/emptyState';
@@ -13,8 +14,6 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getPaginationProps} from 'sentry/utils/pagination';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
@@ -33,10 +32,9 @@ const COLUMNS: TableColumnConfig[] = [
 
 export default function OrganizationServiceAccounts() {
   const organization = useOrganization();
-  const location = useLocation();
-  const cursor = decodeScalar(location.query.cursor);
+  const [cursor] = useQueryState('cursor', parseAsString);
   const {data, isPending, isError, refetch} = useQuery({
-    ...serviceAccountsApiOptions(organization, {cursor}),
+    ...serviceAccountsApiOptions(organization, {cursor: cursor ?? undefined}),
     select: selectJsonWithHeaders,
   });
   const accounts = data?.json ?? [];
