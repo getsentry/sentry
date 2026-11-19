@@ -471,6 +471,7 @@ class IssueTypeComparison(TypedDict):
         "web_vitals",
         "issue_stream",
         "metric_issue",
+        "anomaly_detection",
         "error",
         "uptime_domain_failure",
         "send-test-notification",
@@ -1317,6 +1318,11 @@ ActionDataResponse: TypeAlias = (
 )
 
 
+# config_schema of the anomaly_detection detector
+class AnomalyDetectionDetectorConfig(TypedDict):
+    pass
+
+
 # config_schema of the error detector
 class ErrorDetectorConfig(TypedDict):
     pass
@@ -1403,7 +1409,8 @@ ErrorDetectorProjectOptionsResponse = TypedDict(
 
 # Any detector's config
 DetectorConfig: TypeAlias = (
-    ErrorDetectorConfig
+    AnomalyDetectionDetectorConfig
+    | ErrorDetectorConfig
     | IssueStreamDetectorConfig
     | MetricIssueDetectorConfig
     | PreprodSizeAnalysisDetectorConfig
@@ -1415,6 +1422,7 @@ DetectorConfig: TypeAlias = (
 DetectorConfigResponse: TypeAlias = (
     EmptyDetectorConfig
     | ErrorDetectorProjectOptionsResponse
+    | AnomalyDetectionDetectorConfig
     | IssueStreamDetectorConfigResponse
     | MetricIssueDetectorConfigResponse
     | PreprodSizeAnalysisDetectorConfigResponse

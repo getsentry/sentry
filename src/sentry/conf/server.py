@@ -901,6 +901,7 @@ TASKWORKER_DEFAULT_TOPIC = os.getenv("TASKWORKER_DEFAULT_TOPIC")
 # This list includes all tasks even if they are imported transitively by other modules.
 TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.ai_monitoring.tasks",
+    "sentry.anomaly_detection.schedule",
     "sentry.cadence.tasks",
     "sentry.conduit.tasks",
     "sentry.data_export.tasks",
@@ -1088,6 +1089,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "health-check-organization-detectors": {
         "task": "workflow_engine:sentry.workflow_engine.tasks.health_check.health_check_organization_detectors",
         "schedule": crontab("*/30", "*", "*", "*", "*"),
+    },
+    "schedule-anomaly-detectors": {
+        "task": "workflow_engine:sentry.anomaly_detection.schedule.schedule_anomaly_detectors",
+        "schedule": timedelta(minutes=1),
     },
     "resolve-stale-sourcemap-detectors": {
         "task": "workflow_engine:sentry.processing_errors.tasks.resolve_stale_sourcemap_detectors",

@@ -3241,6 +3241,25 @@ register(
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Anomaly detection rollout limits (sentry.anomaly_detection.schedule)
+register(
+    "anomaly_detection.max_organizations_per_tick",
+    type=Int,
+    default=20,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "anomaly_detection.max_projects_per_organization",
+    type=Int,
+    default=10,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "anomaly_detection.max_catchup_minutes",
+    type=Int,
+    default=15,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "statistical_detectors.query.batch_size",
     type=Int,

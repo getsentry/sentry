@@ -56,8 +56,8 @@ invalidation is connected to source, detector, and mapping updates.
 The default manager excludes pending-deletion and deletion-in-progress rows, but this
 path does not exclude every non-active status such as plan-level `DISABLED`.
 
-Not every producer uses this generic lookup. Uptime, processing errors, and preprod
-paths can identify detectors through product-specific data and call
+Not every producer uses this generic lookup. Uptime, processing errors, preprod, and
+anomaly detection paths can identify detectors through product-specific data and call
 [`process_detectors`](../processors/detector.py) directly. The handler contract is the
 same after detector selection.
 
@@ -151,9 +151,18 @@ empty or passing `NONE` group can also trigger without a priority-bearing result
 therefore use the stateful handler's default `OK` priority. A missing trigger group is
 invalid and produces no transition.
 
-Detectors that decide without the trigger condition group inherit `BaseDetectorHandler` and
-implement `evaluate`. Detectors that extend the condition evaluation override `evaluate` and
-call `super().evaluate()`, then own the orchestration they add.
+The condition group step is the `evaluate_priorities` hook. A stateful detector that decides
+priorities itself overrides it to return `DetectorEvaluation.create_issue(group_key, priority)`
+or `DetectorEvaluation.ok(group_key)` per group, while dedupe, thresholds, activation IDs, state,
+and resolution stay with `StatefulDetectorHandler`. Without a condition group no levels are
+configured, so such a handler must override `thresholds` with every priority it emits (e.g.
+`{LOW: 1, MEDIUM: 1, HIGH: 1}`).
+
+Stateless detectors that decide without the trigger condition group inherit
+`BaseDetectorHandler` and implement `evaluate`; stateful ones inherit
+`StatefulDetectorHandler` and override `evaluate_priorities`. Detectors that extend the
+condition evaluation override `evaluate` and call `super().evaluate()`, then own the
+orchestration they add.
 
 ### 5. Produce detector output
 
