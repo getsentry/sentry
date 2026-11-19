@@ -64,7 +64,7 @@ describe('SeerOutOfCreditsCta', () => {
     expect(
       await screen.findByRole('heading', {name: 'Auto-reload credits'})
     ).toBeInTheDocument();
-    expect(screen.getByRole('radiogroup', {name: 'Credit amount'})).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', {name: 'Auto-reload enabled'})).not.toBeChecked();
     expect(screen.queryByRole('button', {name: 'Contact Admin'})).not.toBeInTheDocument();
   });
 

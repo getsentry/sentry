@@ -194,9 +194,11 @@ function AutoTopUpForm({
     queryClient.invalidateQueries({queryKey: seerCreditChecksQueryKey(organization)});
   };
 
-  const topUpCredits = Math.floor(amountCents / creditPriceCents);
-  // The API checks the minimum even with auto-reload off, since turning it back
-  // on uses the saved amount.
+  // The credit amount is hidden while auto-reload is off, so saving then keeps
+  // the saved amount for when it's turned back on.
+  const topUpCredits = isEnabled
+    ? Math.floor(amountCents / creditPriceCents)
+    : autoTopUp.topUpCredits;
   const isAmountTooLow = topUpCredits < autoTopUp.minTopUpCredits;
   const enteredSettings: AutoTopUpSettings = {
     enabled: isEnabled,
@@ -357,81 +359,85 @@ function AutoTopUpForm({
               onChange={e => setIsEnabled(e.target.checked)}
             />
           </Flex>
-          <Stack gap="lg">
-            <Stack gap="xs">
-              <Text id="seer-auto-load-amount-label" bold>
-                {t('Credit amount')}
-              </Text>
-              <Text>
-                {tct(
-                  'Whenever your credits are at or below [threshold], purchase this amount',
-                  {
-                    threshold: displayPrice({
-                      cents: autoTopUp.thresholdCredits * creditPriceCents,
-                    }),
-                  }
-                )}
-              </Text>
-            </Stack>
-            <Stack gap="md">
-              <Grid
-                role="radiogroup"
-                aria-labelledby="seer-auto-load-amount-label"
-                columns={`repeat(${AMOUNT_PRESETS_CENTS.length + 1}, minmax(0, 1fr))`}
-                gap="sm"
-              >
-                {AMOUNT_PRESETS_CENTS.map(cents => {
-                  const isSelected = !isCustomAmount && cents === amountCents;
-                  return (
-                    <AmountCard
-                      key={cents}
-                      value={String(cents)}
-                      checked={isSelected}
-                      onChange={() => {
-                        setAmountCents(cents);
-                        setIsCustomAmount(false);
-                      }}
-                    >
-                      <Text bold variant={isSelected ? 'accent' : 'primary'}>
-                        {displayPrice({cents})}
-                      </Text>
-                      <Text size="sm" variant="muted" align="center">
-                        {tct('[credits] credits', {
-                          credits: Math.floor(cents / creditPriceCents).toLocaleString(),
-                        })}
-                      </Text>
-                    </AmountCard>
-                  );
-                })}
-                <AmountCard
-                  value="custom"
-                  checked={isCustomAmount}
-                  onChange={() => setIsCustomAmount(true)}
-                >
-                  <Text bold variant={isCustomAmount ? 'accent' : 'primary'}>
-                    {t('Custom')}
-                  </Text>
-                </AmountCard>
-              </Grid>
-              {isCustomAmount && (
-                <DollarInput
-                  aria-label={t('Custom credit amount')}
-                  cents={amountCents}
-                  creditPriceCents={creditPriceCents}
-                  onChange={cents => setAmountCents(cents ?? 0)}
-                />
-              )}
-              {isAmountTooLow && (
-                <Text size="sm" variant="danger">
-                  {tct('The credit amount must be at least [price].', {
-                    price: displayPrice({
-                      cents: autoTopUp.minTopUpCredits * creditPriceCents,
-                    }),
-                  })}
+          {isEnabled && (
+            <Stack gap="lg">
+              <Stack gap="xs">
+                <Text id="seer-auto-load-amount-label" bold>
+                  {t('Credit amount')}
                 </Text>
-              )}
+                <Text>
+                  {tct(
+                    'Whenever your credits are at or below [threshold], purchase this amount',
+                    {
+                      threshold: displayPrice({
+                        cents: autoTopUp.thresholdCredits * creditPriceCents,
+                      }),
+                    }
+                  )}
+                </Text>
+              </Stack>
+              <Stack gap="md">
+                <Grid
+                  role="radiogroup"
+                  aria-labelledby="seer-auto-load-amount-label"
+                  columns={`repeat(${AMOUNT_PRESETS_CENTS.length + 1}, minmax(0, 1fr))`}
+                  gap="sm"
+                >
+                  {AMOUNT_PRESETS_CENTS.map(cents => {
+                    const isSelected = !isCustomAmount && cents === amountCents;
+                    return (
+                      <AmountCard
+                        key={cents}
+                        value={String(cents)}
+                        checked={isSelected}
+                        onChange={() => {
+                          setAmountCents(cents);
+                          setIsCustomAmount(false);
+                        }}
+                      >
+                        <Text bold variant={isSelected ? 'accent' : 'primary'}>
+                          {displayPrice({cents})}
+                        </Text>
+                        <Text size="sm" variant="muted" align="center">
+                          {tct('[credits] credits', {
+                            credits: Math.floor(
+                              cents / creditPriceCents
+                            ).toLocaleString(),
+                          })}
+                        </Text>
+                      </AmountCard>
+                    );
+                  })}
+                  <AmountCard
+                    value="custom"
+                    checked={isCustomAmount}
+                    onChange={() => setIsCustomAmount(true)}
+                  >
+                    <Text bold variant={isCustomAmount ? 'accent' : 'primary'}>
+                      {t('Custom')}
+                    </Text>
+                  </AmountCard>
+                </Grid>
+                {isCustomAmount && (
+                  <DollarInput
+                    aria-label={t('Custom credit amount')}
+                    cents={amountCents}
+                    creditPriceCents={creditPriceCents}
+                    onChange={cents => setAmountCents(cents ?? 0)}
+                  />
+                )}
+                {isAmountTooLow && (
+                  <Text size="sm" variant="danger">
+                    {tct('The credit amount must be at least [price].', {
+                      price: displayPrice({
+                        cents: autoTopUp.minTopUpCredits * creditPriceCents,
+                      }),
+                    })}
+                  </Text>
+                )}
+              </Stack>
             </Stack>
-          </Stack>
+          )}
           <Stack gap="lg">
             <Stack gap="xs">
               <Text as="label" htmlFor="seer-auto-load-daily-limit" bold>

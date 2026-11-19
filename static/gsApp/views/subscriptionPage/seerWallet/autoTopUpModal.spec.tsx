@@ -90,17 +90,14 @@ describe('openSeerAutoTopUpModal', () => {
     });
     openAutoTopUpModal();
 
+    await toggleAutoReload();
     expect(
-      await screen.findByText(
-        'Whenever your credits are at or below $5, purchase this amount'
-      )
+      screen.getByText('Whenever your credits are at or below $5, purchase this amount')
     ).toBeInTheDocument();
     expect(screen.getByRole('radio', {name: '$15 1,500 credits'})).toBeChecked();
     expect(
       screen.queryByRole('textbox', {name: 'Custom credit amount'})
     ).not.toBeInTheDocument();
-
-    await toggleAutoReload();
     expect(screen.getByText('Due now')).toBeInTheDocument();
     expect(screen.getByText('$15.00')).toBeInTheDocument();
 
@@ -237,9 +234,9 @@ describe('openSeerAutoTopUpModal', () => {
       autoTopUp: AutoTopUpFixture({enabled: false, topUpCredits: 2000}),
     });
 
-    expect(await screen.findByRole('radio', {name: 'Custom'})).toBeChecked();
-    expect(screen.getByRole('textbox', {name: 'Custom credit amount'})).toHaveValue('20');
     await toggleAutoReload();
+    expect(screen.getByRole('radio', {name: 'Custom'})).toBeChecked();
+    expect(screen.getByRole('textbox', {name: 'Custom credit amount'})).toHaveValue('20');
     expect(
       screen.getByRole('button', {name: 'Save and pay $20.00 + tax'})
     ).toBeInTheDocument();
@@ -380,6 +377,9 @@ describe('openSeerAutoTopUpModal', () => {
 
     const dailyLimit = await screen.findByRole('textbox', {name: 'Daily usage limit'});
     expect(screen.getByRole('checkbox', {name: 'Auto-reload enabled'})).not.toBeChecked();
+    expect(
+      screen.queryByRole('radiogroup', {name: 'Credit amount'})
+    ).not.toBeInTheDocument();
     expect(screen.queryByText('Due now')).not.toBeInTheDocument();
 
     await userEvent.clear(dailyLimit);
@@ -413,7 +413,12 @@ describe('openSeerAutoTopUpModal', () => {
       purchasedRemaining: 1200,
     });
 
+    // An amount picked before switching off is hidden, so it isn't saved.
+    await userEvent.click(await screen.findByRole('radio', {name: '$50 5,000 credits'}));
     await toggleAutoReload();
+    expect(
+      screen.queryByRole('radiogroup', {name: 'Credit amount'})
+    ).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Save'}));
     expect(
       screen.getByText(
