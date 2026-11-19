@@ -3099,8 +3099,8 @@ register(
 
 # Temporary killswitch for the system incident dual-write to
 # SENTRY_MONITORS_SECONDARY_REDIS_CLUSTER (INFRENG-1051). Turn off to stop the
-# secondary writes at once, for example when the secondary cluster is slow.
-# Has no effect when the setting is unset. Remove with the dual-write.
+# secondary writes at once. Has no effect when the setting is unset.
+# To be removed as part of INFRENG-1053
 register(
     "crons.system_incidents.secondary_redis_writes",
     default=True,

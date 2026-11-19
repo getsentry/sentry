@@ -85,9 +85,7 @@ def _write_monitors_redis(
         return
     if not options.get("crons.system_incidents.secondary_redis_writes"):
         return
-    # The secondary only mirrors the primary while US crons state moves
-    # between clusters (INFRENG-1051). Its failure must not fail the primary
-    # write.
+
     try:
         write(redis.redis_clusters.get(secondary_cluster))
     except Exception:
