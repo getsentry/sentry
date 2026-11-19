@@ -673,7 +673,7 @@ class RenameRepositoriesTest(TestCase):
         )
         self.repo.update(config={"name": "getsentry/old-name", "other": "kept"})
 
-    def _rename(self, **overrides: Any) -> list[int]:
+    def _rename_request(self, **overrides: Any) -> RpcRepositoryRename:
         rename = {
             "id": self.repo.id,
             "external_id": "100",
@@ -684,11 +684,14 @@ class RenameRepositoriesTest(TestCase):
             "url": "https://github.com/getsentry/new-name",
             **overrides,
         }
+        return RpcRepositoryRename(**rename)
+
+    def _rename(self, **overrides: Any) -> list[int]:
         return repository_service.rename_repositories(
             organization_id=self.organization.id,
             integration_id=self.integration.id,
             provider="integrations:github",
-            renames=[RpcRepositoryRename(**rename)],
+            renames=[self._rename_request(**overrides)],
         )
 
     def test_writes_only_rename_fields_to_current_row(self) -> None:
@@ -752,6 +755,48 @@ class RenameRepositoriesTest(TestCase):
 
         self.repo.refresh_from_db()
         assert self.repo.url == "https://github.com/getsentry/new-name"
+
+    def test_batch_writes_each_matching_rename_in_one_query(self) -> None:
+        self.repo.update(config={"other": True})
+        other = self.create_repo(
+            project=self.project,
+            provider="integrations:github",
+            integration_id=self.integration.id,
+            external_id="101",
+            name="example/second",
+            url=None,
+        )
+        other.update(config={"name": None})
+        renames = [
+            self._rename_request(
+                id=other.id,
+                external_id="101",
+                expected_name=other.name,
+                expected_url=None,
+                expected_config_name=None,
+                name="example/renamed",
+                url="https://example.com/renamed",
+            ),
+            # A stale entry for the same ID must not supply the new name or URL.
+            self._rename_request(name="example/stale", url="https://example.com/stale"),
+            self._rename_request(expected_config_name=None),
+        ]
+
+        with self.assertNumQueries(1, using=router.db_for_write(Repository)):
+            renamed = repository_service.rename_repositories(
+                organization_id=self.organization.id,
+                integration_id=self.integration.id,
+                provider="integrations:github",
+                renames=renames,
+            )
+
+        assert renamed == [self.repo.id, other.id]
+        self.repo.refresh_from_db()
+        other.refresh_from_db()
+        assert (self.repo.name, self.repo.url) == (renames[2].name, renames[2].url)
+        assert self.repo.config == {"name": renames[2].name, "other": True}
+        assert (other.name, other.url) == (renames[0].name, renames[0].url)
+        assert other.config == {"name": renames[0].name}
 
     def test_renames_only_matching_rows_in_batch(self) -> None:
         other = self.create_repo(
