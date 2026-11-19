@@ -32,6 +32,7 @@ function makeMatch(path: string): UIMatch {
 
 const SETTINGS_MATCHES = [makeMatch('/settings/:orgId/projects/:projectId/')];
 const RELEASES_MATCHES = [makeMatch('/organizations/:orgId/releases/:release/')];
+const ISSUES_MATCHES = [makeMatch('/organizations/:orgId/issues/')];
 
 describe('useRouteActivatedHook', () => {
   const organization = OrganizationFixture();
@@ -284,36 +285,36 @@ describe('useRouteActivatedHook', () => {
 
   it('sends the route the user navigated from as previous_parameterized_path', () => {
     jest.useFakeTimers();
+
+    // Page load on project settings
     const {result, rerender} = renderHook(useRouteActivatedHook, {
-      initialProps: props,
+      initialProps: genProps({matches: SETTINGS_MATCHES}),
     });
     act(() => result.current.setOrganization(organization));
     act(() => jest.advanceTimersByTime(DEFAULT_ADVANCE_PERIOD));
 
-    // The first page of a page load has no previous route
-    expect(jest.mocked(rawTrackAnalyticsEvent).mock.calls[0]![0]).not.toHaveProperty(
-      'previous_parameterized_path'
-    );
-
-    act(() => rerender(genProps({matches: RELEASES_MATCHES})));
-    act(() => jest.advanceTimersByTime(DEFAULT_ADVANCE_PERIOD));
-    act(() =>
-      rerender(genProps({matches: [makeMatch('/organizations/:orgId/issues/')]}))
-    );
+    // Project settings -> releases
+    rerender(genProps({matches: RELEASES_MATCHES}));
     act(() => jest.advanceTimersByTime(DEFAULT_ADVANCE_PERIOD));
 
-    expect(rawTrackAnalyticsEvent).toHaveBeenCalledTimes(3);
-    expect(jest.mocked(rawTrackAnalyticsEvent).mock.calls[1]![0]).toEqual(
-      expect.objectContaining({
-        parameterized_path: 'organizations.:org_id.releases.:release',
-        previous_parameterized_path: 'settings.:org_id.projects.:project_id',
-      })
-    );
-    expect(jest.mocked(rawTrackAnalyticsEvent).mock.calls[2]![0]).toEqual(
-      expect.objectContaining({
-        parameterized_path: 'organizations.:org_id.issues',
-        previous_parameterized_path: 'organizations.:org_id.releases.:release',
-      })
-    );
+    // Releases -> issues
+    rerender(genProps({matches: ISSUES_MATCHES}));
+    act(() => jest.advanceTimersByTime(DEFAULT_ADVANCE_PERIOD));
+
+    const pageViews = jest.mocked(rawTrackAnalyticsEvent).mock.calls.map(([event]) => ({
+      path: event.parameterized_path,
+      previousPath: event.previous_parameterized_path,
+    }));
+    expect(pageViews).toEqual([
+      {path: 'settings.:org_id.projects.:project_id', previousPath: undefined},
+      {
+        path: 'organizations.:org_id.releases.:release',
+        previousPath: 'settings.:org_id.projects.:project_id',
+      },
+      {
+        path: 'organizations.:org_id.issues',
+        previousPath: 'organizations.:org_id.releases.:release',
+      },
+    ]);
   });
 });
