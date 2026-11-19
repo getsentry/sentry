@@ -1,3 +1,5 @@
+import type {TimeseriesAnnotation} from './timeseriesAnnotation';
+
 export type AnnotationKind = 'release' | 'flag' | 'timeseriesAnnotation';
 
 /**
@@ -9,4 +11,6 @@ export interface AnnotationItem {
   kind: AnnotationKind;
   start: number;
   title: string;
+  environment?: TimeseriesAnnotation['environment'];
+  severity?: TimeseriesAnnotation['severity'];
 }
