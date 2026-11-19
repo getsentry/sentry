@@ -539,13 +539,6 @@ class OAuth2CallbackView:
             state = request.GET.get("state")
             code = request.GET.get("code")
 
-            if error:
-                lifecycle.record_failure(
-                    IntegrationPipelineErrorReason.TOKEN_EXCHANGE_MISMATCHED_STATE,
-                    extra={"error": error},
-                )
-                return pipeline.error(f"{ERR_INVALID_STATE}\nError: {error}")
-
             stored_state = pipeline.fetch_state("state")
             if not state or not stored_state or not constant_time_compare(state, stored_state):
                 extra = {
@@ -558,6 +551,14 @@ class OAuth2CallbackView:
                     IntegrationPipelineErrorReason.TOKEN_EXCHANGE_MISMATCHED_STATE, extra=extra
                 )
                 return pipeline.error(ERR_INVALID_STATE)
+
+            # Only a callback for the flow we started may tell us that flow failed.
+            if error:
+                lifecycle.record_failure(
+                    IntegrationPipelineErrorReason.TOKEN_EXCHANGE_MISMATCHED_STATE,
+                    extra={"error": error},
+                )
+                return pipeline.error(f"{ERR_INVALID_STATE}\nError: {error}")
 
             if code is None:
                 lifecycle.record_halt(IntegrationPipelineHaltReason.NO_CODE_PROVIDED)

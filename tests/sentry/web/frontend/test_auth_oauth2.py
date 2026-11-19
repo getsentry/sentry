@@ -7,11 +7,18 @@ from typing import TYPE_CHECKING, Any
 from unittest import mock
 from urllib.parse import parse_qs, urlencode, urlparse
 
+from django.http import HttpResponseRedirect
 from django.urls import reverse
 
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
-from sentry.auth.providers.oauth2 import OAuth2Callback, OAuth2Login, OAuth2Provider
+from sentry.auth.helper import AuthHelper
+from sentry.auth.providers.oauth2 import (
+    ERR_INVALID_STATE,
+    OAuth2Callback,
+    OAuth2Login,
+    OAuth2Provider,
+)
 from sentry.auth.view import AuthView
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
@@ -165,6 +172,28 @@ class AuthOAuth2Test(AuthProviderTestCase):
                 "client_secret": "my_client_secret",
             }
         return resp
+
+    def test_oauth2_error_with_invalid_state(self) -> None:
+        self.initiate_oauth_flow()
+
+        query = urlencode(
+            {"code": "1234", "error": "attacker-controlled message", "state": "attacker-state"}
+        )
+        with mock.patch.object(AuthHelper, "error", autospec=True) as error:
+            error.return_value = HttpResponseRedirect("/")
+            self.client.get(f"{self.sso_path}?{query}")
+
+        error.assert_called_once_with(mock.ANY, ERR_INVALID_STATE)
+
+    def test_oauth2_error_with_valid_state(self) -> None:
+        state = self.initiate_oauth_flow()
+
+        query = urlencode({"code": "1234", "error": "access_denied", "state": state})
+        with mock.patch.object(AuthHelper, "error", autospec=True) as error:
+            error.return_value = HttpResponseRedirect("/")
+            self.client.get(f"{self.sso_path}?{query}")
+
+        error.assert_called_once_with(mock.ANY, "access_denied")
 
     def test_oauth2_flow(self) -> None:
         auth_data = {"id": "oauth_external_id_1234", "email": self.user.email}
