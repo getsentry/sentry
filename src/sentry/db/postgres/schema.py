@@ -16,6 +16,11 @@ from django_zero_downtime_migrations.backends.postgres.schema import (
     UnsafeOperationException,
 )
 
+from sentry.db.partitions.schema import (
+    PartitioningSchemaEditorMixin,
+    SafePartitioningSchemaEditorMixin,
+)
+
 unsafe_mapping = {
     Unsafe.ADD_COLUMN_NOT_NULL: (
         "Adding {}.{} as a not null column with no default is unsafe. Provide a default using db_default. \n"
@@ -70,7 +75,7 @@ def translate_unsafeoperation_exception(
     return cast("Callable[Concatenate[Any, P], None]", inner)
 
 
-class MakeBtreeGistSchemaEditor(PostgresDatabaseSchemaEditor):
+class MakeBtreeGistSchemaEditor(PartitioningSchemaEditorMixin, PostgresDatabaseSchemaEditor):
     """workaround for https://code.djangoproject.com/ticket/36374"""
 
     def create_model(self, model: type[Model]) -> None:
@@ -84,8 +89,14 @@ class MakeBtreeGistSchemaEditor(PostgresDatabaseSchemaEditor):
         super().add_constraint(model, constraint)
 
 
-class SafePostgresDatabaseSchemaEditor(DatabaseSchemaEditorMixin, PostgresDatabaseSchemaEditor):
-    add_field = translate_unsafeoperation_exception(PostgresDatabaseSchemaEditor.add_field)
+class SafePostgresDatabaseSchemaEditor(
+    SafePartitioningSchemaEditorMixin, DatabaseSchemaEditorMixin, PostgresDatabaseSchemaEditor
+):
+    @translate_unsafeoperation_exception
+    def add_field(self, model: type[Model], field: Field[Any, Any]) -> None:
+        self._check_partitioned_add_field(model, field)
+        PostgresDatabaseSchemaEditor.add_field(self, model, field)
+
     alter_db_tablespace = translate_unsafeoperation_exception(
         PostgresDatabaseSchemaEditor.alter_db_tablespace
     )
@@ -99,6 +110,7 @@ class SafePostgresDatabaseSchemaEditor(DatabaseSchemaEditorMixin, PostgresDataba
         strict: bool = False,
     ) -> None:
         self._check_alter_indexed_column_type(model, old_field, new_field)
+        self._check_partitioned_alter_field(model, old_field, new_field)
         PostgresDatabaseSchemaEditor.alter_field(self, model, old_field, new_field, strict)
 
     def _check_alter_indexed_column_type(
