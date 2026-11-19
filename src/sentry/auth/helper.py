@@ -65,6 +65,7 @@ from sentry.organizations.services.organization import (
 )
 from sentry.pipeline.base import Pipeline
 from sentry.pipeline.constants import PIPELINE_STATE_TTL
+from sentry.pipeline.store import PipelineSessionStore
 from sentry.signals import sso_enabled, user_signup
 from sentry.tasks.auth.auth import email_missing_links_control
 from sentry.users.models.user import User
@@ -214,7 +215,7 @@ class AuthIdentityHandler:
 
     def handle_existing_identity(
         self,
-        state: AuthHelperSessionStore,
+        state: PipelineSessionStore,
         auth_identity: AuthIdentity,
     ) -> HttpResponseRedirect:
         # TODO(dcramer): this is very similar to attach
@@ -646,19 +647,19 @@ class AuthIdentityHandler:
             context["login_form"] = self._login_form
         return self._respond(f"sentry/{template}.html", context)
 
-    def _has_verified_signup_email(self, state: AuthHelperSessionStore) -> bool:
+    def _has_verified_signup_email(self, state: PipelineSessionStore) -> bool:
         """Check if the pipeline has a verified email from the verification flow.
 
         Consumes the marker on read so it can only be used once.
         """
         verified = getattr(state, "verified_email", None)
-        if not verified:
+        if not verified or not isinstance(state, AuthHelperSessionStore):
             return False
         state.verified_email = None
         return verified.lower() == self.identity["email"].lower()
 
     def _send_sso_verification_email_and_redirect(
-        self, email: str, state: AuthHelperSessionStore
+        self, email: str, state: PipelineSessionStore
     ) -> HttpResponse:
         """Send the SSO signup verification email (unless already sent for
         this pipeline) and redirect to the pending-verification page.
@@ -690,12 +691,13 @@ class AuthIdentityHandler:
             self.request.session[PENDING_EXPIRY_TEXT_SESSION_KEY] = max_age_minutes
             # Setting this refreshes the pipeline's TTL to match the link's max_age,
             # and stops a resubmit from re-sending or re-extending the TTL.
-            state.verification_email_sent = True
+            if isinstance(state, AuthHelperSessionStore):
+                state.verification_email_sent = True
         return HttpResponseRedirect(reverse("sentry-signup-verify-email-pending"))
 
     def handle_unknown_identity(
         self,
-        state: AuthHelperSessionStore,
+        state: PipelineSessionStore,
     ) -> HttpResponse:
         """Handle an SSO login where no AuthIdentity exists yet for this IdP identity.
 
@@ -816,7 +818,8 @@ class AuthIdentityHandler:
                     # email instead of being stuck: otherwise
                     # verification_email_sent stays True forever for this
                     # pipeline and the retry silently bounces to signup.
-                    state.verification_email_sent = False
+                    if isinstance(state, AuthHelperSessionStore):
+                        state.verification_email_sent = False
                     raise
                 created_new_user = True
             elif op == "login" and not self._logged_in_user:
@@ -887,7 +890,7 @@ class AuthIdentityHandler:
     def complete_and_login(
         self,
         auth_identity: AuthIdentity,
-        state: AuthHelperSessionStore,
+        state: PipelineSessionStore,
         is_new_user: bool = False,
     ) -> HttpResponseRedirect:
         """Log in a user after identity resolution and clean up pipeline state."""
