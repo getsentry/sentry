@@ -1,15 +1,26 @@
-import {Fragment, useRef, useState} from 'react';
+import {Fragment, useMemo, useRef, useState} from 'react';
 import {IconUpload} from '@sentry/icons/upload';
 
 import {Button} from '@sentry/scraps/button';
 import {toast} from '@sentry/scraps/toast';
 
+import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 const ACCEPTED_VIDEO_TYPES = 'video/mp4,video/quicktime,video/webm,video/ogg';
+
+/**
+ * Headers for the upload client. The default client sends a JSON Content-Type
+ * on every request, which would make the server parse the multipart body as
+ * JSON; without it the browser sets multipart/form-data and its boundary, as
+ * the relocation upload does.
+ */
+export const COMMENT_ATTACHMENT_UPLOAD_HEADERS = {
+  Accept: 'application/json; charset=utf-8',
+};
 
 /**
  * Matches the URL the comment attachment endpoint returns, so notes can render
@@ -60,7 +71,11 @@ export function CommentAttachmentButton({
   onUploaded,
 }: CommentAttachmentButtonProps) {
   const organization = useOrganization();
-  const api = useApi();
+  const uploadClient = useMemo(
+    () => new Client({headers: COMMENT_ATTACHMENT_UPLOAD_HEADERS}),
+    []
+  );
+  const api = useApi({api: uploadClient});
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
 
