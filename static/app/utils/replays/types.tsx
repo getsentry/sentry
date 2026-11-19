@@ -261,6 +261,20 @@ export function isCLSFrame(frame: WebVitalFrame): frame is WebVitalFrame {
   return frame.description === 'cumulative-layout-shift';
 }
 
+/**
+ * Memory spans can arrive with `data.memory` missing or without a numeric heap
+ * size, even though the SDK types require them.
+ */
+export function isMemoryFrame(frame: SpanFrame): frame is MemoryFrame {
+  return (
+    frame.op === 'memory' &&
+    typeof frame.data === 'object' &&
+    frame.data !== null &&
+    'memory' in frame.data &&
+    Number.isFinite(frame.data.memory?.usedJSHeapSize)
+  );
+}
+
 export function isPaintFrame(frame: SpanFrame): frame is PaintFrame {
   return frame.op === 'paint';
 }
@@ -451,7 +465,11 @@ export type WebVitalFrame = HydratedSpan<
   | 'first-input-delay'
   | 'interaction-to-next-paint'
 >;
-export type MemoryFrame = HydratedSpan<'memory'>;
+// Narrowed by `isMemoryFrame`, which only accepts frames with a usable heap size.
+export type MemoryFrame = Overwrite<
+  HydratedSpan<'memory'>,
+  {data: NonNullable<HydratedSpan<'memory'>['data']>}
+>;
 export type NavigationFrame = HydratedSpan<
   'navigation.navigate' | 'navigation.reload' | 'navigation.back_forward'
 >;

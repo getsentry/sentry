@@ -3,6 +3,10 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '0 0 * * 0'
+
+permissions:
+  contents: read
+
 jobs:
   jest-config:
     name: Configure Jest
@@ -13,6 +17,8 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         name: Checkout sentry
+        with:
+          persist-credentials: false
 
       - uses: $/.github/actions/setup-node-pnpm
 
@@ -41,9 +47,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix: ${{ fromJson(needs.jest-config.outputs.jest_test_matrix) }}
+    permissions:
+      contents: read
+      # dawidd6/action-download-artifact reads jest-balance.json from an earlier run
+      actions: read
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         name: Checkout sentry
+        with:
+          persist-credentials: false
 
       - uses: $/.github/actions/setup-node-pnpm
 
@@ -88,6 +100,8 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
       - uses: $/.github/actions/setup-node-pnpm
 

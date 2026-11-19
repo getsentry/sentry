@@ -13,6 +13,9 @@ defaults:
     #      bash --noprofile --norc -eo pipefail {0}
     shell: bash --noprofile --norc -eo pipefail -ux {0}
 
+permissions:
+  contents: read
+
 jobs:
   did-migration-change:
     name: check if any migration changes
@@ -28,6 +31,8 @@ jobs:
     steps:
       - name: Checkout sentry
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
       - name: Match migration files
         uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
@@ -43,6 +48,10 @@ jobs:
 
     needs: did-migration-change
     if: needs.did-migration-change.outputs.added == 'true'
+    permissions:
+      contents: read
+      # getsentry/action-migrations posts the generated SQL as a PR comment.
+      pull-requests: write
 
     steps:
       # Checkout master to run all merged migrations.
