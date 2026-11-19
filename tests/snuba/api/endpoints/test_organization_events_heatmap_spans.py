@@ -133,3 +133,20 @@ class OrganizationEventsHeatmapSpansEndpointTest(OrganizationEventsEndpointTestB
         response = self._do_request(data={**self.base_data, "spanQuery": "span.description:foo"})
         assert response.status_code == 200, response.content
         assert sum(row["zAxis"] for row in response.data["values"]) == 1
+
+    def test_no_projects(self) -> None:
+        org = self.create_organization(owner=self.user)
+        url = reverse(self.endpoint, kwargs={"organization_id_or_slug": org.slug})
+        with self.feature({"organizations:explore-dev-features": True}):
+            response = self.client_get(data={"yBuckets": 6, "dataset": self.dataset}, url=url)
+
+        assert response.status_code == 200, response.content
+        assert response.data == {
+            "meta": {
+                "dataset": "spans",
+                "xAxis": {"name": "time", "start": None, "end": None},
+                "yAxis": {"name": "span.duration", "start": None, "end": None},
+                "zAxis": {"name": "count()", "start": None, "end": None},
+            },
+            "values": [],
+        }

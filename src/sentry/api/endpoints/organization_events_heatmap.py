@@ -67,9 +67,6 @@ class HeatmapResponse(TypedDict):
     values: list[HeatMap]
 
 
-EMPTY_HEATMAP_RESPONSE: dict[str, Any] = {"heatmap": []}
-
-
 @extend_schema(tags=["Explore"])
 @cell_silo_endpoint
 class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
@@ -121,14 +118,6 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
             ):
                 raise ParseError(f"{DATASET_LABELS[dataset]} is not supported on this endpoint")
 
-            try:
-                snuba_params = self.get_snuba_params(
-                    request,
-                    organization,
-                )
-            except NoProjects:
-                return Response(EMPTY_HEATMAP_RESPONSE, status=200)
-
             # For now these three fields are locked to time, value, and count()
             xAxis = request.GET.get("xAxis", "time")
             if xAxis != "time":
@@ -151,6 +140,25 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
             if zAxis != "count()":
                 raise ParseError("zAxis can currently only be `count()`")
             z_function, _, _ = parse_function(zAxis)
+
+            try:
+                snuba_params = self.get_snuba_params(
+                    request,
+                    organization,
+                )
+            except NoProjects:
+                return Response(
+                    HeatmapResponse(
+                        meta=HeatMapMeta(
+                            dataset=DATASET_LABELS[dataset],
+                            xAxis=AxisMeta(name=xAxis, start=None, end=None),
+                            yAxis=AxisMeta(name=yAxis, start=None, end=None),
+                            zAxis=AxisMeta(name=zAxis, start=None, end=None),
+                        ),
+                        values=[],
+                    ),
+                    status=200,
+                )
 
             # if xAxis is time, use interval as x_buckets instead
             if xAxis == "time":
