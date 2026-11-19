@@ -238,6 +238,34 @@ def expire_partitions(
     return expire_range_partitions(target, before, now=now, dry_run=dry_run)
 
 
+def report_partition_metrics(target: RangeTable, now: datetime) -> None:
+    """
+    Gauges for alerting, reported on every run, including zeros:
+
+    - ``db.partitions.ahead``: partitions after the current one. Inserts fail once
+      no partition covers them.
+    - ``db.partitions.detached_by_hand``: partitions detached by hand, which are kept
+      until someone drops them, e.g. after an incident or a legal hold ends.
+    - ``db.partitions.detached_drop_failed``: partitions expiry detached but failed to
+      drop. The next run retries.
+    """
+    tags = {"table": target.table}
+    ahead = sum(
+        1
+        for partition in list_partitions(target.connection, target.table)
+        if (start := partition.range_bounds()[0]) is not None and start > now
+    )
+    metrics.gauge("db.partitions.ahead", ahead, tags=tags)
+    detached = list_detached_range_partitions(target.connection, target.table)
+    by_hand = [partition.name for partition in detached if not partition.expiring]
+    metrics.gauge("db.partitions.detached_by_hand", len(by_hand), tags=tags)
+    metrics.gauge("db.partitions.detached_drop_failed", len(detached) - len(by_hand), tags=tags)
+    if by_hand:
+        logger.info(
+            "partitions.detached_by_hand", extra={"table": target.table, "partitions": by_hand}
+        )
+
+
 def maintain_partitions() -> None:
     """Create upcoming partitions and drop expired ones for every range partitioned table."""
     for model, spec in iter_partitioned_models():
@@ -249,18 +277,22 @@ def maintain_partitions() -> None:
         table = model._meta.db_table
         try:
             target = get_range_table(model)
-            if target is None:
-                continue
-            now = timezone.now()
-            ensure_range_partitions(target, now=now)
-            if spec.retention is not None:
-                expire_range_partitions(target, now - spec.retention, now=now)
-            ahead = sum(
-                1
-                for partition in list_partitions(target.connection, table)
-                if (start := partition.range_bounds()[0]) is not None and start > now
-            )
-            metrics.gauge("db.partitions.ahead", ahead, tags={"table": table})
         except Exception:
             logger.exception("partitions.maintenance.failed", extra={"table": table})
             metrics.incr("db.partitions.maintenance.error", tags={"table": table})
+            continue
+        if target is None:
+            continue
+        now = timezone.now()
+        try:
+            ensure_range_partitions(target, now=now)
+            if spec.retention is not None:
+                expire_range_partitions(target, now - spec.retention, now=now)
+        except Exception:
+            logger.exception("partitions.maintenance.failed", extra={"table": table})
+            metrics.incr("db.partitions.maintenance.error", tags={"table": table})
+        # Reported even when maintenance failed, which is when they matter most.
+        try:
+            report_partition_metrics(target, now)
+        except Exception:
+            logger.exception("partitions.metrics.failed", extra={"table": table})

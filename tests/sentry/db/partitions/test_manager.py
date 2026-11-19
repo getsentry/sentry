@@ -10,7 +10,7 @@ from fixtures.partitions import (
     RangePartitionedFixture,
     fixture_tables,
 )
-from sentry.db.partitions import manager
+from sentry.db.partitions import manager, sql
 from sentry.db.partitions.catalog import (
     DetachedPartition,
     PartitionInfo,
@@ -340,3 +340,44 @@ class MaintainPartitionsTest(TransactionTestCase):
             ):
                 maintain_partitions()
             incr.assert_any_call("db.partitions.maintenance.error", tags={"table": RANGE_TABLE})
+
+    def gauges(self) -> dict[str, int]:
+        with mock.patch("sentry.db.partitions.manager.metrics.gauge") as gauge:
+            maintain_partitions()
+        return {
+            c.args[0]: c.args[1]
+            for c in gauge.call_args_list
+            if c.kwargs["tags"] == {"table": RANGE_TABLE}
+        }
+
+    @freeze_time(CREATED_AT)
+    def test_reports_partitions_detached_by_hand(self) -> None:
+        with fixture_tables():
+            assert self.gauges() == {
+                "db.partitions.ahead": 2,
+                "db.partitions.detached_by_hand": 0,
+                "db.partitions.detached_drop_failed": 0,
+            }
+            detach(week(11))
+            assert self.gauges() == {
+                "db.partitions.ahead": 1,
+                "db.partitions.detached_by_hand": 1,
+                "db.partitions.detached_drop_failed": 0,
+            }
+
+    @freeze_time(CREATED_AT)
+    def test_reports_failed_drops(self) -> None:
+        with fixture_tables():
+            with connection.cursor() as cursor:
+                cursor.execute(sql.MARK_PARTITION_EXPIRING.format(partition=f'"{week(18)}"'))
+            detach(week(18))
+            # Retrying the drop fails again, e.g. on another lock timeout. The gauges are
+            # still reported.
+            with mock.patch.object(
+                manager, "expire_range_partitions", side_effect=OperationalError("lock timeout")
+            ):
+                assert self.gauges() == {
+                    "db.partitions.ahead": 1,
+                    "db.partitions.detached_by_hand": 0,
+                    "db.partitions.detached_drop_failed": 1,
+                }
