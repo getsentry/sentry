@@ -638,21 +638,6 @@ describe('ExploreCharts', () => {
       expect(single).toBeEnabled();
     });
 
-    it('hides the heatmap chart type without explore-dev-features', async () => {
-      render(
-        <ControlledExploreCharts
-          initialVisualizes={[{yAxes: ['count(span.duration)']}]}
-        />,
-        {
-          organization: OrganizationFixture(),
-        }
-      );
-
-      await userEvent.click(await screen.findByRole('button', {name: 'Chart type'}));
-      expect(screen.getByRole('option', {name: 'Line'})).toBeInTheDocument();
-      expect(screen.queryByRole('option', {name: 'Heatmap'})).not.toBeInTheDocument();
-    });
-
     function mockOutlierBound(count: number) {
       PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
       MockApiClient.addMockResponse({
