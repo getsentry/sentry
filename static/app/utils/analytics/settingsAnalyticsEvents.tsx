@@ -23,7 +23,6 @@ export type SettingsEntryPoint =
 type SettingsOrgMenuProjectSource = 'quick_access' | 'all_projects';
 
 export type SettingsEventParameters = {
-  'notification_settings.index_page_viewed': Record<string, unknown>;
   'notification_settings.tuning_page_viewed': {
     notification_type: string;
   };
@@ -67,7 +66,6 @@ export type SettingsEventParameters = {
 type SettingsEventKey = keyof SettingsEventParameters;
 
 export const settingsEventMap: Record<SettingsEventKey, string | null> = {
-  'notification_settings.index_page_viewed': 'Notification Settings: Index Page Viewed',
   'notification_settings.tuning_page_viewed': 'Notification Settings: Tuning Page Viewed',
   'notification_settings.updated_tuning_setting':
     'Notification Settings: Updated Tuning Setting',

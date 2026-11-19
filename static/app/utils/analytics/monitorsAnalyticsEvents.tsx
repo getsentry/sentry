@@ -22,10 +22,6 @@ export type MonitorsEventParameters = {
     organization: Organization;
     success: boolean;
   };
-  'landing_page.platform_guide.viewed': {
-    guide: string;
-    platform: string;
-  };
   'monitor.created': DetectorCreateAnalyticsEventPayload;
   'monitor.updated': DetectorAnalyticsEventPayload;
   'monitors.onboarding_modal_viewed': {step: number};
@@ -34,7 +30,6 @@ export type MonitorsEventParameters = {
 type MonitorsAnalyticsKey = keyof MonitorsEventParameters;
 
 export const monitorsEventMap: Record<MonitorsAnalyticsKey, string> = {
-  'landing_page.platform_guide.viewed': 'Crons Landing Page: Viewed Platform Guide',
   'monitor.created': 'Detectors: Created',
   'monitor.updated': 'Detectors: Updated',
   'automation.created': 'Automations: Created',
