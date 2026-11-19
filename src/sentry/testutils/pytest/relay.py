@@ -202,7 +202,24 @@ def relay_server_setup(
             _remove_container_if_exists(docker_client, container_name)
 
 
+# Relay logs this once, when its first global config fetch succeeds.
+_GLOBAL_CONFIG_RECEIVED = b"received global config from upstream"
+
+
 def _start_relay(relay_server_setup: RelayServerSetup) -> None:
+    # Relay fetches its global config only at startup (see `cache` in
+    # template/config.yml) and holds envelopes until it has one, so a Relay whose
+    # fetch failed would never process a test's events. Start another one instead.
+    for _ in range(3):
+        logs = _start_relay_once(relay_server_setup)
+        if logs is None:
+            return
+        _log.warning("Relay did not receive its global config, starting another one")
+    raise ValueError(f"relay did not receive its global config from upstream:\n{logs}")
+
+
+def _start_relay_once(relay_server_setup: RelayServerSetup) -> str | None:
+    """Start Relay and wait until it is ready. Returns its logs if it got no global config."""
     options = relay_server_setup["options"]
     url = relay_server_setup["url"]
 
@@ -247,6 +264,14 @@ def _start_relay(relay_server_setup: RelayServerSetup) -> None:
             raise ValueError(
                 f"relay did not become ready in time (now: {datetime.datetime.now().isoformat()}, last result: {e}) {readiness_url}:\n{logs}"
             ) from e
+
+        deadline = time.monotonic() + 5
+        while _GLOBAL_CONFIG_RECEIVED not in (container_logs := container.logs()):
+            if time.monotonic() > deadline:
+                # The next start or the module teardown removes this container.
+                return container_logs.decode()
+            time.sleep(0.05)
+        return None
 
 
 def _is_ready(url: str) -> bool:
