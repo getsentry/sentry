@@ -1,4 +1,12 @@
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 
@@ -8,6 +16,30 @@ const US_URL = 'https://us.example.com/api/0/';
 const COMPARISON_URL = '/_admin/cells/us/invoice-comparison/';
 const DE_URL = 'https://de.example.com/api/0/';
 const DE_COMPARISON_URL = '/_admin/cells/de/invoice-comparison/';
+const EXPECTED_MISMATCHES_URL =
+  '/_admin/cells/us/invoice-comparison/expected-mismatches/';
+const INVOICE_PAIR = {
+  organization_id: 1,
+  legacy_invoice_guid: 'legacy-guid',
+  platform_invoice_guid: 'platform-guid',
+};
+
+function markableBody(status: 'mismatch' | 'expected_mismatch') {
+  const body = comparisonBody();
+  return {
+    ...body,
+    rows: [
+      {
+        ...body.rows[0]!,
+        ...INVOICE_PAIR,
+        status,
+        can_mark_expected: true,
+        expected_mismatch_reason:
+          status === 'expected_mismatch' ? 'Custom pricing' : null,
+      },
+    ],
+  };
+}
 
 function comparisonBody({
   rowsPage = 1,
@@ -161,6 +193,86 @@ describe('InvoiceComparison', () => {
 
     expect(router.location.query.start).toBe('2026-11-02');
     expect(router.location.query.end).toBe('2026-11-03');
+  });
+
+  describe('expected mismatches', () => {
+    it('does not offer marking a row the backend says cannot be marked', async () => {
+      MockApiClient.addMockResponse({
+        url: COMPARISON_URL,
+        body: comparisonBody(),
+      });
+
+      renderComparison({start: '2026-11-09', end: '2026-11-09'});
+
+      expect(await screen.findByRole('link', {name: 'org-slug'})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Mark expected'})
+      ).not.toBeInTheDocument();
+    });
+
+    it('marks a mismatch as expected with a reason', async () => {
+      const comparisonMock = MockApiClient.addMockResponse({
+        url: COMPARISON_URL,
+        body: markableBody('mismatch'),
+      });
+      const markMock = MockApiClient.addMockResponse({
+        url: EXPECTED_MISMATCHES_URL,
+        method: 'POST',
+        body: {},
+      });
+
+      renderComparison({start: '2026-11-09', end: '2026-11-09'});
+      renderGlobalModal();
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Mark expected'}));
+      const modal = within(await screen.findByRole('dialog'));
+      await userEvent.type(
+        modal.getByRole('textbox', {name: 'Reason'}),
+        'Custom pricing'
+      );
+      await userEvent.click(modal.getByRole('button', {name: 'Mark expected'}));
+
+      await waitFor(() =>
+        expect(markMock).toHaveBeenCalledWith(
+          EXPECTED_MISMATCHES_URL,
+          expect.objectContaining({
+            method: 'POST',
+            host: US_URL,
+            data: {...INVOICE_PAIR, reason: 'Custom pricing'},
+          })
+        )
+      );
+      await waitFor(() => expect(comparisonMock).toHaveBeenCalledTimes(2));
+    });
+
+    it('unmarks an expected mismatch', async () => {
+      const comparisonMock = MockApiClient.addMockResponse({
+        url: COMPARISON_URL,
+        body: markableBody('expected_mismatch'),
+      });
+      const unmarkMock = MockApiClient.addMockResponse({
+        url: EXPECTED_MISMATCHES_URL,
+        method: 'DELETE',
+        statusCode: 204,
+      });
+
+      renderComparison({start: '2026-11-09', end: '2026-11-09'});
+
+      expect(await screen.findByText('expected_mismatch')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Unmark'}));
+
+      await waitFor(() =>
+        expect(unmarkMock).toHaveBeenCalledWith(
+          EXPECTED_MISMATCHES_URL,
+          expect.objectContaining({
+            method: 'DELETE',
+            host: US_URL,
+            data: INVOICE_PAIR,
+          })
+        )
+      );
+      await waitFor(() => expect(comparisonMock).toHaveBeenCalledTimes(2));
+    });
   });
 
   describe('mismatch cutoff', () => {

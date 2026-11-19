@@ -9,6 +9,7 @@ export type KnownGetsentryApiUrls =
   | '/_admin/cells/$region/admin-invoices/$invoiceId/'
   | '/_admin/cells/$region/customers/'
   | '/_admin/cells/$region/invoice-comparison/'
+  | '/_admin/cells/$region/invoice-comparison/expected-mismatches/'
   | '/_admin/cells/$region/queue-spike-projection-batch/'
   | '/_admin/customers/$organizationIdOrSlug/balance-changes/'
   | '/_admin/customers/$organizationIdOrSlug/billing-platform-migration/'

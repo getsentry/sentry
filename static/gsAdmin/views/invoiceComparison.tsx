@@ -1,6 +1,6 @@
 import {Fragment, useEffect, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
-import {keepPreviousData, skipToken, useQuery} from '@tanstack/react-query';
+import {keepPreviousData, skipToken, useMutation, useQuery} from '@tanstack/react-query';
 import {parseAsString, useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -12,17 +12,32 @@ import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {PanelHeader} from 'sentry/components/panels/panelHeader';
+import type {Cell} from 'sentry/types/system';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getCells} from 'sentry/utils/cells';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-type RowStatus = 'match' | 'mismatch' | 'legacy_only' | 'platform_only';
+import {
+  expectedMismatchesUrl,
+  openMarkExpectedMismatchModal,
+  type InvoicePair,
+} from 'admin/components/markExpectedMismatchModal';
+
+type RowStatus =
+  | 'match'
+  | 'mismatch'
+  | 'expected_mismatch'
+  | 'legacy_only'
+  | 'platform_only';
 
 type Row = {
   delta_cents: number;
@@ -38,6 +53,9 @@ type Row = {
   platform_invoice_count: number;
   platform_invoice_guid: string | null;
   status: RowStatus;
+  // Absent from backends that predate expected mismatches.
+  can_mark_expected?: boolean;
+  expected_mismatch_reason?: string | null;
 };
 
 type Summary = {
@@ -52,6 +70,8 @@ type Summary = {
   rows_page_size: number;
   rows_total_pages: number;
   start: string;
+  // Absent from backends that predate expected mismatches.
+  expected_mismatch_count?: number;
   // Absent from backends that list every row, including small mismatches.
   hidden_small_mismatch_count?: number;
   listed_row_count?: number;
@@ -66,6 +86,7 @@ type ComparisonResponse = {
 const STATUS_VARIANT: Record<RowStatus, TagProps['variant']> = {
   match: 'success',
   mismatch: 'warning',
+  expected_mismatch: 'muted',
   legacy_only: 'danger',
   platform_only: 'danger',
 };
@@ -250,7 +271,7 @@ export function InvoiceComparison() {
     [hasWindow, startDay, endDay]
   );
 
-  const {data, isLoading, isError, error, isPlaceholderData} = useQuery({
+  const {data, isLoading, isError, error, isPlaceholderData, refetch} = useQuery({
     ...apiOptions.as<ComparisonResponse>()('/_admin/cells/$region/invoice-comparison/', {
       path: cell && hasWindow ? {region: cell.name} : skipToken,
       host: cell?.locality_url,
@@ -507,6 +528,16 @@ export function InvoiceComparison() {
                     </TruncatedNote>
                   </Text>
                 </Stack>
+                {data.summary.expected_mismatch_count !== undefined && (
+                  <Stack>
+                    <Text size="sm" variant="muted">
+                      Expected mismatches
+                    </Text>
+                    <Text size="lg" bold>
+                      {formatCountOrNA(data.summary.expected_mismatch_count)}
+                    </Text>
+                  </Stack>
+                )}
               </Grid>
             </PanelBody>
           </Panel>
@@ -593,7 +624,21 @@ export function InvoiceComparison() {
                       <RightCell>{formatPercent(row.delta_pct)}</RightCell>
                       <RightCell>{formatDollars(row.delta_cents)}</RightCell>
                       <td>
-                        <Tag variant={STATUS_VARIANT[row.status]}>{row.status}</Tag>
+                        <Flex gap="sm" align="center">
+                          <Tooltip
+                            title={row.expected_mismatch_reason}
+                            disabled={!row.expected_mismatch_reason}
+                          >
+                            <Tag variant={STATUS_VARIANT[row.status]}>{row.status}</Tag>
+                          </Tooltip>
+                          {cell && (
+                            <ExpectedMismatchAction
+                              row={row}
+                              cell={cell}
+                              onChange={refetch}
+                            />
+                          )}
+                        </Flex>
                       </td>
                     </tr>
                   ))}
@@ -604,6 +649,59 @@ export function InvoiceComparison() {
         </Fragment>
       )}
     </Fragment>
+  );
+}
+
+function ExpectedMismatchAction({
+  row,
+  cell,
+  onChange,
+}: {
+  cell: Cell;
+  onChange: () => void;
+  row: Row;
+}) {
+  const unmark = useMutation({
+    mutationFn: (pair: InvoicePair) =>
+      fetchMutation({
+        method: 'DELETE',
+        url: expectedMismatchesUrl(cell),
+        data: pair,
+        options: {host: cell.locality_url},
+      }),
+    onSuccess: onChange,
+    onError: () => toast.error('Failed to unmark the expected mismatch.'),
+  });
+
+  if (!row.can_mark_expected || !row.legacy_invoice_guid || !row.platform_invoice_guid) {
+    return null;
+  }
+  const pair: InvoicePair = {
+    organization_id: row.organization_id,
+    legacy_invoice_guid: row.legacy_invoice_guid,
+    platform_invoice_guid: row.platform_invoice_guid,
+  };
+  if (row.status === 'expected_mismatch') {
+    return (
+      <Button size="xs" busy={unmark.isPending} onClick={() => unmark.mutate(pair)}>
+        Unmark
+      </Button>
+    );
+  }
+  return (
+    <Button
+      size="xs"
+      onClick={() =>
+        openMarkExpectedMismatchModal({
+          cell,
+          pair,
+          orgLabel: row.organization_slug ?? `org#${row.organization_id}`,
+          onSuccess: onChange,
+        })
+      }
+    >
+      Mark expected
+    </Button>
   );
 }
 
