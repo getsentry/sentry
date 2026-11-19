@@ -305,7 +305,9 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             reached.append("coding")
         if pull_requests:
             reached.append("pr_created")
-        elif any(pr.pr_creation_status == "error" for pr in state.repo_pr_states.values()):
+        elif state.repo_pr_states and all(
+            pr.pr_creation_status == "error" for pr in state.repo_pr_states.values()
+        ):
             reached.append("pr_failed")
         stop = single_run_stop_payload(state)
         if stop is not None and not {"coding", "pr_created"} & set(reached):
