@@ -4,6 +4,7 @@ import {useQuery} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
+import {Link} from '@sentry/scraps/link';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 
@@ -36,7 +37,7 @@ export const serviceAccountsOptions = ({orgSlug}: {orgSlug: string}) =>
     }
   );
 
-function ScopeSummary({scopes}: {scopes: string[]}) {
+export function ScopeSummary({scopes}: {scopes: string[]}) {
   return (
     <InfoText title={scopes.join(', ')}>
       {tn('%s scope', '%s scopes', scopes.length)}
@@ -66,16 +67,22 @@ function ProjectAccess({
 }
 
 function ServiceAccountRow({
+  orgSlug,
   serviceAccount,
   projectsById,
 }: {
+  orgSlug: string;
   projectsById: Map<string, Project>;
   serviceAccount: ServiceAccount;
 }) {
   return (
     <SimpleTable.Row>
       <SimpleTable.RowCell>
-        <Text bold>{serviceAccount.name}</Text>
+        <Text bold wordBreak="break-word">
+          <Link to={`/settings/${orgSlug}/service-accounts/${serviceAccount.id}/`}>
+            {serviceAccount.name}
+          </Link>
+        </Text>
       </SimpleTable.RowCell>
       <SimpleTable.RowCell>
         <ScopeSummary scopes={serviceAccount.scopes} />
@@ -158,6 +165,7 @@ export default function OrganizationServiceAccounts() {
           serviceAccounts.map(serviceAccount => (
             <ServiceAccountRow
               key={serviceAccount.id}
+              orgSlug={organization.slug}
               serviceAccount={serviceAccount}
               projectsById={projectsById}
             />

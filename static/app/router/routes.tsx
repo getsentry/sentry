@@ -1501,6 +1501,38 @@ function buildRoutes(): RouteObject[] {
                   import('sentry/views/settings/organizationServiceAccounts/newServiceAccount')
               ),
             },
+            {
+              path: ':serviceAccountId/',
+              name: t('Service Account Details'),
+              children: [
+                {
+                  index: true,
+                  component: make(
+                    () =>
+                      import('sentry/views/settings/organizationServiceAccounts/serviceAccountDetails')
+                  ),
+                },
+                {
+                  handle: {
+                    settingsBreadcrumb: {
+                      type: 'link',
+                      label: t('Service Account'),
+                      to: '/settings/:orgId/service-accounts/:serviceAccountId/',
+                    },
+                  },
+                  children: [
+                    {
+                      path: 'tokens/new/',
+                      name: t('Create Token'),
+                      component: make(
+                        () =>
+                          import('sentry/views/settings/organizationServiceAccounts/newServiceAccountToken')
+                      ),
+                    },
+                  ],
+                },
+              ],
+            },
           ],
         },
       ],
