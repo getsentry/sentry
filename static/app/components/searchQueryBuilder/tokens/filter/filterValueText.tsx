@@ -1,9 +1,10 @@
 import {Fragment, useLayoutEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {Temporal} from '@js-temporal/polyfill';
 
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Flex} from '@sentry/scraps/layout';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {
   useSearchQueryBuilderConfig,
   useSearchQueryBuilderLayout,
@@ -275,9 +276,28 @@ export function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
     }
     case Token.VALUE_ISO_8601_DATE: {
       const isUtc = token.value.tz?.toLowerCase() === 'z' || !token.value.tz;
+      let date: string | number = token.value.value;
+      if (!token.value.tz) {
+        try {
+          const localDate = token.value.time
+            ? Temporal.PlainDateTime.from(token.value.value)
+            : Temporal.PlainDate.from(token.value.value).toPlainDateTime();
+          date = localDate.toZonedDateTime('UTC').epochMilliseconds;
+        } catch (error) {
+          if (!(error instanceof RangeError)) {
+            throw error;
+          }
+          date = NaN;
+        }
+      }
 
       return (
-        <DateTime date={token.value.value} dateOnly={!token.value.time} utc={isUtc} />
+        <DateTime
+          date={date}
+          mode={token.value.time ? 'dateTime' : 'date'}
+          timezone={isUtc ? 'UTC' : undefined}
+          showTimezone={isUtc && Boolean(token.value.time)}
+        />
       );
     }
     default: {

@@ -241,11 +241,7 @@ describe('SeerDrawer', () => {
   it('disables reset when out of Seer credits', async () => {
     const creditOrganization = OrganizationFixture({
       ...organization,
-      features: [
-        ...organization.features,
-        'seer-credit-checks',
-        'token-billed-seer-enabled',
-      ],
+      features: [...organization.features, 'token-billed-seer-enabled'],
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,

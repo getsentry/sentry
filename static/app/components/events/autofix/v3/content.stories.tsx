@@ -320,11 +320,7 @@ function DrawerStory({
       <OrganizationContext.Provider
         value={{
           ...organization,
-          features: [
-            ...organization.features,
-            'seer-credit-checks',
-            'token-billed-seer-enabled',
-          ],
+          features: [...organization.features, 'token-billed-seer-enabled'],
         }}
       >
         <QueryClientProvider client={queryClient}>

@@ -1,6 +1,8 @@
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
+import {getDuration} from '@sentry/scraps/duration';
+
 import {BarChart} from 'sentry/components/charts/barChart';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -9,7 +11,6 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 
 import {barAxisLabel, sortSeriesByDay} from './utils';
 
@@ -78,7 +79,7 @@ export function TeamResolutionTime({
         useShortDate
         period="7d"
         tooltip={{
-          valueFormatter: (value: number) => getDuration(value, 1),
+          valueFormatter: (value: number) => getDuration(value, {precision: 1}),
         }}
         yAxis={{
           // Each yAxis marker will increase by 1 day
@@ -89,7 +90,7 @@ export function TeamResolutionTime({
                 return '';
               }
 
-              return getDuration(value, 0, true, true);
+              return getDuration(value, {style: 'narrow'});
             },
           },
         }}
