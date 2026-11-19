@@ -353,7 +353,7 @@ function Chart({
     OUTLIER_CUTOFFS[0]
   );
   const chartHeight = visualize.visible
-    ? organization.features.includes('explore-dev-features')
+    ? isHeatMap
       ? DEV_CHART_HEIGHT
       : CHART_HEIGHT
     : 50;
