@@ -335,12 +335,13 @@ function TableComponent({
           allowedCellActions={cellActions}
           onTriggerCellAction={(action, _value, dataRow) => {
             if (action === Actions.OPEN_ROW_IN_EXPLORE) {
+              const selectedQueryIndex = 0;
               const getExploreUrl = getWidgetTableRowExploreUrlFunction(
                 selection,
                 widget,
                 organization,
                 dashboardFilters,
-                0,
+                selectedQueryIndex,
                 dashboardQueryPriority
               );
               const exploreUrl = getExploreUrl(dataRow);

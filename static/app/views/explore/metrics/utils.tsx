@@ -1,5 +1,6 @@
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {isTokenFunction} from 'sentry/components/arithmeticBuilder/token';
+import type {QuerySpeed} from 'sentry/components/querySpeedMenu';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -165,7 +166,7 @@ type BaseGetMetricsUrlParams = {
   id?: number;
   interval?: string;
   metricQueries?: BaseMetricQuery[];
-  queryPriority?: 'normal' | 'faster';
+  queryPriority?: QuerySpeed;
   referrer?: string;
   selection?: PageFilters;
   title?: string;

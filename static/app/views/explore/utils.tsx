@@ -7,6 +7,7 @@ import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {isTokenFunction} from 'sentry/components/arithmeticBuilder/token';
 import {getTooltipText as getAnnotatedTooltipText} from 'sentry/components/events/meta/annotatedText/utils';
 import {normalizeDateTimeString} from 'sentry/components/pageFilters/parse';
+import type {QuerySpeed} from 'sentry/components/querySpeedMenu';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
@@ -86,7 +87,7 @@ export interface GetExploreUrlArgs {
   interval?: string;
   mode?: Mode;
   query?: string;
-  queryPriority?: 'normal' | 'faster';
+  queryPriority?: QuerySpeed;
   referrer?: string;
   selection?: PageFilters;
   sort?: string;
@@ -260,7 +261,7 @@ export function getExploreMultiQueryUrl({
   queries: ReadableExploreQueryParts[];
   selection: PageFilters;
   id?: number;
-  queryPriority?: 'normal' | 'faster';
+  queryPriority?: QuerySpeed;
   referrer?: string;
   title?: string;
 }) {

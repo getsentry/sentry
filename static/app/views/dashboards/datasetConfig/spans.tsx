@@ -440,12 +440,13 @@ function renderInternalErrorCount(
       })),
     };
 
+    const selectedQueryIndex = 0;
     const getRowExploreUrl = getWidgetTableRowExploreUrlFunction(
       selection,
       widgetWithErrorFilter,
       organization,
       dashboardFilters,
-      0,
+      selectedQueryIndex,
       queryPriority
     );
     const target = getRowExploreUrl(data);

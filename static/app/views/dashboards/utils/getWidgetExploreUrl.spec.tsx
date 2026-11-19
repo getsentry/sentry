@@ -719,12 +719,13 @@ describe('getWidgetTableRowExploreUrlFunction', () => {
       ],
     });
 
+    const selectedQueryIndex = 0;
     const urlGenerator = getWidgetTableRowExploreUrlFunction(
       selection,
       widget,
       organization,
       undefined,
-      0,
+      selectedQueryIndex,
       'faster'
     );
     const url = urlGenerator({
