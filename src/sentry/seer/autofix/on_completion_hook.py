@@ -39,14 +39,16 @@ from sentry.seer.autofix.pr_iteration.completion import (
     drain_single_run_feedback_queue,
     fail_pr_iteration,
     fail_pr_iteration_missing_group,
-    is_pr_feedback_turn,
     iteration_completed_webhook_fields,
     iteration_terminal_errored_repos,
     log_completion_received,
     record_failed_tool_calls,
 )
 from sentry.seer.autofix.pr_iteration.completion_reactions import react_to_completed_iteration
-from sentry.seer.autofix.pr_iteration.iterations import get_latest_iteration_index
+from sentry.seer.autofix.pr_iteration.iterations import (
+    get_latest_iteration_index,
+    is_pr_feedback_turn,
+)
 from sentry.seer.autofix.pr_iteration.run_markers import record_run_extras
 from sentry.seer.autofix.pr_iteration.tracing import set_pr_iteration_attributes
 from sentry.seer.autofix.pr_ready_for_review import (
@@ -117,7 +119,7 @@ def _stopping_point_from_run(organization: Organization, run_id: int) -> str | N
             source__in=(AUTOFIX_FEATURE_ID, LEGACY_AUTOFIX_FEATURE_ID),
         )
         .values_list("extras__stopping_point", flat=True)
-        .first()
+        .first()  # noqa: S035
     )
 
 
@@ -276,7 +278,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             return
         seer_run = SeerRun.objects.filter(
             organization_id=organization.id, seer_run_state_id=run_id
-        ).first()
+        ).first()  # noqa: S035
         if seer_run is None:
             logger.warning(
                 "autofix.on_completion_hook.single_run_missing_seer_run",
@@ -594,7 +596,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         seer_run = SeerRun.objects.filter(
             organization_id=organization.id,
             seer_run_state_id=run_id,
-        ).first()
+        ).first()  # noqa: S035
 
         sentry_run_id = str(seer_run.uuid) if seer_run is not None else None
         webhook_payload: dict[str, object] = {

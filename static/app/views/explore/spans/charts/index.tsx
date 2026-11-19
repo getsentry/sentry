@@ -3,13 +3,15 @@ import styled from '@emotion/styled';
 import {IconClock} from '@sentry/icons/clock';
 import {IconContract} from '@sentry/icons/contract';
 import {IconExpand} from '@sentry/icons/expand';
+import {IconFilter} from '@sentry/icons/filter';
 import {IconGraph} from '@sentry/icons/graph';
 
 import {Button} from '@sentry/scraps/button';
-import {Chip} from '@sentry/scraps/chip';
-import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {getDuration} from '@sentry/scraps/duration';
 import {Container, Flex, type ContainerProps} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ChartLayersControl} from 'sentry/components/charts/chartLayersControl';
@@ -20,7 +22,6 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
 import {getTimeSeriesForQuery} from 'sentry/utils/timeSeries/getTimeSeriesForQuery';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
@@ -77,14 +78,14 @@ import {
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 import {ConfidenceFooter} from './confidenceFooter';
+import {getSpansHeatMapYAxis, isSpansHeatMap, SpansHeatMap} from './spansHeatMap';
 import {
-  canUseSpansHeatMap,
-  getSpansHeatMapDisabledReason,
-  getSpansHeatMapYAxis,
-  isSpansHeatMap,
-  SpansHeatMap,
-} from './spansHeatMap';
-import {useSpansHeatMapOutlierBound} from './useSpansHeatMapOutlierBound';
+  OUTLIER_CUTOFFS,
+  useSpansHeatMapOutlierBound,
+  type OutlierCutoff,
+} from './useSpansHeatMapOutlierBound';
+
+const OUTLIERS_OFF = 'off';
 
 interface ExploreChartsProps {
   extrapolate: boolean;
@@ -320,6 +321,7 @@ function Chart({
   const groupBys = useQueryParamsGroupBys();
   const [chartInterval, setChartInterval, intervalOptions] = useChartInterval();
   const dataset = useSpansDataset();
+
   const {
     dismiss: dismissChartSelectionAlert,
     isDismissed: isChartSelectionAlertDismissed,
@@ -331,10 +333,9 @@ function Chart({
   const chartWrapperRef = useRef<HTMLDivElement | null>(null);
 
   const isCombinedChart = visualizes.length > 1;
-  const isHeatMapEnabled = canUseSpansHeatMap(organization);
   const heatMapYAxis = getSpansHeatMapYAxis(visualize);
   const isHeatMap = !isCombinedChart && isSpansHeatMap(visualize, organization);
-  const {droppedData, layerControl} = useChartLayers({
+  const {droppedData, annotations, layerControl} = useChartLayers({
     dataset,
     interval: chartInterval,
     source: 'explore',
@@ -342,56 +343,22 @@ function Chart({
   });
   const showTransformationControls =
     visualize.visible &&
-    (isHeatMap || visualize.chartType !== ChartType.HEATMAP) &&
     organization.features.includes('explore-interpolation-and-smoothing');
   const heatMapOutlierBound = useSpansHeatMapOutlierBound({
     enabled: isHeatMap && visualize.visible,
     query,
     yAxis: heatMapYAxis,
   });
-  // Outliers are hidden by default for an unfiltered query, since a filter may
-  // be narrowing in on exactly those spans. The user's toggle only sticks until
-  // the query, visualizes or page filters change.
-  const outlierToggleKey = [
-    query,
-    visualizes.map(v => v.yAxis).join(','),
-    selection.datetime.period,
-    selection.datetime.start,
-    selection.datetime.end,
-    selection.projects.join(','),
-    selection.environments.join(','),
-  ].join('|');
-  const [outlierToggle, setOutlierToggle] = useState<{
-    isHidden: boolean;
-    key: string;
-  } | null>(null);
-  const areHeatMapOutliersHidden =
-    outlierToggle?.key === outlierToggleKey
-      ? outlierToggle.isHidden
-      : query.trim() === '';
+  const [outlierCutoff, setOutlierCutoff] = useState<OutlierCutoff | typeof OUTLIERS_OFF>(
+    OUTLIER_CUTOFFS[0]
+  );
   const chartHeight = visualize.visible
     ? organization.features.includes('explore-dev-features')
       ? DEV_CHART_HEIGHT
       : CHART_HEIGHT
     : 50;
-  // Heatmaps with unsupported aggregates fall back to line charts.
-  const chartType = isHeatMap
-    ? ChartType.HEATMAP
-    : visualize.chartType === ChartType.HEATMAP
-      ? ChartType.LINE
-      : visualize.chartType;
+  const chartType = isHeatMap ? ChartType.HEATMAP : visualize.chartType;
   const chartIcon = CHART_TYPE_TO_ICON[chartType];
-  const chartTypeOptions = isHeatMapEnabled
-    ? [
-        ...EXPLORE_CHART_TYPE_OPTIONS,
-        {
-          value: ChartType.HEATMAP,
-          label: t('Heatmap'),
-          disabled: defined(getSpansHeatMapDisabledReason(visualize)),
-          tooltip: getSpansHeatMapDisabledReason(visualize),
-        },
-      ]
-    : EXPLORE_CHART_TYPE_OPTIONS;
 
   const chartInfos = useMemo(
     () =>
@@ -432,65 +399,78 @@ function Chart({
     const reason = getSamplingWarningReason(info.yAxis, info.series, info.dataScanned);
     return reason ? [{yAxis: info.yAxis, reason}] : [];
   });
-  const showOutlierToggle = isHeatMap && visualize.visible;
-  const heatMapOutlierBounds = isHeatMap ? heatMapOutlierBound.bounds : undefined;
-  const heatMapYBounds = areHeatMapOutliersHidden ? heatMapOutlierBounds : undefined;
-  const areHeatMapOutliersHideable =
-    !heatMapOutlierBound.isPending && defined(heatMapOutlierBounds);
-  let outlierToggleTooltip: string;
-  if (!defined(heatMapOutlierBounds)) {
-    outlierToggleTooltip = t('There are no outliers far enough out to hide.');
-  } else if (areHeatMapOutliersHidden) {
-    outlierToggleTooltip = t(
-      'Spans outside %s - %s (fastest span to estimated p99.9 over the last hour) are hidden. Click to show them.',
-      getDuration(heatMapOutlierBounds.yMin / 1000, 2, true),
-      getDuration(heatMapOutlierBounds.yMax / 1000, 2, true)
-    );
-  } else {
-    outlierToggleTooltip = t('Click to hide outliers.');
-  }
-  const TitleBadges =
-    samplingWarnings.length || showOutlierToggle ? (
-      <Fragment>
-        {samplingWarnings.map(({yAxis, reason}, i) => (
-          <SamplingWarning key={`${yAxis}-${i}`} yAxis={yAxis} reason={reason} />
-        ))}
-        {showOutlierToggle && (
-          <Tooltip title={outlierToggleTooltip} disabled={heatMapOutlierBound.isPending}>
-            <Chip.Root size="xs" readonly={!areHeatMapOutliersHideable}>
-              <Chip.Value
-                onClick={
-                  areHeatMapOutliersHideable
-                    ? () =>
-                        setOutlierToggle({
-                          key: outlierToggleKey,
-                          isHidden: !areHeatMapOutliersHidden,
-                        })
-                    : undefined
-                }
-              >
-                {areHeatMapOutliersHidden && areHeatMapOutliersHideable
-                  ? t('Outliers hidden')
-                  : t('Outliers shown')}
-              </Chip.Value>
-            </Chip.Root>
-          </Tooltip>
+  const appliedOutlierCutoff =
+    outlierCutoff === OUTLIERS_OFF ||
+    heatMapOutlierBound.isPending ||
+    defined(heatMapOutlierBound.bounds[outlierCutoff])
+      ? outlierCutoff
+      : OUTLIERS_OFF;
+  const heatMapYBounds =
+    isHeatMap && appliedOutlierCutoff !== OUTLIERS_OFF
+      ? heatMapOutlierBound.bounds[appliedOutlierCutoff]
+      : undefined;
+  const outlierCutoffOptions: Array<SelectOption<OutlierCutoff | typeof OUTLIERS_OFF>> = [
+    {value: OUTLIERS_OFF, label: t('Show all')},
+    ...OUTLIER_CUTOFFS.map(cutoff => {
+      const bounds = heatMapOutlierBound.bounds[cutoff];
+      const isClippable = heatMapOutlierBound.isPending || defined(bounds);
+      return {
+        value: cutoff,
+        label: cutoff,
+        trailingItems: bounds ? (
+          <Text size="xs" variant="muted" wrap="nowrap">
+            {`> ${getDuration(bounds.yMax / 1000, {precision: 2, style: 'short'})}`}
+          </Text>
+        ) : undefined,
+        disabled: !isClippable,
+        tooltip: isClippable
+          ? undefined
+          : t('No spans are far enough above %s to be worth hiding.', cutoff),
+      };
+    }),
+  ];
+  const outlierCutoffSelect =
+    isHeatMap && visualize.visible ? (
+      <CompactSelect
+        value={appliedOutlierCutoff}
+        options={outlierCutoffOptions}
+        onChange={option => setOutlierCutoff(option.value)}
+        trigger={triggerProps => (
+          <OverlayTrigger.Button
+            {...triggerProps}
+            variant="transparent"
+            size="zero"
+            icon={<IconFilter />}
+          >
+            {appliedOutlierCutoff === OUTLIERS_OFF
+              ? t('Outliers: shown')
+              : t('Outliers: %s', appliedOutlierCutoff)}
+          </OverlayTrigger.Button>
         )}
-      </Fragment>
+      />
     ) : null;
+  const TitleBadges = samplingWarnings.length ? (
+    <Fragment>
+      {samplingWarnings.map(({yAxis, reason}, i) => (
+        <SamplingWarning key={`${yAxis}-${i}`} yAxis={yAxis} reason={reason} />
+      ))}
+    </Fragment>
+  ) : null;
 
   const Actions = visualize.visible ? (
     <Fragment>
       {layerControl ? <ChartLayersControl {...layerControl} /> : null}
       <Tooltip
         title={
-          isCombinedChart
-            ? t('Charts with multiple aggregates are always displayed as line charts')
-            : t('Type of chart displayed in this visualization (ex. line)')
+          isHeatMap
+            ? t('Heatmaps are always displayed as heatmaps')
+            : isCombinedChart
+              ? t('Charts with multiple aggregates are always displayed as line charts')
+              : t('Type of chart displayed in this visualization (ex. line)')
         }
       >
         <CompactSelect
-          disabled={isCombinedChart}
+          disabled={isCombinedChart || isHeatMap}
           trigger={triggerProps => (
             <OverlayTrigger.Button
               {...triggerProps}
@@ -503,7 +483,7 @@ function Chart({
           )}
           value={chartType}
           menuTitle="Type"
-          options={chartTypeOptions}
+          options={EXPLORE_CHART_TYPE_OPTIONS}
           onChange={option => onChartTypeChange(option.value)}
         />
       </Tooltip>
@@ -570,7 +550,9 @@ function Chart({
               query={query}
               yAxis={heatMapYAxis}
               yBounds={heatMapYBounds}
-              isYBoundsPending={areHeatMapOutliersHidden && heatMapOutlierBound.isPending}
+              isYBoundsPending={
+                outlierCutoff !== OUTLIERS_OFF && heatMapOutlierBound.isPending
+              }
               samplingMode={samplingMode}
             />
           ) : (
@@ -582,6 +564,7 @@ function Chart({
               tooltipLimit={MAX_TOOLTIP_SERIES}
               droppedData={droppedData.band}
               isDroppedDataLoading={droppedData.isLoading}
+              annotations={annotations}
               chartXRangeSelection={
                 isAttributeBreakdown
                   ? {
@@ -665,18 +648,23 @@ function Chart({
                     />
                   ) : null}
                 </Flex>
-                {showTransformationControls ? (
-                  <Tooltip
-                    title={t('Heatmaps do not support transformations.')}
-                    disabled={!isHeatMap}
-                  >
-                    <AddTransformationButton
-                      traceItemDataset={TraceItemDataset.SPANS}
-                      transformations={visualize.transformations}
-                      onChange={onTransformationsChange}
-                      disabled={isHeatMap}
-                    />
-                  </Tooltip>
+                {outlierCutoffSelect || showTransformationControls ? (
+                  <Flex align="center" gap="lg" flexShrink={0}>
+                    {outlierCutoffSelect}
+                    {showTransformationControls ? (
+                      <Tooltip
+                        title={t('Heatmaps do not support transformations.')}
+                        disabled={!isHeatMap}
+                      >
+                        <AddTransformationButton
+                          traceItemDataset={TraceItemDataset.SPANS}
+                          transformations={visualize.transformations}
+                          onChange={onTransformationsChange}
+                          disabled={isHeatMap}
+                        />
+                      </Tooltip>
+                    ) : null}
+                  </Flex>
                 ) : null}
               </Flex>
             </Container>

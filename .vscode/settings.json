@@ -17,6 +17,8 @@
   "files.trimTrailingWhitespace": true,
   "files.trimFinalNewlines": true,
   "files.insertFinalNewline": true,
+  "js/ts.experimental.useTsgo": true,
+  "js/ts.tsdk.path": "./node_modules/tsrs/tsdk",
 
   "[javascript][typescript][javascriptreact][typescriptreact]": {
     "editor.formatOnSave": true,

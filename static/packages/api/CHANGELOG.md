@@ -1,3 +1,39 @@
+## 2.16.0
+
+- No documented changes.
+
+## 2.15.0
+
+- No documented changes.
+
+## 2.14.2
+
+### Internal Changes 🔧
+
+- (api) Typecheck @sentry/api with TypeScript 7 by @kedarv and @claude in [#131625](https://github.com/getsentry/sentry/pull/131625)
+
+## 2.14.1
+
+### Internal Changes 🔧
+
+- (frontend) Upgrade Oxlint to 1.94.0 by @TkDodo in [#131639](https://github.com/getsentry/sentry/pull/131639)
+
+## 2.14.0
+
+- No documented changes.
+
+## 2.13.0
+
+- No documented changes.
+
+## 2.12.0
+
+- No documented changes.
+
+## 2.11.0
+
+- No documented changes.
+
 ## 2.10.1
 
 ### Internal Changes 🔧

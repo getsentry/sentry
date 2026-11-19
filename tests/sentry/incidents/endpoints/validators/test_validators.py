@@ -837,12 +837,7 @@ class TestMetricAlertsTraceMetricsValidator(TestMetricAlertsDetectorValidator):
             },
         }
 
-    @with_feature(
-        {
-            "organizations:performance-view": False,
-            "organizations:tracemetrics-enabled": False,
-        }
-    )
+    @with_feature({"organizations:tracemetrics-enabled": False})
     def test_create_detector_trace_metrics_feature_flag_disabled(self) -> None:
         validator = MetricIssueDetectorValidator(
             data=self.trace_metrics_data,
@@ -853,12 +848,7 @@ class TestMetricAlertsTraceMetricsValidator(TestMetricAlertsDetectorValidator):
         assert data_sources_errors is not None
         assert "You do not have access to the metrics alerts feature." in str(data_sources_errors)
 
-    @with_feature(
-        [
-            "organizations:performance-view",
-            "organizations:tracemetrics-enabled",
-        ]
-    )
+    @with_feature(["organizations:tracemetrics-enabled"])
     def test_create_detector_trace_metrics_invalid_aggregate(self) -> None:
         data = {
             **self.trace_metrics_data,
@@ -873,12 +863,7 @@ class TestMetricAlertsTraceMetricsValidator(TestMetricAlertsDetectorValidator):
         assert not validator.is_valid()
         assert "Invalid trace metrics aggregate" in str(validator.errors)
 
-    @with_feature(
-        [
-            "organizations:performance-view",
-            "organizations:tracemetrics-enabled",
-        ]
-    )
+    @with_feature(["organizations:tracemetrics-enabled"])
     def test_create_detector_trace_metrics_valid_aggregates(self) -> None:
         data_per_second = {
             **self.trace_metrics_data,

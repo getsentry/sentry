@@ -2295,12 +2295,7 @@ describe('SeerExplorerContent', () => {
   describe('Out of credits', () => {
     const creditsOrganization = OrganizationFixture({
       openMembership: true,
-      features: [
-        'seer-explorer',
-        'seer-credit-checks',
-        'token-billed-seer-enabled',
-        'investigations',
-      ],
+      features: ['seer-explorer', 'token-billed-seer-enabled', 'investigations'],
       hideAiFeatures: false,
     });
 
@@ -2939,7 +2934,7 @@ describe('SeerExplorerContent', () => {
       });
     });
 
-    it('does not check credits without seer-credit-checks', async () => {
+    it('does not check credits without token-billed Seer', async () => {
       const creditCheck = mockCreditCheck(false);
       const sendMessage = jest.fn();
       jest

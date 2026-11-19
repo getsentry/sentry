@@ -21,6 +21,17 @@ interface CollapsibleContentProps {
   defaultOpen?: boolean;
   /** Fires on expand/collapse with the new open state. */
   onToggle?: (open: boolean) => void;
+  /**
+   * Expands the section whenever this turns true, e.g. when a selected item
+   * inside it loads after the section first rendered. The user can still
+   * collapse it afterwards.
+   */
+  openWhen?: boolean;
+  /**
+   * Show the leading caret. Turn it off for a title that shows its own open
+   * state. Defaults to shown.
+   */
+  showCaret?: boolean;
 }
 
 /**
@@ -34,9 +45,20 @@ export function CollapsibleContent({
   title,
   className,
   defaultOpen = false,
+  openWhen = false,
+  showCaret = true,
   onToggle,
 }: CollapsibleContentProps) {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
+  const [isOpen, setIsOpen] = useState(defaultOpen || openWhen);
+  // Adjusts state during render when `openWhen` changes, rather than in an
+  // effect, so the section opens in the same render.
+  const [prevOpenWhen, setPrevOpenWhen] = useState(openWhen);
+  if (openWhen !== prevOpenWhen) {
+    setPrevOpenWhen(openWhen);
+    if (openWhen) {
+      setIsOpen(true);
+    }
+  }
 
   return (
     <Details
@@ -58,7 +80,9 @@ export function CollapsibleContent({
         cursor="pointer"
         onClick={e => e.stopPropagation()}
       >
-        <IconChevron direction={isOpen ? 'down' : 'right'} size="sm" variant="muted" />
+        {showCaret && (
+          <IconChevron direction={isOpen ? 'down' : 'right'} size="sm" variant="muted" />
+        )}
         {typeof title === 'function' ? title(isOpen) : title}
       </Flex>
       {children}

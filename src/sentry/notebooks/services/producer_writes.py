@@ -541,7 +541,7 @@ def remove_blocks(
 def _live_block(notebook: Notebook, key: str) -> NotebookBlock | None:
     return NotebookBlock.objects.filter(
         notebook=notebook, producer_key=key, deleted_at__isnull=True
-    ).first()
+    ).first()  # noqa: S035
 
 
 def _check_revision(block: NotebookBlock, revision: int) -> None:

@@ -504,7 +504,8 @@ class OrganizationGroupSearchViewsPostTest(APITestCase):
         assert "query" in response.data
         assert str(response.data["query"][0]) == (
             "Invalid issue search query: Boolean statements containing "
-            '"OR" or "AND" are not supported in this search'
+            '"OR" or "AND" are not supported in this search. '
+            "To match any of several values for one key, use a list, such as `key:[foo, bar]`"
         )
 
         assert not GroupSearchView.objects.filter(
@@ -527,7 +528,8 @@ class OrganizationGroupSearchViewsPostTest(APITestCase):
         assert "query" in response.data
         assert str(response.data["query"][0]) == (
             "Invalid issue search query: Invalid quote at '\"unterminated': "
-            "quotes must enclose text or be escaped."
+            "quotes must enclose text or be escaped. To match text with spaces, quote the "
+            'whole value, wildcards included, such as `key:"*foo bar*"`'
         )
 
         assert not GroupSearchView.objects.filter(

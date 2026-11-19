@@ -18,6 +18,7 @@ import {
   areConditionalAggregateFiltersInExpressionValid,
   isConditionalAggregateYAxisValid,
 } from 'sentry/views/explore/utils/conditionalAggregate';
+import {isHeatMapAggregate} from 'sentry/views/explore/utils/heatMapAggregate';
 
 import {
   serializeAggregateFields,
@@ -291,9 +292,12 @@ export function useQueryParamsAggregateFields(
             areConditionalAggregateFiltersInExpressionValid(aggregateField.yAxis)
           );
         }
-        // Drop series whose `_if` filter is invalid (e.g. aggregates as keys) so
-        // timeseries / table queries never send them to the backend.
-        return isConditionalAggregateYAxisValid(aggregateField.yAxis);
+        // Drop heatmaps and series whose `_if` filter is invalid (e.g. aggregates
+        // as keys) so timeseries / table queries never send them to the backend.
+        return (
+          !isHeatMapAggregate(aggregateField.yAxis) &&
+          isConditionalAggregateYAxisValid(aggregateField.yAxis)
+        );
       });
     }
     return queryParams.aggregateFields;
@@ -329,8 +333,11 @@ export function useQueryParamsVisualizes(
             areConditionalAggregateFiltersInExpressionValid(visualize.yAxis)
           );
         }
-        // Same as aggregateFields: skip series with an invalid `_if` filter.
-        return isConditionalAggregateYAxisValid(visualize.yAxis);
+        // Same as aggregateFields: skip heatmaps and invalid `_if` filters.
+        return (
+          !isHeatMapAggregate(visualize.yAxis) &&
+          isConditionalAggregateYAxisValid(visualize.yAxis)
+        );
       });
     }
     return queryParams.visualizes;

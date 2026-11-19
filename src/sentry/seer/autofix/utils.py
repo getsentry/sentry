@@ -576,7 +576,7 @@ def _get_link_priority(project_repo: ProjectRepository) -> int:
 def get_event_matched_project_repo_ids(group: Group) -> set[int]:
     """Linked repos of the group's project whose code mapping matches an in-app frame of its event."""
     organization = group.project.organization
-    if not is_seer_token_based_billing_onboarding_enabled(organization):
+    if not features.has("organizations:token-billed-seer-enabled", organization):
         return set()
     project_repos = get_token_based_billing_project_repos(organization, [group.project_id])
     # The order only matters when the limit can cut a repo, and loading the event hits Snuba.
@@ -662,7 +662,7 @@ def _get_repo_definitions_by_project(
     priority_project_repo_ids: Collection[int] = (),
 ) -> dict[int, list[SeerRepoDefinition]]:
     repo_definitions_by_project: defaultdict[int, list[SeerRepoDefinition]] = defaultdict(list)
-    if is_seer_token_based_billing_onboarding_enabled(organization):
+    if features.has("organizations:token-billed-seer-enabled", organization):
         project_repos = sorted(
             get_token_based_billing_project_repos(organization, project_ids),
             key=lambda project_repo: (
@@ -1033,7 +1033,7 @@ def replace_all_seer_project_repos(
 
 def has_project_connected_repos(organization: Organization, project: Project) -> bool:
     """Check if a project has connected repositories for Seer automation."""
-    if is_seer_token_based_billing_onboarding_enabled(organization):
+    if features.has("organizations:token-billed-seer-enabled", organization):
         return (
             get_token_based_billing_project_repos(organization, [project.id])
             .filter(project__status=ObjectStatus.ACTIVE)
@@ -1168,13 +1168,6 @@ def is_seer_seat_or_token_billed_enabled(organization: Organization) -> bool:
     return is_seer_seat_based_tier_enabled(organization) or features.has(
         "organizations:token-billed-seer-enabled", organization
     )
-
-
-def is_seer_token_based_billing_onboarding_enabled(organization: Organization) -> bool:
-    """Check if Seer onboarding changes for token-based billing apply to this organization."""
-    return features.has(
-        "organizations:seer-token-based-billing-onboarding", organization
-    ) and features.has("organizations:token-billed-seer-enabled", organization)
 
 
 def is_free_cohort_org(organization: Organization) -> bool:
