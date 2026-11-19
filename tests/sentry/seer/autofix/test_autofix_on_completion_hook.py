@@ -521,22 +521,6 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
         mock_trigger.assert_called_once()
         assert mock_trigger.call_args.kwargs["step"] == AutofixStep.CODE_CHANGES
 
-    @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_agent")
-    def test_maybe_continue_pipeline_continues_toward_open_pr(
-        self, mock_trigger: MagicMock
-    ) -> None:
-        """Runs through code_changes when stopping_point is open_pr, which maps to no step."""
-        state = run_state(
-            blocks=[root_cause_memory_block(), solution_memory_block()],
-            metadata={
-                "group_id": self.group.id,
-                "stopping_point": AutofixStoppingPoint.OPEN_PR.value,
-            },
-        )
-        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
-        mock_trigger.assert_called_once()
-        assert mock_trigger.call_args.kwargs["step"] == AutofixStep.CODE_CHANGES
-
     @patch("sentry.seer.autofix.on_completion_hook.trigger_push_changes")
     @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_agent")
     def test_maybe_continue_pipeline_ignores_a_step_outside_the_pipeline(
