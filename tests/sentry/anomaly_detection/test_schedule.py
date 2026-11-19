@@ -1,3 +1,4 @@
+import dataclasses
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest.mock import call, patch
@@ -23,12 +24,15 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.producer import PayloadType
 from sentry.locks import locks
 from sentry.models.anomaly_detection_state import AnomalyDetectionState
+from sentry.models.group import GroupStatus
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import cell_silo_test
+from sentry.types.cell import get_local_cell
 from sentry.utils import metrics
+from sentry.utils.locking.lock import Lock
 from sentry.workflow_engine.models import Detector, DetectorState
 from sentry.workflow_engine.types import DetectorPriorityLevel, DetectorType
 
@@ -74,6 +78,37 @@ def save_state(
     )
 
 
+def organization_lease(organization_id: int) -> Lock:
+    return locks.get(
+        f"anomaly-detection:org:{get_local_cell().name}:{organization_id}",
+        duration=300,
+        name="anomaly_detection_org",
+    )
+
+
+def hourly_series(project_id: int, hour: datetime) -> list[SeriesRow]:
+    return [
+        SeriesRow(
+            hour - timedelta(hours=1),
+            Signal.ERRORS,
+            Metric.COUNT_UNIQUE_USER,
+            project_id,
+            "production",
+            "",
+            4.0,
+        ),
+        SeriesRow(
+            hour - timedelta(hours=2),
+            Signal.ERRORS,
+            Metric.COUNT_UNIQUE_USER,
+            project_id,
+            "",
+            "",
+            None,
+        ),
+    ]
+
+
 @cell_silo_test
 class TestAnomalySchedule(TestCase):
     def make_detector(self, project: Project, *, enabled: bool = True) -> Detector:
@@ -101,9 +136,10 @@ class TestAnomalySchedule(TestCase):
         project.update(status=ObjectStatus.PENDING_DELETION)
 
         def allowed(name: str, *entities: object, **_kwargs: object) -> bool:
-            return (entities == (self.organization,) and name in FEATURES) or (
-                entities == (ingest_disabled,) and name == schedule.FEATURE
-            )
+            # Inactive organizations and projects pass the gates; only status filters drop them.
+            if entities in ((self.organization,), (inactive,), (inactive_project,)):
+                return name in FEATURES
+            return entities == (ingest_disabled,) and name == schedule.FEATURE
 
         with (
             patch.object(features, "has", side_effect=allowed),
@@ -223,21 +259,25 @@ class TestAnomalySchedule(TestCase):
         start = END - timedelta(minutes=31)
         state = save_state(self.organization, start, CHECKPOINT)
         target = END.replace(tzinfo=UTC).isoformat()
+        lease = organization_lease(self.organization.id)
+
+        def evaluate_under_lease(**_kwargs: object) -> tuple[list[AnomalyDecision], dict[str, Any]]:
+            assert lease.locked()
+            return [], CHECKPOINT
+
+        def enqueue_after_release(_organization_id: int, _end: str) -> None:
+            assert not lease.locked()
+
         with (
             self.feature(FEATURES),
             patch.object(schedule, "collect", return_value=[]),
             patch.object(schedule, "_hourly_rows", return_value=[]),
             patch.object(schedule, "collect_new_failure_modes", return_value=[]),
-            patch.object(schedule, "advance_org", return_value=([], CHECKPOINT)) as advance,
-            patch.object(locks, "get") as get_lock,
-            patch.object(schedule.run_anomaly_detection, "delay") as enqueue,
+            patch.object(schedule, "advance_org", side_effect=evaluate_under_lease) as advance,
+            patch.object(
+                schedule.run_anomaly_detection, "delay", side_effect=enqueue_after_release
+            ) as enqueue,
         ):
-            lease = get_lock.return_value.acquire.return_value
-
-            def enqueue_after_release(_organization_id: int, _end: str) -> None:
-                assert lease.__exit__.call_count == enqueue.call_count
-
-            enqueue.side_effect = enqueue_after_release
             schedule.run_anomaly_detection(self.organization.id, target)
             schedule.run_anomaly_detection(*enqueue.call_args.args)
             schedule.run_anomaly_detection(*enqueue.call_args.args)
@@ -250,6 +290,180 @@ class TestAnomalySchedule(TestCase):
         ]
         state.refresh_from_db()
         assert state.next_minute == END.replace(tzinfo=UTC)
+        assert not lease.locked()
+
+    @freeze_time(NOW)
+    def test_worker_skips_organization_leased_by_another_worker(self) -> None:
+        self.make_detector(self.project)
+        with (
+            organization_lease(self.organization.id).acquire(),
+            patch.object(schedule, "_run_organization") as run,
+            patch.object(schedule.run_anomaly_detection, "delay") as enqueue,
+            patch.object(metrics, "incr") as incr,
+        ):
+            schedule.run_anomaly_detection(
+                self.organization.id, END.replace(tzinfo=UTC).isoformat()
+            )
+
+        run.assert_not_called()
+        enqueue.assert_not_called()
+        incr.assert_any_call("anomaly_detection.worker_already_running")
+
+    def test_worker_rejects_end_off_utc_minute_boundary(self) -> None:
+        with patch.object(schedule, "_run_organization") as run:
+            for end in (
+                "2025-01-01T12:01:00",
+                "2025-01-01T13:01:00+01:00",
+                "2025-01-01T12:01:30+00:00",
+                "2025-01-01T12:01:00.000001+00:00",
+            ):
+                with pytest.raises(ValueError, match="UTC minute boundary"):
+                    schedule.run_anomaly_detection(self.organization.id, end)
+
+        run.assert_not_called()
+        assert not organization_lease(self.organization.id).locked()
+
+    @freeze_time(NOW)
+    def test_checkpoint_far_behind_target_restarts_cold(self) -> None:
+        self.make_detector(self.project)
+        state = save_state(self.organization, END - timedelta(minutes=61), CHECKPOINT)
+        with (
+            self.feature(FEATURES),
+            patch.object(schedule, "collect", return_value=[]) as collect,
+            patch.object(schedule, "_hourly_rows", return_value=[]),
+            patch.object(schedule, "collect_new_failure_modes", return_value=[]),
+            patch.object(schedule, "advance_org", return_value=([], CHECKPOINT)) as advance,
+            patch.object(schedule.run_anomaly_detection, "delay") as enqueue,
+            patch.object(metrics, "incr") as incr,
+        ):
+            schedule.run_anomaly_detection(
+                self.organization.id, END.replace(tzinfo=UTC).isoformat()
+            )
+
+        collect.assert_called_once_with(
+            self.organization, [self.project], START - timedelta(hours=5), END, "1m"
+        )
+        advance.assert_called_once()
+        assert advance.call_args.kwargs["checkpoint"] is None
+        assert advance.call_args.kwargs["start"] == START
+        incr.assert_any_call("anomaly_detection.checkpoint_expired")
+        enqueue.assert_not_called()
+        state.refresh_from_db()
+        assert state.next_minute == END.replace(tzinfo=UTC)
+        assert state.checkpoint == CHECKPOINT
+
+    @freeze_time(NOW)
+    def test_cold_start_resolves_groups_the_expired_checkpoint_left_open(self) -> None:
+        detector = self.make_detector(self.project)
+        save_state(self.organization, END - timedelta(minutes=61), CHECKPOINT)
+        with (
+            self.feature(FEATURES),
+            patch.object(schedule, "collect", return_value=[]),
+            patch.object(schedule, "_hourly_rows", return_value=[]),
+            patch.object(schedule, "collect_new_failure_modes", return_value=[]),
+            patch.object(schedule, "advance_org", return_value=([], CHECKPOINT)),
+            patch.object(metrics, "incr") as incr,
+            patch(PRODUCE) as produce,
+        ):
+            schedule._publish(
+                [decision(self.project.id, timestamp=END - timedelta(minutes=70))],
+                {self.project.id: detector},
+            )
+            opened = produce.call_args.kwargs["occurrence"]
+            produce.reset_mock()
+            assert not schedule._run_organization(self.organization.id, END)
+
+        produce.assert_called_once()
+        assert produce.call_args.kwargs["payload_type"] == PayloadType.STATUS_CHANGE
+        status_change = produce.call_args.kwargs["status_change"]
+        assert status_change.fingerprint == opened.fingerprint
+        assert status_change.new_status == GroupStatus.RESOLVED
+        state = DetectorState.objects.get(detector=detector, detector_group_key="group")
+        assert not state.is_triggered
+        incr.assert_any_call("anomaly_detection.checkpoint_expired")
+        incr.assert_any_call("anomaly_detection.stranded_groups_resolved", amount=1)
+
+    @freeze_time(NOW)
+    def test_cold_start_keeps_groups_it_still_tracks_open(self) -> None:
+        detector = self.make_detector(self.project)
+        ongoing = decision(self.project.id, timestamp=END - timedelta(minutes=70))
+        stale = dataclasses.replace(ongoing, group_key=AnomalyGroupKey("stale"))
+        with (
+            self.feature(FEATURES),
+            patch.object(schedule, "collect", return_value=[]),
+            patch.object(schedule, "_hourly_rows", return_value=[]),
+            patch.object(schedule, "collect_new_failure_modes", return_value=[]),
+            patch.object(
+                schedule, "advance_org", return_value=([decision(self.project.id)], CHECKPOINT)
+            ),
+            patch(PRODUCE) as produce,
+        ):
+            schedule._publish([ongoing, stale], {self.project.id: detector})
+            [stale_fingerprint] = [
+                entry.kwargs["occurrence"].fingerprint
+                for entry in produce.call_args_list
+                if entry.kwargs["occurrence"]
+                .fingerprint[0]
+                .startswith(f"detector:{detector.id}:stale:")
+            ]
+            produce.reset_mock()
+            assert not schedule._run_organization(self.organization.id, END)
+
+        produce.assert_called_once()
+        assert produce.call_args.kwargs["payload_type"] == PayloadType.STATUS_CHANGE
+        assert produce.call_args.kwargs["status_change"].fingerprint == stale_fingerprint
+        assert dict(
+            DetectorState.objects.filter(detector=detector).values_list(
+                "detector_group_key", "is_triggered"
+            )
+        ) == {"group": True, "stale": False}
+
+    def test_stale_checkpoint_at_target_waits_for_an_unprocessed_minute(self) -> None:
+        self.make_detector(self.project)
+        state = save_state(
+            self.organization, END, {"version": CHECKPOINT_VERSION - 1, "qualified": []}
+        )
+        with self.feature(FEATURES), patch.object(schedule, "collect") as collect:
+            assert not schedule._run_organization(self.organization.id, END)
+
+        collect.assert_not_called()
+        state.refresh_from_db()
+        assert state.next_minute == END.replace(tzinfo=UTC)
+
+    def test_hourly_rows_reuses_cached_snapshot_within_hour(self) -> None:
+        hour = datetime(2025, 1, 1, 12)
+        rows = hourly_series(self.project.id, hour)
+        with patch.object(schedule, "collect", return_value=rows) as collect:
+            first = schedule._hourly_rows(
+                self.organization, [self.project], hour + timedelta(minutes=7)
+            )
+            second = schedule._hourly_rows(
+                self.organization, [self.project], hour + timedelta(minutes=59)
+            )
+
+        collect.assert_called_once_with(
+            self.organization, [self.project], hour - timedelta(days=16), hour, "1h"
+        )
+        assert first == rows
+        assert second == rows
+        assert all(row.ts.tzinfo is None for row in second)
+        assert [row.value for row in second] == [4.0, None]
+        assert all(type(row.signal) is Signal for row in second)
+        assert all(type(row.metric) is Metric for row in second)
+
+    def test_hourly_rows_requeries_when_snapshot_too_large_to_cache(self) -> None:
+        hour = datetime(2025, 1, 1, 12)
+        rows = hourly_series(self.project.id, hour)
+        with (
+            patch.object(schedule, "_MAX_CACHE_BYTES", 0),
+            patch.object(schedule, "collect", return_value=rows) as collect,
+            patch.object(metrics, "incr") as incr,
+        ):
+            assert schedule._hourly_rows(self.organization, [self.project], hour) == rows
+            assert schedule._hourly_rows(self.organization, [self.project], hour) == rows
+
+        assert collect.call_count == 2
+        assert incr.call_args_list.count(call("anomaly_detection.hourly_snapshot_too_large")) == 2
 
     def test_cold_worker_publishes_anomaly_evaluated_from_measurements(self) -> None:
         self.make_detector(self.project)

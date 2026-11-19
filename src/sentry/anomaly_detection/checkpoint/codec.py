@@ -106,12 +106,7 @@ def _hourly_support(evaluator: OrgEvaluator, cursor: datetime) -> list[Any]:
     # measurement codec's minute offsets.
     series = {}
     for key, state in evaluator.series_history.state.items():
-        if not (
-            key.dim_value
-            and key.project_id in evaluator.projects
-            and state.open
-            and state.anchor_level is not None
-        ):
+        if not (key.dim_value and state.open and state.anchor_level is not None):
             continue
         points: Series = {
             hour: value
@@ -163,7 +158,8 @@ def _encode_snapshot(evaluator: OrgEvaluator, since: datetime, cursor: datetime)
 
 def is_current(data: dict[str, Any]) -> bool:
     """Whether this checkpoint uses the current format; other versions are discarded."""
-    return data.get("version") == CHECKPOINT_VERSION
+    version = data.get("version")
+    return type(version) is int and version == CHECKPOINT_VERSION
 
 
 def _restore(

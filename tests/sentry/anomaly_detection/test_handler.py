@@ -1,3 +1,4 @@
+import dataclasses
 from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, patch
 
@@ -126,6 +127,32 @@ class TestAnomalyDetectionDetectorHandler(TestCase):
             status_change=None,
             event_data=event_data,
         )
+
+    def test_occurrence_omits_absent_measurements_and_environment(self) -> None:
+        decision = dataclasses.replace(
+            self.decision(MINUTE, urgency=Urgency.LOW),
+            evidence={
+                "signal": "other",
+                "change_type": ChangeType.SILENCE,
+                "started_at": "2025-01-01T11:50:00",
+            },
+            env="",
+        )
+
+        evaluation = self.open(decision)
+
+        occurrence = evaluation.result
+        assert isinstance(occurrence, IssueOccurrence)
+        assert occurrence.priority == DetectorPriorityLevel.LOW
+        assert occurrence.evidence_display == [
+            IssueEvidence(name="Signal", value="other", important=True),
+            IssueEvidence(name="Change", value="silence", important=False),
+            IssueEvidence(name="Started", value="2025-01-01T11:50:00", important=False),
+        ]
+        event_data = evaluation.data["event_data"]
+        assert event_data is not None
+        assert event_data["environment"] is None
+        assert event_data["platform"] == "other"
 
     def test_urgency_change_updates_same_issue(self) -> None:
         opened = self.open(self.decision(MINUTE)).result

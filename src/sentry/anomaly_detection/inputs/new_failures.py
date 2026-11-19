@@ -1,10 +1,19 @@
-"""Discover new error issues by their distinct-user threshold crossings."""
+"""Discover new error issues by their distinct-user threshold crossings.
+
+Users are observed by Snuba receive time, not client event time: a user counts
+from the minute Sentry received their first event for the issue. A late or
+buffered event is therefore observed by the run that covers its arrival rather
+than backdated into an interval that was already published. As long as Snuba
+holds every event received before a run's end (the scheduler waits out an
+ingest delay before closing a minute), runs over adjacent intervals agree on
+every past observation and report each crossing exactly once.
+"""
 
 from __future__ import annotations
 
 import math
 from collections import defaultdict
-from collections.abc import Iterator, Mapping, Sequence
+from collections.abc import Iterable, Iterator, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from statistics import median
@@ -44,21 +53,32 @@ from sentry.anomaly_detection.inputs.measurements import (
 )
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.group import Group
+from sentry.snuba.referrer import Referrer
+from sentry.utils import metrics
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.models.project import Project
-    from sentry.search.events.types import SnubaRow
 
-_REFERRER = "anomaly-detection.enrich"
+_REFERRER = Referrer.ANOMALY_DETECTION_ENRICH.value
 _ISSUE_LIFETIME = timedelta(hours=1)
+# A group starts a title's lifetime only if no group with that title was first
+# seen in the lifetime before it. Lifetimes that can still cross start after
+# (start - lifetime), so deciding them needs one more lifetime of history.
+_GROUP_LOOKBACK = 2 * _ISSUE_LIFETIME
+# Relay replaces event timestamps further than this ahead of receive time.
+_MAX_FUTURE_SKEW = timedelta(minutes=1)
 _MINUTE = timedelta(minutes=1)
 _HOUR = timedelta(hours=1)
 # The scheduler collects 16 days ending at the poll's latest closed hour. Leave
 # enough history to use the same trailing window during warmup and issue replay.
 _THRESHOLD_LOOKBACK = timedelta(days=15)
-_MAX_NEW_GROUPS = 100  # candidate groups per project
-_MAX_NEW_ISSUE_TITLES = 25  # Queried titles per project and environment.
+_MAX_NEW_GROUPS = 500  # Highest-volume candidate groups per project.
+# Crossing query pages per run, spent on the titles with the most estimated
+# users first. A title that does not fit is not evaluated for this interval,
+# and a crossing it made in the interval is not reported: later runs only
+# report crossings in their own interval.
+_MAX_ISSUE_QUERIES = 50
 _ISSUE_USER_PAGE_SIZE = 10_000  # SnQL limits each page to 10,000 rows.
 _MIN_NEW_USERS = 10
 
@@ -67,8 +87,12 @@ def _hour_floor(timestamp: datetime) -> datetime:
     return timestamp.replace(minute=0, second=0, microsecond=0)
 
 
+def _minute_floor(timestamp: datetime) -> datetime:
+    return timestamp.replace(second=0, microsecond=0)
+
+
 def _observed_at(timestamp: datetime) -> datetime:
-    return timestamp.replace(second=0, microsecond=0) + _MINUTE
+    return _minute_floor(timestamp) + _MINUTE
 
 
 class NewFailureThresholds:
@@ -131,10 +155,30 @@ class _FailureScope:
             start = stop
 
 
-class _IssueCandidate(NamedTuple):
-    group: Group
+class _TitleWindow(NamedTuple):
+    """One lifetime of an issue title: its groups ordered by first seen."""
+
+    title: str
+    groups: tuple[Group, ...]
+
+    @property
+    def lead(self) -> Group:
+        return self.groups[0]
+
+    @property
+    def onset(self) -> datetime:
+        return _utc(self.lead.first_seen)
+
+
+class _TitleCandidate(NamedTuple):
+    scope: _FailureScope
+    window: _TitleWindow
+    members: tuple[Group, ...]  # Window groups with errors in the scope's environment.
     estimated_users: float
     event_count: float
+    # Distinct users first received before the scope's start, from the member
+    # with the most: a lower bound on the title's audience at that point.
+    prior_users: float
 
 
 class _IssueCrossing(NamedTuple):
@@ -171,32 +215,67 @@ def collect_new_failure_modes(
     if start >= end:
         return []
 
-    active_environments = _active_error_environments(current_rows, start, end)
+    error_counts = _active_error_environments(current_rows, start, end)
     boundary_environments: dict[int, set[str]] = defaultdict(set)
     if isinstance(thresholds, NewFailureThresholds):
         for project_id, environment in thresholds.falling_scopes(start, end):
             boundary_environments[project_id].add(environment)
-    changes: list[ChangeEvent] = []
+    candidates: list[_TitleCandidate] = []
     for project_id, project in projects_by_id.items():
-        environments = set(sorted(active_environments.get(project_id, ()))[:MAX_ENVIRONMENTS])
+        counts = error_counts.get(project_id, {})
+        # Keep the busiest environments, so short-lived preview environments
+        # cannot displace production.
+        environments = set(sorted(counts, key=lambda env: (-counts[env], env))[:MAX_ENVIRONMENTS])
         # Scopes from the bounded hourly snapshot supplement current errors;
         # a quiet scope's threshold change cannot displace an active scope.
         environments.update(boundary_environments.get(project_id, ()))
         if not environments:
             continue
-        groups_by_id = _recent_error_groups(project, start, end)
-        if not groups_by_id:
+        windows = [
+            window
+            for window in _title_windows(_recent_error_groups(project, start, end))
+            if window.onset + _ISSUE_LIFETIME > start
+        ]
+        if windows:
+            candidates.extend(
+                _title_candidates(
+                    organization, project, sorted(environments), windows, thresholds, start, end
+                )
+            )
+
+    candidates.sort(
+        key=lambda candidate: (
+            -candidate.estimated_users,
+            candidate.scope.project.id,
+            candidate.scope.environment,
+            candidate.window.lead.id,
+        )
+    )
+    changes: list[ChangeEvent] = []
+    pages_left = _MAX_ISSUE_QUERIES
+    unevaluated = 0
+    for candidate in candidates:
+        threshold_windows = _replay_windows(candidate)
+        if threshold_windows is None:
             continue
-        for environment in sorted(environments):
-            scope = _FailureScope(project, environment, start, end, thresholds)
-            changes.extend(_collect_environment_failures(organization, scope, groups_by_id))
+        users_needed = math.ceil(max(window.threshold for window in threshold_windows))
+        pages = math.ceil(users_needed / _ISSUE_USER_PAGE_SIZE)
+        if pages > pages_left:
+            unevaluated += 1
+            continue
+        pages_left -= pages
+        changes.extend(
+            _collect_title_crossings(organization, candidate, threshold_windows, users_needed)
+        )
+    if unevaluated:
+        metrics.incr("anomaly_detection.new_failures.query_budget_exhausted", amount=unevaluated)
     return sorted(changes, key=lambda change: (change.detected_at or change.start, change.key))
 
 
 def _active_error_environments(
     rows: Sequence[SeriesRow], start: datetime, end: datetime
-) -> dict[int, set[str]]:
-    environments_by_project: dict[int, set[str]] = defaultdict(set)
+) -> dict[int, dict[str, float]]:
+    counts_by_project: dict[int, dict[str, float]] = defaultdict(lambda: defaultdict(float))
     for row in rows:
         if (
             start <= _utc(row.ts) < end
@@ -206,95 +285,187 @@ def _active_error_environments(
             and row.value is not None
             and row.value > 0
         ):
-            environments_by_project[row.project_id].add(row.env)
-    return environments_by_project
+            counts_by_project[row.project_id][row.env] += row.value
+    return counts_by_project
 
 
-def _recent_error_groups(project: Project, start: datetime, end: datetime) -> dict[int, Group]:
-    groups = Group.objects.filter(
-        project_id=project.id,
-        type=ErrorGroupType.type_id,
-        first_seen__gte=(start - _ISSUE_LIFETIME).replace(tzinfo=UTC),
-        first_seen__lt=end.replace(tzinfo=UTC),
-    ).order_by("-first_seen", "id")[:_MAX_NEW_GROUPS]
-    return {group.id: group for group in groups}
+def _recent_error_groups(project: Project, start: datetime, end: datetime) -> list[Group]:
+    groups = list(
+        Group.objects.filter(
+            project_id=project.id,
+            type=ErrorGroupType.type_id,
+            first_seen__gte=(start - _GROUP_LOOKBACK).replace(tzinfo=UTC),
+            first_seen__lt=end.replace(tzinfo=UTC),
+        ).order_by("-times_seen", "id")[: _MAX_NEW_GROUPS + 1]
+    )
+    if len(groups) > _MAX_NEW_GROUPS:
+        # Prefer volume, so a burst of one-event groups cannot crowd out an incident.
+        metrics.incr("anomaly_detection.new_failures.group_limit")
+        del groups[_MAX_NEW_GROUPS:]
+    return groups
 
 
-def _collect_environment_failures(
-    organization: Organization, scope: _FailureScope, groups_by_id: Mapping[int, Group]
-) -> Iterator[ChangeEvent]:
-    candidates = _run_errors(
+def _issue_title(group: Group) -> str:
+    has_structured_title = group.data and ("title" in group.data or "metadata" in group.data)
+    return group.title if has_structured_title else group.message
+
+
+def _title_windows(groups: Iterable[Group]) -> list[_TitleWindow]:
+    """Partition groups into title lifetimes that every overlapping run agrees on.
+
+    A group starts a lifetime unless its title had a group first seen within a
+    lifetime before it, and groups first seen during a lifetime join it. Both
+    rules look back at most one lifetime, so the onset and members of a lifetime
+    that can still cross never depend on which older groups a run can see.
+    """
+    groups_by_title: dict[str, list[Group]] = defaultdict(list)
+    for group in groups:
+        groups_by_title[_issue_title(group)].append(group)
+
+    windows: list[_TitleWindow] = []
+    for title, title_groups in groups_by_title.items():
+        title_groups.sort(key=lambda group: (group.first_seen, group.id))
+        current: list[Group] = []
+        previous: Group | None = None
+        for group in title_groups:
+            if current and group.first_seen < current[0].first_seen + _ISSUE_LIFETIME:
+                current.append(group)
+            else:
+                if current:
+                    windows.append(_TitleWindow(title, tuple(current)))
+                # A title that kept recurring is not a new failure.
+                recurring = (
+                    previous is not None
+                    and group.first_seen < previous.first_seen + _ISSUE_LIFETIME
+                )
+                current = [] if recurring else [group]
+            previous = group
+        if current:
+            windows.append(_TitleWindow(title, tuple(current)))
+    return windows
+
+
+def _title_candidates(
+    organization: Organization,
+    project: Project,
+    environments: list[str],
+    windows: Sequence[_TitleWindow],
+    thresholds: NewFailureThresholds | Mapping[Service, float],
+    start: datetime,
+    end: datetime,
+) -> Iterator[_TitleCandidate]:
+    windows_by_group = {group.id: window for window in windows for group in window.groups}
+    user = Column(ERROR_USER)
+    prior_user = Function(
+        "and",
+        [
+            Function("less", [Column("received"), start.replace(tzinfo=UTC)]),
+            Function("notEquals", [user, ""]),
+        ],
+    )
+    rows = _run_errors(
         organization,
         Query(
             match=Entity("events"),
-            select=[Function("uniq", [Column(ERROR_USER)], "users"), Function("count", [])],
-            groupby=[Column("group_id")],
-            where=[
-                *_error_where(scope.project, scope.start - _ISSUE_LIFETIME, scope.end),
-                Condition(_error_env(), Op.EQ, scope.environment),
-                Condition(Column("group_id"), Op.IN, list(groups_by_id)),
+            select=[
+                Function("uniq", [user], "users"),
+                Function("count", []),
+                Function("uniqExactIf", [user, prior_user], "prior_users"),
             ],
-            limit=Limit(_MAX_NEW_GROUPS + 1),
+            groupby=[_error_env("env"), Column("group_id")],
+            where=[
+                # Every member event follows its group's first seen, and Relay
+                # bounds how far an event's timestamp can lead its receipt.
+                *_error_where(
+                    project,
+                    _minute_floor(min(window.onset for window in windows)),
+                    end + _MAX_FUTURE_SKEW,
+                ),
+                Condition(Column("received"), Op.LT, end.replace(tzinfo=UTC)),
+                Condition(_error_env(), Op.IN, environments),
+                Condition(Column("group_id"), Op.IN, list(windows_by_group)),
+            ],
+            limit=Limit(len(environments) * len(windows_by_group)),
         ),
         _REFERRER,
     )
-    issue_titles = _rank_issue_titles(candidates, groups_by_id)
-    for title, members in issue_titles[:_MAX_NEW_ISSUE_TITLES]:
-        yield from _collect_title_crossings(organization, scope, title, members)
-
-
-def _rank_issue_titles(
-    rows: Sequence[SnubaRow], groups_by_id: Mapping[int, Group]
-) -> list[tuple[str, list[_IssueCandidate]]]:
-    """Use estimated users to prioritize queries, never to decide a crossing."""
-    issue_groups_by_title: dict[str, list[_IssueCandidate]] = defaultdict(list)
+    stats: dict[tuple[str, int], tuple[float, float, float]] = {}
     for row in rows:
-        group = groups_by_id.get(row["group_id"])
-        estimated_users = _number(row.get("users"))
+        environment = row.get("env")
+        users = _number(row.get("users"))
         event_count = _number(row.get("count()"))
-        if group is None or estimated_users is None or event_count is None:
+        prior_users = _number(row.get("prior_users"))
+        if (
+            environment not in environments
+            or row.get("group_id") not in windows_by_group
+            or users is None
+            or event_count is None
+            or prior_users is None
+        ):
             continue
-        has_structured_title = group.data and ("title" in group.data or "metadata" in group.data)
-        title = group.title if has_structured_title else group.message
-        issue_groups_by_title[title].append(_IssueCandidate(group, estimated_users, event_count))
+        stats[environment, row["group_id"]] = users, event_count, prior_users
 
-    def estimated_impact(entry: tuple[str, list[_IssueCandidate]]) -> tuple[float, str]:
-        title, members = entry
-        return -sum(member.estimated_users for member in members), title
+    for environment in environments:
+        scope = _FailureScope(project, environment, start, end, thresholds)
+        for window in windows:
+            members = [group for group in window.groups if (environment, group.id) in stats]
+            if not members:
+                continue
+            member_stats = [stats[environment, group.id] for group in members]
+            yield _TitleCandidate(
+                scope,
+                window,
+                tuple(members),
+                estimated_users=sum(users for users, _, _ in member_stats),
+                event_count=sum(event_count for _, event_count, _ in member_stats),
+                prior_users=max(prior for _, _, prior in member_stats),
+            )
 
-    return sorted(issue_groups_by_title.items(), key=estimated_impact)
+
+def _window_end(candidate: _TitleCandidate) -> datetime:
+    return min(candidate.window.onset + _ISSUE_LIFETIME, candidate.scope.end)
+
+
+def _replay_windows(candidate: _TitleCandidate) -> tuple[_ThresholdWindow, ...] | None:
+    """Return the title's threshold windows, or None if it cannot cross in this run."""
+    scope = candidate.scope
+    first_minute = _minute_floor(candidate.window.onset)
+    last_observation = _observed_at(_window_end(candidate) - datetime.resolution)
+    # Replay from issue onset, not the current poll's start. A prior crossing
+    # must not become a new crossing just because the threshold changed.
+    windows = tuple(scope.threshold_windows(first_minute + _MINUTE, last_observation + _MINUTE))
+    max_threshold = max(window.threshold for window in windows)
+    if candidate.event_count < min(max_threshold, _MIN_NEW_USERS):
+        return None
+    # Users first received before start were observed by start. If they already
+    # meet the threshold in force at start, an earlier run reported the crossing.
+    if any(
+        window.start <= scope.start < window.end and candidate.prior_users >= window.threshold
+        for window in windows
+    ):
+        return None
+    return windows
 
 
 def _collect_title_crossings(
     organization: Organization,
-    scope: _FailureScope,
-    title: str,
-    members: Sequence[_IssueCandidate],
+    candidate: _TitleCandidate,
+    windows: Sequence[_ThresholdWindow],
+    users_needed: int,
 ) -> Iterator[ChangeEvent]:
-    ordered_members = sorted(members, key=lambda member: (member.group.first_seen, member.group.id))
-    first_group = ordered_members[0].group
-    first_seen = _utc(first_group.first_seen)
-    window_end = min(first_seen + _ISSUE_LIFETIME, scope.end)
-    if window_end <= scope.start:
-        return
-
-    first_minute = first_seen.replace(second=0, microsecond=0)
-    issue_ids = tuple(member.group.id for member in ordered_members)
-    # Replay from issue onset, not the current poll's start. A prior crossing
-    # must not become a new crossing just because the threshold changed.
-    last_observation = _observed_at(window_end - datetime.resolution)
-    windows = tuple(scope.threshold_windows(first_minute + _MINUTE, last_observation + _MINUTE))
-    max_threshold = max(window.threshold for window in windows)
-    if sum(member.event_count for member in members) < min(max_threshold, _MIN_NEW_USERS):
-        return
+    scope, window = candidate.scope, candidate.window
+    first_minute = _minute_floor(window.onset)
+    window_end = _window_end(candidate)
+    issue_ids = tuple(group.id for group in candidate.members)
     first_user_times = _first_user_times(
         organization,
         [
-            *_error_where(scope.project, first_minute, window_end),
+            *_error_where(scope.project, first_minute, window_end + _MAX_FUTURE_SKEW),
+            Condition(Column("received"), Op.LT, window_end.replace(tzinfo=UTC)),
             Condition(_error_env(), Op.EQ, scope.environment),
             Condition(Column("group_id"), Op.IN, list(issue_ids)),
         ],
-        math.ceil(max_threshold),
+        users_needed,
     )
     for detected_at, threshold, users in _crossings(first_user_times, windows):
         if not scope.start < detected_at <= scope.end:
@@ -305,7 +476,7 @@ def _collect_title_crossings(
                 scope.environment,
                 Signal.NEW_ISSUE,
                 Metric.COUNT_UNIQUE_USER,
-                str(first_group.id),
+                str(window.lead.id),
             ),
             change_type=ChangeType.NEW_FAILURE_MODE,
             start=first_minute,
@@ -314,7 +485,7 @@ def _collect_title_crossings(
             confidence=0.9 if users >= threshold else 0.5,
             detected_at=detected_at,
             peak_ratio=users / threshold,
-            evidence=[title[:200]],
+            evidence=[window.title[:200]],
             issue_ids=issue_ids,
         )
 
@@ -325,7 +496,7 @@ def _first_user_times(
     # Deduplicate across all issues with this title before applying the limit: a flood
     # from one user must not hide later first occurrences from other users.
     user = Column(ERROR_USER)
-    first_seen = Function("min", [Column("timestamp")], "first_seen")
+    first_seen = Function("min", [Column("received")], "first_seen")
     where = [*conditions, Condition(user, Op.NEQ, "")]
     for offset in range(0, users_needed, _ISSUE_USER_PAGE_SIZE):
         limit = min(users_needed - offset, _ISSUE_USER_PAGE_SIZE)

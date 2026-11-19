@@ -552,15 +552,17 @@ class Correlator:
             key = member.event.key
             footprint = self._footprint(member, t)
             for other in members:
-                other_key = other.event.key
-                if (
-                    other is member
-                    or self._order(key, other_key, (footprint, other.footprint))
-                    != call_graph.DOWNSTREAM
-                ):
+                if other is member:
                     continue
-                if service_of(key) == service_of(other_key) or (
+                other_key = other.event.key
+                related = service_of(key) == service_of(other_key) or (
                     footprint is not None and footprint.touches(other_key, self.cfg.min_share)
+                )
+                # Ordering may build a call graph, so only order related pairs.
+                if (
+                    related
+                    and self._order(key, other_key, (footprint, other.footprint))
+                    == call_graph.DOWNSTREAM
                 ):
                     return True
             return False

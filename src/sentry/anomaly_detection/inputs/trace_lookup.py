@@ -39,6 +39,7 @@ from sentry.anomaly_detection.inputs.measurements import (
     _utc,
 )
 from sentry.search.events.types import SnubaParams, SnubaRow
+from sentry.snuba.referrer import Referrer
 from sentry.snuba.spans_rpc import Spans
 
 if TYPE_CHECKING:
@@ -46,7 +47,7 @@ if TYPE_CHECKING:
     from sentry.models.project import Project
 
 _TRACE = "contexts[trace.trace_id]"
-_REFERRER = "anomaly-detection.enrich"
+_REFERRER = Referrer.ANOMALY_DETECTION_ENRICH.value
 _TRACE_SAMPLE = 20
 _TRACE_SPAN_LIMIT = 300
 _MAX_FOOTPRINTS = 32
@@ -169,6 +170,8 @@ class TraceLookup:
             conditions = [
                 *_error_where(project, start, end),
                 Condition(_error_env(), Op.EQ, key.env),
+                # Untraced errors would otherwise crowd traced ones out of the sample.
+                Condition(Column(_TRACE), Op.IS_NOT_NULL),
             ]
             if name == Signal.NEW_ISSUE:
                 conditions.append(Condition(Column("group_id"), Op.IN, list(change.issue_ids)))

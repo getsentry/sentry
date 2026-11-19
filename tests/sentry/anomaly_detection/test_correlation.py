@@ -16,6 +16,7 @@ from sentry.anomaly_detection.contracts import (
     Signal,
     Urgency,
 )
+from sentry.anomaly_detection.correlation.call_graph import DOWNSTREAM, UPSTREAM, _CallGraph
 from sentry.anomaly_detection.correlation.correlator import Correlator, episode_key
 from sentry.anomaly_detection.correlation.footprint import (
     FOOTPRINT_DEFERRED,
@@ -31,6 +32,7 @@ from sentry.anomaly_detection.correlation.shared_dependencies import (
     SharedConfig,
     learn,
 )
+from sentry.anomaly_detection.evaluation.novelty import Novelty
 from sentry.anomaly_detection.evaluation.organization import OrgEvaluator
 
 START = datetime(2024, 1, 1)
@@ -93,6 +95,20 @@ def test_signal_aliases_are_one_piece_of_evidence(primary: SeriesKey, alias: Ser
     assert {action.independent_count for action in joined} == {1}
 
 
+def test_same_slice_alias_requires_nearby_onsets() -> None:
+    latency = _episode(CHECKOUT)
+    failures = _episode(
+        replace(CHECKOUT, metric=Metric.FAILURE_RATE), START + timedelta(hours=6), ChangeType.SPIKE
+    )
+    correlator = Correlator()
+    (opened,) = correlator.step(latency.start, [("open", latency)])
+    actions = correlator.step(failures.start, [("open", failures)])
+
+    assert actions[0].kind == "open"
+    assert actions[0].group is not opened.group
+    assert len(correlator.groups) == 2
+
+
 def test_timing_alone_does_not_group_projects() -> None:
     correlator = Correlator()
     actions = correlator.step(START, [("open", _episode(CHECKOUT)), ("open", _episode(ORDERS))])
@@ -140,6 +156,23 @@ def test_generic_service_trace_touch_is_not_a_cross_project_link() -> None:
     assert len([action for action in actions if action.kind == "open"]) == 2
 
 
+@pytest.mark.parametrize("footprint", [FOOTPRINT_DEFERRED, None], ids=["deferred", "no-traces"])
+def test_service_total_without_footprint_links_its_slice_by_timing(
+    footprint: FootprintResult,
+) -> None:
+    total = SeriesKey(1, "production", Signal.FAILED_RATE, Metric.FAILED_PER_REQUEST)
+    part = _episode(replace(CHECKOUT, metric=Metric.FAILURE_RATE), change_type=ChangeType.SPIKE)
+    total_event = _episode(total, START + MINUTE, ChangeType.SPIKE)
+    correlator = Correlator(_Traces({total: footprint}))
+    opened = correlator.step(part.start, [("open", part)])[0]
+    actions = correlator.step(total_event.start, [("open", total_event)])
+
+    assert actions[0].kind == "join"
+    assert actions[0].group is opened.group
+    # Timing alone doesn't make the total and its slice one piece of evidence.
+    assert actions[0].independent_count == 2
+
+
 @pytest.mark.parametrize("latent_first", [True, False], ids=["latent-first", "open-first"])
 def test_routine_downstream_change_supports_localization_without_independent_evidence(
     latent_first: bool,
@@ -160,6 +193,25 @@ def test_routine_downstream_change_supports_localization_without_independent_evi
     promoted = correlator.step(START + 2 * MINUTE, [("open", orders)])
     assert promoted
     assert all(action.independent_count == 2 for action in promoted)
+
+
+@pytest.mark.parametrize("latent_first", [True, False], ids=["latent-first", "open-first"])
+def test_routine_downstream_change_supports_source_promoted_on_escalation(
+    latent_first: bool,
+) -> None:
+    correlator = Correlator(_Traces({CHECKOUT: _checkout_footprint()}))
+    escalated_at = START + 40 * MINUTE
+    checkout, orders = _episode(CHECKOUT), _episode(ORDERS, escalated_at)
+    checkout.novelty = {"unusual_since": escalated_at, "opened_on_escalation": True}
+    latent: ChangeAction = ("latent", orders)
+    opened: ChangeAction = ("open", checkout)
+    first, second = (latent, opened) if latent_first else (opened, latent)
+    correlator.step(escalated_at, [first])
+    actions = correlator.step(escalated_at + MINUTE, [second])
+
+    assert len(correlator.groups) == 1
+    assert actions[0].root is orders
+    assert actions[0].group.change_events == [checkout, orders]
 
 
 @pytest.mark.parametrize(
@@ -319,7 +371,46 @@ def test_shared_dependency_learning_links_repeated_co_onsets_without_traces() ->
     assert all(action.independent_count == 1 for action in actions)
     localization = actions[-1].group.localization
     assert localization is not None and "shared with" in localization
-    assert learn(history, START, coverage=coverage).get(ORDERS, replica) is None
+    # Co-onsets that each slice's minute-of-hour activity explains, such as an hourly
+    # job, are not a shared dependency, however often they coincide.
+    hourly = {
+        key: [_episode(key, START + timedelta(hours=hour)) for hour in range(72)] for key in history
+    }
+    assert learn(hourly, now, coverage=coverage).get(ORDERS, replica) is None
+
+
+def test_shared_learning_counts_staggered_incidents_in_novelty_history_once() -> None:
+    replica = replace(ORDERS, project_id=3)
+    now = START + timedelta(days=3)
+    novelty = Novelty()
+    minute = START
+    while minute < now:
+        for key in (ORDERS, replica):
+            novelty.observe(key, minute)
+            novelty.observe(replace(key, metric=Metric.FAILURE_RATE), minute)
+        minute += MINUTE
+
+    def record_incident(onset: datetime) -> None:
+        # Failures follow the slowdown within the coincidence tolerance, while it's open.
+        for key in (ORDERS, replica):
+            slowdown = _episode(key, onset)
+            failures = _episode(
+                replace(key, metric=Metric.FAILURE_RATE), onset + 2 * MINUTE, ChangeType.SPIKE
+            )
+            novelty.record(slowdown)
+            novelty.record(failures)
+            # Episodes are recorded when they open and end later.
+            slowdown.ended_at = failures.ended_at = onset + 10 * MINUTE
+
+    incidents = [START + timedelta(hours=9 * i, minutes=7 * i) for i in range(1, 4)]
+    for onset in incidents[:2]:
+        record_incident(onset)
+    assert learn(novelty.history, now, coverage=novelty.coverage).get(ORDERS, replica) is None
+
+    record_incident(incidents[2])
+    pair = learn(novelty.history, now, coverage=novelty.coverage).get(ORDERS, replica)
+    assert pair is not None
+    assert (pair.co, pair.n_a, pair.n_b) == (3, 3, 3)
 
 
 @pytest.mark.parametrize("latent_first", [True, False])
@@ -389,3 +480,57 @@ def test_pruning_keeps_a_closed_group_needed_by_an_absorbed_restart() -> None:
     assert actions[0].kind == "reopen"
     assert actions[0].group.id == opened.group.id
     assert actions[0].independent_count == 1
+
+
+def _service(project_id: int) -> Service:
+    return Service(project_id, "production")
+
+
+def _total(project_id: int) -> SeriesKey:
+    return SeriesKey(project_id, "production", Signal.ERROR_RATE, Metric.ERRORS_PER_REQUEST)
+
+
+def _call_edges(*calls: tuple[int, int, int]) -> Counter[CallEdge]:
+    edges: Counter[CallEdge] = Counter()
+    for caller, callee, count in calls:
+        edges[CallEdge(_service(caller), f"{callee}.example.com", _service(callee))] = count
+    return edges
+
+
+@pytest.mark.parametrize(
+    ("calls", "expected"),
+    [
+        pytest.param([(1, 2, 3), (2, 1, 1)], DOWNSTREAM, id="more-calls-forward"),
+        pytest.param([(1, 2, 1), (2, 1, 3)], UPSTREAM, id="more-calls-back"),
+        pytest.param([(1, 2, 2), (2, 1, 2)], DOWNSTREAM, id="tie"),
+        pytest.param([(2, 1, 2), (1, 2, 2)], DOWNSTREAM, id="tie-listed-in-reverse"),
+    ],
+)
+def test_majority_call_graph_keeps_one_direction_per_service_pair(
+    calls: list[tuple[int, int, int]], expected: int
+) -> None:
+    edges = _call_edges(*calls)
+
+    assert _CallGraph(edges, majority=True).order(_total(1), _total(2)) == expected
+    # Without a majority, calls in both directions leave the pair unordered.
+    assert _CallGraph(edges).order(_total(1), _total(2)) is None
+
+
+def test_majority_call_graph_bounds_depth_in_call_cycles() -> None:
+    graph = _CallGraph(_call_edges((1, 2, 1), (2, 3, 1), (3, 1, 1)), majority=True)
+
+    assert set(graph.depth) == {_service(1), _service(2), _service(3)}
+    assert max(graph.depth.values()) <= 3
+    assert graph.order(_total(1), _total(2)) is None
+    assert graph.order(_total(3), _total(1)) is None
+
+
+def test_majority_call_graph_positions_follow_the_longest_call_path() -> None:
+    # Calls relax in caller order, so 4 -> 3 is seen after 3 -> 2; 4 -> 2 is a shortcut.
+    graph = _CallGraph(_call_edges((3, 2, 1), (4, 2, 1), (4, 3, 1)), majority=True)
+    database = SeriesKey(4, "production", Signal.OUTBOUND_DB, LATENCY, "orders")
+    endpoint = SeriesKey(4, "production", Signal.ENDPOINTS, LATENCY, "/checkout")
+    keys = [_total(2), _total(3), database, endpoint, _total(4)]
+
+    assert graph.depth == {_service(3): 1, _service(2): 2}
+    assert sorted(keys, key=graph.position) == [_total(4), endpoint, database, _total(3), _total(2)]

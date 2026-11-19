@@ -15,7 +15,14 @@ from taskbroker_client.retry import Retry
 from sentry import features, options
 from sentry.anomaly_detection.checkpoint.codec import is_current
 from sentry.anomaly_detection.checkpoint.replay import advance_org
-from sentry.anomaly_detection.contracts import AnomalyGroupKey, Metric, SeriesRow, Signal
+from sentry.anomaly_detection.contracts import (
+    AnomalyGroupKey,
+    ChangeType,
+    Metric,
+    SeriesRow,
+    Signal,
+    Urgency,
+)
 from sentry.anomaly_detection.evaluation.organization import AnomalyDecision
 from sentry.anomaly_detection.grouptype import AnomalyDetection, MinuteDecisions
 from sentry.anomaly_detection.inputs.measurements import collect
@@ -172,6 +179,42 @@ def _publish(decisions: Sequence[AnomalyDecision], detectors: Mapping[int, Detec
         process_detectors(packet, [detector])
 
 
+def _resolve_stranded_groups(
+    decisions: Sequence[AnomalyDecision], detectors: Mapping[int, Detector], minute: datetime
+) -> list[AnomalyDecision]:
+    """Resolve open groups that a cold start no longer tracks.
+
+    Group keys hash the episode start, so a group from a discarded checkpoint never
+    receives another decision and would stay open forever.
+    """
+    project_ids = {detector.id: project_id for project_id, detector in detectors.items()}
+    tracked = {decision.group_key for decision in decisions}
+    stranded = [
+        AnomalyDecision(
+            group_key=AnomalyGroupKey(group_key),
+            project_id=project_ids[detector_id],
+            timestamp=minute,
+            urgency=Urgency.LOW,
+            is_resolved=True,
+            title="",
+            # Resolutions never build an occurrence, so this evidence is never shown.
+            evidence={
+                "signal": "other",
+                "change_type": ChangeType.CHANGE_POINT,
+                "started_at": minute.isoformat(),
+            },
+            env="",
+        )
+        for detector_id, group_key in DetectorState.objects.filter(
+            detector_id__in=project_ids, is_triggered=True
+        ).values_list("detector_id", "detector_group_key")
+        if group_key is not None and group_key not in tracked
+    ]
+    if stranded:
+        metrics.incr("anomaly_detection.stranded_groups_resolved", amount=len(stranded))
+    return stranded
+
+
 def _commit_checkpoint(
     organization_id: int,
     *,
@@ -233,9 +276,19 @@ def _run_organization(organization_id: int, target: datetime) -> bool:
     if checkpoint is not None and not is_current(checkpoint):
         metrics.incr("anomaly_detection.checkpoint_discarded")
         checkpoint = None
-    resume_minute = stored_minute if checkpoint is not None else None
     target_utc = target.replace(tzinfo=UTC)
-    if resume_minute is not None and resume_minute >= target_utc:
+    max_resume_lag = timedelta(minutes=options.get("anomaly_detection.max_resume_lag_minutes"))
+    if (
+        checkpoint is not None
+        and stored_minute is not None
+        and stored_minute < target_utc - max_resume_lag
+    ):
+        # Replaying a long pause would publish anomalies long after they happened.
+        metrics.incr("anomaly_detection.checkpoint_expired")
+        checkpoint = None
+    resume_minute = stored_minute if checkpoint is not None else None
+    if stored_minute is not None and stored_minute >= target_utc:
+        # A cold start here would republish a minute the detectors already processed.
         return False
 
     end = target
@@ -269,6 +322,8 @@ def _run_organization(organization_id: int, target: datetime) -> bool:
         projects=detectors.keys(),
     )
     metrics.distribution("anomaly_detection.checkpoint_bytes", len(orjson.dumps(next_checkpoint)))
+    if resume_minute is None:
+        decisions = [*decisions, *_resolve_stranded_groups(decisions, detectors, publish_from)]
     # Publish before committing: a crash in between replays the same minutes, which
     # the detectors' per-group dedupe ignores. Committing first could lose transitions.
     _publish(decisions, detectors)

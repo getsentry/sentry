@@ -12,6 +12,8 @@ logger = logging.getLogger(__name__)
 class Referrer(StrEnum):
     ALERTRULESERIALIZER_TEST_QUERY_PRIMARY = "alertruleserializer.test_query.primary"
     ALERTRULESERIALIZER_TEST_QUERY = "alertruleserializer.test_query"
+    ANOMALY_DETECTION_COLLECT = "anomaly-detection.collect"
+    ANOMALY_DETECTION_ENRICH = "anomaly-detection.enrich"
     ANOMALY_DETECTION_HISTORICAL_DATA_QUERY = "anomaly_detection_historical_data_query"
     ANOMALY_DETECTION_RETURN_HISTORICAL_ANOMALIES = (
         "anomaly_detection_get_historical_anomalies_query"

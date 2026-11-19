@@ -290,6 +290,21 @@ def test_occasional_sparse_failure_is_not_a_spike() -> None:
     assert step(MeasurementStream(series, Baseline({})), 0, 340) == []
 
 
+def test_routine_failure_bursts_are_not_spikes_but_a_sustained_increase_is() -> None:
+    # Three minutes in ten fail at 10%: the median is zero, so the level is pooled at 3%.
+    failures = {minute(i): 0.1 if i % 10 < 3 else 0.0 for i in range(240)}
+    series = {
+        FAILURES: failures | points(240, 250, 1.0),
+        samples_key(FAILURES): points(0, 250, 100.0),
+    }
+    detector = MeasurementStream(series, Baseline({}))
+    assert step(detector, 0, 240) == []
+    [(action, event)] = step(detector, 240, 250)
+    assert action == "open"
+    assert event.start == minute(240)
+    assert event.expected == pytest.approx(0.03, rel=0.1)
+
+
 def test_sparse_error_count_window_opens_below_per_minute_excess() -> None:
     # Two errors per minute cannot pass the five-event gate; their sum can.
     series = {ERRORS: points(0, 300, 0.0) | points(300, 330, 2.0)}
@@ -297,15 +312,19 @@ def test_sparse_error_count_window_opens_below_per_minute_excess() -> None:
     assert (action, event.change_type) == ("open", ChangeType.SPIKE)
     assert event.start == minute(300)
     assert event.detected_at is not None and event.detected_at < minute(330)
-    assert event.evidence[0].startswith("4h of counts")
+    assert event.evidence[0].startswith("1h of counts")
 
 
 def test_history_scales_level_by_hour_and_prefers_same_day_type() -> None:
     hourly: Series = {}
+    # Three weekdays and four weekend days, so ignoring day type would pick the weekend value.
     for i in range(1, 15):
         day = START - timedelta(days=i)
-        hourly[day] = 200.0 if day.weekday() < 5 else 20_000.0
         hourly[day - timedelta(hours=1)] = 100.0
+        if day.weekday() >= 5:
+            hourly[day] = 20_000.0
+        elif i <= 5:
+            hourly[day] = 200.0
     baseline = Baseline({REQUESTS: hourly})
     ev = baseline.expected(REQUESTS, points(-60, 0, 10.0), START, set())
     assert ev is not None
@@ -384,9 +403,15 @@ def test_refresh_adds_new_series_without_resetting_existing_state() -> None:
     assert det.state[ERRORS] is error_state
     assert set(det.watched) == {ERRORS, REQUESTS}
     assert det.refresh() == 0
-    series[ERRORS].update(points(60, 65, 100.0))
-    series[REQUESTS].update(points(60, 65, 20_000.0))
-    assert step(MeasurementStream(series, Baseline({})), 0, 65) == []
+
+    # A raw-errors series watched before traffic arrives must not open once requests exist.
+    series = {ERRORS: points(-60, 70, 5.0) | points(65, 70, 100.0)}
+    stream = MeasurementStream(series, Baseline({}))
+    assert step(stream, 0, 60) == []
+    series[REQUESTS] = points(60, 70, 1000.0)
+    assert step(stream, 60, 70) == []
+    assert ERRORS in stream.history.watched
+    assert stream.history.state[ERRORS].open is None
 
 
 def test_raw_error_episode_can_close_after_requests_arrive() -> None:
@@ -428,6 +453,25 @@ def test_uncovered_change_point_tick_resets_persistence() -> None:
     series[ERRORS] = counts
     assert detector.step(minute(195)) == []
     assert detector.state[ERROR_RATE].hits == 1
+
+
+def test_change_point_hold_closes_while_traffic_is_too_low_to_measure() -> None:
+    series = {
+        REQUESTS: points(0, 200, 1000.0) | points(200, 400, 100.0),
+        ERRORS: points(0, 170, 20.0) | points(170, 200, 40.0) | points(200, 400, 4.0),
+        ERROR_RATE: points(0, 400, None),
+    }
+    detector = RateShiftTracker(series, Baseline({}))
+    [(opened, event)] = [action for i in range(200) for action in detector.step(minute(i))]
+    assert opened == "open"
+    hold_until = detector.state[ERROR_RATE].hold_until
+    assert hold_until is not None
+    # The whole window at hold expiry is below min_requests, so recovery cannot be measured.
+    assert [action for i in range(200, 400) for action in detector.step(minute(i))] == [
+        ("close", event)
+    ]
+    assert event.ended_at == hold_until
+    assert event.evidence[-1] == "held: new level"
 
 
 def test_change_point_recovery_uses_the_same_seasonal_scale_as_open() -> None:

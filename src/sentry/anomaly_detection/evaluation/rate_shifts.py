@@ -126,37 +126,43 @@ class RateShiftTracker:
         observations = self._observations(key, history_start, minute)
         historical_points = [point for point in observations if point.minute <= recent_boundary]
         recent_points = [point for point in observations if point.minute > recent_boundary]
-        if (
-            len(recent_points) < max(1, config.after_min // 2)
-            or len(historical_points) < max(1, config.before_min // 2)
-            or statistics.median(point.traffic for point in observations) < config.min_requests
-        ):
-            state.hits = 0
-            return None
-        # A fixed rate floor and raw hourly shapes keep the frozen level comparable.
-        recent_log_rates = [point.log_rate(RATE_FLOOR) for point in recent_points]
-        historical_log_rates = [point.log_rate(RATE_FLOOR) for point in historical_points]
-        pooled_ratio = self._pooled_ratio(historical_points, recent_points)
-        recent_level = statistics.median(recent_log_rates)
-        historical_level = statistics.median(historical_log_rates)
+        measurable = (
+            len(recent_points) >= max(1, config.after_min // 2)
+            and len(historical_points) >= max(1, config.before_min // 2)
+            and statistics.median(point.traffic for point in observations) >= config.min_requests
+        )
         min_log_shift = math.log(config.min_shift)
 
         if event := state.open:
-            # Recovery uses the frozen pre-change level, not the moving historical window.
-            log_shift = recent_level - state.level_before
-            event.peak_ratio = max(event.peak_ratio, min(math.exp(log_shift), pooled_ratio))
-            recovered = log_shift < min_log_shift / 2
+            # The hold expires even while traffic is too low to measure recovery.
+            recovered = False
+            if measurable:
+                # Recovery uses the frozen pre-change level, not the moving historical window.
+                recent_log_rates = [point.log_rate(RATE_FLOOR) for point in recent_points]
+                log_shift = statistics.median(recent_log_rates) - state.level_before
+                pooled_ratio = self._pooled_ratio(historical_points, recent_points)
+                event.peak_ratio = max(event.peak_ratio, min(math.exp(log_shift), pooled_ratio))
+                recovered = log_shift < min_log_shift / 2
             if recovered or (state.hold_until is not None and minute >= state.hold_until):
                 event.ended_at = minute
                 event.evidence.append("recovered" if recovered else "held: new level")
                 state.open = None
                 return "close", event
             return None
-        if (state.hold_until is not None and minute < state.hold_until) or self._spike_seen.get(
-            key
-        ) == minute:
+        if (
+            not measurable
+            or (state.hold_until is not None and minute < state.hold_until)
+            or self._spike_seen.get(key) == minute
+        ):
             state.hits = 0
             return None
+
+        # A fixed rate floor and raw hourly shapes keep the frozen level comparable.
+        recent_log_rates = [point.log_rate(RATE_FLOOR) for point in recent_points]
+        historical_log_rates = [point.log_rate(RATE_FLOOR) for point in historical_points]
+        pooled_ratio = self._pooled_ratio(historical_points, recent_points)
+        recent_level = statistics.median(recent_log_rates)
+        historical_level = statistics.median(historical_log_rates)
 
         log_shift = recent_level - historical_level
         median_deviation = statistics.median(

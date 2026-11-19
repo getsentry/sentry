@@ -108,6 +108,7 @@ def link(
     if (
         not incoming_total
         and slice_of(incoming_key) == slice_of(existing_key)
+        and onset_gap <= tolerance
         and overlap(incoming, existing, tolerance)
     ):
         return Link(existing_member, "alias", 1.0, "same slice measured two ways")
@@ -122,12 +123,17 @@ def link(
             else (existing_member, incoming_member)
         )
         footprint = evidence._footprint(total, observation_minute)
-        stats = footprint.touches(part.event.key, cfg.min_share) if footprint else None
-        if stats and overlap(incoming, existing, tolerance):
-            return Link(
-                existing_member, "part", stats.trace_share, "slice contributes to its service total"
-            )
-        return None
+        # A missing or deferred footprint isn't evidence of absence; fall back to timing.
+        if footprint is not None:
+            stats = footprint.touches(part.event.key, cfg.min_share)
+            if stats and overlap(incoming, existing, tolerance):
+                return Link(
+                    existing_member,
+                    "part",
+                    stats.trace_share,
+                    "slice contributes to its service total",
+                )
+            return None
 
     if pair := evidence.shared.get(incoming_key, existing_key):
         if (
@@ -290,11 +296,7 @@ def is_downstream_support(
 ) -> bool:
     event = source.event
     tolerance = evidence.cfg.tolerance
-    if (
-        abs(latent.start - onset(event)) > tolerance
-        or latent.start > event.start + tolerance
-        or call_graph.is_project_level(latent.key)
-    ):
+    if abs(latent.start - onset(event)) > tolerance or call_graph.is_project_level(latent.key):
         return False
     footprint = evidence._footprint(source, t)
     stats = footprint.touches(latent.key, evidence.cfg.min_share) if footprint else None

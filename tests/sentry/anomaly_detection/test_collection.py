@@ -9,8 +9,7 @@ from sentry_protos.snuba.v1.endpoint_time_series_pb2 import (
     TimeSeriesRequest,
     TimeSeriesResponse,
 )
-from sentry_protos.snuba.v1.request_common_pb2 import PageToken
-from snuba_sdk import Column, Function, Op
+from snuba_sdk import Column, Condition, Function, Op
 
 from sentry.anomaly_detection.contracts import (
     ChangeEvent,
@@ -31,11 +30,14 @@ from sentry.anomaly_detection.inputs import measurements, new_failures, trace_lo
 from sentry.anomaly_detection.inputs.measurements import (
     ERROR_RELEASE,
     ERROR_USER,
+    MAX_ENVIRONMENTS,
+    MAX_SLICES,
     IncompleteCollection,
     collect,
 )
-from sentry.grouping.grouptype import ErrorGroupType
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.referrer import Referrer
+from sentry.snuba.rpc_dataset_common import LimitBy as SpanLimitBy
 from sentry.snuba.spans_rpc import Spans
 from sentry.testutils.cases import TestCase
 from sentry.utils import snuba_rpc
@@ -92,6 +94,7 @@ class TestCollection(TestCase):
         }
         assert raw.call_count == 5
         for index, call in enumerate(raw.call_args_list):
+            assert call.kwargs["referrer"] == Referrer.ANOMALY_DETECTION_COLLECT
             (request,) = call.args
             request.serialize()
             assert request.dataset == Dataset.Events.value
@@ -172,7 +175,7 @@ class TestCollection(TestCase):
         with (
             mock.patch.object(measurements, "raw_snql_query", return_value={"data": []}),
             mock.patch.object(Spans, "filter_project", return_value=True),
-            mock.patch.object(Spans, "run_table_query", side_effect=discover),
+            mock.patch.object(Spans, "run_table_query", side_effect=discover) as table,
             mock.patch.object(snuba_rpc, "timeseries_rpc", side_effect=timeseries) as rpc,
         ):
             rows = collect(self.organization, [self.project], START, START + 3 * MINUTE, "1m")
@@ -181,6 +184,30 @@ class TestCollection(TestCase):
             "span.category:db",
             "span.op:http.client",
         }
+        assert table.call_count == 6
+        # Environment discovery for outbound slices only counts spans that name the slice.
+        named = {measurements.REQUEST_QUERY: ""} | {
+            signal.query: signal.dimension
+            for signal in measurements.SPAN_SLICES
+            if signal.query != measurements.REQUEST_QUERY
+        }
+        for call in table.call_args_list:
+            kwargs = call.kwargs
+            assert kwargs["referrer"] == Referrer.ANOMALY_DETECTION_COLLECT
+            assert kwargs.get("sampling_mode") is None
+            config = kwargs["config"]
+            assert isinstance(config, measurements.ScopedSpans)
+            if len(kwargs["selected_columns"]) == 2:
+                assert kwargs["limit"] == MAX_ENVIRONMENTS
+                assert kwargs["limit_by"] is None
+                assert config.filters == ()
+                assert config.named_dimension == named[kwargs["query_string"]]
+            else:
+                dimension = kwargs["selected_columns"][1]
+                assert kwargs["limit"] == MAX_SLICES + 1
+                assert kwargs["limit_by"] == SpanLimitBy(columns=["environment"], limit=MAX_SLICES)
+                assert config.filters == (("environment", (env,)),)
+                assert config.named_dimension == dimension
         for call in rpc.call_args_list:
             (request,) = call.args[0]
             assert request.meta.organization_id == self.organization.id
@@ -228,7 +255,7 @@ class TestCollection(TestCase):
             value is None for ts, _, _, _, _, dim, value in rows if ts == START + MINUTE and dim
         )
 
-    def test_propagates_failure_and_rejects_unexpected_pagination(self) -> None:
+    def test_propagates_failure_and_rejects_overflowing_slice_partitions(self) -> None:
         with (
             mock.patch.object(
                 measurements,
@@ -245,23 +272,23 @@ class TestCollection(TestCase):
             with pytest.raises(SnubaError, match="query failure"):
                 collect(self.organization, [self.project], START, START + MINUTE, "1m")
 
+        # LIMIT BY caps null and empty environments as separate partitions, but
+        # both are the "" scope, so together they can exceed its slice bound.
+        slices = [
+            *({"environment": None, "transaction": f"/null-{i}"} for i in range(MAX_SLICES)),
+            {"environment": "", "transaction": "/empty"},
+        ]
         with (
             mock.patch.object(measurements, "raw_snql_query", return_value={"data": []}),
             mock.patch.object(Spans, "filter_project", return_value=True),
             mock.patch.object(
                 Spans,
                 "run_table_query",
-                side_effect=[
-                    {"data": [{"environment": "prod"}]},
-                    {
-                        "data": [{"environment": "prod", "transaction": "/foo"}],
-                        "page_token": PageToken(end_pagination=False),
-                    },
-                ],
+                side_effect=[{"data": [{"environment": None}]}, {"data": slices}],
             ),
             mock.patch.object(snuba_rpc, "timeseries_rpc", return_value=[TimeSeriesResponse()]),
         ):
-            with pytest.raises(IncompleteCollection):
+            with pytest.raises(IncompleteCollection, match="partition limit"):
                 collect(self.organization, [self.project], START, START + MINUTE, "1m")
 
     def test_hourly_request_and_reject_foreign_project(self) -> None:
@@ -301,142 +328,6 @@ class TestCollection(TestCase):
 
 
 class TestEnrichment(TestCase):
-    def test_new_failure_merges_title_and_crosses_on_distinct_users(self) -> None:
-        first_seen = (START - MINUTE).replace(tzinfo=timezone.utc)
-        first = self.create_group(
-            project=self.project,
-            first_seen=first_seen,
-            data={"title": "issues:999", "type": "error"},
-        )
-        second = self.create_group(
-            project=self.project,
-            first_seen=first_seen,
-            data={"title": "issues:999", "type": "error"},
-        )
-        other = self.create_group(
-            project=self.project,
-            first_seen=first_seen,
-            type=ErrorGroupType.type_id + 1,
-            create_open_period=False,
-        )
-        project = self.project.id
-        thresholds = {Service(project, "prod"): 2.0}
-        with mock.patch.object(
-            new_failures,
-            "_run_errors",
-            side_effect=[
-                [
-                    {"group_id": first.id, "users": 1, "count()": 2},
-                    {"group_id": second.id, "users": 1, "count()": 1},
-                ],
-                [
-                    {"first_seen": START - MINUTE, ERROR_USER: "id:a"},
-                    {"first_seen": START + MINUTE, ERROR_USER: "id:b"},
-                ],
-            ],
-        ) as query:
-            (change,) = new_failures.collect_new_failure_modes(
-                self.organization,
-                [self.project],
-                thresholds,
-                START,
-                START + 2 * MINUTE,
-                current_rows=[
-                    SeriesRow(START + MINUTE, Signal.ERRORS, Metric.COUNT, project, "prod", "", 1.0)
-                ],
-            )
-        assert change.key == SeriesKey(
-            project, "prod", Signal.NEW_ISSUE, Metric.COUNT_UNIQUE_USER, str(first.id)
-        )
-        assert change.change_type == ChangeType.NEW_FAILURE_MODE
-        assert change.detected_at == START + 2 * MINUTE
-        assert change.evidence == ["issues:999"]
-        assert change.issue_ids == (first.id, second.id)
-        for call in query.call_args_list:
-            (_, snql, _) = call.args
-            group_filter = next(
-                condition for condition in snql.where if condition.lhs == Column("group_id")
-            )
-            assert set(group_filter.rhs) == {first.id, second.id}
-            assert other.id not in group_filter.rhs
-
-    def test_new_failure_reports_weak_then_strong(self) -> None:
-        group = self.create_group(
-            project=self.project,
-            first_seen=START.replace(tzinfo=timezone.utc),
-        )
-        project = self.project.id
-        thresholds = {Service(project, "prod"): 11.5}
-        with (
-            mock.patch.object(new_failures, "_ISSUE_USER_PAGE_SIZE", 10),
-            mock.patch.object(
-                new_failures,
-                "_run_errors",
-                side_effect=[
-                    [{"group_id": group.id, "users": 12, "count()": 13}],
-                    [{"first_seen": START}] * 10,
-                    [{"first_seen": START + MINUTE}] * 2,
-                ],
-            ) as query,
-        ):
-            weak, strong = new_failures.collect_new_failure_modes(
-                self.organization,
-                [self.project],
-                thresholds,
-                START,
-                START + 2 * MINUTE,
-                current_rows=[
-                    SeriesRow(START, Signal.ERRORS, Metric.COUNT, project, "prod", "", 10.0)
-                ],
-            )
-        (_, first_page, _), (_, second_page, _) = [call.args for call in query.call_args_list[1:]]
-        assert first_page.limit.limit == 10
-        assert first_page.offset is None
-        assert second_page.limit.limit == 2
-        assert second_page.offset.offset == 10
-        assert first_page.groupby == [Column(ERROR_USER)]
-        assert any(
-            condition.lhs == Column(ERROR_USER) and condition.op == Op.NEQ and condition.rhs == ""
-            for condition in first_page.where
-        )
-        assert weak.key == strong.key
-        assert (weak.detected_at, weak.actual, weak.confidence) == (START + MINUTE, 10.0, 0.5)
-        assert (strong.detected_at, strong.actual, strong.confidence) == (
-            START + 2 * MINUTE,
-            12.0,
-            0.9,
-        )
-
-    def test_new_environment_uses_minimum_threshold(self) -> None:
-        group = self.create_group(
-            project=self.project, first_seen=START.replace(tzinfo=timezone.utc)
-        )
-        project = self.project.id
-        with mock.patch.object(
-            new_failures,
-            "_run_errors",
-            side_effect=[
-                [{"group_id": group.id, "users": 10, "count()": 10}],
-                [{"first_seen": START}] * 10,
-            ],
-        ) as query:
-            (change,) = new_failures.collect_new_failure_modes(
-                self.organization,
-                [self.project],
-                {Service(project, "historical"): 40.0},
-                START,
-                START + MINUTE,
-                current_rows=[
-                    SeriesRow(START, Signal.ERRORS, Metric.COUNT, project, "new", "", 10.0),
-                    SeriesRow(START, Signal.ERRORS, Metric.COUNT, project, "historical", "", 0.0),
-                    SeriesRow(
-                        START + MINUTE, Signal.ERRORS, Metric.COUNT, project, "future", "", 20.0
-                    ),
-                ],
-            )
-        assert (change.key.env, change.expected, change.confidence) == ("new", 10, 0.9)
-        assert query.call_count == 2
-
     def test_trace_footprint_joins_parent_only_in_same_trace(self) -> None:
         project = self.project.id
         key = SeriesKey(project, "prod", Signal.ENDPOINTS, Metric.P95_DURATION, "GET /x")
@@ -555,6 +446,9 @@ class TestEnrichment(TestCase):
             lookup = trace_lookup.TraceLookup(self.organization, [self.project])
             assert lookup.footprint(change, START + MINUTE) is None
         errors.assert_called_once()
+        _, snql, referrer = errors.call_args.args
+        assert Condition(Column("contexts[trace.trace_id]"), Op.IS_NOT_NULL) in snql.where
+        assert referrer == Referrer.ANOMALY_DETECTION_ENRICH
         spans.assert_not_called()
 
     def test_exhausted_footprint_budget_does_not_cache_misses(self) -> None:

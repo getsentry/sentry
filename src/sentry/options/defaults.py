@@ -3252,6 +3252,13 @@ register(
     default=15,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Checkpoints further behind than this restart cold instead of replaying the gap.
+register(
+    "anomaly_detection.max_resume_lag_minutes",
+    type=Int,
+    default=60,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "statistical_detectors.query.batch_size",
     type=Int,

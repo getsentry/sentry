@@ -1,9 +1,10 @@
+import json  # noqa: S003 -- sentry.utils.json can't reject NaN/Infinity like Postgres jsonb
 from base64 import b64decode
 from collections import Counter, deque
 from collections.abc import Sequence
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
-from math import copysign
+from math import copysign, inf
 from random import Random
 from typing import Any
 from unittest.mock import patch
@@ -13,7 +14,12 @@ import pytest
 
 from sentry import options
 from sentry.anomaly_detection import schedule
-from sentry.anomaly_detection.checkpoint.codec import CHECKPOINT_VERSION, _restore, _snapshot
+from sentry.anomaly_detection.checkpoint.codec import (
+    CHECKPOINT_VERSION,
+    _restore,
+    _snapshot,
+    is_current,
+)
 from sentry.anomaly_detection.checkpoint.replay import advance_org
 from sentry.anomaly_detection.checkpoint.retention import _evict_stale_series, _history_floor
 from sentry.anomaly_detection.contracts import (
@@ -39,7 +45,6 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import cell_silo_test
-from sentry.utils import json
 from sentry.workflow_engine.types import DetectorType
 
 START = datetime(2024, 1, 8, 12)
@@ -70,7 +75,8 @@ def _at(minute: int) -> datetime:
 
 
 def _round_trip(checkpoint: dict[str, Any]) -> dict[str, Any]:
-    return json.loads(json.dumps(checkpoint, sort_keys=True))
+    # Postgres jsonb rejects non-finite numbers; never write them as null.
+    return json.loads(json.dumps(checkpoint, sort_keys=True, allow_nan=False))
 
 
 def _endpoint_rows(
@@ -394,7 +400,7 @@ def test_dense_collector_checkpoint_round_trips_at_full_history_depth() -> None:
         dense and len(b64decode(payload)) <= len(minutes) * 8
         for _, (_, dense, _, payload) in checkpoint["series"]
     )
-    restored = _restore(Footprints(), orjson.loads(orjson.dumps(checkpoint)), projects=(PROJECT,))
+    restored = _restore(Footprints(), _round_trip(checkpoint), projects=(PROJECT,))
     assert restored.series == series
     assert restored.series_history.state == evaluator.series_history.state
 
@@ -807,8 +813,47 @@ def test_project_scope_change_retires_mixed_group_without_rebinding(
     assert len(checkpoint["events"]) == 1
 
 
-@pytest.mark.parametrize("checkpoint", ({}, {"version": CHECKPOINT_VERSION - 1}, {"version": True}))
-def test_unsupported_checkpoint_version_fails_without_advancing(checkpoint: dict[str, Any]) -> None:
+def _checkpoint_with_pending_issue(novelty: dict[str, Any] | None = None) -> dict[str, Any]:
+    evaluator = OrgEvaluator(Footprints(), projects=(PROJECT,))
+    evaluator.series[SeriesKey(PROJECT, ENV, Signal.ENDPOINTS, Metric.P95_DURATION, ENDPOINT)] = {
+        _at(-1): 100.0
+    }
+    evaluator.series_history.refresh()
+    evaluator.pending_issues.append(
+        ChangeEvent(
+            SeriesKey(PROJECT, ENV, Signal.NEW_ISSUE, Metric.COUNT_UNIQUE_USER, "123"),
+            ChangeType.NEW_FAILURE_MODE,
+            _at(-1),
+            10.0,
+            10.0,
+            0.9,
+            novelty=novelty,
+        )
+    )
+    evaluator.next_minute = START
+    return _round_trip(_snapshot(evaluator, START))
+
+
+@pytest.mark.parametrize(
+    "version",
+    (
+        None,
+        CHECKPOINT_VERSION - 1,
+        CHECKPOINT_VERSION + 1,
+        float(CHECKPOINT_VERSION),
+        str(CHECKPOINT_VERSION),
+        True,
+    ),
+)
+def test_unsupported_checkpoint_version_fails_without_advancing(version: object) -> None:
+    current = _checkpoint_with_pending_issue()
+    assert is_current(current)
+    _restore(Footprints(), current, projects=(PROJECT,))
+
+    checkpoint = {key: value for key, value in current.items() if key != "version"}
+    if version is not None:
+        checkpoint["version"] = version
+    assert not is_current(checkpoint)
     with pytest.raises(ValueError, match="Unsupported anomaly checkpoint version"):
         advance_org(
             rows=(),
@@ -819,6 +864,70 @@ def test_unsupported_checkpoint_version_fails_without_advancing(checkpoint: dict
             projects=(PROJECT,),
             checkpoint=checkpoint,
         )
+
+
+def test_non_finite_novelty_survives_strict_json_round_trip() -> None:
+    novelty = {"return_days": inf, "size": -inf, "history_days": 14}
+    checkpoint = _checkpoint_with_pending_issue(novelty)
+    (record,) = checkpoint["events"]
+    assert record["novelty"]["return_days"] == "inf"
+    assert record["novelty"]["size"] == "-inf"
+    (restored,) = _restore(Footprints(), checkpoint, projects=(PROJECT,)).pending_issues
+    assert restored.novelty == novelty
+
+
+@pytest.mark.parametrize("index", (1, 999, -1, False, "0", 0.0))
+def test_corrupt_event_reference_fails_restore(index: object) -> None:
+    checkpoint = _checkpoint_with_pending_issue()
+    assert len(checkpoint["events"]) == 1
+    checkpoint["pending_issues"] = [index]
+    with pytest.raises(ValueError, match="Invalid anomaly checkpoint event reference"):
+        _restore(Footprints(), checkpoint, projects=(PROJECT,))
+
+
+def test_watched_series_without_detector_rule_fails_restore() -> None:
+    checkpoint = _checkpoint_with_pending_issue()
+    assert checkpoint["detector"]["watched"]
+    # Sampled span counts are companion series; no detector rule watches them.
+    checkpoint["detector"]["watched"].append(
+        [PROJECT, ENV, Signal.ENDPOINTS, Metric.COUNT_SAMPLE, ENDPOINT]
+    )
+    with pytest.raises(ValueError, match="Invalid anomaly checkpoint detector rule"):
+        _restore(Footprints(), checkpoint, projects=(PROJECT,))
+
+
+def test_empty_advance_with_narrower_scope_keeps_other_projects_hourly_support() -> None:
+    keys = [
+        SeriesKey(project, ENV, Signal.ENDPOINTS, Metric.P95_DURATION, ENDPOINT)
+        for project in (PROJECT, 43)
+    ]
+    hours = [START - timedelta(days=day) for day in range(1, 8)]
+    evaluator = OrgEvaluator(Footprints(), projects=(PROJECT, 43))
+    for key in keys:
+        evaluator.series[key] = {_at(-1): 400.0}
+        evaluator.hourly[key] = dict.fromkeys(hours, 100.0)
+    evaluator.series_history.refresh()
+    for key in keys:
+        state = evaluator.series_history.state[key]
+        state.open = ChangeEvent(key, ChangeType.SLOWDOWN, _at(-1), 400.0, 100.0, 0.9)
+        state.anchor_level = 100.0
+    evaluator.next_minute = START
+
+    # An empty range snapshots without reconciling scope; it must not silently
+    # drop the seasonal support of open anchored episodes it still retains.
+    decisions, checkpoint = advance_org(
+        rows=(),
+        hourly_rows=(),
+        start=START,
+        end=START,
+        footprints=Footprints(),
+        projects=(PROJECT,),
+        checkpoint=_round_trip(_snapshot(evaluator, START)),
+    )
+    assert not decisions
+    restored = _restore(Footprints(), _round_trip(checkpoint), projects=(PROJECT, 43))
+    assert set(restored.series_history.state) == set(keys)
+    assert restored.hourly == {key: dict.fromkeys(hours, 100.0) for key in keys}
 
 
 @cell_silo_test

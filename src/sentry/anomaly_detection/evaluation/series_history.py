@@ -345,6 +345,8 @@ class SeriesHistory:
                 distinct_rate_samples=parts is not None and parts[1] != parts[2],
                 cfg=cfg,
                 shape=self.baseline.shape(key, minute),
+                episode_open=state.open is not None,
+                closed_at=state.closed_at,
             )
             if not flagged:
                 if state.open is None or state.window:
@@ -464,6 +466,9 @@ class SeriesHistory:
             anchor, anchor_expectation = minute, expectation
         state.anchor = anchor
         state.anchor_level = anchor_expectation.expected / self.baseline.shape(key, anchor)
+        if hit is not None and hit.level is not None:
+            # Hold the episode to the level its counts opened against; a sparse median is zero.
+            state.anchor_level = max(state.anchor_level, hit.level)
         state.anchor_sigma = anchor_expectation.sigma
         state.anchor_points = anchor_expectation.point_count
         state.excluded.update(reading.minute for reading in flagged_readings)

@@ -139,16 +139,15 @@ class Baseline:
             return None
         ratios = [value / shape for _, shape, value in points]
         level = median(ratios)
+        band_points, pooled = points, False
         if level == 0 and any(ratios) and weight_key(key) is not None:
             # A mostly-zero rate's median misses intermittent failures. Pool its events and
             # denominators instead, ignoring recently flagged minutes while a change is pending.
-            unflagged = [
-                (minute, ratio)
-                for (minute, _, _), ratio in zip(points, ratios)
-                if minute not in (pending or ())
-            ]
+            unflagged = [point for point in points if point[0] not in (pending or ())]
             if unflagged:
-                level = _pooled(unflagged, weights)
+                unflagged_ratios = [(minute, value / shape) for minute, shape, value in unflagged]
+                level = _pooled(unflagged_ratios, weights)
+                band_points, pooled = unflagged, True
 
         expected = self.shape(key, t) * level
         offset = offset_for(key)
@@ -158,7 +157,7 @@ class Baseline:
             expected,
             tuple(recent[-10:]),
             len(points),
-            partial(_estimate_band, self.cfg, points, level, expected, offset),
+            partial(_estimate_band, self.cfg, band_points, level, expected, offset, pooled),
         )
 
     def anchored(
@@ -190,12 +189,20 @@ def _estimate_band(
     level: float,
     expected: float,
     offset: float,
+    pooled: bool,
 ) -> tuple[float, float, float]:
     residuals = [
         math.log((value + offset) / (shape * level + offset)) for _, shape, value in points
     ]
-    center = median(residuals)
-    sigma = max(1.4826 * median(abs(r - center) for r in residuals), cfg.sigma_floor)
+    if pooled:
+        # Most minutes are zero, so a MAD around the median collapses and every routine burst
+        # looks extreme. Only upward rules pool, so measure how far minutes rise above the
+        # pooled level (the upside semideviation).
+        sigma = math.sqrt(sum(max(r, 0.0) ** 2 for r in residuals) / len(residuals))
+    else:
+        center = median(residuals)
+        sigma = 1.4826 * median(abs(r - center) for r in residuals)
+    sigma = max(sigma, cfg.sigma_floor)
     # Warmup widens the band instead of making short histories look more certain.
     sigma *= math.sqrt(max(cfg.full_points, len(points)) / len(points))
     return _band(expected, offset, sigma, cfg.k)

@@ -230,21 +230,29 @@ def test_new_failure_thresholds_match_live_and_catchup_across_hour_close(
     ]
 
     offsets: list[int] = []
+    run_start = [START]
 
     def error_rows(_organization: Organization, query: Query, _referrer: str) -> list[SnubaRow]:
         bounds = {
-            condition.op: condition.rhs.replace(tzinfo=None)
+            (condition.lhs.name, condition.op): condition.rhs.replace(tzinfo=None)
             for condition in query.where or ()
             if isinstance(condition, Condition)
-            and condition.lhs == Column("timestamp")
+            and isinstance(condition.lhs, Column)
             and isinstance(condition.rhs, datetime)
         }
-        times = [ts for ts in first_users if bounds[Op.GTE] <= ts < bounds[Op.LT]]
-        if query.groupby == [Column("group_id")]:
+        # Each user's first event is received at its own timestamp.
+        times = [
+            ts
+            for ts in first_users
+            if bounds["timestamp", Op.GTE] <= ts < bounds["received", Op.LT]
+            and ts < bounds["timestamp", Op.LT]
+        ]
+        if query.groupby != [Column(ERROR_USER)]:
             if not times:
                 return []
-            return [{"group_id": group.id, "users": len(times), "count()": len(times)}]
-        assert query.groupby == [Column(ERROR_USER)]
+            prior = sum(ts < run_start[0] for ts in times)
+            row = {"group_id": group.id, "users": len(times), "count()": len(times)}
+            return [{**row, "env": ENV, "prior_users": prior}]
         assert query.limit is not None
         offset = query.offset.offset if query.offset else 0
         offsets.append(offset)
@@ -256,6 +264,7 @@ def test_new_failure_thresholds_match_live_and_catchup_across_hour_close(
         checkpoint = None
         for left, right in zip(boundaries[:-1], boundaries[1:], strict=True):
             start, end = _at(left), _at(right)
+            run_start[0] = start
             # Match scheduler refresh: at :00 it gains the newly closed bucket
             # and drops the oldest bucket of its 16-day history.
             hour = end.replace(minute=0)
@@ -284,7 +293,7 @@ def test_new_failure_thresholds_match_live_and_catchup_across_hour_close(
         return issues, decisions
 
     with (
-        patch.object(new_failures, "_recent_error_groups", lambda *_: {group.id: group}),
+        patch.object(new_failures, "_recent_error_groups", lambda *_: [group]),
         patch.object(new_failures, "_ISSUE_USER_PAGE_SIZE", 500),
         patch.object(new_failures, "_run_errors", error_rows),
     ):

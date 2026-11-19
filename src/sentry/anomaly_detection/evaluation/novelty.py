@@ -96,6 +96,10 @@ class _Ex:
     def size(self) -> float:
         return size_of(self.event.peak_ratio)
 
+    @property
+    def ended_at(self) -> datetime | None:
+        return self.event.ended_at
+
 
 class Novelty:
     def __init__(self, cfg: NoveltyConfig | None = None) -> None:

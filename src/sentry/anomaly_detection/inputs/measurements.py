@@ -40,6 +40,7 @@ from sentry.search.eap.rpc_utils import and_trace_item_filters, or_trace_item_fi
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams, SnubaRow
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.referrer import Referrer
 from sentry.snuba.rpc_dataset_common import LimitBy as SpanLimitBy
 from sentry.snuba.spans_rpc import Spans
 from sentry.utils import snuba_rpc
@@ -56,7 +57,7 @@ MAX_ENVIRONMENTS = 8
 MAX_SLICES = 10
 _BUCKETS_PER_QUERY = 96
 _ENVIRONMENT_LOOKBACK = timedelta(days=1)
-_REFERRER = "anomaly-detection.collect"
+_REFERRER = Referrer.ANOMALY_DETECTION_COLLECT.value
 _ROLLUPS: dict[Interval, int] = {"1m": 60, "1h": 3600}
 
 ERROR_USER = "tags[sentry:user]"
@@ -431,8 +432,9 @@ def _span_groups(
     groups: list[tuple[str, ...]] = list(
         dict.fromkeys(tuple(row.get(field) or "" for field in fields) for row in data)
     )
-    token = response.get("page_token")
-    if len(data) > limit or (partitioned and token is not None and not token.end_pagination):
+    # LIMIT BY partitions null and empty environments separately, but both
+    # collapse to the "" scope, so the extra row detects an overflowing bound.
+    if len(data) > limit:
         raise IncompleteCollection("Spans group discovery exceeded its partition limit")
     if envs is not None and any(group[0] not in envs or not group[1] for group in groups):
         raise IncompleteCollection("Unexpected Spans slice group")

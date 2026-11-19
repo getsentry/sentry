@@ -1,10 +1,18 @@
-from datetime import timedelta
+from collections.abc import Mapping
+from datetime import datetime, timedelta
 from unittest import mock
 from uuid import uuid4
 
 from snuba_sdk import Column, Entity, Limit, Query
 
-from sentry.anomaly_detection.contracts import Metric, SeriesKey, SeriesRow, Signal
+from sentry.anomaly_detection.contracts import (
+    ChangeEvent,
+    Metric,
+    SeriesKey,
+    SeriesRow,
+    Service,
+    Signal,
+)
 from sentry.anomaly_detection.evaluation.series import build
 from sentry.anomaly_detection.inputs import new_failures
 from sentry.anomaly_detection.inputs.measurements import (
@@ -14,6 +22,11 @@ from sentry.anomaly_detection.inputs.measurements import (
     _run_errors,
     collect,
 )
+from sentry.anomaly_detection.inputs.new_failures import (
+    NewFailureThresholds,
+    new_failure_thresholds,
+)
+from sentry.models.group import Group
 from sentry.testutils.cases import SnubaTestCase, SpanTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 
@@ -291,40 +304,177 @@ class TestAnomalyDetectionCollection(TestCase, SnubaTestCase, SpanTestCase):
 
 
 class TestAnomalyDetectionIssueEnrichment(TestCase, SnubaTestCase):
-    def test_crosses_after_repeated_errors_and_ignores_anonymous_events(self) -> None:
+    def _group(self, first_seen: datetime, message: str = "Checkout failed") -> Group:
+        return self.create_group(project=self.project, first_seen=first_seen, message=message)
+
+    def _error(
+        self,
+        group: Group,
+        user: str | None,
+        timestamp: datetime,
+        received: datetime | None = None,
+    ) -> None:
+        # Insert directly: ingestion would stamp the wall clock as receive time.
+        tags = [["environment", "prod"]]
+        if user is not None:
+            tags.append(["sentry:user", user])
+        received = received or timestamp + timedelta(seconds=5)
+        self.snuba_insert(
+            (
+                2,
+                "insert",
+                {
+                    "event_id": uuid4().hex,
+                    "primary_hash": uuid4().hex,
+                    "group_id": group.id,
+                    "project_id": self.project.id,
+                    "message": group.message,
+                    "platform": "python",
+                    "datetime": timestamp.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
+                    "data": {"received": received.timestamp(), "tags": tags},
+                },
+                {},
+            )
+        )
+
+    def _collect(
+        self,
+        thresholds: NewFailureThresholds | Mapping[Service, float],
+        start: datetime,
+        end: datetime,
+    ) -> list[ChangeEvent]:
+        return new_failures.collect_new_failure_modes(
+            self.organization,
+            [self.project],
+            thresholds,
+            start,
+            end,
+            current_rows=[
+                SeriesRow(
+                    start.replace(tzinfo=None),
+                    Signal.ERRORS,
+                    Metric.COUNT,
+                    self.project.id,
+                    "prod",
+                    "",
+                    1.0,
+                )
+            ],
+        )
+
+    def test_crosses_once_across_adjacent_runs_and_ignores_anonymous_events(self) -> None:
         start = before_now(minutes=20).replace(second=0, microsecond=0)
         late = start + timedelta(minutes=2)
         end = late + timedelta(minutes=1)
+        group = self._group(start)
         for user, when in (
             *(("repeat", start) for _ in range(12)),
             *((f"user-{i}", start) for i in range(1, 9)),
             (None, start),
             ("user-9", late),
+            ("user-10", end),
         ):
-            self.store_event(
-                data={
-                    "message": "Checkout failed",
-                    "environment": "new-env",
-                    "timestamp": when.isoformat(),
-                    "user": {"id": user} if user is not None else {},
-                },
-                project_id=self.project.id,
-            )
+            self._error(group, user, when)
+        thresholds = {Service(self.project.id, "prod"): 11.0}
 
         # Force a small SnQL page to exercise aggregate ordering and pagination.
         with mock.patch.object(new_failures, "_ISSUE_USER_PAGE_SIZE", 4):
-            (change,) = new_failures.collect_new_failure_modes(
-                self.organization,
-                [self.project],
-                {},
-                start,
-                end,
-                current_rows=[
-                    SeriesRow(
-                        late, Signal.ERRORS, Metric.COUNT, self.project.id, "new-env", "", 1.0
-                    ),
-                ],
-            )
+            (weak,) = self._collect(thresholds, start, end)
+            # The next run replays the weak milestone at its start and excludes it.
+            (strong,) = self._collect(thresholds, end, end + timedelta(minutes=1))
 
-        assert change.detected_at == end.replace(tzinfo=None)
+        assert (weak.detected_at, weak.actual, weak.confidence) == (
+            end.replace(tzinfo=None),
+            10,
+            0.5,
+        )
+        assert (strong.detected_at, strong.actual, strong.confidence) == (
+            (end + timedelta(minutes=1)).replace(tzinfo=None),
+            11,
+            0.9,
+        )
+        assert weak.key == strong.key
+        assert weak.start == strong.start == start.replace(tzinfo=None)
+
+    def test_hourly_thresholds_scale_with_service_audience(self) -> None:
+        start = before_now(minutes=20).replace(second=0, microsecond=0)
+        hour = start.replace(minute=0, tzinfo=None)
+        thresholds = new_failure_thresholds(
+            [
+                SeriesRow(
+                    hour - timedelta(hours=offset),
+                    Signal.ERRORS,
+                    Metric.COUNT_UNIQUE_USER,
+                    self.project.id,
+                    "prod",
+                    "",
+                    users,
+                )
+                for offset, users in ((1, 240.0), (2, 200.0), (3, 300.0))
+            ]
+        )
+        group = self._group(start)
+        for i in range(10):
+            self._error(group, f"user-{i}", start)
+        for i in range(10, 12):
+            self._error(group, f"user-{i}", start + timedelta(minutes=1))
+
+        weak, strong = self._collect(thresholds, start, start + timedelta(minutes=2))
+
+        # 5% of the median hourly audience, 240 users, sets the bar at 12.
+        assert (weak.detected_at, weak.actual, weak.expected) == (
+            (start + timedelta(minutes=1)).replace(tzinfo=None),
+            10,
+            12.0,
+        )
+        assert (strong.detected_at, strong.actual, strong.expected) == (
+            (start + timedelta(minutes=2)).replace(tzinfo=None),
+            12,
+            12.0,
+        )
+
+    def test_merges_groups_with_one_title_and_counts_shared_users_once(self) -> None:
+        start = before_now(minutes=20).replace(second=0, microsecond=0)
+        first = self._group(start)
+        second = self._group(start + timedelta(minutes=1))
+        self._group(start, message="Unrelated failure")
+        for i in range(6):
+            self._error(first, f"user-{i}", start)
+        for i in range(6, 10):
+            self._error(second, f"user-{i}", start + timedelta(minutes=1))
+        # A user already counted through the first group is not a new user.
+        self._error(second, "user-0", start + timedelta(minutes=2))
+
+        (change,) = self._collect(
+            {Service(self.project.id, "prod"): 11.0}, start, start + timedelta(minutes=3)
+        )
+
+        assert change.key.dim_value == str(first.id)
+        assert change.issue_ids == (first.id, second.id)
+        assert change.evidence == ["Checkout failed"]
+        assert (change.detected_at, change.actual, change.confidence) == (
+            (start + timedelta(minutes=2)).replace(tzinfo=None),
+            10,
+            0.5,
+        )
+
+    def test_late_event_is_observed_when_received(self) -> None:
+        start = before_now(minutes=20).replace(second=0, microsecond=0)
+        group = self._group(start - timedelta(minutes=10))
+        for i in range(9):
+            self._error(group, f"user-{i}", start - timedelta(minutes=10))
+        # Buffered on the client: it happened early but reached Sentry after start.
+        self._error(
+            group,
+            "user-late",
+            start - timedelta(minutes=9),
+            received=start + timedelta(seconds=20),
+        )
+
+        # The run that closed before the event arrived could not have seen it.
+        assert self._collect({}, start - timedelta(minutes=1), start) == []
+        (change,) = self._collect({}, start, start + timedelta(minutes=1))
+
+        assert change.detected_at == (start + timedelta(minutes=1)).replace(tzinfo=None)
         assert change.actual == change.expected == 10
+        assert change.start == (start - timedelta(minutes=10)).replace(tzinfo=None)

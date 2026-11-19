@@ -1,7 +1,9 @@
 from dataclasses import replace
 from datetime import datetime, timedelta
+from unittest.mock import patch
 
-from sentry.anomaly_detection.checkpoint.codec import _restore, _snapshot
+from sentry.anomaly_detection.checkpoint.codec import _snapshot
+from sentry.anomaly_detection.checkpoint.replay import advance_org
 from sentry.anomaly_detection.contracts import (
     AnomalyGroup,
     AnomalyGroupKey,
@@ -106,7 +108,8 @@ def test_absent_sample_source_does_not_resolve_an_open_change() -> None:
 
 def test_unusual_but_short_single_slowdown_does_not_qualify() -> None:
     start = T0 + 120 * MINUTE
-    end = T0 + 140 * MINUTE
+    # Past the 30 minutes a lone latency group needs before it can qualify on duration.
+    end = T0 + 160 * MINUTE
     evaluator = OrgEvaluator(NoFootprints(), projects=(PROJECT,))
     assert not evaluator.advance(
         rows=latency_rows(spike_end=132), hourly_rows=[], start=start, end=end
@@ -114,6 +117,14 @@ def test_unusual_but_short_single_slowdown_does_not_qualify() -> None:
     (group,) = evaluator.corr.groups
     assert group.group.urgency == Urgency.LOW
     assert group.closed_at is None
+
+    # The same slowdown, lasting through the window, does publish.
+    lasting = OrgEvaluator(NoFootprints(), projects=(PROJECT,))
+    (opened,) = lasting.advance(
+        rows=latency_rows(spike_end=200), hourly_rows=[], start=start, end=end
+    )
+    assert not opened.is_resolved
+    assert opened.timestamp >= start + 30 * MINUTE
 
 
 def _routine_slowdown_rows(*, flare_minutes: int = 5) -> list[SeriesRow]:
@@ -180,15 +191,18 @@ def test_duration_promotion_waits_for_supported_anomaly_after_gap() -> None:
     assert opened.timestamp == supported_return and not opened.is_resolved
     assert latent.novelty and latent.novelty["opened_on_duration"] is True
 
-    # A restarted poll catches up through the gap and healthy return before
-    # processing the first supported anomalous tick in its publication window.
-    restarted = _restore(NoFootprints(), checkpoint, projects=(PROJECT,))
-    assert (
-        restarted.advance(
-            rows=rows, hourly_rows=[], start=supported_return, end=supported_return + MINUTE
-        )
-        == expected
+    # A restarted poll catches up through the gap and healthy return, publishing
+    # exactly what the uninterrupted evaluator published from the checkpoint on.
+    restarted, _ = advance_org(
+        rows=rows,
+        hourly_rows=[],
+        start=first_look,
+        end=supported_return + MINUTE,
+        footprints=NoFootprints(),
+        projects=(PROJECT,),
+        checkpoint=checkpoint,
     )
+    assert list(restarted) == [opened]
 
 
 def test_duration_judgment_does_not_see_backdated_peer_opened_on_same_tick() -> None:
@@ -336,6 +350,19 @@ def test_cold_start_does_not_publish_a_group_that_closes_on_the_boundary() -> No
     )
     closes_at = T0 + timedelta(minutes=45)
 
+    # Active just before the boundary, so a cold start there publishes it.
+    (active,) = evaluate_org(
+        rows=[],
+        hourly_rows=[],
+        start=closes_at - MINUTE,
+        end=closes_at,
+        footprints=NoFootprints(),
+        projects=(PROJECT,),
+        new_issues=[failure],
+    )
+    assert active.timestamp == closes_at - MINUTE
+    assert not active.is_resolved
+
     assert not evaluate_org(
         rows=[],
         hourly_rows=[],
@@ -343,7 +370,7 @@ def test_cold_start_does_not_publish_a_group_that_closes_on_the_boundary() -> No
         end=closes_at + MINUTE,
         footprints=NoFootprints(),
         projects=(PROJECT,),
-        new_issues=[failure],
+        new_issues=[replace(failure)],
     )
 
 
@@ -362,11 +389,18 @@ def test_simultaneous_excursions_do_not_change_each_others_prior() -> None:
     evaluator.novelty.record(earlier)
     prior = evaluator.novelty.judge(candidate, 1.0, candidate_minute)
 
-    evaluator._judge(candidate_minute, [("open", peer), ("open", candidate)])
+    # Drive the production minute step with both endpoints opening in the same minute.
+    with patch.object(
+        evaluator,
+        "_evaluate_project_measurements",
+        lambda minute, rows: [("open", peer), ("open", candidate)],
+    ):
+        evaluator._step(candidate_minute, [])
 
     assert candidate.novelty == prior.as_dict()
-    assert [item.event for item in evaluator.novelty.history[left_key]] == [earlier]
-    assert right_key not in evaluator.novelty.history
+    # Both opens are recorded, but only after judging.
+    assert [item.event for item in evaluator.novelty.history[left_key]] == [earlier, candidate]
+    assert [item.event for item in evaluator.novelty.history[right_key]] == [peer]
 
 
 def test_healthy_measurements_restore_latency_detection() -> None:

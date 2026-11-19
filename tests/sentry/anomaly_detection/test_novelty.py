@@ -8,7 +8,7 @@ from sentry.anomaly_detection.contracts import ChangeEvent, ChangeType, Metric, 
 from sentry.anomaly_detection.correlation.shared_dependencies import learn
 from sentry.anomaly_detection.evaluation import quality
 from sentry.anomaly_detection.evaluation.baseline import Baseline
-from sentry.anomaly_detection.evaluation.novelty import Novelty, mask_dim
+from sentry.anomaly_detection.evaluation.novelty import Novelty, _gammaincc, mask_dim
 from sentry.anomaly_detection.evaluation.rate_shifts import RateShiftTracker
 from sentry.anomaly_detection.evaluation.series import Series, samples_key
 
@@ -53,6 +53,28 @@ def test_quiet_series_stays_sensitive_after_days_of_history() -> None:
     assert verdict.return_days == pytest.approx(12.0)
     # With a 0.25/day base rate and two prior days, the posterior shape is 1/2.
     assert verdict.p_normal == pytest.approx(math.erfc(math.sqrt(6 / 3)))
+
+
+@pytest.mark.parametrize(
+    ("a", "x"),
+    [
+        # Series branch (x < a + 1).
+        (1, 0.5),
+        (1, 1.9),
+        (3, 0.5),
+        (3, 3.9),
+        (50, 40.0),
+        (50, 49.0),
+        # Continued-fraction branch.
+        (1, 3.0),
+        (3, 6.0),
+        (50, 60.0),
+    ],
+)
+def test_upper_incomplete_gamma_matches_integer_shape_closed_form(a: int, x: float) -> None:
+    # For integer shape, Q(a, x) = e^-x * sum_{k<a} x^k / k!.
+    exact = math.exp(-x) * math.fsum(x**k / math.factorial(k) for k in range(a))
+    assert _gammaincc(a, x) == pytest.approx(exact, rel=1e-11)
 
 
 def test_limited_history_does_not_absorb_an_excursion_on_the_mean_alone() -> None:

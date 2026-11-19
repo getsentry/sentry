@@ -60,6 +60,9 @@ class Excursion(Protocol):
     @property
     def start(self) -> datetime: ...
 
+    @property
+    def ended_at(self) -> datetime | None: ...
+
 
 def _dependency_slice(key: SeriesKey) -> DependencySlice | None:
     if key.signal in DEPENDENCY_SIGNALS and key.dim_value not in ("", "None"):
@@ -142,7 +145,7 @@ def _distinct_onsets(
             (other_metric, other)
             for other_metric, other in unmatched
             if exc.start - other.start <= tolerance
-            and ((end := getattr(other, "ended_at", other.start)) is None or exc.start < end)
+            and ((end := other.ended_at) is None or exc.start < end)
         ]
         # Pair the nearest overlapping cross-metric start once; a long excursion
         # must not hide repeated starts on the other metric.

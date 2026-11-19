@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
+import itertools
 import math
 from collections import deque
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from datetime import datetime
 from typing import TYPE_CHECKING, NamedTuple
 
@@ -16,6 +17,8 @@ if TYPE_CHECKING:
     from sentry.anomaly_detection.evaluation.series_history import DetectConfig, SeriesState
 
 DISPERSION_MIN = 60
+# Measured minutes needed before a sparse series' recent mean can stand in for its median.
+MIN_HISTORY_MINUTES = 10
 
 
 class CountTotals(NamedTuple):
@@ -42,6 +45,8 @@ class WindowHit(NamedTuple):
     minutes: int
     measurement: Measurement
     failure_reference: tuple[float, float] | None = None
+    # Count level per shaped denominator that the window was judged against.
+    level: float | None = None
 
 
 def record(
@@ -57,6 +62,8 @@ def record(
     distinct_rate_samples: bool,
     cfg: DetectConfig,
     shape: float,
+    episode_open: bool,
+    closed_at: datetime | None,
 ) -> None:
     if rate_events is not None:
         assert rate_denominator and rate_samples
@@ -70,7 +77,12 @@ def record(
         volume = samples / cfg.min_samples
     else:
         observed_events, denominator, extra_noise = actual, 1.0, 0.0
-        volume = expectation.expected / cfg.min_abs_excess
+        expected_events = expectation.expected
+        if not episode_open:
+            # A sparse median understates volume; size the windows by the recent mean too.
+            history_level = _history_level(counts, closed_at, 0)
+            expected_events = max(expected_events, (history_level or 0.0) * shape)
+        volume = expected_events / cfg.min_abs_excess
     push(
         counts,
         minute,
@@ -163,6 +175,12 @@ def _count_test(
         level = counts[-window_minutes].level
     if level is None:
         return None
+    if state.open is None:
+        # A median of sparse minutes is zero even with steady traffic; their mean is not.
+        history_level = _history_level(counts, state.closed_at, window_minutes)
+        if history_level is None:
+            return None
+        level = max(level, history_level)
     expected_events = level * (window_end.shaped_denominator - before_window.shaped_denominator)
     if (
         observed_events - expected_events < min_excess
@@ -176,11 +194,13 @@ def _count_test(
     sigma = expectation.sigma if expected_per_minute >= 5 else cfg.model_floor
     model_variance = max(cfg.model_floor**2, sigma**2 - 1 / max(expected_per_minute, 1.0))
     samples = window_end.samples - before_window.samples
+    # Do not estimate dispersion from potentially anomalous traffic inside an open episode.
+    dispersion = 1.0 if state.open is not None else _dispersion(counts, window_minutes)
     # Combine estimation uncertainty, model noise, event clumping, and sampling noise.
     relative_variance = (
         1 / (expected_per_minute * baseline_points)
         + model_variance
-        + (_dispersion(counts, window_minutes) - 1) / prior_adjusted_expectation
+        + (dispersion - 1) / prior_adjusted_expectation
     )
     if samples > 0:
         relative_variance += 1 / samples
@@ -202,6 +222,7 @@ def _count_test(
                     (observed_events + 1) / (prior_adjusted_expectation + 1),
                     _score(tail_probability),
                 ),
+                level=level,
             )
     return None
 
@@ -357,6 +378,26 @@ def _dispersion(counts: deque[CountTotals], window_minutes: int) -> float:
     return max(1.0, squared_residuals / total_expected_events) if total_expected_events > 0 else 1.0
 
 
+def _history_level(
+    counts: deque[CountTotals], closed_at: datetime | None, window_minutes: int
+) -> float | None:
+    """Mean events per shaped denominator in the minutes after closed_at before the window."""
+    history_end = len(counts) - 1 - window_minutes
+    history_start = max(0, history_end - DISPERSION_MIN)
+    # Skip minutes before the last close, so a recovered episode can't inflate the mean.
+    while closed_at is not None and history_start < history_end:
+        start_ts = counts[history_start].ts
+        if start_ts is not None and start_ts >= closed_at:
+            break
+        history_start += 1
+    before_history, history_last = counts[history_start], counts[history_end]
+    measured_minutes = history_end - history_start - (history_last.missing - before_history.missing)
+    if measured_minutes < MIN_HISTORY_MINUTES:
+        return None
+    denominator = history_last.shaped_denominator - before_history.shaped_denominator
+    return (history_last.events - before_history.events) / denominator if denominator > 0 else 0.0
+
+
 def _nb_sf(n: float, mean: float, size: float) -> float:
     """P(X >= n) for a negative binomial with the given mean and shape."""
     k = math.ceil(n - 1e-9)
@@ -365,15 +406,25 @@ def _nb_sf(n: float, mean: float, size: float) -> float:
     if mean <= 0:
         return 0.0
     size = min(size, 1e9)
-    if k > 400:
-        z = math.log(n / mean) / math.sqrt(1 / mean + 1 / size)
-        return 0.5 * math.erfc(z / math.sqrt(2))
     q = mean / (size + mean)
-    cdf, term = 0.0, math.exp(size * math.log1p(-q))
-    for i in range(k):
-        cdf += term
-        term *= (i + size) / (i + 1) * q
-    return max(0.0, 1.0 - cdf)
+
+    def log_pmf(x: int) -> float:
+        return (
+            math.lgamma(x + size)
+            - math.lgamma(size)
+            - math.lgamma(x + 1)
+            + size * math.log1p(-q)
+            + x * math.log(q)
+        )
+
+    # Sum away from the mean, so the terms shrink until they stop mattering.
+    if k > mean:
+        return min(
+            1.0,
+            _sum_terms(log_pmf(k), itertools.count(k), lambda x: (x + size) / (x + 1) * q),
+        )
+    lower = _sum_terms(log_pmf(k - 1), range(k - 1, 0, -1), lambda x: x / ((x - 1 + size) * q))
+    return max(0.0, 1.0 - lower)
 
 
 def _betabinom_sf(successes: float, trials: float, a: float, b: float) -> float:
@@ -383,26 +434,49 @@ def _betabinom_sf(successes: float, trials: float, a: float, b: float) -> float:
         return 1.0
     if k > n:
         return 0.0
-    if n > 3000:
-        p = a / (a + b)
-        var = n * p * (1 - p) * (a + b + n) / (a + b + 1)
-        return 0.5 * math.erfc((k - 0.5 - n * p) / math.sqrt(2 * max(var, 1e-12)))
     lg = math.lgamma
-    logp = (
-        lg(n + 1)
-        - lg(k + 1)
-        - lg(n - k + 1)
-        + lg(k + a)
-        + lg(n - k + b)
-        - lg(n + a + b)
-        - (lg(a) + lg(b) - lg(a + b))
+
+    def log_pmf(x: int) -> float:
+        return (
+            lg(n + 1)
+            - lg(x + 1)
+            - lg(n - x + 1)
+            + lg(x + a)
+            + lg(n - x + b)
+            - lg(n + a + b)
+            - (lg(a) + lg(b) - lg(a + b))
+        )
+
+    # Sum away from the mean, so the terms shrink until they stop mattering.
+    if k > n * a / (a + b):
+        return min(
+            1.0,
+            _sum_terms(
+                log_pmf(k),
+                range(k, n),
+                lambda x: (n - x) / (x + 1) * (x + a) / (n - x - 1 + b),
+            ),
+        )
+    lower = _sum_terms(
+        log_pmf(k - 1),
+        range(k - 1, 0, -1),
+        lambda x: x / (n - x + 1) * (n - x + b) / (x - 1 + a),
     )
-    term, total = math.exp(logp), 0.0
-    for x in range(k, n + 1):
+    return max(0.0, 1.0 - lower)
+
+
+def _sum_terms(log_first: float, steps: Iterable[int], ratio: Callable[[int], float]) -> float:
+    """Sum probability terms from exp(log_first), multiplying by ratio(x) at each step x.
+
+    Stops once a term underflows or no longer changes the total.
+    """
+    term = total = math.exp(log_first)
+    for x in steps:
+        term *= ratio(x)
         total += term
-        if x < n:
-            term *= (n - x) / (x + 1) * (x + a) / (n - x - 1 + b)
-    return min(1.0, total)
+        if term <= total * 1e-17:
+            break
+    return total
 
 
 def _score(p: float) -> float:
