@@ -75,7 +75,7 @@ from sentry.workflow_engine.models import DataSourceDetector, Detector
 from sentry.workflow_engine.models.detector_group import DetectorGroup
 from sentry.workflow_engine.processors.detector import get_all_projects_detector
 from sentry.workflow_engine.registry import detector_settings_registry
-from sentry.workflow_engine.types import DetectorAPIOperation, DetectorType
+from sentry.workflow_engine.types import DetectorType, WorkflowEngineAPIOperation
 
 detector_search_config = SearchConfig.create_from(
     default_config,
@@ -338,7 +338,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         queryset = self.filter_detectors(request, organization)
         queryset = queryset.exclude(
             type__in=get_excluded_detector_types(
-                DetectorAPIOperation.LIST, organization, actor=request.user
+                WorkflowEngineAPIOperation.LIST, organization, actor=request.user
             )
         )
 
@@ -448,7 +448,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         queryset = self.filter_detectors(request, organization)
         queryset = queryset.exclude(
             type__in=get_excluded_detector_types(
-                DetectorAPIOperation.PUT, organization, actor=request.user
+                WorkflowEngineAPIOperation.PUT, organization, actor=request.user
             )
         )
         queryset = exclude_disallowed_metric_detectors(queryset, organization)
@@ -581,7 +581,7 @@ class OrganizationDetectorIndexEndpoint(OrganizationEndpoint):
         queryset = self.filter_detectors(request, organization)
         queryset = queryset.exclude(
             type__in=get_excluded_detector_types(
-                DetectorAPIOperation.DELETE, organization, actor=request.user
+                WorkflowEngineAPIOperation.DELETE, organization, actor=request.user
             )
         )
 
