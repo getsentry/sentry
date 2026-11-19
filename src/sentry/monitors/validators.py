@@ -18,6 +18,7 @@ from sentry import audit_log, quotas
 from sentry.api.fields.actor import OwnerActorField
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
+from sentry.api.helpers.creator import get_creator_reference
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.apidocs.omissions import sentry_schema_serializer
@@ -421,6 +422,7 @@ class MonitorValidator(CamelSnakeSerializer[Monitor]):
             organization_id=organization.id,
             owner_user_id=owner_user_id,
             owner_team_id=cast("int", owner_team_id),
+            **get_creator_reference(self.context["request"]),
             name=validated_data["name"],
             slug=cast("str", validated_data.get("slug")),
             status=validated_data["status"],
