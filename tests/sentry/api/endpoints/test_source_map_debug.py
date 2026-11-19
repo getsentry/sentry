@@ -297,18 +297,7 @@ class SourceMapDebugEndpointTestCase(APITestCase):
         assert not resp.data["project_has_some_artifact_bundle"]
 
     def test_project_has_some_artifact_bundle_with_a_debug_id_positive(self) -> None:
-        artifact_bundle = ArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            file=File.objects.create(name="artifact-bundle.zip", type="dummy.file"),
-            artifact_count=1,
-        )
-
-        ProjectArtifactBundle.objects.create(
-            organization_id=self.organization.id,
-            project_id=self.project.id,
-            artifact_bundle=artifact_bundle,
-            has_debug_ids=True,
-        )
+        self.create_project_artifact_bundle(self.project.id, with_debug_id=True)
 
         event = self.store_event(
             data=create_event(),
