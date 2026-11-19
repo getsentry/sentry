@@ -13,10 +13,11 @@ const ACCEPTED_VIDEO_TYPES = 'video/mp4,video/quicktime,video/webm,video/ogg';
 
 /**
  * Matches the URL the comment attachment endpoint returns, so notes can render
- * those links as an inline video player.
+ * those links as an inline video player. Segments are limited to slugs and IDs
+ * so a hand-written link with `..` never becomes a player for another route.
  */
 export const COMMENT_ATTACHMENT_URL_PATTERN =
-  /^\/api\/0\/organizations\/[^/]+\/issues\/[^/]+\/comment-attachments\/\d+\/$/;
+  /^\/api\/0\/organizations\/[\w-]+\/issues\/[\w-]+\/comment-attachments\/\d+\/$/;
 
 export interface CommentAttachment {
   contentType: string;

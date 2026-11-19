@@ -318,7 +318,9 @@ describe('ActivitySection', () => {
           type: GroupActivityType.NOTE,
           id: 'note-1',
           commentId: 'note-1',
-          data: {text: `[video_1.mp4](${videoUrl}) and [docs](https://docs.sentry.io/)`},
+          data: {
+            text: `[video_1.mp4](${videoUrl}) and [docs](https://docs.sentry.io/) and [other](/api/0/organizations/../issues/1/comment-attachments/5/)`,
+          },
           dateCreated: tenMinutesAgo(),
           user,
         },
