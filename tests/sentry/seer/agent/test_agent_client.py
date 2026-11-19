@@ -32,7 +32,7 @@ from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunMirrorStatus, S
 from sentry.seer.sentry_data_models import HeaderAuthConnectionData
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options, with_feature
-from sentry.testutils.requests import make_request
+from sentry.testutils.requests import drf_request_from_request, make_request
 from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.users.services.user_option import user_option_service
 from sentry.utils.prompts import seer_monitoring_provider_dont_ask_feature
@@ -712,7 +712,8 @@ class TestSeerAgentClient(TestCase):
         bob = self.create_user(name="Bob")
         other_bob = serialize_rpc_user(self.create_user(name="Bob"))
         user_option_service.set_option(user_id=bob.id, key="timezone", value="America/Toronto")
-        request, _ = make_request()
+        http_request, _ = make_request()
+        request = drf_request_from_request(http_request)
         for sender, timezone_name in ((bob, "America/Toronto"), (other_bob, None)):
             SeerAgentClient(self.organization, sender).continue_run(
                 run.seer_run_state_id, "Follow up", request=request
