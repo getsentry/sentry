@@ -201,10 +201,7 @@ class ProcessChunkTest(TestCase):
         )
         prefix = f"{self.organization.id}/{self.project.id}/{head_artifact.id}/{base_artifact.id}"
         stored = {f"{prefix}/plan.json": orjson.dumps(plan.dict())}
-        session = _mock_session_with_manifests(stored)
-        session.put.side_effect = (
-            lambda contents, key, content_type, compress=None: stored.__setitem__(key, contents)
-        )
+        session = _dict_backed_session(stored)
 
         diff = DiffResult(
             diff_mask_png=b"png",
@@ -398,10 +395,7 @@ class ProcessChunkTest(TestCase):
         plan = self._single_chunk_plan(head_artifact, base_artifact)
         prefix = f"{self.organization.id}/{self.project.id}/{head_artifact.id}/{base_artifact.id}"
         stored = {f"{prefix}/plan.json": orjson.dumps(plan.dict())}
-        session = _mock_session_with_manifests(stored)
-        session.put.side_effect = (
-            lambda contents, key, content_type, compress=None: stored.__setitem__(key, contents)
-        )
+        session = _dict_backed_session(stored)
 
         with (
             patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
@@ -438,10 +432,7 @@ class ProcessChunkTest(TestCase):
         plan = self._single_chunk_plan(head_artifact, base_artifact)
         prefix = f"{self.organization.id}/{self.project.id}/{head_artifact.id}/{base_artifact.id}"
         stored = {f"{prefix}/plan.json": orjson.dumps(plan.dict())}
-        session = _mock_session_with_manifests(stored)
-        session.put.side_effect = (
-            lambda contents, key, content_type, compress=None: stored.__setitem__(key, contents)
-        )
+        session = _dict_backed_session(stored)
 
         with (
             patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
@@ -479,10 +470,7 @@ class ProcessChunkTest(TestCase):
         plan = self._single_chunk_plan(head_artifact, base_artifact)
         prefix = f"{self.organization.id}/{self.project.id}/{head_artifact.id}/{base_artifact.id}"
         stored = {f"{prefix}/plan.json": orjson.dumps(plan.dict())}
-        session = _mock_session_with_manifests(stored)
-        session.put.side_effect = (
-            lambda contents, key, content_type, compress=None: stored.__setitem__(key, contents)
-        )
+        session = _dict_backed_session(stored)
 
         unchanged_diff = DiffResult(
             diff_mask_png=b"png",
@@ -529,10 +517,7 @@ class ProcessChunkTest(TestCase):
         plan = self._single_chunk_plan(head_artifact, base_artifact)
         prefix = f"{self.organization.id}/{self.project.id}/{head_artifact.id}/{base_artifact.id}"
         stored = {f"{prefix}/plan.json": orjson.dumps(plan.dict())}
-        session = _mock_session_with_manifests(stored)
-        session.put.side_effect = (
-            lambda contents, key, content_type, compress=None: stored.__setitem__(key, contents)
-        )
+        session = _dict_backed_session(stored)
 
         with (
             patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
@@ -565,10 +550,7 @@ class ProcessChunkTest(TestCase):
         plan = self._single_chunk_plan(head_artifact, base_artifact)
         prefix = f"{self.organization.id}/{self.project.id}/{head_artifact.id}/{base_artifact.id}"
         stored = {f"{prefix}/plan.json": orjson.dumps(plan.dict())}
-        session = _mock_session_with_manifests(stored)
-        session.put.side_effect = (
-            lambda contents, key, content_type, compress=None: stored.__setitem__(key, contents)
-        )
+        session = _dict_backed_session(stored)
 
         with (
             patch("sentry.preprod.snapshots.tasks.get_snapshot_storage", return_value=session),
