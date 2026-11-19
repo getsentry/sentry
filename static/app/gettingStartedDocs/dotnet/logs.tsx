@@ -157,7 +157,7 @@ export const logs = ({
                       }
                     )
                   : tct(
-                      'To send the entries your app writes through [code:ILogger] to Sentry as logs, set [code:EnableLogs] to [code:true] where you configure Sentry: in the [code:UseSentry] callback, or in the [code:Sentry] section of [code:appsettings.json]:',
+                      'To send the entries your app writes through [code:ILogger] to Sentry as logs, set [code:EnableLogs] to [code:true] in the [code:UseSentry] callback:',
                       {
                         code: <code />,
                       }
@@ -171,23 +171,13 @@ export const logs = ({
                   }
                 : {
                     type: 'code',
-                    tabs: [
-                      {
-                        label: 'UseSentry',
-                        language: 'csharp',
-                        code: `builder.UseSentry(options =>
+                    language: 'csharp',
+                    code: `builder.UseSentry(options =>
 {
     options.Dsn = "${params.dsn.public}";
     // Send ILogger entries to Sentry as logs
     options.EnableLogs = true;
 });`,
-                      },
-                      {
-                        label: 'appsettings.json',
-                        language: 'json',
-                        code: getEnableLogsAppSettingsSnippet(params),
-                      },
-                    ],
                   },
             ] satisfies ContentBlock[])
           : ([

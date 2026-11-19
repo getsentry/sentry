@@ -79,11 +79,6 @@ describe('dotnet logs onboarding docs', () => {
         textWithMarkupMatcher(/dotnet add package Sentry\.Maui -v 1\.99\.9/)
       )
     ).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', {name: 'appsettings.json'}));
-    expect(
-      screen.getByText(textWithMarkupMatcher(/"EnableLogs": true/))
-    ).toBeInTheDocument();
   });
 
   it('does not render logs configuration when logs is not enabled', async () => {
