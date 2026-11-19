@@ -96,6 +96,20 @@ const flagAnnotations: AnnotationItem[] = [
   title: flag,
 }));
 
+const changeAnnotations: AnnotationItem[] = (
+  [
+    [8, 'high', 'Sentry outage'],
+    [14, 'low', 'SDK update'],
+    [30, 'high', 'Infrastructure change'],
+  ] as const
+).map(([index, severity, title]) => ({
+  id: `change:${index}`,
+  kind: 'timeseriesAnnotation',
+  start: sampleThroughputTimeSeries.values.at(index)!.timestamp,
+  title,
+  severity,
+}));
+
 export default Storybook.story('TimeSeriesWidgetVisualization', story => {
   story('Getting Started', () => {
     return (
@@ -1278,6 +1292,26 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
             />
           </MediumWidget>
         </Storybook.SideBySide>
+      </Fragment>
+    );
+  });
+
+  story('Annotation Markers', () => {
+    return (
+      <Fragment>
+        <p>
+          Severe <code>annotations</code> also get a marker on the plot: a dotted vertical
+          line with a circle on top, at the center of their time bucket. Severe
+          annotations in the same bucket share one marker. Every annotation, severe or
+          not, still counts toward the band under the plot.
+        </p>
+
+        <MediumWidget>
+          <TimeSeriesWidgetVisualization
+            plottables={[new Bars(sampleThroughputTimeSeries)]}
+            annotations={[...releaseAnnotations, ...changeAnnotations]}
+          />
+        </MediumWidget>
       </Fragment>
     );
   });
