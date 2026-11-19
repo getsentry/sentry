@@ -18,6 +18,7 @@ from django.utils import timezone
 
 from sentry.db.partitions import sql
 from sentry.db.partitions.catalog import (
+    PartitionInfo,
     get_connection,
     get_partitioned_table_info,
     list_detached_range_partitions,
@@ -65,6 +66,31 @@ def get_range_table(
     return RangeTable(connection, table, get_partition_column(model, spec), spec)
 
 
+class DefaultPartitionError(Exception):
+    pass
+
+
+def _range_partitions(target: RangeTable) -> list[PartitionInfo]:
+    """
+    The partitions of ``target``, refusing tables with a default partition.
+
+    Postgres can't detach a partition concurrently while the table has a default
+    partition, and attaching one has to scan the default partition for rows that
+    belong in it. A default partition is likely added by hand after inserts failed
+    with "no partition of relation found for row", so this explains what to do.
+    """
+    partitions = list_partitions(target.connection, target.table)
+    for partition in partitions:
+        if partition.is_default:
+            raise DefaultPartitionError(
+                f"{target.table} has a default partition, {partition.name}, which partition "
+                f"maintenance doesn't support: partitions can't be detached concurrently "
+                f"while it exists. Move its rows into regular partitions, created with "
+                f"`sentry partitions ensure`, and drop it."
+            )
+    return partitions
+
+
 def _quote(connection: BaseDatabaseWrapper, name: str) -> str:
     return connection.ops.quote_name(name)
 
@@ -105,7 +131,7 @@ def ensure_range_partitions(target: RangeTable, now: datetime | None = None) -> 
     partitions.
     """
     now = now if now is not None else timezone.now()
-    existing = list_partitions(target.connection, target.table)
+    existing = _range_partitions(target)
     existing_names = {p.name for p in existing}
     existing_ranges = [p.range_bounds() for p in existing]
 
@@ -202,7 +228,7 @@ def expire_range_partitions(
             extra={"table": target.table, "partition": detached.name},
         )
 
-    for partition in list_partitions(target.connection, target.table):
+    for partition in _range_partitions(target):
         _, end = partition.range_bounds()
         if end is None or end > before:
             if partition.expiring and not dry_run:
@@ -290,7 +316,9 @@ def report_partition_metrics(target: RangeTable, now: datetime) -> None:
     ahead = sum(
         1
         for partition in list_partitions(target.connection, target.table)
-        if (start := partition.range_bounds()[0]) is not None and start > now
+        if not partition.is_default
+        and (start := partition.range_bounds()[0]) is not None
+        and start > now
     )
     metrics.gauge("db.partitions.ahead", ahead, tags=tags)
     detached = list_detached_range_partitions(target.connection, target.table)

@@ -49,8 +49,14 @@ class PartitionInfo:
     # Marked by partition maintenance right before it detaches the partition.
     expiring: bool = False
 
+    @property
+    def is_default(self) -> bool:
+        return self.bound == "DEFAULT"
+
     def range_bounds(self) -> tuple[datetime | None, datetime | None]:
         """Parsed range bounds. ``None`` stands for MINVALUE or MAXVALUE."""
+        if self.is_default:
+            raise ValueError(f"Partition {self.name} is a default partition and has no range.")
         match = _RANGE_BOUND_RE.match(self.bound)
         if match is None:
             raise ValueError(f"Partition {self.name} has no range bound: {self.bound}")
@@ -171,6 +177,13 @@ def verify_partition_state() -> list[str]:
                     f"modulus {spec.modulus}."
                 )
         else:
+            for partition in list_partitions(connection, table):
+                if partition.is_default:
+                    problems.append(
+                        f"{partition.name} is a default partition of {table}, which stops "
+                        f"partition maintenance. Move its rows into regular partitions and "
+                        f"drop it."
+                    )
             for detached in list_detached_range_partitions(connection, table):
                 if detached.expiring:
                     problems.append(

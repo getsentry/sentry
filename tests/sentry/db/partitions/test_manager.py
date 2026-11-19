@@ -4,9 +4,11 @@ from unittest import mock
 import pytest
 from django.db import OperationalError, connection, transaction
 from django.db.backends.base.base import BaseDatabaseWrapper
+from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
 
 from fixtures.partitions import (
+    FIXTURE_TABLES,
     HashPartitionedFixture,
     RangePartitionedFixture,
     fixture_tables,
@@ -17,8 +19,10 @@ from sentry.db.partitions.catalog import (
     PartitionInfo,
     list_detached_range_partitions,
     list_partitions,
+    verify_partition_state,
 )
 from sentry.db.partitions.manager import (
+    DefaultPartitionError,
     RangeTable,
     ensure_partitions,
     expire_partitions,
@@ -493,3 +497,31 @@ class MaintainPartitionsTest(TransactionTestCase):
                     "db.partitions.detached_by_hand": 0,
                     "db.partitions.detached_drop_failed": 1,
                 }
+
+    @freeze_time(CREATED_AT)
+    def test_default_partition_stops_maintenance_with_a_clear_error(self) -> None:
+        with fixture_tables():
+            # A likely reaction to "no partition of relation found for row" errors.
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f'CREATE TABLE "{RANGE_TABLE}_default" PARTITION OF "{RANGE_TABLE}" DEFAULT'
+                )
+            with (
+                mock.patch("sentry.db.partitions.manager.metrics.incr") as incr,
+                mock.patch.object(manager.logger, "exception") as log_exception,
+            ):
+                gauges = self.gauges()
+            errors = [
+                c for c in incr.call_args_list if c.args[0] == "db.partitions.maintenance.error"
+            ]
+            assert [c.kwargs["tags"]["step"] for c in errors] == ["ensure", "expire"]
+            assert log_exception.call_count == 2
+            # The metrics are still reported.
+            assert gauges["db.partitions.ahead"] == 2
+            with pytest.raises(DefaultPartitionError, match="has a default partition"):
+                ensure_partitions(RangePartitionedFixture)
+            with override_settings(SENTRY_PARTITIONED_TABLES=FIXTURE_TABLES):
+                assert verify_partition_state() == [
+                    f"{RANGE_TABLE}_default is a default partition of {RANGE_TABLE}, which stops "
+                    "partition maintenance. Move its rows into regular partitions and drop it."
+                ]
