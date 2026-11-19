@@ -20,8 +20,6 @@ type UseTraceMetaOptions = TraceMetaTrace | TraceMetaTrace[];
 
 const loadTraceMetaQueryParams = createLoader(traceDateTimeParsers);
 
-const TRACE_META_STALE_TIME = 1000 * 60 * 10;
-
 type TraceMetaQueryParams =
   | {include_uptime: string; statsPeriod: string}
   | {include_uptime: string; timestamp: number};
@@ -196,7 +194,7 @@ export function useTraceMeta(
 
       return result;
     },
-    staleTime: TRACE_META_STALE_TIME,
+    staleTime: 1000 * 60 * 10,
     enabled: traces.length > 0,
   });
 
