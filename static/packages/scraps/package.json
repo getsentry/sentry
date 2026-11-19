@@ -10,6 +10,9 @@
     "dist"
   ],
   "type": "module",
+  "sideEffects": [
+    "**/*.css"
+  ],
   "exports": {
     "./code/inlineCode": {
       "types": "./dist/code/inlineCode.d.ts",
@@ -23,6 +26,7 @@
       "types": "./dist/theme/index.d.ts",
       "import": "./dist/theme/index.js"
     },
+    "./theme.css": "./dist/theme/variables.css",
     "./form": {
       "types": "./dist/form/index.d.ts",
       "import": "./dist/form/index.js"
