@@ -33,7 +33,7 @@ jobs:
           fetch-depth: 2
           persist-credentials: false
 
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: $/.github/actions/setup-node-pnpm
 
       - name: lint
         env:
