@@ -4,6 +4,7 @@ from unittest import mock
 
 import responses
 from django.test import override_settings
+from rest_framework.response import Response
 from rest_framework.test import APIClient
 
 from sentry import audit_log
@@ -800,7 +801,7 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
 
     def _assert_create_rejected_without_writes(
         self, data: dict[str, Any], status_code: int = 403
-    ) -> None:
+    ) -> Response:
         model_counts = self._workflow_creation_model_counts()
         workflow_data = {
             **self.valid_workflow,
@@ -824,13 +825,14 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
             **data,
         }
 
-        self.get_error_response(
+        response = self.get_error_response(
             self.organization.slug,
             raw_data=workflow_data,
             status_code=status_code,
         )
 
         assert self._workflow_creation_model_counts() == model_counts
+        return response
 
     def test_create_rejects_client_action_id(self) -> None:
         self._assert_create_rejected_without_writes(
@@ -862,16 +864,19 @@ class OrganizationWorkflowCreateTest(OrganizationWorkflowAPITestCase, BaseWorkfl
             )
 
     def test_create_rejects_internal_action_filter(self) -> None:
-        handler = condition_handler_registry.get(Condition.FIRST_SEEN_EVENT)
+        handler = condition_handler_registry.get(Condition.ISSUE_OCCURRENCES)
         with mock.patch.object(handler, "is_internal", True):
-            self._assert_create_rejected_without_writes(
+            response = self._assert_create_rejected_without_writes(
                 {
                     "actionFilters": [
-                        {"logicType": "any-short", "conditions": self.basic_trigger, "actions": []}
+                        {"logicType": "any", "conditions": self.basic_condition, "actions": []}
                     ]
                 },
                 status_code=400,
             )
+        assert "Internal conditions cannot be configured through the API." in str(
+            response.data["actionFilters"]
+        )
 
     def test_create_rejects_internal_group_reference(self) -> None:
         group = self.create_data_condition_group()

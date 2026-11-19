@@ -1685,6 +1685,11 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
             organization=other_organization,
             logic_type=DataConditionGroup.Type.ALL,
         )
+        other_condition = self.create_data_condition(
+            condition_group=other_data_condition_group,
+            type=Condition.FIRST_SEEN_EVENT,
+            comparison=True,
+        )
 
         other_workflow = self.create_workflow(
             organization=other_organization,
@@ -1700,12 +1705,14 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
             },
         }
 
-        response = self.get_error_response(
-            self.organization.slug,
-            self.workflow.id,
-            raw_data=data,
-            status_code=400,
-        )
+        handler = condition_handler_registry.get(Condition.FIRST_SEEN_EVENT)
+        with mock.patch.object(handler, "is_internal", True):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.workflow.id,
+                raw_data=data,
+                status_code=400,
+            )
 
         response_data = str(response.data).lower()
 
@@ -1718,6 +1725,13 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         other_workflow.refresh_from_db()
 
         assert other_workflow.when_condition_group_id == other_data_condition_group.id
+
+        other_data_condition_group.refresh_from_db()
+        assert other_data_condition_group.logic_type == DataConditionGroup.Type.ALL
+        other_condition.refresh_from_db()
+        assert other_condition.condition_group_id == other_data_condition_group.id
+        assert other_condition.type == Condition.FIRST_SEEN_EVENT
+        assert other_condition.comparison is True
 
     def test_update_triggers_from_different_organization_without_data_condition_group(self) -> None:
         workflow = self.create_workflow(
