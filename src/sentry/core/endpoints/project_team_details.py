@@ -67,7 +67,7 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
                 slug__id_or_slug=team_id_or_slug,
             )
         except Team.DoesNotExist:
-            raise ResourceDoesNotExist(detail="Team does not exist.")
+            raise ResourceDoesNotExist(detail=f"Team '{team_id_or_slug}' does not exist.")
 
         kwargs["team"] = team
         return (args, kwargs)
