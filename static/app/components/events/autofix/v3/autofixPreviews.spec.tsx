@@ -262,7 +262,7 @@ describe('a step that stopped for credits', () => {
 
     expect(
       screen.getByText(
-        'Seer stopped before updating the pull request because your organization is out of credits.'
+        'Seer stopped before updating the pull request because your organization ran out of credits.'
       )
     ).toBeInTheDocument();
   });

@@ -2794,7 +2794,7 @@ describe('out of credits', () => {
     expect(screen.getByText('The cache key omits the org slug.')).toBeInTheDocument();
     expect(
       screen.getByText(
-        'Seer stopped before finishing the root cause because your organization is out of credits.'
+        'Seer stopped before finishing the root cause because your organization ran out of credits.'
       )
     ).toBeInTheDocument();
     expect(screen.queryByText(/This one is on us/)).not.toBeInTheDocument();
@@ -2848,7 +2848,7 @@ describe('out of credits', () => {
     expect(screen.getByText('Seed the reduction with zero.')).toBeInTheDocument();
     expect(
       screen.getByText(
-        'Seer stopped before finishing the plan because your organization is out of credits.'
+        'Seer stopped before finishing the plan because your organization ran out of credits.'
       )
     ).toBeInTheDocument();
 
@@ -2870,7 +2870,7 @@ describe('out of credits', () => {
     expect(screen.getByTestId('file-diff-viewer')).toBeInTheDocument();
     expect(
       screen.getByText(
-        'Seer stopped before finishing the code changes because your organization is out of credits.'
+        'Seer stopped before finishing the code changes because your organization ran out of credits.'
       )
     ).toBeInTheDocument();
     expect(
@@ -2992,7 +2992,7 @@ describe('out of credits', () => {
 
       expect(
         screen.getByText(
-          'Seer stopped before updating the pull request because your organization is out of credits.'
+          'Seer stopped before updating the pull request because your organization ran out of credits.'
         )
       ).toBeInTheDocument();
       // Only the iteration that stopped is replayed, not the original step.
@@ -3035,7 +3035,7 @@ describe('out of credits', () => {
 
     expect(
       screen.getByText(
-        'Seer stopped before updating the pull request because your organization is out of credits.'
+        'Seer stopped before updating the pull request because your organization ran out of credits.'
       )
     ).toBeInTheDocument();
     expect(screen.queryByText(/Seer couldn't start on/)).not.toBeInTheDocument();

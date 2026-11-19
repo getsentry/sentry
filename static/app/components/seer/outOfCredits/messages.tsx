@@ -4,22 +4,23 @@ import type {SeerCreditDenialReason} from 'sentry/utils/seer/useSeerCreditCheck'
 import type {RepoPRState} from 'sentry/views/seerExplorer/types';
 
 /**
- * Inline status for an autofix step that stopped part way for credits. The
+ * Inline status for an autofix step that stopped part way for credits. Past
+ * tense, since the organization may have added credits since the stop. The
  * out-of-credits CTA is shown by the credit gates, so this only says what
  * happened.
  */
 export const OUT_OF_CREDITS_STEP_MESSAGE: Record<AutofixExplorerStep, string> = {
   root_cause: t(
-    'Seer stopped before finishing the root cause because your organization is out of credits.'
+    'Seer stopped before finishing the root cause because your organization ran out of credits.'
   ),
   solution: t(
-    'Seer stopped before finishing the plan because your organization is out of credits.'
+    'Seer stopped before finishing the plan because your organization ran out of credits.'
   ),
   code_changes: t(
-    'Seer stopped before finishing the code changes because your organization is out of credits.'
+    'Seer stopped before finishing the code changes because your organization ran out of credits.'
   ),
   pr_iteration: t(
-    'Seer stopped before updating the pull request because your organization is out of credits.'
+    'Seer stopped before updating the pull request because your organization ran out of credits.'
   ),
 };
 
