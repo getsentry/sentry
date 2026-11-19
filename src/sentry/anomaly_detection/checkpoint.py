@@ -8,7 +8,7 @@ several subsystems update or observe the very same mutable ChangeEvent.
 
 from base64 import b64decode, b64encode
 from collections import Counter, defaultdict, deque
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from collections.abc import Set as AbstractSet
 from dataclasses import replace
 from datetime import datetime, timedelta
@@ -35,8 +35,9 @@ from sentry.anomaly_detection.correlate import (
     MemberState,
     episode_key,
 )
-from sentry.anomaly_detection.detect import DISPERSION_MIN, RULES, CountTotals, DetectorState
+from sentry.anomaly_detection.detect import DISPERSION_MIN, RULES, CountTotals, SeriesState
 from sentry.anomaly_detection.footprint import Footprint, SliceStats
+from sentry.anomaly_detection.grouptype import AnomalyDetectionDetectorHandler
 from sentry.anomaly_detection.pipeline import _CONTEXT_HORIZON, AnomalyDecision, OrgEvaluator
 from sentry.anomaly_detection.series import Series, SeriesRow
 from sentry.anomaly_detection.shared import PairStats, SharedDeps
@@ -502,7 +503,7 @@ def _restore_detector(evaluator: OrgEvaluator, data: dict[str, Any], events: _Ev
     for key, state in data["state"]:
         counts = state["counts"]
         series_key = SeriesKey(*key)
-        detector.state[series_key] = DetectorState(
+        detector.state[series_key] = SeriesState(
             recent=deque(
                 (
                     (datetime.fromisoformat(ts), flag, actual)
@@ -729,9 +730,14 @@ def retained_group_keys(checkpoint: dict[str, Any]) -> set[str]:
     return {decision["group_key"] for decision in checkpoint["qualified"]}
 
 
-def _restore(footprints: FootprintSource, data: dict[str, Any]) -> OrgEvaluator:
+def _restore(
+    footprints: FootprintSource,
+    data: dict[str, Any],
+    *,
+    handlers: Mapping[str, AnomalyDetectionDetectorHandler],
+) -> OrgEvaluator:
     _require_version(data)
-    evaluator = OrgEvaluator(footprints)
+    evaluator = OrgEvaluator(footprints, handlers=handlers)
     events = _EventReader(data["events"])
     # The evaluator, detector, change-point detector, and correlator all share series.
     evaluator.series.update(_read_series(data["series"]))
@@ -967,28 +973,28 @@ def advance_org(
     start: datetime,
     end: datetime,
     footprints: FootprintSource,
+    handlers: Mapping[str, AnomalyDetectionDetectorHandler],
     new_issues: Sequence[ChangeEvent] = (),
     checkpoint: dict[str, Any] | None = None,
-    current_projects: AbstractSet[str] | None = None,
 ) -> tuple[Sequence[AnomalyDecision], dict[str, Any]]:
     """Advance one organization; pass the full seasonal support in hourly_rows each time.
 
     Minute support is carried across calls; hourly aggregates are loaded by the
     caller each time. The checkpoint does not acknowledge any emitted decision.
-    When supplied, current_projects is the authoritative set of enabled project IDs.
-    Pass a footprint source scoped to this set. Invalidation retires intersecting
-    groups, closing previously qualified opens only if their original owner remains enabled.
+    The handler map defines the enabled projects. Pass a footprint source scoped to
+    these projects. Invalidation retires intersecting groups, closing previously
+    qualified opens only if their original owner remains enabled.
     """
-    evaluator = OrgEvaluator(footprints) if checkpoint is None else _restore(footprints, checkpoint)
+    evaluator = (
+        OrgEvaluator(footprints, handlers=handlers)
+        if checkpoint is None
+        else _restore(footprints, checkpoint, handlers=handlers)
+    )
     if start >= end:
         return [], _snapshot(evaluator, end)
-    scope_closes = []
-    if current_projects is not None:
-        if checkpoint is not None:
-            scope_closes = _reconcile_projects(evaluator, current_projects, start)
-        rows = [row for row in rows if row[3] in current_projects]
-        hourly_rows = [row for row in hourly_rows if row[3] in current_projects]
-        new_issues = [event for event in new_issues if event.key.project in current_projects]
+    scope_closes = (
+        _reconcile_projects(evaluator, handlers.keys(), start) if checkpoint is not None else []
+    )
     decisions = evaluator.advance(
         rows=rows,
         hourly_rows=hourly_rows,

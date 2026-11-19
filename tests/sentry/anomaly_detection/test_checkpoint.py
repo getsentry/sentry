@@ -26,6 +26,7 @@ from sentry.anomaly_detection.pipeline import AnomalyDecision, OrgEvaluator
 from sentry.anomaly_detection.series import SeriesRow
 from sentry.anomaly_detection.shared import PairStats
 from sentry.utils import json
+from tests.sentry.anomaly_detection.test_parity import make_handlers
 
 START = datetime(2024, 1, 8, 12)
 PROJECT = "42"
@@ -71,7 +72,7 @@ def test_split_slowdown_matches_continuous_activation_and_resolution() -> None:
         for ts in [START.replace(hour=hour) - timedelta(days=day)]
         for metric, value in (("count_sample()", 6000.0), ("p95(span.duration)", 100.0))
     ]
-    continuous = OrgEvaluator(Footprints()).advance(
+    continuous = OrgEvaluator(Footprints(), handlers=make_handlers(PROJECT)).advance(
         rows=_endpoint_rows(0, 200),
         hourly_rows=hourly,
         start=START,
@@ -94,6 +95,7 @@ def test_split_slowdown_matches_continuous_activation_and_resolution() -> None:
             start=_at(start),
             end=_at(stop),
             footprints=Footprints(),
+            handlers=make_handlers(PROJECT),
             checkpoint=checkpoint,
         )
         checkpoint = _round_trip(checkpoint)
@@ -129,6 +131,7 @@ def test_split_during_change_point_persistence_and_open_episode() -> None:
         start=START,
         end=_at(250),
         footprints=Footprints(),
+        handlers=make_handlers(PROJECT),
     )
     assert [decision.is_resolved for decision in expected] == [False, True]
     assert expected[0].evidence["change_type"] == ChangeType.CHANGE_POINT
@@ -139,6 +142,7 @@ def test_split_during_change_point_persistence_and_open_episode() -> None:
         start=START,
         end=_at(166),
         footprints=Footprints(),
+        handlers=make_handlers(PROJECT),
     )
     opened, checkpoint = advance_org(
         rows=rows(166, 180),
@@ -146,6 +150,7 @@ def test_split_during_change_point_persistence_and_open_episode() -> None:
         start=_at(166),
         end=_at(180),
         footprints=Footprints(),
+        handlers=make_handlers(PROJECT),
         checkpoint=_round_trip(checkpoint),
     )
     closed, checkpoint = advance_org(
@@ -154,6 +159,7 @@ def test_split_during_change_point_persistence_and_open_episode() -> None:
         start=_at(180),
         end=_at(250),
         footprints=Footprints(),
+        handlers=make_handlers(PROJECT),
         checkpoint=_round_trip(checkpoint),
     )
     assert not before_open
@@ -185,12 +191,15 @@ def test_closed_group_can_continue_with_pending_issue_after_restart() -> None:
         start=START,
         end=_at(46),
         footprints=Footprints(),
+        handlers=make_handlers(PROJECT),
         new_issues=issues,
     )
     assert [decision.is_resolved for decision in initial] == [False, True]
     (pending_index,) = checkpoint["pending_issues"]
     assert checkpoint["events"][pending_index]["issue_ids"] == [123]
-    (restored_pending,) = _restore(Footprints(), _round_trip(checkpoint)).pending_issues
+    (restored_pending,) = _restore(
+        Footprints(), _round_trip(checkpoint), handlers=make_handlers(PROJECT)
+    ).pending_issues
     assert restored_pending.issue_ids == (123,)
     continued, checkpoint = advance_org(
         rows=(),
@@ -198,10 +207,10 @@ def test_closed_group_can_continue_with_pending_issue_after_restart() -> None:
         start=_at(46),
         end=_at(94),
         footprints=Footprints(),
+        handlers=make_handlers(PROJECT),
         checkpoint=_round_trip(checkpoint),
-        current_projects={PROJECT},
     )
-    continuous = OrgEvaluator(Footprints()).advance(
+    continuous = OrgEvaluator(Footprints(), handlers=make_handlers(PROJECT)).advance(
         rows=(),
         hourly_rows=(),
         start=START,
@@ -224,8 +233,9 @@ def test_minute_support_is_bounded_without_losing_the_episode_anchor_window() ->
         start=START,
         end=_at(1570),
         footprints=Footprints(),
+        handlers=make_handlers(PROJECT),
     )
-    restored = _restore(Footprints(), _round_trip(checkpoint))
+    restored = _restore(Footprints(), _round_trip(checkpoint), handlers=make_handlers(PROJECT))
     assert restored.series == {
         SeriesKey(PROJECT, ENV, "requests", "count()"): {
             ts: value for ts, value in values.items() if ts != START
@@ -237,7 +247,7 @@ def test_minute_support_is_bounded_without_losing_the_episode_anchor_window() ->
 
 
 def test_dense_collector_checkpoint_round_trips_at_full_history_depth() -> None:
-    evaluator = OrgEvaluator(Footprints())
+    evaluator = OrgEvaluator(Footprints(), handlers=make_handlers(PROJECT))
     cursor = evaluator.next_minute = _at(1569)
     floor = _history_floor(evaluator, cursor)
     minutes = [_at(i) for i in range((cursor - floor) // timedelta(minutes=1))]
@@ -276,7 +286,9 @@ def test_dense_collector_checkpoint_round_trips_at_full_history_depth() -> None:
         dense and len(b64decode(payload)) <= len(minutes) * 8
         for _, (_, dense, _, payload) in checkpoint["series"]
     )
-    restored = _restore(Footprints(), orjson.loads(orjson.dumps(checkpoint)))
+    restored = _restore(
+        Footprints(), orjson.loads(orjson.dumps(checkpoint)), handlers=make_handlers(PROJECT)
+    )
     assert restored.series == series
     assert restored.det.state == evaluator.det.state
 
@@ -303,10 +315,11 @@ def test_rotating_full_slice_cohorts_bound_checkpoint_state() -> None:
             start=_at(batch),
             end=_at(batch + 1),
             footprints=Footprints(),
+            handlers=make_handlers(PROJECT),
             checkpoint=None if checkpoint is None else _round_trip(checkpoint),
         )
     assert checkpoint is not None
-    restored = _restore(Footprints(), _round_trip(checkpoint))
+    restored = _restore(Footprints(), _round_trip(checkpoint), handlers=make_handlers(PROJECT))
     expected_keys = {
         SeriesKey(PROJECT, f"env-{env}", "endpoints", "failure_rate()", f"/route/{batch}/{dim}")
         for env in range(MAX_ENVIRONMENTS)
@@ -340,8 +353,9 @@ def test_stale_slice_evicts_watch_state_but_keeps_aggregate_presence() -> None:
         start=START,
         end=_at(1),
         footprints=Footprints(),
+        handlers=make_handlers(PROJECT),
     )
-    before = _restore(Footprints(), checkpoint)
+    before = _restore(Footprints(), checkpoint, handlers=make_handlers(PROJECT))
     assert before.det.state[stale].counts
     before.det.exclude = {stale: "unreliable metrics"}
     _, checkpoint = advance_org(
@@ -350,9 +364,10 @@ def test_stale_slice_evicts_watch_state_but_keeps_aggregate_presence() -> None:
         start=_at(1),
         end=_at(1570),
         footprints=Footprints(),
+        handlers=make_handlers(PROJECT),
         checkpoint=_round_trip(_snapshot(before, _at(1))),
     )
-    restored = _restore(Footprints(), _round_trip(checkpoint))
+    restored = _restore(Footprints(), _round_trip(checkpoint), handlers=make_handlers(PROJECT))
     assert restored.series == {total: {}, current: {_at(1569): None}}
     assert restored.det.watched.keys() == restored.det.state.keys() == {total, current}
     assert stale not in restored.det.exclude
@@ -365,7 +380,7 @@ def test_unobserved_open_slice_expires_without_claiming_recovery() -> None:
     event = ChangeEvent(
         key, ChangeType.SLOWDOWN, START, 400.0, 100.0, 0.9, open_ratio=4.0, sustained_at=_at(30)
     )
-    evaluator = OrgEvaluator(Footprints())
+    evaluator = OrgEvaluator(Footprints(), handlers=make_handlers(PROJECT))
     evaluator.series[key] = {START: event.actual}
     evaluator.det.refresh()
     evaluator.det.state[key].open = event
@@ -379,20 +394,22 @@ def test_unobserved_open_slice_expires_without_claiming_recovery() -> None:
         start=_at(31),
         end=_at(1569),
         footprints=Footprints(),
+        handlers=make_handlers(PROJECT),
         checkpoint=_round_trip(_snapshot(evaluator, _at(31))),
     )
     assert not decisions
-    assert key in _restore(Footprints(), checkpoint).det.state
+    assert key in _restore(Footprints(), checkpoint, handlers=make_handlers(PROJECT)).det.state
     decisions, checkpoint = advance_org(
         rows=(),
         hourly_rows=(),
         start=_at(1569),
         end=_at(1570),
         footprints=Footprints(),
+        handlers=make_handlers(PROJECT),
         checkpoint=_round_trip(checkpoint),
     )
     assert not decisions  # The correlator still observes its normal quiet window.
-    restored = _restore(Footprints(), checkpoint)
+    restored = _restore(Footprints(), checkpoint, handlers=make_handlers(PROJECT))
     assert key not in restored.det.state
     expired = restored.corr.state.open_groups[opened.group_key].root
     assert expired.ended_at == _at(1569)
@@ -404,13 +421,14 @@ def test_unobserved_open_slice_expires_without_claiming_recovery() -> None:
         start=_at(1570),
         end=_at(1585),
         footprints=Footprints(),
+        handlers=make_handlers(PROJECT),
         checkpoint=_round_trip(checkpoint),
     )
     assert list(decisions) == [replace(opened, timestamp=_at(1584), is_resolved=True)]
 
 
 def test_checkpoint_prunes_old_group_members_without_losing_live_aliases() -> None:
-    evaluator = OrgEvaluator(Footprints())
+    evaluator = OrgEvaluator(Footprints(), handlers=make_handlers(PROJECT))
     key = SeriesKey(PROJECT, ENV, "endpoints", "p95(span.duration)", ENDPOINT)
     root = ChangeEvent(key, ChangeType.SLOWDOWN, START, 400.0, 100.0, 0.9, ended_at=_at(5))
     evaluator.corr.step(START, [("open", root)])
@@ -430,7 +448,7 @@ def test_checkpoint_prunes_old_group_members_without_losing_live_aliases() -> No
     evaluator.next_minute = _at(410)
 
     checkpoint = _round_trip(_snapshot(evaluator, _at(410)))
-    restored = _restore(Footprints(), checkpoint)
+    restored = _restore(Footprints(), checkpoint, handlers=make_handlers(PROJECT))
     (continued,) = restored.corr.groups
     assert continued.root == root
     assert continued.group.change_events == [root, live, recent]
@@ -450,6 +468,7 @@ def test_novelty_retains_recent_excursions_but_ages_out_old_ones() -> None:
         start=START,
         end=_at(200),
         footprints=Footprints(),
+        handlers=make_handlers(PROJECT),
     )
     assert checkpoint["novelty"]["history"]
     assert checkpoint["novelty"]["coverage"]
@@ -459,6 +478,7 @@ def test_novelty_retains_recent_excursions_but_ages_out_old_ones() -> None:
         start=_at(200),
         end=_at(200) + timedelta(days=15),
         footprints=Footprints(),
+        handlers=make_handlers(PROJECT),
         checkpoint=_round_trip(checkpoint),
     )
     assert not checkpoint["novelty"]["history"]
@@ -485,7 +505,7 @@ def test_project_scope_change_retires_mixed_group_without_rebinding(
     removed = ChangeEvent(
         removed_key, ChangeType.SLOWDOWN, _at(1), 400.0, 100.0, 0.9, detected_at=_at(31)
     )
-    evaluator = OrgEvaluator(Footprints())
+    evaluator = OrgEvaluator(Footprints(), handlers=make_handlers(PROJECT, disabled))
     for event in (retained, removed):
         evaluator.series[event.key] = {event.start: event.actual}
         evaluator.novelty.observe(event.key, event.start)
@@ -532,16 +552,16 @@ def test_project_scope_change_retires_mixed_group_without_rebinding(
         start=_at(32),
         end=_at(33),
         footprints=Footprints(),
+        handlers=make_handlers(PROJECT),
         new_issues=[pending],
         checkpoint=_round_trip(_snapshot(evaluator, _at(32))),
-        current_projects={PROJECT},
     )
     assert len(decisions) == int(emit_close)
     assert all(
         decision == replace(opened, timestamp=_at(32), is_resolved=True) for decision in decisions
     )
     assert not retained_group_keys(checkpoint)
-    restored = _restore(Footprints(), checkpoint)
+    restored = _restore(Footprints(), checkpoint, handlers=make_handlers(PROJECT))
     assert set(restored.series) == {retained_key}
     assert set(restored.det.state) == {retained_key}
     assert set(restored.novelty.coverage) == set(restored.novelty.history) == {retained_key}
@@ -567,5 +587,6 @@ def test_unsupported_checkpoint_version_fails_without_advancing(checkpoint: dict
             start=START,
             end=_at(1),
             footprints=Footprints(),
+            handlers=make_handlers(PROJECT),
             checkpoint=checkpoint,
         )

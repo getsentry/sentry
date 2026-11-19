@@ -87,7 +87,9 @@ class WindowHit(NamedTuple):
 
 
 @dataclass
-class DetectorState:
+class SeriesState:
+    """Rolling evidence and a frozen baseline for one measured series."""
+
     recent: deque[tuple[datetime, bool, float | None]] = field(
         default_factory=lambda: deque(maxlen=5)
     )
@@ -107,7 +109,9 @@ class DetectorState:
     recent_ratios: deque[float | None] = field(default_factory=lambda: deque(maxlen=30))
 
 
-class Detector:
+class SeriesHistory:
+    """Shared measurement history and numerical helpers for excursion scoring."""
+
     def __init__(
         self,
         series: dict[SeriesKey, Series],
@@ -120,15 +124,16 @@ class Detector:
         self.cfg = cfg or DetectConfig()
         self.exclude = dict(exclude) if exclude is not None else {}
         self.watched: dict[SeriesKey, Rule] = {}
-        self.state: dict[SeriesKey, DetectorState] = {}
+        self.state: dict[SeriesKey, SeriesState] = {}
         self._pseudo: dict[tuple[SeriesKey, datetime], float] = {}
-        self.sustained_now: list[ChangeEvent] = []
         self.refresh()
 
-    def refresh(self) -> int:
+    def refresh(self, *, project: str | None = None) -> int:
         """Start watching newly available series; preserve existing episode state."""
         added = 0
         for key in sorted(self.series.keys() - self.watched.keys() - self.exclude.keys()):
+            if project is not None and key.project != project:
+                continue
             for rule in RULES:
                 if (key.signal, key.metric, bool(key.dim_value)) != (
                     rule.signal,
@@ -139,26 +144,24 @@ class Detector:
                 if rule.only_without_traffic and has_traffic(self.series, key.project, key.env):
                     continue
                 self.watched[key] = rule
-                self.state[key] = DetectorState(recent=deque(maxlen=rule.persist[1]))
+                self.state[key] = SeriesState(recent=deque(maxlen=rule.persist[1]))
                 added += 1
                 break
         return added
 
-    def step(self, t: datetime) -> list[tuple[str, ChangeEvent]]:
-        """Evaluate the next minute. Actions are open, escalate, close, and expire.
+    def prune_pseudo(self, hour: datetime, *, project: str) -> None:
+        for key in list(self._pseudo):
+            if key[0].project == project and key[1] != hour:
+                del self._pseudo[key]
 
-        Close means observed recovery; expire means chronic rollover to a new baseline.
-        Events are updated in place and shared with downstream grouping.
-        """
-        self.sustained_now = []
-        hour = t.replace(minute=0)
-        if not t.minute:
-            self._pseudo = {key: value for key, value in self._pseudo.items() if key[1] == hour}
-        actions = []
-        for key, rule in self.watched.items():
-            if action := self._step_series(key, rule, t):
-                actions.append(action)
-        return actions
+    def has_novelty_observation(self, key: SeriesKey, minute: datetime) -> bool:
+        rule = self.watched.get(key)
+        if rule is None or key in self.exclude or self._get(key, minute) is None:
+            return False
+        if rule.change == ChangeType.SLOWDOWN:
+            samples = self._get(samples_key(key), minute)
+            return samples is not None and samples >= self.cfg.min_samples
+        return True
 
     def _get(self, key: SeriesKey, t: datetime) -> float | None:
         return self.series.get(key, {}).get(t)
@@ -183,7 +186,7 @@ class Detector:
             )
         return self._pseudo[cache_key]
 
-    def _expected(self, key: SeriesKey, st: DetectorState, t: datetime) -> ExpectedValue | None:
+    def _expected(self, key: SeriesKey, st: SeriesState, t: datetime) -> ExpectedValue | None:
         if st.anchor_level is not None:
             return self.baseline.anchored(
                 key, t, st.anchor_level, st.anchor_sigma, st.anchor_points
@@ -321,7 +324,7 @@ class Detector:
         return self._update_episode(state, rule, minute, measurement, beyond, flagged, valid)
 
     @staticmethod
-    def _unavailable(st: DetectorState, t: datetime, is_latency: bool) -> None:
+    def _unavailable(st: SeriesState, t: datetime, is_latency: bool) -> None:
         st.recent.append((t, False, None))
         st.worse_run.clear()
         if is_latency:
@@ -355,7 +358,7 @@ class Detector:
     def _open_episode(
         self,
         rule: Rule,
-        st: DetectorState,
+        st: SeriesState,
         ev: ExpectedValue,
         measurement: Measurement,
         hit: WindowHit | None,
@@ -412,7 +415,7 @@ class Detector:
 
     def _update_episode(
         self,
-        state: DetectorState,
+        state: SeriesState,
         rule: Rule,
         minute: datetime,
         measurement: Measurement,
@@ -436,7 +439,6 @@ class Detector:
                 min_ratio, minutes = cfg.sustained
                 if event.recent_ratio >= min_ratio and duration >= minutes:
                     event.sustained_at = minute
-                    self.sustained_now.append(event)
         state.excluded.add(minute)
         direction = 1 if rule.direction == "up" else -1
         if flagged or valid:
@@ -462,7 +464,7 @@ class Detector:
         return None
 
     def _close_episode(
-        self, st: DetectorState, event: ChangeEvent, t: datetime, chronic: bool
+        self, st: SeriesState, event: ChangeEvent, t: datetime, chronic: bool
     ) -> tuple[str, ChangeEvent]:
         event.ended_at = t
         if chronic:
@@ -484,7 +486,7 @@ class Detector:
         return ("expire" if chronic else "close"), event
 
     @staticmethod
-    def _can_measure_window(st: DetectorState, window: int) -> bool:
+    def _can_measure_window(st: SeriesState, window: int) -> bool:
         counts = st.counts
         assert counts is not None
         if len(counts) <= window:
@@ -494,7 +496,7 @@ class Detector:
             return False
         return counts[-1].missing == first.missing
 
-    def _pooled_recovery(self, st: DetectorState, ev: ExpectedValue) -> tuple[bool, bool]:
+    def _pooled_recovery(self, st: SeriesState, ev: ExpectedValue) -> tuple[bool, bool]:
         counts = st.counts
         if (ev.key.signal == "failed_rate" or is_share(ev.key)) and st.failure_reference is None:
             return False, False
@@ -508,7 +510,7 @@ class Detector:
         return False, False
 
     def _window_test(
-        self, st: DetectorState, ev: ExpectedValue, p_max: float, *, only: int = 0
+        self, st: SeriesState, ev: ExpectedValue, p_max: float, *, only: int = 0
     ) -> WindowHit | None:
         """Return the shortest window with enough evidence to reject its baseline."""
         counts = st.counts
@@ -582,7 +584,7 @@ class Detector:
         return windows[first : first + 2]
 
     def _failure_reference(
-        self, key: SeriesKey, st: DetectorState, end_minute: datetime
+        self, key: SeriesKey, st: SeriesState, end_minute: datetime
     ) -> tuple[float, float] | None:
         trial_key = weight_key(key)
         assert trial_key is not None
@@ -605,7 +607,7 @@ class Detector:
         trials = (last.volume - before.volume) * self.cfg.min_samples
         return (last.events - before.events, trials) if trials >= 1 else None
 
-    def _share_test(self, st: DetectorState, w: int, need: float, p_max: float) -> WindowHit | None:
+    def _share_test(self, st: SeriesState, w: int, need: float, p_max: float) -> WindowHit | None:
         """Compare sampled failures over sampled trials using a beta-binomial predictive tail."""
         counts = st.counts
         assert counts is not None

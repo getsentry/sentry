@@ -7,6 +7,7 @@ from datetime import UTC, datetime, timedelta
 
 import orjson
 from django.db import router, transaction
+from django.db.models import F
 from django.utils import timezone
 from taskbroker_client.retry import Retry
 
@@ -67,6 +68,13 @@ def _enabled_detectors() -> BaseQuerySet[Detector]:
         project__status=ObjectStatus.ACTIVE,
         project__organization__status=OrganizationStatus.ACTIVE,
     )
+
+
+def _anomaly_handler(detector: Detector) -> AnomalyDetectionDetectorHandler:
+    handler = detector.detector_handler
+    if not isinstance(handler, AnomalyDetectionDetectorHandler):
+        raise TypeError("Anomaly detector settings must register an anomaly handler")
+    return handler
 
 
 def _eligible(organization: Organization) -> bool:
@@ -167,10 +175,14 @@ def _deliver_one(
             return None
         pending = delivery.pending[index]
         transition = pending.transition
-        detector = _enabled_detectors().get_or_none(
-            id=pending.detector_id,
-            project_id=transition.project_id,
-            project__organization_id=organization_id,
+        detector = (
+            _enabled_detectors()
+            .annotate(project_organization_id=F("project__organization_id"))
+            .get_or_none(
+                id=pending.detector_id,
+                project_id=transition.project_id,
+                project__organization_id=organization_id,
+            )
         )
         if detector is None:
             # Disabling/removing a detector cancels only its affected publications.
@@ -181,11 +193,8 @@ def _deliver_one(
             )
             delivery.retire_owner(pending.logical_key)
         else:
-            fingerprint = hash_fingerprint(
-                AnomalyDetectionDetectorHandler(detector).get_issue_fingerprint(
-                    transition.group_key
-                )
-            )
+            handler = _anomaly_handler(detector)
+            fingerprint = hash_fingerprint(handler.get_issue_fingerprint(transition.group_key))
             group = get_group_from_fingerprint(transition.project_id, fingerprint)
             # Wait for opens and updates to be visible before sending a close: a
             # broker acknowledgement does not mean the consumer has applied them.
@@ -290,6 +299,9 @@ def _run_organization(organization_id: int, target: datetime) -> bool:
         raise RuntimeError("Anomaly detection organization exceeds the project limit")
     projects = [detector.linked_project for detector in detector_rows]
     detector_ids = {detector.linked_project.id: detector.id for detector in detector_rows}
+    handlers = {
+        str(detector.linked_project.id): _anomaly_handler(detector) for detector in detector_rows
+    }
 
     if saved_delivery is None:
         state, created = state_rows.get_or_create(organization_id=organization_id)
@@ -336,7 +348,7 @@ def _run_organization(organization_id: int, target: datetime) -> bool:
         footprints=TraceLookup(organization, projects),
         new_issues=new_issues,
         checkpoint=previous_checkpoint,
-        current_projects={str(p.id) for p in projects},
+        handlers=handlers,
     )
     metrics.distribution("anomaly_detection.checkpoint_bytes", len(orjson.dumps(checkpoint)))
     delivery.stage(

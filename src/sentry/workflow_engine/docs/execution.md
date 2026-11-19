@@ -61,6 +61,14 @@ paths can identify detectors through product-specific data and call
 [`process_detectors`](../processors/detector.py) directly. The handler contract is the
 same after detector selection.
 
+Anomaly detection sends each project's measurements as a `DataPacket` to its registered
+detector handler. The handler compares measurements with prior baselines and returns changes
+for the organization to correlate. This product-specific step does not publish issues. Once
+correlation is complete, the source commits its checkpoint and pending transitions together
+and calls `process_detectors` for the pinned project detector. Workflow Engine records evaluation
+artifacts and dispatches outcomes. The source keeps a transition pending until Issue Platform
+ingestion is observed, so the handler must not drop retries before publication.
+
 ### 3. Evaluate each detector
 
 `process_detectors` obtains `detector.detector_handler` from the `DetectorSettings`

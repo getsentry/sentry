@@ -3,7 +3,9 @@ from datetime import datetime, timedelta
 
 from sentry.anomaly_detection import pipeline
 from sentry.anomaly_detection.contracts import ChangeEvent, Urgency
+from sentry.anomaly_detection.grouptype import AnomalyDetection, AnomalyDetectionDetectorHandler
 from sentry.anomaly_detection.series import SeriesRow
+from sentry.workflow_engine.models import Detector
 
 START = datetime(2024, 1, 8, 12)  # Collector timestamps are naive UTC.
 MINUTES = 200
@@ -11,6 +13,15 @@ PROJECT = "42"
 ENV = "production"
 CHECKOUT = "/checkout"
 REPORTS = "/reports"
+
+
+def make_handlers(*projects: str) -> dict[str, AnomalyDetectionDetectorHandler]:
+    return {
+        project: AnomalyDetectionDetectorHandler(
+            Detector(id=int(project), project_id=int(project), type=AnomalyDetection.slug)
+        )
+        for project in projects
+    }
 
 
 class NoFootprints:
@@ -24,7 +35,12 @@ def _at(minute: int) -> datetime:
 
 def _evaluate(rows: Sequence[SeriesRow]) -> Sequence[pipeline.AnomalyDecision]:
     return pipeline.evaluate_org(
-        rows=rows, hourly_rows=[], start=START, end=_at(MINUTES), footprints=NoFootprints()
+        rows=rows,
+        hourly_rows=[],
+        start=START,
+        end=_at(MINUTES),
+        footprints=NoFootprints(),
+        handlers=make_handlers(PROJECT),
     )
 
 
@@ -132,3 +148,32 @@ def test_two_metrics_on_one_endpoint_are_not_independent_evidence() -> None:
     decisions = _evaluate(endpoints + _failure_rows(REPORTS))
     # Slowdown recovers at 150 and the failure rate at 157; quiet starts at the latter.
     _assert_transitions(decisions, opened=126, closed=172, urgency=Urgency.LOW)
+
+
+def test_registered_projects_keep_independent_slowdown_lifecycles() -> None:
+    rows = _endpoint_rows(slow_minutes=range(120, 156))
+    other_project = "43"
+    other_rows = [
+        (ts, signal, metric, other_project, "staging", dim, value)
+        for ts, signal, metric, _, _, dim, value in rows
+    ]
+    decisions = pipeline.evaluate_org(
+        rows=rows + other_rows,
+        hourly_rows=[],
+        start=START,
+        end=_at(MINUTES),
+        footprints=NoFootprints(),
+        handlers=make_handlers(other_project, PROJECT),
+    )
+    assert [(d.timestamp, d.is_resolved, d.urgency) for d in decisions] == [
+        (_at(150), False, Urgency.MEDIUM),
+        (_at(150), False, Urgency.MEDIUM),
+        (_at(190), True, Urgency.MEDIUM),
+        (_at(190), True, Urgency.MEDIUM),
+    ]
+    project_decisions = [d for d in decisions if d.project_id == int(PROJECT)]
+    assert project_decisions == list(_evaluate(rows))
+    other_open, other_close = [d for d in decisions if d.project_id == int(other_project)]
+    assert other_open.group_key == other_close.group_key
+    assert other_open.group_key != project_decisions[0].group_key
+    assert other_open.env == other_close.env == "staging"

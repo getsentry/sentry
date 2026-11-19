@@ -7,7 +7,7 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from math import isfinite
 
-from sentry.anomaly_detection import quality, shared
+from sentry.anomaly_detection import shared
 from sentry.anomaly_detection.baseline import Baseline
 from sentry.anomaly_detection.changepoint import ChangePointDetector
 from sentry.anomaly_detection.contracts import ChangeEvent, ChangeType, SeriesKey, Urgency
@@ -17,9 +17,11 @@ from sentry.anomaly_detection.correlate import (
     FootprintSource,
     GroupAction,
 )
-from sentry.anomaly_detection.detect import Detector
+from sentry.anomaly_detection.detect import SeriesHistory
+from sentry.anomaly_detection.grouptype import AnomalyDetectionDetectorHandler, MinuteMeasurements
 from sentry.anomaly_detection.novelty import Novelty, size_of
-from sentry.anomaly_detection.series import Series, SeriesRow, build, samples_key
+from sentry.anomaly_detection.series import Series, SeriesRow
+from sentry.workflow_engine.models import DataPacket
 
 _MINUTE = timedelta(minutes=1)
 _HARM_WINDOW = timedelta(minutes=10)
@@ -53,10 +55,11 @@ def evaluate_org(
     start: datetime,
     end: datetime,
     footprints: FootprintSource,
+    handlers: Mapping[str, AnomalyDetectionDetectorHandler],
     new_issues: Sequence[ChangeEvent] = (),
 ) -> Sequence[AnomalyDecision]:
     """Evaluate [start, end), using earlier minute rows to warm the model (naive UTC)."""
-    return OrgEvaluator(footprints).advance(
+    return OrgEvaluator(footprints, handlers=handlers).advance(
         rows=rows, hourly_rows=hourly_rows, start=start, end=end, new_issues=new_issues
     )
 
@@ -64,11 +67,21 @@ def evaluate_org(
 class OrgEvaluator:
     """Own the shared streaming state for one organization's ordered evaluation windows."""
 
-    def __init__(self, footprints: FootprintSource) -> None:
+    def __init__(
+        self,
+        footprints: FootprintSource,
+        *,
+        handlers: Mapping[str, AnomalyDetectionDetectorHandler],
+    ) -> None:
+        self.handlers = dict(sorted(handlers.items()))
+        if any(
+            project != str(handler.detector.project_id) for project, handler in handlers.items()
+        ):
+            raise ValueError("Anomaly handler map keys must match their detector project IDs")
         self.series: dict[SeriesKey, Series] = {}
         self.hourly: dict[SeriesKey, Series] = {}
         self.baseline = Baseline(self.hourly)
-        self.det = Detector(self.series, self.baseline)
+        self.det = SeriesHistory(self.series, self.baseline)
         self.cp = ChangePointDetector(self.series, self.baseline)
         self.corr = Correlator(footprints, series=self.series)
         self.novelty = Novelty()
@@ -99,11 +112,20 @@ class OrgEvaluator:
         # quality exclusions causal, regardless of where polling batches are split.
         minutes: dict[datetime, list[SeriesRow]] = defaultdict(list)
         for row in rows:
-            if row[0] < end and (self.next_minute is None or row[0] >= self.next_minute):
+            if (
+                row[3] in self.handlers
+                and row[0] < end
+                and (self.next_minute is None or row[0] >= self.next_minute)
+            ):
                 minutes[row[0]].append(row)
-        for key, values in build(row for row in hourly_rows if row[0] < end).items():
-            self.hourly.setdefault(key, {}).update(values)
-        self._queue_issues(new_issues)
+        hourly_by_project: dict[str, list[SeriesRow]] = defaultdict(list)
+        for row in hourly_rows:
+            if row[3] in self.handlers and row[0] < end:
+                hourly_by_project[row[3]].append(row)
+        for project, project_rows in hourly_by_project.items():
+            for key, values in self.handlers[project].load_baseline(project_rows).items():
+                self.hourly.setdefault(key, {}).update(values)
+        self._queue_issues([event for event in new_issues if event.key.project in self.handlers])
 
         first_publish_minute = _minute_ceiling(start)
         cold_start = self.next_minute is None
@@ -158,32 +180,41 @@ class OrgEvaluator:
         self.pending_issues.sort(key=lambda event: (_available_at(event), _episode(event)))
 
     def _step(self, minute: datetime, rows: Sequence[SeriesRow]) -> list[AnomalyDecision]:
-        measurements = build(rows)
-        if measurements:
-            discovered_series = bool(measurements.keys() - self.series.keys())
-            for key, values in measurements.items():
-                self.series.setdefault(key, {}).update(values)
-            if discovered_series:
-                self.det.refresh()
-                self.cp.refresh()
+        by_project: dict[str, list[SeriesRow]] = defaultdict(list)
+        for row in rows:
+            by_project[row[3]].append(row)
 
         if minute.minute == 0:
             self._prune_context(minute)
-            self._check_quality(minute)
             if minute.hour == 0:
                 self.corr.shared = shared.learn(
                     self.novelty.history, minute, coverage=self.novelty.coverage
                 )
-        for key in measurements.keys() & self.det.watched.keys():
-            if self._has_novelty_observation(key, minute):
+        candidates: list[ChangeAction] = []
+        for project, handler in self.handlers.items():
+            result = handler.evaluate_measurements(
+                DataPacket(
+                    source_id=str(handler.detector.id),
+                    packet=MinuteMeasurements(minute=minute, rows=by_project.get(project, ())),
+                ),
+                self.det,
+                self.cp,
+            )
+            candidates.extend(result.changes)
+            for key in result.observed:
                 self.novelty.observe(key, minute)
-
-        candidates = self.det.step(minute)
-        for key in self.cp.watched:
-            state = self.det.state.get(key)
-            if state is not None and state.open is not None:
-                self.cp.note_spike(state.open, minute)
-        candidates.extend(self.cp.step(minute))
+        if len(self.handlers) > 1 and len(candidates) > 1:
+            # Keep the original scoring order across projects: excursions first,
+            # then change points. Correlation can use this order to break ties.
+            order = {key: index for index, key in enumerate(self.det.watched)}
+            point_order = {key: index for index, key in enumerate(self.cp.watched)}
+            candidates.sort(
+                key=lambda action: (
+                    (1, point_order[action[1].key])
+                    if action[1].change_type == ChangeType.CHANGE_POINT
+                    else (0, order[action[1].key])
+                )
+            )
         opens = [event for kind, event in candidates if kind == "open"]
         self._note_harm(opens)
         actions = self._judge(minute, candidates)
@@ -210,15 +241,6 @@ class OrgEvaluator:
 
         return self._decisions(self.corr.step(minute, actions))
 
-    def _has_novelty_observation(self, key: SeriesKey, minute: datetime) -> bool:
-        rule = self.det.watched.get(key)
-        if rule is None or key in self.det.exclude or self.series[key].get(minute) is None:
-            return False
-        if rule.change == ChangeType.SLOWDOWN:
-            samples = self.series.get(samples_key(key), {}).get(minute)
-            return samples is not None and samples >= self.det.cfg.min_samples
-        return True
-
     def _prune_context(self, t: datetime) -> None:
         floor = t - _CONTEXT_HORIZON
         self.known_issues[:] = [
@@ -237,28 +259,6 @@ class OrgEvaluator:
         retained = self.corr.state.open_groups.keys() | self.corr.state.closed_groups.keys()
         for group_key in self.qualified.keys() - retained:
             del self.qualified[group_key]
-
-    def _check_quality(self, t: datetime) -> None:
-        # Use only observed history; a future change in instrumentation must not
-        # retroactively exclude a series. Don't abandon the recovery of an open change.
-        recent_minutes = [t - offset * _MINUTE for offset in range(60)]
-        measurements = {
-            key: {minute: values[minute] for minute in recent_minutes if minute in values}
-            for key, values in self.series.items()
-            if key.metric.startswith("p95") or key.metric == "count_sample()"
-        }
-        restored_series = False
-        for key, invalid_reason in quality.check(measurements).items():
-            if invalid_reason is not None:
-                self.det.exclude[key] = invalid_reason
-            elif self.det.exclude.pop(key, None) is not None:
-                restored_series = True
-        for key in self.det.exclude.keys() & self.det.watched.keys():
-            if self.det.state[key].open is None:
-                del self.det.watched[key]
-                del self.det.state[key]
-        if restored_series:
-            self.det.refresh()
 
     def _note_harm(self, events: Sequence[ChangeEvent]) -> None:
         for event in events:
@@ -375,7 +375,7 @@ class OrgEvaluator:
         if (
             event.change_type == ChangeType.CHANGE_POINT
             or minute - event.start < next_duration_check * _MINUTE
-            or not self._has_novelty_observation(event.key, minute)
+            or not self.det.has_novelty_observation(event.key, minute)
         ):
             return None
         observed_minutes = self.novelty.observed_duration(event, minute)

@@ -8,7 +8,11 @@ __all__ = ("AnomalyDetectionState",)
 
 @cell_silo_model
 class AnomalyDetectionState(DefaultFieldsModel):
-    """Cell-local evaluation checkpoint and issue delivery queue for one organization."""
+    """Correlated source checkpoint and outbox, not Workflow Engine detector state.
+
+    Project monitors are Workflow Engine Detector rows. This cell-local row keeps the
+    organization-wide statistical cursor and pending issue transitions atomic.
+    """
 
     __relocation_scope__ = RelocationScope.Excluded
 

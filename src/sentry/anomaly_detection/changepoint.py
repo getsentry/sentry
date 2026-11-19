@@ -72,11 +72,12 @@ class ChangePointDetector:
         self._spike_seen: dict[SeriesKey, datetime] = {}
         self.refresh()
 
-    def refresh(self) -> int:
+    def refresh(self, *, project: str | None = None) -> int:
         new = [
             key
             for key in sorted(self.series)
-            if key.signal in RATES
+            if (project is None or key.project == project)
+            and key.signal in RATES
             and not key.dim_value
             and key not in self.exclude
             and key not in self.state
@@ -97,11 +98,15 @@ class ChangePointDetector:
             marked.update(_minutes(max(e.start - MINUTE, window_start), t))
             self._spike_seen[e.key] = t
 
-    def step(self, t: datetime) -> list[tuple[Literal["open", "close"], ChangeEvent]]:
+    def step(
+        self, t: datetime, *, project: str | None = None
+    ) -> list[tuple[Literal["open", "close"], ChangeEvent]]:
         if t.minute % self.cfg.every:
             return []
         out = []
         for key in self.watched:
+            if project is not None and key.project != project:
+                continue
             action = self._step(key, t)
             if action is not None:
                 out.append(action)

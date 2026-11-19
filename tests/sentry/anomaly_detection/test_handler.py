@@ -1,17 +1,24 @@
 from dataclasses import replace
-from datetime import timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 import pytest
 from confluent_kafka import KafkaException
 from django.test import override_settings
 
+from sentry.anomaly_detection.baseline import Baseline
+from sentry.anomaly_detection.changepoint import ChangePointDetector
+from sentry.anomaly_detection.contracts import ChangeType, SeriesKey
+from sentry.anomaly_detection.detect import SeriesHistory
 from sentry.anomaly_detection.grouptype import (
     AnomalyDetection,
     AnomalyDetectionDetectorHandler,
     AnomalyTransition,
+    MeasurementEvaluation,
+    MinuteMeasurements,
     publish_anomaly_transition,
 )
+from sentry.anomaly_detection.series import SeriesRow
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import Group, GroupStatus
@@ -30,7 +37,9 @@ class TestAnomalyDetectionHandler(TestCase):
         self.detector = self.create_detector(
             project=self.project, type=DetectorType.ANOMALY_DETECTION
         )
-        self.handler = AnomalyDetectionDetectorHandler(self.detector)
+        handler = self.detector.detector_handler
+        assert isinstance(handler, AnomalyDetectionDetectorHandler)
+        self.handler = handler
         self.transition = AnomalyTransition(
             group_key="correlated-anomaly",
             project_id=self.project.id,
@@ -51,7 +60,69 @@ class TestAnomalyDetectionHandler(TestCase):
         settings = detector_settings_registry.get(DetectorType.ANOMALY_DETECTION)
         assert settings.handler is AnomalyDetectionDetectorHandler
         assert settings.api_availability == {operation: False for operation in DetectorAPIOperation}
+        assert settings.config_schema == {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": False,
+        }
+        assert self.detector.group_type is AnomalyDetection
         assert not AnomalyDetection.allow_ingest(self.organization)
+
+    def test_scores_project_measurements_with_loaded_history(self) -> None:
+        minute = datetime(2024, 1, 8, 13)
+        project = str(self.project.id)
+        other_project = str(self.project.id + 1)
+        key = SeriesKey(project, "production", "errors", "count()")
+        other_key = replace(key, project=other_project)
+
+        def row(ts: datetime, value: float, project_id: str = project) -> SeriesRow:
+            return (ts, "errors", "count()", project_id, "production", "", value)
+
+        hourly = self.handler.load_baseline(
+            [
+                row(minute - timedelta(days=day, hours=hour), value)
+                for day in range(1, 8)
+                for hour, value in ((0, 10.0), (1, 5.0))
+            ]
+        )
+        baseline = Baseline(hourly)
+        history = SeriesHistory({other_key: {minute: 100.0}}, baseline)
+        change_points = ChangePointDetector(history.series, baseline)
+
+        def evaluate(ts: datetime, *rows: SeriesRow) -> MeasurementEvaluation:
+            packet = DataPacket(source_id="measurements", packet=MinuteMeasurements(ts, rows))
+            return self.handler.evaluate_measurements(packet, history, change_points)
+
+        with pytest.raises(ValueError, match="project must match"):
+            self.handler.load_baseline([row(minute, 3.0, other_project)])
+        with pytest.raises(ValueError, match="project must match"):
+            evaluate(minute, row(minute, 100.0), row(minute, 100.0, other_project))
+        with pytest.raises(ValueError, match="timestamps must match"):
+            evaluate(minute, row(minute, 100.0), row(minute + timedelta(minutes=1), 100.0))
+        assert history.series == {other_key: {minute: 100.0}}
+
+        for offset in range(60, 0, -1):
+            ts = minute - timedelta(minutes=offset)
+            result = evaluate(ts, row(ts, 5.0))
+            assert result.observed == {key}
+            assert result.changes == []
+
+        assert evaluate(minute, row(minute, 100.0)).changes == []
+        empty_minute = minute + timedelta(minutes=1)
+        result = evaluate(empty_minute)
+        assert not result.observed and not result.changes
+        assert history.state[key].recent[-1] == (empty_minute, False, None)
+        assert not history.state[other_key].recent
+
+        next_minute = minute + timedelta(minutes=2)
+        assert evaluate(next_minute, row(next_minute, 100.0)).changes == []
+        last_minute = minute + timedelta(minutes=3)
+        [(action, event)] = evaluate(last_minute, row(last_minute, 100.0)).changes
+        assert action == "open"
+        assert event.key == key
+        assert event.change_type == ChangeType.SPIKE
+        assert event.detected_at == last_minute
+        assert event.expected == 10.0
 
     def test_trigger_and_recovery_identity(self) -> None:
         evaluation = self.evaluate(self.transition)

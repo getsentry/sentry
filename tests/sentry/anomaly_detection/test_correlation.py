@@ -18,6 +18,7 @@ from sentry.anomaly_detection.footprint import (
 )
 from sentry.anomaly_detection.pipeline import OrgEvaluator
 from sentry.anomaly_detection.shared import learn
+from tests.sentry.anomaly_detection.test_parity import make_handlers
 
 START = datetime(2024, 1, 1)
 MINUTE = timedelta(minutes=1)
@@ -267,14 +268,15 @@ def test_deferred_footprint_is_retried_after_checkpoint_restore() -> None:
         SeriesKey("3", "production", "endpoints", LATENCY, "/help"), START + MINUTE
     )
     traces = _Traces({CHECKOUT: FOOTPRINT_DEFERRED})
-    evaluator = OrgEvaluator(traces)
+    handlers = make_handlers(CHECKOUT.project, ORDERS.project, unrelated.key.project)
+    evaluator = OrgEvaluator(traces, handlers=handlers)
     (opened,) = evaluator.corr.step(checkout.start, [("open", checkout)])
     evaluator.corr.step(unrelated.start, [("open", unrelated)])
     assert (CHECKOUT, unrelated.start + MINUTE) in traces.calls
 
     orders = _episode(ORDERS, START + 2 * MINUTE)
     next_traces = _Traces({CHECKOUT: _checkout_footprint()})
-    restored = _restore(next_traces, _snapshot(evaluator, orders.start))
+    restored = _restore(next_traces, _snapshot(evaluator, orders.start), handlers=handlers)
     actions = restored.corr.step(orders.start, [("open", orders)])
 
     assert (CHECKOUT, orders.start + MINUTE) in next_traces.calls

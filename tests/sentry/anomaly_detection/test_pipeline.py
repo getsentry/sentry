@@ -12,6 +12,7 @@ from sentry.anomaly_detection.correlate import GroupAction
 from sentry.anomaly_detection.footprint import Footprint
 from sentry.anomaly_detection.pipeline import OrgEvaluator, evaluate_org
 from sentry.anomaly_detection.series import SeriesRow
+from tests.sentry.anomaly_detection.test_parity import make_handlers
 
 T0 = datetime(2020, 11, 2, 12)
 MINUTE = timedelta(minutes=1)
@@ -47,7 +48,12 @@ def test_minute_observations_open_and_resolve_the_same_group() -> None:
     end = T0 + 250 * MINUTE
     rows = latency_rows(spike_end=165)
     (opened, resolved) = evaluate_org(
-        rows=rows, hourly_rows=[], start=start, end=end, footprints=NoFootprints()
+        rows=rows,
+        hourly_rows=[],
+        start=start,
+        end=end,
+        footprints=NoFootprints(),
+        handlers=make_handlers("42"),
     )
 
     assert not opened.is_resolved
@@ -63,7 +69,12 @@ def test_minute_observations_open_and_resolve_the_same_group() -> None:
 
     # A fresh replay with a different input order computes the same identity and lifecycle.
     assert [opened, resolved] == evaluate_org(
-        rows=rows[::-1], hourly_rows=[], start=start, end=end, footprints=NoFootprints()
+        rows=rows[::-1],
+        hourly_rows=[],
+        start=start,
+        end=end,
+        footprints=NoFootprints(),
+        handlers=make_handlers("42"),
     )
 
 
@@ -72,7 +83,7 @@ def test_absent_sample_source_does_not_resolve_an_open_change() -> None:
     gap_end = T0 + 230 * MINUTE
     end = T0 + 300 * MINUTE
     rows = latency_rows(spike_end=230, missing_from=165, end=300)
-    evaluator = OrgEvaluator(NoFootprints())
+    evaluator = OrgEvaluator(NoFootprints(), handlers=make_handlers("42"))
     before_gap = [row for row in rows if row[0] < gap_end]
     after_gap = [row for row in rows if row[0] >= gap_end]
     (opened,) = evaluator.advance(rows=before_gap, hourly_rows=[], start=start, end=gap_end)
@@ -86,7 +97,7 @@ def test_absent_sample_source_does_not_resolve_an_open_change() -> None:
 def test_unusual_but_short_single_slowdown_does_not_qualify() -> None:
     start = T0 + 120 * MINUTE
     end = T0 + 140 * MINUTE
-    evaluator = OrgEvaluator(NoFootprints())
+    evaluator = OrgEvaluator(NoFootprints(), handlers=make_handlers("42"))
     assert not evaluator.advance(
         rows=latency_rows(spike_end=132), hourly_rows=[], start=start, end=end
     )
@@ -118,7 +129,7 @@ def test_routine_slowdown_qualifies_when_it_lasts_unusually_long() -> None:
             ]
         )
 
-    evaluator = OrgEvaluator(NoFootprints())
+    evaluator = OrgEvaluator(NoFootprints(), handlers=make_handlers("42"))
     assert not evaluator.advance(rows=rows, hourly_rows=[], start=start, end=duration_look)
     (latent,) = evaluator.absorbed.values()
     assert latent.start == start and latent.sustained_at is not None
@@ -145,7 +156,7 @@ def test_new_failure_mode_opens_only_after_crossing_the_standalone_threshold() -
         evidence=["private failure payload", "issues:PRIVATE-42"],
     )
     weak = replace(issue, actual=10.0, confidence=0.5, detected_at=weak_at)
-    evaluator = OrgEvaluator(NoFootprints())
+    evaluator = OrgEvaluator(NoFootprints(), handlers=make_handlers("42"))
     assert not evaluator.advance(
         rows=[], hourly_rows=[], start=T0, end=detected_at, new_issues=[weak]
     )
@@ -185,7 +196,7 @@ def test_first_qualification_pins_the_owner_through_reroot_and_merge() -> None:
     group = AnomalyGroup(
         "stable-group", T0, [selected, other], blast_radius=["42/prod", "93/staging"]
     )
-    evaluator = OrgEvaluator(NoFootprints())
+    evaluator = OrgEvaluator(NoFootprints(), handlers=make_handlers("42", "93"))
     assert not evaluator._decisions([GroupAction(T0, "open", group, root=selected)])
 
     (opened,) = evaluator._decisions(
@@ -235,6 +246,7 @@ def test_cold_start_does_not_publish_a_group_that_closes_on_the_boundary() -> No
         start=closes_at,
         end=closes_at + MINUTE,
         footprints=NoFootprints(),
+        handlers=make_handlers("42"),
         new_issues=[failure],
     )
 
@@ -245,7 +257,7 @@ def test_simultaneous_excursions_do_not_change_each_others_prior() -> None:
     candidate_minute = T0 + timedelta(hours=12)
     candidate = ChangeEvent(left_key, ChangeType.SLOWDOWN, candidate_minute, 40.0, 20.0, 0.9)
     peer = replace(candidate, key=right_key)
-    evaluator = OrgEvaluator(NoFootprints())
+    evaluator = OrgEvaluator(NoFootprints(), handlers=make_handlers("42"))
     for offset in range(720):
         minute = T0 + offset * MINUTE
         evaluator.novelty.observe(left_key, minute)
@@ -259,7 +271,7 @@ def test_simultaneous_excursions_do_not_change_each_others_prior() -> None:
 
 
 def test_healthy_measurements_restore_latency_detection() -> None:
-    evaluator = OrgEvaluator(NoFootprints())
+    evaluator = OrgEvaluator(NoFootprints(), handlers=make_handlers("42"))
     key = SeriesKey("42", "prod", "outbound_db", "p95(span.duration)", "primary")
     rows = [
         (T0 + offset * MINUTE, key.signal, metric, key.project, key.env, key.dim_value, value)

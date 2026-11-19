@@ -3,11 +3,17 @@ from types import SimpleNamespace
 from unittest.mock import call, patch
 
 import pytest
+from arroyo.backends.kafka import KafkaPayload
+from arroyo.backends.local.backend import LocalBroker
+from arroyo.backends.local.storages.memory import MemoryMessageStorage
+from arroyo.types import Partition
+from arroyo.types import Topic as ArroyoTopic
+from django.test import override_settings
 
 from sentry import features
 from sentry.anomaly_detection import schedule
 from sentry.anomaly_detection.checkpoint import CHECKPOINT_VERSION
-from sentry.anomaly_detection.contracts import ChangeEvent, ChangeType, SeriesKey, Urgency
+from sentry.anomaly_detection.contracts import Urgency
 from sentry.anomaly_detection.enrichment import TraceLookup
 from sentry.anomaly_detection.grouptype import (
     AnomalyDetection,
@@ -15,7 +21,9 @@ from sentry.anomaly_detection.grouptype import (
     AnomalyTransition,
 )
 from sentry.anomaly_detection.pipeline import AnomalyDecision
+from sentry.anomaly_detection.series import SeriesRow
 from sentry.anomaly_detection.state import DeliveryState
+from sentry.conf.types.kafka_definition import Topic
 from sentry.constants import ObjectStatus
 from sentry.issues.ingest import hash_fingerprint
 from sentry.issues.issue_occurrence import IssueOccurrence
@@ -30,6 +38,8 @@ from sentry.models.project import Project
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import cell_silo_test
+from sentry.utils import json
+from sentry.utils.kafka_config import get_topic_definition
 from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.types import DetectorPriorityLevel, DetectorType
 
@@ -152,9 +162,15 @@ class TestAnomalySchedule(TestCase):
             {"current_rows": []},
         ]
         assert [call.kwargs["start"] for call in advance.call_args_list] == [START, END]
-        assert [call.kwargs["current_projects"] for call in advance.call_args_list] == [
-            {str(self.project.id), str(leaving.project_id)},
-            {str(self.project.id)},
+        assert [
+            {
+                project_id: handler.detector.id
+                for project_id, handler in call.kwargs["handlers"].items()
+            }
+            for call in advance.call_args_list
+        ] == [
+            {str(self.project.id): primary.id, str(leaving.project_id): leaving.id},
+            {str(self.project.id): primary.id},
         ]
         assert [call.kwargs["checkpoint"] for call in advance.call_args_list] == [None, checkpoint]
         state = AnomalyDetectionState.objects.get(organization=self.organization)
@@ -232,31 +248,71 @@ class TestAnomalySchedule(TestCase):
             if item.broker_acked_at is not None
         }
 
-    def test_cold_worker_publishes_anomaly_still_active_after_warmup(self) -> None:
+    @override_settings(SENTRY_EVENTSTREAM="sentry.eventstream.kafka.KafkaEventStream")
+    def test_cold_worker_publishes_anomaly_evaluated_from_measurements(self) -> None:
         detector = self.make_detector(self.project)
-        issue = ChangeEvent(
-            SeriesKey(str(self.project.id), "production", "new_issue", "count_unique(user)", "42"),
-            ChangeType.NEW_FAILURE_MODE,
-            START - timedelta(minutes=5),
-            actual=60.0,
-            expected=60.0,
-            confidence=0.9,
-        )
+        broker = LocalBroker(MemoryMessageStorage[KafkaPayload]())
+        topic = ArroyoTopic(get_topic_definition(Topic.INGEST_OCCURRENCES)["real_topic_name"])
+        broker.create_topic(topic, partitions=1)
+        project_id = str(self.project.id)
+        minute_rows: list[SeriesRow] = [
+            (
+                START - timedelta(minutes=age),
+                "errors",
+                "count_unique(user)",
+                project_id,
+                "production",
+                "",
+                200.0 if age < 5 else 10.0,
+            )
+            for age in range(64, -1, -1)
+        ]
+        hourly_rows: list[SeriesRow] = [
+            (
+                START - timedelta(days=days, hours=hours),
+                "errors",
+                "count_unique(user)",
+                project_id,
+                "production",
+                "",
+                10.0,
+            )
+            for days in range(1, 8)
+            for hours in (0, 1, 2)
+        ]
         with (
-            self.feature(FEATURES),
-            patch.object(schedule, "collect", return_value=[]),
-            patch.object(schedule, "_hourly_rows", return_value=[]),
-            patch.object(schedule, "collect_new_failure_modes", return_value=[issue]),
+            self.feature(
+                {**FEATURES, "organizations:workflow-engine-evaluation-artifacts-eap": True}
+            ),
+            patch.object(schedule, "collect", return_value=minute_rows),
+            patch.object(schedule, "_hourly_rows", return_value=hourly_rows),
+            patch.object(schedule, "collect_new_failure_modes", return_value=[]),
             patch.object(TraceLookup, "footprint", return_value=None),
-            patch.object(schedule, "publish_anomaly_transition") as publish,
+            patch("sentry.issues.producer._confirmed_occurrence_producer", broker.get_producer()),
+            patch(
+                "sentry.workflow_engine.processors.evaluations.tracking._eap_emitter.send"
+            ) as emit,
         ):
             schedule._run_organization(self.organization.id, END)
 
-        assert publish.call_count == 1
-        owner, opened = publish.call_args.args
-        assert owner == detector
-        assert opened.timestamp == START
-        assert not opened.is_resolved
+        message = broker.consume(Partition(topic, 0), 0)
+        assert message is not None
+        occurrence = json.loads(message.payload.value)
+        assert occurrence["type"] == AnomalyDetection.type_id
+        assert occurrence["project_id"] == self.project.id
+        emit.assert_called_once()
+        organization, result = emit.call_args.args
+        assert organization == self.organization
+        assert result.detector_id == detector.id
+        assert result.project_id == self.project.id
+        (evaluation,) = result.evaluation_artifacts()
+        assert evaluation.triggered
+        assert evaluation.priority == DetectorPriorityLevel.HIGH.value
+        assert evaluation.event_id == occurrence["event_id"]
+        state = AnomalyDetectionState.objects.get(organization=self.organization)
+        (pending,) = DeliveryState.from_json(state.delivery).pending
+        assert pending.transition.timestamp == START
+        assert pending.broker_acked_at is not None
 
     def test_worker_rechecks_gate_before_querying(self) -> None:
         self.make_detector(self.project)
