@@ -89,14 +89,13 @@ export default function AutomationDetail() {
       setIsConfiguring(false);
     }
   }
-  // Scroll restoration brings back a revisited tab's old position, which would
-  // leave its content scrolled under the pinned header. Start each tab at the top.
-  const scrolledTabRef = useRef(activeTab);
+  // Start each tab at the top. Reset every ancestor's scroll on tab change.
+  const pageRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    if (scrolledTabRef.current !== activeTab) {
-      scrolledTabRef.current = activeTab;
-      window.scrollTo(0, 0);
+    for (let node = pageRef.current?.parentElement; node; node = node.parentElement) {
+      node.scrollTop = 0;
     }
+    // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [activeTab]);
   // Show who last updated the automation, falling back to who created it
   const displayUserId = config?.updatedBy || config?.createdBy;
@@ -293,7 +292,7 @@ export default function AutomationDetail() {
 
   return (
     <SentryDocumentTitle title={title} orgSlug={organization.slug}>
-      <Stack>
+      <Stack ref={pageRef}>
         <TopBar.Slot
           name="breadcrumbs"
           title={{type: 'page-title', label: title}}
