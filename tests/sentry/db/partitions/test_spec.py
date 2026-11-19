@@ -8,6 +8,7 @@ from sentry.db.partitions.spec import (
     RangePartitioning,
     hash_partition_bounds,
     hash_partition_name,
+    parse_range_partition_name,
     premade_range_partition_bounds,
     range_partition_bounds,
     range_partition_name,
@@ -98,3 +99,15 @@ def test_long_names_are_truncated_and_stay_unique() -> None:
     assert first.endswith("_p20240304")
     assert second.endswith("_p20240311")
     assert len(hash_partition_name(table, 4, 1)) == MAX_IDENTIFIER_LENGTH
+
+
+def test_parse_range_partition_name() -> None:
+    assert parse_range_partition_name("t", "t_p20240304") == datetime(2024, 3, 4, tzinfo=UTC)
+    assert parse_range_partition_name("t", "t_p20241399") is None
+    assert parse_range_partition_name("t", "t_h01") is None
+    assert parse_range_partition_name("t", "other_p20240304") is None
+    assert parse_range_partition_name("t", "t_x_p20240304") is None
+
+    table = "sentry_" + "x" * 80
+    start = datetime(2024, 3, 4, tzinfo=UTC)
+    assert parse_range_partition_name(table, range_partition_name(table, start)) == start

@@ -20,6 +20,7 @@ from sentry.db.partitions import sql
 from sentry.db.partitions.catalog import (
     get_connection,
     get_partitioned_table_info,
+    list_detached_range_partitions,
     list_partitions,
 )
 from sentry.db.partitions.registry import (
@@ -99,7 +100,9 @@ def ensure_range_partitions(target: RangeTable, now: datetime | None = None) -> 
     Create the partition containing ``now`` and ``premake`` partitions after it.
 
     Partitions are created as standalone tables and attached, so the parent table
-    only takes a SHARE UPDATE EXCLUSIVE lock. Returns the names of the new partitions.
+    only takes a SHARE UPDATE EXCLUSIVE lock. Range partitioned tables have no
+    database foreign keys, so no other table is locked. Returns the names of the new
+    partitions.
     """
     now = now if now is not None else timezone.now()
     existing = list_partitions(target.connection, target.table)
@@ -143,8 +146,11 @@ def expire_range_partitions(
     Drop every partition that only holds rows older than ``before``.
 
     Partitions are detached concurrently and then dropped. A detach of an expired
-    partition that was interrupted earlier is finished with FINALIZE. Returns the names of the dropped
-    partitions, or of the partitions that would be dropped with ``dry_run``.
+    partition that was interrupted earlier is finished with FINALIZE. A partition
+    that was detached but not dropped, for example because the drop timed out, is no
+    longer attached to the table, so it is found by name and dropped as well.
+    Returns the names of the dropped partitions, or of the partitions that would be
+    dropped with ``dry_run``.
     """
     now = now if now is not None else timezone.now()
     if before > now:
@@ -153,6 +159,20 @@ def expire_range_partitions(
         raise RuntimeError("Partitions can't be detached concurrently inside a transaction.")
 
     expired = []
+    for name, start in list_detached_range_partitions(target.connection, target.table):
+        if target.spec.interval.advance(start) > before:
+            continue
+        expired.append(name)
+        if dry_run:
+            continue
+        _execute_outside_transaction(
+            target.connection, sql.DROP_TABLE.format(table=_quote(target.connection, name))
+        )
+        logger.info(
+            "partitions.expire.dropped_detached",
+            extra={"table": target.table, "partition": name},
+        )
+
     for partition in list_partitions(target.connection, target.table):
         _, end = partition.range_bounds()
         if end is None or end > before:

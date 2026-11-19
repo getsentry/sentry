@@ -226,3 +226,29 @@ def test_foreign_keys_into_hash_partitioned_tables() -> None:
         "Referencing.on_other is a foreign key into OnOther, which is hash partitioned on "
         "`bucket` instead of its primary key. Use a plain id column or `db_constraint=False`."
     ]
+
+
+@isolate_apps("fixtures")
+def test_range_partitioned_tables_cannot_have_foreign_keys() -> None:
+    class Target(Model):
+        __relocation_scope__ = RelocationScope.Excluded
+
+        class Meta:
+            app_label = "fixtures"
+
+    class Partitioned(Model):
+        __relocation_scope__ = RelocationScope.Excluded
+
+        date_added = models.DateTimeField()
+        target = FlexibleForeignKey(Target)
+        unconstrained = FlexibleForeignKey(Target, db_constraint=False, related_name="+")
+
+        class Meta:
+            app_label = "fixtures"
+
+    assert get_model_partitioning_errors(Partitioned, WEEKLY) == [
+        "`target` is a database foreign key, which range partitioned tables can't have. "
+        "Use `db_constraint=False`."
+    ]
+    # Hash partitions are never attached or dropped after the table is created.
+    assert get_model_partitioning_errors(Partitioned, HashPartitioning("id", modulus=4)) == []

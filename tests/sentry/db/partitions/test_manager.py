@@ -2,7 +2,8 @@ from datetime import UTC, datetime, timedelta
 from unittest import mock
 
 import pytest
-from django.db import connection, transaction
+from django.db import OperationalError, connection, transaction
+from django.db.backends.base.base import BaseDatabaseWrapper
 
 from fixtures.partitions import (
     HashPartitionedFixture,
@@ -10,13 +11,19 @@ from fixtures.partitions import (
     fixture_tables,
 )
 from sentry.db.partitions import manager
-from sentry.db.partitions.catalog import PartitionInfo, list_partitions
+from sentry.db.partitions.catalog import (
+    PartitionInfo,
+    list_detached_range_partitions,
+    list_partitions,
+)
 from sentry.db.partitions.manager import (
+    RangeTable,
     ensure_partitions,
     expire_partitions,
     get_range_table,
     maintain_partitions,
 )
+from sentry.db.partitions.spec import RangePartitionBound
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 
@@ -31,6 +38,29 @@ def partition_names() -> list[str]:
 
 def week(day: int) -> str:
     return f"{RANGE_TABLE}_p202403{day:02d}"
+
+
+def locked_tables() -> list[str]:
+    """User tables this connection holds a lock on."""
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT DISTINCT c.relname
+            FROM pg_locks AS l
+            JOIN pg_class AS c ON c.oid = l.relation
+            JOIN pg_namespace AS n ON n.oid = c.relnamespace
+            WHERE l.pid = pg_backend_pid()
+                AND c.relkind IN ('r', 'p')
+                AND n.nspname NOT IN ('pg_catalog', 'information_schema')
+            ORDER BY c.relname
+            """
+        )
+        return [row[0] for row in cursor.fetchall()]
+
+
+def detach(partition: str) -> None:
+    with connection.cursor() as cursor:
+        cursor.execute(f'ALTER TABLE "{RANGE_TABLE}" DETACH PARTITION "{partition}"')
 
 
 class EnsurePartitionsTest(TransactionTestCase):
@@ -52,7 +82,25 @@ class EnsurePartitionsTest(TransactionTestCase):
             ]
 
     @freeze_time(CREATED_AT)
-    def test_new_partitions_get_indexes_and_foreign_keys(self) -> None:
+    def test_attaching_only_locks_the_table_and_the_new_partition(self) -> None:
+        with fixture_tables():
+            locked: list[str] = []
+            attach = manager._attach_range_partition
+
+            def attach_and_record_locks(target: RangeTable, bound: RangePartitionBound) -> None:
+                # Hold the locks until after they are recorded.
+                with transaction.atomic(using="default"):
+                    attach(target, bound)
+                    locked.extend(locked_tables())
+
+            with mock.patch.object(
+                manager, "_attach_range_partition", side_effect=attach_and_record_locks
+            ):
+                ensure_partitions(RangePartitionedFixture, now=CREATED_AT + timedelta(weeks=1))
+            assert locked == [RANGE_TABLE, week(25)]
+
+    @freeze_time(CREATED_AT)
+    def test_new_partitions_get_indexes(self) -> None:
         with fixture_tables():
             ensure_partitions(RangePartitionedFixture, now=CREATED_AT + timedelta(weeks=1))
             with connection.cursor() as cursor:
@@ -157,6 +205,96 @@ class ExpirePartitionsTest(TransactionTestCase):
                     before=datetime(2024, 3, 12, tzinfo=UTC),
                     now=datetime(2024, 3, 20, tzinfo=UTC),
                 )
+
+    @freeze_time(CREATED_AT)
+    def test_dropping_locks_no_other_table(self) -> None:
+        with fixture_tables():
+            locked: list[str] = []
+            execute = manager._execute_outside_transaction
+
+            def execute_and_record_locks(conn: BaseDatabaseWrapper, statement: str) -> None:
+                if not statement.startswith("DROP TABLE"):
+                    execute(conn, statement)
+                    return
+                # Hold the locks until after they are recorded. The dropped partition
+                # itself no longer shows up.
+                with transaction.atomic(using="default"):
+                    execute(conn, statement)
+                    locked.extend(locked_tables())
+
+            with mock.patch.object(
+                manager, "_execute_outside_transaction", side_effect=execute_and_record_locks
+            ):
+                assert expire_partitions(
+                    RangePartitionedFixture,
+                    before=datetime(2024, 3, 12, tzinfo=UTC),
+                    now=datetime(2024, 3, 20, tzinfo=UTC),
+                ) == [week(4)]
+            assert locked == []
+
+    @freeze_time(CREATED_AT)
+    def test_drops_detached_partitions(self) -> None:
+        with fixture_tables():
+            detach(week(4))
+            assert list_detached_range_partitions(connection, RANGE_TABLE) == [
+                (week(4), datetime(2024, 3, 4, tzinfo=UTC))
+            ]
+            assert expire_partitions(
+                RangePartitionedFixture,
+                before=datetime(2024, 3, 12, tzinfo=UTC),
+                now=datetime(2024, 3, 20, tzinfo=UTC),
+            ) == [week(4)]
+            assert list_detached_range_partitions(connection, RANGE_TABLE) == []
+
+    @freeze_time(CREATED_AT)
+    def test_keeps_detached_partitions_that_are_not_expired(self) -> None:
+        with fixture_tables():
+            detach(week(18))
+            assert expire_partitions(
+                RangePartitionedFixture,
+                before=datetime(2024, 3, 12, tzinfo=UTC),
+                now=datetime(2024, 3, 20, tzinfo=UTC),
+            ) == [week(4)]
+            assert [
+                name for name, _ in list_detached_range_partitions(connection, RANGE_TABLE)
+            ] == [week(18)]
+            # Detached partitions outlive their parent.
+            with connection.cursor() as cursor:
+                cursor.execute(f'DROP TABLE "{week(18)}"')
+
+    @freeze_time(CREATED_AT)
+    def test_failed_drop_is_retried(self) -> None:
+        with fixture_tables():
+            execute = manager._execute_outside_transaction
+            failed: list[str] = []
+
+            def fail_first_drop(conn: BaseDatabaseWrapper, statement: str) -> None:
+                if statement.startswith("DROP TABLE") and not failed:
+                    failed.append(statement)
+                    raise OperationalError("canceling statement due to lock timeout")
+                execute(conn, statement)
+
+            expire = mock.patch.object(
+                manager, "_execute_outside_transaction", side_effect=fail_first_drop
+            )
+            with expire, pytest.raises(OperationalError):
+                expire_partitions(
+                    RangePartitionedFixture,
+                    before=datetime(2024, 3, 12, tzinfo=UTC),
+                    now=datetime(2024, 3, 20, tzinfo=UTC),
+                )
+            # The partition was detached, so it's no longer listed as a partition.
+            assert week(4) not in partition_names()
+            assert [
+                name for name, _ in list_detached_range_partitions(connection, RANGE_TABLE)
+            ] == [week(4)]
+
+            assert expire_partitions(
+                RangePartitionedFixture,
+                before=datetime(2024, 3, 12, tzinfo=UTC),
+                now=datetime(2024, 3, 20, tzinfo=UTC),
+            ) == [week(4)]
+            assert list_detached_range_partitions(connection, RANGE_TABLE) == []
 
     @freeze_time(CREATED_AT)
     def test_finishes_interrupted_detach(self) -> None:

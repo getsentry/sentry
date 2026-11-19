@@ -6,7 +6,7 @@ statements here must stay compatible with Postgres 14 until the production upgra
 is finished. Features we rely on, all available in Postgres 14:
 
 - ``PARTITION BY RANGE`` / ``PARTITION BY HASH``
-- ``ALTER TABLE ... ATTACH PARTITION`` (takes SHARE UPDATE EXCLUSIVE on the parent)
+- ``ALTER TABLE ... ATTACH PARTITION``
 - ``ALTER TABLE ... DETACH PARTITION ... CONCURRENTLY`` / ``FINALIZE``
 - ``CREATE INDEX ... ON ONLY`` and ``ALTER INDEX ... ATTACH PARTITION``
 - ``CREATE TABLE ... (LIKE ... INCLUDING ...)``
@@ -26,6 +26,11 @@ Limitations the callers work around:
 - Postgres 14 can't add a ``NOT VALID`` foreign key to a partitioned table (Postgres
   18 can), so foreign keys are only created together with the table, while it is
   empty.
+- Attaching a partition takes SHARE ROW EXCLUSIVE on every table the partitioned
+  table has a foreign key to, which blocks writes to them. Dropping a detached
+  partition takes ACCESS EXCLUSIVE on those tables, which blocks reads too. Both are
+  true in Postgres 14 and 18. Range partitions are attached and dropped while the
+  table is live, so range partitioned tables can't have database foreign keys.
 
 Identifiers are formatted in with ``str.format`` after quoting. Templates that are
 handed to Django's schema editor use Django's ``%(name)s`` style instead.
@@ -62,8 +67,10 @@ CREATE_RANGE_PARTITION = (
 
 # Used to add partitions to a live table. The partition is created as a standalone
 # table and then attached, which only needs a SHARE UPDATE EXCLUSIVE lock on the
-# parent. The CHECK constraint matching the bounds lets ATTACH skip scanning the new
-# table. Identity is not copied: rows inserted through the parent use its sequence.
+# parent, plus locks on the new table itself. It would also lock every table the
+# parent has a foreign key to, which is why range partitioned tables can't have any.
+# The CHECK constraint matching the bounds lets ATTACH skip scanning the new table.
+# Identity is not copied: rows inserted through the parent use its sequence.
 CREATE_STANDALONE_PARTITION = (
     "CREATE TABLE {partition} (LIKE {table} INCLUDING DEFAULTS INCLUDING CONSTRAINTS "
     "INCLUDING STORAGE INCLUDING COMMENTS INCLUDING STATISTICS INCLUDING GENERATED)"
@@ -79,7 +86,8 @@ DROP_CONSTRAINT = "ALTER TABLE {table} DROP CONSTRAINT {name}"
 
 # DETACH ... CONCURRENTLY cannot run inside a transaction block, and is not allowed
 # when the table has a default partition. If it is interrupted, the partition is
-# left "detach pending" and has to be finished with FINALIZE.
+# left "detach pending" and has to be finished with FINALIZE. If the drop after a
+# detach fails, the table is left standalone; it is found again by its name.
 DETACH_PARTITION_CONCURRENTLY = "ALTER TABLE {table} DETACH PARTITION {partition} CONCURRENTLY"
 FINALIZE_DETACH_PARTITION = "ALTER TABLE {table} DETACH PARTITION {partition} FINALIZE"
 DROP_TABLE = "DROP TABLE {table}"
@@ -119,6 +127,17 @@ PARTITIONED_TABLE_INFO = """
         )
     FROM pg_partitioned_table AS pt
     WHERE pt.partrelid = to_regclass(%s)
+"""
+# Standalone tables (not partitions) whose name matches a LIKE pattern. Used to find
+# range partitions that were detached but not dropped.
+LIST_STANDALONE_TABLES_LIKE = """
+    SELECT c.relname
+    FROM pg_class AS c
+    WHERE c.relkind = 'r'
+        AND NOT c.relispartition
+        AND pg_table_is_visible(c.oid)
+        AND c.relname LIKE %s
+    ORDER BY c.relname
 """
 LIST_PARTITIONS = """
     SELECT c.relname, pg_get_expr(c.relpartbound, c.oid), i.inhdetachpending

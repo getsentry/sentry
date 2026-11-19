@@ -81,6 +81,22 @@ def _partition_field_errors(model: type[models.Model], spec: PartitioningSpec) -
     return errors
 
 
+def _foreign_key_errors(model: type[models.Model], spec: PartitioningSpec) -> list[str]:
+    # Range partitions are attached and dropped while the table is live. Attaching a
+    # partition takes SHARE ROW EXCLUSIVE on every table the partitioned table has a
+    # foreign key to, and dropping a detached partition takes ACCESS EXCLUSIVE on
+    # them, so each partition change would block traffic on those tables. Hash
+    # partitions are only created together with the table and never dropped.
+    if not isinstance(spec, RangePartitioning):
+        return []
+    return [
+        f"`{field.name}` is a database foreign key, which range partitioned tables can't "
+        f"have. Use `db_constraint=False`."
+        for field in model._meta.concrete_fields
+        if has_db_constraint(field)
+    ]
+
+
 def _uniqueness_errors(model: type[models.Model], spec: PartitioningSpec) -> list[str]:
     # Postgres can only enforce uniqueness on a partitioned table when the unique
     # columns include every partition key column.
@@ -133,6 +149,7 @@ def get_model_partitioning_errors(
     if not isinstance(opts.pk, models.Field) or not opts.pk.concrete:
         errors.append("Partitioned models need a single concrete primary key field.")
     errors.extend(_partition_field_errors(model, spec))
+    errors.extend(_foreign_key_errors(model, spec))
     errors.extend(_uniqueness_errors(model, spec))
     return errors
 

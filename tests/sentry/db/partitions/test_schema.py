@@ -7,7 +7,6 @@ import psycopg2
 import pytest
 from django.apps import apps
 from django.db import IntegrityError, OperationalError, connection, models, transaction
-from django.db.migrations.state import ModelState, ProjectState
 from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
@@ -18,6 +17,7 @@ from fixtures.partitions import (
     HashPartitionedFixture,
     RangePartitionedFixture,
     drop_fixture_tables,
+    fixture_project_state,
     fixture_tables,
 )
 from sentry.db.partitions import sql
@@ -113,12 +113,12 @@ class CreatePartitionedTableTest(TransactionTestCase):
                     "FOR VALUES FROM ('2024-03-18 00:00:00+00') TO ('2024-03-25 00:00:00+00')",
                 ),
             ]
-            # Indexes and foreign keys are created on the parent and cascade to partitions.
+            # Indexes are created on the parent and cascade to partitions.
             assert index_state("fx_partitions_range_value_idx") == (
                 True,
                 [p.name for p in list_partitions(connection, RANGE_TABLE)],
             )
-            assert foreign_keys(RANGE_TABLE) == [HASH_TABLE]
+            assert foreign_keys(RANGE_TABLE) == []
 
     def test_hash_partitioned(self) -> None:
         with fixture_tables():
@@ -126,6 +126,8 @@ class CreatePartitionedTableTest(TransactionTestCase):
                 "hash", ("id",)
             )
             assert primary_key_columns(HASH_TABLE) == ["id"]
+            # Created with the table, which Postgres 14 can't do NOT VALID.
+            assert foreign_keys(HASH_TABLE) == ["sentry_project"]
             assert [p.bound for p in list_partitions(connection, HASH_TABLE)] == [
                 f"FOR VALUES WITH (modulus 4, remainder {remainder})" for remainder in range(4)
             ]
@@ -160,8 +162,7 @@ class CreatePartitionedTableTest(TransactionTestCase):
                 RangePartitionedFixture.objects.create(date_added=timezone.now().replace(year=2023))
 
     def test_historical_model_is_resolved_by_table(self) -> None:
-        state = ProjectState()
-        state.add_model(ModelState.from_model(HashPartitionedFixture))
+        state = fixture_project_state()
         historical = state.apps.get_model("fixtures", "HashPartitionedFixture")
         assert getattr(historical, "__partitioning__", None) is None
 

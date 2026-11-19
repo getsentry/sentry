@@ -5,11 +5,13 @@ from contextlib import contextmanager
 from datetime import timedelta
 
 from django.db import connection, models
+from django.db.migrations.state import ModelState, ProjectState
 from django.test import override_settings
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model
+from sentry.db.models.fields.bounded import BoundedBigAutoField
 from sentry.db.partitions import HashPartitioning, PartitionInterval, RangePartitioning
 
 
@@ -19,6 +21,8 @@ class HashPartitionedFixture(Model):
     __partitioning__ = HashPartitioning("id", modulus=4)
 
     name = models.CharField(max_length=64)
+    # Hash partitioned tables can have database foreign keys to other tables.
+    project = FlexibleForeignKey("sentry.Project", null=True)
 
     class Meta:
         app_label = "fixtures"
@@ -37,7 +41,8 @@ class RangePartitionedFixture(Model):
 
     date_added = models.DateTimeField(default=timezone.now)
     value = models.IntegerField(null=True)
-    parent = FlexibleForeignKey(HashPartitionedFixture, null=True)
+    # Range partitioned tables can't have database foreign keys.
+    parent = FlexibleForeignKey(HashPartitionedFixture, null=True, db_constraint=False)
 
     class Meta:
         app_label = "fixtures"
@@ -47,6 +52,18 @@ class RangePartitionedFixture(Model):
 
 FIXTURE_MODELS: tuple[type[Model], ...] = (HashPartitionedFixture, RangePartitionedFixture)
 FIXTURE_TABLES = frozenset(model._meta.db_table for model in FIXTURE_MODELS)
+
+
+def fixture_project_state() -> ProjectState:
+    """Migration state with the fixture models, as historical models see them."""
+    state = ProjectState()
+    # Stands in for the real model, which the hash fixture has a foreign key to.
+    state.add_model(
+        ModelState("sentry", "Project", [("id", BoundedBigAutoField(primary_key=True))])
+    )
+    for model in FIXTURE_MODELS:
+        state.add_model(ModelState.from_model(model))
+    return state
 
 
 def drop_fixture_tables() -> None:

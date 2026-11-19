@@ -23,7 +23,12 @@ from sentry.db.partitions.registry import (
     is_partitioning_enabled,
     iter_partitioned_models,
 )
-from sentry.db.partitions.spec import HashPartitioning, RangePartitioning
+from sentry.db.partitions.spec import (
+    HashPartitioning,
+    RangePartitioning,
+    parse_range_partition_name,
+    range_partition_prefix,
+)
 
 Strategy = Literal["range", "hash", "list"]
 _STRATEGIES: dict[str, Strategy] = {"r": "range", "h": "hash", "l": "list"}
@@ -88,6 +93,32 @@ def list_partitions(connection: BaseDatabaseWrapper, table: str) -> list[Partiti
         return [PartitionInfo(name, bound, pending) for name, bound, pending in cursor.fetchall()]
 
 
+def _like_prefix(value: str) -> str:
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
+
+
+def list_detached_range_partitions(
+    connection: BaseDatabaseWrapper, table: str
+) -> list[tuple[str, datetime]]:
+    """
+    Standalone tables named like a range partition of ``table``, with their start.
+
+    A partition is left like this when it was detached but dropping it failed, or
+    when someone detached it by hand.
+    """
+    with connection.cursor() as cursor:
+        cursor.execute(
+            sql.LIST_STANDALONE_TABLES_LIKE, [_like_prefix(range_partition_prefix(table) + "_p")]
+        )
+        names = [row[0] for row in cursor.fetchall()]
+    detached = []
+    for name in names:
+        start = parse_range_partition_name(table, name)
+        if start is not None:
+            detached.append((name, start))
+    return detached
+
+
 def is_partitioned(model: type[models.Model]) -> bool:
     connection = get_connection(model)
     return get_partitioned_table_info(connection, model._meta.db_table) is not None
@@ -128,6 +159,12 @@ def verify_partition_state() -> list[str]:
                 problems.append(
                     f"{table} has {remainders} hash partitions, but its model declares "
                     f"modulus {spec.modulus}."
+                )
+        else:
+            for name, _ in list_detached_range_partitions(connection, table):
+                problems.append(
+                    f"{name} is a detached partition of {table}. Partition maintenance drops "
+                    f"it once it is past retention."
                 )
     for table in sorted(set(settings.SENTRY_PARTITIONED_TABLES) - declared_tables):
         problems.append(

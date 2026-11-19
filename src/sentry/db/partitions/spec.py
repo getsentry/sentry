@@ -10,6 +10,7 @@ given environment is controlled by ``settings.SENTRY_PARTITIONED_TABLES``.
 from __future__ import annotations
 
 import enum
+import re
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import ClassVar
@@ -86,8 +87,9 @@ class RangePartitioning:
 
             # The partition field must be a non-nullable DateTimeField.
             date_added = models.DateTimeField(default=timezone.now)
-            # Foreign keys from a partitioned table to other tables are fine.
-            project = FlexibleForeignKey("sentry.Project")
+            # Range partitioned tables can't have database foreign keys: attaching or
+            # dropping a partition would lock the referenced table.
+            project = FlexibleForeignKey("sentry.Project", db_constraint=False)
             # Uniqueness can only be enforced together with the partition field,
             # so `guid` can't be `unique=True` on its own.
             guid = models.UUIDField()
@@ -105,9 +107,10 @@ class RangePartitioning:
                 ]
 
     In Postgres the primary key becomes ``(id, date_added)``, while Django keeps
-    ``id`` as the primary key. Other models can't have database foreign keys to a
-    range partitioned model: reference it with a plain id column or a
-    ``FlexibleForeignKey(..., db_constraint=False)``. Queries should filter on
+    ``id`` as the primary key. Database foreign keys aren't allowed in either
+    direction: other models reference a range partitioned model with a plain id
+    column or a ``FlexibleForeignKey(..., db_constraint=False)``, and so does the
+    model itself. Queries should filter on
     ``date_added`` (or ``id``), otherwise they scan every partition.
 
     The table is only created partitioned in environments that list
@@ -145,6 +148,8 @@ class HashPartitioning:
             # Rows are spread over 16 partitions by the hash of their id.
             __partitioning__ = HashPartitioning("id", modulus=16)
 
+            # Database foreign keys from a hash partitioned table are fine: its
+            # partitions are created with the table and never attached or dropped.
             project = FlexibleForeignKey("sentry.Project")
             # Uniqueness can only be enforced together with the partition field,
             # so `(project, short_id)` can't be unique on its own.
@@ -206,8 +211,28 @@ def _with_suffix(table: str, suffix: str) -> str:
     return truncate_name(table, MAX_IDENTIFIER_LENGTH - len(suffix)) + suffix
 
 
+_RANGE_SUFFIX_LENGTH = len("_pYYYYMMDD")
+
+
 def range_partition_name(table: str, start: datetime) -> str:
     return _with_suffix(table, f"_p{start.astimezone(UTC):%Y%m%d}")
+
+
+def range_partition_prefix(table: str) -> str:
+    """What every range partition name of ``table`` starts with, before ``_pYYYYMMDD``."""
+    return truncate_name(table, MAX_IDENTIFIER_LENGTH - _RANGE_SUFFIX_LENGTH)
+
+
+def parse_range_partition_name(table: str, name: str) -> datetime | None:
+    """The start of the range partition of ``table`` called ``name``, if it is one."""
+    prefix = range_partition_prefix(table)
+    match = re.fullmatch(re.escape(prefix) + r"_p(\d{8})", name)
+    if match is None:
+        return None
+    try:
+        return datetime.strptime(match.group(1), "%Y%m%d").replace(tzinfo=UTC)
+    except ValueError:
+        return None
 
 
 def hash_partition_name(table: str, modulus: int, remainder: int) -> str:

@@ -18,6 +18,7 @@ from sentry.db.partitions.catalog import (
     verify_partition_state,
 )
 from sentry.testutils.cases import TransactionTestCase
+from sentry.testutils.helpers.datetime import freeze_time
 
 RANGE_TABLE = RangePartitionedFixture._meta.db_table
 HASH_TABLE = HashPartitionedFixture._meta.db_table
@@ -94,4 +95,20 @@ class VerifyPartitionStateTest(TransactionTestCase):
             assert verify_partition_state() == [
                 "sentry_undeclared is in SENTRY_PARTITIONED_TABLES but no model declares "
                 "`__partitioning__`."
+            ]
+
+    @freeze_time(datetime(2024, 3, 6, tzinfo=UTC))
+    def test_detached_range_partition(self) -> None:
+        with fixture_tables():
+            partition = f"{RANGE_TABLE}_p20240304"
+            with connection.cursor() as cursor:
+                cursor.execute(f'ALTER TABLE "{RANGE_TABLE}" DETACH PARTITION "{partition}"')
+            with override_settings(SENTRY_PARTITIONED_TABLES=FIXTURE_TABLES):
+                problems = verify_partition_state()
+            # Detached partitions outlive their parent.
+            with connection.cursor() as cursor:
+                cursor.execute(f'DROP TABLE "{partition}"')
+            assert problems == [
+                f"{partition} is a detached partition of {RANGE_TABLE}. Partition maintenance "
+                f"drops it once it is past retention."
             ]
