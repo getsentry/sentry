@@ -95,9 +95,11 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         super().setUp()
         self.login_as(self.user)
 
-    def _run_for_group(self, group: Group, description: object, headline: object = None) -> SeerRun:
+    def _run_for_group(
+        self, group: Group, description: object, headline: object = None, source: str = "autofix"
+    ) -> SeerRun:
         run = self.create_seer_run(organization=self.organization)
-        self.create_seer_agent_run(run, source="autofix", group=group, project=group.project)
+        self.create_seer_agent_run(run, source=source, group=group, project=group.project)
         reconcile_milestones(run, _root_cause_state(description, headline))
         return run
 
@@ -133,6 +135,13 @@ class OrganizationSeerAutofixOverviewTest(APITestCase, SnubaTestCase):
         assert runs[0]["rootCause"]["oneLineDescription"] == "the boom"
         assert runs[0]["rootCause"]["headline"] is None
         assert runs[0]["proposedFix"] is None
+
+    def test_single_run_grouped_under_root_cause_milestone(self) -> None:
+        group = self.create_group()
+        self._run_for_group(group, "the boom", source="autofix_single_run")
+        resp = self.get_success_response(self.organization.slug)
+        runs = resp.data["runsByMilestone"][SeerRunMilestoneType.ROOT_CAUSE]
+        assert [run["shortId"] for run in runs] == [group.qualified_short_id]
 
     def test_root_cause_exposes_headline(self) -> None:
         group = self.create_group()

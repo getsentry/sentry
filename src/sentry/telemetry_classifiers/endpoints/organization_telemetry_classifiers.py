@@ -33,11 +33,12 @@ from sentry.telemetry_classifiers.types import TelemetryClassifierStatus
 
 class TelemetryClassifierPermission(OrganizationPermission):
     # Members only have org:read on the org, so writes check project:read on the classifier's
-    # project instead (in the create serializer and in the update handler).
+    # project instead (in the create serializer and in the update and delete handlers).
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],
         "POST": ["org:read", "org:write", "org:admin"],
         "PUT": ["org:read", "org:write", "org:admin"],
+        "DELETE": ["org:read", "org:write", "org:admin"],
     }
 
 

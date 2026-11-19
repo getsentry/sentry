@@ -39,6 +39,7 @@ from sentry.seer.autofix.exceptions import (
     NoSeerQuotaException,
     SeerOutOfCreditsException,
 )
+from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
@@ -448,7 +449,7 @@ def is_group_eligible_for_automation(group: Group) -> bool:
         return False
 
     if (
-        runs_for_group(group.id, "autofix")
+        (runs_for_group(group.id, "autofix") | runs_for_group(group.id, SINGLE_RUN_FEATURE_ID))
         .filter(
             run__mirror_status=SeerRunMirrorStatus.LIVE,
             run__seer_run_state_id__isnull=False,

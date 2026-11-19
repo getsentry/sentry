@@ -604,8 +604,9 @@ class OrganizationReplayCountEndpointTest(
 
         assert response.status_code == 400, response.content
         assert response.content == (
-            b'{"detail":"Invalid quote at \'[\\"root\': quotes must enclose text or be escaped.",'
-            b'"code":"invalid_search_query"}'
+            b'{"detail":"Invalid quote at \'[\\"root\': quotes must enclose text or be escaped. '
+            b"To match text with spaces, quote the whole value, wildcards included, such as "
+            b'`key:\\"*foo bar*\\"`","code":"invalid_search_query"}'
         ), response.content
 
     def test_replay_count_invalid_replay_ids(self) -> None:

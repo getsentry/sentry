@@ -814,6 +814,12 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
         assert workflow.name == "Seer automation"
         assert workflow.type == Workflow.Type.SEER_INVESTIGATION
         assert list(
+            Action.objects.filter(
+                dataconditiongroupaction__condition_group__workflowdataconditiongroup__workflow=workflow
+            ).values_list("type", flat=True)
+        ) == [Action.Type.SEER_INVESTIGATION]
+        assert not SeerWorkflowTriggerBinding.objects.exists()
+        assert list(
             workflow.detectorworkflow_set.order_by("detector_id").values_list(
                 "detector_id", flat=True
             )
@@ -824,7 +830,6 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
     def test_replaces_selection_idempotently_preserving_other_alerts(self) -> None:
         self.select_monitors(self.monitor_ids[:2])
         backing = Workflow.objects.get(organization=self.organization)
-        binding = SeerWorkflowTriggerBinding.objects.get(workflow_config=self.config)
         unrelated = self.create_detector_workflow(
             detector=self.monitors[0], workflow=self.create_workflow(organization=self.organization)
         )
@@ -845,7 +850,6 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
 
         assert self.select_monitors(self.monitor_ids).version == 5
         assert Workflow.objects.filter(organization=self.organization).count() == 2
-        assert SeerWorkflowTriggerBinding.objects.get(workflow_config=self.config).id == binding.id
         assert set(backing.detectorworkflow_set.values_list("detector_id", flat=True)) == set(
             self.monitor_ids
         )
