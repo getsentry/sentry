@@ -30,14 +30,102 @@ jobs:
       - uses: ./.github/actions/setup-node-pnpm
 
       - name: lint
+        id: lint
         env:
           OPENROUTER_API_KEY: ${{ secrets.DECISION_MODEL_LINTER_OPENROUTER_API_KEY }}
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.number }}
           LABEL: 'Trigger: Override Decision Model Lint'
-          # Rules diff each file against the PR's base, it must match --base in the script
+          # Rules diff each file against the PR's base, it must match --base below
           DECISION_MODEL_LINT_BASE: HEAD^1
           OVERRIDDEN: "${{ contains(github.event.pull_request.labels.*.name, 'Trigger: Override Decision Model Lint') }}"
           CHANGED_FILES: ${{ github.event.pull_request.changed_files }}
           MAX_FILES: 1000
-        run: .github/workflows/scripts/decision-model-lint.sh
+        run: |
+          set -eu
+
+          report="$RUNNER_TEMP/decision-model-lint.md"
+          note="$RUNNER_TEMP/decision-model-lint-note.md"
+          body="$RUNNER_TEMP/decision-model-lint-comment.md"
+          marker='<!-- decision-model-linter -->'
+          # GitHub rejects comments over 65536 characters; this leaves room for the marker and the note,
+          # and bytes never undercount characters
+          max_report_bytes=60000
+          status=0
+          skipped=false
+          label_code="\`$LABEL\`"
+
+          # The linter sends every changed file to a model, which takes too long and costs too much on
+          # PRs like repo-wide renames or formatting runs. Other PR jobs bail out at the same size.
+          if [ "$CHANGED_FILES" -gt "$MAX_FILES" ]; then
+            skipped=true
+            printf 'Skipped: this PR changes %s files, more than the %s the linter checks.\n' \
+              "$CHANGED_FILES" "$MAX_FILES" > "$report"
+          else
+            pnpm exec decision-model-linter --config decisionModelLinter.config.ts \
+              --base HEAD^1 --format markdown > "$report" || status=$?
+          fi
+
+          # Only 1 means findings; any other failure means the linter did not finish.
+          : > "$note"
+          if [ "$status" -eq 1 ] && [ "$OVERRIDDEN" = true ]; then
+            printf '\nThe %s label keeps these errors from failing the check.\n' "$label_code" > "$note"
+          elif [ "$status" -eq 1 ]; then
+            printf '\nThese errors fail the check; fix the code to resolve them. If you and a reviewer are confident an error is wrong, a person can add the %s label to pass the check while the findings stay reported. Agents should never add this label.\n' "$label_code" > "$note"
+          elif [ "$status" -gt 1 ] && [ "$OVERRIDDEN" = true ]; then
+            printf 'The linter did not finish (exit %s), and the %s label passes the check anyway; see the job log.\n' "$status" "$label_code" > "$note"
+          fi
+
+          size=$(wc -c < "$report")
+          note_size=$(wc -c < "$note")
+          run_url="$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          report_location="the [job summary]($run_url)"
+          if [ "$((size + note_size))" -gt 1048576 ]; then
+            artifact="$RUNNER_TEMP/decision-model-lint-full.md"
+            cat "$report" "$note" > "$artifact"
+            printf 'artifact_path=%s\n' "$artifact" >> "$GITHUB_OUTPUT"
+            report_location="the \`decision-model-lint-report\` artifact on the [workflow run]($run_url)"
+            printf 'Download the full lint report from %s.\n' "$report_location" >> "$GITHUB_STEP_SUMMARY"
+          else
+            cat "$report" "$note" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          comments=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate \
+            --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | contains(\"$marker\"))) | .id")
+          comment=$(printf '%s\n' "$comments" | head -n 1)
+
+          # A skip only replaces an earlier comment, so big PRs don't get a new comment just to say so.
+          rm -f "$body"
+          if { [ -s "$report" ] || [ -s "$note" ]; } && { [ "$skipped" = false ] || [ -n "$comment" ]; } \
+            && { [ "$status" -le 1 ] || [ "$OVERRIDDEN" = true ]; }; then
+            printf '%s\n' "$marker" > "$body"
+            if [ "$size" -gt "$max_report_bytes" ]; then
+              truncated=$(head -c "$max_report_bytes" "$report")
+              # Drop the last line, which the byte cut may have split mid-character.
+              printf '%s\n' "$truncated" | sed '$d' >> "$body"
+              printf '\nThe report is too long for a comment. See the full report in %s.\n' "$report_location" >> "$body"
+            else
+              cat "$report" >> "$body"
+            fi
+            cat "$note" >> "$body"
+          elif [ "$status" -eq 0 ] && [ -n "$comment" ]; then
+            printf '%s\nNo findings on the latest commit.\n' "$marker" > "$body"
+          fi
+
+          # Read the body from a file: a large report passed as an argument exceeds the OS limit.
+          if [ -f "$body" ] && [ -n "$comment" ]; then
+            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$comment" -F body=@"$body" > /dev/null
+          elif [ -f "$body" ]; then
+            gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" -F body=@"$body" > /dev/null
+          fi
+
+          if [ "$status" -ne 0 ] && [ "$OVERRIDDEN" = true ]; then exit 0; fi
+          exit "$status"
+
+      - name: Upload full lint report
+        if: ${{ !cancelled() && steps.lint.outputs.artifact_path != '' }}
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: decision-model-lint-report
+          path: ${{ steps.lint.outputs.artifact_path }}
+          overwrite: true
