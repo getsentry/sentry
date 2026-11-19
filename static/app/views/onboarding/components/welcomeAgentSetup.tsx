@@ -5,6 +5,7 @@ import type {AgenticProgressRun} from 'sentry/components/onboarding/agenticProgr
 interface WelcomeAgentSetupProps {
   hasInitFailed: boolean;
   hasProgressFailed: boolean;
+  hasRunFailed: boolean;
   isAgentConnected: boolean;
   onCopyCommand: (source: AgentSetupCopySource, handoffId: string) => void;
   onRefresh: () => void;
