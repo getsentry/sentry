@@ -1,6 +1,6 @@
 import type {User} from 'sentry/types/user';
 
-export const CLASSIFIER_DATASETS = ['conversation', 'trace_spans'] as const;
+import type {CLASSIFIER_DATASETS} from './constants';
 
 export type ClassifierDataset = (typeof CLASSIFIER_DATASETS)[number];
 

@@ -4,6 +4,7 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {Referrer} from 'sentry/views/classifiers/constants';
 import type {TelemetryClassifier} from 'sentry/views/classifiers/types';
 
 import {useClassifierOutput} from './useClassifierOutput';
@@ -29,7 +30,7 @@ export function useClassifiedCounts(classifier: TelemetryClassifier) {
           project: [Number(classifier.projectId)],
           environment: selection.environments,
           ...normalizeDateTimeParams(selection.datetime),
-          referrer: 'api.classifiers.detail.conversation-count',
+          referrer: Referrer.DETAIL_CONVERSATION_COUNT,
         },
         staleTime: 60_000,
       }

@@ -7,6 +7,7 @@ import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {Referrer} from 'sentry/views/classifiers/constants';
 import type {TelemetryClassifier} from 'sentry/views/classifiers/types';
 import type {Conversation} from 'sentry/views/explore/conversations/hooks/useConversations';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
@@ -75,7 +76,7 @@ export function useClassifiedConversations(classifier: TelemetryClassifier) {
           project,
           environment: selection.environments,
           ...datetimeParams,
-          referrer: 'api.classifiers.detail.conversations',
+          referrer: Referrer.DETAIL_CONVERSATIONS,
         },
         staleTime: 60_000,
       }

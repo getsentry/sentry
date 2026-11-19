@@ -4,6 +4,7 @@ import type {PageFilters} from 'sentry/types/core';
 import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useFetchEventsTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
+import {Referrer} from 'sentry/views/classifiers/constants';
 import type {TelemetryClassifier} from 'sentry/views/classifiers/types';
 import {getResultField} from 'sentry/views/classifiers/utils';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
@@ -35,7 +36,7 @@ export function useClassifierTimeSeries(
       pageFilters,
       enabled,
     },
-    'api.classifiers.detail.instances-chart'
+    Referrer.DETAIL_INSTANCES_CHART
   );
 }
 
