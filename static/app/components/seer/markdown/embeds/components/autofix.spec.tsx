@@ -2,7 +2,14 @@ import {Fragment, useState} from 'react';
 import {useInfiniteQuery} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import type {
   AutofixExplorerStep,
@@ -312,6 +319,7 @@ describe('AutofixRef embed', () => {
 
     afterEach(async () => {
       try {
+        cleanup();
         await act(() => jest.runOnlyPendingTimersAsync());
       } finally {
         jest.useRealTimers();
@@ -496,7 +504,7 @@ describe('AutofixRef embed', () => {
   describe('out of credits', () => {
     const creditsOrganization = OrganizationFixture({
       slug: 'org-slug',
-      features: ['seer-credit-checks', 'token-billed-seer-enabled'],
+      features: ['token-billed-seer-enabled'],
     });
     const retryTooltip = 'Your organization does not have enough Seer credits for this.';
 
@@ -692,7 +700,7 @@ describe('AutofixRef embed', () => {
   describe('out of Seer credits', () => {
     const creditCheckOrganization = OrganizationFixture({
       slug: 'org-slug',
-      features: ['seer-credit-checks', 'token-billed-seer-enabled'],
+      features: ['token-billed-seer-enabled'],
     });
     const creditCheckUrl = `/organizations/${organization.slug}/seer/credit-check/`;
 

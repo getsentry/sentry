@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/react';
 import type {InfiniteData, InfiniteQueryObserverResult} from '@tanstack/react-query';
 import type {Location} from 'history';
 
+import type {QuerySpeed} from 'sentry/components/querySpeedMenu';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
@@ -419,6 +420,7 @@ type BaseGetLogsUrlParams = {
   mode?: Mode;
   pinnedRowIds?: string[];
   query?: string;
+  queryPriority?: QuerySpeed;
   referrer?: string;
   rowId?: string;
   selection?: PageFilters;
@@ -434,6 +436,7 @@ export function getLogsUrl({
   organization,
   selection,
   query,
+  queryPriority,
   field,
   groupBy,
   id,
@@ -460,6 +463,7 @@ export function getLogsUrl({
     start,
     end,
     [LOGS_QUERY_KEY]: query,
+    queryPriority,
     utc,
     [LOGS_FIELDS_KEY]: field,
     [LOGS_GROUP_BY_KEY]: groupBy,
@@ -535,6 +539,7 @@ export function getLogsUrlFromSavedQueryUrl({
       projects: savedQuery.projects ? [...savedQuery.projects] : [],
     },
     caseInsensitive: firstQuery.caseInsensitive ? '1' : '0',
+    queryPriority: savedQuery.queryPriority,
   });
 }
 

@@ -288,7 +288,8 @@ def invalidate_project_config(
     sentry_sdk.set_tag("trigger", trigger)
     sentry_sdk.set_attribute("trigger", trigger)
     sentry_sdk.set_tag("trigger_details", trigger_details)
-    sentry_sdk.set_attribute("trigger_details", trigger_details)
+    if trigger_details is not None:
+        sentry_sdk.set_attribute("trigger_details", trigger_details)
     sentry_sdk.set_context("kwargs", kwargs)
     sentry_sdk.set_attribute("kwargs", str(kwargs))
 

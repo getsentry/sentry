@@ -119,7 +119,7 @@ def _stopping_point_from_run(organization: Organization, run_id: int) -> str | N
             source__in=(AUTOFIX_FEATURE_ID, LEGACY_AUTOFIX_FEATURE_ID),
         )
         .values_list("extras__stopping_point", flat=True)
-        .first()
+        .first()  # noqa: S035
     )
 
 
@@ -278,7 +278,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             return
         seer_run = SeerRun.objects.filter(
             organization_id=organization.id, seer_run_state_id=run_id
-        ).first()
+        ).first()  # noqa: S035
         if seer_run is None:
             logger.warning(
                 "autofix.on_completion_hook.single_run_missing_seer_run",
@@ -596,7 +596,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         seer_run = SeerRun.objects.filter(
             organization_id=organization.id,
             seer_run_state_id=run_id,
-        ).first()
+        ).first()  # noqa: S035
 
         sentry_run_id = str(seer_run.uuid) if seer_run is not None else None
         webhook_payload: dict[str, object] = {
@@ -847,7 +847,13 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             return
 
         stopping_point = AutofixStoppingPoint(raw_stopping_point)
-        if current_step == STOPPING_POINT_TO_STEP.get(stopping_point):
+        stopping_step = STOPPING_POINT_TO_STEP.get(stopping_point)
+        # A manual continue can take an automated run past its stopping point; don't advance it.
+        if (
+            stopping_step is not None
+            and current_step in PIPELINE_ORDER
+            and PIPELINE_ORDER.index(current_step) >= PIPELINE_ORDER.index(stopping_step)
+        ):
             return
 
         # Check if we should trigger coding agent handoff instead of continuing

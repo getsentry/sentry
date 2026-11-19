@@ -330,10 +330,10 @@ class TestIsActionPermitted(BaseWorkflowTest):
             return_value=GatedActionHandler,
         ):
             with self.feature({"organizations:seer-automations": False}):
-                assert not is_action_permitted(Action.Type.SEER_WORKFLOW, self.organization)
+                assert not is_action_permitted(Action.Type.SEER_INVESTIGATION, self.organization)
 
             with self.feature("organizations:seer-automations"):
-                assert is_action_permitted(Action.Type.SEER_WORKFLOW, self.organization)
+                assert is_action_permitted(Action.Type.SEER_INVESTIGATION, self.organization)
 
     def test_integration_requires_handler_and_provider_features(self) -> None:
         class GatedActionHandler(ActionHandler):

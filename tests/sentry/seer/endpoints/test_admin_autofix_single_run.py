@@ -242,7 +242,8 @@ class SeerAdminMetricBreachesTest(BaseMetricIssueTest, APITestCase):
         assert not Group.objects.filter(type=8001).exists()
 
     def test_disabled_automation(self) -> None:
-        self.config.update(enabled=False)
+        assert self.config.backing_workflow is not None
+        self.config.backing_workflow.update(enabled=False)
         response = self.get_error_response(
             organizationId=self.organization.id, monitorId=self.detector.id, status_code=409
         )

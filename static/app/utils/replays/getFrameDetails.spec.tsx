@@ -58,6 +58,25 @@ describe('getFrameDetails', () => {
       });
     });
 
+    it('titles a web-vital frame without a description', () => {
+      const {description: _description, ...frame} = webVital;
+      const {title} = getFrameDetails(frame as unknown as ReplayFrame);
+      render(<div data-test-id="title">{title}</div>);
+      expect(screen.getByTestId('title')).toHaveTextContent(/^Web Vital$/);
+    });
+
+    it('describes a navigation frame without a description', () => {
+      const frame = {
+        ...base,
+        op: 'navigation.navigate',
+        startTimestamp: new Date(),
+        endTimestamp: new Date(),
+        endTimestampMs: 0,
+      };
+      const {description} = getFrameDetails(frame as unknown as ReplayFrame);
+      expect(description).toBe('Unknown URL');
+    });
+
     it('shows the web-vital value when the rating is missing', () => {
       const frame = {...webVital, data: {value: 1234.567}};
       const {description} = getFrameDetails(frame as unknown as ReplayFrame);

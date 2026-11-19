@@ -10,6 +10,7 @@ from sentry.hybridcloud.rpc.service import RpcValidationException
 from sentry.service_accounts.models import (
     InvalidScopeError,
     ServiceAccount,
+    ServiceAccountOwnerKind,
     ServiceAccountProject,
     validate_grantable_scopes,
 )
@@ -62,6 +63,7 @@ class DatabaseBackedServiceAccountService(ServiceAccountService):
         all_projects: bool,
         created_by_id: int | None,
         idempotency_key: str | None = None,
+        owner_kind: str | None = None,
     ) -> RpcServiceAccount:
         if idempotency_key is not None:
             existing = self._get_by_idempotency_key(organization_id, idempotency_key)
@@ -76,6 +78,7 @@ class DatabaseBackedServiceAccountService(ServiceAccountService):
                 all_projects=all_projects,
                 created_by_id=created_by_id,
                 idempotency_key=idempotency_key,
+                owner_kind=None if owner_kind is None else ServiceAccountOwnerKind(owner_kind),
             )
         except InvalidScopeError as e:
             raise RpcValidationException(
@@ -106,7 +109,7 @@ class DatabaseBackedServiceAccountService(ServiceAccountService):
     ) -> RpcServiceAccount | None:
         service_account = ServiceAccount.objects.filter(
             organization_id=organization_id, idempotency_key=idempotency_key
-        ).first()
+        ).first()  # noqa: S035
         if service_account is None:
             return None
         return _serialize_with_projects(service_account)

@@ -24,6 +24,7 @@ import {
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {SpanFields} from 'sentry/views/insights/types';
 
+import {useExploreQuerySpeed} from './useExploreQuerySpeed';
 import type {RPCQueryExtras} from './useProgressiveQuery';
 import {useProgressiveQuery} from './useProgressiveQuery';
 
@@ -52,6 +53,7 @@ export function useExploreAggregatesTable({
   queryExtras,
 }: UseExploreAggregatesTableOptions) {
   const extrapolate = useQueryParamsExtrapolate();
+  const {isReady: querySpeedReady, samplingMode} = useExploreQuerySpeed();
 
   const canTriggerHighAccuracy = useCallback(
     (results: ReturnType<typeof useSpansQuery<any[]>>) => {
@@ -63,10 +65,11 @@ export function useExploreAggregatesTable({
   );
   return useProgressiveQuery<typeof useExploreAggregatesTableImp>({
     queryHookImplementation: useExploreAggregatesTableImp, // oxlint-disable-line react/hooks -- useProgressiveQuery takes the query hook as a value and calls it per accuracy tier.
-    queryHookArgs: {enabled, limit, query, queryExtras},
+    queryHookArgs: {enabled: enabled && querySpeedReady, limit, query, queryExtras},
     queryOptions: {
       canTriggerHighAccuracy,
       disableExtrapolation: !extrapolate,
+      samplingMode,
     },
   });
 }

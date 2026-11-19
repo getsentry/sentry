@@ -2,7 +2,8 @@ import type {Theme} from '@emotion/react';
 import {mat3} from 'gl-matrix';
 import {createSerializer, parseAsString} from 'nuqs';
 
-import {getDuration} from 'sentry/utils/duration/getDuration';
+import {getDuration} from '@sentry/scraps/duration';
+
 import {clamp} from 'sentry/utils/number/clamp';
 import {
   cancelAnimationTimeout,
@@ -1999,7 +2000,7 @@ export class VirtualizedViewManager {
     ref.style.opacity = '1';
     ref.style.transform = `translateX(${placement}px)`;
     const label = ref.children[0] as HTMLElement | undefined;
-    const duration = getDuration(interval / 1000, 2, true);
+    const duration = getDuration(interval / 1000, {precision: 2, style: 'short'});
 
     if (label && label?.textContent !== duration) {
       label.textContent = duration;

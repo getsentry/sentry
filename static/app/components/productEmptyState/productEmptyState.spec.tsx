@@ -5,11 +5,13 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {Image} from '@sentry/scraps/image';
 
+import * as analytics from 'sentry/utils/analytics';
+
 import {ProductEmptyState} from './productEmptyState';
 
 describe('ProductEmptyState', () => {
   const organization = OrganizationFixture();
-  const project = ProjectFixture({id: 'proj-123', slug: 'my-project'});
+  const project = ProjectFixture({id: 'proj-123', slug: 'my-project', platform: 'node'});
   const url = `/organizations/${organization.slug}/agent-handoff/prompts/`;
   const code = 'sntryh_example';
   const handoffId = 'a'.repeat(32);
@@ -51,30 +53,63 @@ describe('ProductEmptyState', () => {
     expect(screen.getByText('my-project')).toBeInTheDocument();
   });
 
-  it('"Copy prompt" posts add_feature with the project context', async () => {
-    const mint = MockApiClient.addMockResponse({
+  it('fires agent_setup_viewed on mount', () => {
+    const trackAnalytics = jest.spyOn(analytics, 'trackAnalytics');
+
+    render(<ProductEmptyState {...baseProps} />, {organization});
+
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'product_empty_state.agent_setup_viewed',
+      {
+        organization: expect.objectContaining({id: organization.id}),
+        platform: 'node',
+        product: 'tracing',
+        project_id: 'proj-123',
+      }
+    );
+  });
+
+  it('fires agent_setup_command_copied with handoff_id after copying', async () => {
+    MockApiClient.addMockResponse({
       url,
       method: 'POST',
       body: {code, handoffId, expiresAt: new Date(Date.now() + 300_000).toISOString()},
     });
-    const onPromptCopied = jest.fn();
+    const trackAnalytics = jest.spyOn(analytics, 'trackAnalytics');
 
-    render(<ProductEmptyState {...baseProps} onPromptCopied={onPromptCopied} />, {
-      organization,
-    });
+    render(<ProductEmptyState {...baseProps} />, {organization});
 
     await userEvent.click(screen.getByRole('button', {name: 'Copy prompt'}));
 
-    await waitFor(() => expect(onPromptCopied).toHaveBeenCalledWith(handoffId));
-    expect(mint).toHaveBeenCalledWith(
-      url,
-      expect.objectContaining({
-        data: {
-          context: {product: 'tracing', projectId: 'proj-123'},
-          disableIpPinning: false,
-          flow: 'add_feature',
-        },
-      })
+    await waitFor(() =>
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'product_empty_state.agent_setup_command_copied',
+        {
+          organization: expect.objectContaining({id: organization.id}),
+          handoff_id: handoffId,
+          platform: 'node',
+          product: 'tracing',
+          project_id: 'proj-123',
+        }
+      )
+    );
+  });
+
+  it('fires agent_setup_mode_selected when switching to manual', async () => {
+    const trackAnalytics = jest.spyOn(analytics, 'trackAnalytics');
+
+    render(<ProductEmptyState {...baseProps} />, {organization});
+
+    await userEvent.click(screen.getByRole('radio', {name: 'Set up manually'}));
+
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'product_empty_state.agent_setup_mode_selected',
+      {
+        organization: expect.objectContaining({id: organization.id}),
+        mode: 'manual',
+        product: 'tracing',
+        project_id: 'proj-123',
+      }
     );
   });
 

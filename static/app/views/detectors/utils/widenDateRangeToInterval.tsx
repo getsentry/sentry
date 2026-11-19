@@ -1,7 +1,8 @@
 import moment from 'moment-timezone';
 
+import {getDuration} from '@sentry/scraps/duration';
+
 import {getUtcDateString} from 'sentry/utils/dates';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 
 const MINIMUM_CUSTOM_RANGE_INTERVALS = 3;
@@ -117,7 +118,7 @@ function getLastIntervalRange(intervalSeconds: number): DetectorDateRange {
   return {
     start: undefined,
     end: undefined,
-    statsPeriod: getDuration(intervalSeconds, 0, false, true),
+    statsPeriod: getDuration(intervalSeconds, {style: 'narrow'}),
   };
 }
 

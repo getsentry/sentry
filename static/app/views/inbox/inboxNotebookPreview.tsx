@@ -1,3 +1,5 @@
+import {useParams} from 'react-router';
+
 import {Container} from '@sentry/scraps/layout';
 
 import {LoadingError} from 'sentry/components/loadingError';
@@ -11,6 +13,11 @@ import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLM
 
 interface InboxNotebookPreviewProps {
   investigationId: string;
+}
+
+export default function InboxNotebookPreviewRoute() {
+  const {id} = useParams<'id'>();
+  return id ? <InboxNotebookPreview investigationId={id} /> : null;
 }
 
 export function InboxNotebookPreview({investigationId}: InboxNotebookPreviewProps) {

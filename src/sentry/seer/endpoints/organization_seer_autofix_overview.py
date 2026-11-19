@@ -42,9 +42,13 @@ from sentry.plugins.base import bindings
 from sentry.plugins.providers.integration_repository import IntegrationRepositoryProvider
 from sentry.seer.agent.client_models import AgentFilePatch, FilePatch
 from sentry.seer.agent.client_utils import fetch_run_statuses
+from sentry.seer.autofix.feature.models import (
+    FEATURE_ID,
+    LEGACY_FEATURE_ID,
+    SINGLE_RUN_FEATURE_ID,
+)
 from sentry.seer.autofix.utils import (
     get_token_based_billing_repo_filter,
-    is_seer_token_based_billing_onboarding_enabled,
 )
 from sentry.seer.constants import SEER_GITHUB_SCM_PROVIDERS
 from sentry.seer.endpoints.organization_seer_autofix_overview_types import (
@@ -96,7 +100,7 @@ _VISIBLE_PULL_REQUEST_FILTER = Q(pull_request__state__isnull=True) | ~Q(
 
 # Agent sources that surface in the autofix overview. `autofix_rca` no longer gets new
 # writes; removable from these filters by 2026-11-11 (data retention).
-_AUTOFIX_AGENT_SOURCES = ("autofix", "autofix_rca")
+_AUTOFIX_AGENT_SOURCES = (FEATURE_ID, LEGACY_FEATURE_ID, SINGLE_RUN_FEATURE_ID)
 
 # The issue-based sort params, mapped to their search-backend names.
 # Any other value (seer default, empty, unknown) keeps the default order.
@@ -254,7 +258,7 @@ def _coding_agent_repo_eligibility(
     github_providers = set(SEER_GITHUB_SCM_PROVIDERS)
     eligibility = {pid: _RepoEligibility(False, False) for pid in project_ids}
     rows: Iterable[tuple[int, str | None]]
-    if is_seer_token_based_billing_onboarding_enabled(organization):
+    if features.has("organizations:token-billed-seer-enabled", organization):
         rows = (
             ProjectRepository.objects.filter(
                 get_token_based_billing_repo_filter(organization, prefix="repository__"),

@@ -259,6 +259,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:spans-monitor-equations", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enables the Heroku log drain endpoint in relay
     manager.add("organizations:relay-heroku-log-drain-endpoint", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enables the OTLP metrics endpoint in relay
+    manager.add("organizations:relay-otel-metrics-endpoint", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables the playstation ingestion in relay
     manager.add("organizations:relay-playstation-ingestion", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable granular permission scopes (e.g. dashboard:read/write) on API endpoints.
@@ -369,10 +371,6 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-infra-telemetry-user-level-auth", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Cursor Origin as a supported SCM provider for Seer
     manager.add("organizations:seer-cursor-origin-support", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Seer onboarding changes for token-based billing
-    manager.add("organizations:seer-token-based-billing-onboarding", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
-    # Check Seer credits before running billable Seer operations under token-based billing
-    manager.add("organizations:seer-credit-checks", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable Seer XRay Mode, the overlay that highlights LLM-context-registered DOM nodes
     manager.add("organizations:seer-xray", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable the service account APIs (currently mocked)
@@ -514,6 +512,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:tracemetrics-enabled", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace metrics product to be ingested via Relay
     manager.add("organizations:tracemetrics-ingestion", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    # Enable querying OTLP histogram trace metrics by their buckets
+    manager.add("organizations:tracemetrics-otlp-histograms", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable showing expansion config (and expanded variables) in the UI
     manager.add("organizations:explore-automatic-json-expansion-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable trace metrics showing pii scrubbing

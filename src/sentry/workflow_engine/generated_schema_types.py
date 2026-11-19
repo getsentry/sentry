@@ -840,8 +840,8 @@ class PluginActionConfig(TypedDict):
     target_type: NotRequired[None]
 
 
-# config_schema of the seer_workflow action handler
-class SeerWorkflowActionConfig(TypedDict):
+# config_schema of the seer_investigation action handler
+class SeerInvestigationActionConfig(TypedDict):
     pass
 
 
@@ -1165,8 +1165,8 @@ class PagerdutyActionData(TypedDict):
 PluginActionData: TypeAlias = Any
 
 
-# data_schema of the seer_workflow action handler
-class SeerWorkflowActionData(TypedDict):
+# data_schema of the seer_investigation action handler
+class SeerInvestigationActionData(TypedDict):
     pass
 
 
@@ -1231,7 +1231,7 @@ ActionConfig: TypeAlias = (
     | OpsgenieActionConfig
     | PagerdutyActionConfig
     | PluginActionConfig
-    | SeerWorkflowActionConfig
+    | SeerInvestigationActionConfig
     | SentryAppActionConfig
     | SlackActionConfig
     | SlackStagingActionConfig
@@ -1252,7 +1252,7 @@ ActionConfigResponse: TypeAlias = (
     | OpsgenieActionConfigResponse
     | PagerdutyActionConfigResponse
     | PluginActionConfigResponse
-    | SeerWorkflowActionConfig
+    | SeerInvestigationActionConfig
     | SentryAppActionConfigResponse
     | SlackActionConfigResponse
     | SlackStagingActionConfigResponse
@@ -1273,7 +1273,7 @@ ActionData: TypeAlias = (
     | OpsgenieActionData
     | PagerdutyActionData
     | PluginActionData
-    | SeerWorkflowActionData
+    | SeerInvestigationActionData
     | SentryAppActionData
     | SlackActionData
     | SlackStagingActionData
@@ -1294,7 +1294,7 @@ ActionDataResponse: TypeAlias = (
     | OpsgenieActionData
     | PagerdutyActionData
     | PluginActionData
-    | SeerWorkflowActionData
+    | SeerInvestigationActionData
     | SentryAppActionData
     | SlackActionData
     | SlackStagingActionData
