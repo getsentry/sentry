@@ -157,9 +157,12 @@ class SetupWizardSession(Endpoint):
         if not request.user.is_authenticated:
             params = request.GET.dict()
             signup = params.pop("signup", None) == "1"
-            wizard_url = add_params_to_url(
-                absolute_uri(reverse("sentry-project-wizard-fetch", args=[wizard_hash])), params
+            wizard_path = add_params_to_url(
+                reverse("sentry-project-wizard-fetch", args=[wizard_hash]), params
             )
+            wizard_url = absolute_uri(wizard_path)
+            # The login page takes its post-login destination from the session, not `next`.
+            auth.initiate_login(request, next_url=wizard_path)
             destination = (
                 settings.SENTRY_SIGNUP_URL
                 if signup and settings.SENTRY_SIGNUP_URL

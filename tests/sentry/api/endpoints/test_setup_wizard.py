@@ -243,6 +243,9 @@ class SetupWizardSessionTest(APITestCase):
         next_uri = urlparse(query["next"][0])
         assert next_uri.path == "/account/settings/wizard/session-hash/"
         assert parse_qs(next_uri.query)["org_slug"] == ["org-slug"]
+        session_next = urlparse(self.client.session["_next"])
+        assert session_next.path == "/account/settings/wizard/session-hash/"
+        assert parse_qs(session_next.query)["org_slug"] == ["org-slug"]
 
     @override_settings(SENTRY_SIGNUP_URL="https://sentry.io/signup/")
     def test_anonymous_signup(self) -> None:
