@@ -960,6 +960,39 @@ describe('openSeerAutoTopUpModal', () => {
         expect(request).not.toHaveBeenCalled();
       });
 
+      it('waits for a new check rather than a cached one when opened again', async () => {
+        openWithCreditCheck({
+          linkDenialReason: 'daily_cap_exceeded',
+          creditCheck: {hasEnoughCredits: true, denialReason: null},
+        });
+        expect(
+          await screen.findByText(
+            'Seer is available, so there is no need to contact your admin.'
+          )
+        ).toBeInTheDocument();
+        await userEvent.click(screen.getByRole('button', {name: 'Close'}));
+        await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+
+        // The org hits its daily usage limit before the member opens the link again.
+        MockApiClient.addMockResponse({
+          url: `/organizations/${checkedMember.slug}/seer/credit-check/`,
+          body: {hasEnoughCredits: false, denialReason: 'daily_cap_exceeded'},
+        });
+        act(() =>
+          openSeerAutoTopUpModal({
+            organization: checkedMember,
+            denialReason: 'daily_cap_exceeded',
+          })
+        );
+
+        expect(
+          screen.queryByText(
+            'Seer is available, so there is no need to contact your admin.'
+          )
+        ).not.toBeInTheDocument();
+        expect(await screen.findByRole('button', {name: 'Contact Admin'})).toBeEnabled();
+      });
+
       it('does not email admins when Seer is available again by the time of the click', async () => {
         const request = openWithCreditCheck({
           linkDenialReason: 'daily_cap_exceeded',

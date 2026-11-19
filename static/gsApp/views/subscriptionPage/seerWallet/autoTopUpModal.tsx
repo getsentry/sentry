@@ -189,7 +189,7 @@ function useSeerStatus(
 ) {
   // Same gate as useSeerCreditCheck. Members can call the check.
   const isChecking = organization.features.includes('token-billed-seer-enabled');
-  const {data, isPending, refetch} = useQuery({
+  const {data, isFetchedAfterMount, refetch} = useQuery({
     ...seerCreditCheckApiOptions(organization, 'agent_chat_message'),
     enabled: isChecking,
     retry: false,
@@ -197,7 +197,9 @@ function useSeerStatus(
 
   return {
     ...toSeerStatus(isChecking ? data : undefined, linkDenialReason),
-    isPending: isChecking && isPending,
+    // Credits can change between mounts, so a cached answer, such as the
+    // chat's or this modal's last time open, waits for the check to run again.
+    isPending: isChecking && !isFetchedAfterMount,
     /**
      * Asks the credit check again. The modal can stay open past a reset, so
      * this runs right before emailing admins.
