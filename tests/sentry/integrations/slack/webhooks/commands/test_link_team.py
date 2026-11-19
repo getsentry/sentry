@@ -14,6 +14,7 @@ from sentry.integrations.types import EventLifecycleOutcome
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_slo_metric
 from sentry.testutils.helpers import get_response_text, link_user
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from tests.sentry.integrations.slack.webhooks.commands import SlackCommandsTest
 
@@ -117,6 +118,19 @@ class SlackCommandsLinkTeamTest(SlackCommandsLinkTeamTestBase):
         assert INSUFFICIENT_ROLE_MESSAGE in get_response_text(data)
 
         assert_slo_metric(mock_record, EventLifecycleOutcome.HALTED)
+
+    @responses.activate
+    @override_options({"slack.link-team-react-enabled": True})
+    def test_link_team_leaves_the_role_check_to_the_react_page(self) -> None:
+        user2 = self.create_user()
+        self.create_member(
+            teams=[self.team], user=user2, role="member", organization=self.organization
+        )
+        self.login_as(user2)
+        link_user(user2, self.idp, slack_id=OTHER_SLACK_ID)
+
+        data = self.send_slack_message("link team", user_id=OTHER_SLACK_ID)
+        assert "Link your Sentry team to this Slack channel!" in get_response_text(data)
 
     @responses.activate
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")

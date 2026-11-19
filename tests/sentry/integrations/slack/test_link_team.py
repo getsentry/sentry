@@ -6,10 +6,13 @@ from urllib.parse import urlencode
 import pytest
 from django.db.models import QuerySet
 from django.http.response import HttpResponseBase
+from django.urls import reverse
 from rest_framework import status
 from slack_sdk.web import SlackResponse
 
+from sentry import options
 from sentry.integrations.models.external_actor import ExternalActor
+from sentry.integrations.slack.views import SALT
 from sentry.integrations.slack.views.link_team import build_team_linking_url
 from sentry.integrations.slack.views.unlink_team import build_team_unlinking_url
 from sentry.integrations.types import ExternalProviders
@@ -19,7 +22,14 @@ from sentry.notifications.models.notificationsettingprovider import Notification
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import add_identity, install_slack, link_team
-from sentry.testutils.silo import assume_test_silo_mode
+from sentry.testutils.helpers.options import override_options
+from sentry.testutils.silo import (
+    assume_test_silo_mode,
+    cell_silo_test,
+    control_silo_test,
+    create_test_cells,
+)
+from sentry.utils.signing import sign
 
 
 class SlackIntegrationLinkTeamTestBase(TestCase):
@@ -127,6 +137,44 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
             organization=self.organization, name="Mariachi Band", members=[self.user]
         )
 
+    def build_url_in_cell(self) -> str:
+        with (
+            assume_test_silo_mode(SiloMode.CELL),
+            patch(
+                "sentry.integrations.slack.views.link_team.generate_locality_url",
+                return_value="https://de.example.com",
+            ),
+        ):
+            return build_team_linking_url(
+                integration=self.integration,
+                slack_id=self.external_id,
+                channel_id=self.channel_id,
+                channel_name=self.channel_name,
+                response_url=self.response_url,
+            )
+
+    def test_linking_url_uses_the_cell_locality(self) -> None:
+        assert self.build_url_in_cell().startswith("https://de.example.com/extensions/slack/")
+
+    @override_options({"slack.link-team-react-enabled": True})
+    def test_react_linking_url_uses_the_primary_domain(self) -> None:
+        url_prefix = options.get("system.url-prefix")
+
+        assert self.build_url_in_cell().startswith(f"{url_prefix}/extensions/slack/")
+
+    @override_options({"slack.link-team-react-enabled": True})
+    def test_serves_the_react_page(self) -> None:
+        response = self.get_success_response()
+
+        self.assertTemplateUsed(response, "sentry/base-react.html")
+
+    @override_options({"slack.link-team-react-enabled": True})
+    def test_links_through_the_form_with_the_react_page_enabled(self) -> None:
+        response = self.get_success_response(data={"team": self.team.id})
+
+        self.assertTemplateUsed(response, "sentry/integrations/slack/post-linked-team.html")
+        assert len(self.get_linked_teams()) == 1
+
     def test_link_team(self) -> None:
         """Test that we successfully link a team to a Slack channel"""
         response = self.get_success_response()
@@ -219,6 +267,57 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
                 organization=team.organization, team_ids=[team.id]
             )
             assert len(external_actors) == 1
+
+
+@control_silo_test
+class SlackLinkTeamControlSiloTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(self.user)
+        integration = install_slack(self.organization)
+        self.url = build_team_linking_url(
+            integration=integration,
+            slack_id="new-slack-id",
+            channel_id="my-channel_id",
+            channel_name="my-channel",
+            response_url="http://example.slack.com/response_url",
+        )
+
+    @override_options({"slack.link-team-react-enabled": True})
+    def test_serves_the_react_page(self) -> None:
+        response = self.client.get(self.url)
+
+        assert response.status_code == 200
+        self.assertTemplateUsed(response, "sentry/base-react.html")
+        assert "no-store" in response["Cache-Control"]
+
+    @override_options({"slack.link-team-react-enabled": True})
+    def test_sends_anonymous_users_to_log_in(self) -> None:
+        self.client.logout()
+
+        response = self.client.get(self.url)
+
+        assert response.status_code == 302
+        assert response["Location"].startswith("/auth/login/")
+
+
+@cell_silo_test(cells=create_test_cells("us"))
+class SlackLinkTeamCellLocalityTest(TestCase):
+    @override_options({"slack.link-team-react-enabled": True})
+    def test_sends_old_cell_locality_links_to_the_primary_domain(self) -> None:
+        self.login_as(self.user)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = install_slack(self.organization)
+        path = reverse(
+            "sentry-integration-slack-link-team",
+            kwargs={"signed_params": sign(salt=SALT, integration_id=integration.id)},
+        )
+
+        with self.feature({"system:multi-region": True}):
+            response = self.client.get(path, HTTP_HOST="us.testserver")
+
+        assert response.status_code == 302
+        assert response["Location"] == f"http://testserver{path}"
 
 
 class SlackIntegrationUnlinkTeamTestWithSdk(SlackIntegrationLinkTeamTestBase):
