@@ -795,7 +795,13 @@ class ArtifactBundlePostAssembler:
                         organization_id=self.organization.id, bundle_id=bundle_id
                     ).select_for_update()
                 )
-                use_objectstore = any(bundle.storage_path is not None for bundle in existing)
+                if existing:
+                    use_objectstore = any(bundle.storage_path is not None for bundle in existing)
+                else:
+                    use_objectstore = features.has(
+                        "organizations:objectstore-artifact-bundles-exclusive-write",
+                        self.organization,
+                    )
                 if use_objectstore == (self.bundle.storage_path is not None):
                     yield existing
                     return

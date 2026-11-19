@@ -13,6 +13,7 @@ import psycopg2.errors
 import pytest
 from django.core.files.base import ContentFile
 from django.db import OperationalError, connections, router
+from django.db.models import Q
 from django.db.models.query import QuerySet
 from django.test.utils import CaptureQueriesContext
 
@@ -45,7 +46,10 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.redis import use_redis_cluster
-from sentry.testutils.objectstore import debug_files_test_both_backends
+from sentry.testutils.objectstore import (
+    artifact_bundles_test_both_backends,
+    debug_files_test_both_backends,
+)
 from sentry.testutils.skips import requires_objectstore
 
 _NO_RELEASE = cast(str, None)
@@ -243,45 +247,118 @@ class AssembleDifTest(BaseAssembleTest):
         assert dif.debug_id == "67e9247c-814e-392b-a027-dbde6748fcbf-beef"
 
 
-class AssembleArtifactsTest(BaseAssembleTest):
-    @requires_objectstore
-    def test_reupload_keeps_objectstore_bundle(self) -> None:
-        bundle = self.create_artifact_bundle(
-            org=self.organization,
-            bundle_id=uuid.UUID("67429b2f-1d9e-43bb-a626-771a1e37555c"),
-            use_objectstore=True,
+@requires_objectstore
+class ArtifactBundleBackendChangeTest(BaseAssembleTest):
+    bundle_id = uuid.UUID("67429b2f-1d9e-43bb-a626-771a1e37555c")
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.payload = self.create_artifact_bundle_zip(fixture_path="artifact_bundle_debug_ids")
+        self.blob = FileBlob.from_file_with_organization(
+            ContentFile(self.payload), self.organization
         )
-        key = bundle.storage_path
-        assert key is not None
-        session = bundle.get_objectstore_session()
-        payload = self.create_artifact_bundle_zip(
-            fixture_path="artifact_bundle_debug_ids", project=self.project.id
-        )
-        blob = FileBlob.from_file_with_organization(ContentFile(payload), self.organization)
-        with (
-            patch.object(
-                File.objects, "create", side_effect=AssertionError("unexpected File write")
-            ),
-            self.capture_on_commit_callbacks(execute=True),
-        ):
+
+    def assemble(self) -> None:
+        with self.capture_on_commit_callbacks(execute=True):
             assemble_artifacts(
                 org_id=self.organization.id,
                 project_ids=[self.project.id],
                 version="1.0",
-                dist=None,
-                checksum=sha1(payload).hexdigest(),
-                chunks=[blob.checksum],
+                checksum=self.blob.checksum,
+                chunks=[self.blob.checksum],
             )
+
+    def test_new_bundle_uses_objectstore_with_flag_enabled(self) -> None:
+        with (
+            self.feature("organizations:objectstore-artifact-bundles-exclusive-write"),
+            patch.object(
+                File.objects, "create", side_effect=AssertionError("unexpected File write")
+            ),
+        ):
+            self.assemble()
+
+        bundle = ArtifactBundle.objects.get(
+            organization_id=self.organization.id, bundle_id=self.bundle_id
+        )
+        assert bundle.file_id is None
+        assert bundle.storage_path is not None
+        with bundle.get_file() as contents:
+            assert contents.read() == self.payload
+
+    def test_reupload_keeps_objectstore_when_flag_is_off(self) -> None:
+        bundle = self.create_artifact_bundle(bundle_id=self.bundle_id, use_objectstore=True)
+        key = bundle.storage_path
+        assert key is not None
+
+        with (
+            self.feature({"organizations:objectstore-artifact-bundles-exclusive-write": False}),
+            patch.object(
+                File.objects, "create", side_effect=AssertionError("unexpected File write")
+            ),
+        ):
+            self.assemble()
+
         bundle.refresh_from_db()
         assert bundle.storage_path is not None
         assert bundle.storage_path != key
         assert bundle.file_id is None
-        assert bundle.get_checksum() == blob.checksum
-        assert bundle.get_file_size() == len(payload)
+        assert bundle.get_checksum() == self.blob.checksum
+        assert bundle.get_file_size() == len(self.payload)
         with bundle.get_file() as contents:
-            assert contents.read() == payload
-        assert session.get(key) is None
+            assert contents.read() == self.payload
+        assert bundle.get_objectstore_session().get(key) is None
 
+    def test_reupload_keeps_filestore_when_flag_is_on(self) -> None:
+        bundle = self.create_artifact_bundle(bundle_id=self.bundle_id, use_objectstore=False)
+        old_file_id = bundle.file_id
+        with (
+            self.feature("organizations:objectstore-artifact-bundles-exclusive-write"),
+            patch.object(
+                ArtifactBundle,
+                "get_objectstore_session",
+                side_effect=AssertionError("unexpected Objectstore access"),
+            ),
+        ):
+            self.assemble()
+
+        bundle.refresh_from_db()
+        assert bundle.storage_path is None
+        assert bundle.file is not None
+        assert bundle.file_id != old_file_id
+        assert not File.objects.filter(id=old_file_id).exists()
+        with bundle.get_file() as contents:
+            assert contents.read() == self.payload
+
+    def test_failed_replacement_keeps_previous_object(self) -> None:
+        bundle = self.create_artifact_bundle(bundle_id=self.bundle_id, use_objectstore=True)
+        original_key = bundle.storage_path
+        session = bundle.get_objectstore_session()
+        with (
+            self.feature({"organizations:objectstore-artifact-bundles-exclusive-write": False}),
+            patch.object(ArtifactBundle, "get_objectstore_session", return_value=session),
+            patch.object(session, "delete", wraps=session.delete) as delete,
+            patch.object(
+                ProjectArtifactBundle.objects, "update_or_create", side_effect=RuntimeError
+            ),
+        ):
+            self.assemble()
+
+        state, _ = get_assemble_status(
+            AssembleTask.ARTIFACT_BUNDLE, self.organization.id, self.blob.checksum
+        )
+        assert state == ChunkFileState.ERROR
+        bundle.refresh_from_db()
+        assert bundle.storage_path == original_key
+        with bundle.get_file() as contents:
+            assert sha1(contents.read()).hexdigest() == bundle.checksum
+        delete.assert_called_once()
+        discarded_key = delete.call_args.args[0]
+        assert discarded_key != original_key
+        assert session.get(discarded_key) is None
+
+
+@artifact_bundles_test_both_backends
+class AssembleArtifactsTest(BaseAssembleTest):
     def test_artifacts_with_debug_ids(self) -> None:
         bundle_file = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id
@@ -371,7 +448,9 @@ class AssembleArtifactsTest(BaseAssembleTest):
                     chunks=[blob.checksum],
                 )
 
-                artifact_bundle = ArtifactBundle.objects.get(file__checksum=checksum)
+                artifact_bundle = ArtifactBundle.objects.get(
+                    Q(file__checksum=checksum) | Q(checksum=checksum)
+                )
                 project_artifact_bundle = ProjectArtifactBundle.objects.get(
                     artifact_bundle=artifact_bundle
                 )
@@ -469,6 +548,9 @@ class AssembleArtifactsTest(BaseAssembleTest):
             chunks=[blob1.checksum],
         )
 
+        assert get_assemble_status(
+            AssembleTask.ARTIFACT_BUNDLE, self.organization.id, total_checksum
+        ) == (ChunkFileState.ERROR, "the bundle is invalid")
         files = File.objects.filter()
         assert len(files) == 0
 
@@ -572,8 +654,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         # We want to also check whether we tracked the modification date of this bundle.
         assert artifact_bundles[0].date_last_modified == expected_updated_date
 
-        files = File.objects.filter()
-        assert len(files) == 1
+        assert File.objects.count() == int(artifact_bundles[0].file_id is not None)
 
         debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(debug_id=debug_id)
         assert len(debug_id_artifact_bundles) == 1
@@ -813,8 +894,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         artifact_bundles = ArtifactBundle.objects.filter(bundle_id=bundle_id)
         assert len(artifact_bundles) == 1
 
-        files = File.objects.filter()
-        assert len(files) == 1
+        assert File.objects.count() == int(artifact_bundles[0].file_id is not None)
 
         debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(debug_id=debug_id)
         assert len(debug_id_artifact_bundles) == 1
@@ -848,8 +928,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         artifact_bundles = ArtifactBundle.objects.filter(bundle_id=bundle_id)
         assert len(artifact_bundles) == 1
 
-        files = File.objects.filter()
-        assert len(files) == 1
+        assert File.objects.count() == int(artifact_bundles[0].file_id is not None)
 
         debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(debug_id=debug_id)
         assert len(debug_id_artifact_bundles) == 1
@@ -886,8 +965,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         artifact_bundles = ArtifactBundle.objects.filter(bundle_id=bundle_id)
         assert len(artifact_bundles) == 1
 
-        files = File.objects.filter()
-        assert len(files) == 1
+        assert File.objects.count() == int(artifact_bundles[0].file_id is not None)
 
         debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(debug_id=debug_id)
         assert len(debug_id_artifact_bundles) == 1
@@ -921,8 +999,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         artifact_bundles = ArtifactBundle.objects.filter(bundle_id=bundle_id)
         assert len(artifact_bundles) == 1
 
-        files = File.objects.filter()
-        assert len(files) == 1
+        assert File.objects.count() == int(artifact_bundles[0].file_id is not None)
 
         debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(debug_id=debug_id)
         assert len(debug_id_artifact_bundles) == 1
@@ -970,8 +1047,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
         artifact_bundles = ArtifactBundle.objects.filter(bundle_id=bundle_id)
         assert len(artifact_bundles) == 1
 
-        files = File.objects.filter()
-        assert len(files) == 1
+        assert File.objects.count() == int(artifact_bundles[0].file_id is not None)
 
         # FIXME(swatinem): The test assumed that we re-index debug-ids in case the bundle was already
         # in the database.
