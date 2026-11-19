@@ -298,14 +298,7 @@ function getLinkStyles(p: ButtonStyleProps): StrictCSSObject {
       color: 'inherit',
     },
 
-    // The label has no transform at rest. Applying one on hover and press
-    // makes it a containing block and stacking context for its children.
-    '&:hover': {
-      '> span:last-child': {transform: 'translateY(0px)'},
-    },
-
     '&:active': {
-      '> span:last-child': {transform: 'translateY(0px)'},
       backgroundColor: 'inherit',
     },
   };
