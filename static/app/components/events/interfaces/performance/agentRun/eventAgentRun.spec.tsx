@@ -13,10 +13,10 @@ import {
   makeEAPSpan,
 } from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
 
-import {EventAgentActivity, AgentActivityFullTraceButton} from './eventAgentRun';
+import {AgentActivityFullTraceButton, EventAgentActivity} from './eventAgentRun';
 import {getEventAgentRun, useEventAgentRun} from './useEventAgentRun';
 
-const organization = OrganizationFixture({features: ['performance-view']});
+const organization = OrganizationFixture();
 const traceId = 'a'.repeat(32);
 const errorEventId = 'b'.repeat(32);
 const event = EventFixture({

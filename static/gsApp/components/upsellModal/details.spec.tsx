@@ -132,7 +132,7 @@ describe('Upsell Modal Details', () => {
     expect(screen.getByTestId('sso')).toHaveAttribute('aria-selected');
   });
 
-  it('shows performance features when on a old mm2 plan', async () => {
+  it('shows business features for an old plan without performance', async () => {
     const sub = SubscriptionFixture({
       organization,
       plan: 'mm2_a_100k',
@@ -142,23 +142,24 @@ describe('Upsell Modal Details', () => {
 
     render(
       <Details
-        source="tracing"
+        source="event-volume"
         subscription={sub}
         organization={organization}
         onCloseModal={jest.fn()}
       />
     );
-    expect(await screen.findByText('Features Include')).toBeInTheDocument();
+    expect(await screen.findByText('Business Features Include')).toBeInTheDocument();
 
     // Check that the source feature is highlighted.
-    expect(screen.getByTestId('tracing')).toHaveAttribute('aria-selected');
+    expect(screen.getByTestId('event-volume')).toHaveAttribute('aria-selected');
+    expect(screen.queryByText('Transaction Summary')).not.toBeInTheDocument();
   });
 
   it('cycles the list on a timer when no section is clicked', async () => {
     jest.useFakeTimers();
     const sub = SubscriptionFixture({
       organization,
-      plan: 'mm2_a_100k',
+      plan: 'am1_team',
       canTrial: true,
       isFree: false,
     });
@@ -176,8 +177,8 @@ describe('Upsell Modal Details', () => {
     act(() => jest.advanceTimersByTime(10000));
 
     // First feature in the displayed list.
-    const tracing = screen.getByTestId('tracing');
-    expect(tracing).toHaveAttribute('aria-selected');
+    const eventVolume = screen.getByTestId('event-volume');
+    expect(eventVolume).toHaveAttribute('aria-selected');
 
     // Next timeout is for it to cycle to the _next_ feature
     act(() => jest.advanceTimersByTime(8000));
@@ -186,8 +187,8 @@ describe('Upsell Modal Details', () => {
     jest.useRealTimers();
     await act(tick);
 
-    // Tracing should now not be highlighted.
-    expect(tracing).not.toHaveAttribute('aria-selected');
+    // Event volume should now not be highlighted.
+    expect(eventVolume).not.toHaveAttribute('aria-selected');
   });
 });
 

@@ -95,10 +95,6 @@ const DisabledDiscover2Page = lazy(
   () => import('./components/features/disabledDiscover2Page')
 );
 
-const DisabledPerformancePage = lazy(
-  () => import('./components/features/disabledPerformancePage')
-);
-
 const DisabledAlertsPage = lazy(() => import('./components/features/disabledAlertsPage'));
 
 const EnhancedOrganizationStats = lazy(() =>
@@ -284,11 +280,6 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
   ),
   'feature-disabled:discover2-page': p => (
     <LazyLoad LazyComponent={DisabledDiscover2Page} {...p}>
-      {typeof p.children === 'function' ? p.children(p) : p.children}
-    </LazyLoad>
-  ),
-  'feature-disabled:performance-page': p => (
-    <LazyLoad LazyComponent={DisabledPerformancePage} {...p}>
       {typeof p.children === 'function' ? p.children(p) : p.children}
     </LazyLoad>
   ),
