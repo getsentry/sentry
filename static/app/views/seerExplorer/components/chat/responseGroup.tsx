@@ -7,7 +7,7 @@ import {Container} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
-import {OUT_OF_CREDITS_CHAT_MESSAGE} from 'sentry/components/seer/outOfCredits/messages';
+import {STOPPED_CHAT_MESSAGE} from 'sentry/components/seer/outOfCredits/messages';
 import {t} from 'sentry/locale';
 import {callRecordLabel, visibleCallRecords} from 'sentry/views/seerExplorer/callRecords';
 import {
@@ -300,7 +300,7 @@ function OutOfCreditsMessage({compact}: {compact: boolean}) {
   return (
     <MessageRow from="assistant" density={compact ? 'compact' : undefined}>
       <AssistantMessage>
-        <Text variant="muted">{OUT_OF_CREDITS_CHAT_MESSAGE}</Text>
+        <Text variant="muted">{STOPPED_CHAT_MESSAGE}</Text>
       </AssistantMessage>
     </MessageRow>
   );

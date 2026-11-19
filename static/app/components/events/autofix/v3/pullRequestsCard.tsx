@@ -17,8 +17,8 @@ import {
   type useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {
-  getOutOfCreditsPRMessage,
-  getOutOfCreditsPRsMessage,
+  getStoppedPRMessage,
+  getStoppedPRsMessage,
 } from 'sentry/components/seer/outOfCredits/messages';
 import {useOutOfCreditsRetry} from 'sentry/components/seer/outOfCredits/useOutOfCreditsRetry';
 import {t} from 'sentry/locale';
@@ -107,7 +107,7 @@ export function PullRequestsCard({autofix, section}: PullRequestsCardProps) {
               disabled={isOutOfCredits && outOfCreditsRetry.disabled}
               tooltipProps={{
                 title: isOutOfCredits
-                  ? (outOfCreditsRetry.tooltip ?? getOutOfCreditsPRMessage(pullRequest))
+                  ? (outOfCreditsRetry.tooltip ?? getStoppedPRMessage(pullRequest))
                   : pullRequest.pr_creation_error,
               }}
             >
@@ -117,7 +117,7 @@ export function PullRequestsCard({autofix, section}: PullRequestsCardProps) {
         );
       })}
       {outOfCreditsPullRequests.length > 0 && (
-        <Text variant="muted">{getOutOfCreditsPRsMessage(outOfCreditsPullRequests)}</Text>
+        <Text variant="muted">{getStoppedPRsMessage(outOfCreditsPullRequests)}</Text>
       )}
     </ArtifactCard>
   );

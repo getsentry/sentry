@@ -34,7 +34,7 @@ import {
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
-import {OUT_OF_CREDITS_STEP_MESSAGE} from 'sentry/components/seer/outOfCredits/messages';
+import {STOPPED_STEP_MESSAGE} from 'sentry/components/seer/outOfCredits/messages';
 import {t, tn} from 'sentry/locale';
 
 interface ArtifactPreviewProps {
@@ -60,7 +60,7 @@ export function RootCausePreview({section}: ArtifactPreviewProps) {
       ) : stop ? (
         <SeerMarkdown raw={stop.reason} />
       ) : isOutOfCreditsSection(section) ? (
-        <Text variant="muted">{OUT_OF_CREDITS_STEP_MESSAGE.root_cause}</Text>
+        <Text variant="muted">{STOPPED_STEP_MESSAGE.root_cause}</Text>
       ) : (
         <Text variant="muted">
           {t(
@@ -88,7 +88,7 @@ export function SolutionPreview({section}: ArtifactPreviewProps) {
       ) : artifact?.data ? (
         <SeerMarkdown raw={artifact.data.one_line_summary} />
       ) : isOutOfCreditsSection(section) ? (
-        <Text variant="muted">{OUT_OF_CREDITS_STEP_MESSAGE.solution}</Text>
+        <Text variant="muted">{STOPPED_STEP_MESSAGE.solution}</Text>
       ) : (
         <Text variant="muted">
           {t('Seer failed to generate a plan. This one is on us. Try running it again.')}
@@ -120,7 +120,7 @@ export function CodeChangesPreview({section}: ArtifactPreviewProps) {
     // PR iterations fold into this section, so it can stop in one of them.
     const outOfCreditsStep = getOutOfCreditsStep(section);
     if (outOfCreditsStep) {
-      return <Text variant="muted">{OUT_OF_CREDITS_STEP_MESSAGE[outOfCreditsStep]}</Text>;
+      return <Text variant="muted">{STOPPED_STEP_MESSAGE[outOfCreditsStep]}</Text>;
     }
 
     if (reposChanged === 0) {
