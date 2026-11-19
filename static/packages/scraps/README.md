@@ -49,7 +49,30 @@ entry point. App stories cover more components than this API. Published consumer
 have no fallback to app components.
 
 Consumers provide Emotion's `ThemeProvider` with `lightTheme` or `darkTheme`.
-The package does not include application providers, global CSS, or fonts.
+The package does not include application providers, base styles, or fonts.
+
+## Theme CSS variables
+
+`@sentry/scraps/theme.css` declares the theme's semantic tokens as `--scraps-*`
+custom properties in `@layer scraps.tokens`. It is generated from the
+[design tokens](https://github.com/getsentry/design-engineering/tree/main/packages/tokens);
+do not edit `src/theme/variables.css` or `src/theme/variables.tsx` by hand.
+
+```css
+@import '@sentry/scraps/theme.css';
+
+.panel {
+  padding: var(--scraps-space-md);
+  background: var(--scraps-background-primary);
+}
+```
+
+The nearest ancestor's `data-color-scheme` attribute picks the values: none or
+`light` is light, `dark` is dark, and `system` follows `prefers-color-scheme`.
+`themeVariables` from `@sentry/scraps/theme` has the same shape as the theme's
+`tokens` and `shadow`, with `var(--scraps-*)` values. Components still read
+literal values from the Emotion theme, so loading this file does not change
+how they render yet.
 
 ## Date and duration formatting
 
