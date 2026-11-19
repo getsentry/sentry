@@ -79,7 +79,10 @@ class VerifyPartitionStateTest(TransactionTestCase):
     def test_hash_partition_count_mismatch(self) -> None:
         with fixture_tables():
             with connection.cursor() as cursor:
+                # A partition referenced by a foreign key can only be dropped once it's
+                # detached. Detached partitions outlive their parent, so drop it here.
                 cursor.execute(f'ALTER TABLE "{HASH_TABLE}" DETACH PARTITION "{HASH_TABLE}_h03"')
+                cursor.execute(f'DROP TABLE "{HASH_TABLE}_h03"')
             with override_settings(SENTRY_PARTITIONED_TABLES=FIXTURE_TABLES):
                 assert verify_partition_state() == [
                     f"{HASH_TABLE} has 3 hash partitions, but its model declares modulus 4."

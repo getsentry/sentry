@@ -50,17 +50,16 @@ FIXTURE_TABLES = frozenset(model._meta.db_table for model in FIXTURE_MODELS)
 
 
 def drop_fixture_tables() -> None:
-    with connection.cursor() as cursor:
-        # Includes partitions, and detached partitions, which outlive their parent.
-        cursor.execute(
-            "SELECT relname FROM pg_class WHERE relkind IN ('r', 'p') AND relname LIKE %s",
-            ["fixtures\\_partitions\\_%"],
-        )
-        tables = [row[0] for row in cursor.fetchall()]
-        if tables:
-            cursor.execute(
-                "DROP TABLE IF EXISTS {} CASCADE".format(", ".join(f'"{t}"' for t in tables))
-            )
+    """
+    Drop the fixture tables that exist. Dropping a partitioned table also drops its
+    attached partitions. Detached partitions are standalone tables, so a test that
+    detaches one has to drop it itself.
+    """
+    existing = set(connection.introspection.table_names())
+    with connection.schema_editor() as editor:
+        for model in reversed(FIXTURE_MODELS):
+            if model._meta.db_table in existing:
+                editor.delete_model(model)
 
 
 @contextmanager
