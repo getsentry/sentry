@@ -49,8 +49,6 @@ interface InputSectionProps {
   fileApprovalActions?: FileApprovalActions;
   interruptState?: 'can-interrupt' | 'requested' | 'completed' | 'disabled';
   isSingleRun?: boolean;
-  /** Shown right above the composer, for example to say why sending is blocked. */
-  notice?: React.ReactNode;
   questionActions?: QuestionActions;
   runId?: SeerExplorerRunId | null;
   /**
@@ -74,7 +72,6 @@ export function InputSection({
   repoPRStates,
   composerRef,
   fileApprovalActions,
-  notice,
   questionActions,
   runId,
   isSingleRun,
@@ -274,7 +271,6 @@ export function InputSection({
     <Container background="primary" width="100%" position="sticky" bottom="0">
       {prLinksBar}
       <Stack gap="lg" padding="lg xl">
-        {notice}
         {/* The editor and its toolbar read as one field, so the focus ring wraps both. */}
         <ComposerFrame border="primary" radius="lg">
           <StyledComposer

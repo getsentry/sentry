@@ -79,13 +79,13 @@ import {ChatPromptMessage} from './chat/chatPrompt';
 import {groupTranscript, ResponseGroup} from './chat/responseGroup';
 import {findLatestTodos} from './chat/toolUse';
 import {BlockComponent} from './chat';
-import {EmptyState} from './emptyState';
+import {EmptyState, SlackAgentReminder} from './emptyState';
 import {useExplorerMenu} from './explorerMenu';
 import {InputSection} from './inputSection';
 import {
+  getPendingUserInputPrompt,
   isReauthEnabled,
   PendingUserInputDock,
-  PendingUserInputPicker,
 } from './pendingUserInputDock';
 import {SeerExplorerHeader} from './seerExplorerHeader';
 import {UpdateSlackAlert} from './updateSlackAlert';
@@ -315,8 +315,8 @@ export function SeerExplorerContent({
   const showEmptyState = isEmptyState && (!chatPrompt || showLoadError);
 
   // - Pending user input (file approval + questions) -------------------------
-  // The prompt itself renders in `PendingUserInputPicker`; the composer carries the question and
-  // diff controls.
+  // The prompt itself comes from `getPendingUserInputPrompt`; the composer carries the question
+  // and diff controls.
   const pendingUserInputState = usePendingUserInput({
     isAwaitingUserInput,
     pendingInput,
@@ -399,7 +399,7 @@ export function SeerExplorerContent({
   let outOfCreditsNotice: ReactNode = null;
   if (isOutOfCredits || showSingleRunCreditError) {
     outOfCreditsNotice = (
-      <Container data-test-id="seer-explorer-out-of-credits">
+      <Container padding="0 xl" data-test-id="seer-explorer-out-of-credits">
         <SeerOutOfCreditsCta
           reason="agent-chat"
           denialReason={
@@ -412,7 +412,7 @@ export function SeerExplorerContent({
     );
   } else if (isAutofixOutOfCredits && !isCheckingCredits) {
     outOfCreditsNotice = (
-      <Container data-test-id="seer-explorer-autofix-out-of-credits">
+      <Container padding="0 xl" data-test-id="seer-explorer-autofix-out-of-credits">
         <SeerOutOfCreditsCta
           reason="autofix-continue"
           denialReason={autofixDenialReason}
@@ -889,6 +889,77 @@ export function SeerExplorerContent({
           ? 'completed'
           : 'disabled';
 
+  // Chat alerts and requests for the user's input share one slot above the composer, and only
+  // the most pressing one shows. A prompt the run is waiting on comes first: the approval and
+  // question bars that stand in for the composer only work with it on screen.
+  const pendingUserInputPrompt = showEmptyState
+    ? null
+    : getPendingUserInputPrompt({
+        isAwaitingUserInput,
+        organization,
+        pendingInput,
+        pendingUserInputState,
+        readOnly,
+        respondToUserInput,
+        runId,
+      });
+  let composerAlert: ReactNode = null;
+  if (pendingUserInputPrompt) {
+    composerAlert = <PendingUserInputDock>{pendingUserInputPrompt}</PendingUserInputDock>;
+  } else if (isComposerShown && outOfCreditsNotice) {
+    composerAlert = outOfCreditsNotice;
+  } else if (isComposerShown && pendingRestart) {
+    composerAlert = (
+      <Container padding="0 xl">
+        <RestartNotice
+          onCancel={() => chatDispatch({type: 'set pending restart', payload: null})}
+        />
+      </Container>
+    );
+  } else if (requestErrorAlert) {
+    composerAlert = requestErrorAlert;
+  } else if (isTimedOut) {
+    composerAlert = (
+      <Container padding="0 xl">
+        <Alert
+          variant="warning"
+          trailingItems={
+            retryTarget &&
+            !readOnly && (
+              <Alert.Button
+                variant="secondary"
+                icon={<IconRefresh />}
+                onClick={handleRetry}
+                disabled={isSendBlocked}
+              >
+                {t('Retry')}
+              </Alert.Button>
+            )
+          }
+        >
+          <Text>{t('Response timed out.')}</Text>
+        </Alert>
+      </Container>
+    );
+  } else if (showSlackUpgradeAlert) {
+    composerAlert = (
+      <UpdateSlackAlert num_configurations={activeSlackIntegrations.length} />
+    );
+  } else if (
+    showEmptyState &&
+    !isPolling &&
+    !showLoadError &&
+    hasSlackIntegration &&
+    !needsSlackUpgrade
+  ) {
+    composerAlert = (
+      <SlackAgentReminder
+        hasDraft={inputValue.text.length > 0}
+        suggestions={suggestions}
+      />
+    );
+  }
+
   const headerContent = (
     <SeerExplorerHeader
       disableNewChatButton={runId === null}
@@ -933,18 +1004,16 @@ export function SeerExplorerContent({
           <SidebarHeaderShell onClose={handleClose}>{headerContent}</SidebarHeaderShell>
         )}
         {menu}
-        {showSlackUpgradeAlert && (
-          <UpdateSlackAlert num_configurations={activeSlackIntegrations.length} />
-        )}
         <BlocksContainer ref={scrollContainerRef} onClick={handleBlocksClick}>
           {showEmptyState ? (
             <EmptyState
+              composerRef={composerRef}
+              hasDraft={inputValue.text.length > 0}
               isLoading={isPolling}
               isError={showLoadError}
               errorStatusCode={errorStatusCode}
               onStartNewChat={showLoadError ? handleStartNewChat : undefined}
               runId={runId}
-              displaySlackAgentReminder={hasSlackIntegration && !needsSlackUpgrade}
               onSuggestionClick={
                 readOnly || isSendBlocked ? undefined : handleSuggestionClick
               }
@@ -971,41 +1040,7 @@ export function SeerExplorerContent({
             </Fragment>
           )}
         </BlocksContainer>
-        {isTimedOut && (
-          <Container padding="0 xl">
-            <Alert
-              variant="warning"
-              trailingItems={
-                retryTarget &&
-                !readOnly && (
-                  <Alert.Button
-                    variant="secondary"
-                    icon={<IconRefresh />}
-                    onClick={handleRetry}
-                    disabled={isSendBlocked}
-                  >
-                    {t('Retry')}
-                  </Alert.Button>
-                )
-              }
-            >
-              <Text>{t('Response timed out.')}</Text>
-            </Alert>
-          </Container>
-        )}
-        {requestErrorAlert}
-        {!showEmptyState && (
-          <PendingUserInputDock>
-            <PendingUserInputPicker
-              isAwaitingUserInput={isAwaitingUserInput}
-              pendingInput={pendingInput}
-              pendingUserInputState={pendingUserInputState}
-              readOnly={readOnly}
-              respondToUserInput={respondToUserInput}
-              runId={runId}
-            />
-          </PendingUserInputDock>
-        )}
+        {composerAlert}
         <InputSection
           enabled={!readOnly && !showLoadError}
           disabledPlaceholder={
@@ -1013,16 +1048,6 @@ export function SeerExplorerContent({
           }
           inputValue={inputValue}
           canSendMessage={canSendMessage}
-          notice={
-            outOfCreditsNotice ??
-            (pendingRestart ? (
-              <RestartNotice
-                onCancel={() =>
-                  chatDispatch({type: 'set pending restart', payload: null})
-                }
-              />
-            ) : null)
-          }
           toolbarItems={
             <SeerCreditUsageMeter
               hasEnoughCredits={hasEnoughCredits && !showSingleRunCreditError}

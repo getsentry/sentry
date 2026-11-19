@@ -75,38 +75,6 @@ describe('InputSection', () => {
     expect(placeholderRules.at(-1)?.style.color).toBe(expectedStyle.color);
   });
 
-  it('shows a notice above the composer', () => {
-    render(<InputSection {...makeProps({notice: 'Out of credits'})} />);
-
-    const notice = screen.getByText('Out of credits');
-    expect(
-      notice.compareDocumentPosition(screen.getByTestId('seer-explorer-input')) &
-        Node.DOCUMENT_POSITION_FOLLOWING
-    ).toBeTruthy();
-  });
-
-  it('leaves the notice out while a question replaces the composer', () => {
-    render(
-      <InputSection
-        {...makeProps({
-          notice: 'Out of credits',
-          questionActions: {
-            canSubmit: true,
-            currentIndex: 0,
-            onBack: jest.fn(),
-            onMoveDown: jest.fn(),
-            onMoveUp: jest.fn(),
-            onNext: jest.fn(),
-            totalQuestions: 1,
-          },
-        })}
-      />
-    );
-
-    expect(screen.getByText('Asking some questions...')).toBeInTheDocument();
-    expect(screen.queryByText('Out of credits')).not.toBeInTheDocument();
-  });
-
   it('shows toolbar items between the composer and the send button', () => {
     render(<InputSection {...makeProps({toolbarItems: 'Toolbar item'})} />);
 
