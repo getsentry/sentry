@@ -104,6 +104,7 @@ jobs:
           # Tags and history for the preflight and craft, without the blobs.
           fetch-depth: 0
           filter: blob:none
+          persist-credentials: true
 
       # Craft prepares from the current branch and expects the default one.
       - name: Put master on this commit

@@ -30,6 +30,7 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           token: ${{ steps.fast-revert-bot-token.outputs.token }}
+          persist-credentials: true
       - uses: getsentry/action-fast-revert@35b4b6c1f8f91b5911159568b3b15e531b5b8174 # v2.0.1
         with:
           pr: ${{ github.event.number || github.event.inputs.pr }}
