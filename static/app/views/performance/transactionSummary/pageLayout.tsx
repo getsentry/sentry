@@ -26,10 +26,6 @@ import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {
-  MetricsCardinalityProvider,
-  useMetricsCardinalityContext,
-} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -75,7 +71,6 @@ export function PageLayout(props: Props) {
   const navigate = useNavigate();
   const transactionName = getTransactionName(location);
   const [error, setError] = useState<string | undefined>();
-  const metricsCardinality = useMetricsCardinalityContext();
   const [transactionThreshold, setTransactionThreshold] = useState<number | undefined>();
   const [transactionThresholdMetric, setTransactionThresholdMetric] = useState<
     TransactionThresholdMetric | undefined
@@ -244,64 +239,61 @@ export function PageLayout(props: Props) {
       orgSlug={organization.slug}
       projectSlug={project?.slug}
     >
-      <MetricsCardinalityProvider location={location} organization={organization}>
-        <PageFiltersContainer
-          shouldForceProject={defined(project)}
-          forceProject={project}
-          specificProjectSlugs={defined(project) ? [project.slug] : []}
-          maxPickableDays={datePageFilterProps.maxPickableDays}
-          defaultSelection={
-            datePageFilterProps.defaultPeriod
-              ? {
-                  datetime: {
-                    period: datePageFilterProps.defaultPeriod,
-                    start: null,
-                    end: null,
-                    utc: null,
-                  },
-                }
-              : undefined
-          }
-        >
-          <Tabs value={tab} onChange={onTabChange}>
-            {({TabList}) => (
-              <Stack flex={1}>
-                <TransactionHeader
-                  TabList={TabList}
-                  eventView={eventView}
-                  location={location}
-                  organization={organization}
-                  projects={projects}
-                  projectId={projectId}
-                  transactionName={transactionName}
-                  currentTab={tab}
-                  onChangeThreshold={(threshold, metric) => {
-                    setTransactionThreshold(threshold);
-                    setTransactionThresholdMetric(metric);
+      <PageFiltersContainer
+        shouldForceProject={defined(project)}
+        forceProject={project}
+        specificProjectSlugs={defined(project) ? [project.slug] : []}
+        maxPickableDays={datePageFilterProps.maxPickableDays}
+        defaultSelection={
+          datePageFilterProps.defaultPeriod
+            ? {
+                datetime: {
+                  period: datePageFilterProps.defaultPeriod,
+                  start: null,
+                  end: null,
+                  utc: null,
+                },
+              }
+            : undefined
+        }
+      >
+        <Tabs value={tab} onChange={onTabChange}>
+          {({TabList}) => (
+            <Stack flex={1}>
+              <TransactionHeader
+                TabList={TabList}
+                eventView={eventView}
+                location={location}
+                organization={organization}
+                projects={projects}
+                projectId={projectId}
+                transactionName={transactionName}
+                currentTab={tab}
+                onChangeThreshold={(threshold, metric) => {
+                  setTransactionThreshold(threshold);
+                  setTransactionThresholdMetric(metric);
+                }}
+              />
+              <StyledBody fillSpace={props.fillSpace} hasError={defined(error)}>
+                {defined(error) && <StyledAlert variant="danger">{error}</StyledAlert>}
+                <TransactionSummaryContext
+                  value={{
+                    organization,
+                    projectId,
+                    projects,
+                    setError,
+                    transactionName,
+                    transactionThreshold,
+                    transactionThresholdMetric,
                   }}
-                  metricsCardinality={metricsCardinality}
-                />
-                <StyledBody fillSpace={props.fillSpace} hasError={defined(error)}>
-                  {defined(error) && <StyledAlert variant="danger">{error}</StyledAlert>}
-                  <TransactionSummaryContext
-                    value={{
-                      organization,
-                      projectId,
-                      projects,
-                      setError,
-                      transactionName,
-                      transactionThreshold,
-                      transactionThresholdMetric,
-                    }}
-                  >
-                    <Outlet />
-                  </TransactionSummaryContext>
-                </StyledBody>
-              </Stack>
-            )}
-          </Tabs>
-        </PageFiltersContainer>
-      </MetricsCardinalityProvider>
+                >
+                  <Outlet />
+                </TransactionSummaryContext>
+              </StyledBody>
+            </Stack>
+          )}
+        </Tabs>
+      </PageFiltersContainer>
     </SentryDocumentTitle>
   );
 }
