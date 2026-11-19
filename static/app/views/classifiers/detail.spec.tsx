@@ -226,7 +226,7 @@ describe('ClassifierDetail', () => {
     expect(screen.queryByRole('heading', {name: 'Filters'})).not.toBeInTheDocument();
   });
 
-  it('shows the number of classified conversations', async () => {
+  it('shows the number of classified conversations and affected users', async () => {
     MockApiClient.addMockResponse({
       url: detailUrl,
       body: TelemetryClassifierFixture({
@@ -237,15 +237,20 @@ describe('ClassifierDetail', () => {
     });
     const countRequest = MockApiClient.addMockResponse({
       url: eventsUrl,
-      body: {data: [{'count_unique(gen_ai.conversation.id)': 1234}]},
+      body: {
+        data: [{'count_unique(gen_ai.conversation.id)': 1234, 'count_unique(user)': 56}],
+      },
       match: [
-        MockApiClient.matchQuery({field: ['count_unique(gen_ai.conversation.id)']}),
+        MockApiClient.matchQuery({
+          field: ['count_unique(gen_ai.conversation.id)', 'count_unique(user)'],
+        }),
       ],
     });
 
     renderDetail();
 
     expect(await screen.findByText('1.2K conversations')).toBeInTheDocument();
+    expect(screen.getByText('56 users')).toBeInTheDocument();
     expect(countRequest).toHaveBeenCalledWith(
       eventsUrl,
       expect.objectContaining({
@@ -289,7 +294,9 @@ describe('ClassifierDetail', () => {
       url: eventsUrl,
       body: {data: [{'count_unique(gen_ai.conversation.id)': 5}]},
       match: [
-        MockApiClient.matchQuery({field: ['count_unique(gen_ai.conversation.id)']}),
+        MockApiClient.matchQuery({
+          field: ['count_unique(gen_ai.conversation.id)', 'count_unique(user)'],
+        }),
       ],
     });
     const timeSeriesRequest = MockApiClient.addMockResponse({
@@ -339,7 +346,9 @@ describe('ClassifierDetail', () => {
       url: eventsUrl,
       body: {data: [{'count_unique(gen_ai.conversation.id)': 5}]},
       match: [
-        MockApiClient.matchQuery({field: ['count_unique(gen_ai.conversation.id)']}),
+        MockApiClient.matchQuery({
+          field: ['count_unique(gen_ai.conversation.id)', 'count_unique(user)'],
+        }),
       ],
     });
     ProjectsStore.loadInitialData([
@@ -648,7 +657,9 @@ describe('ClassifierDetail', () => {
       url: eventsUrl,
       body: {data: [{'count_unique(gen_ai.conversation.id)': 3}]},
       match: [
-        MockApiClient.matchQuery({field: ['count_unique(gen_ai.conversation.id)']}),
+        MockApiClient.matchQuery({
+          field: ['count_unique(gen_ai.conversation.id)', 'count_unique(user)'],
+        }),
       ],
     });
     const timeSeriesRequest = MockApiClient.addMockResponse({
@@ -795,7 +806,9 @@ describe('ClassifierDetail', () => {
         url: eventsUrl,
         body: {data: [{'count_unique(gen_ai.conversation.id)': 2}]},
         match: [
-          MockApiClient.matchQuery({field: ['count_unique(gen_ai.conversation.id)']}),
+          MockApiClient.matchQuery({
+            field: ['count_unique(gen_ai.conversation.id)', 'count_unique(user)'],
+          }),
         ],
       });
       const resultsRequest = MockApiClient.addMockResponse({
