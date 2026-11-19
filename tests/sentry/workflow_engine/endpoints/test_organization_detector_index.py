@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from django.db.models import Q
+from rest_framework.test import APIClient
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
@@ -15,6 +16,7 @@ from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRule
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.models.environment import Environment
+from sentry.models.project import Project
 from sentry.monitors.grouptype import MonitorIncidentType
 from sentry.monitors.models import Monitor
 from sentry.monitors.utils import ensure_cron_detector
@@ -25,8 +27,10 @@ from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import cell_silo_test
 from sentry.testutils.skips import requires_kafka, requires_snuba
 from sentry.uptime.grouptype import UptimeDomainCheckFailure
@@ -35,6 +39,7 @@ from sentry.uptime.subscriptions.subscriptions import disable_uptime_detector
 from sentry.uptime.types import (
     DATA_SOURCE_UPTIME_SUBSCRIPTION,
 )
+from sentry.users.models.user import User
 from sentry.utils.outcomes import Outcome
 from sentry.workflow_engine.defaults.detectors import ensure_default_all_projects_detector
 from sentry.workflow_engine.endpoints.organization_detector_index import convert_assignee_values
@@ -78,6 +83,15 @@ class OrganizationDetectorIndexBaseTest(APITestCase):
 
 @cell_silo_test
 class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
+    def test_discovery_exclusion_does_not_hide_existing_rows(self) -> None:
+        with override_detector_api_availability(
+            ErrorGroupType.slug, {DetectorAPIOperation.DISCOVER: False}
+        ):
+            response = self.get_success_response(
+                self.organization.slug, qs_params={"id": [self.error_detector.id]}
+            )
+        assert [detector["id"] for detector in response.data] == [str(self.error_detector.id)]
+
     def test_simple(self) -> None:
         detector = self.create_detector(
             project=self.project, name="Test Detector", type=MetricIssue.slug
@@ -195,6 +209,44 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             self.organization.slug, qs_params={"project": self.project.id}
         )
         assert response.data[2]["dataSources"][0]["queryObj"] == serialize(subscription)
+
+    def test_hides_cron_and_uptime_detectors_without_data_source(self) -> None:
+        uptime_detector = self.create_uptime_detector(project=self.project, name="Uptime")
+        cron_detector = ensure_cron_detector(self.create_monitor(project=self.project, name="Cron"))
+        assert cron_detector is not None
+        metric_detector = self.create_detector(
+            project=self.project, name="Metric", type=MetricIssue.slug
+        )
+        orphaned_uptime = self.create_detector(
+            project=self.project,
+            name="Orphaned Uptime",
+            type=UptimeDomainCheckFailure.slug,
+            config={
+                "mode": 1,
+                "environment": "production",
+                "recovery_threshold": 1,
+                "downtime_threshold": 3,
+            },
+        )
+        orphaned_cron = self.create_detector(
+            project=self.project, name="Orphaned Cron", type=MonitorIncidentType.slug
+        )
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"project": self.project.id}
+        )
+
+        ids = {d["id"] for d in response.data}
+        assert ids == {
+            str(self.error_detector.id),
+            str(self.issue_stream_detector.id),
+            str(uptime_detector.id),
+            str(cron_detector.id),
+            str(metric_detector.id),
+        }
+        assert str(orphaned_uptime.id) not in ids
+        assert str(orphaned_cron.id) not in ids
+        assert int(response["X-Hits"]) == 5
 
     def test_default_detector_result(self) -> None:
         """
@@ -544,22 +596,11 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         metric_detector = self.create_detector(
             project=self.project, name="Metric Detector", type=MetricIssue.slug
         )
-        uptime_detector = self.create_detector(
-            project=self.project,
-            name="Uptime Detector",
-            type=UptimeDomainCheckFailure.slug,
-            config={
-                "mode": 1,
-                "environment": "production",
-                "recovery_threshold": 1,
-                "downtime_threshold": 3,
-            },
+        uptime_detector = self.create_uptime_detector(project=self.project, name="Uptime Detector")
+        cron_detector = ensure_cron_detector(
+            self.create_monitor(project=self.project, name="Cron Detector")
         )
-        cron_detector = self.create_detector(
-            project=self.project,
-            name="Cron Detector",
-            type=MonitorIncidentType.slug,
-        )
+        assert cron_detector is not None
 
         response = self.get_success_response(
             self.organization.slug, qs_params={"project": self.project.id, "query": "type:metric"}
@@ -767,6 +808,33 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             qs_params={"project": self.project.id, "query": "assignee:me"},
         )
         assert {d["name"] for d in response.data} == {assigned_detector.name}
+
+    def test_query_by_assignee_my_teams_without_teams(self) -> None:
+        user = self.create_user()
+        self.create_member(organization=self.organization, user=user, teams=[])
+        self.login_as(user=user)
+        self.create_detector(
+            project=self.project,
+            name="Team Detector",
+            type=MetricIssue.slug,
+            owner_team_id=self.team.id,
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"project": self.project.id, "query": "assignee:my_teams"},
+        )
+        assert response.data == []
+
+        response = self.get_success_response(
+            self.organization.slug,
+            qs_params={"project": self.project.id, "query": "!assignee:my_teams"},
+        )
+        assert {d["name"] for d in response.data} == {
+            "Error Monitor",
+            "Issue Stream",
+            "Team Detector",
+        }
 
     def test_query_by_assignee_none(self) -> None:
         user = self.create_user()
@@ -1008,11 +1076,11 @@ class OrganizationDetectorIndexGetAllProjectsTest(OrganizationDetectorIndexBaseT
 @cell_silo_test
 @pytest.mark.snuba_ci
 class OrganizationDetectorIndexSubscriptionFilterTest(OrganizationDetectorIndexBaseTest):
-    """Tests that metric detectors are excluded from lists when their subscription is not allowed."""
+    """Tests that detectors are included when their subscriptions are allowed."""
 
     @requires_snuba
     @requires_kafka
-    def test_list_excludes_disallowed_metric_detectors(self) -> None:
+    def test_list_includes_transaction_metric_detectors(self) -> None:
         with self.tasks():
             snuba_query = create_snuba_query(
                 query_type=SnubaQuery.Type.PERFORMANCE,
@@ -1037,32 +1105,21 @@ class OrganizationDetectorIndexSubscriptionFilterTest(OrganizationDetectorIndexB
         )
         self.create_data_source_detector(data_source=data_source, detector=metric_detector)
 
-        # With performance-view, the metric detector appears in the list
-        with self.feature({"organizations:performance-view": True}):
-            response = self.get_success_response(
-                self.organization.slug, qs_params={"project": self.project.id}
-            )
-            detector_ids = {d["id"] for d in response.data}
-            assert str(metric_detector.id) in detector_ids
-
-        # Without performance-view, the metric detector is excluded
-        with self.feature({"organizations:performance-view": False}):
-            response = self.get_success_response(
-                self.organization.slug, qs_params={"project": self.project.id}
-            )
-            detector_ids = {d["id"] for d in response.data}
-            assert str(metric_detector.id) not in detector_ids
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"project": self.project.id}
+        )
+        detector_ids = {d["id"] for d in response.data}
+        assert str(metric_detector.id) in detector_ids
 
     @requires_snuba
     @requires_kafka
     def test_non_metric_detectors_never_excluded(self) -> None:
-        with self.feature({"organizations:performance-view": False}):
-            response = self.get_success_response(
-                self.organization.slug, qs_params={"project": self.project.id}
-            )
-            detector_ids = {d["id"] for d in response.data}
-            assert str(self.error_detector.id) in detector_ids
-            assert str(self.issue_stream_detector.id) in detector_ids
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"project": self.project.id}
+        )
+        detector_ids = {d["id"] for d in response.data}
+        assert str(self.error_detector.id) in detector_ids
+        assert str(self.issue_stream_detector.id) in detector_ids
 
     @requires_snuba
     @requires_kafka
@@ -1070,12 +1127,11 @@ class OrganizationDetectorIndexSubscriptionFilterTest(OrganizationDetectorIndexB
         orphan = self.create_detector(
             project=self.project, name="No DataSource", type=MetricIssue.slug
         )
-        with self.feature({"organizations:performance-view": False}):
-            response = self.get_success_response(
-                self.organization.slug, qs_params={"project": self.project.id}
-            )
-            detector_ids = {d["id"] for d in response.data}
-            assert str(orphan.id) in detector_ids
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"project": self.project.id}
+        )
+        detector_ids = {d["id"] for d in response.data}
+        assert str(orphan.id) in detector_ids
 
 
 @cell_silo_test
@@ -1773,7 +1829,7 @@ class ConvertAssigneeValuesTest(APITestCase):
 
     def test_convert_assignee_values_empty(self) -> None:
         result = convert_assignee_values([], self.projects, self.user)
-        expected = Q()
+        expected = Q(pk__in=[])
         self.assertEqual(str(result), str(expected))
 
 
@@ -2168,3 +2224,61 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
         assert not AlertRule.objects.filter(id=alert_rule.id).exists()
         assert not QuerySubscription.objects.filter(id=subscription.id).exists()
         assert not SnubaQuery.objects.filter(id=snuba_query.id).exists()
+
+
+@django_db_all
+@pytest.mark.parametrize(
+    "detector_type",
+    [
+        "performance_slow_db_query",
+        "performance_large_http_payload",
+        "query_injection_vulnerability",
+    ],
+)
+def test_performance_detector_api_compatibility(
+    factories: Factories, default_project: Project, default_user: User, detector_type: str
+) -> None:
+    detector = factories.create_detector(
+        project=default_project, type=detector_type, config={}, enabled=True
+    )
+    client = APIClient()
+    client.force_authenticate(user=default_user)
+    organization_url = f"/api/0/organizations/{default_project.organization.slug}"
+    index_url = f"{organization_url}/detectors/"
+    detail_url = f"{index_url}{detector.id}/"
+
+    response = client.get(index_url, {"id": detector.id})
+    assert response.status_code == 200
+    assert [item["id"] for item in response.data] == [str(detector.id)]
+
+    response = client.get(detail_url)
+    assert response.status_code == 200
+    assert response.data["type"] == detector_type
+
+    response = client.put(f"{index_url}?id={detector.id}", {"enabled": False}, format="json")
+    assert response.status_code == 200
+    detector.refresh_from_db()
+    assert detector.enabled is False
+
+    response = client.get(f"{organization_url}/detector-types/")
+    assert response.status_code == 200
+    assert detector_type not in response.data
+
+    response = client.post(
+        f"{organization_url}/projects/{default_project.slug}/detectors/",
+        {"type": detector_type, "name": "Performance Detector"},
+        format="json",
+    )
+    assert response.status_code == 400
+    assert "Detector type not compatible with detectors" in response.data["type"]
+
+    response = client.put(detail_url, {"name": "Renamed Detector"}, format="json")
+    assert response.status_code == 400
+    assert "Detector type not compatible with detectors" in response.data["type"]
+
+    response = client.delete(detail_url)
+    assert response.status_code == 403
+
+    response = client.delete(f"{index_url}?id={detector.id}")
+    assert response.status_code == 403
+    assert Detector.objects.filter(id=detector.id).exists()

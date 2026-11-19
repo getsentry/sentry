@@ -14,12 +14,13 @@ import {
 
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {convertRelayPiiConfig} from 'sentry/views/settings/components/dataScrubbing/convertRelayPiiConfig';
-import {Add} from 'sentry/views/settings/components/dataScrubbing/modals/add';
 import {MethodType, RuleType} from 'sentry/views/settings/components/dataScrubbing/types';
 import {
   getMethodLabel,
   getRuleLabel,
 } from 'sentry/views/settings/components/dataScrubbing/utils';
+
+import {Add} from './add';
 
 const relayPiiConfig = DataScrubbingRelayPiiConfigFixture();
 const stringRelayPiiConfig = JSON.stringify(relayPiiConfig);
@@ -978,6 +979,40 @@ describe('Add Modal with ourlogs-enabled', () => {
       screen.getByRole('button', {name: 'Use event ID for auto-completion'})
     ).toBeInTheDocument();
     expect(screen.queryByText('Attribute')).not.toBeInTheDocument();
+  });
+
+  it('warns about what deep wildcards apply to', async () => {
+    render(
+      <OrganizationContext.Provider value={organization}>
+        <Add
+          Header={makeClosableHeader(jest.fn())}
+          Body={ModalBody}
+          Footer={ModalFooter}
+          closeModal={jest.fn()}
+          CloseButton={makeCloseButton(jest.fn())}
+          projectId={projectId}
+          savedRules={rules}
+          api={api}
+          endpoint={endpoint}
+          orgSlug={organizationSlug}
+          onSubmitSuccess={jest.fn()}
+        />
+      </OrganizationContext.Provider>
+    );
+
+    expect(screen.queryByText(/Deep wildcards/)).not.toBeInTheDocument();
+
+    await userEvent.type(screen.getByRole('textbox', {name: 'Source'}), '**');
+
+    expect(
+      screen.getByText(/also apply to log and metric attributes marked as/)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', {name: 'auto scrubbed in Sentry Conventions'})
+    ).toHaveAttribute(
+      'href',
+      'https://conventions.sentry.dev/attributes/?scrubbing=auto'
+    );
   });
 
   it('clears source when switching datasets', async () => {

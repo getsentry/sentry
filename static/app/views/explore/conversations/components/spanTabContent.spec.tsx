@@ -1,9 +1,8 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {
-  EmptySpanTab,
-  SpanTabContent,
-} from 'sentry/views/explore/conversations/components/spanTabContent';
+import {annotate, hasAnnotations} from '@sentry/scraps/markdown/annotation';
+
+import {EmptySpanTab, SpanTabContent} from './spanTabContent';
 
 describe('SpanTabContent', () => {
   const originalResizeObserver = window.ResizeObserver;
@@ -27,6 +26,26 @@ describe('SpanTabContent', () => {
 
     expect(screen.getByText('preference')).toBeInTheDocument();
     expect(screen.getByText('"concise answers"')).toBeInTheDocument();
+  });
+
+  it('marks scrubbed values in structured content', () => {
+    const rule = JSON.stringify({ruleId: '@email:replace', remark: 's'});
+    const {container} = render(
+      <SpanTabContent content={{email: annotate('[email]', rule)}} />
+    );
+
+    expect(screen.getByText('[email]')).toBeInTheDocument();
+    expect(hasAnnotations(container.textContent ?? '')).toBe(false);
+  });
+
+  it('removes the marks of scrubbed keys in structured content', () => {
+    const rule = JSON.stringify({ruleId: '@email:replace', remark: 's'});
+    const {container} = render(
+      <SpanTabContent content={{[annotate('[email]', rule)]: 'value'}} />
+    );
+
+    expect(screen.getByText('[email]')).toBeInTheDocument();
+    expect(hasAnnotations(container.textContent ?? '')).toBe(false);
   });
 
   it.each(['A system prompt', {prompt: 'A system prompt'}])(

@@ -2,7 +2,7 @@
  * API response types
  */
 
-import type {BuildDetailsApiResponse} from 'sentry/views/preprod/types/buildDetailsTypes';
+import type {BuildDetailsApiResponse} from './buildDetailsTypes';
 
 export interface AppSizeApiResponse {
   generated_at: string;

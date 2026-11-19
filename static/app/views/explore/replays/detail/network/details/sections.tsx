@@ -1,6 +1,5 @@
 import type {MouseEvent} from 'react';
 import {useEffect, useMemo} from 'react';
-import queryString from 'query-string';
 
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
@@ -20,7 +19,11 @@ import {
   isRequestFrame,
 } from 'sentry/utils/replays/resourceFrame';
 import type {SpanFrame} from 'sentry/utils/replays/types';
-import type {KeyValueTuple} from 'sentry/views/explore/replays/detail/network/details/components';
+import * as qs from 'sentry/utils/url/qs';
+import {fixJson} from 'sentry/views/explore/replays/detail/network/truncateJson/fixJson';
+import {TimestampButton} from 'sentry/views/explore/replays/detail/timestampButton';
+
+import type {KeyValueTuple} from './components';
 import {
   Indent,
   InspectorMargin,
@@ -28,10 +31,8 @@ import {
   SectionItem,
   SizeTooltip,
   Warning,
-} from 'sentry/views/explore/replays/detail/network/details/components';
-import {useDismissReqRespBodiesAlert} from 'sentry/views/explore/replays/detail/network/details/onboarding';
-import {fixJson} from 'sentry/views/explore/replays/detail/network/truncateJson/fixJson';
-import {TimestampButton} from 'sentry/views/explore/replays/detail/timestampButton';
+} from './components';
+import {useDismissReqRespBodiesAlert} from './onboarding';
 
 export type SectionProps = {
   item: SpanFrame;
@@ -180,7 +181,7 @@ export function ResponseHeadersSection({item}: SectionProps) {
 }
 
 export function QueryParamsSection({item}: SectionProps) {
-  const queryParams = queryString.parse(item.description?.split('?')?.[1] ?? '');
+  const queryParams = qs.parse(item.description?.split('?')?.[1] ?? '');
   return (
     <SectionItem title={t('Query String Parameters')}>
       <Indent>

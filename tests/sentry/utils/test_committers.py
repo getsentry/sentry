@@ -1,5 +1,5 @@
 import unittest
-from datetime import timedelta
+from datetime import datetime, timedelta
 from unittest.mock import Mock
 from uuid import uuid4
 
@@ -15,6 +15,7 @@ from sentry.models.repository import Repository
 from sentry.testutils.cases import TestCase
 from sentry.utils.committers import (
     _get_commit_file_changes,
+    _get_commits,
     _get_serialized_committers_from_group_owners,
     _match_commits_paths,
     dedupe_commits,
@@ -33,14 +34,16 @@ class CommitTestCase(TestCase):
             organization_id=self.organization.id, name=self.organization.id
         )
 
-    def create_commit_author(self, name=None, email=None):
+    def create_commit_author(
+        self, name: str | None = None, email: str | None = None
+    ) -> CommitAuthor:
         return CommitAuthor.objects.create(
             organization_id=self.organization.id,
             name=name or f"Test Author {uuid4().hex[:8]}",
             email=email or f"test{uuid4().hex[:8]}@example.com",
         )
 
-    def create_commit(self, author=None):
+    def create_commit(self, author: CommitAuthor | None = None) -> Commit:
         return Commit.objects.create(
             organization_id=self.organization.id,
             repository_id=self.repo.id,
@@ -48,7 +51,12 @@ class CommitTestCase(TestCase):
             author=author,
         )
 
-    def create_commitfilechange(self, commit=None, filename=None, type=None):
+    def create_commitfilechange(
+        self,
+        commit: Commit | None = None,
+        filename: str | None = None,
+        type: str | None = None,
+    ) -> CommitFileChange:
         return CommitFileChange.objects.create(
             organization_id=self.organization.id,
             commit_id=(commit or self.create_commit()).id,
@@ -108,12 +116,14 @@ class GetFramePathsTestCase(unittest.TestCase):
         self.event.data = {}
 
     def test_data_in_stacktrace_frames(self) -> None:
-        self.event.data = {"stacktrace": {"frames": ["data"]}}
-        assert get_frame_paths(self.event) == ["data"]
+        self.event.data = {"stacktrace": {"frames": [{"filename": "data"}]}}
+        assert get_frame_paths(self.event) == [{"filename": "data"}]
 
     def test_data_in_exception_values(self) -> None:
-        self.event.data = {"exception": {"values": [{"stacktrace": {"frames": ["data"]}}]}}
-        assert get_frame_paths(self.event) == ["data"]
+        self.event.data = {
+            "exception": {"values": [{"stacktrace": {"frames": [{"filename": "data"}]}}]}
+        }
+        assert get_frame_paths(self.event) == [{"filename": "data"}]
 
     def test_data_does_not_match(self) -> None:
         self.event.data = {"this does not": "match"}
@@ -227,6 +237,40 @@ class MatchCommitsPathTestCase(CommitTestCase):
                 ],
             )
         ) == {commit_1, commit_2}
+
+
+class GetCommitsTestCase(CommitTestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.commit_1 = self.create_commit()
+        self.commit_2 = self.create_commit()
+        self.commit_3 = self.create_commit()
+        self.release_1 = self.create_release(project=self.project, version="1.0")
+        self.release_2 = self.create_release(project=self.project, version="2.0")
+        # commit_2 is in both releases
+        self.create_release_commit(self.release_1, self.commit_1, order=0)
+        self.create_release_commit(self.release_1, self.commit_2, order=1)
+        self.create_release_commit(self.release_2, self.commit_2, order=0)
+        self.create_release_commit(self.release_2, self.commit_3, order=1)
+
+    def test_dedupes_commits_shared_between_releases(self) -> None:
+        # First call reads from the database and fills the cache, second reads the cache
+        for _ in range(2):
+            assert [c.id for c in _get_commits([self.release_1, self.release_2])] == [
+                self.commit_1.id,
+                self.commit_2.id,
+                self.commit_3.id,
+            ]
+
+    def test_dedupes_across_cached_and_uncached_releases(self) -> None:
+        # Only release_2 is cached, so its commits come first and release_1 is read from the database
+        _get_commits([self.release_2])
+
+        assert [c.id for c in _get_commits([self.release_1, self.release_2])] == [
+            self.commit_2.id,
+            self.commit_3.id,
+            self.commit_1.id,
+        ]
 
 
 class GetPreviousReleasesTestCase(TestCase):
@@ -512,12 +556,12 @@ class GetSerializedEventFileCommitters(CommitTestCase):
         assert len(result) == 1
 
         # Should use commit author data, not Sentry user data
-        author = result[0]["author"]
-        assert author is not None
-        assert author["email"] == "external@example.com"
-        assert author["name"] == "External Dev"
-        assert "username" not in author  # No Sentry user data
-        assert "id" not in author  # No Sentry user data
+        serialized_author = result[0]["author"]
+        assert serialized_author is not None
+        assert serialized_author["email"] == "external@example.com"
+        assert serialized_author["name"] == "External Dev"
+        assert "username" not in serialized_author  # No Sentry user data
+        assert "id" not in serialized_author  # No Sentry user data
         assert result[0]["commits"][0]["id"] == commit.key
         assert result[0]["commits"][0]["suspectCommitType"] == "via SCM integration"
 
@@ -554,14 +598,14 @@ class GetReleaseCommitCandidatesTestCase(CommitTestCase):
         self.release2 = self._create_release("b" * 40, self.now - timedelta(days=1))
         self.group = self.create_group(project=self.project, first_release=self.release2)
 
-    def _create_release(self, version: str, date_released) -> Release:
+    def _create_release(self, version: str, date_released: datetime) -> Release:
         release = Release.objects.create(
             organization_id=self.organization.id, version=version, date_released=date_released
         )
         release.add_project(self.project)
         return release
 
-    def _link_commit(self, release: Release, order: int, date_added) -> Commit:
+    def _link_commit(self, release: Release, order: int, date_added: datetime) -> Commit:
         commit = Commit.objects.create(
             organization_id=self.organization.id,
             repository_id=self.repo.id,

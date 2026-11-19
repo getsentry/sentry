@@ -1,9 +1,11 @@
 from datetime import timedelta
-from unittest.mock import patch
+from typing import Any
+from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 from django.utils import timezone
 
+from sentry.models.project import Project
 from sentry.preprod.models import (
     PreprodArtifact,
     PreprodArtifactSizeComparison,
@@ -40,7 +42,9 @@ class ProjectPreprodSizeAnalysisComparisonsTest(APITestCase):
             max_download_size=1000,
         )
 
-    def _make_base(self, version, number, project=None):
+    def _make_base(
+        self, version: str, number: int, project: Project | None = None
+    ) -> tuple[PreprodArtifact, PreprodArtifactSizeMetrics]:
         base = self.create_preprod_artifact(
             project=project or self.project,
             file_id=self.create_file(
@@ -62,7 +66,7 @@ class ProjectPreprodSizeAnalysisComparisonsTest(APITestCase):
         )
         return base, metric
 
-    def _watch_metric(self, artifact):
+    def _watch_metric(self, artifact: PreprodArtifact) -> PreprodArtifactSizeMetrics:
         return self.create_preprod_artifact_size_metrics(
             artifact,
             metrics_type=PreprodArtifactSizeMetrics.MetricsArtifactType.WATCH_ARTIFACT,
@@ -73,8 +77,12 @@ class ProjectPreprodSizeAnalysisComparisonsTest(APITestCase):
         )
 
     def _compare(
-        self, head_metric, base_metric, file_id, state=PreprodArtifactSizeComparison.State.SUCCESS
-    ):
+        self,
+        head_metric: PreprodArtifactSizeMetrics,
+        base_metric: PreprodArtifactSizeMetrics,
+        file_id: int,
+        state: int = PreprodArtifactSizeComparison.State.SUCCESS,
+    ) -> PreprodArtifactSizeComparison:
         return self.create_preprod_artifact_size_comparison(
             head_size_analysis=head_metric,
             base_size_analysis=base_metric,
@@ -83,7 +91,7 @@ class ProjectPreprodSizeAnalysisComparisonsTest(APITestCase):
             file_id=file_id,
         )
 
-    def _token_request(self, token, artifact_id=None):
+    def _token_request(self, token: str, artifact_id: int | None = None) -> Any:
         url = reverse(
             self.endpoint,
             args=[self.organization.slug, artifact_id or self.head_artifact.id],
@@ -119,7 +127,7 @@ class ProjectPreprodSizeAnalysisComparisonsTest(APITestCase):
     @patch(
         "sentry.preprod.api.endpoints.size_analysis.project_preprod_size_analysis_comparisons.get_size_retention_cutoff"
     )
-    def test_returns_404_for_expired_head(self, mock_cutoff) -> None:
+    def test_returns_404_for_expired_head(self, mock_cutoff: MagicMock) -> None:
         mock_cutoff.return_value = timezone.now() - timedelta(days=30)
         self.head_artifact.date_added = timezone.now() - timedelta(days=60)
         self.head_artifact.save()

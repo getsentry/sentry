@@ -3,11 +3,11 @@ import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
 import {Tag} from '@sentry/scraps/badge';
+import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {DateTime} from 'sentry/components/dateTime';
 import {Duration} from 'sentry/components/duration';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {QuestionTooltip} from 'sentry/components/questionTooltip';
@@ -132,7 +132,7 @@ export function CheckInCell({cellKey, project, checkIn}: CheckInRowProps) {
 
   const expectedAtColumn = expectedTime ? (
     <TimestampContainer>
-      <ExpectedDateTime date={expectedTime} timeZone seconds />
+      <ExpectedDateTime date={expectedTime} showTimezone precision="second" />
       <OffScheduleIndicator checkIn={checkIn} />
       <ProcessingLatencyIndicator checkIn={checkIn} />
     </TimestampContainer>
@@ -175,7 +175,7 @@ export function CheckInCell({cellKey, project, checkIn}: CheckInRowProps) {
   const startedColumn = (
     <TimestampContainer>
       {hadInProgress ? (
-        <DateTime date={dateAdded} timeZone seconds />
+        <DateTime date={dateAdded} precision="second" showTimezone />
       ) : (
         <NotSentIndicator />
       )}
@@ -184,11 +184,13 @@ export function CheckInCell({cellKey, project, checkIn}: CheckInRowProps) {
 
   const completedColumn = (
     <TimestampContainer>
-      {completionStatus === CompletionStatus.COMPLETE ? (
-        <DateTime date={dateUpdated} timeZone seconds />
-      ) : completionStatus === CompletionStatus.COMPLETE_TIMEOUT && defined(duration) ? (
+      {completionStatus === CompletionStatus.COMPLETE && dateUpdated ? (
+        <DateTime date={dateUpdated} precision="second" showTimezone />
+      ) : completionStatus === CompletionStatus.COMPLETE_TIMEOUT &&
+        defined(duration) &&
+        dateUpdated ? (
         <Fragment>
-          <DateTime date={dateUpdated} timeZone seconds />
+          <DateTime date={dateUpdated} precision="second" showTimezone />
           <CompletedLateIndicator checkIn={checkIn} />
         </Fragment>
       ) : completionStatus === CompletionStatus.INCOMPLETE_TIMEOUT ? (
@@ -483,7 +485,7 @@ function ProcessingLatencyIndicator({checkIn}: ProcessingLatencyProps) {
         'This check-in was incorrectly marked as timed-out. The check-in was processed late due to abnormal system latency in Sentry.'
       );
 
-  return <QuestionTooltip icon="info" size="sm" title={tooltipMessage} />;
+  return <QuestionTooltip size="sm" title={tooltipMessage} />;
 }
 
 const TimestampContainer = styled('div')`

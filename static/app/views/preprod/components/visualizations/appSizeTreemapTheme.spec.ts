@@ -1,4 +1,4 @@
-import {getOpaqueColorFromComposite} from 'sentry/views/preprod/components/visualizations/appSizeTreemapTheme';
+import {getOpaqueColorFromComposite} from './appSizeTreemapTheme';
 
 function parseRgbString(colorValue: string): [number, number, number] {
   const match = colorValue.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/i);

@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 import {skipToken, useInfiniteQuery} from '@tanstack/react-query';
 
 import {
@@ -11,11 +11,14 @@ import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {MAX_PICKABLE_DAYS} from 'sentry/views/explore/conversations/settings';
+import type {TraceItemDetailsMeta} from 'sentry/views/explore/hooks/useTraceItemDetails';
+import {markScrubbedValue} from 'sentry/views/insights/pages/agents/components/scrubbedText';
+import {isEvaluationOperation} from 'sentry/views/insights/pages/agents/utils/evaluation';
+import {isExtractionOperation} from 'sentry/views/insights/pages/agents/utils/extraction';
 import {getGenAiOperationTypeFromSpanName} from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
-import {AiSpanDetails} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/aiSpanDetails';
-import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 
 export interface UseConversationsOptions {
@@ -76,6 +79,8 @@ export interface ConversationApiSpan {
   'gen_ai.usage.output_tokens.reasoning'?: number;
   'gen_ai.usage.reasoning.output_tokens'?: number;
   'gen_ai.usage.total_tokens'?: number;
+  /** How PII scrubbing changed the span's string attributes, keyed by attribute. */
+  meta?: TraceItemDetailsMeta;
   occurrences?: TraceTree.EAPOccurrence[];
   'span.description'?: string;
   'span.op'?: string;
@@ -148,6 +153,29 @@ interface UseConversationResult {
   nodes: AITraceSpanNode[];
   stats: ConversationStats | null;
   title: string | null;
+}
+
+/** Marks where PII scrubbing changed the span's values, see `markScrubbedValue`. */
+function markScrubbedSpan(apiSpan: ConversationApiSpan): ConversationApiSpan {
+  const {meta} = apiSpan;
+  const operationName = apiSpan['gen_ai.operation.name'];
+  // Evaluations and extractions are parsed into their own views, which render
+  // their values as plain text.
+  if (
+    !meta ||
+    isEvaluationOperation(operationName) ||
+    isExtractionOperation(operationName)
+  ) {
+    return apiSpan;
+  }
+  const marked: Record<string, unknown> = {...apiSpan};
+  for (const attribute of Object.keys(meta)) {
+    const value = marked[attribute];
+    if (typeof value === 'string') {
+      marked[attribute] = markScrubbedValue(attribute, value, meta, apiSpan.project);
+    }
+  }
+  return marked as unknown as ConversationApiSpan;
 }
 
 /**
@@ -295,10 +323,6 @@ function createNodeFromApiSpan(
       return null;
     },
     findParentEapTransaction: () => null,
-
-    renderDetails(props: TraceTreeNodeDetailsProps<AITraceSpanNode>) {
-      return <AiSpanDetails node={props.node} traceId={props.traceId} />;
-    },
   };
 
   return node as unknown as AITraceSpanNode;
@@ -375,10 +399,35 @@ function orderDepthFirst(
 }
 
 const ONE_HOUR_MS = 60 * 60 * 1000;
+const ONE_DAY_MS = 24 * ONE_HOUR_MS;
+// Covers request latency and client clock drift against the API's own cutoff.
+const RETENTION_CUTOFF_SLACK_MS = 10 * 60 * 1000;
+
+/**
+ * Pads the conversation's window by an hour on each side, but never starts it
+ * before the API's 30-day cutoff, which rejects such requests with a 400.
+ */
+function getPaddedConversationWindow(
+  startTimestamp: number,
+  endTimestamp: number,
+  now: number
+) {
+  const earliestStart = now - MAX_PICKABLE_DAYS * ONE_DAY_MS + RETENTION_CUTOFF_SLACK_MS;
+  const paddedStart = startTimestamp - ONE_HOUR_MS;
+  // Clamping a conversation that ends before the earliest start would skip it
+  // entirely, so those keep their window.
+  const start =
+    endTimestamp > earliestStart ? Math.max(paddedStart, earliestStart) : paddedStart;
+  return {
+    start: new Date(start).toISOString(),
+    end: new Date(endTimestamp + ONE_HOUR_MS).toISOString(),
+  };
+}
 
 function buildConversationQueryParams(
   conversation: UseConversationsOptions,
-  selection: PageFilters
+  selection: PageFilters,
+  now: number
 ) {
   const defaultPeriod = getDefaultPageFilterSelection().datetime.period;
   const hasExplicitDatetime =
@@ -387,10 +436,11 @@ function buildConversationQueryParams(
 
   const datetimeParams =
     conversation.startTimestamp !== undefined && conversation.endTimestamp !== undefined
-      ? {
-          start: new Date(conversation.startTimestamp - ONE_HOUR_MS).toISOString(),
-          end: new Date(conversation.endTimestamp + ONE_HOUR_MS).toISOString(),
-        }
+      ? getPaddedConversationWindow(
+          conversation.startTimestamp,
+          conversation.endTimestamp,
+          now
+        )
       : hasExplicitDatetime
         ? normalizeDateTimeParams(selection.datetime)
         : {};
@@ -401,7 +451,18 @@ function buildConversationQueryParams(
   return {project, ...datetimeParams};
 }
 
-export function buildConversationNodes(allSpans: ConversationApiSpan[]): {
+export function buildConversationNodes(
+  allSpans: ConversationApiSpan[],
+  {
+    markScrubbed = false,
+  }: {
+    /**
+     * Marks where PII scrubbing changed the spans' values, see `markScrubbedValue`.
+     * Only for nodes that are rendered by components that show the marks.
+     */
+    markScrubbed?: boolean;
+  } = {}
+): {
   nodeTraceMap: Map<string, string>;
   nodes: AITraceSpanNode[];
 } {
@@ -414,7 +475,10 @@ export function buildConversationNodes(allSpans: ConversationApiSpan[]): {
   const nodeMap = new Map<string, AITraceSpanNode>();
 
   const transformedNodes = genAiSpans.map(apiSpan => {
-    const node = createNodeFromApiSpan(apiSpan, nodeMap);
+    const node = createNodeFromApiSpan(
+      markScrubbed ? markScrubbedSpan(apiSpan) : apiSpan,
+      nodeMap
+    );
     nodeMap.set(node.id, node);
     traceMap.set(node.id, apiSpan.trace);
     return node;
@@ -428,7 +492,8 @@ const MAX_PAGES = 100;
 export function getConversationQueryOptions(
   organization: Organization,
   conversation: UseConversationsOptions,
-  selection: PageFilters
+  selection: PageFilters,
+  now = Date.now()
 ) {
   return apiOptions.asInfinite<ConversationApiResponse>()(
     '/organizations/$organizationIdOrSlug/agents/conversations/$conversationId/',
@@ -439,7 +504,7 @@ export function getConversationQueryOptions(
             conversationId: conversation.conversationId,
           }
         : skipToken,
-      query: buildConversationQueryParams(conversation, selection),
+      query: buildConversationQueryParams(conversation, selection, now),
       staleTime: Infinity,
     }
   );
@@ -450,6 +515,9 @@ export function useConversation(
 ): UseConversationResult {
   const organization = useOrganization();
   const {selection} = usePageFilters();
+  // Fixed for the hook's lifetime so the retention clamp can't change the
+  // query key between renders.
+  const [now] = useState(Date.now);
 
   const {
     data,
@@ -461,7 +529,7 @@ export function useConversation(
     isLoading,
     isLoadingError,
   } = useInfiniteQuery(
-    getConversationQueryOptions(organization, conversation, selection)
+    getConversationQueryOptions(organization, conversation, selection, now)
   );
 
   const pageCount = data?.pages.length ?? 0;
@@ -494,7 +562,7 @@ export function useConversation(
   const stats = firstPage?.stats ?? null;
 
   const {nodes, nodeTraceMap} = useMemo(
-    () => buildConversationNodes(allSpans),
+    () => buildConversationNodes(allSpans, {markScrubbed: true}),
     [allSpans]
   );
 

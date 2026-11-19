@@ -13,8 +13,8 @@ from sentry.investigations.contracts import (
     RerunUpdatedPayloadSerializer,
     valid_action_requests,
 )
-from sentry.investigations.models import InvestigationActionRequest
-from sentry.investigations.services.action_requests import (
+from sentry.notebooks.models import NotebookActionRequest
+from sentry.notebooks.services.action_requests import (
     sync_snapshot_action_requests,
     upsert_action_request,
     withdraw_action_request,
@@ -97,23 +97,23 @@ def test_snapshot_action_requests_are_kept_whole() -> None:
 class SeerContractRowsTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.investigation = self.create_investigation(
+        self.investigation = self.create_notebook(
             organization=self.organization, created_by=self.user
         )
         self.orchestration_run = self.create_investigation_orchestration_run(
             investigation=self.investigation
         )
 
-    def row(self, key: str) -> InvestigationActionRequest:
-        return InvestigationActionRequest.objects.get(investigation=self.investigation, key=key)
+    def row(self, key: str) -> NotebookActionRequest:
+        return NotebookActionRequest.objects.get(notebook=self.investigation, key=key)
 
     def test_action_requested_payloads_become_rows(self) -> None:
         for name in ACTION_REQUESTED:
             request = fixture(name)["request"]
-            row = upsert_action_request(self.orchestration_run, request)
+            row = upsert_action_request(self.investigation, request)
 
             anchor = request["anchor"]
-            assert (row.key, row.report_revision, row.primary) == (
+            assert (row.key, row.producer_revision, row.primary) == (
                 request["key"],
                 request["reportRevision"],
                 request["primary"],
@@ -127,28 +127,26 @@ class SeerContractRowsTest(TestCase):
 
     def test_a_withdrawal_withdraws_the_row(self) -> None:
         upsert_action_request(
-            self.orchestration_run, fixture("action_requested_advice_only")["request"]
+            self.investigation, fixture("action_requested_advice_only")["request"]
         )
         withdrawn = fixture("action_withdrawn")
 
-        assert withdraw_action_request(
-            self.orchestration_run, withdrawn["key"], withdrawn["reason"]
-        )
+        assert withdraw_action_request(self.investigation, withdrawn["key"], withdrawn["reason"])
 
         row = self.row(withdrawn["key"])
         assert (row.state, row.reason) == ("withdrawn", withdrawn["reason"])
 
     def test_a_snapshot_keeps_its_requests_and_drops_the_rest(self) -> None:
         upsert_action_request(
-            self.orchestration_run, fixture("action_requested_advice_only")["request"]
+            self.investigation, fixture("action_requested_advice_only")["request"]
         )
         items = fixture("state_snapshot_action_requests")
 
-        sync_snapshot_action_requests(self.orchestration_run, valid_action_requests(items))
+        sync_snapshot_action_requests(self.investigation, valid_action_requests(items))
 
         states = {
             row.key: (row.state, row.primary)
-            for row in InvestigationActionRequest.objects.filter(investigation=self.investigation)
+            for row in NotebookActionRequest.objects.filter(notebook=self.investigation)
         }
         assert states == {
             **{item["key"]: ("suggested", item["primary"]) for item in items},

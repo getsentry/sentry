@@ -1,6 +1,6 @@
 from collections.abc import Generator, Iterable, Mapping
 from contextlib import ExitStack, contextmanager
-from typing import Any
+from typing import Any, cast
 
 from sentry.digests.backends.base import Backend, InvalidState, ScheduleEntry, load
 from sentry.digests.types import Record
@@ -31,7 +31,10 @@ class MigratingBackend(Backend):
         maximum_delay: int | None = None,
         timestamp: float | None = None,
     ) -> bool:
-        return self.new.add(key, record, increment_delay, maximum_delay, timestamp)
+        return cast(
+            "bool",
+            self.new.add(key, record, increment_delay, maximum_delay, timestamp),
+        )
 
     @contextmanager
     def digest(self, key: str, minimum_delay: int | None = None) -> Generator[list[Record]]:

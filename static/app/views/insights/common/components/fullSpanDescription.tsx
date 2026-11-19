@@ -2,7 +2,7 @@ import {Fragment, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 import {IconOpen} from '@sentry/icons/open';
 
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';

@@ -8,6 +8,7 @@ from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.models.commit import Commit
+from sentry.models.project import Project
 
 
 @cell_silo_endpoint
@@ -19,7 +20,7 @@ class ProjectCommitsEndpoint(ProjectEndpoint):
 
     permission_classes = (ProjectReleasePermission,)
 
-    def get(self, request: Request, project) -> Response:
+    def get(self, request: Request, project: Project) -> Response:
         """
         List a Project's Commits
         `````````````````````````

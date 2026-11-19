@@ -1,8 +1,6 @@
 import type {SavedFormula} from 'sentry/views/explore/hooks/useGetSavedFormulas';
-import {
-  buildFormulaYAxis,
-  getFormulaColumnFunction,
-} from 'sentry/views/explore/utils/formulaAggregate';
+
+import {buildFormulaYAxis, getFormulaColumnFunction} from './formulaAggregate';
 
 const APDEX: SavedFormula = {
   id: '1',

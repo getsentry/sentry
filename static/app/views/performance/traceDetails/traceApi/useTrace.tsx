@@ -1,23 +1,34 @@
 import {useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
+import type {UseQueryResult} from '@tanstack/react-query';
 import type {Location} from 'history';
-import * as qs from 'query-string';
+import {createLoader, parseAsString} from 'nuqs';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import type {PageFilters} from 'sentry/types/core';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {decodeScalar} from 'sentry/utils/queryString';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useDefaultMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {parseAsRawList} from 'sentry/views/explore/queryParams/parsers';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
+import {traceDateTimeParsers} from 'sentry/views/performance/traceDetails/useTraceQueryParams';
 
 const DEFAULT_TIMESTAMP_LIMIT = 10_000;
 const DEFAULT_LIMIT = 1_000;
 
 const EMPTY_QUERY: Location['query'] = {};
+
+const loadTraceQueryParams = createLoader({
+  ...traceDateTimeParsers,
+  eventId: parseAsString,
+  limit: parseAsString,
+  node: parseAsRawList,
+  targetId: parseAsString,
+  timestamp: parseAsString,
+});
 
 type TraceQueryParamOptions = {
   limit?: number;
@@ -137,12 +148,14 @@ type UseTraceOptions = {
   traceSlug?: string;
 };
 
-export type TraceQueryResult = UseApiQueryResult<TraceTree.EAPTrace, RequestError>;
+export type TraceQueryResult = UseQueryResult<TraceTree.EAPTrace>;
 
 export function useTrace(options: UseTraceOptions): TraceQueryResult {
   const filters = usePageFilters();
   const organization = useOrganization();
-  const query = options.disableUrlSync ? EMPTY_QUERY : qs.parse(location.search);
+  const query = options.disableUrlSync
+    ? EMPTY_QUERY
+    : loadTraceQueryParams(location.search);
 
   const hasValidTrace = Boolean(options.traceSlug && organization.slug);
 
@@ -184,57 +197,51 @@ export function useTrace(options: UseTraceOptions): TraceQueryResult {
     [queryParams, maxPickableDays, options.referrer]
   );
 
-  const traceQuery = useApiQuery<TraceTree.EAPTrace>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/trace/$traceId/', {
+  const traceQuery = useQuery({
+    ...apiOptions.as<TraceTree.EAPTrace>()(
+      '/organizations/$organizationIdOrSlug/trace/$traceId/',
+      {
         path: {
           organizationIdOrSlug: organization.slug,
           traceId: options.traceSlug ?? '',
         },
-      }),
-      {
         query: {
           ...queryParams,
           project: -1,
           additional_attributes: options.additionalAttributes,
           referrer: options.referrer,
         },
-      },
-    ],
-    {
-      staleTime: Infinity,
-      retry: false,
-      enabled: hasValidTrace,
-    }
-  );
+        staleTime: Infinity,
+      }
+    ),
+    retry: false,
+    enabled: hasValidTrace,
+  });
 
   const isInitialTraceEmpty =
     traceQuery.status === 'success' &&
     Array.isArray(traceQuery.data) &&
     traceQuery.data.length === 0;
 
-  const traceFallbackQuery = useApiQuery<TraceTree.EAPTrace>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/trace/$traceId/', {
+  const traceFallbackQuery = useQuery({
+    ...apiOptions.as<TraceTree.EAPTrace>()(
+      '/organizations/$organizationIdOrSlug/trace/$traceId/',
+      {
         path: {
           organizationIdOrSlug: organization.slug,
           traceId: options.traceSlug ?? '',
         },
-      }),
-      {
         query: {
           ...fallbackQueryParams,
           project: -1,
           additional_attributes: options.additionalAttributes,
         },
-      },
-    ],
-    {
-      staleTime: Infinity,
-      retry: false,
-      enabled: hasValidTrace && isInitialTraceEmpty && canRetryWithWiderPeriod,
-    }
-  );
+        staleTime: Infinity,
+      }
+    ),
+    retry: false,
+    enabled: hasValidTrace && isInitialTraceEmpty && canRetryWithWiderPeriod,
+  });
 
   return isInitialTraceEmpty && canRetryWithWiderPeriod ? traceFallbackQuery : traceQuery;
 }

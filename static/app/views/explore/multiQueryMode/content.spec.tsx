@@ -12,8 +12,9 @@ import {
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {useGetSavedQueries} from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {MultiQueryModeContent} from 'sentry/views/explore/multiQueryMode/content';
-import {useReadQueriesFromLocation} from 'sentry/views/explore/multiQueryMode/locationUtils';
+
+import {MultiQueryModeContent} from './content';
+import {useReadQueriesFromLocation} from './locationUtils';
 
 jest.mock('sentry/components/lazyRender', () => ({
   LazyRender: ({children}: {children: React.ReactNode}) => children,
@@ -107,7 +108,6 @@ describe('MultiQueryModeContent', () => {
   it('changes to count(span.duration) when using count', async () => {
     let queries: any;
     function Component() {
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -186,7 +186,6 @@ describe('MultiQueryModeContent', () => {
   it('changes to epm() when using epm', async () => {
     let queries: any;
     function Component() {
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -252,7 +251,6 @@ describe('MultiQueryModeContent', () => {
   it('changes to failure_rate() when using failure_rate', async () => {
     let queries: any;
     function Component() {
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -331,7 +329,6 @@ describe('MultiQueryModeContent', () => {
   it('defaults count_unique argument to span.op', async () => {
     let queries: any;
     function Component() {
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -415,7 +412,6 @@ describe('MultiQueryModeContent', () => {
   it('updates visualization and outdated sorts', async () => {
     let queries: any;
     function Component() {
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -464,7 +460,6 @@ describe('MultiQueryModeContent', () => {
   it('explicitly selecting visualization persists it', async () => {
     let queries: any;
     function Component() {
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -501,7 +496,6 @@ describe('MultiQueryModeContent', () => {
   it('updates sorts', async () => {
     let queries: any;
     function Component() {
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -544,7 +538,6 @@ describe('MultiQueryModeContent', () => {
   it('updates group bys and outdated sorts', async () => {
     let queries: any;
     function Component() {
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -587,7 +580,6 @@ describe('MultiQueryModeContent', () => {
   it('allows changing a query', async () => {
     let queries: any;
     function Component() {
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -633,7 +625,6 @@ describe('MultiQueryModeContent', () => {
   it('allows changing case insensitivity', async () => {
     let queries: any;
     function Component() {
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -676,7 +667,6 @@ describe('MultiQueryModeContent', () => {
   it('allows adding a query', async () => {
     let queries: any;
     function Component() {
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -731,7 +721,6 @@ describe('MultiQueryModeContent', () => {
   it('allows duplicating a query', async () => {
     let queries: any;
     function Component() {
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -793,7 +782,6 @@ describe('MultiQueryModeContent', () => {
   it('allows deleting a query', async () => {
     let queries: any;
     function Component() {
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -898,7 +886,6 @@ describe('MultiQueryModeContent', () => {
   it('calls events and stats APIs', async () => {
     let queries: any;
     function Component() {
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }
@@ -1047,7 +1034,6 @@ describe('MultiQueryModeContent', () => {
 
     let queries: any;
     function Component() {
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       queries = useReadQueriesFromLocation();
       return <MultiQueryModeContent />;
     }

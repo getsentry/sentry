@@ -30,6 +30,7 @@ const tableComponentFiles = [
 // but suppress pre-existing violations on `master`
 export const incubator = defineConfig({
   rules: {
+    '@sentry/prefer-nuqs': 'error',
     '@sentry/scraps/no-dom-coupling': 'error',
     '@sentry/scraps/no-manual-table': 'error',
     '@sentry/scraps/prefer-primitives': 'error',
@@ -299,6 +300,7 @@ const config = defineConfig({
     'boundaries/legacy-warnings': false,
   },
   ignorePatterns: [
+    'static/packages/api/**/*',
     'static/packages/icons/**/*',
     'static/packages/scraps/**/*',
     'static/packages/search-syntax/**/*',
@@ -332,6 +334,7 @@ const config = defineConfig({
   ],
   rules: {
     ...base.rules,
+    '@sentry/no-relative-api-url': 'error',
     'no-restricted-imports': [
       'error',
       {
@@ -339,6 +342,7 @@ const config = defineConfig({
         paths: restrictedImportPaths,
       },
     ],
+    '@sentry/prefer-relative-child-imports': 'error',
     '@sentry/no-relative-import-paths': [
       'error',
       {
@@ -732,6 +736,14 @@ const config = defineConfig({
       rules: {'boundaries/no-unknown-files': 'off'},
     },
     {
+      files: ['static/packages/*/jest.config.mjs'],
+      // Package test configs can import the shared root CI helper.
+      rules: {
+        'import/no-relative-parent-imports': 'off',
+        'import-js/no-relative-packages': 'off',
+      },
+    },
+    {
       files: ['static/packages/*/oxlint.config.ts'],
       rules: {
         'boundaries/no-unknown-files': 'off',
@@ -831,10 +843,16 @@ const config = defineConfig({
       },
     },
     {
+      // Build and dev server config proxies /api/0 rather than requesting it.
+      files: ['**/*.config.{js,mjs,ts}'],
+      rules: {'@sentry/no-relative-api-url': 'off'},
+    },
+    {
       files: testFiles,
       rules: {
         // Tests sometimes contain intentionally unusual hard-coded numbers.
         'no-loss-of-precision': 'off',
+        '@sentry/no-relative-api-url': 'off',
         '@sentry/prefer-react-component': 'off',
         'no-restricted-imports': [
           'error',

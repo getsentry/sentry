@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {PermissionsObserver} from 'sentry/views/settings/organizationDeveloperSettings/permissionsObserver';
+import {PermissionsObserver} from './permissionsObserver';
 
 const noop = () => {};
 

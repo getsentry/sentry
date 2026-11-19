@@ -9,7 +9,8 @@ import type {Field} from 'sentry/components/forms/types';
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {DataCategoryExact} from 'sentry/types/core';
-import {getPricingDocsLinkForEventType} from 'sentry/views/settings/account/notifications/utils';
+
+import {getPricingDocsLinkForEventType} from './utils';
 
 interface FineTuneField {
   description: string;
@@ -24,7 +25,7 @@ export const ACCOUNT_NOTIFICATION_FIELDS: Record<string, FineTuneField> = {
   alerts: {
     title: t('Issue Alert Notifications'),
     description: t(
-      "Notifications from Alert Rules that your team has setup. You'll always receive notifications from Alerts configured to be sent directly to you."
+      'Notifications from Issue Alert rules, including rules set up to notify you directly. Metric alerts sent directly to you are always delivered.'
     ),
     type: 'select',
     options: [
@@ -116,6 +117,14 @@ export const ACCOUNT_NOTIFICATION_FIELDS: Record<string, FineTuneField> = {
     type: 'select',
     // No choices here because it's going to have dynamic content
     // Component will create choices
+  },
+  inbox: {
+    title: t('Inbox'),
+    description: t(
+      'Choose which notifications are sent to you directly. All notifications will still appear in your inbox. These apply to all your orgs.'
+    ),
+    type: 'select',
+    // No choices here because the page renders one toggle per INBOX_FIELDS category
   },
 };
 
@@ -231,6 +240,15 @@ export const NOTIFICATION_SETTING_FIELDS = {
       'Notifications for Cron Monitors that have been in a failing state for a prolonged period of time'
     ),
   },
+  inbox: {
+    name: 'inbox',
+    type: 'blank',
+    choices: undefined,
+    label: t('Inbox'),
+    help: t(
+      'Critical notifications that need your attention land in Inbox. Optionally receive them via email or Slack too.'
+    ),
+  },
   // legacy options
   personalActivityNotifications: {
     name: 'personalActivityNotifications',
@@ -330,5 +348,34 @@ export const QUOTA_FIELDS = [
       ['always', t('On')],
       ['never', t('Off')],
     ] as const,
+  },
+];
+
+// One on/off setting per Inbox category. Each controls email and Slack only; the item
+// still shows up in the Inbox.
+export const INBOX_FIELDS = [
+  {
+    name: 'inboxAssignments',
+    label: t('Assignments'),
+    help: t(
+      'You or one of your teams are assigned an issue, or added to an investigation.'
+    ),
+  },
+  {
+    name: 'inboxMentions',
+    label: t('Mentions'),
+    help: t('You or one of your teams is mentioned in an issue or investigation.'),
+  },
+  {
+    name: 'inboxPullRequestsReady',
+    label: t('Pull Requests Ready'),
+    help: t('Seer opened a pull request and is awaiting your review.'),
+  },
+  {
+    name: 'inboxCompletionStatus',
+    label: t('Completion Status'),
+    help: t(
+      'Your investigation is completed, blocked or failed and is awaiting your review.'
+    ),
   },
 ];

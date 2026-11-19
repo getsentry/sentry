@@ -1,5 +1,6 @@
 import pytest
 
+from django.db.migrations.state import StateApps
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestMigrations
 
@@ -10,7 +11,7 @@ class RepairLatestAdoptedReleaseEnvironmentsTest(TestMigrations):
     migrate_from = "0117_backfill_all_project_detectors"
     migrate_to = "0118_repair_latest_adopted_release_environments"
 
-    def setup_before_migration(self, apps):
+    def setup_before_migration(self, apps: StateApps) -> None:
         Organization = apps.get_model("sentry", "Organization")
         Environment = apps.get_model("sentry", "Environment")
         DataCondition = apps.get_model("workflow_engine", "DataCondition")
@@ -71,7 +72,7 @@ class RepairLatestAdoptedReleaseEnvironmentsTest(TestMigrations):
                 condition_result=True,
             )
 
-    def test(self):
+    def test(self) -> None:
         DataCondition = self.apps.get_model("workflow_engine", "DataCondition")
 
         broken_condition = DataCondition.objects.get(id=self.broken_condition.id)

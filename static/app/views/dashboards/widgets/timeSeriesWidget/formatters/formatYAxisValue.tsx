@@ -3,6 +3,7 @@ import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {
   ABYTE_UNITS,
   DurationUnit,
+  FractionUnit,
   RATE_UNIT_LABELS,
   RateUnit,
   SizeUnit,
@@ -10,9 +11,11 @@ import {
 import {formatAbbreviatedNumber, formatDollars} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {convertDuration} from 'sentry/utils/unitConversion/convertDuration';
+import {convertFraction} from 'sentry/utils/unitConversion/convertFraction';
 import {convertSize} from 'sentry/utils/unitConversion/convertSize';
 import {
   isADurationUnit,
+  isAFractionUnit,
   isARateUnit,
   isASizeUnit,
 } from 'sentry/views/dashboards/widgets/common/typePredicates';
@@ -61,8 +64,13 @@ export function formatYAxisValue(value: number, type: string, unit?: string): st
       return value.toLocaleString(undefined, {
         maximumFractionDigits: 20,
       });
-    case 'percentage':
-      return formatPercentage(value, 3);
+    case 'percentage': {
+      const fractionUnit = isAFractionUnit(unit) ? unit : FractionUnit.RATIO;
+      return formatPercentage(
+        convertFraction(value, fractionUnit, FractionUnit.RATIO),
+        3
+      );
+    }
     case 'duration': {
       const durationUnit = isADurationUnit(unit) ? unit : DurationUnit.MILLISECOND;
       const durationInMilliseconds = convertDuration(

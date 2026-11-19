@@ -15,10 +15,11 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import type {AuthConfig} from 'sentry/types/auth';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import AcceptOrganizationInvite from 'sentry/views/authV2/acceptOrganizationInvite';
-import type {InviteDetails} from 'sentry/views/authV2/acceptOrganizationInvite/types';
 import {mockElementFromPoint} from 'sentry/views/authV2/authLogin/components/testUtils';
 import type {AuthOrganization} from 'sentry/views/authV2/authLogin/hooks/useAuthOrganization';
 import {AuthPageLoadingProvider} from 'sentry/views/authV2/useAuthPageLoading';
+
+import type {InviteDetails} from './types';
 
 const organization = OrganizationFixture({name: 'Acme', slug: 'org-slug'});
 const defaultInvite: InviteDetails = {

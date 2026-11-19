@@ -19,12 +19,12 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {SentryDateTimeProvider} from 'sentry/scrapsProviders/datetime';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {CronDetectorDetails} from 'sentry/views/detectors/components/details/cron';
 import DetectorDetails from 'sentry/views/detectors/detail';
+import {ScheduleType} from 'sentry/views/insights/crons/types';
 
 describe('CronDetectorDetails - check-ins', () => {
   const project = ProjectFixture({environments: ['production']});
@@ -47,7 +47,9 @@ describe('CronDetectorDetails - check-ins', () => {
   });
 
   beforeEach(() => {
+    ProjectsStore.reset();
     MockApiClient.clearMockResponses();
+    PageFiltersStore.reset();
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
@@ -166,8 +168,6 @@ describe('CronDetectorDetails - check-ins', () => {
 
     afterEach(() => {
       localStorageWrapper.removeItem('global-selection:org-slug');
-      PageFiltersStore.reset();
-      ProjectsStore.reset();
       jest.restoreAllMocks();
     });
 
@@ -201,8 +201,8 @@ describe('CronDetectorDetails - check-ins', () => {
             '/organizations/org-slug/monitors-stats/',
             expect.objectContaining({
               query: expect.objectContaining({
-                project: project.id,
-                environment,
+                project: [project.id],
+                environment: [environment],
                 monitor: [cronDataSource.queryObj.id],
               }),
             })
@@ -216,6 +216,56 @@ describe('CronDetectorDetails - check-ins', () => {
         ).toEqual([999]);
       }
     );
+  });
+
+  it('shows only the environments selected in the page filters', async () => {
+    const multiEnvDetector = CronDetectorFixture({
+      ...detector,
+      dataSources: [
+        {
+          ...cronDataSource,
+          queryObj: {
+            ...cronDataSource.queryObj,
+            environments: [
+              CronMonitorEnvironmentFixture({name: 'production'}),
+              CronMonitorEnvironmentFixture({name: 'staging'}),
+            ],
+          },
+        },
+      ],
+    });
+    PageFiltersStore.updateEnvironments(['staging']);
+
+    render(<CronDetectorDetails detector={multiEnvDetector} project={project} />);
+
+    expect(await screen.findByRole('row', {name: /staging/})).toBeInTheDocument();
+    expect(screen.queryByRole('row', {name: /production/})).not.toBeInTheDocument();
+  });
+
+  it('falls back to UTC when the monitor has no timezone', async () => {
+    const noTimezoneDetector = CronDetectorFixture({
+      ...detector,
+      dataSources: [
+        {
+          ...cronDataSource,
+          queryObj: {
+            ...cronDataSource.queryObj,
+            config: {
+              ...cronDataSource.queryObj.config,
+              schedule_type: ScheduleType.CRONTAB,
+              schedule: '0 9 * * 6-7',
+              timezone: null,
+            },
+          },
+        },
+      ],
+    });
+
+    render(<CronDetectorDetails detector={noTimezoneDetector} project={project} />);
+
+    expect(
+      await screen.findByText('At 09:00 AM, Saturday through Sunday (UTC)')
+    ).toBeInTheDocument();
   });
 
   describe('check-ins', () => {
@@ -292,11 +342,7 @@ describe('CronDetectorDetails - check-ins', () => {
       user.options.timezone = 'America/New_York';
       ConfigStore.set('user', user);
 
-      render(
-        <SentryDateTimeProvider>
-          <CronDetectorDetails detector={detectorWithCheckIn} project={project} />
-        </SentryDateTimeProvider>
-      );
+      render(<CronDetectorDetails detector={detectorWithCheckIn} project={project} />);
 
       // Wait for check-ins to load and find the table within the section
       const recentCheckInsHeading = await screen.findByText('Recent Check-Ins');
@@ -370,11 +416,7 @@ describe('CronDetectorDetails - check-ins', () => {
       user.options.clock24Hours = true;
       ConfigStore.set('user', user);
 
-      render(
-        <SentryDateTimeProvider>
-          <CronDetectorDetails detector={detectorWithCheckIn} project={project} />
-        </SentryDateTimeProvider>
-      );
+      render(<CronDetectorDetails detector={detectorWithCheckIn} project={project} />);
 
       const recentCheckInsHeading = await screen.findByText('Recent Check-Ins');
       const container = recentCheckInsHeading.closest('section')!;

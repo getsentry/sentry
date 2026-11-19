@@ -7,6 +7,7 @@ class ApiOwner(Enum):
     Value should map to team's github group
     """
 
+    AGENT_TRACING = "agent-tracing"
     ALERTS_MONITORS = "alerts-monitors"
     BILLING = "revenue"
     CODING_WORKFLOWS = "agent-interfaces-sentry-backend"

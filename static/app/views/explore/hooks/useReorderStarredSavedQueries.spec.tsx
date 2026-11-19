@@ -2,8 +2,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {SavedQueryType} from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {useReorderStarredSavedQueries} from 'sentry/views/explore/hooks/useReorderStarredSavedQueries';
+import {SavedQueryType} from './useGetSavedQueries';
+import {useReorderStarredSavedQueries} from './useReorderStarredSavedQueries';
 
 describe('useReorderStarredSavedQueries', () => {
   afterEach(() => {

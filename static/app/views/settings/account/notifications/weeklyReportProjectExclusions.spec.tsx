@@ -5,7 +5,8 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import {ConfigStore} from 'sentry/stores/configStore';
-import {WeeklyReportProjectExclusions} from 'sentry/views/settings/account/notifications/weeklyReportProjectExclusions';
+
+import {WeeklyReportProjectExclusions} from './weeklyReportProjectExclusions';
 
 describe('WeeklyReportProjectExclusions', () => {
   const organization = OrganizationFixture();

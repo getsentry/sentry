@@ -5,12 +5,9 @@ import {t} from 'sentry/locale';
 import type {Level} from 'sentry/types/event';
 import {TraceIcons} from 'sentry/views/performance/traceDetails/traceIcons';
 import type {ErrorNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/errorNode';
-import {InvisibleTraceBar} from 'sentry/views/performance/traceDetails/traceRow/traceBar';
-import {
-  maybeFocusTraceRow,
-  TraceRowConnectors,
-  type TraceRowProps,
-} from 'sentry/views/performance/traceDetails/traceRow/traceRow';
+
+import {InvisibleTraceBar} from './traceBar';
+import {maybeFocusTraceRow, TraceRowConnectors, type TraceRowProps} from './traceRow';
 
 const ERROR_LEVEL_LABELS: Record<Level | 'default', string> = {
   sample: t('Sample'),

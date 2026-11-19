@@ -130,11 +130,9 @@ export function MetricPanel({
 
   const isHeatmap = visualize.chartType === ChartType.HEATMAP;
   const showTransformationControls =
-    isVisualizeFunction(visualize) &&
-    !isHeatmap &&
-    organization.features.includes('explore-interpolation-and-smoothing');
+    !isHeatmap && organization.features.includes('explore-interpolation-and-smoothing');
 
-  const [interval, setInterval, intervalOptions] = useChartInterval({
+  const [chartInterval, setChartInterval, intervalOptions] = useChartInterval({
     unspecifiedStrategy: ChartIntervalUnspecifiedStrategy.USE_SMALLEST,
   });
 
@@ -214,7 +212,7 @@ export function MetricPanel({
   });
 
   useMetricsPanelAnalytics({
-    interval,
+    interval: chartInterval,
     isTopN: !!topEvents,
     metricAggregatesTableResult,
     metricSamplesTableResult,
@@ -281,9 +279,11 @@ export function MetricPanel({
         onChange={option => handleChartTypeChange(option.value)}
       />
       <CompactSelect
-        value={isHeatmap ? (heatMapBucketDimensions?.interval ?? interval) : interval}
+        value={
+          isHeatmap ? (heatMapBucketDimensions?.interval ?? chartInterval) : chartInterval
+        }
         disabled={isHeatmap}
-        onChange={({value}) => setInterval(value)}
+        onChange={({value}) => setChartInterval(value)}
         trigger={triggerProps => (
           <OverlayTrigger.Button
             tooltipProps={{
@@ -303,9 +303,7 @@ export function MetricPanel({
   );
 
   function handleTransformationsChange(transformations: readonly string[]) {
-    setVisualizes(
-      visualizes.map(v => (isVisualizeFunction(v) ? v.replace({transformations}) : v))
-    );
+    setVisualizes(visualizes.map(v => v.replace({transformations})));
   }
 
   return (

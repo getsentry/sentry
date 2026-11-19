@@ -4,14 +4,15 @@ import {IconTimer} from '@sentry/icons/timer';
 import {ellipsize} from 'sentry/utils/string/ellipsize';
 import {TraceIcons} from 'sentry/views/performance/traceDetails/traceIcons';
 import type {UptimeCheckTimingNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/uptimeCheckTimingNode';
-import {TraceBar} from 'sentry/views/performance/traceDetails/traceRow/traceBar';
+
+import {TraceBar} from './traceBar';
 import {
   maybeFocusTraceRow,
   TRACE_COUNT_FORMATTER,
   TraceChildrenButton,
   TraceRowConnectors,
   type TraceRowProps,
-} from 'sentry/views/performance/traceDetails/traceRow/traceRow';
+} from './traceRow';
 
 export function TraceUptimeCheckTimingNodeRow(
   props: TraceRowProps<UptimeCheckTimingNode>

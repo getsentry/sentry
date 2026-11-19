@@ -1,5 +1,6 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
@@ -7,13 +8,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {AnsiText} from 'sentry/components/ansiText';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {StacktraceBanners} from 'sentry/components/events/interfaces/crashContent/exception/banners/stacktraceBanners';
-import {
-  prepareSourceMapDebuggerFrameInformation,
-  useSourceMapDebugQuery,
-  type SourceMapDebugResponse,
-} from 'sentry/components/events/interfaces/crashContent/exception/useSourceMapDebuggerData';
-import {renderLinksInText} from 'sentry/components/events/interfaces/crashContent/exception/utils';
 import {getStacktracePlatform} from 'sentry/components/events/interfaces/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {tct, tn} from 'sentry/locale';
@@ -22,14 +16,22 @@ import type {Project} from 'sentry/types/project';
 import {StackType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils/defined';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection, SectionDivider} from 'sentry/views/issueDetails/foldSection';
 import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 
+import {StacktraceBanners} from './banners/stacktraceBanners';
 import {Mechanism} from './mechanism';
 import {RelatedExceptions} from './relatedExceptions';
 import {StackTrace} from './stackTrace';
+import {
+  prepareSourceMapDebuggerFrameInformation,
+  sourceMapDebugApiOptions,
+  type SourceMapDebugResponse,
+} from './useSourceMapDebuggerData';
+import {renderLinksInText} from './utils';
 
 type StackTraceProps = React.ComponentProps<typeof StackTrace>;
 
@@ -258,10 +260,15 @@ export function Content({
 }: Props) {
   const {projects} = useProjects({slugs: [projectSlug]});
 
-  const {data: sourceMapDebuggerData} = useSourceMapDebugQuery(
-    projectSlug,
-    event.id,
-    event.sdk?.name ?? null
+  const organization = useOrganization({allowNull: true});
+
+  const {data: sourceMapDebuggerData} = useQuery(
+    sourceMapDebugApiOptions({
+      organizationSlug: organization?.slug,
+      projectSlug,
+      eventId: event.id,
+      sdkName: event.sdk?.name ?? null,
+    })
   );
   const {hiddenExceptions, toggleRelatedExceptions, expandException} =
     useHiddenExceptions(values);

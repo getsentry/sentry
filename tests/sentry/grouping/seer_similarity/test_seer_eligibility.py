@@ -63,6 +63,19 @@ class ShouldCallSeerTest(TestCase):
                 is expected_result
             ), f"Case {backfill_completed_option} failed."
 
+    def test_obeys_all_projects_option(self) -> None:
+        # No per-project option: only the all-projects option can turn Seer on
+        cases: list[tuple[dict[str, Any], bool]] = [
+            ({}, False),
+            ({"similarity.seer_grouping.all_projects": True}, True),
+        ]
+        for overrides, expected_result in cases:
+            with override_options(overrides):
+                assert (
+                    should_call_seer_for_grouping(self.event, self.variants, self.event_grouphash)
+                    is expected_result
+                ), f"Case {overrides} failed."
+
     def test_obeys_content_filter(self) -> None:
         self.project.update_option("sentry:similarity_backfill_completed", int(time()))
 

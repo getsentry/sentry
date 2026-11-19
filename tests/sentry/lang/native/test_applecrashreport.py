@@ -2,7 +2,7 @@ from sentry.constants import NATIVE_UNKNOWN_STRING
 from sentry.lang.native.applecrashreport import AppleCrashReport
 
 
-def _make_acr_with_context():
+def _make_acr_with_context() -> AppleCrashReport:
     return AppleCrashReport(
         context={
             "device": {
@@ -190,7 +190,7 @@ Thread 2 name: background\n\
     )
 
 
-def _thread(thread_id):
+def _thread(thread_id: int) -> dict[str, object]:
     return {
         "id": thread_id,
         "stacktrace": {
@@ -206,7 +206,7 @@ def _thread(thread_id):
     }
 
 
-def _thread_order(output):
+def _thread_order(output: str) -> list[int]:
     return [int(line.split()[1]) for line in output.splitlines() if line.startswith("Thread ")]
 
 

@@ -22,7 +22,7 @@ metrics with tags: {
 ---
 contributing variants:
   app*
-    hash: "cd7247c52d95df0f046b9e8d86ca231f"
+    hash: "f63a7669760e8a0c2dcecbc06dc16f93"
     contributing component: exception
     hint: None
     root_component:
@@ -31,48 +31,65 @@ contributing variants:
           type*
             "EXC_BAD_ACCESS"
           stacktrace*
-            frame* (marked in-app by built-in stacktrace rule (family:native package:/Users/** +app))
-              function*
-                "main"
-            frame* (marked in-app by built-in stacktrace rule (family:native package:/Users/** +app))
-              function*
-                "UnityMain"
-            frame* (marked in-app by built-in stacktrace rule (family:native package:/Users/** +app))
-              function*
-                "PlayerLoop"
-            frame* (marked in-app by built-in stacktrace rule (family:native package:/Users/** +app))
-              function*
-                "ScriptingInvocation::Invoke"
-            frame* (marked in-app by built-in stacktrace rule (family:native package:/Users/** +app))
-              filename*
-                "il2cppinvokertable.cpp"
-              function*
-                "RuntimeInvoker_TrueVoid_t22962CB4C05B1D89B55A6E1139F0E87A90987017"
-            frame* (marked in-app by built-in stacktrace rule (family:native package:/Users/** +app))
+            frame* (marked in-app by built-in stacktrace rule (category:il2cpp path:**/Assets/** +app))
               filename*
                 "enemyspawner.cs"
               function*
                 "EnemySpawner_Update"
-            frame* (marked in-app by built-in stacktrace rule (family:native package:/Users/** +app))
+            frame* (marked in-app by built-in stacktrace rule (category:il2cpp path:**/Packages/** +app))
               filename*
                 "combatsystem.cs"
               function*
                 "CombatSystem_ApplyDamage"
-            frame* (marked in-app by built-in stacktrace rule (family:native package:/Users/** +app))
+  system*
+    hash: "aeca1dc80143ed497c670fd61b7d30a2"
+    contributing component: exception
+    hint: None
+    root_component:
+      system*
+        exception*
+          type*
+            "EXC_BAD_ACCESS"
+          stacktrace*
+            frame*
+              function*
+                "main"
+            frame*
+              function*
+                "UnityMain"
+            frame*
+              function*
+                "PlayerLoop"
+            frame*
+              function*
+                "ScriptingInvocation::Invoke"
+            frame*
+              filename*
+                "il2cppinvokertable.cpp"
+              function*
+                "RuntimeInvoker_TrueVoid_t22962CB4C05B1D89B55A6E1139F0E87A90987017"
+            frame*
+              filename*
+                "enemyspawner.cs"
+              function*
+                "EnemySpawner_Update"
+            frame*
+              filename*
+                "combatsystem.cs"
+              function*
+                "CombatSystem_ApplyDamage"
+            frame*
               filename*
                 "tmp_text.cs"
               function*
                 "TMP_Text_SetText"
-            frame* (marked in-app by built-in stacktrace rule (family:native package:/Users/** +app))
+            frame*
               filename*
                 "animation.bindings.cs"
               function*
                 "Animation_Play"
-            frame* (marked in-app by built-in stacktrace rule (family:native package:/Users/** +app))
+            frame*
               filename*
                 "il2cppcodegen.cpp"
               function*
                 "il2cpp_codegen_raise_null_reference_exception"
-            frame* (marked in-app by built-in stacktrace rule (family:native package:/Users/** +app))
-              function*
-                "sentry__handle_signal"

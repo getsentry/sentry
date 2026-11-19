@@ -22,7 +22,7 @@ metrics with tags: {
 ---
 contributing variants:
   app*
-    hash: "31cfc54cd60b693b789568c5ec9278e2"
+    hash: "04eb3e30c44355bca4f760682c7b6198"
     contributing component: exception
     hint: None
     root_component:
@@ -31,11 +31,6 @@ contributing variants:
           type*
             "System.NullReferenceException"
           stacktrace*
-            frame* (marked in-app by the client)
-              module*
-                "GameBootstrap"
-              function*
-                "Start"
             frame* (marked in-app by the client)
               module*
                 "EnemySpawner+<SpawnWaves>d__4"
@@ -47,7 +42,7 @@ contributing variants:
               function*
                 "ApplyDamage"
   system*
-    hash: "633f98691c6d46f1b91a753cfbb90cc0"
+    hash: "3280616726a0dc4b6230272e6ae3cafb"
     contributing component: exception
     hint: None
     root_component:
@@ -56,16 +51,6 @@ contributing variants:
           type*
             "System.NullReferenceException"
           stacktrace*
-            frame*
-              module*
-                "GameBootstrap"
-              function*
-                "Start"
-            frame*
-              module*
-                "UnityEngine.MonoBehaviour"
-              function*
-                "StartCoroutine"
             frame*
               module*
                 "UnityEngine.SetupCoroutine"

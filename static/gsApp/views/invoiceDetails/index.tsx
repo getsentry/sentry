@@ -3,19 +3,18 @@ import styled from '@emotion/styled';
 import {IconSentry} from '@sentry/icons/sentry';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Pagination} from '@sentry/scraps/pagination';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {t, tct} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -24,6 +23,7 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 import {InvoiceStatus} from 'getsentry/types';
 import type {BillingDetails, Invoice, InvoiceBase} from 'getsentry/types';
 import {displayPriceWithCents} from 'getsentry/utils/billing';
+import {billingCalendarDateToTimestamp} from 'getsentry/utils/billingCalendarDate';
 import {getTaxFieldInfo} from 'getsentry/utils/salesTax';
 import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
@@ -79,31 +79,23 @@ function InvoiceDetails() {
     isPending: isBillingDetailsLoading,
     isError: isBillingDetailsError,
     refetch: billingDetailsRefetch,
-  } = useApiQuery<BillingDetails>(
-    [
-      getApiUrl('/customers/$organizationIdOrSlug/billing-details/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-    ],
-    {
-      staleTime: 0,
-      placeholderData: keepPreviousData,
-    }
-  );
+  } = useQuery({
+    ...apiOptions.as<BillingDetails>()(
+      '/customers/$organizationIdOrSlug/billing-details/',
+      {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
+    ),
+    placeholderData: keepPreviousData,
+  });
   const {
     data: invoice,
     isPending: isInvoiceLoading,
     isError: isInvoiceError,
     refetch: invoiceRefetch,
-  } = useApiQuery<Invoice>(
-    [
-      getApiUrl('/customers/$organizationIdOrSlug/invoices/$invoiceId/', {
-        path: {organizationIdOrSlug: organization.slug, invoiceId: invoiceGuid},
-      }),
-    ],
-    {
+  } = useQuery(
+    apiOptions.as<Invoice>()('/customers/$organizationIdOrSlug/invoices/$invoiceId/', {
+      path: {organizationIdOrSlug: organization.slug, invoiceId: invoiceGuid},
       staleTime: Infinity,
-    }
+    })
   );
 
   if (isBillingDetailsError || isInvoiceError) {
@@ -125,7 +117,7 @@ function InvoiceDetails() {
         title={t('Receipt Details')}
         action={
           <InvoicePagination
-            pageLinks={pageLinks}
+            {...getPaginationProps(pageLinks)}
             onCursor={cursor => cursor && navigate(receiptUrl(cursor))}
           />
         }
@@ -249,7 +241,7 @@ function InvoiceAttributes({invoice, billingDetails}: AttributeProps) {
         <dd>{paymentStatus.toUpperCase()}</dd>
         <dt>{t('Date:')}</dt>
         <dd>
-          <DateTime date={invoice.dateCreated} dateOnly year />
+          <DateTime date={invoice.dateCreated} mode="date" year="always" />
         </dd>
       </Attributes>
     </Grid>
@@ -307,8 +299,24 @@ function InvoiceDetailsContents({billingDetails, invoice}: ContentsProps) {
                     {tct('[description] Plan', {description: item.description})}
                     <small>
                       {tct('[start] to [end]', {
-                        start: <DateTime date={item.periodStart} dateOnly year />,
-                        end: <DateTime date={item.periodEnd} dateOnly year />,
+                        start: (
+                          <DateTime
+                            date={billingCalendarDateToTimestamp(item.periodStart)}
+                            timezone="UTC"
+                            showTimezone={false}
+                            mode="date"
+                            year="always"
+                          />
+                        ),
+                        end: (
+                          <DateTime
+                            date={billingCalendarDateToTimestamp(item.periodEnd)}
+                            timezone="UTC"
+                            showTimezone={false}
+                            mode="date"
+                            year="always"
+                          />
+                        ),
                       })}
                     </small>
                   </td>

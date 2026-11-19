@@ -1,7 +1,8 @@
 import type {Key} from 'react';
-import {useCallback, useMemo, useRef, useState} from 'react';
+import {useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {type AriaComboBoxProps} from '@react-aria/combobox';
+import {VisuallyHidden} from '@react-aria/visually-hidden';
 import {Item} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren} from '@react-types/shared';
@@ -21,10 +22,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 
 export function DebugNotificationsSearch() {
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const searchKeys = useMemo(() => {
-    return [{match: '/', callback: () => inputRef.current?.focus()}];
-  }, []);
-  useHotkeys(searchKeys);
+  useHotkeys([{hotkey: '/', callback: () => inputRef.current?.focus()}]);
   const {data: registry = {}} = useRegistry();
   const sourceData = Object.values(registry)
     .flat()
@@ -108,9 +106,9 @@ function SearchComboBox<T extends SearchItem>(props: SearchComboBoxProps<T>) {
   const {className: _0, style: _1, size: nativeSize, ...nativeProps} = inputProps;
   return (
     <SearchContainer>
-      <label {...labelProps} className="sr-only">
+      <VisuallyHidden elementType="label" {...labelProps}>
         {props.label}
-      </label>
+      </VisuallyHidden>
       <InputGroup>
         <InputGroup.LeadingItems disablePointerEvents>
           <IconSearch />

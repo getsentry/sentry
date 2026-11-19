@@ -4,18 +4,6 @@ import isEqual from 'lodash/isEqual';
 import {Stack} from '@sentry/scraps/layout';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import type {InitializeUrlStateParams} from 'sentry/components/pageFilters/actions';
-import {
-  exceedsDatetimeLimits,
-  initializeUrlState,
-  updateDateTime,
-  updateEnvironments,
-  updatePersistence,
-  updateProjects,
-} from 'sentry/components/pageFilters/actions';
-import {PageFilterAdjustmentReason} from 'sentry/components/pageFilters/adjustments';
-import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -25,7 +13,19 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {SIDEBAR_NAVIGATION_SOURCE} from 'sentry/views/navigation/constants';
 
+import type {InitializeUrlStateParams} from './actions';
+import {
+  exceedsDatetimeLimits,
+  initializeUrlState,
+  updateDateTime,
+  updateEnvironments,
+  updatePersistence,
+  updateProjects,
+} from './actions';
+import {PageFilterAdjustmentReason} from './adjustments';
 import {getDatetimeFromState, getStateFromQuery} from './parse';
+import {PageFiltersStore} from './store';
+import {usePageFilters} from './usePageFilters';
 
 type InitializeUrlStateProps = Omit<
   InitializeUrlStateParams,

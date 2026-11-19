@@ -2,7 +2,7 @@
 source: tests/sentry/grouping/test_variants.py::test_variants
 ---
 app:
-  hash: "31cfc54cd60b693b789568c5ec9278e2"
+  hash: "04eb3e30c44355bca4f760682c7b6198"
   contributing component: exception
   hint: None
   root_component:
@@ -13,7 +13,7 @@ app:
         value (ignored because stacktrace takes precedence)
           "Object reference not set to an instance of an object"
         stacktrace*
-          frame* (marked in-app by the client)
+          frame (marked in-app by the client but ignored by built-in stacktrace rule (family:other package:UnityEngine.CoreModule* function:InvokeMoveNext v-group))
             module*
               "GameBootstrap"
             filename (ignored because module takes precedence)
@@ -46,7 +46,7 @@ app:
               "ApplyDamage"
 --------------------------------------------------------------------------
 system:
-  hash: "633f98691c6d46f1b91a753cfbb90cc0"
+  hash: "3280616726a0dc4b6230272e6ae3cafb"
   contributing component: exception
   hint: None
   root_component:
@@ -57,14 +57,14 @@ system:
         value (ignored because stacktrace takes precedence)
           "Object reference not set to an instance of an object"
         stacktrace*
-          frame*
+          frame (ignored by built-in stacktrace rule (family:other package:UnityEngine.CoreModule* function:InvokeMoveNext v-group))
             module*
               "GameBootstrap"
             filename (ignored because module takes precedence)
               "gamebootstrap.cs"
             function*
               "Start"
-          frame*
+          frame (ignored by built-in stacktrace rule (family:other package:UnityEngine.CoreModule* function:InvokeMoveNext v-group))
             module*
               "UnityEngine.MonoBehaviour"
             function*

@@ -22,8 +22,6 @@ class TeamKeyTransactionTestBase(APITestCase, SnubaTestCase):
         self.project = self.create_project(name="baz", organization=self.org)
         self.event_data = load_data("transaction")
 
-        self.features = ["organizations:performance-view"]
-
 
 class ClientCallable(Protocol):
     def __call__(
@@ -36,7 +34,7 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         super().setUp()
         self.url = reverse("sentry-api-0-organization-key-transactions", args=[self.org.slug])
 
-    def test_key_transaction_without_feature(self) -> None:
+    def test_key_transaction_with_multiple_projects(self) -> None:
         project = self.create_project(name="qux", organization=self.org)
         data = {
             "project": [self.project.id, project.id],
@@ -48,44 +46,41 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
             self.client.post(self.url, data=data, format="json"),
             self.client.delete(self.url, data=data, format="json"),
         ):
-            assert response.status_code == 404, response.content
+            assert response.status_code == 400, response.content
 
     def test_get_key_transaction_multiple_projects(self) -> None:
         project = self.create_project(name="qux", organization=self.org)
-        with self.feature(self.features):
-            response = self.client.get(
-                self.url,
-                data={
-                    "project": [self.project.id, project.id],
-                    "transaction": self.event_data["transaction"],
-                },
-                format="json",
-            )
+        response = self.client.get(
+            self.url,
+            data={
+                "project": [self.project.id, project.id],
+                "transaction": self.event_data["transaction"],
+            },
+            format="json",
+        )
         assert response.status_code == 400, response.content
         assert response.data == {"detail": "Only 1 project per Key Transaction"}
 
     def test_get_key_transaction_no_transaction_name(self) -> None:
-        with self.feature(self.features):
-            response = self.client.get(
-                self.url,
-                data={
-                    "project": [self.project.id],
-                },
-                format="json",
-            )
+        response = self.client.get(
+            self.url,
+            data={
+                "project": [self.project.id],
+            },
+            format="json",
+        )
         assert response.status_code == 400, response.content
         assert response.data == {"detail": "A transaction name is required"}
 
     def test_get_no_key_transaction(self) -> None:
-        with self.feature(self.features):
-            response = self.client.get(
-                self.url,
-                data={
-                    "project": [self.project.id],
-                    "transaction": self.event_data["transaction"],
-                },
-                format="json",
-            )
+        response = self.client.get(
+            self.url,
+            data={
+                "project": [self.project.id],
+                "transaction": self.event_data["transaction"],
+            },
+            format="json",
+        )
         assert response.status_code == 200, response.content
         assert response.data == []
 
@@ -124,16 +119,15 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
             ]
         )
 
-        with self.feature(self.features):
-            response = self.client.get(
-                self.url,
-                data={
-                    "project": [self.project.id],
-                    "transaction": self.event_data["transaction"],
-                    "team": "myteams",
-                },
-                format="json",
-            )
+        response = self.client.get(
+            self.url,
+            data={
+                "project": [self.project.id],
+                "transaction": self.event_data["transaction"],
+                "team": "myteams",
+            },
+            format="json",
+        )
 
         assert response.status_code == 200, response.content
         assert response.data == [
@@ -152,16 +146,15 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         project = self.create_project(name="bar", organization=self.org)
         project.add_team(team)
 
-        with self.feature(self.features):
-            response = self.client.post(
-                self.url,
-                data={
-                    "project": [self.project.id, project.id],
-                    "transaction": self.event_data["transaction"],
-                    "team": [team.id],
-                },
-                format="json",
-            )
+        response = self.client.post(
+            self.url,
+            data={
+                "project": [self.project.id, project.id],
+                "transaction": self.event_data["transaction"],
+                "team": [team.id],
+            },
+            format="json",
+        )
 
         assert response.status_code == 400, response.content
         assert response.data == {"detail": "Only 1 project per Key Transaction"}
@@ -171,15 +164,14 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         self.create_team_membership(team, user=self.user)
         self.project.add_team(team)
 
-        with self.feature(self.features):
-            response = self.client.post(
-                self.url,
-                data={
-                    "project": [self.project.id],
-                    "transaction": self.event_data["transaction"],
-                },
-                format="json",
-            )
+        response = self.client.post(
+            self.url,
+            data={
+                "project": [self.project.id],
+                "transaction": self.event_data["transaction"],
+            },
+            format="json",
+        )
 
         assert response.status_code == 400, response.content
         assert response.data == {"team": ["This field is required."]}
@@ -189,15 +181,14 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         self.create_team_membership(team, user=self.user)
         self.project.add_team(team)
 
-        with self.feature(self.features):
-            response = self.client.post(
-                self.url,
-                data={
-                    "project": [self.project.id],
-                    "team": [team.id],
-                },
-                format="json",
-            )
+        response = self.client.post(
+            self.url,
+            data={
+                "project": [self.project.id],
+                "team": [team.id],
+            },
+            format="json",
+        )
 
         assert response.status_code == 400, response.content
         assert response.data == {"transaction": ["This field is required."]}
@@ -220,16 +211,15 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         other_team = self.create_team(organization=org, name="Team Bar")
         project.add_team(other_team)
 
-        with self.feature(self.features):
-            response = self.client.post(
-                reverse("sentry-api-0-organization-key-transactions", args=[org.slug]),
-                data={
-                    "project": [project.id],
-                    "transaction": self.event_data["transaction"],
-                    "team": [other_team.id],
-                },
-                format="json",
-            )
+        response = self.client.post(
+            reverse("sentry-api-0-organization-key-transactions", args=[org.slug]),
+            data={
+                "project": [project.id],
+                "transaction": self.event_data["transaction"],
+                "team": [other_team.id],
+            },
+            format="json",
+        )
 
         assert response.status_code == 400, response.content
         assert response.data == {
@@ -244,16 +234,15 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         other_org = self.create_organization(owner=self.create_user())
         other_org_team = self.create_team(organization=other_org, name="Other Org Team")
 
-        with self.feature(self.features):
-            response = self.client.post(
-                self.url,
-                data={
-                    "project": [self.project.id],
-                    "transaction": self.event_data["transaction"],
-                    "team": [other_org_team.id],
-                },
-                format="json",
-            )
+        response = self.client.post(
+            self.url,
+            data={
+                "project": [self.project.id],
+                "transaction": self.event_data["transaction"],
+                "team": [other_org_team.id],
+            },
+            format="json",
+        )
 
         assert response.status_code == 400, response.content
         assert response.data == {"team": ["One or more teams do not exist."]}
@@ -269,16 +258,15 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         other_org = self.create_organization(owner=self.create_user())
         other_org_team = self.create_team(organization=other_org, name="Other Org Team")
 
-        with self.feature(self.features):
-            response = self.client.post(
-                self.url,
-                data={
-                    "project": [self.project.id],
-                    "transaction": self.event_data["transaction"],
-                    "team": [team.id, other_org_team.id],
-                },
-                format="json",
-            )
+        response = self.client.post(
+            self.url,
+            data={
+                "project": [self.project.id],
+                "transaction": self.event_data["transaction"],
+                "team": [team.id, other_org_team.id],
+            },
+            format="json",
+        )
 
         assert response.status_code == 400, response.content
         assert response.data == {"team": ["One or more teams do not exist."]}
@@ -294,16 +282,15 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         team2 = self.create_team(organization=self.org, name="Team Bar")
         self.create_team_membership(team2, user=self.user)
 
-        with self.feature(self.features):
-            response = self.client.post(
-                self.url,
-                data={
-                    "project": [self.project.id],
-                    "transaction": self.event_data["transaction"],
-                    "team": [team2.id],
-                },
-                format="json",
-            )
+        response = self.client.post(
+            self.url,
+            data={
+                "project": [self.project.id],
+                "transaction": self.event_data["transaction"],
+                "team": [team2.id],
+            },
+            format="json",
+        )
 
         assert response.status_code == 400, response.content
         assert response.data == {"detail": "Team does not have access to project"}
@@ -326,16 +313,15 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
             ]
         )
 
-        with self.feature(self.features):
-            response = self.client.post(
-                self.url,
-                data={
-                    "project": [self.project.id],
-                    "transaction": self.event_data["transaction"],
-                    "team": [team.id],
-                },
-                format="json",
-            )
+        response = self.client.post(
+            self.url,
+            data={
+                "project": [self.project.id],
+                "transaction": self.event_data["transaction"],
+                "team": [team.id],
+            },
+            format="json",
+        )
 
         assert response.status_code == 400, response.content
         assert response.data == {
@@ -367,16 +353,15 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
             ]
         )
 
-        with self.feature(self.features):
-            response = self.client.post(
-                self.url,
-                data={
-                    "project": [self.project.id],
-                    "transaction": self.event_data["transaction"],
-                    "team": [team1.id, team2.id],
-                },
-                format="json",
-            )
+        response = self.client.post(
+            self.url,
+            data={
+                "project": [self.project.id],
+                "transaction": self.event_data["transaction"],
+                "team": [team1.id, team2.id],
+            },
+            format="json",
+        )
 
         assert response.status_code == 201, response.content
         key_transactions = TeamKeyTransaction.objects.filter(project_team__team__in=[team1, team2])
@@ -387,16 +372,15 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         self.create_team_membership(team, user=self.user)
         self.project.add_team(team)
 
-        with self.feature(self.features):
-            response = self.client.post(
-                self.url,
-                data={
-                    "project": [self.project.id],
-                    "transaction": self.event_data["transaction"],
-                    "team": [team.id],
-                },
-                format="json",
-            )
+        response = self.client.post(
+            self.url,
+            data={
+                "project": [self.project.id],
+                "transaction": self.event_data["transaction"],
+                "team": [team.id],
+            },
+            format="json",
+        )
 
         assert response.status_code == 201, response.content
         key_transactions = TeamKeyTransaction.objects.filter(project_team__team=team)
@@ -415,16 +399,15 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
             transaction=self.event_data["transaction"],
         )
 
-        with self.feature(self.features):
-            response = self.client.post(
-                self.url,
-                data={
-                    "project": [self.project.id],
-                    "transaction": self.event_data["transaction"],
-                    "team": [team.id],
-                },
-                format="json",
-            )
+        response = self.client.post(
+            self.url,
+            data={
+                "project": [self.project.id],
+                "transaction": self.event_data["transaction"],
+                "team": [team.id],
+            },
+            format="json",
+        )
 
         assert response.status_code == 204, response.content
         key_transactions = TeamKeyTransaction.objects.filter(
@@ -441,16 +424,15 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         self.create_team_membership(team2, user=self.user)
         self.project.add_team(team2)
 
-        with self.feature(self.features):
-            response = self.client.post(
-                self.url,
-                data={
-                    "project": [self.project.id],
-                    "transaction": self.event_data["transaction"],
-                    "team": [team1.id, team2.id],
-                },
-                format="json",
-            )
+        response = self.client.post(
+            self.url,
+            data={
+                "project": [self.project.id],
+                "transaction": self.event_data["transaction"],
+                "team": [team1.id, team2.id],
+            },
+            format="json",
+        )
 
         assert response.status_code == 201, response.content
         key_transactions = TeamKeyTransaction.objects.filter(
@@ -476,16 +458,15 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
             transaction=self.event_data["transaction"],
         )
 
-        with self.feature(self.features):
-            response = self.client.post(
-                self.url,
-                data={
-                    "project": [self.project.id],
-                    "transaction": self.event_data["transaction"],
-                    "team": [team1.id, team2.id],
-                },
-                format="json",
-            )
+        response = self.client.post(
+            self.url,
+            data={
+                "project": [self.project.id],
+                "transaction": self.event_data["transaction"],
+                "team": [team1.id, team2.id],
+            },
+            format="json",
+        )
 
         assert response.status_code == 201, response.content
         key_transactions = TeamKeyTransaction.objects.filter(
@@ -501,29 +482,27 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         self.create_team_membership(team, user=self.user)
         self.project.add_team(team)
 
-        with self.feature(self.features):
-            response = self.client.post(
-                self.url,
-                data={
-                    "project": [self.project.id],
-                    "transaction": self.event_data["transaction"],
-                    "team": [team.id],
-                },
-                format="json",
-            )
+        response = self.client.post(
+            self.url,
+            data={
+                "project": [self.project.id],
+                "transaction": self.event_data["transaction"],
+                "team": [team.id],
+            },
+            format="json",
+        )
 
         assert response.status_code == 201, response.content
 
-        with self.feature(self.features):
-            response = self.client.post(
-                self.url,
-                data={
-                    "project": [self.project.id],
-                    "transaction": self.event_data["transaction"],
-                    "team": [team.id],
-                },
-                format="json",
-            )
+        response = self.client.post(
+            self.url,
+            data={
+                "project": [self.project.id],
+                "transaction": self.event_data["transaction"],
+                "team": [team.id],
+            },
+            format="json",
+        )
 
         # already created by this user, so it's 204 this time
         assert response.status_code == 204, response.content
@@ -532,16 +511,15 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         self.create_member(user=user, organization=self.org, role="member")
         self.create_team_membership(team, user=user)
         self.login_as(user=user, superuser=False)
-        with self.feature(self.features):
-            response = self.client.post(
-                self.url,
-                data={
-                    "project": [self.project.id],
-                    "transaction": self.event_data["transaction"],
-                    "team": [team.id],
-                },
-                format="json",
-            )
+        response = self.client.post(
+            self.url,
+            data={
+                "project": [self.project.id],
+                "transaction": self.event_data["transaction"],
+                "team": [team.id],
+            },
+            format="json",
+        )
 
         # already created by another user, so it's 204 this time
         assert response.status_code == 204, response.content
@@ -555,16 +533,15 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         self.create_team_membership(team, user=self.user)
         self.project.add_team(team)
 
-        with self.feature(self.features):
-            response = self.client.post(
-                self.url,
-                data={
-                    "project": [self.project.id],
-                    "transaction": "a" * 500,
-                    "team": [team.id],
-                },
-                format="json",
-            )
+        response = self.client.post(
+            self.url,
+            data={
+                "project": [self.project.id],
+                "transaction": "a" * 500,
+                "team": [team.id],
+            },
+            format="json",
+        )
 
         assert response.status_code == 400, response.content
         assert response.data == {
@@ -576,15 +553,14 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         self.create_team_membership(team, user=self.user)
         self.project.add_team(team)
 
-        with self.feature(self.features):
-            response = self.client.delete(
-                self.url,
-                data={
-                    "project": [self.project.id],
-                    "team": [team.id],
-                },
-                format="json",
-            )
+        response = self.client.delete(
+            self.url,
+            data={
+                "project": [self.project.id],
+                "team": [team.id],
+            },
+            format="json",
+        )
 
         assert response.status_code == 400, response.content
         assert response.data == {"transaction": ["This field is required."]}
@@ -594,15 +570,14 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         self.create_team_membership(team, user=self.user)
         self.project.add_team(team)
 
-        with self.feature(self.features):
-            response = self.client.delete(
-                self.url,
-                data={
-                    "project": [self.project.id],
-                    "transaction": self.event_data["transaction"],
-                },
-                format="json",
-            )
+        response = self.client.delete(
+            self.url,
+            data={
+                "project": [self.project.id],
+                "transaction": self.event_data["transaction"],
+            },
+            format="json",
+        )
 
         assert response.status_code == 400, response.content
         assert response.data == {"team": ["This field is required."]}
@@ -612,16 +587,15 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
         self.create_team_membership(team, user=self.user)
         self.project.add_team(team)
 
-        with self.feature(self.features):
-            response = self.client.delete(
-                self.url,
-                data={
-                    "project": [self.project.id],
-                    "transaction": self.event_data["transaction"],
-                    "team": [team.id],
-                },
-                format="json",
-            )
+        response = self.client.delete(
+            self.url,
+            data={
+                "project": [self.project.id],
+                "transaction": self.event_data["transaction"],
+                "team": [team.id],
+            },
+            format="json",
+        )
 
         assert response.status_code == 204, response.content
         key_transactions = TeamKeyTransaction.objects.filter(project_team__team=team)
@@ -641,16 +615,15 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
             transaction=self.event_data["transaction"],
         )
 
-        with self.feature(self.features):
-            response = self.client.delete(
-                self.url,
-                data={
-                    "project": [self.project.id],
-                    "transaction": self.event_data["transaction"],
-                    "team": [other_org_team.id],
-                },
-                format="json",
-            )
+        response = self.client.delete(
+            self.url,
+            data={
+                "project": [self.project.id],
+                "transaction": self.event_data["transaction"],
+                "team": [other_org_team.id],
+            },
+            format="json",
+        )
 
         assert response.status_code == 400, response.content
         assert response.data == {"team": ["One or more teams do not exist."]}
@@ -680,16 +653,15 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
             transaction=self.event_data["transaction"],
         )
 
-        with self.feature(self.features):
-            response = self.client.delete(
-                reverse("sentry-api-0-organization-key-transactions", args=[org.slug]),
-                data={
-                    "project": [project.id],
-                    "transaction": self.event_data["transaction"],
-                    "team": [other_team.id],
-                },
-                format="json",
-            )
+        response = self.client.delete(
+            reverse("sentry-api-0-organization-key-transactions", args=[org.slug]),
+            data={
+                "project": [project.id],
+                "transaction": self.event_data["transaction"],
+                "team": [other_team.id],
+            },
+            format="json",
+        )
 
         assert response.status_code == 400, response.content
         assert response.data == {
@@ -707,16 +679,15 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
             transaction=self.event_data["transaction"],
         )
 
-        with self.feature(self.features):
-            response = self.client.delete(
-                self.url,
-                data={
-                    "project": [self.project.id],
-                    "transaction": self.event_data["transaction"],
-                    "team": [team.id],
-                },
-                format="json",
-            )
+        response = self.client.delete(
+            self.url,
+            data={
+                "project": [self.project.id],
+                "transaction": self.event_data["transaction"],
+                "team": [team.id],
+            },
+            format="json",
+        )
 
         assert response.status_code == 204, response.content
         key_transactions = TeamKeyTransaction.objects.filter(project_team__team=team)
@@ -737,16 +708,15 @@ class TeamKeyTransactionTest(TeamKeyTransactionTestBase):
             transaction=self.event_data["transaction"],
         )
 
-        with self.feature(self.features):
-            response = self.client.delete(
-                self.url,
-                data={
-                    "project": [self.project.id],
-                    "transaction": self.event_data["transaction"],
-                    "team": [team1.id, team2.id],
-                },
-                format="json",
-            )
+        response = self.client.delete(
+            self.url,
+            data={
+                "project": [self.project.id],
+                "transaction": self.event_data["transaction"],
+                "team": [team1.id, team2.id],
+            },
+            format="json",
+        )
 
         assert response.status_code == 204, response.content
 
@@ -810,15 +780,15 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
         other_team = self.create_team(organization=org, name="Team Bar")
         project.add_team(other_team)
 
-        with self.feature(self.features):
-            response = self.client.get(
-                reverse("sentry-api-0-organization-key-transactions-list", args=[org.slug]),
-                data={
-                    "project": [self.project.id],
-                    "team": ["myteams", other_team.id],
-                },
-                format="json",
-            )
+        query_params: dict[str, Any] = {
+            "project": [self.project.id],
+            "team": ["myteams", other_team.id],
+        }
+        response = self.client.get(
+            reverse("sentry-api-0-organization-key-transactions-list", args=[org.slug]),
+            data=query_params,
+            format="json",
+        )
 
         assert response.status_code == 403, response.content
         assert response.data == {
@@ -826,15 +796,15 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
         }
 
     def test_get_key_transaction_list_my_teams(self) -> None:
-        with self.feature(self.features):
-            response = self.client.get(
-                self.url,
-                data={
-                    "project": [self.project.id],
-                    "team": ["myteams"],
-                },
-                format="json",
-            )
+        query_params: dict[str, Any] = {
+            "project": [self.project.id],
+            "team": ["myteams"],
+        }
+        response = self.client.get(
+            self.url,
+            data=query_params,
+            format="json",
+        )
 
         assert response.status_code == 200, response.content
         assert response.data == [
@@ -867,15 +837,14 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
         ]
 
     def test_get_key_transaction_list_other_teams(self) -> None:
-        with self.feature(self.features):
-            response = self.client.get(
-                self.url,
-                data={
-                    "project": [self.project.id],
-                    "team": [self.team4.id, self.team5.id],
-                },
-                format="json",
-            )
+        response = self.client.get(
+            self.url,
+            data={
+                "project": [self.project.id],
+                "team": [self.team4.id, self.team5.id],
+            },
+            format="json",
+        )
 
         assert response.status_code == 200, response.content
         assert response.data == [
@@ -894,15 +863,15 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
         ]
 
     def test_get_key_transaction_list_mixed_my_and_other_teams(self) -> None:
-        with self.feature(self.features):
-            response = self.client.get(
-                self.url,
-                data={
-                    "project": [self.project.id],
-                    "team": ["myteams", self.team4.id, self.team5.id],
-                },
-                format="json",
-            )
+        query_params: dict[str, Any] = {
+            "project": [self.project.id],
+            "team": ["myteams", self.team4.id, self.team5.id],
+        }
+        response = self.client.get(
+            self.url,
+            data=query_params,
+            format="json",
+        )
 
         assert response.status_code == 200, response.content
         assert response.data == [
@@ -961,15 +930,14 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
             teams.append(team)
 
         # get the first page
-        with self.feature(self.features):
-            response = self.client.get(
-                reverse("sentry-api-0-organization-key-transactions-list", args=[org.slug]),
-                data={
-                    "project": [str(project.id)],
-                    "team": ["myteams"],
-                },
-                format="json",
-            )
+        response = self.client.get(
+            reverse("sentry-api-0-organization-key-transactions-list", args=[org.slug]),
+            data={
+                "project": [str(project.id)],
+                "team": ["myteams"],
+            },
+            format="json",
+        )
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 5
@@ -981,17 +949,16 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
         assert links["next"]["results"] == "true"
 
         # get the second page
-        with self.feature(self.features):
-            assert links["next"]["cursor"] is not None
-            response = self.client.get(
-                reverse("sentry-api-0-organization-key-transactions-list", args=[org.slug]),
-                data={
-                    "project": [str(project.id)],
-                    "team": ["myteams"],
-                    "cursor": links["next"]["cursor"],
-                },
-                format="json",
-            )
+        assert links["next"]["cursor"] is not None
+        response = self.client.get(
+            reverse("sentry-api-0-organization-key-transactions-list", args=[org.slug]),
+            data={
+                "project": [str(project.id)],
+                "team": ["myteams"],
+                "cursor": links["next"]["cursor"],
+            },
+            format="json",
+        )
 
         assert response.status_code == 200, response.content
         assert len(response.data) == 3
@@ -1012,15 +979,14 @@ class TeamKeyTransactionListTest(TeamKeyTransactionTestBase):
             transaction="another-transaction",
         )
 
-        with self.feature(self.features):
-            response = self.client.get(
-                self.url,
-                data={
-                    "project": [another_project.id],
-                    "team": [self.team2.id],
-                },
-                format="json",
-            )
+        response = self.client.get(
+            self.url,
+            data={
+                "project": [another_project.id],
+                "team": [self.team2.id],
+            },
+            format="json",
+        )
 
         assert response.status_code == 200, response.content
         assert response.data == [

@@ -1,8 +1,9 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {PlatformPicker} from 'sentry/components/platformPicker';
 import {gaming} from 'sentry/data/platformCategories';
 import {trackAnalytics} from 'sentry/utils/analytics';
+
+import {PlatformPicker} from './platformPicker';
 
 jest.mock('sentry/utils/analytics');
 
@@ -19,6 +20,7 @@ describe('PlatformPicker', () => {
     expect(screen.queryByTestId('platform-java')).not.toBeInTheDocument();
     expect(screen.getByTestId('platform-apple-ios')).toBeInTheDocument();
     expect(screen.getByTestId('platform-react-native')).toBeInTheDocument();
+    expect(screen.getByTestId('platform-expo')).toBeInTheDocument();
   });
 
   it('should render renderPlatformList with Python when filtered with py', () => {

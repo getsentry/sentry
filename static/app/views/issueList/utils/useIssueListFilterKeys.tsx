@@ -1,7 +1,8 @@
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useFetchIssueTags} from 'sentry/views/issueList/utils/useFetchIssueTags';
+
+import {useFetchIssueTags} from './useFetchIssueTags';
 
 export function useIssueListFilterKeys() {
   const organization = useOrganization();
@@ -10,8 +11,6 @@ export function useIssueListFilterKeys() {
   const {tags: issueTags} = useFetchIssueTags({
     org: organization,
     projectIds: pageFilters.projects.map(id => id.toString()),
-    keepPreviousData: true,
-    includeFeatureFlags: true,
     start: pageFilters.datetime.start
       ? getUtcDateString(pageFilters.datetime.start)
       : undefined,

@@ -98,7 +98,6 @@ export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderP
       for (const item of props.validatedSearchQueryData.query.fields) {
         if (item.valid) {
           if (item.attrType === 'boolean' && item.name) {
-            // oxlint-disable-next-line react/todo
             localBooleanAttributes[item.name] ??= {
               key: item.name,
               name: prettifyAttributeName(item.name),
@@ -107,7 +106,6 @@ export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderP
           }
 
           if (item.attrType === 'number' && item.name) {
-            // oxlint-disable-next-line react/todo
             localNumberAttributes[item.name] ??= {
               key: item.name,
               name: prettifyAttributeName(item.name),
@@ -116,7 +114,6 @@ export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderP
           }
 
           if (item.attrType === 'string' && item.name) {
-            // oxlint-disable-next-line react/todo
             localStringAttributes[item.name] ??= {
               key: item.name,
               name: prettifyAttributeName(item.name),
@@ -125,7 +122,6 @@ export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderP
           }
 
           if (supportsArrays && item.attrType === 'array' && item.name) {
-            // oxlint-disable-next-line react/todo
             localArrayAttributes[item.name] ??= {
               key: item.name,
               name: prettifyAttributeName(item.name),

@@ -2,7 +2,7 @@ import {useParams as useReactRouterParams} from 'react-router';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {useParams} from 'sentry/utils/useParams';
+import {useParams} from './useParams';
 
 const mockUsingCustomerDomain = jest.fn();
 const mockCustomerDomain = jest.fn();
@@ -27,7 +27,6 @@ describe('useParams', () => {
     it('returns an empty object', () => {
       let params: any;
       function HomePage() {
-        // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
         params = useParams();
         return null;
       }
@@ -47,7 +46,6 @@ describe('useParams', () => {
     it('returns an object of the URL params', () => {
       let params: any;
       function HomePage() {
-        // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
         params = useParams();
         return null;
       }
@@ -75,9 +73,7 @@ describe('useParams', () => {
       let paramsValue: any;
 
       function Component() {
-        // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
         originalParams = useReactRouterParams();
-        // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
         paramsValue = useParams();
         return <div>rendered component for org: {paramsValue.orgId ?? 'no org id'}</div>;
       }
@@ -106,9 +102,7 @@ describe('useParams', () => {
       let paramsValue: any;
 
       function Component() {
-        // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
         originalParams = useReactRouterParams();
-        // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
         paramsValue = useParams();
         return <div>rendered component for org: {paramsValue.orgId ?? 'no org id'}</div>;
       }

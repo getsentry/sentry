@@ -1,4 +1,5 @@
-import {DateTime} from 'sentry/components/dateTime';
+import {DateTime} from '@sentry/scraps/dateTime';
+
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';

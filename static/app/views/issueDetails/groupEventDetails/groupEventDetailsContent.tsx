@@ -1,6 +1,6 @@
 import {Fragment, lazy, useMemo, useRef} from 'react';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {BreadcrumbsDataSection} from 'sentry/components/events/breadcrumbs/breadcrumbsDataSection';
 import {EventContexts} from 'sentry/components/events/contexts';
@@ -8,30 +8,22 @@ import {EntryErrorBoundary} from 'sentry/components/events/entryErrorBoundary';
 import {EventAttachments} from 'sentry/components/events/eventAttachments';
 import {EventEvidence} from 'sentry/components/events/eventEvidence';
 import {EventExtraData} from 'sentry/components/events/eventExtraData';
+import {EventFlamegraph} from 'sentry/components/events/eventFlamegraph';
 import {EventHydrationDiff} from 'sentry/components/events/eventHydrationDiff';
-import {EventInsightDiff} from 'sentry/components/events/eventInsightDiff';
 import {EventProcessingErrors} from 'sentry/components/events/eventProcessingErrors';
 import {EventReplay} from 'sentry/components/events/eventReplay';
 import {EventSdk} from 'sentry/components/events/eventSdk';
 import {EventStackTrace} from 'sentry/components/events/eventStackTrace';
-import {EventDifferentialFlamegraph} from 'sentry/components/events/eventStatisticalDetector/eventDifferentialFlamegraph';
 import {EventRegressionSummary} from 'sentry/components/events/eventStatisticalDetector/eventRegressionSummary';
-import {EventFunctionBreakpointChart} from 'sentry/components/events/eventStatisticalDetector/functionBreakpointChart';
 import {ScreenshotDataSection} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/screenshotDataSection';
 import {EventTagsDataSection} from 'sentry/components/events/eventTagsAndScreenshot/tags';
-import {EventXrayDiff} from 'sentry/components/events/eventXrayDiff';
+import {EventViewHierarchy} from 'sentry/components/events/eventViewHierarchy';
 import {EventFeatureFlagSection} from 'sentry/components/events/featureFlags/eventFeatureFlagSection';
 import {EventGroupingInfoSection} from 'sentry/components/events/groupingInfo/groupingInfoSection';
 import {HighlightsDataSection} from 'sentry/components/events/highlights/highlightsDataSection';
 import {HighlightsIconSummary} from 'sentry/components/events/highlights/highlightsIconSummary';
-import {
-  AndroidNativeTombstonesBanner,
-  shouldShowTombstonesBanner,
-} from 'sentry/components/events/interfaces/crashContent/exception/androidNativeTombstonesBanner';
 import {Csp} from 'sentry/components/events/interfaces/csp';
-import {DebugMeta} from 'sentry/components/events/interfaces/debugMeta';
 import {DebugMetaSearchProvider} from 'sentry/components/events/interfaces/debugMeta/debugMetaSearchContext';
-import {ProguardSection} from 'sentry/components/events/interfaces/debugMeta/proguardSection';
 import {Message} from 'sentry/components/events/interfaces/message';
 import {AnrRootCause} from 'sentry/components/events/interfaces/performance/anrRootCause';
 import {EventTraceView} from 'sentry/components/events/interfaces/performance/eventTraceView';
@@ -39,7 +31,6 @@ import {SpanEvidenceSection} from 'sentry/components/events/interfaces/performan
 import {TRACE_WATERFALL_PREFERENCES_KEY} from 'sentry/components/events/interfaces/performance/utils';
 import {Request} from 'sentry/components/events/interfaces/request';
 import {Template} from 'sentry/components/events/interfaces/template';
-import {UptimeAssertionsSection} from 'sentry/components/events/interfaces/uptime/uptimeAssertionsSection';
 import {MetricsSection} from 'sentry/components/events/metrics/metricsSection';
 import {OurlogsSection} from 'sentry/components/events/ourlogs/ourlogsSection';
 import {EventPackageData} from 'sentry/components/events/packageData';
@@ -50,7 +41,7 @@ import {t} from 'sentry/locale';
 import type {Entry, EntryMap, Event, EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import {IssueType} from 'sentry/types/group';
+import {IssueCategory, IssueType} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
@@ -63,26 +54,74 @@ import {LowValueSpanTroubleshootingSection} from 'sentry/views/issueDetails/conf
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {useCopyIssueDetails} from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
-import {getHangProfileData} from 'sentry/views/issueDetails/metricKitHangProfileSection';
 import {ProfilePreviewSection} from 'sentry/views/issueDetails/profilePreviewSection';
-import {
-  MetricDetectorTriggeredSection,
-  MetricIssueSeerInvestigationSection,
-} from 'sentry/views/issueDetails/sidebar/metricDetectorTriggeredSection';
-import {SizeAnalysisTriggeredSection} from 'sentry/views/issueDetails/sidebar/sizeAnalysisTriggeredSection';
-import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/traceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/traceDetails/traceState/traceStateProvider';
 
-const LazyEventFlamegraph = lazy(() =>
-  import('sentry/components/events/eventFlamegraph').then(module => ({
-    default: module.EventFlamegraph,
+// Only rendered for specific issue types or event data
+const LazyEventGpuCrashReport = lazy(() =>
+  import('sentry/components/events/gpuCrashReport').then(module => ({
+    default: module.EventGpuCrashReport,
   }))
 );
 
-const LazyEventViewHierarchy = lazy(() =>
-  import('sentry/components/events/eventViewHierarchy').then(module => ({
-    default: module.EventViewHierarchy,
+const LazyDebugMeta = lazy(() =>
+  import('sentry/components/events/interfaces/debugMeta').then(module => ({
+    default: module.DebugMeta,
+  }))
+);
+
+const LazyProguardSection = lazy(() =>
+  import('sentry/components/events/interfaces/debugMeta/proguardSection').then(
+    module => ({default: module.ProguardSection})
+  )
+);
+
+const LazyUptimeAssertionsSection = lazy(() =>
+  import('sentry/components/events/interfaces/uptime/uptimeAssertionsSection').then(
+    module => ({default: module.UptimeAssertionsSection})
+  )
+);
+
+const LazyMetricIssueSeerInvestigationSection = lazy(() =>
+  import('sentry/views/issueDetails/sidebar/metricDetectorTriggeredSection').then(
+    module => ({default: module.MetricIssueSeerInvestigationSection})
+  )
+);
+
+const LazyMetricDetectorTriggeredSection = lazy(() =>
+  import('sentry/views/issueDetails/sidebar/metricDetectorTriggeredSection').then(
+    module => ({default: module.MetricDetectorTriggeredSection})
+  )
+);
+
+const LazyEventFunctionBreakpointChart = lazy(() =>
+  import('sentry/components/events/eventStatisticalDetector/functionBreakpointChart').then(
+    module => ({default: module.EventFunctionBreakpointChart})
+  )
+);
+
+const LazyEventDifferentialFlamegraph = lazy(() =>
+  import('sentry/components/events/eventStatisticalDetector/eventDifferentialFlamegraph').then(
+    module => ({default: module.EventDifferentialFlamegraph})
+  )
+);
+
+const LazySizeAnalysisTriggeredSection = lazy(() =>
+  import('sentry/views/issueDetails/sidebar/sizeAnalysisTriggeredSection').then(
+    module => ({default: module.SizeAnalysisTriggeredSection})
+  )
+);
+
+const LazyEventInsightDiff = lazy(() =>
+  import('sentry/components/events/eventInsightDiff').then(module => ({
+    default: module.EventInsightDiff,
+  }))
+);
+
+const LazyEventXrayDiff = lazy(() =>
+  import('sentry/components/events/eventXrayDiff').then(module => ({
+    default: module.EventXrayDiff,
   }))
 );
 
@@ -112,9 +151,6 @@ export function EventDetailsContent({
   const hasReplay = Boolean(getReplayIdFromEvent(event));
   const mechanism = event.tags?.find(({key}) => key === 'mechanism')?.value;
   const isANR = mechanism === 'ANR' || mechanism === 'AppExitInfo';
-  const isMetricKitHang =
-    mechanism === 'mx_hang_diagnostic' && getHangProfileData(event) !== null;
-  const isSampleError = useIsSampleEvent();
 
   useCopyIssueDetails(group, event);
 
@@ -157,21 +193,31 @@ export function EventDetailsContent({
       )}
       <EventEvidence event={event} group={group} project={project} />
       {group.issueType === IssueType.UPTIME_DOMAIN_FAILURE && (
-        <UptimeAssertionsSection event={event} />
+        <LazyLoad
+          LazyComponent={LazyUptimeAssertionsSection}
+          event={event}
+          loadingFallback={null}
+        />
       )}
       {group.issueType === IssueType.METRIC_ISSUE && investigationsEnabled && (
-        <MetricIssueSeerInvestigationSection group={group} event={event} />
+        <LazyLoad
+          LazyComponent={LazyMetricIssueSeerInvestigationSection}
+          group={group}
+          event={event}
+          loadingFallback={null}
+        />
       )}
       {defined(eventEntries[EntryType.MESSAGE]) && (
         <EntryErrorBoundary type={EntryType.MESSAGE}>
           <Message event={event} data={eventEntries[EntryType.MESSAGE].data} />
         </EntryErrorBoundary>
       )}
-      {!isMetricKitHang && shouldShowTombstonesBanner(event) && !isSampleError && (
+      {event.contexts.gpu_crash && (
         <ErrorBoundary mini>
-          <AndroidNativeTombstonesBanner
+          <LazyLoad
+            LazyComponent={LazyEventGpuCrashReport}
             event={event}
-            projectId={group?.project.id ?? event.projectID ?? ''}
+            loadingFallback={null}
           />
         </ErrorBoundary>
       )}
@@ -200,7 +246,11 @@ export function EventDetailsContent({
       {issueTypeConfig.profilingDurationRegression.enabled && (
         <Fragment>
           <ErrorBoundary mini>
-            <EventFunctionBreakpointChart event={event} />
+            <LazyLoad
+              LazyComponent={LazyEventFunctionBreakpointChart}
+              event={event}
+              group={group}
+            />
           </ErrorBoundary>
           <ErrorBoundary mini>
             <FoldSection
@@ -213,17 +263,34 @@ export function EventDetailsContent({
             frame with the largest increase in call stack population likely
             contributed to the cause for the duration regression.`)}
               </p>
-              <EventDifferentialFlamegraph event={event} />
+              <LazyLoad
+                LazyComponent={LazyEventDifferentialFlamegraph}
+                event={event}
+                group={group}
+              />
             </FoldSection>
           </ErrorBoundary>
         </Fragment>
       )}
-      <ErrorBoundary customComponent={() => null}>
-        <MetricDetectorTriggeredSection group={group} event={event} />
-      </ErrorBoundary>
-      <ErrorBoundary customComponent={() => null}>
-        <SizeAnalysisTriggeredSection event={event} />
-      </ErrorBoundary>
+      {group.issueType === IssueType.METRIC_ISSUE && (
+        <ErrorBoundary customComponent={() => null}>
+          <LazyLoad
+            LazyComponent={LazyMetricDetectorTriggeredSection}
+            group={group}
+            event={event}
+            loadingFallback={null}
+          />
+        </ErrorBoundary>
+      )}
+      {group.issueCategory === IssueCategory.PREPROD && (
+        <ErrorBoundary customComponent={() => null}>
+          <LazyLoad
+            LazyComponent={LazySizeAnalysisTriggeredSection}
+            event={event}
+            loadingFallback={null}
+          />
+        </ErrorBoundary>
+      )}
       <EventHydrationDiff event={event} group={group} />
       <EventReplay event={event} group={group} projectSlug={project.slug} />
       {defined(eventEntries[EntryType.CSP]) && (
@@ -236,22 +303,20 @@ export function EventDetailsContent({
           <Template event={event} data={eventEntries[EntryType.TEMPLATE].data} />
         </EntryErrorBoundary>
       )}
-      <BreadcrumbsDataSection event={event} group={group} project={project} />
+      <BreadcrumbsDataSection event={event} />
       <ErrorBoundary mini message={t('There was a problem loading logs.')}>
         <Feature features="ourlogs-enabled" organization={organization}>
-          <OurlogsSection event={event} group={group} project={project} />
+          <OurlogsSection event={event} group={group} />
         </Feature>
       </ErrorBoundary>
       <ErrorBoundary mini message={t('There was a problem loading metrics.')}>
         <Feature features="tracemetrics-enabled" organization={organization}>
-          <MetricsSection event={event} group={group} project={project} />
+          <MetricsSection event={event} />
         </Feature>
       </ErrorBoundary>
-      {issueTypeConfig.trace.enabled &&
-        event.contexts.trace?.trace_id &&
-        organization.features.includes('performance-view') && (
-          <EventTraceView group={group} event={event} organization={organization} />
-        )}
+      {issueTypeConfig.trace.enabled && event.contexts.trace?.trace_id && (
+        <EventTraceView group={group} event={event} organization={organization} />
+      )}
       {defined(eventEntries[EntryType.REQUEST]) && (
         <EntryErrorBoundary type={EntryType.REQUEST}>
           <Request event={event} data={eventEntries[EntryType.REQUEST].data} />
@@ -267,20 +332,24 @@ export function EventDetailsContent({
         <EventFeatureFlagSection group={group} project={project} event={event} />
       </ErrorBoundary>
       <EventExtraData event={event} />
-      <LazyLoad
-        LazyComponent={LazyEventFlamegraph}
-        event={event}
-        project={project}
-        loadingFallback={null}
-      />
-      <LazyLoad
-        LazyComponent={LazyEventViewHierarchy}
-        event={event}
-        project={project}
-        loadingFallback={null}
-      />
-      <EventInsightDiff event={event} project={project} />
-      <EventXrayDiff event={event} project={project} />
+      <EventFlamegraph event={event} project={project} />
+      <EventViewHierarchy event={event} project={project} />
+      {group.issueCategory === IssueCategory.PREPROD && (
+        <Fragment>
+          <LazyLoad
+            LazyComponent={LazyEventInsightDiff}
+            event={event}
+            project={project}
+            loadingFallback={null}
+          />
+          <LazyLoad
+            LazyComponent={LazyEventXrayDiff}
+            event={event}
+            project={project}
+            loadingFallback={null}
+          />
+        </Fragment>
+      )}
       <EventPackageData event={event} />
       <EventAttachments event={event} project={project} group={group} />
       <EventSdk sdk={event.sdk} meta={event._meta?.sdk} />
@@ -288,15 +357,19 @@ export function EventDetailsContent({
       {defined(eventEntries[EntryType.DEBUGMETA]) &&
         !isJavascriptPlatform(event.platform) && (
           <EntryErrorBoundary type={EntryType.DEBUGMETA}>
-            <DebugMeta
+            <LazyLoad
+              LazyComponent={LazyDebugMeta}
               event={event}
               projectSlug={projectSlug}
               groupId={group?.id}
               data={eventEntries[EntryType.DEBUGMETA].data}
+              loadingFallback={null}
             />
-            <ProguardSection
+            <LazyLoad
+              LazyComponent={LazyProguardSection}
               data={eventEntries[EntryType.DEBUGMETA].data}
               projectSlug={projectSlug}
+              loadingFallback={null}
             />
           </EntryErrorBoundary>
         )}

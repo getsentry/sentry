@@ -2,11 +2,11 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {Duration} from 'sentry/components/duration';
 import {Placeholder} from 'sentry/components/placeholder';
 import {DataGrid, type GridColumnOrder} from 'sentry/components/tables/dataGrid';
@@ -14,14 +14,15 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {getShortEventId} from 'sentry/utils/events';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {UptimeCheck} from 'sentry/views/detectors/components/uptime/types';
-import {CheckStatus} from 'sentry/views/detectors/components/uptime/types';
 import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import {
   reasonToText,
   statusToText,
   tickStyle,
 } from 'sentry/views/insights/uptime/timelineConfig';
+
+import type {UptimeCheck} from './types';
+import {CheckStatus} from './types';
 
 type Props = {
   traceSampling: boolean;
@@ -141,9 +142,9 @@ function CheckInBodyCell({
         <TimeCell>
           <Tooltip
             maxWidth={300}
-            title={t('Checked at %s', <DateTime date={timestamp} seconds />)}
+            title={t('Checked at %s', <DateTime date={timestamp} precision="second" />)}
           >
-            <DateTime date={scheduledCheckTime} timeZone />
+            <DateTime date={scheduledCheckTime} showTimezone />
           </Tooltip>
         </TimeCell>
       );

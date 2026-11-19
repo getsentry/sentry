@@ -1,16 +1,18 @@
 import {useTheme} from '@emotion/react';
 
+import {useDateTimeFormatter} from '@sentry/scraps/dateTime';
+
 import {markLine as createMarkLine} from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {ReleaseMetaBasic} from 'sentry/types/release';
 import {escape} from 'sentry/utils';
-import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
-import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/useIssueDetailsDiscoverQuery';
+
+import {useIssueDetailsEventView} from './issueDetailsEventsQuery';
 
 export function useReleaseMarkLineSeries({
   group,
@@ -23,6 +25,7 @@ export function useReleaseMarkLineSeries({
 }) {
   const navigate = useNavigate();
   const theme = useTheme();
+  const formatDateTime = useDateTimeFormatter();
   const eventView = useIssueDetailsEventView({group});
   const organization = useOrganization();
 
@@ -63,13 +66,11 @@ export function useReleaseMarkLineSeries({
     tooltip: {
       trigger: 'item',
       formatter: ({data}: any) => {
-        const time = getFormattedDate(
-          data.value,
-          getFormat({timeZone: true, year: true}),
-          {
-            local: !eventView.utc,
-          }
-        );
+        const time = formatDateTime(data.value, {
+          year: 'always',
+          showTimezone: true,
+          timezone: eventView.utc ? 'UTC' : undefined,
+        });
         const version = escape(formatVersion(data.name, true));
         return [
           '<div class="tooltip-series">',

@@ -1,6 +1,9 @@
 """
 A collection of human- and LLM-friendly models to represent Sentry data like issues, traces, and profiles.
 These should be kept in sync with the models in Seer.
+
+DEPRECATED: These back the Sentry<>Seer RPC surface, which is being removed in
+favour of the public Sentry API via codemode. Do not add new models here.
 """
 
 from __future__ import annotations
@@ -142,31 +145,6 @@ class OrganizationFeaturesResponse(BaseModel):
     features: list[str]
 
 
-class OrganizationAutofixConsentResponse(BaseModel):
-    consent: bool
-
-
-class GitHubEnterpriseConfigSuccessResponse(BaseModel):
-    success: Literal[True] = True
-    base_url: str
-    verify_ssl: bool
-    encrypted_access_token: str
-    permissions: dict[str, Any]
-
-
-class GitHubEnterpriseConfigErrorResponse(BaseModel):
-    success: Literal[False] = False
-
-
-class SendSeerWebhookSuccessResponse(BaseModel):
-    success: Literal[True] = True
-
-
-class SendSeerWebhookErrorResponse(BaseModel):
-    success: Literal[False] = False
-    error: str
-
-
 class NotifySeerPrCreatedSuccessResponse(BaseModel):
     """`notify_seer_pr_created` success: `{"success": true}`. The `success` literal
     is the discriminator against the error shape below."""
@@ -270,12 +248,20 @@ class GetDsnResponse(BaseModel):
 
 
 class RepositoryDefinitionResponse(BaseModel):
+    repository_id: int
     organization_id: int
     integration_id: str | None
     provider: str | None
     owner: str
     name: str
     external_id: str | None
+
+
+class RepositoryDefinitionFailure(BaseModel):
+    failure_reason: Literal[
+        "no_scm_integration", "scm_account_not_connected", "repo_not_in_sentry", "repo_ambiguous"
+    ]
+    connected_accounts: list[str] = []
 
 
 class EventFilterKeyEntry(BaseModel):
@@ -285,7 +271,7 @@ class EventFilterKeyEntry(BaseModel):
 class EventFilterKeysResponse(BaseModel):
     __root__: dict[str, EventFilterKeyEntry]
 
-    def dict(self, **kwargs: Any) -> Any:
+    def dict(self, **kwargs: Any) -> dict[str, dict[str, Any]]:
         # Unwrap to the bare `{key: {...}}` map the seer caller expects.
         return {k: v.dict(**kwargs) for k, v in self.__root__.items()}
 
@@ -393,7 +379,7 @@ class AttributeValuesResponse(BaseModel):
 
     __root__: dict[str, list[str]]
 
-    def dict(self, **kwargs: Any) -> Any:
+    def dict(self, **kwargs: Any) -> dict[str, list[str]]:
         # Pre-typed code returned `{field: sorted_list, ...}` directly — unwrap so
         # the dispatcher and downstream consumers see the bare map.
         return dict(self.__root__)
@@ -751,28 +737,6 @@ class IssuesStatsResponse(BaseModel):
         return id(self)
 
 
-class CallCustomToolResponse(BaseModel):
-    """`call_custom_tool` returns the bare string the tool's `execute()` produced.
-    Wraps in a `__root__` passthrough so the wire stays a JSON string."""
-
-    __root__: str
-
-    def dict(self, **kwargs: Any) -> Any:
-        # Unwrap so the dispatcher serializes the bare string the pre-typed
-        # registry emitted, not `{"__root__": "..."}`.
-        return self.__root__
-
-    def __eq__(self, other: object) -> bool:
-        # Match the legacy wire shape (bare str) so callers comparing against
-        # `result == "literal"` keep working without an explicit `.dict()`.
-        if isinstance(other, str):
-            return self.__root__ == other
-        return super().__eq__(other)
-
-    def __hash__(self) -> int:
-        return id(self)
-
-
 class CreateIssueOccurrenceResponse(BaseModel):
     """`create_issue_occurrence` returns `{"success": True}` after a successful
     write. Pre-typed code never returned False here — failures raise — so the
@@ -855,7 +819,7 @@ class ExecuteTimeseriesQueryErrorResponse(BaseModel):
     class Config:
         allow_population_by_field_name = True
 
-    def dict(self, **kwargs: Any) -> Any:
+    def dict(self, **kwargs: Any) -> dict[str, Any]:
         kwargs.setdefault("by_alias", True)
         return super().dict(**kwargs)
 
@@ -884,6 +848,7 @@ class HeaderAuthConnectionData(BaseModel):
     url: str
     encrypted_auth_headers: dict[str, str] | None = None
     identity_id: int | None = None
+    integration_id: int | None = None
     auth_method: str
     refreshable: bool = True
 
@@ -949,6 +914,7 @@ class RefreshMonitoringProviderTokenErrorResponse(BaseModel):
         "encryption_failed",
         "identity_not_found",
         "identity_not_valid",
+        "integration_not_found",
         "refresh_failed",
         "refresh_not_supported",
     ]

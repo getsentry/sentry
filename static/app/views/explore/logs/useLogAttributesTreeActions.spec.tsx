@@ -4,9 +4,10 @@ import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import type {AttributesTreeContent} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
-import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import {LogsSidebarProvider} from 'sentry/views/explore/logs/logsSidebarContext';
-import {useLogAttributesTreeActions} from 'sentry/views/explore/logs/useLogAttributesTreeActions';
+
+import {LogsQueryParamsProvider} from './logsQueryParamsProvider';
+import {LogsSidebarProvider} from './logsSidebarContext';
+import {useLogAttributesTreeActions} from './useLogAttributesTreeActions';
 
 function Wrapper({children}: {children: ReactNode}) {
   return (

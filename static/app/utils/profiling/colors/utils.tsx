@@ -1,4 +1,3 @@
-import {clamp} from 'sentry/utils/profiling/colors/clamp';
 import type {
   ColorChannels,
   ColorMapFn,
@@ -7,6 +6,8 @@ import type {
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import type {SpanChart} from 'sentry/utils/profiling/spanChart';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {clamp} from './clamp';
 
 function uniqueCountBy<T>(
   arr: readonly T[],

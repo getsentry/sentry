@@ -1,5 +1,6 @@
-from datetime import timedelta
+from datetime import datetime, timedelta
 from io import BytesIO
+from typing import cast
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
@@ -31,7 +32,9 @@ from sentry.testutils.silo import (
 TEST_REGIONS = create_test_cells("us", "de")
 
 
-def create_control_relocation_transfer(organization: Organization, **kwargs):
+def create_control_relocation_transfer(
+    organization: Organization, **kwargs: object
+) -> ControlRelocationTransfer:
     if "relocation_uuid" not in kwargs:
         kwargs["relocation_uuid"] = uuid4()
     if "state" not in kwargs:
@@ -42,7 +45,9 @@ def create_control_relocation_transfer(organization: Organization, **kwargs):
     )
 
 
-def create_cell_relocation_transfer(organization: Organization, **kwargs):
+def create_cell_relocation_transfer(
+    organization: Organization, **kwargs: object
+) -> RegionRelocationTransfer:
     if "relocation_uuid" not in kwargs:
         kwargs["relocation_uuid"] = uuid4()
     if "state" not in kwargs:
@@ -77,7 +82,7 @@ class FindRelocationTransferControlTest(TestCase):
         assert mock_process.delay.called
         assert mock_process.delay.call_args[1]["transfer_id"] == transfer.id
         transfer.refresh_from_db()
-        assert transfer.scheduled_for > timezone.now()
+        assert cast(datetime, transfer.scheduled_for) > timezone.now()
 
     @patch("sentry.relocation.tasks.transfer.process_relocation_transfer_control")
     def test_purge_expired(self, mock_process: MagicMock) -> None:
@@ -114,7 +119,7 @@ class FindRelocationTransferRegionTest(TestCase):
         find_relocation_transfer_region()
         assert mock_process.delay.called
         transfer.refresh_from_db()
-        assert transfer.scheduled_for > timezone.now()
+        assert cast(datetime, transfer.scheduled_for) > timezone.now()
 
     @patch("sentry.relocation.tasks.transfer.process_relocation_transfer_region")
     def test_purge_expired(self, mock_process: MagicMock) -> None:

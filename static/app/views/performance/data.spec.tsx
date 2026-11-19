@@ -1,9 +1,6 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 
-import {
-  DEFAULT_STATS_PERIOD,
-  generateGenericPerformanceEventView,
-} from 'sentry/views/performance/data';
+import {DEFAULT_STATS_PERIOD, generateGenericPerformanceEventView} from './data';
 
 describe('generateGenericPerformanceEventView()', () => {
   it('generates default values', () => {

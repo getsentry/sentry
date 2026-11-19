@@ -1,7 +1,12 @@
 __all__ = ("get_auth_header",)
 
 
-def get_auth_header(client, api_key=None, secret_key=None, version=None):
+def get_auth_header(
+    client: str,
+    api_key: str | None = None,
+    secret_key: str | None = None,
+    version: str | None = None,
+) -> str:
     if version is None:
         version = "6"
 

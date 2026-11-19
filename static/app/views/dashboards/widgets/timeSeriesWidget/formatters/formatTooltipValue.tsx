@@ -1,16 +1,19 @@
+import {getDuration} from '@sentry/scraps/duration';
+
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {
   ABYTE_UNITS,
   DurationUnit,
+  FractionUnit,
   SizeUnit,
   type RateUnit,
 } from 'sentry/utils/discover/fields';
-import {getDuration} from 'sentry/utils/duration/getDuration';
-import {formatDollars, formatRate, MICROSECOND} from 'sentry/utils/formatters';
+import {formatDollars, formatRate} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {ECHARTS_MISSING_DATA_VALUE} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
 import {convertDuration} from 'sentry/utils/unitConversion/convertDuration';
+import {convertFraction} from 'sentry/utils/unitConversion/convertFraction';
 import {convertSize} from 'sentry/utils/unitConversion/convertSize';
 import {
   NUMBER_MAX_FRACTION_DIGITS,
@@ -18,6 +21,7 @@ import {
 } from 'sentry/views/dashboards/widgets/common/settings';
 import {
   isADurationUnit,
+  isAFractionUnit,
   isASizeUnit,
 } from 'sentry/views/dashboards/widgets/common/typePredicates';
 
@@ -51,13 +55,19 @@ export function formatTooltipValue(
       return value.toLocaleString(undefined, {
         maximumFractionDigits: NUMBER_MAX_FRACTION_DIGITS,
       });
-    case 'percentage':
-      return formatPercentage(value);
+    case 'percentage': {
+      const fractionUnit = isAFractionUnit(unit) ? unit : FractionUnit.RATIO;
+      return formatPercentage(convertFraction(value, fractionUnit, FractionUnit.RATIO));
+    }
     case 'duration': {
       const durationUnit = isADurationUnit(unit) ? unit : DurationUnit.MILLISECOND;
       const durationInSeconds = convertDuration(value, durationUnit, DurationUnit.SECOND);
 
-      return getDuration(durationInSeconds, 2, true, false, false, MICROSECOND);
+      return getDuration(durationInSeconds, {
+        precision: 2,
+        style: 'short',
+        minimumUnit: 'microsecond',
+      });
     }
     case 'size': {
       const sizeUnit = isASizeUnit(unit) ? unit : SizeUnit.BYTE;

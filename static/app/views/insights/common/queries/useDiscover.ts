@@ -5,12 +5,13 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import type {ExtrapolationMode} from 'sentry/views/insights/common/queries/types';
+import type {SpanProperty, SpanResponse} from 'sentry/views/insights/types';
+
+import type {ExtrapolationMode} from './types';
 import {
   useWrappedDiscoverQuery,
   useWrappedDiscoverQueryWithoutPageFilters,
-} from 'sentry/views/insights/common/queries/useSpansQuery';
-import type {SpanProperty, SpanResponse} from 'sentry/views/insights/types';
+} from './useSpansQuery';
 
 interface UseDiscoverQueryOptions {
   additonalQueryKey?: string[];
@@ -48,6 +49,19 @@ export const useSpans = <Fields extends SpanProperty[]>(
   referrer: string
 ) => {
   return useDiscover<Fields, SpanResponse>(options, DiscoverDatasets.SPANS, referrer);
+};
+
+type TraceMetricsResponse = Record<string, string | number | null | undefined>;
+
+export const useTraceMetrics = <Fields extends string[]>(
+  options: UseDiscoverOptions<Fields> = {},
+  referrer: string
+) => {
+  return useDiscover<Fields, TraceMetricsResponse>(
+    options,
+    DiscoverDatasets.TRACEMETRICS,
+    referrer
+  );
 };
 
 const useDiscover = <T extends Array<Extract<keyof ResponseType, string>>, ResponseType>(

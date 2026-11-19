@@ -28,7 +28,11 @@ import {CrumbErrorTitle} from 'sentry/components/replays/breadcrumbs/errorTitle'
 import {SelectorList} from 'sentry/components/replays/breadcrumbs/selectorList';
 import {t, tct} from 'sentry/locale';
 import {explodeSlug} from 'sentry/utils';
-import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
+import {stripURLOrigin} from 'sentry/utils/url/stripURLOrigin';
+import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
+
+import {TabKey} from './hooks/useActiveReplayTab';
 import type {
   BreadcrumbFrame,
   ClickFrame,
@@ -52,17 +56,14 @@ import type {
   SwipeFrame,
   TapFrame,
   WebVitalFrame,
-} from 'sentry/utils/replays/types';
+} from './types';
 import {
   getFrameOpOrCategory,
   isCLSFrame,
   isDeadClick,
   isDeadRageClick,
   isRageClick,
-} from 'sentry/utils/replays/types';
-import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import {stripURLOrigin} from 'sentry/utils/url/stripURLOrigin';
-import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
+} from './types';
 
 interface Details {
   colorGraphicsToken: GraphicsVariant;

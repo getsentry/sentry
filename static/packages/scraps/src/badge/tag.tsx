@@ -7,7 +7,6 @@ import {IconDefaultsProvider} from '@sentry/icons/useIconDefaults';
 import {Button} from '@sentry/scraps/button';
 import type {TagVariant} from '@sentry/scraps/theme';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
-import {unreachable} from '@sentry/scraps/unreachable';
 
 export interface TagProps extends React.HTMLAttributes<HTMLSpanElement> {
   variant: TagVariant;
@@ -62,8 +61,9 @@ const TagPill = styled('div')<{
   display: inline-flex;
   gap: ${p => p.theme.space.xs};
   align-items: center;
+  justify-content: center;
   border-radius: ${p => p.theme.radius.xs};
-  padding: 0 ${p => p.theme.space.md};
+  padding: 0 ${p => p.theme.space.xs};
   max-width: 100%;
 
   /* @TODO(jonasbadalic): We need to override button colors because they wrongly default to a blue color... */
@@ -109,7 +109,7 @@ function makeTagPillTheme(type: TagVariant, theme: Theme): React.CSSProperties {
         background: theme.tokens.background.transparent.success.muted,
       };
     default:
-      unreachable(type);
+      (type) satisfies never;
       throw new TypeError(`Unsupported badge type: ${type}`);
   }
 }
@@ -119,6 +119,8 @@ const TagText = styled('div')`
   white-space: nowrap;
   text-overflow: ellipsis;
   min-width: 0;
+  text-box-edge: text text;
+  text-box-trim: trim-both;
 
   &:has(> *) {
     display: flex;
@@ -134,6 +136,5 @@ const IconWrapper = styled('span')`
 `;
 
 const DismissButton = styled(Button)`
-  margin-right: -${p => p.theme.space.xs};
   border: none;
 `;

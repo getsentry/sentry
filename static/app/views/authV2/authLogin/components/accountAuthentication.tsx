@@ -10,10 +10,11 @@ import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import type {AuthConfig} from 'sentry/types/auth';
-import {EmailAuth} from 'sentry/views/authV2/authLogin/components/emailAuth';
-import {SecondFactorAuth} from 'sentry/views/authV2/authLogin/components/secondFactorAuth';
 import type {EmailAuthResult} from 'sentry/views/authV2/authLogin/hooks/useEmailAuth';
 import type {AuthenticatedResult, MfaMethod} from 'sentry/views/authV2/authLogin/types';
+
+import {EmailAuth} from './emailAuth';
+import {SecondFactorAuth} from './secondFactorAuth';
 
 type AuthProviderLinkKey = keyof Pick<
   AuthConfig,

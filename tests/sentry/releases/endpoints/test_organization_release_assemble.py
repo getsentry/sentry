@@ -1,4 +1,5 @@
 from hashlib import sha1
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from django.core.files.base import ContentFile
@@ -188,7 +189,7 @@ class OrganizationReleaseAssembleTest(APITestCase):
         assert set(response.data["missingChunks"]) == set()
 
         # assert that we are uploading as artifact bundle
-        kwargs = {
+        kwargs: dict[str, Any] = {
             "org_id": self.organization.id,
             "version": self.release.version,
             "checksum": total_checksum,

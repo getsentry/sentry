@@ -166,17 +166,17 @@ class AuthenticationContext(RpcModel):
         isolated, controlled way.  This method allows for a context handling an RPC or inter silo behavior to assume
         the correct user and auth context provided explicitly in a context.
         """
+        from sentry.auth.principal import set_request_principal  # imported at app setup
+
         old_user = request.user
         old_auth = request.auth
 
-        request.user = self._get_user()  # type: ignore[assignment]  # RpcUser vs. User
-        request.auth = self.auth
+        set_request_principal(request, self._get_user(), self.auth)
 
         try:
             yield request
         finally:
-            request.user = old_user
-            request.auth = old_auth
+            set_request_principal(request, old_user, old_auth)
 
 
 class RpcAuthProviderFlags(RpcModel):

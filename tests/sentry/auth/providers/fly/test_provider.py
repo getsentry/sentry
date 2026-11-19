@@ -1,7 +1,10 @@
+from typing import cast
+
 import pytest
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.partnership_configs import ChannelName
+from sentry.auth.providers.fly.provider import FlyOAuth2Provider
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.testutils.cases import TestCase
@@ -21,20 +24,20 @@ class FlyOAuth2ProviderTest(TestCase):
             auth_provider=self.auth_provider, user=self.user, data={"access_token": "access_token"}
         )
 
-        provider = self.auth_provider.get_provider()
+        provider = cast(FlyOAuth2Provider, self.auth_provider.get_provider())
 
         with pytest.raises(IdentityNotValid):
             provider.refresh_identity(auth_identity)
 
     def test_build_config(self) -> None:
-        provider = self.auth_provider.get_provider()
+        provider = cast(FlyOAuth2Provider, self.auth_provider.get_provider())
         resource = {"id": "nathans-org", "role": "member"}
         result = provider.build_config(resource=resource)
         assert result == {"org": {"id": "nathans-org"}}
         assert provider.is_partner == (self.auth_provider.provider == ChannelName.FLY_IO.value)
 
     def test_build_identity(self) -> None:
-        provider = self.auth_provider.get_provider()
+        provider = cast(FlyOAuth2Provider, self.auth_provider.get_provider())
         data = {
             "access_token": "fo1_6xgeCrB8ew8vFQ86vdaakBSFTVDGCzOUvebUbvgPGhI",
             "token_type": "Bearer",

@@ -4,13 +4,15 @@ import {z} from 'zod';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {TimeSince} from 'sentry/components/timeSince';
-import {Version} from 'sentry/components/version';
 import {t} from 'sentry/locale';
 import type {ResolvedStatusDetails} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getShortCommitHash} from 'sentry/utils/git/getShortCommitHash';
+
+import {formatCommitMessage} from './commitRow';
+import {TimeSince} from './timeSince';
 
 interface CustomCommitsResolutionModalProps extends ModalRenderProps {
   onSelected: (x: ResolvedStatusDetails) => void;
@@ -18,10 +20,14 @@ interface CustomCommitsResolutionModalProps extends ModalRenderProps {
   projectSlug: string;
 }
 
+const DETAILS_SEPARATOR = ' \u00B7 ';
+
 const commitSchema = z.object({
   commit: z
     .looseObject({
       id: z.string(),
+      message: z.string().nullable().optional(),
+      author: z.looseObject({name: z.string().nullable().optional()}).optional(),
       repository: z.looseObject({
         name: z.string(),
       }),
@@ -92,10 +98,13 @@ export function CustomCommitsResolutionModal({
                       commits.map(c => ({
                         value: c,
                         textValue: c.id,
-                        label: <Version version={c.id} anchor={false} />,
+                        label: formatCommitMessage(c.message ?? null),
                         details: (
                           <span>
-                            {t('Created')} <TimeSince date={c.dateCreated} />
+                            {[getShortCommitHash(c.id), c.repository.name, c.author?.name]
+                              .filter(Boolean)
+                              .map(part => `${part}${DETAILS_SEPARATOR}`)}
+                            <TimeSince date={c.dateCreated} />
                           </span>
                         ),
                       })),

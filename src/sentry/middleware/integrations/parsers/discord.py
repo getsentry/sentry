@@ -80,10 +80,10 @@ class DiscordRequestParser(BaseRequestParser):
             if discord_request.guild_id is None:
                 return None
 
-            return Integration.objects.filter(
+            return Integration.objects.get_or_none(
                 provider=self.provider,
                 external_id=discord_request.guild_id,
-            ).first()
+            )
 
         with sentry_sdk.isolation_scope() as scope:
             scope.set_extra("path", self.request.path)

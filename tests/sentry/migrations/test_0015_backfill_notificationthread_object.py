@@ -1,3 +1,5 @@
+from typing import Any
+from django.db.migrations.state import StateApps
 from sentry.testutils.cases import TestMigrations
 
 
@@ -6,11 +8,11 @@ class BackfillNotificationThreadObjectTest(TestMigrations):
     migrate_from = "0014_add_notificationthread_object"
     migrate_to = "0015_backfill_notificationthread_object"
 
-    def setup_before_migration(self, apps):
+    def setup_before_migration(self, apps: StateApps) -> None:
         NotificationThread = apps.get_model("notifications", "NotificationThread")
         thread_keys = iter(range(100))
 
-        def create(key_type, key_data, **kwargs):
+        def create(key_type: str, key_data: dict[str, Any], **kwargs: Any) -> Any:
             return NotificationThread.objects.create(
                 thread_key=f"thread-key-{next(thread_keys)}",
                 provider_key="slack",
@@ -32,7 +34,7 @@ class BackfillNotificationThreadObjectTest(TestMigrations):
         self.other_type = create("test", {"group_id": 321})
         self.no_group = create("metric-alert", {"action_id": 4})
 
-    def test_backfill(self):
+    def test_backfill(self) -> None:
         self.metric_thread.refresh_from_db()
         assert (self.metric_thread.object_type, self.metric_thread.object_id) == ("group", 123)
 

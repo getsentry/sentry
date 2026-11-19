@@ -1,7 +1,9 @@
-minVersion: '3.3.0'
+minVersion: '3.9.0'
 workspaces:
   sentry:
     preReleaseCommand: bash scripts/bump-version.sh
+    postReleaseBump:
+      version: '{{version}}.dev0'
     releaseBranchPrefix: releases
     changelog:
       filePath: CHANGES
@@ -54,10 +56,13 @@ workspaces:
         artifacts:
           Package pack:
             - '{{workspaceName}}-tarball'
+    # npm goes first so the package is published before the GitHub release.
+    # The registry can still lag, so dispatch-api-consumers.yml waits until npm
+    # serves the new version.
     targets:
-      - name: github
-        tagPrefix: '{{workspaceName}}@'
       - name: npm
         access: public
+      - name: github
+        tagPrefix: '{{workspaceName}}@'
     versioning:
       policy: auto

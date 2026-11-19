@@ -60,6 +60,7 @@ class ApiTokenTest(TestCase):
         with outbox_runner():
             install = self.create_sentry_app_installation()
             token = install.api_token
+            assert token is not None
             org_id = token.organization_id
 
         with assume_test_silo_mode(SiloMode.CELL):

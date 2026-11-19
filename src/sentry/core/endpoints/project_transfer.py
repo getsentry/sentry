@@ -1,5 +1,5 @@
 import logging
-from typing import Any
+from typing import Any, cast
 from urllib.parse import urlencode
 from uuid import uuid4
 
@@ -22,8 +22,11 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.response_types import DetailResponse
+from sentry.auth.principal import acting_user_id
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.email import MessageBuilder
@@ -83,7 +86,9 @@ class ProjectTransferEndpoint(ProjectEndpoint):
         },
     )
     @sudo_required
-    def post(self, request: Request, project) -> Response:
+    def post(
+        self, request: Request, project: Project
+    ) -> Response[DetailResponse] | Response[str] | Response[None]:
         """
         Schedule a project for transfer to a new organization.
 
@@ -116,7 +121,7 @@ class ProjectTransferEndpoint(ProjectEndpoint):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
-        unique_user_ids: set[int] = {owner.user_id for owner in owners}
+        unique_user_ids: set[int] = {cast(int, owner.user_id) for owner in owners}
 
         if len(unique_user_ids) == 0:
             return Response(
@@ -135,7 +140,7 @@ class ProjectTransferEndpoint(ProjectEndpoint):
         transaction_id = uuid4().hex
         url_data = sign(
             salt=SALT,
-            actor_id=request.user.id,
+            actor_id=acting_user_id(request.user),
             from_organization_id=project.organization_id,
             project_id=project.id,
             user_id=unique_user_ids.pop(),

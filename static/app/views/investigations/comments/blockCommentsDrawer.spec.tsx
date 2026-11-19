@@ -22,7 +22,7 @@ const organization = OrganizationFixture({
   features: ['investigations'],
   openMembership: true,
 });
-const detailUrl = '/organizations/org-slug/investigations/investigation-1/';
+const detailUrl = '/organizations/org-slug/notebooks/investigation-1/';
 const commentsUrl = `${detailUrl}comments/`;
 
 const otherDrawer = {open: () => {}, close: () => {}};
@@ -75,7 +75,7 @@ describe('BlockCommentsDrawer', () => {
     MockApiClient.addMockResponse({url: commentsUrl, body: []});
   });
 
-  it("opens from a block's menu and lists its comments oldest first", async () => {
+  it("lists a block's comments oldest first", async () => {
     const request = mockBlockComments([
       InvestigationCommentFixture({id: '2', body: 'Second', blockId: 'block-1'}),
       InvestigationCommentFixture({id: '1', body: 'First', blockId: 'block-1'}),
@@ -83,9 +83,8 @@ describe('BlockCommentsDrawer', () => {
     renderPage();
 
     await userEvent.click(
-      await screen.findByRole('button', {name: 'Block actions for Summary'})
+      await screen.findByRole('button', {name: 'Comment on Summary'})
     );
-    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Comment'}));
 
     const drawer = await screen.findByRole('complementary', {name: 'Block comments'});
     expect(

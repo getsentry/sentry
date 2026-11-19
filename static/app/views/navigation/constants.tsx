@@ -34,3 +34,7 @@ export const SETTINGS_PATH_PREFIX = '/settings';
 // Scoped by organization so "Back to app" never returns to another organization.
 export const getSettingsReturnPathKey = (organizationSlug: string) =>
   `settings-return-path:${organizationSlug}`;
+
+// The project the settings rail links to after the user leaves project settings.
+export const getSettingsLastProjectKey = (organizationSlug: string) =>
+  `settings-last-project:${organizationSlug}`;

@@ -53,6 +53,9 @@ def _init_geoip_rust() -> None:
 
     from sentry_relay.processing import GeoIpLookup
 
+    if settings.GEOIP_PATH_MMDB is None:
+        return
+
     try:
         rust_geoip = GeoIpLookup.from_path(settings.GEOIP_PATH_MMDB)
     except Exception:

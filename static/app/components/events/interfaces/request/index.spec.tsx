@@ -335,7 +335,6 @@ describe('Request entry', () => {
 
     it('should remove any non-tuple values from array', () => {
       const user = UserFixture();
-      user.options.prefersIssueDetailsStreamlinedUI = true;
       ConfigStore.set('user', user);
 
       const data: EntryRequest['data'] = {
@@ -475,12 +474,51 @@ describe('Request entry', () => {
 
         expect(screen.getByText('Line 1 Column 2: Very bad error')).toBeInTheDocument();
       });
+
+      it('skips null graphql errors', async () => {
+        const data: EntryRequest['data'] = {
+          apiTarget: 'graphql',
+          method: 'POST',
+          url: '/graphql/',
+          data: {
+            query: 'query Test { test }',
+            variables: {foo: 'bar'},
+            operationName: 'Test',
+          },
+        };
+
+        const event = EventFixture({
+          entries: [
+            {
+              type: EntryType.REQUEST,
+              data,
+            },
+          ],
+          contexts: {
+            response: {
+              data: {
+                errors: [
+                  null,
+                  {message: 'Very bad error', locations: [{line: 1, column: 2}]},
+                ],
+              },
+            },
+          },
+        });
+
+        render(<Request event={event} data={event.entries[0]!.data} />);
+
+        await userEvent.click(
+          screen.getByText('There was 1 GraphQL error raised during this request.')
+        );
+
+        expect(screen.getByText('Line 1 Column 2: Very bad error')).toBeInTheDocument();
+      });
     });
   });
 
   it('should display url fragment', () => {
     const user = UserFixture();
-    user.options.prefersIssueDetailsStreamlinedUI = true;
     ConfigStore.set('user', user);
 
     const data: EntryRequest['data'] = {

@@ -41,6 +41,6 @@ from tools.api_urls_to_typescript import regexp_to_routes
         ),
     ),
 )
-def test_regexp_to_route(input_regexp, expected) -> None:
+def test_regexp_to_route(input_regexp: str, expected: list[str]) -> None:
     result = regexp_to_routes(input_regexp)
     assert result == expected

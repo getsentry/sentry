@@ -3,9 +3,11 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import Any
 from unittest import mock
+from unittest.mock import MagicMock
 
 import pytest
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry.api.endpoints.timeseries import IncompleteReason
 from sentry.ingestion_delay.status import IngestionDelayStatus, IngestionStatus
@@ -51,19 +53,174 @@ class OrganizationEventsTimeseriesTransformationsTest(APITestCase):
             "detail": "smooth(linear,3): mode argument invalid: expected one of sma, ema, asap"
         }
 
-    def test_transformations_ignored_when_feature_disabled(self) -> None:
+    def test_transformations_rejected_when_feature_disabled(self) -> None:
         with self.feature(
             {
                 "organizations:discover-basic": True,
                 "organizations:explore-interpolation-and-smoothing": False,
             }
         ):
-            response = self.get_success_response(
+            response = self.get_error_response(
                 self.org.slug,
-                **{"transformations[-1]": ["fill(locf)"], "transformations[0]": ["fill(sma)"]},
+                **{"dataset": "spans", "transformations[0]": ["fill(locf)"]},
+                status_code=400,
             )
 
+        assert response.data == {
+            "detail": "Timeseries transformations are not enabled for this organization"
+        }
+
+    def test_transformations_rejected_for_unsupported_dataset(self) -> None:
+        for dataset in [
+            "discover",
+            "errors",
+            "transactions",
+            "metrics",
+            "metricsEnhanced",
+            "spansMetrics",
+            "profiles",
+            "profileFunctions",
+            "issuePlatform",
+        ]:
+            with self.feature(
+                {
+                    "organizations:discover-basic": True,
+                    "organizations:explore-interpolation-and-smoothing": True,
+                }
+            ):
+                response = self.get_error_response(
+                    self.org.slug,
+                    **{"dataset": dataset, "transformations[0]": ["fill(zero)"], "project": -1},
+                    status_code=400,
+                )
+
+            assert response.data == {
+                "detail": f"Timeseries transformations are not supported for dataset {dataset}"
+            }
+
+    def test_uptime_timeseries_rejected_with_no_projects(self) -> None:
+        cases: list[tuple[bool, dict[str, Any]]] = [
+            (False, {}),
+            (True, {}),
+            (False, {"transformations[0]": ["fill(zero)"]}),
+            (True, {"transformations[0]": ["fill(zero)"]}),
+            (True, {"topEvents": 5, "groupBy": "project.id"}),
+            (True, {"comparisonDelta": 86400}),
+        ]
+        for enabled, params in cases:
+            with self.feature(
+                {
+                    "organizations:discover-basic": True,
+                    "organizations:explore-interpolation-and-smoothing": enabled,
+                }
+            ):
+                response = self.get_error_response(
+                    self.org.slug,
+                    dataset="uptime_results",
+                    **params,
+                    status_code=400,
+                )
+
+            assert response.data == {
+                "detail": "Timeseries queries are not supported for dataset uptime_results"
+            }
+
+    def test_uptime_timeseries_rejected_with_projects(self) -> None:
+        project = self.create_project(organization=self.org, teams=[])
+        with self.feature("organizations:discover-basic"):
+            response = self.get_error_response(
+                self.org.slug, dataset="uptime_results", project=project.id, status_code=400
+            )
+
+        assert response.data == {
+            "detail": "Timeseries queries are not supported for dataset uptime_results"
+        }
+
+    def test_grouped_comparisons_rejected(self) -> None:
+        for dataset, enabled, transformations in [
+            ("spans", False, {}),
+            ("spans", True, {}),
+            ("spans", False, {"transformations[0]": ["fill(zero)"]}),
+            ("spans", True, {"transformations[0]": ["fill(zero)"]}),
+            ("discover", False, {}),
+            ("discover", True, {"transformations[0]": ["fill(zero)"]}),
+        ]:
+            for comparison_delta in [0, 86400]:
+                with self.feature(
+                    {
+                        "organizations:discover-basic": True,
+                        "organizations:explore-interpolation-and-smoothing": enabled,
+                    }
+                ):
+                    response = self.get_error_response(
+                        self.org.slug,
+                        **{
+                            "dataset": dataset,
+                            "topEvents": 5,
+                            "groupBy": "project.id",
+                            "comparisonDelta": comparison_delta,
+                            **transformations,
+                        },
+                        status_code=400,
+                    )
+
+                assert response.data == {
+                    "detail": "comparisonDelta is not supported with topEvents"
+                }
+
+    def test_no_transformations_when_feature_disabled(self) -> None:
+        with self.feature(
+            {
+                "organizations:discover-basic": True,
+                "organizations:explore-interpolation-and-smoothing": False,
+            }
+        ):
+            response = self.get_success_response(self.org.slug, transformationsExtra="ignored")
+
         assert response.data == {"timeSeries": []}
+
+    def test_invalid_transformations_when_feature_disabled(self) -> None:
+        for params, detail in [
+            ({"transformations[-1]": ["fill(locf)"]}, "Invalid transformations index"),
+            (
+                {"transformations[0]": ["smooth(linear,3)"]},
+                "smooth(linear,3): mode argument invalid: expected one of sma, ema, asap",
+            ),
+        ]:
+            with self.feature(
+                {
+                    "organizations:discover-basic": True,
+                    "organizations:explore-interpolation-and-smoothing": False,
+                }
+            ):
+                response = self.get_error_response(self.org.slug, **params, status_code=400)
+
+            assert response.data == {"detail": detail}
+
+    def test_supported_transformations_with_no_projects(self) -> None:
+        for dataset in [
+            "spans",
+            "logs",
+            "ourlogs",
+            "tracemetrics",
+            "preprodSize",
+            "occurrences",
+            "processing_errors",
+            "profile_functions",
+        ]:
+            with self.feature(
+                {
+                    "organizations:discover-basic": True,
+                    "organizations:explore-interpolation-and-smoothing": True,
+                    "organizations:test-occurrences-dataset": True,
+                }
+            ):
+                response = self.get_success_response(
+                    self.org.slug,
+                    **{"dataset": dataset, "transformations[0]": ["fill(zero)"]},
+                )
+
+            assert response.data == {"timeSeries": []}
 
 
 class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
@@ -131,11 +288,19 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
 
-    def do_request(self, data, url=None, features=None):
+    def do_request(
+        self,
+        data: dict[str, Any],
+        url: str | None = None,
+        features: dict[str, bool] | None = None,
+    ) -> Response:
         if features is None:
             features = {"organizations:discover-basic": True}
         with self.feature(features):
-            return self.client.get(self.url if url is None else url, data=data, format="json")
+            response: Response = self.client.get(
+                self.url if url is None else url, data=data, format="json"
+            )
+            return response
 
     def test_no_projects(self) -> None:
         org = self.create_organization(owner=self.user)
@@ -158,11 +323,6 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
                 "end": self.end,
                 "interval": "1h",
                 "project": [self.project.id, self.project2.id],
-                "transformations[0]": ["fill(locf)", "smooth(sma,3)"],
-            },
-            features={
-                "organizations:discover-basic": True,
-                "organizations:explore-interpolation-and-smoothing": True,
             },
         )
         assert response.status_code == 200, response.content
@@ -196,6 +356,26 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             "valueType": "integer",
             "valueUnit": None,
             "interval": 3_600_000,
+        }
+
+    def test_legacy_transformations_rejected(self) -> None:
+        response = self.do_request(
+            {
+                "start": self.start,
+                "end": self.end,
+                "interval": "1h",
+                "project": [self.project.id, self.project2.id],
+                "transformations[0]": ["fill(locf)", "smooth(sma,3)"],
+            },
+            features={
+                "organizations:discover-basic": True,
+                "organizations:explore-interpolation-and-smoothing": True,
+            },
+        )
+
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "detail": "Timeseries transformations are not supported for dataset discover"
         }
 
     def test_simple_multiple_yaxis(self) -> None:
@@ -491,7 +671,7 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         assert other["meta"]["order"] == 1
         assert other["values"][0]["value"] == 1
 
-    def test_incomplete_bucket(self):
+    def test_incomplete_bucket(self) -> None:
         with freeze_time(self.end):
             response = self.do_request(
                 {
@@ -536,18 +716,19 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             "interval": 3_600_000,
         }
 
-    def _api_token_request(self, data, features):
+    def _api_token_request(self, data: dict[str, Any], features: dict[str, bool]) -> Response:
         api_key = self.create_api_key(organization=self.organization, scope_list=["org:read"])
         with self.feature(features):
-            return self.client.get(
+            response: Response = self.client.get(
                 self.url,
                 data=data,
                 format="json",
                 HTTP_AUTHORIZATION=self.create_basic_auth_header(api_key.key),
             )
+            return response
 
     @mock.patch("sentry.api.endpoints.organization_events_timeseries.sdk_logger")
-    def test_blocked_org_log_fires_for_discover(self, mock_sdk_logger: mock.MagicMock) -> None:
+    def test_legacy_dataset_log_fires_for_discover(self, mock_sdk_logger: mock.MagicMock) -> None:
         data = {
             "start": self.start,
             "end": self.end,
@@ -567,6 +748,7 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         assert kwargs["attributes"] == {
             "org_id": self.organization.id,
             "org_slug": self.organization.slug,
+            "is_blocked": True,
             # no dataset param was passed, so the requested value is empty
             "requested_dataset": "",
             # but the default dataset is used
@@ -575,7 +757,9 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         }
 
     @mock.patch("sentry.api.endpoints.organization_events_timeseries.sdk_logger")
-    def test_blocked_org_log_fires_for_transactions(self, mock_sdk_logger: mock.MagicMock) -> None:
+    def test_legacy_dataset_log_fires_for_transactions(
+        self, mock_sdk_logger: mock.MagicMock
+    ) -> None:
         data = {
             "start": self.start,
             "end": self.end,
@@ -597,7 +781,9 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         assert kwargs["attributes"]["requested_dataset"] == "transactions"
 
     @mock.patch("sentry.api.endpoints.organization_events_timeseries.sdk_logger")
-    def test_blocked_org_log_not_fired_when_flag_off(self, mock_sdk_logger: mock.MagicMock) -> None:
+    def test_legacy_dataset_log_fires_for_allowlisted_org(
+        self, mock_sdk_logger: mock.MagicMock
+    ) -> None:
         data = {
             "start": self.start,
             "end": self.end,
@@ -612,10 +798,12 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             },
         )
 
-        mock_sdk_logger.warning.assert_not_called()
+        mock_sdk_logger.warning.assert_called_once()
+        _, kwargs = mock_sdk_logger.warning.call_args
+        assert kwargs["attributes"]["is_blocked"] is False
 
     @mock.patch("sentry.api.endpoints.organization_events_timeseries.sdk_logger")
-    def test_blocked_org_log_not_fired_for_non_external_request(
+    def test_legacy_dataset_log_not_fired_for_non_external_request(
         self, mock_sdk_logger: mock.MagicMock
     ) -> None:
         data = {
@@ -636,7 +824,7 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
         mock_sdk_logger.warning.assert_not_called()
 
     @mock.patch("sentry.api.endpoints.organization_events_timeseries.sdk_logger")
-    def test_blocked_org_log_not_fired_for_non_legacy_dataset(
+    def test_legacy_dataset_log_not_fired_for_non_legacy_dataset(
         self, mock_sdk_logger: mock.MagicMock
     ) -> None:
         data = {
@@ -670,7 +858,7 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
-    def _do_request(self, features: dict[str, bool], dataset: str = "spans"):
+    def _do_request(self, features: dict[str, bool], dataset: str = "spans") -> Response:
         data: dict[str, Any] = {
             "start": self.start,
             "end": self.end,
@@ -679,10 +867,11 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
             "dataset": dataset,
         }
         with self.feature(features):
-            return self.client.get(self.url, data=data, format="json")
+            response: Response = self.client.get(self.url, data=data, format="json")
+            return response
 
     @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
-    def test_ingestion_delay_absent_without_flag(self, mock_measure) -> None:
+    def test_ingestion_delay_absent_without_flag(self, mock_measure: MagicMock) -> None:
         response = self._do_request({"organizations:visibility-explore-view": True})
         assert response.status_code == 200, response.content
         assert "ingestion" not in response.data["meta"]
@@ -690,7 +879,7 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
         assert not mock_measure.called
 
     @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
-    def test_ingestion_delay_present(self, mock_measure) -> None:
+    def test_ingestion_delay_present(self, mock_measure: MagicMock) -> None:
         complete_through = before_now(minutes=5)
         mock_measure.return_value = IngestionDelayStatus(
             delay_seconds=42.5,
@@ -712,7 +901,7 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
         }
 
     @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
-    def test_unknown_status_is_reported_without_values(self, mock_measure) -> None:
+    def test_unknown_status_is_reported_without_values(self, mock_measure: MagicMock) -> None:
         mock_measure.return_value = IngestionDelayStatus(
             delay_seconds=None,
             complete_through=None,
@@ -728,7 +917,9 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
         assert response.data["meta"]["ingestion"] == {"status": "unknown"}
 
     @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
-    def test_ingestion_delay_query_failure_does_not_break_the_response(self, mock_measure) -> None:
+    def test_ingestion_delay_query_failure_does_not_break_the_response(
+        self, mock_measure: MagicMock
+    ) -> None:
         mock_measure.side_effect = Exception("snuba is down")
         response = self._do_request(
             {
@@ -740,7 +931,7 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
         assert "ingestion" not in response.data["meta"]
 
     @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
-    def test_complete_through_is_returned_in_milliseconds(self, mock_measure) -> None:
+    def test_complete_through_is_returned_in_milliseconds(self, mock_measure: MagicMock) -> None:
         complete_through = before_now(seconds=10)
         mock_measure.return_value = IngestionDelayStatus(
             delay_seconds=42.5,
@@ -762,7 +953,7 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
 
     @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
     def test_buckets_are_marked_incomplete_from_measured_complete_through(
-        self, mock_measure
+        self, mock_measure: MagicMock
     ) -> None:
         complete_through = self.end - timedelta(seconds=10)
         mock_measure.return_value = IngestionDelayStatus(
@@ -787,7 +978,7 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
 
     @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
     def test_buckets_fall_back_to_static_incomplete_boundary_when_no_measurement(
-        self, mock_measure
+        self, mock_measure: MagicMock
     ) -> None:
         mock_measure.return_value = IngestionDelayStatus(
             delay_seconds=None,
@@ -807,7 +998,7 @@ class OrganizationEventsTimeseriesIngestionDelayTest(APITestCase):
     @mock.patch("sentry.quotas.backend.get_event_retention")
     @mock.patch("sentry.api.helpers.ingestion_delay.compute_ingestion_delay_status")
     def test_buckets_starting_before_retention_are_marked_outside_it(
-        self, mock_measure, mock_retention
+        self, mock_measure: MagicMock, mock_retention: MagicMock
     ) -> None:
         mock_measure.return_value = IngestionDelayStatus(
             delay_seconds=1.0,

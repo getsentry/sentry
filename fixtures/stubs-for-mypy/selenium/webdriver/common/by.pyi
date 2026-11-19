@@ -1,0 +1,9 @@
+class By:
+    ID: str
+    XPATH: str
+    LINK_TEXT: str
+    PARTIAL_LINK_TEXT: str
+    NAME: str
+    TAG_NAME: str
+    CLASS_NAME: str
+    CSS_SELECTOR: str

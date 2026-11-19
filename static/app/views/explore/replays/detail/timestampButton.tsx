@@ -2,10 +2,10 @@ import type {MouseEvent} from 'react';
 import styled from '@emotion/styled';
 import {IconPlay} from '@sentry/icons/play';
 
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
-import {DateTime} from 'sentry/components/dateTime';
 import {Duration} from 'sentry/components/duration/duration';
 import {ReplayTooltipTime} from 'sentry/components/replays/replayTooltipTime';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -58,7 +58,7 @@ export function TimestampButton({
       >
         <IconPlay size="xs" />
         {timestampType === 'absolute' ? (
-          <DateTime timeOnly seconds date={timestampMs} />
+          <DateTime date={timestampMs} mode="time" precision="second" />
         ) : (
           <Duration
             duration={[Math.abs(timestampMs - startTimestampMs), 'ms']}

@@ -8,7 +8,7 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import {MonitorProcessingErrors} from 'sentry/views/insights/crons/components/processingErrors/monitorProcessingErrors';
+import {MonitorProcessingErrors} from './monitorProcessingErrors';
 
 describe('MonitorProcessingErrors', () => {
   it('should group errors by type', async () => {
@@ -73,6 +73,22 @@ describe('MonitorProcessingErrors', () => {
     expect(screen.getAllByText('Check-in already completed')).toHaveLength(2);
     expect(screen.getAllByText('2x')).toHaveLength(2);
     expect(screen.getAllByText('Monitor disabled')).toHaveLength(2);
+  });
+
+  it('shows when the check-in was received', async () => {
+    const children =
+      'Errors were encountered while ingesting check-ins for the selected projects';
+    render(
+      <MonitorProcessingErrors checkinErrors={[CheckinProcessingErrorFixture()]}>
+        {children}
+      </MonitorProcessingErrors>
+    );
+
+    await userEvent.click(screen.getByText(children));
+    await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
+    await userEvent.hover(screen.getByText('check-in'));
+
+    expect(await screen.findByText('May 25, 2024 12:24 AM')).toBeInTheDocument();
   });
 
   it('should show dismiss dialog when onDismiss is passed', async () => {

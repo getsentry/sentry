@@ -47,8 +47,7 @@ def fetch_alert_threshold(condition: dict[str, Any], group_status: int) -> float
     comparison_value = condition["comparison"]
     if group_status == GroupStatus.RESOLVED or group_status == GroupStatus.IGNORED:
         return None
-    else:
-        return comparison_value
+    return comparison_value
 
 
 def fetch_resolve_threshold(condition: dict[str, Any], group_status: int) -> float | None:
@@ -62,13 +61,13 @@ def fetch_resolve_threshold(condition: dict[str, Any], group_status: int) -> flo
     comparison_value = condition["comparison"]
     if group_status == GroupStatus.RESOLVED or group_status == GroupStatus.IGNORED:
         return comparison_value
-    else:
-        return None
+    return None
 
 
 def fetch_sensitivity(condition: dict[str, Any]) -> str | None:
     if condition.get("type") == Condition.ANOMALY_DETECTION:
-        return condition.get("comparison", {}).get("sensitivity", None)
+        sensitivity = condition.get("comparison", {}).get("sensitivity", None)
+        return sensitivity
     return None
 
 

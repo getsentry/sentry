@@ -27,6 +27,7 @@ from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     AttributeAggregation,
     AttributeKey,
     AttributeValue,
+    DoubleArray,
     ExtrapolationMode,
     Function,
     IntArray,
@@ -43,7 +44,7 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     TraceItemFilter,
 )
 
-from sentry.exceptions import InvalidSearchQuery
+from sentry.exceptions import InvalidFunctionArgumentQuery, InvalidSearchQuery
 from sentry.search.eap import utils as eap_utils
 from sentry.search.eap.columns import ResolvedAttribute
 from sentry.search.eap.occurrences.definitions import OCCURRENCE_DEFINITIONS
@@ -266,6 +267,19 @@ class SearchResolverQueryTest(TestCase):
                 key=AttributeKey(name="sentry.raw_description", type=AttributeKey.Type.TYPE_STRING),
                 op=ComparisonFilter.OP_NOT_IN,
                 value=AttributeValue(val_str_array=StrArray(values=["foo", "bar", "baz"])),
+            )
+        )
+        assert having is None
+
+    def test_percentage_in_filter(self) -> None:
+        where, having, _ = self.resolver.resolve_query("app.vitals.stall.percentage:[0,1]")
+        assert where == TraceItemFilter(
+            comparison_filter=ComparisonFilter(
+                key=AttributeKey(
+                    name="app.vitals.stall.percentage", type=AttributeKey.Type.TYPE_DOUBLE
+                ),
+                op=ComparisonFilter.OP_IN,
+                value=AttributeValue(val_double_array=DoubleArray(values=[0.0, 1.0])),
             )
         )
         assert having is None
@@ -1148,8 +1162,21 @@ class SearchResolverColumnTest(TestCase):
         )
 
     def test_max_string_field_raises(self) -> None:
-        with pytest.raises(InvalidSearchQuery):
+        with pytest.raises(InvalidFunctionArgumentQuery) as excinfo:
             self.resolver.resolve_column("max(span.description)")
+        assert excinfo.value.function == "max"
+        assert excinfo.value.argument == "span.description"
+        assert excinfo.value.hint is None
+
+    def test_transaction_duration_argument_hints_span_duration(self) -> None:
+        with pytest.raises(InvalidFunctionArgumentQuery) as excinfo:
+            self.resolver.resolve_column("sum(transaction.duration)")
+        assert excinfo.value.function == "sum"
+        assert excinfo.value.argument == "transaction.duration"
+        assert (
+            excinfo.value.hint
+            == "Use span.duration instead of transaction.duration on the spans dataset."
+        )
 
     def test_resolver_cache_attribute(self) -> None:
         self.resolver.resolve_columns(["span.op"])

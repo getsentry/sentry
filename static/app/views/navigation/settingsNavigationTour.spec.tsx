@@ -1,0 +1,334 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {UserFixture} from 'sentry-fixture/user';
+
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+
+import {Button} from '@sentry/scraps/button';
+
+import {ConfigStore} from 'sentry/stores/configStore';
+import {trackAnalytics} from 'sentry/utils/analytics';
+
+import {NavigationTourProvider} from './navigationTour';
+import {PrimaryNavigationContextProvider} from './primaryNavigationContext';
+import {
+  SettingsNavigationTourElement,
+  SettingsNavigationTourProvider,
+} from './settingsNavigationTour';
+
+function Tour() {
+  return (
+    <PrimaryNavigationContextProvider>
+      <NavigationTourProvider>
+        <SettingsNavigationTourProvider>
+          {(['entry', 'projects'] as const).map(id => (
+            <SettingsNavigationTourElement
+              key={id}
+              id={id}
+              title={`Tour ${id}`}
+              description={`Description ${id}`}
+            >
+              {props => <Button {...props}>{id}</Button>}
+            </SettingsNavigationTourElement>
+          ))}
+        </SettingsNavigationTourProvider>
+      </NavigationTourProvider>
+    </PrimaryNavigationContextProvider>
+  );
+}
+
+jest.mock('sentry/utils/analytics');
+
+const organization = OrganizationFixture({features: ['settings-v3']});
+
+describe('Settings navigation tour', () => {
+  let dismissRequest: jest.Mock;
+
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    ConfigStore.set('user', UserFixture());
+    MockApiClient.addMockResponse({
+      url: '/assistant/',
+      body: [{guide: 'tour.settings_navigation', seen: false}],
+    });
+    dismissRequest = MockApiClient.addMockResponse({
+      url: '/assistant/',
+      method: 'PUT',
+      body: {},
+    });
+  });
+
+  it('does not show for the old navigation', () => {
+    render(<Tour />, {organization: OrganizationFixture()});
+    expect(screen.queryByText('Tour entry')).not.toBeInTheDocument();
+  });
+
+  it('guides users through two steps without leaving the app', async () => {
+    const {router} = render(<Tour />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/issues/'},
+      },
+    });
+    expect(await screen.findByText('Tour entry')).toBeInTheDocument();
+    expect(screen.getByText('1/2')).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Previous'})).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Next'}));
+    expect(await screen.findByText('Tour projects')).toBeInTheDocument();
+    expect(screen.getByText('2/2')).toBeInTheDocument();
+    expect(router.location.pathname).toBe('/organizations/org-slug/issues/');
+    await userEvent.click(screen.getByRole('button', {name: 'Previous'}));
+    expect(await screen.findByText('Tour entry')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Next'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Done'}));
+    expect(screen.queryByRole('button', {name: 'Done'})).not.toBeInTheDocument();
+  });
+
+  it('remembers dismissal with the close button', async () => {
+    render(<Tour />, {organization});
+    await userEvent.click(await screen.findByRole('button', {name: 'Close'}));
+    expect(screen.queryByText('Tour entry')).not.toBeInTheDocument();
+    const dismissals = dismissRequest.mock.calls.filter(
+      ([, options]) => options.data.status === 'dismissed'
+    );
+    expect(dismissals).toHaveLength(1);
+  });
+
+  it('does not show once the user has seen it', async () => {
+    const assistantRequest = MockApiClient.addMockResponse({
+      url: '/assistant/',
+      body: [{guide: 'tour.settings_navigation', seen: true}],
+    });
+    render(<Tour />, {organization});
+    await waitFor(() => expect(assistantRequest).toHaveBeenCalled());
+    await act(() => new Promise(resolve => setTimeout(resolve)));
+    expect(screen.queryByText('Tour entry')).not.toBeInTheDocument();
+  });
+
+  it('does not show to users who joined after the settings navigation GA', async () => {
+    const assistantRequest = MockApiClient.addMockResponse({
+      url: '/assistant/',
+      body: [{guide: 'tour.settings_navigation', seen: false}],
+    });
+    ConfigStore.set('user', UserFixture({dateJoined: '2099-01-01T00:00:00.000Z'}));
+    render(<Tour />, {organization});
+    await waitFor(() => expect(assistantRequest).toHaveBeenCalled());
+    await act(() => new Promise(resolve => setTimeout(resolve)));
+    expect(screen.queryByText('Tour entry')).not.toBeInTheDocument();
+  });
+
+  it('is dismissed with Escape from the focused guide', async () => {
+    render(<Tour />, {organization});
+    expect(await screen.findByRole('dialog', {name: 'Tour entry'})).toHaveFocus();
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByText('Tour entry')).not.toBeInTheDocument();
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'tour-guide.dismiss',
+      expect.objectContaining({
+        id: 'entry',
+        step_count: 1,
+        tour_key: 'tour.settings_navigation',
+      })
+    );
+  });
+
+  it('does not blur the page', async () => {
+    render(<Tour />, {organization});
+    expect(await screen.findByText('Tour entry')).toBeInTheDocument();
+    expect(screen.queryByTestId('tour-blur-window')).not.toBeInTheDocument();
+  });
+
+  it('moves focus to the next guide when the tour changes step from the guide', async () => {
+    render(<Tour />, {organization});
+    expect(await screen.findByText('Tour entry')).toBeInTheDocument();
+    await userEvent.tab({shift: true});
+    expect(screen.getByRole('button', {name: 'Next'})).toHaveFocus();
+    await userEvent.keyboard('{Enter}');
+    expect(await screen.findByText('Tour projects')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.getByRole('dialog', {name: 'Tour projects'})).toHaveFocus()
+    );
+    // Keys keep working, since focus stayed inside the tour.
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByText('Tour projects')).not.toBeInTheDocument();
+  });
+
+  it('returns focus to what had it before the tour started', async () => {
+    render(
+      <div>
+        <Button>Give Feedback</Button>
+        <Tour />
+      </div>,
+      {organization}
+    );
+    act(() => screen.getByRole('button', {name: 'Give Feedback'}).focus());
+    expect(await screen.findByRole('dialog', {name: 'Tour entry'})).toHaveFocus();
+    await userEvent.click(screen.getByRole('button', {name: 'Next'}));
+    expect(await screen.findByRole('dialog', {name: 'Tour projects'})).toHaveFocus();
+    await userEvent.click(screen.getByRole('button', {name: 'Done'}));
+    expect(screen.queryByText('Tour projects')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Give Feedback'})).toHaveFocus();
+  });
+
+  it('shows the focus ring on the first guide only', async () => {
+    render(<Tour />, {organization});
+    const firstGuide = await screen.findByRole('dialog', {name: 'Tour entry'});
+    expect(firstGuide).toHaveFocus();
+    expect(firstGuide).toHaveAttribute('data-focus-ring');
+    await userEvent.click(screen.getByRole('button', {name: 'Next'}));
+    const secondGuide = await screen.findByRole('dialog', {name: 'Tour projects'});
+    expect(secondGuide).toHaveFocus();
+    expect(secondGuide).not.toHaveAttribute('data-focus-ring');
+  });
+
+  it('leaves focus on the page when nothing had it before the tour started', async () => {
+    render(<Tour />, {organization});
+    expect(await screen.findByRole('dialog', {name: 'Tour entry'})).toHaveFocus();
+    await userEvent.keyboard('{Escape}');
+    expect(screen.queryByText('Tour entry')).not.toBeInTheDocument();
+    expect(document.body).toHaveFocus();
+  });
+
+  it('leaves focus in a field the user is typing in when the tour starts', async () => {
+    render(
+      <div>
+        <input aria-label="Search" />
+        <Tour />
+      </div>,
+      {organization}
+    );
+    await userEvent.click(screen.getByRole('textbox', {name: 'Search'}));
+    expect(await screen.findByRole('dialog', {name: 'Tour entry'})).not.toHaveFocus();
+    await userEvent.keyboard('issues');
+    expect(screen.getByRole('textbox', {name: 'Search'})).toHaveFocus();
+    expect(screen.getByRole('textbox', {name: 'Search'})).toHaveValue('issues');
+  });
+
+  it('takes focus as the guide opens and keeps Tab inside it', async () => {
+    render(
+      <div>
+        <Button>Give Feedback</Button>
+        <Tour />
+      </div>,
+      {organization}
+    );
+    const guide = await screen.findByRole('dialog', {name: 'Tour entry'});
+    expect(guide).toHaveAccessibleDescription('Step 1 of 2. Description entry');
+    expect(guide).toHaveFocus();
+
+    await userEvent.tab();
+    expect(screen.getByRole('button', {name: 'Close'})).toHaveFocus();
+    await userEvent.tab();
+    expect(screen.getByRole('button', {name: 'Next'})).toHaveFocus();
+    await userEvent.tab();
+    expect(screen.getByRole('button', {name: 'Close'})).toHaveFocus();
+    await userEvent.tab({shift: true});
+    expect(screen.getByRole('button', {name: 'Next'})).toHaveFocus();
+  });
+
+  it('lets a click elsewhere move focus out of the guide', async () => {
+    render(
+      <div>
+        <input aria-label="Search" />
+        <Tour />
+      </div>,
+      {organization}
+    );
+    expect(await screen.findByRole('dialog', {name: 'Tour entry'})).toHaveFocus();
+    await userEvent.click(screen.getByRole('textbox', {name: 'Search'}));
+    expect(screen.queryByText('Tour entry')).not.toBeInTheDocument();
+    expect(screen.getByRole('textbox', {name: 'Search'})).toHaveFocus();
+  });
+
+  it('marks the guide as viewed once it is shown, and only once', async () => {
+    render(<Tour />, {organization});
+    await waitFor(() =>
+      expect(dismissRequest).toHaveBeenCalledWith(
+        '/assistant/',
+        expect.objectContaining({
+          data: {guide: 'tour.settings_navigation', status: 'viewed'},
+        })
+      )
+    );
+    await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
+    expect(await screen.findByText('Tour projects')).toBeInTheDocument();
+    expect(dismissRequest).toHaveBeenCalledTimes(1);
+  });
+
+  it('tracks dismissing the guide', async () => {
+    render(<Tour />, {organization});
+    await userEvent.click(await screen.findByRole('button', {name: 'Close'}));
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'tour-guide.dismiss',
+      expect.objectContaining({
+        id: 'entry',
+        step_count: 1,
+        tour_key: 'tour.settings_navigation',
+      })
+    );
+  });
+
+  it('tracks finishing the guide', async () => {
+    render(<Tour />, {organization});
+    await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Done'}));
+    expect(dismissRequest).not.toHaveBeenCalledWith(
+      '/assistant/',
+      expect.objectContaining({
+        data: {guide: 'tour.settings_navigation', status: 'dismissed'},
+      })
+    );
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'tour-guide.finish',
+      expect.objectContaining({
+        id: 'projects',
+        step_count: 2,
+        tour_key: 'tour.settings_navigation',
+      })
+    );
+  });
+
+  it('is dismissed by a click elsewhere, which still reaches the page', async () => {
+    const handlePageClick = jest.fn();
+    render(
+      <div>
+        <Button onClick={handlePageClick}>Give Feedback</Button>
+        <Tour />
+      </div>,
+      {organization}
+    );
+    expect(await screen.findByText('Tour entry')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Give Feedback'}));
+    expect(handlePageClick).toHaveBeenCalledTimes(1);
+    expect(screen.queryByText('Tour entry')).not.toBeInTheDocument();
+    const dismissals = dismissRequest.mock.calls.filter(
+      ([, options]) => options.data.status === 'dismissed'
+    );
+    expect(dismissals).toHaveLength(1);
+  });
+
+  it('ends without dismissing the guide when the user enters settings', async () => {
+    const {router} = render(<Tour />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/issues/'},
+      },
+    });
+    expect(await screen.findByText('Tour entry')).toBeInTheDocument();
+    act(() => router.navigate('/settings/org-slug/'));
+    await waitFor(() => expect(screen.queryByText('Tour entry')).not.toBeInTheDocument());
+    expect(dismissRequest).not.toHaveBeenCalledWith(
+      '/assistant/',
+      expect.objectContaining({
+        data: {guide: 'tour.settings_navigation', status: 'dismissed'},
+      })
+    );
+  });
+
+  it('does not start inside settings where the organization menu is unavailable', () => {
+    render(<Tour />, {
+      organization,
+      initialRouterConfig: {location: {pathname: '/settings/org-slug/'}},
+    });
+    expect(screen.queryByText('Tour entry')).not.toBeInTheDocument();
+  });
+});

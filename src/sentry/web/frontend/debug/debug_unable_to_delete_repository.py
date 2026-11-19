@@ -13,7 +13,7 @@ from .mail import MailPreview
 class DebugUnableToDeleteRepository(View):
     def get(self, request: HttpRequest) -> HttpResponse:
         repo = Repository(name="getsentry/sentry", provider="integrations:example")
-        repo.get_provider = lambda: SimpleNamespace(name="Example")  # type: ignore[method-assign]
+        setattr(repo, "get_provider", lambda: SimpleNamespace(name="Example"))
 
         email = repo.generate_delete_fail_email("An internal server error occurred")
         return MailPreview(

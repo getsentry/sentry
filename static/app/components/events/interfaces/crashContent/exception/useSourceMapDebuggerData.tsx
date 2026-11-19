@@ -1,10 +1,9 @@
+import {skipToken, type SkipToken} from '@tanstack/react-query';
+
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import type {Event} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {useOrganization} from 'sentry/utils/useOrganization';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 export interface SourceMapDebugResponseFrame {
   debug_id_process: {
@@ -50,43 +49,35 @@ export interface SourceMapDebugResponse {
   min_debug_id_sdk_version?: string | null;
 }
 
-export type SourceMapDebugQueryResult = UseApiQueryResult<
-  SourceMapDebugResponse,
-  RequestError
->;
+interface SourceMapDebugParams {
+  eventId: string;
+  organizationSlug: string | undefined;
+  projectSlug: string;
+  sdkName: string | null;
+}
 
-export function useSourceMapDebugQuery(
-  projectSlug: string,
-  eventId: string,
-  sdkName: string | null = null
-): SourceMapDebugQueryResult {
-  const organization = useOrganization({allowNull: true});
-  const isSdkThatShouldShowSourceMapsDebugger =
-    sdkName?.startsWith('sentry.javascript.') ?? false;
-  return useApiQuery<SourceMapDebugResponse>(
-    [
-      getApiUrl(
-        '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/source-map-debug/',
-        {
-          path: {
-            organizationIdOrSlug: organization!.slug,
-            projectIdOrSlug: projectSlug,
-            eventId,
-          },
-        }
-      ),
-    ],
-    {
-      enabled:
-        isSdkThatShouldShowSourceMapsDebugger &&
-        !!organization &&
-        !!projectSlug &&
-        !!eventId,
-      staleTime: Infinity,
-      retry: false,
-      refetchOnWindowFocus: false,
-    }
-  );
+export function sourceMapDebugApiOptions(params: SourceMapDebugParams | SkipToken) {
+  const path =
+    params === skipToken ||
+    !params.organizationSlug ||
+    !params.projectSlug ||
+    !params.eventId ||
+    !params.sdkName?.startsWith('sentry.javascript.')
+      ? skipToken
+      : {
+          organizationIdOrSlug: params.organizationSlug,
+          projectIdOrSlug: params.projectSlug,
+          eventId: params.eventId,
+        };
+
+  return {
+    ...apiOptions.as<SourceMapDebugResponse>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/source-map-debug/',
+      {path, staleTime: Infinity}
+    ),
+    retry: false,
+    refetchOnWindowFocus: false,
+  };
 }
 
 function getDebugIdProgress(

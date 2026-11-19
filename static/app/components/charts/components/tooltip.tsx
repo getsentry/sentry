@@ -4,14 +4,19 @@ import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import type {TooltipComponentFormatterCallback} from 'echarts';
 import type {CallbackDataParams} from 'echarts/types/dist/shared';
-import moment from 'moment-timezone';
+
+import {formatDateTime} from '@sentry/scraps/dateTime';
 
 import type {BaseChart, BaseChartProps} from 'sentry/components/charts/baseChart';
+import {
+  formatChartDateTime,
+  parseChartDateTime,
+} from 'sentry/components/charts/formatChartDateTime';
 import {truncationFormatter} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import type {DataPoint} from 'sentry/types/echarts';
 import {toArray} from 'sentry/utils/array/toArray';
-import {getFormattedDate, getTimeFormat} from 'sentry/utils/dates';
+import {getUserTimezone} from 'sentry/utils/dates';
 
 export const CHART_TOOLTIP_VIEWPORT_OFFSET = 20;
 
@@ -29,34 +34,37 @@ export function defaultFormatAxisLabel(
     return value;
   }
 
-  const formatOptions = {local: !utc};
-
-  const timeFormat = showTimeInTooltip
-    ? getTimeFormat({seconds: addSecondsToTimeFormat})
-    : '';
+  const timezone = utc
+    ? 'UTC'
+    : (getUserTimezone() ?? Intl.DateTimeFormat().resolvedOptions().timeZone);
+  const precision = addSecondsToTimeFormat ? 'second' : 'minute';
+  const formatDate = (timestamp: number, year: 'always' | 'never') =>
+    formatDateTime(timestamp, {mode: 'date', year, timezone, showTimezone: false});
+  const formatTime = (timestamp: number) =>
+    formatDateTime(timestamp, {mode: 'time', precision, timezone, showTimezone: false});
+  const zone = formatChartDateTime(value + (bucketSize ?? 0), 'timezone', {timezone});
 
   if (!bucketSize) {
-    const format = `MMM D, YYYY ${timeFormat} z`.trim();
-    return getFormattedDate(value, format, formatOptions);
+    return `${formatDate(value, 'always')}${showTimeInTooltip ? ` ${formatTime(value)}` : ''} ${zone}`;
   }
 
-  const now = moment();
-  const bucketStart = moment(value);
-  const bucketEnd = moment(value + bucketSize);
-
-  const showYear = now.year() !== bucketStart.year() || now.year() !== bucketEnd.year();
-  const showEndDate = bucketStart.date() !== bucketEnd.date();
-
-  const formatStart = `MMM D${showYear ? ', YYYY' : ''} ${timeFormat}`.trim();
-
-  const formatEndDate = showEndDate ? `MMM D${showYear ? ', YYYY' : ''} ` : '';
-  const formatEnd = `${formatEndDate} ${timeFormat}`.trim();
-
-  const start = getFormattedDate(bucketStart, formatStart, formatOptions);
-  const end = getFormattedDate(bucketEnd, formatEnd, formatOptions);
-  const timezone = getFormattedDate(bucketEnd, 'z', formatOptions);
-
-  return `${start} — ${end} (${timezone})`;
+  const now = parseChartDateTime(Date.now(), timezone);
+  const bucketStart = parseChartDateTime(value, timezone);
+  const bucketEnd = parseChartDateTime(value + bucketSize, timezone);
+  if (!now || !bucketStart || !bucketEnd) {
+    return 'Invalid date';
+  }
+  const year =
+    now.year !== bucketStart.year || now.year !== bucketEnd.year ? 'always' : 'never';
+  const showEndDate = !bucketStart.toPlainDate().equals(bucketEnd.toPlainDate());
+  const start = `${formatDate(value, year)}${showTimeInTooltip ? ` ${formatTime(value)}` : ''}`;
+  const end = [
+    showEndDate ? formatDate(value + bucketSize, year) : '',
+    showTimeInTooltip ? formatTime(value + bucketSize) : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+  return `${start} — ${end} (${zone})`;
 }
 
 function defaultValueFormatter(value: string | number) {
@@ -100,7 +108,7 @@ function sortSeriesParamsByValue(
   const rank = (value: unknown) =>
     typeof value !== 'number' || Number.isNaN(value) ? 2 : value === 0 ? 1 : 0;
 
-  return [...seriesParams].sort((a, b) => {
+  return seriesParams.toSorted((a, b) => {
     const aValue = getSeriesValue(a, 1);
     const bValue = getSeriesValue(b, 1);
     const rankDifference = rank(aValue) - rank(bValue);
@@ -361,6 +369,39 @@ export function getFormatter({
   };
 }
 
+interface HorizontalTooltipPositionParams {
+  anchorX: number;
+  chartLeft: number;
+  tipWidth: number;
+}
+
+/**
+ * Centres the tooltip on `anchorX`, pinning it inside the viewport when it
+ * would overflow. `left` is relative to the chart, and `arrowLeft` keeps the
+ * arrow pointing at the anchor when the tooltip is pinned.
+ */
+export function horizontalTooltipPosition({
+  anchorX,
+  chartLeft,
+  tipWidth,
+}: HorizontalTooltipPositionParams): {arrowLeft: string; left: number} {
+  const left = anchorX - tipWidth / 2;
+  const rightEdge = chartLeft + anchorX + tipWidth / 2;
+
+  if (rightEdge >= window.innerWidth - CHART_TOOLTIP_VIEWPORT_OFFSET) {
+    const pinnedLeft =
+      left - (rightEdge - window.innerWidth + CHART_TOOLTIP_VIEWPORT_OFFSET);
+    return {left: pinnedLeft, arrowLeft: `${anchorX - pinnedLeft}px`};
+  }
+
+  if (left + chartLeft - CHART_TOOLTIP_VIEWPORT_OFFSET <= 0) {
+    const pinnedLeft = CHART_TOOLTIP_VIEWPORT_OFFSET - chartLeft;
+    return {left: pinnedLeft, arrowLeft: `${anchorX - pinnedLeft}px`};
+  }
+
+  return {left, arrowLeft: '50%'};
+}
+
 type Props = ChartProps['tooltip'] &
   Pick<ChartProps, NeededChartProps> &
   Pick<FormatterOptions, 'addSecondsToTimeFormat'> & {
@@ -454,24 +495,11 @@ export function computeChartTooltip(
       const chartBoundingRect = chartElement.getBoundingClientRect();
       const chartLeft = chartBoundingRect.left ?? 0;
 
-      // Determine the new left edge.
-      let leftPos = Number(pos[0]) - tipWidth / 2;
-      // And the right edge taking into account the chart left offset
-      const rightEdge = chartLeft + Number(pos[0]) + tipWidth / 2;
-
-      let arrowPosition: string | undefined;
-      if (rightEdge >= window.innerWidth - CHART_TOOLTIP_VIEWPORT_OFFSET) {
-        // If the tooltip would leave viewport on the right, pin it.
-        leftPos -= rightEdge - window.innerWidth + CHART_TOOLTIP_VIEWPORT_OFFSET;
-        arrowPosition = `${Number(pos[0]) - leftPos}px`;
-      } else if (leftPos + chartLeft - CHART_TOOLTIP_VIEWPORT_OFFSET <= 0) {
-        // If the tooltip would leave viewport on the left, pin it.
-        leftPos = chartLeft * -1 + CHART_TOOLTIP_VIEWPORT_OFFSET;
-        arrowPosition = `${Number(pos[0]) - leftPos}px`;
-      } else {
-        // Tooltip not near the window edge, reset position
-        arrowPosition = '50%';
-      }
+      const {left: leftPos, arrowLeft: arrowPosition} = horizontalTooltipPosition({
+        anchorX: Number(pos[0]),
+        chartLeft,
+        tipWidth,
+      });
 
       // Prefer rendering the tooltip above the cursor.
       let topPos = Number(pos[1]) - tipHeight - 20;

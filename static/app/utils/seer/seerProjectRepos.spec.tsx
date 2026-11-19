@@ -5,7 +5,7 @@ import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {
   fetchProjectHasNonGithubRepo,
   getSeerProjectReposInfiniteQueryOptions,
-} from 'sentry/utils/seer/seerProjectRepos';
+} from './seerProjectRepos';
 
 const organization = OrganizationFixture({slug: 'org-slug'});
 const project = {slug: 'project-slug'};

@@ -1,7 +1,8 @@
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {PIXELS_PER_BUCKET} from 'sentry/views/dashboards/widgets/heatMapWidget/settings';
-import {calculateHeatMapBucketDimensions} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/calculateHeatMapBucketDimensions';
+
+import {calculateHeatMapBucketDimensions} from './calculateHeatMapBucketDimensions';
 
 const AVAILABLE_INTERVALS = [
   '1m',

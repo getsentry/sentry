@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 from hashlib import md5
 from itertools import cycle
+from typing import cast
 from unittest import mock
 
 import pytest
@@ -186,7 +187,9 @@ class TestUptimeHandler(UptimeTestCase):
         # Check the detector state was updated to HIGH
         detector_state.refresh_from_db()
         assert detector_state.is_triggered
-        assert detector_state.priority_level == DetectorPriorityLevel.HIGH
+        assert (
+            cast(DetectorPriorityLevel, detector_state.priority_level) == DetectorPriorityLevel.HIGH
+        )
 
     def test_occurrence_includes_response_capture(self) -> None:
         detector = self.create_uptime_detector(downtime_threshold=2, recovery_threshold=1)

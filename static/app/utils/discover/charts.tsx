@@ -1,21 +1,12 @@
 import * as Sentry from '@sentry/react';
 
+import {getDuration} from '@sentry/scraps/duration';
+
 import type {Series} from 'sentry/types/echarts';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {defined} from 'sentry/utils/defined';
-import type {
-  AggregationOutputType,
-  DataUnit,
-  RateUnit,
-} from 'sentry/utils/discover/fields';
-import {
-  ABYTE_UNITS,
-  DURATION_UNIT_MULTIPLIERS,
-  SizeUnit,
-} from 'sentry/utils/discover/fields';
 import {axisDuration} from 'sentry/utils/duration/axisDuration';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {formatAbbreviatedNumber, formatRate} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {convertSize} from 'sentry/utils/unitConversion/convertSize';
@@ -25,6 +16,8 @@ import {
 } from 'sentry/views/dashboards/widgets/common/typePredicates';
 
 import {categorizeDuration} from './categorizeDuration';
+import type {AggregationOutputType, DataUnit, RateUnit} from './fields';
+import {ABYTE_UNITS, DURATION_UNIT_MULTIPLIERS, SizeUnit} from './fields';
 
 /**
  * Formatter for chart tooltips that handle a variety of discover and metrics result values.
@@ -63,7 +56,7 @@ export function tooltipFormatterUsingAggregateOutputType(
         ? DURATION_UNIT_MULTIPLIERS[durationUnitString]
         : 1; // default to milliseconds
       const valueInMs = value * durationMultiplier;
-      return getDuration(valueInMs / 1000, 2, true);
+      return getDuration(valueInMs / 1000, {precision: 2, style: 'short'});
     }
     case 'size': {
       const unitString = unit ?? undefined;

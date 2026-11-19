@@ -34,7 +34,7 @@ class OrganizationProvisioningException(Exception):
 
 
 class OrganizationProvisioningService:
-    def _validate_or_default_cell(self, cell_name: str | None):
+    def _validate_or_default_cell(self, cell_name: str | None) -> str:
         silo_mode = SiloMode.get_current_mode()
         if cell_name is None and silo_mode == SiloMode.CONTROL:
             raise OrganizationProvisioningException(
@@ -49,6 +49,7 @@ class OrganizationProvisioningService:
 
             cell_name = local_cell.name
 
+        assert cell_name is not None
         return cell_name
 
     def provision_organization_in_cell(
@@ -152,7 +153,7 @@ organization_provisioning_service = OrganizationProvisioningService()
 @receiver(process_control_outbox, sender=OutboxCategory.PROVISION_ORGANIZATION)
 def process_provision_organization_outbox(
     object_identifier: int, cell_name: str, payload: Any, **kwds: Any
-):
+) -> None:
     """
     Outbox handler for PROVISION_ORGANIZATION
 
@@ -201,7 +202,7 @@ def process_provision_organization_outbox(
 @receiver(process_cell_outbox, sender=OutboxCategory.ORGANIZATION_PROVISION_ANALYTICS)
 def process_organization_provision_analytics_outbox(
     object_identifier: int, payload: Any, **kwds: Any
-):
+) -> None:
     """
     Create analytics events and audit logs for an organization
     Separate from POST_ORGANIZATION_PROVISION (used by getsentry) so that a failure in one
@@ -275,7 +276,7 @@ def process_organization_provision_analytics_outbox(
     )
 
 
-def handle_possible_organization_slug_swap(*, cell_name: str, org_slug_reservation_id: int):
+def handle_possible_organization_slug_swap(*, cell_name: str, org_slug_reservation_id: int) -> None:
     """
     CAUTION: THIS IS ONLY INTENDED TO BE USED BY THE `organization_provisioning` RPC SERVICE.
     DO NOT USE THIS FOR LOCAL SLUG SWAPS.

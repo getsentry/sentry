@@ -1,7 +1,9 @@
 import {createContext, useCallback, useContext, useMemo, useState} from 'react';
 
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import {NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/views/navigation/constants';
+
+import {NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from './constants';
+import {useSettingsNavigation} from './useSettingsNavigation';
 
 /**
  * The three possible states of the secondary navigation sidebar:
@@ -12,6 +14,10 @@ import {NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY} from 'sentry/views/navig
 type SecondaryNavState = 'expanded' | 'collapsed' | 'peek';
 
 interface SecondaryNavigationContext {
+  /**
+   * When false, the sidebar stays expanded and `setView` is a no-op.
+   */
+  collapsible: boolean;
   setView: (view: SecondaryNavState) => void;
   view: SecondaryNavState;
 }
@@ -42,23 +48,36 @@ export function SecondaryNavigationContextProvider(
   const [view, setViewState] = useState<SecondaryNavState>(
     isCollapsedPersisted ? 'collapsed' : 'expanded'
   );
+  // Settings has too little in its sidebar to be worth hiding, so it ignores the
+  // collapsed preference without overwriting it for the rest of the app.
+  const collapsible = !useSettingsNavigation();
+
+  // A peek that was open when the user entered settings must not reopen as an
+  // unhovered peek once they leave.
+  if (!collapsible && view === 'peek') {
+    setViewState('collapsed');
+  }
 
   const setView = useCallback(
     (nextView: SecondaryNavState) => {
+      if (!collapsible) {
+        return;
+      }
       setViewState(nextView);
       if (nextView !== 'peek') {
         setIsCollapsedPersisted(nextView === 'collapsed');
       }
     },
-    [setIsCollapsedPersisted]
+    [collapsible, setIsCollapsedPersisted]
   );
 
   const value = useMemo(() => {
     return {
-      view,
+      collapsible,
+      view: collapsible ? view : 'expanded',
       setView,
     };
-  }, [view, setView]);
+  }, [collapsible, view, setView]);
 
   return (
     <SecondaryNavigationContext.Provider value={value}>
@@ -87,7 +106,7 @@ export function MobileSecondaryNavigationContextProvider(
     }
   }, []);
 
-  const value = useMemo(() => ({view, setView}), [view, setView]);
+  const value = useMemo(() => ({collapsible: true, view, setView}), [view, setView]);
 
   return (
     <SecondaryNavigationContext.Provider value={value}>

@@ -158,6 +158,10 @@ class IntegrationProxyClient(ApiClient):
         We only validate the IP address from within the Region Silo.
         For all other silo modes, we use the default is_ipaddress_permitted function, which tests against SENTRY_DISALLOWED_IPS.
         """
+        # Default settings for these in urllib3 are way too high, so make
+        # them option configurable for us to tune them.
+        max_retry_sleep = options.get("hybridcloud.integrationproxy.retry_max_sleep")
+        respect_retry_after = options.get("hybridcloud.integrationproxy.respect_retry_after")
         if SiloMode.get_current_mode() == SiloMode.CELL:
             return build_session(
                 is_ipaddress_permitted=is_control_silo_ip_address,
@@ -168,9 +172,19 @@ class IntegrationProxyClient(ApiClient):
                     backoff_factor=0.1,
                     status_forcelist=[503],
                     allowed_methods=["PATCH", "HEAD", "PUT", "GET", "DELETE", "POST"],
+                    respect_retry_after_header=respect_retry_after,
+                    backoff_max=max_retry_sleep,
+                    retry_after_max=max_retry_sleep,
                 ),
             )
-        return build_session()
+        return build_session(
+            max_retries=Retry(
+                total=3,
+                respect_retry_after_header=respect_retry_after,
+                backoff_max=max_retry_sleep,
+                retry_after_max=max_retry_sleep,
+            )
+        )
 
     @staticmethod
     def determine_whether_should_proxy_to_control() -> bool:

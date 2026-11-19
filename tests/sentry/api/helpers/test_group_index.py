@@ -571,7 +571,7 @@ class UpdateGroupsTest(TestCase):
 
     @patch("sentry.signals.issue_unignored.send_robust")
     def test_unignoring_group(self, send_robust: Mock) -> None:
-        for data in [
+        cases: list[dict[str, Any]] = [
             {
                 "group": self.create_group(
                     status=GroupStatus.IGNORED, first_seen=datetime.now(UTC) - timedelta(days=8)
@@ -593,7 +593,8 @@ class UpdateGroupsTest(TestCase):
                 "request_data": {"status": "unresolved"},
                 "expected_substatus": GroupSubStatus.NEW,
             },
-        ]:
+        ]
+        for data in cases:
             group = data["group"]
             http_request = self.make_request(user=self.user, method="GET")
             http_request.GET = QueryDict(query_string=f"id={group.id}")
@@ -651,6 +652,7 @@ class UpdateGroupsTest(TestCase):
     @patch("sentry.signals.issue_resolved.send_robust")
     def test_resolving_group_with_short_id(self, send_robust: Mock) -> None:
         group = self.create_group(status=GroupStatus.UNRESOLVED)
+        assert group.qualified_short_id is not None
 
         http_request = self.make_request(
             user=self.user,
@@ -685,6 +687,7 @@ class UpdateGroupsTest(TestCase):
 
         # User only has access to self.project, not project2
         # When requesting group2 using qualified short ID, it should be filtered out
+        assert group2.qualified_short_id is not None
         group_list = get_group_list(
             self.organization.id, [self.project], [group2.qualified_short_id]
         )
@@ -693,12 +696,15 @@ class UpdateGroupsTest(TestCase):
         assert group_list == []
 
         # But when requesting a group from an accessible project, it should work
+        assert group1.qualified_short_id is not None
         group_list = get_group_list(
             self.organization.id, [self.project], [group1.qualified_short_id]
         )
         assert group_list == [group1]
 
         # When user has access to both projects, both groups should be returned
+        assert group1.qualified_short_id is not None
+        assert group2.qualified_short_id is not None
         group_list = get_group_list(
             self.organization.id,
             [self.project, project2],

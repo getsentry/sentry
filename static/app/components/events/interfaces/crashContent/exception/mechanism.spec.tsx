@@ -1,7 +1,8 @@
-import {render} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {Mechanism} from 'sentry/components/events/interfaces/crashContent/exception/mechanism';
 import type {StackTraceMechanism} from 'sentry/types/stacktrace';
+
+import {Mechanism} from './mechanism';
 
 describe('ExceptionMechanism', () => {
   describe('basic attributes', () => {
@@ -11,6 +12,9 @@ describe('ExceptionMechanism', () => {
         handled: true,
       };
       render(<Mechanism data={mechanism} />);
+
+      expect(screen.getByText('mechanism')).toBeInTheDocument();
+      expect(screen.getByText('generic')).toBeInTheDocument();
     });
 
     it('should render a help_link icon', () => {
@@ -21,9 +25,14 @@ describe('ExceptionMechanism', () => {
       };
 
       render(<Mechanism data={mechanism} />);
+
+      expect(screen.getByRole('link')).toHaveAttribute(
+        'href',
+        'https://example.org/help'
+      );
     });
 
-    it('should render a description hovercard', () => {
+    it('should render a description hovercard', async () => {
       const mechanism: StackTraceMechanism = {
         type: 'generic',
         handled: true,
@@ -31,9 +40,13 @@ describe('ExceptionMechanism', () => {
       };
 
       render(<Mechanism data={mechanism} />);
+
+      expect(screen.queryByText('Nothing to see here.')).not.toBeInTheDocument();
+      await userEvent.hover(screen.getByText('generic'));
+      expect(await screen.findByText('Nothing to see here.')).toBeInTheDocument();
     });
 
-    it('should add the help_link to the description hovercard', () => {
+    it('should add the help_link to the description hovercard', async () => {
       const mechanism: StackTraceMechanism = {
         type: 'generic',
         handled: true,
@@ -42,9 +55,18 @@ describe('ExceptionMechanism', () => {
       };
 
       render(<Mechanism data={mechanism} />);
+
+      // The link lives in the hovercard header, not next to the mechanism name
+      expect(screen.queryByRole('link')).not.toBeInTheDocument();
+      await userEvent.hover(screen.getByText('generic'));
+      expect(await screen.findByText('Nothing to see here.')).toBeInTheDocument();
+      expect(screen.getByRole('link')).toHaveAttribute(
+        'href',
+        'https://example.org/help'
+      );
     });
 
-    it('should not add the help_link if not starts with http(s)', () => {
+    it('should not add the help_link if not starts with http(s)', async () => {
       const mechanism: StackTraceMechanism = {
         type: 'generic',
         handled: true,
@@ -52,6 +74,10 @@ describe('ExceptionMechanism', () => {
         help_link: 'example.org/help',
       };
       render(<Mechanism data={mechanism} />);
+
+      await userEvent.hover(screen.getByText('generic'));
+      expect(await screen.findByText('Nothing to see here.')).toBeInTheDocument();
+      expect(screen.queryByRole('link')).not.toBeInTheDocument();
     });
 
     it('should render the handled pill', () => {
@@ -60,84 +86,61 @@ describe('ExceptionMechanism', () => {
         handled: false,
       };
       render(<Mechanism data={mechanism} />);
+
+      expect(screen.getByText('handled')).toBeInTheDocument();
+      expect(screen.getByText('false')).toBeInTheDocument();
     });
   });
 
   describe('errno meta', () => {
-    it('should render the errno number', () => {
-      const mechanism: StackTraceMechanism = {
-        type: 'generic',
-        handled: false,
-        meta: {errno: {number: 7}},
-      };
+    it.each([
+      [{number: 7}, '7', undefined],
+      [{number: 7, name: 'E2BIG'}, 'E2BIG', '7'],
+    ])('should render errno %o as %s', (errno, expected, hidden) => {
+      render(<Mechanism data={{type: 'generic', handled: false, meta: {errno}}} />);
 
-      render(<Mechanism data={mechanism} />);
-    });
-
-    it('should prefer the errno name if present', () => {
-      const mechanism: StackTraceMechanism = {
-        type: 'generic',
-        handled: false,
-        meta: {errno: {number: 7, name: 'E2BIG'}},
-      };
-
-      render(<Mechanism data={mechanism} />);
+      expect(screen.getByText('errno')).toBeInTheDocument();
+      expect(screen.getByText(expected)).toBeInTheDocument();
+      if (hidden) {
+        expect(screen.queryByText(hidden)).not.toBeInTheDocument();
+      }
     });
   });
 
   describe('mach_exception meta', () => {
-    it('should render the mach exception number', () => {
-      const mechanism: StackTraceMechanism = {
-        type: 'generic',
-        handled: false,
-        meta: {mach_exception: {exception: 1, subcode: 8, code: 1}},
-      };
+    it.each([
+      [{exception: 1, subcode: 8, code: 1}, '1', undefined],
+      [
+        {exception: 1, subcode: 8, code: 1, name: 'EXC_BAD_ACCESS'},
+        'EXC_BAD_ACCESS',
+        '1',
+      ],
+    ])('should render mach exception %o as %s', (mach_exception, expected, hidden) => {
+      render(
+        <Mechanism data={{type: 'generic', handled: false, meta: {mach_exception}}} />
+      );
 
-      render(<Mechanism data={mechanism} />);
-    });
-
-    it('should prefer the exception name if present', () => {
-      const mechanism: StackTraceMechanism = {
-        type: 'generic',
-        handled: false,
-        meta: {
-          mach_exception: {exception: 1, subcode: 8, code: 1, name: 'EXC_BAD_ACCESS'},
-        },
-      };
-
-      render(<Mechanism data={mechanism} />);
+      expect(screen.getByText('mach exception')).toBeInTheDocument();
+      expect(screen.getByText(expected)).toBeInTheDocument();
+      if (hidden) {
+        expect(screen.queryByText(hidden)).not.toBeInTheDocument();
+      }
     });
   });
 
   describe('signal meta', () => {
-    it('should render the signal number', () => {
-      const mechanism: StackTraceMechanism = {
-        type: 'generic',
-        handled: false,
-        meta: {signal: {number: 11}},
-      };
+    it.each([
+      [{number: 11}, '11'],
+      [{number: 11, code: 0}, '11 (code 0)'],
+      [
+        {number: 11, code: 0, name: 'SIGSEGV', code_name: 'SEGV_NOOP'},
+        'SIGSEGV (SEGV_NOOP)',
+      ],
+    ])('should render signal %o as %s', (signal, expected) => {
+      render(<Mechanism data={{type: 'generic', handled: false, meta: {signal}}} />);
 
-      render(<Mechanism data={mechanism} />);
-    });
-
-    it('should add the signal code if present', () => {
-      const mechanism = {
-        type: 'generic',
-        handled: false,
-        meta: {signal: {number: 11, code: 0}},
-      };
-
-      render(<Mechanism data={mechanism} />);
-    });
-
-    it('should prefer signal and code names if present', () => {
-      const mechanism: StackTraceMechanism = {
-        type: 'generic',
-        handled: false,
-        meta: {signal: {number: 11, code: 0, name: 'SIGSEGV', code_name: 'SEGV_NOOP'}},
-      };
-
-      render(<Mechanism data={mechanism} />);
+      expect(screen.getByText('signal')).toBeInTheDocument();
+      expect(screen.getByText(expected)).toBeInTheDocument();
     });
   });
 
@@ -150,6 +153,9 @@ describe('ExceptionMechanism', () => {
       };
 
       render(<Mechanism data={mechanism} />);
+
+      expect(screen.getByText('relevant_address')).toBeInTheDocument();
+      expect(screen.getByText('0x1')).toBeInTheDocument();
     });
 
     it('should skip object-like values', () => {
@@ -160,9 +166,16 @@ describe('ExceptionMechanism', () => {
           a: {x: 11},
           b: [4, 2],
           c: new Date(),
+          d: 'kept',
         },
       };
       render(<Mechanism data={mechanism} />);
+
+      expect(screen.getByText('d')).toBeInTheDocument();
+      expect(screen.getByText('kept')).toBeInTheDocument();
+      expect(screen.queryByText('a')).not.toBeInTheDocument();
+      expect(screen.queryByText('b')).not.toBeInTheDocument();
+      expect(screen.queryByText('c')).not.toBeInTheDocument();
     });
   });
 });

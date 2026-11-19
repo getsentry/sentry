@@ -7,7 +7,7 @@ import {
   lightenHexToRgb,
   THIRTY_DAYS,
   TWENTY_FOUR_HOURS,
-} from 'sentry/components/charts/utils';
+} from './utils';
 
 describe('Chart Utils', () => {
   describe('getInterval()', () => {

@@ -30,37 +30,6 @@ import {
   type CustomComboboxMenu,
   type CustomComboboxMenuProps,
 } from 'sentry/components/searchQueryBuilder/tokens/combobox';
-import {renderRegexPattern} from 'sentry/components/searchQueryBuilder/tokens/filter/highlightedRegexPattern';
-import {parseMultiSelectFilterValue} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/string/parser';
-import {RegexDelimiter} from 'sentry/components/searchQueryBuilder/tokens/filter/regexDelimiter';
-import {SpecificDatePicker} from 'sentry/components/searchQueryBuilder/tokens/filter/specificDatePicker';
-import {useFrozenSuggestionSectionItems} from 'sentry/components/searchQueryBuilder/tokens/filter/useFrozenSuggestionSectionItems';
-import {
-  escapeTagValueForSearch,
-  formatFilterValue,
-  getFilterValueType,
-  unescapeAsteriskSearchValue,
-  unescapeTagValue,
-} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
-import {
-  useValueComboboxContext,
-  useValueComboboxMenuContext,
-  ValueComboboxContext,
-  ValueComboboxMenuContext,
-} from 'sentry/components/searchQueryBuilder/tokens/filter/valueComboboxContext';
-import {ValueListBox} from 'sentry/components/searchQueryBuilder/tokens/filter/valueListBox';
-import {getDefaultAbsoluteDateValue} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/date';
-import {shouldUseDefaultNumericSuggestions} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/numeric';
-import {SeverityValueIndicator} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/severity/severityValueIndicator';
-import {isSeverityFilterKey} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/severity/utils';
-import type {
-  SuggestionItem,
-  SuggestionSection,
-} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/types';
-import {
-  cleanFilterValue,
-  getValueSuggestions,
-} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/utils';
 import {
   getDefaultFilterValue,
   resolveFilterKey,
@@ -93,6 +62,32 @@ import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {fzf} from 'sentry/utils/search/fzf';
 import {useKeyPress} from 'sentry/utils/useKeyPress';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {parseMultiSelectFilterValue} from './parsers/string/parser';
+import {getDefaultAbsoluteDateValue} from './valueSuggestions/date';
+import {shouldUseDefaultNumericSuggestions} from './valueSuggestions/numeric';
+import {SeverityValueIndicator} from './valueSuggestions/severity/severityValueIndicator';
+import {isSeverityFilterKey} from './valueSuggestions/severity/utils';
+import type {SuggestionItem, SuggestionSection} from './valueSuggestions/types';
+import {cleanFilterValue, getValueSuggestions} from './valueSuggestions/utils';
+import {renderRegexPattern} from './highlightedRegexPattern';
+import {RegexDelimiter} from './regexDelimiter';
+import {SpecificDatePicker} from './specificDatePicker';
+import {useFrozenSuggestionSectionItems} from './useFrozenSuggestionSectionItems';
+import {
+  escapeTagValueForSearch,
+  formatFilterValue,
+  getFilterValueType,
+  unescapeAsteriskSearchValue,
+  unescapeTagValue,
+} from './utils';
+import {
+  useValueComboboxContext,
+  useValueComboboxMenuContext,
+  ValueComboboxContext,
+  ValueComboboxMenuContext,
+} from './valueComboboxContext';
+import {ValueListBox} from './valueListBox';
 
 type SearchQueryValueBuilderProps = {
   editingCommittedValue: boolean;
@@ -1124,6 +1119,35 @@ export function SearchQueryBuilderValueCombobox({
     ]
   );
 
+  const addTypedValue = useCallback(
+    (rawValue: string, op?: TermOperator) => {
+      const value = rawValue.trim();
+      if (!value) {
+        return;
+      }
+      // The raw input is left unescaped: prepareInputValueForSaving splits on
+      // unquoted commas and quotes any value containing spaces/special chars, so
+      // both pasted multi-values (`foo,bar`) and edited chips lifted in their
+      // unescaped form (`foo bar`) round-trip correctly without escaping here.
+      dispatch({
+        type: 'UPDATE_TOKEN_VALUE',
+        token,
+        value: prepareInputValueForSaving(
+          getFilterValueType(token, fieldDefinition),
+          insertMultiSelectValue(
+            committedValues.map(v => v.text),
+            value,
+            editingChip?.index
+          ).join(',')
+        ),
+        op,
+      });
+      setInputValue('');
+      setEditingChip(null);
+    },
+    [committedValues, dispatch, editingChip, fieldDefinition, token]
+  );
+
   const handleOptionSelected = useCallback(
     (option: SelectOptionWithKey<string>) => {
       const value = option.value;
@@ -1155,41 +1179,34 @@ export function SearchQueryBuilderValueCombobox({
         newOp = token.negated ? TermOperator.NOT_EQUAL : TermOperator.DEFAULT;
       }
 
-      updateFilterValue(value, newOp, {escapeSearchValue: true});
+      // The typed text is offered as an option while typing. Selecting it should
+      // save the text as typed, like pressing Enter does, so a typed `*` stays a
+      // wildcard instead of being escaped like a suggested value.
+      if (canSelectMultipleValues && filterValue && value === filterValue) {
+        addTypedValue(inputValue, newOp);
+        if (!ctrlKeyPressed) {
+          onCommit();
+        }
+      } else {
+        updateFilterValue(value, newOp, {escapeSearchValue: true});
+      }
       trackAnalytics('search.value_autocompleted', {
         ...analyticsData,
         filter_value: value,
       });
     },
-    [analyticsData, keepOperatorOnValueSelect, token, updateFilterValue]
-  );
-
-  const addTypedValue = useCallback(
-    (rawValue: string) => {
-      const value = rawValue.trim();
-      if (!value) {
-        return;
-      }
-      // The raw input is left unescaped: prepareInputValueForSaving splits on
-      // unquoted commas and quotes any value containing spaces/special chars, so
-      // both pasted multi-values (`foo,bar`) and edited chips lifted in their
-      // unescaped form (`foo bar`) round-trip correctly without escaping here.
-      dispatch({
-        type: 'UPDATE_TOKEN_VALUE',
-        token,
-        value: prepareInputValueForSaving(
-          getFilterValueType(token, fieldDefinition),
-          insertMultiSelectValue(
-            committedValues.map(v => v.text),
-            value,
-            editingChip?.index
-          ).join(',')
-        ),
-      });
-      setInputValue('');
-      setEditingChip(null);
-    },
-    [committedValues, dispatch, editingChip, fieldDefinition, token]
+    [
+      addTypedValue,
+      analyticsData,
+      canSelectMultipleValues,
+      ctrlKeyPressed,
+      filterValue,
+      inputValue,
+      keepOperatorOnValueSelect,
+      onCommit,
+      token,
+      updateFilterValue,
+    ]
   );
 
   // Splitting on unquoted commas happens on input change (rather than on the

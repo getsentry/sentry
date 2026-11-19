@@ -1,6 +1,9 @@
-import moment from 'moment-timezone';
+import {formatDateTime} from '@sentry/scraps/dateTime';
 
-import {getTimeFormat} from 'sentry/utils/dates';
+import {
+  formatChartDateTime,
+  parseChartDateTime,
+} from 'sentry/components/charts/formatChartDateTime';
 
 /**
  * A "cascading" formatter, based on the recommendations in [ECharts documentation](https://echarts.apache.org/en/option.html#xAxis.axisLabel.formatter). Given a timestamp of an X axis of type `"time"`, return a formatted string, to show under the axis tick.
@@ -10,7 +13,7 @@ import {getTimeFormat} from 'sentry/utils/dates';
  * ["Feb 1st", "Feb 2nd", "Feb 3rd"] when ECharts aligns ticks with days of the month
  * ["11:00pm", "Feb 2nd", "1:00am"] when ECharts aligns ticks with hours across a day boundary
  * ["Mar 1st", "Apr 1st", "May 1st"] when ECharts aligns ticks with starts of month
- * ["Dec 1st", "Jan 1st 2025", "Feb 1st"] when ECharts aligns markers with starts of month across a year boundary
+ * ["Dec 1st", "2025", "Feb 1st"] when ECharts aligns markers with starts of month across a year boundary
  * ["12:00pm", "1:00am", "2:00am", "3:00am"] when ECharts aligns ticks with hours starts
  *
  * @param value Tick timestamp in UTC milliseconds
@@ -19,39 +22,52 @@ import {getTimeFormat} from 'sentry/utils/dates';
  * @returns Formatted X axis label string
  */
 export function formatXAxisTimestamp(value: number, userTimezone: string): string {
-  const parsed = moment.tz(value, userTimezone);
+  const parsed = parseChartDateTime(value, userTimezone);
+  if (!parsed) {
+    return 'Invalid date';
+  }
 
   // Granularity-aware parsing, adjusts the format based on the
   // granularity of the object This works well with ECharts since the
   // parser is not aware of the other ticks
-  let format = 'MMM Do';
+  let style: 'year' | 'ordinalDate' = 'ordinalDate';
 
   if (
-    parsed.dayOfYear() === 1 &&
-    parsed.hour() === 0 &&
-    parsed.minute() === 0 &&
-    parsed.second() === 0
+    parsed.month === 1 &&
+    parsed.day === 1 &&
+    parsed.hour === 0 &&
+    parsed.minute === 0 &&
+    parsed.second === 0
   ) {
     // Start of a year
-    format = 'MMM Do YYYY';
+    style = 'year';
   } else if (
-    parsed.date() === 1 &&
-    parsed.hour() === 0 &&
-    parsed.minute() === 0 &&
-    parsed.second() === 0
+    parsed.day === 1 &&
+    parsed.hour === 0 &&
+    parsed.minute === 0 &&
+    parsed.second === 0
   ) {
     // Start of a month
-    format = 'MMM Do';
-  } else if (parsed.hour() === 0 && parsed.minute() === 0 && parsed.second() === 0) {
+    style = 'ordinalDate';
+  } else if (parsed.hour === 0 && parsed.minute === 0 && parsed.second === 0) {
     // Start of a day
-    format = 'MMM Do';
-  } else if (parsed.second() === 0) {
+    style = 'ordinalDate';
+  } else if (parsed.second === 0) {
     // Hours, minutes
-    format = getTimeFormat();
+    return formatDateTime(value, {
+      mode: 'time',
+      timezone: userTimezone,
+      showTimezone: false,
+    });
   } else {
     // Hours, minutes, seconds
-    format = getTimeFormat({seconds: true});
+    return formatDateTime(value, {
+      mode: 'time',
+      precision: 'second',
+      timezone: userTimezone,
+      showTimezone: false,
+    });
   }
 
-  return parsed.format(format);
+  return formatChartDateTime(value, style, {timezone: userTimezone});
 }

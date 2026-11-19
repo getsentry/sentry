@@ -7,10 +7,9 @@ import pick from 'lodash/pick';
 
 import {Badge, FeatureBadge} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
-import {Container} from '@sentry/scraps/layout';
-import {TabList} from '@sentry/scraps/tabs';
+import {Container, Stack} from '@sentry/scraps/layout';
+import {LinkTabs} from '@sentry/scraps/tabs';
 
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {IdBadge} from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {URL_PARAM} from 'sentry/components/pageFilters/constants';
@@ -235,23 +234,26 @@ export function ReleaseHeader({
           },
         ]}
       />
-      <TopBar.Slot name="feedback">
-        <FeedbackButton
-          feedbackOptions={releaseFeedbackOptions}
-          aria-label={t('Give Feedback')}
-        >
-          {null}
-        </FeedbackButton>
-      </TopBar.Slot>
-      <Layout.HeaderTabs value={getActiveTabTo()}>
-        <TabList>
-          {tabs.map(tab => (
-            <TabList.Item key={tab.to} to={getTabUrl(tab.to)} textValue={tab.textValue}>
-              {tab.title}
-            </TabList.Item>
-          ))}
-        </TabList>
-      </Layout.HeaderTabs>
+      <TopBar.Slot name="feedback" feedbackOptions={releaseFeedbackOptions} />
+      <Stack column="1 / -1">
+        {tabsRootProps => (
+          <LinkTabs value={getActiveTabTo()} {...tabsRootProps}>
+            {({TabList}) => (
+              <TabList>
+                {tabs.map(tab => (
+                  <TabList.Item
+                    key={tab.to}
+                    to={getTabUrl(tab.to)}
+                    textValue={tab.textValue}
+                  >
+                    {tab.title}
+                  </TabList.Item>
+                ))}
+              </TabList>
+            )}
+          </LinkTabs>
+        )}
+      </Stack>
     </Layout.Header>
   );
 }

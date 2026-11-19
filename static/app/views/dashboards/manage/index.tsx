@@ -2,10 +2,8 @@ import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {IconAdd} from '@sentry/icons/add';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
-import type {Query} from 'history';
-import pick from 'lodash/pick';
+import {parseAsString, parseAsStringEnum, useQueryStates} from 'nuqs';
 
-import {Alert} from '@sentry/scraps/alert';
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -15,10 +13,9 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 
 import {openImportDashboardFromFileModal} from 'sentry/actionCreators/modal';
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {DocumentationHint} from 'sentry/components/documentationHint';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {SearchBar} from 'sentry/components/searchBar';
@@ -27,7 +24,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {areAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
@@ -36,8 +33,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {DashboardCreateLimitWrapper} from 'sentry/views/dashboards/createLimitWrapper';
-import DashboardTable from 'sentry/views/dashboards/manage/dashboardTable';
-import {getIsOnlyPrebuilt} from 'sentry/views/dashboards/manage/utils/getIsOnlyPrebuilt';
 import {
   CUSTOM_DASHBOARD_LABEL,
   DashboardFilter,
@@ -50,6 +45,8 @@ import {
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {RouteError} from 'sentry/views/routeError';
 
+import {getIsOnlyPrebuilt} from './utils/getIsOnlyPrebuilt';
+import {DashboardTable} from './dashboardTable';
 import {DASHBOARD_TABLE_NUM_ROWS, DEFAULT_PREBUILT_SORT} from './settings';
 
 function getSortOptions({
@@ -105,8 +102,19 @@ function ManageDashboards() {
   const hasPrebuiltDashboards = organization.features.includes(
     'dashboards-prebuilt-insights-dashboards'
   );
-  const urlFilter = decodeScalar(location.query.filter) as DashboardFilter | undefined;
-  const isOnlyPrebuilt = getIsOnlyPrebuilt(hasPrebuiltDashboards, urlFilter);
+  const [
+    {cursor: urlCursor, filter: urlFilter, query: urlQuery, sort: urlSort},
+    setQueryParams,
+  ] = useQueryStates(
+    {
+      cursor: parseAsString,
+      filter: parseAsStringEnum(Object.values(DashboardFilter)),
+      query: parseAsString,
+      sort: parseAsString,
+    },
+    {history: 'push'}
+  );
+  const isOnlyPrebuilt = getIsOnlyPrebuilt(hasPrebuiltDashboards, urlFilter ?? undefined);
   const isOnlyCustom =
     hasPrebuiltDashboards && urlFilter === DashboardFilter.EXCLUDE_PREBUILT;
   const pageTitle = isOnlyPrebuilt
@@ -130,7 +138,8 @@ function ManageDashboards() {
   } = useQuery({
     ...dashboardsApiOptions(organization, {
       query: {
-        ...pick(location.query, ['cursor', 'query']),
+        cursor: urlCursor ?? undefined,
+        query: urlQuery ?? undefined,
         sort: getActiveSort()?.value,
         pin: 'favorites',
         per_page: DASHBOARD_TABLE_NUM_ROWS,
@@ -174,21 +183,16 @@ function ManageDashboards() {
   const dashboardsPageLinks = dashboardsResponse?.headers.Link ?? '';
 
   useEffect(() => {
-    const urlSort = decodeScalar(location.query.sort);
     const defaultSort = getDefaultSort({isOnlyPrebuilt, hasUserLastVisited});
     if (urlSort && !sortOptions.some(option => option.value === urlSort)) {
       // The sort option is not valid, so we need to set the default sort
       // in the URL
-      navigate({
-        pathname: location.pathname,
-        query: {...location.query, sort: defaultSort},
-      });
+      setQueryParams({sort: defaultSort});
     }
   }, [
     isOnlyPrebuilt,
-    location.pathname,
-    location.query,
-    navigate,
+    urlSort,
+    setQueryParams,
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
     organization,
     sortOptions,
@@ -197,11 +201,11 @@ function ManageDashboards() {
 
   function getActiveSort() {
     const defaultSort = getDefaultSort({isOnlyPrebuilt, hasUserLastVisited});
-    const urlSort = decodeScalar(location.query.sort, defaultSort);
+    const activeUrlSort = urlSort || defaultSort;
 
-    if (urlSort) {
+    if (activeUrlSort) {
       // Check if the URL sort is valid
-      const foundSort = sortOptions.find(item => item.value === urlSort);
+      const foundSort = sortOptions.find(item => item.value === activeUrlSort);
       if (foundSort) {
         return foundSort;
       }
@@ -216,10 +220,7 @@ function ManageDashboards() {
       organization,
     });
 
-    navigate({
-      pathname: location.pathname,
-      query: {...location.query, cursor: undefined, query},
-    });
+    setQueryParams({cursor: null, query});
   }
 
   const handleSortChange = (value: string) => {
@@ -227,21 +228,8 @@ function ManageDashboards() {
       organization,
       sort: value,
     });
-    navigate({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        cursor: undefined,
-        sort: value,
-      },
-    });
+    setQueryParams({cursor: null, sort: value});
   };
-
-  function getQuery() {
-    const {query} = location.query;
-
-    return typeof query === 'string' ? query : undefined;
-  }
 
   function onCreate() {
     trackAnalytics('dashboards_manage.create.start', {
@@ -270,7 +258,7 @@ function ManageDashboards() {
       marginBottom="xl"
     >
       <SearchBar
-        query={getQuery()}
+        query={urlQuery ?? undefined}
         placeholder={t('Search Dashboards')}
         onSearch={query => handleSearch(query)}
       />
@@ -356,21 +344,8 @@ function ManageDashboards() {
     </Grid>
   );
 
-  function renderNoAccess() {
-    return (
-      <Stack flex={1}>
-        <Alert.Container>
-          <Alert variant="warning" showIcon={false}>
-            {t("You don't have access to this feature")}
-          </Alert>
-        </Alert.Container>
-      </Stack>
-    );
-  }
-
   const dashboardsView = (
     <DashboardTable
-      api={api}
       dashboards={dashboards}
       organization={organization}
       location={location}
@@ -382,100 +357,77 @@ function ManageDashboards() {
 
   const pagination = (
     <PaginationRow
-      pageLinks={dashboardsPageLinks}
-      onCursor={(cursor, path, query, direction) => {
+      {...getPaginationProps(dashboardsPageLinks)}
+      onCursor={(cursor, direction) => {
         const offset = Number(cursor?.split?.(':')?.[1] ?? 0);
-
-        const newQuery: Query & {cursor?: string} = {...query, cursor};
         const isPrevious = direction === -1;
-
-        if (offset <= 0 && isPrevious) {
-          delete newQuery.cursor;
-        }
 
         trackAnalytics('dashboards_manage.paginate', {organization});
 
-        navigate({
-          pathname: path,
-          query: newQuery,
-        });
+        setQueryParams({cursor: offset <= 0 && isPrevious ? null : (cursor ?? null)});
       }}
     />
   );
 
   return (
-    <Feature
-      organization={organization}
-      features="dashboards-edit"
-      renderDisabled={renderNoAccess}
-    >
-      <SentryDocumentTitle title={pageTitle} orgSlug={organization.slug}>
-        <ErrorBoundary>
-          {isError ? (
-            <Stack flex={1} padding="2xl 3xl">
-              <RouteError error={error} />
-            </Stack>
-          ) : (
-            <Stack flex={1}>
-              <NoProjectMessage organization={organization}>
-                <TopBar.Slot
-                  name="breadcrumbs"
-                  title={{
-                    type: 'page-title',
-                    label: pageTitle,
-                    labelTooltip: (
-                      <DocumentationHint docsUrl="https://docs.sentry.io/product/dashboards/">
-                        {isOnlyPrebuilt
-                          ? t(
-                              'Dashboards built by Sentry to help monitor your application out of the box.'
-                            )
-                          : isOnlyCustom
-                            ? t('Dashboards created by you and your team.')
-                            : t(
-                                "A broad overview of your application's health where you can navigate through error and performance data across multiple projects."
-                              )}
-                      </DocumentationHint>
-                    ),
-                  }}
-                />
-                <TopBar.Slot name="actions">
-                  <Feature features="dashboards-import">
-                    <Button
-                      onClick={() => {
-                        openImportDashboardFromFileModal({
-                          organization,
-                          api,
-                          location,
-                        });
-                      }}
-                      variant="primary"
-                      icon={<IconAdd />}
-                    >
-                      {t('Import Dashboard from JSON')}
-                    </Button>
-                  </Feature>
-                </TopBar.Slot>
-                <TopBar.Slot name="feedback">
-                  <FeedbackButton
-                    aria-label={t('Give Feedback')}
-                    tooltipProps={{title: t('Give Feedback')}}
+    <SentryDocumentTitle title={pageTitle} orgSlug={organization.slug}>
+      <ErrorBoundary>
+        {isError ? (
+          <Stack flex={1} padding="2xl 3xl">
+            <RouteError error={error} />
+          </Stack>
+        ) : (
+          <Stack flex={1}>
+            <NoProjectMessage organization={organization}>
+              <TopBar.Slot
+                name="breadcrumbs"
+                title={{
+                  type: 'page-title',
+                  label: pageTitle,
+                  labelTooltip: (
+                    <DocumentationHint docsUrl="https://docs.sentry.io/product/dashboards/">
+                      {isOnlyPrebuilt
+                        ? t(
+                            'Dashboards built by Sentry to help monitor your application out of the box.'
+                          )
+                        : isOnlyCustom
+                          ? t('Dashboards created by you and your team.')
+                          : t(
+                              "A broad overview of your application's health where you can navigate through error and performance data across multiple projects."
+                            )}
+                    </DocumentationHint>
+                  ),
+                }}
+              />
+              <TopBar.Slot name="actions">
+                <Feature features="dashboards-import">
+                  <Button
+                    onClick={() => {
+                      openImportDashboardFromFileModal({
+                        organization,
+                        api,
+                        location,
+                      });
+                    }}
+                    variant="primary"
+                    icon={<IconAdd />}
                   >
-                    {null}
-                  </FeedbackButton>
-                </TopBar.Slot>
-                <Layout.Body>
-                  <Layout.Main width="full">
-                    {actions}
-                    <div id="dashboard-list-container">{dashboardsView}</div>
-                    {pagination}
-                  </Layout.Main>
-                </Layout.Body>
-              </NoProjectMessage>
-            </Stack>
-          )}
-        </ErrorBoundary>
-      </SentryDocumentTitle>
-    </Feature>
+                    {t('Import Dashboard from JSON')}
+                  </Button>
+                </Feature>
+              </TopBar.Slot>
+              <Layout.Body>
+                <Layout.Main width="full">
+                  {actions}
+                  <div id="dashboard-list-container">{dashboardsView}</div>
+                  {pagination}
+                </Layout.Main>
+              </Layout.Body>
+            </NoProjectMessage>
+          </Stack>
+        )}
+      </ErrorBoundary>
+    </SentryDocumentTitle>
   );
 }
 

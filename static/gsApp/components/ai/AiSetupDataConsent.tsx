@@ -9,8 +9,8 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack, Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {AiPrivacyNotice} from 'sentry/components/aiPrivacyTooltip';
 import {useAutofixSetup} from 'sentry/components/events/autofix/useAutofixSetup';
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
@@ -210,7 +210,7 @@ export function AiSetupDataConsent({groupId}: AiSetupDataConsentProps) {
                         icon={<IconRefresh size="xs" />}
                         onClick={async () => {
                           await refetch();
-                          addSuccessMessage(t('Refreshed Seer quota'));
+                          toast.success(t('Refreshed Seer quota'));
                         }}
                         size="md"
                         variant="secondary"

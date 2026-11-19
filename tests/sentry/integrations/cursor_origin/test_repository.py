@@ -77,7 +77,12 @@ class CursorOriginRepositoryProviderTest(TestCase):
         assert self._repository_data()["integration_id"] == self.integration.id
 
     def test_the_config_is_built_from_what_the_picker_produced(self) -> None:
-        config = self.provider.build_repository_config(self.organization, self._repository_data())
+        config = self.provider.build_repository_config(
+            serialize_rpc_organization(
+                self.organization, include_projects=False, include_teams=False
+            ),
+            self._repository_data(),
+        )
 
         assert config == {
             "name": REPO,
@@ -150,7 +155,9 @@ class ReinstallTransferTest(TestCase):
                 "default_branch": "main",
                 "integration_id": self.integration.id,
             },
-            serialize_rpc_organization(self.organization),
+            serialize_rpc_organization(
+                self.organization, include_projects=False, include_teams=False
+            ),
         )
 
         assert repo.id == stranded.id

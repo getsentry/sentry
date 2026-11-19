@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {MessageRow} from '@sentry/scraps/chat';
+import {getDuration} from '@sentry/scraps/duration';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -17,19 +18,15 @@ import {Count} from 'sentry/components/count';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {ConversationMissingMessagesAlert} from 'sentry/views/explore/conversations/components/conversationMissingMessagesAlert';
-import {MessageToolCalls} from 'sentry/views/explore/conversations/components/messageToolCalls';
-import {ToolTag} from 'sentry/views/explore/conversations/components/toolTag';
-import {TranscriptSpanRow} from 'sentry/views/explore/conversations/components/transcriptSpanRow';
 import {
   type ConversationMessage,
   extractMessagesFromNodes,
   NOT_REPORTED,
 } from 'sentry/views/explore/conversations/utils/conversationMessages';
 import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
+import {ScrubbedText} from 'sentry/views/insights/pages/agents/components/scrubbedText';
 import {EMPTY_TEXT_CONTENT} from 'sentry/views/insights/pages/agents/utils/aiMessageNormalizer';
 import {
   getNumberAttr,
@@ -44,6 +41,11 @@ import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/typ
 import {SpanFields} from 'sentry/views/insights/types';
 import {detectAIContentType} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentDetection';
 import {AIContentRenderer} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
+
+import {ConversationMissingMessagesAlert} from './conversationMissingMessagesAlert';
+import {MessageToolCalls} from './messageToolCalls';
+import {ToolTag} from './toolTag';
+import {TranscriptSpanRow} from './transcriptSpanRow';
 
 interface MessagesPanelProps {
   nodes: AITraceSpanNode[];
@@ -339,7 +341,7 @@ function AssistantMeta({cost, duration}: {cost?: number; duration?: number}) {
       duration={
         duration === undefined || duration <= 0 ? null : (
           <Text size="xs" variant="muted" tabular align="right">
-            {getDuration(duration, 2, true)}
+            {getDuration(duration, {precision: 2, style: 'short'})}
           </Text>
         )
       }
@@ -388,7 +390,7 @@ const EmbeddingTurn = memo(function EmbeddingTurnImpl({
             duration={
               message.duration === undefined || message.duration <= 0 ? null : (
                 <Text size="xs" variant="muted" tabular align="right">
-                  {getDuration(message.duration, 2, true)}
+                  {getDuration(message.duration, {precision: 2, style: 'short'})}
                 </Text>
               )
             }
@@ -579,7 +581,7 @@ function ReasoningSection({
       meta={meta}
       title={isOpen => (
         <Text size="sm" variant="muted" ellipsis monospace>
-          {t('Thinking...')} {isOpen ? null : reasoning}
+          {t('Thinking...')} {isOpen ? null : <ScrubbedText>{reasoning}</ScrubbedText>}
         </Text>
       )}
       onToggle={open =>

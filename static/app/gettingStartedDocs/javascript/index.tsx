@@ -1,12 +1,9 @@
 import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {
-  feedbackOnboardingJsLoader,
-  replayOnboardingJsLoader,
-} from 'sentry/gettingStartedDocs/javascript/jsLoader';
 
 import {crashReport} from './crashReport';
 import {featureFlag} from './featureFlag';
 import {feedback} from './feedback';
+import {feedbackOnboardingJsLoader, replayOnboardingJsLoader} from './jsLoader';
 import {logs} from './logs';
 import {metrics} from './metrics';
 import {onboarding} from './onboarding';

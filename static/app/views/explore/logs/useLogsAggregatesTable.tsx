@@ -10,18 +10,11 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {defaultAggregateSortBys} from 'sentry/views/explore/contexts/pageParamsContext/aggregateSortBys';
+import {useExploreQuerySpeed} from 'sentry/views/explore/hooks/useExploreQuerySpeed';
 import {
   useProgressiveQuery,
   type RPCQueryExtras,
 } from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {
-  useLogsFrozenProjectIds,
-  useLogsFrozenSearch,
-} from 'sentry/views/explore/logs/logsFrozenContext';
-import {
-  OurLogKnownFieldKey,
-  type LogsAggregatesResult,
-} from 'sentry/views/explore/logs/types';
 import {
   useQueryParamsAggregateCursor,
   useQueryParamsAggregateSortBys,
@@ -36,6 +29,9 @@ import {
 } from 'sentry/views/explore/utils/conditionalAggregate';
 import {getEventView} from 'sentry/views/insights/common/queries/useDiscover';
 import {getStaleTimeForEventView} from 'sentry/views/insights/common/queries/useSpansQuery';
+
+import {useLogsFrozenProjectIds, useLogsFrozenSearch} from './logsFrozenContext';
+import {OurLogKnownFieldKey, type LogsAggregatesResult} from './types';
 
 interface UseLogsAggregatesTableOptions {
   enabled: boolean;
@@ -88,6 +84,8 @@ export function useLogsAggregatesTable({
     [unvalidatedVisualizes]
   );
 
+  const {isReady: querySpeedReady, samplingMode} = useExploreQuerySpeed();
+
   const canTriggerHighAccuracy = useCallback(
     (results: ReturnType<typeof useLogsAggregatesTableImpl>['result']) => {
       const json = results.data?.json;
@@ -103,12 +101,13 @@ export function useLogsAggregatesTable({
   >({
     queryHookImplementation: useLogsAggregatesTableImpl, // oxlint-disable-line react/hooks -- useProgressiveQuery takes the query hook as a value and calls it per accuracy tier.
     queryHookArgs: {
-      enabled: enabled && !skippedForInvalidConditionalFilter,
+      enabled: enabled && querySpeedReady && !skippedForInvalidConditionalFilter,
       limit,
       referrer,
     },
     queryOptions: {
       canTriggerHighAccuracy,
+      samplingMode,
     },
   });
 

@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import threading
-from typing import ClassVar
+from collections.abc import Mapping, Sequence
+from typing import TYPE_CHECKING, Any, ClassVar, TypeVar
 
 from django.core.signals import request_finished
 from django.db import models
@@ -8,7 +11,12 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model, sane_repr
 from sentry.db.models.manager.base import BaseManager
 
+if TYPE_CHECKING:
+    from sentry.models.group import Group
+
 ERR_CACHE_MISSING = "Cache not populated for instance id=%s"
+
+_Default = TypeVar("_Default")
 
 
 class GroupMetaCacheNotPopulated(Exception):
@@ -16,37 +24,37 @@ class GroupMetaCacheNotPopulated(Exception):
 
 
 class GroupMetaManager(BaseManager["GroupMeta"]):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.__local_cache = threading.local()
 
-    def __getstate__(self):
+    def __getstate__(self) -> dict[str, object]:
         d = self.__dict__.copy()
         d.pop("_GroupMetaManager__local_cache", None)
         return d
 
-    def __setstate__(self, state):
+    def __setstate__(self, state: Mapping[str, object]) -> None:
         self.__dict__.update(state)
         self.__local_cache = threading.local()
 
-    def _get_cache(self):
+    def _get_group_meta_cache(self) -> dict[int, dict[str, str]]:
         if not hasattr(self.__local_cache, "value"):
             self.__local_cache.value = {}
         return self.__local_cache.value
 
-    def _set_cache(self, value):
+    def _set_group_meta_cache(self, value: dict[int, dict[str, str]]) -> None:
         self.__local_cache.value = value
 
-    __cache = property(_get_cache, _set_cache)
+    __cache = property(_get_group_meta_cache, _set_group_meta_cache)
 
-    def contribute_to_class(self, model, name):
+    def contribute_to_class(self, model: type[models.Model], name: str) -> None:
         super().contribute_to_class(model, name)
         request_finished.connect(self.clear_local_cache)
 
-    def clear_local_cache(self, **kwargs):
+    def clear_local_cache(self, **kwargs: object) -> None:
         self.__cache = {}
 
-    def populate_cache(self, instance_list):
+    def populate_cache(self, instance_list: Sequence[Group]) -> None:
         for group in instance_list:
             self.__cache.setdefault(group.id, {})
 
@@ -54,7 +62,9 @@ class GroupMetaManager(BaseManager["GroupMeta"]):
         for group_id, key, value in results:
             self.__cache[group_id][key] = value
 
-    def get_value_bulk(self, instance_list, key, default=None):
+    def get_value_bulk(
+        self, instance_list: Sequence[Group], key: str, default: _Default | None = None
+    ) -> dict[Group, str | _Default | None]:
         results = {}
         for instance in instance_list:
             try:
@@ -64,21 +74,23 @@ class GroupMetaManager(BaseManager["GroupMeta"]):
             results[instance] = inst_cache.get(key, default)
         return results
 
-    def get_value(self, instance, key, default=None):
+    def get_value(
+        self, instance: Group, key: str, default: _Default | None = None
+    ) -> str | _Default | None:
         try:
             inst_cache = self.__cache[instance.id]
         except KeyError:
             raise GroupMetaCacheNotPopulated(ERR_CACHE_MISSING % (instance.id,))
         return inst_cache.get(key, default)
 
-    def unset_value(self, instance, key):
+    def unset_value(self, instance: Group, key: str) -> None:
         self.filter(group=instance, key=key).delete()
         try:
             del self.__cache[instance.id][key]
         except KeyError:
             pass
 
-    def set_value(self, instance, key, value):
+    def set_value(self, instance: Group, key: str, value: str) -> None:
         self.update_or_create(group=instance, key=key, defaults={"value": value})
         self.__cache.setdefault(instance.id, {})
         self.__cache[instance.id][key] = value

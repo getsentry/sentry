@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {ColumnLabel} from 'sentry/components/tables/columnLabel';
+import {ColumnLabel} from './columnLabel';
 
 describe('ColumnLabel', () => {
   it('renders the column name when given no tooltip or align', () => {

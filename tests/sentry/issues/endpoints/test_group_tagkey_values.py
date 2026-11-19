@@ -1,5 +1,6 @@
 import datetime
 from datetime import timedelta
+from typing import Any, cast
 from unittest import mock
 
 from django.test import override_settings
@@ -23,7 +24,9 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
             data={"tags": {key: value}, "timestamp": before_now(seconds=1).isoformat()},
             project_id=project.id,
         )
+        assert event.group is not None
         group = event.group
+        assert group is not None
 
         self.login_as(user=self.user)
 
@@ -47,7 +50,7 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
     def test_simple_perf(self) -> None:
         key, value = "foo", "bar"
         event = self.create_performance_issue(
-            tags=[[key, value]],
+            tags=cast("dict[str, Any]", [[key, value]]),
             fingerprint="group1",
             contexts={"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
         )
@@ -80,7 +83,9 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
             },
             project_id=project.id,
         )
+        assert event.group is not None
         group = event.group
+        assert group is not None
 
         self.login_as(user=self.user)
 
@@ -112,7 +117,9 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
             },
             project_id=project.id,
         )
+        assert event.group is not None
         group = event.group
+        assert group is not None
 
         self.login_as(user=self.user)
 
@@ -143,7 +150,9 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
             },
             project_id=project.id,
         )
+        assert event.group is not None
         group = event.group
+        assert group is not None
 
         self.login_as(user=self.user)
 
@@ -176,8 +185,10 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
             },
             project_id=project.id,
         )
+        assert event.group is not None
 
         group = event.group
+        assert group is not None
 
         self.login_as(user=self.user)
 
@@ -229,8 +240,10 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
             },
             project_id=project.id,
         )
+        assert event.group is not None
 
         group = event.group
+        assert group is not None
 
         self.login_as(user=self.user)
 
@@ -261,6 +274,7 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
             },
             project_id=project.id,
         )
+        assert event.group is not None
         self.store_event(
             data={
                 "message": "message 1",
@@ -290,6 +304,7 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
             project_id=project.id,
         )
         group = event.group
+        assert group is not None
 
         self.login_as(user=self.user)
 
@@ -317,7 +332,9 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
             data={"tags": {key: value}, "timestamp": before_now(seconds=1).isoformat()},
             project_id=project.id,
         )
+        assert event.group is not None
         group = event.group
+        assert group is not None
 
         self.login_as(user=self.user)
 

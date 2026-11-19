@@ -5,8 +5,9 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {ScreenshotDataSection} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/screenshotDataSection';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+
+import {ScreenshotDataSection} from './screenshotDataSection';
 
 describe('ScreenshotDataSection', () => {
   const organization = OrganizationFixture({

@@ -5,7 +5,7 @@ import sortBy from 'lodash/sortBy';
 import Prism from 'prismjs';
 
 import {Alert} from '@sentry/scraps/alert';
-import {loadPrismLanguage} from '@sentry/scraps/code';
+import {loadPrismLanguage} from '@sentry/scraps/codeBlock';
 import {Grid, Stack} from '@sentry/scraps/layout';
 
 import {List} from 'sentry/components/list';
@@ -30,10 +30,11 @@ function getGraphQlErrorsFromResponseContext(event: Event): GraphQlError[] {
     responseData &&
     typeof responseData === 'object' &&
     'errors' in responseData &&
-    Array.isArray(responseData.errors) &&
-    responseData.errors.every((error: any) => typeof error === 'object')
+    Array.isArray(responseData.errors)
   ) {
-    return responseData.errors;
+    return responseData.errors.filter(
+      (error): error is GraphQlError => typeof error === 'object' && error !== null
+    );
   }
 
   return [];

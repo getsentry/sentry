@@ -13,6 +13,9 @@ from sentry.models.organization import Organization
 from sentry.notifications.notification_action.action_handler_registry.base import (
     IntegrationActionHandler,
 )
+from sentry.notifications.notification_action.action_handler_registry.email_handler import (
+    EmailActionHandler,
+)
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
@@ -33,6 +36,7 @@ def test_seer_workflow_hidden_from_action_picker(
 ) -> None:
     registry = Registry[type[ActionHandler]](enable_reverse_lookup=False)
     registry.register(Action.Type.SEER_WORKFLOW)(ActionHandler)
+    registry.register(Action.Type.SEER_INVESTIGATION)(ActionHandler)
     client = APIClient()
     client.force_authenticate(user=default_user)
 
@@ -296,6 +300,15 @@ class OrganizationAvailableActionAPITestCase(APITestCase):
                 "dataSchema": {},
             }
         ]
+
+    def test_handler_schemas_are_returned_unchanged(self) -> None:
+        self.registry.register(Action.Type.EMAIL)(EmailActionHandler)
+
+        response = self.get_success_response(self.organization.slug, status_code=200)
+
+        action = response.data[0]
+        assert action["configSchema"] == EmailActionHandler.config_schema
+        assert action["dataSchema"] == EmailActionHandler.data_schema
 
     def test_simple_integrations(self) -> None:
         self.setup_integrations()

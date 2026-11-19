@@ -9,12 +9,13 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {WidgetBuilderV2} from 'sentry/views/dashboards/widgetBuilder/components/newWidgetBuilder';
 import {
   LLMContextProvider,
   useLLMContext,
 } from 'sentry/views/seerExplorer/contexts/llmContext';
 import type {LLMContextSnapshot} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
+
+import {WidgetBuilderV2} from './newWidgetBuilder';
 
 const organization = OrganizationFixture({
   features: ['open-membership', 'visibility-explore-view'],
@@ -93,8 +94,6 @@ describe('NewWidgetBuilder', () => {
       body: [],
     });
   });
-
-  afterEach(() => PageFiltersStore.reset());
 
   it('renders', async () => {
     render(
@@ -372,7 +371,6 @@ function makeContextCapture() {
   const ref: {current: (() => LLMContextSnapshot) | null} = {current: null};
   function ContextCapture() {
     const {getLLMContext} = useLLMContext();
-    // oxlint-disable-next-line react/immutability
     ref.current = getLLMContext;
     return null;
   }

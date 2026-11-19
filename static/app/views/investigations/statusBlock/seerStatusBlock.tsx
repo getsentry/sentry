@@ -16,13 +16,10 @@ import {Text} from '@sentry/scraps/text';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {t} from 'sentry/locale';
-import {
-  isCall,
-  isThought,
-  type SeerStatusActivity,
-} from 'sentry/views/investigations/statusBlock/statusActivity';
 import type {InvestigationToolActivity} from 'sentry/views/investigations/types';
 import {ThinkingProse} from 'sentry/views/seerExplorer/components/chat/responseGroup';
+
+import {isCall, isThought, type SeerStatusActivity} from './statusActivity';
 
 /**
  * Where an agentic run has got to, as one line the viewer can read without
