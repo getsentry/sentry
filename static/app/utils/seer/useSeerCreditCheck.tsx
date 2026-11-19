@@ -107,9 +107,8 @@ interface UseSeerCreditCheckOptions {
  * Seer on this plan" and is mounted on many pages that should not make a
  * billing call. Only mount this where a Seer trigger is about to be shown.
  *
- * The check fails open. Without `seer-credit-checks` and
- * `token-billed-seer-enabled`, or when the request fails, `hasEnoughCredits`
- * is `true` and the backend has the final say.
+ * The check fails open. Without `token-billed-seer-enabled`, or when the
+ * request fails, `hasEnoughCredits` is `true` and the backend has the final say.
  */
 export function useSeerCreditCheck(
   operation: SeerCreditOperation,
@@ -119,9 +118,7 @@ export function useSeerCreditCheck(
   // Orgs without token-billed Seer have no wallet to check, so they make no
   // billing call.
   const isChecking =
-    enabled &&
-    organization.features.includes('seer-credit-checks') &&
-    organization.features.includes('token-billed-seer-enabled');
+    enabled && organization.features.includes('token-billed-seer-enabled');
 
   const query = useQuery({
     ...seerCreditCheckApiOptions(organization, operation, billingFeature),

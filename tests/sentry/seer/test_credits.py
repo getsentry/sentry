@@ -27,20 +27,6 @@ class SeerCreditsTest(TestCase):
         for operation in SeerOperation:
             assert SEER_OPERATION_ESTIMATES[operation]() > 0
 
-    @with_feature("organizations:token-billed-seer-enabled")
-    @patch(
-        "sentry.seer_credit.backend.check_seer_credits",
-        return_value=CheckSeerCreditsResponse(has_enough_credits=False),
-    )
-    def test_can_run_seer_operation_skips_billing_when_credit_checks_disabled(
-        self, mock_check_seer_credits: MagicMock
-    ) -> None:
-        assert can_run_seer_operation(
-            self.organization, SEER_BILLING_FEATURE_AUTOFIX_WEB, SeerOperation.AUTOFIX_ROOT_CAUSE
-        )
-        mock_check_seer_credits.assert_not_called()
-
-    @with_feature("organizations:seer-credit-checks")
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(has_enough_credits=False),
@@ -53,7 +39,7 @@ class SeerCreditsTest(TestCase):
         )
         mock_check_seer_credits.assert_not_called()
 
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @with_feature("organizations:token-billed-seer-enabled")
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(has_enough_credits=False),
@@ -73,7 +59,7 @@ class SeerCreditsTest(TestCase):
             )
         )
 
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @with_feature("organizations:token-billed-seer-enabled")
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(has_enough_credits=True),

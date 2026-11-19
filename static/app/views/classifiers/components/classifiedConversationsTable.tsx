@@ -182,7 +182,7 @@ export function ClassifiedConversationsTable({
           return (
             <Text align="right" variant="muted">
               {row.classifiedAt ? (
-                <TimeSince unitStyle="extraShort" date={row.classifiedAt} />
+                <TimeSince unitStyle="narrow" date={row.classifiedAt} />
               ) : (
                 '—'
               )}

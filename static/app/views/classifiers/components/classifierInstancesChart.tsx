@@ -4,7 +4,7 @@ import {IconClock} from '@sentry/icons/clock';
 import {IconGraph} from '@sentry/icons/graph';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {Container} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -16,7 +16,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {useFetchEventsTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {getIntervalOptionsForPageFilter} from 'sentry/utils/useChartInterval';
-import {useClassifiedConversationCount} from 'sentry/views/classifiers/hooks/useClassifiedConversationCount';
+import {useClassifiedCounts} from 'sentry/views/classifiers/hooks/useClassifiedCounts';
 import {useClassifierPageFilters} from 'sentry/views/classifiers/hooks/useClassifierPageFilters';
 import {useClassifierResultFilter} from 'sentry/views/classifiers/hooks/useClassifierResultFilter';
 import type {TelemetryClassifier} from 'sentry/views/classifiers/types';
@@ -32,13 +32,24 @@ import {ChartType} from 'sentry/views/insights/common/components/chartTypes';
 
 const TITLE = t('Instances');
 
-function ClassifiedConversationCount({count}: {count: number}) {
+function ClassifiedCounts({
+  conversations,
+  users,
+}: {
+  conversations: number;
+  users: number;
+}) {
   return (
-    <Text size="sm" variant="muted">
-      {count === 1
-        ? t('1 conversation')
-        : t('%s conversations', formatAbbreviatedNumber(count))}
-    </Text>
+    <Flex gap="lg">
+      <Text size="sm" variant="muted">
+        {conversations === 1
+          ? t('1 conversation')
+          : t('%s conversations', formatAbbreviatedNumber(conversations))}
+      </Text>
+      <Text size="sm" variant="muted">
+        {users === 1 ? t('1 user') : t('%s users', formatAbbreviatedNumber(users))}
+      </Text>
+    </Flex>
   );
 }
 
@@ -72,8 +83,8 @@ export function ClassifierInstancesChart({classifier}: ClassifierInstancesChartP
   const theme = useTheme();
   const selection = useClassifierPageFilters(classifier);
   const {isBinary, resultFilter} = useClassifierResultFilter(classifier);
-  const {data: classifiedCount, isPending: isCountPending} =
-    useClassifiedConversationCount(classifier);
+  const {data: classifiedCounts, isPending: isCountPending} =
+    useClassifiedCounts(classifier);
   const [chartType, setChartType] = useState(ChartType.BAR);
   const [selectedInterval, setSelectedInterval] = useState<string | null>(null);
 
@@ -205,8 +216,8 @@ export function ClassifierInstancesChart({classifier}: ClassifierInstancesChartP
   let footer: React.ReactNode;
   if (isCountPending) {
     footer = <Placeholder width="160px" height="1lh" />;
-  } else if (classifiedCount !== undefined) {
-    footer = <ClassifiedConversationCount count={classifiedCount} />;
+  } else if (classifiedCounts !== undefined) {
+    footer = <ClassifiedCounts {...classifiedCounts} />;
   }
 
   return (

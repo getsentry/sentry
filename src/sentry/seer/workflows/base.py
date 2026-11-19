@@ -12,6 +12,7 @@ from django.db.models import QuerySet
 from django.utils import timezone
 from pydantic import BaseModel, Field, ValidationError
 
+from sentry.constants import ObjectStatus
 from sentry.models.project import Project
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
@@ -33,6 +34,7 @@ from sentry.service_accounts.models import (
 )
 from sentry.service_accounts.outbox import service_account_grant_update_outbox
 from sentry.utils import json
+from sentry.workflow_engine.models import Workflow
 
 logger = logging.getLogger(__name__)
 
@@ -132,33 +134,21 @@ class AutomationTrigger[Inputs: BaseModel](Protocol):
         """Return the active projects in the config's scope."""
         ...
 
+    def setup(self, update: ConfigUpdate, workflow: Workflow) -> None:
+        """Attach anything the trigger needs to a new automation's backing workflow."""
+        return None
+
     def set_scope(self, update: ConfigUpdate, selection: ScopeSelection) -> None:
         """Replace the config's scope, marking ``update`` only when something changed."""
         ...
 
     def sync(self, config: SeerWorkflowConfig) -> None:
         """Bring anything the trigger keeps outside the config in line with it."""
-        ...
+        return None
 
     def teardown(self, config: SeerWorkflowConfig) -> None:
         """Remove anything the trigger keeps outside the config, before it is deleted."""
-        ...
-
-
-class AutomationAction[Inputs: BaseModel](Protocol):
-    """What Seer does for an admitted run."""
-
-    settings_type: type[BaseModel]
-
-    def dispatch(
-        self, config: SeerWorkflowConfig, run: SeerWorkflowRunLifecycle, inputs: Inputs
-    ) -> None:
-        """Persist the run's execution plan and start its work.
-
-        Called once per run, inside the transaction that admitted it. Raising rolls the
-        admission back so a redelivered trigger can retry.
-        """
-        ...
+        return None
 
 
 RejectionReason = Literal["quota_exceeded"]
@@ -193,18 +183,25 @@ class AdmittedRun:
 
 @dataclass(frozen=True)
 class AutomationDefinition[Inputs: BaseModel]:
-    """An automation: a trigger paired with an action that accepts what it produces."""
+    """An automation: the trigger that starts its runs and decides which projects they cover."""
 
     trigger: AutomationTrigger[Inputs]
-    action: AutomationAction[Inputs]
 
     def project_ids(self, config: SeerWorkflowConfig) -> list[int]:
         return list(self.trigger.projects(config).order_by("id").values_list("id", flat=True))
 
+    @staticmethod
+    def is_enabled(config: SeerWorkflowConfig) -> bool:
+        workflow = config.backing_workflow
+        if workflow is None:
+            # TODO(telkins): Cascade a deleted backing workflow to its automation.
+            raise ValueError(f"Automation {config.id} has no backing workflow")
+        return workflow.enabled and workflow.status == ObjectStatus.ACTIVE
+
     def covers(self, config: SeerWorkflowConfig, project_id: int, environment: str | None) -> bool:
         filters = SeerWorkflowFilters.parse_obj(config.filters)
         return (
-            config.enabled
+            self.is_enabled(config)
             and (not filters.environments or environment in filters.environments)
             and self.trigger.projects(config).filter(id=project_id).exists()
         )
@@ -214,7 +211,7 @@ class AutomationDefinition[Inputs: BaseModel]:
         try:
             return (
                 self.trigger.settings_type.parse_obj(extras.trigger_settings or {}),
-                self.action.settings_type.parse_obj(extras.action_settings or {}),
+                NoSettings.parse_obj(extras.action_settings or {}),
             )
         except ValidationError as e:
             raise WorkflowUpdateError(
@@ -284,14 +281,6 @@ class AutomationDefinition[Inputs: BaseModel]:
             return AdmittedRun(lifecycle=lifecycle, created=True, rejection=admission.reason)
         return AdmittedRun(lifecycle=lifecycle, created=True)
 
-    def trigger_run(self, config: LockedConfig, *, trigger_key: str, inputs: Inputs) -> AdmittedRun:
-        """Admit a triggered run and, the first time it is accepted, dispatch the action."""
-        run = self.admit_run(config, trigger_key=trigger_key, inputs=inputs)
-        if run.created and run.rejection is None:
-            run.lifecycle.start()
-            self.action.dispatch(config, run.lifecycle, inputs)
-        return run
-
 
 @dataclass
 class ConfigUpdate:
@@ -305,25 +294,58 @@ class ConfigUpdate:
     config: LockedConfig
     definition: AutomationDefinition[Any]
     dirty_fields: set[str] = field(default_factory=set)
+    workflow_dirty_fields: set[str] = field(default_factory=set)
     related_changed: bool = False
 
     @property
     def changed(self) -> bool:
-        return bool(self.dirty_fields) or self.related_changed
+        return bool(self.dirty_fields) or bool(self.workflow_dirty_fields) or self.related_changed
 
     def mark(self, *fields: str) -> None:
         """Record changed columns on the config row."""
         self.dirty_fields.update(fields)
 
+    def mark_workflow(self, *fields: str) -> None:
+        """Record changed columns on the backing workflow, saved once with the config."""
+        self.workflow_dirty_fields.update(fields)
+
     def mark_related_changed(self) -> None:
         """Record changes outside the row, like project links, that still bump the version."""
         self.related_changed = True
 
+    def setup_backing_workflow(
+        self, *, name: str | None, created_by_id: int | None, enabled: bool
+    ) -> None:
+        """Give a new automation the backing workflow that holds its name and enabled state."""
+        workflow = Workflow.objects.create(
+            organization_id=self.config.organization_id,
+            name=name or "Seer automation",
+            type=Workflow.Type.SEER_INVESTIGATION,
+            enabled=enabled,
+            created_by_id=created_by_id,
+            config={"frequency": 0},
+        )
+        self.config.backing_workflow = workflow
+        self.mark("backing_workflow")
+        self.definition.trigger.setup(self, workflow)
+
     def set_enabled(self, enabled: bool) -> None:
-        if self.config.enabled == enabled:
-            return
-        self.config.enabled = enabled
-        self.mark("enabled")
+        workflow = self._backing_workflow()
+        if workflow.enabled != enabled:
+            workflow.enabled = enabled
+            self.mark_workflow("enabled")
+
+    def set_name(self, name: str) -> None:
+        workflow = self._backing_workflow()
+        if workflow.name != name:
+            workflow.name = name
+            self.mark_workflow("name")
+
+    def _backing_workflow(self) -> Workflow:
+        workflow = self.config.backing_workflow
+        if workflow is None:
+            raise WorkflowUpdateError("The automation has no backing workflow")
+        return workflow
 
     def set_extras(self, extras: SeerWorkflowConfigExtras) -> None:
         self.definition.validate_settings(extras)

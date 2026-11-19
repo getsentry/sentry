@@ -48,7 +48,7 @@ function SupabaseOAuthLoginStep({
         serviceName="Supabase"
         onOAuthCallback={handleOAuthCallback}
         description={t(
-          'Connect your Supabase organization so Seer can investigate logs and security and performance advisors across its projects. Sentry requests read-only access, which a Supabase organization owner must authorize. This connection is shared with your Sentry organization.'
+          'Connect your Supabase organization so Seer can read project logs and current infrastructure and database metrics. Sentry requests read-only access, which a Supabase organization owner must authorize. This connection is shared with your Sentry organization.'
         )}
       />
     </Stack>

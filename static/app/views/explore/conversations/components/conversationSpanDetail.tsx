@@ -5,6 +5,7 @@ import {IconClose} from '@sentry/icons/close';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {getDuration} from '@sentry/scraps/duration';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {stripAnnotations} from '@sentry/scraps/markdown/annotation';
@@ -16,7 +17,6 @@ import {ToolOutput} from 'sentry/components/ai/toolDetails/toolOutput';
 import {parseToolOutput} from 'sentry/components/ai/toolDetails/toolOutputData';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -251,7 +251,7 @@ export function ConversationSpanDetail({
 
       <Stack gap="lg" flexShrink={0}>
         <Flex align="center" gap="sm" wrap="wrap">
-          <Text size="lg">{getDuration(duration, 2, true, true)}</Text>
+          <Text size="lg">{getDuration(duration, {precision: 2, style: 'narrow'})}</Text>
           {duration > 0 &&
           comparison &&
           comparison.deltaPct >= MIN_PCT_DURATION_DIFFERENCE ? (

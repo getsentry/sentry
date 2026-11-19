@@ -28,18 +28,13 @@ SUPABASE_AUTHORIZE_URL = f"{SUPABASE_API_URL}/oauth/authorize"
 SUPABASE_TOKEN_URL = f"{SUPABASE_API_URL}/oauth/token"
 SUPABASE_REVOKE_URL = f"{SUPABASE_API_URL}/oauth/revoke"
 SUPABASE_ORGANIZATIONS_URL = f"{SUPABASE_API_URL}/organizations"
-SUPABASE_MCP_RESOURCE = "https://mcp.supabase.com/mcp"
-# Account tools discover projects; debugging tools read logs and advisors. This filter
-# limits exposed MCP tools, not the OAuth grant: database:read also permits read-only SQL
-# through the Management API (https://supabase.com/docs/reference/api/v1-read-only-query).
-SUPABASE_MCP_URL = f"{SUPABASE_MCP_RESOURCE}?read_only=true&features=account,debugging"
-SUPABASE_SCOPES = ("organizations:read", "projects:read", "analytics:read", "database:read")
+SUPABASE_SCOPES = ("organizations:read", "projects:read", "analytics:read")
 
 SUPABASE_AUTHORIZATION_ERROR = "Supabase authorization failed. Connect your organization again."
 SUPABASE_UNREACHABLE_ERROR = "Could not reach Supabase. Try again."
 SUPABASE_RESPONSE_ERROR = "Could not verify the connection to Supabase. Try again."
 SUPABASE_PERMISSIONS_ERROR = (
-    "In the Supabase OAuth app settings, set Analytics, Database, Organizations, and Projects "
+    "In the Supabase OAuth app settings, set Analytics, Organizations, and Projects "
     "to Read-only and all other permissions to No access. Save the changes, then connect again."
 )
 
@@ -91,7 +86,7 @@ def _request_token(params: dict[str, str]) -> SupabaseToken:
         response = safe_urlopen(
             SUPABASE_TOKEN_URL,
             method="POST",
-            data={"resource": SUPABASE_MCP_RESOURCE, **params},
+            data=params,
             headers={"Accept": "application/json", "Authorization": f"Basic {credentials}"},
             timeout=10,
         )

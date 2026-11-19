@@ -1210,9 +1210,7 @@ describe('useExplorerAutofix - startStep', () => {
       method: 'POST',
       body: {run_id: 776, feature_id: 'autofix_single_run'},
     });
-    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP), {
-      organization: OrganizationFixture({features: ['autofix-browser-notifications']}),
-    });
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
     const run = await act(() => result.current.startStep('root_cause'));
 
     expect(run).toEqual({runId: 776, isSingleRun: true});
@@ -1319,9 +1317,7 @@ describe('useExplorerAutofix - createPR', () => {
     'says a push was refused for credits (denialReason %s) and rechecks credits',
     async (denialReason, message) => {
       const errorSpy = jest.spyOn(toast, 'error');
-      const organization = OrganizationFixture({
-        features: ['seer-credit-checks', 'token-billed-seer-enabled'],
-      });
+      const organization = OrganizationFixture({features: ['token-billed-seer-enabled']});
       const creditCheck = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/seer/credit-check/`,
         body: {hasEnoughCredits: true},
@@ -1908,9 +1904,7 @@ describe('useExplorerAutofix - startStep errors', () => {
     'says a kickoff was refused for credits (denialReason %s), rechecks credits, and paints no failed run',
     async (denialReason, message) => {
       const errorSpy = jest.spyOn(toast, 'error');
-      const organization = OrganizationFixture({
-        features: ['seer-credit-checks', 'token-billed-seer-enabled'],
-      });
+      const organization = OrganizationFixture({features: ['token-billed-seer-enabled']});
       const creditCheck = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/seer/credit-check/`,
         body: {hasEnoughCredits: true},

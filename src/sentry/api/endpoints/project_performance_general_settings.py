@@ -5,7 +5,6 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -69,8 +68,6 @@ class ProjectPerformanceGeneralSettingsEndpoint(ProjectEndpoint):
         """
         Return the general performance settings for a project.
         """
-        if not self.has_feature(project, request):
-            return self.respond(status=status.HTTP_404_NOT_FOUND)
 
         if not project:
             return Response(status=status.HTTP_404_NOT_FOUND)
@@ -94,8 +91,6 @@ class ProjectPerformanceGeneralSettingsEndpoint(ProjectEndpoint):
         """
         Update the general performance settings for a project. Omitted fields are left unchanged.
         """
-        if not self.has_feature(project, request):
-            return self.respond(status=status.HTTP_404_NOT_FOUND)
 
         if not project:
             return Response(status=status.HTTP_404_NOT_FOUND)
@@ -107,11 +102,6 @@ class ProjectPerformanceGeneralSettingsEndpoint(ProjectEndpoint):
 
         self.update_settings(project, request.data)
         return Response(status=status.HTTP_204_NO_CONTENT)
-
-    def has_feature(self, project: Project, request: Request) -> bool:
-        return features.has(
-            "organizations:performance-view", project.organization, actor=request.user
-        )
 
     def get_current_settings(self, project: Project) -> dict[str, object]:
         settings = project.get_option(
