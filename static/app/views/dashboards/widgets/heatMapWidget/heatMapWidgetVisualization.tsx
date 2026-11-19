@@ -25,7 +25,6 @@ import {
 import {isChartHovered, truncationFormatter} from 'sentry/components/charts/utils';
 import {CircleIndicator} from 'sentry/components/circleIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {t} from 'sentry/locale';
 import type {EChartChartReadyHandler, ReactEchartsRef} from 'sentry/types/echarts';
 import {getUserTimezone} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
@@ -367,7 +366,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
     const yAxisUnit = heatMapPlottable?.yAxisValueUnit;
     const yAxisValueType = heatMapPlottable?.yAxisValueType ?? FALLBACK_TYPE;
 
-    const yAxisLabel = t('value');
+    const yAxisLabel = meta.yAxis.name;
     const zAxisLabel = truncationFormatter(meta.zAxis.name || 'count()', true, false);
 
     return renderToString(
