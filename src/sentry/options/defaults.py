@@ -4382,6 +4382,15 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Largest video, in bytes, that can be uploaded to an issue comment. Keep it at
+# or below the web tier's request body limit (self-hosted nginx defaults to 100 MB).
+register(
+    "issues.comment-attachments.max-size",
+    type=Int,
+    default=100 * 1024 * 1024,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 register(
     "issues.client_error_sampling.project_allowlist",
     type=Sequence,

@@ -389,6 +389,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:issue-details-generic-problem-section", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable double-reading from EAP for issue feed search queries
     manager.add("organizations:issue-feed.eap-search", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Allow uploading videos to issue comments
+    manager.add("organizations:issue-comment-attachments", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Fetch CI check status from the provider for pull requests linked to an issue
     manager.add("organizations:issue-pr-checks-status", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables the shared issue/event formatter module (markdown/xml output for LLMs)
