@@ -1320,7 +1320,12 @@ ActionDataResponse: TypeAlias = (
 
 # config_schema of the anomaly_detection detector
 class AnomalyDetectionDetectorConfig(TypedDict):
-    pass
+    service_account_id: NotRequired[int]
+
+
+# config_schema of the anomaly_detection detector
+class AnomalyDetectionDetectorConfigResponse(TypedDict):
+    serviceAccountId: NotRequired[int]
 
 
 # config_schema of the error detector
@@ -1422,7 +1427,7 @@ DetectorConfig: TypeAlias = (
 DetectorConfigResponse: TypeAlias = (
     EmptyDetectorConfig
     | ErrorDetectorProjectOptionsResponse
-    | AnomalyDetectionDetectorConfig
+    | AnomalyDetectionDetectorConfigResponse
     | IssueStreamDetectorConfigResponse
     | MetricIssueDetectorConfigResponse
     | PreprodSizeAnalysisDetectorConfigResponse

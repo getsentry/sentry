@@ -18,7 +18,7 @@ from sentry.anomaly_detection.evaluation.organization import (
     Checkpoint,
     EvaluatorConfig,
 )
-from sentry.anomaly_detection.grouptype import AnomalyDetection, MinuteDecisions
+from sentry.anomaly_detection.grouptype import MinuteDecisions
 from sentry.anomaly_detection.inputs.hourly_snapshot import hourly_rows
 from sentry.anomaly_detection.inputs.measurements import collect
 from sentry.anomaly_detection.inputs.new_failures import (
@@ -45,8 +45,6 @@ from sentry.workflow_engine.processors.detector import process_detectors
 from sentry.workflow_engine.types import DetectorType
 
 FEATURE = "organizations:anomaly-detector"
-# Reopened groups must create new issues (see AnomalyDetectionDetectorHandler).
-ACTIVATION_ID_FEATURE = "organizations:workflow-engine-rotate-activation-id"
 _MINUTE = timedelta(minutes=1)
 _INGEST_DELAY = timedelta(minutes=2)
 _MINUTE_WARMUP = timedelta(hours=5)
@@ -64,15 +62,6 @@ def _enabled_detectors() -> BaseQuerySet[Detector]:
         enabled=True,
         project__status=ObjectStatus.ACTIVE,
         project__organization__status=OrganizationStatus.ACTIVE,
-    )
-
-
-def _eligible(organization: Organization) -> bool:
-    # Unreleased Issue Platform types have a separate consumer-side ingest gate.
-    return (
-        features.has(FEATURE, organization)
-        and features.has(ACTIVATION_ID_FEATURE, organization)
-        and AnomalyDetection.allow_ingest(organization)
     )
 
 
@@ -107,7 +96,7 @@ def schedule_anomaly_detectors() -> None:
     end = _closed_end().isoformat()
     for organization_id in organization_ids:
         organization = organizations.get(organization_id)
-        if organization is not None and _eligible(organization):
+        if organization is not None and features.has(FEATURE, organization):
             run_anomaly_detection.delay(organization_id, end)
     # Losing this cursor only reorders the next pass; the worker checkpoint is durable.
     cache.set(cursor_key, organization_ids[-1] if organization_ids else 0, 3600)
@@ -154,9 +143,9 @@ def _publish(
 ) -> None:
     """Send decisions and resolutions through Workflow Engine in minute order.
 
-    `resolved` is keyed by (minute, project ID). The stateful handler skips minutes a
-    group already processed, so republishing after a failed checkpoint commit doesn't
-    duplicate issue transitions.
+    `resolved` is keyed by (minute, project ID). The handler skips minutes a group
+    already processed, so republishing after a failed checkpoint commit doesn't
+    duplicate investigations.
     """
     resolved = resolved or {}
     decisions_by_minute: dict[tuple[datetime, int], dict[AnomalyGroupKey, AnomalyDecision]] = (
@@ -233,7 +222,7 @@ def _run_organization(organization_id: int, target: datetime) -> bool:
     organization = Organization.objects.get_or_none(
         id=organization_id, status=OrganizationStatus.ACTIVE
     )
-    if organization is None or not _eligible(organization):
+    if organization is None or not features.has(FEATURE, organization):
         return False
 
     max_projects = options.get("anomaly_detection.max_projects_per_organization")

@@ -151,18 +151,10 @@ empty or passing `NONE` group can also trigger without a priority-bearing result
 therefore use the stateful handler's default `OK` priority. A missing trigger group is
 invalid and produces no transition.
 
-The condition group step is the `evaluate_priorities` hook. A stateful detector that decides
-priorities itself overrides it to return `DetectorEvaluation.create_issue(group_key, priority)`
-or `DetectorEvaluation.ok(group_key)` per group, while dedupe, thresholds, activation IDs, state,
-and resolution stay with `StatefulDetectorHandler`. Without a condition group no levels are
-configured, so such a handler must override `thresholds` with every priority it emits (e.g.
-`{LOW: 1, MEDIUM: 1, HIGH: 1}`).
-
-Stateless detectors that decide without the trigger condition group inherit
-`BaseDetectorHandler` and implement `evaluate`; stateful ones inherit
-`StatefulDetectorHandler` and override `evaluate_priorities`. Detectors that extend the
-condition evaluation override `evaluate` and call `super().evaluate()`, then own the
-orchestration they add.
+Detectors that decide without the trigger condition group inherit `BaseDetectorHandler` and
+implement `evaluate`; ones that track per-group state use `DetectorStateManager` directly.
+Detectors that extend the condition evaluation override `evaluate` and call
+`super().evaluate()`, then own the orchestration they add.
 
 ### 5. Produce detector output
 
@@ -176,6 +168,11 @@ assign another supported outcome dispatcher or override `on_complete` for custom
 Supported outcome implementations register their `DetectorOutcomeHandler` class with
 `@detector_outcome_registry.add(DetectorOutcome.<KEY>)`. The closed, typed set of keys
 lives in `supported_outcomes.py`; the registry maps each key to its handler implementation.
+
+`DetectorOutcome.SEER_INVESTIGATION` starts a Seer investigation for each occurrence
+instead of creating an issue, and ignores status changes. The detector's config names the
+service account that creates it (`service_account_id`). Pair it with a detector that persists
+`DetectorState` so each occurrence is a transition; the anomaly detector does this.
 
 Issue Platform ingestion creates or updates a group. The detector ID in occurrence
 evidence allows ingestion to create a

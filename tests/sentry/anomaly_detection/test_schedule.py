@@ -1,6 +1,7 @@
 import dataclasses
+from contextlib import AbstractContextManager
 from datetime import UTC, datetime, timedelta
-from unittest.mock import call, patch
+from unittest.mock import MagicMock, call, patch
 
 import pytest
 
@@ -17,7 +18,7 @@ from sentry.anomaly_detection.grouptype import AnomalyDetection
 from sentry.anomaly_detection.inputs.trace_lookup import TraceLookup
 from sentry.constants import ObjectStatus
 from sentry.issues.issue_occurrence import IssueOccurrence
-from sentry.issues.producer import PayloadType
+from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.locks import locks
 from sentry.models.anomaly_detection_state import AnomalyDetectionState
 from sentry.models.group import GroupStatus
@@ -30,23 +31,28 @@ from sentry.types.cell import get_local_cell
 from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.locking.lock import Lock
+from sentry.workflow_engine.handlers.detector_outcome import SeerInvestigationOutcomeHandler
 from sentry.workflow_engine.models import Detector, DetectorState
+from sentry.workflow_engine.processors import DetectorEvaluation
 from sentry.workflow_engine.types import DetectorPriorityLevel, DetectorType
 from tests.sentry.anomaly_detection.test_helpers import anomaly_decision
 
 NOW = datetime(2025, 1, 1, 12, 3, 12, tzinfo=UTC)
 END = datetime(2025, 1, 1, 12, 1)
 START = END - timedelta(minutes=1)
-FEATURES = {
-    schedule.FEATURE: True,
-    AnomalyDetection.build_ingest_feature_name(): True,
-    schedule.ACTIVATION_ID_FEATURE: True,
-}
+FEATURES = {schedule.FEATURE: True}
 CHECKPOINT = Checkpoint({}, {}, EvaluatorState())
 BLOB = codec.encode(CHECKPOINT)
-PRODUCE = (
-    "sentry.workflow_engine.handlers.detector_outcome.issue_platform.produce_occurrence_to_kafka"
-)
+
+
+def outcome() -> AbstractContextManager[MagicMock]:
+    """Capture what the detectors hand to the investigation outcome."""
+    return patch.object(SeerInvestigationOutcomeHandler, "handle")
+
+
+def results(handle: MagicMock) -> list[object]:
+    evaluations: list[DetectorEvaluation] = [entry.args[1] for entry in handle.call_args_list]
+    return [evaluation.result for evaluation in evaluations]
 
 
 def decision(project_id: int, *, timestamp: datetime = START) -> AnomalyDecision:
@@ -91,8 +97,6 @@ class TestAnomalySchedule(TestCase):
         inactive.update(status=OrganizationStatus.PENDING_DELETION)
         hidden = self.create_organization()
         self.make_detector(self.create_project(organization=hidden))
-        ingest_disabled = self.create_organization()
-        self.make_detector(self.create_project(organization=ingest_disabled))
         inactive_project = self.create_organization()
         project = self.create_project(organization=inactive_project)
         self.make_detector(project)
@@ -102,7 +106,6 @@ class TestAnomalySchedule(TestCase):
             (organization,): set(FEATURES)
             for organization in (self.organization, inactive, inactive_project)
         }
-        gated[(ingest_disabled,)] = {schedule.FEATURE}
 
         def allowed(name: str, *entities: object, **_kwargs: object) -> bool:
             return name in gated.get(entities, ())
@@ -391,19 +394,19 @@ class TestAnomalySchedule(TestCase):
             patch.object(schedule, "collect_new_failure_modes", return_value=[]),
             patch.object(schedule, "advance_org", return_value=([], CHECKPOINT)),
             patch.object(metrics, "incr") as incr,
-            patch(PRODUCE) as produce,
+            outcome() as handle,
         ):
             schedule._publish(
                 [decision(self.project.id, timestamp=END - timedelta(minutes=70))],
                 {self.project.id: detector},
             )
-            opened = produce.call_args.kwargs["occurrence"]
-            produce.reset_mock()
+            [opened] = results(handle)
+            handle.reset_mock()
             assert not schedule._run_organization(self.organization.id, END)
 
-        produce.assert_called_once()
-        assert produce.call_args.kwargs["payload_type"] == PayloadType.STATUS_CHANGE
-        status_change = produce.call_args.kwargs["status_change"]
+        [status_change] = results(handle)
+        assert isinstance(opened, IssueOccurrence)
+        assert isinstance(status_change, StatusChangeMessage)
         assert status_change.fingerprint == opened.fingerprint
         assert status_change.new_status == GroupStatus.RESOLVED
         state = DetectorState.objects.get(detector=detector, detector_group_key="group")
@@ -424,17 +427,18 @@ class TestAnomalySchedule(TestCase):
             patch.object(
                 schedule, "advance_org", return_value=([decision(self.project.id)], CHECKPOINT)
             ),
-            patch(PRODUCE) as produce,
+            outcome() as handle,
         ):
             schedule._publish([stale], {self.project.id: detector})
-            stale_fingerprint = produce.call_args.kwargs["occurrence"].fingerprint
+            [stale_opened] = results(handle)
             schedule._publish([ongoing], {self.project.id: detector})
-            produce.reset_mock()
+            handle.reset_mock()
             assert not schedule._run_organization(self.organization.id, END)
 
-        produce.assert_called_once()
-        assert produce.call_args.kwargs["payload_type"] == PayloadType.STATUS_CHANGE
-        assert produce.call_args.kwargs["status_change"].fingerprint == stale_fingerprint
+        [status_change] = results(handle)
+        assert isinstance(stale_opened, IssueOccurrence)
+        assert isinstance(status_change, StatusChangeMessage)
+        assert status_change.fingerprint == stale_opened.fingerprint
         assert dict(
             DetectorState.objects.filter(detector=detector).values_list(
                 "detector_group_key", "is_triggered"
@@ -484,13 +488,11 @@ class TestAnomalySchedule(TestCase):
             patch.object(schedule, "hourly_rows", return_value=hourly),
             patch.object(schedule, "collect_new_failure_modes", return_value=[]),
             patch.object(TraceLookup, "footprint", return_value=None),
-            patch(PRODUCE) as produce,
+            outcome() as handle,
         ):
             assert not schedule._run_organization(self.organization.id, END)
 
-        produce.assert_called_once()
-        assert produce.call_args.kwargs["payload_type"] == PayloadType.OCCURRENCE
-        occurrence = produce.call_args.kwargs["occurrence"]
+        [occurrence] = results(handle)
         assert isinstance(occurrence, IssueOccurrence)
         assert occurrence.type is AnomalyDetection
         assert occurrence.project_id == self.project.id
@@ -513,21 +515,20 @@ class TestAnomalySchedule(TestCase):
             patch.object(
                 schedule, "advance_org", return_value=([decision(self.project.id)], CHECKPOINT)
             ) as advance,
-            patch(PRODUCE) as produce,
+            outcome() as handle,
         ):
             with (
                 patch.object(schedule, "_commit_checkpoint", side_effect=RuntimeError("crash")),
                 pytest.raises(RuntimeError, match="crash"),
             ):
                 schedule._run_organization(self.organization.id, END)
-            produce.assert_called_once()
+            handle.assert_called_once()
             assert not AnomalyDetectionState.objects.filter(organization=self.organization).exists()
 
             assert not schedule._run_organization(self.organization.id, END)
 
         assert [entry.kwargs["start"] for entry in advance.call_args_list] == [START, START]
-        produce.assert_called_once()
-        occurrence = produce.call_args.kwargs["occurrence"]
+        [occurrence] = results(handle)
         assert isinstance(occurrence, IssueOccurrence)
         assert occurrence.project_id == self.project.id
         assert occurrence.detection_time == START.replace(tzinfo=UTC)
@@ -660,23 +661,13 @@ class TestAnomalySchedule(TestCase):
     def test_worker_rechecks_gate_before_querying(self) -> None:
         self.make_detector(self.project)
         with (
-            self.feature({**FEATURES, AnomalyDetection.build_ingest_feature_name(): False}),
+            self.feature({**FEATURES, schedule.FEATURE: False}),
             patch.object(schedule, "collect") as collect,
         ):
             assert not schedule._run_organization(self.organization.id, END)
 
         collect.assert_not_called()
         assert not AnomalyDetectionState.objects.filter(organization=self.organization).exists()
-
-    def test_worker_requires_activation_id_rotation(self) -> None:
-        self.make_detector(self.project)
-        with (
-            self.feature({**FEATURES, schedule.ACTIVATION_ID_FEATURE: False}),
-            patch.object(schedule, "collect") as collect,
-        ):
-            assert not schedule._run_organization(self.organization.id, END)
-
-        collect.assert_not_called()
 
     def test_worker_rechecks_scope_after_last_project_becomes_ineligible(self) -> None:
         self.make_detector(self.project)

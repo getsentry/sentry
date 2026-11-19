@@ -1,5 +1,4 @@
 import unittest.mock as mock
-from collections.abc import Mapping
 from datetime import timedelta
 from typing import Any
 
@@ -11,15 +10,10 @@ from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
-from sentry.workflow_engine.handlers.detector import DetectorEvaluations, DetectorStateData
-from sentry.workflow_engine.handlers.detector.stateful import (
-    DetectorCounters,
-    DetectorThresholds,
-    get_redis_client,
-)
+from sentry.workflow_engine.handlers.detector import DetectorStateData
+from sentry.workflow_engine.handlers.detector.stateful import DetectorCounters, get_redis_client
 from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.processors import DetectorEvaluation
 from sentry.workflow_engine.types import DetectorGroupKey, DetectorPriorityLevel
 from tests.sentry.workflow_engine.handlers.detector.test_base import (
     MockDetectorStateHandler,
@@ -819,67 +813,3 @@ class TestStatefulDetectorActivationId(StatefulDetectorTestCase):
             resolution_fingerprint = self.fingerprint(handler, self.packet(2, Level.OK))
 
         assert resolution_fingerprint == firing_fingerprint
-
-
-class PriorityHookDetectorHandler(MockDetectorStateHandler):
-    """Decides priorities itself: each group's value is the name of the priority to evaluate."""
-
-    @property
-    def thresholds(self) -> DetectorThresholds:
-        return {Level.LOW: 1, Level.MEDIUM: 1, Level.HIGH: 1}
-
-    def evaluate_priorities(
-        self,
-        data_packet: DataPacket[dict[str, Any]],
-        values: Mapping[DetectorGroupKey, int | None],
-    ) -> DetectorEvaluations:
-        evaluations: dict[DetectorGroupKey, DetectorEvaluation] = {}
-
-        for group_key, value in values.items():
-            priority = DetectorPriorityLevel[str(value)]
-            evaluations[group_key] = (
-                DetectorEvaluation.ok(group_key)
-                if priority == Level.OK
-                else DetectorEvaluation.create_issue(group_key, priority)
-            )
-
-        return DetectorEvaluations(evaluations=evaluations, tainted=False)
-
-
-class TestStatefulDetectorEvaluatePriorities(StatefulDetectorTestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        self.handler = PriorityHookDetectorHandler(detector=self.detector)
-
-    @mock.patch("sentry.workflow_engine.handlers.detector.base.logger")
-    def test_detector_transitions_on_supplied_priorities(self, mock_logger: mock.MagicMock) -> None:
-        assert self.detector.workflow_condition_group is None
-
-        opened = self.handler._evaluate(self.packet(1, Level.MEDIUM))[None]
-        assert opened.priority == Level.MEDIUM
-        assert isinstance(opened.result, IssueOccurrence)
-        assert opened.result.evidence_data["conditions"] == []
-        assert opened.result.evidence_data["data_sources"] == []
-
-        escalated = self.handler._evaluate(self.packet(2, Level.HIGH))[None]
-        assert escalated.priority == Level.HIGH
-        assert isinstance(escalated.result, IssueOccurrence)
-
-        resolved = self.handler._evaluate(self.packet(3, Level.OK))[None]
-        assert resolved.priority == Level.OK
-        assert isinstance(resolved.result, StatusChangeMessage)
-        assert resolved.result.fingerprint == [f"detector:{self.detector.id}"]
-
-        # Detectors without data sources do not warn about missing evidence data sources
-        mock_logger.warning.assert_not_called()
-
-    def test_detector_skips_already_processed_dedupe_values(self) -> None:
-        self.handler._evaluate(self.packet(1, Level.MEDIUM))
-
-        assert self.handler._evaluate(self.packet(1, Level.HIGH)) == {}
-        assert self.state(self.handler).status == Level.MEDIUM
-
-    def test_detector_without_a_transition_produces_no_result(self) -> None:
-        self.handler._evaluate(self.packet(1, Level.MEDIUM))
-
-        assert self.handler._evaluate(self.packet(2, Level.MEDIUM)) == {}

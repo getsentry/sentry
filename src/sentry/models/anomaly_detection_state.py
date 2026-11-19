@@ -10,7 +10,7 @@ __all__ = ("AnomalyDetectionState",)
 class AnomalyDetectionState(DefaultFieldsModel):
     """An organization's anomaly evaluator checkpoint and the first minute it hasn't evaluated.
 
-    Project monitors are Workflow Engine Detector rows, which also own issue state. This
+    Project monitors are Workflow Engine Detector rows, which also own activation state. This
     cell-local row holds the organization-wide statistical state that correlates them.
     """
 

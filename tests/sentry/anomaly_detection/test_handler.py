@@ -5,32 +5,33 @@ from unittest.mock import MagicMock, patch
 from sentry.anomaly_detection.contracts import AnomalyGroupKey, ChangeType, Urgency
 from sentry.anomaly_detection.evaluation.organization import AnomalyDecision, AnomalyEvidence
 from sentry.anomaly_detection.grouptype import (
+    TRIGGERED,
     AnomalyDetection,
     AnomalyDetectionDetectorHandler,
     MinuteDecisions,
 )
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
-from sentry.issues.producer import PayloadType
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
+from sentry.notebooks.models import Notebook
 from sentry.testutils.cases import TestCase
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import cell_silo_test
+from sentry.utils import metrics
+from sentry.viewer_context import ActorId, ActorType
+from sentry.workflow_engine.handlers.detector_outcome import seer_investigation
 from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
 from sentry.workflow_engine.processors import DetectorEvaluation
 from sentry.workflow_engine.processors.detector import process_detectors
 from sentry.workflow_engine.registry import detector_settings_registry
-from sentry.workflow_engine.types import (
-    DetectorAPIOperation,
-    DetectorGroupKey,
-    DetectorPriorityLevel,
-    DetectorType,
-)
+from sentry.workflow_engine.types import DetectorAPIOperation, DetectorGroupKey, DetectorType
 from tests.sentry.anomaly_detection.test_helpers import anomaly_decision
 
 MINUTE = datetime(2025, 1, 1, 12)
-ROTATE_ACTIVATION = "organizations:workflow-engine-rotate-activation-id"
 PRODUCE = (
     "sentry.workflow_engine.handlers.detector_outcome.issue_platform.produce_occurrence_to_kafka"
 )
+DISPATCH = "sentry.tasks.seer.investigation.dispatch_investigation_orchestration_create.delay"
 EVIDENCE: AnomalyEvidence = {
     "signal": "errors",
     "change_type": ChangeType.SPIKE,
@@ -40,15 +41,29 @@ EVIDENCE: AnomalyEvidence = {
 }
 
 
+@cell_silo_test
 class TestAnomalyDetectionDetectorHandler(TestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.detector = self.create_detector(
-            project=self.project, type=DetectorType.ANOMALY_DETECTION.value
+        self.enterContext(
+            self.feature(["organizations:investigations", "organizations:service-accounts"])
         )
-        produce = patch(PRODUCE)
-        self.produce: MagicMock = produce.start()
-        self.addCleanup(produce.stop)
+        self.organization.flags.allow_joinleave = True
+        self.organization.save()
+        self.service_account_id = self.service_account("anomalies", [self.project.id])
+        self.detector = self.create_detector(
+            project=self.project,
+            type=DetectorType.ANOMALY_DETECTION.value,
+            config={"service_account_id": self.service_account_id},
+        )
+        self.produce: MagicMock = self.enterContext(patch(PRODUCE))
+        self.dispatch: MagicMock = self.enterContext(patch(DISPATCH))
+
+    def service_account(self, name: str, project_ids: list[int]) -> int:
+        with outbox_runner():
+            return self.create_service_account(
+                organization=self.organization, name=name, project_ids=project_ids
+            ).id
 
     def decision(
         self,
@@ -79,15 +94,14 @@ class TestAnomalyDetectionDetectorHandler(TestCase):
                 decisions={decision.group_key: decision for decision in decisions},
             ),
         )
-        with self.feature(ROTATE_ACTIVATION):
-            return process_detectors(packet, [self.detector])
+        return process_detectors(packet, [self.detector])
 
-    def open(self, decision: AnomalyDecision) -> DetectorEvaluation:
+    def open(self, decision: AnomalyDecision) -> IssueOccurrence:
         [(detector, evaluations)] = self.process(decision)
         assert detector == self.detector
-        evaluation = evaluations[decision.group_key]
-        assert isinstance(evaluation.result, IssueOccurrence)
-        return evaluation
+        occurrence = evaluations[decision.group_key].result
+        assert isinstance(occurrence, IssueOccurrence)
+        return occurrence
 
     def resolve(self, decision: AnomalyDecision) -> StatusChangeMessage:
         [(_, evaluations)] = self.process(decision)
@@ -102,35 +116,49 @@ class TestAnomalyDetectionDetectorHandler(TestCase):
         assert self.detector.group_type is AnomalyDetection
         assert isinstance(self.detector.detector_handler, AnomalyDetectionDetectorHandler)
 
-    def test_open_creates_occurrence_from_decision(self) -> None:
-        evaluation = self.open(self.decision(MINUTE))
+    def test_open_starts_investigation_instead_of_an_issue(self) -> None:
+        occurrence = self.open(self.decision(MINUTE))
 
-        occurrence = evaluation.result
-        assert isinstance(occurrence, IssueOccurrence)
         assert occurrence.type is AnomalyDetection
         assert occurrence.project_id == self.project.id
-        assert occurrence.issue_title == "Errors increased in production"
-        assert occurrence.priority == DetectorPriorityLevel.MEDIUM
         assert occurrence.detection_time == MINUTE.replace(tzinfo=UTC)
         assert {key: occurrence.evidence_data[key] for key in EVIDENCE} == EVIDENCE
         assert occurrence.evidence_display == [
             IssueEvidence(name="Signal", value="errors", important=True),
             IssueEvidence(name="Change", value="spike", important=False),
+            IssueEvidence(name="Urgency", value="medium", important=False),
             IssueEvidence(name="Started", value="2025-01-01T11:57:00", important=False),
             IssueEvidence(name="Observed", value="200.0", important=False),
             IssueEvidence(name="Expected", value="10.0", important=False),
         ]
-        event_data = evaluation.data["event_data"]
-        assert event_data is not None
-        assert event_data["environment"] == "production"
-        self.produce.assert_called_once_with(
-            payload_type=PayloadType.OCCURRENCE,
-            occurrence=occurrence,
-            status_change=None,
-            event_data=event_data,
-        )
+        self.produce.assert_not_called()
 
-    def test_occurrence_omits_absent_measurements_and_environment(self) -> None:
+        investigation = Notebook.objects.get()
+        assert investigation.creator_actor == ActorId(
+            ActorType.SERVICE_ACCOUNT, self.service_account_id
+        )
+        assert investigation.title == "Errors increased in production"
+        assert list(investigation.projects.values_list("id", flat=True)) == [self.project.id]
+        assert investigation.source["type"] == "manual"
+        assert investigation.source["prompt"].splitlines() == [
+            "Errors increased in production",
+            "Anomaly detected",
+            "Detected at 2025-01-01T12:00:00+00:00 in the production environment.",
+            "Signal: errors",
+            "Change: spike",
+            "Urgency: medium",
+            "Started: 2025-01-01T11:57:00",
+            "Observed: 200.0",
+            "Expected: 10.0",
+            "Decide whether this needs action and, if it does, find the cause.",
+        ]
+        seed = investigation.source["seed"]
+        assert seed["detectorId"] == self.detector.id
+        assert seed["occurrenceId"] == occurrence.id
+        assert {key: seed["evidence"][key] for key in EVIDENCE} == EVIDENCE
+        self.dispatch.assert_called_once_with(investigation.orchestration_run.id)
+
+    def test_investigation_omits_absent_measurements_and_environment(self) -> None:
         decision = dataclasses.replace(
             self.decision(MINUTE, urgency=Urgency.LOW),
             evidence={
@@ -141,75 +169,73 @@ class TestAnomalyDetectionDetectorHandler(TestCase):
             env="",
         )
 
-        evaluation = self.open(decision)
+        self.open(decision)
 
-        occurrence = evaluation.result
-        assert isinstance(occurrence, IssueOccurrence)
-        assert occurrence.priority == DetectorPriorityLevel.LOW
-        assert occurrence.evidence_display == [
-            IssueEvidence(name="Signal", value="other", important=True),
-            IssueEvidence(name="Change", value="silence", important=False),
-            IssueEvidence(name="Started", value="2025-01-01T11:50:00", important=False),
+        prompt = Notebook.objects.get().source["prompt"].splitlines()
+        assert prompt[2] == "Detected at 2025-01-01T12:00:00+00:00."
+        assert prompt[3:-1] == [
+            "Signal: other",
+            "Change: silence",
+            "Urgency: low",
+            "Started: 2025-01-01T11:50:00",
         ]
-        event_data = evaluation.data["event_data"]
-        assert event_data is not None
-        assert event_data["environment"] is None
-        assert event_data["platform"] == "other"
 
-    def test_urgency_change_updates_same_issue(self) -> None:
-        opened = self.open(self.decision(MINUTE)).result
-        escalated = self.open(
-            self.decision(MINUTE + timedelta(minutes=1), urgency=Urgency.HIGH)
-        ).result
+    def test_urgency_change_does_not_start_another_investigation(self) -> None:
+        self.open(self.decision(MINUTE))
 
-        assert isinstance(opened, IssueOccurrence)
-        assert isinstance(escalated, IssueOccurrence)
-        assert escalated.priority == DetectorPriorityLevel.HIGH
-        assert escalated.fingerprint == opened.fingerprint
-        assert escalated.id != opened.id
+        assert (
+            self.process(self.decision(MINUTE + timedelta(minutes=1), urgency=Urgency.HIGH)) == []
+        )
+        assert Notebook.objects.count() == 1
+        state = DetectorState.objects.get(detector=self.detector, detector_group_key="group")
+        assert state.is_triggered
+        assert state.state == str(TRIGGERED.value)
 
-    def test_resolved_decision_resolves_issue(self) -> None:
-        opened = self.open(self.decision(MINUTE)).result
+    def test_resolution_closes_the_activation_without_starting_anything(self) -> None:
+        opened = self.open(self.decision(MINUTE))
         close = self.resolve(self.decision(MINUTE + timedelta(minutes=1), resolved=True))
 
-        assert isinstance(opened, IssueOccurrence)
         assert close.fingerprint == opened.fingerprint
         assert close.new_status == GroupStatus.RESOLVED
-        assert close.project_id == self.project.id
-        assert close.detector_id == self.detector.id
+        assert Notebook.objects.count() == 1
         state = DetectorState.objects.get(detector=self.detector, detector_group_key="group")
         assert not state.is_triggered
+        self.produce.assert_not_called()
 
-    def test_reopen_starts_new_issue(self) -> None:
-        with patch(
-            "sentry.workflow_engine.handlers.detector.stateful._get_unix_epoch_time_in_milliseconds",
-            side_effect=[1_000, 2_000],
-        ):
-            opened = self.open(self.decision(MINUTE)).result
-            self.resolve(self.decision(MINUTE + timedelta(minutes=1), resolved=True))
-            reopened = self.open(self.decision(MINUTE + timedelta(minutes=2))).result
+    def test_reopen_starts_a_new_investigation(self) -> None:
+        self.open(self.decision(MINUTE))
+        self.resolve(self.decision(MINUTE + timedelta(minutes=1), resolved=True))
+        self.open(self.decision(MINUTE + timedelta(minutes=2)))
 
-        assert isinstance(opened, IssueOccurrence)
-        assert isinstance(reopened, IssueOccurrence)
-        assert reopened.fingerprint != opened.fingerprint
+        assert Notebook.objects.count() == 2
+
+    def test_replayed_reopen_does_not_start_another_investigation(self) -> None:
+        self.open(self.decision(MINUTE))
+        self.resolve(self.decision(MINUTE + timedelta(minutes=1), resolved=True))
+        self.open(self.decision(MINUTE + timedelta(minutes=2)))
+
+        # A retry before the checkpoint commit republishes the same minutes.
+        assert self.process(self.decision(MINUTE)) == []
+        assert self.process(self.decision(MINUTE + timedelta(minutes=1), resolved=True)) == []
+        assert self.process(self.decision(MINUTE + timedelta(minutes=2))) == []
+        assert Notebook.objects.count() == 2
 
     def test_replayed_minute_is_skipped(self) -> None:
         self.open(self.decision(MINUTE))
 
         assert self.process(self.decision(MINUTE, urgency=Urgency.HIGH)) == []
         assert self.process(self.decision(MINUTE - timedelta(minutes=1), resolved=True)) == []
-        self.produce.assert_called_once()
+        assert Notebook.objects.count() == 1
 
     def test_ignores_other_project_decisions(self) -> None:
         other_project = self.create_project()
 
         assert self.process(self.decision(MINUTE, project_id=other_project.id)) == []
-        self.produce.assert_not_called()
+        assert not Notebook.objects.exists()
         assert not DetectorState.objects.filter(detector=self.detector).exists()
 
     def test_mixed_packet_skips_processed_group_and_opens_new_one(self) -> None:
         self.open(self.decision(MINUTE, group_key="a"))
-        self.produce.reset_mock()
         other_project = self.create_project()
 
         [(_, evaluations)] = self.process(
@@ -220,15 +246,12 @@ class TestAnomalyDetectionDetectorHandler(TestCase):
 
         assert evaluations.keys() == {"b"}
         assert isinstance(evaluations["b"].result, IssueOccurrence)
-        self.produce.assert_called_once()
+        assert Notebook.objects.count() == 2
         assert dict(
             DetectorState.objects.filter(detector=self.detector).values_list(
                 "detector_group_key", "is_triggered"
             )
         ) == {"a": True, "b": True}
-        assert DetectorState.objects.get(
-            detector=self.detector, detector_group_key="a"
-        ).state == str(DetectorPriorityLevel.MEDIUM.value)
 
     def test_resolved_set_closes_group_without_a_decision(self) -> None:
         opened = self.open(self.decision(MINUTE))
@@ -240,11 +263,49 @@ class TestAnomalyDetectionDetectorHandler(TestCase):
                 resolved=frozenset({AnomalyGroupKey("group")}),
             ),
         )
-        with self.feature(ROTATE_ACTIVATION):
-            [(_, evaluations)] = process_detectors(packet, [self.detector])
+        [(_, evaluations)] = process_detectors(packet, [self.detector])
 
         result = evaluations["group"].result
         assert isinstance(result, StatusChangeMessage)
-        assert isinstance(opened.result, IssueOccurrence)
-        assert result.fingerprint == opened.result.fingerprint
+        assert result.fingerprint == opened.fingerprint
         assert not DetectorState.objects.get(detector=self.detector).is_triggered
+
+    def test_detector_without_service_account_skips_investigation(self) -> None:
+        self.detector.update(config={})
+
+        with patch.object(metrics, "incr") as incr:
+            self.open(self.decision(MINUTE))
+
+        assert not Notebook.objects.exists()
+        incr.assert_any_call(
+            "workflow_engine.seer_investigation.skipped",
+            tags={
+                "detector_type": DetectorType.ANOMALY_DETECTION.value,
+                "reason": "no_service_account",
+            },
+            sample_rate=1,
+        )
+
+    def test_service_account_without_project_access_is_rejected(self) -> None:
+        self.detector.update(
+            config={
+                "service_account_id": self.service_account("elsewhere", [self.create_project().id])
+            }
+        )
+
+        with (
+            patch.object(metrics, "incr") as incr,
+            patch.object(seer_investigation.logger, "exception") as log_exception,
+        ):
+            self.open(self.decision(MINUTE))
+
+        assert not Notebook.objects.exists()
+        log_exception.assert_called_once()
+        incr.assert_any_call(
+            "workflow_engine.seer_investigation.skipped",
+            tags={
+                "detector_type": DetectorType.ANOMALY_DETECTION.value,
+                "reason": "creator_rejected",
+            },
+            sample_rate=1,
+        )

@@ -22,6 +22,7 @@ class DetectorOutcome(StrEnum):
     """
 
     ISSUE_PLATFORM = "issue_platform"
+    SEER_INVESTIGATION = "seer_investigation"
 
     def dispatch(self, detector: Detector, evaluation: DetectorEvaluation) -> None:
         detector_outcome_registry.get(self).handle(detector, evaluation)

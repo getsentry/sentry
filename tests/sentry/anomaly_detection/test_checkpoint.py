@@ -35,7 +35,6 @@ from sentry.anomaly_detection.evaluation.organization import (
     OrgEvaluator,
 )
 from sentry.anomaly_detection.evaluation.series import samples_key
-from sentry.anomaly_detection.grouptype import AnomalyDetection
 from sentry.anomaly_detection.inputs.measurements import MAX_ENVIRONMENTS, MAX_SLICES, SPAN_SLICES
 from sentry.anomaly_detection.inputs.trace_lookup import TraceLookup
 from sentry.models.anomaly_detection_state import AnomalyDetectionState
@@ -938,13 +937,7 @@ class TestDenseWorkerCheckpoint(TestCase):
             ]
 
         with (
-            self.feature(
-                {
-                    schedule.FEATURE: True,
-                    schedule.ACTIVATION_ID_FEATURE: True,
-                    AnomalyDetection.build_ingest_feature_name(): True,
-                }
-            ),
+            self.feature(schedule.FEATURE),
             patch.object(schedule, "collect", side_effect=collect),
             patch.object(schedule, "hourly_rows", return_value=[]),
             patch.object(schedule, "collect_new_failure_modes", return_value=[]),
