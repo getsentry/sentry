@@ -63,10 +63,7 @@ export function StoryFooter() {
 function findPreviousAndNextStory(
   story: StoryDescriptor,
   stories: StoryTreeNode[]
-): {
-  next?: StoryTreeNode;
-  prev?: StoryTreeNode;
-} | null {
+): {next?: StoryTreeNode; prev?: StoryTreeNode} | null {
   const currentIndex = stories.findIndex(s => s.filesystemPath === story.filename);
 
   if (currentIndex === -1) {

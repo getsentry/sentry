@@ -12,12 +12,8 @@ import {DEFAULT_LOCALE_DATA, getLocaleSnapshot, setLocale, t, tct, tn} from './l
 describe('locale.gettextComponentTemplate', () => {
   it('should not wrap translated text in span', () => {
     // spaces are removed because pretter keeps trying to remove them in the snapshot
-    expect(
-      tct('hello[one]two[three:3]', {
-        one: ' one',
-        three: <code />,
-      })
-    ).toMatchInlineSnapshot(`
+    expect(tct('hello[one]two[three:3]', {one: ' one', three: <code />}))
+      .toMatchInlineSnapshot(`
       <React.Fragment>
         <React.Fragment>
           <React.Fragment>
@@ -42,12 +38,8 @@ describe('locale.gettextComponentTemplate', () => {
   it('should render two component templates inside the same parent', () => {
     render(
       <div>
-        {tct('1st: [one]', {
-          one: 'one',
-        })}
-        {tct('2nd: [two]', {
-          two: 'two',
-        })}
+        {tct('1st: [one]', {one: 'one'})}
+        {tct('2nd: [two]', {two: 'two'})}
       </div>
     );
 
@@ -60,9 +52,7 @@ describe('locale.gettextComponentTemplate', () => {
     const RenderChildren = ({children}: {children?: React.ReactNode}) => children;
     render(
       <div>
-        {tct('[render:one] [render:two] [render:three]', {
-          render: <RenderChildren />,
-        })}
+        {tct('[render:one] [render:two] [render:three]', {render: <RenderChildren />})}
       </div>
     );
 
@@ -71,11 +61,7 @@ describe('locale.gettextComponentTemplate', () => {
 
   it('should render multiple groups with the same name in an HTML tag', () => {
     const {container} = render(
-      <div>
-        {tct('[render:one] [render:two] [render:three]', {
-          render: <b />,
-        })}
-      </div>
+      <div>{tct('[render:one] [render:two] [render:three]', {render: <b />})}</div>
     );
 
     expect(screen.getByText(textWithMarkupMatcher('one two three'))).toBeInTheDocument();
@@ -107,11 +93,7 @@ describe('locale snapshot contextual translations', () => {
   });
 
   it('should translate a msgid separately for each context', () => {
-    setLocale({
-      ...DEFAULT_LOCALE_DATA,
-      m: ['млн'],
-      'abbreviated minutes\u0004m': ['м'],
-    });
+    setLocale({...DEFAULT_LOCALE_DATA, m: ['млн'], 'abbreviated minutes\u0004m': ['м']});
 
     const result = [
       t('m'),
@@ -144,10 +126,7 @@ describe('shared formatter translations', () => {
   });
 
   it('keeps full-day ranges date-only with localized digits', () => {
-    setLocale({
-      ...DEFAULT_LOCALE_DATA,
-      '': {...DEFAULT_LOCALE_DATA[''], lang: 'fa'},
-    });
+    setLocale({...DEFAULT_LOCALE_DATA, '': {...DEFAULT_LOCALE_DATA[''], lang: 'fa'}});
     render(
       <div>{getAbsoluteSummary('2025-01-01T00:00:00', '2025-01-02T23:59:59', true)}</div>
     );
@@ -156,10 +135,7 @@ describe('shared formatter translations', () => {
   });
 
   it('preserves localized numeric timezone labels from the application source', () => {
-    setLocale({
-      ...DEFAULT_LOCALE_DATA,
-      '': {...DEFAULT_LOCALE_DATA[''], lang: 'fa'},
-    });
+    setLocale({...DEFAULT_LOCALE_DATA, '': {...DEFAULT_LOCALE_DATA[''], lang: 'fa'}});
     const date = '2025-01-01T00:00:00Z';
     expect(formatTimezone(Date.parse(date), 'Asia/Kathmandu')).toBe('+۰۵۴۵');
     expect(formatChartDateTime(date, 'timezone', {timezone: 'Asia/Kathmandu'})).toBe(
@@ -172,10 +148,7 @@ describe('shared formatter translations', () => {
     expect(original.messages.tn('%s item', '%s items', 2)).toBe(
       tn('%s item', '%s items', 2)
     );
-    setLocale({
-      ...DEFAULT_LOCALE_DATA,
-      '%s item': ['%s article', '%s articles'],
-    });
+    setLocale({...DEFAULT_LOCALE_DATA, '%s item': ['%s article', '%s articles']});
     const translated = getLocaleSnapshot();
     expect(translated.messages.tn('%s item', '%s items', 9999)).toBe(
       tn('%s item', '%s items', 9999)

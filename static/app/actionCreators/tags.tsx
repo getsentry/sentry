@@ -55,10 +55,7 @@ export function loadOrganizationTags(
       getApiUrl('/organizations/$organizationIdOrSlug/tags/', {
         path: {organizationIdOrSlug: orgSlug},
       }),
-      {
-        method: 'GET',
-        query,
-      }
+      {method: 'GET', query}
     )
     .then(tags => tagFetchSuccess(tags, addAlert))
     .catch(() => {
@@ -196,10 +193,7 @@ export function fetchFeatureFlagValues({
 
   const url = `/organizations/${organization.slug}/tags/${strippedKey}/values/`;
 
-  const query: Query = {
-    dataset: Dataset.ERRORS,
-    useFlagsBackend: '1',
-  };
+  const query: Query = {dataset: Dataset.ERRORS, useFlagsBackend: '1'};
 
   if (search) {
     query.query = search;
@@ -222,10 +216,7 @@ export function fetchFeatureFlagValues({
     query.sort = sort;
   }
 
-  return api.requestPromise(url, {
-    method: 'GET',
-    query,
-  });
+  return api.requestPromise(url, {method: 'GET', query});
 }
 
 export type FetchOrganizationTagsParams = {

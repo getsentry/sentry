@@ -77,11 +77,7 @@ export function useMobileAppSizeSeriesQuery(
 
     if (!allHaveData || isFetching) {
       const loading = isFetching || !errorMessage;
-      return {
-        loading,
-        errorMessage,
-        rawData: EMPTY_ARRAY,
-      };
+      return {loading, errorMessage, rawData: EMPTY_ARRAY};
     }
 
     const timeseriesResults: WidgetTimeSeries[] = [];

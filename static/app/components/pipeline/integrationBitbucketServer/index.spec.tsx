@@ -128,10 +128,7 @@ describe('Bitbucket Server OAuthCallbackStep', () => {
 
     dispatchPipelineMessage({
       source: mockPopup,
-      data: {
-        _pipeline_source: 'sentry-pipeline',
-        oauth_token: 'callback-token',
-      },
+      data: {_pipeline_source: 'sentry-pipeline', oauth_token: 'callback-token'},
     });
 
     expect(advance).toHaveBeenCalledWith({oauthToken: 'callback-token'});

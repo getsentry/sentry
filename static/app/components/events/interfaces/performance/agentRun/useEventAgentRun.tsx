@@ -40,11 +40,7 @@ export type EventAgentRun =
    * above the error, and `nodes` are the AI spans of the agent run that contains it,
    * starting with the agent span.
    */
-  | {
-      failingNode: AITraceSpanNode;
-      nodes: AITraceSpanNode[];
-      type: 'inside';
-    };
+  | {failingNode: AITraceSpanNode; nodes: AITraceSpanNode[]; type: 'inside'};
 
 const NO_AGENT_RUN: EventAgentRun = {type: 'none'};
 

@@ -435,11 +435,5 @@ function getDeveloperNavigationConfiguration({
     });
   }
 
-  return [
-    {
-      id: 'settings-developer',
-      name: t('Developer Settings'),
-      items,
-    },
-  ];
+  return [{id: 'settings-developer', name: t('Developer Settings'), items}];
 }

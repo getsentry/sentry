@@ -2,15 +2,9 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 
-jest.mock('sentry/components/charts/baseChart', () => ({
-  BaseChart: jest.fn(() => null),
-}));
+jest.mock('sentry/components/charts/baseChart', () => ({BaseChart: jest.fn(() => null)}));
 
-const METRIC = {
-  name: 'checkout.latency',
-  type: 'distribution',
-  unit: 'millisecond',
-};
+const METRIC = {name: 'checkout.latency', type: 'distribution', unit: 'millisecond'};
 
 /** The fully qualified spelling Explore recognises for the metric above. */
 const QUALIFIED_P95 = 'p95(value,checkout.latency,distribution,millisecond)';

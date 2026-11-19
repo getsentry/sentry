@@ -37,9 +37,5 @@ export function useFetchCrashReport({crashReportId, organization, projectSlug}: 
     })
   );
 
-  return {
-    eventData,
-    groupData,
-    isFetching: isEventFetching || isGroupFetching,
-  };
+  return {eventData, groupData, isFetching: isEventFetching || isGroupFetching};
 }

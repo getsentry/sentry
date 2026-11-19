@@ -8,20 +8,12 @@ export type SeerWalletBalance = {
    * Remaining included plus purchased credits. Can go negative.
    */
   balance: number;
-  included: {
-    remaining: number;
-    resetsAt: string | null;
-    total: number;
-  };
+  included: {remaining: number; resetsAt: string | null; total: number};
   /**
    * Share of included plus purchased credits used, from 0 to 1.
    */
   percentUsed: number;
-  purchased: {
-    expiresAt: string | null;
-    remaining: number;
-    total: number;
-  };
+  purchased: {expiresAt: string | null; remaining: number; total: number};
   /**
    * Only returned to members with `org:billing`.
    */

@@ -65,10 +65,7 @@ export function AggregateSelector({
             option.value as AggregationKeyWithAlias,
             traceMetric
           );
-          dispatch({
-            type: actionType,
-            payload: newAggregates,
-          });
+          dispatch({type: actionType, payload: newAggregates});
         }
       }}
       trigger={triggerProps => (

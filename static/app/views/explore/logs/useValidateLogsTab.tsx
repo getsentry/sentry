@@ -38,10 +38,5 @@ export function useValidateLogsTab() {
     }),
   });
 
-  return {
-    data,
-    isFetching,
-    isPlaceholderData,
-    isLoading,
-  };
+  return {data, isFetching, isPlaceholderData, isLoading};
 }

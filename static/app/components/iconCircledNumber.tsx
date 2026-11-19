@@ -1,9 +1,7 @@
 import styled from '@emotion/styled';
 import {SvgIcon} from '@sentry/icons/svgIcon';
 
-type IconCircledNumberProps = {
-  number: number;
-};
+type IconCircledNumberProps = {number: number};
 
 export function IconCircledNumber({number}: IconCircledNumberProps) {
   const size = SvgIcon.ICON_SIZES.md;

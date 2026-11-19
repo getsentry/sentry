@@ -7,10 +7,7 @@ import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 import {AnnotatedText} from './meta/annotatedText';
 
-type Props = {
-  meta?: Record<any, any>;
-  sdk?: Event['sdk'];
-};
+type Props = {meta?: Record<any, any>; sdk?: Event['sdk']};
 
 export function EventSdk({sdk, meta}: Props) {
   if (!sdk || isEmptyObject(sdk)) {

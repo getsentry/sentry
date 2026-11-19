@@ -2,9 +2,7 @@ import {RuleTester} from 'oxlint/plugins-dev';
 
 import {noRelativeApiUrl} from './noRelativeApiUrl';
 
-const ruleTester = new RuleTester({
-  languageOptions: {parserOptions: {lang: 'tsx'}},
-});
+const ruleTester = new RuleTester({languageOptions: {parserOptions: {lang: 'tsx'}}});
 
 ruleTester.run('no-relative-api-url', noRelativeApiUrl, {
   valid: [
@@ -46,18 +44,9 @@ ruleTester.run('no-relative-api-url', noRelativeApiUrl, {
       code: "const url = '/api/0/organizations/acme/data-export/1/?download=true';",
       errors: [{messageId: 'relativeApiUrl'}],
     },
-    {
-      code: "const baseUrl = '/api/0';",
-      errors: [{messageId: 'relativeApiUrl'}],
-    },
-    {
-      code: "const url = '/api/0?query=1';",
-      errors: [{messageId: 'relativeApiUrl'}],
-    },
-    {
-      code: "const url = '/api/0' + path;",
-      errors: [{messageId: 'relativeApiUrl'}],
-    },
+    {code: "const baseUrl = '/api/0';", errors: [{messageId: 'relativeApiUrl'}]},
+    {code: "const url = '/api/0?query=1';", errors: [{messageId: 'relativeApiUrl'}]},
+    {code: "const url = '/api/0' + path;", errors: [{messageId: 'relativeApiUrl'}]},
     {
       code: 'const url = `/api/0/organizations/${slug}/` + query;',
       errors: [{messageId: 'relativeApiUrl'}],
@@ -78,14 +67,8 @@ ruleTester.run('no-relative-api-url', noRelativeApiUrl, {
       code: 'const url = `${api.baseUrl}/projects/${org}/${project}/files/dsyms/?id=${id}`;',
       errors: [{messageId: 'apiBaseUrl'}],
     },
-    {
-      code: 'const url = api.baseUrl + path;',
-      errors: [{messageId: 'apiBaseUrl'}],
-    },
-    {
-      code: 'const baseUrl = api.baseUrl;',
-      errors: [{messageId: 'apiBaseUrl'}],
-    },
+    {code: 'const url = api.baseUrl + path;', errors: [{messageId: 'apiBaseUrl'}]},
+    {code: 'const baseUrl = api.baseUrl;', errors: [{messageId: 'apiBaseUrl'}]},
     {
       code: 'const url = this.props.api.baseUrl + path;',
       errors: [{messageId: 'apiBaseUrl'}],

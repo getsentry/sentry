@@ -78,9 +78,7 @@ describe('formatTimeSeriesLabelForWidgetQuery', () => {
       columns: ['mcp.transport'],
       seriesLabel: 'group',
     });
-    const widget = WidgetFixture({
-      queries: [widgetQuery, WidgetQueryFixture()],
-    });
+    const widget = WidgetFixture({queries: [widgetQuery, WidgetQueryFixture()]});
 
     expect(
       formatTimeSeriesLabelForWidgetQuery(

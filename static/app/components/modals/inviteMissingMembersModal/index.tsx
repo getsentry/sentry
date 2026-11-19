@@ -64,10 +64,7 @@ function InviteStatusMessage({
     const errorCount = statuses.filter(i => i.error).length;
 
     const invites = <strong>{tn('%s invite', '%s invites', sentCount)}</strong>;
-    const tctComponents = {
-      invites,
-      failed: errorCount,
-    };
+    const tctComponents = {invites, failed: errorCount};
 
     return (
       <Flex gap="md" align="center">
@@ -151,10 +148,7 @@ export function InviteMissingMembersModal({
   };
 
   const selectAll = (checked: boolean) => {
-    const selectedMembers = memberInvites.map(m => ({
-      ...m,
-      selected: checked,
-    }));
+    const selectedMembers = memberInvites.map(m => ({...m, selected: checked}));
     setMemberInvites(selectedMembers);
   };
 
@@ -169,11 +163,7 @@ export function InviteMissingMembersModal({
   }
 
   const sendMemberInvite = async (invite: MissingMemberInvite) => {
-    const data = {
-      email: invite.email,
-      teams: [...invite.teamSlugs],
-      role: invite.role,
-    };
+    const data = {email: invite.email, teams: [...invite.teamSlugs], role: invite.role};
 
     try {
       await createMember(data);
@@ -209,9 +199,7 @@ export function InviteMissingMembersModal({
     if (organization) {
       trackAnalytics(
         'missing_members_invite_modal.requests_sent',
-        {
-          organization,
-        },
+        {organization},
         {startSession: true}
       );
     }

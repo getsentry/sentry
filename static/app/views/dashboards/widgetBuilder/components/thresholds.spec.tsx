@@ -97,9 +97,7 @@ describe('Thresholds', () => {
         initialRouterConfig: {
           location: {
             pathname: '/mock-pathname/',
-            query: {
-              thresholds: '{"max_values":{"max1":100},"unit":null}',
-            },
+            query: {thresholds: '{"max_values":{"max1":100},"unit":null}'},
           },
         },
       }
@@ -125,9 +123,7 @@ describe('Thresholds', () => {
         initialRouterConfig: {
           location: {
             pathname: '/mock-pathname/',
-            query: {
-              thresholds: '{"max_values":{"max1":100},"unit":"millisecond"}',
-            },
+            query: {thresholds: '{"max_values":{"max1":100},"unit":"millisecond"}'},
           },
         },
       }
@@ -149,10 +145,7 @@ describe('Thresholds', () => {
         initialRouterConfig: {
           location: {
             pathname: '/mock-pathname/',
-            query: {
-              displayType: DisplayType.LINE,
-              yAxis: ['count()'],
-            },
+            query: {displayType: DisplayType.LINE, yAxis: ['count()']},
           },
         },
       }
@@ -403,9 +396,7 @@ describe('Thresholds', () => {
         initialRouterConfig: {
           location: {
             pathname: '/mock-pathname/',
-            query: {
-              thresholds: '{"max_values":{"max1":100},"unit":"millisecond"}',
-            },
+            query: {thresholds: '{"max_values":{"max1":100},"unit":"millisecond"}'},
           },
         },
       }

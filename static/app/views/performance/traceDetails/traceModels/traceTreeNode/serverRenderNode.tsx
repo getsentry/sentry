@@ -40,13 +40,8 @@ export class ServerRenderNode extends BaseNode<TraceTree.ServerRenderPlaceholder
     return this.description;
   }
 
-  get traceHeaderTitle(): {
-    title: string;
-    subtitle?: string;
-  } {
-    return {
-      title: t('Trace'),
-    };
+  get traceHeaderTitle(): {title: string; subtitle?: string} {
+    return {title: t('Trace')};
   }
 
   analyticsName(): string {

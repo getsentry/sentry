@@ -7,9 +7,7 @@ type DetectorAnalyticsEventPayload = ReturnType<typeof getDetectorAnalyticsPaylo
 type AutomationAnalyticsEventPayload = ReturnType<typeof getAutomationAnalyticsPayload>;
 
 type DetectorCreateAnalyticsEventPayload =
-  | (DetectorAnalyticsEventPayload & {
-      success: true;
-    })
+  | (DetectorAnalyticsEventPayload & {success: true})
   | {detector_type: string; success: false};
 
 export type MonitorsEventParameters = {
@@ -22,10 +20,7 @@ export type MonitorsEventParameters = {
     organization: Organization;
     success: boolean;
   };
-  'landing_page.platform_guide.viewed': {
-    guide: string;
-    platform: string;
-  };
+  'landing_page.platform_guide.viewed': {guide: string; platform: string};
   'monitor.created': DetectorCreateAnalyticsEventPayload;
   'monitor.updated': DetectorAnalyticsEventPayload;
   'monitors.onboarding_modal_viewed': {step: number};

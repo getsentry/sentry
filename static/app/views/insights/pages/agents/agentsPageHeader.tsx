@@ -8,9 +8,7 @@ import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 
 import {AGENTS_LANDING_SUB_PATH, AGENTS_SIDEBAR_LABEL, MODULES} from './settings';
 
-type Props = {
-  module?: HeaderProps['selectedModule'];
-};
+type Props = {module?: HeaderProps['selectedModule']};
 
 export function AgentsPageHeader({module}: Props) {
   const organization = useOrganization();

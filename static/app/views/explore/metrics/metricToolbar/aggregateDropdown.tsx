@@ -51,11 +51,7 @@ export function AggregateDropdown({
       ...group,
       options: group.options.map(opt =>
         disabledAggregates[opt.value]
-          ? {
-              ...opt,
-              disabled: true,
-              tooltip: disabledAggregates[opt.value],
-            }
+          ? {...opt, disabled: true, tooltip: disabledAggregates[opt.value]}
           : opt
       ),
     }));

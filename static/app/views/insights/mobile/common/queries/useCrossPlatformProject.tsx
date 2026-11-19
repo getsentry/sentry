@@ -31,9 +31,5 @@ export function useCrossPlatformProject() {
   const selectedPlatform =
     platform ?? localStorage.getItem(PLATFORM_LOCAL_STORAGE_KEY) ?? DEFAULT_PLATFORM;
 
-  return {
-    project,
-    selectedPlatform,
-    isProjectCrossPlatform,
-  };
+  return {project, selectedPlatform, isProjectCrossPlatform};
 }

@@ -103,9 +103,7 @@ export function ProfileHeader({
     : null;
 
   const handleGoToTransaction = () => {
-    trackAnalytics('profiling_views.go_to_transaction', {
-      organization,
-    });
+    trackAnalytics('profiling_views.go_to_transaction', {organization});
   };
 
   return (

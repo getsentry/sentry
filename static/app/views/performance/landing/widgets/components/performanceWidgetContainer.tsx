@@ -15,7 +15,4 @@ const Div = styled('div')``;
 export const PERFORMANCE_WIDGET_CONTAINERS: Record<
   PerformanceWidgetContainerTypes,
   typeof StyledPanel | typeof Div
-> = {
-  panel: StyledPanel,
-  inline: Div,
-};
+> = {panel: StyledPanel, inline: Div};

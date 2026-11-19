@@ -9,10 +9,7 @@ function integrationsOptions(group: Group, organization: OrganizationSummary) {
   return apiOptions.as<GroupIntegration[]>()(
     '/organizations/$organizationIdOrSlug/issues/$issueId/integrations/',
     {
-      path: {
-        organizationIdOrSlug: organization.slug,
-        issueId: group.id,
-      },
+      path: {organizationIdOrSlug: organization.slug, issueId: group.id},
       staleTime: Infinity,
     }
   );

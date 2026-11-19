@@ -23,12 +23,7 @@ describe('Request entry', () => {
         {
           type: 'request',
           data: {
-            env: {
-              DOCUMENT_ROOT: '',
-              REMOTE_ADDR: '',
-              SERVER_NAME: '',
-              SERVER_PORT: '',
-            },
+            env: {DOCUMENT_ROOT: '', REMOTE_ADDR: '', SERVER_NAME: '', SERVER_PORT: ''},
             method: 'POST',
             query: [],
             url: '/Home/PostIndex',
@@ -36,17 +31,7 @@ describe('Request entry', () => {
             fragment: null,
             headers: [],
             cookies: [],
-            data: [
-              {
-                a: '',
-                c: [
-                  {
-                    d: '',
-                    f: '',
-                  },
-                ],
-              },
-            ],
+            data: [{a: '', c: [{d: '', f: ''}]}],
           },
         },
       ],
@@ -212,14 +197,7 @@ describe('Request entry', () => {
         fragment: null,
       };
 
-      const event = EventFixture({
-        entries: [
-          {
-            type: EntryType.REQUEST,
-            data,
-          },
-        ],
-      });
+      const event = EventFixture({entries: [{type: EntryType.REQUEST, data}]});
 
       render(<Request event={event} data={event.entries[0]!.data} />, {
         organization: {
@@ -246,14 +224,7 @@ describe('Request entry', () => {
         fragment: null,
       };
 
-      const event = EventFixture({
-        entries: [
-          {
-            type: EntryType.REQUEST,
-            data,
-          },
-        ],
-      });
+      const event = EventFixture({entries: [{type: EntryType.REQUEST, data}]});
 
       render(<Request event={event} data={event.entries[0]!.data} />, {
         organization: {
@@ -280,14 +251,7 @@ describe('Request entry', () => {
         fragment: null,
       };
 
-      const event = EventFixture({
-        entries: [
-          {
-            type: EntryType.REQUEST,
-            data,
-          },
-        ],
-      });
+      const event = EventFixture({entries: [{type: EntryType.REQUEST, data}]});
 
       render(<Request event={event} data={event.entries[0]!.data} />, {
         organization: {
@@ -315,14 +279,7 @@ describe('Request entry', () => {
         fragment: null,
       };
 
-      const event = EventFixture({
-        entries: [
-          {
-            type: EntryType.REQUEST,
-            data,
-          },
-        ],
-      });
+      const event = EventFixture({entries: [{type: EntryType.REQUEST, data}]});
 
       expect(() =>
         render(<Request event={event} data={event.entries[0]!.data} />, {
@@ -347,14 +304,7 @@ describe('Request entry', () => {
         method: 'POST',
         url: '/Home/PostIndex',
       };
-      const event = EventFixture({
-        entries: [
-          {
-            type: EntryType.REQUEST,
-            data,
-          },
-        ],
-      });
+      const event = EventFixture({entries: [{type: EntryType.REQUEST, data}]});
       expect(() =>
         render(<Request event={event} data={event.entries[0]!.data} />, {
           organization: {
@@ -377,14 +327,7 @@ describe('Request entry', () => {
         fragment: null,
       };
 
-      const event = EventFixture({
-        entries: [
-          {
-            type: EntryType.REQUEST,
-            data,
-          },
-        ],
-      });
+      const event = EventFixture({entries: [{type: EntryType.REQUEST, data}]});
 
       expect(() =>
         render(<Request event={event} data={event.entries[0]!.data} />, {
@@ -408,14 +351,7 @@ describe('Request entry', () => {
           },
         };
 
-        const event = EventFixture({
-          entries: [
-            {
-              type: EntryType.REQUEST,
-              data,
-            },
-          ],
-        });
+        const event = EventFixture({entries: [{type: EntryType.REQUEST, data}]});
 
         render(<Request event={event} data={event.entries[0]!.data} />);
 
@@ -441,12 +377,7 @@ describe('Request entry', () => {
         };
 
         const event = EventFixture({
-          entries: [
-            {
-              type: EntryType.REQUEST,
-              data,
-            },
-          ],
+          entries: [{type: EntryType.REQUEST, data}],
           contexts: {
             response: {
               data: {
@@ -488,12 +419,7 @@ describe('Request entry', () => {
         };
 
         const event = EventFixture({
-          entries: [
-            {
-              type: EntryType.REQUEST,
-              data,
-            },
-          ],
+          entries: [{type: EntryType.REQUEST, data}],
           contexts: {
             response: {
               data: {
@@ -534,9 +460,7 @@ describe('Request entry', () => {
       inferredContentType: null,
     };
 
-    const event = EventFixture({
-      entries: [{type: EntryType.REQUEST, data}],
-    });
+    const event = EventFixture({entries: [{type: EntryType.REQUEST, data}]});
 
     render(<Request event={event} data={event.entries[0]!.data} />);
 

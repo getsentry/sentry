@@ -58,10 +58,7 @@ type Summary = {
   min_listed_mismatch_cents?: number;
 };
 
-type ComparisonResponse = {
-  rows: Row[];
-  summary: Summary;
-};
+type ComparisonResponse = {rows: Row[]; summary: Summary};
 
 const STATUS_VARIANT: Record<RowStatus, TagProps['variant']> = {
   match: 'success',

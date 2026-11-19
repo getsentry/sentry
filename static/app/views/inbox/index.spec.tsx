@@ -29,10 +29,7 @@ function mockIssuePreviewRequests(groupId: string, activity: GroupActivity[] = [
     url: `/organizations/org-slug/issues/${groupId}/events/recommended/`,
     body: EventFixture({id: 'event-id'}),
   });
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/users/',
-    body: [],
-  });
+  MockApiClient.addMockResponse({url: '/organizations/org-slug/users/', body: []});
   MockApiClient.addMockResponse({
     url: '/projects/org-slug/project-slug/events/event-id/owners/',
     body: {owners: [], rules: []},
@@ -139,10 +136,7 @@ describe('Inbox', () => {
   });
 
   it('shows an empty state when there are no items', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/inbox/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/inbox/', body: []});
 
     render(<Inbox />, {organization});
 
@@ -607,9 +601,7 @@ describe('Inbox', () => {
       });
 
       await userEvent.click(
-        await screen.findByRole('button', {
-          name: `Actions for ${readNotebookItem.title}`,
-        })
+        await screen.findByRole('button', {name: `Actions for ${readNotebookItem.title}`})
       );
       await userEvent.click(
         await screen.findByRole('menuitemradio', {name: 'Mark as unread'})
@@ -690,9 +682,7 @@ describe('Inbox', () => {
       });
 
       await userEvent.click(
-        await screen.findByRole('button', {
-          name: `Actions for ${readNotebookItem.title}`,
-        })
+        await screen.findByRole('button', {name: `Actions for ${readNotebookItem.title}`})
       );
       await userEvent.click(
         await screen.findByRole('menuitemradio', {name: 'Mark as unread'})
@@ -1156,12 +1146,7 @@ describe('Inbox', () => {
         match: [
           MockApiClient.matchQuery({subject_type: ['notebook'], recipient: ['team']}),
         ],
-        body: [
-          {
-            ...notebookItem,
-            url: `${notebookItem.url}?comment=1#comment-1`,
-          },
-        ],
+        body: [{...notebookItem, url: `${notebookItem.url}?comment=1#comment-1`}],
       });
 
       const {router} = render(<Inbox />, {

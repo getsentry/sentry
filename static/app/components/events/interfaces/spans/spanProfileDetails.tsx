@@ -218,9 +218,7 @@ export function useSpanProfileDetails(
         organization,
         projectSlug: metadata.projectSlug,
         profileId: metadata.profileId,
-        query: {
-          spanId: span.span_id,
-        },
+        query: {spanId: span.span_id},
       });
     }
 

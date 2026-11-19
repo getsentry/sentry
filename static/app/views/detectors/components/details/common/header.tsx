@@ -16,10 +16,7 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 
 import {DisableDetectorAction, EditDetectorAction} from './actions';
 
-type DetectorDetailsHeaderProps = {
-  detector: Detector;
-  useLocalDetailActions?: boolean;
-};
+type DetectorDetailsHeaderProps = {detector: Detector; useLocalDetailActions?: boolean};
 
 function DetectorDetailsDefaultHeaderContent({detector}: {detector: Detector}) {
   const organization = useOrganization();

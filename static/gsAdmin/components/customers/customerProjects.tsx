@@ -10,9 +10,7 @@ import {ResultGrid} from 'sentry/components/resultGrid';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 
-type Props = {
-  orgId: string;
-};
+type Props = {orgId: string};
 
 export function CustomerProjects({orgId}: Props) {
   return (

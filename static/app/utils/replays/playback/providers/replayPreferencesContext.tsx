@@ -24,10 +24,7 @@ export function ReplayPreferencesContextProvider({
 
   const setPrefs = useCallback(
     (config: Partial<ReplayPrefs>) => {
-      const updated = {
-        ...prefsStrategy.get(),
-        ...config,
-      };
+      const updated = {...prefsStrategy.get(), ...config};
       prefsStrategy.set(updated);
       setState(updated);
     },

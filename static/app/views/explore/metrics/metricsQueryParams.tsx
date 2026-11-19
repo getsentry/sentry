@@ -79,11 +79,7 @@ export function MetricsQueryParamsProvider({
   );
 
   const traceMetricContextValue = useMemo(
-    () => ({
-      metric: traceMetric,
-      setTraceMetric,
-      removeMetric,
-    }),
+    () => ({metric: traceMetric, setTraceMetric, removeMetric}),
     [setTraceMetric, removeMetric, traceMetric]
   );
 

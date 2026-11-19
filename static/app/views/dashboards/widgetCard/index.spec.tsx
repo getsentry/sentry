@@ -36,22 +36,15 @@ jest.mock('sentry/views/dashboards/widgetCard/releaseWidgetQueries');
 
 describe('Dashboards > WidgetCard', () => {
   const {organization} = initializeOrg({
-    organization: OrganizationFixture({
-      features: ['discover-basic'],
-    }),
+    organization: OrganizationFixture({features: ['discover-basic']}),
   });
 
   const renderWithProviders = (component: React.ReactElement, features: string[] = []) =>
     render(component, {
-      organization: {
-        ...organization,
-        features: [...organization.features, ...features],
-      },
+      organization: {...organization, features: [...organization.features, ...features]},
       initialRouterConfig: {
         route: '/organizations/:orgId/dashboard/:dashboardId/',
-        location: {
-          pathname: '/organizations/org-slug/dashboard/42/',
-        },
+        location: {pathname: '/organizations/org-slug/dashboard/42/'},
       },
     });
 
@@ -113,12 +106,7 @@ describe('Dashboards > WidgetCard', () => {
   const selection = {
     projects: [1],
     environments: ['prod'],
-    datetime: {
-      period: '14d',
-      start: null,
-      end: null,
-      utc: false,
-    },
+    datetime: {period: '14d', start: null, end: null, utc: false},
   };
 
   let eventsMock: jest.Mock;
@@ -147,10 +135,7 @@ describe('Dashboards > WidgetCard', () => {
     });
     eventsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        meta: {fields: {title: 'string'}},
-        data: [{title: 'title'}],
-      },
+      body: {meta: {fields: {title: 'string'}}, data: [{title: 'title'}]},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/stats/',
@@ -179,10 +164,7 @@ describe('Dashboards > WidgetCard', () => {
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Open in Explore'}));
-    expect(spy).toHaveBeenCalledWith({
-      organization,
-      widget: multipleQueryWidget,
-    });
+    expect(spy).toHaveBeenCalledWith({organization, widget: multipleQueryWidget});
   });
 
   it('renders with Open in Explore button', async () => {
@@ -509,11 +491,7 @@ describe('Dashboards > WidgetCard', () => {
     await waitFor(() => {
       expect(eventsMock).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            per_page: 20,
-          }),
-        })
+        expect.objectContaining({query: expect.objectContaining({per_page: 20})})
       );
     });
   });
@@ -540,11 +518,7 @@ describe('Dashboards > WidgetCard', () => {
     await waitFor(() => {
       expect(eventsMock).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            per_page: 5,
-          }),
-        })
+        expect.objectContaining({query: expect.objectContaining({per_page: 5})})
       );
     });
   });

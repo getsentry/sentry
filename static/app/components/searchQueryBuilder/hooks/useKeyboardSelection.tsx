@@ -98,12 +98,7 @@ function useKeyboardSelectionState() {
     []
   );
 
-  return useMemo(
-    () => ({
-      selectInDirection,
-    }),
-    [selectInDirection]
-  );
+  return useMemo(() => ({selectInDirection}), [selectInDirection]);
 }
 
 const KeyboardSelectionContext = createContext<KeyboardSelectionData>({

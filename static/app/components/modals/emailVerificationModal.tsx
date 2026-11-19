@@ -7,9 +7,7 @@ import {t, tct} from 'sentry/locale';
 import {EmailAddresses} from 'sentry/views/settings/account/accountEmails';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
-type Props = Pick<ModalRenderProps, 'Body' | 'Header'> & {
-  actionMessage?: string;
-};
+type Props = Pick<ModalRenderProps, 'Body' | 'Header'> & {actionMessage?: string};
 
 function EmailVerificationModal({
   Header,

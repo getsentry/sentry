@@ -976,10 +976,7 @@ describe('autofix embed', () => {
           title: 'Pass an initial accumulator',
           description: `Add the guard in ${longFilename}.`,
         },
-        {
-          title: 'Cover the regression',
-          description: `Add a test for ${longFilename}.`,
-        },
+        {title: 'Cover the regression', description: `Add a test for ${longFilename}.`},
       ],
     });
 

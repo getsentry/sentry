@@ -124,14 +124,8 @@ export type WidgetQuery = {
 };
 
 type WidgetChangedReason = {
-  equations: Array<{
-    equation: string;
-    reason: string | string[];
-  }> | null;
-  orderby: Array<{
-    orderby: string;
-    reason: string | string[];
-  }> | null;
+  equations: Array<{equation: string; reason: string | string[]}> | null;
+  orderby: Array<{orderby: string; reason: string | string[]}> | null;
   selected_columns: string[];
 };
 
@@ -159,14 +153,9 @@ export type Widget = {
 };
 
 // We store an explicit set of keys in the backend now
-export type WidgetLayout = Pick<Layout, 'h' | 'w' | 'x' | 'y'> & {
-  minH: number;
-};
+export type WidgetLayout = Pick<Layout, 'h' | 'w' | 'x' | 'y'> & {minH: number};
 
-type WidgetPreview = {
-  displayType: DisplayType;
-  layout: WidgetLayout | null;
-};
+type WidgetPreview = {displayType: DisplayType; layout: WidgetLayout | null};
 
 export type DashboardPermissions = {
   isEditableByEveryone: boolean;

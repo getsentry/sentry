@@ -15,10 +15,7 @@ const segmentSpansListSortParsers = {
 export function getEAPSegmentSpansListSort(
   location: Location,
   spanCategory?: string
-): {
-  options: DropdownOption[];
-  selected: DropdownOption;
-} {
+): {options: DropdownOption[]; selected: DropdownOption} {
   const sortOptions = getEAPFilterOptions(spanCategory);
   const {showTransactions} = loadQueryParamsFromLocation(
     segmentSpansListSortParsers,

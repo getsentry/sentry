@@ -65,10 +65,7 @@ function selectAllCheckbox() {
 describe('EditAccessModal', () => {
   beforeEach(() => {
     TeamStore.loadInitialData(teams);
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/teams/',
-      body: teams,
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/teams/', body: teams});
   });
 
   afterEach(() => {

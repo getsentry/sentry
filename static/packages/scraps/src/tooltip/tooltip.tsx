@@ -20,9 +20,7 @@ interface TooltipContextProps {
   container: Element | DocumentFragment | null;
 }
 
-export const TooltipContext = createContext<TooltipContextProps>({
-  container: null,
-});
+export const TooltipContext = createContext<TooltipContextProps>({container: null});
 
 export interface TooltipProps extends UseHoverOverlayProps {
   /**

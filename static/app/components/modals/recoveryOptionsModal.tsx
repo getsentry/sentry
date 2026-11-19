@@ -13,9 +13,7 @@ import type {Authenticator} from 'sentry/types/auth';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
-type Props = ModalRenderProps & {
-  authenticatorName: string;
-};
+type Props = ModalRenderProps & {authenticatorName: string};
 
 function RecoveryOptionsModal({
   authenticatorName,

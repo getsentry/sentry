@@ -12,9 +12,7 @@ import {useIsFullscreen} from 'sentry/utils/window/useIsFullscreen';
 
 import {useReplayContext} from './replayContext';
 
-type Props = {
-  toggleFullscreen: () => void;
-};
+type Props = {toggleFullscreen: () => void};
 
 export function ReplayFullscreenButton({toggleFullscreen}: Props) {
   const organization = useOrganization();

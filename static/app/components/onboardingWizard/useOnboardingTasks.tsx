@@ -43,22 +43,17 @@ export function useOnboardingTasks({disabled = false}: {disabled?: boolean} = {}
 } {
   const organization = useOrganization();
   const {projects} = useProjects();
-  const supportedTasks = getMergedTasks({
-    organization,
-    projects,
-  }).filter(task => task.display);
+  const supportedTasks = getMergedTasks({organization, projects}).filter(
+    task => task.display
+  );
 
   const allTasksDone = supportedTasks.every(findCompleteTasks);
 
   const {data: serverTasks = {onboardingTasks: []}, refetch} = useQuery({
-    ...apiOptions.as<{
-      onboardingTasks: OnboardingTaskStatus[];
-    }>()('/organizations/$organizationIdOrSlug/onboarding-tasks/', {
-      path: {
-        organizationIdOrSlug: organization.slug,
-      },
-      staleTime: 0,
-    }),
+    ...apiOptions.as<{onboardingTasks: OnboardingTaskStatus[]}>()(
+      '/organizations/$organizationIdOrSlug/onboarding-tasks/',
+      {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
+    ),
     enabled:
       !!organization.features?.includes('onboarding') && !allTasksDone && !disabled,
     refetchInterval: query => {

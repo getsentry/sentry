@@ -161,9 +161,7 @@ export function AutofixContent({aiConfig, group, project}: AutofixContentProps) 
       return null;
     }
 
-    const data: Record<string, string> = {
-      autofixStatus: autofix.runState.status,
-    };
+    const data: Record<string, string> = {autofixStatus: autofix.runState.status};
 
     const sections = getOrderedAutofixSections(autofix.runState);
 
@@ -267,10 +265,7 @@ interface AutofixEmptyStateProps {
 }
 
 function AutofixEmptyState({autofix, group, project}: AutofixEmptyStateProps) {
-  const {openSeerDrawer} = useOpenSeerDrawer({
-    group,
-    project,
-  });
+  const {openSeerDrawer} = useOpenSeerDrawer({group, project});
 
   const referrer = autofix.runState?.blocks?.[0]?.message?.metadata?.referrer;
 
@@ -327,10 +322,7 @@ function AutofixPreviews({
     autofix_referrer: referrer,
   });
 
-  const {openSeerDrawer} = useOpenSeerDrawer({
-    group,
-    project,
-  });
+  const {openSeerDrawer} = useOpenSeerDrawer({group, project});
 
   // On the autofix tab the full analysis is already open beside this sidebar,
   // so a button whose only job is to go there has nowhere to take you. The

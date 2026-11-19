@@ -92,10 +92,7 @@ export function FunctionTrendsWidget({
   const handleCursor = useCallback(
     (cursor: string | undefined) => {
       const {pathname, query} = location;
-      navigate({
-        pathname,
-        query: {...query, [cursorName]: cursor},
-      });
+      navigate({pathname, query: {...query, [cursorName]: cursor}});
     },
     [cursorName, location, navigate]
   );
@@ -409,15 +406,9 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
     dividingLine.markLine = {
       data: [{xAxis: seriesMid}],
       label: {show: false},
-      lineStyle: {
-        color: theme.tokens.content.primary,
-        type: 'solid',
-        width: 2,
-      },
+      lineStyle: {color: theme.tokens.content.primary, type: 'solid', width: 2},
       symbol: ['none', 'none'],
-      tooltip: {
-        show: false,
-      },
+      tooltip: {show: false},
       silent: true,
     };
 
@@ -442,11 +433,7 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
         formatter: 'Past',
         position: 'insideStartTop',
       },
-      lineStyle: {
-        color: theme.tokens.content.primary,
-        type: 'dashed',
-        width: 1,
-      },
+      lineStyle: {color: theme.tokens.content.primary, type: 'dashed', width: 1},
       symbol: ['none', 'none'],
       tooltip: {
         formatter: getTooltipFormatter(t('Past Baseline'), func.aggregate_range_1),
@@ -462,10 +449,7 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
     afterLine.markLine = {
       data: [
         [
-          {
-            value: 'Present',
-            coord: [seriesMid, func.aggregate_range_2 / 1e6],
-          },
+          {value: 'Present', coord: [seriesMid, func.aggregate_range_2 / 1e6]},
           {coord: [seriesEnd, func.aggregate_range_2 / 1e6]},
         ],
       ],
@@ -477,11 +461,7 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
         formatter: 'Present',
         position: 'insideEndBottom',
       },
-      lineStyle: {
-        color: theme.tokens.content.primary,
-        type: 'dashed',
-        width: 1,
-      },
+      lineStyle: {color: theme.tokens.content.primary, type: 'dashed', width: 1},
       symbol: ['none', 'none'],
       tooltip: {
         formatter: getTooltipFormatter(t('Present Baseline'), func.aggregate_range_2),
@@ -494,24 +474,15 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
   const chartOptions = useMemo(() => {
     return {
       height: 150,
-      grid: {
-        top: '10px',
-        bottom: '10px',
-        left: '10px',
-        right: '10px',
-      },
+      grid: {top: '10px', bottom: '10px', left: '10px', right: '10px'},
       yAxis: {
         axisLabel: {
           color: theme.tokens.content.secondary,
           formatter: (value: number) => axisLabelFormatter(value, 'duration'),
         },
       },
-      xAxis: {
-        type: 'time' as const,
-      },
-      tooltip: {
-        valueFormatter: (value: number) => tooltipFormatter(value, 'duration'),
-      },
+      xAxis: {type: 'time' as const},
+      tooltip: {valueFormatter: (value: number) => tooltipFormatter(value, 'duration')},
     };
   }, [theme.tokens.content.secondary]);
 

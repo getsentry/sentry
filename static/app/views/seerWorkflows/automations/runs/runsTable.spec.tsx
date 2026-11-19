@@ -121,9 +121,7 @@ describe('RunsTable', () => {
         runs: [
           makeRun({
             executions: [
-              makeExecution({
-                outputs: [makeInvestigation('2307', 'Latency spike')],
-              }),
+              makeExecution({outputs: [makeInvestigation('2307', 'Latency spike')]}),
             ],
           }),
         ],

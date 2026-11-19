@@ -332,10 +332,7 @@ export function updateVisualizeYAxis(
   traceMetric: TraceMetric
 ): VisualizeFunction {
   return visualize.replace({
-    yAxis: makeMetricsAggregate({
-      aggregate,
-      traceMetric,
-    }),
+    yAxis: makeMetricsAggregate({aggregate, traceMetric}),
     chartType: undefined,
   });
 }

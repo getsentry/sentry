@@ -278,10 +278,7 @@ export default function Inbox() {
         title={{
           type: 'page-title',
           label: t('Inbox'),
-          trailingActions: {
-            type: 'badge',
-            element: <FeatureBadge type="alpha" />,
-          },
+          trailingActions: {type: 'badge', element: <FeatureBadge type="alpha" />},
         }}
       />
       <Stack flex={1} minHeight={0} background="primary" overflow="hidden" contain="size">

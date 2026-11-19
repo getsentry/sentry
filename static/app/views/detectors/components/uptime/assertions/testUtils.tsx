@@ -12,22 +12,12 @@ import {
 
 export function makeAndOp(overrides: Omit<Partial<UptimeAndOp>, 'op'> = {}): UptimeAndOp {
   const {children, ...rest} = overrides;
-  return {
-    id: uniqueId(),
-    op: UptimeOpType.AND,
-    children: children ?? [],
-    ...rest,
-  };
+  return {id: uniqueId(), op: UptimeOpType.AND, children: children ?? [], ...rest};
 }
 
 export function makeOrOp(overrides: Omit<Partial<UptimeOrOp>, 'op'> = {}): UptimeOrOp {
   const {children, ...rest} = overrides;
-  return {
-    id: uniqueId(),
-    op: UptimeOpType.OR,
-    children: children ?? [],
-    ...rest,
-  };
+  return {id: uniqueId(), op: UptimeOpType.OR, children: children ?? [], ...rest};
 }
 
 export function makeNotOp(overrides: Omit<Partial<UptimeNotOp>, 'op'> = {}): UptimeNotOp {

@@ -330,19 +330,13 @@ describe('InvestigationHypotheses', () => {
     // so a hypothesis the agent has only just formed arrives without the key at
     // all — not as an empty list.
     const hypotheses = InvestigationOrchestrationFixture().hypotheses.map(hypothesis => {
-      const unplanned = {
-        ...hypothesis,
-        effectiveStatus: 'pending' as const,
-      };
+      const unplanned = {...hypothesis, effectiveStatus: 'pending' as const};
       delete unplanned.verificationSteps;
       return unplanned;
     });
     MockApiClient.addMockResponse({
       url: orchestrationUrl,
-      body: InvestigationOrchestrationFixture({
-        hypotheses,
-        phase: 'investigating',
-      }),
+      body: InvestigationOrchestrationFixture({hypotheses, phase: 'investigating'}),
     });
 
     renderHypotheses();

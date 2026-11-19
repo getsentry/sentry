@@ -9,27 +9,12 @@ export interface TourStep<T extends TourEnumType> {
   id: T;
 }
 
-type TourStartAction<T extends TourEnumType> = {
-  stepId: T;
-  type: 'START_TOUR';
-};
-type TourNextStepAction = {
-  type: 'NEXT_STEP';
-};
-type TourPreviousStepAction = {
-  type: 'PREVIOUS_STEP';
-};
-type TourSetStepAction<T extends TourEnumType> = {
-  stepId: T;
-  type: 'SET_STEP';
-};
-type TourEndAction = {
-  type: 'END_TOUR';
-};
-type TourSetRegistrationAction = {
-  isRegistered: boolean;
-  type: 'SET_REGISTRATION';
-};
+type TourStartAction<T extends TourEnumType> = {stepId: T; type: 'START_TOUR'};
+type TourNextStepAction = {type: 'NEXT_STEP'};
+type TourPreviousStepAction = {type: 'PREVIOUS_STEP'};
+type TourSetStepAction<T extends TourEnumType> = {stepId: T; type: 'SET_STEP'};
+type TourEndAction = {type: 'END_TOUR'};
+type TourSetRegistrationAction = {isRegistered: boolean; type: 'SET_REGISTRATION'};
 
 type TourAction<T extends TourEnumType> =
   | TourStartAction<T>
@@ -112,11 +97,7 @@ function tourReducer<T extends TourEnumType>(
 
   switch (action.type) {
     case 'START_TOUR': {
-      return {
-        ...state,
-        isCompleted: false,
-        currentStepId: action.stepId,
-      };
+      return {...state, isCompleted: false, currentStepId: action.stepId};
     }
     case 'NEXT_STEP': {
       if (!state.currentStepId) {
@@ -126,10 +107,7 @@ function tourReducer<T extends TourEnumType>(
       const nextStepId = computeNextStep(state);
 
       if (nextStepId) {
-        return {
-          ...state,
-          currentStepId: nextStepId,
-        };
+        return {...state, currentStepId: nextStepId};
       }
 
       return completeTourState;
@@ -138,20 +116,14 @@ function tourReducer<T extends TourEnumType>(
       const prevStepId = computePreviousStep(state);
 
       if (prevStepId) {
-        return {
-          ...state,
-          currentStepId: prevStepId,
-        };
+        return {...state, currentStepId: prevStepId};
       }
 
       // If there is no previous step, do nothing
       return state;
     }
     case 'SET_STEP':
-      return {
-        ...state,
-        currentStepId: action.stepId,
-      };
+      return {...state, currentStepId: action.stepId};
     case 'END_TOUR':
       return completeTourState;
     case 'SET_REGISTRATION':

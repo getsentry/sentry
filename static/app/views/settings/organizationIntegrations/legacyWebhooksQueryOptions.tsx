@@ -17,9 +17,6 @@ interface OrgLegacyWebhooksResponse {
 export function legacyWebhooksQueryOptions(organization: Organization) {
   return apiOptions.as<OrgLegacyWebhooksResponse>()(
     '/organizations/$organizationIdOrSlug/legacy-webhooks/',
-    {
-      path: {organizationIdOrSlug: organization.slug},
-      staleTime: 0,
-    }
+    {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
   );
 }

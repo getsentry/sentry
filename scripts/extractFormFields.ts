@@ -287,12 +287,7 @@ class FormFieldExtractor {
       return null;
     }
 
-    return {
-      name: nameAttr,
-      formId,
-      route,
-      ...fieldMetadata,
-    };
+    return {name: nameAttr, formId, route, ...fieldMetadata};
   }
 
   private extractFieldMetadata(

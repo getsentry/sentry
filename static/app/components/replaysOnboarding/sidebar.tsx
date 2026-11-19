@@ -122,14 +122,8 @@ function SidebarContent() {
       }
     );
     return [
-      {
-        label: t('Supported'),
-        options: supportedProjectItems,
-      },
-      {
-        label: t('Unsupported'),
-        options: unsupportedProjectItems,
-      },
+      {label: t('Supported'), options: supportedProjectItems},
+      {label: t('Unsupported'), options: unsupportedProjectItems},
     ];
   }, [supportedProjects, unsupportedProjects]);
 

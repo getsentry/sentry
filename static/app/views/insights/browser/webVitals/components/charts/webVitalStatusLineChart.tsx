@@ -101,10 +101,7 @@ export function WebVitalStatusLineChart({
           error={timeseriesError}
           timeSeries={webVitalTimeSeries ? [webVitalTimeSeries] : []}
           extraPlottables={extraPlottables}
-          queryInfo={{
-            search,
-            referrer,
-          }}
+          queryInfo={{search, referrer}}
           height={250}
         />
       )}

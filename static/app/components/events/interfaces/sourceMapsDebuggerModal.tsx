@@ -312,11 +312,7 @@ function SentryWizardCallout({
           );
         }}
       >
-        {getSourceMapsWizardSnippet({
-          isSelfHosted,
-          organization,
-          project,
-        })}
+        {getSourceMapsWizardSnippet({isSelfHosted, organization, project})}
       </InstructionCodeSnippet>
     </Fragment>
   );
@@ -616,9 +612,7 @@ export function SourceMapsDebuggerModal({
             )}
           </p>
           <h6>{t('Source Maps Setup')}</h6>
-          {isReactNativeSDK({
-            sdkName: sourceResolutionResults.sdkName,
-          }) ? (
+          {isReactNativeSDK({sdkName: sourceResolutionResults.sdkName}) ? (
             <WizardInstructionParagraph>
               {tct(
                 "For React Native projects, source maps should be generated and uploaded automatically during the build process. If they're not showing up, chances are something's off in your setup. [link:Our docs] can help you double-check.",
@@ -797,9 +791,7 @@ export function SourceMapsDebuggerModal({
                       <TabPanels.Item key="release">
                         {hideAllTabs ? (
                           <p>
-                            {isReactNativeSDK({
-                              sdkName: sourceResolutionResults.sdkName,
-                            })
+                            {isReactNativeSDK({sdkName: sourceResolutionResults.sdkName})
                               ? tct(
                                   "After confirming your setup is correct, the next step is to check whether your source maps are properly linked to your stack traces. This happens through [link:Releases] and artifact names, so let's make sure those are configured correctly:",
                                   {
@@ -990,9 +982,7 @@ function InstalledSdkChecklistItem({
           <p>
             {tct(
               'If upgrading the SDK is not an option for you, you can use the [link:Release] process instead.',
-              {
-                link: <Link to="" onClick={() => setActiveTab('release')} />,
-              }
+              {link: <Link to="" onClick={() => setActiveTab('release')} />}
             )}
           </p>
         </CheckListInstruction>
@@ -1008,9 +998,7 @@ function InstalledSdkChecklistItem({
           <p>
             {tct(
               'The SDK you are using does not support debug IDs yet. We recommend using the [link:Release] process instead.',
-              {
-                link: <Link to="" onClick={() => setActiveTab('release')} />,
-              }
+              {link: <Link to="" onClick={() => setActiveTab('release')} />}
             )}
           </p>
         </CheckListInstruction>
@@ -1025,9 +1013,7 @@ function InstalledSdkChecklistItem({
         <p>
           {tct(
             "You are using an unofficial Sentry SDK. Please check whether this SDK already supports Debug IDs. It's possible that this SDK supports debug IDs but you may be better off using the [link:Release Name] method of uploading source maps.",
-            {
-              link: <Link to="" onClick={() => setActiveTab('release')} />,
-            }
+            {link: <Link to="" onClick={() => setActiveTab('release')} />}
           )}
         </p>
         <p>
@@ -1062,11 +1048,7 @@ type ToolUsedToUploadSourceMaps = ReturnType<typeof getToolUsedToUploadSourceMap
 
 const pluginConfig: Record<
   keyof Omit<ToolUsedToUploadSourceMaps, 'sentryCli'>,
-  {
-    configFile: string;
-    link: string;
-    name: string;
-  }
+  {configFile: string; link: string; name: string}
 > = {
   vitePlugin: {
     name: 'Vite',
@@ -1292,9 +1274,7 @@ function HasDebugIdChecklistItem({
         <p>
           {tct(
             "This event doesn't contain any Debug IDs. Read the [link:Sentry Source Maps Documentation] to learn how to inject Debug IDs into your build artifacts and how to upload them to Sentry.",
-            {
-              link: <ExternalLinkWithIcon href={sourceMapsDocLinks.sourcemaps} />,
-            }
+            {link: <ExternalLinkWithIcon href={sourceMapsDocLinks.sourcemaps} />}
           )}
         </p>
       </CheckListInstruction>
@@ -1328,9 +1308,7 @@ function DebugIdMismatchMessage({
         <LinkButton
           to={{
             pathname: `/settings/${organization.slug}/projects/${projectSlug}/source-maps/`,
-            query: {
-              query: debugId,
-            },
+            query: {query: debugId},
           }}
           icon={<IconOpen />}
           aria-label={t('View source map Debug ID %(debugId)s in project settings', {
@@ -1397,9 +1375,7 @@ function UploadedSourceFileWithCorrectDebugIdChecklistItem({
         <p>
           {tct(
             "You didn't upload any artifacts with debug IDs yet. Read the [link:Sentry Source Maps Documentation] to learn how to inject Debug IDs into your build artifacts and how to upload them to Sentry.",
-            {
-              link: <ExternalLinkWithIcon href={sourceMapsDocLinks.sourcemaps} />,
-            }
+            {link: <ExternalLinkWithIcon href={sourceMapsDocLinks.sourcemaps} />}
           )}
         </p>
         {/* TODO: Link to Uploaded Artifacts */}
@@ -1459,9 +1435,7 @@ function UploadedSourceMapWithCorrectDebugIdChecklistItem({
         <p>
           {tct(
             "You didn't upload any artifacts with debug IDs yet. Read the [link:Sentry Source Maps Documentation] to learn how to inject Debug IDs into your build artifacts and how to upload them to Sentry.",
-            {
-              link: <ExternalLinkWithIcon href={sourceMapsDocLinks.sourcemaps} />,
-            }
+            {link: <ExternalLinkWithIcon href={sourceMapsDocLinks.sourcemaps} />}
           )}
         </p>
         {/* TODO: Link to Uploaded Artifacts */}
@@ -1666,9 +1640,7 @@ function ReleaseSourceFileMatchingChecklistItem({
               )
             : tct(
                 'This event has a dist value [dist]. Please check that you uploaded your artifacts with dist [dist].',
-                {
-                  dist: <MonoBlock>{sourceResolutionResults.dist}</MonoBlock>,
-                }
+                {dist: <MonoBlock>{sourceResolutionResults.dist}</MonoBlock>}
               )}
         </p>
         {/* TODO: Link to uploaded files for this release. */}
@@ -1676,9 +1648,7 @@ function ReleaseSourceFileMatchingChecklistItem({
           <p>
             {tct(
               'If the stack frame path is changing based on runtime parameters, you can use the [link:RewriteFrames integration] to dynamically change the stack frame path.',
-              {
-                link: <ExternalLinkWithIcon href={sourceMapsDocLinks.rewriteFrames} />,
-              }
+              {link: <ExternalLinkWithIcon href={sourceMapsDocLinks.rewriteFrames} />}
             )}
           </p>
         )}
@@ -1785,9 +1755,7 @@ function ReleaseSourceMapMatchingChecklistItem({
               )
             : tct(
                 'This event has a dist value [dist]. Please check that you uploaded your sourcemaps with dist [dist].',
-                {
-                  dist: <MonoBlock>{sourceResolutionResults.dist}</MonoBlock>,
-                }
+                {dist: <MonoBlock>{sourceResolutionResults.dist}</MonoBlock>}
               )}
         </p>
         {/* TODO: Link to Uploaded Artifacts */}
@@ -1982,9 +1950,7 @@ function ChecklistDoneNote() {
         {isSelfHosted
           ? tct(
               ' If the newly captured event is still not sourcemapped, please check the logs of the [symbolicator] service of your self-hosted instance.',
-              {
-                symbolicator: <MonoBlock>symbolicator</MonoBlock>,
-              }
+              {symbolicator: <MonoBlock>symbolicator</MonoBlock>}
             )
           : ''}
       </p>

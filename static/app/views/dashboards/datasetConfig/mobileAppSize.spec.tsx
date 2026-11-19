@@ -70,10 +70,7 @@ describe('MobileAppSizeConfig with events-timeseries responses', () => {
             ]),
           ],
         },
-        WidgetFixture({
-          displayType: DisplayType.BAR,
-          queries: [timeSeriesWidgetQuery],
-        }),
+        WidgetFixture({displayType: DisplayType.BAR, queries: [timeSeriesWidgetQuery]}),
         0
       );
 

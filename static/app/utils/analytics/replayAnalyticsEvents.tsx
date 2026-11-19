@@ -2,21 +2,11 @@ import type {LayoutKey} from 'sentry/utils/replays/hooks/useReplayLayout';
 import type {Output} from 'sentry/views/explore/replays/detail/network/details/output';
 
 export type ReplayEventParameters = {
-  'replay.ai-summary.chapter-clicked': {
-    chapter_type?: 'error' | 'feedback';
-  };
-  'replay.ai-summary.regenerate-requested': {
-    area: string;
-  };
+  'replay.ai-summary.chapter-clicked': {chapter_type?: 'error' | 'feedback'};
+  'replay.ai-summary.regenerate-requested': {area: string};
   'replay.ai_tab_shown': Record<string, unknown>;
-  'replay.bulk_mark_viewed': {
-    failed: number;
-    multiProject: boolean;
-    succeeded: number;
-  };
-  'replay.canvas-detected-banner-clicked': {
-    sdk_needs_update?: boolean;
-  };
+  'replay.bulk_mark_viewed': {failed: number; multiProject: boolean; succeeded: number};
+  'replay.canvas-detected-banner-clicked': {sdk_needs_update?: boolean};
   'replay.details-data-loaded': {
     be_errors: number;
     fe_errors: number;
@@ -27,17 +17,9 @@ export type ReplayEventParameters = {
     started_at_delta: number; // Log the change (negative number==earlier date) in started_at
     total_errors: number;
   };
-  'replay.details-has-hydration-error': {
-    num_errors: number;
-    replay_id: string;
-  };
-  'replay.details-layout-changed': {
-    chosen_layout: LayoutKey;
-    default_layout: LayoutKey;
-  };
-  'replay.details-network-panel-closed': {
-    is_sdk_setup: boolean;
-  };
+  'replay.details-has-hydration-error': {num_errors: number; replay_id: string};
+  'replay.details-layout-changed': {chosen_layout: LayoutKey; default_layout: LayoutKey};
+  'replay.details-network-panel-closed': {is_sdk_setup: boolean};
   'replay.details-network-panel-opened': {
     is_sdk_setup: boolean;
     resource_method: string;
@@ -52,43 +34,23 @@ export type ReplayEventParameters = {
     resource_type: string;
     tab: string;
   };
-  'replay.details-playlist-clicked': {
-    direction: 'previous' | 'next';
-  };
+  'replay.details-playlist-clicked': {direction: 'previous' | 'next'};
   'replay.details-refresh-clicked': Record<string, unknown>;
   'replay.details-resized-panel': {
     layout: LayoutKey;
     slide_motion: 'toTop' | 'toBottom' | 'toLeft' | 'toRight';
   };
-  'replay.details-resource-docs-clicked': {
-    title: string;
-  };
-  'replay.details-tab-changed': {
-    mobile: boolean;
-    tab: string;
-  };
-  'replay.details-time-spent': {
-    seconds: number;
-    user_email: string;
-  };
-  'replay.details-timestamp-button-clicked': {
-    area: string;
-  };
+  'replay.details-resource-docs-clicked': {title: string};
+  'replay.details-tab-changed': {mobile: boolean; tab: string};
+  'replay.details-time-spent': {seconds: number; user_email: string};
+  'replay.details-timestamp-button-clicked': {area: string};
 
-  'replay.frame-after-background': {
-    frame: string;
-  };
-  'replay.gaps_detected': {
-    gaps: number;
-    max_gap: number;
-    replay_duration: number;
-  };
+  'replay.frame-after-background': {frame: string};
+  'replay.gaps_detected': {gaps: number; max_gap: number; replay_duration: number};
   'replay.hydration-error.issue-details-opened': Record<string, unknown>;
   'replay.hydration-modal.slider-interaction': Record<string, unknown>;
 
-  'replay.hydration-modal.tab-change': {
-    tabKey: string;
-  };
+  'replay.hydration-modal.tab-change': {tabKey: string};
   // similar purpose as "replay.details-viewed", however we're capturing the navigation action
   // in order to also include a project platform
   'replay.list-navigate-to-details': {
@@ -97,16 +59,9 @@ export type ReplayEventParameters = {
     referrer: string;
     referrer_table?: 'main' | 'selector-widget';
   };
-  'replay.list-paginated': {
-    direction: 'next' | 'prev';
-  };
-  'replay.list-sorted': {
-    column: string;
-  };
-  'replay.list-time-spent': {
-    seconds: number;
-    user_email: string;
-  };
+  'replay.list-paginated': {direction: 'next' | 'prev'};
+  'replay.list-sorted': {column: string};
+  'replay.list-time-spent': {seconds: number; user_email: string};
   'replay.list-view-setup-sidebar': Record<string, unknown>;
   'replay.play-pause': {
     context: string;
@@ -114,34 +69,18 @@ export type ReplayEventParameters = {
     play: boolean;
     user_email: string;
   };
-  'replay.rage-click-sdk-banner.dismissed': {
-    surface: string;
-  };
-  'replay.rage-click-sdk-banner.rendered': {
-    is_dismissed: boolean;
-    surface: string;
-  };
+  'replay.rage-click-sdk-banner.dismissed': {surface: string};
+  'replay.rage-click-sdk-banner.rendered': {is_dismissed: boolean; surface: string};
   'replay.render-issues-group-list': {
     platform: string | undefined;
     project_id: string | undefined;
   };
-  'replay.render-missing-replay-alert': {
-    is_404: boolean;
-    surface: string;
-  };
-  'replay.search': {
-    search_keys: string;
-  };
+  'replay.render-missing-replay-alert': {is_404: boolean; surface: string};
+  'replay.search': {search_keys: string};
   'replay.timeline.zoom-in': Record<string, unknown>;
   'replay.timeline.zoom-out': Record<string, unknown>;
-  'replay.toggle-fullscreen': {
-    context: string;
-    fullscreen: boolean;
-    user_email: string;
-  };
-  'replay.view-html': {
-    breadcrumb_type: string;
-  };
+  'replay.toggle-fullscreen': {context: string; fullscreen: boolean; user_email: string};
+  'replay.view-html': {breadcrumb_type: string};
 };
 
 type ReplayEventKey = keyof ReplayEventParameters;

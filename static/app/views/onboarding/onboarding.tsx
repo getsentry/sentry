@@ -152,11 +152,7 @@ function ScmMessagingAdapter({genBackButton, onComplete}: StepProps) {
 }
 
 const scmOnboardingSharedSteps: StepDescriptor[] = [
-  {
-    id: OnboardingStepId.WELCOME,
-    title: t('Welcome'),
-    Component: NewWelcomeUI,
-  },
+  {id: OnboardingStepId.WELCOME, title: t('Welcome'), Component: NewWelcomeUI},
   {
     id: OnboardingStepId.SCM_CONNECT,
     title: t('Connect repository'),
@@ -242,11 +238,7 @@ export function OnboardingWithoutContext() {
     ? scmMessagingOnboardingSteps
     : scmOnboardingSteps;
 
-  useReplayForCriticalFlow({
-    flowName: 'scm_onboarding',
-    enabled: true,
-    sampleRate: 0.5,
-  });
+  useReplayForCriticalFlow({flowName: 'scm_onboarding', enabled: true, sampleRate: 0.5});
 
   const stepObj = onboardingSteps.find(({id}) => stepId === id);
   const stepIndex = onboardingSteps.findIndex(({id}) => stepId === id);

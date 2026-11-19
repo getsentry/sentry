@@ -28,10 +28,7 @@ const sourceContextOptions = (
   apiOptions.as<SourceContextResponse>()(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/stacktrace-source-context/',
     {
-      path: {
-        organizationIdOrSlug: orgSlug,
-        projectIdOrSlug: projectSlug!,
-      },
+      path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug!},
       query,
       staleTime: Infinity,
     }

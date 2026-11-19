@@ -150,11 +150,7 @@ export function useTransactionsSeriesQuery(
 
     if (!allHaveData || isFetching) {
       const loading = isFetching || !errorMessage;
-      return {
-        loading,
-        errorMessage,
-        rawData: EMPTY_ARRAY,
-      };
+      return {loading, errorMessage, rawData: EMPTY_ARRAY};
     }
 
     const timeseriesResults: WidgetTimeSeries[] = [];
@@ -180,12 +176,7 @@ export function useTransactionsSeriesQuery(
       timeseriesResults.push(...transformedResult);
     });
 
-    return {
-      loading: false,
-      errorMessage: undefined,
-      timeseriesResults,
-      rawData,
-    };
+    return {loading: false, errorMessage: undefined, timeseriesResults, rawData};
   })();
 
   return transformedData;
@@ -301,11 +292,7 @@ export function useTransactionsTableQuery(
 
     if (!allHaveData || isFetching) {
       const loading = isFetching || !errorMessage;
-      return {
-        loading,
-        errorMessage,
-        rawData: EMPTY_ARRAY,
-      };
+      return {loading, errorMessage, rawData: EMPTY_ARRAY};
     }
 
     const tableResults: TableDataWithTitle[] = [];

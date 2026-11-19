@@ -61,11 +61,7 @@ describe('StacktraceLink', () => {
   it('displays fix modal on error', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
-      body: {
-        config,
-        sourceUrl: null,
-        integrations: [integration],
-      },
+      body: {config, sourceUrl: null, integrations: [integration]},
     });
     render(
       <StacktraceLink frame={frame} event={event} line="foo()" disableSetup={false} />
@@ -76,11 +72,7 @@ describe('StacktraceLink', () => {
   it('should hide stacktrace link error state on minified javascript frames', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
-      body: {
-        config,
-        sourceUrl: null,
-        integrations: [integration],
-      },
+      body: {config, sourceUrl: null, integrations: [integration]},
     });
     const {container} = render(
       <StacktraceLink
@@ -98,11 +90,7 @@ describe('StacktraceLink', () => {
   it('should show setup button for native platforms', async () => {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
-      body: {
-        config,
-        sourceUrl: null,
-        integrations: [integration],
-      },
+      body: {config, sourceUrl: null, integrations: [integration]},
     });
     render(
       <StacktraceLink
@@ -123,10 +111,7 @@ describe('StacktraceLink', () => {
     } as unknown as Frame;
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/stacktrace-link/`,
-      body: {
-        config,
-        integrations: [integration],
-      },
+      body: {config, integrations: [integration]},
     });
     render(
       <StacktraceLink

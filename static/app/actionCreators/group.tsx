@@ -20,10 +20,7 @@ type GroupQueryParams = Partial<PageFilterDatetime> & {
   sort?: string;
 };
 
-type UpdateParams = GroupQueryParams & {
-  orgId: string;
-  projectId?: string;
-};
+type UpdateParams = GroupQueryParams & {orgId: string; projectId?: string};
 
 /**
  * Converts input parameters to API-compatible query arguments
@@ -82,10 +79,7 @@ export async function bulkDelete(api: Client, params: BulkDeleteParams) {
   }
 }
 
-type BulkUpdateParams = UpdateParams & {
-  data?: any;
-  failSilently?: boolean;
-};
+type BulkUpdateParams = UpdateParams & {data?: any; failSilently?: boolean};
 
 export async function bulkUpdate(api: Client, params: BulkUpdateParams) {
   const {itemIds, failSilently, data} = params;
@@ -167,11 +161,7 @@ export function issueTagValuesApiOptions({
     ...apiOptions.as<TagValue[]>()(
       '/organizations/$organizationIdOrSlug/issues/$issueId/tags/$key/values/',
       {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          issueId: groupId,
-          key: tagKey,
-        },
+        path: {organizationIdOrSlug: organization.slug, issueId: groupId, key: tagKey},
         query: {sort, cursor},
         staleTime: 0,
       }

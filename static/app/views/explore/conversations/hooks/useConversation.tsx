@@ -462,10 +462,7 @@ export function buildConversationNodes(
      */
     markScrubbed?: boolean;
   } = {}
-): {
-  nodeTraceMap: Map<string, string>;
-  nodes: AITraceSpanNode[];
-} {
+): {nodeTraceMap: Map<string, string>; nodes: AITraceSpanNode[]} {
   if (allSpans.length === 0) {
     return {nodes: [], nodeTraceMap: new Map<string, string>()};
   }

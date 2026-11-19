@@ -28,12 +28,7 @@ export function Button({
 }: ButtonProps) {
   const contextSize = useSizeContext();
   const size = useResponsivePropValue(explicitSize ?? contextSize ?? 'md');
-  const buttonProps = {
-    ...props,
-    type,
-    disabled,
-    busy,
-  } satisfies ButtonProps;
+  const buttonProps = {...props, type, disabled, busy} satisfies ButtonProps;
   const {hasChildren, accessibleLabel} = useButtonFunctionality(buttonProps);
   const {handleClick} = useClickTracking(buttonProps, 'button');
 
@@ -102,10 +97,7 @@ export function Button({
 }
 
 const StyledButton = styled('button')<
-  Omit<ButtonProps, 'size'> & {
-    shapeVariant: 'rectangular' | 'square';
-    size: ButtonSize;
-  }
+  Omit<ButtonProps, 'size'> & {shapeVariant: 'rectangular' | 'square'; size: ButtonSize}
 >`
   ${p => getButtonStyles(p)}
 `;

@@ -194,10 +194,7 @@ export function MetricPanel({
 
   const heatMapBucketDimensions = calculateHeatMapBucketDimensions(
     selection,
-    {
-      width: chartContainerWidth,
-      height: STACKED_GRAPH_HEIGHT,
-    },
+    {width: chartContainerWidth, height: STACKED_GRAPH_HEIGHT},
     intervalOptions.map(intervalOption => intervalOption.value)
   );
 

@@ -25,9 +25,7 @@ type AssignIssueVariables = {
   assignedBy?: AssignedBy;
 };
 
-type AssignIssueContext = {
-  changeId: string;
-};
+type AssignIssueContext = {changeId: string};
 
 function getAssignIssueSuccessMessage(assignedTo: Group['assignedTo']) {
   if (!assignedTo) {
@@ -65,15 +63,9 @@ export function useAssignIssueMutation() {
       return fetchMutation<Group>({
         method: 'PUT',
         url: getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/', {
-          path: {
-            organizationIdOrSlug: variables.orgSlug,
-            issueId: variables.groupId,
-          },
+          path: {organizationIdOrSlug: variables.orgSlug, issueId: variables.groupId},
         }),
-        data: {
-          assignedTo: actorId,
-          assignedBy: variables.assignedBy,
-        },
+        data: {assignedTo: actorId, assignedBy: variables.assignedBy},
       });
     },
     onMutate: variables => {

@@ -2,12 +2,9 @@ import {createContext, useContext} from 'react';
 
 import type {BlockRenderers} from './types';
 
-export const RendererContext = createContext<
-  | undefined
-  | {
-      renderers: BlockRenderers;
-    }
->(undefined);
+export const RendererContext = createContext<undefined | {renderers: BlockRenderers}>(
+  undefined
+);
 
 export const useRendererContext = () => {
   const context = useContext(RendererContext);

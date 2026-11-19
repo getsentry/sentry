@@ -26,10 +26,7 @@ export type TrendFunction = {
   legendLabel: string;
 };
 
-export type TrendParameter = {
-  column: TrendParameterColumn;
-  label: TrendParameterLabel;
-};
+export type TrendParameter = {column: TrendParameterColumn; label: TrendParameterLabel};
 
 export enum TrendChangeType {
   IMPROVED = 'improved',
@@ -87,10 +84,7 @@ type TrendsTransaction = {
   count_range_2?: number;
 };
 
-export type TrendsDataEvents = {
-  data: TrendsTransaction[];
-  meta: any;
-};
+export type TrendsDataEvents = {data: TrendsTransaction[]; meta: any};
 
 export type NormalizedTrendsTransaction = TrendsTransaction & {
   received_at: Readonly<moment.Moment>;

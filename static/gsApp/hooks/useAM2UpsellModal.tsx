@@ -45,15 +45,8 @@ export function useAM2UpsellModal({
       return;
     }
 
-    openAM2UpsellModal({
-      organization,
-      subscription,
-      surface,
-      ...previewData,
-    });
+    openAM2UpsellModal({organization, subscription, surface, ...previewData});
   }, [organization, subscription, previewData, onComplete, surface, enabled]);
 
-  return {
-    showModal: handleShowModal,
-  };
+  return {showModal: handleShowModal};
 }

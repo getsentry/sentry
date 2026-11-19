@@ -7,10 +7,7 @@ import {t} from 'sentry/locale';
 
 import {FeatureDisabled} from './featureDisabled';
 
-type Props = ModalRenderProps & {
-  featureName: string;
-  features: string | string[];
-};
+type Props = ModalRenderProps & {featureName: string; features: string | string[]};
 
 export function FeatureDisabledModal({
   Body,

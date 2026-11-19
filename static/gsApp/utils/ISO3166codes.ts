@@ -1,8 +1,4 @@
-type CountryCode = {
-  code: string;
-  'country-code': string;
-  name: string;
-};
+type CountryCode = {code: string; 'country-code': string; name: string};
 
 const countryCodes: CountryCode[] = [
   // prioritize the US, since majority of customers are from there

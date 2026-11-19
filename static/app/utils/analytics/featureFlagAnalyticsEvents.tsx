@@ -3,45 +3,26 @@ import type {PlatformKey} from 'sentry/types/platform';
 
 export type FeatureFlagEventParameters = {
   'flags.cta_dismissed': {surface: string; type: string};
-  'flags.cta_read_more_clicked': {
-    surface: string;
-  };
+  'flags.cta_read_more_clicked': {surface: string};
   'flags.cta_rendered': {surface: string};
-  'flags.drawer_details_rendered': {
-    numLogs: number;
-  };
-  'flags.drawer_rendered': {
-    numFlags: number;
-  };
+  'flags.drawer_details_rendered': {numLogs: number};
+  'flags.drawer_rendered': {numFlags: number};
   'flags.event_and_suspect_flags_found': {
     numEventFlags: number;
     numSuspectFlags: number;
     numTotalFlags: number;
   };
-  'flags.logs-paginated': {
-    direction: 'next' | 'prev';
-    surface: string;
-  };
-  'flags.setup_sidebar_selection': {
-    platform?: string;
-    provider?: SdkProviderEnum;
-  };
+  'flags.logs-paginated': {direction: 'next' | 'prev'; surface: string};
+  'flags.setup_sidebar_selection': {platform?: string; provider?: SdkProviderEnum};
   'flags.sort_flags': {sortMethod: string};
   'flags.suspect_flags_v2_found': {
     numSuspectFlags: number;
     numTotalFlags: number;
     threshold: number /* TODO: remove after suspect flags GA */;
   };
-  'flags.table_rendered': {
-    numFlags: number;
-    orgSlug: string;
-    projectSlug: string;
-  };
+  'flags.table_rendered': {numFlags: number; orgSlug: string; projectSlug: string};
   'flags.view-all-clicked': Record<string, unknown>;
-  'flags.view-setup-sidebar': {
-    surface: string;
-    platform?: PlatformKey;
-  };
+  'flags.view-setup-sidebar': {surface: string; platform?: PlatformKey};
 };
 
 type FeatureFlagEventKey = keyof FeatureFlagEventParameters;

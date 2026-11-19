@@ -2,10 +2,7 @@ import {platformsWithNestedInstrumentationGuides} from 'sentry/data/platformCate
 import type {Project} from 'sentry/types/project';
 import {isReactNativePlatform} from 'sentry/utils/platform';
 
-type ParsedPlatform = {
-  platformName: string;
-  framework?: string;
-};
+type ParsedPlatform = {platformName: string; framework?: string};
 
 function parsePlatform(platform: string): ParsedPlatform {
   const platformParts = platform.split('-');

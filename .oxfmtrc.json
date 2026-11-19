@@ -92,6 +92,7 @@
   },
   "bracketSpacing": false,
   "bracketSameLine": false,
+  "objectWrap": "collapse",
   "printWidth": 90,
   "semi": true,
   "singleQuote": true,

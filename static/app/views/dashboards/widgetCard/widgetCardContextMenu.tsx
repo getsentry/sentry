@@ -77,9 +77,7 @@ export const useTransactionsDeprecationWarning = ({
 
   return tct(
     'Transaction based widgets will soon be migrated to spans widgets. To see what your query could look like, open it in [explore:Explore].',
-    {
-      explore: <Link to={exploreUrl} />,
-    }
+    {explore: <Link to={exploreUrl} />}
   );
 };
 
@@ -153,9 +151,7 @@ export const useDroppedColumnsWarning = (widget: Widget): React.JSX.Element | nu
         <StyledText as="p">
           {tct(
             'This widget looks different because it was migrated to the spans dataset and [columns] is not supported.',
-            {
-              columns: allWarnings.join(', '),
-            }
+            {columns: allWarnings.join(', ')}
           )}
         </StyledText>
       </div>
@@ -257,11 +253,7 @@ export function getMenuOptions(
             organization,
             widget_type: widget.displayType,
           });
-          openDashboardWidgetQuerySelectorModal({
-            organization,
-            widget,
-            dashboardFilters,
-          });
+          openDashboardWidgetQuerySelectorModal({organization, widget, dashboardFilters});
         },
       });
     }
@@ -395,11 +387,7 @@ export function getMenuOptions(
   }
 
   if (onAskSeer) {
-    menuOptions.push({
-      key: 'ask-seer',
-      label: t('Ask Seer'),
-      onAction: onAskSeer,
-    });
+    menuOptions.push({key: 'ask-seer', label: t('Ask Seer'), onAction: onAskSeer});
   }
 
   menuOptions.push({
@@ -414,14 +402,7 @@ export function getMenuOptions(
         organization,
         location,
         selection,
-        widgets: [
-          {
-            ...widget,
-            id: undefined,
-            dashboardId: undefined,
-            layout: undefined,
-          },
-        ],
+        widgets: [{...widget, id: undefined, dashboardId: undefined, layout: undefined}],
         actions: ['add-and-stay-on-current-page', 'open-in-widget-builder'],
         source: DashboardWidgetSource.DASHBOARDS,
       });

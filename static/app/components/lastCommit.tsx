@@ -9,9 +9,7 @@ import type {AvatarUser} from 'sentry/types/user';
 import {CommitLink} from './commitLink';
 import {TimeSince} from './timeSince';
 
-type Props = {
-  commit: Commit;
-};
+type Props = {commit: Commit};
 
 const unknownUser: AvatarUser = {
   id: '',
@@ -19,10 +17,7 @@ const unknownUser: AvatarUser = {
   username: '??',
   email: '',
   avatarUrl: '',
-  avatar: {
-    avatarUuid: '',
-    avatarType: 'letter_avatar',
-  },
+  avatar: {avatarUuid: '', avatarType: 'letter_avatar'},
   ip_address: '',
 };
 

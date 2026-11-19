@@ -17,10 +17,7 @@ export type CoverageItem = {
   targetType?: string;
 };
 
-type EditBlock = {
-  addedLines: Set<number>;
-  removedLines: Set<number>;
-};
+type EditBlock = {addedLines: Set<number>; removedLines: Set<number>};
 
 export type GitDiffChange = EditBlock & {
   blocks: EditBlock[];
@@ -216,18 +213,8 @@ const colors = {
 };
 
 type TypeCoverageResult = {
-  files: Array<{
-    coverage: number;
-    file: string;
-    total: number;
-    typed: number;
-  }>;
-  summary: {
-    coverage: number;
-    filesScanned: number;
-    total: number;
-    typed: number;
-  };
+  files: Array<{coverage: number; file: string; total: number; typed: number}>;
+  summary: {coverage: number; filesScanned: number; total: number; typed: number};
   anySymbols?: Array<{
     column: number;
     file: string;

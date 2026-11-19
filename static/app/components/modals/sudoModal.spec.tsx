@@ -34,41 +34,18 @@ describe('Sudo Modal', () => {
     const organization = OrganizationFixture();
 
     MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: '/assistant/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/',
-      body: [organization],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/',
-      body: organization,
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/teams/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/projects/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/assistant/', body: []});
+    MockApiClient.addMockResponse({url: '/organizations/', body: [organization]});
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/', body: organization});
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/teams/', body: []});
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/projects/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/',
       method: 'DELETE',
       statusCode: 401,
-      body: {
-        detail: {
-          code: 'sudo-required',
-          username: 'test@test.com',
-        },
-      },
+      body: {detail: {code: 'sudo-required', username: 'test@test.com'}},
     });
-    MockApiClient.addMockResponse({
-      url: '/authenticators/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/authenticators/', body: []});
     OrganizationStore.reset();
   });
 
@@ -96,10 +73,7 @@ describe('Sudo Modal', () => {
 
     // Clear mocks and allow DELETE
     MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: '/authenticators/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/authenticators/', body: []});
     const orgDeleteMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/',
       method: 'DELETE',
@@ -129,9 +103,7 @@ describe('Sudo Modal', () => {
     await waitFor(() => expect(successCb).toHaveBeenCalled());
     expect(orgDeleteMock).toHaveBeenCalledWith(
       '/organizations/org-slug/',
-      expect.objectContaining({
-        method: 'DELETE',
-      })
+      expect.objectContaining({method: 'DELETE'})
     );
 
     // Sudo Modal should be closed
@@ -142,9 +114,7 @@ describe('Sudo Modal', () => {
     setHasPasswordAuth(false);
 
     // Should return w/ `sudoRequired` and trigger the modal to open
-    new MockApiClient().request('/organizations/org-slug/', {
-      method: 'DELETE',
-    });
+    new MockApiClient().request('/organizations/org-slug/', {method: 'DELETE'});
 
     render(<App />);
 
@@ -259,10 +229,7 @@ describe('Sudo Modal', () => {
         url: '/authenticators/',
         body: [{id: 'u2f', challenge: {}}],
       });
-      const authRequest = MockApiClient.addMockResponse({
-        url: '/auth/',
-        method: 'PUT',
-      });
+      const authRequest = MockApiClient.addMockResponse({url: '/auth/', method: 'PUT'});
 
       renderSuperuserModal();
 
@@ -302,10 +269,7 @@ describe('Sudo Modal', () => {
 
     it('submits COPS/CSM access details when U2F is disabled', async () => {
       ConfigStore.set('disableU2FForSUForm', true);
-      const authRequest = MockApiClient.addMockResponse({
-        url: '/auth/',
-        method: 'PUT',
-      });
+      const authRequest = MockApiClient.addMockResponse({url: '/auth/', method: 'PUT'});
 
       renderSuperuserModal();
 
@@ -328,10 +292,7 @@ describe('Sudo Modal', () => {
 
     it('submits the typed reason when pressing Enter', async () => {
       ConfigStore.set('disableU2FForSUForm', true);
-      const authRequest = MockApiClient.addMockResponse({
-        url: '/auth/',
-        method: 'PUT',
-      });
+      const authRequest = MockApiClient.addMockResponse({url: '/auth/', method: 'PUT'});
 
       renderSuperuserModal();
 
@@ -357,10 +318,7 @@ describe('Sudo Modal', () => {
 
     it('authorizes the current org when starting a superuser session', async () => {
       ConfigStore.set('disableU2FForSUForm', true);
-      const authRequest = MockApiClient.addMockResponse({
-        url: '/auth/',
-        method: 'PUT',
-      });
+      const authRequest = MockApiClient.addMockResponse({url: '/auth/', method: 'PUT'});
 
       render(
         <SudoModal

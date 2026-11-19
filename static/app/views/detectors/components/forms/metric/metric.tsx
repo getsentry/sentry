@@ -143,23 +143,14 @@ const mapMetricDetectorFormErrors = (error: unknown) => {
   }
 
   if ('dataSource' in error && typeof error.dataSource === 'object') {
-    return {
-      ...error,
-      ...error.dataSource,
-    };
+    return {...error, ...error.dataSource};
   }
   if ('dataSources' in error) {
     if (Array.isArray(error.dataSources)) {
-      return {
-        ...error,
-        ...error.dataSources[0],
-      };
+      return {...error, ...error.dataSources[0]};
     }
     if (typeof error.dataSources === 'object') {
-      return {
-        ...error,
-        ...error.dataSources,
-      };
+      return {...error, ...error.dataSources};
     }
   }
   return error;
@@ -538,10 +529,7 @@ function DetectSection({step}: {step?: number}) {
     METRIC_DETECTOR_FORM_FIELDS.extrapolationMode
   );
 
-  const showThresholdWarning = useIsMigratedExtrapolation({
-    dataset,
-    extrapolationMode,
-  });
+  const showThresholdWarning = useIsMigratedExtrapolation({dataset, extrapolationMode});
 
   return (
     <Container>

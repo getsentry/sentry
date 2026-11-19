@@ -101,14 +101,8 @@ function SidebarContent() {
       }
     );
     return [
-      {
-        label: t('Supported'),
-        options: supportedProjectItems,
-      },
-      {
-        label: t('Unsupported'),
-        options: unsupportedProjectItems,
-      },
+      {label: t('Supported'), options: supportedProjectItems},
+      {label: t('Unsupported'), options: unsupportedProjectItems},
     ];
   }, [supportedProjects, unsupportedProjects]);
 
@@ -185,10 +179,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   const sdkProviderOptions = Object.values(SdkProviderEnum)
     .filter(provider => provider !== SdkProviderEnum.GENERIC)
     .map(provider => {
-      return {
-        value: provider,
-        label: <TextOverflow>{provider}</TextOverflow>,
-      };
+      return {value: provider, label: <TextOverflow>{provider}</TextOverflow>};
     });
 
   const [sdkProvider, setsdkProvider] = useState<{

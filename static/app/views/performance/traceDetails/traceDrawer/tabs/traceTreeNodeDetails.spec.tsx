@@ -26,9 +26,7 @@ jest.mock('sentry/views/performance/traceDetails/traceDrawer/details/uptime', ()
 }));
 jest.mock(
   'sentry/views/performance/traceDetails/traceDrawer/details/uptime/timing',
-  () => ({
-    UptimeTimingDetails: () => null,
-  })
+  () => ({UptimeTimingDetails: () => null})
 );
 jest.mock('sentry/views/performance/traceDetails/traceDrawer/details/span', () => ({
   EAPSpanNodeDetails: () => <div>span details</div>,

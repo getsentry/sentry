@@ -1,15 +1,9 @@
 import type {SettingsScope} from 'sentry/views/settings/settingsScope';
 
-export type NavigationItemClicked = {
-  item: string;
-  settings_scope?: SettingsScope;
-};
+export type NavigationItemClicked = {item: string; settings_scope?: SettingsScope};
 
 type NavigationEventParameters = {
-  'navigation.feedback_button_clicked': {
-    seer_explorer_open: boolean;
-    source?: string;
-  };
+  'navigation.feedback_button_clicked': {seer_explorer_open: boolean; source?: string};
   'navigation.help_menu_opt_in_stacked_navigation_clicked': Record<string, unknown>;
   'navigation.help_menu_opt_out_stacked_navigation_clicked': Record<string, unknown>;
   'navigation.primary_item_clicked': NavigationItemClicked;

@@ -36,10 +36,7 @@ export function segmentSequentialBy<T, K extends string | boolean = boolean>(
     if (currentPredicateValue === previousPredicateValue) {
       previousPartition.data.push(currentDatum);
     } else {
-      previousPartition = {
-        predicateValue: currentPredicateValue,
-        data: [currentDatum],
-      };
+      previousPartition = {predicateValue: currentPredicateValue, data: [currentDatum]};
 
       partitions.push(previousPartition);
     }

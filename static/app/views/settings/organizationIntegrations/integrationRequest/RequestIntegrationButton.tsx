@@ -9,11 +9,7 @@ import type {IntegrationType} from 'sentry/types/integrations';
 
 import {RequestIntegrationModal} from './RequestIntegrationModal';
 
-type Props = {
-  name: string;
-  slug: string;
-  type: IntegrationType;
-};
+type Props = {name: string; slug: string; type: IntegrationType};
 
 export function RequestIntegrationButton(props: Props) {
   const {openModal} = useModal();
@@ -31,9 +27,7 @@ export function RequestIntegrationButton(props: Props) {
           onSuccess={() => setIsSent(true)}
         />
       ),
-      {
-        onClose: () => setIsOpen(false),
-      }
+      {onClose: () => setIsOpen(false)}
     );
   };
 

@@ -37,10 +37,7 @@ function WaitingForEvents({org, project, sampleIssueId: sampleIssueIdProp}: Prop
         data: {limit: 1},
         path:
           project && sampleIssueIdProp === undefined
-            ? {
-                organizationIdOrSlug: org.slug,
-                projectIdOrSlug: project.slug,
-              }
+            ? {organizationIdOrSlug: org.slug, projectIdOrSlug: project.slug}
             : skipToken,
       }
     )

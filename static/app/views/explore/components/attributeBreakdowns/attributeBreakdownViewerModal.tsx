@@ -106,11 +106,7 @@ function distributionToTableData(
         [t('Count')]: 'integer',
         [t('Percentage')]: 'percentage',
       },
-      units: {
-        [t('Value')]: null,
-        [t('Count')]: null,
-        [t('Percentage')]: null,
-      },
+      units: {[t('Value')]: null, [t('Count')]: null, [t('Percentage')]: null},
     },
   };
 }
@@ -230,11 +226,7 @@ function computeComparisonModeData(
 }
 
 // Extract population indicator component
-type PopulationIndicatorProps = {
-  color: string;
-  percentage: number;
-  tooltipTitle: string;
-};
+type PopulationIndicatorProps = {color: string; percentage: number; tooltipTitle: string};
 
 function PopulationIndicatorComponent({
   color,

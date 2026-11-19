@@ -77,16 +77,10 @@ describe('AgentHandoffPrompt', () => {
     expect(mint).toHaveBeenCalledWith(
       url,
       expect.objectContaining({
-        data: {
-          context,
-          disableIpPinning: false,
-          flow: 'onboarding',
-        },
+        data: {context, disableIpPinning: false, flow: 'onboarding'},
       })
     );
-    const item = write.mock.calls[0]![0][0] as {
-      data: Record<string, Promise<Blob>>;
-    };
+    const item = write.mock.calls[0]![0][0] as {data: Record<string, Promise<Blob>>};
     await expect(item.data['text/plain']!.then(blob => blob.text())).resolves.toBe(
       prompt
     );
@@ -119,11 +113,7 @@ describe('AgentHandoffPrompt', () => {
       expect(mint).toHaveBeenCalledWith(
         url,
         expect.objectContaining({
-          data: {
-            context,
-            disableIpPinning: true,
-            flow: 'onboarding',
-          },
+          data: {context, disableIpPinning: true, flow: 'onboarding'},
         })
       )
     );

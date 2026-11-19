@@ -4,9 +4,7 @@ import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 
-type Props = {
-  to: string;
-};
+type Props = {to: string};
 
 /**
  * Like react-router v4+'s <Redirect to="path/" />, this component allows

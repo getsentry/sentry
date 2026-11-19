@@ -12,15 +12,12 @@ export interface NetworkSelectOption extends SelectOption<string> {
   qs: 'f_n_method' | 'f_n_status' | 'f_n_type';
 }
 
-const DEFAULT_FILTERS = {
-  f_n_method: [],
-  f_n_status: [],
-  f_n_type: [],
-} as Record<NetworkSelectOption['qs'], string[]>;
+const DEFAULT_FILTERS = {f_n_method: [], f_n_status: [], f_n_type: []} as Record<
+  NetworkSelectOption['qs'],
+  string[]
+>;
 
-type Options = {
-  networkFrames: SpanFrame[];
-};
+type Options = {networkFrames: SpanFrame[]};
 
 const UNKNOWN_STATUS = 'unknown';
 
@@ -63,11 +60,7 @@ export function useNetworkFilters({networkFrames}: Options): Return {
   // request.
   const setFilterAndClearDetails = useCallback(
     (arg: any) => {
-      setFilter({
-        ...arg,
-        n_detail_row: undefined,
-        n_detail_tab: undefined,
-      });
+      setFilter({...arg, n_detail_row: undefined, n_detail_tab: undefined});
     },
     [setFilter]
   );
@@ -87,11 +80,7 @@ export function useNetworkFilters({networkFrames}: Options): Return {
       Array.from(new Set(networkFrames.map(getFrameMethod).concat('GET').concat(method)))
         .filter(Boolean)
         .sort()
-        .map((value): NetworkSelectOption => ({
-          value,
-          label: value,
-          qs: 'f_n_method',
-        })),
+        .map((value): NetworkSelectOption => ({value, label: value, qs: 'f_n_method'})),
     [networkFrames, method]
   );
 
@@ -126,11 +115,7 @@ export function useNetworkFilters({networkFrames}: Options): Return {
         )
       )
         .sort()
-        .map((value): NetworkSelectOption => ({
-          value,
-          label: value,
-          qs: 'f_n_status',
-        })),
+        .map((value): NetworkSelectOption => ({value, label: value, qs: 'f_n_status'})),
     [networkFrames, status]
   );
 
@@ -143,10 +128,7 @@ export function useNetworkFilters({networkFrames}: Options): Return {
   const setFilters = useCallback(
     (value: NetworkSelectOption[]) => {
       const groupedValues = value.reduce((state, selection) => {
-        return {
-          ...state,
-          [selection.qs]: [...state[selection.qs], selection.value],
-        };
+        return {...state, [selection.qs]: [...state[selection.qs], selection.value]};
       }, DEFAULT_FILTERS);
       setFilterAndClearDetails(groupedValues);
     },

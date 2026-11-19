@@ -15,18 +15,13 @@ jest.unmock('@tanstack/react-pacer');
 
 function renderReleasesSelect({
   handleChangeFilter,
-}: {
-  handleChangeFilter?: (activeFilters: DashboardFilters) => void;
-} = {}) {
+}: {handleChangeFilter?: (activeFilters: DashboardFilters) => void} = {}) {
   const organization = OrganizationFixture();
 
   // Initialize PageFiltersStore
   PageFiltersStore.init();
   PageFiltersStore.onInitializeUrlState(
-    PageFiltersFixture({
-      projects: [1],
-      environments: ['production'],
-    })
+    PageFiltersFixture({projects: [1], environments: ['production']})
   );
 
   // Mock releases API
@@ -57,9 +52,7 @@ function renderReleasesSelect({
   // Mock events API for event counts
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/events/`,
-    body: {
-      data: [],
-    },
+    body: {data: []},
   });
 
   render(
@@ -111,10 +104,7 @@ describe('Dashboards > ReleasesSelectControl', () => {
     // Initialize PageFiltersStore
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState(
-      PageFiltersFixture({
-        projects: [1],
-        environments: ['production'],
-      })
+      PageFiltersFixture({projects: [1], environments: ['production']})
     );
 
     // Mock initial releases
@@ -174,10 +164,7 @@ describe('Dashboards > ReleasesSelectControl', () => {
     // Initialize PageFiltersStore
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState(
-      PageFiltersFixture({
-        projects: [1],
-        environments: ['production'],
-      })
+      PageFiltersFixture({projects: [1], environments: ['production']})
     );
 
     const initialMock = MockApiClient.addMockResponse({
@@ -270,10 +257,7 @@ describe('Dashboards > ReleasesSelectControl', () => {
     // Initialize PageFiltersStore
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState(
-      PageFiltersFixture({
-        projects: [1],
-        environments: ['production'],
-      })
+      PageFiltersFixture({projects: [1], environments: ['production']})
     );
 
     MockApiClient.addMockResponse({

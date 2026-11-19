@@ -10,15 +10,9 @@
     "rootDir": "src",
     "outDir": "dist",
     "types": ["node"],
-    "paths": {
-      "@sentry/scraps/*": ["./src/*"]
-    }
+    "paths": {"@sentry/scraps/*": ["./src/*"]}
   },
   "include": ["src"],
   "exclude": ["src/**/*.spec.tsx", "src/**/*.spec.ts"],
-  "references": [
-    {
-      "path": "../icons"
-    }
-  ]
+  "references": [{"path": "../icons"}]
 }

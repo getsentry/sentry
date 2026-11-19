@@ -7,10 +7,7 @@ import {useOrganizationsWithRegion} from './utils/useOrganizationsWithRegion';
 import {WaitingForWizardToConnect} from './waitingForWizardToConnect';
 import {WizardProjectSelection} from './wizardProjectSelection';
 
-type Props = {
-  hash: string;
-  enableProjectSelection?: boolean;
-};
+type Props = {hash: string; enableProjectSelection?: boolean};
 
 function SetupWizard({hash, enableProjectSelection = false}: Props) {
   const {data: organizations, isError, isPending} = useOrganizationsWithRegion();

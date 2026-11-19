@@ -8,11 +8,7 @@ import type {
 import {GenericDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 
 export interface MetricsCompatibilitySumData {
-  sum: {
-    metrics?: number;
-    metrics_null?: number;
-    metrics_unparam?: number;
-  };
+  sum: {metrics?: number; metrics_null?: number; metrics_unparam?: number};
 }
 
 type QueryProps = Omit<DiscoverQueryProps, 'eventView' | 'api'> & {
@@ -40,10 +36,7 @@ export function MetricsCompatibilitySumsQuery({children, ...props}: QueryProps) 
       {...props}
     >
       {({tableData, ...rest}) => {
-        return children({
-          tableData,
-          ...rest,
-        });
+        return children({tableData, ...rest});
       }}
     </GenericDiscoverQuery>
   );

@@ -1,123 +1,70 @@
 {
   "version": 1,
   "entries": [
-    {
-      "crumbs": "Dashboards → All Dashboards",
-      "path": "/dashboards/"
-    },
+    {"crumbs": "Dashboards → All Dashboards", "path": "/dashboards/"},
     {
       "crumbs": "Explore → Traces",
       "path": "/explore/traces/",
-      "when": {
-        "flag": "visibility-explore-view"
-      }
+      "when": {"flag": "visibility-explore-view"}
     },
     {
       "crumbs": "Explore → Logs",
       "path": "/explore/logs/",
-      "when": {
-        "flag": "ourlogs-enabled"
-      }
+      "when": {"flag": "ourlogs-enabled"}
     },
     {
       "crumbs": "Explore → Metrics",
       "path": "/explore/metrics/",
-      "when": {
-        "flag": "tracemetrics-enabled"
-      }
+      "when": {"flag": "tracemetrics-enabled"}
     },
     {
       "crumbs": "Explore → Errors",
       "path": "/explore/errors-v2/",
-      "when": {
-        "flag": "explore-errors"
-      }
+      "when": {"flag": "explore-errors"}
     },
     {
       "crumbs": "Explore → Errors",
       "path": "/explore/errors/",
-      "when": {
-        "flag": "discover-basic"
-      }
+      "when": {"flag": "discover-basic"}
     },
     {
       "crumbs": "Explore → Profiles",
       "path": "/explore/profiles/",
-      "when": {
-        "flag": "profiling"
-      }
+      "when": {"flag": "profiling"}
     },
     {
       "crumbs": "Explore → Replays",
       "path": "/explore/replays/",
-      "when": {
-        "flag": "session-replay-ui"
-      }
+      "when": {"flag": "session-replay-ui"}
     },
-    {
-      "crumbs": "Explore → Releases",
-      "path": "/explore/releases/"
-    },
-    {
-      "crumbs": "Explore → Agents",
-      "path": "/explore/agents/"
-    },
+    {"crumbs": "Explore → Releases", "path": "/explore/releases/"},
+    {"crumbs": "Explore → Agents", "path": "/explore/agents/"},
     {
       "crumbs": "Explore → Saved Queries",
       "path": "/explore/saved-queries/",
-      "when": {
-        "flag": "visibility-explore-view"
-      }
+      "when": {"flag": "visibility-explore-view"}
     },
     {
       "crumbs": "Explore → Saved Formulas",
       "path": "/explore/saved-formulas/",
       "when": {
-        "all": [
-          {
-            "flag": "visibility-explore-view"
-          },
-          {
-            "flag": "explore-saved-formulas"
-          }
-        ]
+        "all": [{"flag": "visibility-explore-view"}, {"flag": "explore-saved-formulas"}]
       }
     },
-    {
-      "crumbs": "Issues → Feed",
-      "path": "/issues/"
-    },
+    {"crumbs": "Issues → Feed", "path": "/issues/"},
     {
       "crumbs": "Issues → Inbox",
       "path": "/issues/inbox/",
-      "when": {
-        "flag": "issue-inbox"
-      }
+      "when": {"flag": "issue-inbox"}
     },
-    {
-      "crumbs": "Issues → User Feedback",
-      "path": "/issues/feedback/"
-    },
+    {"crumbs": "Issues → User Feedback", "path": "/issues/feedback/"},
     {
       "crumbs": "Issues → Autofix → Overview",
       "path": "/issues/autofix/",
       "when": {
         "all": [
-          {
-            "any": [
-              {
-                "flag": "seer-night-shift-ui"
-              },
-              {
-                "not": {
-                  "flag": "issue-inbox"
-                }
-              }
-            ]
-          },
-          {
-            "flag": "seer-night-shift-ui"
-          }
+          {"any": [{"flag": "seer-night-shift-ui"}, {"not": {"flag": "issue-inbox"}}]},
+          {"flag": "seer-night-shift-ui"}
         ]
       }
     },
@@ -126,114 +73,52 @@
       "path": "/issues/autofix/recent/",
       "when": {
         "all": [
-          {
-            "any": [
-              {
-                "flag": "seer-night-shift-ui"
-              },
-              {
-                "not": {
-                  "flag": "issue-inbox"
-                }
-              }
-            ]
-          },
-          {
-            "not": {
-              "flag": "issue-inbox"
-            }
-          }
+          {"any": [{"flag": "seer-night-shift-ui"}, {"not": {"flag": "issue-inbox"}}]},
+          {"not": {"flag": "issue-inbox"}}
         ]
       }
     },
-    {
-      "crumbs": "Issues → All Views",
-      "path": "/issues/views/"
-    },
-    {
-      "crumbs": "Monitors → All Monitors",
-      "path": "/monitors/"
-    },
-    {
-      "crumbs": "Monitors → My Monitors",
-      "path": "/monitors/my-monitors/"
-    },
-    {
-      "crumbs": "Monitors → By Monitor Type → Error",
-      "path": "/monitors/errors/"
-    },
-    {
-      "crumbs": "Monitors → By Monitor Type → Metric",
-      "path": "/monitors/metrics/"
-    },
-    {
-      "crumbs": "Monitors → By Monitor Type → Cron",
-      "path": "/monitors/crons/"
-    },
+    {"crumbs": "Issues → All Views", "path": "/issues/views/"},
+    {"crumbs": "Monitors → All Monitors", "path": "/monitors/"},
+    {"crumbs": "Monitors → My Monitors", "path": "/monitors/my-monitors/"},
+    {"crumbs": "Monitors → By Monitor Type → Error", "path": "/monitors/errors/"},
+    {"crumbs": "Monitors → By Monitor Type → Metric", "path": "/monitors/metrics/"},
+    {"crumbs": "Monitors → By Monitor Type → Cron", "path": "/monitors/crons/"},
     {
       "crumbs": "Monitors → By Monitor Type → Uptime",
       "path": "/monitors/uptime/",
-      "when": {
-        "flag": "uptime"
-      }
+      "when": {"flag": "uptime"}
     },
     {
       "crumbs": "Monitors → By Monitor Type → Mobile Build",
       "path": "/monitors/mobile-builds/",
-      "when": {
-        "flag": "preprod-size-monitors-frontend"
-      }
+      "when": {"flag": "preprod-size-monitors-frontend"}
     },
-    {
-      "crumbs": "Monitors → Alerts",
-      "path": "/monitors/alerts/"
-    },
-    {
-      "crumbs": "Issues → Errors & Outages",
-      "path": "/issues/errors-outages/"
-    },
-    {
-      "crumbs": "Issues → Breached Metrics",
-      "path": "/issues/breached-metrics/"
-    },
-    {
-      "crumbs": "Issues → Warnings",
-      "path": "/issues/warnings/"
-    },
+    {"crumbs": "Monitors → Alerts", "path": "/monitors/alerts/"},
+    {"crumbs": "Issues → Errors & Outages", "path": "/issues/errors-outages/"},
+    {"crumbs": "Issues → Breached Metrics", "path": "/issues/breached-metrics/"},
+    {"crumbs": "Issues → Warnings", "path": "/issues/warnings/"},
     {
       "crumbs": "Issues → Configuration",
       "path": "/issues/sentry-configuration/",
       "when": {
         "any": [
-          {
-            "flag": "issue-sourcemap-configuration-visible"
-          },
-          {
-            "flag": "issue-low-value-span-configuration-visible"
-          }
+          {"flag": "issue-sourcemap-configuration-visible"},
+          {"flag": "issue-low-value-span-configuration-visible"}
         ]
       }
     },
     {
       "crumbs": "Settings → Account → General",
       "path": "/settings/account/details/",
-      "when": {
-        "flag": "settings-v3"
-      }
+      "when": {"flag": "settings-v3"}
     },
     {
       "crumbs": "Settings → Account → Account Details",
       "path": "/settings/account/details/",
-      "when": {
-        "not": {
-          "flag": "settings-v3"
-        }
-      }
+      "when": {"not": {"flag": "settings-v3"}}
     },
-    {
-      "crumbs": "Settings → Account → Security",
-      "path": "/settings/account/security/"
-    },
+    {"crumbs": "Settings → Account → Security", "path": "/settings/account/security/"},
     {
       "crumbs": "Settings → Account → Notifications",
       "path": "/settings/account/notifications/"
@@ -261,61 +146,32 @@
     {
       "crumbs": "Settings → Organization → General",
       "path": "/settings/",
-      "when": {
-        "flag": "settings-v3"
-      }
+      "when": {"flag": "settings-v3"}
     },
     {
       "crumbs": "Settings → Organization → General Settings",
       "path": "/settings/",
-      "when": {
-        "not": {
-          "flag": "settings-v3"
-        }
-      }
+      "when": {"not": {"flag": "settings-v3"}}
     },
-    {
-      "crumbs": "Settings → Organization → Stats & Usage",
-      "path": "/settings/stats/"
-    },
-    {
-      "crumbs": "Settings → Organization → Projects",
-      "path": "/settings/projects/"
-    },
-    {
-      "crumbs": "Settings → Organization → Teams",
-      "path": "/settings/teams/"
-    },
-    {
-      "crumbs": "Settings → Organization → Members",
-      "path": "/settings/members/"
-    },
+    {"crumbs": "Settings → Organization → Stats & Usage", "path": "/settings/stats/"},
+    {"crumbs": "Settings → Organization → Projects", "path": "/settings/projects/"},
+    {"crumbs": "Settings → Organization → Teams", "path": "/settings/teams/"},
+    {"crumbs": "Settings → Organization → Members", "path": "/settings/members/"},
     {
       "crumbs": "Settings → Organization → Security & Privacy",
       "path": "/settings/security-and-privacy/"
     },
-    {
-      "crumbs": "Settings → Organization → Auth",
-      "path": "/settings/auth/"
-    },
-    {
-      "crumbs": "Settings → Organization → Audit Log",
-      "path": "/settings/audit-log/"
-    },
+    {"crumbs": "Settings → Organization → Auth", "path": "/settings/auth/"},
+    {"crumbs": "Settings → Organization → Audit Log", "path": "/settings/audit-log/"},
     {
       "crumbs": "Settings → Organization → Data Forwarding",
       "path": "/settings/data-forwarding/"
     },
-    {
-      "crumbs": "Settings → Organization → Relay",
-      "path": "/settings/relay/"
-    },
+    {"crumbs": "Settings → Organization → Relay", "path": "/settings/relay/"},
     {
       "crumbs": "Settings → Organization → Early Features",
       "path": "/settings/early-features/",
-      "when": {
-        "deployment": "self_hosted"
-      }
+      "when": {"deployment": "self_hosted"}
     },
     {
       "crumbs": "Settings → Organization → Feature Flags",
@@ -324,9 +180,7 @@
     {
       "crumbs": "Settings → Organization → Console SDK Invites",
       "path": "/settings/console-sdk-invites/",
-      "when": {
-        "unknown": "(organization.enabledConsolePlatforms?.length ?? 0) > 0"
-      }
+      "when": {"unknown": "(organization.enabledConsolePlatforms?.length ?? 0) > 0"}
     },
     {
       "crumbs": "Settings → Seer → Issue Scans & Fixes",
@@ -334,27 +188,13 @@
       "when": {
         "not": {
           "any": [
-            {
-              "flag": "seat-based-seer-enabled"
-            },
-            {
-              "flag": "token-billed-seer-enabled"
-            },
+            {"flag": "seat-based-seer-enabled"},
+            {"flag": "token-billed-seer-enabled"},
             {
               "all": [
-                {
-                  "not": {
-                    "flag": "seer-added"
-                  }
-                },
-                {
-                  "not": {
-                    "flag": "code-review-beta"
-                  }
-                },
-                {
-                  "flag": "seer-user-billing-launch"
-                }
+                {"not": {"flag": "seer-added"}},
+                {"not": {"flag": "code-review-beta"}},
+                {"flag": "seer-user-billing-launch"}
               ]
             }
           ]
@@ -366,27 +206,13 @@
       "path": "/settings/seer/projects/",
       "when": {
         "any": [
-          {
-            "flag": "seat-based-seer-enabled"
-          },
-          {
-            "flag": "token-billed-seer-enabled"
-          },
+          {"flag": "seat-based-seer-enabled"},
+          {"flag": "token-billed-seer-enabled"},
           {
             "all": [
-              {
-                "not": {
-                  "flag": "seer-added"
-                }
-              },
-              {
-                "not": {
-                  "flag": "code-review-beta"
-                }
-              },
-              {
-                "flag": "seer-user-billing-launch"
-              }
+              {"not": {"flag": "seer-added"}},
+              {"not": {"flag": "code-review-beta"}},
+              {"flag": "seer-user-billing-launch"}
             ]
           }
         ]
@@ -395,16 +221,7 @@
     {
       "crumbs": "Settings → Seer → Code Review",
       "path": "/settings/seer/repos/",
-      "when": {
-        "any": [
-          {
-            "flag": "seat-based-seer-enabled"
-          },
-          {
-            "flag": "code-review-beta"
-          }
-        ]
-      }
+      "when": {"any": [{"flag": "seat-based-seer-enabled"}, {"flag": "code-review-beta"}]}
     },
     {
       "crumbs": "Settings → Seer → Connectors",
@@ -413,34 +230,18 @@
         "all": [
           {
             "any": [
-              {
-                "flag": "seat-based-seer-enabled"
-              },
-              {
-                "flag": "token-billed-seer-enabled"
-              },
+              {"flag": "seat-based-seer-enabled"},
+              {"flag": "token-billed-seer-enabled"},
               {
                 "all": [
-                  {
-                    "not": {
-                      "flag": "seer-added"
-                    }
-                  },
-                  {
-                    "not": {
-                      "flag": "code-review-beta"
-                    }
-                  },
-                  {
-                    "flag": "seer-user-billing-launch"
-                  }
+                  {"not": {"flag": "seer-added"}},
+                  {"not": {"flag": "code-review-beta"}},
+                  {"flag": "seer-user-billing-launch"}
                 ]
               }
             ]
           },
-          {
-            "flag": "seer-infra-telemetry"
-          }
+          {"flag": "seer-infra-telemetry"}
         ]
       }
     },
@@ -449,44 +250,24 @@
       "path": "/settings/seer/advanced/",
       "when": {
         "any": [
-          {
-            "flag": "seat-based-seer-enabled"
-          },
-          {
-            "flag": "token-billed-seer-enabled"
-          },
+          {"flag": "seat-based-seer-enabled"},
+          {"flag": "token-billed-seer-enabled"},
           {
             "all": [
-              {
-                "not": {
-                  "flag": "seer-added"
-                }
-              },
-              {
-                "not": {
-                  "flag": "code-review-beta"
-                }
-              },
-              {
-                "flag": "seer-user-billing-launch"
-              }
+              {"not": {"flag": "seer-added"}},
+              {"not": {"flag": "code-review-beta"}},
+              {"flag": "seer-user-billing-launch"}
             ]
           }
         ]
       }
     },
-    {
-      "crumbs": "Settings → Integrations → MCP & CLI",
-      "path": "/settings/mcp-cli/"
-    },
+    {"crumbs": "Settings → Integrations → MCP & CLI", "path": "/settings/mcp-cli/"},
     {
       "crumbs": "Settings → Integrations → Integrations",
       "path": "/settings/integrations/"
     },
-    {
-      "crumbs": "Settings → Integrations → Repositories",
-      "path": "/settings/repos/"
-    },
+    {"crumbs": "Settings → Integrations → Repositories", "path": "/settings/repos/"},
     {
       "crumbs": "Settings → Integrations → Custom Integrations",
       "path": "/settings/developer-settings/"
@@ -506,18 +287,12 @@
     {
       "crumbs": "Settings → Organization → Projects → <project> → Project → General",
       "path": "/settings/projects/{project_slug}/",
-      "when": {
-        "flag": "settings-v3"
-      }
+      "when": {"flag": "settings-v3"}
     },
     {
       "crumbs": "Settings → Organization → Projects → <project> → Project → General Settings",
       "path": "/settings/projects/{project_slug}/",
-      "when": {
-        "not": {
-          "flag": "settings-v3"
-        }
-      }
+      "when": {"not": {"flag": "settings-v3"}}
     },
     {
       "crumbs": "Settings → Organization → Projects → <project> → Project → Project Teams",
@@ -534,9 +309,7 @@
     {
       "crumbs": "Settings → Organization → Projects → <project> → Project → Attributes",
       "path": "/settings/projects/{project_slug}/attributes/",
-      "when": {
-        "flag": "attribute-management"
-      }
+      "when": {"flag": "attribute-management"}
     },
     {
       "crumbs": "Settings → Organization → Projects → <project> → Project → Environments",
@@ -549,20 +322,12 @@
     {
       "crumbs": "Settings → Organization → Projects → <project> → Project → Seer",
       "path": "/settings/projects/{project_slug}/seer/",
-      "when": {
-        "not": {
-          "deployment": "self_hosted"
-        }
-      }
+      "when": {"not": {"deployment": "self_hosted"}}
     },
     {
       "crumbs": "Settings → Organization → Projects → <project> → Project → User Feedback",
       "path": "/settings/projects/{project_slug}/user-feedback/",
-      "when": {
-        "not": {
-          "deployment": "self_hosted_errors_only"
-        }
-      }
+      "when": {"not": {"deployment": "self_hosted_errors_only"}}
     },
     {
       "crumbs": "Settings → Organization → Projects → <project> → Project → Dev Toolbar",
@@ -595,25 +360,15 @@
     {
       "crumbs": "Settings → Organization → Projects → <project> → Processing → Performance",
       "path": "/settings/projects/{project_slug}/performance/",
-      "when": {
-        "not": {
-          "deployment": "self_hosted_errors_only"
-        }
-      }
+      "when": {"not": {"deployment": "self_hosted_errors_only"}}
     },
     {
       "crumbs": "Settings → Organization → Projects → <project> → Processing → Replays",
       "path": "/settings/projects/{project_slug}/replays/",
       "when": {
         "all": [
-          {
-            "flag": "session-replay-ui"
-          },
-          {
-            "not": {
-              "deployment": "self_hosted_errors_only"
-            }
-          }
+          {"flag": "session-replay-ui"},
+          {"not": {"deployment": "self_hosted_errors_only"}}
         ]
       }
     },
@@ -622,14 +377,8 @@
       "path": "/settings/projects/{project_slug}/logs/",
       "when": {
         "all": [
-          {
-            "flag": "explore-automatic-json-expansion-ui"
-          },
-          {
-            "not": {
-              "deployment": "self_hosted_errors_only"
-            }
-          }
+          {"flag": "explore-automatic-json-expansion-ui"},
+          {"not": {"deployment": "self_hosted_errors_only"}}
         ]
       }
     },
@@ -638,14 +387,8 @@
       "path": "/settings/projects/{project_slug}/playstation/",
       "when": {
         "all": [
-          {
-            "unknown": "hasTempestAccess(organization)"
-          },
-          {
-            "not": {
-              "deployment": "self_hosted"
-            }
-          }
+          {"unknown": "hasTempestAccess(organization)"},
+          {"not": {"deployment": "self_hosted"}}
         ]
       }
     },
@@ -681,22 +424,13 @@
       "crumbs": "Settings → Usage & Billing → Subscription",
       "path": "/settings/billing/",
       "when": {
-        "any": [
-          {
-            "scope": "org:billing"
-          },
-          {
-            "unknown": "membersCanViewSubscriptionInfo"
-          }
-        ]
+        "any": [{"scope": "org:billing"}, {"unknown": "membersCanViewSubscriptionInfo"}]
       }
     },
     {
       "crumbs": "Settings → Usage & Billing → Spend Allocations",
       "path": "/settings/subscription/spend-allocations/",
-      "when": {
-        "flag": "spend-allocations"
-      }
+      "when": {"flag": "spend-allocations"}
     },
     {
       "crumbs": "Settings → Usage & Billing → Spike Protection",
@@ -718,47 +452,32 @@
     {
       "crumbs": "Explore → Traces → Compare",
       "path": "/explore/traces/compare/",
-      "when": {
-        "flag": "visibility-explore-view"
-      },
+      "when": {"flag": "visibility-explore-view"},
       "sub_page": true
     },
     {
       "crumbs": "Explore → Errors → Homepage",
       "path": "/explore/errors/homepage/",
-      "when": {
-        "flag": "discover-basic"
-      },
+      "when": {"flag": "discover-basic"},
       "sub_page": true
     },
     {
       "crumbs": "Explore → Errors → Queries",
       "path": "/explore/errors/queries/",
-      "when": {
-        "flag": "discover-basic"
-      },
+      "when": {"flag": "discover-basic"},
       "sub_page": true
     },
     {
       "crumbs": "Explore → Errors → Results",
       "path": "/explore/errors/results/",
-      "when": {
-        "flag": "discover-basic"
-      },
+      "when": {"flag": "discover-basic"},
       "sub_page": true
     },
     {
       "crumbs": "Explore → Saved Formulas → Create New",
       "path": "/explore/saved-formulas/new/",
       "when": {
-        "all": [
-          {
-            "flag": "visibility-explore-view"
-          },
-          {
-            "flag": "explore-saved-formulas"
-          }
-        ]
+        "all": [{"flag": "visibility-explore-view"}, {"flag": "explore-saved-formulas"}]
       },
       "sub_page": true
     },

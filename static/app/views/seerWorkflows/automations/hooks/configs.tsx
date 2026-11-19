@@ -24,9 +24,7 @@ function useConfigUrls(configId = '') {
   return {
     configsUrl: getApiUrl(
       '/organizations/$organizationIdOrSlug/seer/workflows/configs/',
-      {
-        path: {organizationIdOrSlug: organization.slug},
-      }
+      {path: {organizationIdOrSlug: organization.slug}}
     ),
     configUrl: getApiUrl(
       '/organizations/$organizationIdOrSlug/seer/workflows/configs/$configId/',

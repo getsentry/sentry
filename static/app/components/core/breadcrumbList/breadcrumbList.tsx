@@ -16,15 +16,11 @@ import {BreadcrumbItemSelect} from './items/breadcrumbItemSelect';
 import {BreadcrumbDividerCombo} from './breadcrumbDividerCombo';
 
 type LinkBreadcrumbItem = {type: 'link'} & BreadcrumbItemLinkProps;
-type PageTitleBreadcrumbItem = {
-  type: 'page-title';
-} & BreadcrumbItemPageTitleProps;
+type PageTitleBreadcrumbItem = {type: 'page-title'} & BreadcrumbItemPageTitleProps;
 type EditableTitleBreadcrumbItem = {
   type: 'editable-title';
 } & BreadcrumbItemPageTitleEditableProps;
-type SelectBreadcrumbItem = {
-  type: 'select';
-} & BreadcrumbItemSelectProps;
+type SelectBreadcrumbItem = {type: 'select'} & BreadcrumbItemSelectProps;
 
 type BreadcrumbItem = LinkBreadcrumbItem | SelectBreadcrumbItem;
 export type BreadcrumbTitleItem = PageTitleBreadcrumbItem | EditableTitleBreadcrumbItem;
@@ -100,14 +96,7 @@ export function BreadcrumbList({items}: BreadcrumbListProps) {
   const menuItems = items.flatMap((item, index) => {
     const key = `${index}`;
     if (item.type === 'link') {
-      return [
-        {
-          key,
-          label: item.label,
-          to: item.to,
-          leadingItems: item.leadingGraphic,
-        },
-      ];
+      return [{key, label: item.label, to: item.to, leadingItems: item.leadingGraphic}];
     }
     return item.to === undefined
       ? []

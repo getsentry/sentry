@@ -68,10 +68,7 @@ import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 import {ConnectedRepositoriesPanel} from './connectedRepositoriesPanel';
 
-type Props = {
-  onChangeSlug: (slug: string) => void;
-  project: DetailedProject;
-};
+type Props = {onChangeSlug: (slug: string) => void; project: DetailedProject};
 
 const ORG_DISABLED_REASON = t(
   "This option is enforced by your organization's settings and cannot be customized per-project."
@@ -136,10 +133,7 @@ function RemoveProjectSection({
   organization: Organization;
   project: DetailedProject;
 }) {
-  const isProjectAdmin = hasEveryAccess(['project:admin'], {
-    organization,
-    project,
-  });
+  const isProjectAdmin = hasEveryAccess(['project:admin'], {organization, project});
   const {isInternal} = project;
 
   return (
@@ -147,10 +141,7 @@ function RemoveProjectSection({
       label={t('Remove Project')}
       help={tct(
         'Remove the [project] project and all related data. [linebreak] Careful, this action cannot be undone.',
-        {
-          project: <strong>{project.slug}</strong>,
-          linebreak: <br />,
-        }
+        {project: <strong>{project.slug}</strong>, linebreak: <br />}
       )}
     >
       {!isProjectAdmin &&
@@ -186,25 +177,15 @@ function RemoveProjectSection({
   );
 }
 
-const slugSchema = z.object({
-  slug: z.string().min(1, t('Slug is required')),
-});
+const slugSchema = z.object({slug: z.string().min(1, t('Slug is required'))});
 
-const projectIdSchema = z.object({
-  projectId: z.string(),
-});
+const projectIdSchema = z.object({projectId: z.string()});
 
-const resolveAgeSchema = z.object({
-  resolveAge: z.number(),
-});
+const resolveAgeSchema = z.object({resolveAge: z.number()});
 
-const securityTokenSchema = z.object({
-  securityToken: z.string(),
-});
+const securityTokenSchema = z.object({securityToken: z.string()});
 
-const securityTokenHeaderSchema = z.object({
-  securityTokenHeader: z.string(),
-});
+const securityTokenHeaderSchema = z.object({securityTokenHeader: z.string()});
 
 const projectSettingsSchema = z.object({
   // The full platform list is large, so skip the enum and just carry the
@@ -771,9 +752,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
                 ? undefined
                 : tct(
                     'Turning this off means Sentry will no longer create releases from ingested events. You will need to create releases manually, for example with the [link:Sentry CLI]. Are you sure you want to disable this?',
-                    {
-                      link: <ExternalLink href="https://docs.sentry.io/cli/releases/" />,
-                    }
+                    {link: <ExternalLink href="https://docs.sentry.io/cli/releases/" />}
                   )
             }
           >
@@ -970,10 +949,7 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
           label={t('Transfer Project')}
           help={tct(
             'Transfer the [project] project and all related data. [linebreak] Careful, this action cannot be undone.',
-            {
-              project: <strong>{project.slug}</strong>,
-              linebreak: <br />,
-            }
+            {project: <strong>{project.slug}</strong>, linebreak: <br />}
           )}
         >
           {!isOrgOwner &&
@@ -1048,10 +1024,7 @@ export default function ProjectGeneralSettingsContainer() {
     (newSlug: string) => {
       navigate(
         recreateRoute('', {
-          params: {
-            orgId: organization.slug,
-            projectId: newSlug,
-          },
+          params: {orgId: organization.slug, projectId: newSlug},
           routes,
           location,
         }),

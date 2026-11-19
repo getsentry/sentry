@@ -104,10 +104,7 @@ export function bandLayout(
   }
 
   const {x, width} = params.coordSys as CartesianCoordSys;
-  return {
-    track: {left: x, right: x + width},
-    y: baseY + offset + BAND_PADDING_TOP,
-  };
+  return {track: {left: x, right: x + width}, y: baseY + offset + BAND_PADDING_TOP};
 }
 
 /**

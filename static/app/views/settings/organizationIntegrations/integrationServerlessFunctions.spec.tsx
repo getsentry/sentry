@@ -54,14 +54,10 @@ describe('IntegrationServerlessFunctions', () => {
       body: [enabledFunction, outdatedFunction, disabledFunction],
     });
 
-    render(<IntegrationServerlessFunctions integration={integration} />, {
-      organization,
-    });
+    render(<IntegrationServerlessFunctions integration={integration} />, {organization});
 
     const table = screen.getByRole('table', {name: 'Serverless Functions'});
-    const enabledRow = await within(table).findByRole('row', {
-      name: /enabled-function/,
-    });
+    const enabledRow = await within(table).findByRole('row', {name: /enabled-function/});
 
     expect(
       within(table)
@@ -91,19 +87,14 @@ describe('IntegrationServerlessFunctions', () => {
   });
 
   it('enables a function when its switch is toggled on', async () => {
-    MockApiClient.addMockResponse({
-      url: endpoint,
-      body: [disabledFunction],
-    });
+    MockApiClient.addMockResponse({url: endpoint, body: [disabledFunction]});
     const toggleRequest = MockApiClient.addMockResponse({
       url: endpoint,
       method: 'POST',
       body: {...disabledFunction, enabled: true, version: 4},
     });
 
-    render(<IntegrationServerlessFunctions integration={integration} />, {
-      organization,
-    });
+    render(<IntegrationServerlessFunctions integration={integration} />, {organization});
 
     await userEvent.click(
       await screen.findByRole('checkbox', {name: 'Enable disabled-function'})
@@ -123,19 +114,14 @@ describe('IntegrationServerlessFunctions', () => {
   });
 
   it('updates the layer when the Update button is clicked for an outdated function', async () => {
-    MockApiClient.addMockResponse({
-      url: endpoint,
-      body: [outdatedFunction],
-    });
+    MockApiClient.addMockResponse({url: endpoint, body: [outdatedFunction]});
     const updateRequest = MockApiClient.addMockResponse({
       url: endpoint,
       method: 'POST',
       body: {...outdatedFunction, outOfDate: false, version: 2},
     });
 
-    render(<IntegrationServerlessFunctions integration={integration} />, {
-      organization,
-    });
+    render(<IntegrationServerlessFunctions integration={integration} />, {organization});
 
     await userEvent.click(await screen.findByRole('button', {name: 'Update'}));
 
@@ -152,10 +138,7 @@ describe('IntegrationServerlessFunctions', () => {
   });
 
   it('restores the switch when the toggle request fails', async () => {
-    MockApiClient.addMockResponse({
-      url: endpoint,
-      body: [enabledFunction],
-    });
+    MockApiClient.addMockResponse({url: endpoint, body: [enabledFunction]});
     const toggleRequest = MockApiClient.addMockResponse({
       url: endpoint,
       method: 'POST',
@@ -163,9 +146,7 @@ describe('IntegrationServerlessFunctions', () => {
       body: {detail: 'Toggle failed'},
     });
 
-    render(<IntegrationServerlessFunctions integration={integration} />, {
-      organization,
-    });
+    render(<IntegrationServerlessFunctions integration={integration} />, {organization});
 
     await userEvent.click(
       await screen.findByRole('checkbox', {name: 'Enable enabled-function'})
@@ -173,9 +154,7 @@ describe('IntegrationServerlessFunctions', () => {
 
     expect(toggleRequest).toHaveBeenCalledWith(
       endpoint,
-      expect.objectContaining({
-        data: {action: 'disable', target: 'enabled-function'},
-      })
+      expect.objectContaining({data: {action: 'disable', target: 'enabled-function'}})
     );
     expect(
       await screen.findByRole('checkbox', {name: 'Enable enabled-function'})
@@ -187,9 +166,7 @@ describe('IntegrationServerlessFunctions', () => {
   it('renders an empty message when there are no serverless functions', async () => {
     MockApiClient.addMockResponse({url: endpoint, body: []});
 
-    render(<IntegrationServerlessFunctions integration={integration} />, {
-      organization,
-    });
+    render(<IntegrationServerlessFunctions integration={integration} />, {organization});
 
     expect(
       await within(screen.getByRole('table', {name: 'Serverless Functions'})).findByText(
@@ -201,9 +178,7 @@ describe('IntegrationServerlessFunctions', () => {
   it('renders an error with a retry when the serverless functions request fails', async () => {
     MockApiClient.addMockResponse({url: endpoint, statusCode: 500});
 
-    render(<IntegrationServerlessFunctions integration={integration} />, {
-      organization,
-    });
+    render(<IntegrationServerlessFunctions integration={integration} />, {organization});
 
     const table = screen.getByRole('table', {name: 'Serverless Functions'});
 

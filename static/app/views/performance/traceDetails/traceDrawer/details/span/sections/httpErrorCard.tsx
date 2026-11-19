@@ -10,9 +10,7 @@ import {t} from 'sentry/locale';
 import {HTTP_ERROR_STATUSES} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/constants';
 import type {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/eapSpanNode';
 
-type HttpErrorCardProps = {
-  node: EapSpanNode;
-};
+type HttpErrorCardProps = {node: EapSpanNode};
 
 function formatStatusText(status: string): string {
   return status

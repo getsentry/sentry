@@ -6,10 +6,7 @@ type ScoreMap = Record<string, number | null | string>;
 export type SimilarItem = {
   isBelowThreshold: boolean;
   issue: Group;
-  aggregate?: {
-    exception: number;
-    message: number;
-  };
+  aggregate?: {exception: number; message: number};
   scoresByInterface?: {
     exception: Array<[string, number | null]>;
     message: Array<[string, number | null]>;

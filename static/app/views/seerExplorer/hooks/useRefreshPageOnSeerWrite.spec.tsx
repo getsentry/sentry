@@ -211,10 +211,7 @@ describe('useRefreshPageOnSeerWrite', () => {
   it('invalidates everything when the written route cannot be resolved', () => {
     const {rerender, invalidatedUrls} = renderRefreshHook([]);
 
-    rerender({
-      runId: 1,
-      blocks: [makeBlock('a', [{...createAlert, path: undefined}])],
-    });
+    rerender({runId: 1, blocks: [makeBlock('a', [{...createAlert, path: undefined}])]});
     expect(invalidatedUrls()).toEqual(CACHED_URLS);
   });
 

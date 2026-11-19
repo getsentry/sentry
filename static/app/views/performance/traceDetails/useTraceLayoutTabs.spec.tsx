@@ -60,12 +60,7 @@ describe('getInitialTab', () => {
     'keeps %s selected from the URL while tab data is loading',
     (tabSlugFromUrl, expectedTab) => {
       expect(
-        getInitialTab({
-          isLoading: true,
-          sections,
-          tabOptions: [],
-          tabSlugFromUrl,
-        }).slug
+        getInitialTab({isLoading: true, sections, tabOptions: [], tabSlugFromUrl}).slug
       ).toBe(expectedTab);
     }
   );
@@ -106,13 +101,8 @@ describe('getInitialTab', () => {
     'does not preserve %s while loading when trace meta reports no tab data',
     (tabSlugFromUrl, meta) => {
       expect(
-        getInitialTab({
-          isLoading: true,
-          meta,
-          sections,
-          tabOptions: [],
-          tabSlugFromUrl,
-        }).slug
+        getInitialTab({isLoading: true, meta, sections, tabOptions: [], tabSlugFromUrl})
+          .slug
       ).toBe(TraceLayoutTabKeys.WATERFALL);
     }
   );
@@ -153,10 +143,7 @@ describe('useTraceLayoutTabs', () => {
                 count: undefined,
                 representative: undefined,
               },
-              metrics: {
-                availability: 'loading',
-                count: undefined,
-              },
+              metrics: {availability: 'loading', count: undefined},
             },
             tree: new TraceTree().build(),
           }),
@@ -173,10 +160,7 @@ describe('useTraceLayoutTabs', () => {
 
       expect(result.current.currentTab).toBe(tabSlug);
       expect(result.current.isLoading).toBe(false);
-      expect(result.current.tabOptions).toContainEqual({
-        label: tabLabel,
-        slug: tabSlug,
-      });
+      expect(result.current.tabOptions).toContainEqual({label: tabLabel, slug: tabSlug});
       expect(result.current.tabOptions.map(tab => tab.slug)).not.toContain(
         tabSlug === TraceLayoutTabKeys.LOGS
           ? TraceLayoutTabKeys.METRICS
@@ -208,10 +192,7 @@ describe('useTraceLayoutTabs', () => {
                 count: undefined,
                 representative: undefined,
               },
-              metrics: {
-                availability: 'unknown',
-                count: undefined,
-              },
+              metrics: {availability: 'unknown', count: undefined},
             },
             tree: new TraceTree().build(),
           }),
@@ -249,15 +230,8 @@ describe('useTraceLayoutTabs', () => {
             isRepresentativeLoading: false,
             isTabLoading: false,
             projectIds: [],
-            logs: {
-              availability: 'unknown',
-              count: undefined,
-              representative: undefined,
-            },
-            metrics: {
-              availability: 'unknown',
-              count: undefined,
-            },
+            logs: {availability: 'unknown', count: undefined, representative: undefined},
+            metrics: {availability: 'unknown', count: undefined},
           },
           tree: new TraceTree().build(),
         }),
@@ -279,15 +253,8 @@ describe('useTraceLayoutTabs', () => {
         isRepresentativeLoading: false,
         isTabLoading: true,
         projectIds: [],
-        logs: {
-          availability: 'loading',
-          count: undefined,
-          representative: undefined,
-        },
-        metrics: {
-          availability: 'loading',
-          count: undefined,
-        },
+        logs: {availability: 'loading', count: undefined, representative: undefined},
+        metrics: {availability: 'loading', count: undefined},
       };
       const renderedTabs: TraceLayoutTabKeys[] = [];
       const {result, rerender} = renderHookWithProviders(

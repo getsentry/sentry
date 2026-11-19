@@ -141,13 +141,7 @@ export function useHandleSearch({
         organization,
       });
 
-      debouncedSaveAsRecentSearch({
-        api,
-        organization,
-        query,
-        recentSearches,
-        namespace,
-      });
+      debouncedSaveAsRecentSearch({api, organization, query, recentSearches, namespace});
     },
     [
       api,

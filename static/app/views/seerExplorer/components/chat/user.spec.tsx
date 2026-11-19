@@ -6,10 +6,7 @@ import type {Block} from 'sentry/views/seerExplorer/types';
 function createBlock(overrides?: Partial<Block>): Block {
   return {
     id: 'user-1',
-    message: {
-      role: 'user',
-      content: 'What is this error about?',
-    },
+    message: {role: 'user', content: 'What is this error about?'},
     timestamp: '2024-01-01T00:00:00Z',
     loading: false,
     ...overrides,

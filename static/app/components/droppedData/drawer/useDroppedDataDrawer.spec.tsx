@@ -53,11 +53,7 @@ function mockMultiOutcomeDroppedData() {
       meta: {dataset: 'spans', start: 0, end: 0, interval: 0},
       droppedEvents: [
         OutcomeRowFixture({outcome: 'client_discard', reason: 'before_send', count: 4}),
-        OutcomeRowFixture({
-          outcome: 'client_discard',
-          reason: 'network_error',
-          count: 6,
-        }),
+        OutcomeRowFixture({outcome: 'client_discard', reason: 'network_error', count: 6}),
         OutcomeRowFixture({
           outcome: 'filtered',
           reason: 'ignore_spans',
@@ -91,9 +87,7 @@ function DroppedDataTrigger({
 describe('useDroppedDataDrawer', () => {
   beforeEach(() => {
     PageFiltersStore.onInitializeUrlState(
-      PageFiltersFixture({
-        datetime: {period: '14d', start: null, end: null, utc: false},
-      })
+      PageFiltersFixture({datetime: {period: '14d', start: null, end: null, utc: false}})
     );
   });
 
@@ -395,10 +389,7 @@ describe('useDroppedDataDrawer', () => {
 
     const {rerender} = render(
       <DroppedDataTrigger dataset={DiscoverDatasets.SPANS} interval="1d" />,
-      {
-        organization,
-        initialRouterConfig: {location: {pathname: '/discover/results/'}},
-      }
+      {organization, initialRouterConfig: {location: {pathname: '/discover/results/'}}}
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
@@ -422,10 +413,7 @@ describe('useDroppedDataDrawer', () => {
 
     const {rerender} = render(
       <DroppedDataTrigger dataset={DiscoverDatasets.SPANS} projects={[2]} />,
-      {
-        organization,
-        initialRouterConfig: {location: {pathname: '/explore/traces/'}},
-      }
+      {organization, initialRouterConfig: {location: {pathname: '/explore/traces/'}}}
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));

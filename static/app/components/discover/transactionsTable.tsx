@@ -106,12 +106,7 @@ function TransactionsTableResults({
       const fieldType = tableMeta[fieldName];
 
       const fieldRenderer = getFieldRenderer(field, tableMeta, useAggregateAlias);
-      let rendered = fieldRenderer(tableRow, {
-        navigate,
-        organization,
-        location,
-        theme,
-      });
+      let rendered = fieldRenderer(tableRow, {navigate, organization, location, theme});
 
       const target = generateLink?.[field]?.(organization, tableRow, location);
       const isEmptyTarget =
@@ -289,10 +284,7 @@ function getProfileAnalyticsHandler(organization: Organization, referrer?: strin
       referrer === 'performance.transactions_summary'
         ? ('performance.transactions_summary.overview' as const)
         : ('discover.transactions_table' as const);
-    trackAnalytics('profiling_views.go_to_flamegraph', {
-      organization,
-      source,
-    });
+    trackAnalytics('profiling_views.go_to_flamegraph', {organization, source});
   };
 }
 

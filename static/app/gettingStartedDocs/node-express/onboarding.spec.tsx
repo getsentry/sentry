@@ -135,17 +135,9 @@ describe('express onboarding docs', () => {
     ).toBeInTheDocument();
   });
   it('continuous profiling', () => {
-    const organization = OrganizationFixture({
-      features: ['continuous-profiling'],
-    });
+    const organization = OrganizationFixture({features: ['continuous-profiling']});
 
-    renderWithOnboardingLayout(
-      docs,
-      {},
-      {
-        organization,
-      }
-    );
+    renderWithOnboardingLayout(docs, {}, {organization});
 
     expect(
       screen.getByText(

@@ -6,13 +6,8 @@ import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 export interface AutofixSetupResponse {
-  billing: {
-    hasAutofixQuota: boolean;
-  } | null;
-  integration: {
-    ok: boolean;
-    reason: string | null;
-  };
+  billing: {hasAutofixQuota: boolean} | null;
+  integration: {ok: boolean; reason: string | null};
   seerReposLinked: boolean;
 }
 
@@ -25,10 +20,7 @@ export function autofixSetupApiOptions({
 }) {
   return apiOptions.as<AutofixSetupResponse>()(
     '/organizations/$organizationIdOrSlug/issues/$issueId/autofix/setup/',
-    {
-      path: {organizationIdOrSlug: organizationSlug, issueId: groupId},
-      staleTime: 30_000,
-    }
+    {path: {organizationIdOrSlug: organizationSlug, issueId: groupId}, staleTime: 30_000}
   );
 }
 

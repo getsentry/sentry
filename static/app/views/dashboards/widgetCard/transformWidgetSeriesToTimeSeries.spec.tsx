@@ -6,10 +6,7 @@ import type {Series} from 'sentry/types/echarts';
 import {transformMultipleWidgetSeriesToTimeSeries} from './transformWidgetSeriesToTimeSeries';
 
 function makeSeries(seriesName: string, data: number[] = [1, 2, 3]): Series {
-  return {
-    seriesName,
-    data: data.map((value, i) => ({name: `2024-01-0${i + 1}`, value})),
-  };
+  return {seriesName, data: data.map((value, i) => ({name: `2024-01-0${i + 1}`, value}))};
 }
 
 describe('transformMultipleWidgetSeriesToTimeSeries', () => {

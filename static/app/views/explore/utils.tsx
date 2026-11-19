@@ -153,10 +153,8 @@ export function getExploreUrl({
   };
 
   return (
-    makeTracesPathname({
-      organization,
-      path: '/',
-    }) + `?${qs.stringify(queryParams, {skipNull: true})}`
+    makeTracesPathname({organization, path: '/'}) +
+    `?${qs.stringify(queryParams, {skipNull: true})}`
   );
 }
 

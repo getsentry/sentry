@@ -60,13 +60,7 @@ describe('buttonTracking', () => {
       <RouterProvider
         useTransitions={false}
         router={createMemoryRouter(
-          [
-            {
-              path: '/auth/login/',
-              handle: {path: '/auth/login/'},
-              element: children,
-            },
-          ],
+          [{path: '/auth/login/', handle: {path: '/auth/login/'}, element: children}],
           {initialEntries: ['/auth/login/']}
         )}
       />
@@ -78,9 +72,7 @@ describe('buttonTracking', () => {
   });
 
   it('calls rawTrackAnalyticsEvent with default values', () => {
-    const {result} = renderHook(useButtonTracking, {
-      wrapper,
-    });
+    const {result} = renderHook(useButtonTracking, {wrapper});
 
     result.current({clickType: 'button', 'aria-label': 'Create Alert'});
 
@@ -114,9 +106,7 @@ describe('buttonTracking', () => {
   });
 
   it('does not set a default Reload event key for links', () => {
-    const {result} = renderHook(useButtonTracking, {
-      wrapper,
-    });
+    const {result} = renderHook(useButtonTracking, {wrapper});
 
     result.current({clickType: 'link', 'aria-label': 'Open Issues'});
 
@@ -131,9 +121,7 @@ describe('buttonTracking', () => {
   });
 
   it('preserves an explicit Reload event key for links', () => {
-    const {result} = renderHook(useButtonTracking, {
-      wrapper,
-    });
+    const {result} = renderHook(useButtonTracking, {wrapper});
 
     result.current({
       clickType: 'link',
@@ -152,9 +140,7 @@ describe('buttonTracking', () => {
   });
 
   it('calls rawTrackAnalyticsEvent with data', () => {
-    const {result} = renderHook(useButtonTracking, {
-      wrapper,
-    });
+    const {result} = renderHook(useButtonTracking, {wrapper});
 
     result.current({
       clickType: 'button',
@@ -177,9 +163,7 @@ describe('buttonTracking', () => {
   });
 
   it('calls rawTrackAnalyticsEvent with new event names', () => {
-    const {result} = renderHook(useButtonTracking, {
-      wrapper,
-    });
+    const {result} = renderHook(useButtonTracking, {wrapper});
 
     result.current({
       clickType: 'button',
@@ -199,9 +183,7 @@ describe('buttonTracking', () => {
   });
 
   it('tracks explicit events without an organization', () => {
-    const {result} = renderHook(useButtonTracking, {
-      wrapper: anonymousWrapper,
-    });
+    const {result} = renderHook(useButtonTracking, {wrapper: anonymousWrapper});
 
     result.current({
       clickType: 'button',
@@ -222,9 +204,7 @@ describe('buttonTracking', () => {
   });
 
   it('does not track automatic button events without an organization', () => {
-    const {result} = renderHook(useButtonTracking, {
-      wrapper: anonymousWrapper,
-    });
+    const {result} = renderHook(useButtonTracking, {wrapper: anonymousWrapper});
 
     result.current({clickType: 'button', 'aria-label': 'Uninstrumented'});
 
