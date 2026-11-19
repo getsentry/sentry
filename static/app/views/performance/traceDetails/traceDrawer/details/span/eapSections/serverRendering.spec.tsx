@@ -1,7 +1,7 @@
 import {
+  SEARCH_LINK__TYPE,
   SEARCH_PAGE__SERVER_RENDERING__AGE,
   SEARCH_PAGE__SERVER_RENDERING__TYPE,
-  SEARCH_SENTRY__LINK__TYPE,
 } from '@sentry/conventions/attributes/search';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -63,7 +63,7 @@ describe('ServerRenderingSection', () => {
       itemId: type === 'cache_origin' ? RENDER_SPAN_ID : REQUEST_SPAN_ID,
       traceId: type === 'cache_origin' ? RENDER_TRACE_ID : REQUEST_TRACE_ID,
       sampled,
-      attributes: [{name: SEARCH_SENTRY__LINK__TYPE, type: 'str', value: type}],
+      attributes: [{name: SEARCH_LINK__TYPE, type: 'str', value: type}],
     };
   }
 

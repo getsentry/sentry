@@ -8,6 +8,7 @@ from rest_framework.test import APIClient
 
 from sentry.objectstore import UsecaseId
 from sentry.testutils.cases import APITestCase
+from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 
 class ProjectPreprodUploadOptionsTest(APITestCase):
@@ -15,7 +16,8 @@ class ProjectPreprodUploadOptionsTest(APITestCase):
         super().setUp()
         self.login_as(user=self.user)
         self.org = self.create_organization(owner=self.user)
-        self.project = self.create_project(organization=self.org)
+        self.team = self.create_team(organization=self.org)
+        self.project = self.create_project(organization=self.org, teams=[self.team])
         self.url = reverse(
             "sentry-api-0-project-preprod-snapshots-upload-options",
             args=[self.org.slug, self.project.slug],
@@ -111,3 +113,36 @@ class ProjectPreprodUploadOptionsTest(APITestCase):
         response = self.client.get(self.url)
 
         assert response.status_code == 403
+
+    @patch("objectstore_client.Session.mint_token", return_value="fake-token")
+    def test_read_only_token_cannot_mint_upload_token(self, mock_mint_token: MagicMock) -> None:
+        token = self.create_user_auth_token(user=self.user, scope_list=["project:read"])
+
+        response = APIClient().get(self.url, HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+        assert response.status_code == 403
+        mock_mint_token.assert_not_called()
+
+    def test_project_member_with_releases_token_can_upload(self) -> None:
+        user = self.create_user()
+        self.create_member(user=user, organization=self.org, role="member", teams=[self.team])
+        token = self.create_user_auth_token(user=user, scope_list=["project:releases"])
+
+        response = APIClient().get(self.url, HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+        assert response.status_code == 200
+        assert response.data["objectstore"]["authToken"]
+
+    def test_org_ci_token_can_upload(self) -> None:
+        token = generate_token(self.org.slug, "")
+        self.create_org_auth_token(
+            organization_id=self.org.id,
+            name="CI",
+            token_hashed=hash_token(token),
+            scope_list=["org:ci"],
+        )
+
+        response = APIClient().get(self.url, HTTP_AUTHORIZATION=f"Bearer {token}")
+
+        assert response.status_code == 200
+        assert response.data["objectstore"]["authToken"]
