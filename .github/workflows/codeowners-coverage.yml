@@ -17,6 +17,8 @@ concurrency:
 
 jobs:
   check-coverage:
+    permissions:
+      contents: read
     name: codeowners coverage check
     runs-on: ubuntu-24.04
     timeout-minutes: 5
