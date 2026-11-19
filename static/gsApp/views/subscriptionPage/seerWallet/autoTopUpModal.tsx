@@ -348,7 +348,7 @@ function AutoTopUpForm({
           )}
           <Flex justify="between" align="center" gap="md">
             <Text as="label" htmlFor="seer-auto-reload-enabled" bold>
-              {t('Enable auto-reload')}
+              {t('Auto-reload enabled')}
             </Text>
             <Switch
               id="seer-auto-reload-enabled"

@@ -74,7 +74,7 @@ describe('openSeerAutoTopUpModal', () => {
 
   async function toggleAutoReload() {
     await userEvent.click(
-      await screen.findByRole('checkbox', {name: 'Enable auto-reload'})
+      await screen.findByRole('checkbox', {name: 'Auto-reload enabled'})
     );
   }
 
@@ -379,7 +379,7 @@ describe('openSeerAutoTopUpModal', () => {
     openAutoTopUpModal();
 
     const dailyLimit = await screen.findByRole('textbox', {name: 'Daily usage limit'});
-    expect(screen.getByRole('checkbox', {name: 'Enable auto-reload'})).not.toBeChecked();
+    expect(screen.getByRole('checkbox', {name: 'Auto-reload enabled'})).not.toBeChecked();
     expect(screen.queryByText('Due now')).not.toBeInTheDocument();
 
     await userEvent.clear(dailyLimit);
@@ -423,7 +423,7 @@ describe('openSeerAutoTopUpModal', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Keep it on'}));
     expect(saveMock).not.toHaveBeenCalled();
-    expect(screen.getByRole('checkbox', {name: 'Enable auto-reload'})).toBeChecked();
+    expect(screen.getByRole('checkbox', {name: 'Auto-reload enabled'})).toBeChecked();
 
     await toggleAutoReload();
     await userEvent.click(screen.getByRole('button', {name: 'Save'}));

@@ -179,7 +179,7 @@ describe('SeerWalletCard', () => {
       AutoTopUpFixture({enabled: true})
     );
     await userEvent.click(
-      await screen.findByRole('checkbox', {name: 'Enable auto-reload'})
+      await screen.findByRole('checkbox', {name: 'Auto-reload enabled'})
     );
     await userEvent.click(
       screen.getByRole('button', {name: 'Save and pay $15.00 + tax'})
