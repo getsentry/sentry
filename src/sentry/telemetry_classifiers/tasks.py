@@ -68,10 +68,9 @@ def schedule_classifiers() -> None:
             status=TelemetryClassifierStatus.ENABLED,
             project__status=ObjectStatus.ACTIVE,
             project__organization__status=ObjectStatus.ACTIVE,
-        ).select_related("project"),
+        ),
         task=select_entities,
         cycle_duration=SCAN_INTERVAL,
-        prevalidate_batch=_drop_killswitched,
     ).tick()
 
 
@@ -88,16 +87,8 @@ def select_entities(classifier_id: int) -> None:
     classifier = _get_enabled_classifier(classifier_id)
     if classifier is None:
         return
-    # The scheduler skips killswitched organizations only from its next cycle on.
     if _is_org_killswitched(classifier):
         _count_selection("org_killswitched", classifier.dataset)
-        logger.info(
-            "telemetry_classifiers.select.org_killswitched",
-            extra={
-                "organization_id": classifier.project.organization_id,
-                "classifier_id": classifier.id,
-            },
-        )
         return
     dataset = DATASETS.get(classifier.dataset)
     if dataset is None:
@@ -147,14 +138,6 @@ def classify_entity(classifier_id: int, entity_id: str) -> None:
     # Classifications enqueued before the organization was killswitched stop here.
     if _is_org_killswitched(classifier):
         _count_classification("org_killswitched", classifier.dataset)
-        logger.info(
-            "telemetry_classifiers.classify.org_killswitched",
-            extra={
-                "organization_id": classifier.project.organization_id,
-                "classifier_id": classifier.id,
-                "entity_id": entity_id,
-            },
-        )
         return
     dataset = DATASETS.get(classifier.dataset)
     if dataset is None:
@@ -229,33 +212,9 @@ def _get_enabled_classifier(classifier_id: int) -> TelemetryClassifier | None:
     )
 
 
-def _killswitched_organization_ids() -> frozenset[int]:
-    return frozenset(options.get("telemetry-classifiers.killswitch-organization-ids"))
-
-
 def _is_org_killswitched(classifier: TelemetryClassifier) -> bool:
-    return classifier.project.organization_id in _killswitched_organization_ids()
-
-
-def _drop_killswitched(classifiers: Sequence[TelemetryClassifier]) -> list[int]:
-    """Keep the classifiers of organizations that aren't killswitched, in the order given."""
-    killswitched = _killswitched_organization_ids()
-    kept = [c.id for c in classifiers if c.project.organization_id not in killswitched]
-    skipped = len(classifiers) - len(kept)
-    if skipped:
-        metrics.incr(
-            "telemetry_classifiers.schedule", amount=skipped, tags={"outcome": "org_killswitched"}
-        )
-        logger.info(
-            "telemetry_classifiers.schedule.org_killswitched",
-            extra={
-                "organization_ids": sorted(
-                    {c.project.organization_id for c in classifiers} & killswitched
-                ),
-                "classifier_count": skipped,
-            },
-        )
-    return kept
+    killswitched = options.get("telemetry-classifiers.killswitch-organization-ids")
+    return classifier.project.organization_id in killswitched
 
 
 def _enqueue_classifications(classifier_id: int, entity_ids: Sequence[str], limit: int) -> int:

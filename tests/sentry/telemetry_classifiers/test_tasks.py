@@ -63,25 +63,6 @@ class ScheduleClassifiersTest(TestCase):
 
         mock_select.assert_called_once_with(enabled.id)
 
-    @patch("sentry.telemetry_classifiers.tasks.metrics.incr")
-    @patch("sentry.telemetry_classifiers.tasks.select_entities.delay")
-    def test_skips_killswitched_organizations(
-        self, mock_select: MagicMock, mock_incr: MagicMock
-    ) -> None:
-        kept = self.create_telemetry_classifier(project=self.project)
-        killswitched_org = self.create_organization()
-        self.create_telemetry_classifier(project=self.create_project(organization=killswitched_org))
-
-        with override_options(
-            {"telemetry-classifiers.killswitch-organization-ids": [killswitched_org.id]}
-        ):
-            schedule_classifiers()
-
-        mock_select.assert_called_once_with(kept.id)
-        mock_incr.assert_any_call(
-            "telemetry_classifiers.schedule", amount=1, tags={"outcome": "org_killswitched"}
-        )
-
 
 @cell_silo_test
 class SelectEntitiesTest(ClassifierTaskTestCase):
