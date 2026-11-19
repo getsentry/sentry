@@ -23,7 +23,6 @@ _SCOPE_LABELS = dict(AnnotationScope.as_choices())
 _TYPE_LABELS = dict(AnnotationType.as_choices())
 _SEVERITY_LABELS = dict(Severity.as_choices())
 
-_INTERVAL_BY_LABEL = {label: value for value, label in IntervalType.as_choices()}
 _SCOPE_BY_LABEL = {label: value for value, label in AnnotationScope.as_choices()}
 _TYPE_BY_LABEL = {label: value for value, label in AnnotationType.as_choices()}
 _SEVERITY_BY_LABEL = {label: value for value, label in Severity.as_choices()}
