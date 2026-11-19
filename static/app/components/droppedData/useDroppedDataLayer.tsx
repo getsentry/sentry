@@ -1,6 +1,7 @@
-import {useState} from 'react';
+import {useCallback, useState} from 'react';
 
 import type {ChartLayersControlProps} from 'sentry/components/charts/chartLayersControl';
+import type {ChartContextTab} from 'sentry/components/charts/contextDrawer/chartContextDrawer';
 import {useChartContextDrawer} from 'sentry/components/charts/contextDrawer/useChartContextDrawer';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -40,6 +41,7 @@ interface DroppedDataLayer {
   filterNote: Pick<DroppedDataFilterNoteProps, 'dataset' | 'environments'> | undefined;
   isLoading: boolean;
   layerControl: ChartLayersControlProps | undefined;
+  openContextDrawer: (tab?: ChartContextTab) => void;
 }
 
 /**
@@ -62,11 +64,12 @@ export function useDroppedDataLayer(
     enabled: isEnabled,
   });
   const [isLayerOn, setIsLayerOn] = useState(true);
-  const openDroppedDataDrawer = useChartContextDrawer(params, {
+  const openContextDrawer = useChartContextDrawer(params, {
     source,
     enabled: isEnabled,
     showAnnotationTabs,
   });
+  const openDroppedDataTab = useCallback(() => openContextDrawer(), [openContextDrawer]);
 
   const isLoaded = isEnabled && defined(droppedEvents);
   const canShowDroppedData = isEnabled && hasDroppedData(droppedEvents, acceptedEvents);
@@ -74,8 +77,9 @@ export function useDroppedDataLayer(
 
   return {
     band: isBandShown
-      ? {dataset, droppedEvents, acceptedEvents, onClick: openDroppedDataDrawer}
+      ? {dataset, droppedEvents, acceptedEvents, onClick: openDroppedDataTab}
       : undefined,
+    openContextDrawer,
     filterNote: isBandShown ? {dataset, environments} : undefined,
     isLoading: isEnabled && isLayerOn && !hidden && isLoading,
     layerControl: isLoaded

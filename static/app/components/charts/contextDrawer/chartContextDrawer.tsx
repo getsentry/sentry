@@ -9,6 +9,10 @@ import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 
+import type {
+  AnnotationItem,
+  AnnotationKind,
+} from 'sentry/components/charts/annotations/types';
 import {useAnnotationFlagLog} from 'sentry/components/charts/annotations/useAnnotationFlagLog';
 import {DroppedDataPanel} from 'sentry/components/droppedData/drawer/droppedDataPanel';
 import {
@@ -35,11 +39,24 @@ import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 
 const CHART_CONTEXT_TABS = ['dropped-data', 'releases', 'flags'] as const;
 
-type ChartContextTab = (typeof CHART_CONTEXT_TABS)[number];
+export type ChartContextTab = (typeof CHART_CONTEXT_TABS)[number];
 
 export const CHART_CONTEXT_TAB_PARSERS = {
   contextTab: parseAsStringLiteral(CHART_CONTEXT_TABS),
 };
+
+const ANNOTATION_KIND_TABS: Array<[AnnotationKind, ChartContextTab]> = [
+  ['release', 'releases'],
+  ['flag', 'flags'],
+];
+
+export function annotationContextTab(
+  items: readonly AnnotationItem[]
+): ChartContextTab | undefined {
+  return ANNOTATION_KIND_TABS.find(([kind]) =>
+    items.some(item => item.kind === kind)
+  )?.[1];
+}
 
 interface ChartContextDrawerProps extends UseDroppedDataParams {
   source: DroppedDataAnalyticsSource;

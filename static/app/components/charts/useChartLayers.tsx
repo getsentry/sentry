@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {useCallback, useMemo, useState} from 'react';
 
 import {
   DROPPED_DATA_LAYER,
@@ -15,6 +15,7 @@ import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 
 import type {AnnotationItem} from './annotations/types';
 import {useAnnotationFlagLog} from './annotations/useAnnotationFlagLog';
+import {annotationContextTab} from './contextDrawer/chartContextDrawer';
 import type {ChartLayer, ChartLayersControlProps} from './chartLayersControl';
 
 const RELEASES_LAYER = 'releases';
@@ -125,5 +126,16 @@ export function useChartLayers({
   const layerControl: ChartLayersControlProps | undefined =
     layers.length > 0 ? {layers, onChange: onLayerChange} : undefined;
 
-  return {droppedData, annotations, layerControl};
+  const {openContextDrawer} = droppedData;
+  const onAnnotationClick = useCallback(
+    (items: AnnotationItem[]) => {
+      const tab = annotationContextTab(items);
+      if (tab) {
+        openContextDrawer(tab);
+      }
+    },
+    [openContextDrawer]
+  );
+
+  return {droppedData, annotations, layerControl, onAnnotationClick};
 }

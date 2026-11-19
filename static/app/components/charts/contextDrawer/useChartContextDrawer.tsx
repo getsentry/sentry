@@ -17,7 +17,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
-import {CHART_CONTEXT_TAB_PARSERS, ChartContextDrawer} from './chartContextDrawer';
+import {
+  CHART_CONTEXT_TAB_PARSERS,
+  ChartContextDrawer,
+  type ChartContextTab,
+} from './chartContextDrawer';
 
 const CHART_CONTEXT_DRAWER_PARSERS = {
   droppedData: parseAsString,
@@ -126,8 +130,27 @@ export function useChartContextDrawer(
     setDrawerQuery,
   ]);
 
-  return useCallback(() => {
-    trackAnalytics('explore.dropped_data.drawer_opened', {organization, dataset, source});
-    void setDrawerQuery({droppedData: paramValue, contextTab: null}, {history: 'push'});
-  }, [organization, dataset, source, paramValue, setDrawerQuery]);
+  return useCallback(
+    (tab: ChartContextTab = 'dropped-data') => {
+      if (tab === 'dropped-data') {
+        trackAnalytics('explore.dropped_data.drawer_opened', {
+          organization,
+          dataset,
+          source,
+        });
+      } else {
+        trackAnalytics('explore.chart_context.drawer_opened', {
+          organization,
+          dataset,
+          source,
+          tab,
+        });
+      }
+      void setDrawerQuery(
+        {droppedData: paramValue, contextTab: tab === 'dropped-data' ? null : tab},
+        {history: 'push'}
+      );
+    },
+    [organization, dataset, source, paramValue, setDrawerQuery]
+  );
 }

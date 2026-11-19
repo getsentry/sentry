@@ -131,6 +131,11 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
   legendSelection?: LegendSelection;
 
   /**
+   * Called with the annotations of a bucket when it's clicked in the annotations band.
+   */
+  onAnnotationClick?: (items: AnnotationItem[]) => void;
+
+  /**
    * Callback that returns an updated `LegendSelection` after a user manipulations the selection via the legend
    */
   onLegendSelectionChange?: (selection: LegendSelection) => void;
@@ -513,6 +518,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const annotationBand = useAnnotationBand({
     buckets: bandBuckets,
     items: props.annotations,
+    onClick: props.onAnnotationClick,
   });
 
   const droppedDataBand = useDroppedDataBand({droppedData: props.droppedData});

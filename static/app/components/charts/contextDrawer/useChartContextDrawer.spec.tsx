@@ -1,3 +1,4 @@
+import {Fragment} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
@@ -84,11 +85,16 @@ function DroppedDataTrigger({
   projects?: number[];
   showAnnotationTabs?: boolean;
 }) {
-  const openDroppedDataDrawer = useChartContextDrawer(
+  const openContextDrawer = useChartContextDrawer(
     {dataset, interval, projects},
     {source: 'explore', enabled, showAnnotationTabs}
   );
-  return <Button onClick={openDroppedDataDrawer}>Open dropped data</Button>;
+  return (
+    <Fragment>
+      <Button onClick={() => openContextDrawer()}>Open dropped data</Button>
+      <Button onClick={() => openContextDrawer('flags')}>Open flags</Button>
+    </Fragment>
+  );
 }
 
 describe('useChartContextDrawer', () => {
@@ -855,6 +861,32 @@ describe('useChartContextDrawer', () => {
         'true'
       );
       expect(screen.getByText('Table coming soon')).toBeInTheDocument();
+    });
+
+    it('opens on the tab it is asked for', async () => {
+      const {router} = render(
+        <DroppedDataTrigger dataset={DiscoverDatasets.SPANS} showAnnotationTabs />,
+        {
+          organization,
+          initialRouterConfig: {location: {pathname: '/explore/traces/'}},
+        }
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Open flags'}));
+
+      expect(await screen.findByRole('tab', {name: /Flags/})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+      expect(router.location.query.contextTab).toBe('flags');
+      expect(trackAnalytics).toHaveBeenCalledWith(
+        'explore.chart_context.drawer_opened',
+        expect.objectContaining({
+          dataset: DiscoverDatasets.SPANS,
+          source: 'explore',
+          tab: 'flags',
+        })
+      );
     });
 
     it('removes the tab from the URL when closed', async () => {
