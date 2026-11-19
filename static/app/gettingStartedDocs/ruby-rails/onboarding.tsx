@@ -24,8 +24,6 @@ Sentry.init do |config|
     params.isLogsSelected
       ? `
 
-  # Enable sending logs to Sentry
-  config.enable_logs = true
   # Patch Ruby logger to forward logs
   config.enabled_patches = [:logger]`
       : ''
