@@ -7,7 +7,7 @@ import type {Location} from 'history';
 import {TeamAvatar} from '@sentry/scraps/avatar';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 
-import {IdBadge} from 'sentry/components/idBadge';
+import {ProjectsBadge} from 'sentry/components/core/badge/projectsBadge';
 import {
   Provider as TeamKeyTransactionProvider,
   useTeamKeyTransactions,
@@ -191,12 +191,8 @@ function TransactionBreadcrumbsContent({
         type: 'page-title',
         label: transactionName,
         leadingGraphic: project ? (
-          <IdBadge
-            disableLink
-            project={project}
-            avatarSize={16}
-            hideName
-            avatarProps={{hasTooltip: true, tooltip: project.slug}}
+          <ProjectsBadge
+            projectPlatforms={project.platform ? [project.platform] : ['default']}
           />
         ) : (
           <Placeholder width="16px" height="16px" />

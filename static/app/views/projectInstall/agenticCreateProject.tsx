@@ -122,6 +122,7 @@ export function AgenticCreateProject({
                 isAgentConnected={isAgentConnected}
                 hasInitFailed={hasInitFailed}
                 hasProgressFailed={hasProgressFailed}
+                hasRunFailed={hasRunFailed}
                 onRefresh={() => void refreshRun()}
                 onRetry={restartRun}
                 onCopyCommand={handleCopyCommand}
