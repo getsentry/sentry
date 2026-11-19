@@ -20,13 +20,16 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.services.repository.model import RpcRepository
 from sentry.integrations.services.repository.service import repository_service
 from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
     SCMIntegrationInteractionType,
 )
 from sentry.integrations.source_code_management.repo_audit import log_repo_change
+from sentry.integrations.source_code_management.repo_rename import get_repo_rename
 from sentry.integrations.source_code_management.repository import (
+    RepositoryInfo,
     RepositoryIntegration,
 )
 from sentry.integrations.types import HaltReason
@@ -65,6 +68,10 @@ SCM_SYNC_PROVIDERS = [
     "perforce",
     "cursor_origin",
 ]
+
+# Providers whose rename handling matches get_repo_rename. The others store
+# their name and URL in provider-specific shapes.
+RENAME_SYNC_PROVIDERS = frozenset({"github", "github_enterprise"})
 
 SYNC_BATCH_SIZE = 100
 
@@ -246,6 +253,15 @@ def _sync_repos_for_org(organization_integration_id: int) -> None:
         removed_ids = set() if fetch_truncated else sentry_active_ids - provider_external_ids
         restored_ids = sentry_disabled_ids & provider_external_ids
 
+        if provider_key in RENAME_SYNC_PROVIDERS:
+            _apply_renames(
+                integration=integration,
+                rpc_org=rpc_org,
+                provider_key=provider_key,
+                repos=active_repos + disabled_repos,
+                provider_repos=provider_repos,
+            )
+
         metric_tags = {
             "provider": provider_key,
         }
@@ -367,6 +383,59 @@ def _sync_repos_for_org(organization_integration_id: int) -> None:
                     "external_ids": restored_batch,
                 }
             )
+
+
+def _apply_renames(
+    *,
+    integration: RpcIntegration,
+    rpc_org: RpcOrganization,
+    provider_key: str,
+    repos: list[RpcRepository],
+    provider_repos: list[RepositoryInfo],
+) -> None:
+    """
+    Write the provider's current name and URL to repos it renamed. A rename keeps
+    the external id, so the diff above sees these repos as unchanged.
+    """
+    provider_repos_by_external_id = {repo["external_id"]: repo for repo in provider_repos}
+    integration_repo_provider = get_integration_repository_provider(integration)
+
+    for repo in repos:
+        provider_repo = provider_repos_by_external_id.get(repo.external_id or "")
+        if provider_repo is None:
+            continue
+        identifier = str(provider_repo["identifier"])
+        # Skip build_repository_config for unchanged repos: for GitHub Enterprise
+        # it looks up the integration on every call.
+        if repo.name == identifier and repo.config.get("name") == identifier:
+            continue
+
+        repo_config = integration_repo_provider.build_repository_config(
+            organization=rpc_org,
+            data={**provider_repo, "identifier": identifier, "integration_id": integration.id},
+        )
+        rename = get_repo_rename(repo, name=repo_config["name"], url=repo_config["url"])
+        if rename is None:
+            continue
+
+        old_name = repo.name
+        repo.name = rename["name"]
+        repo.url = rename["url"]
+        repo.config = rename["config"]
+        repository_service.update_repository(organization_id=rpc_org.id, update=repo)
+
+        logger.info(
+            "scm.repo_sync.renamed",
+            extra={
+                "provider": provider_key,
+                "integration_id": integration.id,
+                "organization_id": rpc_org.id,
+                "repository_id": repo.id,
+                "old_name": old_name,
+                "new_name": repo.name,
+            },
+        )
+        metrics.incr("scm.repo_sync.renamed", tags={"provider": provider_key}, sample_rate=1.0)
 
 
 def _get_sync_context(

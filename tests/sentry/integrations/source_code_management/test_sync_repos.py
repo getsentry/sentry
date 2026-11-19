@@ -149,6 +149,84 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
             ).exists()
 
     @responses.activate
+    def test_renames_repos(self, _: MagicMock) -> None:
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="getsentry/old-name",
+                url="https://github.com/getsentry/old-name",
+                config={"name": "getsentry/old-name", "other": "kept"},
+                external_id="1",
+                provider="integrations:github",
+                integration_id=self.integration.id,
+                status=ObjectStatus.ACTIVE,
+            )
+
+        self._add_repos_response([{"id": 1, "full_name": "getsentry/new-name", "name": "new-name"}])
+
+        with self.tasks():
+            sync_repos_for_org(self.oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo.refresh_from_db()
+            assert repo.name == "getsentry/new-name"
+            assert repo.url == "https://github.com/getsentry/new-name"
+            assert repo.config == {"name": "getsentry/new-name", "other": "kept"}
+            assert repo.status == ObjectStatus.ACTIVE
+            assert Repository.objects.filter(organization_id=self.organization.id).count() == 1
+
+    @responses.activate
+    def test_renames_disabled_repos(self, _: MagicMock) -> None:
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="getsentry/old-name",
+                url="https://github.com/getsentry/old-name",
+                config={"name": "getsentry/old-name"},
+                external_id="1",
+                provider="integrations:github",
+                integration_id=self.integration.id,
+                status=ObjectStatus.DISABLED,
+            )
+
+        self._add_repos_response([{"id": 1, "full_name": "getsentry/new-name", "name": "new-name"}])
+
+        with self.tasks():
+            sync_repos_for_org(self.oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo.refresh_from_db()
+            assert repo.name == "getsentry/new-name"
+            assert repo.url == "https://github.com/getsentry/new-name"
+            assert repo.status == ObjectStatus.ACTIVE
+
+    @responses.activate
+    @patch(
+        "sentry.integrations.source_code_management.sync_repos.repository_service.update_repository"
+    )
+    def test_does_not_update_unchanged_repos(
+        self, mock_update_repository: MagicMock, _: MagicMock
+    ) -> None:
+        with assume_test_silo_mode(SiloMode.CELL):
+            Repository.objects.create(
+                organization_id=self.organization.id,
+                name="getsentry/sentry",
+                url="https://github.com/getsentry/sentry",
+                config={"name": "getsentry/sentry"},
+                external_id="1",
+                provider="integrations:github",
+                integration_id=self.integration.id,
+                status=ObjectStatus.ACTIVE,
+            )
+
+        self._add_repos_response([{"id": 1, "full_name": "getsentry/sentry", "name": "sentry"}])
+
+        with self.tasks():
+            sync_repos_for_org(self.oi.id)
+
+        mock_update_repository.assert_not_called()
+
+    @responses.activate
     def test_skips_disable_for_repo_with_recent_activity(self, _: MagicMock) -> None:
         # A repo that's missing from the provider's listing AND has a recent
         # commit row should NOT be disabled — the activity says it's still
@@ -638,6 +716,38 @@ class SyncReposForOrgGHETestCase(TestCase):
 
         assert len(repos) == 2
         assert repos[0].provider == "integrations:github_enterprise"
+
+    @patch("sentry.integrations.github.client.GitHubBaseClient.get_repos")
+    def test_renames_repos_for_ghe(self, mock_get_repos: MagicMock) -> None:
+        GitHubEnterpriseIntegrationProvider().setup()
+        integration = self._create_ghe_integration("ghe.example.com")
+        oi = OrganizationIntegration.objects.get(
+            organization_id=self.organization.id, integration=integration
+        )
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="testorg/old-name",
+                url="https://ghe.example.com/testorg/old-name",
+                config={"name": "testorg/old-name"},
+                external_id="1",
+                provider="integrations:github_enterprise",
+                integration_id=integration.id,
+                status=ObjectStatus.ACTIVE,
+            )
+
+        mock_get_repos.return_value = [
+            {"id": 1, "full_name": "testorg/new-name", "name": "new-name"}
+        ]
+
+        with self.tasks():
+            sync_repos_for_org(oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo.refresh_from_db()
+            assert repo.name == "testorg/new-name"
+            assert repo.url == "https://ghe.example.com/testorg/new-name"
+            assert repo.config == {"name": "testorg/new-name"}
 
     def _create_ghe_integration(self, host: str) -> Integration:
         return self.create_integration(

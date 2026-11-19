@@ -47,6 +47,7 @@ from sentry.integrations.services.integration.model import (
 )
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.services.repository.service import repository_service
+from sentry.integrations.source_code_management.repo_rename import get_repo_rename
 from sentry.integrations.source_code_management.webhook import SCMWebhook
 from sentry.integrations.types import (
     ExternalActorSource,
@@ -382,17 +383,10 @@ class GitHubWebhook(SCMWebhook, ABC):
         name_from_event = event["repository"]["full_name"]
         url_from_event = event["repository"]["html_url"]
 
-        if (
-            repo.name != name_from_event
-            or repo.config.get("name") != name_from_event
-            or repo.url != url_from_event
-        ):
+        rename = get_repo_rename(repo, name=name_from_event, url=url_from_event)
+        if rename is not None:
             try:
-                repo.update(
-                    name=name_from_event,
-                    url=url_from_event,
-                    config=dict(repo.config, name=name_from_event),
-                )
+                repo.update(**rename)
             except IntegrityError:
                 logger.warning(
                     "github.webhook.update_repo_data.integrity_error",
