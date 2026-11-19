@@ -54,8 +54,7 @@ def _create_filter_change_annotation(
     organization = project.organization
     actor = acting_user(principal)
     # The framework-wide flag gates every annotation producer; the use-case flag on top
-    # rolls out or kills this one producer on its own. Evaluate per-user (actor), matching
-    # the read endpoint, so a user-scoped rollout reaches the same person on both paths.
+    # rolls out or kills this one producer on its own.
     framework_on = features.has("organizations:timeseries-annotations", organization, actor=actor)
     usecase_on = features.has(
         "organizations:timeseries-annotations-usecase-filter-change", organization, actor=actor
