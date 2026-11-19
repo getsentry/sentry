@@ -24,6 +24,7 @@ import {IconChevron} from '@sentry/icons/chevron';
 import {IconClose} from '@sentry/icons/close';
 
 import {Button} from '@sentry/scraps/button';
+import {Flex} from '@sentry/scraps/layout';
 import {PanelProvider} from '@sentry/scraps/panelProvider';
 import {Spinner} from '@sentry/scraps/spinner';
 import type {FormSize} from '@sentry/scraps/theme';
@@ -582,9 +583,9 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
       )}
       {isLoading && <Spinner mini size={14} />}
       {dropdownIndicator !== null && (
-        <span aria-hidden="true">
+        <Flex as="span" align="center" aria-hidden="true">
           {dropdownIndicator ?? <IconChevron direction="down" size="xs" />}
-        </span>
+        </Flex>
       )}
     </Fragment>
   );
