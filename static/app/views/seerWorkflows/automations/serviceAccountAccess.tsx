@@ -116,14 +116,14 @@ export function ServiceAccountProjects({
   value,
   monitors,
   disabled,
-  disabledTooltip,
+  formTooltip,
   onChange,
 }: {
   disabled: boolean;
   monitors: MetricDetector[];
   onChange: (value: ServiceAccountProjectAccess) => void;
   value: ServiceAccountProjectAccess;
-  disabledTooltip?: string;
+  formTooltip?: string;
 }) {
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -157,7 +157,7 @@ export function ServiceAccountProjects({
           <Tooltip
             title={
               hasGlobalRole
-                ? disabledTooltip
+                ? formTooltip
                 : t('Only roles with access to all projects can change this.')
             }
           >
@@ -199,7 +199,7 @@ export function ServiceAccountProjects({
                 {...triggerProps}
                 size="sm"
                 icon={<IconAdd />}
-                tooltipProps={{title: disabledTooltip}}
+                tooltipProps={{title: formTooltip}}
               >
                 {t('Add projects')}
               </OverlayTrigger.Button>
@@ -259,7 +259,7 @@ export function ServiceAccountProjects({
                       icon={<IconClose />}
                       aria-label={t('Remove %s', project.slug)}
                       disabled={disabled}
-                      tooltipProps={{title: disabledTooltip}}
+                      tooltipProps={{title: formTooltip}}
                       onClick={() =>
                         onChange({
                           ...value,
@@ -281,13 +281,13 @@ export function ServiceAccountProjects({
 export function ServiceAccountPermissions({
   value,
   disabled,
-  disabledTooltip,
+  formTooltip,
   onChange,
 }: {
   disabled: boolean;
   onChange: (scopes: string[]) => void;
   value: string[];
-  disabledTooltip?: string;
+  formTooltip?: string;
 }) {
   const organization = useOrganization();
   const grantable = new Set<string>(organization.access);
@@ -354,7 +354,7 @@ export function ServiceAccountPermissions({
                   <OverlayTrigger.Button
                     {...triggerProps}
                     aria-label={t('%s permission', label)}
-                    tooltipProps={{title: disabledTooltip}}
+                    tooltipProps={{title: formTooltip}}
                   />
                 )}
               />
