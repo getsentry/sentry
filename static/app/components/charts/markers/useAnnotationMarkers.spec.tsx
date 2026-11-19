@@ -20,9 +20,10 @@ const buckets = Array.from({length: 10}, (_, index) => ({
 function change(
   id: string,
   time: number,
-  severity: AnnotationItem['severity']
+  severity: AnnotationItem['severity'],
+  end?: AnnotationItem['end']
 ): AnnotationItem {
-  return {id, kind: 'timeseriesAnnotation', start: time, title: id, severity};
+  return {id, kind: 'timeseriesAnnotation', start: time, title: id, severity, end};
 }
 
 const api = {
@@ -32,6 +33,20 @@ const api = {
 const params = {
   coordSys: {type: 'cartesian2d', x: 0, y: 10, width: 600, height: 200},
 } as unknown as CustomSeriesRenderItemParams;
+
+function renderMarkers(items: AnnotationItem[]) {
+  const {result} = renderHookWithProviders(() => useAnnotationMarkers({buckets, items}));
+  const series = result.current;
+  if (!series || typeof series.renderItem !== 'function') {
+    throw new Error('Expected the marker series to render items');
+  }
+  const renderItem = series.renderItem as CustomSeriesRenderItem;
+  const data = series.data as unknown[];
+
+  return data.map((_, dataIndex) =>
+    renderItem({...params, dataIndex, dataIndexInside: dataIndex}, api)
+  );
+}
 
 describe('useAnnotationMarkers', () => {
   it('returns no markers without severe annotations', () => {
@@ -50,35 +65,52 @@ describe('useAnnotationMarkers', () => {
   });
 
   it('draws one marker per bucket with severe annotations, at the bucket center', () => {
-    const {result} = renderHookWithProviders(() =>
-      useAnnotationMarkers({
-        buckets,
-        items: [
-          change('first', 2 * MINUTE + 10_000, 'high'),
-          change('second', 2 * MINUTE + 20_000, 'high'),
-          change('third', 5 * MINUTE, 'high'),
-          change('not-severe', 7 * MINUTE, 'low'),
-        ],
-      })
-    );
-    const series = result.current;
-    if (!series || typeof series.renderItem !== 'function') {
-      throw new Error('Expected the marker series to render items');
-    }
-    const renderItem = series.renderItem as CustomSeriesRenderItem;
+    const markers = renderMarkers([
+      change('first', 2 * MINUTE + 10_000, 'high'),
+      change('second', 2 * MINUTE + 20_000, 'high'),
+      change('third', 5 * MINUTE, 'high'),
+      change('not-severe', 7 * MINUTE, 'low'),
+    ]);
 
-    expect(series.data).toHaveLength(2);
-
-    const [merged, single] = [0, 1].map(dataIndex =>
-      renderItem({...params, dataIndex, dataIndexInside: dataIndex}, api)
-    );
-
-    expect(merged).toMatchObject({
+    expect(markers).toHaveLength(2);
+    expect(markers[0]).toMatchObject({
       children: [
         {type: 'line', shape: {x1: 120, y1: 10, x2: 120, y2: 210}},
         {type: 'circle', shape: {cx: 120, cy: 10}},
       ],
     });
-    expect(single).toMatchObject({children: [{shape: {x1: 300}}, {shape: {cx: 300}}]});
+    expect(markers[1]).toMatchObject({
+      children: [{shape: {x1: 300}}, {shape: {cx: 300}}],
+    });
+  });
+
+  it('draws a line along the top to the center of the bucket a range ends in', () => {
+    const [range] = renderMarkers([
+      change('range', 2 * MINUTE, 'high', 5 * MINUTE + 30_000),
+    ]);
+
+    expect(range).toMatchObject({
+      children: [
+        {type: 'line', shape: {x1: 120, y1: 10, x2: 300, y2: 10}},
+        {type: 'line', shape: {x1: 120, x2: 120}},
+        {type: 'circle'},
+      ],
+    });
+  });
+
+  it('runs ongoing ranges to the right edge of the plot', () => {
+    const [ongoing] = renderMarkers([change('ongoing', 2 * MINUTE, 'high', 'ongoing')]);
+
+    expect(ongoing).toMatchObject({children: [{shape: {x1: 120, x2: 600}}, {}, {}]});
+  });
+
+  it('keeps the longest range when severe annotations share a bucket', () => {
+    const [merged] = renderMarkers([
+      change('short', 2 * MINUTE, 'high', 3 * MINUTE),
+      change('long', 2 * MINUTE + 10_000, 'high', 6 * MINUTE),
+      change('point', 2 * MINUTE + 20_000, 'high'),
+    ]);
+
+    expect(merged).toMatchObject({children: [{shape: {x1: 120, x2: 360}}, {}, {}]});
   });
 });
