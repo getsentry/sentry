@@ -786,19 +786,6 @@ describe('openSeerAutoTopUpModal', () => {
   describe('without billing access', () => {
     const member = OrganizationFixture({access: ['org:read']});
 
-    beforeEach(() => {
-      // Members can read the wallet, but not its credit price.
-      MockApiClient.addMockResponse({
-        url: walletUrl,
-        body: {
-          balance: 0,
-          percentUsed: 1,
-          included: {total: 500, remaining: 0, resetsAt: '2017-11-01'},
-          purchased: {total: 0, remaining: 0, expiresAt: null},
-        },
-      });
-    });
-
     function openForMember({
       canSelfServe,
       denialReason,
@@ -996,17 +983,13 @@ describe('openSeerAutoTopUpModal', () => {
       expect(await screen.findByRole('button', {name: 'Contact Admin'})).toBeEnabled();
     });
 
-    it('gives members of orgs that cannot self-serve no Contact Admin', async () => {
+    it('gives members of orgs that cannot self-serve no Contact Admin', () => {
       openForMember({canSelfServe: false, denialReason: 'not_enough_credits'});
 
       expect(
         screen.getByText(
           'Your organization ran out of Seer credits. Only owners and billing members can manage auto-reload, so ask your admin to turn it on.'
         )
-      ).toBeInTheDocument();
-      // Out of credits, Seer resumes when the included credits refill.
-      expect(
-        await screen.findByText('Your included credits reset on Nov 1.')
       ).toBeInTheDocument();
       expect(
         screen.queryByRole('button', {name: 'Contact Admin'})

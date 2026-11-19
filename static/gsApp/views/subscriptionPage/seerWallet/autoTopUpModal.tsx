@@ -223,9 +223,6 @@ const AutoTopUpContactAdmin = withSubscription(function AutoTopUpContactAdmin({
                 })}
               </Text>
             )}
-            {denialReason === 'not_enough_credits' && (
-              <IncludedCreditsResetAt organization={organization} />
-            )}
           </Stack>
         )}
       </Body>
@@ -245,29 +242,6 @@ const AutoTopUpContactAdmin = withSubscription(function AutoTopUpContactAdmin({
     </Fragment>
   );
 });
-
-/**
- * Out of credits, Seer resumes when the included credits refill at the start of
- * the next billing period, not when the daily usage limit resets. Every member
- * can read the wallet, which says when that is.
- */
-function IncludedCreditsResetAt({organization}: {organization: Organization}) {
-  const {data: wallet} = useQuery({
-    ...seerWalletBalanceOptions(organization),
-    retry: false,
-  });
-
-  if (!wallet?.included.resetsAt) {
-    return null;
-  }
-  return (
-    <Text as="p" size="lg">
-      {tct('Your included credits reset on [date].', {
-        date: moment(wallet.included.resetsAt).format('MMM D'),
-      })}
-    </Text>
-  );
-}
 
 /**
  * Loads the wallet itself so the modal can be opened from anywhere; on the
