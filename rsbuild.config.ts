@@ -511,6 +511,15 @@ const appConfig: Configuration = {
       'sentry-logos': path.join(sentryDjangoAppPath, 'images', 'logos'),
       'sentry-fonts': path.join(staticPrefix, 'fonts'),
 
+      // Mirrors the package's `./theme.css` export, which has no file of that name in src.
+      '@sentry/scraps/theme.css$': path.join(
+        staticPrefix,
+        'packages',
+        'scraps',
+        'src',
+        'theme',
+        'variables.css'
+      ),
       '@sentry/scraps': [
         path.join(staticPrefix, 'packages', 'scraps', 'src'),
         path.join(staticPrefix, 'app', 'components', 'core'),

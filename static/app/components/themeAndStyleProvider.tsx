@@ -1,10 +1,11 @@
-import {Fragment, lazy, useRef} from 'react';
+import {Fragment, lazy, useLayoutEffect, useRef} from 'react';
 import {createPortal} from 'react-dom';
 import createCache from '@emotion/cache';
 import {CacheProvider, ThemeProvider} from '@emotion/react';
 import {useStore} from 'zustand';
 
 import {darkTheme, lightTheme} from '@sentry/scraps/theme';
+import '@sentry/scraps/theme.css';
 
 import {printConsoleBanner} from 'sentry/bootstrap/printConsoleBanner';
 import {NODE_ENV} from 'sentry/constants';
@@ -40,6 +41,15 @@ cache.compat = true;
  */
 export function ThemeAndStyleProvider({children}: Props) {
   const colorMode = useStore(ConfigStore, state => state.theme);
+  // theme.css resolves `system` itself, so pass the user's setting through unresolved.
+  const colorScheme = useStore(
+    ConfigStore,
+    state => state.user?.options.theme ?? 'system'
+  );
+
+  useLayoutEffect(() => {
+    document.documentElement.dataset.colorScheme = colorScheme;
+  }, [colorScheme]);
 
   const theme = colorMode === 'dark' ? darkTheme : lightTheme;
 
