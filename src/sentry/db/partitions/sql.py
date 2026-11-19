@@ -18,13 +18,14 @@ Do not use anything that needs Postgres 15 or later, for example: ``MERGE``,
 or exclusion constraints on partitioned tables. ``POSTGRES_14_INCOMPATIBLE`` lists
 patterns that tests check against every template here and against generated DDL.
 
-Other Postgres 14 limitations the callers work around:
+Limitations the callers work around:
 
-- ``CREATE INDEX CONCURRENTLY`` is not supported on a partitioned table, so indexes
-  are created ``ON ONLY`` the parent, built concurrently on each partition and then
-  attached.
-- Foreign keys on a partitioned table cannot be added ``NOT VALID``, so they are
-  only created together with the table, while it is empty.
+- ``CREATE INDEX CONCURRENTLY`` is not supported on a partitioned table, in any
+  Postgres version up to at least 18, so indexes are created ``ON ONLY`` the parent,
+  built concurrently on each partition and then attached.
+- Postgres 14 can't add a ``NOT VALID`` foreign key to a partitioned table (Postgres
+  18 can), so foreign keys are only created together with the table, while it is
+  empty.
 
 Identifiers are formatted in with ``str.format`` after quoting. Templates that are
 handed to Django's schema editor use Django's ``%(name)s`` style instead.
