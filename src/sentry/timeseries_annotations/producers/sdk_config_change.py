@@ -4,9 +4,10 @@ from __future__ import annotations
 
 import dataclasses
 import hashlib
+import itertools
 import logging
 from collections import defaultdict
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from datetime import datetime, timezone
 from typing import Any
 
@@ -86,9 +87,6 @@ class _ConfigAt:
     config: _Config
 
 
-# --- public entrypoint -----------------------------------------------------
-
-
 @traces.trace
 def sdk_config_change_as_annotations(
     organization: Organization,
@@ -101,13 +99,8 @@ def sdk_config_change_as_annotations(
     # scan only from there. Its config reappears as the diff baseline, so past transitions aren't
     # re-emitted and the read shrinks to recent data.
     scan_start = _scan_start(organization, projects, start)
-
     annotations = _detect_changes(organization, projects, scan_start, end)
-    created = _persist_new(organization, annotations, scan_start, end)
-    return created
-
-
-# --- detection (pure read + compute) ---------------------------------------
+    return _persist_new(organization, annotations, scan_start, end)
 
 
 @traces.trace
@@ -132,8 +125,7 @@ def _detect_changes(
 
     annotations: list[TimeseriesAnnotationData] = []
     for project_id, samples in samples_by_project.items():
-        project = projects_by_id.get(project_id)
-        if project is None:
+        if (project := projects_by_id.get(project_id)) is None:
             continue
         timeline = [
             _ConfigAt(sample.first_seen, configs_by_hash[sample.config_hash])
@@ -145,36 +137,32 @@ def _detect_changes(
 
 
 def _hashes_to_fetch(samples_by_project: Mapping[int, Sequence[_Sample]]) -> set[str]:
-    """Hashes whose payload we actually need: only projects with a possible transition.
-
-    A project with one hash never changed, so its payload is never needed. Hashes are
-    project-scoped (the SDK hash includes the DSN), so this skips single-config projects.
-    """
-    hashes: set[str] = set()
-    for samples in samples_by_project.values():
-        project_hashes = {sample.config_hash for sample in samples}
-        if len(project_hashes) >= 2:
-            hashes |= project_hashes
-    return hashes
+    """Hashes whose payload we actually need: only projects with a possible transition"""
+    return {
+        sample.config_hash
+        for samples in samples_by_project.values()
+        if len({s.config_hash for s in samples}) >= 2
+        for sample in samples
+    }
 
 
 def _annotations_for_timeline(
     project: Project, timeline: Sequence[_ConfigAt]
 ) -> list[TimeseriesAnnotationData]:
     """Walk one project's configs oldest-first, emitting an annotation at each real change."""
-    annotations: list[TimeseriesAnnotationData] = []
-    previous: _ConfigAt | None = None
-    for current in sorted(timeline, key=lambda point: point.first_seen):
-        if previous is None:
-            previous = current
-            continue
-        if current.config.fingerprint == previous.config.fingerprint:
-            continue  # deploy-noise sibling (same config, new release/token) — not a change
-        changes = diff(previous.config.normalized, current.config.normalized)
-        if changes:
-            annotations.append(_to_annotation(project, previous, current, changes))
-        previous = current
-    return annotations
+    # Collapse deploy-noise siblings (same config, new release/token) before pairing, so each
+    # remaining neighbor pair is a genuine fingerprint change to diff.
+    ordered = sorted(timeline, key=lambda point: point.first_seen)
+    distinct = [
+        point
+        for i, point in enumerate(ordered)
+        if i == 0 or point.config.fingerprint != ordered[i - 1].config.fingerprint
+    ]
+    return [
+        _to_annotation(project, previous, current, changes)
+        for previous, current in itertools.pairwise(distinct)
+        if (changes := diff(previous.config.normalized, current.config.normalized))
+    ]
 
 
 def _to_annotation(
@@ -199,9 +187,6 @@ def _to_annotation(
         },
         created_by_label="sdk-config-producer",
     )
-
-
-# --- config shaping (normalize / fingerprint / diff / describe) ------------
 
 
 def normalize(payload: Mapping[str, Any]) -> dict[str, Any]:
@@ -307,11 +292,7 @@ def _integration_delta(changes: Mapping[str, tuple[Any, Any]]) -> tuple[list[str
 def _scan_start(
     organization: Organization, projects: Sequence[Project], start: datetime
 ) -> datetime:
-    """Clamp the scan start to just past the newest annotation already written for these projects.
-
-    Uses the minimum watermark across the set so no project is skipped, and does not advance at
-    all if any requested project has no prior annotation (it still needs its full history scanned).
-    """
+    """Clamp the scan start to just past the newest annotation already written for these projects."""
     project_ids = {project.id for project in projects}
     if not project_ids:
         return start
@@ -393,9 +374,6 @@ def _dedup_key(
     return (project_id, start_timestamp, tags.get("to_fingerprint") if tags else None)
 
 
-# --- metric queries --------------------------------------------------------
-
-
 def _query_timeline(params: SnubaParams) -> list[_Sample]:
     """One row per (project, config hash) with its first-seen time, all projects in one query."""
     with traces.start_span(
@@ -419,32 +397,30 @@ def _query_timeline(params: SnubaParams) -> list[_Sample]:
                 extra={"limit": _TIMELINE_ROW_LIMIT},
             )
 
-    samples = []
-    for row in rows:
-        config_hash = row.get(_HASH_COL)
-        project_id = row.get(_PROJECT_COL)
-        first_seen = row.get(_FIRST_SEEN_COL)
-        if not config_hash or project_id is None or first_seen is None:
-            continue
-        samples.append(_Sample(int(project_id), config_hash, _to_datetime(first_seen)))
-    return samples
+    return [sample for row in rows if (sample := _row_to_sample(row)) is not None]
 
 
-def _resolve_configs(params: SnubaParams, hashes: Iterable[str]) -> dict[str, _Config]:
+def _row_to_sample(row: Mapping[str, Any]) -> _Sample | None:
+    config_hash = row.get(_HASH_COL)
+    project_id = row.get(_PROJECT_COL)
+    first_seen = row.get(_FIRST_SEEN_COL)
+    if not config_hash or project_id is None or first_seen is None:
+        return None
+    return _Sample(int(project_id), config_hash, _to_datetime(first_seen))
+
+
+def _resolve_configs(params: SnubaParams, hashes: set[str]) -> dict[str, _Config]:
     """Resolve each distinct hash to its normalized config + fingerprint, deduped org-wide."""
-    hashes = set(hashes)
-    resolved: dict[str, _Config] = {}
     with traces.start_span(
         name="timeseries_annotations.sdk_config.payload_fetch", attributes={"sentry.op": _SPAN_OP}
     ) as span:
         span.set_attribute("distinct_hash_count", len(hashes))
-        for config_hash in hashes:
-            payload = _query_payload(params, config_hash)
-            if payload is None:
-                continue
-            normalized = normalize(payload)
-            resolved[config_hash] = _Config(normalized, fingerprint(normalized))
-    return resolved
+        return {
+            config_hash: _Config(normalized, fingerprint(normalized))
+            for config_hash in hashes
+            if (payload := _query_payload(params, config_hash)) is not None
+            and (normalized := normalize(payload))
+        }
 
 
 def _query_payload(params: SnubaParams, config_hash: str) -> dict[str, Any] | None:
