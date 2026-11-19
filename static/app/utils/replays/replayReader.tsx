@@ -24,7 +24,6 @@ import type {
   ErrorFrame,
   fullSnapshotEvent,
   incrementalSnapshotEvent,
-  MemoryFrame,
   OptionFrame,
   RawReplayError,
   RecordingFrame,
@@ -43,6 +42,7 @@ import {
   isDeadClick,
   isDeadRageClick,
   isMetaFrame,
+  isMemoryFrame,
   isPaintFrame,
   isSlowClickFrame,
   isTouchEndFrame,
@@ -204,6 +204,9 @@ function removeDuplicateNavCrumbs(
   );
   return otherBreadcrumbFrames.concat(uniqueNavCrumbs);
 }
+
+const MISSING_META_ERROR = 'Missing Meta Frame';
+const MISSING_FULL_SNAPSHOT_ERROR = 'Missing Full Snapshot Frame';
 
 export class ReplayReader {
   static factory({
@@ -549,16 +552,33 @@ export class ReplayReader {
         : null,
       this.getRRWebFrames().some(frame => frame.type === EventType.Meta)
         ? null
-        : 'Missing Meta Frame',
+        : MISSING_META_ERROR,
       this.isVideoReplay() ||
       this.getRRWebFrames().some(frame => frame.type === EventType.FullSnapshot)
         ? null
-        : 'Missing Full Snapshot Frame',
+        : MISSING_FULL_SNAPSHOT_ERROR,
     ].filter(defined);
   });
   hasProcessingErrors = () => {
     return this.processingErrors().length;
   };
+
+  /**
+   * Processing errors only break the player. The other tabs read breadcrumbs,
+   * spans, and errors, so the page stays useful while any of those exist.
+   */
+  hasTimelineData = memoize(
+    () =>
+      this.getRRWebFrames().some(frame => frame.type !== EventType.Custom) ||
+      this._sortedBreadcrumbFrames.some(frame => frame.category !== 'replay.init') ||
+      this._sortedSpanFrames.length > 0 ||
+      this._errors.length > 0
+  );
+
+  isMissingFullSnapshot = () =>
+    this.processingErrors().includes(MISSING_FULL_SNAPSHOT_ERROR);
+
+  isMissingMeta = () => this.processingErrors().includes(MISSING_META_ERROR);
 
   domQuery = () => {
     if (this._replayerQuery) {
@@ -805,9 +825,7 @@ export class ReplayReader {
     ].sort(sortFrames)
   );
 
-  getMemoryFrames = memoize(() =>
-    this._sortedSpanFrames.filter((frame): frame is MemoryFrame => frame.op === 'memory')
-  );
+  getMemoryFrames = memoize(() => this._sortedSpanFrames.filter(isMemoryFrame));
 
   getCustomFrames = memoize(() =>
     this._sortedBreadcrumbFrames.filter(

@@ -983,7 +983,7 @@ class SearchVisitor(NodeVisitor[list[QueryToken]]):
     def _validate_boolean_support(self) -> None:
         if not self.config.allow_boolean:
             raise InvalidSearchQuery(
-                'Boolean statements containing "OR" or "AND" are not supported in this search'
+                'Boolean statements containing "OR" or "AND" are not supported in this search. To match any of several values for one key, use a list, such as `key:[foo, bar]`'
             )
 
     def visit_free_text_unquoted(self, node: Node, children: object) -> str | None:

@@ -15,6 +15,7 @@ from sentry.workflow_engine.types import DataConditionHandler
 
 
 class MockDataConditionHandler(DataConditionHandler[dict[str, str]]):
+    group = DataConditionHandler.Group.DETECTOR_TRIGGER
     comparison_json_schema = {"type": "number"}
     condition_result_schema = {"type": "boolean"}
 
@@ -133,7 +134,44 @@ class TestDefaultConditionResult(TestCase):
         assert "conditionResult" in validator.errors
 
 
+class TestBooleanConditionResult(TestCase):
+    def _validator(
+        self, condition: Condition, comparison: Any, condition_result: Any
+    ) -> BaseDataConditionValidator:
+        return BaseDataConditionValidator(
+            data={
+                "type": condition.value,
+                "comparison": comparison,
+                "conditionResult": condition_result,
+            }
+        )
+
+    def test_workflow_trigger__string_true_is_normalized(self) -> None:
+        validator = self._validator(Condition.FIRST_SEEN_EVENT, True, "true")
+        assert validator.is_valid(), validator.errors
+        assert validator.validated_data["condition_result"] is True
+
+    def test_action_filter__string_false_is_normalized(self) -> None:
+        validator = self._validator(
+            Condition.ISSUE_PRIORITY_DEESCALATING, PriorityLevel.HIGH, "false"
+        )
+        assert validator.is_valid(), validator.errors
+        assert validator.validated_data["condition_result"] is False
+
+    def test_workflow_trigger__non_boolean_rejected(self) -> None:
+        for condition_result in ("yes", "True", 1, 75, None, {"value": True}):
+            validator = self._validator(Condition.FIRST_SEEN_EVENT, True, condition_result)
+            assert validator.is_valid() is False, condition_result
+            assert "conditionResult" in validator.errors
+
+    def test_detector_condition__priority_level_kept(self) -> None:
+        validator = self._validator(Condition.GREATER, 10, 75)
+        assert validator.is_valid(), validator.errors
+        assert validator.validated_data["condition_result"] == 75
+
+
 class MockComplexDataConditionHandler(DataConditionHandler[dict[str, Any]]):
+    group = DataConditionHandler.Group.DETECTOR_TRIGGER
     comparison_json_schema = {
         "type": "object",
         "properties": {

@@ -10,7 +10,6 @@ import orjson
 from django.conf import settings
 from django.http.request import HttpRequest
 from django.http.response import HttpResponse, HttpResponseBase
-from sentry_sdk import traces
 
 from sentry.api.base import apply_cors_headers
 from sentry.ratelimits import (
@@ -55,12 +54,9 @@ class RatelimitMiddleware:
 
     def __call__(self, request: HttpRequest) -> HttpResponseBase:
         # process_view is automatically called by Django
-        with traces.start_span(
-            name="ratelimit.__call__", attributes={"sentry.op": "ratelimit.__call__"}
-        ):
-            response = self.get_response(request)
-            self.process_response(request, response)
-            return response
+        response = self.get_response(request)
+        self.process_response(request, response)
+        return response
 
     def _apply_impersonation_limits(self, rate_limit_config: RateLimitConfig) -> RateLimitConfig:
         """Takes the minimum between the impersonation_limit and the API's rate limit configuration

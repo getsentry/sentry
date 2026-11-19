@@ -10,7 +10,7 @@ import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {useUpdateClassifier} from 'sentry/views/classifiers/hooks/useClassifier';
 import type {TelemetryClassifier} from 'sentry/views/classifiers/types';
 
-function useCanEditClassifier(classifier: TelemetryClassifier) {
+export function useCanEditClassifier(classifier: TelemetryClassifier) {
   const organization = useOrganization();
   const project = useProjectFromId({project_id: classifier.projectId});
   return hasEveryAccess(['project:read'], {organization, project});

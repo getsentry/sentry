@@ -193,6 +193,23 @@ class OrganizationGroupSearchViewsGetTest(GroupSearchViewAPITestCase):
         assert response.data[1]["createdBy"]["id"] == str(self.user_2.id)
         assert not response.data[1]["starred"]
 
+    def test_get_views_created_by_others_includes_non_user_creator(self) -> None:
+        service_account = self.create_service_account(organization=self.organization)
+        view = GroupSearchView.objects.create(
+            organization=self.organization,
+            created_by_service_account_id=service_account.id,
+            name="Service Account View",
+            query="is:unresolved",
+        )
+        self.login_as(user=self.user)
+        response = self.get_success_response(self.organization.slug, createdBy="others")
+
+        service_account_view = next(v for v in response.data if v["id"] == str(view.id))
+        assert service_account_view["createdBy"] is None
+
+        response = self.get_success_response(self.organization.slug, createdBy="me")
+        assert str(view.id) not in {v["id"] for v in response.data}
+
     def test_invalid_created_by_value(self) -> None:
         self.login_as(user=self.user)
         response = self.get_error_response(self.organization.slug, createdBy="asdf")
@@ -504,7 +521,8 @@ class OrganizationGroupSearchViewsPostTest(APITestCase):
         assert "query" in response.data
         assert str(response.data["query"][0]) == (
             "Invalid issue search query: Boolean statements containing "
-            '"OR" or "AND" are not supported in this search'
+            '"OR" or "AND" are not supported in this search. '
+            "To match any of several values for one key, use a list, such as `key:[foo, bar]`"
         )
 
         assert not GroupSearchView.objects.filter(
