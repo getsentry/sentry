@@ -735,15 +735,21 @@ def outbox_context(
 
     assert flush is False or inner, "Must either set a transaction or flush=False"
 
-    with contextlib.ExitStack() as stack:
-        if inner:
-            assert inner.using is not None
-            stack.enter_context(unguarded_write(using=inner.using))
-            stack.enter_context(enforce_constraints(inner))
+    if inner:
+        assert inner.using is not None
+        with unguarded_write(using=inner.using), enforce_constraints(inner):
+            _outbox_context.in_outbox_context = True
+            _outbox_context.flush_override = flush
+            try:
+                yield inner
+            finally:
+                _outbox_context.in_outbox_context = original_in_outbox_context
+                _outbox_context.flush_override = original_override
+    else:
         _outbox_context.in_outbox_context = True
         _outbox_context.flush_override = flush
         try:
-            yield inner
+            yield None
         finally:
             _outbox_context.in_outbox_context = original_in_outbox_context
             _outbox_context.flush_override = original_override
