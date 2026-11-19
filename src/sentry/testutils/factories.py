@@ -82,6 +82,7 @@ from sentry.integrations.models.integration_feature import (
     IntegrationFeature,
     IntegrationTypes,
 )
+from sentry.integrations.models.jira_connect_client_key import JiraConnectClientKey
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import RpcIntegration
@@ -2370,6 +2371,13 @@ class Factories:
         organization_integration.update(**(oi_params or {}))
 
         return integration
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CONTROL)
+    def create_jira_connect_client_key(
+        integration: Integration, client_key: str
+    ) -> JiraConnectClientKey:
+        return JiraConnectClientKey.objects.create(integration=integration, client_key=client_key)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)

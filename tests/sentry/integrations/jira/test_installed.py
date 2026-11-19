@@ -11,6 +11,7 @@ from rest_framework import status
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.jira_connect_client_key import JiraConnectClientKey
 from sentry.integrations.project_management.metrics import ProjectManagementFailuresReason
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.integrations.utils.atlassian_connect import (
@@ -251,6 +252,38 @@ class JiraInstalledTest(APITestCase):
         integration.refresh_from_db()
         assert integration.metadata["shared_secret"] == self.shared_secret
         assert integration.metadata["icon"] == "https://example.com/icon.png"
+
+    @responses.activate
+    def test_reinstall_updates_integration_rekeyed_to_cloud_id(self) -> None:
+        self.add_response()
+        integration = self.create_provider_integration(
+            provider="jira", external_id="cloud-id", metadata={"shared_secret": "old-secret"}
+        )
+        self.create_jira_connect_client_key(integration=integration, client_key=self.external_id)
+
+        self.get_success_response(
+            **self.body(),
+            extra_headers=dict(HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn()),
+        )
+
+        assert list(Integration.objects.filter(provider="jira")) == [integration]
+        integration.refresh_from_db()
+        assert integration.external_id == "cloud-id"
+        assert integration.metadata["shared_secret"] == self.shared_secret
+
+    @responses.activate
+    def test_records_client_key(self) -> None:
+        self.add_response()
+
+        self.get_success_response(
+            **self.body(),
+            extra_headers=dict(HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn()),
+        )
+
+        integration = Integration.objects.get(provider="jira", external_id=self.external_id)
+        assert (
+            JiraConnectClientKey.objects.get(client_key=self.external_id).integration == integration
+        )
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate

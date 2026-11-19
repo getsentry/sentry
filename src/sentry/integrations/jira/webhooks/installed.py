@@ -19,6 +19,10 @@ from sentry.integrations.base import IntegrationDomain
 from sentry.integrations.jira.integration import JiraIntegrationProvider
 from sentry.integrations.jira.tasks import sync_metadata
 from sentry.integrations.jira.webhooks.base import JiraWebhookBase
+from sentry.integrations.models.jira_connect_client_key import (
+    JiraConnectClientKey,
+    get_jira_integration_by_client_key,
+)
 from sentry.integrations.pipeline import ensure_integration
 from sentry.integrations.project_management.metrics import ProjectManagementFailuresReason
 from sentry.integrations.utils.atlassian_connect import authenticate_asymmetric_jwt, verify_claims
@@ -125,7 +129,19 @@ class JiraSentryInstalledWebhook(JiraWebhookBase):
                 )
 
             data = JiraIntegrationProvider().build_integration(state)
+            client_key = state.get("clientKey")
+            if client_key and data["external_id"] == client_key:
+                # A site already rekeyed to its cloud ID still installs with its clientKey
+                # (the verified `iss` above), so update that integration instead of
+                # creating a second one keyed by clientKey.
+                existing = get_jira_integration_by_client_key(client_key)
+                if existing is not None:
+                    data["external_id"] = existing.external_id
             integration = ensure_integration(self.provider, data, merge_metadata=True)
+            if client_key:
+                JiraConnectClientKey.objects.update_or_create(
+                    client_key=client_key, defaults={"integration": integration}
+                )
 
             # Note: Unlike in all other Jira webhooks, we don't call `bind_org_context_from_integration`
             # here, because at this point the integration hasn't yet been bound to an organization. The

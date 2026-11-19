@@ -1594,12 +1594,12 @@ class JiraInitialDataSerializer(CamelSnakeSerializer[JiraInstallParams]):
 
         # Links minted before this change also carry `metadata`; ignore it so
         # the stored record stays the only source for it.
-        integration = integration_service.get_integration(
-            provider=IntegrationProviderSlug.JIRA.value,
-            external_id=decoded["external_id"],
-            status=ObjectStatus.ACTIVE,
+        # A link minted before its integration was rekeyed to the cloud ID still carries
+        # the Connect clientKey.
+        integration = integration_service.get_jira_integration_by_client_key(
+            client_key=decoded["external_id"]
         )
-        if integration is None:
+        if integration is None or integration.status != ObjectStatus.ACTIVE:
             raise serializers.ValidationError("Invalid installation link")
 
         return {

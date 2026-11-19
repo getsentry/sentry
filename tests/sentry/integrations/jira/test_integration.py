@@ -2507,6 +2507,16 @@ class JiraApiPipelineTest(APITestCase):
         assert resp.status_code == 200
         assert resp.data["data"]["baseUrl"] == "https://example.atlassian.net"
 
+    def test_initialize_link_minted_before_rekey(self) -> None:
+        # The link carries the clientKey, but the integration is now keyed by cloud ID.
+        self.integration.update(external_id="cloud-id")
+        self.create_jira_connect_client_key(
+            integration=self.integration, client_key=self.external_id
+        )
+        resp = self._initialize_pipeline(initial_data={"signedParams": self._signed_params()})
+        assert resp.status_code == 200
+        assert resp.data["data"]["baseUrl"] == "https://example.atlassian.net"
+
     def test_initialize_unknown_external_id(self) -> None:
         signed = sign(salt=SALT, external_id="not-an-installed-site")
         resp = self._initialize_pipeline(initial_data={"signedParams": signed})

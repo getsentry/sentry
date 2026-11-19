@@ -195,6 +195,17 @@ class IntegrationServiceTest(BaseIntegrationServiceTest):
         )
         assert integration_service.get_gcp_service_account_email(organization_id=-1) is None
 
+    def test_get_jira_integration_by_client_key(self) -> None:
+        connect = self.create_provider_integration(provider="jira", external_id="client-key-1")
+        rekeyed = self.create_provider_integration(provider="jira", external_id="cloud-id-2")
+        self.create_jira_connect_client_key(integration=rekeyed, client_key="client-key-2")
+
+        result = integration_service.get_jira_integration_by_client_key(client_key="client-key-1")
+        assert result is not None and result.id == connect.id
+        result = integration_service.get_jira_integration_by_client_key(client_key="client-key-2")
+        assert result is not None and result.id == rekeyed.id
+        assert integration_service.get_jira_integration_by_client_key(client_key="unknown") is None
+
     def test_update_integrations(self) -> None:
         new_metadata = {"new": "data"}
         integrations = [self.integration1, self.integration3]
