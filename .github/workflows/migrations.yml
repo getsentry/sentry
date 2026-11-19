@@ -13,6 +13,9 @@ defaults:
     #      bash --noprofile --norc -eo pipefail {0}
     shell: bash --noprofile --norc -eo pipefail -ux {0}
 
+permissions:
+  contents: read
+
 jobs:
   did-migration-change:
     name: check if any migration changes
@@ -43,6 +46,10 @@ jobs:
 
     needs: did-migration-change
     if: needs.did-migration-change.outputs.added == 'true'
+    permissions:
+      contents: read
+      # getsentry/action-migrations posts the generated SQL as a PR comment.
+      pull-requests: write
 
     steps:
       # Checkout master to run all merged migrations.
