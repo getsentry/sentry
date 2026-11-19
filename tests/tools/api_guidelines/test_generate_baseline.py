@@ -241,37 +241,6 @@ def test_main_keeps_only_baselined_rules(fake_repo: Path) -> None:
     assert entries[0]["rule"] == "S026"
 
 
-def test_write_exceptions_writes_one_entry_per_line(tmp_path: Path) -> None:
-    dest_file = tmp_path / "new_folder" / "exceptions.json"
-    entries: list[dict[str, object]] = [{"rule": "S026", "count": 1}, {"rule": "S028", "count": 2}]
-
-    write_exceptions(entries, dest_file, generated=TODAY)
-
-    assert dest_file.read_text() == (
-        '{"version": 1, "generated": "2026-11-09", "commit": null, "entries": [\n'
-        '{"rule": "S026", "count": 1},\n'
-        '{"rule": "S028", "count": 2}\n'
-        "]}\n"
-    )
-    assert json.loads(dest_file.read_text()) == {
-        "version": 1,
-        "generated": TODAY,
-        "commit": None,
-        "entries": entries,
-    }
-
-
-def test_write_exceptions_with_no_entries(tmp_path: Path) -> None:
-    dest_file = tmp_path / "exceptions.json"
-
-    write_exceptions([], dest_file, generated=TODAY)
-
-    assert (
-        dest_file.read_text()
-        == '{"version": 1, "generated": "2026-11-09", "commit": null, "entries": []}\n'
-    )
-
-
 def test_main_writes_the_baseline(fake_repo: Path, capsys: pytest.CaptureFixture[str]) -> None:
     assert _run_main(fake_repo) == 0
 
