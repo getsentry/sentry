@@ -67,7 +67,12 @@ function CreditsChart({
       utc={utc}
       grid={{bottom: '3px', left: '3px', right: '10px', top: '40px'}}
       legend={{right: 10, top: 5}}
-      yAxis={{min: 0, axisLabel: {formatter: (value: number) => formatCredits(value)}}}
+      yAxis={{
+        min: 0,
+        // Fractional ticks would round to repeated whole-credit labels.
+        minInterval: 1,
+        axisLabel: {formatter: (value: number) => formatCredits(value)},
+      }}
       tooltip={{trigger: 'axis', valueFormatter: (value: number) => formatCredits(value)}}
       series={series}
     />
