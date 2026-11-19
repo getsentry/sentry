@@ -36,9 +36,7 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
-        with:
-          node-version-file: '.node-version'
+      - uses: ./.github/actions/setup-node-pnpm
 
       - name: Test workflow scripts
         run: node --test .github/workflows/scripts/*.test.{js,ts}

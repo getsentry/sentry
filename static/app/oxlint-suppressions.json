@@ -208,11 +208,6 @@
       "count": 3
     }
   },
-  "components/core/relativeTime/relativeTime.spec.tsx": {
-    "@sentry/require-fake-timer-cleanup": {
-      "count": 1
-    }
-  },
   "components/customCommitsResolutionModal.tsx": {
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -2042,7 +2037,7 @@
   },
   "stories/view/storyFooter.tsx": {
     "@sentry/scraps/no-dom-coupling": {
-      "count": 3
+      "count": 1
     }
   },
   "stories/view/storyHeader.tsx": {
@@ -3751,11 +3746,6 @@
       "count": 2
     }
   },
-  "views/navigation/primary/components.tsx": {
-    "@sentry/scraps/no-dom-coupling": {
-      "count": 1
-    }
-  },
   "views/navigation/primary/whatsNew.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {
       "count": 5
@@ -4103,9 +4093,6 @@
     }
   },
   "views/preprod/buildComparison/main/sizeCompareSelectedBuilds.tsx": {
-    "@sentry/scraps/no-dom-coupling": {
-      "count": 1
-    },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
     }
@@ -4192,7 +4179,7 @@
   },
   "views/preprod/snapshots/main/snapshotMainContent.tsx": {
     "@sentry/scraps/no-dom-coupling": {
-      "count": 2
+      "count": 1
     },
     "@sentry/scraps/prefer-primitives": {
       "count": 1
@@ -4300,11 +4287,6 @@
   },
   "views/routeError.tsx": {
     "@sentry/scraps/prefer-primitives": {
-      "count": 1
-    }
-  },
-  "views/seerExplorer/components/askSeerButton.tsx": {
-    "@sentry/scraps/no-dom-coupling": {
       "count": 1
     }
   },

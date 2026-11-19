@@ -1,11 +1,11 @@
 import {useCallback} from 'react';
 import type {Location} from 'history';
 
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Link} from '@sentry/scraps/link';
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
 import {Count} from 'sentry/components/count';
-import {DateTime} from 'sentry/components/dateTime';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {PerformanceDuration} from 'sentry/components/performanceDuration';
 import {
@@ -311,7 +311,7 @@ function ProfileEventsCell<F extends FieldType>(props: ProfileEventsCellProps<F>
     case 'date':
       return (
         <Container>
-          <DateTime date={value} year seconds timeZone />
+          <DateTime date={value} precision="second" year="always" showTimezone />
         </Container>
       );
     default:

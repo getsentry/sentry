@@ -144,3 +144,41 @@ class OrganizationTimeseriesAnnotationEndpointTest(APITestCase):
         row = next(r for r in response.data if r["id"] == str(annotation.id))
         assert row["createdBy"] == {"type": "user", "id": str(self.user.id)}
         assert row["createdByLabel"] is None
+
+    def test_excludes_expired_past_retention(self) -> None:
+        # Request window reaches back a year, but 30d retention is what gates visibility.
+        # Effective end is end_timestamp for a resolved range, else start_timestamp; an open
+        # range dangling past retention is deleted, so it reads as expired too.
+        fresh_point = self._annotation(start_timestamp=before_now(days=10))
+        self._annotation(start_timestamp=before_now(days=40))  # expired on its start
+        live_range = self._annotation(
+            interval_type=IntervalType.RANGE,
+            start_timestamp=before_now(days=40),
+            end_timestamp=before_now(days=10),  # ended inside retention
+        )
+        self._annotation(
+            interval_type=IntervalType.RANGE,
+            start_timestamp=before_now(days=60),
+            end_timestamp=before_now(days=40),  # ended before retention: expired
+        )
+        open_fresh = self._annotation(
+            interval_type=IntervalType.RANGE,
+            start_timestamp=before_now(days=5),
+            end_timestamp=None,  # open, started inside retention
+        )
+        self._annotation(
+            interval_type=IntervalType.RANGE,
+            start_timestamp=before_now(days=50),
+            end_timestamp=None,  # open and dangling past retention: expired
+        )
+        with self.options({"system.event-retention-days": 30}):
+            response = self.get_success_response(
+                self.organization.slug,
+                start=before_now(days=365).isoformat(),
+                end=timezone.now().isoformat(),
+            )
+        assert {row["id"] for row in response.data} == {
+            str(fresh_point.id),
+            str(live_range.id),
+            str(open_fresh.id),
+        }

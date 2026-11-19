@@ -1210,9 +1210,7 @@ describe('useExplorerAutofix - startStep', () => {
       method: 'POST',
       body: {run_id: 776, feature_id: 'autofix_single_run'},
     });
-    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP), {
-      organization: OrganizationFixture({features: ['autofix-browser-notifications']}),
-    });
+    const {result} = renderHookWithProviders(() => useExplorerAutofix(MOCK_GROUP));
     const run = await act(() => result.current.startStep('root_cause'));
 
     expect(run).toEqual({runId: 776, isSingleRun: true});

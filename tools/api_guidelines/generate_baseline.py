@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import subprocess
 import sys
 from collections import Counter
 from datetime import date
@@ -81,11 +82,15 @@ def build_entries(
     return entries
 
 
-def write_exceptions(entries: list[dict[str, object]], dest_file: Path, generated: str) -> None:
+def write_exceptions(
+    entries: list[dict[str, object]], dest_file: Path, generated: str, commit: str | None = None
+) -> None:
     """Writes entries to the exceptions.json file.
     `entries` a list of already generated entries to go into the exceptions.json baseline
     `dest_file` the path of the file to write to, i.e api_exceptions/exceptions.json. Its folder is created if it doesn't exist and an existing file is replaced
     `generated` the date of this run, written at the top so the report card can say what the file is as of
+    `commit` the commit of the last full scan, so you can tell what code the file reflects. A
+    `--files` run keeps the previous value since most entries weren't rescanned
     Returns nothing since it only writes the file
 
     Note: we need dest_file as a param, even though every time this is called `dest_file` is almost always exceptions.json just for handling test cases since we don't want to override exceptions.json for testing
@@ -96,7 +101,13 @@ def write_exceptions(entries: list[dict[str, object]], dest_file: Path, generate
     for entry in entries:
         json_lines.append(json.dumps(entry))
 
-    header = '{"version": 1, "generated": ' + json.dumps(generated) + ', "entries": '
+    header = (
+        '{"version": 1, "generated": '
+        + json.dumps(generated)
+        + ', "commit": '
+        + json.dumps(commit)
+        + ', "entries": '
+    )
     if json_lines:
         text = header + "[\n" + ",\n".join(json_lines) + "\n]}\n"
     else:
@@ -147,6 +158,28 @@ def _rescan_path(path: str, root: Path) -> str | None:
     return path
 
 
+def _head_commit(root: Path) -> str | None:
+    """The commit checked out in `root`. Local changes that aren't committed aren't part of it
+    `root` the checkout that was scanned
+    Returns None when `root` isn't the top of a git checkout, i.e a plain copy that sits inside
+    another repo, where git would answer with the outer repo's HEAD
+    """
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(root), "rev-parse", "--show-toplevel", "HEAD"],
+            capture_output=True,
+            text=True,
+        )
+    except FileNotFoundError:
+        return None
+    if result.returncode != 0:
+        return None
+    toplevel, commit = result.stdout.splitlines()
+    if Path(toplevel).resolve() != root.resolve():
+        return None
+    return commit
+
+
 def main(argv: list[str] | None = None) -> int:
     """Generates the exceptions.json baseline from every existing API violation.
     `argv` the CLI arguments. None means use the real ones (tests pass their own list)
@@ -163,6 +196,15 @@ def main(argv: list[str] | None = None) -> int:
         "--files", nargs="+", help="only rescan these files and merge them into the existing file"
     )
     parser.add_argument(
+        "--update",
+        action="store_true",
+        help="rescan every file and merge into the existing file, keeping each entry's status, reason and first_seen",
+    )
+    parser.add_argument(
+        "--commit",
+        help="the commit to record in the file. Defaults to the scanned checkout's HEAD, or the existing file's commit with --files",
+    )
+    parser.add_argument(
         "--root",
         type=Path,
         default=_REPO_ROOT,
@@ -177,10 +219,17 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1
 
-    if args.files:
+    if args.update and (args.files or args.force):
+        print("--update can't be combined with --files or --force.", file=sys.stderr)
+        return 1
+
+    # --files and --update both merge into the existing file instead of replacing it
+    merging = bool(args.files) or args.update
+
+    if merging:
         if not args.output.exists():
             print(
-                f"{args.output} not found. Run without --files first to generate it.",
+                f"{args.output} not found. Run without --files or --update first to generate it.",
                 file=sys.stderr,
             )
             return 1
@@ -207,8 +256,13 @@ def main(argv: list[str] | None = None) -> int:
     # {path of a file that's gone but wasn't in --files -> how many entries it had}
     unlisted_gone: Counter[str] = Counter()
 
+    old_commit: str | None = None
+    if merging:
+        old_data = json.loads(args.output.read_text())
+        old_entries = old_data["entries"]
+        old_commit = old_data.get("commit")
+
     if args.files:
-        old_entries = json.loads(args.output.read_text())["entries"]
         paths_with_entries: set[object] = set()
         for entry in old_entries:
             paths_with_entries.add(entry["path"])
@@ -270,18 +324,25 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1
 
-    if args.files:
+    if merging:
         entries = merge_entries(
             new_entries=entries, old_entries=old_entries, kept_entries=kept_entries
         )
 
-    write_exceptions(entries, dest_file=args.output, generated=args.date)
+    if args.commit:
+        commit: str | None = args.commit
+    # only the listed files were scanned now, so the rest still reflects the last full scan
+    elif args.files:
+        commit = old_commit
+    else:
+        commit = _head_commit(args.root)
+    write_exceptions(entries, dest_file=args.output, generated=args.date, commit=commit)
 
-    if args.files:
-        assert rescan_paths is not None
+    if merging:
         added, removed, changed = diff_entries(old_entries=old_entries, new_entries=entries)
+        rescanned = f"{len(rescan_paths)} files" if rescan_paths is not None else "every file"
         print(
-            f"Rescanned {len(rescan_paths)} files ({len(finding)} findings). {args.output} now has {len(entries)} entries"
+            f"Rescanned {rescanned} ({len(finding)} findings). {args.output} now has {len(entries)} entries"
         )
         print(f"    {len(added)} new, {len(removed)} fixed, {len(changed)} with a changed count")
         for entry in added:

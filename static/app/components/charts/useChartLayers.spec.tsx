@@ -108,19 +108,24 @@ describe('useChartLayers', () => {
       );
     }
 
-    it('toggles the release band from the Releases layer', async () => {
+    it('toggles releases in the annotations band from the Releases layer', async () => {
       const {result} = renderReleasesHook([
         {date: '2026-11-03T12:00:00Z', version: 'ui@1.0.0'},
       ]);
 
       await waitFor(() =>
-        expect(result.current.releases).toEqual([
-          {timestamp: '2026-11-03T12:00:00Z', version: 'ui@1.0.0'},
+        expect(result.current.annotations).toEqual([
+          {
+            id: 'release:ui@1.0.0',
+            kind: 'release',
+            start: new Date('2026-11-03T12:00:00Z').getTime(),
+            title: 'ui@1.0.0',
+          },
         ])
       );
       act(() => result.current.layerControl!.onChange('releases', false));
 
-      expect(result.current.releases).toBeUndefined();
+      expect(result.current.annotations).toBeUndefined();
       expect(result.current.layerControl?.layers).toContainEqual(
         expect.objectContaining({value: 'releases', selected: false})
       );
@@ -142,7 +147,7 @@ describe('useChartLayers', () => {
           tooltip: 'No releases in this time range',
         })
       );
-      expect(result.current.releases).toBeUndefined();
+      expect(result.current.annotations).toBeUndefined();
     });
   });
 

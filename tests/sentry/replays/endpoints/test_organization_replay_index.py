@@ -2165,6 +2165,52 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 response = self.client.get(self.url, {"field": ["id"], "query": query})
                 assert response.status_code == 400, query
 
+    def test_query_ip_address_wildcards(self) -> None:
+        project = self.create_project(teams=[self.team])
+        timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+
+        replay_ids = {
+            "ipv4": uuid.uuid4().hex,
+            "ipv4_other": uuid.uuid4().hex,
+            "ipv6": uuid.uuid4().hex,
+            "none": uuid.uuid4().hex,
+        }
+        self.store_replays(mock_replay(timestamp, project.id, replay_ids["ipv4"], ipv4="10.0.0.42"))
+        self.store_replays(
+            mock_replay(timestamp, project.id, replay_ids["ipv4_other"], ipv4="110.0.0.5")
+        )
+        self.store_replays(
+            mock_replay(timestamp, project.id, replay_ids["ipv6"], ipv4="2001:db8::1")
+        )
+        self.store_replays(mock_replay(timestamp, project.id, replay_ids["none"], ipv4=None))
+
+        expected = {
+            # Prefix matches are anchored, so 110.0.0.5 doesn't match.
+            "user.ip:10.0.*": {"ipv4"},
+            "user.ip:*.42": {"ipv4"},
+            "user.ip:*0.0*": {"ipv4", "ipv4_other"},
+            'user.ip:"2001:db8:*"': {"ipv6"},
+            'user.ip:"2001:DB8:*"': {"ipv6"},
+            'user.ip:"*::1"': {"ipv6"},
+            "user.ip_address:*1*": {"ipv4", "ipv4_other", "ipv6"},
+            "!user.ip:10.0.*": {"ipv4_other", "ipv6", "none"},
+            '!user.ip:"*::1"': {"ipv4", "ipv4_other", "none"},
+        }
+
+        with self.feature(self.features):
+            for query, names in expected.items():
+                response = self.client.get(self.url, {"field": ["id"], "query": query})
+                assert response.status_code == 200, query
+                assert {r["id"] for r in response.json()["data"]} == {
+                    replay_ids[name] for name in names
+                }, query
+
+            # Wildcards inside a list still go through IP parsing.
+            response = self.client.get(
+                self.url, {"field": ["id"], "query": "user.ip:[10.0.*, 127.0.0.1]"}
+            )
+            assert response.status_code == 400
+
     def test_query_invalid_ipv4_addresses(self) -> None:
         project = self.create_project(teams=[self.team])
 
