@@ -86,6 +86,7 @@ from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.sentry_apps.tasks.sentry_apps import broadcast_webhooks_for_organization
 from sentry.sentry_apps.utils.webhooks import SeerActionType
 from sentry.utils import metrics
+from sentry.utils.hashlib import hash_values
 from sentry.viewer_context import get_acting_user_id, get_viewer_context
 
 if TYPE_CHECKING:
@@ -136,6 +137,7 @@ def get_run_stopping_point(
 
 SingleRunStage = Literal["root_cause", "coding", "pr_created", "stopped"]
 SINGLE_RUN_ANNOUNCED_STAGES_KEY = "single_run_announced_stages"
+SINGLE_RUN_ROOT_CAUSE_HASH_KEY = "single_run_root_cause_hash"
 # Set once the completion hook has launched a single run's coding agent, so later
 # completions (replies) don't launch it again.
 SINGLE_RUN_HANDED_OFF_KEY = "single_run_handed_off"
@@ -319,6 +321,12 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         with record_run_extras(seer_run) as extras:
             announced = extras.get(SINGLE_RUN_ANNOUNCED_STAGES_KEY) or []
             new_stages = [stage for stage in reached if stage not in announced]
+            if root_cause is not None:
+                root_cause_hash = hash_values([root_cause])
+                previous_hash = extras.get(SINGLE_RUN_ROOT_CAUSE_HASH_KEY, root_cause_hash)
+                if "root_cause" not in new_stages and root_cause_hash != previous_hash:
+                    new_stages.insert(0, "root_cause")
+                extras[SINGLE_RUN_ROOT_CAUSE_HASH_KEY] = root_cause_hash
             extras[SINGLE_RUN_ANNOUNCED_STAGES_KEY] = [*announced, *new_stages]
             hand_off = ready_to_hand_off and not extras.get(SINGLE_RUN_HANDED_OFF_KEY)
             if hand_off:

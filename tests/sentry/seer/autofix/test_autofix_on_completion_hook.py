@@ -27,6 +27,7 @@ from sentry.seer.autofix.feature.models import FEATURE_ID, LEGACY_FEATURE_ID, SI
 from sentry.seer.autofix.on_completion_hook import (
     PIPELINE_ORDER,
     PR_CREATION_FAILED_REASON,
+    SINGLE_RUN_ANNOUNCED_STAGES_KEY,
     SINGLE_RUN_HANDED_OFF_KEY,
     STOPPING_POINT_TO_STEP,
     AutofixOnCompletionHook,
@@ -3205,6 +3206,24 @@ class TestSingleRunCompletion(TestCase):
         mocks = self._execute(state)
 
         assert self._events(mocks) == ["pr_created"]
+
+    def test_changed_root_cause_is_announced_again(self) -> None:
+        self._execute(self._state(single_run_memory_block(_ROOT_CAUSE)))
+
+        mocks = self._execute(self._state(single_run_memory_block({**_ROOT_CAUSE, "cause": "C2"})))
+
+        assert self._events(mocks) == ["root_cause_completed"]
+        payload = mocks["broadcast"].call_args.kwargs["payload"]
+        assert payload["root_cause"]["one_line_description"] == "C2"
+
+    def test_root_cause_announced_before_hashing_is_not_announced_again(self) -> None:
+        SeerRun.objects.filter(id=self.seer_run.id).update(
+            extras={SINGLE_RUN_ANNOUNCED_STAGES_KEY: ["root_cause"]}
+        )
+
+        mocks = self._execute(self._state(single_run_memory_block(_ROOT_CAUSE)))
+
+        assert self._events(mocks) == []
 
     def test_pr_still_creating_or_failed_still_announces_earlier_stages(self) -> None:
         for status in ("creating", "error"):
