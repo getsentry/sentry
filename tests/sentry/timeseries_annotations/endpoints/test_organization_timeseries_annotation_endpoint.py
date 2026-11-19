@@ -9,6 +9,7 @@ from sentry.timeseries_annotations.models import (
     AnnotationScope,
     AnnotationType,
     IntervalType,
+    Severity,
     TimeseriesAnnotation,
 )
 
@@ -96,6 +97,35 @@ class OrganizationTimeseriesAnnotationEndpointTest(APITestCase):
             self.organization.slug, statsPeriod="14d", scope="bogus", status_code=400
         )
 
+    def test_severity_filter(self) -> None:
+        high = self._annotation(severity=Severity.HIGH)
+        self._annotation(severity=Severity.LOW)
+        response = self.get_success_response(
+            self.organization.slug, statsPeriod="14d", severity="high"
+        )
+        assert [row["id"] for row in response.data] == [str(high.id)]
+
+    def test_invalid_severity_is_400(self) -> None:
+        self.get_error_response(
+            self.organization.slug, statsPeriod="14d", severity="bogus", status_code=400
+        )
+
+    def test_environment_filter_includes_env_wide(self) -> None:
+        project = self.create_project(organization=self.organization)
+        env = self.create_environment(project=project, name="prod")
+        env_scoped = self._annotation(environment_id=env.id)
+        env_wide = self._annotation(environment_id=None)
+        self._annotation(environment_id=self.create_environment(project=project, name="dev").id)
+        response = self.get_success_response(
+            self.organization.slug, statsPeriod="14d", environment="prod"
+        )
+        assert {row["id"] for row in response.data} == {str(env_scoped.id), str(env_wide.id)}
+
+    def test_unknown_environment_is_404(self) -> None:
+        self.get_error_response(
+            self.organization.slug, statsPeriod="14d", environment="nope", status_code=404
+        )
+
     def test_project_filter_includes_org_wide(self) -> None:
         project = self.create_project(organization=self.organization)
         project_scoped = self._annotation(project_id=project.id)
@@ -121,8 +151,13 @@ class OrganizationTimeseriesAnnotationEndpointTest(APITestCase):
         assert str(hidden.id) not in ids
 
     def test_serialized_shape(self) -> None:
+        env = self.create_environment(
+            project=self.create_project(organization=self.organization), name="prod"
+        )
         annotation = self._annotation(
             scope=AnnotationScope.SPANS,
+            severity=Severity.HIGH,
+            environment_id=env.id,
             tags={"filter": "legacy-browsers"},
             created_by_label="statuspage",
         )
@@ -131,9 +166,11 @@ class OrganizationTimeseriesAnnotationEndpointTest(APITestCase):
         assert row["id"] == str(annotation.id)
         assert row["organizationId"] == str(self.organization.id)
         assert row["projectId"] is None
+        assert row["environmentId"] == str(env.id)
         assert row["intervalType"] == "point"
         assert row["annotationType"] == "inbound_filter_change"
         assert row["scope"] == "spans"
+        assert row["severity"] == "high"
         assert row["tags"] == {"filter": "legacy-browsers"}
         assert row["createdBy"] is None
         assert row["createdByLabel"] == "statuspage"
