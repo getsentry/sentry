@@ -1,4 +1,4 @@
-import type {OrganizationSummary} from 'sentry/types/organization';
+import type {OrganizationSummary, Team} from 'sentry/types/organization';
 
 export type LinkTeamOrganization = Pick<
   OrganizationSummary,
@@ -10,3 +10,7 @@ export interface LinkTeamContext {
   channelUrl: string;
   organizations: LinkTeamOrganization[];
 }
+
+export type LinkResult =
+  | {kind: 'linked'; team: Team}
+  | {detail: string; kind: 'alreadyLinked'};

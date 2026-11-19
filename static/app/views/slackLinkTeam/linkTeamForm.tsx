@@ -1,17 +1,20 @@
-import {skipToken, useInfiniteQuery} from '@tanstack/react-query';
+import {skipToken, useInfiniteQuery, useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {defaultFormOptions, useScrapsForm, useStore} from '@sentry/scraps/form';
-import {Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 import type {Team} from 'sentry/types/organization';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
-import type {LinkTeamOrganization} from './types';
+import type {LinkResult, LinkTeamOrganization} from './types';
 
 const schema = z.object({
   organization: z
@@ -25,20 +28,66 @@ const schema = z.object({
 });
 
 interface LinkTeamFormProps {
+  onLinked: (result: LinkResult) => void;
   organizations: LinkTeamOrganization[];
   signedParams: string;
 }
 
-export function LinkTeamForm({organizations, signedParams}: LinkTeamFormProps) {
+export function LinkTeamForm({organizations, signedParams, onLinked}: LinkTeamFormProps) {
   const defaultValues: z.input<typeof schema> = {
     organization: organizations.length === 1 ? (organizations[0]?.slug ?? null) : null,
     team: null,
   };
 
+  const linkTeam = useMutation({
+    mutationFn: async ({
+      organization,
+      team,
+    }: {
+      organization: LinkTeamOrganization;
+      team: Team;
+    }): Promise<LinkResult> => {
+      try {
+        await fetchMutation({
+          method: 'POST',
+          url: getApiUrl(
+            '/organizations/$organizationIdOrSlug/slack/link-team/$signedParams/',
+            {path: {organizationIdOrSlug: organization.slug, signedParams}}
+          ),
+          data: {team: team.id},
+          options: {host: organization.links.regionUrl},
+        });
+      } catch (error) {
+        if (error instanceof RequestError && error.status === 409) {
+          return {
+            kind: 'alreadyLinked',
+            detail: getRequestErrorUserMessage(error),
+          };
+        }
+
+        throw error;
+      }
+
+      return {kind: 'linked', team};
+    },
+    onSuccess: onLinked,
+  });
+
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues,
     validators: {onDynamic: schema},
+    onSubmit: ({value}) => {
+      const parsed = schema.parse(value);
+      const organization = organizations.find(org => org.slug === parsed.organization);
+      const team = teams?.find(item => item.id === parsed.team);
+
+      if (!organization || !team) {
+        return Promise.resolve();
+      }
+
+      return linkTeam.mutateAsync({organization, team}).catch(() => {});
+    },
   });
 
   const selectedSlug = useStore(form.store, state => state.values.organization);
@@ -73,7 +122,12 @@ export function LinkTeamForm({organizations, signedParams}: LinkTeamFormProps) {
       <Stack gap="xl">
         <form.AppField
           name="organization"
-          listeners={{onChange: () => form.setFieldValue('team', null)}}
+          listeners={{
+            onChange: () => {
+              form.setFieldValue('team', null);
+              linkTeam.reset();
+            },
+          }}
         >
           {field => (
             <field.Layout.Stack label={t('Organization')} required>
@@ -88,7 +142,7 @@ export function LinkTeamForm({organizations, signedParams}: LinkTeamFormProps) {
             </field.Layout.Stack>
           )}
         </form.AppField>
-        <form.AppField name="team">
+        <form.AppField name="team" listeners={{onChange: () => linkTeam.reset()}}>
           {field => (
             <field.Layout.Stack label={t('Team')} required>
               <field.Select
@@ -114,6 +168,19 @@ export function LinkTeamForm({organizations, signedParams}: LinkTeamFormProps) {
             )}
           </Alert>
         )}
+        {linkTeam.isError && (
+          <Alert variant="danger">{getRequestErrorUserMessage(linkTeam.error)}</Alert>
+        )}
+        <Flex justify="end" borderTop="secondary" paddingTop="xl">
+          <form.SubmitButton
+            disabled={
+              selectedOrganization !== undefined &&
+              (teams === undefined || isTeamsError || hasNoTeams)
+            }
+          >
+            {t('Link Team')}
+          </form.SubmitButton>
+        </Flex>
       </Stack>
     </form.AppForm>
   );
