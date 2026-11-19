@@ -1,16 +1,17 @@
 from __future__ import annotations
 
 import hashlib
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
+from functools import partial
 from tempfile import TemporaryFile
-from typing import Any
+from typing import IO, Any
 
 from django.db import models, router, transaction
 from django.db.models import Q
 
 from sentry.models.files.file import File
-from sentry.objectstore import UsecaseId
+from sentry.models.project import Project
 from sentry.preprod.models import (
     PreprodArtifact,
     PreprodArtifactSizeComparison,
@@ -25,8 +26,7 @@ class LegacyPayload:
     file_field: str
     path_field: str
     file_id: int
-    usecase: UsecaseId
-    filename: str
+    put_file: Callable[[Project, IO[bytes], int], ObjectstoreFile]
 
     def current_owners(self) -> models.QuerySet[Any]:
         return self.owners.filter(
@@ -42,8 +42,7 @@ def legacy_payloads(artifact: PreprodArtifact) -> Iterator[LegacyPayload]:
             "file_id",
             "storage_path",
             artifact.file_id,
-            UsecaseId.PREPROD_ARTIFACTS,
-            f"preprod_artifact_{artifact.id}.zip",
+            partial(PreprodArtifact.put_artifact_file, artifact_id=artifact.id),
         )
     if (
         artifact.installable_app_file_id is not None
@@ -54,8 +53,7 @@ def legacy_payloads(artifact: PreprodArtifact) -> Iterator[LegacyPayload]:
             "installable_app_file_id",
             "installable_app_storage_path",
             artifact.installable_app_file_id,
-            UsecaseId.PREPROD_DISTRIBUTION,
-            "installable",
+            PreprodArtifact.put_installable_file,
         )
 
     metrics = PreprodArtifactSizeMetrics.objects.filter(
@@ -69,8 +67,7 @@ def legacy_payloads(artifact: PreprodArtifact) -> Iterator[LegacyPayload]:
             "analysis_file_id",
             "analysis_storage_path",
             file_id,
-            UsecaseId.PREPROD_SIZE,
-            "analysis.json",
+            PreprodArtifactSizeMetrics.put_analysis_file,
         )
 
     comparisons = PreprodArtifactSizeComparison.objects.filter(
@@ -83,8 +80,7 @@ def legacy_payloads(artifact: PreprodArtifact) -> Iterator[LegacyPayload]:
             "file_id",
             "storage_path",
             file_id,
-            UsecaseId.PREPROD_SIZE,
-            "comparison.json",
+            PreprodArtifactSizeComparison.put_result_file,
         )
 
 
@@ -118,7 +114,7 @@ def migrate_payload(artifact: PreprodArtifact, payload: LegacyPayload) -> bool:
         ):
             raise ValueError(f"Filestore integrity mismatch for file {source.id}")
         tmp.seek(0)
-        stored = ObjectstoreFile.put(payload.usecase, artifact.project, tmp, size, payload.filename)
+        stored = payload.put_file(artifact.project, tmp, size)
 
     try:
         copied_digest = hashlib.sha1()
