@@ -45,14 +45,21 @@ import {detectAIContentType} from 'sentry/views/performance/traceDetails/traceDr
 import {AIContentRenderer} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 
 import {ConversationMissingMessagesAlert} from './conversationMissingMessagesAlert';
+import type {DetailTab} from './conversationSpanDetail';
 import {MessageToolCalls} from './messageToolCalls';
 import {SubAgentRow, type RenderTranscriptMessages} from './subAgentRow';
 import {ToolTag} from './toolTag';
 import {TranscriptSpanRow} from './transcriptSpanRow';
 
+/**
+ * Selects a span. `detailTab` opens its detail on that tab, e.g. a user
+ * message opens the input of its LLM call.
+ */
+type SelectNode = (node: AITraceSpanNode, detailTab?: DetailTab) => void;
+
 interface MessagesPanelProps {
   nodes: AITraceSpanNode[];
-  onSelectNode: (node: AITraceSpanNode) => void;
+  onSelectNode: SelectNode;
   selectedNodeId: string | null;
   isLoading?: boolean;
   /**
@@ -117,7 +124,7 @@ export function MessagesPanel({
 interface TranscriptMessagesProps {
   messages: ConversationMessage[];
   nodeMap: Map<string, AITraceSpanNode>;
-  onSelectNode: (node: AITraceSpanNode) => void;
+  onSelectNode: SelectNode;
   selectedNodeId: string | null;
   /** Rendered inside a sub-agent row, which already provides the row gutter. */
   nested?: boolean;
@@ -170,11 +177,20 @@ function TranscriptMessages({
 
         if (message.role === 'user') {
           return (
-            <UserTurn
-              key={message.id}
-              content={message.content}
-              hasXmlTags={hasXmlTags}
-            />
+            <Fragment key={message.id}>
+              {message.systemPrompt && (
+                <MessageRow from="assistant" density="line">
+                  <SystemPromptSection systemPrompt={message.systemPrompt} />
+                </MessageRow>
+              )}
+              <UserTurn
+                content={message.content}
+                hasXmlTags={hasXmlTags}
+                node={nodeMap.get(message.nodeId)}
+                isSelected={message.nodeId === selectedNodeId}
+                onSelectNode={onSelectNode}
+              />
+            </Fragment>
           );
         }
 
@@ -274,18 +290,35 @@ const NestedMessageList = styled(Stack)`
   margin: 0 -${p => p.theme.space.xl};
 `;
 
-// User turns carry no selection state, so their props never change on a
-// selection change — memoized, they render once and always bail out after.
+// Memoized like assistant turns, so a selection change only re-renders the
+// turns that gain or lose selection.
 const UserTurn = memo(function UserTurnImpl({
   content,
   hasXmlTags,
+  node,
+  isSelected,
+  onSelectNode,
 }: {
   content: string;
   hasXmlTags: boolean;
+  isSelected: boolean;
+  node: AITraceSpanNode | undefined;
+  onSelectNode: SelectNode;
 }) {
+  const organization = useOrganization();
+
+  // The message is the input of its LLM call, so open the call's input, where
+  // the full prompt (system prompt included) is shown.
+  const handleClick = node
+    ? () => {
+        trackAnalytics('conversations.message.click-user', {organization});
+        onSelectNode(node, 'input');
+      }
+    : undefined;
+
   if (content === NOT_REPORTED) {
     return (
-      <UserMessageBlock>
+      <UserMessageBlock isSelected={isSelected} onClick={handleClick}>
         <MessageText align="left" variant="muted">
           {content}
         </MessageText>
@@ -294,7 +327,7 @@ const UserTurn = memo(function UserTurnImpl({
   }
 
   return (
-    <UserMessageBlock expand={hasXmlTags}>
+    <UserMessageBlock expand={hasXmlTags} isSelected={isSelected} onClick={handleClick}>
       <MessageText align="left">
         <AIContentRenderer text={content} inline autoCollapseLimit={10} />
       </MessageText>
@@ -681,6 +714,43 @@ function ReasoningSection({
     </CollapsibleChatRow>
   );
 }
+
+// Collapsed by default: system prompts are long and usually the same across a
+// conversation's calls. Memoized since its only prop is a string, so selection
+// changes never re-render the (possibly long) prompt.
+const SystemPromptSection = memo(function SystemPromptSectionImpl({
+  systemPrompt,
+}: {
+  systemPrompt: string;
+}) {
+  const organization = useOrganization();
+
+  return (
+    <CollapsibleChatRow
+      title={isOpen => (
+        <Text size="sm" variant="muted" ellipsis monospace>
+          {t('System prompt')}{' '}
+          {isOpen ? null : <ScrubbedText>{systemPrompt}</ScrubbedText>}
+        </Text>
+      )}
+      onToggle={open =>
+        trackAnalytics('conversations.detail.expand-system-prompt', {
+          organization,
+          expanded: open,
+        })
+      }
+    >
+      <Flex>
+        <Container paddingTop="xs" paddingBottom="xs" flex="1" minWidth={0}>
+          <MessageText size="sm" align="left" variant="muted" monospace>
+            <AIContentRenderer text={systemPrompt} inline autoCollapseLimit={10} />
+          </MessageText>
+        </Container>
+        <Container width={TURN_META_WIDTH} flexShrink={0} />
+      </Flex>
+    </CollapsibleChatRow>
+  );
+});
 
 /**
  * Links to the docs for the conversation's platform, since the transcript was

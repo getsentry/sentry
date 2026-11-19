@@ -239,6 +239,86 @@ describe('ConversationDetailPage span default selection', () => {
   });
 });
 
+// The SDK recorded the LLM calls but not their messages.
+const UNCAPTURED_CONVERSATION_BODY = [
+  spanFixture({
+    span_id: 'span-a',
+    'span.name': 'classify email',
+    'precise.start_ts': 1000,
+    'precise.finish_ts': 1000.5,
+    'gen_ai.usage.input_tokens': 120,
+  }),
+];
+
+describe('ConversationDetailPage default tab', () => {
+  beforeEach(() => {
+    Element.prototype.scrollTo = jest.fn();
+    Element.prototype.scrollIntoView = jest.fn();
+    MockApiClient.clearMockResponses();
+    act(() => {
+      PageFiltersStore.reset();
+      PageFiltersStore.init();
+    });
+  });
+
+  it('opens the transcript when messages were captured', async () => {
+    mockApis();
+    renderPage();
+
+    expect(await screen.findByText('First answer')).toBeInTheDocument();
+    expect(screen.getByRole('tab', {name: 'Transcript'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+  });
+
+  it('opens the timeline when no messages were captured', async () => {
+    mockApis(null, UNCAPTURED_CONVERSATION_BODY);
+    renderPage();
+
+    await waitFor(() =>
+      expect(screen.getByRole('tab', {name: 'Timeline'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      )
+    );
+    expect(screen.queryByText('<not reported>')).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Export transcript'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps an explicit transcript tab when no messages were captured', async () => {
+    mockApis(null, UNCAPTURED_CONVERSATION_BODY);
+    renderPage([], {tab: 'transcript'});
+
+    expect((await screen.findAllByText('<not reported>')).length).toBeGreaterThan(0);
+    expect(screen.getByRole('tab', {name: 'Transcript'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+  });
+
+  it('tracks leaving the default timeline tab', async () => {
+    mockApis(null, UNCAPTURED_CONVERSATION_BODY);
+    renderPage();
+
+    await waitFor(() =>
+      expect(screen.getByRole('tab', {name: 'Timeline'})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      )
+    );
+    await userEvent.click(screen.getByRole('tab', {name: 'Transcript'}));
+
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'conversations.detail.tab-switch',
+      expect.objectContaining({fromTab: 'timeline', toTab: 'transcript'})
+    );
+    expect((await screen.findAllByText('<not reported>')).length).toBeGreaterThan(0);
+  });
+});
+
 describe('ConversationDetailPage breadcrumbs', () => {
   beforeEach(() => {
     // jsdom implements neither scroll API the view relies on.

@@ -24,6 +24,7 @@ import {ConversationContentLayout} from './conversationLayout';
 import {
   CONVERSATION_SPAN_DETAIL_TABS,
   ConversationSpanDetail,
+  type DetailTab,
 } from './conversationSpanDetail';
 import {MessagesPanel} from './messagesPanel';
 
@@ -141,11 +142,14 @@ export function ConversationViewContent({
   }, [canAutoFetchNextPage, isLoading, loadNextPage, needsMoreSelectionData]);
 
   const handleSelectAndOpenDetail = useCallback(
-    (node: AITraceSpanNode) => {
+    (node: AITraceSpanNode, detailTab?: DetailTab) => {
       setTimelineDefaultDismissed(false);
+      if (detailTab) {
+        setDetailState({detailTab});
+      }
       handleSelectNode(node);
     },
-    [handleSelectNode]
+    [handleSelectNode, setDetailState]
   );
 
   const handleCloseDetail = useCallback(() => {

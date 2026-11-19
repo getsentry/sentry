@@ -586,7 +586,7 @@ describe('MessagesPanel', () => {
     expect(details).toHaveAttribute('open');
   });
 
-  it('selects assistant messages on click but not user messages', async () => {
+  it('selects user messages on the input tab and assistant messages on click', async () => {
     const node = createMockNode({
       id: 'span-1',
       attributes: {
@@ -605,17 +605,139 @@ describe('MessagesPanel', () => {
       />
     );
 
-    // User messages are not interactive
+    // User messages open the input of their LLM call
     await userEvent.click(screen.getByText('Hello there'));
-    expect(mockOnSelectNode).not.toHaveBeenCalled();
-    expect(screen.queryByRole('button', {name: /Hello there/})).not.toBeInTheDocument();
+    expect(mockOnSelectNode).toHaveBeenCalledWith(node, 'input');
+    expect(screen.getByText('Hello there').closest('[role="button"]')).toHaveAttribute(
+      'aria-pressed',
+      'false'
+    );
 
     // Assistant messages select the corresponding node
     await userEvent.click(screen.getByText('Assistant response'));
-    expect(mockOnSelectNode).toHaveBeenCalledWith(node);
+    expect(mockOnSelectNode).toHaveBeenLastCalledWith(node);
     expect(
       screen.getByText('Assistant response').closest('[role="button"]')
     ).toBeInTheDocument();
+  });
+
+  it('selects a user message with the keyboard', async () => {
+    const node = createMockNode({
+      id: 'span-1',
+      attributes: {
+        [SpanFields.GEN_AI_REQUEST_MESSAGES]: JSON.stringify([
+          {role: 'user', content: 'Hello there'},
+        ]),
+        [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Assistant response',
+      },
+    });
+
+    render(
+      <MessagesPanel
+        nodes={[node] as any}
+        selectedNodeId="span-1"
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    const userBubble = screen.getByText('Hello there').closest('[role="button"]');
+    expect(userBubble).toHaveAttribute('aria-pressed', 'true');
+
+    (userBubble as HTMLElement).focus();
+    await userEvent.keyboard('{Enter}');
+    expect(mockOnSelectNode).toHaveBeenCalledWith(node, 'input');
+  });
+
+  it('shows the system prompt collapsed above the user message', async () => {
+    const node = createMockNode({
+      id: 'span-1',
+      attributes: {
+        [SpanFields.GEN_AI_INPUT_MESSAGES]: JSON.stringify([
+          {role: 'system', content: 'You sort emails into labels.'},
+          {role: 'user', content: 'Label this email'},
+        ]),
+        [SpanFields.GEN_AI_RESPONSE_TEXT]: 'newsletter',
+      },
+    });
+
+    render(
+      <MessagesPanel
+        nodes={[node] as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    const summary = screen.getByText('System prompt', {exact: false});
+    const details = summary.closest('details');
+    expect(details).not.toHaveAttribute('open');
+    // The collapsed row previews the prompt
+    expect(summary).toHaveTextContent('You sort emails into labels.');
+
+    await userEvent.click(summary);
+    expect(details).toHaveAttribute('open');
+    expect(mockOnSelectNode).not.toHaveBeenCalled();
+  });
+
+  it('reads the system prompt from gen_ai.system_instructions', () => {
+    const node = createMockNode({
+      id: 'span-1',
+      attributes: {
+        [SpanFields.GEN_AI_SYSTEM_INSTRUCTIONS]: JSON.stringify([
+          {type: 'text', content: 'Be concise.'},
+        ]),
+        [SpanFields.GEN_AI_INPUT_MESSAGES]: JSON.stringify([
+          {role: 'user', content: 'Hello there'},
+        ]),
+        [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Hi',
+      },
+    });
+
+    render(
+      <MessagesPanel
+        nodes={[node] as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    expect(screen.getByText('System prompt', {exact: false})).toHaveTextContent(
+      'Be concise.'
+    );
+  });
+
+  it('shows a system prompt again only when it changes', () => {
+    const turn = (id: string, startTimestamp: number, system: string, user: string) =>
+      createMockNode({
+        id,
+        startTimestamp,
+        attributes: {
+          [SpanFields.GEN_AI_INPUT_MESSAGES]: JSON.stringify([
+            {role: 'system', content: system},
+            {role: 'user', content: user},
+          ]),
+          [SpanFields.GEN_AI_RESPONSE_TEXT]: `Answer to ${user}`,
+        },
+      });
+
+    render(
+      <MessagesPanel
+        nodes={
+          [
+            turn('span-1', 1000, 'Prompt A', 'First'),
+            turn('span-2', 2000, 'Prompt A', 'Second'),
+            turn('span-3', 3000, 'Prompt B', 'Third'),
+          ] as any
+        }
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    const rows = screen.getAllByText('System prompt', {exact: false});
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toHaveTextContent('Prompt A');
+    expect(rows[1]).toHaveTextContent('Prompt B');
   });
 
   it('keeps reasoning text in the DOM inside a collapsed details element', () => {

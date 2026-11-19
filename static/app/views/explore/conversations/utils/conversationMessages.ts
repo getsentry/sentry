@@ -37,6 +37,7 @@ import {
 } from 'sentry/views/insights/pages/agents/utils/query';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
+import {getAIInputMessages} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiInput';
 
 const FILTERED = '[Filtered]';
 
@@ -125,6 +126,12 @@ export interface ConversationMessage {
   reasoning?: string;
   /** A sub-agent that wasn't called through one of the transcript's tool calls. */
   subAgent?: SubAgentCall;
+  /**
+   * On a user message: the system prompt its LLM call was sent with. Set only
+   * when it differs from the last one shown in the same transcript, so a
+   * prompt repeated on every call shows once.
+   */
+  systemPrompt?: string;
   toolCalls?: TurnCall[];
   userEmail?: string;
 }
@@ -138,6 +145,7 @@ interface ConversationTurn {
   userEmail: string | undefined;
   // Input carries history (>1 message). Single-message inputs are never deduped.
   hasInputHistory?: boolean;
+  systemPrompt?: string | null;
   toolSpanNodes?: AITraceSpanNode[];
   // User messages in the input history; a growing count marks a genuine repeat.
   userMessageCount?: number;
@@ -585,6 +593,7 @@ export function buildConversationTurns(
       userMessageCount: inputStats.userMessageCount,
       assistantContent: blankToNull(assistantContent),
       reasoning: blankToNull(reasoning),
+      systemPrompt: blankToNull(parseSystemPrompt(node)),
       userEmail,
     });
   }
@@ -1001,6 +1010,7 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
   const seenUserContent = new Set<string>();
   const seenAssistantContent = new Set<string>();
   let maxUserMessageCount = 0;
+  let shownSystemPrompt: string | null = null;
 
   for (const turn of turns) {
     const startTs = getNodeStartTimestamp(turn.generation);
@@ -1022,6 +1032,13 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
         !seenUserContent.has(turn.userContent))
     ) {
       seenUserContent.add(turn.userContent);
+      const systemPrompt: string | undefined =
+        turn.systemPrompt && turn.systemPrompt !== shownSystemPrompt
+          ? turn.systemPrompt
+          : undefined;
+      if (systemPrompt) {
+        shownSystemPrompt = systemPrompt;
+      }
       messages.push({
         id: `user-${turn.generation.id}`,
         role: 'user',
@@ -1029,6 +1046,7 @@ export function turnsToMessages(turns: ConversationTurn[]): ConversationMessage[
         timestamp: startTs,
         nodeId: turn.generation.id,
         userEmail: turn.userEmail,
+        systemPrompt,
       });
     }
 
@@ -1112,6 +1130,32 @@ export function parseUserContent(node: AITraceSpanNode): string | null {
     return null;
   }
   return userMessage.content;
+}
+
+/**
+ * Returns the system prompt of an LLM call: `gen_ai.system_instructions`, or
+ * the system message of its input when the SDK sends it there instead.
+ */
+export function parseSystemPrompt(node: AITraceSpanNode): string | null {
+  const {messages} = getAIInputMessages(node);
+  const systemMessage = messages?.find(m => m.role === 'system');
+  return typeof systemMessage?.content === 'string' ? systemMessage.content : null;
+}
+
+/**
+ * Whether the SDK captured any message content, as opposed to a transcript of
+ * `NOT_REPORTED` placeholders or no transcript at all. Evaluations,
+ * extractions and memory operations don't count: they render without content.
+ */
+export function hasCapturedMessageContent(messages: ConversationMessage[]): boolean {
+  const isCaptured = (text: string | undefined) => Boolean(text) && text !== NOT_REPORTED;
+  return someMessageDeep(
+    messages,
+    message =>
+      message.role === 'embedding' ||
+      ((message.role === 'user' || message.role === 'assistant') &&
+        (isCaptured(message.content) || isCaptured(message.reasoning)))
+  );
 }
 
 interface InputMessageStats {
