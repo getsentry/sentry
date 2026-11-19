@@ -224,9 +224,9 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
 
         if not cls._run_completed(organization, run_id, state):
             if state.status == "error":
-                seer_run = SeerRun.objects.filter(
+                seer_run = SeerRun.objects.get_or_none(
                     organization_id=organization.id, seer_run_state_id=run_id
-                ).first()  # noqa: S035
+                )
                 cls._announce_failure(organization, run_id, group, seer_run, state.failure_reason)
             return
 
@@ -277,9 +277,9 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             else:
                 drain_single_run_feedback_queue(organization, group, run_id, state)
         paused = state.status == "awaiting_user_input"
-        seer_run = SeerRun.objects.filter(
+        seer_run = SeerRun.objects.get_or_none(
             organization_id=organization.id, seer_run_state_id=run_id
-        ).first()  # noqa: S035
+        )
         if not cls._run_completed(organization, run_id, state) and not paused:
             if state.status == "error":
                 cls._announce_failure(organization, run_id, group, seer_run, state.failure_reason)
@@ -391,9 +391,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         actor_user_id = get_acting_user_id(get_viewer_context())
         for stage in stages:
             if stage == "stopped":
-                cls._announce_run_end(
-                    organization, SentryAppEventType.SEER_STOPPED, {**base, "stop": stop}
-                )
+                cls._announce_run_end(organization, SeerActionType.STOPPED, {**base, "stop": stop})
                 continue
             if stage == "pr_failed":
                 cls._announce_failure(
@@ -525,7 +523,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
     ) -> None:
         cls._announce_run_end(
             organization,
-            SentryAppEventType.SEER_ERRORED,
+            SeerActionType.ERRORED,
             {
                 "run_id": run_id,
                 "sentry_run_id": str(seer_run.uuid) if seer_run is not None else None,
@@ -538,10 +536,11 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
     def _announce_run_end(
         cls,
         organization: Organization,
-        event_type: SentryAppEventType,
+        action_type: SeerActionType,
         event_payload: dict[str, object],
     ) -> None:
         """Tells entrypoints and Sentry Apps that the run stopped or errored."""
+        event_type = SentryAppEventType(f"seer.{action_type}")
         if SeerAutofixOperator.has_access(organization=organization):
             metrics.incr(
                 "autofix.on_completion_hook.process_autofix_updates",
@@ -554,7 +553,7 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                     "organization_id": organization.id,
                 }
             )
-        cls._broadcast(organization, event_type.value.removeprefix("seer."), event_payload)
+        cls._broadcast(organization, action_type.value, event_payload)
 
     @classmethod
     def _broadcast(

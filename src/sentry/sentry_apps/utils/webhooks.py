@@ -63,6 +63,8 @@ class SeerActionType(SentryAppActionType):
     PR_READY_FOR_REVIEW = "pr_ready_for_review"
     ITERATION_STARTED = "iteration_started"
     ITERATION_COMPLETED = "iteration_completed"
+    STOPPED = "stopped"
+    ERRORED = "errored"
 
 
 class PreprodArtifactActionType(SentryAppActionType):
