@@ -15,7 +15,7 @@ import {
 } from 'sentry/components/charts/bands/bucketAnnotations';
 import {defined} from 'sentry/utils/defined';
 
-export const ANNOTATION_MARKERS_SERIES_ID = '__annotation_markers__';
+const ANNOTATION_MARKERS_SERIES_ID = '__annotation_markers__';
 
 const CIRCLE_RADIUS = 3;
 const LINE_DASH = [2, 2];
