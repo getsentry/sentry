@@ -303,7 +303,7 @@ export default function AutomationDetail() {
           borderBottom="primary"
           position="sticky"
           top={pageContentTop}
-          style={{zIndex: theme.zIndex.initial + 1}}
+          style={{zIndex: theme.zIndex.stickyHeader}}
         >
           <Flex justify="between" align="start" gap="xl">
             <Stack gap="xs">

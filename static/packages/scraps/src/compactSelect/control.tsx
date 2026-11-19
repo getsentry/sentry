@@ -445,7 +445,8 @@ export function Control<Value extends SelectKey>({
   const {keyboardProps: triggerKeyboardProps} = useKeyboard({
     onKeyDown: e => {
       // Open the select menu when user presses Arrow Up/Down.
-      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      // Prevent this for any disabled trigger.
+      if (!disabled && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
         e.preventDefault(); // Prevent scroll
         overlayState.open();
       } else {
