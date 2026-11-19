@@ -25,6 +25,23 @@ function mockContext({prNumber = 123, headSha = 'abc123'} = {}) {
   };
 }
 
+const BASE_SHA = '0123456789abcdef0123456789abcdef01234567';
+
+function mockMergeGroupContext({
+  headBranch = `gh-readonly-queue/master/pr-456-${BASE_SHA}`,
+  headSha = 'group789',
+} = {}) {
+  return {
+    payload: {
+      workflow_run: {
+        event: 'merge_group',
+        head_branch: headBranch,
+        head_sha: headSha,
+      },
+    },
+  };
+}
+
 function makeGithub({failUntilAttempt = 0} = {}) {
   const calls = [];
   let callCount = 0;
@@ -183,6 +200,44 @@ describe('dispatch', () => {
     // 1 failure + 1 success = 2 total calls for this workflow
     assert.equal(github.calls.length, 2);
     assert.ok(core.logs.warning.some(m => m.includes('Retrying')));
+  });
+
+  it('dispatches only backend.yml for a merge group, against the group head', async () => {
+    const github = makeGithub();
+    await dispatch({
+      github,
+      context: mockMergeGroupContext(),
+      core: mockCore(),
+      mergeCommitSha: '',
+      fileChanges: {backend_all: 'true', gsapp: 'true'},
+      sentryChangedFiles: 'src/sentry/foo.py',
+      sentryPreviousFilenames: '',
+    });
+
+    assert.equal(github.calls.length, 1);
+    const {workflow_id, inputs} = github.calls[0];
+    assert.equal(workflow_id, 'backend.yml');
+    assert.equal(inputs.pull_request_number, '456');
+    assert.equal(inputs['sentry-sha'], 'group789');
+    assert.equal(inputs['sentry-pr-sha'], 'group789');
+    assert.equal(inputs.skip, 'false');
+    assert.equal(inputs['sentry-changed-files'], 'src/sentry/foo.py');
+  });
+
+  it('leaves the pull request number empty for an unexpected merge group branch', async () => {
+    const github = makeGithub();
+    await dispatch({
+      github,
+      context: mockMergeGroupContext({headBranch: 'some-branch'}),
+      core: mockCore(),
+      mergeCommitSha: '',
+      fileChanges: {backend_all: 'false'},
+      sentryChangedFiles: '',
+      sentryPreviousFilenames: '',
+    });
+
+    assert.equal(github.calls[0].inputs.pull_request_number, '');
+    assert.equal(github.calls[0].inputs.skip, 'true');
   });
 
   it('throws after exhausting all retries', async () => {

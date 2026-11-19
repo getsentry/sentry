@@ -6,6 +6,7 @@ from __future__ import annotations
 import importlib.util
 import io
 import json
+import subprocess
 import sys
 from pathlib import Path
 from unittest import mock
@@ -26,7 +27,7 @@ def _run(json_input: str) -> dict[str, str]:
     buf = io.StringIO()
     with mock.patch("sys.stdin", io.StringIO(json_input)):
         with mock.patch("sys.stdout", buf):
-            main()
+            main([])
     return dict(line.split("=", 1) for line in buf.getvalue().strip().split("\n"))
 
 
@@ -100,3 +101,39 @@ class TestParsePrFiles:
         out = _run(json.dumps(pr_files))
         assert out["files"] == ""
         assert out["previous-filenames"] == ""
+
+
+def _git(repo: Path, *args: str) -> str:
+    return subprocess.run(
+        ("git", "-C", str(repo), *args), check=True, capture_output=True, text=True
+    ).stdout.strip()
+
+
+class TestGitDiff:
+    def test_modified_added_deleted_and_renamed(self, tmp_path, monkeypatch):
+        _git(tmp_path, "init", "-q")
+        _git(tmp_path, "config", "user.email", "test@example.com")
+        _git(tmp_path, "config", "user.name", "test")
+        (tmp_path / "keep.py").write_text("a = 1\n")
+        (tmp_path / "gone.py").write_text("b = 2\n")
+        (tmp_path / "old_name.py").write_text("".join(f"line{i}\n" for i in range(20)))
+        _git(tmp_path, "add", ".")
+        _git(tmp_path, "commit", "-q", "-m", "base")
+        base = _git(tmp_path, "rev-parse", "HEAD")
+
+        (tmp_path / "keep.py").write_text("a = 2\n")
+        (tmp_path / "new.py").write_text("c = 3\n")
+        _git(tmp_path, "rm", "-q", "gone.py")
+        _git(tmp_path, "mv", "old_name.py", "new_name.py")
+        _git(tmp_path, "add", ".")
+        _git(tmp_path, "commit", "-q", "-m", "head")
+        head = _git(tmp_path, "rev-parse", "HEAD")
+
+        monkeypatch.chdir(tmp_path)
+        buf = io.StringIO()
+        with mock.patch("sys.stdout", buf):
+            main(["--git-diff", base, head])
+        out = dict(line.split("=", 1) for line in buf.getvalue().strip().split("\n"))
+
+        assert sorted(out["files"].split(" ")) == ["gone.py", "keep.py", "new.py", "new_name.py"]
+        assert out["previous-filenames"] == "old_name.py"
