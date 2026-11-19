@@ -17,15 +17,14 @@ describe('useRecentCreatedProject', () => {
   const overviewUrl = `/projects/${organization.slug}/${project.slug}/overview/`;
 
   function renderPollingHook() {
-    return renderHookWithProviders(
-      () =>
-        useRecentCreatedProject({
-          orgSlug: organization.slug,
-          projectSlug: project.slug,
-          pollUntilFirstEvent: true,
-        }),
-      {organization}
-    );
+    return renderHookWithProviders(useRecentCreatedProject, {
+      initialProps: {
+        orgSlug: organization.slug,
+        projectSlug: project.slug,
+        pollUntilFirstEvent: true,
+      },
+      organization,
+    });
   }
 
   beforeEach(() => {
