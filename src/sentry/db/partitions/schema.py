@@ -42,13 +42,11 @@ from sentry.db.partitions.catalog import (
     PartitionedTableInfo,
     get_partitioned_table_info,
     list_partitions,
-    table_exists,
 )
 from sentry.db.partitions.registry import (
     get_declared_partitioning,
     get_partition_column,
     is_partitioning_enabled,
-    resolve_partitioning,
 )
 from sentry.db.partitions.spec import (
     MAX_IDENTIFIER_LENGTH,
@@ -235,7 +233,6 @@ class PartitioningSchemaEditorMixin(PostgresDatabaseSchemaEditor):
 
 
 _DELETE_INDEX_TEMPLATES = ("sql_delete_index", "sql_delete_index_concurrently")
-_DEFAULT_LOCK_TIMEOUT = sql.DEFAULT_LOCK_TIMEOUT
 
 
 class _PartitionedIndexDrop(PGLock):
@@ -263,16 +260,13 @@ class SafePartitioningSchemaEditorMixin(PartitioningSchemaEditorMixin):
     _set_operation_timeout: Callable[..., AbstractContextManager[None]]
 
     def _partitioned_table_info(self, model: type[Model]) -> PartitionedTableInfo | None:
-        # Partitioned tables are only ever created from a declaration, so tables without
-        # one skip the catalog lookups.
-        if resolve_partitioning(model) is None:
-            return None
+        # Always the database catalog, not the declaration: a table stays partitioned
+        # after its declaration or model is removed.
         table = model._meta.db_table
-        info = get_partitioned_table_info(self.connection, table)
-        if info is not None or table_exists(self.connection, table):
-            return info
-        # The table doesn't exist yet, e.g. when collecting SQL for `sqlmigrate`.
-        return self.created_partitioned_tables.get(table)
+        # Created by this editor, which may only be collecting SQL for `sqlmigrate`.
+        if table in self.created_partitioned_tables:
+            return self.created_partitioned_tables[table]
+        return get_partitioned_table_info(self.connection, table)
 
     def add_index(self, model: type[Model], index: Index, concurrently: bool = False) -> None:
         if self._partitioned_table_info(model) is None:
@@ -385,17 +379,19 @@ class SafePartitioningSchemaEditorMixin(PartitioningSchemaEditorMixin):
             for name in _DELETE_INDEX_TEMPLATES:
                 self.__dict__.pop(name, None)
 
-    def execute(self, sql: Any, params: Any = ()) -> None:
-        template = sql.template if isinstance(sql, Statement) else sql
+    def execute(self, statement: Any, params: Any = ()) -> None:
+        template = statement.template if isinstance(statement, Statement) else statement
         if not isinstance(template, _PartitionedIndexDrop):
-            super().execute(sql, params)
-            return
-        statement = (
-            Statement(template.sql, **sql.parts) if isinstance(sql, Statement) else template.sql
-        )
-        lock_timeout = self.LOCK_TIMEOUT or _DEFAULT_LOCK_TIMEOUT
-        with self._set_operation_timeout(self.STATEMENT_TIMEOUT, lock_timeout):
             super().execute(statement, params)
+            return
+        plain = (
+            Statement(template.sql, **statement.parts)
+            if isinstance(statement, Statement)
+            else template.sql
+        )
+        lock_timeout = self.LOCK_TIMEOUT or sql.DEFAULT_LOCK_TIMEOUT
+        with self._set_operation_timeout(self.STATEMENT_TIMEOUT, lock_timeout):
+            super().execute(plain, params)
 
     def remove_index(self, model: type[Model], index: Index, concurrently: bool = False) -> None:
         with self.partitioned_index_drops(model):

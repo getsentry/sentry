@@ -40,7 +40,9 @@ def _is_integer_field(field: models.Field[Any, Any]) -> bool | None:
     if isinstance(field, models.ForeignKey):
         # A string reference to a model defined later is only resolved once that model
         # is loaded. `validate_all_models` checks it again once every model is.
-        if isinstance(field.remote_field.model, str):
+        # Typed as resolved, but a string until then.
+        target: object = field.remote_field.model
+        if isinstance(target, str):
             return None
         return _is_integer_field(field.target_field)
     return isinstance(field, models.IntegerField)

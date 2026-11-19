@@ -36,6 +36,16 @@ class PartitionsCommandTest(TransactionTestCase):
         assert result.exit_code == 1
         assert f"PROBLEM: {RANGE_TABLE} is in SENTRY_PARTITIONED_TABLES" in result.output
 
+    def test_status_of_one_table_only_reports_its_problems(self) -> None:
+        # The hash table is partitioned but not listed.
+        with fixture_tables(), override_settings(SENTRY_PARTITIONED_TABLES=[RANGE_TABLE]):
+            one = invoke("status", "--table", RANGE_TABLE)
+            every = invoke("status")
+        assert one.exit_code == 0, one.output
+        assert "PROBLEM" not in one.output
+        assert every.exit_code == 1
+        assert "PROBLEM: fixtures_partitions_hash is partitioned" in every.output
+
     def test_unknown_table(self) -> None:
         result = invoke("ensure", "--table", "sentry_unknown")
         assert result.exit_code == 1

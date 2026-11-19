@@ -115,6 +115,16 @@ class RangePartitioning:
     model itself. Queries should filter on
     ``date_added`` (or ``id``), otherwise they scan every partition.
 
+    Two consequences to plan for before partitioning a table:
+
+    - ``id`` alone is no longer unique in the database, only ``(id, date_added)``
+      is. ``id`` still comes from one sequence, so duplicates only appear if ids are
+      set explicitly.
+    - Partitions only exist from the time the table is created, plus ``premake``
+      intervals ahead. A row dated before the oldest partition, e.g. a backdated or
+      backfilled one, fails to insert. Nothing creates older partitions yet:
+      ``ensure`` only creates the current one and the ones ahead.
+
     The model's migration creates its table with ``CreatePartitionedModel``, passing
     the same declaration as ``partitioning``, instead of the generated ``CreateModel``.
     The table is only created partitioned in environments that list

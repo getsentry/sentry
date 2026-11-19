@@ -277,7 +277,7 @@ def test_hash_partitioning_on_a_lazy_foreign_key() -> None:
     class LaterUuidParent(Model):
         __relocation_scope__ = RelocationScope.Excluded
 
-        id = models.UUIDField(primary_key=True)  # type: ignore[assignment]
+        id = models.UUIDField(primary_key=True)
 
         class Meta:
             app_label = "fixtures"

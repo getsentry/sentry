@@ -56,7 +56,7 @@ def status(table: str | None) -> None:
             pending = " (detach pending)" if partition.detach_pending else ""
             click.echo(f"    {partition.name}: {partition.bound}{pending}")
 
-    problems = verify_partition_state()
+    problems = verify_partition_state(None if table is None else [table])
     for problem in problems:
         click.echo(f"PROBLEM: {problem}", err=True)
     if problems:

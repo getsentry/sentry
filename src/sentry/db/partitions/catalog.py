@@ -9,6 +9,7 @@ created, and an environment can change it after its tables exist.
 from __future__ import annotations
 
 import re
+from collections.abc import Collection
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Literal
@@ -29,6 +30,7 @@ from sentry.db.partitions.spec import (
     parse_range_partition_name,
     range_partition_prefix,
 )
+from sentry.silo.base import SiloLimit
 
 Strategy = Literal["range", "hash", "list"]
 _STRATEGIES: dict[str, Strategy] = {"r": "range", "h": "hash", "l": "list"}
@@ -140,17 +142,24 @@ def is_partitioned(model: type[models.Model]) -> bool:
     return get_partitioned_table_info(connection, model._meta.db_table) is not None
 
 
-def verify_partition_state() -> list[str]:
+def verify_partition_state(tables: Collection[str] | None = None) -> list[str]:
     """
-    Differences between declarations, ``SENTRY_PARTITIONED_TABLES`` and the database.
+    Differences between declarations, ``SENTRY_PARTITIONED_TABLES`` and the database,
+    for ``tables`` or every table.
 
-    Tables that don't exist yet are skipped.
+    Tables that don't exist yet, and models that aren't available in this silo, are
+    skipped.
     """
     problems = []
     declared_tables = set()
     for model, spec in iter_partitioned_models():
         table = model._meta.db_table
         declared_tables.add(table)
+        if tables is not None and table not in tables:
+            continue
+        silo_limit = getattr(model._meta, "silo_limit", None)
+        if isinstance(silo_limit, SiloLimit) and not silo_limit.is_available():
+            continue
         connection = get_connection(model)
         if not table_exists(connection, table):
             continue
@@ -191,6 +200,8 @@ def verify_partition_state() -> list[str]:
                         f"it failed. Partition maintenance retries."
                     )
     for table in sorted(set(settings.SENTRY_PARTITIONED_TABLES) - declared_tables):
+        if tables is not None and table not in tables:
+            continue
         problems.append(
             f"{table} is in SENTRY_PARTITIONED_TABLES but no model declares `__partitioning__`."
         )

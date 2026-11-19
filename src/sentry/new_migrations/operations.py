@@ -79,7 +79,7 @@ class EnsurePartitions(Operation):
     """
     Create the current and upcoming partitions of a range partitioned table.
 
-    ``CreateModel`` already creates them, and the partition maintenance task keeps
+    ``CreatePartitionedModel`` already creates them, and the partition maintenance task keeps
     them created ahead of time. Use this when a migration writes rows right away. It
     does nothing when the table isn't range partitioned in this environment.
     """
