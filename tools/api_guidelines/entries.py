@@ -21,9 +21,9 @@ def merge_entries(
     kept_entries: list[dict[str, object]],
 ) -> list[dict[str, object]]:
     """Merges the rescanned files' entries back into the rest of exceptions.json
-    `new_entries` the entries built from rescanning the `--files` paths
+    `new_entries` the entries built from rescanning, i.e the `--files` paths or every file with `--update`
     `old_entries` every entry in exceptions.json before this run
-    `kept_entries` the old entries for files that weren't rescanned, kept as is
+    `kept_entries` the old entries for files that weren't rescanned, kept as is (empty with `--update`)
     Returns every entry, sorted by path, scope, rule and key. A rescanned entry that was already
     in the file keeps its status, reason and first_seen, and takes the new count and owner
     """
