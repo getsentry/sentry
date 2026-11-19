@@ -93,7 +93,11 @@ export function AgentHandoffProductPrompt({
           </Flex>
         </Flex>
 
-        <HandoffPromptAlerts useIpPinning={useIpPinning} error={handoff.error} />
+        <HandoffPromptAlerts
+          useIpPinning={useIpPinning}
+          error={handoff.error}
+          fallbackPrompt={handoff.fallbackPrompt}
+        />
       </Stack>
 
       <Stack gap="xs">

@@ -5,12 +5,31 @@ category: components
 source: sentry/components/agentHandoff/agentHandoffPrompt
 ---
 
-import {Container} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 
 import * as Storybook from 'sentry/stories';
 import {AgentHandoffProductPrompt} from './agentHandoffProductPrompt';
 import {AgentHandoffPrompt} from './agentHandoffPrompt';
+import {getHandoffPrompt} from './handoffPrompt';
+import {HandoffPromptAlerts} from './handoffPromptParts';
 import {AgentHandoffFlow} from './types';
+import {ClipboardBlockedError} from './useAgentHandoff';
+
+export function ClipboardBlockedExample() {
+  const error = new ClipboardBlockedError(
+    getHandoffPrompt(
+      'sntryh_example',
+      AgentHandoffFlow.ONBOARDING,
+      {runId: '00000000000000000000000000000000'},
+      code => `\`${code}\``
+    )
+  );
+  return (
+    <Stack width="100%" maxWidth="700px" gap="md">
+      <HandoffPromptAlerts useIpPinning error={error} fallbackPrompt={error.prompt} />
+    </Stack>
+  );
+}
 
 ## Default
 
@@ -40,4 +59,12 @@ Used as the agent tab inside `ProductEmptyState`. Always wired to the `add_featu
       feedbackSource="agent-handoff-product-prompt-story"
     />
   </Container>
+</Storybook.Demo>
+
+## Clipboard blocked
+
+When the browser blocks the clipboard write, the error alert offers a **Show prompt** button. Clicking it reveals the full prompt in a read-only textarea with its text selected, so the user can copy it by hand. The prompt holds a live handoff code, so it stays hidden until the user asks for it. Both prompts above render this through `HandoffPromptAlerts`.
+
+<Storybook.Demo>
+  <ClipboardBlockedExample />
 </Storybook.Demo>
