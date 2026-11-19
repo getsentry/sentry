@@ -12,10 +12,6 @@ import {groupQueryKey} from './useGroup';
 export function useMarkGroupSeen() {
   const organization = useOrganization();
   const queryClient = useQueryClient();
-  const issuesQueryKey = apiOptions.partialQueryKey(
-    '/organizations/$organizationIdOrSlug/issues/',
-    {path: {organizationIdOrSlug: organization.slug}}
-  );
 
   return useMutation({
     mutationFn: (groupId: string) =>
@@ -63,7 +59,12 @@ export function useMarkGroupSeen() {
       );
 
       void queryClient.invalidateQueries({
-        queryKey: issuesQueryKey,
+        queryKey: apiOptions.partialQueryKey(
+          '/organizations/$organizationIdOrSlug/issues/',
+          {
+            path: {organizationIdOrSlug: organization.slug},
+          }
+        ),
         refetchType: 'none',
       });
     },
