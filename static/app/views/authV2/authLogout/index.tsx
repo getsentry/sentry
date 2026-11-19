@@ -31,7 +31,9 @@ function getSafeRedirectUrl(next: string | null): string | undefined {
     if (url.origin !== window.location.origin) {
       return undefined;
     }
-    return `${url.pathname}${url.search}${url.hash}`;
+    // Keep the full URL: a bare pathname such as `//evil.com` would be
+    // treated as protocol-relative by `location.assign`.
+    return url.href;
   } catch {
     return undefined;
   }

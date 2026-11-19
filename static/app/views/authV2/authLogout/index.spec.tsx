@@ -50,7 +50,22 @@ describe('AuthLogout', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Sign out'}));
 
     await waitFor(() =>
-      expect(testableWindowLocation.assign).toHaveBeenCalledWith('/welcome/?ref=logout')
+      expect(testableWindowLocation.assign).toHaveBeenCalledWith(
+        `${window.location.origin}/welcome/?ref=logout`
+      )
+    );
+  });
+
+  it('keeps a same-origin url with a protocol-relative path on this host', async () => {
+    MockApiClient.addMockResponse({url: '/auth/', method: 'DELETE', statusCode: 204});
+
+    renderLogout(`${window.location.origin}//example.com`);
+    await userEvent.click(screen.getByRole('button', {name: 'Sign out'}));
+
+    await waitFor(() =>
+      expect(testableWindowLocation.assign).toHaveBeenCalledWith(
+        `${window.location.origin}//example.com`
+      )
     );
   });
 
