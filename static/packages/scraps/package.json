@@ -287,6 +287,10 @@
       "types": "./dist/select/index.d.ts",
       "import": "./dist/select/index.js"
     },
+    "./fzf": {
+      "types": "./dist/fzf.d.ts",
+      "import": "./dist/fzf.js"
+    },
     "./useVirtualRows": {
       "types": "./dist/useVirtualRows.d.ts",
       "import": "./dist/useVirtualRows.js"

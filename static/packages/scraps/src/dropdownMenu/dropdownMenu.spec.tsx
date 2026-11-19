@@ -48,7 +48,7 @@ describe('DropdownMenu', () => {
     }
   );
 
-  it('filters a searchable root menu', async () => {
+  it('matches letters in order in a searchable root menu', async () => {
     render(
       <DropdownMenu
         triggerLabel="Projects"
@@ -64,7 +64,7 @@ describe('DropdownMenu', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Projects'}));
     await userEvent.type(
       screen.getByRole('searchbox', {name: 'Search projects'}),
-      'python'
+      'PTHN'
     );
 
     expect(screen.getByRole('menuitemradio', {name: 'python'})).toBeInTheDocument();

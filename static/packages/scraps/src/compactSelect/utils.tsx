@@ -5,10 +5,10 @@ import {VisuallyHidden} from '@react-aria/visually-hidden';
 import type {ListState} from '@react-stately/list';
 import type {Node, Selection} from '@react-types/shared';
 
+import {getSearchScore} from '@sentry/scraps/fzf';
 import {useTranslation} from '@sentry/scraps/translation';
 
 import type {SelectProps} from './compactSelect';
-import {fzf} from './fzf';
 import {SectionToggleButton} from './styles';
 import type {
   SearchConfig,
@@ -151,15 +151,7 @@ function defaultSearchMatcher<Value extends SelectKey>(
   if (!text) {
     return {score: 0};
   }
-  const result = fzf(text, search.toLowerCase(), false);
-  // fzf returns end=-1 when no subsequence match exists (score is also 0).
-  // For valid matches fzf may return negative scores due to gap penalties, so we
-  // cannot rely on score > 0 to detect a match. Use end !== -1 instead and clamp
-  // the score so getHiddenOptions always sees score > 0 for any real match.
-  if (result.end === -1) {
-    return {score: 0};
-  }
-  return {score: Math.max(1, result.score)};
+  return {score: getSearchScore(text, search)};
 }
 
 /**

@@ -1,5 +1,4 @@
-import type * as React from 'react';
-
+import {getSearchScore} from '@sentry/scraps/fzf';
 import type {useResolveLinkHref} from '@sentry/scraps/link/linkBehaviorContext';
 
 import type {MenuItemProps} from './item';
@@ -30,20 +29,13 @@ export function removeHiddenItemsAndSetHref(
     });
 }
 
-function isMenuItemHidden(search: string, label: React.ReactNode, textValue?: string) {
-  const text = textValue ?? (typeof label === 'string' ? label : '');
-  return Boolean(
-    search && !text.toLocaleLowerCase().includes(search.trim().toLocaleLowerCase())
-  );
-}
-
 /** Items with children render as a section, unless they open a submenu. */
 export function isMenuSection(item: MenuItemProps): boolean {
   return Boolean(item.children && item.children.length > 0 && !item.submenu);
 }
 
 export function filterMenuItems(items: MenuItemProps[], search: string): MenuItemProps[] {
-  const query = search.trim().toLocaleLowerCase();
+  const query = search.trim();
   if (!query) {
     return items;
   }
@@ -54,7 +46,8 @@ export function filterMenuItems(items: MenuItemProps[], search: string): MenuIte
       return children.length > 0 ? [{...item, children}] : [];
     }
 
-    return isMenuItemHidden(query, item.label, item.textValue) ? [] : [item];
+    const text = item.textValue ?? (typeof item.label === 'string' ? item.label : '');
+    return getSearchScore(text, query) > 0 ? [item] : [];
   });
 }
 
