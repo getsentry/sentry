@@ -17,8 +17,11 @@ jobs:
     # Each changed file costs model calls, so mass rewrites such as codemods and formatter
     # sweeps are skipped. Removed lines are not linted, so only additions count. Over 99.8% of
     # merged PRs fall under both limits.
+    # Dependabot PRs only bump dependencies, so they are not linted. Their runs also read
+    # Dependabot secrets instead of Actions secrets, so the key may not be set.
     if: >-
       github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.login != 'dependabot[bot]' &&
       github.event.pull_request.changed_files <= 200 &&
       github.event.pull_request.additions <= 10000
     runs-on: ubuntu-26.04-arm
