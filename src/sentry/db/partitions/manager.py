@@ -145,12 +145,14 @@ def expire_range_partitions(
     """
     Drop every partition that only holds rows older than ``before``.
 
-    Partitions are detached concurrently and then dropped. A detach of an expired
-    partition that was interrupted earlier is finished with FINALIZE. A partition
-    that was detached but not dropped, for example because the drop timed out, is no
-    longer attached to the table, so it is found by name and dropped as well.
-    Returns the names of the dropped partitions, or of the partitions that would be
-    dropped with ``dry_run``.
+    Each partition is marked as expiring with a table comment, detached
+    concurrently and then dropped. A detach of an expired partition that was
+    interrupted earlier is finished with FINALIZE. A partition this detached but
+    failed to drop, for example because the drop timed out, is no longer attached to
+    the table, so it is found by its name and its mark and dropped as well.
+    Partitions detached any other way, e.g. by hand to keep their data, don't have
+    the mark and are never dropped. Returns the names of the dropped partitions, or
+    of the partitions that would be dropped with ``dry_run``.
     """
     now = now if now is not None else timezone.now()
     if before > now:
@@ -159,18 +161,19 @@ def expire_range_partitions(
         raise RuntimeError("Partitions can't be detached concurrently inside a transaction.")
 
     expired = []
-    for name, start in list_detached_range_partitions(target.connection, target.table):
-        if target.spec.interval.advance(start) > before:
+    for detached in list_detached_range_partitions(target.connection, target.table):
+        if not detached.expiring:
             continue
-        expired.append(name)
+        expired.append(detached.name)
         if dry_run:
             continue
         _execute_outside_transaction(
-            target.connection, sql.DROP_TABLE.format(table=_quote(target.connection, name))
+            target.connection,
+            sql.DROP_TABLE.format(table=_quote(target.connection, detached.name)),
         )
         logger.info(
             "partitions.expire.dropped_detached",
-            extra={"table": target.table, "partition": name},
+            extra={"table": target.table, "partition": detached.name},
         )
 
     for partition in list_partitions(target.connection, target.table):
@@ -186,6 +189,11 @@ def expire_range_partitions(
             sql.FINALIZE_DETACH_PARTITION
             if partition.detach_pending
             else sql.DETACH_PARTITION_CONCURRENTLY
+        )
+        # Lets a later run tell this partition apart from ones detached by hand, if
+        # the drop below fails.
+        _execute_outside_transaction(
+            target.connection, sql.MARK_PARTITION_EXPIRING.format(partition=name)
         )
         _execute_outside_transaction(
             target.connection, template.format(table=table, partition=name)

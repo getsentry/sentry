@@ -12,6 +12,7 @@ from fixtures.partitions import (
 )
 from sentry.db.partitions import manager
 from sentry.db.partitions.catalog import (
+    DetachedPartition,
     PartitionInfo,
     list_detached_range_partitions,
     list_partitions,
@@ -233,34 +234,25 @@ class ExpirePartitionsTest(TransactionTestCase):
             assert locked == []
 
     @freeze_time(CREATED_AT)
-    def test_drops_detached_partitions(self) -> None:
+    def test_keeps_partitions_detached_by_hand(self) -> None:
         with fixture_tables():
+            # Detaching by hand is how data is kept, e.g. for an incident or a legal
+            # hold, so these are never dropped, even past retention.
             detach(week(4))
-            assert list_detached_range_partitions(connection, RANGE_TABLE) == [
-                (week(4), datetime(2024, 3, 4, tzinfo=UTC))
-            ]
-            assert expire_partitions(
-                RangePartitionedFixture,
-                before=datetime(2024, 3, 12, tzinfo=UTC),
-                now=datetime(2024, 3, 20, tzinfo=UTC),
-            ) == [week(4)]
-            assert list_detached_range_partitions(connection, RANGE_TABLE) == []
-
-    @freeze_time(CREATED_AT)
-    def test_keeps_detached_partitions_that_are_not_expired(self) -> None:
-        with fixture_tables():
             detach(week(18))
-            assert expire_partitions(
-                RangePartitionedFixture,
-                before=datetime(2024, 3, 12, tzinfo=UTC),
-                now=datetime(2024, 3, 20, tzinfo=UTC),
-            ) == [week(4)]
-            assert [
-                name for name, _ in list_detached_range_partitions(connection, RANGE_TABLE)
-            ] == [week(18)]
-            # Detached partitions outlive their parent.
-            with connection.cursor() as cursor:
-                cursor.execute(f'DROP TABLE "{week(18)}"')
+            for expected in ([week(11)], []):
+                assert (
+                    expire_partitions(
+                        RangePartitionedFixture,
+                        before=datetime(2024, 3, 19, tzinfo=UTC),
+                        now=datetime(2024, 3, 20, tzinfo=UTC),
+                    )
+                    == expected
+                )
+            assert list_detached_range_partitions(connection, RANGE_TABLE) == [
+                DetachedPartition(week(4), datetime(2024, 3, 4, tzinfo=UTC), expiring=False),
+                DetachedPartition(week(18), datetime(2024, 3, 18, tzinfo=UTC), expiring=False),
+            ]
 
     @freeze_time(CREATED_AT)
     def test_failed_drop_is_retried(self) -> None:
@@ -283,11 +275,12 @@ class ExpirePartitionsTest(TransactionTestCase):
                     before=datetime(2024, 3, 12, tzinfo=UTC),
                     now=datetime(2024, 3, 20, tzinfo=UTC),
                 )
-            # The partition was detached, so it's no longer listed as a partition.
+            # The partition was detached, so it's no longer listed as a partition, but
+            # it was marked before that.
             assert week(4) not in partition_names()
-            assert [
-                name for name, _ in list_detached_range_partitions(connection, RANGE_TABLE)
-            ] == [week(4)]
+            assert list_detached_range_partitions(connection, RANGE_TABLE) == [
+                DetachedPartition(week(4), datetime(2024, 3, 4, tzinfo=UTC), expiring=True)
+            ]
 
             assert expire_partitions(
                 RangePartitionedFixture,
@@ -314,6 +307,8 @@ class ExpirePartitionsTest(TransactionTestCase):
                     now=datetime(2024, 3, 20, tzinfo=UTC),
                 )
             assert [c.args[1] for c in execute.call_args_list] == [
+                f'COMMENT ON TABLE "{week(4)}" IS '
+                "'Expired: dropped by Sentry partition maintenance.'",
                 f'ALTER TABLE "{RANGE_TABLE}" DETACH PARTITION "{week(4)}" FINALIZE',
                 f'DROP TABLE "{week(4)}"',
             ]

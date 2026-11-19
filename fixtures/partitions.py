@@ -13,6 +13,7 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, Model, cell_silo_model
 from sentry.db.models.fields.bounded import BoundedBigAutoField
 from sentry.db.partitions import HashPartitioning, PartitionInterval, RangePartitioning
+from sentry.db.partitions.catalog import list_detached_range_partitions
 
 
 @cell_silo_model
@@ -69,14 +70,18 @@ def fixture_project_state() -> ProjectState:
 def drop_fixture_tables() -> None:
     """
     Drop the fixture tables that exist. Dropping a partitioned table also drops its
-    attached partitions. Detached partitions are standalone tables, so a test that
-    detaches one has to drop it itself.
+    attached partitions. Detached range partitions are standalone tables, so they are
+    dropped too, in case a test that detaches one fails before dropping it.
     """
     existing = set(connection.introspection.table_names())
     with connection.schema_editor() as editor:
         for model in reversed(FIXTURE_MODELS):
             if model._meta.db_table in existing:
                 editor.delete_model(model)
+    detached = list_detached_range_partitions(connection, RangePartitionedFixture._meta.db_table)
+    with connection.cursor() as cursor:
+        for partition in detached:
+            cursor.execute(f"DROP TABLE {connection.ops.quote_name(partition.name)}")
 
 
 @contextmanager

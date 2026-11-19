@@ -97,25 +97,30 @@ def _like_prefix(value: str) -> str:
     return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_") + "%"
 
 
+@dataclass(frozen=True)
+class DetachedPartition:
+    name: str
+    start: datetime
+    # Detached by partition maintenance, which then failed to drop it. Partitions
+    # detached any other way, e.g. by hand to keep their data, are never dropped.
+    expiring: bool
+
+
 def list_detached_range_partitions(
     connection: BaseDatabaseWrapper, table: str
-) -> list[tuple[str, datetime]]:
-    """
-    Standalone tables named like a range partition of ``table``, with their start.
-
-    A partition is left like this when it was detached but dropping it failed, or
-    when someone detached it by hand.
-    """
+) -> list[DetachedPartition]:
+    """Standalone tables named like a range partition of ``table``."""
     with connection.cursor() as cursor:
         cursor.execute(
             sql.LIST_STANDALONE_TABLES_LIKE, [_like_prefix(range_partition_prefix(table) + "_p")]
         )
-        names = [row[0] for row in cursor.fetchall()]
+        rows = cursor.fetchall()
     detached = []
-    for name in names:
+    for name, comment in rows:
         start = parse_range_partition_name(table, name)
         if start is not None:
-            detached.append((name, start))
+            expiring = comment == sql.EXPIRING_PARTITION_COMMENT
+            detached.append(DetachedPartition(name, start, expiring))
     return detached
 
 
@@ -161,11 +166,12 @@ def verify_partition_state() -> list[str]:
                     f"modulus {spec.modulus}."
                 )
         else:
-            for name, _ in list_detached_range_partitions(connection, table):
-                problems.append(
-                    f"{name} is a detached partition of {table}. Partition maintenance drops "
-                    f"it once it is past retention."
-                )
+            for detached in list_detached_range_partitions(connection, table):
+                if detached.expiring:
+                    problems.append(
+                        f"{detached.name} was detached from {table} as expired, but dropping "
+                        f"it failed. Partition maintenance retries."
+                    )
     for table in sorted(set(settings.SENTRY_PARTITIONED_TABLES) - declared_tables):
         problems.append(
             f"{table} is in SENTRY_PARTITIONED_TABLES but no model declares `__partitioning__`."

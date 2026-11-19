@@ -11,6 +11,7 @@ from fixtures.partitions import (
     drop_fixture_tables,
     fixture_tables,
 )
+from sentry.db.partitions import sql
 from sentry.db.partitions.catalog import (
     PartitionInfo,
     is_partitioned,
@@ -98,17 +99,19 @@ class VerifyPartitionStateTest(TransactionTestCase):
             ]
 
     @freeze_time(datetime(2024, 3, 6, tzinfo=UTC))
-    def test_detached_range_partition(self) -> None:
+    def test_detached_range_partitions(self) -> None:
+        by_hand = f"{RANGE_TABLE}_p20240304"
+        failed_drop = f"{RANGE_TABLE}_p20240311"
         with fixture_tables():
-            partition = f"{RANGE_TABLE}_p20240304"
             with connection.cursor() as cursor:
-                cursor.execute(f'ALTER TABLE "{RANGE_TABLE}" DETACH PARTITION "{partition}"')
+                cursor.execute(f'ALTER TABLE "{RANGE_TABLE}" DETACH PARTITION "{by_hand}"')
+                # What partition maintenance leaves behind when dropping fails.
+                cursor.execute(sql.MARK_PARTITION_EXPIRING.format(partition=f'"{failed_drop}"'))
+                cursor.execute(f'ALTER TABLE "{RANGE_TABLE}" DETACH PARTITION "{failed_drop}"')
             with override_settings(SENTRY_PARTITIONED_TABLES=FIXTURE_TABLES):
                 problems = verify_partition_state()
-            # Detached partitions outlive their parent.
-            with connection.cursor() as cursor:
-                cursor.execute(f'DROP TABLE "{partition}"')
+            # Detaching by hand is a choice, not a problem.
             assert problems == [
-                f"{partition} is a detached partition of {RANGE_TABLE}. Partition maintenance "
-                f"drops it once it is past retention."
+                f"{failed_drop} was detached from {RANGE_TABLE} as expired, but dropping it "
+                f"failed. Partition maintenance retries."
             ]

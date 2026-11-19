@@ -87,7 +87,11 @@ DROP_CONSTRAINT = "ALTER TABLE {table} DROP CONSTRAINT {name}"
 # DETACH ... CONCURRENTLY cannot run inside a transaction block, and is not allowed
 # when the table has a default partition. If it is interrupted, the partition is
 # left "detach pending" and has to be finished with FINALIZE. If the drop after a
-# detach fails, the table is left standalone; it is found again by its name.
+# detach fails, the table is left standalone. Partition maintenance comments a
+# partition before detaching it, and only ever drops detached tables that carry that
+# comment: a partition detached by hand is kept, e.g. to preserve its data.
+EXPIRING_PARTITION_COMMENT = "Expired: dropped by Sentry partition maintenance."
+MARK_PARTITION_EXPIRING = "COMMENT ON TABLE {partition} IS '" + EXPIRING_PARTITION_COMMENT + "'"
 DETACH_PARTITION_CONCURRENTLY = "ALTER TABLE {table} DETACH PARTITION {partition} CONCURRENTLY"
 FINALIZE_DETACH_PARTITION = "ALTER TABLE {table} DETACH PARTITION {partition} FINALIZE"
 DROP_TABLE = "DROP TABLE {table}"
@@ -128,10 +132,10 @@ PARTITIONED_TABLE_INFO = """
     FROM pg_partitioned_table AS pt
     WHERE pt.partrelid = to_regclass(%s)
 """
-# Standalone tables (not partitions) whose name matches a LIKE pattern. Used to find
-# range partitions that were detached but not dropped.
+# Standalone tables (not partitions) whose name matches a LIKE pattern, with their
+# comment. Used to find range partitions that were detached but not dropped.
 LIST_STANDALONE_TABLES_LIKE = """
-    SELECT c.relname
+    SELECT c.relname, obj_description(c.oid, 'pg_class')
     FROM pg_class AS c
     WHERE c.relkind = 'r'
         AND NOT c.relispartition
