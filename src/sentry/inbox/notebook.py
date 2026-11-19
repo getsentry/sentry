@@ -8,6 +8,7 @@ from sentry.inbox.event_data import (
     NotebookParticipantAddedDataResponse,
 )
 from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
+from sentry.inbox.response_types import InboxNotebookSubjectResponse
 from sentry.inbox.types import InboxEventSummary, InboxEventType, InboxItemType
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
@@ -25,12 +26,20 @@ class NotebookItemType(InboxItemType[Notebook]):
     def get_organization_id(self, subject: Notebook) -> int:
         return subject.organization_id
 
-    def get_titles(
+    def get_subjects(
         self, *, organization: Organization, subject_ids: Sequence[str]
-    ) -> dict[str, str]:
+    ) -> dict[str, InboxNotebookSubjectResponse]:
         ids = [int(subject_id) for subject_id in subject_ids if subject_id.isdecimal()]
         notebooks = Notebook.objects.filter(organization=organization, id__in=ids)
-        return {str(notebook.id): notebook.title for notebook in notebooks}
+        return {
+            str(notebook.id): {
+                "id": str(notebook.id),
+                "type": "notebook",
+                "title": notebook.title,
+                "metadata": {},
+            }
+            for notebook in notebooks
+        }
 
     def get_url(self, *, organization: Organization, subject_id: str) -> str:
         return organization.absolute_url(

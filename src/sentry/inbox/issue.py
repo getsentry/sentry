@@ -9,6 +9,7 @@ from sentry.inbox.event_data import (
     IssuePRReadyForReviewDataResponse,
 )
 from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
+from sentry.inbox.response_types import InboxIssueSubjectResponse
 from sentry.inbox.types import InboxEventSummary, InboxEventType, InboxItemType
 from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
@@ -25,12 +26,25 @@ class IssueItemType(InboxItemType[Group]):
     def get_organization_id(self, subject: Group) -> int:
         return subject.project.organization_id
 
-    def get_titles(
+    def get_subjects(
         self, *, organization: Organization, subject_ids: Sequence[str]
-    ) -> dict[str, str]:
+    ) -> dict[str, InboxIssueSubjectResponse]:
         ids = [int(subject_id) for subject_id in subject_ids if subject_id.isdecimal()]
-        groups = Group.objects.filter(project__organization_id=organization.id, id__in=ids)
-        return {str(group.id): group.title for group in groups}
+        groups = Group.objects.filter(
+            project__organization_id=organization.id, id__in=ids
+        ).select_related("project")
+        return {
+            str(group.id): {
+                "id": str(group.id),
+                "type": "issue",
+                "title": group.title,
+                "metadata": {
+                    "shortId": group.qualified_short_id,
+                    "project": {"id": str(group.project_id), "slug": group.project.slug},
+                },
+            }
+            for group in groups
+        }
 
     def get_url(self, *, organization: Organization, subject_id: str) -> str:
         return organization.absolute_url(

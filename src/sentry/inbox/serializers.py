@@ -12,7 +12,9 @@ from sentry.inbox.response_types import (
     InboxActorResponse,
     InboxItemEventResponse,
     InboxItemResponse,
+    InboxSubjectResponse,
 )
+from sentry.models.organization import Organization
 from sentry.notifications.models.inboxitem import InboxItem
 from sentry.notifications.models.inboxitemevent import InboxActorType, InboxItemEvent
 from sentry.users.services.user.serial import serialize_generic_user
@@ -67,11 +69,27 @@ class InboxItemEventSerializer(Serializer[InboxItemEventResponse]):
 
 
 @register(InboxItem)
-class InboxItemSerializer(Serializer[InboxItemResponse]):
+class InboxItemSerializer(Serializer[InboxItemResponse | None]):
     def get_attrs(
         self, item_list: Sequence[InboxItem], user: Any, **kwargs: Any
     ) -> dict[InboxItem, dict[str, Any]]:
-        events = InboxItemEvent.objects.filter(inbox_item_id__in=[item.id for item in item_list])
+        grouped_items: dict[tuple[int, str], list[InboxItem]] = defaultdict(list)
+        for item in item_list:
+            grouped_items[item.organization_id, item.subject_type].append(item)
+        resolved: dict[InboxItem, tuple[Organization, InboxSubjectResponse]] = {}
+        for (_, subject_type), items in grouped_items.items():
+            item_type = inbox_item_type_registry.registrations.get(subject_type)
+            if item_type is None:
+                continue
+            organization = items[0].organization
+            subjects = item_type.get_subjects(
+                organization=organization, subject_ids=[item.subject_id for item in items]
+            )
+            for item in items:
+                if (subject := subjects.get(item.subject_id)) is not None:
+                    resolved[item] = (organization, subject)
+
+        events = InboxItemEvent.objects.filter(inbox_item_id__in=[item.id for item in resolved])
         stats = {
             row["inbox_item_id"]: row
             for row in events.values("inbox_item_id").annotate(
@@ -96,47 +114,28 @@ class InboxItemSerializer(Serializer[InboxItemResponse]):
             )
         }
         latest_by_item = {event.inbox_item_id: event for event in latest_events}
-        # Get titles for each item based on the subject type
-        # Since each `subject_type` can potentially have a different `get_titles` implementation,
-        # we group items by `organization_id` and `subject_type`, get each `get_titles` from the registry,
-        # and then update the titles dict with the results
-        grouped_items: dict[tuple[int, str], list[InboxItem]] = defaultdict(list)
-        for item in item_list:
-            grouped_items[item.organization_id, item.subject_type].append(item)
-        titles = {}
-        urls: dict[int, str] = {}
-        for (_, subject_type), items in grouped_items.items():
-            item_type = inbox_item_type_registry.registrations.get(subject_type)
-            organization = items[0].organization
-            if item_type is not None:
-                subject_titles = item_type.get_titles(
-                    organization=organization,
-                    subject_ids=[item.subject_id for item in items],
-                )
-                titles.update({item.id: subject_titles.get(item.subject_id) for item in items})
-            for item in items:
-                event = latest_by_item[item.id]
-                urls[item.id] = inbox_item_event_type_registry.get(event.type).get_event_url(
+        attrs: dict[InboxItem, dict[str, Any]] = {}
+        for item, (organization, subject) in resolved.items():
+            event = latest_by_item[item.id]
+            attrs[item] = {
+                "subject": subject,
+                "url": inbox_item_event_type_registry.get(event.type).get_event_url(
                     organization=organization, event=event
-                )
-        return {
-            item: {
-                "title": titles.get(item.id),
-                "url": urls[item.id],
+                ),
                 "latest_event": latest[item.id],
                 **stats[item.id],
             }
-            for item in item_list
-        }
+        return attrs
 
     def serialize(
         self, obj: InboxItem, attrs: Mapping[str, Any], user: Any, **kwargs: Any
-    ) -> InboxItemResponse:
+    ) -> InboxItemResponse | None:
+        subject: InboxSubjectResponse | None = attrs.get("subject")
+        if subject is None:
+            return None
         return {
             "id": str(obj.id),
-            "subjectType": obj.subject_type,
-            "subjectId": obj.subject_id,
-            "title": attrs["title"],
+            "subject": subject,
             "url": attrs["url"],
             "subtitle": attrs["latest_event"]["summary"],
             "eventTypes": attrs["event_types"],

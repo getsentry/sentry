@@ -2,12 +2,12 @@ from __future__ import annotations
 
 import hashlib
 from abc import ABC, abstractmethod
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import asdict, dataclass
 from enum import StrEnum
 from functools import partial
 from random import random
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 import orjson
 from django.db import router, transaction
@@ -25,6 +25,9 @@ from sentry.notifications.models.inboxitemevent import InboxActorType, InboxItem
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.utils import metrics
 from sentry.utils.safe import safe_execute
+
+if TYPE_CHECKING:
+    from sentry.inbox.response_types import InboxSubjectResponse
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -77,10 +80,10 @@ class InboxItemType[SubjectT](ABC):
     def get_organization_id(self, subject: SubjectT) -> int: ...
 
     @abstractmethod
-    def get_titles(
+    def get_subjects(
         self, *, organization: Organization, subject_ids: Sequence[str]
-    ) -> dict[str, str]:
-        """Titles keyed by subject ID, scoped to organization. Omit missing subjects."""
+    ) -> Mapping[str, InboxSubjectResponse]:
+        """Subject responses keyed by ID, scoped to organization. Omit missing subjects."""
 
     @abstractmethod
     def get_url(self, *, organization: Organization, subject_id: str) -> str:

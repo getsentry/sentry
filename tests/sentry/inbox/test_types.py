@@ -1,4 +1,4 @@
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, replace
 from threading import Barrier
 from typing import Any, assert_type
@@ -25,6 +25,7 @@ from sentry.inbox.response_types import (
     InboxCountResponse,
     InboxItemEventResponse,
     InboxItemResponse,
+    InboxSubjectResponse,
 )
 from sentry.inbox.types import (
     SYSTEM_ACTOR,
@@ -58,9 +59,9 @@ class StubItemType[SubjectT](InboxItemType[SubjectT]):
     def get_organization_id(self, subject: SubjectT) -> int:
         raise NotImplementedError
 
-    def get_titles(
+    def get_subjects(
         self, *, organization: Organization, subject_ids: Sequence[str]
-    ) -> dict[str, str]:
+    ) -> Mapping[str, InboxSubjectResponse]:
         raise NotImplementedError
 
     def get_url(self, *, organization: Organization, subject_id: str) -> str:
@@ -188,6 +189,31 @@ def test_event_url() -> None:
 )
 def test_response_types_support_openapi(response_type: type) -> None:
     OAS30Validator.check_schema(resolve_type_hint(response_type))
+
+
+def test_subject_response_schema() -> None:
+    schema = resolve_type_hint(InboxSubjectResponse)
+    assert all(
+        {"id", "type", "title", "metadata"} <= set(variant["required"])
+        for variant in schema["anyOf"]
+    )
+
+    validator = OAS30Validator(schema)
+    issue = {
+        "id": "1",
+        "type": "issue",
+        "title": "Issue",
+        "metadata": {"shortId": "WEB-1", "project": {"id": "2", "slug": "web"}},
+    }
+    notebook = {"id": "1", "type": "notebook", "title": "Notebook", "metadata": {}}
+
+    assert validator.is_valid(issue)
+    assert validator.is_valid(notebook)
+    assert not validator.is_valid({**issue, "metadata": {}})
+    assert not validator.is_valid({**notebook, "type": "unknown"})
+    assert not validator.is_valid({**issue, "title": None})
+    assert not validator.is_valid({**issue, "metadata": {"shortId": "WEB-1"}})
+    assert not validator.is_valid({**notebook, "metadata": issue["metadata"]})
 
 
 @patch.dict(inbox_item_type_registry.registrations, clear=True)

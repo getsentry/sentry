@@ -20,7 +20,7 @@ from sentry.auth.principal import require_user
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.inbox.endpoints.base import PAGINATION_PARAMETERS, OrganizationInboxEndpoint
-from sentry.inbox.filters import InboxFilterSerializer, filter_inbox_items
+from sentry.inbox.filters import InboxFilterSerializer, filter_existing_subjects, filter_inbox_items
 from sentry.inbox.paginator import InboxPaginator
 from sentry.inbox.response_types import InboxItemResponse, InboxUpdateResponse
 from sentry.inbox.serializers import InboxItemSerializer
@@ -103,6 +103,7 @@ class OrganizationInboxIndexEndpoint(OrganizationInboxEndpoint):
             organization=organization, user_id=user.id, status=ObjectStatus.ACTIVE
         )
         items = filter_inbox_items(items, filters.validated_data).select_related("organization")
+        items = filter_existing_subjects(items)
         return self.paginate(
             request,
             queryset=items,
@@ -111,7 +112,9 @@ class OrganizationInboxIndexEndpoint(OrganizationInboxEndpoint):
             cursor_cls=StringCursor,
             default_per_page=25,
             max_per_page=100,
-            on_results=lambda page: serialize(page, user, InboxItemSerializer()),
+            on_results=lambda page: [
+                item for item in serialize(page, user, InboxItemSerializer()) if item is not None
+            ],
         )
 
     @extend_schema(

@@ -37,9 +37,12 @@ class IssueItemTypeTest(TestCase):
         assert ISSUE.get_subject_id(group) == str(group.id)
         assert ISSUE.get_organization_id(group) == self.organization.id
 
-    def test_titles(self) -> None:
-        first = self.create_group(project=self.project, data={"title": "First issue"})
-        second = self.create_group(project=self.project, data={"title": "Second issue"})
+    def test_subjects(self) -> None:
+        project = self.create_project(slug="test-project")
+        first = self.create_group(project=project, short_id=1, data={"title": "First issue"})
+        second = self.create_group(
+            project=project, short_id=None, data={"title": "Issue without a short ID"}
+        )
         other = self.create_group(
             project=self.create_project(organization=self.create_organization()),
             data={"title": "Other organization"},
@@ -49,12 +52,26 @@ class IssueItemTypeTest(TestCase):
         deleted.delete()
 
         with self.assertNumQueries(1):
-            titles = ISSUE.get_titles(
+            subjects = ISSUE.get_subjects(
                 organization=self.organization,
                 subject_ids=[str(first.id), str(second.id), str(other.id), deleted_id, "invalid"],
             )
 
-        assert titles == {str(first.id): "First issue", str(second.id): "Second issue"}
+        project_reference = {"id": str(project.id), "slug": "test-project"}
+        assert subjects == {
+            str(first.id): {
+                "id": str(first.id),
+                "type": "issue",
+                "title": "First issue",
+                "metadata": {"shortId": "TEST-PROJECT-1", "project": project_reference},
+            },
+            str(second.id): {
+                "id": str(second.id),
+                "type": "issue",
+                "title": "Issue without a short ID",
+                "metadata": {"shortId": None, "project": project_reference},
+            },
+        }
 
     def test_url(self) -> None:
         organization = self.organization
