@@ -1,11 +1,17 @@
+from __future__ import annotations
+
 import itertools
-from collections.abc import Sequence
+from collections.abc import Generator, Sequence
 from datetime import datetime, timedelta
+from typing import TYPE_CHECKING
 from unittest import mock
 from unittest.mock import MagicMock
 
+import pytest
 from django.conf import settings
+from django.test.utils import override_settings
 from django.utils import timezone
+from redis.exceptions import ConnectionError
 
 from sentry.monitors.system_incidents import (
     MONITOR_LAST_SYSTEM_INCIDENT_TS,
@@ -31,6 +37,10 @@ from sentry.monitors.system_incidents import (
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import redis
+
+if TYPE_CHECKING:
+    from redis.client import StrictRedis
+    from sentry_redis_tools.clients import RedisCluster
 
 redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
 
@@ -781,3 +791,224 @@ def test_tick_decisions_variable_incident() -> None:
     for i, expected in enumerate(decision_history):
         decision = get_clock_tick_decision(ts + timedelta(minutes=i))
         assert decision == expected
+
+
+SECONDARY_CLUSTER = "cluster"
+
+
+@pytest.fixture
+def secondary_client() -> Generator[RedisCluster[str] | StrictRedis[str]]:
+    """
+    Mirror system incident writes to the test Redis Cluster and give its client.
+    """
+    with override_settings(SENTRY_MONITORS_SECONDARY_REDIS_CLUSTER=SECONDARY_CLUSTER):
+        yield redis.redis_clusters.get(SECONDARY_CLUSTER)
+
+
+def assert_ttl(client: RedisCluster[str] | StrictRedis[str], key: str) -> None:
+    ttl = client.ttl(key)
+    assert 0 < ttl <= MONITOR_VOLUME_RETENTION.total_seconds()
+
+
+def test_update_check_in_volume_secondary(
+    secondary_client: RedisCluster[str] | StrictRedis[str],
+) -> None:
+    now = timezone.now().replace(second=0, microsecond=0)
+    update_check_in_volume([now, now, now + timedelta(minutes=1)])
+
+    key_0 = MONITOR_VOLUME_HISTORY.format(ts=_make_reference_ts(now))
+    key_1 = MONITOR_VOLUME_HISTORY.format(ts=_make_reference_ts(now + timedelta(minutes=1)))
+
+    for client in (redis_client, secondary_client):
+        assert client.get(key_0) == "2"
+        assert client.get(key_1) == "1"
+        assert_ttl(client, key_0)
+        assert_ttl(client, key_1)
+
+
+def test_prune_incident_check_in_volume_secondary(
+    secondary_client: RedisCluster[str] | StrictRedis[str],
+) -> None:
+    now = timezone.now().replace(second=0, microsecond=0)
+    for offset in range(4):
+        update_check_in_volume([now + timedelta(minutes=offset)])
+
+    prune_incident_check_in_volume(now + timedelta(minutes=1), now + timedelta(minutes=3))
+
+    keys = [
+        MONITOR_VOLUME_HISTORY.format(ts=_make_reference_ts(now + timedelta(minutes=offset)))
+        for offset in range(4)
+    ]
+    for client in (redis_client, secondary_client):
+        assert [client.get(key) for key in keys] == [None, None, "1", "1"]
+
+
+def test_record_last_incident_ts_secondary(
+    secondary_client: RedisCluster[str] | StrictRedis[str],
+) -> None:
+    ts = timezone.now().replace(second=0, microsecond=0)
+    record_last_incident_ts(ts)
+
+    for client in (redis_client, secondary_client):
+        assert client.get(MONITOR_LAST_SYSTEM_INCIDENT_TS) == str(int(ts.timestamp()))
+        assert_ttl(client, MONITOR_LAST_SYSTEM_INCIDENT_TS)
+
+
+@django_db_all
+@override_options({"crons.system_incidents.collect_metrics": True})
+def test_record_clock_tick_volume_metric_secondary() -> None:
+    tick = timezone.now().replace(second=0, microsecond=0)
+    past_ts = tick - timedelta(minutes=1)
+
+    # Volume history is only on the primary. The metric is computed from it.
+    fill_historic_volume(
+        start=past_ts - MONITOR_VOLUME_DECISION_STEP,
+        length=MONITOR_VOLUME_RETENTION,
+        step=MONITOR_VOLUME_DECISION_STEP,
+        counts=[1000],
+    )
+    update_check_in_volume([past_ts] * 500)
+
+    with override_settings(SENTRY_MONITORS_SECONDARY_REDIS_CLUSTER=SECONDARY_CLUSTER):
+        record_clock_tick_volume_metric(tick)
+
+    secondary_client = redis.redis_clusters.get(SECONDARY_CLUSTER)
+    key = MONITOR_TICK_METRIC.format(ts=_make_reference_ts(past_ts))
+
+    for client in (redis_client, secondary_client):
+        assert client.get(key) == "-50.0"
+        assert_ttl(client, key)
+
+
+@django_db_all
+@override_options(
+    {
+        "crons.system_incidents.collect_metrics": True,
+        "crons.system_incidents.tick_decision_window": 5,
+        "crons.system_incidents.pct_deviation_anomaly_threshold": -5,
+        "crons.system_incidents.pct_deviation_incident_threshold": -25,
+    }
+)
+def test_make_clock_tick_decision_secondary(
+    secondary_client: RedisCluster[str] | StrictRedis[str],
+) -> None:
+    tick = timezone.now().replace(second=0, microsecond=0)
+    result = make_clock_tick_decision(tick)
+    assert result.decision == TickAnomalyDecision.NORMAL
+
+    key = MONITOR_TICK_DECISION.format(ts=_make_reference_ts(tick))
+    for client in (redis_client, secondary_client):
+        assert client.get(key) == TickAnomalyDecision.NORMAL
+        assert_ttl(client, key)
+
+
+@django_db_all
+@override_options(
+    {
+        "crons.system_incidents.collect_metrics": True,
+        "crons.system_incidents.tick_decision_window": 5,
+        "crons.system_incidents.pct_deviation_anomaly_threshold": -5,
+        "crons.system_incidents.pct_deviation_incident_threshold": -25,
+    }
+)
+def test_backfill_decisions_secondary() -> None:
+    tick = timezone.now().replace(second=0, microsecond=0)
+    past_ts = tick - timedelta(minutes=1)
+
+    def ts_key(template: str, offset: int) -> str:
+        return template.format(ts=_make_reference_ts(past_ts - timedelta(minutes=offset)))
+
+    # Only the primary has the earlier metrics and decisions. The last metric
+    # is an incident, and the three latest decisions are abnormal, so they are
+    # backfilled to incident.
+    for offset in range(5):
+        redis_client.set(ts_key(MONITOR_TICK_METRIC, offset), -30 if offset == 0 else -10)
+    redis_client.set(ts_key(MONITOR_TICK_DECISION, 3), TickAnomalyDecision.NORMAL.value)
+    for offset in range(3):
+        redis_client.set(ts_key(MONITOR_TICK_DECISION, offset), TickAnomalyDecision.ABNORMAL.value)
+
+    with override_settings(SENTRY_MONITORS_SECONDARY_REDIS_CLUSTER=SECONDARY_CLUSTER):
+        result = make_clock_tick_decision(tick)
+
+    assert result.transition == AnomalyTransition.INCIDENT_STARTED
+    assert result.ts == past_ts - timedelta(minutes=2)
+
+    secondary_client = redis.redis_clusters.get(SECONDARY_CLUSTER)
+    backfilled_keys = [ts_key(MONITOR_TICK_DECISION, offset) for offset in range(3)]
+
+    for client in (redis_client, secondary_client):
+        for key in backfilled_keys:
+            assert client.get(key) == TickAnomalyDecision.INCIDENT
+            assert_ttl(client, key)
+
+    # The decision before the backfill was not written to the secondary
+    assert secondary_client.get(ts_key(MONITOR_TICK_DECISION, 3)) is None
+
+
+@django_db_all
+@override_options(
+    {
+        "crons.system_incidents.collect_metrics": True,
+        "crons.system_incidents.tick_decision_window": 5,
+        "crons.system_incidents.pct_deviation_anomaly_threshold": -5,
+        "crons.system_incidents.pct_deviation_incident_threshold": -25,
+    }
+)
+def test_writes_without_secondary() -> None:
+    assert settings.SENTRY_MONITORS_SECONDARY_REDIS_CLUSTER is None
+
+    tick = timezone.now().replace(second=0, microsecond=0)
+    past_ts = tick - timedelta(minutes=1)
+
+    fill_historic_volume(
+        start=past_ts,
+        length=MONITOR_VOLUME_RETENTION,
+        step=MONITOR_VOLUME_DECISION_STEP,
+        counts=[1000],
+    )
+    record_clock_tick_volume_metric(tick)
+    make_clock_tick_decision(tick)
+    record_last_incident_ts(tick)
+
+    keys = [
+        MONITOR_VOLUME_HISTORY.format(ts=_make_reference_ts(past_ts)),
+        MONITOR_TICK_METRIC.format(ts=_make_reference_ts(past_ts)),
+        MONITOR_TICK_DECISION.format(ts=_make_reference_ts(tick)),
+        MONITOR_LAST_SYSTEM_INCIDENT_TS,
+    ]
+    secondary_client = redis.redis_clusters.get(SECONDARY_CLUSTER)
+    for key in keys:
+        assert redis_client.get(key) is not None
+        assert secondary_client.get(key) is None
+
+
+@mock.patch("sentry.monitors.system_incidents.metrics")
+def test_secondary_write_error(
+    mock_metrics: MagicMock,
+    secondary_client: RedisCluster[str] | StrictRedis[str],
+) -> None:
+    now = timezone.now().replace(second=0, microsecond=0)
+
+    with (
+        mock.patch.object(secondary_client, "pipeline", side_effect=ConnectionError),
+        mock.patch.object(secondary_client, "set", side_effect=ConnectionError),
+    ):
+        update_check_in_volume([now])
+        record_last_incident_ts(now)
+
+    # The primary has the writes
+    assert redis_client.get(MONITOR_VOLUME_HISTORY.format(ts=_make_reference_ts(now))) == "1"
+    assert get_last_incident_ts() == now
+
+    assert mock_metrics.incr.call_args_list == [
+        mock.call(
+            "monitors.system_incidents.secondary_redis_write_error",
+            tags={"operation": "update_check_in_volume"},
+            sample_rate=1.0,
+        ),
+        mock.call(
+            "monitors.system_incidents.secondary_redis_write_error",
+            tags={"operation": "record_last_incident_ts"},
+            sample_rate=1.0,
+        ),
+    ]
