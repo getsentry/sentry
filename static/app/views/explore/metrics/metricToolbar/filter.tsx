@@ -43,18 +43,11 @@ interface MetricFilterBarProps {
   query: string;
   traceMetric: TraceMetric;
   disabled?: boolean;
-  /**
-   * Ask Seer needs the Explore query params context, so leave this off when
-   * the bar is controlled from elsewhere.
-   */
   enableAISearch?: boolean;
   environments?: string[];
   portalTarget?: HTMLElement;
   projectIds?: number[];
   skipTraceMetricFilter?: boolean;
-  /**
-   * Attribute validation results used to flag unknown filter keys.
-   */
   validatedFields?: EventValidationData['query']['fields'];
 }
 
