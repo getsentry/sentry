@@ -351,21 +351,11 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
             _validate_legacy_row_change(stored, data_type, conditions)
 
         if "conditions" in attrs:
-            for condition_type in sorted({ConditionType(c["type"]) for c in conditions}):
-                required = _REQUIRED_FEATURE_BY_CONDITION_TYPE.get(condition_type)
-                if required is None:
-                    continue
-                feature, name = required
-                if not features.has(
-                    feature,
-                    self.context["project"].organization,
-                    actor=self.context["request"].user,
-                ):
-                    raise serializers.ValidationError(
-                        {
-                            "conditions": f"The {name} condition is not enabled for this organization."
-                        }
-                    )
+            _validate_feature_conditions_for_organization(
+                conditions=conditions,
+                organization=self.context["project"].organization,
+                request=self.context["request"],
+            )
 
         supported = get_supported_condition_types(data_type)
         unsupported = sorted({condition["type"] for condition in conditions} - set(supported))
@@ -450,6 +440,24 @@ def _validate_legacy_row_change(
                 )
             }
         )
+
+
+def _validate_feature_conditions_for_organization(
+    conditions: list[CustomInboundFilterCondition], organization: Any, request: Request
+) -> None:
+    for condition_type in sorted({ConditionType(c["type"]) for c in conditions}):
+        required = _REQUIRED_FEATURE_BY_CONDITION_TYPE.get(condition_type)
+        if required is None:
+            continue
+        feature, name = required
+        if not features.has(
+            feature,
+            organization,
+            actor=request.user,
+        ):
+            raise serializers.ValidationError(
+                {"conditions": f"The {name} condition is not enabled for this organization."}
+            )
 
 
 def serialize_custom_inbound_filter(
