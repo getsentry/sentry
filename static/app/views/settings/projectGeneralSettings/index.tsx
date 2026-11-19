@@ -11,6 +11,7 @@ import {Confirm} from '@sentry/scraps/confirm';
 import {
   AutoSaveForm,
   defaultFormOptions,
+  DisplayField,
   FieldGroup,
   FormSearch,
   setFieldErrors,
@@ -931,7 +932,15 @@ export function ProjectGeneralSettings({project, onChangeSlug}: Props) {
             )}
           </AutoSaveForm>
 
-          <SecurityTokenForm project={project} disabled={disabled} />
+          {disabled || project.securityToken === undefined ? (
+            <DisplayField.Row label={t('Security Token')} hintText={SECURITY_TOKEN_HELP}>
+              <Text variant="muted">
+                {t('You do not have permission to view this token.')}
+              </Text>
+            </DisplayField.Row>
+          ) : (
+            <SecurityTokenForm project={project} disabled={disabled} />
+          )}
 
           <SecurityTokenHeaderForm project={project} disabled={disabled} />
 

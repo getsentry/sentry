@@ -323,6 +323,43 @@ describe('projectGeneralSettings', () => {
     screen.queryAllByRole('textbox').forEach(textbox => expect(textbox).toBeDisabled());
 
     expect(await screen.findByTestId('project-permission-alert')).toBeInTheDocument();
+    expect(
+      screen.getByText('You do not have permission to view this token.')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('textbox', {name: 'Security Token'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows a protected token when the API omits its value', async () => {
+    render(
+      <ProjectGeneralSettings
+        project={{...project, securityToken: undefined}}
+        onChangeSlug={mockOnChangeSlug}
+      />,
+      {organization, initialRouterConfig}
+    );
+
+    expect(
+      await screen.findByText('You do not have permission to view this token.')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('textbox', {name: 'Security Token'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps an explicitly empty security token editable', async () => {
+    render(
+      <ProjectGeneralSettings
+        project={{...project, securityToken: ''}}
+        onChangeSlug={mockOnChangeSlug}
+      />,
+      {organization, initialRouterConfig}
+    );
+
+    const input = await screen.findByRole('textbox', {name: 'Security Token'});
+    expect(input).toBeEnabled();
+    expect(input).toHaveValue('');
   });
 
   it('changing project platform updates ProjectsStore', async () => {
