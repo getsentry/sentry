@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import abc
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Literal, overload
 
 if TYPE_CHECKING:
@@ -119,7 +119,7 @@ class FeatureHandler:
         self,
         feature_name: str,
         organizations: Sequence[Organization | RpcOrganization],
-    ) -> dict[str, bool] | None:
+    ) -> Mapping[str, bool | None] | None:
         raise NotImplementedError
 
     def get_experiment_assignments(
