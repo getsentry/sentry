@@ -39,9 +39,9 @@ import {DeleteClassifierButton} from './components/deleteClassifierButton';
 import {ResultAttributeName} from './components/resultAttributeName';
 import {useClassifier} from './hooks/useClassifier';
 import {usePrebuiltClassifiers} from './hooks/usePrebuiltClassifiers';
+import {CLASSIFIER_DETAIL_DEFAULT_SELECTION} from './constants';
 import type {TelemetryClassifier} from './types';
 import {
-  CLASSIFIER_DETAIL_DEFAULT_SELECTION,
   getClassifiersPath,
   filterQueryHasEnvironment,
   getClassifierFilterParts,

@@ -218,6 +218,7 @@ export function NewWelcomeUI(props: StepProps) {
                 <WelcomeAgentSetup
                   hasInitFailed={hasInitFailed}
                   hasProgressFailed={hasProgressFailed}
+                  hasRunFailed={hasRunFailed}
                   onRefresh={() => void refreshRun()}
                   isAgentConnected={isAgentConnected}
                   onCopyCommand={handleCopyCommand}
