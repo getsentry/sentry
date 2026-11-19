@@ -87,8 +87,8 @@ import {
   PendingUserInputDock,
   PendingUserInputPicker,
 } from './pendingUserInputDock';
-import {SeerExplorerDebugMenu} from './seerExplorerDebugMenu';
 import {SeerExplorerHeader} from './seerExplorerHeader';
+import {SeerExplorerSettingsMenu} from './seerExplorerSettingsMenu';
 import {UpdateSlackAlert} from './updateSlackAlert';
 
 export const INPUT_STORAGE_KEY_PREFIX = 'seer-explorer-draft';
@@ -900,8 +900,7 @@ export function SeerExplorerContent({
       isPipSupported={isPipSupported}
       isPoppedOut={isPoppedOut}
       onTogglePictureInPicture={handleTogglePictureInPicture}
-      sidebarPosition={sidebarPosition}
-      onSidebarPositionChange={onSidebarPositionChange}
+      canChangeDockPosition={!!onSidebarPositionChange}
     />
   );
 
@@ -1029,7 +1028,12 @@ export function SeerExplorerContent({
           leadingToolbarItems={
             <Fragment>
               {toolbarMenu}
-              <SeerExplorerDebugMenu
+              <SeerExplorerSettingsMenu
+                isPipSupported={isPipSupported}
+                isPoppedOut={isPoppedOut}
+                onTogglePictureInPicture={handleTogglePictureInPicture}
+                sidebarPosition={sidebarPosition}
+                onSidebarPositionChange={onSidebarPositionChange}
                 overrideBashModeEnabled={overrideBashModeEnabled}
                 onOverrideBashModeToggle={() => setOverrideBashModeEnabled(v => !v)}
                 conversationsUrl={conversationsUrl}

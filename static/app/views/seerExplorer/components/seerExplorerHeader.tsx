@@ -11,10 +11,7 @@ import {Text} from '@sentry/scraps/text';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {useSeerExplorerSessionsQuery} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
-import type {
-  SeerExplorerRunId,
-  SeerExplorerSidebarPosition,
-} from 'sentry/views/seerExplorer/types';
+import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 
 import {
   SeerExplorerHeaderActions,
@@ -38,9 +35,8 @@ interface SeerExplorerHeaderProps {
   onCopySessionClick: (() => void) | undefined;
   onNewChatClick: () => void;
   onTogglePictureInPicture: () => void;
+  canChangeDockPosition?: boolean;
   disableNewChatButton?: boolean;
-  onSidebarPositionChange?: (position: SeerExplorerSidebarPosition) => void;
-  sidebarPosition?: SeerExplorerSidebarPosition;
 }
 
 export function SeerExplorerHeader({
@@ -51,8 +47,7 @@ export function SeerExplorerHeader({
   isPipSupported,
   isPoppedOut,
   onTogglePictureInPicture,
-  sidebarPosition = 'auto',
-  onSidebarPositionChange,
+  canChangeDockPosition = false,
   disableNewChatButton = false,
 }: SeerExplorerHeaderProps) {
   const [search, setSearch] = useState('');
@@ -102,8 +97,7 @@ export function SeerExplorerHeader({
     onTogglePictureInPicture,
     isPipSupported,
     isPoppedOut,
-    sidebarPosition,
-    onSidebarPositionChange,
+    canChangeDockPosition,
     hasNoChats: !search && !debouncedSearch && !isError && data?.length === 0,
     sessionOptions,
     sessionsLoading: isFetching || isSearchPending,

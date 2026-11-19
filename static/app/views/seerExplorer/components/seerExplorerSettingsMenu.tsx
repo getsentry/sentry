@@ -1,32 +1,57 @@
 import {IconOpen} from '@sentry/icons/open';
+import {IconPanel} from '@sentry/icons/panel';
 import {IconSliders} from '@sentry/icons/sliders';
+import {IconWindow} from '@sentry/icons/window';
 
-import {CompositeSelect} from '@sentry/scraps/compactSelect';
+import {CompositeSelect, type SelectOption} from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {t} from 'sentry/locale';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
+import type {SeerExplorerSidebarPosition} from 'sentry/views/seerExplorer/types';
 
-interface SeerExplorerDebugMenuProps {
+type DockOption = SeerExplorerSidebarPosition | 'windowed';
+
+interface SeerExplorerSettingsMenuProps {
+  isPipSupported: boolean;
+  isPoppedOut: boolean;
   onOverrideBashModeToggle: () => void;
+  onTogglePictureInPicture: () => void;
   overrideBashModeEnabled: boolean;
   conversationsUrl?: string;
+  onSidebarPositionChange?: (position: SeerExplorerSidebarPosition) => void;
+  sidebarPosition?: SeerExplorerSidebarPosition;
 }
 
-export function SeerExplorerDebugMenu({
+export function SeerExplorerSettingsMenu({
+  isPipSupported,
+  isPoppedOut,
+  onTogglePictureInPicture,
+  sidebarPosition = 'auto',
+  onSidebarPositionChange,
   overrideBashModeEnabled,
   onOverrideBashModeToggle,
   conversationsUrl,
-}: SeerExplorerDebugMenuProps) {
+}: SeerExplorerSettingsMenuProps) {
   const isSentryEmployee = useIsSentryEmployee();
 
+  const showDockRegion = !isPoppedOut && !!onSidebarPositionChange;
   const showDebugRegion = isSentryEmployee;
   // The agent trace is an internal view, so it shares the employee gate.
   const showLinksRegion = isSentryEmployee && !!conversationsUrl;
 
-  if (!showDebugRegion && !showLinksRegion) {
+  if (!showDockRegion && !showDebugRegion && !showLinksRegion) {
     return null;
   }
+
+  const dockOptions: Array<SelectOption<DockOption>> = [
+    {value: 'auto', label: t('Auto'), leadingItems: <IconPanel />},
+    {value: 'right', label: t('Right'), leadingItems: <IconPanel direction="right" />},
+    {value: 'bottom', label: t('Bottom'), leadingItems: <IconPanel direction="down" />},
+    ...(isPipSupported
+      ? [{value: 'windowed' as const, label: t('Windowed'), leadingItems: <IconWindow />}]
+      : []),
+  ];
 
   return (
     <CompositeSelect
@@ -43,6 +68,20 @@ export function SeerExplorerDebugMenu({
         />
       )}
     >
+      {showDockRegion && (
+        <CompositeSelect.Region
+          label={t('Dock position')}
+          value={sidebarPosition}
+          onChange={option => {
+            if (option.value === 'windowed') {
+              onTogglePictureInPicture();
+            } else {
+              onSidebarPositionChange?.(option.value);
+            }
+          }}
+          options={dockOptions}
+        />
+      )}
       {showDebugRegion && (
         <CompositeSelect.Region
           label={t('Debug')}

@@ -1,10 +1,8 @@
 import type {ReactNode} from 'react';
-import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconClock} from '@sentry/icons/clock';
 import {IconCopy} from '@sentry/icons/copy';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {IconLink} from '@sentry/icons/link';
-import {IconPanel} from '@sentry/icons/panel';
 import {IconWindow} from '@sentry/icons/window';
 
 import {Button} from '@sentry/scraps/button';
@@ -15,16 +13,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
-import type {
-  SeerExplorerRunId,
-  SeerExplorerSidebarPosition,
-} from 'sentry/views/seerExplorer/types';
-
-const POSITION_ICON_DIRECTION = {
-  auto: undefined,
-  right: 'right',
-  bottom: 'down',
-} as const satisfies Record<SeerExplorerSidebarPosition, string | undefined>;
+import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
 
 interface SessionOption {
   details: ReactNode;
@@ -33,7 +22,7 @@ interface SessionOption {
 }
 
 /**
- * The "middle" cluster of header actions (copy, dock/pop-out, chat history).
+ * The "middle" cluster of header actions (copy, pop-out, chat history).
  * Rendered in two shapes — {@link SeerExplorerHeaderActions} lays them out as
  * inline buttons, {@link SeerExplorerHeaderActionsMenu} folds them into a single
  * overflow menu.
@@ -51,8 +40,7 @@ export interface SeerExplorerHeaderActionsProps {
   sessionOptions: SessionOption[];
   sessionsError: boolean;
   sessionsLoading: boolean;
-  onSidebarPositionChange?: (position: SeerExplorerSidebarPosition) => void;
-  sidebarPosition?: SeerExplorerSidebarPosition;
+  canChangeDockPosition?: boolean;
 }
 
 function getChatHistoryEmptyMessage({
@@ -156,8 +144,7 @@ export function SeerExplorerHeaderActions({
   isPipSupported,
   isPoppedOut,
   onTogglePictureInPicture,
-  sidebarPosition = 'auto',
-  onSidebarPositionChange,
+  canChangeDockPosition = false,
   hasNoChats,
   sessionOptions,
   sessionsLoading,
@@ -166,40 +153,6 @@ export function SeerExplorerHeaderActions({
   onHistoryOpenChange,
   onSearchChange,
 }: SeerExplorerHeaderActionsProps) {
-  const positionMenuItems: MenuItemProps[] = [
-    {
-      key: 'auto',
-      label: t('Auto'),
-      leadingItems: <IconPanel />,
-      trailingItems: sidebarPosition === 'auto' ? <IconCheckmark size="sm" /> : null,
-      onAction: () => onSidebarPositionChange?.('auto'),
-    },
-    {
-      key: 'right',
-      label: t('Right'),
-      leadingItems: <IconPanel direction="right" />,
-      trailingItems: sidebarPosition === 'right' ? <IconCheckmark size="sm" /> : null,
-      onAction: () => onSidebarPositionChange?.('right'),
-    },
-    {
-      key: 'bottom',
-      label: t('Bottom'),
-      leadingItems: <IconPanel direction="down" />,
-      trailingItems: sidebarPosition === 'bottom' ? <IconCheckmark size="sm" /> : null,
-      onAction: () => onSidebarPositionChange?.('bottom'),
-    },
-    ...(isPipSupported
-      ? [
-          {
-            key: 'windowed',
-            label: t('Windowed'),
-            leadingItems: <IconWindow />,
-            onAction: onTogglePictureInPicture,
-          },
-        ]
-      : []),
-  ];
-
   return (
     <Flex align="center">
       <Button
@@ -221,9 +174,10 @@ export function SeerExplorerHeaderActions({
         tooltipProps={{title: t('Copy link to current chat and web page')}}
       />
       {/* Drawer-only pop-out button (in sidebar mode the toggle lives in the
-          dock-position menu as the `Windowed` item). Hidden once popped out —
-          the floating window is dismissed via its close button or Escape. */}
-      {isPipSupported && !onSidebarPositionChange && !isPoppedOut && (
+          Seer settings dock position region as the `Windowed` item). Hidden once
+          popped out — the floating window is dismissed via its close button or
+          Escape. */}
+      {isPipSupported && !canChangeDockPosition && !isPoppedOut && (
         <Button
           icon={<IconWindow />}
           onClick={onTogglePictureInPicture}
@@ -231,23 +185,6 @@ export function SeerExplorerHeaderActions({
           size="xs"
           aria-label={t('Open in a separate window')}
           tooltipProps={{title: t('Open in a separate window')}}
-        />
-      )}
-      {!isPoppedOut && onSidebarPositionChange && (
-        <DropdownMenu
-          items={positionMenuItems}
-          size="xs"
-          position="bottom-end"
-          menuTitle={t('Dock position')}
-          trigger={triggerProps => (
-            <OverlayTrigger.IconButton
-              {...triggerProps}
-              tooltipProps={{title: t('Dock position')}}
-              aria-label={t('Dock position')}
-              icon={<IconPanel direction={POSITION_ICON_DIRECTION[sidebarPosition]} />}
-              variant="transparent"
-            />
-          )}
         />
       )}
       <ChatHistorySelect
@@ -269,8 +206,7 @@ export function SeerExplorerHeaderActionsMenu({
   isPipSupported,
   isPoppedOut,
   onTogglePictureInPicture,
-  sidebarPosition = 'auto',
-  onSidebarPositionChange,
+  canChangeDockPosition = false,
   hasNoChats,
   sessionOptions,
   sessionsLoading,
@@ -279,60 +215,15 @@ export function SeerExplorerHeaderActionsMenu({
   onHistoryOpenChange,
   onSearchChange,
 }: SeerExplorerHeaderActionsProps) {
-  const dockItem: MenuItemProps | null =
-    !isPoppedOut && onSidebarPositionChange
+  const popOutItem: MenuItemProps | null =
+    isPipSupported && !canChangeDockPosition && !isPoppedOut
       ? {
-          key: 'dock-position',
-          label: t('Dock position'),
-          leadingItems: (
-            <IconPanel direction={POSITION_ICON_DIRECTION[sidebarPosition]} />
-          ),
-          submenu: {position: 'left-start'},
-          children: [
-            {
-              key: 'auto',
-              label: t('Auto'),
-              leadingItems: <IconPanel />,
-              trailingItems:
-                sidebarPosition === 'auto' ? <IconCheckmark size="sm" /> : null,
-              onAction: () => onSidebarPositionChange('auto'),
-            },
-            {
-              key: 'right',
-              label: t('Right'),
-              leadingItems: <IconPanel direction="right" />,
-              trailingItems:
-                sidebarPosition === 'right' ? <IconCheckmark size="sm" /> : null,
-              onAction: () => onSidebarPositionChange('right'),
-            },
-            {
-              key: 'bottom',
-              label: t('Bottom'),
-              leadingItems: <IconPanel direction="down" />,
-              trailingItems:
-                sidebarPosition === 'bottom' ? <IconCheckmark size="sm" /> : null,
-              onAction: () => onSidebarPositionChange('bottom'),
-            },
-            ...(isPipSupported
-              ? [
-                  {
-                    key: 'windowed',
-                    label: t('Windowed'),
-                    leadingItems: <IconWindow />,
-                    onAction: onTogglePictureInPicture,
-                  },
-                ]
-              : []),
-          ],
+          key: 'windowed',
+          label: t('Open in a separate window'),
+          leadingItems: <IconWindow />,
+          onAction: onTogglePictureInPicture,
         }
-      : isPipSupported && !isPoppedOut
-        ? {
-            key: 'windowed',
-            label: t('Open in a separate window'),
-            leadingItems: <IconWindow />,
-            onAction: onTogglePictureInPicture,
-          }
-        : null;
+      : null;
 
   const items: MenuItemProps[] = [
     {
@@ -349,7 +240,7 @@ export function SeerExplorerHeaderActionsMenu({
       onAction: onCopySessionClick ?? undefined,
       disabled: !onCopySessionClick,
     },
-    ...(dockItem ? [dockItem] : []),
+    ...(popOutItem ? [popOutItem] : []),
   ];
 
   return (

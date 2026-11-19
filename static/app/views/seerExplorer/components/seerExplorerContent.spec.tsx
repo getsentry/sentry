@@ -1766,7 +1766,7 @@ describe('SeerExplorerContent', () => {
       expect(screen.getByTestId('seer-composer-toolbar')).toContainElement(settings);
     });
 
-    it('hides settings from non-employees', async () => {
+    it('hides settings from non-employees when Seer cannot be docked', async () => {
       renderContent();
       await screen.findByRole('button', {name: 'Commands'});
       expect(
@@ -1833,7 +1833,7 @@ describe('SeerExplorerContent', () => {
       await waitFor(() => expect(requestWindow).toHaveBeenCalled());
     });
 
-    it('requests a window when selecting Windowed from the dock-position menu', async () => {
+    it('requests a window when selecting Windowed from Seer settings', async () => {
       const requestWindow = jest.fn().mockResolvedValue({
         document: document.implementation.createHTMLDocument('pip'),
         close: jest.fn(),
@@ -1869,8 +1869,8 @@ describe('SeerExplorerContent', () => {
       // menu mid-interaction, dropping the `Windowed` item.
       await waitFor(() => expect(input).toHaveFocus());
 
-      await userEvent.click(screen.getByRole('button', {name: 'Dock position'}));
-      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Windowed'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Seer settings'}));
+      await userEvent.click(await screen.findByRole('option', {name: 'Windowed'}));
       await waitFor(() => expect(requestWindow).toHaveBeenCalled());
     });
   });
