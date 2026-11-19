@@ -201,16 +201,18 @@ def _ensure_monitor_with_config(
     project: Project,
     monitor_slug: str,
     config: dict[str, Any] | None,
+    monitor: Monitor | None = None,
 ) -> tuple[Monitor | None, ProcessingErrorsException | None]:
     non_fatal_processing_error = None
-    try:
-        monitor = Monitor.objects.get(
-            slug=monitor_slug,
-            project_id=project.id,
-            organization_id=project.organization_id,
-        )
-    except Monitor.DoesNotExist:
-        monitor = None
+    if monitor is None:
+        try:
+            monitor = Monitor.objects.get(
+                slug=monitor_slug,
+                project_id=project.id,
+                organization_id=project.organization_id,
+            )
+        except Monitor.DoesNotExist:
+            monitor = None
 
     if not config:
         return (monitor, non_fatal_processing_error)
@@ -787,6 +789,7 @@ def _process_checkin(item: CheckinItem, span: StreamedSpan) -> None:
                 project,
                 monitor_slug,
                 monitor_config,
+                existing_monitor_environment.monitor if existing_monitor_environment else None,
             )
     except ProcessingErrorsException as e:
         ensure_config_errors = list(e.processing_errors)
