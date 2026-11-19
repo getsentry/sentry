@@ -107,6 +107,7 @@
     "**/*.min.js",
     "**/*.generated.*",
     "tests/**/fixtures/**/*",
+    "tests/**/snapshots_golden/**/*.json",
     "tests/relay_integration/**/*",
     "!tests/js/**/*",
     "fixtures/**/*",
