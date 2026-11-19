@@ -800,6 +800,34 @@ function ObfuscatedErrorWarning({project}: {project: Project}) {
   );
 }
 
+function getModalDescription(
+  legacyCondition: CustomInboundFilterCondition | undefined,
+  isReadOnly: boolean
+): string {
+  if (legacyCondition) {
+    const {label} = getCondition(legacyCondition.type);
+    return isReadOnly
+      ? t('Sentry drops data whose %s matches any pattern below, one per line.', label)
+      : t(
+          'Sentry drops data whose %s matches any pattern below, one per line. Use * in a pattern as a wildcard.',
+          label
+        );
+  }
+  return isReadOnly
+    ? t('Sentry drops data that meets every condition below.')
+    : t(
+        'Sentry drops data that meets every condition below. Type a property, pick an operator, then enter a value. Use * in a value as a wildcard, or list several values to match any of them.'
+      );
+}
+
+function getModalTitle(isReadOnly: boolean, hasFilter: boolean): string {
+  if (isReadOnly) {
+    return t('View Custom Filter');
+  }
+
+  return hasFilter ? t('Edit Custom Filter') : t('Create Custom Filter');
+}
+
 // Condition values can get long (full error messages, release ranges), so give the
 // modal more room than the 640px default.
 const filterModalCss = css`
@@ -844,10 +872,15 @@ function CustomFilterModal({
   closeModal,
   project,
   filter,
+  readOnlyReason,
 }: ModalRenderProps & {
   project: Project;
   // The filter to edit. Absent when the modal creates one.
   filter?: CustomInboundFilter;
+  // Why the user cannot edit `filter`. When set, the modal shows the filter with
+  // its controls disabled, so someone without write access can still read every
+  // condition, and says why in the footer.
+  readOnlyReason?: string;
 }) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
@@ -858,6 +891,7 @@ function CustomFilterModal({
   // A row that holds a legacy list keeps its one condition and its data type: the
   // modal edits the lines of the condition.
   const legacyCondition = filter?.legacyFilter ? filter.conditions[0] : undefined;
+  const isReadOnly = readOnlyReason !== undefined;
   const editor = useMemo(() => getConditionEditor(legacyCondition), [legacyCondition]);
   const filterSchema = useMemo(() => getFilterSchema(editor), [editor]);
   const defaultValues = filter
@@ -974,18 +1008,9 @@ function CustomFilterModal({
     <form.AppForm form={form}>
       <Header closeButton>
         <Stack gap="xs">
-          <Heading as="h4">
-            {filter ? t('Edit Custom Filter') : t('Create Custom Filter')}
-          </Heading>
+          <Heading as="h4">{getModalTitle(isReadOnly, !!filter)}</Heading>
           <Text variant="muted" size="sm">
-            {legacyCondition
-              ? t(
-                  'Sentry drops data whose %s matches any pattern below, one per line. Use * in a pattern as a wildcard.',
-                  getCondition(legacyCondition.type).label
-                )
-              : t(
-                  'Sentry drops data that meets every condition below. Type a property, pick an operator, then enter a value. Use * in a value as a wildcard, or list several values to match any of them.'
-                )}
+            {getModalDescription(legacyCondition, isReadOnly)}
           </Text>
         </Stack>
       </Header>
@@ -996,6 +1021,7 @@ function CustomFilterModal({
               {field => (
                 <field.Layout.Stack label={t('Name')} required>
                   <field.Input
+                    disabled={isReadOnly}
                     value={field.state.value}
                     onChange={field.handleChange}
                     placeholder={
@@ -1013,7 +1039,7 @@ function CustomFilterModal({
                 <dataTypeField.Layout.Stack label={t('Data Type')} required>
                   <dataTypeField.Select
                     clearable={false}
-                    disabled={legacyCondition !== undefined}
+                    disabled={isReadOnly || legacyCondition !== undefined}
                     options={modalDataTypeOptions}
                     value={dataTypeField.state.value}
                     onChange={value => dataTypeField.handleChange(value)}
@@ -1031,6 +1057,7 @@ function CustomFilterModal({
                   required
                 >
                   <linesField.TextArea
+                    readOnly={isReadOnly}
                     placeholder={getCondition(legacyCondition.type).placeholder}
                     value={linesField.state.value}
                     onChange={linesField.handleChange}
@@ -1079,7 +1106,7 @@ function CustomFilterModal({
                               getTagValues={getNoTagValues}
                               onChange={value => queryField.handleChange(value)}
                               onBlur={onBlur}
-                              disabled={disabled}
+                              disabled={isReadOnly || disabled}
                               searchSource="custom_inbound_filter"
                               placeholder={t(
                                 'e.g. error_message:*timeout* release:<2.0.0'
@@ -1117,22 +1144,33 @@ function CustomFilterModal({
         </Stack>
       </Body>
       <Footer>
-        <Flex gap="md">
-          <Button onClick={closeModal}>{t('Cancel')}</Button>
-          <form.SubmitButton>
-            {filter ? t('Save Changes') : t('Create Filter')}
-          </form.SubmitButton>
-        </Flex>
+        {isReadOnly ? (
+          <Flex gap="md" align="center" justify="between" flex={1}>
+            <Text variant="muted" size="sm">
+              {readOnlyReason}
+            </Text>
+            <Button onClick={closeModal}>{t('Close')}</Button>
+          </Flex>
+        ) : (
+          <Flex gap="md">
+            <Button onClick={closeModal}>{t('Cancel')}</Button>
+            <form.SubmitButton>
+              {filter ? t('Save Changes') : t('Create Filter')}
+            </form.SubmitButton>
+          </Flex>
+        )}
       </Footer>
     </form.AppForm>
   );
 }
 
 // Opens the modal to create a filter, or to edit `filter`. Saving goes through
-// the modal, so callers only pick what it opens on.
+// the modal, so callers only pick what it opens on. With `readOnlyReason`, the
+// modal shows the filter without letting the user change it.
 export function openCustomFilterModal(options: {
   project: Project;
   filter?: CustomInboundFilter;
+  readOnlyReason?: string;
 }) {
   openModal(deps => <CustomFilterModal {...deps} {...options} />, {
     modalCss: filterModalCss,

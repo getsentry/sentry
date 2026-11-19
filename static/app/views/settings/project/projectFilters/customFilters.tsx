@@ -5,6 +5,7 @@ import {IconAdd} from '@sentry/icons/add';
 import {IconDelete} from '@sentry/icons/delete';
 import {IconEdit} from '@sentry/icons/edit';
 import {IconSearch} from '@sentry/icons/search';
+import {IconShow} from '@sentry/icons/show';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import startCase from 'lodash/startCase';
 
@@ -58,7 +59,7 @@ import {
 
 // Values a condition shows in the table before the rest fold into a count.
 const MAX_VISIBLE_VALUES = 3;
-// Values the tooltip of that count lists before it points at the editor, which
+// Values the tooltip of that count lists before it points at the modal, which
 // shows them all. A tooltip cannot scroll, so a long list would cover the page.
 const MAX_TOOLTIP_VALUES = 10;
 const VALUE_TOOLTIP_WIDTH = 360;
@@ -74,7 +75,15 @@ function ValueText({value}: {value: string}) {
   );
 }
 
-function ValueList({values, total}: {total: number; values: string[]}) {
+function ValueList({
+  values,
+  total,
+  canWrite,
+}: {
+  canWrite: boolean;
+  total: number;
+  values: string[];
+}) {
   return (
     <Stack gap="xs">
       {values.map((value, index) => (
@@ -82,11 +91,17 @@ function ValueList({values, total}: {total: number; values: string[]}) {
       ))}
       {total > values.length && (
         <Text size="sm" variant="muted" align="left">
-          {t(
-            'Showing %s of %s. Edit the filter to see every value.',
-            values.length,
-            total
-          )}
+          {canWrite
+            ? t(
+                'Showing %s of %s. Edit the filter to see every value.',
+                values.length,
+                total
+              )
+            : t(
+                'Showing %s of %s. View the filter to see every value.',
+                values.length,
+                total
+              )}
         </Text>
       )}
     </Stack>
@@ -113,7 +128,13 @@ function ValueTag({value}: {value: string}) {
 // One condition of a filter: its property, its operator unless the values speak
 // for themselves, then its values. A match reads "a or b"; a negated one reads
 // "a and b", as the search bar does, since the data must match none of them.
-function ConditionSummary({condition}: {condition: CustomInboundFilterCondition}) {
+function ConditionSummary({
+  condition,
+  canWrite,
+}: {
+  canWrite: boolean;
+  condition: CustomInboundFilterCondition;
+}) {
   const visible = condition.value.slice(0, MAX_VISIBLE_VALUES);
   const hidden = condition.value.slice(MAX_VISIBLE_VALUES);
   const operator = getConditionOperator(condition);
@@ -152,6 +173,7 @@ function ConditionSummary({condition}: {condition: CustomInboundFilterCondition}
                 <ValueList
                   values={hidden.slice(0, MAX_TOOLTIP_VALUES)}
                   total={hidden.length}
+                  canWrite={canWrite}
                 />
               }
             >
@@ -453,14 +475,19 @@ export function CustomFilters({project}: {project: Project}) {
   // Relay applies the filters only with the plan feature, and the API refuses
   // writes without it. The table still lists the filters, marked as not applied,
   // so an organization that left the plan sees what comes back on upgrade.
+  // Without either, a row opens read only, so its conditions can still be read.
   const hasPlanFeature = project.features.includes('custom-inbound-filters');
-  let writeDisabledReason: string | undefined;
+  const hasWriteAccess = hasEveryAccess(['project:write'], {organization, project});
+  let addDisabledReason: string | undefined;
+  let editDisabledReason: string | undefined;
   if (!hasPlanFeature) {
-    writeDisabledReason = t('Your plan does not include custom inbound filters.');
-  } else if (!hasEveryAccess(['project:write'], {organization, project})) {
-    writeDisabledReason = t('You need project write access to add filters.');
+    addDisabledReason = t('Your plan does not include custom inbound filters.');
+    editDisabledReason = addDisabledReason;
+  } else if (!hasWriteAccess) {
+    addDisabledReason = t('You need project write access to add filters.');
+    editDisabledReason = t('You need project write access to edit filters.');
   }
-  const canWrite = writeDisabledReason === undefined;
+  const canWrite = editDisabledReason === undefined;
   const queryOptions = customFiltersQueryOptions(organization, project);
   const {queryKey} = queryOptions;
 
@@ -550,7 +577,7 @@ export function CustomFilters({project}: {project: Project}) {
           variant="primary"
           icon={<IconAdd />}
           disabled={!canWrite}
-          tooltipProps={canWrite ? undefined : {title: writeDisabledReason}}
+          tooltipProps={canWrite ? undefined : {title: addDisabledReason}}
           onClick={() => openCustomFilterModal({project})}
         >
           {t('Add Filter')}
@@ -631,7 +658,11 @@ export function CustomFilters({project}: {project: Project}) {
                   <SimpleTable.RowCell>
                     <Stack gap="xs" minWidth="0">
                       {filter.conditions.map((condition, index) => (
-                        <ConditionSummary key={index} condition={condition} />
+                        <ConditionSummary
+                          key={index}
+                          condition={condition}
+                          canWrite={canWrite}
+                        />
                       ))}
                     </Stack>
                   </SimpleTable.RowCell>
@@ -651,14 +682,30 @@ export function CustomFilters({project}: {project: Project}) {
                   </SimpleTable.RowCell>
                   <SimpleTable.RowCell>
                     <Flex gap="sm">
-                      <Button
-                        size="sm"
-                        variant="transparent"
-                        icon={<IconEdit />}
-                        aria-label={t('Edit filter')}
-                        disabled={!canWrite}
-                        onClick={() => openCustomFilterModal({project, filter})}
-                      />
+                      {canWrite ? (
+                        <Button
+                          size="sm"
+                          variant="transparent"
+                          icon={<IconEdit />}
+                          aria-label={t('Edit filter')}
+                          onClick={() => openCustomFilterModal({project, filter})}
+                        />
+                      ) : (
+                        <Button
+                          size="sm"
+                          variant="transparent"
+                          icon={<IconShow />}
+                          aria-label={t('View filter')}
+                          tooltipProps={{title: t('View filter')}}
+                          onClick={() =>
+                            openCustomFilterModal({
+                              project,
+                              filter,
+                              readOnlyReason: editDisabledReason,
+                            })
+                          }
+                        />
+                      )}
                       <Confirm
                         priority="danger"
                         disabled={!canWrite}
@@ -670,6 +717,9 @@ export function CustomFilters({project}: {project: Project}) {
                           variant="transparent"
                           icon={<IconDelete />}
                           aria-label={t('Delete filter')}
+                          tooltipProps={
+                            canWrite ? undefined : {title: editDisabledReason}
+                          }
                         />
                       </Confirm>
                     </Flex>

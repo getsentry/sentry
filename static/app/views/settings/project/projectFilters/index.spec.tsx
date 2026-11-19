@@ -1663,40 +1663,138 @@ describe('ProjectFilters', () => {
     );
   });
 
+  const readOnlyOrg = OrganizationFixture({
+    ...organization,
+    access: [],
+    features: ['inbound-filters-v2', 'inbound-filters-v2-ui'],
+  });
+
   it('disables custom filter controls without project:write access', async () => {
-    MockApiClient.addMockResponse({
-      url: CUSTOM_INBOUND_FILTERS_URL,
-      body: [CustomInboundFilterFixture({id: '1', name: 'A filter'})],
-    });
-    render(<ProjectFiltersWithModal />, {
-      organization: OrganizationFixture({
-        ...organization,
-        access: [],
-        features: ['inbound-filters-v2', 'inbound-filters-v2-ui'],
-      }),
-      outletContext: {project: businessProject},
-      initialRouterConfig,
-    });
+    renderInboundFilters(
+      [CustomInboundFilterFixture({id: '1', name: 'A filter'})],
+      businessProject,
+      readOnlyOrg
+    );
 
     expect(await screen.findByRole('checkbox', {name: 'Disable filter'})).toBeDisabled();
     expect(screen.getByRole('button', {name: 'Add Filter'})).toHaveAttribute(
       'aria-disabled',
       'true'
     );
-    expect(screen.getByRole('button', {name: 'Edit filter'})).toBeDisabled();
-    expect(screen.getByRole('button', {name: 'Delete filter'})).toBeDisabled();
+    // The row offers to view the filter in place of editing it.
+    expect(screen.queryByRole('button', {name: 'Edit filter'})).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'View filter'})).toBeEnabled();
+
+    const deleteButton = screen.getByRole('button', {name: 'Delete filter'});
+    expect(deleteButton).toHaveAttribute('aria-disabled', 'true');
+    await userEvent.hover(deleteButton);
+    expect(
+      await screen.findByText('You need project write access to edit filters.')
+    ).toBeInTheDocument();
+  });
+
+  it('shows every condition of a filter read only without project:write access', async () => {
+    renderInboundFilters(
+      [
+        CustomInboundFilterFixture({
+          id: '1',
+          name: 'Old releases',
+          conditions: [{type: 'release', value: ['1.*', '2.*', '3.*', '4.*', '5.*']}],
+        }),
+      ],
+      businessProject,
+      readOnlyOrg
+    );
+
+    await userEvent.click(await screen.findByRole('button', {name: 'View filter'}));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText('View Custom Filter')).toBeInTheDocument();
+    expect(
+      within(dialog).getByText('Sentry drops data that meets every condition below.')
+    ).toBeInTheDocument();
+    expect(within(dialog).getByRole('textbox', {name: 'Name'})).toBeDisabled();
+    expect(within(dialog).getByRole('textbox', {name: 'Data Type'})).toBeDisabled();
+    expect(
+      within(dialog).getByRole('row', {name: 'release:[1.*,2.*,3.*,4.*,5.*]'})
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByText('You need project write access to edit filters.')
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).queryByRole('button', {name: 'Save Changes'})
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(within(dialog).getByRole('button', {name: 'Close'}));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  it('shows the lines of a legacy list row read only without project:write access', async () => {
+    renderInboundFilters(
+      [
+        CustomInboundFilterFixture({
+          id: '1',
+          name: 'Error Messages',
+          legacyFilter: 'error-message',
+          conditions: [{type: 'error_message', value: ['*timeout*', '*refused*']}],
+        }),
+      ],
+      ProjectFixture({...businessProject, platform: 'javascript-react'}),
+      readOnlyOrg
+    );
+
+    await userEvent.click(await screen.findByRole('button', {name: 'View filter'}));
+    const dialog = await screen.findByRole('dialog');
+    expect(
+      within(dialog).getByText(
+        'Sentry drops data whose Error Message matches any pattern below, one per line.'
+      )
+    ).toBeInTheDocument();
+
+    // Read only rather than disabled, so the patterns can still be copied.
+    const lines = within(dialog).getByRole('textbox', {name: 'Error Message'});
+    expect(lines).toHaveValue('*timeout*\n*refused*');
+    expect(lines).toHaveAttribute('readonly');
+    expect(lines).toBeEnabled();
+
+    // The warning explains why a pattern may miss what an issue shows.
+    expect(
+      within(dialog).getByRole('link', {name: 'Learn how to match the incoming error.'})
+    ).toBeInTheDocument();
+  });
+
+  it('points at viewing the filter for the values a tooltip leaves out', async () => {
+    const values = Array.from({length: 15}, (_, index) => `${index}.*`);
+    renderInboundFilters(
+      [CustomInboundFilterFixture({conditions: [{type: 'release', value: values}]})],
+      businessProject,
+      readOnlyOrg
+    );
+
+    const more = await screen.findByText('12 more');
+    act(() => more.focus());
+    expect(
+      await screen.findByText('Showing 10 of 12. View the filter to see every value.')
+    ).toBeInTheDocument();
+  });
+
+  it('points at editing the filter for the values a tooltip leaves out', async () => {
+    const values = Array.from({length: 15}, (_, index) => `${index}.*`);
+    renderInboundFilters([
+      CustomInboundFilterFixture({conditions: [{type: 'release', value: values}]}),
+    ]);
+
+    const more = await screen.findByText('12 more');
+    act(() => more.focus());
+    expect(
+      await screen.findByText('Showing 10 of 12. Edit the filter to see every value.')
+    ).toBeInTheDocument();
   });
 
   it('lists filters as not applied when the plan lacks custom inbound filters', async () => {
-    MockApiClient.addMockResponse({
-      url: CUSTOM_INBOUND_FILTERS_URL,
-      body: [CustomInboundFilterFixture({id: '1', name: 'A filter'})],
-    });
-    render(<ProjectFilters />, {
-      organization: inboundFiltersV2Org,
-      outletContext: {project},
-      initialRouterConfig,
-    });
+    renderInboundFilters(
+      [CustomInboundFilterFixture({id: '1', name: 'A filter'})],
+      project
+    );
 
     expect(await screen.findByText('A filter')).toBeInTheDocument();
     expect(
@@ -1707,8 +1805,18 @@ describe('ProjectFilters', () => {
       'aria-disabled',
       'true'
     );
-    expect(screen.getByRole('button', {name: 'Edit filter'})).toBeDisabled();
-    expect(screen.getByRole('button', {name: 'Delete filter'})).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Delete filter'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+
+    // The filters still open read only, so the organization sees what they hold.
+    await userEvent.click(screen.getByRole('button', {name: 'View filter'}));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText('View Custom Filter')).toBeInTheDocument();
+    expect(
+      within(dialog).getByText('Your plan does not include custom inbound filters.')
+    ).toBeInTheDocument();
   });
 
   it('disables configuration for non project:write users', async () => {
