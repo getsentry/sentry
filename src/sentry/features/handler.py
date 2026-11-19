@@ -59,7 +59,6 @@ class FeatureHandler:
             for (obj, feature) in batch.get_feature_objects().items()
         }
 
-    @abc.abstractmethod
     def batch_has(
         self,
         feature_names: Sequence[str],
