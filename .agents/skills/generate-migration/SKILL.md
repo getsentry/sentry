@@ -148,6 +148,27 @@ Dropping the constraints is not optional. The tables survive until phase 2, but 
 
 Don't rename in Postgres. Use `db_column` or `Meta.db_table` to keep the old name.
 
+### Partitioned Tables
+
+Code lives in `src/sentry/db/partitions/`. A model declares how its table is partitioned, and each environment decides whether it actually is:
+
+```python
+from sentry.db.partitions import HashPartitioning, PartitionInterval, RangePartitioning
+
+class CheckIn(Model):
+    __partitioning__ = RangePartitioning(
+        "date_added", PartitionInterval.WEEK, premake=4, retention=timedelta(days=90)
+    )
+    # or: __partitioning__ = HashPartitioning("id", modulus=16)
+```
+
+- `settings.SENTRY_PARTITIONED_TABLES` lists the tables created partitioned in this environment. Everywhere else the same model and migrations create a normal table. Listing an existing table does nothing: converting a table is a separate, manual process. `sentry partitions status` reports mismatches between declarations, the setting and the database.
+- The declaration is checked at import time in every environment. Every unique constraint (`unique=True`, `unique_together`, `UniqueConstraint`) must include the partition field, and exclusion constraints are not allowed. Database foreign keys into a range partitioned table are not allowed, and into a hash partitioned table only when it is partitioned on its primary key. Use a plain id column or `db_constraint=False`.
+- When partitioned, the primary key becomes `(id, <partition field>)` in Postgres while Django keeps a single `id` primary key. Queries that filter on neither `id` nor the partition field scan every partition.
+- `CreateModel` creates the table, every hash partition, or the current and `premake` upcoming range partitions. The hourly `maintain-partitions` task creates upcoming range partitions and drops partitions older than `retention`. `sentry cleanup` drops whole expired partitions before deleting old rows one by one. Inserting a row that falls outside every partition fails. Use `EnsurePartitions("modelname")` from `sentry.new_migrations.operations` when a migration writes rows right after creating the table.
+- On an existing partitioned table, `AddIndex` creates the index on the parent only, builds it concurrently on each partition, and attaches the partition indexes. This needs a non-atomic migration, which is the default for `CheckedMigration`. These operations are rejected on an existing partitioned table: adding a unique constraint, a unique field, an indexed field or a foreign key constraint, and altering the partition field. Add plain columns instead, and add indexes with `AddIndex`.
+- Production runs Postgres 14. Put all partition SQL in `src/sentry/db/partitions/sql.py`, and keep it Postgres 14 compatible. That module lists the allowed features.
+
 ## Resolving Merge Conflicts
 
 If `migrations_lockfile.txt` conflicts:
