@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {useTheme} from '@emotion/react';
 import {useQuery} from '@tanstack/react-query';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
@@ -8,7 +9,6 @@ import {Text} from '@sentry/scraps/text';
 import type {BarChartSeries} from 'sentry/components/charts/barChart';
 import {BarChart} from 'sentry/components/charts/barChart';
 import {ChartContainer, HeaderTitleLegend} from 'sentry/components/charts/styles';
-import {getSeriesApiInterval} from 'sentry/components/charts/utils';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
@@ -21,26 +21,26 @@ import {Redirect} from 'sentry/components/redirect';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
-import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDataDatetime} from 'sentry/views/organizationStats';
 import {StatsHeader} from 'sentry/views/organizationStats/header';
 import {makeStatsPathname} from 'sentry/views/organizationStats/pathname';
+import {isDisplayUtc} from 'sentry/views/organizationStats/utils';
 
 import {ContactBillingMembers} from 'getsentry/views/contactBillingMembers';
 
 import type {SeerUsageStatsResponse, ProductCredits} from './utils';
-import {groupCreditsByProduct, seerUsageStatsOptions} from './utils';
+import {
+  formatCredits,
+  getProductColors,
+  groupCreditsByProduct,
+  seerUsageStatsOptions,
+} from './utils';
 
 const COLUMNS: TableColumnConfig[] = [
   {key: 'feature', width: '1fr'},
   {key: 'credits', width: 'max-content'},
 ];
-
-// A credit bills one cent, so whole credits keep the precision of a price in cents.
-function formatCredits(credits: number) {
-  return Math.round(credits).toLocaleString();
-}
 
 function CreditsChart({
   products,
@@ -51,6 +51,7 @@ function CreditsChart({
   stats: SeerUsageStatsResponse;
   utc: boolean;
 }) {
+  const theme = useTheme();
   const series: BarChartSeries[] = products.map(product => ({
     seriesName: product.label,
     data: stats.intervals.map((interval, i) => ({
@@ -65,6 +66,7 @@ function CreditsChart({
       stacked
       isGroupedByDate
       utc={utc}
+      colors={getProductColors(products, theme.chart.getColorPalette)}
       grid={{bottom: '3px', left: '3px', right: '10px', top: '40px'}}
       legend={{right: 10, top: 5}}
       yAxis={{
@@ -93,11 +95,7 @@ function SeerCredits() {
 
   const products = data ? groupCreditsByProduct(data) : [];
   const totalCredits = products.reduce((sum, product) => sum + product.totalCredits, 0);
-  // Buckets of a day or longer start at midnight UTC, so we label them in UTC
-  // like the Usage tab does.
-  const utc =
-    dataDatetime.utc === true ||
-    parsePeriodToHours(getSeriesApiInterval(dataDatetime)) >= 24;
+  const utc = isDisplayUtc(dataDatetime);
 
   return (
     <Fragment>

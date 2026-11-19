@@ -1,4 +1,4 @@
-import {groupCreditsByProduct} from './utils';
+import {formatCredits, getProductColors, groupCreditsByProduct} from './utils';
 
 function creditsGroup(feature: string, credits: number[]) {
   return {
@@ -39,5 +39,29 @@ describe('groupCreditsByProduct', () => {
     });
 
     expect(products).toEqual([{label: 'Other', credits: [100], totalCredits: 100}]);
+  });
+});
+
+describe('getProductColors', () => {
+  it('keeps each product on its own palette slot when an earlier product has no usage', () => {
+    const getColorPalette = (length: number) =>
+      ['blurple', 'indigo', 'pink', 'green'].slice(0, length);
+    const product = (label: string) => ({label, credits: [], totalCredits: 0});
+
+    expect(
+      getProductColors([product('Agent'), product('Other')], getColorPalette)
+    ).toEqual(['indigo', 'pink']);
+  });
+});
+
+describe('formatCredits', () => {
+  it('rounds to whole credits', () => {
+    expect(formatCredits(0)).toBe('0');
+    expect(formatCredits(0.5)).toBe('1');
+    expect(formatCredits(1234.4)).toBe('1,234');
+  });
+
+  it('shows usage below half a credit as <1', () => {
+    expect(formatCredits(0.4)).toBe('<1');
   });
 });
