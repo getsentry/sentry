@@ -4,8 +4,7 @@ import type {SeerCreditDenialReason} from 'sentry/utils/seer/useSeerCreditCheck'
 import type {RepoPRState} from 'sentry/views/seerExplorer/types';
 
 /**
- * Inline status for an autofix step that stopped part way for credits. Past
- * tense, since the organization may have added credits since the stop. The
+ * Inline status for an autofix step that stopped part way for credits. The
  * out-of-credits CTA is shown by the credit gates, so this only says what
  * happened.
  */
