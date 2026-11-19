@@ -4,7 +4,7 @@ from typing import ParamSpec, TypeVar
 _P = ParamSpec("_P")
 _R = TypeVar("_R")
 
-_Directive = str | Sequence[str]
+_Directive = str | Sequence[str] | None
 
 def csp_exempt(f: Callable[_P, _R]) -> Callable[_P, _R]: ...
 def csp_update(**kwargs: _Directive) -> Callable[[Callable[_P, _R]], Callable[_P, _R]]: ...
