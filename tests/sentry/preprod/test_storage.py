@@ -59,6 +59,7 @@ class PreprodStorageTest(BaseAssembleTest):
         assert head["Content-Length"] == str(len(payload))
         if objectstore:
             assert not File.objects.filter(type__in=["preprod.file", "preprod.artifact"]).exists()
+            assert artifact.storage_path is not None
             response = get_session(UsecaseId.PREPROD_ARTIFACTS, self.project).get(
                 artifact.storage_path
             )
@@ -101,6 +102,9 @@ class PreprodStorageTest(BaseAssembleTest):
             head.delete()
         if objectstore:
             session = get_session(UsecaseId.PREPROD_SIZE, self.project)
+            assert comparison.storage_path is not None
+            assert head_metric.analysis_storage_path is not None
+            assert base_metric.analysis_storage_path is not None
             assert session.head(comparison.storage_path) is None
             assert session.head(head_metric.analysis_storage_path) is None
             assert session.head(base_metric.analysis_storage_path) is not None
