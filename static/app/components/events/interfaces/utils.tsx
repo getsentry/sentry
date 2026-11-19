@@ -343,7 +343,7 @@ export function getStacktracePlatform(
 
 export function inferPlatform(event: Event, thread?: Thread): PlatformKey {
   const exception = getThreadException(event, thread);
-  let exceptionFramePlatform: Frame | undefined = undefined;
+  let exceptionFramePlatform: Frame | undefined;
 
   for (const value of exception?.values ?? []) {
     exceptionFramePlatform = value.stacktrace?.frames?.find(frame => !!frame.platform);

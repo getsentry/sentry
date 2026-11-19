@@ -2,7 +2,11 @@ import type {TimeSince} from 'sentry/components/timeSince';
 import type {NoteType} from 'sentry/types/alerts';
 import type {Group, GroupActivityNote} from 'sentry/types/group';
 
-import type {DisplayedActivityFeedItem} from './activityLineItem/activityFeedItem';
+import {
+  getActorActivity,
+  type ActivityFeedItem,
+  type DisplayedActivityFeedItem,
+} from './activityLineItem/activityFeedItem';
 import {CollapsedStatusActivityRow} from './activityLineItem/collapsedStatusActivityRow';
 import {ActivityLineImpact, isImpactActivity} from './activityLineItem/impact';
 import {
@@ -20,6 +24,7 @@ interface ActivityFeedProps {
   onCommentDelete: (item: GroupActivityNote) => Promise<void>;
   onCommentUpdate: (item: GroupActivityNote, data: NoteType) => Promise<void>;
   children?: React.ReactNode;
+  highlightedActivityId?: string;
   timestampUnitStyle?: React.ComponentProps<typeof TimeSince>['unitStyle'];
 }
 
@@ -27,29 +32,44 @@ export function ActivityFeed({
   items,
   children,
   group,
+  highlightedActivityId,
   inputVariant,
   onCommentDelete,
   onCommentUpdate,
   timestampUnitStyle,
 }: ActivityFeedProps) {
-  function renderActivity(item: DisplayedActivityFeedItem): React.ReactNode {
-    const {activity} = item;
-    const key = isActivityNote(activity)
-      ? `comment:${activity.commentId}`
-      : `activity:${activity.id}`;
+  function isHighlighted(item: ActivityFeedItem) {
+    return (
+      highlightedActivityId !== undefined &&
+      (item.activity.id === highlightedActivityId ||
+        getActorActivity(item).id === highlightedActivityId)
+    );
+  }
 
+  function renderActivity(item: DisplayedActivityFeedItem): React.ReactNode {
     if (item.type === 'collapsed_status_activities') {
+      const containsHighlight = item.activities.some(isHighlighted);
+      const key = `activity:${item.activity.id}`;
       return (
-        <CollapsedStatusActivityRow key={key} eventCount={item.activities.length}>
+        <CollapsedStatusActivityRow
+          key={containsHighlight ? `${key}:${highlightedActivityId}` : key}
+          defaultExpanded={containsHighlight}
+          eventCount={item.activities.length}
+        >
           {item.activities.map(renderActivity)}
         </CollapsedStatusActivityRow>
       );
     }
 
+    const {activity} = item;
+    const key = isActivityNote(activity)
+      ? `comment:${activity.commentId}`
+      : `activity:${activity.id}`;
+
+    let line: React.ReactNode;
     if (isActivityNote(activity)) {
-      return (
+      line = (
         <ActivityLineNote
-          key={key}
           activity={activity}
           inputVariant={inputVariant}
           onDelete={() => onCommentDelete(activity)}
@@ -57,39 +77,37 @@ export function ActivityFeed({
           timestampUnitStyle={timestampUnitStyle}
         />
       );
-    }
-
-    if (isImpactActivity(activity)) {
-      return (
+    } else if (isImpactActivity(activity)) {
+      line = (
         <ActivityLineImpact
-          key={key}
           activity={activity}
           group={group}
           timestampUnitStyle={timestampUnitStyle}
         />
       );
-    }
-
-    if (isInvestigationLinkedActivity(activity)) {
-      return (
+    } else if (isInvestigationLinkedActivity(activity)) {
+      line = (
         <ActivityLineInvestigationLinked
-          key={key}
           activity={activity}
           variant={inputVariant}
           timestampUnitStyle={timestampUnitStyle}
         />
       );
+    } else {
+      line = (
+        <ActivityLine item={item} group={group} timestampUnitStyle={timestampUnitStyle}>
+          {item.body}
+        </ActivityLine>
+      );
     }
 
     return (
-      <ActivityLine
+      <Timeline.Highlight
         key={key}
-        item={item}
-        group={group}
-        timestampUnitStyle={timestampUnitStyle}
+        value={isHighlighted(item) ? highlightedActivityId : undefined}
       >
-        {item.body}
-      </ActivityLine>
+        {line}
+      </Timeline.Highlight>
     );
   }
 

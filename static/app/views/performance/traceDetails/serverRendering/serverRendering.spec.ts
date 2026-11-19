@@ -1,6 +1,7 @@
 import {
+  SEARCH_PAGE__SERVER_RENDERING__AGE,
   SEARCH_PAGE__SERVER_RENDERING__TYPE,
-  SEARCH_SENTRY__LINK__TYPE,
+  SEARCH_LINK__TYPE,
 } from '@sentry/conventions/attributes/search';
 
 import type {
@@ -22,7 +23,7 @@ function makeLink(
     itemId: 'b415e097df49bf1c',
     traceId: '6edf623ed48e4172a54e7fbee3b40c5d',
     sampled: true,
-    attributes: [{name: SEARCH_SENTRY__LINK__TYPE, type: 'str', value: type}],
+    attributes: [{name: SEARCH_LINK__TYPE, type: 'str', value: type}],
     ...overrides,
   };
 }
@@ -74,6 +75,42 @@ describe('getPageServerRendering', () => {
       },
       requestRender: undefined,
     });
+  });
+
+  it('gives the shared render the age of the render', () => {
+    const result = getPageServerRendering({
+      op: 'pageload',
+      attributes: [
+        ...typeAttribute('static'),
+        {name: SEARCH_PAGE__SERVER_RENDERING__AGE, type: 'int', value: 172800},
+      ],
+      links: [makeLink('cache_origin')],
+    });
+
+    expect(result?.sharedRender?.age).toBe(172800);
+  });
+
+  it('gives the shared render no age when the attribute is missing', () => {
+    const result = getPageServerRendering({
+      op: 'pageload',
+      attributes: typeAttribute('static'),
+      links: [makeLink('cache_origin')],
+    });
+
+    expect(result?.sharedRender?.age).toBeUndefined();
+  });
+
+  it('ignores a negative age', () => {
+    const result = getPageServerRendering({
+      op: 'pageload',
+      attributes: [
+        ...typeAttribute('static'),
+        {name: SEARCH_PAGE__SERVER_RENDERING__AGE, type: 'int', value: -5},
+      ],
+      links: [makeLink('cache_origin')],
+    });
+
+    expect(result?.sharedRender?.age).toBeUndefined();
   });
 
   it('marks the shared render as not traced when a static page has no link', () => {

@@ -917,7 +917,6 @@ describe('AutofixSection', () => {
 
     function ContextCapture() {
       const {getLLMContext} = useLLMContext();
-      // oxlint-disable-next-line react/immutability
       snapshotRef.current = getLLMContext;
       return null;
     }
@@ -1003,7 +1002,7 @@ describe('AutofixSection', () => {
   describe('out of Seer credits', () => {
     const creditCheckOrganization = OrganizationFixture({
       hideAiFeatures: false,
-      features: ['seer-credit-checks', 'token-billed-seer-enabled'],
+      features: ['token-billed-seer-enabled'],
     });
     const creditCheckUrl = `/organizations/${organization.slug}/seer/credit-check/`;
 

@@ -709,7 +709,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
             status=ObjectStatus.ACTIVE,
             organizationintegration__organization_id=organization_id,
             organizationintegration__status=ObjectStatus.ACTIVE,
-        ).first()
+        ).first()  # noqa: S035
         if integration is None:
             return None
 
