@@ -7,7 +7,6 @@ import {Alert} from '@sentry/scraps/alert';
 import {Tag, type TagProps} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
-import {InfoText} from '@sentry/scraps/info';
 import {Input} from '@sentry/scraps/input';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
@@ -25,24 +24,24 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 
 type RowStatus = 'match' | 'mismatch' | 'legacy_only' | 'platform_only';
 
+type InvoiceRef = {
+  date_added: string;
+  guid: string;
+};
+
 type Row = {
   delta_cents: number;
   delta_pct: number | null;
-  // guid is present only when the side has exactly one invoice in the window
-  // (otherwise there's no single invoice to deep-link to).
   legacy_amount: number | null;
   legacy_invoice_count: number;
-  legacy_invoice_guid: string | null;
   organization_id: number;
   organization_slug: string | null;
   platform_amount: number | null;
   platform_invoice_count: number;
-  platform_invoice_guid: string | null;
   status: RowStatus;
-  // When the side's latest invoice in the window was created. Absent from
-  // backends that don't return it yet.
-  legacy_invoice_date_added?: string | null;
-  platform_invoice_date_added?: string | null;
+  // Oldest first. Absent from backends that don't list invoices yet.
+  legacy_invoices?: InvoiceRef[];
+  platform_invoices?: InvoiceRef[];
 };
 
 type Summary = {
@@ -83,74 +82,58 @@ function formatDollars(cents: number | null) {
   return `$${dollars.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
 }
 
-// Render a dollar amount, deep-linking to the admin invoice detail page when
-// the side has a single invoice. AdminInvoiceDetailsEndpoint resolves legacy
-// and platform invoices alike by guid, and unlike the org-scoped receipts
-// page it doesn't hide legacy shadow invoices for migrated orgs.
-function InvoiceAmount({
-  cents,
-  guid,
-  region,
-}: {
-  cents: number | null;
-  guid: string | null;
-  region: string | undefined;
-}) {
-  const amount = formatDollars(cents);
-  if (!guid || !region) {
-    return amount;
-  }
-  return <Link to={`/_admin/invoices/${region}/${guid}/`}>{amount}</Link>;
-}
-
 // `MM/DD` of the UTC day, matching the whole-UTC-day window.
-function formatInvoiceDay(iso: string | null | undefined): string | null {
-  const ms = iso ? Date.parse(iso) : NaN;
-  return Number.isNaN(ms) ? null : utcDay(ms).slice(5).replace('-', '/');
+function formatInvoiceDay(iso: string): string {
+  return utcDay(Date.parse(iso)).slice(5).replace('-', '/');
 }
 
+// Render a side's total followed by the day of each of its invoices, each
+// deep-linked to the admin invoice detail page. AdminInvoiceDetailsEndpoint
+// resolves legacy and platform invoices alike by guid, and unlike the
+// org-scoped receipts page it doesn't hide legacy shadow invoices for
+// migrated orgs.
 function InvoiceSide({
   cents,
   count,
-  dateAdded,
-  guid,
+  invoices,
   region,
-  side,
 }: {
   cents: number | null;
   count: number;
-  dateAdded: string | null | undefined;
-  guid: string | null;
+  invoices: InvoiceRef[] | undefined;
   region: string | undefined;
-  side: 'legacy' | 'platform';
 }) {
-  const day = formatInvoiceDay(dateAdded);
-  const countTitle =
-    count === 0
-      ? `No ${side} invoices in this window`
-      : `${count} ${side} ${count === 1 ? 'invoice' : 'invoices'} created in this window; the amount is their total`;
+  const amount = formatDollars(cents);
+  if (invoices === undefined) {
+    return (
+      <Fragment>
+        {amount}{' '}
+        <Text size="sm" variant="muted">
+          ({count})
+        </Text>
+      </Fragment>
+    );
+  }
+  if (invoices.length === 0) {
+    return amount;
+  }
   return (
     <Fragment>
-      <InvoiceAmount cents={cents} guid={guid} region={region} />
-      {day && (
-        <Fragment>
-          {' '}
-          <InfoText
-            size="sm"
-            variant="muted"
-            title={
-              count > 1
-                ? `Creation date (UTC) of the latest of ${count} ${side} invoices`
-                : `Creation date (UTC) of the ${side} invoice`
-            }
-          >
-            {day}
-          </InfoText>
-        </Fragment>
-      )}{' '}
-      <InfoText size="sm" variant="muted" title={countTitle}>
-        ({count})
-      </InfoText>
+      {amount} (
+      {invoices.map((invoice, i) => {
+        const day = formatInvoiceDay(invoice.date_added);
+        return (
+          <Fragment key={invoice.guid}>
+            {i > 0 && ', '}
+            {region ? (
+              <Link to={`/_admin/invoices/${region}/${invoice.guid}/`}>{day}</Link>
+            ) : (
+              day
+            )}
+          </Fragment>
+        );
+      })}
+      )
     </Fragment>
   );
 }
@@ -337,11 +320,7 @@ export function InvoiceComparison() {
       navigate(
         {
           pathname: location.pathname,
-          query: {
-            ...location.query,
-            ...pinnedWindow,
-            page_size: String(pageSize),
-          },
+          query: {...location.query, ...pinnedWindow, page_size: String(pageSize)},
         },
         {replace: true}
       );
@@ -633,21 +612,17 @@ export function InvoiceComparison() {
                       </td>
                       <RightCell>
                         <InvoiceSide
-                          side="legacy"
                           cents={row.legacy_amount}
                           count={row.legacy_invoice_count}
-                          dateAdded={row.legacy_invoice_date_added}
-                          guid={row.legacy_invoice_guid}
+                          invoices={row.legacy_invoices}
                           region={cell?.name}
                         />
                       </RightCell>
                       <RightCell>
                         <InvoiceSide
-                          side="platform"
                           cents={row.platform_amount}
                           count={row.platform_invoice_count}
-                          dateAdded={row.platform_invoice_date_added}
-                          guid={row.platform_invoice_guid}
+                          invoices={row.platform_invoices}
                           region={cell?.name}
                         />
                       </RightCell>

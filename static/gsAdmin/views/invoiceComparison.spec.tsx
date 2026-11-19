@@ -88,7 +88,7 @@ describe('InvoiceComparison', () => {
     expect(screen.getByLabelText('Last day (UTC)')).toHaveValue('2026-11-09');
   });
 
-  it('shows the invoice day on each side and explains the invoice count', async () => {
+  it('links each invoice by day after the amount', async () => {
     const body = comparisonBody();
     MockApiClient.addMockResponse({
       url: COMPARISON_URL,
@@ -98,8 +98,13 @@ describe('InvoiceComparison', () => {
           {
             ...body.rows[0],
             legacy_invoice_count: 2,
-            legacy_invoice_date_added: '2026-11-19T00:05:00+00:00',
-            platform_invoice_date_added: '2026-11-18T23:55:00+00:00',
+            legacy_invoices: [
+              {guid: 'legacy-a', date_added: '2026-11-18T23:55:00+00:00'},
+              {guid: 'legacy-b', date_added: '2026-11-19T00:05:00+00:00'},
+            ],
+            platform_invoices: [
+              {guid: 'platform-a', date_added: '2026-11-19T01:00:00+00:00'},
+            ],
           },
         ],
       },
@@ -107,15 +112,17 @@ describe('InvoiceComparison', () => {
 
     renderComparison({start: '2026-11-18', end: '2026-11-19'});
 
-    expect(await screen.findByText('11/19')).toBeInTheDocument();
-    expect(screen.getByText('11/18')).toBeInTheDocument();
-
-    await userEvent.hover(screen.getByText('(2)'));
-    expect(
-      await screen.findByText(
-        '2 legacy invoices created in this window; the amount is their total'
-      )
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('link', {name: '11/18'})).toHaveAttribute(
+      'href',
+      '/_admin/invoices/us/legacy-a/'
+    );
+    const [legacyDay, platformDay] = screen.getAllByRole('link', {name: '11/19'});
+    expect(legacyDay).toHaveAttribute('href', '/_admin/invoices/us/legacy-b/');
+    expect(platformDay).toHaveAttribute('href', '/_admin/invoices/us/platform-a/');
+    expect(screen.getByText('$10.00', {exact: false}).closest('td')).toHaveTextContent(
+      '$10.00 (11/18, 11/19)'
+    );
+    expect(screen.queryByRole('link', {name: /\$/})).not.toBeInTheDocument();
   });
 
   it('notes how many small mismatches are hidden', async () => {
@@ -215,11 +222,7 @@ describe('InvoiceComparison', () => {
         body: comparisonBody(),
       });
 
-      renderComparison({
-        start: '2026-11-09',
-        end: '2026-11-09',
-        min_mismatch: '2.5',
-      });
+      renderComparison({start: '2026-11-09', end: '2026-11-09', min_mismatch: '2.5'});
 
       expect(await screen.findByRole('link', {name: 'org-slug'})).toBeInTheDocument();
       expect(mock.mock.calls[0][1].query).toEqual(
@@ -234,10 +237,7 @@ describe('InvoiceComparison', () => {
         body: comparisonBody(),
       });
 
-      const {router} = renderComparison({
-        start: '2026-11-09',
-        end: '2026-11-09',
-      });
+      const {router} = renderComparison({start: '2026-11-09', end: '2026-11-09'});
       const input = screen.getByLabelText('Hide mismatches under ($)');
       await userEvent.clear(input);
       await userEvent.type(input, '0');
