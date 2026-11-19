@@ -3,6 +3,7 @@ import {useMemo, useState} from 'react';
 import {MessageRow, ThinkingBlock} from '@sentry/scraps/chat';
 
 import {type AutofixSection} from 'sentry/components/events/autofix/useExplorerAutofix';
+import {defined} from 'sentry/utils/defined';
 import {
   groupTranscript,
   ResponseGroup,
@@ -86,7 +87,8 @@ function StepResponses({
   stoppedAt,
 }: ReturnType<typeof useStepTranscript> & {stoppedAt?: string}) {
   return responses.map((segment, i) => {
-    const nextBlock = blocks[segment.indices.at(-1)! + 1];
+    const lastIndex = segment.indices.at(-1);
+    const nextBlock = defined(lastIndex) ? blocks[lastIndex + 1] : undefined;
     return (
       <ResponseGroup
         key={segment.indices[0]}
