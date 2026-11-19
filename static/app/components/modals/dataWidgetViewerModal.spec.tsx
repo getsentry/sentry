@@ -229,6 +229,52 @@ describe('Modals -> DataWidgetViewerModal', () => {
     });
   });
 
+  it('toggles Releases from the Layers menu', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: []},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {
+        timeSeries: [
+          TimeSeriesFixture({
+            yAxis: 'count()',
+            values: [
+              {timestamp: 1646100000000, value: 1},
+              {timestamp: 1646120000000, value: 1},
+            ],
+          }),
+        ],
+      },
+    });
+    const widget = WidgetFixture({
+      title: 'Spans Widget',
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.SPANS,
+      queries: [
+        {
+          name: '',
+          conditions: '',
+          fields: ['count()'],
+          aggregates: ['count()'],
+          columns: [],
+          orderby: '',
+        },
+      ],
+    });
+
+    await renderModal({initialData, widget});
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Chart layers'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Releases'}));
+
+    expect(screen.getByRole('option', {name: 'Releases'})).toHaveAttribute(
+      'aria-selected',
+      'false'
+    );
+  });
+
   describe('Errors Widgets', () => {
     describe('Area Chart Widget', () => {
       let mockQuery: WidgetQuery;
@@ -1379,6 +1425,37 @@ describe('Modals -> DataWidgetViewerModal', () => {
       expect(
         url.searchParams.getAll('metric').map(metric => JSON.parse(metric).query)
       ).toEqual(['http.status_code:200', 'http.status_code:500']);
+    });
+
+    it('keeps the dashboard query speed on the metrics Open in Explore link', async () => {
+      const widget = WidgetFixture({
+        widgetType: WidgetType.TRACEMETRICS,
+        queries: [
+          {
+            fields: [],
+            aggregates: ['avg(value,duration,d,none)'],
+            columns: [],
+            conditions: 'http.status_code:200',
+            orderby: '',
+            name: '',
+          },
+        ],
+      });
+      await renderModal({
+        initialData: {
+          ...initialData,
+          organization: OrganizationFixture({
+            features: ['discover-query', 'low-priority-queries'],
+          }),
+        },
+        widget,
+        queryPriority: 'faster',
+      });
+
+      const action = screen.getByRole('button', {name: 'Open in Explore'});
+      const url = new URL(action.getAttribute('href')!, 'https://example.com');
+      expect(url.pathname).toBe('/organizations/org-slug/explore/metrics/');
+      expect(url.searchParams.get('queryPriority')).toBe('faster');
     });
 
     it('does not make an events-timeseries request with an arbitrary table sort as a y-axis', async () => {

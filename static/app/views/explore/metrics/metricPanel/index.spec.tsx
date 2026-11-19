@@ -1,5 +1,4 @@
 import type {ReactNode} from 'react';
-import qs from 'query-string';
 import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {
@@ -15,6 +14,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import * as qs from 'sentry/utils/url/qs';
 import * as useMetricTraceDetailModule from 'sentry/views/explore/metrics/hooks/useMetricTraceDetail';
 import {MetricDetails} from 'sentry/views/explore/metrics/metricInfoTabs/metricDetails';
 import {MetricsSamplesTable} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTable';

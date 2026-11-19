@@ -12,6 +12,7 @@ import {t, tct} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {
+  SEER_AUTO_RELOAD_MODAL_HASH,
   seerWalletAutoTopUpOptions,
   seerWalletBalanceOptions,
 } from 'getsentry/views/subscriptionPage/seerWallet/seerWalletOptions';
@@ -24,11 +25,8 @@ const WARNING_PERCENT = 90;
 
 export function SeerCreditUsageMeter({hasEnoughCredits}: SeerCreditUsageMeterProps) {
   const organization = useOrganization();
-  // Without `seer-credit-checks` the chat looks as it did before, and only
-  // token-billed orgs have a wallet to show.
-  const isEnabled =
-    organization.features.includes('seer-credit-checks') &&
-    organization.features.includes('token-billed-seer-enabled');
+  // Only token-billed orgs have a wallet to show.
+  const isEnabled = organization.features.includes('token-billed-seer-enabled');
   // Every member can read the wallet, but the auto-reload settings need
   // `org:billing`, so other members see the meter without them.
   const canReadAutoReload = organization.access.includes('org:billing');
@@ -61,9 +59,7 @@ export function SeerCreditUsageMeter({hasEnoughCredits}: SeerCreditUsageMeterPro
       total={wallet.included.total + wallet.purchased.total}
       autoReloadEnabled={autoTopUp?.enabled ?? null}
       hasEnoughCredits={hasEnoughCredits}
-      // The Seer wallet card on the billing overview is where auto-reload is
-      // configured until there is an in-place modal.
-      configureAutoReloadTo={`/settings/${organization.slug}/billing/overview/`}
+      configureAutoReloadTo={`/settings/${organization.slug}/billing/overview/${SEER_AUTO_RELOAD_MODAL_HASH}`}
     />
   );
 }

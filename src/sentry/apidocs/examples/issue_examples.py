@@ -15,6 +15,7 @@ from sentry.issues.related.types import (
     RelatedIssuesResponse,
     RelationType,
     RelationTypeStatus,
+    SameTitleMeta,
     SameTraceMeta,
     SimilarStacktraceMeta,
 )
@@ -341,6 +342,7 @@ RELATED_ISSUES_RESPONSE: RelatedIssuesResponse = {
             "relations": [
                 {"type": RelationType.SIMILAR_STACKTRACE, "score": 0.9787},
                 {"type": RelationType.SAME_TRACE},
+                {"type": RelationType.SAME_TITLE},
             ],
         }
     ],
@@ -361,6 +363,12 @@ RELATED_ISSUES_RESPONSE: RelatedIssuesResponse = {
                 type=RelationType.CONTRIBUTING,
                 status=RelationTypeStatus.NOT_APPLICABLE,
                 detail="Only metric issues have contributing issues.",
+            ),
+            SameTitleMeta(
+                type=RelationType.SAME_TITLE,
+                status=RelationTypeStatus.OK,
+                eventId="60fc17404bf4445c81675be939ef74d6",
+                title="ValueError: invalid literal for int() with base 10: 'abc'",
             ),
         ],
     },

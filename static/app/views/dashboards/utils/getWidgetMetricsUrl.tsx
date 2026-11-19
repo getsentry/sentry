@@ -7,7 +7,11 @@ import {
   isEquation,
 } from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
-import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import type {
+  DashboardFilters,
+  DashboardQueryPriority,
+  Widget,
+} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {applyDashboardFilters} from 'sentry/views/dashboards/utils';
 import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
@@ -34,11 +38,14 @@ export function getWidgetMetricsUrl(
   widget: Widget,
   dashboardFilters: DashboardFilters | undefined,
   selection: PageFilters,
-  organization: Organization
+  organization: Organization,
+  queryPriority?: DashboardQueryPriority
 ): string {
   if (!widget.queries[0]?.aggregates) {
     // If we can't extract a valid trace metric, return a basic metrics URL
-    return makeMetricsPathname({organizationSlug: organization.slug, path: '/'});
+    return queryPriority
+      ? getMetricsUrl({organization, queryPriority})
+      : makeMetricsPathname({organizationSlug: organization.slug, path: '/'});
   }
 
   const chartType = getChartTypeFromDisplayType(widget.displayType);
@@ -62,6 +69,9 @@ export function getWidgetMetricsUrl(
           const parsed = parseAggregateExpression(aggregate, queryString);
           const results: BaseMetricQuery[] = [...parsed.metricQueries];
           if (parsed.equationRow) {
+            const aggregateSortBys = query.orderby
+              ? decodeSorts(query.orderby).filter(sort => sort.field === aggregate)
+              : [];
             results.push({
               ...parsed.equationRow,
               queryParams: parsed.equationRow.queryParams.replace({
@@ -69,6 +79,7 @@ export function getWidgetMetricsUrl(
                   new VisualizeEquation(aggregate, {chartType}),
                   ...groupByFields,
                 ],
+                aggregateSortBys,
               }),
             });
           }
@@ -152,6 +163,7 @@ export function getWidgetMetricsUrl(
     organization,
     selection,
     metricQueries,
+    queryPriority,
     title: widget.title,
     referrer: 'dashboards',
   });

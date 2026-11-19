@@ -10,7 +10,7 @@
   "type": "module",
   "scripts": {
     "postinstall": "rm -f node_modules/.bin/sentry",
-    "typecheck": "tsc --build tsconfig.json static/app/serviceWorker/worker/tsconfig.json --builders 2",
+    "typecheck": "tsrs --build tsconfig.json static/app/serviceWorker/worker/tsconfig.json --builders 2",
     "figma": "pnpm dlx @figma/code-connect@1.4.8 connect",
     "type-coverage": "node scripts/type-coverage.ts -p tsconfig.json",
     "type-coverage-diff": "node scripts/type-coverage-diff.ts",
@@ -68,7 +68,7 @@
     "@rspack/core": "2.3.2",
     "@rspack/plugin-react-refresh": "2.0.2",
     "@sentry/bundler-plugins": "11.12.0",
-    "@sentry/conventions": "^0.33.0",
+    "@sentry/conventions": "^0.34.0",
     "@sentry/sqlish": "1.0.1",
     "@swc/plugin-emotion": "20.0.2",
     "@types/gtag.js": "^0.0.12",
@@ -82,14 +82,12 @@
     "html-webpack-plugin": "5.6.3",
     "peggy": "5.1.1",
     "react": "19.3.0",
-    "reflux": "0.4.1",
     "rehype-expressive-code": "^0.44.2",
     "remark-frontmatter": "^5.0.0",
     "remark-gfm": "^4.0.1",
     "remark-mdx-frontmatter": "^6.0.0",
     "sentry": "workspace:@sentry-internal/app@*",
     "swc-plugin-component-annotate": "1.18.4",
-    "ts-checker-rspack-plugin": "1.7.2",
     "tslib": "^2.8.1",
     "yaml": "2.9.0",
     "zrender": "6.1.0"
@@ -115,9 +113,8 @@
     "knip": "6.42.1",
     "odiff-bin": "4.3.8",
     "oxfmt": "^0.75.0",
-    "oxlint": "1.90.0",
-    "oxlint-plugin-eslint": "1.90.0",
-    "oxlint-tsgolint": "7.0.2005",
+    "oxlint": "1.94.0",
+    "oxlint-plugin-eslint": "1.94.0",
     "postcss-styled-syntax": "0.7.0",
     "react-refresh": "0.19.0",
     "run-on-changed": "0.4.0",
@@ -129,8 +126,8 @@
     "stylelint-config-recommended": "^14.0.1",
     "terser": "5.51.2",
     "tinyglobby": "0.2.16",
-    "typescript": "npm:@typescript/typescript6@6.0.2",
-    "typescript-7": "npm:typescript@^7.0.2"
+    "tsrs": "7.1.0-beta.tsrs2",
+    "typescript": "npm:@typescript/typescript6@6.0.2"
   },
   "optionalDependencies": {
     "fsevents": "^2.3.3"

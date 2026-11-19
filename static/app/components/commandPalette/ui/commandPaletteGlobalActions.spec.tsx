@@ -306,11 +306,7 @@ describe('GlobalCommandPaletteActions - project settings ordering', () => {
 
 describe('GlobalCommandPaletteActions - search recall', () => {
   const organization = OrganizationFixture({
-    features: [
-      'session-replay-ui',
-      'performance-view',
-      'dashboards-prebuilt-insights-dashboards',
-    ],
+    features: ['session-replay-ui', 'dashboards-prebuilt-insights-dashboards'],
   });
   const project = ProjectFixture({id: '1', slug: 'project-a', organization});
 

@@ -123,6 +123,7 @@ class OrganizationSummarySerializerTest(TestCase):
             "integrations-vercel",
             "invite-members",
             "open-membership",
+            "performance-view",
             "relay",
             "session-replay-ui",
             "shared-issues",

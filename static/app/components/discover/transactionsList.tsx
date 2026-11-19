@@ -1,8 +1,7 @@
-import {Component, Fragment, useContext, useEffect} from 'react';
+import {Component, Fragment} from 'react';
 import {css} from '@emotion/react';
 import type {Location, LocationDescriptor} from 'history';
 
-import {LinkButton} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Container, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -27,16 +26,8 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import type {Actions} from 'sentry/views/discover/table/cellAction';
-import type {TableColumn} from 'sentry/views/discover/table/types';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {getExploreUrl} from 'sentry/views/explore/utils';
-import type {DomainView, DomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import type {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
-import {mapShowTransactionToPercentile} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
-import {PerformanceAtScaleContext} from 'sentry/views/performance/transactionSummary/transactionOverview/performanceAtScaleContext';
-import type {TransactionFilterOptions} from 'sentry/views/performance/transactionSummary/utils';
-import {DisplayModes} from 'sentry/views/performance/transactionSummary/utils';
 import type {TrendChangeType, TrendView} from 'sentry/views/performance/trends/types';
 
 import {TransactionsTable} from './transactionsTable';
@@ -143,17 +134,6 @@ type Props = {
    * The currently selected option on the dropdown.
    */
   selected: DropdownOption;
-  breakdown?: SpanOperationBreakdownFilter;
-  domainViewFilters?: DomainViewFilters;
-  /**
-   * Show a loading indicator instead of the table, used for transaction summary p95.
-   */
-  forceLoading?: boolean;
-  /**
-   * Optional callback function to generate an alternative EventView object to be used
-   * for generating the Discover query.
-   */
-  generateDiscoverEventView?: () => EventView;
   /**
    * A map of callbacks to generate a link for a column based on the title.
    */
@@ -165,23 +145,6 @@ type Props = {
       location: Location
     ) => LocationDescriptor
   >;
-  generatePerformanceTransactionEventsView?: () => EventView;
-  /**
-   * The callback to generate a cell action handler for a column
-   */
-  handleCellAction?: (
-    c: TableColumn<string | number>
-  ) => (a: Actions, v: string | number) => void;
-  /**
-   * The callback for when View All Events is clicked.
-   */
-  handleOpenAllEventsClick?: (e: React.MouseEvent) => void;
-  /**
-   * The callback for when Open in Discover is clicked.
-   */
-  handleOpenInDiscoverClick?: (e: React.MouseEvent) => void;
-  referrer?: string;
-  showTransactions?: TransactionFilterOptions;
   /**
    * A list of preferred table headers to use over the field names.
    */
@@ -208,45 +171,9 @@ function TableRender({
   tableData,
   titles,
   generateLink,
-  handleCellAction,
-  referrer,
   useAggregateAlias,
   paginationCursorSize,
 }: TableRenderProps) {
-  const query = decodeScalar(location.query.query, '');
-  const display = decodeScalar(location.query.display, DisplayModes.DURATION);
-  const performanceAtScaleContext = useContext(PerformanceAtScaleContext);
-  const hasResults = tableData?.meta && tableData.data?.length > 0;
-
-  useEffect(() => {
-    if (!performanceAtScaleContext) {
-      return;
-    }
-
-    // we are now only collecting analytics data from the transaction summary page
-    // when the display mode is set to duration
-    if (display !== DisplayModes.DURATION) {
-      return;
-    }
-
-    if (isLoading || hasResults === null) {
-      performanceAtScaleContext.setTransactionListTableData(undefined);
-      return;
-    }
-
-    if (
-      hasResults !== performanceAtScaleContext.transactionListTableData?.empty &&
-      query === performanceAtScaleContext.transactionListTableData?.query
-    ) {
-      return;
-    }
-
-    performanceAtScaleContext.setTransactionListTableData({
-      empty: !hasResults,
-      query,
-    });
-  }, [display, isLoading, hasResults, performanceAtScaleContext, query]);
-
   return (
     <Fragment>
       <Grid
@@ -283,9 +210,7 @@ function TableRender({
               columnOrder={columnOrder}
               titles={titles}
               generateLink={generateLink}
-              handleCellAction={handleCellAction}
               useAggregateAlias={useAggregateAlias}
-              referrer={referrer}
             />
           </div>
         )}
@@ -317,30 +242,8 @@ class _TransactionsList extends Component<Props> {
     return sortedEventView;
   }
 
-  generateDiscoverEventView(): EventView {
-    const {generateDiscoverEventView} = this.props;
-    if (typeof generateDiscoverEventView === 'function') {
-      return generateDiscoverEventView();
-    }
-    return this.getEventView();
-  }
-
-  generatePerformanceTransactionEventsView(): EventView {
-    const {generatePerformanceTransactionEventsView} = this.props;
-    return generatePerformanceTransactionEventsView?.() ?? this.getEventView();
-  }
-
-  renderHeader({view}: {view?: DomainView}): React.ReactNode {
-    const {
-      organization,
-      selected,
-      options,
-      handleDropdownChange,
-      handleOpenAllEventsClick,
-      handleOpenInDiscoverClick,
-      showTransactions,
-      breakdown,
-    } = this.props;
+  renderHeader(): React.ReactNode {
+    const {organization, selected, options, handleDropdownChange} = this.props;
     return (
       <Grid columns={{zero: '1fr', md: 'repeat(2, max-content)'}} gap="md">
         <Container width={{zero: '100%', md: 'max-content'}}>
@@ -361,84 +264,26 @@ class _TransactionsList extends Component<Props> {
             />
           )}
         </Container>
-        {!this.isTrend() &&
-          (handleOpenAllEventsClick ? (
-            <GuideAnchor target="release_transactions_open_in_transaction_events">
-              <LinkButton
-                onClick={handleOpenAllEventsClick}
-                to={this.generatePerformanceTransactionEventsView().getPerformanceTransactionEventsViewUrlTarget(
-                  organization,
-                  {
-                    showTransactions: mapShowTransactionToPercentile(showTransactions),
-                    breakdown,
-                    view,
-                  }
-                )}
-                size="xs"
-                data-test-id="transaction-events-open"
-              >
-                {t('View Sampled Events')}
-              </LinkButton>
-            </GuideAnchor>
-          ) : (
-            <GuideAnchor target="release_transactions_open_in_discover">
-              <DiscoverButton
-                onClick={handleOpenInDiscoverClick}
-                to={getExploreTarget(this.generateDiscoverEventView(), organization)}
-                size="xs"
-                data-test-id="discover-open"
-              >
-                {t('Open in Explore')}
-              </DiscoverButton>
-            </GuideAnchor>
-          ))}
+        {!this.isTrend() && (
+          <GuideAnchor target="release_transactions_open_in_discover">
+            <DiscoverButton
+              to={getExploreTarget(this.getEventView(), organization)}
+              size="xs"
+              data-test-id="discover-open"
+            >
+              {t('Open in Explore')}
+            </DiscoverButton>
+          </GuideAnchor>
+        )}
       </Grid>
     );
   }
 
   renderTransactionTable(): React.ReactNode {
-    const {
-      location,
-      organization,
-      handleCellAction,
-      titles,
-      generateLink,
-      forceLoading,
-      referrer,
-      domainViewFilters,
-    } = this.props;
+    const {location, organization, titles, generateLink} = this.props;
 
     const eventView = this.getEventView();
-    const columnOrder = eventView.getColumns();
     const cursor = decodeScalar(location.query?.[TRANSACTION_CURSOR_NAME]);
-    const tableCommonProps: Omit<
-      TableRenderProps,
-      'isLoading' | 'pageLinks' | 'tableData' | 'header'
-    > = {
-      handleCellAction,
-      referrer,
-      eventView,
-      organization,
-      location,
-      columnOrder,
-      titles,
-      generateLink,
-      useAggregateAlias: false,
-      paginationCursorSize: 'xs',
-      onCursor: this.handleCursor,
-    };
-
-    if (forceLoading) {
-      return (
-        <TableRender
-          {...tableCommonProps}
-          isLoading
-          pageLinks={null}
-          tableData={null}
-          header={this.renderHeader({view: domainViewFilters?.view})}
-        />
-      );
-    }
 
     return (
       <DiscoverQuery
@@ -451,11 +296,19 @@ class _TransactionsList extends Component<Props> {
       >
         {({isLoading, pageLinks, tableData}) => (
           <TableRender
-            {...tableCommonProps}
+            eventView={eventView}
+            organization={organization}
+            location={location}
+            columnOrder={eventView.getColumns()}
+            titles={titles}
+            generateLink={generateLink}
+            useAggregateAlias={false}
+            paginationCursorSize="xs"
+            onCursor={this.handleCursor}
             isLoading={isLoading}
             pageLinks={pageLinks}
             tableData={tableData}
-            header={this.renderHeader({view: domainViewFilters?.view})}
+            header={this.renderHeader()}
           />
         )}
       </DiscoverQuery>
@@ -463,8 +316,7 @@ class _TransactionsList extends Component<Props> {
   }
 
   renderTrendsTable(): React.ReactNode {
-    const {trendView, location, selected, organization, generateLink, domainViewFilters} =
-      this.props;
+    const {trendView, location, selected, organization, generateLink} = this.props;
 
     const sortedEventView: TrendView = trendView!.clone();
     sortedEventView.sorts = [selected.sort];
@@ -494,7 +346,7 @@ class _TransactionsList extends Component<Props> {
             pageLinks={pageLinks}
             onCursor={this.handleCursor}
             paginationCursorSize="sm"
-            header={this.renderHeader({view: domainViewFilters?.view})}
+            header={this.renderHeader()}
             titles={['transaction', 'percentage', 'difference']}
             columnOrder={decodeColumnOrder([
               {field: 'transaction'},

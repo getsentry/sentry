@@ -34,7 +34,7 @@ export function SeerPanelActions({
   const isSentryEmployee = useIsSentryEmployee();
 
   return (
-    <Flex align="center" gap="xs">
+    <Flex align="center">
       <AutofixDebugMenu autofixState={autofixState} />
       <Button
         size="xs"

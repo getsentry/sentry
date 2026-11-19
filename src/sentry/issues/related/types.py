@@ -16,6 +16,7 @@ class RelationType(StrEnum):
     SIMILAR_STACKTRACE = "similar_stacktrace"
     SAME_TRACE = "same_trace"
     CONTRIBUTING = "contributing"
+    SAME_TITLE = "same_title"
 
 
 class RelationTypeStatus(StrEnum):
@@ -78,8 +79,8 @@ class SimilarStacktraceMeta(RelationTypeMeta):
         Annotated[
             str,
             ApiDescription(
-                "ID of the event whose stack trace was compared: the issue's latest event. "
-                "Missing when no event was read"
+                "ID of the event whose stack trace was compared: the eventId parameter, else the "
+                "issue's latest event. Missing when no event was read"
             ),
         ]
     ]
@@ -90,8 +91,8 @@ class SameTraceMeta(RelationTypeMeta):
         Annotated[
             str,
             ApiDescription(
-                "ID of the event whose trace was searched: the issue's latest event. "
-                "Missing when no event was read"
+                "ID of the event whose trace was searched: the eventId parameter, else the "
+                "issue's latest event. Missing when no event was read"
             ),
         ]
     ]
@@ -108,8 +109,8 @@ class ContributingMeta(RelationTypeMeta):
         Annotated[
             str,
             ApiDescription(
-                "ID of the event whose detector query was searched: the issue's latest event. "
-                "Missing when no event was read"
+                "ID of the event whose detector query was searched: the eventId parameter, else "
+                "the issue's latest event. Missing when no event was read"
             ),
         ]
     ]
@@ -133,8 +134,26 @@ class ContributingMeta(RelationTypeMeta):
     ]
 
 
+class SameTitleMeta(RelationTypeMeta):
+    eventId: NotRequired[
+        Annotated[
+            str,
+            ApiDescription(
+                "ID of the event whose title was searched: the eventId parameter, else the "
+                "issue's latest event. Missing when no event was read"
+            ),
+        ]
+    ]
+    title: NotRequired[
+        Annotated[
+            str,
+            ApiDescription("The title that was searched. Missing when no event was read"),
+        ]
+    ]
+
+
 # Any type's entry in meta.types: the union of every RelationTypeMeta subclass.
-AnyRelationTypeMeta = SimilarStacktraceMeta | SameTraceMeta | ContributingMeta
+AnyRelationTypeMeta = SimilarStacktraceMeta | SameTraceMeta | ContributingMeta | SameTitleMeta
 
 
 @dataclass(frozen=True)

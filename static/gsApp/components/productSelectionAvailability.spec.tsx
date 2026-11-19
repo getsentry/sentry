@@ -55,7 +55,7 @@ describe('ProductSelectionAvailability', () => {
   describe('with no billing access', () => {
     it('with performance and session replay', async () => {
       const organization = OrganizationFixture({
-        features: ['performance-view', 'session-replay'],
+        features: ['session-replay'],
       });
       const initialRouterConfig = {
         location: {
@@ -115,7 +115,7 @@ describe('ProductSelectionAvailability', () => {
       ).toBeInTheDocument();
     });
 
-    it('without performance and session replay', async () => {
+    it('allows tracing without session replay', async () => {
       const organization = OrganizationFixture();
 
       renderMockRequests({organization, canSelfServe: true});
@@ -134,15 +134,8 @@ describe('ProductSelectionAvailability', () => {
       expect(screen.getByRole('presentation', {name: 'Error Monitoring'})).toBeChecked();
 
       // Tracing
-      // disabled: true
-      // checked: false
-      expect(screen.getByRole('button', {name: 'Tracing'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Tracing'})).toBeEnabled();
       expect(screen.getByRole('presentation', {name: 'Tracing'})).not.toBeChecked();
-      // Tooltip
-      await userEvent.hover(screen.getByRole('button', {name: 'Tracing'}));
-      expect(
-        await screen.findByText(/to use performance, request an owner/i)
-      ).toBeInTheDocument();
 
       // Session Replay
       // disabled: true
@@ -159,9 +152,7 @@ describe('ProductSelectionAvailability', () => {
     });
 
     it('without session replay', async () => {
-      const organization = OrganizationFixture({
-        features: ['performance-view'],
-      });
+      const organization = OrganizationFixture();
       const initialRouterConfig = {
         location: {
           pathname: '/mock-pathname/',
@@ -207,7 +198,7 @@ describe('ProductSelectionAvailability', () => {
   describe('with billing access', () => {
     it('with performance and session replay', async () => {
       const organization = OrganizationFixture({
-        features: ['performance-view', 'session-replay'],
+        features: ['session-replay'],
         access: ['org:billing'] as any, // TODO(ts): Fix this type for organizations on a plan
       });
       const initialRouterConfig = {
@@ -268,7 +259,7 @@ describe('ProductSelectionAvailability', () => {
       ).toBeInTheDocument();
     });
 
-    it('without performance, session replay and profiling', async () => {
+    it('without session replay and profiling', async () => {
       const organization = OrganizationFixture({
         access: ['org:billing'],
       });
@@ -291,14 +282,8 @@ describe('ProductSelectionAvailability', () => {
       expect(screen.getByRole('presentation', {name: 'Error Monitoring'})).toBeChecked();
 
       // Tracing
-      // disabled: true      // checked: false
-      expect(screen.getByRole('button', {name: 'Tracing'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Tracing'})).toBeEnabled();
       expect(screen.getByRole('presentation', {name: 'Tracing'})).not.toBeChecked();
-      // Tooltip
-      await userEvent.hover(screen.getByRole('button', {name: 'Tracing'}));
-      expect(
-        await screen.findByText(/to use performance, update your organization's plan/i)
-      ).toBeInTheDocument();
 
       // Session Replay
       // disabled: true - We don't display an upsell modal to users on MM* plans
@@ -318,7 +303,6 @@ describe('ProductSelectionAvailability', () => {
     it('without session replay', async () => {
       const organization = OrganizationFixture({
         access: ['org:billing'],
-        features: ['performance-view'],
       });
       const initialRouterConfig = {
         location: {
@@ -422,7 +406,7 @@ describe('ProductSelectionAvailability', () => {
 
     it('with profiling and without session replay', async () => {
       const organization = OrganizationFixture({
-        features: ['performance-view', 'profiling-view'],
+        features: ['profiling-view'],
       });
       const initialRouterConfig = {
         location: {
@@ -469,9 +453,7 @@ describe('ProductSelectionAvailability', () => {
     });
 
     it('without profiling and without session replay', async () => {
-      const organization = OrganizationFixture({
-        features: ['performance-view'],
-      });
+      const organization = OrganizationFixture();
       const initialRouterConfig = {
         location: {
           pathname: '/mock-pathname/',
@@ -525,7 +507,7 @@ describe('ProductSelectionAvailability', () => {
 
     it('enabling Profiling, shall check and "disabled" Tracing', async () => {
       const organization = OrganizationFixture({
-        features: ['performance-view', 'profiling-view'],
+        features: ['profiling-view'],
       });
 
       renderMockRequests({organization});
@@ -563,7 +545,7 @@ describe('ProductSelectionAvailability', () => {
 
     it('with Profiling and Tracing', async () => {
       const organization = OrganizationFixture({
-        features: ['performance-view', 'profiling-view'],
+        features: ['profiling-view'],
       });
       const initialRouterConfig = {
         location: {

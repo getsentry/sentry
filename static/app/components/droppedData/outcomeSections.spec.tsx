@@ -4,6 +4,7 @@ import {
   droppedEventsToOutcomeGroups,
   droppedEventsToOutcomeSections,
   filterDroppedEventsByScope,
+  unexpectedDroppedShare,
 } from './outcomeSections';
 
 describe('droppedEventsToOutcomeSections', () => {
@@ -162,5 +163,23 @@ describe('filterDroppedEventsByScope', () => {
 
   it('keeps every drop in the all scope', () => {
     expect(filterDroppedEventsByScope(droppedEvents, 'all')).toEqual(droppedEvents);
+  });
+});
+
+describe('unexpectedDroppedShare', () => {
+  it('divides unexpected drops by those drops plus accepted events', () => {
+    expect(
+      unexpectedDroppedShare(
+        [
+          OutcomeRowFixture({count: 10, tags: ['unintentional']}),
+          OutcomeRowFixture({count: 30, tags: ['intentional']}),
+        ],
+        [OutcomeRowFixture({outcome: 'accepted', count: 90})]
+      )
+    ).toBe(0.1);
+  });
+
+  it('is zero when there are no events', () => {
+    expect(unexpectedDroppedShare([], [])).toBe(0);
   });
 });

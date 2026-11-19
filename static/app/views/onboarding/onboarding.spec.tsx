@@ -543,7 +543,7 @@ describe('Onboarding', () => {
       const {router} = renderOnboarding('welcome');
 
       expect(await screen.findByText('sntryh_****')).toBeInTheDocument();
-      expect(screen.getByText('Recommended')).toBeInTheDocument();
+      expect(agenticRunRequestMock.mock.calls[0]?.[1]?.data.origin).toBe('onboarding');
       expect(
         screen.getByRole('heading', {name: 'Let your agent set up Sentry'})
       ).toBeInTheDocument();
@@ -553,10 +553,7 @@ describe('Onboarding', () => {
       expect(screen.getByRole('button', {name: 'Advanced options'})).toBeInTheDocument();
       expect(
         screen.getByRole('link', {name: 'See the full instructions'})
-      ).toHaveAttribute(
-        'href',
-        'https://sentry.io/agent-handoff.md?preview=1&flow=onboarding'
-      );
+      ).toHaveAttribute('href', 'https://sentry.io/agent-handoff.md');
       expect(screen.getByRole('button', {name: /Set up manually/})).toBeInTheDocument();
       expect(screen.queryByTestId('onboarding-welcome-start')).not.toBeInTheDocument();
       expect(screen.queryByText('Error monitoring')).not.toBeInTheDocument();
@@ -602,25 +599,40 @@ describe('Onboarding', () => {
       expect(screen.queryByText('sntryh_****')).not.toBeInTheDocument();
     });
 
+    it('opens Issues while agent setup is still in progress', async () => {
+      const {router} = renderOnboarding('welcome');
+
+      act(resolveAgenticRunRequest);
+
+      await userEvent.click(await screen.findByRole('button', {name: "I'm finished"}));
+
+      expect(router.location.pathname).toBe(
+        `/organizations/${scmOrganization.slug}/issues/`
+      );
+    });
+
     it.each([
       {
         runStatus: 'failed',
         connectionStatus: 'failed',
         heading: 'Setup Didn’t Finish',
+        showsFinishButton: true,
       },
       {
         runStatus: 'cancelled',
         connectionStatus: 'failed',
         heading: 'Setup Didn’t Finish',
+        showsFinishButton: true,
       },
       {
         runStatus: 'completed',
         connectionStatus: null,
         heading: "You're All Set",
+        showsFinishButton: false,
       },
     ] as const)(
       'shows the $runStatus heading when the agent is disconnected',
-      async ({runStatus, connectionStatus, heading}) => {
+      async ({runStatus, connectionStatus, heading, showsFinishButton}) => {
         const run = AgenticProgressRunFixture({
           runStatus,
           stages: [
@@ -649,6 +661,9 @@ describe('Onboarding', () => {
           screen.queryByRole('heading', {name: 'Code breaks. Fix it faster'})
         ).not.toBeInTheDocument();
         expect(screen.queryByText('sntryh_****')).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', {name: "I'm finished"}) !== null).toBe(
+          showsFinishButton
+        );
       }
     );
 

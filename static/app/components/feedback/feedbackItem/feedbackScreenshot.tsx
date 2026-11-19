@@ -12,6 +12,7 @@ import {t} from 'sentry/locale';
 import type {EventAttachment} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 
 type Props = {
   organization: Organization;
@@ -58,7 +59,9 @@ export function FeedbackScreenshot({
       <Tooltip position="right" title={t('Click to download')}>
         <FileDownload
           aria-label="feedback-attachment-download-button"
-          href={`/api/0/projects/${organization.slug}/${projectSlug}/events/${screenshot.event_id}/attachments/${screenshot.id}/?download=1`}
+          href={resolveHostname(
+            `/api/0/projects/${organization.slug}/${projectSlug}/events/${screenshot.event_id}/attachments/${screenshot.id}/?download=1`
+          )}
         >
           <TextOverflow>{screenshot.name}</TextOverflow>
         </FileDownload>

@@ -32,6 +32,7 @@ import type {IssueAttachment} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {AvatarProject, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 import {toArray} from 'sentry/utils/array/toArray';
 import {defined} from 'sentry/utils/defined';
 import {getShortEventId} from 'sentry/utils/events';
@@ -214,10 +215,14 @@ export const FIELD_FORMATTERS: FieldFormatters = {
               value: (
                 <FieldDateTime
                   date={data[field]}
-                  year
-                  seconds
-                  timeZone
-                  utc={decodeScalar(baggage?.location?.query?.utc) === 'true'}
+                  year="always"
+                  precision="second"
+                  showTimezone
+                  timezone={
+                    decodeScalar(baggage?.location?.query?.utc) === 'true'
+                      ? 'UTC'
+                      : undefined
+                  }
                 />
               ),
               fixed: 'timestamp',
@@ -449,7 +454,9 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
           label: attachment.name,
           onAction: () =>
             window.open(
-              `/api/0/projects/${organization.slug}/${projectSlug}/events/${attachment.event_id}/attachments/${attachment.id}/?download=1`
+              resolveHostname(
+                `/api/0/projects/${organization.slug}/${projectSlug}/events/${attachment.event_id}/attachments/${attachment.id}/?download=1`
+              )
             ),
         }));
 
@@ -495,7 +502,9 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
               minidump
                 ? () => {
                     window.open(
-                      `/api/0/projects/${organization.slug}/${projectSlug}/events/${minidump.event_id}/attachments/${minidump.id}/?download=1`
+                      resolveHostname(
+                        `/api/0/projects/${organization.slug}/${projectSlug}/events/${minidump.event_id}/attachments/${minidump.id}/?download=1`
+                      )
                     );
                   }
                 : undefined
@@ -859,7 +868,7 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
       return (
         <Container>
           <Tooltip title={timestamp}>
-            <FieldDateTime date={date} seconds year timeZone />
+            <FieldDateTime date={date} year="always" precision="second" showTimezone />
           </Tooltip>
         </Container>
       );
@@ -869,7 +878,9 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     renderFunc: data => (
       <Container>
         {getDynamicText({
-          value: <FieldDateTime date={data['timestamp.to_hour']} year timeZone />,
+          value: (
+            <FieldDateTime date={data['timestamp.to_hour']} year="always" showTimezone />
+          ),
           fixed: 'timestamp.to_hour',
         })}
       </Container>
@@ -879,7 +890,15 @@ const SPECIAL_FIELDS: Record<string, SpecialField> = {
     renderFunc: data => (
       <Container>
         {getDynamicText({
-          value: <FieldDateTime date={data['timestamp.to_day']} dateOnly year utc />,
+          value: (
+            <FieldDateTime
+              date={data['timestamp.to_day']}
+              showTimezone={false}
+              year="always"
+              mode="date"
+              timezone="UTC"
+            />
+          ),
           fixed: 'timestamp.to_day',
         })}
       </Container>

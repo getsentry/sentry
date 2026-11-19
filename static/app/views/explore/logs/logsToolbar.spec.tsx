@@ -721,4 +721,36 @@ describe('LogsToolbar', () => {
       await screen.findByRole('option', {name: 'custom.searched_tag'})
     ).toBeInTheDocument();
   });
+
+  it('hides query speed without the low priority flag', async () => {
+    render(<LogsToolbar />, {organization, additionalWrapper: Wrapper});
+
+    expect(await screen.findByTestId('section-group-by')).toBeInTheDocument();
+    expect(screen.queryByTestId('section-query-speed')).not.toBeInTheDocument();
+  });
+
+  it('changes query speed under the group by section', async () => {
+    const {router} = render(<LogsToolbar />, {
+      organization: {...organization, features: ['low-priority-queries']},
+      additionalWrapper: Wrapper,
+    });
+
+    const groupBySection = await screen.findByTestId('section-group-by');
+    const speedSection = screen.getByTestId('section-query-speed');
+    expect(
+      groupBySection.compareDocumentPosition(speedSection) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(within(speedSection).getByText('Query Speed')).toBeInTheDocument();
+
+    await userEvent.click(
+      within(speedSection).getByRole('button', {name: 'Balanced Querying'})
+    );
+    await userEvent.click(screen.getByRole('option', {name: 'Fast Querying'}));
+
+    expect(
+      within(speedSection).getByRole('button', {name: 'Fast Querying'})
+    ).toBeInTheDocument();
+    expect(router.location.query.queryPriority).toBe('faster');
+  });
 });

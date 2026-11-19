@@ -8,6 +8,9 @@ import orjson
 import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_AUTOFIX_POST_PROCESS,
+)
 from sentry_sdk import traces
 from taskbroker_client.retry import Retry
 from urllib3 import BaseHTTPResponse
@@ -36,6 +39,7 @@ from sentry.seer.autofix.exceptions import (
     NoSeerQuotaException,
     SeerOutOfCreditsException,
 )
+from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
@@ -197,6 +201,7 @@ def _trigger_autofix_task(
                 referrer=referrer,
                 run_id=None,
                 stopping_point=stopping_point,
+                billing_feature=SEER_BILLING_FEATURE_AUTOFIX_POST_PROCESS,
             )
             with action_context_scope(ActionSource.SYSTEM, SYSTEM_ACTOR):
                 Activity.objects.create_group_activity(
@@ -444,7 +449,7 @@ def is_group_eligible_for_automation(group: Group) -> bool:
         return False
 
     if (
-        runs_for_group(group.id, "autofix")
+        (runs_for_group(group.id, "autofix") | runs_for_group(group.id, SINGLE_RUN_FEATURE_ID))
         .filter(
             run__mirror_status=SeerRunMirrorStatus.LIVE,
             run__seer_run_state_id__isnull=False,

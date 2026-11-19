@@ -53,19 +53,174 @@ class OrganizationEventsTimeseriesTransformationsTest(APITestCase):
             "detail": "smooth(linear,3): mode argument invalid: expected one of sma, ema, asap"
         }
 
-    def test_transformations_ignored_when_feature_disabled(self) -> None:
+    def test_transformations_rejected_when_feature_disabled(self) -> None:
         with self.feature(
             {
                 "organizations:discover-basic": True,
                 "organizations:explore-interpolation-and-smoothing": False,
             }
         ):
-            response = self.get_success_response(
+            response = self.get_error_response(
                 self.org.slug,
-                **{"transformations[-1]": ["fill(locf)"], "transformations[0]": ["fill(sma)"]},
+                **{"dataset": "spans", "transformations[0]": ["fill(locf)"]},
+                status_code=400,
             )
 
+        assert response.data == {
+            "detail": "Timeseries transformations are not enabled for this organization"
+        }
+
+    def test_transformations_rejected_for_unsupported_dataset(self) -> None:
+        for dataset in [
+            "discover",
+            "errors",
+            "transactions",
+            "metrics",
+            "metricsEnhanced",
+            "spansMetrics",
+            "profiles",
+            "profileFunctions",
+            "issuePlatform",
+        ]:
+            with self.feature(
+                {
+                    "organizations:discover-basic": True,
+                    "organizations:explore-interpolation-and-smoothing": True,
+                }
+            ):
+                response = self.get_error_response(
+                    self.org.slug,
+                    **{"dataset": dataset, "transformations[0]": ["fill(zero)"], "project": -1},
+                    status_code=400,
+                )
+
+            assert response.data == {
+                "detail": f"Timeseries transformations are not supported for dataset {dataset}"
+            }
+
+    def test_uptime_timeseries_rejected_with_no_projects(self) -> None:
+        cases: list[tuple[bool, dict[str, Any]]] = [
+            (False, {}),
+            (True, {}),
+            (False, {"transformations[0]": ["fill(zero)"]}),
+            (True, {"transformations[0]": ["fill(zero)"]}),
+            (True, {"topEvents": 5, "groupBy": "project.id"}),
+            (True, {"comparisonDelta": 86400}),
+        ]
+        for enabled, params in cases:
+            with self.feature(
+                {
+                    "organizations:discover-basic": True,
+                    "organizations:explore-interpolation-and-smoothing": enabled,
+                }
+            ):
+                response = self.get_error_response(
+                    self.org.slug,
+                    dataset="uptime_results",
+                    **params,
+                    status_code=400,
+                )
+
+            assert response.data == {
+                "detail": "Timeseries queries are not supported for dataset uptime_results"
+            }
+
+    def test_uptime_timeseries_rejected_with_projects(self) -> None:
+        project = self.create_project(organization=self.org, teams=[])
+        with self.feature("organizations:discover-basic"):
+            response = self.get_error_response(
+                self.org.slug, dataset="uptime_results", project=project.id, status_code=400
+            )
+
+        assert response.data == {
+            "detail": "Timeseries queries are not supported for dataset uptime_results"
+        }
+
+    def test_grouped_comparisons_rejected(self) -> None:
+        for dataset, enabled, transformations in [
+            ("spans", False, {}),
+            ("spans", True, {}),
+            ("spans", False, {"transformations[0]": ["fill(zero)"]}),
+            ("spans", True, {"transformations[0]": ["fill(zero)"]}),
+            ("discover", False, {}),
+            ("discover", True, {"transformations[0]": ["fill(zero)"]}),
+        ]:
+            for comparison_delta in [0, 86400]:
+                with self.feature(
+                    {
+                        "organizations:discover-basic": True,
+                        "organizations:explore-interpolation-and-smoothing": enabled,
+                    }
+                ):
+                    response = self.get_error_response(
+                        self.org.slug,
+                        **{
+                            "dataset": dataset,
+                            "topEvents": 5,
+                            "groupBy": "project.id",
+                            "comparisonDelta": comparison_delta,
+                            **transformations,
+                        },
+                        status_code=400,
+                    )
+
+                assert response.data == {
+                    "detail": "comparisonDelta is not supported with topEvents"
+                }
+
+    def test_no_transformations_when_feature_disabled(self) -> None:
+        with self.feature(
+            {
+                "organizations:discover-basic": True,
+                "organizations:explore-interpolation-and-smoothing": False,
+            }
+        ):
+            response = self.get_success_response(self.org.slug, transformationsExtra="ignored")
+
         assert response.data == {"timeSeries": []}
+
+    def test_invalid_transformations_when_feature_disabled(self) -> None:
+        for params, detail in [
+            ({"transformations[-1]": ["fill(locf)"]}, "Invalid transformations index"),
+            (
+                {"transformations[0]": ["smooth(linear,3)"]},
+                "smooth(linear,3): mode argument invalid: expected one of sma, ema, asap",
+            ),
+        ]:
+            with self.feature(
+                {
+                    "organizations:discover-basic": True,
+                    "organizations:explore-interpolation-and-smoothing": False,
+                }
+            ):
+                response = self.get_error_response(self.org.slug, **params, status_code=400)
+
+            assert response.data == {"detail": detail}
+
+    def test_supported_transformations_with_no_projects(self) -> None:
+        for dataset in [
+            "spans",
+            "logs",
+            "ourlogs",
+            "tracemetrics",
+            "preprodSize",
+            "occurrences",
+            "processing_errors",
+            "profile_functions",
+        ]:
+            with self.feature(
+                {
+                    "organizations:discover-basic": True,
+                    "organizations:explore-interpolation-and-smoothing": True,
+                    "organizations:test-occurrences-dataset": True,
+                }
+            ):
+                response = self.get_success_response(
+                    self.org.slug,
+                    **{"dataset": dataset, "transformations[0]": ["fill(zero)"]},
+                )
+
+            assert response.data == {"timeSeries": []}
 
 
 class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
@@ -168,11 +323,6 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
                 "end": self.end,
                 "interval": "1h",
                 "project": [self.project.id, self.project2.id],
-                "transformations[0]": ["fill(locf)", "smooth(sma,3)"],
-            },
-            features={
-                "organizations:discover-basic": True,
-                "organizations:explore-interpolation-and-smoothing": True,
             },
         )
         assert response.status_code == 200, response.content
@@ -206,6 +356,26 @@ class OrganizationEventsTimeseriesEndpointTest(APITestCase, SnubaTestCase, Searc
             "valueType": "integer",
             "valueUnit": None,
             "interval": 3_600_000,
+        }
+
+    def test_legacy_transformations_rejected(self) -> None:
+        response = self.do_request(
+            {
+                "start": self.start,
+                "end": self.end,
+                "interval": "1h",
+                "project": [self.project.id, self.project2.id],
+                "transformations[0]": ["fill(locf)", "smooth(sma,3)"],
+            },
+            features={
+                "organizations:discover-basic": True,
+                "organizations:explore-interpolation-and-smoothing": True,
+            },
+        )
+
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "detail": "Timeseries transformations are not supported for dataset discover"
         }
 
     def test_simple_multiple_yaxis(self) -> None:

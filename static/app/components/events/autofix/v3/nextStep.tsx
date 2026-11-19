@@ -133,7 +133,9 @@ export function SeerDrawerNextStep({sections, group, autofix}: SeerDrawerNextSte
 }
 
 function PullRequestNextStep({autofix, group, runId, referrer}: NextStepProps) {
-  const creditsDisabled = useAutofixCreditsDisabled('pr_iteration');
+  const creditsDisabled = useAutofixCreditsDisabled('pr_iteration', {
+    billingFeature: autofix.runState?.billing_feature,
+  });
 
   return (
     <PrIterationFeedbackForm
@@ -199,6 +201,7 @@ function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepP
 
   const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
   const creditsDisabled = useAutofixCreditsDisabled('solution', {
+    billingFeature: autofix.runState?.billing_feature,
     enabled: defined(artifact),
   });
 
@@ -288,6 +291,7 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
 
   const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
   const creditsDisabled = useAutofixCreditsDisabled('code_changes', {
+    billingFeature: autofix.runState?.billing_feature,
     enabled: defined(artifact),
   });
 
@@ -340,6 +344,7 @@ function CodeChangesNextStep({autofix, group, runId, section, referrer}: NextSte
     enabled: defined(artifact),
   });
   const creditsDisabled = useAutofixCreditsDisabled('create_pr', {
+    billingFeature: autofix.runState?.billing_feature,
     enabled: defined(artifact),
   });
 
@@ -546,29 +551,6 @@ function NextStepTemplate({
   codingAgentDisabledReason,
   onCodingAgentHandoff,
 }: NextStepTemplateProps) {
-  const organization = useOrganization();
-
-  const codingAgentOptions = useMemo(() => {
-    return (codingAgentIntegrations ?? []).map(integration => {
-      const actionLabel =
-        integration.requires_identity && !integration.has_identity
-          ? t('Setup %s', integration.name)
-          : t('Send to %s', integration.name);
-
-      return {
-        key: `agent:${integration.id ?? integration.provider}`,
-        textValue: actionLabel,
-        label: (
-          <Flex gap="md" align="center">
-            <PluginIcon pluginId={integration.provider} size={16} />
-            <span>{actionLabel}</span>
-          </Flex>
-        ),
-        onAction: () => onCodingAgentHandoff?.(integration),
-      };
-    });
-  }, [codingAgentIntegrations, onCodingAgentHandoff]);
-
   const [clickedNo, handleClickedNo] = useState(false);
   const [userContext, setUserContext] = useState('');
 
@@ -620,36 +602,122 @@ function NextStepTemplate({
         )}
         <ButtonBar>
           {yesButton}
-          {codingAgentIntegrations === undefined ? null : (
-            <DropdownMenu
-              items={codingAgentOptions}
-              isDisabled={defined(codingAgentDisabledReason)}
-              trigger={(triggerProps, isOpen) => (
-                <OverlayTrigger.IconButton
-                  {...triggerProps}
-                  disabled={isProcessing || defined(codingAgentDisabledReason)}
-                  tooltipProps={{title: codingAgentDisabledReason}}
-                  variant="primary"
-                  icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
-                  aria-label={t('More code fix options')}
-                />
-              )}
-              position="bottom-end"
-              shouldCloseOnBlur={false}
-              menuFooter={
-                <Footer>
-                  <MenuComponents.CTALinkButton
-                    icon={<IconAdd />}
-                    to={`/settings/${organization.slug}/integrations/?category=coding%20agent`}
-                  >
-                    {t('Add Integration')}
-                  </MenuComponents.CTALinkButton>
-                </Footer>
-              }
+          {codingAgentIntegrations === undefined || !onCodingAgentHandoff ? null : (
+            <CodingAgentDropdown
+              integrations={codingAgentIntegrations}
+              disabledReason={codingAgentDisabledReason}
+              isProcessing={isProcessing}
+              onHandoff={onCodingAgentHandoff}
             />
           )}
         </ButtonBar>
       </Flex>
     </Stack>
+  );
+}
+
+interface SingleRunHandoffDropdownProps {
+  autofix: ReturnType<typeof useExplorerAutofix>;
+  group: Group;
+  runId: SeerExplorerRunId;
+}
+
+/**
+ * Sits beside "Open Autofix" once a single run has a root cause, so the reader
+ * can hand the fix to a coding agent the way the step-by-step flow allows.
+ */
+export function SingleRunHandoffDropdown({
+  autofix,
+  group,
+  runId,
+}: SingleRunHandoffDropdownProps) {
+  const {codingAgentIntegrations, codingAgentDisabledReason, handleCodingAgentHandoff} =
+    useCodingAgents({
+      autofix,
+      runId,
+      group,
+      step: 'root_cause',
+      referrer: autofix.runState?.blocks?.[0]?.message?.metadata?.referrer,
+    });
+
+  if (codingAgentIntegrations === undefined) {
+    return null;
+  }
+
+  return (
+    <CodingAgentDropdown
+      integrations={codingAgentIntegrations}
+      disabledReason={codingAgentDisabledReason}
+      isProcessing={autofix.isPolling}
+      onHandoff={handleCodingAgentHandoff}
+    />
+  );
+}
+
+interface CodingAgentDropdownProps {
+  integrations: CodingAgentIntegration[];
+  isProcessing: boolean;
+  onHandoff: (integration: CodingAgentIntegration) => void;
+  disabledReason?: string;
+}
+
+function CodingAgentDropdown({
+  integrations,
+  disabledReason,
+  isProcessing,
+  onHandoff,
+}: CodingAgentDropdownProps) {
+  const organization = useOrganization();
+
+  const options = useMemo(
+    () =>
+      integrations.map(integration => {
+        const actionLabel =
+          integration.requires_identity && !integration.has_identity
+            ? t('Setup %s', integration.name)
+            : t('Send to %s', integration.name);
+
+        return {
+          key: `agent:${integration.id ?? integration.provider}`,
+          textValue: actionLabel,
+          label: (
+            <Flex gap="md" align="center">
+              <PluginIcon pluginId={integration.provider} size={16} />
+              <span>{actionLabel}</span>
+            </Flex>
+          ),
+          onAction: () => onHandoff(integration),
+        };
+      }),
+    [integrations, onHandoff]
+  );
+
+  return (
+    <DropdownMenu
+      items={options}
+      isDisabled={defined(disabledReason)}
+      trigger={(triggerProps, isOpen) => (
+        <OverlayTrigger.IconButton
+          {...triggerProps}
+          disabled={isProcessing || defined(disabledReason)}
+          tooltipProps={{title: disabledReason}}
+          variant="primary"
+          icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
+          aria-label={t('More code fix options')}
+        />
+      )}
+      position="bottom-end"
+      shouldCloseOnBlur={false}
+      menuFooter={
+        <Footer>
+          <MenuComponents.CTALinkButton
+            icon={<IconAdd />}
+            to={`/settings/${organization.slug}/integrations/?category=coding%20agent`}
+          >
+            {t('Add Integration')}
+          </MenuComponents.CTALinkButton>
+        </Footer>
+      }
+    />
   );
 }

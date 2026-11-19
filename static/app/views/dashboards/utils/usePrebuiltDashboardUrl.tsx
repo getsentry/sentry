@@ -1,8 +1,7 @@
-import qs from 'query-string';
-
 import {pageFiltersToQueryParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import * as qs from 'sentry/utils/url/qs';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {DashboardFilters, GlobalFilter} from 'sentry/views/dashboards/types';
 
