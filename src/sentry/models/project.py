@@ -142,6 +142,7 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "node-nestjs",
     "node-pi-durable",
     "php",
+    "php-bref",
     "php-laravel",
     "php-symfony",
     "playstation",

@@ -1,198 +1,176 @@
 from __future__ import annotations
 
 import json  # noqa: S003 - tools tests run without the sentry package
-from collections.abc import Generator
 from pathlib import Path
-from unittest import mock
 
 import pytest
 
-from tools.api_guidelines import report_card
 from tools.api_guidelines.report_card import (
-    find_owners,
+    format_changes,
     format_table,
     main,
     rule_columns,
     team_findings,
 )
-from tools.api_guidelines.rules import ApiRule
-from tools.flake8_plugin import ApiInputViolation
 
 FEED = "src/sentry/api/endpoints/feed.py"
 INGEST = "src/sentry/api/endpoints/ingest.py"
 CORE = "src/sentry/core/endpoints/core.py"
-OWNER_MAP = {
-    FEED: {"FeedEndpoint": "issues-feed"},
-    INGEST: {"IngestEndpoint": "ingest"},
-}
 
-# issues-feed gets 3 findings in 1 file, ingest 1, and CoreEndpoint isn't in the owner map
-FEED_ENDPOINT = """\
-class FeedEndpoint(Endpoint):
-    publish_status = {"GET": ApiPublishStatus.PUBLIC}
 
-    def get(self, request) -> Response[X]:
-        a = request.GET.get("id")
-        b = request.GET.get("cursor")
-        return Response(request.data.get("name"))
-"""
-INGEST_ENDPOINT = """\
-class IngestEndpoint(Endpoint):
-    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+def _entry(
+    rule: str,
+    path: str,
+    scope: str,
+    owner: str,
+    count: int = 1,
+    key: str | None = "query:id",
+) -> dict[str, object]:
+    """An exceptions.json entry made by hand"""
+    return {
+        "rule": rule,
+        "path": path,
+        "scope": scope,
+        "key": key,
+        "count": count,
+        "owner": owner,
+        "status": "debt-breaking",
+        "reason": f"legacy: predates {rule}",
+        "first_seen": "2026-11-02",
+    }
 
-    def get(self, request) -> Response[X]:
-        return Response(request.GET.get("id"))
-"""
-CORE_ENDPOINT = """\
-class CoreEndpoint(Endpoint):
-    publish_status = {"GET": ApiPublishStatus.PUBLIC}
 
-    def get(self, request) -> Response[X]:
-        return Response(request.GET.get("id"))
-"""
+# issues-feed has 3 findings in 1 file (one entry counts 2), ingest 1, and CoreEndpoint is unowned
+ENTRIES = [
+    _entry("S026", FEED, "FeedEndpoint.get", "issues-feed", count=2),
+    _entry("S028", FEED, "FeedEndpoint.get", "issues-feed", key=None),
+    _entry("S026", INGEST, "IngestEndpoint.get", "ingest"),
+    _entry("S026", CORE, "CoreEndpoint.get", "unowned"),
+]
+
+
+def _write(path: Path, entries: list[dict[str, object]], generated: str) -> Path:
+    """Writes a small exceptions.json"""
+    path.write_text(json.dumps({"version": 1, "generated": generated, "entries": entries}))
+    return path
 
 
 @pytest.fixture
-def fake_repo(tmp_path: Path) -> Generator[Path]:
-    """A repo with three endpoint files and an owner map, used as the report card's repo root"""
-    for path, source in ((FEED, FEED_ENDPOINT), (INGEST, INGEST_ENDPOINT), (CORE, CORE_ENDPOINT)):
-        endpoint = tmp_path / path
-        endpoint.parent.mkdir(parents=True, exist_ok=True)
-        endpoint.write_text(source)
-
-    owner_map = tmp_path / ".artifacts" / "api-endpoint-owners.json"
-    owner_map.parent.mkdir()
-    owner_map.write_text(json.dumps(OWNER_MAP))
-
-    with mock.patch.object(report_card, "_REPO_ROOT", tmp_path):
-        yield tmp_path
+def exceptions(tmp_path: Path) -> Path:
+    """An exceptions.json with ENTRIES, generated on 2026-11-16"""
+    return _write(tmp_path / "exceptions.json", ENTRIES, "2026-11-16")
 
 
-def _finding(
-    rule: str, path: str = FEED, line: int = 1, scope: str = "FeedEndpoint.get"
-) -> tuple[str, ApiInputViolation]:
-    """A (path, finding) pair made by hand, without scanning any code"""
-    violation = ApiInputViolation(
-        rule=ApiRule(rule),
-        message="m",
-        line=line,
-        column=0,
-        end_line=line,
-        end_column=1,
-        severity="warning",
-        scope=scope,
-        key="query:id",
-        caller=None,
-    )
-    return (path, violation)
-
-
-def test_columns_are_the_rules_that_report_structured_output() -> None:
-    # S027 has no findings but is still checked, so it keeps its column
+def test_columns_are_the_baselined_rules() -> None:
+    # S027 has no findings but is still baselined, so it keeps its column
     assert rule_columns() == ["S025", "S026", "S027", "S028"]
 
 
-def test_table_counts_each_team_with_unowned_last() -> None:
-    findings = [
-        _finding("S026"),
-        _finding("S026"),
-        _finding("S026", INGEST, scope="IngestEndpoint.get"),
-    ]
-
-    lines = format_table(find_owners(findings, OWNER_MAP), markdown=True)
+def test_table_sums_each_entrys_count_with_unowned_last() -> None:
+    lines = format_table(ENTRIES[:3], markdown=True)
 
     assert lines == [
         "| team | total | S025 | S026 | S027 | S028 | files |",
         "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
-        "| issues-feed | 2 | 0 | 2 | 0 | 0 | 1 |",
+        "| issues-feed | 3 | 0 | 2 | 0 | 1 | 1 |",
         "| ingest | 1 | 0 | 1 | 0 | 0 | 1 |",
         # unowned is always shown, even with 0 findings
         "| unowned | 0 | 0 | 0 | 0 | 0 | 0 |",
-        "| total | 3 | 0 | 3 | 0 | 0 | 2 |",
+        "| total | 4 | 0 | 3 | 0 | 1 | 2 |",
     ]
 
 
-def test_main_prints_the_owner_map_date_and_the_table(
-    fake_repo: Path, capsys: pytest.CaptureFixture[str]
+def test_main_prints_the_header_and_the_table(
+    exceptions: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    assert main([]) == 0
+    assert main(["--exceptions", str(exceptions)]) == 0
 
     out = capsys.readouterr().out
-    assert "API report card: 5 findings" in out
-    assert "owner map generated " in out
-    assert ", 1 findings unowned" in out
-    assert "Not reporting structured output yet: S021, S022, S023, S034" in out
-    assert out.endswith(
-        "team         total   S025   S026   S027   S028  files\n"
-        "issues-feed      3      0      3      0      0      1\n"
-        "ingest           1      0      1      0      0      1\n"
-        "unowned          1      0      1      0      0      1\n"
-        "total            5      0      5      0      0      3\n"
-    )
+    assert "issues-feed" in out
+    assert out.splitlines()[-1].split() == ["total", "5", "0", "4", "0", "1", "3"]
 
 
-def test_main_leaves_out_rules_without_a_column(
-    fake_repo: Path, capsys: pytest.CaptureFixture[str]
-) -> None:
-    findings = [_finding("S026"), _finding("S034")]
-
-    with mock.patch.object(report_card, "collect_findings", return_value=findings):
-        assert main([]) == 0
+def test_main_lists_one_teams_entries(exceptions: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    assert main(["--exceptions", str(exceptions), "--team", "issues-feed"]) == 0
 
     out = capsys.readouterr().out
-    # S034 has no column, so it isn't in the total either
-    assert "API report card: 1 findings" in out
-    assert out.endswith(
-        "team         total   S025   S026   S027   S028  files\n"
-        "issues-feed      1      0      1      0      0      1\n"
-        "unowned          0      0      0      0      0      0\n"
-        "total            1      0      1      0      0      1\n"
-    )
+    assert "2 entries owned by issues-feed" in out
+    assert out.count(FEED) == 2
 
 
-def test_main_prints_markdown(fake_repo: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    assert main(["--format", "markdown"]) == 0
-
-    out = capsys.readouterr().out
-    assert "| team | total | S025 | S026 | S027 | S028 | files |\n" in out
-    assert out.endswith("| total | 5 | 0 | 5 | 0 | 0 | 3 |\n")
+def test_team_findings_skip_other_teams() -> None:
+    assert team_findings(ENTRIES, "ingest") == [f"S026 {INGEST} IngestEndpoint.get query:id (x1)"]
 
 
-def test_main_lists_one_teams_findings(fake_repo: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    assert main(["--team", "ingest"]) == 0
-
-    assert capsys.readouterr().out == (
-        f"1 findings owned by ingest\n{INGEST}:5  S026  query:id  in IngestEndpoint.get\n"
-    )
-
-
-def test_main_stops_on_a_team_that_isnt_in_the_owner_map(
-    fake_repo: Path, capsys: pytest.CaptureFixture[str]
+def test_main_stops_on_a_team_that_isnt_in_the_file(
+    exceptions: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
-    # a typo would otherwise print "0 findings", which looks like a clean team
-    assert main(["--team", "issue-feed"]) == 1
+    # a typo would otherwise print "0 entries", which looks like a clean team
+    assert main(["--exceptions", str(exceptions), "--team", "issue-feed"]) == 1
 
     captured = capsys.readouterr()
     assert captured.out == ""
-    assert "Unknown team 'issue-feed'. Teams in the owner map: ingest, issues-feed, unowned" in (
-        captured.err
-    )
+    assert "Unknown team 'issue-feed'." in captured.err
+    assert ": ingest, issues-feed, unowned" in captured.err
 
 
-def test_team_findings_are_sorted_by_file_and_line() -> None:
-    owned = find_owners(
-        [_finding("S026", INGEST), _finding("S028", FEED, line=9), _finding("S026", FEED)],
-        {FEED: {"FeedEndpoint": "issues-feed"}, INGEST: {"FeedEndpoint": "issues-feed"}},
-    )
+def test_main_stops_without_the_file(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    missing = tmp_path / "exceptions.json"
 
-    assert team_findings(owned, "issues-feed") == [
-        f"{FEED}:1  S026  query:id  in FeedEndpoint.get",
-        f"{FEED}:9  S028  query:id  in FeedEndpoint.get",
-        f"{INGEST}:1  S026  query:id  in FeedEndpoint.get",
+    assert main(["--exceptions", str(missing)]) == 1
+
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert "not found" in captured.err
+
+
+def test_main_stops_without_the_compare_file(
+    exceptions: Path, tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    missing = tmp_path / "older.json"
+
+    assert main(["--exceptions", str(exceptions), "--compare", str(missing)]) == 1
+
+    assert f"{missing} not found" in capsys.readouterr().err
+
+
+# the older file: ingest's entry is fixed since, the feed S026 count was 1, and core's entry is new
+OLDER = [
+    _entry("S026", FEED, "FeedEndpoint.get", "issues-feed", count=1),
+    _entry("S028", FEED, "FeedEndpoint.get", "issues-feed", key=None),
+    _entry("S026", INGEST, "IngestEndpoint.get", "ingest"),
+    _entry("S027", INGEST, "IngestEndpoint.get", "ingest", key="body:name"),
+]
+NEWER = [
+    _entry("S026", FEED, "FeedEndpoint.get", "issues-feed", count=2),
+    _entry("S028", FEED, "FeedEndpoint.get", "issues-feed", key=None),
+    _entry("S026", INGEST, "IngestEndpoint.get", "ingest"),
+    _entry("S026", CORE, "CoreEndpoint.get", "unowned"),
+]
+
+
+def test_changes_only_show_one_team_under_team() -> None:
+    assert format_changes(OLDER, NEWER, team="ingest") == [
+        "Changes: 0 new, 1 fixed, 0 changed count",
+        "ingest",
+        f"  fixed    S027 {INGEST} IngestEndpoint.get body:name (x1)",
     ]
 
 
-def test_main_stops_without_the_owner_map(fake_repo: Path) -> None:
-    (fake_repo / ".artifacts" / "api-endpoint-owners.json").unlink()
+def test_main_compare_knows_teams_that_were_fully_fixed(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # ingest has no entries in the newer file, but it did in the older one
+    newer = _write(tmp_path / "exceptions.json", NEWER[:2], "2026-11-16")
+    older = _write(tmp_path / "older.json", OLDER, "2026-11-02")
 
-    assert main([]) == 1
+    assert main(["--exceptions", str(newer), "--team", "ingest", "--compare", str(older)]) == 0
+
+    out = capsys.readouterr().out
+    assert "0 entries owned by ingest\n" in out
+    assert out.endswith(
+        "Changes: 0 new, 2 fixed, 0 changed count\n"
+        "ingest\n"
+        f"  fixed    S026 {INGEST} IngestEndpoint.get query:id (x1)\n"
+        f"  fixed    S027 {INGEST} IngestEndpoint.get body:name (x1)\n"
+    )

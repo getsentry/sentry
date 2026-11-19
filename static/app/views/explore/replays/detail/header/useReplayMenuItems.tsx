@@ -94,7 +94,6 @@ export function useReplayMenuItems({
             try {
               const json = JSON.stringify(replay.getRRWebFrames());
               await navigator.clipboard.writeText(json);
-              // oxlint-disable-next-line react/immutability
               window.location.href = 'sentry-replay-debugger://open';
             } catch (error) {
               Sentry.captureException(error);

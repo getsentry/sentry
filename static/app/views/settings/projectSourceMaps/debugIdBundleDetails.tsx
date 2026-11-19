@@ -1,8 +1,8 @@
 import {useMemo, useState} from 'react';
 
 import {Button} from '@sentry/scraps/button';
+import {DateTime} from '@sentry/scraps/dateTime';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
 import {t} from 'sentry/locale';
 import type {KeyValueListData} from 'sentry/types/group';
@@ -47,7 +47,7 @@ export function DebugIdBundleDetails({
       {
         key: 'date',
         subject: t('Date Uploaded'),
-        value: <DateTime timeZone year date={debugIdBundle.date} />,
+        value: <DateTime date={debugIdBundle.date} year="always" showTimezone />,
       },
     ];
   }, [

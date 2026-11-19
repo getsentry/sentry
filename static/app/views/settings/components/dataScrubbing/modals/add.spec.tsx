@@ -981,6 +981,40 @@ describe('Add Modal with ourlogs-enabled', () => {
     expect(screen.queryByText('Attribute')).not.toBeInTheDocument();
   });
 
+  it('warns about what deep wildcards apply to', async () => {
+    render(
+      <OrganizationContext.Provider value={organization}>
+        <Add
+          Header={makeClosableHeader(jest.fn())}
+          Body={ModalBody}
+          Footer={ModalFooter}
+          closeModal={jest.fn()}
+          CloseButton={makeCloseButton(jest.fn())}
+          projectId={projectId}
+          savedRules={rules}
+          api={api}
+          endpoint={endpoint}
+          orgSlug={organizationSlug}
+          onSubmitSuccess={jest.fn()}
+        />
+      </OrganizationContext.Provider>
+    );
+
+    expect(screen.queryByText(/Deep wildcards/)).not.toBeInTheDocument();
+
+    await userEvent.type(screen.getByRole('textbox', {name: 'Source'}), '**');
+
+    expect(
+      screen.getByText(/also apply to log and metric attributes marked as/)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', {name: 'auto scrubbed in Sentry Conventions'})
+    ).toHaveAttribute(
+      'href',
+      'https://conventions.sentry.dev/attributes/?scrubbing=auto'
+    );
+  });
+
   it('clears source when switching datasets', async () => {
     const handleCloseModal = jest.fn();
 

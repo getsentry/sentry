@@ -31,7 +31,7 @@ import {useCompactSelectProjectOptions} from 'sentry/utils/project/useCompactSel
 import {useProjectsById} from 'sentry/utils/project/useProjectsById';
 import {useCompactSelectRepositoryOptions} from 'sentry/utils/repositories/useCompactSelectRepositoryOptions';
 import {useRepositoriesById} from 'sentry/utils/repositories/useRepositoriesById';
-import {isSeerTokenBasedBillingOnboardingEnabled} from 'sentry/utils/seer/isSeerTokenBasedBillingOnboardingEnabled';
+import {isTokenBilledSeerEnabled} from 'sentry/utils/seer/isTokenBilledSeerEnabled';
 import {
   NON_GITHUB_HANDOFF_WARNING,
   orgDefaultAgentQueryOptions,
@@ -109,7 +109,7 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
       agentOption,
       stoppingPoint,
       // Opt-in under token-based billing, matching the backend default.
-      prIteration: !isSeerTokenBasedBillingOnboardingEnabled(organization),
+      prIteration: !isTokenBilledSeerEnabled(organization),
     },
     validators: defaultFormValidators(formSchema),
     onSubmit: ({value, createValidationError}) => {
@@ -179,7 +179,7 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
         <Body>
           <Stack gap="xl">
             <Text size="md">
-              {isSeerTokenBasedBillingOnboardingEnabled(organization)
+              {isTokenBilledSeerEnabled(organization)
                 ? tct(
                     "Seer uses the repositories linked to your project. If you don't see the repositories you expect, [manage_repositories_link:manage your repository connections].",
                     {manage_repositories_link: manageRepositoriesLink}

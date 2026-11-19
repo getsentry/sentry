@@ -2,7 +2,6 @@ from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -58,15 +57,7 @@ class ProjectTransactionThresholdEndpoint(ProjectEndpoint):
     }
     permission_classes = (ProjectSettingPermission,)
 
-    def has_feature(self, project: Project, request: Request) -> bool:
-        return features.has(
-            "organizations:performance-view", project.organization, actor=request.user
-        )
-
     def get(self, request: Request, project: Project) -> Response:
-        if not self.has_feature(project, request):
-            return self.respond(status=status.HTTP_404_NOT_FOUND)
-
         try:
             project_threshold = ProjectTransactionThreshold.objects.get(
                 project=project,
@@ -87,9 +78,6 @@ class ProjectTransactionThresholdEndpoint(ProjectEndpoint):
         )
 
     def post(self, request: Request, project: Project) -> Response:
-        if not self.has_feature(project, request):
-            return self.respond(status=status.HTTP_404_NOT_FOUND)
-
         serializer = ProjectTransactionThresholdSerializer(data=request.data)
 
         if not serializer.is_valid():
@@ -123,9 +111,6 @@ class ProjectTransactionThresholdEndpoint(ProjectEndpoint):
         )
 
     def delete(self, request: Request, project: Project) -> Response:
-        if not self.has_feature(project, request):
-            return self.respond(status=status.HTTP_404_NOT_FOUND)
-
         try:
             project_threshold = ProjectTransactionThreshold.objects.get(
                 project=project,

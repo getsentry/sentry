@@ -156,6 +156,7 @@ describe('ExploreToolbar', () => {
     // this is the default
     expect(visualizes).toEqual([new VisualizeFunction('count(span.duration)')]);
     expect(await within(section).findByRole('button', {name: 'spans'})).toBeDisabled();
+    expect(screen.queryByTestId('section-query-speed')).not.toBeInTheDocument();
   });
 
   it('changes to count(span.duration) when using count', async () => {
@@ -1105,6 +1106,209 @@ describe('ExploreToolbar', () => {
     ]);
   });
 
+  it('changes query speed under sort by', async () => {
+    const {router} = render(<ExploreToolbar />, {
+      additionalWrapper: Wrapper,
+      organization: OrganizationFixture({features: ['low-priority-queries']}),
+    });
+
+    const sortSection = screen.getByTestId('section-sort-by');
+    const speedSection = screen.getByTestId('section-query-speed');
+    expect(
+      sortSection.compareDocumentPosition(speedSection) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(within(speedSection).getByText('Query Speed')).toBeInTheDocument();
+    expect(
+      within(speedSection).getByRole('button', {name: 'Balanced Querying'})
+    ).toBeInTheDocument();
+
+    await userEvent.click(
+      within(speedSection).getByRole('button', {name: 'Balanced Querying'})
+    );
+    expect(
+      within(speedSection).getByText('Balances speed and accuracy')
+    ).toBeInTheDocument();
+    await userEvent.click(
+      within(speedSection).getByRole('option', {name: 'Fast Querying'})
+    );
+
+    expect(
+      within(speedSection).getByRole('button', {name: 'Fast Querying'})
+    ).toBeInTheDocument();
+    expect(router.location.query.queryPriority).toBe('faster');
+  });
+
+  it('uses a saved query priority when the url has none', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/explore/saved/1/',
+      body: {
+        id: 1,
+        name: 'Fast query',
+        dataset: 'spans',
+        dateAdded: '2025-05-06T00:00:00.000Z',
+        dateUpdated: '2025-05-06T00:00:00.000Z',
+        lastVisited: '2025-05-06T00:00:00.000Z',
+        interval: '5m',
+        position: null,
+        projects: [],
+        starred: false,
+        queryPriority: 'faster',
+        query: [{mode: 'samples', query: '', fields: ['timestamp'], orderby: ''}],
+      },
+    });
+
+    const {router} = render(<ExploreToolbar />, {
+      additionalWrapper: Wrapper,
+      organization: OrganizationFixture({features: ['low-priority-queries']}),
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/traces/',
+          query: {id: '1'},
+        },
+      },
+    });
+
+    const speedSection = screen.getByTestId('section-query-speed');
+    expect(
+      await within(speedSection).findByRole('button', {name: 'Fast Querying'})
+    ).toBeInTheDocument();
+
+    await userEvent.hover(within(speedSection).getByText('Query Speed'));
+    expect(await screen.findByText(/Does not apply to exports/)).toBeInTheDocument();
+
+    await userEvent.click(
+      within(speedSection).getByRole('button', {name: 'Fast Querying'})
+    );
+    await userEvent.click(screen.getByRole('option', {name: 'Balanced Querying'}));
+
+    expect(
+      within(speedSection).getByRole('button', {name: 'Balanced Querying'})
+    ).toBeInTheDocument();
+    expect(router.location.query.queryPriority).toBe('normal');
+  });
+
+  it('falls back to balanced when the saved query fails to load', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/explore/saved/1/',
+      statusCode: 500,
+      body: {},
+    });
+
+    const {router} = render(<ExploreToolbar />, {
+      additionalWrapper: Wrapper,
+      organization: OrganizationFixture({features: ['low-priority-queries']}),
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/traces/',
+          query: {id: '1'},
+        },
+      },
+    });
+
+    expect(
+      await screen.findByText(/Couldn't load the saved query speed/)
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Balanced Querying'})).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Balanced Querying'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Fast Querying'}));
+
+    expect(screen.getByRole('button', {name: 'Fast Querying'})).toBeInTheDocument();
+    expect(router.location.query.queryPriority).toBe('faster');
+  });
+
+  it('locks query speed to balanced when extrapolation is off', async () => {
+    const {router} = render(<ExploreToolbar />, {
+      additionalWrapper: Wrapper,
+      organization: OrganizationFixture({features: ['low-priority-queries']}),
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/traces/',
+          query: {extrapolate: '0', queryPriority: 'faster'},
+        },
+      },
+    });
+
+    const speedSection = screen.getByTestId('section-query-speed');
+    const speedButton = within(speedSection).getByRole('button', {
+      name: 'Balanced Querying',
+    });
+    expect(speedButton).toBeDisabled();
+    expect(
+      within(speedSection).queryByRole('button', {name: 'Fast Querying'})
+    ).not.toBeInTheDocument();
+
+    await userEvent.hover(speedButton);
+    expect(
+      await screen.findByText(
+        'Disabling extrapolation cannot be combined with query speed.'
+      )
+    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(router.location.query.queryPriority).toBeUndefined();
+    });
+  });
+
+  it('disables query speed on the traces tab', async () => {
+    const {router} = render(<ExploreToolbar />, {
+      additionalWrapper: Wrapper,
+      organization: OrganizationFixture({features: ['low-priority-queries']}),
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/traces/',
+          query: {table: 'trace', queryPriority: 'faster'},
+        },
+      },
+    });
+
+    const speedSection = screen.getByTestId('section-query-speed');
+    const speedButton = within(speedSection).getByRole('button', {
+      name: 'Balanced Querying',
+    });
+    expect(speedButton).toBeDisabled();
+    expect(
+      within(speedSection).queryByRole('button', {name: 'Fast Querying'})
+    ).not.toBeInTheDocument();
+
+    await userEvent.hover(speedButton);
+    expect(
+      await screen.findByText('Query speed is not applicable to trace results.')
+    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(router.location.query.queryPriority).toBeUndefined();
+    });
+  });
+
+  it('disables query speed on the attribute breakdowns tab', async () => {
+    const {router} = render(<ExploreToolbar />, {
+      additionalWrapper: Wrapper,
+      organization: OrganizationFixture({features: ['low-priority-queries']}),
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/traces/',
+          query: {table: 'attribute_breakdowns', queryPriority: 'faster'},
+        },
+      },
+    });
+
+    const speedSection = screen.getByTestId('section-query-speed');
+    const speedButton = within(speedSection).getByRole('button', {
+      name: 'Balanced Querying',
+    });
+    expect(speedButton).toBeDisabled();
+    expect(
+      within(speedSection).queryByRole('button', {name: 'Fast Querying'})
+    ).not.toBeInTheDocument();
+
+    await userEvent.hover(speedButton);
+    expect(
+      await screen.findByText('Query speed is not applicable to attribute breakdowns.')
+    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(router.location.query.queryPriority).toBeUndefined();
+    });
+  });
+
   it('allows changing sort by in samples mode', async () => {
     let sortBys: any;
     function Component() {
@@ -1529,7 +1733,7 @@ describe('ExploreToolbar', () => {
     });
 
     await userEvent.click(screen.getByRole('button', {name: /save as/i}));
-    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Monitor for'}));
+    await userEvent.hover(screen.getByRole('menuitem', {name: 'Monitor for'}));
     await userEvent.click(
       await screen.findByRole('menuitemradio', {name: 'count(spans)'})
     );

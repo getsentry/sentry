@@ -1053,7 +1053,6 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.tasks.seer.agentic_triage.cron",
     "sentry.tasks.seer.autofix_issue_data",
     "sentry.tasks.seer.backfill_supergroups_lightweight",
-    "sentry.telemetry_classifiers.poc_tasks",
     "sentry.telemetry_classifiers.tasks",
     # Used for tests
     "sentry.taskworker.tasks.examples",
@@ -2780,13 +2779,13 @@ SENTRY_INTERCOM_API_SECRET = ""
 SENTRY_RELAY_STATIC_AUTH: dict[str, Any] = {}
 SENTRY_OBJECTSTORE_CONFIG: dict[str, Any] = {
     "base_url": "http://127.0.0.1:8888",
-    # Test-only token generator with read permission. Only active when no real
+    # Test-only token generator with read/write permission. Only active when no real
     # objectstore config is deployed. Exists so mint_token() does not raise in
     # test/dev environments that lack signing keys.
     "token_generator": {
         "kid": "test",
         "secret_key": "-----BEGIN PRIVATE KEY-----\nMC4CAQAwBQYDK2VwBCIEIOrZqzixETRBXsZl85d83N5nwb71ctTZ3/mwu1TX90vG\n-----END PRIVATE KEY-----\n",
-        "permissions": ["object.read"],
+        "permissions": ["object.read", "object.write"],
     },
 }
 SENTRY_ANALYTICS_BACKEND = "noop"

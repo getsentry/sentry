@@ -1,7 +1,7 @@
+import {getDuration} from '@sentry/scraps/duration';
 import {Text} from '@sentry/scraps/text';
 import type {TextProps} from '@sentry/scraps/text';
 
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import type {UptimeSummary} from 'sentry/views/detectors/components/uptime/types';
 
 type UptimeDurationProps = {
@@ -18,7 +18,7 @@ export function UptimeDuration({summary, size}: UptimeDurationProps) {
 
   return (
     <Text tabular size={size} variant={variant}>
-      {getDuration(avgDurationSeconds, 0, true)}
+      {getDuration(avgDurationSeconds, {style: 'short'})}
     </Text>
   );
 }

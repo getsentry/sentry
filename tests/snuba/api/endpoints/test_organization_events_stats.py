@@ -414,7 +414,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
         assert response.status_code == 200, response.content
         assert [attrs for time, attrs in response.data["data"]] == [[{"count": 1}], [{"count": 2}]]
 
-    def test_performance_view_feature(self) -> None:
+    def test_without_discover_basic(self) -> None:
         response = self.do_request(
             data={
                 "end": before_now(),
@@ -423,10 +423,7 @@ class OrganizationEventsStatsEndpointTest(APITestCase, SnubaTestCase, SearchIssu
                 "interval": "30m",
                 "yAxis": "count()",
             },
-            features={
-                "organizations:performance-view": True,
-                "organizations:discover-basic": False,
-            },
+            features={"organizations:discover-basic": False},
         )
         assert response.status_code == 200, response.content
 
