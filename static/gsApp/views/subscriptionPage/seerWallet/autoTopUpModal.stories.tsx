@@ -40,9 +40,9 @@ export default Storybook.story('Seer auto-reload modal', story => {
           Members without billing access can't change auto-reload, so the modal asks them
           to contact their admins. A link can say why Seer stopped, as in{' '}
           <code>#open-seer-auto-reload-modal:daily_cap_exceeded</code>, but in
-          organizations with Seer credit checks the check's current answer wins. Members
-          of self-serve organizations get Contact Admin, which sends your admins a real
-          email about that reason, or the auto-reload request without one.
+          organizations with token-billed Seer the credit check's current answer wins.
+          Members of self-serve organizations get Contact Admin, which sends your admins a
+          real email about that reason, or the auto-reload request without one.
         </Text>
         <Flex gap="md" wrap="wrap">
           <Button

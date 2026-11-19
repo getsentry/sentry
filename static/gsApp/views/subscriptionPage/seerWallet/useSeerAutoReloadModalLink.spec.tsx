@@ -35,6 +35,11 @@ describe('useSeerAutoReloadModalLink', () => {
       access: ['org:read'],
       features: ['token-billed-seer-enabled'],
     });
+    // The credit check's answer would win over the link's reason, so it fails here.
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/seer/credit-check/`,
+      statusCode: 500,
+    });
 
     const {router} = renderLink(
       organization,

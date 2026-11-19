@@ -165,9 +165,7 @@ function useCurrentDenialReason(
   linkDenialReason: SeerCreditDenialReason | null | undefined
 ) {
   // Same gate as useSeerCreditCheck. Members can call the check.
-  const isChecking =
-    organization.features.includes('seer-credit-checks') &&
-    organization.features.includes('token-billed-seer-enabled');
+  const isChecking = organization.features.includes('token-billed-seer-enabled');
   const {data, isPending} = useQuery({
     ...seerCreditCheckApiOptions(organization, 'agent_chat_message'),
     enabled: isChecking,

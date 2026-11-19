@@ -868,7 +868,7 @@ describe('openSeerAutoTopUpModal', () => {
     describe('with credit checks', () => {
       const checkedMember = OrganizationFixture({
         access: ['org:read'],
-        features: ['seer-credit-checks', 'token-billed-seer-enabled'],
+        features: ['token-billed-seer-enabled'],
       });
 
       function openWithCreditCheck({
