@@ -139,7 +139,9 @@ def test_dualwrite_set_experimental_backend(
 @mock.patch("datadog.dogstatsd.base.DogStatsd.increment")
 @mock.patch("datadog.dogstatsd.base.statsd.increment")
 @thread_leak_allowlist(reason="datadog dualwrite metrics", issue=98803)
-def test_dualwrite_default_secondary(primary_incr, secondary_incr):
+def test_dualwrite_default_secondary(
+    primary_incr: mock.MagicMock, secondary_incr: mock.MagicMock
+) -> None:
     backend = DualWriteMetricsBackend(
         primary_backend="sentry.metrics.dogstatsd.DogStatsdMetricsBackend",
         secondary_backend="sentry.metrics.precise_dogstatsd.PreciseDogStatsdMetricsBackend",
@@ -163,7 +165,9 @@ def test_dualwrite_default_secondary(primary_incr, secondary_incr):
 @mock.patch("datadog.threadstats.base.ThreadStats.timing")
 @mock.patch("datadog.dogstatsd.base.DogStatsd.distribution")
 @thread_leak_allowlist(reason="datadog dualwrite metrics", issue=98803)
-def test_dualwrite_default_secondary_distribution(distribution, timing):
+def test_dualwrite_default_secondary_distribution(
+    distribution: mock.MagicMock, timing: mock.MagicMock
+) -> None:
     backend = DualWriteMetricsBackend(
         primary_backend="sentry.metrics.datadog.DatadogMetricsBackend",
         secondary_backend="sentry.metrics.precise_dogstatsd.PreciseDogStatsdMetricsBackend",
@@ -191,6 +195,6 @@ def test_dualwrite_default_secondary_distribution(distribution, timing):
     distribution.assert_called_once()
 
 
-def test_dualwrite_invalid_default_backend():
+def test_dualwrite_invalid_default_backend() -> None:
     with pytest.raises(ValueError):
         DualWriteMetricsBackend(default_backend="both")
