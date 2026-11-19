@@ -5,6 +5,7 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {
   act,
+  cleanup,
   render,
   renderHookWithProviders,
   screen,
@@ -160,6 +161,7 @@ describe('useDroppedData', () => {
 
     afterEach(async () => {
       try {
+        cleanup();
         await act(() => jest.runOnlyPendingTimersAsync());
       } finally {
         jest.useRealTimers();
