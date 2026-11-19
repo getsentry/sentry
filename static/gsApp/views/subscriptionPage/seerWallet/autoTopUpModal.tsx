@@ -6,6 +6,7 @@ import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {InputGroup} from '@sentry/scraps/input';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {openModal, type ModalRenderProps} from '@sentry/scraps/modal';
@@ -14,7 +15,6 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 import {ToggleCard} from '@sentry/scraps/toggleCard';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
@@ -219,7 +219,9 @@ const AutoTopUpContactAdmin = withSubscription(function AutoTopUpContactAdmin({
             {denialReason === 'daily_cap_exceeded' && (
               <Text as="p" size="lg">
                 {tct('This will reset at [time].', {
-                  time: <DateTime date={getDailyLimitResetsAt()} timeOnly timeZone />,
+                  time: (
+                    <DateTime date={getDailyLimitResetsAt()} mode="time" showTimezone />
+                  ),
                 })}
               </Text>
             )}
