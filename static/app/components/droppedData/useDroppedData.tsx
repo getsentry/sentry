@@ -23,15 +23,6 @@ interface DroppedEventsResponse {
   meta: {dataset: string; end: number; interval: number; start: number};
 }
 
-export function makeDroppedDataQueryKeyPrefix(organizationSlug: string) {
-  return apiOptions.partialQueryKey(
-    '/organizations/$organizationIdOrSlug/events-dropped/',
-    {
-      path: {organizationIdOrSlug: organizationSlug},
-    }
-  );
-}
-
 export interface UseDroppedDataParams {
   dataset: DiscoverDatasets;
   interval: string;

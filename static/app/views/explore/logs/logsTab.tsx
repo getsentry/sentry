@@ -12,7 +12,6 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tabs} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {makeDroppedDataQueryKeyPrefix} from 'sentry/components/droppedData/useDroppedData';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
@@ -26,6 +25,7 @@ import {
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {HOUR} from 'sentry/utils/formatters';
@@ -356,7 +356,12 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
         type: 'active',
       }),
       queryClient.refetchQueries({
-        queryKey: makeDroppedDataQueryKeyPrefix(organization.slug),
+        queryKey: apiOptions.partialQueryKey(
+          '/organizations/$organizationIdOrSlug/events-dropped/',
+          {
+            path: {organizationIdOrSlug: organization.slug},
+          }
+        ),
         type: 'active',
       }),
     ]);
