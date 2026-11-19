@@ -1,7 +1,11 @@
+import threading
+from collections.abc import Callable, Iterator
+from contextlib import contextmanager
 from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
+from django.db import connections, router, transaction
 
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.rpc.service import dispatch_to_local_service
@@ -18,7 +22,7 @@ from sentry.integrations.types import ExternalProviders
 from sentry.models.grouplink import GroupLink
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.repository import Repository
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.silo import all_silo_test, cell_silo_test
 
 
@@ -741,6 +745,56 @@ class RenameRepositoriesTest(TestCase):
             == []
         )
 
+    def test_renames_repository_with_null_url(self) -> None:
+        self.repo.update(url=None)
+
+        assert self._rename(expected_url=None) == [self.repo.id]
+
+        self.repo.refresh_from_db()
+        assert self.repo.url == "https://github.com/getsentry/new-name"
+
+    def test_renames_only_matching_rows_in_batch(self) -> None:
+        other = self.create_repo(
+            project=self.project,
+            name="getsentry/other",
+            provider="integrations:github",
+            integration_id=self.integration.id,
+            external_id="101",
+            url="https://github.com/getsentry/other",
+        )
+        other.update(config={"name": "getsentry/other"})
+
+        renamed = repository_service.rename_repositories(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            provider="integrations:github",
+            renames=[
+                RpcRepositoryRename(
+                    id=self.repo.id,
+                    external_id="100",
+                    expected_name="getsentry/old-name",
+                    expected_url="https://github.com/getsentry/old-name",
+                    expected_config_name="getsentry/old-name",
+                    name="getsentry/new-name",
+                    url="https://github.com/getsentry/new-name",
+                ),
+                # Stale: the caller read a name the row no longer has.
+                RpcRepositoryRename(
+                    id=other.id,
+                    external_id="101",
+                    expected_name="getsentry/older",
+                    expected_url="https://github.com/getsentry/other",
+                    expected_config_name="getsentry/other",
+                    name="getsentry/other-new",
+                    url="https://github.com/getsentry/other-new",
+                ),
+            ],
+        )
+
+        assert renamed == [self.repo.id]
+        other.refresh_from_db()
+        assert other.name == "getsentry/other"
+
     def test_skips_repository_changed_since_caller_read_it(self) -> None:
         # A webhook renamed the repo after the sync queued its rename.
         self.repo.update(
@@ -965,3 +1019,114 @@ class SerializeRepositoryTest(TestCase):
         )
 
         assert result is None
+
+
+@contextmanager
+def _row_locked_elsewhere(repo_id: int) -> Iterator[None]:
+    """Hold a row lock on a repository from another connection, then release it."""
+    using = router.db_for_write(Repository)
+    locked = threading.Event()
+    release = threading.Event()
+    errors: list[BaseException] = []
+
+    def hold_lock() -> None:
+        try:
+            with transaction.atomic(using=using):
+                Repository.objects.using(using).select_for_update().get(id=repo_id)
+                locked.set()
+                release.wait(10)
+        except BaseException as e:
+            errors.append(e)
+        finally:
+            locked.set()
+            connections[using].close()
+
+    thread = threading.Thread(target=hold_lock)
+    thread.start()
+    try:
+        assert locked.wait(10)
+        with connections[using].cursor() as cursor:
+            # Fail fast instead of hanging if the call waits on the held lock.
+            cursor.execute("SET lock_timeout = '2s'")
+        try:
+            yield
+        finally:
+            with connections[using].cursor() as cursor:
+                cursor.execute("RESET lock_timeout")
+    finally:
+        release.set()
+        thread.join(10)
+    if errors:
+        raise errors[0]
+
+
+@cell_silo_test
+class RepositoryWriteLockTest(TransactionTestCase):
+    def setUp(self) -> None:
+        self.integration = self.create_integration(
+            organization=self.organization, external_id="1", provider="github"
+        )
+
+    def _create_repo(self, external_id: str, status: int) -> Repository:
+        repo = self.create_repo(
+            project=self.project,
+            name=f"getsentry/repo-{external_id}",
+            provider="integrations:github",
+            integration_id=self.integration.id,
+            external_id=external_id,
+            url=f"https://github.com/getsentry/repo-{external_id}",
+        )
+        repo.update(status=status, config={"name": f"getsentry/repo-{external_id}"})
+        return repo
+
+    def _call_with_lock_held(self, repo: Repository, call: Callable[[], Any]) -> Any:
+        with _row_locked_elsewhere(repo.id):
+            return call()
+
+    def test_enable_does_not_wait_on_locked_active_repository(self) -> None:
+        active = self._create_repo("1", ObjectStatus.ACTIVE)
+        disabled = self._create_repo("2", ObjectStatus.DISABLED)
+
+        result = self._call_with_lock_held(
+            active,
+            lambda: repository_service.enable_repositories_by_external_ids(
+                organization_id=self.organization.id,
+                integration_id=self.integration.id,
+                provider="integrations:github",
+                external_ids=["1", "2"],
+            ),
+        )
+
+        assert [repo.id for repo in result] == [active.id, disabled.id]
+        disabled.refresh_from_db()
+        assert disabled.status == ObjectStatus.ACTIVE
+
+    def test_rename_does_not_wait_on_locked_repository_it_skips(self) -> None:
+        unchanged = self._create_repo("1", ObjectStatus.ACTIVE)
+        renamed = self._create_repo("2", ObjectStatus.ACTIVE)
+
+        def rename(repo: Repository, name: str) -> RpcRepositoryRename:
+            return RpcRepositoryRename(
+                id=repo.id,
+                external_id=repo.external_id,
+                expected_name=repo.name,
+                expected_url=repo.url,
+                expected_config_name=repo.config["name"],
+                name=name,
+                url=f"https://github.com/{name}",
+            )
+
+        result = self._call_with_lock_held(
+            unchanged,
+            lambda: repository_service.rename_repositories(
+                organization_id=self.organization.id,
+                integration_id=self.integration.id,
+                provider="integrations:github",
+                renames=[rename(unchanged, unchanged.name), rename(renamed, "getsentry/new-name")],
+            ),
+        )
+
+        assert result == [renamed.id]
+        renamed.refresh_from_db()
+        assert renamed.name == "getsentry/new-name"
+        assert renamed.config == {"name": "getsentry/new-name"}
