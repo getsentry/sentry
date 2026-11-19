@@ -7,8 +7,7 @@
  * Usage:
  *   pnpm gen:embed-widgets
  */
-import {execFileSync} from 'node:child_process';
-import {writeFileSync} from 'node:fs';
+import {existsSync, readFileSync, writeFileSync} from 'node:fs';
 import * as path from 'node:path';
 
 import {seerEmbedsToJsonSchemas} from 'sentry/components/seer/markdown/embeds/schemas';
@@ -19,12 +18,26 @@ const OUT_PATH = path.resolve(
 );
 
 const widgets = seerEmbedsToJsonSchemas();
+const output = JSON.stringify(widgets, null, 2);
 
-writeFileSync(OUT_PATH, JSON.stringify(widgets, null, 2) + '\n');
+function hasCurrentWidgets(): boolean {
+  if (!existsSync(OUT_PATH)) {
+    return false;
+  }
+  const existing = readFileSync(OUT_PATH, 'utf8');
+  try {
+    return JSON.stringify(JSON.parse(existing), null, 2) === output;
+  } catch (error) {
+    if (error instanceof SyntaxError) {
+      return false;
+    }
+    throw error;
+  }
+}
 
-// Format the output with oxfmt so the committed file is byte-for-byte stable
-// regardless of JSON.stringify's spacing. This keeps the file in sync with the
-// repo formatter and lets CI verify freshness with a plain `git diff`.
-execFileSync('pnpm', ['oxfmt', OUT_PATH], {stdio: 'ignore'});
-
-console.log(`Wrote ${widgets.length} embed widget(s) to ${OUT_PATH}`);
+if (hasCurrentWidgets()) {
+  console.log(`Embed widgets are up to date in ${OUT_PATH}`);
+} else {
+  writeFileSync(OUT_PATH, output + '\n');
+  console.log(`Wrote ${widgets.length} embed widget(s) to ${OUT_PATH}`);
+}

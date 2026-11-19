@@ -105,6 +105,7 @@
     ".devenv/bin/**/*",
     "src/**/templates/**/*.html",
     "**/*.min.js",
+    "**/*.generated.*",
     "tests/**/fixtures/**/*",
     "tests/relay_integration/**/*",
     "!tests/js/**/*",
