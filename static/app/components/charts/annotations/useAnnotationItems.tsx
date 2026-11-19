@@ -1,5 +1,3 @@
-import {useMemo} from 'react';
-
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useReleaseStats} from 'sentry/utils/useReleaseStats';
 
@@ -13,21 +11,18 @@ export function useAnnotationItems({enabled}: {enabled: boolean}): AnnotationIte
   const {releases} = useReleaseStats(selection, {enabled});
   const {data: flagLog} = useAnnotationFlagLog({enabled});
 
-  return useMemo(
-    () => ({
-      release: releases?.map(({date, version}): AnnotationItem => ({
-        id: `release:${version}`,
-        kind: 'release',
-        start: new Date(date).getTime(),
-        title: version,
-      })),
-      flag: flagLog?.map(({id, createdAt, flag}): AnnotationItem => ({
-        id: `flag:${id}`,
-        kind: 'flag',
-        start: new Date(createdAt).getTime(),
-        title: flag,
-      })),
-    }),
-    [releases, flagLog]
-  );
+  return {
+    release: releases?.map(({date, version}): AnnotationItem => ({
+      id: `release:${version}`,
+      kind: 'release',
+      start: new Date(date).getTime(),
+      title: version,
+    })),
+    flag: flagLog?.map(({id, createdAt, flag}): AnnotationItem => ({
+      id: `flag:${id}`,
+      kind: 'flag',
+      start: new Date(createdAt).getTime(),
+      title: flag,
+    })),
+  };
 }
