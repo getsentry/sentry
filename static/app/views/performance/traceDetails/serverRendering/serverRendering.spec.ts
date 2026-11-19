@@ -1,7 +1,7 @@
 import {
   SEARCH_PAGE__SERVER_RENDERING__AGE,
   SEARCH_PAGE__SERVER_RENDERING__TYPE,
-  SEARCH_SENTRY__LINK__TYPE,
+  SEARCH_LINK__TYPE,
 } from '@sentry/conventions/attributes/search';
 
 import type {
@@ -23,7 +23,7 @@ function makeLink(
     itemId: 'b415e097df49bf1c',
     traceId: '6edf623ed48e4172a54e7fbee3b40c5d',
     sampled: true,
-    attributes: [{name: SEARCH_SENTRY__LINK__TYPE, type: 'str', value: type}],
+    attributes: [{name: SEARCH_LINK__TYPE, type: 'str', value: type}],
     ...overrides,
   };
 }
