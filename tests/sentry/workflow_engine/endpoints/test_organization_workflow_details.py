@@ -167,8 +167,8 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
                         "conditions": [
                             {
                                 "id": condition.id,
-                                "type": Condition.EQUAL,
-                                "comparison": 1,
+                                "type": Condition.REAPPEARED_EVENT,
+                                "comparison": True,
                                 "conditionResult": True,
                             }
                         ],
