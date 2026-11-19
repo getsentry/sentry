@@ -10,11 +10,6 @@ import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {updateEnvironments} from 'sentry/components/pageFilters/actions';
-import {
-  EnvironmentPageFilterTrigger,
-  type EnvironmentPageFilterTriggerProps,
-} from 'sentry/components/pageFilters/environment/environmentPageFilterTrigger';
-import {getAvailableEnvironments} from 'sentry/components/pageFilters/environment/getAvailableEnvironments';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useStagedCompactSelect} from 'sentry/components/pageFilters/useStagedCompactSelect';
 import {t, tct} from 'sentry/locale';
@@ -24,6 +19,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+
+import {
+  EnvironmentPageFilterTrigger,
+  type EnvironmentPageFilterTriggerProps,
+} from './environmentPageFilterTrigger';
+import {getAvailableEnvironments} from './getAvailableEnvironments';
 
 export interface EnvironmentPageFilterProps extends Partial<
   Omit<MultipleSelectProps<string>, 'onChange'>

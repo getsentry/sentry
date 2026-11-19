@@ -34,11 +34,6 @@ import {useLogItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttri
 import {useValidatedGroupBys} from 'sentry/views/explore/hooks/useValidatedGroupBys';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
 import {
-  OurLogKnownFieldKey,
-  type OurLogsAggregate,
-} from 'sentry/views/explore/logs/types';
-import {useValidateLogsTab} from 'sentry/views/explore/logs/useValidateLogsTab';
-import {
   useQueryParamsGroupBys,
   useQueryParamsVisualizes,
   useSetQueryParamsGroupBys,
@@ -51,6 +46,7 @@ import {
   VisualizeFunction,
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
+import {ToolbarQuerySpeed} from 'sentry/views/explore/toolbar/toolbarQuerySpeed';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   applyConditionalFilter,
@@ -69,6 +65,8 @@ import {
 import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 
 import {HiddenLogSearchFields} from './constants';
+import {OurLogKnownFieldKey, type OurLogsAggregate} from './types';
+import {useValidateLogsTab} from './useValidateLogsTab';
 
 export const LOG_AGGREGATES: Array<SelectOption<OurLogsAggregate>> = [
   {
@@ -122,6 +120,7 @@ export function LogsToolbar() {
     <Container data-test-id="logs-toolbar">
       <ToolbarVisualize />
       <ToolbarGroupBy />
+      <ToolbarQuerySpeed />
     </Container>
   );
 }

@@ -2,6 +2,7 @@ import {Fragment, useCallback} from 'react';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 
 import {Button} from '@sentry/scraps/button';
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -9,7 +10,6 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {ArchiveActions} from 'sentry/components/actions/archive';
 import {useAnalyticsArea} from 'sentry/components/analyticsArea';
 import {makeGroupPriorityDropdownOptions} from 'sentry/components/badge/groupPriority';
-import {openConfirmModal} from 'sentry/components/confirm';
 import {t} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {BaseGroup} from 'sentry/types/group';
@@ -21,6 +21,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 import {FOR_REVIEW_QUERIES} from 'sentry/views/issueList/utils';
 
+import {CopyActions} from './copyActions';
 import {ResolveActionsContainer as ResolveActions} from './resolveActions';
 import {ReviewAction} from './reviewAction';
 import {ConfirmAction, getConfirm, getLabel} from './utils';
@@ -300,6 +301,11 @@ export function ActionSet({
       {!nestReview && (
         <ReviewAction disabled={!canMarkReviewed} onUpdate={handleUpdate} />
       )}
+      <CopyActions
+        allInQuerySelected={allInQuerySelected}
+        anySelected={anySelected}
+        selectedIssues={selectedIssues}
+      />
       <DropdownMenu
         size="sm"
         items={menuItems}

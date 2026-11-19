@@ -1,4 +1,4 @@
-import {getWorkflowEngineResponseErrorMessage} from 'sentry/components/workflowEngine/getWorkflowEngineResponseErrorMessage';
+import {getWorkflowEngineResponseErrorMessage} from './getWorkflowEngineResponseErrorMessage';
 
 describe('getWorkflowEngineResponseErrorMessage', () => {
   it('returns undefined for undefined', () => {

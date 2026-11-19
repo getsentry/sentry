@@ -13,8 +13,9 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import {getShortEventId} from 'sentry/utils/events';
 import {statusToText} from 'sentry/views/insights/uptime/timelineConfig';
-import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
-import GroupUptimeChecks from 'sentry/views/issueDetails/groupUptimeChecks';
+
+import {GroupIdProvider} from './groupIdContext';
+import GroupUptimeChecks from './groupUptimeChecks';
 
 describe('GroupUptimeChecks', () => {
   const detectorId = '123';

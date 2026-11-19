@@ -2,8 +2,9 @@ __all__ = ("User",)
 
 
 from collections.abc import Mapping
-from typing import Any, Self, TypedDict
+from typing import Annotated, Any, Self, TypedDict
 
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.interfaces.base import Interface
 from sentry.interfaces.geo import Geo
 from sentry.utils.json import prune_empty_keys
@@ -11,13 +12,16 @@ from sentry.web.helpers import render_to_string
 
 
 class EventUserApiContext(TypedDict, total=False):
-    id: str | None
-    email: str | None
-    username: str | None
-    ip_address: str | None
-    name: str | None
-    geo: dict[str, str] | None
-    data: dict[str, Any] | None
+    id: Annotated[str | None, ApiDescription("ID the SDK sent for the user")]
+    email: Annotated[str | None, ApiDescription("Email address of the user")]
+    username: Annotated[str | None, ApiDescription("Username of the user")]
+    ip_address: Annotated[str | None, ApiDescription("IP address of the user")]
+    name: Annotated[str | None, ApiDescription("Name of the user")]
+    geo: Annotated[
+        dict[str, str] | None,
+        ApiDescription("Location of the user, with keys such as country_code, city and region"),
+    ]
+    data: Annotated[dict[str, Any] | None, ApiDescription("Extra data the SDK sent about the user")]
 
 
 class User(Interface):

@@ -1,11 +1,20 @@
+import time
 from unittest import mock
+from uuid import uuid4
 
 import jwt
+import pytest
 import responses
 from requests import PreparedRequest, Request
 from responses.matchers import header_matcher, query_param_matcher, query_string_matcher
 
-from sentry.integrations.jira.client import STATUS_SEARCH_MAX_PAGES, STATUS_SEARCH_PAGE_SIZE
+from sentry.integrations.jira.client import (
+    STATUS_SEARCH_MAX_PAGES,
+    STATUS_SEARCH_PAGE_SIZE,
+    JiraCloudClient,
+    JiraForgeTokenUnavailable,
+)
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.utils.atlassian_connect import get_query_hash
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -296,3 +305,60 @@ class JiraClientTest(TestCase):
 
         assert self.jira_client.get_transitions("APP-1") == [{"id": "1"}]
         assert self.jira_client.get_transitions("APP-1") == [{"id": "2"}]
+
+
+@control_silo_test
+class JiraClientForgeTokenTest(TestCase):
+    api_base_url = "https://api.atlassian.com/ex/jira/11111111-2222-3333-4444-555555555555"
+
+    def integration_for(self, metadata: dict[str, object]) -> Integration:
+        return self.create_provider_integration(
+            provider="jira",
+            external_id=uuid4().hex,
+            metadata={"base_url": "https://example.atlassian.net", **metadata},
+        )
+
+    def forge(self, expires_in: int = 3600) -> dict[str, object]:
+        return {
+            "api_base_url": self.api_base_url,
+            "system_token": "system-token",
+            "system_token_expires_at": int(time.time()) + expires_in,
+        }
+
+    @responses.activate
+    def test_uses_forge_token_when_enabled(self) -> None:
+        responses.get(
+            f"{self.api_base_url}/rest/api/2/serverInfo",
+            match=[header_matcher({"Authorization": "Bearer system-token"})],
+            json={},
+        )
+        connect = self.integration_for({"shared_secret": secret, "forge": self.forge()})
+        assert JiraCloudClient(connect, verify_ssl=True).base_url == "https://example.atlassian.net"
+
+        with override_options({"jira.forge.integration-ids": [connect.id]}):
+            connect_client = JiraCloudClient(connect, verify_ssl=True)
+        # Forge-only integrations have no Connect secret, so they aren't gated.
+        forge_only = self.integration_for({"forge": self.forge()})
+        forge_only_client = JiraCloudClient(forge_only, verify_ssl=True)
+
+        for client in (connect_client, forge_only_client):
+            client.get_server_info()
+            assert client.site_url == "https://example.atlassian.net"
+
+    @responses.activate
+    def test_falls_back_without_an_unexpired_token(self) -> None:
+        connect = self.integration_for(
+            {"shared_secret": secret, "forge": self.forge(expires_in=60)}
+        )
+        with override_options({"jira.forge.integration-ids": [connect.id]}):
+            connect_client = JiraCloudClient(connect, verify_ssl=True)
+        forge_only = self.integration_for({"forge": self.forge(expires_in=60)})
+        forge_only_client = JiraCloudClient(forge_only, verify_ssl=True)
+
+        # Connect integrations go back to the site with a Connect JWT.
+        assert connect_client.forge_token is None
+        assert connect_client.base_url == "https://example.atlassian.net"
+        # Forge-only integrations have nothing to fall back to.
+        with pytest.raises(JiraForgeTokenUnavailable):
+            forge_only_client.get_server_info()
+        assert len(responses.calls) == 0

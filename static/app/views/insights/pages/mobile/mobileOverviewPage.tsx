@@ -4,9 +4,7 @@ import {parseAsBoolean, parseAsString, useQueryStates} from 'nuqs';
 import {Alert} from '@sentry/scraps/alert';
 import {Link} from '@sentry/scraps/link';
 
-import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {NoAccess} from 'sentry/components/noAccess';
 import {
   DatePageFilter,
   type DatePageFilterProps,
@@ -42,17 +40,6 @@ import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDef
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
-import {Am1MobileOverviewPage} from 'sentry/views/insights/pages/mobile/am1OverviewPage';
-import {
-  isAValidSort,
-  MobileOverviewTable,
-  type ValidSort,
-} from 'sentry/views/insights/pages/mobile/mobileOverviewTable';
-import {Referrer} from 'sentry/views/insights/pages/mobile/referrers';
-import {
-  DEFAULT_SORT,
-  OVERVIEW_PAGE_ALLOWED_OPS,
-} from 'sentry/views/insights/pages/mobile/settings';
 import {TransactionNameSearchBar} from 'sentry/views/insights/pages/transactionNameSearchBar';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
 import {categorizeProjects} from 'sentry/views/insights/pages/utils';
@@ -68,6 +55,11 @@ import {
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {LegacyOnboarding} from 'sentry/views/performance/onboarding';
 import {ProjectPerformanceType} from 'sentry/views/performance/utils';
+
+import {Am1MobileOverviewPage} from './am1OverviewPage';
+import {isAValidSort, MobileOverviewTable, type ValidSort} from './mobileOverviewTable';
+import {Referrer} from './referrers';
+import {DEFAULT_SORT, OVERVIEW_PAGE_ALLOWED_OPS} from './settings';
 
 function MobileVitalsBanner() {
   const organization = useOrganization();
@@ -244,59 +236,50 @@ function EAPMobileOverviewPage({datePageFilterProps}: EAPMobileOverviewPageProps
   );
 
   return (
-    <Feature
-      features="performance-view"
-      organization={organization}
-      renderDisabled={NoAccess}
-    >
-      <Layout.Body>
-        <Layout.Main width="full">
-          <ModuleLayout.Layout>
-            <ModuleLayout.Full>
-              <ToolRibbon>
-                <PageFilterBar condensed>
-                  <InsightsProjectSelector />
-                  <InsightsEnvironmentSelector />
-                  <DatePageFilter {...datePageFilterProps} />
-                </PageFilterBar>
-                {!showOnboarding && (
-                  <StyledTransactionNameSearchBar
-                    organization={organization}
-                    projectIds={searchBarProjectsIds}
-                    onSearch={(query: string) => {
-                      handleSearch(query);
-                    }}
-                    query={getFreeTextFromQuery(searchBarQuery) ?? ''}
-                  />
-                )}
-              </ToolRibbon>
-            </ModuleLayout.Full>
-            <PageAlert />
-            <MobileVitalsBanner />
-            <ModuleLayout.Full>
-              {showOnboarding ? (
-                <LegacyOnboarding
-                  project={onboardingProject}
+    <Layout.Body>
+      <Layout.Main width="full">
+        <ModuleLayout.Layout>
+          <ModuleLayout.Full>
+            <ToolRibbon>
+              <PageFilterBar condensed>
+                <InsightsProjectSelector />
+                <InsightsEnvironmentSelector />
+                <DatePageFilter {...datePageFilterProps} />
+              </PageFilterBar>
+              {!showOnboarding && (
+                <StyledTransactionNameSearchBar
                   organization={organization}
+                  projectIds={searchBarProjectsIds}
+                  onSearch={(query: string) => {
+                    handleSearch(query);
+                  }}
+                  query={getFreeTextFromQuery(searchBarQuery) ?? ''}
                 />
-              ) : (
-                <PerformanceDisplayContext
-                  value={{performanceType: ProjectPerformanceType.MOBILE}}
-                >
-                  <DoubleChartRow
-                    allowedCharts={doubleChartRowCharts}
-                    {...sharedProps}
-                    eventView={doubleChartRowEventView}
-                  />
-                  <TripleChartRow allowedCharts={tripleChartRowCharts} {...sharedProps} />
-                  <MobileOverviewTable response={response} sort={sorts[1]} />
-                </PerformanceDisplayContext>
               )}
-            </ModuleLayout.Full>
-          </ModuleLayout.Layout>
-        </Layout.Main>
-      </Layout.Body>
-    </Feature>
+            </ToolRibbon>
+          </ModuleLayout.Full>
+          <PageAlert />
+          <MobileVitalsBanner />
+          <ModuleLayout.Full>
+            {showOnboarding ? (
+              <LegacyOnboarding project={onboardingProject} organization={organization} />
+            ) : (
+              <PerformanceDisplayContext
+                value={{performanceType: ProjectPerformanceType.MOBILE}}
+              >
+                <DoubleChartRow
+                  allowedCharts={doubleChartRowCharts}
+                  {...sharedProps}
+                  eventView={doubleChartRowEventView}
+                />
+                <TripleChartRow allowedCharts={tripleChartRowCharts} {...sharedProps} />
+                <MobileOverviewTable response={response} sort={sorts[1]} />
+              </PerformanceDisplayContext>
+            )}
+          </ModuleLayout.Full>
+        </ModuleLayout.Layout>
+      </Layout.Main>
+    </Layout.Body>
   );
 }
 

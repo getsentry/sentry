@@ -55,11 +55,11 @@ def assert_status_code(response: HttpResponse, minimum: int, maximum: int | None
 def assert_no_organization_resource_hydration() -> Iterator[None]:
     with (
         mock.patch(
-            "sentry.organizations.services.organization.serial.serialize_project",
+            "sentry.organizations.services.organization.serial.serialize_projects",
             side_effect=AssertionError("Unexpected project hydration"),
         ) as projects,
         mock.patch(
-            "sentry.organizations.services.organization.serial.serialize_rpc_team",
+            "sentry.organizations.services.organization.serial.serialize_rpc_teams",
             side_effect=AssertionError("Unexpected team hydration"),
         ) as teams,
     ):

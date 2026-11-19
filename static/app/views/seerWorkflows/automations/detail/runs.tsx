@@ -11,5 +11,5 @@ export default function AutomationRuns() {
     return <NotFound />;
   }
 
-  return <RunsTable configId={automationId} />;
+  return <RunsTable configId={automationId} showStrategy={false} />;
 }

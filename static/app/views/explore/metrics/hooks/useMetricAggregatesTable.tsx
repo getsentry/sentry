@@ -171,7 +171,6 @@ function useMetricAggregatesTableImp({
     initialData: [],
     limit,
     referrer: 'api.explore.metric-aggregates-table',
-    trackResponseAnalytics: false,
     queryExtras,
     staleTime,
   });

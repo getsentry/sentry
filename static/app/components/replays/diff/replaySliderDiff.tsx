@@ -3,8 +3,6 @@ import {Fragment, useCallback, useRef} from 'react';
 import type {CSS} from '@sentry/scraps/cssTypes';
 
 import {ContentSliderDiff} from 'sentry/components/contentSliderDiff';
-import {useDiffCompareContext} from 'sentry/components/replays/diff/diffCompareContext';
-import {After, Before} from 'sentry/components/replays/diff/utils';
 import {ReplayPlayer} from 'sentry/components/replays/player/replayPlayer';
 import {ReplayPlayerMeasurer} from 'sentry/components/replays/player/replayPlayerMeasurer';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -12,6 +10,9 @@ import {ReplayPlayerPluginsContextProvider} from 'sentry/utils/replays/playback/
 import {ReplayPlayerStateContextProvider} from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
 import {ReplayReaderProvider} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {useDiffCompareContext} from './diffCompareContext';
+import {After, Before} from './utils';
 
 interface Props {
   minHeight?: CSS['minHeight'];

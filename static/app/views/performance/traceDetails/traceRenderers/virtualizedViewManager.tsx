@@ -2,7 +2,8 @@ import type {Theme} from '@emotion/react';
 import {mat3} from 'gl-matrix';
 import {createSerializer, parseAsString} from 'nuqs';
 
-import {getDuration} from 'sentry/utils/duration/getDuration';
+import {getDuration} from '@sentry/scraps/duration';
+
 import {clamp} from 'sentry/utils/number/clamp';
 import {
   cancelAnimationTimeout,
@@ -25,14 +26,13 @@ import {
 } from 'sentry/views/performance/traceDetails/traceIssueUtils';
 import {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
-import {TraceRowWidthMeasurer} from 'sentry/views/performance/traceDetails/traceRenderers/traceRowWidthMeasurer';
-import {TraceTextMeasurer} from 'sentry/views/performance/traceDetails/traceRenderers/traceTextMeasurer';
-import {
-  COLLAPSED_GAP_WIDTH_PX,
-  TraceTimeCompression,
-} from 'sentry/views/performance/traceDetails/traceRenderers/traceTimeCompression';
-import type {TraceTimeCompressionGap} from 'sentry/views/performance/traceDetails/traceRenderers/traceTimeCompression';
-import type {TraceView} from 'sentry/views/performance/traceDetails/traceRenderers/traceView';
+
+import {TraceRowWidthMeasurer} from './traceRowWidthMeasurer';
+import type {TraceScheduler} from './traceScheduler';
+import {TraceTextMeasurer} from './traceTextMeasurer';
+import {COLLAPSED_GAP_WIDTH_PX, TraceTimeCompression} from './traceTimeCompression';
+import type {TraceTimeCompressionGap} from './traceTimeCompression';
+import type {TraceView} from './traceView';
 import {
   CompressedTraceViewCalculations,
   NormalTraceViewCalculations,
@@ -41,9 +41,7 @@ import {
   type TraceIconEdge,
   type TraceViewCalculationContext,
   type TraceViewCalculations,
-} from 'sentry/views/performance/traceDetails/traceRenderers/traceViewCalculations';
-
-import type {TraceScheduler} from './traceScheduler';
+} from './traceViewCalculations';
 
 const DIVIDER_WIDTH = 6;
 const COLLAPSED_GAP_MARKER_CLEARANCE_PX = 8;
@@ -2002,7 +2000,7 @@ export class VirtualizedViewManager {
     ref.style.opacity = '1';
     ref.style.transform = `translateX(${placement}px)`;
     const label = ref.children[0] as HTMLElement | undefined;
-    const duration = getDuration(interval / 1000, 2, true);
+    const duration = getDuration(interval / 1000, {precision: 2, style: 'short'});
 
     if (label && label?.textContent !== duration) {
       label.textContent = duration;

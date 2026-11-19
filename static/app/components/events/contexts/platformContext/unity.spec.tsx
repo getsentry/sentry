@@ -3,7 +3,8 @@ import {EventFixture} from 'sentry-fixture/event';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ContextCard} from 'sentry/components/events/contexts/contextCard';
-import {getUnityContextData} from 'sentry/components/events/contexts/platformContext/unity';
+
+import {getUnityContextData} from './unity';
 
 const MOCK_UNITY_CONTEXT = {
   type: 'unity' as const,

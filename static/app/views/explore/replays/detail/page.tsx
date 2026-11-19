@@ -5,8 +5,9 @@ import {ArchivedReplayAlert} from 'sentry/components/replays/alerts/archivedRepl
 import {ReplayLoadingState} from 'sentry/components/replays/player/replayLoadingState';
 import {ReplayProcessingError} from 'sentry/components/replays/replayProcessingError';
 import type {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
-import {ReplayLayout} from 'sentry/views/explore/replays/detail/layout/replayLayout';
-import {ReplayDetailsError} from 'sentry/views/explore/replays/detail/replayDetailsError';
+
+import {ReplayLayout} from './layout/replayLayout';
+import {ReplayDetailsError} from './replayDetailsError';
 
 type Props = {
   readerResult: ReturnType<typeof useLoadReplayReader>;
@@ -39,13 +40,23 @@ export function ReplayDetailsPage({readerResult}: Props) {
           <NotFound />
         </Stack>
       )}
-      renderProcessingError={() => (
-        <Stack flex={1} padding="2xl 3xl">
-          <Stack>
-            <ReplayProcessingError />
+      renderProcessingError={({replay}) =>
+        replay?.hasTimelineData() ? (
+          // The player shows the error in its place, and the activity,
+          // network, and console tabs still work.
+          <ReplayLayout
+            isVideoReplay={replay.isVideoReplay()}
+            replayRecord={replay.getReplay()}
+            isLoading={false}
+          />
+        ) : (
+          <Stack flex={1} padding="2xl 3xl">
+            <Stack>
+              <ReplayProcessingError replay={replay} />
+            </Stack>
           </Stack>
-        </Stack>
-      )}
+        )
+      }
     >
       {({replay}) => (
         <ReplayLayout

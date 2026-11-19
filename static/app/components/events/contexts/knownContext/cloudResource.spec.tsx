@@ -3,8 +3,9 @@ import {EventFixture} from 'sentry-fixture/event';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ContextCard} from 'sentry/components/events/contexts/contextCard';
-import type {CloudResourceContext} from 'sentry/components/events/contexts/knownContext/cloudResource';
-import {getCloudResourceContextData} from 'sentry/components/events/contexts/knownContext/cloudResource';
+
+import type {CloudResourceContext} from './cloudResource';
+import {getCloudResourceContextData} from './cloudResource';
 
 const MOCK_CLOUD_RESOURCE: CloudResourceContext = {
   'cloud.provider': 'aws',

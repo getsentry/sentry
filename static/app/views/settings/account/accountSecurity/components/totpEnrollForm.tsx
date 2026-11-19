@@ -6,8 +6,8 @@ import {
   useScrapsForm,
 } from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {QuietZoneQRCode} from 'sentry/components/quietZoneQRCode';
 import {InputCopyButton} from 'sentry/components/textCopyInput';
 import {t} from 'sentry/locale';
@@ -51,7 +51,7 @@ export function TotpEnrollForm({
       try {
         await enrollAuthenticator(value);
       } catch (caughtError) {
-        addErrorMessage(
+        toast.error(
           getRequestErrorUserMessage(
             caughtError,
             t('Could not add the %s authenticator. Try again.', authenticator.name)

@@ -2,6 +2,8 @@ import * as Sentry from '@sentry/react';
 import orderBy from 'lodash/orderBy';
 import moment from 'moment-timezone';
 
+import {formatDateTime} from '@sentry/scraps/dateTime';
+
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import type {PageFilterDatetime} from 'sentry/types/core';
 import type {ECharts, ReactEchartsRef} from 'sentry/types/echarts';
@@ -11,10 +13,11 @@ import type {
   MultiSeriesEventsStats,
 } from 'sentry/types/organization';
 import {escape} from 'sentry/utils';
-import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {oxfordizeArray} from 'sentry/utils/oxfordizeArray';
+
+import {formatChartDateTime} from './formatChartDateTime';
 
 const DEFAULT_TRUNCATE_LENGTH = 80;
 
@@ -352,12 +355,11 @@ export function computeEchartsAriaLabels(
     end: filteredSeries[0]?.data?.slice(-1)[0][0],
   });
 
-  const dateFormat = isShortInterval ? getFormat({timeZone: true}) : 'MMMM Do';
-
-  function formatDate(date: any) {
-    return getFormattedDate(date, dateFormat, {
-      local: !useUTC,
-    });
+  function formatDate(date: string | number | Date) {
+    const timezone = useUTC ? 'UTC' : undefined;
+    return isShortInterval
+      ? formatDateTime(date, {year: 'never', showTimezone: true, timezone})
+      : formatChartDateTime(date, 'longOrdinalDate', {timezone});
   }
 
   // Generate title (first sentence)

@@ -24,10 +24,8 @@ import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
-import {
-  getSecurityDsn,
-  ReportUri,
-} from 'sentry/views/settings/projectSecurityHeaders/reportUri';
+
+import {getSecurityDsn, ReportUri} from './reportUri';
 
 const cspSchema = z.object({
   'sentry:csp_ignored_sources_defaults': z.boolean(),

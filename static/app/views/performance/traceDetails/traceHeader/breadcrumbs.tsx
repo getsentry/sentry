@@ -24,10 +24,11 @@ import {
 import {DOMAIN_VIEW_TITLES} from 'sentry/views/insights/pages/types';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {ModuleName} from 'sentry/views/insights/types';
-import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/pathnames';
 import {getPerformanceBaseUrl} from 'sentry/views/performance/utils';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
+
+import {TraceViewSources} from './traceViewSources';
 
 // Ideally every new entry to ModuleName, would require a new source to be added here so we don't miss any.
 const TRACE_SOURCE_TO_INSIGHTS_MODULE: Partial<Record<TraceViewSources, ModuleName>> = {
@@ -60,8 +61,7 @@ export const TRACE_SOURCE_TO_NON_INSIGHT_ROUTES: Partial<
 };
 
 /**
- * A parent crumb of the trace view. Labels are plain strings so the same list
- * can feed the legacy `Breadcrumbs` and the typed `BreadcrumbList`.
+ * A parent crumb of the trace view, mapped to `BreadcrumbList` items.
  */
 export interface TraceParentCrumb {
   label: string;

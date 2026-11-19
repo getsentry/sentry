@@ -10,9 +10,9 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {IssueCategory, IssueType} from 'sentry/types/group';
-import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 
 import {EventDetailsHeader} from './eventDetailsHeader';
+import {GroupDataContextProvider} from './groupDataContext';
 
 describe('EventDetailsHeader', () => {
   const organization = OrganizationFixture();
@@ -76,7 +76,9 @@ describe('EventDetailsHeader', () => {
         organization,
       }
     );
-    expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByTestId('event-graph-loading')).not.toBeInTheDocument()
+    );
 
     expect(screen.getByRole('button', {name: 'All Envs'})).toBeInTheDocument();
     // Date selection is based on first seen unless selected by the user
@@ -231,7 +233,9 @@ describe('EventDetailsHeader', () => {
         organization,
       }
     );
-    expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByTestId('event-graph-loading')).not.toBeInTheDocument()
+    );
     expect(screen.queryByText('Duration')).not.toBeInTheDocument();
   });
 

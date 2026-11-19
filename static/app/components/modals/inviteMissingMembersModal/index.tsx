@@ -5,17 +5,17 @@ import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconCommit} from '@sentry/icons/commit';
 import {IconGithub} from '@sentry/icons/github';
 import {IconInfo} from '@sentry/icons/info';
+import {useMutation} from '@tanstack/react-query';
 
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {Flex, Grid} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {InviteStatus} from 'sentry/components/modals/inviteMembersModal/types';
-import type {MissingMemberInvite} from 'sentry/components/modals/inviteMissingMembersModal/types';
 import type {InviteModalRenderFunc} from 'sentry/components/modals/memberInviteModalCustomization';
 import {InviteModalHook} from 'sentry/components/modals/memberInviteModalCustomization';
 import {RoleSelectControl} from 'sentry/components/roleSelectControl';
@@ -25,8 +25,10 @@ import {t, tct, tn} from 'sentry/locale';
 import type {MissingMember, Organization, OrgRole} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApi} from 'sentry/utils/useApi';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {StyledExternalLink} from 'sentry/views/settings/organizationMembers/inviteBanner';
+
+import type {MissingMemberInvite} from './types';
 
 const INVITE_COLUMNS: TableColumnConfig[] = [
   {key: 'select', width: 'max-content'},
@@ -112,7 +114,17 @@ export function InviteMissingMembersModal({
   const [sendingInvites, setSendingInvites] = useState(false);
   const [complete, setComplete] = useState(false);
 
-  const api = useApi();
+  const {mutateAsync: createMember} = useMutation({
+    mutationFn: (data: {email: string; role: string; teams: string[]}) =>
+      fetchMutation({
+        url: getApiUrl('/organizations/$organizationIdOrSlug/members/', {
+          path: {organizationIdOrSlug: String(organization?.slug)},
+        }),
+        method: 'POST',
+        data,
+        options: {query: {referrer}},
+      }),
+  });
 
   const allowedRolesMap = useMemo<Record<string, OrgRole>>(
     () => allowedRoles.reduce((rolesMap, role) => ({...rolesMap, [role.id]: role}), {}),
@@ -164,15 +176,7 @@ export function InviteMissingMembersModal({
     };
 
     try {
-      await api.requestPromise(
-        `${getApiUrl('/organizations/$organizationIdOrSlug/members/', {
-          path: {organizationIdOrSlug: String(organization?.slug)},
-        })}?referrer=${referrer}`,
-        {
-          method: 'POST',
-          data,
-        }
-      );
+      await createMember(data);
     } catch (err: any) {
       const errorResponse = err.responseJSON;
 

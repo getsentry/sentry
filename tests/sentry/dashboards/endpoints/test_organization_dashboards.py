@@ -1088,17 +1088,6 @@ class OrganizationDashboardsTest(OrganizationDashboardWidgetTestCase):
         response = self.do_request("post", self.url, data={"title": "Dashboard from Post"})
         assert response.status_code == 201
 
-    def test_post_features_required(self) -> None:
-        with self.feature(
-            {"organizations:dashboards-basic": False, "organizations:dashboards-edit": False}
-        ):
-            response = self.do_request(
-                "post",
-                self.url,
-                data={"title": "Dashboard from Post"},
-            )
-            assert response.status_code == 404
-
     def test_post_with_widgets(self) -> None:
         data: dict[str, Any] = {
             "title": "Dashboard from Post",
@@ -3280,13 +3269,7 @@ class OrganizationDashboardsGranularScopesTest(OrganizationDashboardWidgetTestCa
         assert response.status_code == 201, response.content
 
 
-@with_feature(
-    [
-        "organizations:dashboards-basic",
-        "organizations:dashboards-edit",
-        "organizations:explore-interpolation-and-smoothing",
-    ]
-)
+@with_feature("organizations:explore-interpolation-and-smoothing")
 class OrganizationDashboardTransformationsTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -3377,7 +3360,7 @@ class OrganizationDashboardTransformationsTest(APITestCase):
             "1": ["fill(zero)"],
         }
 
-    def test_create_and_read_latest_smoothing_pipelines(self) -> None:
+    def test_create_and_read_latest_smoothing_transformations(self) -> None:
         transformations = {
             "0": ["fill( linear )", "smooth( ema , 7 , 0.25 )"],
             "1": ["smooth(asap,7)", "fill(zero)"],
@@ -3428,14 +3411,14 @@ class OrganizationDashboardTransformationsTest(APITestCase):
             organization=self.organization, title="Transformed dashboard"
         ).exists()
 
-    def test_rejects_invalid_pipeline_on_create_and_update(self) -> None:
+    def test_rejects_invalid_transformations_on_create_and_update(self) -> None:
         response = self.client.post(self.url, self.data)
         assert response.status_code == 201, response.data
         dashboard_id = response.data["id"]
         widget = response.data["widgets"][0]
         query_id = widget["queries"][0]["id"]
 
-        invalid_pipelines: list[tuple[list[str], str]] = [
+        invalid_transformation_cases: list[tuple[list[str], str]] = [
             (
                 ["fill(locf)", "fill(zero)"],
                 "Only one transformation per function type is allowed per yAxis",
@@ -3457,8 +3440,8 @@ class OrganizationDashboardTransformationsTest(APITestCase):
                 "fill(invalid): mode argument invalid: expected one of locf, zero, linear",
             ),
         ]
-        for pipeline, message in invalid_pipelines:
-            self.data["widgets"][0]["queries"][0]["transformations"] = {"0": pipeline}
+        for transformations, message in invalid_transformation_cases:
+            self.data["widgets"][0]["queries"][0]["transformations"] = {"0": transformations}
             response = self.client.post(self.url, self.data)
             assert response.status_code == 400, response.data
             assert response.data["widgets"][0]["queries"][0]["transformations"] == {"0": [message]}
@@ -3470,7 +3453,9 @@ class OrganizationDashboardTransformationsTest(APITestCase):
                     "widgets": [
                         {
                             "id": widget["id"],
-                            "queries": [{"id": query_id, "transformations": {"0": pipeline}}],
+                            "queries": [
+                                {"id": query_id, "transformations": {"0": transformations}}
+                            ],
                         }
                     ]
                 },

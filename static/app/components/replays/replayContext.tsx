@@ -13,9 +13,8 @@ import {Replayer, ReplayerEvents} from '@sentry/rrweb';
 import type {Mirror} from '@sentry/rrweb-snapshot';
 import isEqual from 'lodash/isEqual';
 
-import {useReplayHighlighting} from 'sentry/components/replays/useReplayHighlighting';
-import {VideoReplayerWithInteractions} from 'sentry/components/replays/videoReplayerWithInteractions';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 import {clamp} from 'sentry/utils/number/clamp';
 import type {useInitialTimeOffsetMs} from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
 import {useTouchEventsCheck} from 'sentry/utils/replays/playback/hooks/useTouchEventsCheck';
@@ -30,6 +29,8 @@ import {useRAF} from 'sentry/utils/useRAF';
 import {useUser} from 'sentry/utils/useUser';
 
 import {canvasReplayerPlugin} from './canvasReplayerPlugin';
+import {useReplayHighlighting} from './useReplayHighlighting';
+import {VideoReplayerWithInteractions} from './videoReplayerWithInteractions';
 
 type RootElem = null | HTMLDivElement;
 
@@ -405,6 +406,7 @@ export function Provider({
       const inst = new Replayer(events, {
         root,
         blockClass: 'sentry-block',
+        showWarning: false,
         mouseTail: {
           duration: 0.75 * 1000,
           lineCap: 'round',
@@ -464,9 +466,9 @@ export function Provider({
       const inst = new VideoReplayerWithInteractions({
         // video specific
         videoEvents,
-        videoApiPrefix: `/api/0/projects/${
-          organization.slug
-        }/${projectSlug}/replays/${replay?.getReplay().id}/videos/`,
+        videoApiPrefix: resolveHostname(
+          `/api/0/projects/${organization.slug}/${projectSlug}/replays/${replay?.getReplay().id}/videos/`
+        ),
         start: startTimestampMs,
         onFinished: setReplayFinished,
         onLoaded: event => {

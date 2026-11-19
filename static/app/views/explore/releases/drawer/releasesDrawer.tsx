@@ -14,9 +14,9 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDateFromTimestamp} from 'sentry/utils/dates';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ReleasesDrawerDetails} from 'sentry/views/explore/releases/drawer/releasesDrawerDetails';
-import {ReleasesDrawerList} from 'sentry/views/explore/releases/drawer/releasesDrawerList';
 
+import {ReleasesDrawerDetails} from './releasesDrawerDetails';
+import {ReleasesDrawerList} from './releasesDrawerList';
 import {RELEASES_DRAWER_PARSERS} from './utils';
 
 /**

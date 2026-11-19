@@ -9,13 +9,6 @@ import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import {DroppedDataChart} from 'sentry/components/droppedData/drawer/droppedDataChart';
-import {DroppedDataOutcomeList} from 'sentry/components/droppedData/drawer/droppedDataOutcomeList';
-import {
-  getOutcomeColors,
-  isOutcomeSelected,
-  type OutcomeSelection,
-} from 'sentry/components/droppedData/drawer/outcomeColors';
 import {droppedAndFilteredLabel} from 'sentry/components/droppedData/outcomes';
 import {
   droppedEventsToOutcomeGroups,
@@ -31,10 +24,20 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {DroppedDataAnalyticsSource} from 'sentry/utils/analytics/exploreAnalyticsEvents';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {PRIMARY_HEADER_HEIGHT} from 'sentry/views/navigation/constants';
 
+import {DroppedDataChart} from './droppedDataChart';
+import {DroppedDataOutcomeList} from './droppedDataOutcomeList';
+import {
+  getOutcomeColors,
+  isOutcomeSelected,
+  type OutcomeSelection,
+} from './outcomeColors';
+
 interface DroppedDataDrawerProps extends UseDroppedDataParams {
+  source: DroppedDataAnalyticsSource;
   onAskSeer?: AskSeerHandler;
 }
 
@@ -42,6 +45,7 @@ export function DroppedDataDrawer({
   dataset,
   interval,
   projects,
+  source,
   onAskSeer,
 }: DroppedDataDrawerProps) {
   const theme = useTheme();
@@ -88,6 +92,7 @@ export function DroppedDataDrawer({
               trackAnalytics('explore.dropped_data.scope_toggled', {
                 organization,
                 dataset,
+                source,
                 scope: nextScope,
               });
             }}
@@ -149,6 +154,7 @@ export function DroppedDataDrawer({
                           trackAnalytics('explore.dropped_data.legend_outcome_toggled', {
                             organization,
                             dataset,
+                            source,
                             outcome,
                             selected,
                           });

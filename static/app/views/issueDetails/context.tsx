@@ -8,7 +8,7 @@ import {
   type Reducer,
 } from 'react';
 
-import type {DetectorDetails} from 'sentry/views/issueDetails/sidebar/detectorDetails';
+import type {DetectorDetails} from './sidebar/detectorDetails';
 
 export const enum SectionKey {
   /**
@@ -30,6 +30,7 @@ export const enum SectionKey {
   RESOURCES = 'resources', // Position controlled by flag
 
   EXCEPTION = 'exception',
+  GPU_CRASH_REPORT = 'gpu-crash-report',
   STACKTRACE = 'stacktrace',
   CHAINED_EXCEPTION = 'chained-exception',
   THREADS = 'threads',

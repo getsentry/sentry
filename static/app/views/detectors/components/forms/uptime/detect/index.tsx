@@ -1,3 +1,4 @@
+import {getDuration} from '@sentry/scraps/duration';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {BooleanField} from 'sentry/components/forms/fields/booleanField';
@@ -10,8 +11,6 @@ import type {FormModel} from 'sentry/components/forms/model';
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {t, tct} from 'sentry/locale';
-import {getDuration} from 'sentry/utils/duration/getDuration';
-import {UptimeHeadersField} from 'sentry/views/detectors/components/forms/uptime/detect/uptimeHeadersField';
 import {
   UPTIME_DEFAULT_DOWNTIME_THRESHOLD,
   UPTIME_HTTP_METHOD_OPTIONS,
@@ -20,6 +19,8 @@ import {
 } from 'sentry/views/detectors/components/forms/uptime/fields';
 import {UptimeSectionGrid} from 'sentry/views/detectors/components/forms/uptime/styles';
 import {HTTPSnippet} from 'sentry/views/detectors/components/uptime/httpSnippet';
+
+import {UptimeHeadersField} from './uptimeHeadersField';
 
 const HTTP_METHODS_NO_BODY = ['GET', 'HEAD', 'OPTIONS'];
 
@@ -95,7 +96,9 @@ export function UptimeDetectorFormDetectSection({step}: {step?: number}) {
             tickValues={[1_000, 10_000, 20_000, 30_000, 40_000, 50_000, 60_000]}
             defaultValue={5_000}
             showTickLabels
-            formatLabel={value => getDuration((value || 0) / 1000, 2, true)}
+            formatLabel={value =>
+              getDuration((value || 0) / 1000, {precision: 2, style: 'short'})
+            }
             flexibleControlStateSize
             required
           />

@@ -10,8 +10,9 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import {IssueDetailsContext} from 'sentry/views/issueDetails/context';
-import {MetricIssueChart} from 'sentry/views/issueDetails/metricIssues/metricIssueChart';
 import {getDetectorDetails} from 'sentry/views/issueDetails/sidebar/detectorSection';
+
+import {MetricIssueChart} from './metricIssueChart';
 
 describe('MetricIssueChart', () => {
   const organization = OrganizationFixture();

@@ -205,9 +205,11 @@ def get_attribute_names(
         for item in resp.data:
             # The endpoint attaches an (empty) context to every attribute when
             # requested, so only keep it when there's actual metadata; otherwise
-            # the built-in field's context stays None.
-            if item.get("context"):
-                context_by_name[item["name"]] = item["context"]
+            # the built-in field's context stays None. A unit alone isn't a
+            # description, so it doesn't count.
+            item_context = item.get("context")
+            if item_context and ("isConvention" in item_context or "isCustom" in item_context):
+                context_by_name[item["name"]] = item_context
                 type_by_name[item["name"]] = attr_type
                 source_by_name[item["name"]] = item.get("attributeSource", {}).get("source_type")
 

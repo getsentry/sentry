@@ -6,17 +6,15 @@ import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPal
 import {t} from 'sentry/locale';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {FORM_FIELD_REGISTRY} from 'sentry/views/settings/fieldRegistry.generated';
+
 import {
   getUserNavigationConfiguration,
   getUserOrgNavigationConfiguration,
-} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
-import {
-  getSettingsScopeTitle,
-  type SettingsScope,
-} from 'sentry/views/settings/settingsScope';
-import type {NavigationSection} from 'sentry/views/settings/types';
-import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
+} from './organization/userOrgNavigationConfiguration';
+import {FORM_FIELD_REGISTRY} from './fieldRegistry.generated';
+import {getSettingsScopeTitle, type SettingsScope} from './settingsScope';
+import type {NavigationSection} from './types';
+import {useSettingsV3} from './useSettingsV3';
 
 function normalizeRouteForLookup(route: string): string {
   if (route === '/settings/organization/') {

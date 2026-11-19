@@ -5,7 +5,10 @@ from sentry.auth.services.orgauthtoken.model import RpcOrgAuthToken
 from sentry.hybridcloud.rpc.resolvers import ByCellName
 from sentry.hybridcloud.rpc.service import RpcService, cell_rpc_method, rpc_method
 from sentry.hybridcloud.services.project_key_mapping import RpcProjectKeyMapping
-from sentry.service_accounts.services.service_account.model import RpcServiceAccount
+from sentry.service_accounts.services.service_account.model import (
+    RpcServiceAccount,
+    RpcServiceAccountToken,
+)
 from sentry.silo.base import SiloMode
 
 
@@ -116,6 +119,16 @@ class CellReplicaService(RpcService):
         self,
         *,
         service_account: RpcServiceAccount,
+        cell_name: str,
+    ) -> None:
+        pass
+
+    @cell_rpc_method(resolve=ByCellName())
+    @abc.abstractmethod
+    def upsert_replicated_service_account_token(
+        self,
+        *,
+        token: RpcServiceAccountToken,
         cell_name: str,
     ) -> None:
         pass

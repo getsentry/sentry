@@ -5,6 +5,10 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 from django.utils import timezone
 from pydantic import BaseModel
+from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE,
+    SEER_BILLING_FEATURE_SEER_AGENT_SLACK,
+)
 
 from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.hybridcloud.outbox.category import OutboxCategory
@@ -109,6 +113,20 @@ class TestSeerAgentClient(TestCase):
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    def test_start_run_records_metadata_referrer(
+        self, mock_post: MagicMock, mock_access: MagicMock
+    ) -> None:
+        mock_access.return_value = (True, None)
+        mock_post.return_value = self._mock_run_response()
+
+        client = SeerAgentClient(self.organization, self.user)
+        run = client.start_run("dsn", metadata={"referrer": "command_palette.tab"})
+
+        run.refresh_from_db()
+        assert run.referrer == "command_palette.tab"
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     @with_feature("organizations:seer-agent-enable-assisted-query-code-mode")
     def test_start_run_enables_assisted_query_code_mode(
         self, mock_post: MagicMock, mock_access: MagicMock
@@ -191,6 +209,65 @@ class TestSeerAgentClient(TestCase):
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    @with_feature("organizations:universal-inbox")
+    def test_start_run_enables_inbox_tools(
+        self, mock_post: MagicMock, mock_access: MagicMock
+    ) -> None:
+        mock_access.return_value = (True, None)
+        mock_post.return_value = self._mock_run_response()
+
+        client = SeerAgentClient(self.organization, self.user, enable_inbox_tools=True)
+        client.start_run("Test query")
+
+        body = mock_post.call_args[0][0]
+        assert body["agent_run_options"]["enable_inbox_tools"] is True
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    def test_start_run_withholds_inbox_tools_without_feature(
+        self, mock_post: MagicMock, mock_access: MagicMock
+    ) -> None:
+        mock_access.return_value = (True, None)
+        mock_post.return_value = self._mock_run_response()
+
+        client = SeerAgentClient(self.organization, self.user, enable_inbox_tools=True)
+        client.start_run("Test query")
+
+        body = mock_post.call_args[0][0]
+        assert body["agent_run_options"]["enable_inbox_tools"] is False
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    @with_feature("organizations:universal-inbox")
+    def test_start_run_withholds_inbox_tools_without_user(
+        self, mock_post: MagicMock, mock_access: MagicMock
+    ) -> None:
+        mock_access.return_value = (True, None)
+        mock_post.return_value = self._mock_run_response()
+
+        client = SeerAgentClient(self.organization, None, enable_inbox_tools=True)
+        client.start_run("Test query")
+
+        body = mock_post.call_args[0][0]
+        assert body["agent_run_options"]["enable_inbox_tools"] is False
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    @with_feature("organizations:universal-inbox")
+    def test_start_run_inbox_tools_are_opt_in(
+        self, mock_post: MagicMock, mock_access: MagicMock
+    ) -> None:
+        mock_access.return_value = (True, None)
+        mock_post.return_value = self._mock_run_response()
+
+        client = SeerAgentClient(self.organization, self.user)
+        client.start_run("Test query")
+
+        body = mock_post.call_args[0][0]
+        assert body["agent_run_options"]["enable_inbox_tools"] is False
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
     @override_options({"seer.explorer.context-engine-rollout": 1.0})
     def test_start_run_context_engine_follows_rollout(
         self, mock_post: MagicMock, mock_access: MagicMock
@@ -249,11 +326,16 @@ class TestSeerAgentClient(TestCase):
         mock_post.return_value = self._mock_run_response(run_id=789)
 
         client = SeerAgentClient(self.organization, self.user)
-        run_id = client.start_run("Query", on_page_context="some context").seer_run_state_id
+        run_id = client.start_run(
+            "Query",
+            on_page_context="some context",
+            billing_feature=SEER_BILLING_FEATURE_SEER_AGENT_SLACK,
+        ).seer_run_state_id
 
         assert run_id == 789
         call_args = mock_post.call_args
         assert call_args is not None
+        assert call_args.args[0]["billing_feature"] == SEER_BILLING_FEATURE_SEER_AGENT_SLACK
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
@@ -746,6 +828,22 @@ class TestSeerAgentClient(TestCase):
         body = mock_post.call_args[0][0]
         assert body["agent_run_options"]["enable_investigation_tools"] is True
 
+    @with_feature("organizations:universal-inbox")
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    def test_continue_run_passes_inbox_tools(
+        self, mock_post: MagicMock, mock_access: MagicMock
+    ) -> None:
+        mock_access.return_value = (True, None)
+        mock_post.return_value = self._mock_run_response(run_id=789)
+        self.create_seer_run(organization=self.organization, seer_run_state_id=789)
+
+        client = SeerAgentClient(self.organization, self.user, enable_inbox_tools=True)
+        client.continue_run(789, "Follow up")
+
+        body = mock_post.call_args[0][0]
+        assert body["agent_run_options"]["enable_inbox_tools"] is True
+
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.seer.agent.client.make_agent_chat_request")
     def test_continue_run_http_error(self, mock_post: MagicMock, mock_access: MagicMock) -> None:
@@ -1236,6 +1334,7 @@ class TestSeerAgentClientPushChanges(TestCase):
         body = mock_post.call_args[0][0]
         assert body["run_id"] == 123
         assert body["payload"]["type"] == "create_pr"
+        assert body["payload"]["source"] is None
         assert body["payload"]["repo_name"] == "owner/repo"
         assert "author" not in body["payload"]
         assert body["payload"]["allow_force_push"] is True
@@ -1248,6 +1347,17 @@ class TestSeerAgentClientPushChanges(TestCase):
 
         client.push_changes(123, allow_force_push=False)
         assert mock_post.call_args[0][0]["payload"]["allow_force_push"] is False
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
+    @patch("sentry.seer.agent.client.make_agent_update_request")
+    def test_push_changes_forwards_caller_source(
+        self, mock_post: MagicMock, _mock_access: MagicMock
+    ) -> None:
+        mock_post.return_value = MagicMock(status=200)
+        client = SeerAgentClient(self.organization, self.user, enable_coding=True)
+
+        client.push_changes(123, blocking=False, source="custom_push_flow")
+        assert mock_post.call_args[0][0]["payload"]["source"] == "custom_push_flow"
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.seer.agent.client.fetch_run_status")
@@ -1698,7 +1808,7 @@ class TestStartFeatureRun(TestCase):
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
     @patch("sentry.receivers.outbox.cell.make_feature_run_request")
-    def test_feature_run_enqueues_proxy_headers(
+    def test_feature_run_enqueues_proxy_headers_and_billing_feature(
         self, mock_request: MagicMock, _mock_access: MagicMock
     ) -> None:
         proxy_headers = {"X-Viewer-Context": "signed-viewer-context"}
@@ -1710,12 +1820,16 @@ class TestStartFeatureRun(TestCase):
             flush=False,
             referrer="autofix",
             proxy_headers=proxy_headers,
+            billing_feature=SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE,
         )
 
         mock_request.assert_not_called()
         outbox = self._outbox_for(run)
         assert outbox is not None and outbox.payload is not None
         assert outbox.payload["body"]["proxy_headers"] == proxy_headers
+        assert (
+            outbox.payload["body"]["billing_feature"] == SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE
+        )
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail", return_value=(True, None))
     @patch("sentry.receivers.outbox.cell.make_feature_run_request")

@@ -5,11 +5,9 @@ import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {
-  getBulkDeleteErrorReason,
-  useDeleteReplays,
-} from 'sentry/utils/replays/hooks/useDeleteReplays';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+
+import {getBulkDeleteErrorReason, useDeleteReplays} from './hooks/useDeleteReplays';
 
 describe('useDeleteReplays', () => {
   describe('queryOptionsToPayload', () => {

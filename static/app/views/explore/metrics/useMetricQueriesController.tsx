@@ -1,25 +1,6 @@
 import {useMemo, type Dispatch, type SetStateAction} from 'react';
 
 import {determineDefaultChartType} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
-import {
-  DEFAULT_YAXIS_BY_TYPE,
-  doesMetricSupportHeatMapVisualization,
-  OPTIONS_BY_TYPE,
-} from 'sentry/views/explore/metrics/constants';
-import {syncEquationMetricQueries} from 'sentry/views/explore/metrics/equationBuilder/utils';
-import {getMetricReferences} from 'sentry/views/explore/metrics/hooks/useMetricReferences';
-import {
-  getNextLabel,
-  moveItem,
-  useStableLabels,
-} from 'sentry/views/explore/metrics/hooks/useStableLabels';
-import {
-  defaultMetricQuery,
-  type BaseMetricQuery,
-  type MetricQuery,
-  type TraceMetric,
-} from 'sentry/views/explore/metrics/metricQuery';
-import {updateVisualizeYAxis} from 'sentry/views/explore/metrics/utils';
 import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {
   isVisualizeEquation,
@@ -27,6 +8,22 @@ import {
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+
+import {syncEquationMetricQueries} from './equationBuilder/utils';
+import {getMetricReferences} from './hooks/useMetricReferences';
+import {getNextLabel, moveItem, useStableLabels} from './hooks/useStableLabels';
+import {
+  DEFAULT_YAXIS_BY_TYPE,
+  doesMetricSupportHeatMapVisualization,
+  OPTIONS_BY_TYPE,
+} from './constants';
+import {
+  defaultMetricQuery,
+  type BaseMetricQuery,
+  type MetricQuery,
+  type TraceMetric,
+} from './metricQuery';
+import {updateVisualizeYAxis} from './utils';
 
 function syncUpdatedMetricQueries(
   previousMetricQueries: BaseMetricQuery[],

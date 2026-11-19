@@ -14,7 +14,6 @@ import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboarding
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {GithubButton} from 'getsentry/views/seerAutomation/onboarding/githubButton';
-import {SeerOnboardingProvider} from 'getsentry/views/seerAutomation/onboarding/hooks/seerOnboardingContext';
 
 export function SeerConnectGitHubBanner() {
   const organization = useOrganization();
@@ -40,15 +39,14 @@ export function SeerConnectGitHubBanner() {
             <ImageContainer />
             <Stack gap="lg" padding="2xl">
               <Heading as="h3">{t('Connect to GitHub')}</Heading>
-              <Text>{t('Enable Seer AI Code Reviews in your GitHub repositories.')}</Text>
+              <Text>
+                {t(
+                  'Connect your GitHub repositories so Seer can find root causes and propose fixes.'
+                )}
+              </Text>
 
               <Flex paddingTop="lg">
-                <SeerOnboardingProvider>
-                  <GithubButton
-                    onAddIntegration={handleAddIntegration}
-                    analyticsView="seer_onboarding_github"
-                  />
-                </SeerOnboardingProvider>
+                <GithubButton onAddIntegration={handleAddIntegration} />
               </Flex>
             </Stack>
           </Grid>

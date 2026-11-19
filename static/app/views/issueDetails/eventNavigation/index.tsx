@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 import {IconTelescope} from '@sentry/icons/telescope';
 import {keepPreviousData} from '@tanstack/react-query';
@@ -10,16 +11,18 @@ import {LinkButton} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {LinkTabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {CopyAsDropdown} from 'sentry/components/copyAsDropdown';
 import {Count} from 'sentry/components/count';
 import {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
 import {AutofixReferrerInfoTip} from 'sentry/components/events/autofix/v3/autofixReferrerInfoTip';
 import {SeerPanelActions} from 'sentry/components/events/autofix/v3/seerPanelActions';
+import {useAutofixUnread} from 'sentry/components/events/autofix/v3/useAutofixUnread';
 import {TourElement} from 'sentry/components/tours/components';
+import {UnreadIndicator} from 'sentry/components/unreadIndicator';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -36,13 +39,12 @@ import {parseAsRawList} from 'sentry/views/explore/queryParams/parsers';
 import {useAutofixPanel} from 'sentry/views/issueDetails/autofix/context';
 import {hasAutofixPage} from 'sentry/views/issueDetails/autofix/utils';
 import {useIssueDetails} from 'sentry/views/issueDetails/context';
-import {IssueDetailsEventNavigation} from 'sentry/views/issueDetails/eventNavigation/issueDetailsEventNavigation';
 import {useGroupEventAttachments} from 'sentry/views/issueDetails/groupEventAttachments/useGroupEventAttachments';
+import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/issueDetailsEventsQuery';
 import {
   issueAndEventToMarkdown,
   useActiveThreadId,
 } from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
-import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/useIssueDetailsDiscoverQuery';
 import {
   IssueDetailsTour,
   IssueDetailsTourContext,
@@ -50,6 +52,8 @@ import {
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
+
+import {IssueDetailsEventNavigation} from './issueDetailsEventNavigation';
 
 interface IssueEventNavigationProps {
   event: Event | undefined;
@@ -65,6 +69,7 @@ interface ContentTab {
   hidden: boolean;
   key: Tab;
   name: string;
+  hasUnread?: boolean;
 }
 
 const LIST_VIEW_TABS = new Set([
@@ -136,6 +141,11 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
   const hasManyAttachments =
     attachmentPagination.next?.results || attachmentPagination.previous?.results;
 
+  const hasUnreadAutofix = useAutofixUnread(group, {
+    enabled: showAutofixTab,
+    isViewing: currentTab === Tab.AUTOFIX,
+  });
+
   const TabName: Partial<Record<Tab, string>> = {
     [Tab.DETAILS]: issueTypeConfig.customCopy.eventUnits,
     [Tab.EVENTS]: issueTypeConfig.customCopy.eventUnits,
@@ -158,6 +168,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
       // Autofix has no count to show; it is a single ongoing analysis.
       count: null,
       hidden: !showAutofixTab,
+      hasUnread: hasUnreadAutofix,
     },
     {
       key: Tab.REPLAYS,
@@ -246,34 +257,37 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
       {showContentTabs ? (
         <Container maxWidth="100%">
           {props => (
-            <Tabs
-              {...props}
+            <LinkTabs
               size="sm"
               value={selectedContentTab}
-              onChange={key => trackContentSelected(key as Tab)}
+              onChange={trackContentSelected}
+              {...props}
             >
-              <TabList variant="floating">
-                {contentTabs.map(tab => (
-                  <TabList.Item
-                    key={tab.key}
-                    hidden={tab.hidden}
-                    to={contentLocation(tab.key)}
-                    textValue={tab.name}
-                  >
-                    <Flex as="span" align="center" gap="xs">
-                      {tab.name}
-                      {tab.count === null ? null : (
-                        <Badge variant="muted">
-                          <Text tabular variant="inherit">
-                            {tab.count}
-                          </Text>
-                        </Badge>
-                      )}
-                    </Flex>
-                  </TabList.Item>
-                ))}
-              </TabList>
-            </Tabs>
+              {({TabList}) => (
+                <TabList variant="floating">
+                  {contentTabs.map(tab => (
+                    <TabList.Item
+                      key={tab.key}
+                      hidden={tab.hidden}
+                      to={contentLocation(tab.key)}
+                      textValue={tab.name}
+                    >
+                      <Flex as="span" align="center" gap="xs">
+                        {tab.name}
+                        {tab.hasUnread ? <TabUnreadIndicator /> : null}
+                        {tab.count === null ? null : (
+                          <Badge variant="muted">
+                            <Text tabular variant="inherit">
+                              {tab.count}
+                            </Text>
+                          </Badge>
+                        )}
+                      </Flex>
+                    </TabList.Item>
+                  ))}
+                </TabList>
+              )}
+            </LinkTabs>
           )}
         </Container>
       ) : (
@@ -342,7 +356,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
           <Container {...tourProps} width={{zero: '100%', lg: 'auto'}} maxWidth="100%">
             <Flex wrap="wrap" gap={{zero: 'sm', sm: 'xs'}}>
               {currentTab === Tab.AUTOFIX && autofixPanel && (
-                <Flex align="center" gap="xs">
+                <Flex align="center">
                   <AutofixReferrerInfoTip referrer={autofixPanel.referrer} />
                   <SeerPanelActions
                     autofixState={autofixPanel.runState}
@@ -474,3 +488,8 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
     </Flex>
   );
 }
+
+const TabUnreadIndicator = styled(UnreadIndicator)`
+  width: 6px;
+  height: 6px;
+`;

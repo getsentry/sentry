@@ -6,9 +6,10 @@ import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
-import {DETECTOR_LIST_PAGE_LIMIT} from 'sentry/views/detectors/list/common/constants';
-import {useDetectorListSort} from 'sentry/views/detectors/list/common/useDetectorListSort';
 import {parseAsScalar} from 'sentry/views/explore/queryParams/parsers';
+
+import {DETECTOR_LIST_PAGE_LIMIT} from './constants';
+import {useDetectorListSort} from './useDetectorListSort';
 
 type UseDetectorListQueryOptions = {
   assigneeFilter?: string;

@@ -27,6 +27,12 @@ export interface EntityHeaderPeopleProps {
    * schedule, separate from the entity.
    */
   isLoading?: boolean;
+  /**
+   * How many avatars to draw before the rest collapse into an overflow chip.
+   * Everyone is still named to a screen reader, whatever the limit.
+   *
+   * @default 5
+   */
   maxVisibleAvatars?: number;
 }
 

@@ -16,6 +16,12 @@ MESSAGING_ACTION_CONFIG_SCHEMA = {
     "additionalProperties": False,
 }
 
+# Slack resolves the channel name from target_identifier when target_display is omitted.
+SLACK_ACTION_CONFIG_SCHEMA = {
+    **MESSAGING_ACTION_CONFIG_SCHEMA,
+    "required": ["target_type"],
+}
+
 
 TAGS_SCHEMA = {
     "type": "string",

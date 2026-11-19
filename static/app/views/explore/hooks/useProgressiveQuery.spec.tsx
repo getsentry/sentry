@@ -6,11 +6,12 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {defined} from 'sentry/utils/defined';
 import {useApi} from 'sentry/utils/useApi';
+
 import {
   SAMPLING_MODE,
   useProgressiveQuery,
   type SamplingMode,
-} from 'sentry/views/explore/hooks/useProgressiveQuery';
+} from './useProgressiveQuery';
 
 function useMockHookImpl({
   enabled,
@@ -153,6 +154,48 @@ describe('useProgressiveQuery', () => {
         })
       );
 
+      expect(mockHighAccuracyRequest).not.toHaveBeenCalled();
+    });
+
+    it('sends one low priority request when query speed is faster', () => {
+      const mockLowPriorityRequest = MockApiClient.addMockResponse({
+        url: '/test',
+        body: ['has', 'data'],
+        match: [
+          function (_url: string, options: Record<string, any>) {
+            return options.query.samplingMode === SAMPLING_MODE.LOW_PRIORITY;
+          },
+        ],
+      });
+      const mockHighAccuracyRequest = MockApiClient.addMockResponse({
+        url: '/test',
+        body: ['has', 'data'],
+        match: [
+          function (_url: string, options: Record<string, any>) {
+            return options.query.samplingMode === SAMPLING_MODE.HIGH_ACCURACY;
+          },
+        ],
+      });
+
+      renderHookWithProviders(() =>
+        useProgressiveQuery({
+          queryHookImplementation: useMockHookImpl,
+          queryHookArgs: {enabled: true, query: 'test value'},
+          queryOptions: {
+            canTriggerHighAccuracy: () => true,
+            samplingMode: SAMPLING_MODE.LOW_PRIORITY,
+          },
+        })
+      );
+
+      expect(mockLowPriorityRequest).toHaveBeenCalledTimes(1);
+      expect(mockLowPriorityRequest).toHaveBeenCalledWith(
+        '/test',
+        expect.objectContaining({
+          query: {samplingMode: SAMPLING_MODE.LOW_PRIORITY, query: 'test value'},
+        })
+      );
+      expect(mockNormalRequestUrl).not.toHaveBeenCalled();
       expect(mockHighAccuracyRequest).not.toHaveBeenCalled();
     });
   });

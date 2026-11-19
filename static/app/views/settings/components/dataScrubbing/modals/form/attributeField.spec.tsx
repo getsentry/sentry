@@ -6,8 +6,9 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import type {Tag} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
-import {AttributeField} from 'sentry/views/settings/components/dataScrubbing/modals/form/attributeField';
 import {AllowedDataScrubbingDatasets} from 'sentry/views/settings/components/dataScrubbing/types';
+
+import {AttributeField} from './attributeField';
 
 const defaultFieldProps = {
   'aria-describedby': 'source-hint',
@@ -419,5 +420,29 @@ describe('AttributeField', () => {
 
     // Should not contain any tags
     expect(suggestionTexts).toEqual(['message', 'user.email', 'custom.field']);
+  });
+
+  it('does not duplicate the static message field for logs', async () => {
+    MockApiClient.clearMockResponses();
+    mockTraceItemAttributeKeysApi(organization.slug, [
+      {key: 'user.email', name: 'user.email', kind: FieldKind.TAG},
+      {key: 'message', name: 'message', kind: FieldKind.TAG},
+    ]);
+
+    render(
+      <AttributeField
+        fieldProps={defaultFieldProps}
+        dataset={AllowedDataScrubbingDatasets.LOGS}
+        onChange={jest.fn()}
+        value=""
+      />,
+      {organization}
+    );
+
+    await userEvent.click(await screen.findByPlaceholderText('Select or type attribute'));
+    await screen.findByText('user.email');
+
+    const suggestionTexts = screen.getAllByRole('listitem').map(item => item.textContent);
+    expect(suggestionTexts).toEqual(['message', 'user.email']);
   });
 });

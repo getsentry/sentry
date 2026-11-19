@@ -2,12 +2,12 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {parseAsFloat, parseAsString, useQueryStates} from 'nuqs';
 
+import {getDuration} from '@sentry/scraps/duration';
 import {Flex, type Responsive, useResponsivePropValue} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {MobileVital, type WebVital} from 'sentry/utils/fields';
 import {VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
 import type {Vital, Vital as VitalDetails} from 'sentry/utils/performance/vitals/types';
@@ -24,14 +24,15 @@ import {
   STATUS_TEXT,
 } from 'sentry/views/insights/browser/webVitals/utils/scoreToStatus';
 import {SectionDivider} from 'sentry/views/issueDetails/foldSection';
-import type {TraceRootEventQueryResults} from 'sentry/views/performance/traceDetails/traceApi/useTraceRootEvent';
-import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
+
+import type {TraceRootEventQueryResults} from './traceApi/useTraceRootEvent';
+import type {TraceTree} from './traceModels/traceTree';
 import {
   TRACE_VIEW_MOBILE_VITALS,
   TRACE_VIEW_WEB_VITALS,
-} from 'sentry/views/performance/traceDetails/traceModels/traceTree.measurements';
-import {useTraceContextSections} from 'sentry/views/performance/traceDetails/useTraceContextSections';
-import {TraceLayoutTabKeys} from 'sentry/views/performance/traceDetails/useTraceLayoutTabs';
+} from './traceModels/traceTree.measurements';
+import {useTraceContextSections} from './useTraceContextSections';
+import {TraceLayoutTabKeys} from './useTraceLayoutTabs';
 
 type Props = {
   rootEventResults: TraceRootEventQueryResults;
@@ -286,7 +287,7 @@ function getFormattedValue(
 
 function defaultVitalValueFormatter(vital: Vital, value: number) {
   if (vital?.type === 'duration') {
-    return getDuration(value / 1000, 2, true);
+    return getDuration(value / 1000, {precision: 2, style: 'short'});
   }
 
   if (vital?.type === 'integer') {

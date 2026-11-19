@@ -607,7 +607,8 @@ class OrganizationGroupSearchViewsPutTest(BaseGSVTestCase):
         assert "query" in response.data
         assert str(response.data["query"][0]) == (
             "Invalid issue search query: Boolean statements containing "
-            '"OR" or "AND" are not supported in this search'
+            '"OR" or "AND" are not supported in this search. '
+            "To match any of several values for one key, use a list, such as `key:[foo, bar]`"
         )
 
         unchanged_view = GroupSearchView.objects.get(id=self.view_id)

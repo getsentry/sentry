@@ -50,7 +50,7 @@ from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.db import atomic_transaction
-from sentry.utils.not_set import NOT_SET
+from sentry.utils.not_set import NOT_SET, NotSet
 from sentry.workflow_engine.endpoints.validators.base import (
     BaseDataSourceValidator,
     BaseDetectorTypeValidator,
@@ -446,15 +446,11 @@ class UptimeMonitorValidator(UptimeValidatorBase):
             else instance.config["downtime_threshold"]
         )
 
+        environment: Environment | NotSet = NOT_SET
         if "environment" in data:
             environment = Environment.get_or_create(
                 project=self.context["project"],
                 name=data["environment"],
-            )
-        else:
-            environment = Environment.objects.get(
-                projects=self.context["project"],
-                name=instance.config["environment"],
             )
 
         if "mode" in data:

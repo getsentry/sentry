@@ -5,8 +5,9 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {GroupPriorityDropdown} from 'sentry/components/badge/groupPriority';
 import {GroupActivityType, PriorityLevel} from 'sentry/types/group';
+
+import {GroupPriorityDropdown} from './groupPriority';
 
 describe('GroupPriority', () => {
   describe('GroupPriorityDropdown', () => {

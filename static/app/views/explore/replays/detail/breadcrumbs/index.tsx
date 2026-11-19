@@ -14,12 +14,13 @@ import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {t} from 'sentry/locale';
 import {useCrumbHandlers} from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
-import {BreadcrumbFilters} from 'sentry/views/explore/replays/detail/breadcrumbs/breadcrumbFilters';
-import {BreadcrumbRow} from 'sentry/views/explore/replays/detail/breadcrumbs/breadcrumbRow';
-import {useBreadcrumbFilters} from 'sentry/views/explore/replays/detail/breadcrumbs/useBreadcrumbFilters';
-import {useScrollToCurrentItem} from 'sentry/views/explore/replays/detail/breadcrumbs/useScrollToCurrentItem';
 import {NoRowRenderer} from 'sentry/views/explore/replays/detail/noRowRenderer';
 import {TabItemContainer} from 'sentry/views/explore/replays/detail/tabItemContainer';
+
+import {BreadcrumbFilters} from './breadcrumbFilters';
+import {BreadcrumbRow} from './breadcrumbRow';
+import {useBreadcrumbFilters} from './useBreadcrumbFilters';
+import {useScrollToCurrentItem} from './useScrollToCurrentItem';
 
 // Estimated row height - matches previous minHeight from cellMeasurer config
 const ESTIMATED_ROW_HEIGHT = 50;
@@ -35,8 +36,7 @@ export function Breadcrumbs() {
   const frames = replay?.getChapterFrames();
 
   const filterProps = useBreadcrumbFilters({frames: frames || []});
-  const {expandPathsRef, items, setSearchTerm} = filterProps;
-  const clearSearchTerm = () => setSearchTerm('');
+  const {clearAllFilters, expandPathsRef, items} = filterProps;
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
 
   const {totalSize, virtualItems, virtualizer} = useVirtualRows({
@@ -140,7 +140,7 @@ export function Breadcrumbs() {
             onWheel={() => setAutoScrollEnabled(false)}
           >
             {items.length === 0 ? (
-              <NoRowRenderer unfilteredItems={frames} clearSearchTerm={clearSearchTerm}>
+              <NoRowRenderer unfilteredItems={frames} clearSearchTerm={clearAllFilters}>
                 {t('No breadcrumbs recorded')}
               </NoRowRenderer>
             ) : (

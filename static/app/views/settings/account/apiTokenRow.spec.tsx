@@ -8,7 +8,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
-import {ApiTokenRow} from 'sentry/views/settings/account/apiTokenRow';
+
+import {ApiTokenRow} from './apiTokenRow';
 
 function renderRow(element: React.ReactElement) {
   return render(<SimpleTable>{element}</SimpleTable>);

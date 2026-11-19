@@ -1,23 +1,20 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
-import {useTimezone} from '@sentry/scraps/datetime';
+import {useTimezone} from '@sentry/scraps/dateTime';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {getOutOfCreditsPRMessage} from 'sentry/components/seer/outOfCredits/messages';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {uniqueId} from 'sentry/utils/guid';
-import {
-  fetchMutation,
-  getApiQueryData,
-  setApiQueryData,
-  useApiQuery,
-} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
+import type {SeerCreditDenialReason} from 'sentry/utils/seer/useSeerCreditCheck';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -25,19 +22,25 @@ import {
   type ChatPrompt,
 } from 'sentry/views/seerExplorer/chatPrompt';
 import type {LLMContextLocation} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
-import {usePageContextCapture} from 'sentry/views/seerExplorer/hooks/usePageContextCapture';
 import {
   useSeerExplorerChatDispatch,
   useSeerExplorerChatState,
 } from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
-import type {
-  Block,
-  RepoPRState,
-  RespondToUserInputOptions,
-  SeerExplorerResponse,
-  SeerExplorerRunId,
+import {
+  isOutOfCreditsPRState,
+  type Block,
+  type RepoPRState,
+  type RespondToUserInputOptions,
+  type SeerExplorerResponse,
+  type SeerExplorerRunId,
 } from 'sentry/views/seerExplorer/types';
-import {makeSeerExplorerQueryKey, usePageReferrer} from 'sentry/views/seerExplorer/utils';
+import {
+  makeSeerExplorerQueryKey,
+  seerExplorerApiOptions,
+  usePageReferrer,
+} from 'sentry/views/seerExplorer/utils';
+
+import {usePageContextCapture} from './usePageContextCapture';
 
 type SeerExplorerChatResponse = {
   message: Block;
@@ -154,9 +157,13 @@ export const useSeerExplorer = () => {
   // Set when the last chat message or user-input response failed, so the UI can show an
   // alert until a later request succeeds. `query` is the failed chat message, if any,
   // so the draft can be restored, and `chatPrompt` the question it answered.
+  // `isOutOfCredits` marks a message refused for Seer credits, which gets the credits
+  // notice instead of that alert.
   const [requestError, setRequestError] = useState<{
     runId: SeerExplorerRunId | null;
     chatPrompt?: ChatPrompt;
+    creditDenialReason?: SeerCreditDenialReason;
+    isOutOfCredits?: boolean;
     query?: string;
   } | null>(null);
   const previousPRStatesRef = useRef<Record<string, RepoPRState>>({});
@@ -198,23 +205,23 @@ export const useSeerExplorer = () => {
         return {previousData: undefined, optimisticData: undefined};
       }
       const queryKey = makeSeerExplorerQueryKey(orgSlugParam, runIdParam);
-      const previousData = getApiQueryData<SeerExplorerResponse>(queryClient, queryKey);
-      const optimisticData = setApiQueryData<SeerExplorerResponse>(
-        queryClient,
-        queryKey,
-        prev =>
-          prev?.session
-            ? {
-                ...prev,
+      const previousData = queryClient.getQueryData(queryKey)?.json;
+      const optimisticData = queryClient.setQueryData(queryKey, prev =>
+        prev?.json.session
+          ? {
+              ...prev,
+              json: {
+                ...prev.json,
                 session: {
-                  ...prev.session,
+                  ...prev.json.session,
                   failure_reason: null,
-                  status: 'processing',
+                  status: 'processing' as const,
                   updated_at: new Date().toISOString(),
                 },
-              }
-            : prev
-      );
+              },
+            }
+          : prev
+      )?.json;
       return {previousData, optimisticData};
     },
     [queryClient]
@@ -235,13 +242,15 @@ export const useSeerExplorer = () => {
         return;
       }
       const queryKey = makeSeerExplorerQueryKey(orgSlugParam, runIdParam);
-      if (
-        getApiQueryData<SeerExplorerResponse>(queryClient, queryKey) !==
-        snapshot.optimisticData
-      ) {
+      if (queryClient.getQueryData(queryKey)?.json !== snapshot.optimisticData) {
         return;
       }
-      setApiQueryData<SeerExplorerResponse>(queryClient, queryKey, snapshot.previousData);
+      const previousData = snapshot.previousData;
+      queryClient.setQueryData(queryKey, prev => ({
+        ...prev,
+        headers: prev?.headers ?? {},
+        json: previousData,
+      }));
     },
     [queryClient]
   );
@@ -309,7 +318,7 @@ export const useSeerExplorer = () => {
         });
       }
     },
-    onError: (_e, params, context) => {
+    onError: (error, params, context) => {
       // A later send (possibly in another conversation) may own the optimistic blocks now.
       setLastSentMessage(prev => (prev?.requestId === params.requestId ? null : prev));
       if (!isLatestRequest(params)) {
@@ -319,10 +328,16 @@ export const useSeerExplorer = () => {
       // optimistic user/loading blocks. The UI surfaces the failure and restores the draft.
       restoreSessionData(params.orgSlug, params.runId, context);
       if (isCurrentRun(params.runId)) {
+        const denialReason = error.responseJSON?.denialReason;
         setRequestError({
           runId: params.runId,
           query: params.query,
           chatPrompt: params.pendingChatPrompt ?? undefined,
+          isOutOfCredits: error.status === 402,
+          creditDenialReason:
+            denialReason === 'not_enough_credits' || denialReason === 'daily_cap_exceeded'
+              ? denialReason
+              : undefined,
         });
       }
     },
@@ -406,7 +421,7 @@ export const useSeerExplorer = () => {
       });
     },
     onError: () => {
-      addErrorMessage('Failed to interrupt');
+      toast.error('Failed to interrupt');
     },
   });
 
@@ -418,10 +433,20 @@ export const useSeerExplorer = () => {
     setRequestError(null);
   }
 
-  const currentRequestError = useMemo<{chatPrompt?: ChatPrompt; query?: string} | null>(
+  const currentRequestError = useMemo<{
+    chatPrompt?: ChatPrompt;
+    creditDenialReason?: SeerCreditDenialReason;
+    isOutOfCredits?: boolean;
+    query?: string;
+  } | null>(
     () =>
       requestError?.runId === runId
-        ? {query: requestError.query, chatPrompt: requestError.chatPrompt}
+        ? {
+            query: requestError.query,
+            chatPrompt: requestError.chatPrompt,
+            creditDenialReason: requestError.creditDenialReason,
+            isOutOfCredits: requestError.isOutOfCredits,
+          }
         : null,
     [requestError, runId]
   );
@@ -434,13 +459,14 @@ export const useSeerExplorer = () => {
     data: apiData,
     isError,
     error: apiError,
-  } = useApiQuery<SeerExplorerResponse>(makeSeerExplorerQueryKey(orgSlug || '', runId), {
+  } = useQuery({
+    ...seerExplorerApiOptions(orgSlug || '', runId),
     staleTime: 0,
     retry: false,
     refetchOnWindowFocus: true,
     enabled: !!runId && isSeerExplorerEnabled(organization),
   });
-  const errorStatusCode = apiError?.status;
+  const errorStatusCode = apiError instanceof RequestError ? apiError.status : undefined;
 
   /** Switches to a different run and fetches its latest state. */
   const switchToRun = useCallback(
@@ -625,7 +651,11 @@ export const useSeerExplorer = () => {
         currentState.pr_creation_status === 'error' &&
         currentState.pr_creation_error
       ) {
-        addErrorMessage(currentState.pr_creation_error ?? 'Failed to create PR');
+        toast.error(
+          isOutOfCreditsPRState(currentState)
+            ? getOutOfCreditsPRMessage(currentState)
+            : (currentState.pr_creation_error ?? 'Failed to create PR')
+        );
       }
     }
 
@@ -738,6 +768,7 @@ export const useSeerExplorer = () => {
 
   return {
     sessionData: processedSessionData,
+    featureId: apiData?.feature_id ?? null,
     isPolling,
     isError,
     /** The session itself came back errored with nothing to render. */

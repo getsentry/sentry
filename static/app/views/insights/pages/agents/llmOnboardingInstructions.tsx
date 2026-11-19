@@ -59,7 +59,7 @@ export function getAgentSetupPrompt({
   organizationSlug: string;
   project: Pick<Project, 'slug' | 'platform'>;
 }) {
-  return `Read and follow https://skills.sentry.dev/instrument to set up Sentry agent tracing and conversations.
+  return `Read and follow https://skills.sentry.dev/agent-tracing to set up Sentry agent tracing and conversations.
 
 Use this existing project: ${organizationSlug}/${project.slug}
 DSN: ${dsn}
@@ -81,5 +81,5 @@ export const LLM_ONBOARDING_COPY_MARKDOWN = `
 
 # Instrument Sentry AI Agent Monitoring
 
-Use curl to download, read and follow https://skills.sentry.dev/instrument to set up Sentry AI agent monitoring for this app.
+Use curl to download, read and follow https://skills.sentry.dev/agent-tracing to set up Sentry AI agent monitoring for this app.
 `;

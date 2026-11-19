@@ -11,6 +11,7 @@ import {
 } from 'sentry/components/events/autofix/useAutofix';
 import {
   getOrderedAutofixSections,
+  isSingleRunAutofix,
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
@@ -78,10 +79,11 @@ export function SeerCommandPaletteActions({
 
   const {runState, isPolling} = autofix;
   const runId = getAutofixRunId(runState);
-  const nextStep = getAutofixNextStep({sections});
+  const nextStep = getAutofixNextStep({sections, runState});
   const canContinue = !isPolling && defined(runId);
   const canHandOff =
     canContinue &&
+    !isSingleRunAutofix(runState) &&
     sections.some(
       section => section.step === 'root_cause' && section.status === 'completed'
     );
@@ -92,7 +94,6 @@ export function SeerCommandPaletteActions({
     }
     if (integration.requires_identity && !integration.has_identity) {
       const currentUrl = window.location.href;
-      // oxlint-disable-next-line react/immutability
       window.location.href = `/remote/github-copilot/oauth/?next=${encodeURIComponent(currentUrl)}`;
       return;
     }

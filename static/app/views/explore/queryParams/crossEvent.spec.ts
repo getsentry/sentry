@@ -1,4 +1,4 @@
-import {getCrossEvents} from 'sentry/views/explore/queryParams/crossEvent';
+import {getCrossEvents} from './crossEvent';
 
 describe('getCrossEvents', () => {
   it('returns undefined when the param is missing', () => {

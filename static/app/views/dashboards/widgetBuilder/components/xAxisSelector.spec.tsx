@@ -3,8 +3,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {WidgetBuilderXAxisSelector} from 'sentry/views/dashboards/widgetBuilder/components/xAxisSelector';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
+
+import {WidgetBuilderXAxisSelector} from './xAxisSelector';
 
 const DASHBOARD_WIDGET_BUILDER_PATHNAME =
   '/organizations/org-slug/dashboards/new/widget/new/';
@@ -13,7 +14,7 @@ const DASHBOARD_WIDGET_BUILDER_ROUTE = '/organizations/:orgId/dashboards/new/wid
 const ATTRIBUTES_URL = '/organizations/org-slug/trace-items/attributes/';
 
 const organization = OrganizationFixture({
-  features: ['performance-view', 'visibility-explore-view'],
+  features: ['visibility-explore-view'],
 });
 
 const cappedAttribute = {
@@ -73,7 +74,7 @@ describe('WidgetBuilderXAxisSelector', () => {
       screen.queryByRole('option', {name: /gen_ai\.tool\.name/})
     ).not.toBeInTheDocument();
 
-    await userEvent.type(screen.getByRole('textbox'), 'gen_ai');
+    await userEvent.type(screen.getByRole('searchbox'), 'gen_ai');
 
     await waitFor(() =>
       expect(searchAttributesMock).toHaveBeenCalledWith(

@@ -1,17 +1,11 @@
 import {t} from 'sentry/locale';
+import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {DisplayType, SlideoutId, WidgetType} from 'sentry/views/dashboards/types';
 import {type PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {
   DASHBOARD_DESCRIPTION,
   DASHBOARD_TITLE,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/settings';
-import {
-  PAGELOADS_FIELD,
-  scoreBreakdownChartWidget,
-  scoreBreakdownWheelWidget,
-  WEB_VITALS_TRACE_METRICS_GLOBAL_FILTERS,
-  webVitalP75Meter,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/traceMetrics/widgets';
 import {ISSUE_TYPES} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
 import {
   OPPORTUNITY_SCORE_FIELD,
@@ -19,6 +13,19 @@ import {
   webVitalP75Field,
 } from 'sentry/views/dashboards/utils/webVitalTraceMetricFields';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
+
+import {
+  PAGELOADS_FIELD,
+  scoreBreakdownChartWidget,
+  scoreBreakdownWheelWidget,
+  WEB_VITALS_TRACE_METRICS_GLOBAL_FILTERS,
+  webVitalP75Meter,
+} from './widgets';
+
+// The score formulas name no metric, so the widget builder cannot show them
+// on a metric row. Store them as equations so the builder renders them as text.
+const PERFORMANCE_SCORE_EQUATION = `${EQUATION_PREFIX}${PERFORMANCE_SCORE_FIELD}`;
+const OPPORTUNITY_SCORE_EQUATION = `${EQUATION_PREFIX}${OPPORTUNITY_SCORE_FIELD}`;
 
 const PAGES_TABLE_COLUMNS = [SpanFields.TRANSACTION, SpanFields.PROJECT];
 const PAGES_TABLE_AGGREGATES = [
@@ -28,8 +35,8 @@ const PAGES_TABLE_AGGREGATES = [
   webVitalP75Field('cls'),
   webVitalP75Field('ttfb'),
   webVitalP75Field('inp'),
-  PERFORMANCE_SCORE_FIELD,
-  OPPORTUNITY_SCORE_FIELD,
+  PERFORMANCE_SCORE_EQUATION,
+  OPPORTUNITY_SCORE_EQUATION,
 ];
 
 /**
@@ -129,7 +136,7 @@ export const WEB_VITALS_TRACE_METRICS_PREBUILT_CONFIG: PrebuiltDashboard = {
           fields: [...PAGES_TABLE_COLUMNS, ...PAGES_TABLE_AGGREGATES],
           aggregates: PAGES_TABLE_AGGREGATES,
           columns: PAGES_TABLE_COLUMNS,
-          orderby: `-${OPPORTUNITY_SCORE_FIELD}`,
+          orderby: `-${OPPORTUNITY_SCORE_EQUATION}`,
           fieldAliases: [
             t('Pages'),
             t('Project'),
@@ -147,8 +154,7 @@ export const WEB_VITALS_TRACE_METRICS_PREBUILT_CONFIG: PrebuiltDashboard = {
               dashboardId: '-1',
               field: SpanFields.TRANSACTION,
               staticDashboardId: 7,
-              // The page details dashboard still has spans widgets, so filter those too
-              additionalGlobalFilterDatasetTargets: [WidgetType.ISSUE, WidgetType.SPANS],
+              additionalGlobalFilterDatasetTargets: [WidgetType.ISSUE],
             },
           ],
         },

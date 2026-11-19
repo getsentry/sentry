@@ -5,8 +5,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, type RouterConfig} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
 
+import {GroupIdProvider} from './groupIdContext';
 import GroupUserFeedback from './groupUserFeedback';
 
 describe('GroupUserFeedback', () => {

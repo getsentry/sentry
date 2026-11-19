@@ -2,8 +2,9 @@ import {getOverride} from 'sentry/overrideRegistry';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsNavigation} from 'sentry/views/settings/components/settingsNavigation';
-import {getUserOrgNavigationConfiguration} from 'sentry/views/settings/organization/userOrgNavigationConfiguration';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
+
+import {getUserOrgNavigationConfiguration} from './userOrgNavigationConfiguration';
 
 function OrganizationSettingsNavigation() {
   const organization = useOrganization();

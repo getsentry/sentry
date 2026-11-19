@@ -3,48 +3,69 @@ import {IconIssues} from '@sentry/icons/issues';
 import {IconSeer} from '@sentry/icons/seer';
 import type {SVGIconProps} from '@sentry/icons/svgIcon';
 
-import type {Organization} from 'sentry/types/organization';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import type {InboxSubject, InboxSubjectType} from 'sentry/views/inbox/types';
+import {t} from 'sentry/locale';
+
+import type {
+  InboxEventType,
+  InboxFilters,
+  InboxRecipient,
+  InboxSubjectType,
+} from './types';
 
 interface InboxSubjectConfig {
   icon: ComponentType<SVGIconProps>;
-  /**
-   * URL segment for the subject within the inbox, e.g. `/inbox/{pathSegment}/{subjectId}/`.
-   * Must match the inbox child routes in `routes.tsx`.
-   */
-  pathSegment: string;
+  label: string;
 }
 
 export const INBOX_SUBJECT_CONFIG: Record<InboxSubjectType, InboxSubjectConfig> = {
   issue: {
     icon: IconIssues,
-    pathSegment: 'issue',
+    label: t('Issue'),
   },
   notebook: {
     icon: IconSeer,
-    pathSegment: 'notebook',
+    label: t('Investigation'),
   },
 };
 
-export function getInboxItemPath(organization: Organization, item: InboxSubject) {
-  const {pathSegment} = INBOX_SUBJECT_CONFIG[item.subjectType];
-  return normalizeUrl(
-    `/organizations/${organization.slug}/inbox/${pathSegment}/${item.subjectId}/`
-  );
+interface InboxEventTypeConfig {
+  label: string;
+  subjectType: InboxSubjectType;
 }
 
-export function getInboxSubjectFromPath(
-  pathname: string,
-  subjectId: string | undefined
-): InboxSubject | null {
-  if (!subjectId) {
-    return null;
-  }
+export const INBOX_EVENT_TYPE_CONFIG: Record<InboxEventType, InboxEventTypeConfig> = {
+  'issue.user_assigned': {label: t('Issue assigned to you'), subjectType: 'issue'},
+  'issue.team_assigned': {label: t('Issue assigned to your team'), subjectType: 'issue'},
+  'issue.user_mentioned': {label: t('Issue mentioned you'), subjectType: 'issue'},
+  'issue.team_mentioned': {label: t('Issue mentioned your team'), subjectType: 'issue'},
+  'issue.pr_ready_for_review': {
+    label: t('Issue pull request ready for review'),
+    subjectType: 'issue',
+  },
+  'notebook.completed': {label: t('Investigation completed'), subjectType: 'notebook'},
+  'notebook.user_mentioned': {
+    label: t('Investigation mentioned you'),
+    subjectType: 'notebook',
+  },
+  'notebook.team_mentioned': {
+    label: t('Investigation mentioned your team'),
+    subjectType: 'notebook',
+  },
+  'notebook.participant_added': {
+    label: t('Investigation added as participant'),
+    subjectType: 'notebook',
+  },
+};
 
-  const subjectType = (Object.keys(INBOX_SUBJECT_CONFIG) as InboxSubjectType[]).find(
-    type => pathname.includes(`/inbox/${INBOX_SUBJECT_CONFIG[type].pathSegment}/`)
+export const INBOX_RECIPIENT_LABELS: Record<InboxRecipient, string> = {
+  team: t('Team'),
+  user: t('User'),
+};
+
+export function hasInboxFilters(filters: InboxFilters) {
+  return (
+    filters.subjectType.length > 0 ||
+    filters.eventType.length > 0 ||
+    filters.recipient.length > 0
   );
-
-  return subjectType ? {subjectType, subjectId} : null;
 }

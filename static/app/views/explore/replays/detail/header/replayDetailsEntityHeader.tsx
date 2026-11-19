@@ -3,10 +3,10 @@ import {IconCalendar} from '@sentry/icons/calendar';
 import {PlatformIcon} from 'platformicons';
 
 import {Tag} from '@sentry/scraps/badge';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {EntityHeader} from '@sentry/scraps/entityHeader';
 import type {EntityHeaderProps} from '@sentry/scraps/entityHeader';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {ReplayLoadingState} from 'sentry/components/replays/player/replayLoadingState';
 import {useLiveBadge} from 'sentry/components/replays/replayLiveIndicator';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -21,9 +21,10 @@ import {useReplayViewers} from 'sentry/utils/replays/hooks/useReplayViewers';
 import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPreferencesContext';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ReplayErrorsTooltip} from 'sentry/views/explore/replays/detail/header/replayErrorsTooltip';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
+
+import {ReplayErrorsTooltip} from './replayErrorsTooltip';
 
 interface Props {
   readerResult: ReturnType<typeof useLoadReplayReader>;
@@ -133,30 +134,27 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
         items: [
           showDeadRageClicks
             ? {
-                type: 'link',
-                label: t('Dead Clicks'),
+                label: {type: 'link', content: t('Dead Clicks'), to: breadcrumbTab},
                 value: deadClicks,
-                to: breadcrumbTab,
                 isLoading: statsLoading,
               }
             : null,
           showDeadRageClicks
             ? {
-                type: 'link',
-                label: t('Rage Clicks'),
+                label: {type: 'link', content: t('Rage Clicks'), to: breadcrumbTab},
                 value: rageClicks,
-                to: breadcrumbTab,
                 isLoading: statsLoading,
               }
             : null,
           {
-            type: 'link',
-            label: t('Errors'),
-            value: nonFeedbackErrors.length,
-            to: errorsTab,
-            labelTooltip: nonFeedbackErrors.length ? (
-              <ReplayErrorsTooltip replayErrors={nonFeedbackErrors} />
-            ) : undefined,
+            label: {type: 'link', content: t('Errors'), to: errorsTab},
+            value: {
+              type: 'text',
+              content: nonFeedbackErrors.length,
+              tooltip: nonFeedbackErrors.length ? (
+                <ReplayErrorsTooltip replayErrors={nonFeedbackErrors} />
+              ) : undefined,
+            },
             isLoading: statsLoading,
           },
         ],
@@ -171,7 +169,7 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
                 type: 'text',
                 value:
                   prefs.timestampType === 'absolute' ? (
-                    <DateTime year timeZone date={replayRecord.started_at} />
+                    <DateTime date={replayRecord.started_at} year="always" showTimezone />
                   ) : (
                     <TimeSince date={replayRecord.started_at} />
                   ),

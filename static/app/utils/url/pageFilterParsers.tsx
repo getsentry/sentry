@@ -1,6 +1,6 @@
 import {parseAsString} from 'nuqs';
 
-import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
+import {parseAsStringArray} from './parseAsStringArray';
 
 export const pageFilterParsers = {
   end: parseAsString.withDefault(''),

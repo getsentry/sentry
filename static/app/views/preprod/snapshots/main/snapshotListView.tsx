@@ -13,11 +13,11 @@ import styled from '@emotion/styled';
 
 import {matchesKeyboardEvent} from '@sentry/scraps/hotkey';
 import {Container, Flex} from '@sentry/scraps/layout';
+import {isModalOpen} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
 
 import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
 import {t} from 'sentry/locale';
-import {isModalOpen, ModalStore} from 'sentry/stores/modalStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -667,7 +667,6 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
         `[data-snapshot-key="${CSS.escape(initialSnapshotKey)}"]`
       );
       if (!el || !scrollRef.current) {
-        // oxlint-disable-next-line react/todo
         if (retries-- > 0) {
           requestAnimationFrame(adjustScroll);
         }
@@ -745,7 +744,7 @@ export const SnapshotListView = memo(function SnapshotListViewImpl({
       ) {
         return;
       }
-      if (isModalOpen(ModalStore.getState())) {
+      if (isModalOpen()) {
         return;
       }
       const tag = (e.target as HTMLElement)?.tagName;

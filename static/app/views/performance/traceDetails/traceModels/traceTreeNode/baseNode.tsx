@@ -397,6 +397,10 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
     return this.directVisibleChildren.length > 0;
   }
 
+  get canCollapse(): boolean {
+    return this.expanded;
+  }
+
   matchById(id: string): boolean {
     const hasMatchingErrors = Array.from(this.errors).some(
       error => error.event_id === id

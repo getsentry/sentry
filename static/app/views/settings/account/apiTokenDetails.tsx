@@ -1,31 +1,23 @@
 import {useCallback} from 'react';
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {InternalAppApiToken} from 'sentry/types/user';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import {
-  fetchMutation,
-  getApiQueryData,
-  setApiQueryData,
-  useApiQuery,
-} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -34,6 +26,8 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {tokenPreview} from 'sentry/views/settings/organizationAuthTokens/tokenUtils';
 
+import {apiTokensOptions} from './apiTokensOptions';
+
 const API_INDEX_ROUTE = '/settings/account/api/auth-tokens/';
 
 type FetchApiTokenParameters = {
@@ -41,10 +35,11 @@ type FetchApiTokenParameters = {
 };
 type FetchApiTokenResponse = InternalAppApiToken;
 
-const makeFetchApiTokenKey = ({tokenId}: FetchApiTokenParameters) =>
-  [getApiUrl('/api-tokens/$tokenId/', {path: {tokenId}})] as const;
-
-const API_TOKEN_LIST_KEY = [getApiUrl('/api-tokens/')] as const;
+const tokenOptions = ({tokenId}: FetchApiTokenParameters) =>
+  apiOptions.as<FetchApiTokenResponse>()('/api-tokens/$tokenId/', {
+    path: {tokenId},
+    staleTime: Infinity,
+  });
 
 const schema = z.object({
   name: z.string(),
@@ -67,33 +62,24 @@ function ApiTokenDetailsForm({token}: {token: InternalAppApiToken}) {
         data,
       }),
     onSuccess: (_data, {name}) => {
-      addSuccessMessage(t('Updated user auth token.'));
+      toast.success(t('Updated user auth token.'));
 
       // Update get by id query
-      setApiQueryData(
-        queryClient,
-        makeFetchApiTokenKey({tokenId: token.id}),
-        (oldData: InternalAppApiToken | undefined) => {
-          if (!oldData) {
-            return oldData;
-          }
-          return {...oldData, name};
-        }
+      queryClient.setQueryData(tokenOptions({tokenId: token.id}).queryKey, response =>
+        response?.json ? {...response, json: {...response.json, name}} : response
       );
 
       // Update get list query
-      if (getApiQueryData(queryClient, API_TOKEN_LIST_KEY)) {
-        setApiQueryData(
-          queryClient,
-          API_TOKEN_LIST_KEY,
-          (oldData: InternalAppApiToken[] | undefined) => {
-            if (!Array.isArray(oldData)) {
-              return oldData;
-            }
-            return oldData.map(oldToken =>
-              oldToken.id === token.id ? {...oldToken, name} : oldToken
-            );
-          }
+      if (queryClient.getQueryData(apiTokensOptions.queryKey)?.json) {
+        queryClient.setQueryData(apiTokensOptions.queryKey, response =>
+          response && Array.isArray(response.json)
+            ? {
+                ...response,
+                json: response.json.map(oldToken =>
+                  oldToken.id === token.id ? {...oldToken, name} : oldToken
+                ),
+              }
+            : response
         );
       }
 
@@ -102,7 +88,7 @@ function ApiTokenDetailsForm({token}: {token: InternalAppApiToken}) {
     onError: (error: RequestError) => {
       const message = t('Failed to update the user auth token.');
       handleXhrErrorResponse(message, error);
-      addErrorMessage(message);
+      toast.error(message);
     },
   });
 
@@ -111,7 +97,7 @@ function ApiTokenDetailsForm({token}: {token: InternalAppApiToken}) {
     defaultValues: {name: token.name},
     validators: {onDynamic: schema},
     onSubmit: ({value}) => {
-      addLoadingMessage();
+      toast.loading(t('Saving changes...'));
       return mutation.mutateAsync(value).catch(() => {});
     },
   });
@@ -161,9 +147,7 @@ function ApiTokenDetails() {
     isError,
     data: token,
     refetch: refetchToken,
-  } = useApiQuery<FetchApiTokenResponse>(makeFetchApiTokenKey({tokenId}), {
-    staleTime: Infinity,
-  });
+  } = useQuery(tokenOptions({tokenId}));
 
   return (
     <div>

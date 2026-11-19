@@ -4,23 +4,23 @@ import styled from '@emotion/styled';
 import color from 'color';
 import type {LocationDescriptor} from 'history';
 import {useQueryState} from 'nuqs';
-import * as qs from 'query-string';
 
 import {Link} from '@sentry/scraps/link';
 
 import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
+import * as qs from 'sentry/utils/url/qs';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {isCollapsedNode} from 'sentry/views/performance/traceDetails/traceGuards';
-import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
-import {IssuesTraceTree} from 'sentry/views/performance/traceDetails/traceModels/issuesTraceTree';
-import {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
-import {getTraceTargetFromEvent} from 'sentry/views/performance/traceDetails/traceTarget';
-import type {TraceWaterfallSource} from 'sentry/views/performance/traceDetails/traceWaterfall';
 
+import {TraceViewSources} from './traceHeader/traceViewSources';
+import {IssuesTraceTree} from './traceModels/issuesTraceTree';
+import {TraceTree} from './traceModels/traceTree';
 import type {VirtualizedViewManager} from './traceRenderers/virtualizedViewManager';
+import {isCollapsedNode} from './traceGuards';
+import {getTraceTargetFromEvent} from './traceTarget';
+import type {TraceWaterfallSource} from './traceWaterfall';
 
 interface RowPosition {
   height: number;

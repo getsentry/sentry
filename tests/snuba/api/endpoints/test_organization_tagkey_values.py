@@ -820,6 +820,15 @@ class ReplayOrganizationTagKeyValuesTest(OrganizationTagKeyTestCase, ReplaysSnub
         self.run_test("device.brand", expected=[("Samsung", 1)], qs_params={"query": "S"})
         self.run_test("device.family", expected=[], qs_params={"query": "$$$"})
 
+    def test_replays_tags_values_ipv6(self) -> None:
+        self.store_replays(
+            mock_replay(
+                self.r4_seq1_timestamp, self.project.id, uuid.uuid4().hex, ipv4="2001:db8::1"
+            )
+        )
+        self.run_test("user.ip", expected=[("10.0.0.1", 1), ("127.0.0.1", 3), ("2001:db8::1", 1)])
+        self.run_test("user.ip", expected=[("2001:db8::1", 1)], qs_params={"query": "db8"})
+
     def test_replays_tags_values_query_case_insensitive(self) -> None:
         # custom tag
         self.run_test("fruit", expected=[("orange", 2)], qs_params={"query": "OrA"})

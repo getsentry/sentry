@@ -97,6 +97,18 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         assert slug.startswith("1234-")
         assert not slug.isdecimal()
 
+    def test_expo_platform(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug,
+            self.team.slug,
+            name="expo app",
+            platform="expo",
+            status_code=201,
+        )
+
+        project = Project.objects.get(id=response.data["id"])
+        assert project.platform == "expo"
+
     def test_invalid_platform(self) -> None:
         response = self.get_error_response(
             self.organization.slug,
@@ -412,8 +424,8 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
     @override_options({"similarity.new_project_seer_grouping.enabled": True})
     def test_similarity_project_option_region_enabled(self) -> None:
         """
-        Test that project option for similarity grouping is created when the region has new
-        project Seer grouping enabled.
+        Test that project option for similarity grouping is created when new-project Seer grouping
+        is enabled in the region.
         """
         response = self.get_success_response(
             self.organization.slug,
@@ -438,8 +450,8 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
     @override_options({"similarity.new_project_seer_grouping.enabled": False})
     def test_similarity_project_option_region_disabled(self) -> None:
         """
-        Test that project option for similarity grouping is not created when the region has new
-        project Seer grouping disabled.
+        Test that project option for similarity grouping is not created when new-project Seer
+        grouping is disabled in the region.
         """
         response = self.get_success_response(
             self.organization.slug,
@@ -645,7 +657,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
             project=project, key="sentry:autofix_automation_tuning"
         ).exists()
 
-    @patch("sentry.seer.similarity.utils.is_seer_seat_based_tier_enabled", return_value=True)
+    @patch("sentry.seer.similarity.utils.is_seer_seat_or_token_billed_enabled", return_value=True)
     def test_project_autofix_tuning_defaults_to_medium_with_seat_based_tier(
         self, mock_seat_based_tier: MagicMock
     ) -> None:
@@ -665,7 +677,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         )
         assert autofix_tuning == "medium"
 
-    @patch("sentry.seer.similarity.utils.is_seer_seat_based_tier_enabled", return_value=True)
+    @patch("sentry.seer.similarity.utils.is_seer_seat_or_token_billed_enabled", return_value=True)
     def test_project_autofix_tuning_respects_explicit_off_even_with_seat_based_tier(
         self, mock_seat_based_tier: MagicMock
     ) -> None:
@@ -685,7 +697,7 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
         )
         assert autofix_tuning == "off"
 
-    @patch("sentry.seer.similarity.utils.is_seer_seat_based_tier_enabled", return_value=True)
+    @patch("sentry.seer.similarity.utils.is_seer_seat_or_token_billed_enabled", return_value=True)
     def test_project_autofix_tuning_seat_based_tier_overrides_non_off_org_default(
         self, mock_seat_based_tier: MagicMock
     ) -> None:

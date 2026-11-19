@@ -12,10 +12,11 @@ import {t} from 'sentry/locale';
 import {EQUATION_PREFIX, stripEquationPrefix} from 'sentry/utils/discover/fields';
 import {ExploreEquationArithmeticBuilder} from 'sentry/views/explore/components/exploreEquationArithmeticBuilder';
 import {ToolbarVisualizeRow} from 'sentry/views/explore/components/toolbar/styles';
-import {ExpandableFilterSearchBar} from 'sentry/views/explore/components/toolbar/toolbarVisualize/expandableFilterSearchBar';
 import {useSpanItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+import {ExpandableFilterSearchBar} from './expandableFilterSearchBar';
 
 interface VisualizeEquationProps {
   onReplace: (visualize: Visualize) => void;

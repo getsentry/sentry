@@ -5,7 +5,7 @@ import uuid
 from collections.abc import Iterable, Iterator, Mapping, Sequence, Set
 from contextlib import closing
 from datetime import datetime
-from typing import TYPE_CHECKING, NotRequired, TypedDict, TypeGuard, cast
+from typing import TYPE_CHECKING, Annotated, NotRequired, TypedDict, TypeGuard, cast
 
 import jsonschema
 import orjson
@@ -43,6 +43,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.dsym_examples import DebugFileExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -330,9 +331,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
             )
             return HttpResponse({"Too many download requests"}, status=429)
 
-        debug_file = ProjectDebugFile.objects.filter(
-            id=debug_file_id, project_id=project.id
-        ).first()
+        debug_file = ProjectDebugFile.objects.get_or_none(id=debug_file_id, project_id=project.id)
 
         if debug_file is None:
             raise Http404
@@ -519,7 +518,7 @@ class DebugFilesEndpoint(ProjectEndpoint):
                 debug_file = (
                     ProjectDebugFile.objects.filter(id=validated_id, project_id=project.id)
                     .select_related("file")
-                    .first()
+                    .get_or_none()
                 )
                 if debug_file is not None:
                     debug_file.delete()
@@ -634,10 +633,21 @@ _ASSEMBLE_REQUEST_OPENAPI_SCHEMA: dict[str, object] = {
 
 class DifAssembleFileResponse(TypedDict):
     # One of the ChunkFileState values: ok, not_found, created, assembling, or error.
-    state: str
-    missingChunks: list[str]
-    detail: NotRequired[str | None]
-    dif: NotRequired[DebugFileSerializerResponse]
+    state: Annotated[
+        str, ApiDescription("State of the file: ok, not_found, created, assembling or error")
+    ]
+    missingChunks: Annotated[
+        list[str], ApiDescription("Checksums of the chunks the server doesn't have yet")
+    ]
+    detail: NotRequired[
+        Annotated[str | None, ApiDescription("Error message when the state is error")]
+    ]
+    dif: NotRequired[
+        Annotated[
+            DebugFileSerializerResponse,
+            ApiDescription("Debug file created from the chunks. Only set when the state is ok"),
+        ]
+    ]
 
 
 class _AssembleErrorResponse(TypedDict):

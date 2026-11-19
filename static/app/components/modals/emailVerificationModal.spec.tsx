@@ -2,7 +2,7 @@ import type {PropsWithChildren} from 'react';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import EmailVerificationModal from 'sentry/components/modals/emailVerificationModal';
+import EmailVerificationModal from './emailVerificationModal';
 
 describe('Email Verification Modal', () => {
   it('renders', () => {

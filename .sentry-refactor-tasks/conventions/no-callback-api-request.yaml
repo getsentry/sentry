@@ -36,7 +36,7 @@ fix: |
   Example before:
     this.api.request('/endpoint/', {
       success: (data) => { this.setState({data}); },
-      error: (err) => { addErrorMessage('Failed'); },
+      error: (err) => { toast.error('Failed'); },
     });
 
   Example after:
@@ -46,7 +46,7 @@ fix: |
       });
       this.setState({data});
     } catch {
-      addErrorMessage('Failed');
+      toast.error('Failed');
     }
 
   Gotchas:
@@ -72,8 +72,8 @@ examples:
     - |
       useMutation({
         mutationFn: (data) => api.requestPromise('/endpoint/', { method: 'POST', data }),
-        onSuccess: () => addSuccessMessage('Saved'),
-        onError: () => addErrorMessage('Failed'),
+        onSuccess: () => toast.success('Saved'),
+        onError: () => toast.error('Failed'),
       });
     - |
       const handleSubmit: OnSubmitCallback = async (data, onSubmitSuccess, onSubmitError) => {

@@ -1,7 +1,7 @@
 import type {AsyncBatcher} from '@tanstack/react-pacer';
 import type {QueryClient} from '@tanstack/react-query';
 
-import type {BatchingRequest} from 'sentry/utils/api/batching/createBatcher';
+import type {BatchingRequest} from './createBatcher';
 
 interface BatchedQueryOptions<Data, QueryContext> {
   batcher: AsyncBatcher<BatchingRequest<Data, QueryContext>>;

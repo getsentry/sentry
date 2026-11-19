@@ -5,6 +5,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from sentry.seer.agent.on_completion_hook import OnCompletionHookDefinition
+from sentry.seer.autofix.commit_author import SeerCommitAuthor
 from sentry.seer.autofix.steps import AutofixStep
 
 # Keep models in sync with src/seer/automation/features/autofix/models.py in Seer
@@ -88,6 +89,15 @@ class AutofixFeaturePayload(BaseModel):
     stopping_point: str | None = None
 
 
+class AutofixSingleRunPrInternalSettings(BaseModel):
+    # Appended to the PR description: "Fixes" issue links and the `@sentry` command hints.
+    description_suffix: str | None
+    # False opens the PR as a draft.
+    ready_for_review: bool
+    # Credits pushed commits to this person instead of the Seer bot.
+    commit_author: SeerCommitAuthor | None = None
+
+
 class AutofixSingleRunFeaturePayload(BaseModel):
     class Config:
         extra = "ignore"
@@ -103,3 +113,11 @@ class AutofixSingleRunFeaturePayload(BaseModel):
     repo_pins: RepoPins | None = None
     user_context: str | None = None
     should_run_repo_checks: bool = False
+    pr_internal_settings: AutofixSingleRunPrInternalSettings | None = None
+    # The project's coding agent writes the fix, so Seer finishes after the root cause instead of
+    # stopping for its missing code tools.
+    coding_agent_handoff: bool = False
+    existing_run_id: int | None = None
+    reply: str | None = None
+    # Marks the reply as a PR feedback turn, so Sentry can close out the iteration when it ends.
+    pr_feedback: PrIterationStepArgs | None = None

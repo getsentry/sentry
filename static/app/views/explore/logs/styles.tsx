@@ -12,7 +12,8 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import type {ColumnAlign} from 'sentry/components/tables/sortableHeaderCell';
 import {NumberContainer} from 'sentry/utils/discover/styles';
 import {unreachable} from 'sentry/utils/unreachable';
-import {SeverityLevel} from 'sentry/views/explore/logs/utils';
+
+import {SeverityLevel} from './utils';
 
 export const LOGS_GRID_BODY_ROW_HEIGHT = 26;
 
@@ -516,22 +517,6 @@ export function getLogColors(level: SeverityLevel, theme: Theme) {
       throw new Error(`Invalid log type, got ${level}`);
   }
 }
-
-export const LogsSidebarCollapseButton = styled(Button)<{sidebarOpen: boolean}>`
-  ${p =>
-    p.sidebarOpen &&
-    css`
-      margin-left: -17px;
-      border-top-left-radius: 0;
-      border-bottom-left-radius: 0;
-
-      &::after {
-        border-left-color: ${p.theme.tokens.border.primary};
-        border-top-left-radius: 0;
-        border-bottom-left-radius: 0;
-      }
-    `}
-`;
 
 export const FloatingBackToTopContainer = styled('div')<{
   inReplay?: boolean;

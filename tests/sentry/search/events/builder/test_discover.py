@@ -2,20 +2,27 @@ from __future__ import annotations
 
 import datetime
 import re
+from collections.abc import Iterator
+from contextlib import contextmanager
 from datetime import timezone
+from unittest import mock
 
 import pytest
 from snuba_sdk import Identifier, Lambda
 from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op, Or
-from snuba_sdk.function import Function
+from snuba_sdk.function import Function, InvalidFunctionError
 from snuba_sdk.orderby import Direction, LimitBy, OrderBy
 
-from sentry.exceptions import InvalidSearchQuery
+from sentry.exceptions import InvalidFunctionArgumentQuery, InvalidSearchQuery
 from sentry.search.events import constants
+from sentry.search.events.builder.base import (
+    BaseQueryBuilder,
+    invalid_expression_as_search_query,
+)
 from sentry.search.events.builder.discover import DiscoverQueryBuilder, TopEventsQueryBuilder
-from sentry.search.events.types import ParamsType, QueryBuilderConfig
+from sentry.search.events.types import NormalizedArg, ParamsType, QueryBuilderConfig, SelectType
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import TestCase
@@ -23,6 +30,24 @@ from sentry.utils.snuba import QueryOutsideRetentionError, UnqualifiedQueryError
 from sentry.utils.validators import INVALID_ID_DETAILS
 
 pytestmark = pytest.mark.sentry_metrics
+
+
+@contextmanager
+def reject_column_resolution(rejected_field: str) -> Iterator[None]:
+    """Make snuba-sdk reject `rejected_field` as an invalid expression; other fields resolve normally."""
+    original = BaseQueryBuilder.resolve_column
+
+    def resolve_column(
+        builder: BaseQueryBuilder, field: NormalizedArg, alias: bool = False
+    ) -> SelectType:
+        if field == rejected_field:
+            raise InvalidFunctionError("invalid alias")
+        return original(builder, field, alias)
+
+    with mock.patch.object(
+        BaseQueryBuilder, "resolve_column", autospec=True, side_effect=resolve_column
+    ):
+        yield
 
 
 class DiscoverQueryBuilderTest(TestCase):
@@ -807,6 +832,19 @@ class DiscoverQueryBuilderTest(TestCase):
                 selected_columns=['fn_span_count("db", hostName)'],
             )
 
+    def test_non_numeric_function_argument(self) -> None:
+        with pytest.raises(
+            InvalidFunctionArgumentQuery, match="title is not a numeric column"
+        ) as excinfo:
+            DiscoverQueryBuilder(
+                Dataset.Discover,
+                self.params,
+                query="",
+                selected_columns=["min(title)"],
+            )
+        assert excinfo.value.function == "min"
+        assert excinfo.value.argument == "title"
+
     def test_array_join_clause(self) -> None:
         query = DiscoverQueryBuilder(
             Dataset.Discover,
@@ -1116,6 +1154,53 @@ class DiscoverQueryBuilderTest(TestCase):
                 orderby="equation|",
             )
 
+    def test_invalid_expression_in_field(self) -> None:
+        with (
+            reject_column_resolution("count() as invalid_alias"),
+            pytest.raises(
+                InvalidSearchQuery,
+                match=re.escape('Invalid field "count() as invalid_alias": invalid alias'),
+            ),
+        ):
+            DiscoverQueryBuilder(
+                Dataset.Discover,
+                self.params,
+                query="",
+                selected_columns=["count() as invalid_alias"],
+            )
+
+    def test_invalid_expression_in_orderby(self) -> None:
+        with (
+            reject_column_resolution("count() as invalid_alias"),
+            pytest.raises(
+                InvalidSearchQuery,
+                match=re.escape('Invalid orderby "-count() as invalid_alias": invalid alias'),
+            ),
+        ):
+            DiscoverQueryBuilder(
+                Dataset.Discover,
+                self.params,
+                query="",
+                selected_columns=["count()"],
+                orderby="-count() as invalid_alias",
+            )
+
+    def test_invalid_expression_in_groupby(self) -> None:
+        with (
+            reject_column_resolution("count() as invalid_alias"),
+            pytest.raises(
+                InvalidSearchQuery,
+                match=re.escape('Invalid groupby "count() as invalid_alias": invalid alias'),
+            ),
+        ):
+            DiscoverQueryBuilder(
+                Dataset.Discover,
+                self.params,
+                query="",
+                selected_columns=["count()"],
+                groupby_columns=["count() as invalid_alias"],
+            )
+
     def test_orderby_salted_column_hash(self) -> None:
         query = DiscoverQueryBuilder(
             Dataset.Discover,
@@ -1233,3 +1318,16 @@ class TopEventsQueryBuilderTest(TestCase):
             selected_columns=["tags[foo]"],
         )
         assert builder is not None
+
+
+def test_invalid_expression_as_search_query_converts_snuba_sdk_errors() -> None:
+    with pytest.raises(InvalidSearchQuery, match=re.escape('Invalid field "x": bad alias')) as exc:
+        with invalid_expression_as_search_query('field "x"'):
+            raise InvalidFunctionError("bad alias")
+    assert isinstance(exc.value.__cause__, InvalidFunctionError)
+
+
+def test_invalid_expression_as_search_query_ignores_other_errors() -> None:
+    with pytest.raises(ValueError):
+        with invalid_expression_as_search_query('field "x"'):
+            raise ValueError("unrelated")

@@ -12,20 +12,21 @@ import isEqual from 'lodash/isEqual';
 import {useQueryStates} from 'nuqs';
 
 import {defined} from 'sentry/utils/defined';
+import {parseAsFieldList} from 'sentry/views/explore/queryParams/parsers';
+import {hasVisualizeTransformations} from 'sentry/views/explore/queryParams/visualize';
+
 import {
   decodeMetricsQueryParams,
   defaultMetricQuery,
   encodeMetricQueryParams,
   type BaseMetricQuery,
-} from 'sentry/views/explore/metrics/metricQuery';
+} from './metricQuery';
 import {
   useMetricQueriesController,
   type MetricQueriesControllerValue,
-} from 'sentry/views/explore/metrics/useMetricQueriesController';
-import {parseAsFieldList} from 'sentry/views/explore/queryParams/parsers';
-import {hasVisualizeTransformations} from 'sentry/views/explore/queryParams/visualize';
+} from './useMetricQueriesController';
 
-export const MAX_METRICS_ALLOWED = 8;
+export const MAX_METRICS_ALLOWED = 10;
 
 function encodeMetricQueries(metricQueries: BaseMetricQuery[]): string[] {
   return metricQueries

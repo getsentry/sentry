@@ -7,21 +7,17 @@ import {defined} from 'sentry/utils/defined';
 import type {FeedbackEvent} from 'sentry/utils/feedback/types';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {clamp} from 'sentry/utils/number/clamp';
-import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
-import {extractDomNodes} from 'sentry/utils/replays/extractDomNodes';
-import {
-  hydrateBreadcrumbs,
-  replayInitBreadcrumb,
-} from 'sentry/utils/replays/hydrateBreadcrumbs';
-import {hydrateErrors} from 'sentry/utils/replays/hydrateErrors';
-import {hydrateFrames} from 'sentry/utils/replays/hydrateFrames';
-import {
-  clipEndFrame,
-  recordingEndFrame,
-} from 'sentry/utils/replays/hydrateRRWebRecordingFrames';
-import {hydrateSpans} from 'sentry/utils/replays/hydrateSpans';
-import {replayTimestamps} from 'sentry/utils/replays/replayDataUtils';
-import {replayerDomQuery} from 'sentry/utils/replays/replayerDomQuery';
+import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
+
+import type {Extraction} from './extractDomNodes';
+import {extractDomNodes} from './extractDomNodes';
+import {hydrateBreadcrumbs, replayInitBreadcrumb} from './hydrateBreadcrumbs';
+import {hydrateErrors} from './hydrateErrors';
+import {hydrateFrames} from './hydrateFrames';
+import {clipEndFrame, recordingEndFrame} from './hydrateRRWebRecordingFrames';
+import {hydrateSpans} from './hydrateSpans';
+import {replayTimestamps} from './replayDataUtils';
+import {replayerDomQuery} from './replayerDomQuery';
 import type {
   BreadcrumbFrame,
   ClipWindow,
@@ -37,7 +33,7 @@ import type {
   SpanFrame,
   VideoEvent,
   WebVitalFrame,
-} from 'sentry/utils/replays/types';
+} from './types';
 import {
   BreadcrumbCategories,
   EventType,
@@ -54,8 +50,7 @@ import {
   isTouchStartFrame,
   isWebVitalFrame,
   NodeType,
-} from 'sentry/utils/replays/types';
-import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
+} from './types';
 
 interface ReplayReaderParams {
   /**
@@ -209,6 +204,9 @@ function removeDuplicateNavCrumbs(
   );
   return otherBreadcrumbFrames.concat(uniqueNavCrumbs);
 }
+
+const MISSING_META_ERROR = 'Missing Meta Frame';
+const MISSING_FULL_SNAPSHOT_ERROR = 'Missing Full Snapshot Frame';
 
 export class ReplayReader {
   static factory({
@@ -554,16 +552,33 @@ export class ReplayReader {
         : null,
       this.getRRWebFrames().some(frame => frame.type === EventType.Meta)
         ? null
-        : 'Missing Meta Frame',
+        : MISSING_META_ERROR,
       this.isVideoReplay() ||
       this.getRRWebFrames().some(frame => frame.type === EventType.FullSnapshot)
         ? null
-        : 'Missing Full Snapshot Frame',
+        : MISSING_FULL_SNAPSHOT_ERROR,
     ].filter(defined);
   });
   hasProcessingErrors = () => {
     return this.processingErrors().length;
   };
+
+  /**
+   * Processing errors only break the player. The other tabs read breadcrumbs,
+   * spans, and errors, so the page stays useful while any of those exist.
+   */
+  hasTimelineData = memoize(
+    () =>
+      this.getRRWebFrames().some(frame => frame.type !== EventType.Custom) ||
+      this._sortedBreadcrumbFrames.some(frame => frame.category !== 'replay.init') ||
+      this._sortedSpanFrames.length > 0 ||
+      this._errors.length > 0
+  );
+
+  isMissingFullSnapshot = () =>
+    this.processingErrors().includes(MISSING_FULL_SNAPSHOT_ERROR);
+
+  isMissingMeta = () => this.processingErrors().includes(MISSING_META_ERROR);
 
   domQuery = () => {
     if (this._replayerQuery) {

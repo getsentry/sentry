@@ -16,7 +16,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
-import * as indicators from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
@@ -706,7 +707,7 @@ describe('PUT edit spend allocation', () => {
   });
 
   it('shows a fallback error when the save request fails without a response body', async () => {
-    jest.spyOn(indicators, 'addErrorMessage');
+    jest.spyOn(toast, 'error');
     const failedPut = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/spend-allocations/`,
       method: 'PUT',
@@ -725,7 +726,7 @@ describe('PUT edit spend allocation', () => {
 
     expect(failedPut).toHaveBeenCalledTimes(1);
     await waitFor(() =>
-      expect(indicators.addErrorMessage).toHaveBeenCalledWith(
+      expect(toast.error).toHaveBeenCalledWith(
         'Unable to save spend allocation. Please try again.'
       )
     );
@@ -734,7 +735,7 @@ describe('PUT edit spend allocation', () => {
   });
 
   it('shows the server error detail when the save request is rejected', async () => {
-    jest.spyOn(indicators, 'addErrorMessage');
+    jest.spyOn(toast, 'error');
     const detail =
       'The quantity specified is greater than the amount available. Contact sales@sentry.io to increase your limit.';
     MockApiClient.addMockResponse({
@@ -753,6 +754,6 @@ describe('PUT edit spend allocation', () => {
     await screen.findByTestId('spend-allocation-form');
     await userEvent.click(screen.getByText('Save Changes'));
 
-    await waitFor(() => expect(indicators.addErrorMessage).toHaveBeenCalledWith(detail));
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith(detail));
   });
 });

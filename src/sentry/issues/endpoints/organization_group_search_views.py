@@ -27,7 +27,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
-from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, VisibilityParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.principal import is_owned_by_acting_user, require_user
@@ -111,6 +111,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
             GlobalParams.ORG_ID_OR_SLUG,
             OrganizationGroupSearchViewGetSerializer,
             CursorQueryParam,
+            VisibilityParams.PER_PAGE,
         ],
         responses={
             200: inline_sentry_response_serializer(
@@ -130,10 +131,8 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         | Response[None]
     ):
         """
-        List the current organization member's custom views
-        `````````````````````````````````````````
-
-        Retrieve a list of custom views for the current organization member.
+        Return the current organization member's issue views, with starred views first. Set
+        `createdBy=others` to list organization-visible views created by other members instead.
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)

@@ -1,13 +1,13 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import type {useExplorerAutofix} from 'sentry/components/events/autofix/useExplorerAutofix';
-import {PrIterationFeedbackForm} from 'sentry/components/events/autofix/v3/prIterationFeedbackForm';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
-jest.mock('sentry/utils/analytics');
-jest.mock('sentry/actionCreators/indicator');
+import {PrIterationFeedbackForm} from './prIterationFeedbackForm';
 
+jest.mock('sentry/utils/analytics');
 function makeAutofix(
   overrides: Partial<ReturnType<typeof useExplorerAutofix>> = {}
 ): ReturnType<typeof useExplorerAutofix> {
@@ -31,6 +31,7 @@ function makeAutofix(
 
 describe('PrIterationFeedbackForm', () => {
   beforeEach(() => {
+    jest.spyOn(toast, 'error').mockClear();
     jest.clearAllMocks();
   });
 
@@ -65,6 +66,14 @@ describe('PrIterationFeedbackForm', () => {
     await waitFor(() => expect(onClose).toHaveBeenCalled());
     expect(textbox).toHaveValue('');
     expect(screen.getByRole('button', {name: 'Submit'})).toBeInTheDocument();
+  });
+
+  it('keeps the form rendered but inert when disabled', () => {
+    const autofix = makeAutofix();
+    render(<PrIterationFeedbackForm autofix={autofix} groupId="1" runId={1} disabled />);
+
+    expect(screen.getByRole('textbox')).toBeDisabled();
+    expect(screen.getByRole('button', {name: 'Submit'})).toBeDisabled();
   });
 
   it('keeps the form rendered but inert when PR iteration is paused', async () => {
@@ -125,6 +134,31 @@ describe('PrIterationFeedbackForm', () => {
     expect(screen.getByRole('textbox')).toHaveValue('make it blue');
     expect(trackAnalytics).not.toHaveBeenCalled();
     // startStep owns the error message, so the form must not add its own.
-    expect(addErrorMessage).not.toHaveBeenCalled();
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it('clears the feedback when out of credits', async () => {
+    const autofix = makeAutofix({
+      startStep: jest.fn().mockRejectedValue({
+        status: 402,
+        responseJSON: {code: 'seer_out_of_credits'},
+      }),
+    });
+    const onClose = jest.fn();
+    render(
+      <PrIterationFeedbackForm
+        autofix={autofix}
+        groupId="1"
+        runId={1}
+        onClose={onClose}
+      />
+    );
+
+    await userEvent.type(screen.getByRole('textbox'), 'make it blue');
+    await userEvent.click(screen.getByRole('button', {name: 'Submit'}));
+
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(screen.getByRole('textbox')).toHaveValue('');
+    expect(trackAnalytics).not.toHaveBeenCalled();
   });
 });

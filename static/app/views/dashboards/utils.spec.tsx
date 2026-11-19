@@ -3,8 +3,9 @@ import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {FieldKind} from 'sentry/utils/fields';
-import type {DashboardDetails, GlobalFilter, Widget} from 'sentry/views/dashboards/types';
-import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+
+import type {DashboardDetails, GlobalFilter, Widget} from './types';
+import {DisplayType, WidgetType} from './types';
 import {
   eventViewFromWidget,
   flattenErrors,
@@ -16,7 +17,7 @@ import {
   getWidgetDiscoverUrl,
   getWidgetIssueUrl,
   hasUnsavedFilterChanges,
-} from 'sentry/views/dashboards/utils';
+} from './utils';
 
 describe('Dashboards util', () => {
   const selection = {

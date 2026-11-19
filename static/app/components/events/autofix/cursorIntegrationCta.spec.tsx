@@ -3,9 +3,10 @@ import {DetailedProjectFixture, ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {CursorIntegrationCta} from 'sentry/components/events/autofix/cursorIntegrationCta';
-import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+
+import {CursorIntegrationCta} from './cursorIntegrationCta';
+import {CodingAgentProvider} from './types';
 
 describe('CursorIntegrationCta', () => {
   const project = ProjectFixture();

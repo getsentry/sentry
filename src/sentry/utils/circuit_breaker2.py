@@ -475,11 +475,14 @@ class CircuitBreaker:
             return
 
         # Tell the limiter to increment the key by 1 for each tracking quota
-        self.limiter.use_quotas(
-            [RequestedQuota(self.key, 1, tracking)],
-            [GrantedQuota(self.key, 1, [])],
-            now,
-        )
+        try:
+            self.limiter.use_quotas(
+                [RequestedQuota(self.key, 1, tracking)],
+                [GrantedQuota(self.key, 1, [])],
+                now,
+            )
+        except Exception:
+            logger.exception("Couldn't record success in redis for circuit breaker '%s'", self.key)
 
     def _should_trip(self, controlling_quota: Quota) -> bool:
         window_end_time = int(time.time())
@@ -530,25 +533,37 @@ class CircuitBreaker:
             *self.trip_strategy.tracking_quotas(is_recovery=state == CircuitBreakerState.RECOVERY),
         ]
 
-        self.limiter.use_quotas(
-            [RequestedQuota(self.key, 1, quotas)],
-            [GrantedQuota(self.key, 1, [])],
-            now,
-        )
+        try:
+            self.limiter.use_quotas(
+                [RequestedQuota(self.key, 1, quotas)],
+                [GrantedQuota(self.key, 1, [])],
+                now,
+            )
+            controlling_quota = self._get_controlling_quota(state)
+            should_trip = self._should_trip(controlling_quota)
+        except Exception:
+            logger.exception("Couldn't record error in redis for circuit breaker '%s'", self.key)
+            return
 
         # If incrementing has made us hit the current limit, switch to the BROKEN state
-        controlling_quota = self._get_controlling_quota(state)
-        if self._should_trip(controlling_quota):
-            window_end_time = int(time.time())
-            remaining = self._get_remaining_error_quota(controlling_quota, window_end_time)
-            trip_log_context = self.trip_strategy.get_trip_log_context(
-                controlling_quota,
-                remaining,
-                self.limiter,
-                self.key,
-                window_end_time,
-                state,
-            )
+        if should_trip:
+            try:
+                window_end_time = int(time.time())
+                remaining = self._get_remaining_error_quota(controlling_quota, window_end_time)
+                trip_log_context = self.trip_strategy.get_trip_log_context(
+                    controlling_quota,
+                    remaining,
+                    self.limiter,
+                    self.key,
+                    window_end_time,
+                    state,
+                )
+            # Log context only; don't let it stop the trip
+            except Exception:
+                logger.exception(
+                    "Couldn't get trip log context from redis for circuit breaker '%s'", self.key
+                )
+                trip_log_context = {}
             logger.warning(
                 "Circuit breaker '%s' error limit hit",
                 self.key,
@@ -608,7 +623,14 @@ class CircuitBreaker:
         # If there's no remaining quota, in theory we should already be in a broken state. That
         # said, it's possible we could be in a race condition and hit this just as the state is
         # being changed, so just to be safe we also check here.
-        if self._should_trip(controlling_quota):
+        try:
+            should_trip = self._should_trip(controlling_quota)
+        except Exception:
+            logger.exception("Couldn't check quota in redis for circuit breaker '%s'", self.key)
+            # Same default as a failed state read: let traffic through
+            return True
+
+        if should_trip:
             metrics.incr(f"circuit_breaker.{self.metrics_key}.request_blocked")
             return False
 

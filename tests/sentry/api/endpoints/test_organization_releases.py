@@ -702,6 +702,39 @@ class OrganizationReleaseListTest(APITestCase, BaseMetricsTestCase):
         )
         assert response.status_code == 400
 
+    def test_release_stage_filter_is_scoped_to_selected_environment(self) -> None:
+        self.login_as(user=self.user)
+        staging = self.create_environment(name="staging", project=self.project)
+        release = self.create_release(
+            version="adopted_in_production_only",
+            environments=[self.environment, staging],
+            adopted=timezone.now(),
+        )
+        ReleaseProjectEnvironment.objects.filter(release=release, environment=staging).update(
+            adopted=None
+        )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED.value}",
+            environment=self.environment.name,
+        )
+        self.assert_expected_versions(response, [release])
+
+        response = self.get_success_response(
+            self.organization.slug,
+            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED.value}",
+            environment=staging.name,
+        )
+        self.assert_expected_versions(response, [])
+
+        response = self.get_success_response(
+            self.organization.slug,
+            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION.value}",
+            environment=staging.name,
+        )
+        self.assert_expected_versions(response, [release])
+
     def test_project_permissions(self) -> None:
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()

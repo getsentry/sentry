@@ -34,7 +34,6 @@ from sentry.seer.models.workflow import (
     SeerWorkflowConfigProject,
     SeerWorkflowStrategy,
 )
-from sentry.seer.workflows.workflow import SeerWorkflow
 from sentry.service_accounts.models import ServiceAccount, ServiceAccountReplica
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
@@ -784,12 +783,9 @@ class QueryTests(ExportTestCase):
         replica = ServiceAccountReplica.objects.get(service_account_id=account.id)
         assert replica.id != account.id
         config = Factories.create_seer_workflow_config(
-            org, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
+            org, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2, service_account_id=account.id
         )
         Factories.create_seer_workflow_config_project(config, project)
-        SeerWorkflow(
-            config_id=config.id, organization_id=config.organization_id
-        ).set_service_account(account.id)
 
         for scope in (ExportScope.Organization, ExportScope.Global):
             with TemporaryDirectory() as tmp_dir:

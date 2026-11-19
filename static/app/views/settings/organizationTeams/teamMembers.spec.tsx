@@ -11,7 +11,8 @@ import {
   openInviteMembersModal,
   openTeamAccessRequestModal,
 } from 'sentry/actionCreators/modal';
-import TeamMembers from 'sentry/views/settings/organizationTeams/teamMembers';
+
+import TeamMembers from './teamMembers';
 
 jest.mock('sentry/actionCreators/modal', () => ({
   openInviteMembersModal: jest.fn(),

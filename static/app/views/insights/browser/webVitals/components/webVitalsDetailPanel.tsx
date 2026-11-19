@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {useQueryState} from 'nuqs';
 
 import {DrawerHeader} from '@sentry/scraps/drawer';
+import {getDuration} from '@sentry/scraps/duration';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
@@ -16,7 +17,6 @@ import {
 } from 'sentry/components/tables/dataGrid';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
@@ -27,9 +27,6 @@ import {WidgetType} from 'sentry/views/dashboards/types';
 import {getLinkedDashboardUrl} from 'sentry/views/dashboards/utils/getLinkedDashboardUrl';
 import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {useGetPrebuiltDashboard} from 'sentry/views/dashboards/utils/usePopulateLinkedDashboards';
-import {WebVitalStatusLineChart} from 'sentry/views/insights/browser/webVitals/components/charts/webVitalStatusLineChart';
-import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
-import {WebVitalDescription} from 'sentry/views/insights/browser/webVitals/components/webVitalDescription';
 import {useProjectRawWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsQuery';
 import {getWebVitalScoresFromTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/getWebVitalScoresFromTableDataRow';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
@@ -47,6 +44,10 @@ import {
 } from 'sentry/views/insights/common/components/sampleDrawerBody';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {ModuleName, SpanFields, type SubregionCode} from 'sentry/views/insights/types';
+
+import {WebVitalStatusLineChart} from './charts/webVitalStatusLineChart';
+import {PerformanceBadge} from './performanceBadge';
+import {WebVitalDescription} from './webVitalDescription';
 
 type Column = GridColumnHeader;
 
@@ -186,9 +187,9 @@ export function WebVitalsDetailPanel({
 
   const getFormattedDuration = (value: number) => {
     if (value < 1000) {
-      return getDuration(value / 1000, 0, true);
+      return getDuration(value / 1000, {style: 'short'});
     }
-    return getDuration(value / 1000, 2, true);
+    return getDuration(value / 1000, {precision: 2, style: 'short'});
   };
 
   const renderBodyCell = (col: Column, row: RowWithScoreAndOpportunity) => {
@@ -276,7 +277,7 @@ export function WebVitalsDetailPanel({
                   ? undefined
                   : webVital === 'cls'
                     ? webVitalValue?.toFixed(2)
-                    : getDuration(webVitalValue / 1000, 2, true)
+                    : getDuration(webVitalValue / 1000, {precision: 2, style: 'short'})
               }
               webVital={webVital}
               score={webVitalScore}

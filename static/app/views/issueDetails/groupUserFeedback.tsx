@@ -12,11 +12,13 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {FeedbackEmptyState} from 'sentry/views/feedback/feedbackEmptyState';
-import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
-import {groupUserFeedbackApiOptions} from 'sentry/views/issueDetails/groupUserFeedbackApiOptions';
-import {useGroup} from 'sentry/views/issueDetails/useGroup';
+
+import {useGroupId} from './groupIdContext';
+import {groupUserFeedbackApiOptions} from './groupUserFeedbackApiOptions';
+import {useGroup} from './useGroup';
 
 function GroupUserFeedback() {
   const organization = useOrganization();
@@ -87,7 +89,7 @@ function GroupUserFeedback() {
                 eventLink={`/organizations/${organization.slug}/issues/${groupId}/events/${item.eventID}/?referrer=user-feedback`}
               />
             ))}
-            <Pagination pageLinks={pageLinks} />
+            <Pagination {...getPaginationProps(pageLinks)} />
           </Stack>
         )}
       </Layout.Main>

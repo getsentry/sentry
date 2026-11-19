@@ -1,9 +1,6 @@
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {
-  ChartSelectionProvider,
-  useChartSelection,
-} from 'sentry/views/explore/components/attributeBreakdowns/chartSelectionContext';
+import {ChartSelectionProvider, useChartSelection} from './chartSelectionContext';
 
 describe('ChartSelectionProvider', () => {
   function renderChartSelection(query: Record<string, string> = {}) {

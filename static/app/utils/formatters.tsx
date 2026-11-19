@@ -1,8 +1,9 @@
 import {t} from 'sentry/locale';
 import type {CommitAuthor} from 'sentry/types/integrations';
 import type {User} from 'sentry/types/user';
-import {RATE_UNIT_LABELS, RateUnit} from 'sentry/utils/discover/fields';
-import {formatFloat} from 'sentry/utils/number/formatFloat';
+
+import {RATE_UNIT_LABELS, RateUnit} from './discover/fields';
+import {formatFloat} from './number/formatFloat';
 
 export function userDisplayName(user: User | CommitAuthor, includeEmail = true): string {
   let displayName = String(user?.name ?? t('Unknown author')).trim();
@@ -20,7 +21,6 @@ export function userDisplayName(user: User | CommitAuthor, includeEmail = true):
 }
 
 // in milliseconds
-export const YEAR = 31536000000;
 export const MONTH = 2629800000;
 export const WEEK = 604800000;
 export const DAY = 86400000;

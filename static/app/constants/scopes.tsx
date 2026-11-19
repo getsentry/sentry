@@ -1,5 +1,6 @@
-import type {ApiAccessScope} from 'sentry/constants/apiAccessScopes';
 import {t} from 'sentry/locale';
+
+import type {ApiAccessScope} from './apiAccessScopes';
 
 export {API_ACCESS_SCOPES, type ApiAccessScope} from 'sentry/constants/apiAccessScopes';
 
@@ -121,6 +122,8 @@ export const ALLOWED_SCOPES = [
   'project:read',
   'project:releases',
   'project:write',
+  'service_account:read',
+  'service_account:write',
   'team:admin',
   'team:read',
   'team:write',

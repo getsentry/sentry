@@ -3,10 +3,11 @@ import {IconStack} from '@sentry/icons/stack';
 import {Flex, useResponsivePropValue, type Responsive} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {datasetNoun} from 'sentry/components/droppedData/outcomes';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
+
+import {datasetNoun} from './outcomes';
 
 export interface DroppedDataFilterNoteProps {
   dataset: DiscoverDatasets;

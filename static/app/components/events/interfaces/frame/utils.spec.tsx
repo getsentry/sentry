@@ -1,9 +1,10 @@
+import type {Event, Frame} from 'sentry/types/event';
+
 import {
   hasFileExtension,
   isUnlinkableFilename,
   isPotentiallyThirdPartyFrame,
-} from 'sentry/components/events/interfaces/frame/utils';
-import type {Event, Frame} from 'sentry/types/event';
+} from './utils';
 
 describe('hasFileExtension', () => {
   test('returns true for valid file names with extensions', () => {

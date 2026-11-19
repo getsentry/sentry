@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any, NotRequired, TypedDict
+from typing import Annotated, Any, NotRequired, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.constants import SentryAppInstallationStatus
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.sentry_apps.models.sentry_app import SentryApp
@@ -15,22 +16,36 @@ from sentry.users.services.user import RpcUser
 
 
 class SentryAppInstallationAppResult(TypedDict):
-    uuid: str
-    slug: str
-    sentryAppId: int
+    uuid: Annotated[str, ApiDescription("UUID of the custom integration")]
+    slug: Annotated[str, ApiDescription("Slug of the custom integration")]
+    sentryAppId: Annotated[int, ApiDescription("ID of the custom integration")]
 
 
 class SentryAppInstallationOrganizationResult(TypedDict):
-    slug: str
-    id: int
+    slug: Annotated[str, ApiDescription("Slug of the organization the integration is installed in")]
+    id: Annotated[int, ApiDescription("ID of the organization the integration is installed in")]
 
 
 class SentryAppInstallationResult(TypedDict):
-    app: SentryAppInstallationAppResult
-    organization: SentryAppInstallationOrganizationResult
-    uuid: str
-    status: str
-    code: NotRequired[str]
+    app: Annotated[
+        SentryAppInstallationAppResult, ApiDescription("Custom integration that's installed")
+    ]
+    organization: Annotated[
+        SentryAppInstallationOrganizationResult,
+        ApiDescription("Organization the integration is installed in"),
+    ]
+    uuid: Annotated[str, ApiDescription("UUID of the installation")]
+    status: Annotated[
+        str, ApiDescription("Status of the installation, such as pending or installed")
+    ]
+    code: NotRequired[
+        Annotated[
+            str,
+            ApiDescription(
+                "OAuth grant code for the installation. Only included for callers with the org:integrations scope"
+            ),
+        ]
+    ]
 
 
 @register(SentryAppInstallation)

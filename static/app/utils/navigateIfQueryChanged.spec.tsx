@@ -1,7 +1,7 @@
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 
-import {navigateIfQueryChanged} from 'sentry/utils/navigateIfQueryChanged';
-import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
+import {navigateIfQueryChanged} from './navigateIfQueryChanged';
+import type {ReactRouter3Navigate} from './useNavigate';
 
 describe('navigateIfQueryChanged', () => {
   it('does not navigate when the query is unchanged', () => {

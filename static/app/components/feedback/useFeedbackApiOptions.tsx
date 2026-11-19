@@ -1,15 +1,16 @@
 import type {ReactNode} from 'react';
 import {createContext, useCallback, useContext, useRef, useState} from 'react';
 
+import type {Organization} from 'sentry/types/organization';
+
 import {
   getFeedbackItemApiOptions,
   type FeedbackItemApiOptions,
-} from 'sentry/components/feedback/getFeedbackItemApiOptions';
+} from './getFeedbackItemApiOptions';
 import {
   useFeedbackListApiOptions,
   useFeedbackListInfiniteApiOptions,
-} from 'sentry/components/feedback/useFeedbackListApiOptions';
-import type {Organization} from 'sentry/types/organization';
+} from './useFeedbackListApiOptions';
 
 interface Props {
   children: ReactNode;

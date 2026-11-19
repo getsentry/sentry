@@ -5,10 +5,10 @@ import {useQuery} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
 import {parseAsString, useQueryState} from 'nuqs';
 
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Flex} from '@sentry/scraps/layout';
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {DataGrid, type GridColumnOrder} from 'sentry/components/tables/dataGrid';
 import {t} from 'sentry/locale';
 import type {GroupOpenPeriodActivity} from 'sentry/types/group';
@@ -24,8 +24,9 @@ import {
   getInvestigationPath,
   useInvestigationsEnabled,
 } from 'sentry/views/investigations/utils';
-import {EventListTable} from 'sentry/views/issueDetails/eventListTable';
-import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
+
+import {EventListTable} from './eventListTable';
+import {useGroupId} from './groupIdContext';
 
 interface OpenPeriodDisplayData {
   description: string;
@@ -50,7 +51,6 @@ function getOpenPeriodActivityTypeLabel(activity: GroupOpenPeriodActivity): stri
   }
 }
 
-// TODO(snigdha): make this work for the old UI
 function IssueOpenPeriodsList() {
   const organization = useOrganization();
   const [cursor] = useQueryState('cursor', parseAsString);

@@ -14,7 +14,7 @@ import {
   useReplayPlayerState,
   useReplayPlayerStateDispatch,
   useReplayUserAction,
-} from 'sentry/utils/replays/playback/providers/replayPlayerStateContext';
+} from './replayPlayerStateContext';
 
 function wrapper({children}: {children?: ReactNode}) {
   return <ReplayPlayerStateContextProvider>{children}</ReplayPlayerStateContextProvider>;

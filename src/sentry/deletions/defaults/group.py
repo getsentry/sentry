@@ -32,6 +32,7 @@ from sentry.notifications.models.inboxitem import InboxItem
 from sentry.notifications.models.notificationmessage import NotificationMessage
 from sentry.seer.models.agentic_triage import SeerAgenticTriageRunResult
 from sentry.seer.models.autofix_issue_data import SeerAutofixIssueData
+from sentry.seer.similarity.utils import project_uses_seer_similarity
 from sentry.services.eventstore.models import Event
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.seer.delete_seer_grouping_records import (
@@ -269,7 +270,7 @@ class GroupDeletionTask(ModelDeletionTask[Group]):
         from sentry import similarity
 
         # Don't do MinHash work if we use embeddings-based similarity.
-        if not instance.project.get_option("sentry:similarity_backfill_completed"):
+        if not project_uses_seer_similarity(instance.project):
             similarity.delete(None, instance)
 
         return super().delete_instance(instance)

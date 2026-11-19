@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime, timezone
-from typing import Any, TypedDict, cast
+from typing import Annotated, Any, TypedDict, cast
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
@@ -23,6 +23,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import NoProjects
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -38,7 +39,7 @@ from sentry.replays.validators import ReplayValidator, validate_fields
 
 
 class GetReplayResponse(TypedDict):
-    data: ReplayDetailsResponse
+    data: Annotated[ReplayDetailsResponse, ApiDescription("The replay")]
 
 
 def _query_replay_urls_eap(

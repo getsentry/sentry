@@ -1,5 +1,6 @@
-import type {DocsFlow} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import type {ProjectCreationVariant} from 'sentry/utils/analytics/projectCreationAnalyticsEvents';
+
+import type {DocsFlow} from './types';
 
 /**
  * Maps a {@link DocsFlow} to the analytics event NAME for a setup-docs

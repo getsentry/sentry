@@ -1,5 +1,4 @@
 import React from 'react';
-import qs from 'query-string';
 import {EventFixture} from 'sentry-fixture/event';
 import {LogFixture} from 'sentry-fixture/log';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -15,13 +14,15 @@ import {
   type RenderOptions,
 } from 'sentry-test/reactTestingLibrary';
 
-import * as indicators from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import * as analytics from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {FieldValueType} from 'sentry/utils/fields';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
+import * as qs from 'sentry/utils/url/qs';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
   LOGS_FIELDS_KEY,
@@ -31,13 +32,11 @@ import {
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {DEFAULT_TRACE_ITEM_HOVER_TIMEOUT} from 'sentry/views/explore/logs/constants';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import {
-  addValidatedFieldTypesToLogsMeta,
-  LogsInfiniteTable,
-} from 'sentry/views/explore/logs/tables/logsInfiniteTable';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {createErrorLogRow} from 'sentry/views/explore/logs/utils';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
+
+import {addValidatedFieldTypesToLogsMeta, LogsInfiniteTable} from './logsInfiniteTable';
 
 const mockScrollToIndex = jest.fn();
 
@@ -848,7 +847,7 @@ describe('LogsInfiniteTable', () => {
     });
 
     it('shows an error when the pinned log is not in the current results', async () => {
-      const addErrorMessage = jest.spyOn(indicators, 'addErrorMessage');
+      const addErrorMessage = jest.spyOn(toast, 'error');
       const trackAnalytics = jest.spyOn(analytics, 'trackAnalytics');
       mockEvents(query => query === 'id:[99]', [unloadedPinnedLog]);
       mockEvents(

@@ -3,8 +3,8 @@ import {useQuery} from '@tanstack/react-query';
 import {parseAsBoolean, parseAsString, useQueryStates} from 'nuqs';
 
 import type {CursorHandler} from '@sentry/scraps/pagination';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {normalizeDateTimeString} from 'sentry/components/pageFilters/parse';
 import type {ChangeData} from 'sentry/components/timeRangeSelector';
 import type {AuditLog} from 'sentry/types/organization';
@@ -60,7 +60,7 @@ function OrganizationAuditLog() {
 
   useEffect(() => {
     if (isError) {
-      addErrorMessage('Unable to load audit logs.');
+      toast.error('Unable to load audit logs.');
     }
   }, [isError]);
 

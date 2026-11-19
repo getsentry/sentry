@@ -7,14 +7,15 @@ import {Sticky} from 'sentry/components/sticky';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import {useIssueDetails} from 'sentry/views/issueDetails/context';
-import {EventMissingBanner} from 'sentry/views/issueDetails/eventMissingBanner';
-import {EventTitle} from 'sentry/views/issueDetails/eventTitle';
+import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
+
 import {
   EventDetailsContent,
   type EventDetailsContentProps,
-} from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent';
-import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
+} from './groupEventDetails/groupEventDetailsContent';
+import {useIssueDetails} from './context';
+import {EventMissingBanner} from './eventMissingBanner';
+import {EventTitle} from './eventTitle';
 
 export function EventDetails({group, event, project}: EventDetailsContentProps) {
   if (!event) {

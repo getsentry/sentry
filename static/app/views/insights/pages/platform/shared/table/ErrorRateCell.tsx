@@ -5,7 +5,8 @@ import {Flex} from '@sentry/scraps/layout';
 import {defined} from 'sentry/utils/defined';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
-import {ThresholdCell} from 'sentry/views/insights/pages/platform/shared/table/ThresholdCell';
+
+import {ThresholdCell} from './ThresholdCell';
 
 export function ErrorRateCell({errorRate, total}: {errorRate: number; total: number}) {
   const theme = useTheme();

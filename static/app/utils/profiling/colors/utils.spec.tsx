@@ -1,15 +1,16 @@
 import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
+import {makeLightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
+import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import {Frame} from 'sentry/utils/profiling/frame';
+
 import {
   makeColorMapByLibrary,
   makeColorMapByRecursion,
   makeColorMapBySymbolName,
   makeStackToColor,
-} from 'sentry/utils/profiling/colors/utils';
-import {makeLightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
-import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import {Frame} from 'sentry/utils/profiling/frame';
+} from './utils';
 
 const theme = makeLightFlamegraphTheme(ThemeFixture());
 

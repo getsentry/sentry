@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useProfileEventsStats} from 'sentry/utils/profiling/hooks/useProfileEventsStats';
+import {useProfileEventsStats} from './useProfileEventsStats';
 
 describe('useProfileEvents', () => {
   const organization = OrganizationFixture();

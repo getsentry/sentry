@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import Annotated, TypedDict
 
 from drf_spectacular.utils import OpenApiExample, OpenApiParameter, extend_schema
 from rest_framework.request import Request
@@ -15,6 +15,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.parameters import GlobalParams, IssueParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.issues.endpoints.bases.group import GroupEndpoint
@@ -22,11 +23,11 @@ from sentry.models.group import Group
 
 
 class ShortIdLookupResponse(TypedDict):
-    organizationSlug: str
-    projectSlug: str
-    groupId: str
-    group: BaseGroupSerializerResponse
-    shortId: str
+    organizationSlug: Annotated[str, ApiDescription("Slug of the organization")]
+    projectSlug: Annotated[str, ApiDescription("Slug of the issue's project")]
+    groupId: Annotated[str, ApiDescription("ID of the issue")]
+    group: Annotated[BaseGroupSerializerResponse, ApiDescription("The issue")]
+    shortId: Annotated[str, ApiDescription("Short ID of the issue, such as PROJECT-1A")]
 
 
 @extend_schema(tags=["Organizations"])

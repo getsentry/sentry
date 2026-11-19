@@ -6,9 +6,9 @@ import {useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
 import {validateWidget} from 'sentry/actionCreators/dashboards';
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApi} from 'sentry/utils/useApi';
@@ -77,7 +77,7 @@ export function WidgetTemplatesList({
       await validateWidget(api, organization.slug, newWidget);
       onSave({index: Number(widgetIndex), widget: newWidget});
     } catch (error) {
-      addErrorMessage(t('Unable to add widget'));
+      toast.error(t('Unable to add widget'));
     }
   };
 

@@ -64,6 +64,10 @@ describe('Result Size highlighted attribute', () => {
     MockApiClient.clearMockResponses();
     act(() => ProjectsStore.loadInitialData([project]));
     MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/dashboards/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {data: [{'avg(span.duration)': 100}]},
     });

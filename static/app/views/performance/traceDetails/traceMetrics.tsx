@@ -30,8 +30,9 @@ import {
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
-import {EXCLUDE_SPAN_METRICS_QUERY} from 'sentry/views/performance/traceDetails/traceMetricsSearch';
-import {useTraceQueryParams} from 'sentry/views/performance/traceDetails/useTraceQueryParams';
+
+import {EXCLUDE_SPAN_METRICS_QUERY} from './traceMetricsSearch';
+import {useTraceQueryParams} from './useTraceQueryParams';
 
 type UseTraceViewMetricsDataProps = {
   children: React.ReactNode;

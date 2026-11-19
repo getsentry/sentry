@@ -64,7 +64,7 @@ def _variant(
     branch on, e.g. `issue:slack:error:event:tags:no_notes:unresolved:new:no_env:rule:unassigned`.
     Runs before every shadowable send, so each part must stay cheap to compute.
     """
-    group = invocation.event_data.group
+    group = invocation.event_data.require_group()
     event = invocation.event_data.event
     notes = "notes" if invocation.action.data.get("notes") else "no_notes"
     if source == NotificationSource.ISSUE:

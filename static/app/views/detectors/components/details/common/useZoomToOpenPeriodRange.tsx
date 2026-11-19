@@ -1,10 +1,7 @@
 import {useCallback} from 'react';
 import {parseAsString, useQueryStates} from 'nuqs';
 
-import {
-  buildDetectorZoomQuery,
-  computeZoomRangeMs,
-} from 'sentry/views/detectors/components/details/common/buildDetectorZoomQuery';
+import {buildDetectorZoomQuery, computeZoomRangeMs} from './buildDetectorZoomQuery';
 
 export function useZoomToOpenPeriodRange(intervalSeconds?: number) {
   const [, setTimeParams] = useQueryStates(

@@ -147,8 +147,8 @@ process.exit(Number(packageRun ? process.env.PACKAGE_TEST_STATUS ?? 0 : process.
       ['!./static/packages/*', ...(standalone ? ['./static/packages/*'] : [])]
     );
     for (const args of runs) {
-      assert.ok(args.includes('--workspace-concurrency=2'));
-      assert.ok(args.includes('--maxWorkers=2'));
+      assert.ok(args.includes('--workspace-concurrency=1'));
+      assert.ok(args.includes('--maxWorkers=75%'));
       assert.ok(args.includes('--aggregate-output'));
     }
   }
@@ -323,7 +323,7 @@ test('scoped workspaces preserve the global shard assignment with and without hi
       const selected = Object.values(data.matches).flat();
       assert.deepEqual(
         selected.map(file => '<rootDir>' + file).sort(),
-        data.global.slice().sort()
+        data.global.toSorted()
       );
       for (const [workspace, matches] of Object.entries(data.matches)) {
         assert.ok(matches.every(file => file.startsWith('/' + workspace + '/')));
@@ -332,7 +332,7 @@ test('scoped workspaces preserve the global shard assignment with and without hi
       seen.push(...selected);
     }
     assert.deepEqual(shardSizes, [3, 3]);
-    assert.deepEqual(seen.sort(), files.slice().sort());
+    assert.deepEqual(seen.sort(), files.toSorted());
   }
 });
 

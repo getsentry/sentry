@@ -1,10 +1,8 @@
 import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {
-  incidentMarklineTooltip,
-  incidentSeriesTooltip,
-} from 'sentry/views/detectors/components/details/metric/chartTooltip';
 import type {IncidentPeriod} from 'sentry/views/detectors/hooks/useIncidentMarkers';
+
+import {incidentMarklineTooltip, incidentSeriesTooltip} from './chartTooltip';
 
 const theme = ThemeFixture();
 

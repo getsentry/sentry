@@ -5,6 +5,8 @@ on:
     branches:
       - master
   pull_request:
+  merge_group:
+    types: [checks_requested]
 
 # Cancel in progress workflows on pull_requests.
 # https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
@@ -63,8 +65,8 @@ jobs:
           echo "::remove-matcher owner=masters::"
           echo "::add-matcher::.github/tsc.json"
 
-      - name: tsc
-        id: tsc
+      - name: Type check with tsrs
+        id: typecheck
         run: pnpm run typecheck
 
   oxlint:

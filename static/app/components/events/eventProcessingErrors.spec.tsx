@@ -3,11 +3,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {
-  DOCS_URLS,
-  EventProcessingErrors,
-} from 'sentry/components/events/eventProcessingErrors';
-import type {ErrorMessage} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
+import type {ErrorMessage} from './interfaces/crashContent/exception/actionableItems';
+import {DOCS_URLS, EventProcessingErrors} from './eventProcessingErrors';
 
 jest.mock(
   'sentry/components/events/interfaces/crashContent/exception/useActionableItems',

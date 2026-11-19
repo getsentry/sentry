@@ -1,14 +1,12 @@
 import type {Query} from 'history';
-import * as qs from 'query-string';
 
 import type {EventTag} from 'sentry/types/event';
 import {escapeDoubleQuotes} from 'sentry/utils';
-import type {Sort} from 'sentry/utils/discover/fields';
-import {
-  ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS,
-  type FieldKey,
-} from 'sentry/utils/fields';
-import {safeURL} from 'sentry/utils/url/safeURL';
+
+import type {Sort} from './discover/fields';
+import * as qs from './url/qs';
+import {safeURL} from './url/safeURL';
+import {ISSUE_EVENT_FIELDS_THAT_MAY_CONFLICT_WITH_TAGS, type FieldKey} from './fields';
 
 // Create a string representation of the regex so we need to create a new regex
 // for each use to avoid carrying over state
