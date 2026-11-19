@@ -83,7 +83,10 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
         except DiscoverSavedQuery.DoesNotExist:
             return Response(status=status.HTTP_204_NO_CONTENT)
 
-        return Response(serialize(query), status=status.HTTP_200_OK)
+        return Response(
+            serialize(query, serializer=DiscoverSavedQueryModelSerializer()),
+            status=status.HTTP_200_OK,
+        )
 
     @extend_schema(
         operation_id="updateOrganizationDiscoverHomepageQuery",
@@ -144,7 +147,10 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
                 ),
             )
             previous_homepage.set_projects(data["project_ids"])
-            return Response(serialize(previous_homepage), status=status.HTTP_200_OK)
+            return Response(
+                serialize(previous_homepage, serializer=DiscoverSavedQueryModelSerializer()),
+                status=status.HTTP_200_OK,
+            )
 
         model = DiscoverSavedQuery.objects.create(
             organization=organization,
@@ -163,7 +169,10 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
 
         model.set_projects(data["project_ids"])
 
-        return Response(serialize(model), status=status.HTTP_201_CREATED)
+        return Response(
+            serialize(model, serializer=DiscoverSavedQueryModelSerializer()),
+            status=status.HTTP_201_CREATED,
+        )
 
     @extend_schema(
         operation_id="deleteOrganizationDiscoverHomepageQuery",
