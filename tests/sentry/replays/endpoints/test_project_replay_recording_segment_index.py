@@ -254,6 +254,21 @@ class StorageProjectReplayRecordingSegmentIndexTestCase(
 
         assert response.status_code == 429
 
+    @mock.patch("sentry.replays.usecases.reader.raw_snql_query")
+    def test_snuba_requests_include_tenant_ids(self, mock_query: mock.MagicMock) -> None:
+        mock_query.return_value = {"data": []}
+
+        with self.feature("organizations:session-replay"):
+            response = self.client.get(self.url + "?download=true")
+
+        assert response.status_code == 200
+        assert mock_query.call_count == 2
+        for call in mock_query.call_args_list:
+            assert call.args[0].tenant_ids == {
+                "organization_id": self.organization.id,
+                "referrer": "replays.query.download_replay_segments",
+            }
+
     def test_invalid_replay_id_returns_400(self) -> None:
         """Assert a malformed replay id returns a 400 instead of a 500."""
         url = reverse(

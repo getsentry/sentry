@@ -68,7 +68,9 @@ class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectReplayEndpoint):
         self.check_replay_access(request, project)
 
         with handle_query_errors():
-            segment = fetch_segment_metadata(project.id, replay_id, int(segment_id))
+            segment = fetch_segment_metadata(
+                project.id, replay_id, int(segment_id), organization_id=project.organization_id
+            )
         if not segment:
             return self.respond({"detail": "Replay recording segment not found."}, status=404)
 

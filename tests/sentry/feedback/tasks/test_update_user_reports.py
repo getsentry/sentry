@@ -224,3 +224,19 @@ class UpdateUserReportTest(TestCase):
         report = UserReport.objects.get()
         assert report.group_id is None
         assert report.environment_id is None
+
+    def test_get_events_passes_organization_tenant_id(self) -> None:
+        project = self.create_project()
+        self.create_event_and_report(project.id)
+
+        with patch(
+            "sentry.feedback.tasks.update_user_reports.eventstore.backend.get_events",
+            return_value=[],
+        ) as mock_get_events:
+            with self.tasks():
+                update_user_reports()
+
+        assert mock_get_events.call_count == 1
+        assert mock_get_events.call_args.kwargs["tenant_ids"] == {
+            "organization_id": project.organization_id
+        }

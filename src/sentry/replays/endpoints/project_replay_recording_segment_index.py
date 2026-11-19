@@ -69,6 +69,11 @@ class ProjectReplayRecordingSegmentIndexEndpoint(ProjectReplayEndpoint):
                 response_cls=cast("type[Response[Any]]", StreamingHttpResponse),
                 response_kwargs={"content_type": "application/json"},
                 paginator_cls=GenericOffsetPaginator,
-                data_fn=functools.partial(fetch_segments_metadata, project.id, replay_id),
+                data_fn=functools.partial(
+                    fetch_segments_metadata,
+                    project.id,
+                    replay_id,
+                    organization_id=project.organization_id,
+                ),
                 on_results=download_segments,
             )

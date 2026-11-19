@@ -642,7 +642,9 @@ def rpc_get_replay_summary_logs(
     )
 
     # Download segment data.
-    segment_md = fetch_segments_metadata(project.id, replay_id, 0, num_segments)
+    segment_md = fetch_segments_metadata(
+        project.id, replay_id, 0, num_segments, organization_id=project.organization_id
+    )
     segment_data = iter_segment_data(segment_md)
 
     # Combine replay and error data and parse into logs.

@@ -46,6 +46,8 @@ def fetch_segments_metadata(
     replay_id: str,
     offset: int,
     limit: int,
+    *,
+    organization_id: int,
 ) -> list[RecordingSegmentStorageMeta]:
     """Return a list of recording segment storage metadata."""
     if settings.SENTRY_REPLAYS_ATTEMPT_LEGACY_FILESTORE_LOOKUP:
@@ -55,13 +57,17 @@ def fetch_segments_metadata(
 
     # If the setting wasn't enabled or no segments were found attempt to lookup using
     # the default storage method.
-    return fetch_direct_storage_segments_meta(project_id, replay_id, offset, limit)
+    return fetch_direct_storage_segments_meta(
+        project_id, replay_id, offset, limit, organization_id=organization_id
+    )
 
 
 def fetch_segment_metadata(
     project_id: int,
     replay_id: str,
     segment_id: int,
+    *,
+    organization_id: int,
 ) -> RecordingSegmentStorageMeta | None:
     """Return a recording segment storage metadata instance."""
     if settings.SENTRY_REPLAYS_ATTEMPT_LEGACY_FILESTORE_LOOKUP:
@@ -71,7 +77,9 @@ def fetch_segment_metadata(
 
     # If the setting wasn't enabled or no segments were found attempt to lookup using
     # the default storage method.
-    return fetch_direct_storage_segment_meta(project_id, replay_id, segment_id)
+    return fetch_direct_storage_segment_meta(
+        project_id, replay_id, segment_id, organization_id=organization_id
+    )
 
 
 @traces.trace
@@ -143,10 +151,14 @@ def fetch_direct_storage_segments_meta(
     replay_id: str,
     offset: int,
     limit: int,
+    *,
+    organization_id: int,
 ) -> list[RecordingSegmentStorageMeta]:
     """Return direct-storage metadata derived from our Clickhouse table."""
-    if not has_archived_segment(project_id, replay_id):
-        return _fetch_segments_from_snuba(project_id, replay_id, offset, limit)
+    if not has_archived_segment(project_id, replay_id, organization_id=organization_id):
+        return _fetch_segments_from_snuba(
+            project_id, replay_id, offset, limit, organization_id=organization_id
+        )
     return []
 
 
@@ -154,9 +166,11 @@ def fetch_direct_storage_segment_meta(
     project_id: int,
     replay_id: str,
     segment_id: int,
+    *,
+    organization_id: int,
 ) -> RecordingSegmentStorageMeta | None:
     """Return direct-storage metadata derived from our Clickhouse table."""
-    if has_archived_segment(project_id, replay_id):
+    if has_archived_segment(project_id, replay_id, organization_id=organization_id):
         return None
 
     results = _fetch_segments_from_snuba(
@@ -165,6 +179,7 @@ def fetch_direct_storage_segment_meta(
         offset=0,
         limit=1,
         segment_id=segment_id,
+        organization_id=organization_id,
     )
     if len(results) == 0:
         return None
@@ -173,7 +188,7 @@ def fetch_direct_storage_segment_meta(
 
 
 @traces.trace
-def has_archived_segment(project_id: int, replay_id: str) -> bool:
+def has_archived_segment(project_id: int, replay_id: str, *, organization_id: int) -> bool:
     """Return true if an archive row exists for this replay."""
     snuba_request = Request(
         dataset="replays",
@@ -192,6 +207,10 @@ def has_archived_segment(project_id: int, replay_id: str) -> bool:
             ],
             granularity=Granularity(3600),
         ),
+        tenant_ids={
+            "organization_id": organization_id,
+            "referrer": "replays.query.download_replay_segments",
+        },
     )
     response = raw_snql_query(snuba_request, "replays.query.download_replay_segments")
     return len(response["data"]) > 0
@@ -203,6 +222,8 @@ def _fetch_segments_from_snuba(
     offset: int,
     limit: int,
     segment_id: int | None = None,
+    *,
+    organization_id: int,
 ) -> list[RecordingSegmentStorageMeta]:
     conditions = []
     if segment_id:
@@ -231,6 +252,10 @@ def _fetch_segments_from_snuba(
             limit=Limit(limit),
             offset=Offset(offset),
         ),
+        tenant_ids={
+            "organization_id": organization_id,
+            "referrer": "replays.query.download_replay_segments",
+        },
     )
     response = raw_snql_query(snuba_request, "replays.query.download_replay_segments")
 

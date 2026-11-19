@@ -96,6 +96,7 @@ def update_user_reports(
                     filter=snuba_filter,
                     eap_conditions=build_event_id_in_filter(event_id_chunk),
                     referrer=Referrer.TASKS_UPDATE_USER_REPORTS.value,
+                    tenant_ids={"organization_id": project.organization_id},
                 )
                 events.extend(events_chunk)
             except Exception:

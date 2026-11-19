@@ -10,6 +10,7 @@ from taskbroker_client.retry import Retry
 from taskbroker_client.state import current_task
 from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
+from sentry.models.project import Project
 from sentry.replays.consumers.recording import commit_message, process_message
 from sentry.replays.lib.kafka import PROCESS_REPLAY_RECORDING_TASK_NAME, publish_replay_event
 from sentry.replays.lib.storage import (
@@ -60,7 +61,7 @@ def delete_replay(
     # future. Otherwise, if the delete event is too far away from the Replay it
     # might show up as un-archived in the UI depending on the query range.
     archive_replay(project_id, replay_id, timezone.now())
-    delete_replay_recording(project_id, replay_id)
+    delete_replay_recording(project_id, replay_id, organization_id)
 
     if has_seer_data and organization_id is not None:
         # Note organization_id=None is a default, for backwards task compatibility.
@@ -150,9 +151,15 @@ def delete_replay_recording_async(project_id: int, replay_id: str) -> None:
     delete_replay_recording(project_id, replay_id)
 
 
-def delete_replay_recording(project_id: int, replay_id: str) -> None:
+def delete_replay_recording(
+    project_id: int, replay_id: str, organization_id: int | None = None
+) -> None:
     """Delete all recording-segments associated with a Replay."""
-    segments_from_metadata = fetch_segments_metadata(project_id, replay_id, offset=0, limit=10000)
+    if organization_id is None:
+        organization_id = Project.objects.get_from_cache(id=project_id).organization_id
+    segments_from_metadata = fetch_segments_metadata(
+        project_id, replay_id, offset=0, limit=10000, organization_id=organization_id
+    )
     metrics.distribution("replays.num_segments_deleted", value=len(segments_from_metadata))
 
     # Fetch any recording-segment models that may have been written.

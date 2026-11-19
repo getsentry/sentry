@@ -126,7 +126,9 @@ class ProjectReplayDetailsEndpoint(ProjectReplayEndpoint):
         self.check_replay_access(request, project)
 
         with handle_query_errors():
-            is_archived = has_archived_segment(project.id, replay_id)
+            is_archived = has_archived_segment(
+                project.id, replay_id, organization_id=project.organization_id
+            )
         if is_archived:
             return Response(status=404)
 
