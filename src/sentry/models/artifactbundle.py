@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import zipfile
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Mapping
 from enum import Enum
 from types import TracebackType
 from typing import IO, Any, Self, cast
@@ -311,8 +311,8 @@ class ArtifactBundleArchive:
     def get_all_urls(self) -> list[str]:
         return [url for url in self._entries_by_url.keys()]
 
-    def get_all_debug_ids(self) -> Iterable[tuple[str, SourceFileType]]:
-        return self._entries_by_debug_id.keys()
+    def get_all_debug_ids(self) -> set[str]:
+        return {debug_id for debug_id, _ in self._entries_by_debug_id}
 
     def has_debug_ids(self) -> bool:
         return len(self._entries_by_debug_id) > 0

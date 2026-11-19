@@ -644,13 +644,8 @@ class ArtifactBundlePostAssembler:
                         **project_link, defaults=project_link_defaults
                     )
 
-            # Instead of doing a `create_or_update` one-by-one, we will instead:
-            # - Use a `bulk_create` with `ignore_conflicts` to insert new rows efficiently
-            #   if the artifact bundle was newly inserted. This is based on the assumption
-            #   that the `bundle_id` is deterministic and the `created` flag signals that
-            #   this identical bundle was already inserted.
-            # - Otherwise, update all the affected/conflicting rows with a single query, unless only the
-            #   `ArtifactBundle` row carries the date.
+            # Instead of doing a `create_or_update` one-by-one, we update all the affected rows of an existing
+            # bundle with a single query, unless only the `ArtifactBundle` row carries the date.
             if created:
                 debug_id_to_insert = [
                     DebugIdArtifactBundle(
@@ -659,12 +654,9 @@ class ArtifactBundlePostAssembler:
                         artifact_bundle=artifact_bundle,
                         date_added=date_snapshot,
                     )
-                    # The table has no unique constraint, so `ignore_conflicts` does not dedupe.
-                    for debug_id in {debug_id for debug_id, _ in self.archive.get_all_debug_ids()}
+                    for debug_id in self.archive.get_all_debug_ids()
                 ]
-                DebugIdArtifactBundle.objects.bulk_create(
-                    debug_id_to_insert, batch_size=50, ignore_conflicts=True
-                )
+                DebugIdArtifactBundle.objects.bulk_create(debug_id_to_insert, batch_size=50)
             elif not date_only_on_bundle:
                 self._redate_debug_ids(artifact_bundle, date_snapshot)
 

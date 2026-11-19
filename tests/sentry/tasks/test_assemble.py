@@ -945,7 +945,8 @@ class AssembleArtifactsTest(BaseAssembleTest):
         # FIXME(swatinem): The test assumed that we re-index debug-ids in case the bundle was already
         # in the database.
         # debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(debug_id=debug_id)
-        # assert len(debug_id_artifact_bundles) == 1
+        # We have two entries, since we have multiple files in the artifact bundle.
+        # assert len(debug_id_artifact_bundles) == 2
 
         project_artifact_bundle = ProjectArtifactBundle.objects.filter(project_id=self.project.id)
         assert len(project_artifact_bundle) == 1
