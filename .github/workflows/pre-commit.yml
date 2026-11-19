@@ -31,7 +31,7 @@ jobs:
   lint:
     name: pre-commit lint
     runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
-    # Large PRs fall back to linting every file, which takes a few minutes.
+    # Large PRs / lint config changes fall back to linting every file, which takes a few minutes.
     timeout-minutes: 15
     permissions:
       contents: read
