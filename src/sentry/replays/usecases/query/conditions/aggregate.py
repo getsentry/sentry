@@ -31,7 +31,6 @@ from snuba_sdk.expressions import Expression
 from sentry.replays.lib.new_query.conditions import (
     GenericBase,
     IntegerScalar,
-    IPv4Scalar,
     StringArray,
     StringScalar,
     UUIDArray,
@@ -42,10 +41,6 @@ from sentry.replays.lib.new_query.utils import contains, does_not_contain
 
 def _nonempty_str(expression: Expression) -> Condition:
     return StringScalar.visit_neq(expression, "")
-
-
-def _nonnull_ipv4(expression: Expression) -> Condition:
-    return IPv4Scalar.visit_neq(expression, None)
 
 
 class SumOfIntegerIdScalar(GenericBase):
@@ -64,38 +59,6 @@ class SumOfIntegerIdScalar(GenericBase):
     @staticmethod
     def visit_not_in(expression: Expression, value: list[int]) -> Condition:
         return does_not_contain(IntegerScalar.visit_in(expression, value))
-
-
-class SumOfIPv4Scalar(GenericBase):
-    @staticmethod
-    def visit_eq(expression: Expression, value: str | None) -> Condition:
-        if value is None:
-            return does_not_contain(_nonnull_ipv4(expression))
-        return contains(IPv4Scalar.visit_eq(expression, value))
-
-    @staticmethod
-    def visit_neq(expression: Expression, value: str | None) -> Condition:
-        if value is None:
-            return contains(_nonnull_ipv4(expression))
-        return does_not_contain(IPv4Scalar.visit_eq(expression, value))
-
-    @staticmethod
-    def visit_in(expression: Expression, value_list: list[str | None]) -> Condition:
-        nonempty_case = contains(
-            IPv4Scalar.visit_in(expression, [v for v in value_list if v is not None])
-        )
-        if None in value_list:
-            return Or(conditions=[SumOfIPv4Scalar.visit_eq(expression, None), nonempty_case])
-        return nonempty_case
-
-    @staticmethod
-    def visit_not_in(expression: Expression, value_list: list[str | None]) -> Condition:
-        nonempty_case = does_not_contain(
-            IPv4Scalar.visit_in(expression, [v for v in value_list if v is not None])
-        )
-        if None in value_list:
-            return And(conditions=[SumOfIPv4Scalar.visit_neq(expression, None), nonempty_case])
-        return nonempty_case
 
 
 class SumOfStringScalar(GenericBase):

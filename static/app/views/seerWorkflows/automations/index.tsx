@@ -34,6 +34,7 @@ import type {
   WorkflowStrategy,
 } from 'sentry/views/seerWorkflows/types';
 import {
+  AUTO_REFRESH_INTERVAL,
   getAutomationDetailPath,
   useAutomationsEnabled,
 } from 'sentry/views/seerWorkflows/utils';
@@ -77,11 +78,15 @@ export type AutomationConfig = SeerWorkflowConfigResponse & AdditionalConfig;
 export default function AutomationsList() {
   const automationsEnabled = useAutomationsEnabled();
 
-  const {data, isPending, isLoadingError, refetch} = useFetchConfigs();
+  const {data, isPending, isLoadingError, refetch} = useFetchConfigs(
+    {},
+    {refetchInterval: AUTO_REFRESH_INTERVAL}
+  );
 
   const configs = data ?? [];
   const {data: monitorsById} = useMonitorsById(
-    configs.flatMap(config => config.monitorIds)
+    configs.flatMap(config => config.monitorIds),
+    {refetchInterval: AUTO_REFRESH_INTERVAL}
   );
 
   if (!automationsEnabled) {
@@ -149,15 +154,18 @@ function AutomationCard({
         <CardStack
           gap="lg"
           height="100%"
+          minWidth="0"
           padding="xl"
           border="primary"
           radius="md"
           background="primary"
         >
           <Stack gap="lg" flex="1">
-            <Heading as="h3" size="md">
-              {title}
-            </Heading>
+            <Tooltip title={title} showOnlyOnOverflow skipWrapper>
+              <Heading as="h3" size="md" ellipsis>
+                {title}
+              </Heading>
+            </Tooltip>
             <Flex align="center" gap="sm">
               {enabled ? (
                 trigger ? (
@@ -201,6 +209,7 @@ function AutomationCard({
           </Text>
           {isMetricStrategy ? (
             <Tooltip
+              skipWrapper
               disabled={!monitorsById || config.monitorIds.length === 0}
               title={
                 <Text as="div" align="left">
@@ -234,7 +243,7 @@ function AutomationCard({
                 </Text>
               }
             >
-              <Flex align="center" gap="sm">
+              <Flex align="center" gap="sm" alignSelf="start">
                 <IconSiren size="sm" variant="muted" />
                 <Text size="sm" variant="muted">
                   {config.monitorIds.length === 0
@@ -296,6 +305,7 @@ const MonitorLink = styled(Link)`
 
 const CardLink = styled(Link)`
   display: grid;
+  min-width: 0;
   color: inherit;
 
   &:hover {

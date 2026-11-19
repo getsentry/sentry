@@ -312,7 +312,12 @@ class OrganizationPreprodSnapshotEndpoint(OrganizationEndpoint):
             ),
         ],
         request=None,
-        responses={204: None, 403: RESPONSE_FORBIDDEN, 404: RESPONSE_NOT_FOUND},
+        responses={
+            204: None,
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
     )
     def delete(
         self, request: Request, organization: Organization, snapshot_id: str
@@ -1076,9 +1081,9 @@ class ProjectPreprodSnapshotEndpoint(ProjectEndpoint):
                         },
                     )
 
-                    base_metrics = PreprodSnapshotMetrics.objects.filter(
+                    base_metrics = PreprodSnapshotMetrics.objects.get_or_none(
                         preprod_artifact=base_artifact
-                    ).first()
+                    )
                     if base_metrics:
                         try:
                             PreprodSnapshotComparison.objects.get_or_create(

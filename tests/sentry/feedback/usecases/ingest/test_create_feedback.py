@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import jsonschema
 import pytest
 
 from sentry.feedback.lib.utils import FeedbackCreationSource
@@ -244,6 +245,17 @@ def test_fix_for_issue_platform_environment(environment: str | None) -> None:
         assert fixed_event["environment"] == environment
     else:
         assert fixed_event["environment"] == "production"
+
+
+def test_validate_issue_platform_event_schema_invalid() -> None:
+    fixed_event = fix_for_issue_platform(mock_feedback_event(1))
+    fixed_event["tags"]["nan-tag"] = float("nan")
+
+    with pytest.raises(jsonschema.ValidationError) as excinfo:
+        validate_issue_platform_event_schema(fixed_event)
+
+    assert excinfo.value.message == "nan is not of type 'string', 'null'"
+    assert list(excinfo.value.absolute_path) == ["tags", "nan-tag"]
 
 
 @django_db_all

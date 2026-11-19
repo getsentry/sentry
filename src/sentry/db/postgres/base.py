@@ -1,18 +1,30 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable, Iterable, Iterator
 from typing import Any
 
 import psycopg2
 from django.db.backends.postgresql.base import DatabaseWrapper as DjangoDatabaseWrapper
 from django.db.backends.postgresql.operations import DatabaseOperations
+from taskbroker_client.state import current_task
 
+from sentry.utils import metrics
 from sentry.utils.strings import strip_lone_surrogates
 
 from .decorators import auto_reconnect_connection, auto_reconnect_cursor
 from .schema import DatabaseSchemaEditorProxy
 
 __all__ = ("DatabaseWrapper",)
+
+logger = logging.getLogger(__name__)
+
+# Transactions that never hold this many savepoints at once are not reported, to keep the distribution's volume down.
+SAVEPOINT_DISTRIBUTION_MIN = 10
+# Postgres caches 64 subtransaction ids per backend; once a transaction passes that, every snapshot falls back to pg_subtrans until it ends.
+SAVEPOINT_CACHE_SIZE = 64
+FIRST_OVERFLOWING_SAVEPOINT = SAVEPOINT_CACHE_SIZE + 1
+RPC_SERVICE_URL_NAME = "sentry-api-0-rpc-service"
 
 
 def remove_null(value: str) -> str:
@@ -73,6 +85,34 @@ def _execute__include_sql_in_error(
         raise
 
 
+def _current_view_name() -> str:
+    # lazy import: sentry.app loads the models, which need this backend already imported
+    from sentry.app import env
+
+    request = env.request
+    if request is None:
+        return "none"
+    match = request.resolver_match
+    if match is None:
+        return "none"
+    if match.url_name == RPC_SERVICE_URL_NAME:
+        # Every internal RPC call shares one URL name; the service and method tell them apart.
+        service_name = match.kwargs["service_name"]
+        method_name = match.kwargs["method_name"]
+        return f"rpc:{service_name}.{method_name}"
+    return match.view_name
+
+
+def _savepoint_metric_tags(alias: str) -> dict[str, str]:
+    task = current_task()
+    if task is None:
+        taskname = "none"
+    else:
+        taskname = task.taskname
+    view = _current_view_name()
+    return {"taskname": taskname, "view": view, "alias": alias}
+
+
 class CursorWrapper:
     """
     A wrapper around the postgresql_psycopg2 backend which handles various events
@@ -108,6 +148,9 @@ class DatabaseWrapper(DjangoDatabaseWrapper):
         super().__init__(*args, **kwargs)
         self.ops = DatabaseOperations(self)
         self.execute_wrappers.extend((_execute__include_sql_in_error, _execute__clean_params))
+        self.savepoints_alive = 0
+        self.savepoints_peak = 0
+        self.savepoints_alive_before: dict[str, int] = {}
 
     @auto_reconnect_connection
     def _cursor(self, *args: Any, **kwargs: Any) -> Any:
@@ -122,10 +165,59 @@ class DatabaseWrapper(DjangoDatabaseWrapper):
         cursor = super()._prepare_cursor(CursorWrapper(self, cursor))  # type: ignore[misc]
         return cursor
 
+    def _savepoint(self, sid: str) -> None:
+        super()._savepoint(sid)  # type: ignore[misc]
+        try:
+            self.savepoints_alive_before[sid] = self.savepoints_alive
+            self.savepoints_alive += 1
+            if self.savepoints_alive > self.savepoints_peak:
+                self.savepoints_peak = self.savepoints_alive
+                if self.savepoints_peak == FIRST_OVERFLOWING_SAVEPOINT:
+                    tags = _savepoint_metric_tags(self.alias)
+                    metrics.incr("db.transaction.savepoint_overflow", tags=tags, sample_rate=1.0)
+        except Exception:
+            logger.exception("db.savepoint_metrics.failed")
+
+    def _savepoint_rollback(self, sid: str) -> None:
+        super()._savepoint_rollback(sid)  # type: ignore[misc]
+        # Frees the ids of this savepoint and of every one opened inside it; atomic() releases it right after.
+        alive_before = self.savepoints_alive_before.get(sid)
+        if alive_before is not None:
+            self.savepoints_alive = alive_before
+
+    def _commit(self) -> None:
+        try:
+            super()._commit()  # type: ignore[misc]
+        finally:
+            self._report_savepoints_peak()
+
+    def _rollback(self) -> None:
+        try:
+            super()._rollback()  # type: ignore[misc]
+        finally:
+            self._report_savepoints_peak()
+
+    def _report_savepoints_peak(self) -> None:
+        savepoints_peak = self.savepoints_peak
+        self.savepoints_alive = 0
+        self.savepoints_peak = 0
+        self.savepoints_alive_before.clear()
+        if savepoints_peak < SAVEPOINT_DISTRIBUTION_MIN:
+            return
+        # Runs after the commit or rollback has happened; raising here would report a finished transaction as failed.
+        try:
+            tags = _savepoint_metric_tags(self.alias)
+            metrics.distribution(
+                "db.transaction.savepoints", savepoints_peak, tags=tags, sample_rate=1.0
+            )
+        except Exception:
+            logger.exception("db.savepoint_metrics.failed")
+
     def close(self, reconnect: bool = False) -> None:
         """
         This ensures we don't error if the connection has already been closed.
         """
+        self._report_savepoints_peak()
         if self.connection is not None:
             if not self.connection.closed:
                 try:

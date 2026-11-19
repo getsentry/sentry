@@ -38,7 +38,6 @@ from sentry.seer.autofix.utils import (
     is_free_cohort_org,
     is_seer_autotriggered_autofix_rate_limited,
     is_seer_seat_or_token_billed_enabled,
-    is_seer_token_based_billing_onboarding_enabled,
 )
 from sentry.seer.models import SeerPermissionError
 from sentry.seer.models.agentic_triage import SeerAgenticTriageRunErrorType
@@ -86,6 +85,11 @@ PER_ORG_FEATURE_NAMES = [
     # so this gets checked per-org on the survivors of the batch loop.
     "organizations:seat-based-seer-enabled",
 ]
+
+# Token billing makes the Seer quota check pass for every pay-as-you-go org, so
+# scheduled runs stay with the orgs that already had them before the switch.
+TOKEN_BILLING_CUTOFF = datetime(2026, 12, 8, tzinfo=UTC)
+TOKEN_BILLING_PRIOR_RUN_WINDOW = timedelta(days=30)
 
 
 class SeerAgenticTriageRunOptions(TypedDict):
@@ -333,9 +337,9 @@ def run_agentic_triage_for_org(
     When execute_in_task is True, the heavy execution phase (eligibility,
     triage, autofix) is dispatched to a separate task so the caller doesn't
     block on it. The run record, if created, is created synchronously."""
-    organization = Organization.objects.filter(
+    organization = Organization.objects.get_or_none(
         id=organization_id, status=OrganizationStatus.ACTIVE
-    ).first()
+    )
     if organization is None:
         return None
 
@@ -357,13 +361,24 @@ def run_agentic_triage_for_org(
             organization=organization,
             workflow_config__strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE,
             trigger_key=schedule_id,
-        ).first()
+        ).first()  # noqa: S035
         # Without quota, only completed runs or runs with persisted executions can continue.
         if existing_run is None or (
             existing_run.date_completed is None and not existing_run.executions.exists()
         ):
             logger.info("night_shift.no_seer_quota", extra={"organization_id": organization.id})
             return None
+
+    if (
+        schedule_id is not None
+        and features.has("organizations:token-billed-seer-enabled", organization)
+        and not _had_scheduled_run_before_token_billing(organization)
+    ):
+        logger.info(
+            "night_shift.token_billed_without_prior_runs",
+            extra={"organization_id": organization.id},
+        )
+        return None
 
     # Manual project runs scope to a single project, whose tweaks feed the run
     # options; cron and org-wide manual runs have no single project.
@@ -418,6 +433,16 @@ def run_agentic_triage_for_org(
     return run.id
 
 
+def _had_scheduled_run_before_token_billing(organization: Organization) -> bool:
+    return SeerWorkflowRun.objects.filter(
+        organization=organization,
+        workflow_config__strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE,
+        trigger_key__isnull=False,
+        date_added__gte=TOKEN_BILLING_CUTOFF - TOKEN_BILLING_PRIOR_RUN_WINDOW,
+        date_added__lt=TOKEN_BILLING_CUTOFF,
+    ).exists()
+
+
 def _is_agentic_triage_enabled(organization: Organization) -> bool:
     return options.get("seer.night_shift.enable") and features.has(
         "organizations:seer-night-shift", organization
@@ -440,7 +465,7 @@ def run_agentic_triage_execution(
     """Heavy phase of an agentic triage run: eligibility, triage, and optional
     autofix dispatch. Single code path used by both sync invocation (from
     run_agentic_triage_for_org) and async dispatch (apply_async)."""
-    run = SeerWorkflowRun.objects.select_related("organization").filter(id=run_id).first()
+    run = SeerWorkflowRun.objects.select_related("organization").filter(id=run_id).get_or_none()
     if run is None:
         logger.info("night_shift.missing_run", extra={"night_shift_run_id": run_id})
         return None
@@ -600,7 +625,7 @@ def build_run_options(
     if org_tweaks is not None:
         layered.update(_tweaks_to_partial(org_tweaks))
     if project_id is not None:
-        project = Project.objects.filter(id=project_id, organization_id=organization_id).first()
+        project = Project.objects.get_or_none(id=project_id, organization_id=organization_id)
         if project is not None:
             layered.update(_tweaks_to_partial(get_agentic_triage_tweaks(project)))
     layered.update(manual_overrides or {})
@@ -643,7 +668,7 @@ def _get_eligible_orgs_from_batch(
     free_cohort_eligible: list[Organization] = []
     for org in eligible:
         has_seat_based_seer = all(features.has(f, org) for f in PER_ORG_FEATURE_NAMES)
-        if has_seat_based_seer or is_seer_token_based_billing_onboarding_enabled(org):
+        if has_seat_based_seer or features.has("organizations:token-billed-seer-enabled", org):
             paid_eligible.append(org)
         elif is_free_cohort_org(org):
             free_cohort_eligible.append(org)

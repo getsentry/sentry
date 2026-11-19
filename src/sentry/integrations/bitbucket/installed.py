@@ -48,10 +48,10 @@ class BitbucketInstalledEndpoint(Endpoint):
         if not client_key:
             return self.respond(status=400)
 
-        existing = Integration.objects.filter(
+        existing = Integration.objects.get_or_none(
             provider=IntegrationProviderSlug.BITBUCKET.value,
             external_id=client_key,
-        ).first()
+        )
 
         if existing:
             try:

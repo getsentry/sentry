@@ -1390,6 +1390,9 @@ describe('Investigation detail', () => {
 
       afterEach(async () => {
         try {
+          // Unmount first: the page polls a pending re-check every 2s, and flushing
+          // the query cache's timers with it mounted re-renders it for minutes.
+          cleanup();
           await act(() => jest.runOnlyPendingTimersAsync());
         } finally {
           jest.useRealTimers();
@@ -2855,7 +2858,7 @@ describe('Investigation detail', () => {
       expect(deleteRequest).toHaveBeenCalledWith(
         `${detailUrl}blocks/${block.id}/`,
         expect.objectContaining({
-          data: {investigationVersion: 1, version: 1},
+          data: {notebookVersion: 1, version: 1},
         })
       )
     );
@@ -2881,7 +2884,7 @@ describe('Investigation detail', () => {
       expect(deleteRequest).toHaveBeenCalledWith(
         `${detailUrl}blocks/${block.id}/`,
         expect.objectContaining({
-          data: {investigationVersion: 1, version: 1},
+          data: {notebookVersion: 1, version: 1},
         })
       )
     );
@@ -3375,7 +3378,7 @@ describe('Investigation detail', () => {
           expect.objectContaining({
             data: {
               title: 'Renamed',
-              investigationVersion: 1,
+              notebookVersion: 1,
             },
           })
         )
@@ -3474,7 +3477,7 @@ describe('Investigation detail', () => {
       expect(renameRequest).toHaveBeenCalledWith(
         detailUrl,
         expect.objectContaining({
-          data: {title: 'Saved before leaving', investigationVersion: 1},
+          data: {title: 'Saved before leaving', notebookVersion: 1},
         })
       )
     );
@@ -3661,7 +3664,7 @@ describe('Investigation detail', () => {
       await waitFor(() =>
         expect(deleteRequest).toHaveBeenCalledWith(
           detailUrl,
-          expect.objectContaining({data: {investigationVersion: 1}})
+          expect.objectContaining({data: {notebookVersion: 1}})
         )
       );
       await act(() => jest.advanceTimersByTimeAsync(600));

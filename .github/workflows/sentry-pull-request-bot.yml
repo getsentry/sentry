@@ -67,6 +67,9 @@ jobs:
       - name: Dispatch getsentry tests
         if: steps.org.outputs.result == 'true'
         uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
+        env:
+          MERGE_COMMIT_SHA: ${{ steps.mergecommit.outputs.mergeCommitSha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         with:
           github-token: ${{ steps.getsentry.outputs.token }}
           script: |
@@ -76,7 +79,7 @@ jobs:
               workflow_id: 'acceptance.yml',
               ref: 'master',
               inputs: {
-                'sentry-sha': '${{ steps.mergecommit.outputs.mergeCommitSha }}',
-                'sentry-pr-sha': '${{ github.event.pull_request.head.sha }}',
+                'sentry-sha': process.env.MERGE_COMMIT_SHA,
+                'sentry-pr-sha': process.env.PR_HEAD_SHA,
               }
             })

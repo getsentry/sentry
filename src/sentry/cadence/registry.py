@@ -27,6 +27,9 @@ class TriggerFiring:
     # The firing's scheduled time, not including its offset within the spread window.
     # Stable across duplicate deliveries of the same firing, so it can be used to deduplicate.
     scheduled_for: datetime
+    # Next nominal scheduled time, excluding spreading, as calculated when claimed.
+    # Informational: schedule edits or duplicate deliveries may give a different value.
+    next_scheduled_for: datetime
 
 
 @dataclass(frozen=True)

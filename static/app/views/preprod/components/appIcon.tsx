@@ -1,6 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface AppIconProps {
@@ -16,7 +17,9 @@ export function AppIcon({appName, appIconId, projectId, size = 24}: AppIconProps
 
   let iconUrl: string | undefined;
   if (appIconId && projectId) {
-    iconUrl = `/api/0/projects/${organization.slug}/${projectId}/files/images/${appIconId}/?image_type=preprod_size_app_icon`;
+    iconUrl = resolveHostname(
+      `/api/0/projects/${organization.slug}/${projectId}/files/images/${appIconId}/?image_type=preprod_size_app_icon`
+    );
   }
 
   return (

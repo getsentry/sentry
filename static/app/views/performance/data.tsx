@@ -9,6 +9,7 @@ import {t, tct} from 'sentry/locale';
 import type {NewQuery, Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {EventView} from 'sentry/utils/discover/eventView';
+import {isReactNativePlatform} from 'sentry/utils/platform';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
@@ -310,7 +311,7 @@ export function generateMobilePerformanceEventView(
     );
     if (
       selectedProjects.length > 0 &&
-      selectedProjects.every(project => project.platform === 'react-native')
+      selectedProjects.every(project => isReactNativePlatform(project.platform))
     ) {
       fields.push('p75(measurements.stall_percentage)');
     }

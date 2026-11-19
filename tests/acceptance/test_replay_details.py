@@ -12,7 +12,7 @@ from sentry.replays.testutils import (
 from sentry.testutils.cases import ReplaysAcceptanceTestCase
 from sentry.testutils.silo import no_silo_test
 
-FEATURE_NAME = ["organizations:session-replay", "organizations:performance-view"]
+FEATURE_NAME = ["organizations:session-replay"]
 
 
 @no_silo_test

@@ -27,7 +27,6 @@ import {
   isMeasurement,
   measurementType,
   PROFILING_FIELDS,
-  TRACING_FIELDS,
 } from 'sentry/utils/discover/fields';
 import {DisplayModes, SavedQueryDatasets, TOP_N} from 'sentry/utils/discover/types';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
@@ -387,13 +386,9 @@ export function generateFieldOptions({
   aggregations = AGGREGATIONS,
   fieldKeys = DISCOVER_FIELDS,
 }: FieldGeneratorOpts) {
-  let functions = Object.keys(aggregations);
+  const functions = Object.keys(aggregations);
 
   // Strip tracing features if the org doesn't have access.
-  if (!organization.features.includes('performance-view')) {
-    fieldKeys = fieldKeys.filter(item => !TRACING_FIELDS.includes(item));
-    functions = functions.filter(item => !TRACING_FIELDS.includes(item));
-  }
 
   // Strip profiling features if the org doesn't have access.
   if (!organization.features.includes('profiling')) {

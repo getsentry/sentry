@@ -157,7 +157,7 @@ def schedule_outbox_model(
     # The per-category depths cover every row, so their sum is the total count
     # and saves a second full scan of the table.
     if options.get("hybridcloud.outbox.category_depth_metric.enabled"):
-        category_depths = outbox_model.get_category_depths()
+        category_depths = _get_category_depths(outbox_model)
         _record_category_depths(silo_mode, outbox_model, category_depths)
         outbox_count = sum(category_depths.values())
     else:
@@ -196,18 +196,32 @@ def _log_deep_shards(
         )
 
 
+def _get_category_depths(outbox_model: type[OutboxBase]) -> dict[tuple[str | None, int], int]:
+    # Only control outboxes are addressed to a cell.
+    if issubclass(outbox_model, ControlOutboxBase):
+        return {key: depth for key, depth in outbox_model.get_cell_category_depths().items()}
+    return {
+        (None, category): depth for category, depth in outbox_model.get_category_depths().items()
+    }
+
+
 def _record_category_depths(
-    silo_mode: SiloMode, outbox_model: type[OutboxBase], category_depths: Mapping[int, int]
+    silo_mode: SiloMode,
+    outbox_model: type[OutboxBase],
+    category_depths: Mapping[tuple[str | None, int], int],
 ) -> None:
-    for category, depth in category_depths.items():
+    for (cell_name, category), depth in category_depths.items():
+        tags = {
+            "silo": silo_mode.value.lower(),
+            "type": outbox_model.__name__,
+            "category": _category_name(category),
+        }
+        if cell_name is not None:
+            tags["destination_cell"] = cell_name
         metrics.gauge(
             "deliver_from_outbox.category_shard_depth",
             value=depth,
-            tags={
-                "silo": silo_mode.value.lower(),
-                "type": outbox_model.__name__,
-                "category": _category_name(category),
-            },
+            tags=tags,
             sample_rate=1.0,
         )
 

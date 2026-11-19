@@ -16,14 +16,18 @@ export const DO_NOT_USE_BUTTON_ICON_SIZES: Record<ButtonSize, SVGIconProps['size
   md: 'sm',
 };
 
-const elevation = {
-  md: '2px',
-  sm: '2px',
-  xs: '1px',
-  zero: '0px',
-} satisfies Record<ButtonSize, string>;
+interface ButtonStyleProps {
+  busy: boolean;
+  /**
+   * True when the button is disabled or aria-disabled.
+   */
+  disabled: boolean;
+  shapeVariant: 'rectangular' | 'square';
+  size: SizeTokens;
+  theme: Theme;
+}
 
-const hoverElevation = '1px';
+type ChonkyVariant = Exclude<ButtonVariant, 'transparent' | 'link'>;
 
 export function DO_NOT_USE_getButtonStyles(
   p: Pick<CommonButtonProps, 'variant' | 'busy'> &
@@ -33,28 +37,40 @@ export function DO_NOT_USE_getButtonStyles(
       theme: Theme;
     }
 ): StrictCSSObject {
-  const variant = p.variant ?? 'secondary';
   // A button that is only aria-disabled stays focusable (so its tooltip can
   // open on focus) but must look and hover like a disabled one.
   const ariaDisabled = p['aria-disabled'];
-  const disabled = p.disabled || ariaDisabled === true || ariaDisabled === 'true';
+  const disabled = Boolean(
+    p.disabled || ariaDisabled === true || ariaDisabled === 'true'
+  );
+  const props: ButtonStyleProps = {
+    busy: Boolean(p.busy),
+    disabled,
+    shapeVariant: p.shapeVariant,
+    size: getSizeTokens(p.size, p.theme),
+    theme: p.theme,
+  };
 
-  const buttonSizes = {
-    ...p.theme.form,
-    zero: {
-      height: '24px',
-      minHeight: '24px',
-      fontSize: '0.75rem',
-      lineHeight: '1rem',
-    },
-  } as const;
+  const variant = p.variant ?? 'secondary';
+  switch (variant) {
+    case 'transparent':
+      return getTransparentStyles(props);
+    case 'link':
+      return getLinkStyles(props);
+    default:
+      return getChonkyStyles(
+        props,
+        chonkyTokens[variant](p.theme.tokens.interactive.chonky.embossed, p.theme)
+      );
+  }
+}
 
-  const buttonTheme = getButtonTheme(variant, p.theme);
-  const buttonElevation = elevation[p.size];
-
+/**
+ * Rules every variant uses unchanged. No variant sets any of these keys, so
+ * spreading this first can't replace part of a variant's nested rule.
+ */
+function getBaseStyles(p: ButtonStyleProps): StrictCSSObject {
   return {
-    '--button-lift': buttonElevation,
-
     position: 'relative',
     display: 'inline-flex',
     alignItems: 'center',
@@ -62,42 +78,102 @@ export function DO_NOT_USE_getButtonStyles(
     whiteSpace: 'nowrap',
 
     fontWeight: p.theme.font.weight.sans.medium,
+    fontSize: p.size.fontSize,
+    lineHeight: p.size.lineHeight,
 
-    opacity: disabled ? 0.6 : undefined,
+    opacity: p.disabled ? 0.6 : undefined,
+
+    borderRadius: p.size.borderRadius,
+    border: 'none',
+    background: 'none',
 
     cursor: 'pointer',
     '&[disabled], &[aria-disabled="true"]': {
       cursor: 'not-allowed',
     },
+    '&[aria-busy="true"]': {
+      cursor: 'progress',
+    },
+  };
+}
 
-    padding:
-      p.shapeVariant === 'square' ? '0' : getButtonSizeTheme(p.size, p.theme).padding,
-    borderRadius: getButtonSizeTheme(p.size, p.theme).borderRadius,
-    border: 'none',
-    color: buttonTheme.color,
+interface ChonkyTokens {
+  chonk: string;
+  content: string;
+  /**
+   * Applied to `&::after` while the button has keyboard focus.
+   */
+  focus: StrictCSSObject;
+  surface: string;
+}
 
-    background: 'none',
+type EmbossedTokens = Theme['tokens']['interactive']['chonky']['embossed'];
 
-    height: buttonSizes[p.size].height,
+const chonkyTokens: Record<
+  ChonkyVariant,
+  (embossed: EmbossedTokens, theme: Theme) => ChonkyTokens
+> = {
+  primary: (embossed, theme) => ({
+    surface: embossed.accent.background,
+    chonk: embossed.accent.chonk,
+    content: embossed.accent.content,
+    focus: {border: `2px dotted ${theme.tokens.focus.onVibrant.light}`},
+  }),
+  secondary: (embossed, theme) => ({
+    surface: embossed.neutral.background,
+    chonk: embossed.neutral.chonk,
+    content: embossed.neutral.content.primary,
+    focus: {
+      // Three layers: the chonk color masks the offset ring copy, then
+      // the ring is drawn at the lift offset and again at rest, so it
+      // closes around the surface and chonk as a single outline.
+      boxShadow: `0 var(--button-lift) 0 0 ${embossed.neutral.chonk}, 0 var(--button-lift) 0 2px ${theme.tokens.focus.default}, 0 0 0 2px ${theme.tokens.focus.default}`,
+    },
+  }),
+  warning: (embossed, theme) => ({
+    surface: embossed.warning.background,
+    chonk: embossed.warning.chonk,
+    content: embossed.warning.content,
+    focus: {border: `2px dotted ${theme.tokens.focus.onVibrant.dark}`},
+  }),
+  danger: (embossed, theme) => ({
+    surface: embossed.danger.background,
+    chonk: embossed.danger.chonk,
+    content: embossed.danger.content,
+    focus: {border: `2px dotted ${theme.tokens.focus.onVibrant.light}`},
+  }),
+};
+
+/**
+ * The chonky variants are the only ones with a lift: `--button-lift` drives
+ * the surface and label offset. Keep `&:hover` before the `&:active` and
+ * disabled rules, which share its specificity and must win over it.
+ */
+function getChonkyStyles(p: ButtonStyleProps, tokens: ChonkyTokens): StrictCSSObject {
+  return {
+    ...getBaseStyles(p),
+
+    '--button-lift': p.size.lift,
+
+    padding: p.shapeVariant === 'square' ? '0' : p.size.padding,
+    height: p.size.height,
+    minHeight: p.size.minHeight,
     // Use min width as a progressive enhancement for square buttons.
     // We can't yet swap to width because I'm not entirely condifent that
     // that would not break existing buttons.
-    minWidth: p.shapeVariant === 'square' ? buttonSizes[p.size].height : undefined,
-
-    minHeight: buttonSizes[p.size].minHeight,
-    fontSize: buttonSizes[p.size].fontSize,
-    lineHeight: buttonSizes[p.size].lineHeight,
+    minWidth: p.shapeVariant === 'square' ? p.size.height : undefined,
+    color: tokens.content,
 
     '&::before': {
       content: '""',
       display: 'block',
       position: 'absolute',
       inset: '0',
-      height: `calc(100% - ${buttonElevation})`,
-      top: buttonElevation,
-      transform: `translateY(-${buttonElevation})`,
-      boxShadow: `0 ${buttonElevation} 0 0px ${buttonTheme.background}`,
-      background: buttonTheme.background,
+      height: `calc(100% - ${p.size.lift})`,
+      top: p.size.lift,
+      transform: `translateY(-${p.size.lift})`,
+      boxShadow: `0 ${p.size.lift} 0 0px ${tokens.chonk}`,
+      background: tokens.chonk,
       borderRadius: 'inherit',
     },
 
@@ -106,29 +182,18 @@ export function DO_NOT_USE_getButtonStyles(
       display: 'block',
       position: 'absolute',
       inset: '0',
-      background: buttonTheme.surface,
+      background: tokens.surface,
       borderRadius: 'inherit',
-      border: `1px solid ${buttonTheme.background}`,
+      border: `1px solid ${tokens.chonk}`,
       transform: 'translateY(calc(-1 * var(--button-lift)))',
       transition: `transform ${p.theme.motion.snap.fast}`,
     },
 
     '&:focus-visible': {
       outline: 'none',
-      color: disabled || p.busy ? undefined : buttonTheme.color,
+      color: p.disabled || p.busy ? undefined : tokens.content,
 
-      '&::after': buttonTheme.focus
-        ? {border: `2px dotted ${buttonTheme.focus}`}
-        : {
-            // Three layers: the chonk color masks the offset ring copy, then
-            // the ring is drawn at the lift offset and again at rest, so it
-            // closes around the surface and chonk as a single outline.
-            boxShadow: `0 var(--button-lift) 0 0 ${buttonTheme.background}, 0 var(--button-lift) 0 2px ${p.theme.tokens.focus.default}, 0 0 0 2px ${p.theme.tokens.focus.default}`,
-          },
-    },
-
-    '&[aria-busy="true"] > span:last-child': {
-      overflow: 'visible',
+      '&::after': tokens.focus,
     },
 
     '> span:last-child': {
@@ -147,9 +212,13 @@ export function DO_NOT_USE_getButtonStyles(
       transition: `transform ${p.theme.motion.snap.fast}`,
     },
 
+    '&[aria-busy="true"] > span:last-child': {
+      overflow: 'visible',
+    },
+
     '&:hover': {
-      '--button-lift': `calc(${buttonElevation} + ${hoverElevation})`,
-      color: disabled || p.busy ? undefined : buttonTheme.color,
+      '--button-lift': `calc(${p.size.lift} + 1px)`,
+      color: p.disabled || p.busy ? undefined : tokens.content,
     },
 
     '&:active, &[aria-expanded="true"], &[aria-checked="true"]': {
@@ -168,143 +237,124 @@ export function DO_NOT_USE_getButtonStyles(
     '&:disabled, &[aria-disabled="true"], &[aria-busy="true"]': {
       '--button-lift': '0px',
     },
-
-    '&[aria-busy="true"]': {
-      cursor: 'progress',
-    },
-
-    ...(variant === 'link' && {
-      transform: 'translateY(0px)',
-
-      '&::before': {
-        display: 'none',
-      },
-
-      '&::after': {
-        display: 'none',
-      },
-    }),
-
-    // Borderless buttons are not chonky
-    ...((variant === 'transparent' || variant === 'link') && {
-      // Zero the lift instead of overriding `> span:last-child`, which would
-      // replace the base label layout (flex, overflow, nowrap) rather than merge.
-      '--button-lift': '0px',
-      border: 'none',
-      transform: 'translateY(0px)',
-
-      '&::before': {
-        display: 'none',
-      },
-      '&::after': {
-        display: 'none',
-      },
-
-      '&:focus-visible': {
-        ...p.theme.focusRing(),
-      },
-
-      '&:hover': {
-        backgroundColor:
-          p.busy || disabled || variant === 'link' ? 'inherit' : p.theme.colors.gray100,
-      },
-
-      '&:active': {
-        backgroundColor:
-          p.busy || disabled || variant === 'link' ? 'inherit' : p.theme.colors.gray200,
-      },
-    }),
-
-    ...(variant === 'link' && {
-      padding: '0',
-      height: 'auto',
-      minHeight: 'auto',
-      minWidth: 'auto',
-      border: 'none',
-      transform: 'translateY(0px)',
-
-      '> span:last-child': {
-        color: 'inherit',
-      },
-
-      '&:hover': {
-        '> span:last-child': {
-          transform: 'translateY(0px)',
-        },
-      },
-    }),
   };
 }
 
-function getButtonTheme(variant: ButtonVariant, theme: Theme) {
-  switch (variant) {
-    case 'primary':
-      return {
-        surface: theme.tokens.interactive.chonky.embossed.accent.background,
-        background: theme.tokens.interactive.chonky.embossed.accent.chonk,
-        color: theme.tokens.interactive.chonky.embossed.accent.content,
-        focus: theme.tokens.focus.onVibrant.light,
-      };
-    case 'secondary':
-      return {
-        surface: theme.tokens.interactive.chonky.embossed.neutral.background,
-        background: theme.tokens.interactive.chonky.embossed.neutral.chonk,
-        color: theme.tokens.interactive.chonky.embossed.neutral.content.primary,
-      };
-    case 'warning':
-      return {
-        surface: theme.tokens.interactive.chonky.embossed.warning.background,
-        background: theme.tokens.interactive.chonky.embossed.warning.chonk,
-        color: theme.tokens.interactive.chonky.embossed.warning.content,
-        focus: theme.tokens.focus.onVibrant.dark,
-      };
-    case 'danger':
-      return {
-        surface: theme.tokens.interactive.chonky.embossed.danger.background,
-        background: theme.tokens.interactive.chonky.embossed.danger.chonk,
-        color: theme.tokens.interactive.chonky.embossed.danger.content,
-        focus: theme.tokens.focus.onVibrant.light,
-      };
-    case 'transparent':
-      return {
-        surface: theme.tokens.interactive.transparent.neutral.background.rest,
-        background: theme.tokens.interactive.transparent.neutral.background.rest,
-        color: theme.tokens.interactive.transparent.neutral.content.primary,
-      };
-    case 'link':
-      return {
-        surface: 'transparent',
-        background: 'transparent',
-        color: theme.tokens.interactive.link.accent.rest,
-      };
-    default:
-      return {};
-  }
+/**
+ * Keep `&:hover` before `&:active`: they share specificity, and the pressed
+ * background must win.
+ */
+function getTransparentStyles(p: ButtonStyleProps): StrictCSSObject {
+  return {
+    ...getBaseStyles(p),
+
+    padding: p.shapeVariant === 'square' ? '0' : p.size.padding,
+    height: p.size.height,
+    minHeight: p.size.minHeight,
+    minWidth: p.shapeVariant === 'square' ? p.size.height : undefined,
+    color: p.theme.tokens.interactive.transparent.neutral.content.primary,
+    transform: 'translateY(0px)',
+
+    '&::before': {display: 'none'},
+    '&::after': {display: 'none'},
+
+    '&:focus-visible': p.theme.focusRing(),
+
+    // No flex layout and no `overflow: hidden`. Call sites rely on this, for
+    // example to let an avatar stack overflow a `zero` button. The button
+    // layout snapshots pin it.
+    '> span:last-child': {
+      transform: 'translateY(0px)',
+    },
+
+    '&:hover': {
+      backgroundColor: p.disabled || p.busy ? 'inherit' : p.theme.colors.gray100,
+    },
+
+    '&:active': {
+      backgroundColor: p.disabled || p.busy ? 'inherit' : p.theme.colors.gray200,
+    },
+  };
 }
 
-function getButtonSizeTheme(size: ButtonSize, theme: Theme): StrictCSSObject {
+function getLinkStyles(p: ButtonStyleProps): StrictCSSObject {
+  return {
+    ...getBaseStyles(p),
+
+    padding: '0',
+    height: 'auto',
+    minHeight: 'auto',
+    minWidth: 'auto',
+    color: p.theme.tokens.interactive.link.accent.rest,
+    transform: 'translateY(0px)',
+
+    '&::before': {display: 'none'},
+    '&::after': {display: 'none'},
+
+    '&:focus-visible': p.theme.focusRing(),
+
+    // Like transparent, no flex layout and no `overflow: hidden`.
+    '> span:last-child': {
+      color: 'inherit',
+    },
+
+    '&:active': {
+      backgroundColor: 'inherit',
+    },
+  };
+}
+
+interface SizeTokens {
+  borderRadius: string;
+  fontSize: string;
+  height: string;
+  lift: string;
+  lineHeight: string;
+  minHeight: string;
+  padding: string;
+}
+
+function getSizeTokens(size: ButtonSize, theme: Theme): SizeTokens {
   switch (size) {
     case 'md':
       return {
-        borderRadius: theme.radius.lg,
+        height: '36px',
+        minHeight: '36px',
+        fontSize: '0.875rem',
+        lineHeight: '1rem',
         padding: `${theme.space.md} ${theme.space.xl}`,
+        borderRadius: theme.radius.lg,
+        lift: '2px',
       };
     case 'sm':
       return {
-        borderRadius: theme.radius.md,
+        height: '32px',
+        minHeight: '32px',
+        fontSize: '0.875rem',
+        lineHeight: '1rem',
         padding: `${theme.space.md} ${theme.space.lg}`,
+        borderRadius: theme.radius.md,
+        lift: '2px',
       };
     case 'xs':
       return {
-        borderRadius: theme.radius.sm,
+        height: '28px',
+        minHeight: '28px',
+        fontSize: '0.75rem',
+        lineHeight: '1rem',
         padding: `${theme.space.sm} ${theme.space.md}`,
+        borderRadius: theme.radius.sm,
+        lift: '1px',
       };
     case 'zero':
       return {
-        borderRadius: theme.radius.xs,
+        height: '24px',
+        minHeight: '24px',
+        fontSize: '0.75rem',
+        lineHeight: '1rem',
         padding: `${theme.space.xs} ${theme.space.sm}`,
+        borderRadius: theme.radius.xs,
+        lift: '0px',
       };
-    default:
-      return {};
   }
 }

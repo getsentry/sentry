@@ -10,17 +10,17 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SimilarIssuesDrawer} from 'sentry/views/issueDetails/groupSimilarIssues/similarIssuesDrawer';
-import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 export function useSimilarIssuesDrawer({
+  getReturnPath,
   group,
   project,
 }: {
+  getReturnPath: () => string;
   group: Group;
   project: Project;
 }) {
   const {openDrawer} = useDrawer();
-  const {baseUrl} = useGroupDetailsRoute();
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
@@ -39,7 +39,7 @@ export function useSimilarIssuesDrawer({
         // Remove drawer state from URL
         navigate(
           {
-            pathname: baseUrl,
+            pathname: getReturnPath(),
             query: {
               ...location.query,
               cursor: undefined,
@@ -49,7 +49,7 @@ export function useSimilarIssuesDrawer({
         );
       },
     });
-  }, [openDrawer, group, project, baseUrl, navigate, location.query, organization]);
+  }, [openDrawer, group, project, getReturnPath, navigate, location.query, organization]);
 
   return {openSimilarIssuesDrawer};
 }

@@ -14,6 +14,9 @@ from sentry.users.models.user import User
 
 class RelationType(StrEnum):
     SIMILAR_STACKTRACE = "similar_stacktrace"
+    SAME_TRACE = "same_trace"
+    CONTRIBUTING = "contributing"
+    SAME_TITLE = "same_title"
 
 
 class RelationTypeStatus(StrEnum):
@@ -76,15 +79,81 @@ class SimilarStacktraceMeta(RelationTypeMeta):
         Annotated[
             str,
             ApiDescription(
-                "ID of the event whose stack trace was compared: the issue's latest event. "
-                "Missing when no event was read"
+                "ID of the event whose stack trace was compared: the eventId parameter, else the "
+                "issue's latest event. Missing when no event was read"
             ),
         ]
     ]
 
 
+class SameTraceMeta(RelationTypeMeta):
+    eventId: NotRequired[
+        Annotated[
+            str,
+            ApiDescription(
+                "ID of the event whose trace was searched: the eventId parameter, else the "
+                "issue's latest event. Missing when no event was read"
+            ),
+        ]
+    ]
+    traceId: NotRequired[
+        Annotated[
+            str,
+            ApiDescription("The trace that was searched. Missing when the event has no trace"),
+        ]
+    ]
+
+
+class ContributingMeta(RelationTypeMeta):
+    eventId: NotRequired[
+        Annotated[
+            str,
+            ApiDescription(
+                "ID of the event whose detector query was searched: the eventId parameter, else "
+                "the issue's latest event. Missing when no event was read"
+            ),
+        ]
+    ]
+    start: NotRequired[
+        Annotated[
+            str,
+            ApiDescription(
+                "Start of the time range searched: one detector interval and a minute before the "
+                "metric issue's latest open period started. Missing when no search ran"
+            ),
+        ]
+    ]
+    end: NotRequired[
+        Annotated[
+            str,
+            ApiDescription(
+                "End of the time range searched: when the open period ended. Missing while the "
+                "metric issue is still open, when the search ran up to now"
+            ),
+        ]
+    ]
+
+
+class SameTitleMeta(RelationTypeMeta):
+    eventId: NotRequired[
+        Annotated[
+            str,
+            ApiDescription(
+                "ID of the event whose title was searched: the eventId parameter, else the "
+                "issue's latest event. Missing when no event was read"
+            ),
+        ]
+    ]
+    title: NotRequired[
+        Annotated[
+            str,
+            ApiDescription("The title that was searched. Missing when no event was read"),
+        ]
+    ]
+
+
 # Any type's entry in meta.types: the union of every RelationTypeMeta subclass.
-AnyRelationTypeMeta = SimilarStacktraceMeta
+AnyRelationTypeMeta = SimilarStacktraceMeta | SameTraceMeta | ContributingMeta | SameTitleMeta
 
 
 @dataclass(frozen=True)
@@ -105,6 +174,6 @@ class RelatedIssuesMeta(TypedDict):
 class RelatedIssuesResponse(TypedDict):
     data: Annotated[
         list[RelatedIssue],
-        ApiDescription("Related issues, most related first"),
+        ApiDescription("Related issues, those matched by more types first"),
     ]
     meta: RelatedIssuesMeta

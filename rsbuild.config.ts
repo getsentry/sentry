@@ -1,6 +1,5 @@
 /* eslint import/no-nodejs-modules:0 */
 import fs from 'node:fs';
-import {createRequire} from 'node:module';
 import path from 'node:path';
 
 import {defineConfig} from '@rsbuild/core';
@@ -15,10 +14,9 @@ import type {
 } from '@rspack/core';
 import rspack from '@rspack/core';
 import {ReactRefreshRspackPlugin} from '@rspack/plugin-react-refresh';
-import {sentryWebpackPlugin} from '@sentry/webpack-plugin/webpack5';
+import {sentryWebpackPlugin} from '@sentry/bundler-plugins/webpack';
 import CompressionPlugin from 'compression-webpack-plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
-import {TsCheckerRspackPlugin} from 'ts-checker-rspack-plugin';
 
 import {
   createHostCheckMiddleware,
@@ -79,8 +77,6 @@ const HAS_WEBPACK_DEV_SERVER_CONFIG =
 
 // User/tooling configurable environment variables
 const NO_DEV_SERVER = !!env.NO_DEV_SERVER; // Do not run webpack dev server
-// Type checking is resource intensive, enable it explicitly with ENABLE_TS_CHECKER=1.
-const SHOULD_CHECK_TYPES = DEV_MODE && Boolean(env.ENABLE_TS_CHECKER);
 const SHOULD_HOT_MODULE_RELOAD = DEV_MODE && !!env.SENTRY_UI_HOT_RELOAD;
 const SHOULD_ADD_RSDOCTOR = Boolean(env.RSDOCTOR);
 // Only entry points are eagerly built, lazy build routes. Saves memory and startup time.
@@ -94,8 +90,6 @@ const DEPLOY_PREVIEW_CONFIG = IS_DEPLOY_PREVIEW && {
   githubOrg: env.NOW_GITHUB_COMMIT_ORG,
   githubRepo: env.NOW_GITHUB_COMMIT_REPO,
 };
-
-const require = createRequire(import.meta.url);
 
 // When deploy previews are enabled always enable experimental SPA mode --
 // deploy previews are served standalone. Otherwise fallback to the environment
@@ -113,13 +107,14 @@ const SENTRY_SPA_DSN = SENTRY_EXPERIMENTAL_SPA ? env.SENTRY_SPA_DSN : undefined;
 const sentryDjangoAppPath = path.join(import.meta.dirname, 'src/sentry/static/sentry');
 const distPath = path.join(sentryDjangoAppPath, 'dist');
 const staticPrefix = path.join(import.meta.dirname, 'static');
+const legacyCssPath = path.join(staticPrefix, 'css');
 
 // sentry.css is emitted to entrypoints/ (entrypoints-hashed/ in SaaS), so the
 // fonts and images it references must step up to reach assets/. The layer
 // keeps these separate from the same files imported from JS, which need the
 // runtime public path.
 const legacyCssAssetRule: RuleSetRule = {
-  issuer: /\.less$/,
+  issuer: {and: [legacyCssPath, /\.css$/]},
   layer: 'legacy-css-assets',
   generator: {publicPath: '../'},
 };
@@ -315,7 +310,7 @@ const appConfig: Configuration = {
      * This generates a single "sentry.css" file that imports ALL component styles
      * for use on Django-powered pages.
      */
-    sentry: './less/sentry.less',
+    sentry: './css/sentry.css',
   },
   context: staticPrefix,
   incremental: DEV_MODE,
@@ -406,18 +401,17 @@ const appConfig: Configuration = {
       },
       {
         test: /\.css$/,
+        include: [legacyCssPath],
+        type: 'css/auto',
+      },
+      {
+        test: /\.css$/,
+        exclude: [legacyCssPath],
         type: 'css/auto',
         // Inject a <style> tag, like style-loader did
         parser: {exportType: 'style'},
         // Resolve asset URLs against `import.meta.rspackPublicPath` (set in setupStatics)
         generator: {runtimePublicPath: true},
-      },
-      {
-        test: /\.less$/,
-        include: [staticPrefix],
-        // Emitted as a separate stylesheet, see output.cssFilename
-        type: 'css/auto',
-        use: ['less-loader'],
       },
       {
         // Always emit fonts as files. Inlining them as data URLs puts every
@@ -474,18 +468,6 @@ const appConfig: Configuration = {
      * Defines environment specific flags.
      */
     new rspack.DefinePlugin(DEFINED_ENV_VARS),
-
-    ...(SHOULD_CHECK_TYPES
-      ? [
-          new TsCheckerRspackPlugin({
-            typescript: {
-              configFile: path.resolve(import.meta.dirname, './tsconfig.json'),
-              typescriptPath: require.resolve('typescript-7/package.json'),
-            },
-            devServer: false,
-          }),
-        ]
-      : []),
 
     new StoryManifestPlugin(),
 
@@ -558,7 +540,7 @@ const appConfig: Configuration = {
     // Prefers local modules over node_modules
     preferAbsolute: true,
     modules: ['node_modules'],
-    extensions: ['.tsx', '.ts', '.js', '.json', '.less'],
+    extensions: ['.tsx', '.ts', '.js', '.json'],
     symlinks: true,
   },
   output: {
@@ -1119,7 +1101,7 @@ const rsbuildConfig: RsbuildConfig = {
             import: ['sentry/utils/setupStatics', path.join(staticPrefix, 'gsAdmin')],
             html: false,
           },
-          sentry: {import: 'less/sentry.less', html: false},
+          sentry: {import: 'css/sentry.css', html: false},
         },
       },
       output: {target: 'web', distPath: {root: distPath}, cleanDistPath: false},

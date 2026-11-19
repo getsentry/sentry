@@ -95,7 +95,6 @@ describe('SeerProjectTable', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    ProjectsStore.reset();
     jest.restoreAllMocks();
   });
 
@@ -575,7 +574,7 @@ describe('SeerProjectTable', () => {
         organization: OrganizationFixture({
           slug: organization.slug,
           access: ['org:write'],
-          features: ['seer-token-based-billing-onboarding', 'token-billed-seer-enabled'],
+          features: ['token-billed-seer-enabled'],
         }),
       });
 
