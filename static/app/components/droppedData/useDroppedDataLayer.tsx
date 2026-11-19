@@ -1,5 +1,6 @@
 import {useCallback, useState} from 'react';
 
+import type {AnnotationKind} from 'sentry/components/charts/annotations/types';
 import type {ChartLayersControlProps} from 'sentry/components/charts/chartLayersControl';
 import type {ChartContextTab} from 'sentry/components/charts/contextDrawer/chartContextDrawer';
 import {useChartContextDrawer} from 'sentry/components/charts/contextDrawer/useChartContextDrawer';
@@ -31,6 +32,7 @@ interface UseDroppedDataLayerParams extends UseDroppedDataParams {
 
 interface UseDroppedDataLayerOptions {
   source: DroppedDataAnalyticsSource;
+  annotationKinds?: readonly AnnotationKind[];
   enabled?: boolean;
   hidden?: boolean;
   showAnnotationTabs?: boolean;
@@ -52,6 +54,7 @@ export function useDroppedDataLayer(
   {environments, ...params}: UseDroppedDataLayerParams,
   {
     source,
+    annotationKinds,
     enabled = true,
     hidden = false,
     showAnnotationTabs = false,
@@ -66,6 +69,7 @@ export function useDroppedDataLayer(
   const [isLayerOn, setIsLayerOn] = useState(true);
   const openContextDrawer = useChartContextDrawer(params, {
     source,
+    annotationKinds,
     enabled: isEnabled,
     showAnnotationTabs,
   });

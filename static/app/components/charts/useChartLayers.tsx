@@ -11,9 +11,8 @@ import {defined} from 'sentry/utils/defined';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import type {AnnotationItem} from './annotations/types';
+import type {AnnotationItem, AnnotationKind} from './annotations/types';
 import {useAnnotationItems} from './annotations/useAnnotationItems';
-import {annotationContextTab} from './contextDrawer/chartContextDrawer';
 import type {ChartLayer, ChartLayersControlProps} from './chartLayersControl';
 
 const RELEASES_LAYER = 'releases';
@@ -41,22 +40,32 @@ export function useChartLayers({
   const organization = useOrganization();
   const areAnnotationsEnabled =
     enabled && organization.features.includes('timeseries-annotations');
-  const droppedData = useDroppedDataLayer(
-    {dataset, interval},
-    {source, enabled, hidden, showAnnotationTabs: areAnnotationsEnabled}
-  );
-
   const {release: releaseItems, flag: flagItems} = useAnnotationItems({
     enabled: areAnnotationsEnabled,
   });
 
   const [isReleasesLayerOn, setIsReleasesLayerOn] = useState(true);
   const hasReleases = (releaseItems?.length ?? 0) > 0;
-  const areReleasesShown = hasReleases && isReleasesLayerOn && !hidden;
+  const isReleasesLayerSelected = hasReleases && isReleasesLayerOn;
+  const areReleasesShown = isReleasesLayerSelected && !hidden;
 
   const [isFlagsLayerOn, setIsFlagsLayerOn] = useState(true);
   const hasFlags = (flagItems?.length ?? 0) > 0;
-  const areFlagsShown = hasFlags && isFlagsLayerOn && !hidden;
+  const isFlagsLayerSelected = hasFlags && isFlagsLayerOn;
+  const areFlagsShown = isFlagsLayerSelected && !hidden;
+
+  const annotationKinds = useMemo(
+    (): AnnotationKind[] => [
+      ...(isReleasesLayerSelected ? ['release' as const] : []),
+      ...(isFlagsLayerSelected ? ['flag' as const] : []),
+    ],
+    [isReleasesLayerSelected, isFlagsLayerSelected]
+  );
+
+  const droppedData = useDroppedDataLayer(
+    {dataset, interval},
+    {source, annotationKinds, enabled, hidden, showAnnotationTabs: areAnnotationsEnabled}
+  );
 
   const annotations = useMemo(() => {
     const items: AnnotationItem[] = [
@@ -71,7 +80,7 @@ export function useChartLayers({
       ? {
           value: RELEASES_LAYER,
           label: t('Releases'),
-          selected: hasReleases && isReleasesLayerOn,
+          selected: isReleasesLayerSelected,
           disabled: !hasReleases,
           tooltip: hasReleases ? undefined : t('No releases in this time range'),
         }
@@ -82,7 +91,7 @@ export function useChartLayers({
       ? {
           value: FLAGS_LAYER,
           label: t('Flags'),
-          selected: hasFlags && isFlagsLayerOn,
+          selected: isFlagsLayerSelected,
           disabled: !hasFlags,
           tooltip: hasFlags ? undefined : t('No flag changes in this time range'),
         }
@@ -111,12 +120,7 @@ export function useChartLayers({
 
   const {openContextDrawer} = droppedData;
   const onAnnotationClick = useCallback(
-    (items: AnnotationItem[]) => {
-      const tab = annotationContextTab(items);
-      if (tab) {
-        openContextDrawer(tab);
-      }
-    },
+    () => openContextDrawer('annotations'),
     [openContextDrawer]
   );
 

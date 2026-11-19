@@ -4,6 +4,7 @@ import {createLoader, parseAsString, useQueryStates} from 'nuqs';
 
 import {useDrawer} from '@sentry/scraps/drawer';
 
+import type {AnnotationKind} from 'sentry/components/charts/annotations/types';
 import {buildAskSeerPrompt} from 'sentry/components/droppedData/drawer/askSeer';
 import {droppedAndFilteredLabel} from 'sentry/components/droppedData/outcomes';
 import type {ReasonRow} from 'sentry/components/droppedData/outcomeSections';
@@ -32,13 +33,19 @@ const loadDroppedDataQuery = createLoader(CHART_CONTEXT_DRAWER_PARSERS);
 
 interface UseChartContextDrawerOptions {
   source: DroppedDataAnalyticsSource;
+  annotationKinds?: readonly AnnotationKind[];
   enabled?: boolean;
   showAnnotationTabs?: boolean;
 }
 
 export function useChartContextDrawer(
   {dataset, interval, projects}: UseDroppedDataParams,
-  {source, enabled = true, showAnnotationTabs = false}: UseChartContextDrawerOptions
+  {
+    source,
+    annotationKinds,
+    enabled = true,
+    showAnnotationTabs = false,
+  }: UseChartContextDrawerOptions
 ) {
   const organization = useOrganization();
   const {openDrawer, isDrawerOpen, isAnyDrawerOpen} = useDrawer();
@@ -48,7 +55,7 @@ export function useChartContextDrawer(
   const paramValue = DiscoverDatasetToUrlParam[dataset];
   const [{droppedData}, setDrawerQuery] = useQueryStates(CHART_CONTEXT_DRAWER_PARSERS);
   const isDrawerInUrl = droppedData === paramValue;
-  const renderedQueryRef = useRef({interval, projects});
+  const renderedQueryRef = useRef({interval, projects, annotationKinds});
 
   const {openSeerExplorer} = useSeerExplorerContext();
   const openSeerExplorerRef = useRef(openSeerExplorer);
@@ -80,7 +87,7 @@ export function useChartContextDrawer(
     if (!enabled || !isDrawerInUrl) {
       return;
     }
-    const query = {interval, projects};
+    const query = {interval, projects, annotationKinds};
     const isStale = isDrawerOpen && !isEqual(renderedQueryRef.current, query);
     if (isAnyDrawerOpen && !isStale) {
       return;
@@ -93,6 +100,7 @@ export function useChartContextDrawer(
           interval={interval}
           projects={projects}
           source={source}
+          annotationKinds={annotationKinds}
           onAskSeer={onAskSeer}
           showAnnotationTabs={showAnnotationTabs}
         />
@@ -124,6 +132,7 @@ export function useChartContextDrawer(
     interval,
     projects,
     source,
+    annotationKinds,
     onAskSeer,
     showAnnotationTabs,
     pathname,

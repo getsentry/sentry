@@ -17,6 +17,7 @@ import {Button} from '@sentry/scraps/button';
 import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
+import type {AnnotationKind} from 'sentry/components/charts/annotations/types';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -70,12 +71,14 @@ function mockMultiOutcomeDroppedData() {
 
 function DroppedDataTrigger({
   dataset,
+  annotationKinds,
   enabled,
   interval = '1h',
   projects,
   showAnnotationTabs,
 }: {
   dataset: DiscoverDatasets;
+  annotationKinds?: AnnotationKind[];
   enabled?: boolean;
   interval?: string;
   projects?: number[];
@@ -83,15 +86,17 @@ function DroppedDataTrigger({
 }) {
   const openContextDrawer = useChartContextDrawer(
     {dataset, interval, projects},
-    {source: 'explore', enabled, showAnnotationTabs}
+    {source: 'explore', annotationKinds, enabled, showAnnotationTabs}
   );
   return (
     <Fragment>
       <Button onClick={() => openContextDrawer()}>Open dropped data</Button>
-      <Button onClick={() => openContextDrawer('flags')}>Open flags</Button>
+      <Button onClick={() => openContextDrawer('annotations')}>Open annotations</Button>
     </Fragment>
   );
 }
+
+const ANNOTATION_KINDS: AnnotationKind[] = ['release', 'flag'];
 
 describe('useChartContextDrawer', () => {
   beforeEach(() => {
@@ -774,11 +779,15 @@ describe('useChartContextDrawer', () => {
       });
     });
 
-    it('shows a tab with a badge for dropped data, releases, and flags', async () => {
-      render(<DroppedDataTrigger dataset={DiscoverDatasets.SPANS} showAnnotationTabs />, {
-        organization,
-        initialRouterConfig: {location: {pathname: '/explore/traces/'}},
-      });
+    it('shows a tab with a badge for dropped data and annotations', async () => {
+      render(
+        <DroppedDataTrigger
+          dataset={DiscoverDatasets.SPANS}
+          annotationKinds={ANNOTATION_KINDS}
+          showAnnotationTabs
+        />,
+        {organization, initialRouterConfig: {location: {pathname: '/explore/traces/'}}}
+      );
 
       await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
 
@@ -789,36 +798,37 @@ describe('useChartContextDrawer', () => {
       expect(droppedDataTab).toHaveAttribute('aria-selected', 'true');
       expect(await within(droppedDataTab).findByText('10%')).toBeInTheDocument();
       expect(
-        await within(screen.getByRole('tab', {name: /Releases/})).findByText('2')
-      ).toBeInTheDocument();
-      expect(
-        await within(screen.getByRole('tab', {name: /Flags/})).findByText('1')
+        await within(screen.getByRole('tab', {name: /Annotations/})).findByText('3')
       ).toBeInTheDocument();
       expect(screen.getByText('10 dropped and filtered spans')).toBeInTheDocument();
     });
 
     it('switches tabs and keeps the selected tab in the URL', async () => {
       const {router} = render(
-        <DroppedDataTrigger dataset={DiscoverDatasets.SPANS} showAnnotationTabs />,
+        <DroppedDataTrigger
+          dataset={DiscoverDatasets.SPANS}
+          annotationKinds={ANNOTATION_KINDS}
+          showAnnotationTabs
+        />,
         {organization, initialRouterConfig: {location: {pathname: '/explore/traces/'}}}
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
-      await userEvent.click(await screen.findByRole('tab', {name: /Releases/}));
+      await userEvent.click(await screen.findByRole('tab', {name: /Annotations/}));
 
-      expect(await screen.findByText('Table coming soon')).toBeInTheDocument();
+      expect(await screen.findByRole('heading', {name: 'Severe'})).toBeInTheDocument();
       expect(screen.queryByText('10 dropped and filtered spans')).not.toBeInTheDocument();
       expect(
         screen.queryByRole('radiogroup', {name: 'Filter dropped events'})
       ).not.toBeInTheDocument();
-      expect(router.location.query.contextTab).toBe('releases');
+      expect(router.location.query.contextTab).toBe('annotations');
       expect(router.location.query.droppedData).toBe('spans');
       expect(trackAnalytics).toHaveBeenCalledWith(
         'explore.chart_context.tab_selected',
         expect.objectContaining({
           dataset: DiscoverDatasets.SPANS,
           source: 'explore',
-          tab: 'releases',
+          tab: 'annotations',
         })
       );
 
@@ -836,16 +846,53 @@ describe('useChartContextDrawer', () => {
         initialRouterConfig: {
           location: {
             pathname: '/explore/traces/',
-            query: {droppedData: 'spans', contextTab: 'flags'},
+            query: {droppedData: 'spans', contextTab: 'annotations'},
           },
         },
       });
 
-      expect(await screen.findByRole('tab', {name: /Flags/})).toHaveAttribute(
+      expect(await screen.findByRole('tab', {name: /Annotations/})).toHaveAttribute(
         'aria-selected',
         'true'
       );
-      expect(screen.getByText('Table coming soon')).toBeInTheDocument();
+      expect(screen.getByRole('heading', {name: 'Severe'})).toBeInTheDocument();
+    });
+
+    it('shows a section for each annotation layer that is on', async () => {
+      const {rerender} = render(
+        <DroppedDataTrigger
+          dataset={DiscoverDatasets.SPANS}
+          annotationKinds={ANNOTATION_KINDS}
+          showAnnotationTabs
+        />,
+        {
+          organization,
+          initialRouterConfig: {
+            location: {
+              pathname: '/explore/traces/',
+              query: {droppedData: 'spans', contextTab: 'annotations'},
+            },
+          },
+        }
+      );
+
+      expect(await screen.findByRole('heading', {name: 'Flags'})).toBeInTheDocument();
+
+      rerender(
+        <DroppedDataTrigger
+          dataset={DiscoverDatasets.SPANS}
+          annotationKinds={['release']}
+          showAnnotationTabs
+        />
+      );
+
+      await waitFor(() =>
+        expect(screen.queryByRole('heading', {name: 'Flags'})).not.toBeInTheDocument()
+      );
+      expect(screen.getByRole('heading', {name: 'Releases'})).toBeInTheDocument();
+      expect(
+        within(screen.getByRole('tab', {name: /Annotations/})).getByText('2')
+      ).toBeInTheDocument();
     });
 
     it('opens on the tab it is asked for', async () => {
@@ -854,19 +901,19 @@ describe('useChartContextDrawer', () => {
         {organization, initialRouterConfig: {location: {pathname: '/explore/traces/'}}}
       );
 
-      await userEvent.click(screen.getByRole('button', {name: 'Open flags'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Open annotations'}));
 
-      expect(await screen.findByRole('tab', {name: /Flags/})).toHaveAttribute(
+      expect(await screen.findByRole('tab', {name: /Annotations/})).toHaveAttribute(
         'aria-selected',
         'true'
       );
-      expect(router.location.query.contextTab).toBe('flags');
+      expect(router.location.query.contextTab).toBe('annotations');
       expect(trackAnalytics).toHaveBeenCalledWith(
         'explore.chart_context.drawer_opened',
         expect.objectContaining({
           dataset: DiscoverDatasets.SPANS,
           source: 'explore',
-          tab: 'flags',
+          tab: 'annotations',
         })
       );
     });
@@ -879,13 +926,13 @@ describe('useChartContextDrawer', () => {
           initialRouterConfig: {
             location: {
               pathname: '/explore/traces/',
-              query: {droppedData: 'spans', contextTab: 'flags'},
+              query: {droppedData: 'spans', contextTab: 'annotations'},
             },
           },
         }
       );
 
-      await screen.findByRole('tab', {name: /Flags/});
+      await screen.findByRole('tab', {name: /Annotations/});
       await userEvent.click(screen.getByRole('button', {name: 'Close Drawer'}));
       await waitForDrawerToHide('Chart Context');
 
@@ -893,29 +940,23 @@ describe('useChartContextDrawer', () => {
       expect(router.location.query.contextTab).toBeUndefined();
     });
 
-    it('hides the dropped data tab when dropped data is not enabled', async () => {
-      const {router} = render(
-        <DroppedDataTrigger dataset={DiscoverDatasets.SPANS} showAnnotationTabs />,
-        {
-          organization: OrganizationFixture(),
-          initialRouterConfig: {
-            location: {
-              pathname: '/explore/traces/',
-              query: {droppedData: 'spans', contextTab: 'flags'},
-            },
+    it('opens on annotations when dropped data is not enabled', async () => {
+      render(<DroppedDataTrigger dataset={DiscoverDatasets.SPANS} showAnnotationTabs />, {
+        organization: OrganizationFixture(),
+        initialRouterConfig: {
+          location: {
+            pathname: '/explore/traces/',
+            query: {droppedData: 'spans', contextTab: 'dropped-data'},
           },
-        }
-      );
+        },
+      });
 
-      await userEvent.click(await screen.findByRole('tab', {name: /Releases/}));
-
-      expect(screen.getByRole('tab', {name: /Releases/})).toHaveAttribute(
+      expect(await screen.findByRole('tab', {name: /Annotations/})).toHaveAttribute(
         'aria-selected',
         'true'
       );
       expect(screen.queryByRole('tab', {name: /Dropped Spans/})).not.toBeInTheDocument();
       expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-      expect(router.location.query.contextTab).toBeUndefined();
     });
 
     it('shows only dropped data without annotation tabs', async () => {
@@ -924,7 +965,7 @@ describe('useChartContextDrawer', () => {
         initialRouterConfig: {
           location: {
             pathname: '/explore/traces/',
-            query: {droppedData: 'spans', contextTab: 'flags'},
+            query: {droppedData: 'spans', contextTab: 'annotations'},
           },
         },
       });

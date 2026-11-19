@@ -4,11 +4,11 @@ import type {CustomSeriesRenderItem} from 'echarts';
 
 import {Stack} from '@sentry/scraps/layout';
 
-import type {
-  AnnotationItem,
-  AnnotationKind,
-} from 'sentry/components/charts/annotations/types';
-import {t} from 'sentry/locale';
+import {
+  ANNOTATION_KIND_LABELS,
+  ANNOTATION_KINDS,
+} from 'sentry/components/charts/annotations/kinds';
+import type {AnnotationItem} from 'sentry/components/charts/annotations/types';
 
 import {
   BAND_HEIGHT,
@@ -27,14 +27,6 @@ import {ChartBandTooltipHeading} from './chartBandTooltip';
 import type {ChartBand} from './mergeChartBands';
 
 export const ANNOTATION_BAND_SERIES_ID = '__annotation_band__';
-
-const ANNOTATION_KINDS: AnnotationKind[] = ['release', 'flag', 'timeseriesAnnotation'];
-
-const ANNOTATION_KIND_LABELS: Record<AnnotationKind, string> = {
-  release: t('Releases'),
-  flag: t('Flags'),
-  timeseriesAnnotation: t('Changes'),
-};
 
 interface AnnotationBandItem extends AnnotationBucket {
   opacity: number;

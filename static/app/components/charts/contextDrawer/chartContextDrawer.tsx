@@ -3,15 +3,12 @@ import {parseAsStringLiteral, useQueryStates} from 'nuqs';
 
 import {Badge} from '@sentry/scraps/badge';
 import {DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 
-import type {
-  AnnotationItem,
-  AnnotationKind,
-} from 'sentry/components/charts/annotations/types';
+import type {AnnotationKind} from 'sentry/components/charts/annotations/types';
 import {useAnnotationItems} from 'sentry/components/charts/annotations/useAnnotationItems';
 import {DroppedDataPanel} from 'sentry/components/droppedData/drawer/droppedDataPanel';
 import {
@@ -34,7 +31,9 @@ import type {DroppedDataAnalyticsSource} from 'sentry/utils/analytics/exploreAna
 import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-const CHART_CONTEXT_TABS = ['dropped-data', 'releases', 'flags'] as const;
+import {AnnotationsPanel} from './annotationsPanel';
+
+const CHART_CONTEXT_TABS = ['dropped-data', 'annotations'] as const;
 
 export type ChartContextTab = (typeof CHART_CONTEXT_TABS)[number];
 
@@ -42,21 +41,9 @@ export const CHART_CONTEXT_TAB_PARSERS = {
   contextTab: parseAsStringLiteral(CHART_CONTEXT_TABS),
 };
 
-const ANNOTATION_KIND_TABS: Array<[AnnotationKind, ChartContextTab]> = [
-  ['release', 'releases'],
-  ['flag', 'flags'],
-];
-
-export function annotationContextTab(
-  items: readonly AnnotationItem[]
-): ChartContextTab | undefined {
-  return ANNOTATION_KIND_TABS.find(([kind]) =>
-    items.some(item => item.kind === kind)
-  )?.[1];
-}
-
 interface ChartContextDrawerProps extends UseDroppedDataParams {
   source: DroppedDataAnalyticsSource;
+  annotationKinds?: readonly AnnotationKind[];
   onAskSeer?: AskSeerHandler;
   showAnnotationTabs?: boolean;
 }
@@ -66,6 +53,7 @@ export function ChartContextDrawer({
   interval,
   projects,
   source,
+  annotationKinds = [],
   onAskSeer,
   showAnnotationTabs = false,
 }: ChartContextDrawerProps) {
@@ -75,15 +63,14 @@ export function ChartContextDrawer({
   const hasDroppedDataTab = organization.features.includes(
     'explore-data-fidelity-annotations'
   );
-  const defaultTab: ChartContextTab = hasDroppedDataTab ? 'dropped-data' : 'releases';
+  const defaultTab: ChartContextTab = hasDroppedDataTab ? 'dropped-data' : 'annotations';
   const shownContextTab =
     contextTab === 'dropped-data' && !hasDroppedDataTab ? null : contextTab;
   const tab = showAnnotationTabs ? (shownContextTab ?? defaultTab) : 'dropped-data';
 
   const {droppedEvents, acceptedEvents} = useDroppedData({dataset, interval, projects});
-  const {release: releaseItems, flag: flagItems} = useAnnotationItems({
-    enabled: showAnnotationTabs,
-  });
+  const itemsByKind = useAnnotationItems({enabled: showAnnotationTabs});
+  const annotationItems = annotationKinds.flatMap(kind => itemsByKind[kind] ?? []);
 
   const scopeControl =
     tab === 'dropped-data' ? (
@@ -135,12 +122,11 @@ export function ChartContextDrawer({
         ]
       : []),
     {
-      key: 'releases',
-      label: t('Releases'),
-      badge: releaseItems?.length,
-      panel: <TableComingSoon />,
+      key: 'annotations',
+      label: t('Annotations'),
+      badge: annotationItems.length,
+      panel: <AnnotationsPanel items={annotationItems} kinds={annotationKinds} />,
     },
-    {key: 'flags', label: t('Flags'), badge: flagItems?.length, panel: <TableComingSoon />},
   ];
 
   return (
@@ -224,13 +210,5 @@ function ChartContextDrawerLayout({
         {props => <DrawerBody {...props}>{children}</DrawerBody>}
       </Stack>
     </Fragment>
-  );
-}
-
-function TableComingSoon() {
-  return (
-    <Container padding="xl 2xl">
-      <Text variant="muted">{t('Table coming soon')}</Text>
-    </Container>
   );
 }
