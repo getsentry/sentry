@@ -38,11 +38,12 @@ def single_run_root_cause_payload(state: SeerRunState) -> dict[str, Any] | None:
     artifact = state.get_artifacts().get(SINGLE_RUN_ROOT_CAUSE_KEY)
     if artifact is None or not artifact.data:
         return None
-    # Keeps the step-by-step root cause keys so webhook integrators don't break.
+    # Matches the API's headline and cause, plus the step-by-step keys integrators rely on.
     # The slimmer payload ships later, with notice (AIML-3817).
     return {
         "headline": artifact.data.get("headline"),
-        "one_line_description": artifact.data.get("cause"),
+        "cause": artifact.data.get("cause"),
+        "one_line_description": artifact.data.get("headline"),
         "five_whys": [],
         "reproduction_steps": [],
     }

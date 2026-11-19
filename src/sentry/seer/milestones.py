@@ -56,7 +56,7 @@ def milestones_from_state(state: SeerRunState) -> dict[str, SeerRunMilestoneExtr
     else:
         data = single_run_root_cause_payload(state)
     if data is not None:
-        description = data.get("one_line_description")
+        description = data.get("cause") or data.get("one_line_description")
         if isinstance(description, str):
             extras: RootCauseArtifactExtras = {"one_line_description": description}
             headline = data.get("headline")

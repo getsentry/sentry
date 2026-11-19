@@ -507,7 +507,9 @@ class SlackAutofixEntrypoint(
 
                 if legacy_description := root_cause.get("description"):
                     summary = legacy_description
-                elif explorer_description := root_cause.get("one_line_description"):
+                elif explorer_description := root_cause.get("cause") or root_cause.get(
+                    "one_line_description"
+                ):
                     summary = explorer_description
                 else:
                     summary = ""
