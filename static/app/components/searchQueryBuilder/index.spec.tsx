@@ -1633,6 +1633,25 @@ describe('SearchQueryBuilder', () => {
       expect(screen.queryByRole('row', {name: '('})).not.toBeInTheDocument();
     });
 
+    it('removes empty parens when deleting the last token inside them', async () => {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          onChange={mockOnChange}
+          initialQuery="is:unresolved (browser.name:firefox)"
+        />
+      );
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Remove filter: browser.name'})
+      );
+
+      expect(screen.queryByRole('row', {name: '('})).not.toBeInTheDocument();
+      expect(screen.queryByRole('row', {name: ')'})).not.toBeInTheDocument();
+      expect(mockOnChange).toHaveBeenCalledWith('is:unresolved', expect.anything());
+    });
+
     describe('logic ops', () => {
       it('can remove logic selector by clicking the delete button', async () => {
         render(<SearchQueryBuilder {...defaultProps} initialQuery="OR" />);
