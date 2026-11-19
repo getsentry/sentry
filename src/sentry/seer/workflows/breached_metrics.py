@@ -5,7 +5,7 @@ from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import asdict, dataclass
 from datetime import datetime
-from typing import Any, Literal, NamedTuple, override
+from typing import Any, Literal, NamedTuple
 
 from django.db import router, transaction
 from django.db.models import QuerySet
@@ -43,7 +43,6 @@ from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
 from sentry.seer_workflow_outputs.executions import finish_execution_if_outputs_done
 from sentry.seer_workflow_outputs.models import SeerWorkflowOutputLink
 from sentry.services.eventstore.models import GroupEvent
-from sentry.utils import metrics
 from sentry.viewer_context import ActorId, ActorType
 from sentry.workflow_engine.models import (
     Action,
@@ -56,8 +55,6 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.registry import action_handler_registry
-from sentry.workflow_engine.types import ActionHandler, ActionInvocation, FeatureGate
 
 logger = logging.getLogger(__name__)
 
@@ -308,89 +305,6 @@ class RejectedMetricBreach:
     run: SeerWorkflowRun
     reason: RejectionReason
     created: bool
-
-
-@action_handler_registry.register(Action.Type.SEER_INVESTIGATION)
-class SeerInvestigationActionHandler(ActionHandler):
-    group = ActionHandler.Group.OTHER
-    required_features = (FeatureGate("organizations:seer-automations"),)
-    config_schema = {"type": "object", "properties": {}, "additionalProperties": False}
-    data_schema = {"type": "object", "properties": {}, "additionalProperties": False}
-
-    @classmethod
-    @override
-    def get_dedup_key(cls, action: Action) -> str:
-        return f"{action.type}:{action.id}"
-
-    @staticmethod
-    @override
-    def execute(invocation: ActionInvocation) -> None:
-        event = invocation.event_data.event
-        if not isinstance(event, GroupEvent):
-            return
-        group = invocation.event_data.require_group()
-        extra: dict[str, object] = {
-            "organization_id": group.project.organization_id,
-            "group_id": group.id,
-            "event_id": event.event_id,
-            "detector_id": invocation.detector.id,
-            "workflow_id": invocation.workflow_id,
-            "action_id": invocation.action.id,
-        }
-        # TODO(telkins): WFE reports an arbitrary workflow when an action is attached to
-        # several. If that becomes possible here, store the config id in Action.data.
-        config = (
-            SeerWorkflowConfig.objects.filter(backing_workflow_id=invocation.workflow_id)
-            .values_list("id", "strategy", named=True)
-            .get_or_none()
-        )
-        if config is None or config.strategy != MetricAlertDefinition.strategy:
-            _record_trigger_outcome(IgnoredMetricBreach("configuration_unavailable"), extra)
-            return
-
-        extra.update(workflow_config_id=config.id)
-        admission = MetricAlertDefinition().admit_breach(
-            group,
-            event,
-            config_id=config.id,
-            action_id=invocation.action.id,
-            workflow_id=invocation.workflow_id,
-        )
-        _record_trigger_outcome(admission, extra)
-
-
-def _record_trigger_outcome(
-    admission: AcceptedMetricBreach | RejectedMetricBreach | IgnoredMetricBreach,
-    extra: dict[str, object],
-) -> None:
-    outcome: Literal["accepted", "rejected", "ignored"]
-    reason: str | None = None
-    deduplicated = False
-    if isinstance(admission, AcceptedMetricBreach):
-        outcome = "accepted"
-        deduplicated = not admission.created
-        extra.update(run_id=admission.run.id, run_created=admission.created)
-    elif isinstance(admission, RejectedMetricBreach):
-        outcome = "rejected"
-        reason = admission.reason
-        deduplicated = not admission.created
-        extra.update(run_id=admission.run.id, run_created=admission.created)
-    else:
-        outcome = "ignored"
-        reason = admission.reason
-    metrics.incr(
-        "seer.workflow.trigger",
-        tags={
-            "outcome": outcome,
-            "reason": reason or "none",
-            "deduplicated": str(deduplicated).lower(),
-        },
-        sample_rate=1.0,
-    )
-    logger.info(
-        "seer.workflow.trigger",
-        extra={**extra, "outcome": outcome, "reason": reason, "deduplicated": deduplicated},
-    )
 
 
 class ConnectedMonitor(NamedTuple):
