@@ -1,6 +1,7 @@
 from hashlib import sha1
 from typing import Any
 from unittest.mock import patch
+from urllib.parse import urlsplit
 
 from django.core.files.base import ContentFile
 from django.test import override_settings
@@ -64,7 +65,13 @@ class PreprodStorageTest(BaseAssembleTest):
             assert response is not None
             with response.payload as fp:
                 assert fp.read() == payload
-            assert self.client.get(url, **headers).status_code == 302
+            with patch("sentry.auth.system.is_internal_ip", return_value=False):
+                redirect = self.client.get(url, HTTP_RANGE="bytes=3-", **headers)
+            assert redirect.status_code == 302
+            location = urlsplit(redirect["Location"])
+            ranged = self.client.get(f"{location.path}?{location.query}", HTTP_RANGE="bytes=3-")
+            assert ranged.status_code == 206
+            assert b"".join(ranged.streaming_content) == payload[3:]
         else:
             response = self.client.get(url, HTTP_RANGE="bytes=3-", **headers)
             assert response.status_code == 206
