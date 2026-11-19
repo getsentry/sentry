@@ -350,6 +350,53 @@ describe('flamegraph', () => {
     ).toBe(true);
   });
 
+  it('finds java frames by their unqualified function name', () => {
+    const trace: Profiling.EventedProfile = {
+      name: 'profile',
+      startValue: 0,
+      endValue: 1000,
+      unit: 'milliseconds',
+      threadID: 0,
+      type: 'evented',
+      events: [
+        {type: 'O', at: 0, frame: 0},
+        {type: 'O', at: 1, frame: 1},
+        {type: 'C', at: 2, frame: 1},
+        {type: 'C', at: 4, frame: 0},
+      ],
+    };
+
+    const flamegraph = new Flamegraph(
+      EventedProfile.FromProfile(
+        trace,
+        createFrameIndex('mobile', [
+          {name: 'onCreate', module: 'com.example.MainActivity', platform: 'java'},
+          {name: 'run', module: 'com.example.Worker', platform: 'java'},
+        ]),
+        {type: 'flamechart'}
+      ),
+      {inverted: false, sort: 'call order'}
+    );
+
+    expect(
+      flamegraph
+        .findAllMatchingFrames('onCreate', 'com.example.MainActivity')
+        .map(f => f.frame.name)
+    ).toEqual(['com.example.MainActivity.onCreate']);
+    expect(
+      flamegraph
+        .findAllMatchingFrames(
+          'com.example.MainActivity.onCreate',
+          'com.example.MainActivity'
+        )
+        .map(f => f.frame.name)
+    ).toEqual(['com.example.MainActivity.onCreate']);
+    expect(flamegraph.findAllMatchingFrames('onCreate', 'com.example.Worker')).toEqual(
+      []
+    );
+    expect(flamegraph.findAllMatchingFrames(undefined, undefined)).toEqual([]);
+  });
+
   it('Empty', () => {
     expect(Flamegraph.empty().configSpace.equals(new Rect(0, 0, 1_000, 0))).toBe(true);
   });

@@ -94,6 +94,77 @@ describe('Frame', () => {
     });
   });
 
+  describe('java frames', () => {
+    it('qualifies name with module', () => {
+      const frame = new Frame(
+        {
+          key: 0,
+          name: 'call',
+          module: 'rx.internal.util.ScalarSynchronousObservable$ScalarAsyncOnSubscribe',
+          platform: 'java',
+        },
+        'mobile'
+      );
+      expect(frame.name).toBe(
+        'rx.internal.util.ScalarSynchronousObservable$ScalarAsyncOnSubscribe.call'
+      );
+    });
+
+    it('shows only module for constructors', () => {
+      expect(
+        new Frame(
+          {
+            key: 0,
+            name: '<init>',
+            module: 'com.example.Foo',
+            platform: 'java',
+          },
+          'mobile'
+        ).name
+      ).toBe('com.example.Foo');
+    });
+
+    it('keeps bare name when module is missing', () => {
+      expect(
+        new Frame({key: 0, name: 'art_jni_trampoline', platform: 'java'}, 'mobile').name
+      ).toBe('art_jni_trampoline');
+    });
+
+    it('matches both the qualified and the unqualified name', () => {
+      const frame = new Frame(
+        {key: 0, name: 'onCreate', module: 'com.example.MainActivity', platform: 'java'},
+        'mobile'
+      );
+      expect(frame.matchesName('com.example.MainActivity.onCreate')).toBe(true);
+      expect(frame.matchesName('onCreate')).toBe(true);
+      expect(frame.matchesName('onResume')).toBe(false);
+      expect(frame.matchesName(undefined)).toBe(false);
+    });
+
+    it('matches constructors by their unqualified name', () => {
+      const frame = new Frame(
+        {key: 0, name: '<init>', module: 'com.example.Foo', platform: 'java'},
+        'mobile'
+      );
+      expect(frame.matchesName('<init>')).toBe(true);
+      expect(frame.matchesName('com.example.Foo')).toBe(true);
+    });
+
+    it('matches non-java frames only by name', () => {
+      const frame = new Frame({key: 0, name: 'memcpy', platform: 'native'}, 'mobile');
+      expect(frame.matchesName('memcpy')).toBe(true);
+      expect(frame.matchesName(undefined)).toBe(false);
+    });
+
+    it('does not qualify non-java frames', () => {
+      const frame = new Frame(
+        {key: 0, name: 'memcpy', module: 'libc.so', platform: 'native'},
+        'mobile'
+      );
+      expect(frame.name).toBe('memcpy');
+    });
+  });
+
   it('formats getSourceLocation', () => {
     const frame = new Frame(
       {
