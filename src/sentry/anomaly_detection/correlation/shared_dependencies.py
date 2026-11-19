@@ -96,14 +96,15 @@ def learn(
     observed: dict[DependencySlice, HourlyCoverage] = defaultdict(dict)
     for dependency, keys in keys_by_slice.items():
         slice_since = max([since, *(complete_since[key] for key in keys if key in complete_since)])
+        excursions = excursions_by_slice[dependency]
+        hours = observed[dependency]
         for key in keys:
             key_coverage = dict(coverage_between(coverage.get(key, {}), slice_since, until))
-            excursions_by_slice[dependency].extend(
+            excursions.extend(
                 (key.metric, exc)
                 for exc in history[key]
                 if slice_since <= exc.start < until and _observed_at(key_coverage, exc.start)
             )
-            hours = observed[dependency]
             for hour, mask in key_coverage.items():
                 hours[hour] = hours.get(hour, 0) | mask
 

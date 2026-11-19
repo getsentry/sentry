@@ -20,7 +20,6 @@ def anomaly_decision(
     is_resolved: bool = False,
     title: str = "Errors increased",
     evidence: AnomalyEvidence | None = None,
-    env: str = "production",
 ) -> AnomalyDecision:
     return AnomalyDecision(
         group_key=AnomalyGroupKey(group_key),
@@ -35,5 +34,5 @@ def anomaly_decision(
             "change_type": ChangeType.SPIKE,
             "started_at": timestamp.isoformat(),
         },
-        env=env,
+        env="production",
     )

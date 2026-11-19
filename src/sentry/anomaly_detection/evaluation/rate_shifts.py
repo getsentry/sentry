@@ -98,12 +98,13 @@ class RateShiftTracker:
     def note_spike(self, event: ChangeEvent, minute: datetime) -> None:
         """Mark minutes covered by an open spike event on a watched series."""
         state = self.state.get(event.key)
-        if state is not None:
-            # Older minutes cannot enter a detection window again as event time advances.
-            window_start = minute - (self.cfg.after_min + self.cfg.before_min) * MINUTE
-            state.spike_minutes.intersection_update(_minutes(window_start, minute))
-            state.spike_minutes.update(_minutes(max(event.start - MINUTE, window_start), minute))
-            state.spike_seen = minute
+        if state is None:
+            return
+        # Older minutes cannot enter a detection window again as event time advances.
+        window_start = minute - (self.cfg.after_min + self.cfg.before_min) * MINUTE
+        state.spike_minutes.intersection_update(_minutes(window_start, minute))
+        state.spike_minutes.update(_minutes(max(event.start - MINUTE, window_start), minute))
+        state.spike_seen = minute
 
     def step(self, minute: datetime, *, project_id: int | None = None) -> list[ChangeAction]:
         if minute.minute % self.cfg.every:

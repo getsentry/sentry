@@ -232,8 +232,9 @@ class SeriesHistory:
             state.watched.pop(key, None)
             state.series_states.pop(key, None)
             state.exclude.pop(key, None)
-        for pseudo_key in [pseudo_key for pseudo_key in state.pseudo if pseudo_key[0] in forgotten]:
-            del state.pseudo[pseudo_key]
+        for pseudo_key in list(state.pseudo):
+            if pseudo_key[0] in forgotten:
+                del state.pseudo[pseudo_key]
 
     def drop_projects(self, keep: set[int]) -> None:
         state = self.state

@@ -21,7 +21,8 @@ from sentry.utils import metrics
 # windows, not on how often dimensions change or how well values compress.
 _RETAINED_SLICE_GROUPS = 2 * MAX_ENVIRONMENTS * MAX_SLICES
 # Errors and spans discover environments independently.
-_RETAINED_ENVIRONMENTS = 2 * 2 * MAX_ENVIRONMENTS
+_ENVIRONMENT_SOURCES = 2
+_RETAINED_ENVIRONMENTS = 2 * _ENVIRONMENT_SOURCES * MAX_ENVIRONMENTS
 # Keep more cohorts for learning than for the minute-level detector. The recent
 # excursion cap is well above the recurrence rates the novelty model distinguishes.
 _NOVELTY_COHORTS = 4
@@ -53,7 +54,8 @@ def bound_context(evaluator: OrgEvaluator, cursor: datetime) -> None:
         cohorts[cohort].append((novelty.last_seen(key), key))
     retained = evaluator.series_history.state.watched.keys() | evaluator.rate_shifts.state.keys()
     for (_, _, _, sliced), candidates in cohorts.items():
-        limit = _NOVELTY_COHORTS * MAX_ENVIRONMENTS * (MAX_SLICES if sliced else 2)
+        per_environment = MAX_SLICES if sliced else _ENVIRONMENT_SOURCES
+        limit = _NOVELTY_COHORTS * MAX_ENVIRONMENTS * per_environment
         retained.update(key for _, key in sorted(candidates, reverse=True)[:limit])
     novelty.forget(novelty.keys() - retained)
     novelty.cap_history(_NOVELTY_RECORDS_PER_SERIES)
@@ -96,17 +98,10 @@ def evict_stale_series(
     # Live episodes take their metric group with them, not extra slots. If they
     # alone exceed the budget, prefer the last observed episodes, with stable ties.
     kept_slices = {
-        scope: set(
-            sorted(groups, key=lambda group: (groups[group], group), reverse=True)[
-                :_RETAINED_SLICE_GROUPS
-            ]
-        )
-        for scope, groups in slices.items()
+        scope: _highest_ranked(groups, _RETAINED_SLICE_GROUPS) for scope, groups in slices.items()
     }
     kept_envs = {
-        project: set(
-            sorted(envs, key=lambda env: (envs[env], env), reverse=True)[:_RETAINED_ENVIRONMENTS]
-        )
+        project: _highest_ranked(envs, _RETAINED_ENVIRONMENTS)
         for project, envs in environments.items()
     }
     evicted: set[SeriesKey] = set()
@@ -142,3 +137,8 @@ def evict_stale_series(
     # Retain novelty and existing correlation context on their own horizons.
     # Unlike a recovery, expiration does not imply an observed return to normal.
     return evaluator.expire(at, expirations) if expirations else []
+
+
+def _highest_ranked[T](ranks: dict[T, tuple[bool, datetime]], limit: int) -> set[T]:
+    """The `limit` highest-ranked members, breaking rank ties by member."""
+    return set(sorted(ranks, key=lambda member: (ranks[member], member), reverse=True)[:limit])

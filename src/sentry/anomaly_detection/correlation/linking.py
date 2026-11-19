@@ -161,9 +161,8 @@ def link(
         direction = evidence.order(
             incoming_key, existing_key, (incoming_member.footprint, existing_member.footprint)
         )
-        if (
-            direction == call_graph.DOWNSTREAM
-        ):  # The incoming change is the existing member's effect.
+        if direction == call_graph.DOWNSTREAM:
+            # The incoming change is the existing member's effect.
             if existing_onset > incoming_onset + tolerance or (
                 incoming.start < existing_onset - tolerance and onset_gap > tolerance
             ):
@@ -184,9 +183,8 @@ def link(
                 True,
             )
 
-        if (
-            direction == call_graph.UPSTREAM
-        ):  # The incoming change must explain the existing member.
+        if direction == call_graph.UPSTREAM:
+            # The incoming change must explain the existing member.
             existing_worsened = any(
                 worse_near(existing, when, tolerance, observation_minute)
                 for when in (incoming_onset, incoming.start)

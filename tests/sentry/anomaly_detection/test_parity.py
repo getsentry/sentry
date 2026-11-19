@@ -199,9 +199,17 @@ class FirstUserErrors:
             return self._user_page(query, times)
         if not times:
             return []
-        prior = sum(ts < self.run_start for ts in times)
-        row = {"group_id": self.group.id, "users": len(times), "count()": len(times)}
-        return [{**row, "env": ENV, "prior_users": prior}]
+        users = len(times)
+        prior_users = sum(ts < self.run_start for ts in times)
+        return [
+            {
+                "group_id": self.group.id,
+                "users": users,
+                "count()": users,
+                "env": ENV,
+                "prior_users": prior_users,
+            }
+        ]
 
     def _user_page(self, query: Query, times: list[datetime]) -> list[SnubaRow]:
         assert query.limit is not None

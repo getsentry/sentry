@@ -92,7 +92,6 @@ class ExpectedValue:
     key: SeriesKey
     ts: datetime
     expected: float
-    recent_actuals: tuple[float | None, ...]
     point_count: int
     sigma: float
     lower: float

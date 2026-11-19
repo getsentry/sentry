@@ -276,7 +276,7 @@ class TraceLookup:
         for index, (signal, _, dimension) in enumerate(slices):
             for row in results[f"slice-{index}"]["data"]:
                 service = _service(row)
-                dim = row.get(dimension) or "" if dimension else ""
+                dim = (row.get(dimension) or "") if dimension else ""
                 count = number(row.get("count_sample()"))
                 touched = number(row.get("count_unique(trace)"))
                 if (

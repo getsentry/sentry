@@ -161,7 +161,7 @@ class Correlator:
         opened: list[MemberState] = []
         new_latent: list[ChangeEvent] = []
         emitted: list[GroupAction] = []
-        merged_counts: dict[AnomalyGroupKey, int] = {}
+        independent_counts: dict[AnomalyGroupKey, int] = {}
 
         def emit(
             group: AnomalyGroup,
@@ -173,7 +173,7 @@ class Correlator:
             # The survivor can union member evidence after the merge. The closed group's
             # representative keys must not be followed into the survivor's membership.
             if merged_into is not None:
-                merged_counts[group.id] = self.independent(group)
+                independent_counts[group.id] = self.independent(group)
             emitted.append(GroupAction(t, kind, group, event, detail, merged_into))
 
         # Process newly observed escalation metadata before matching changes in the same minute.
@@ -249,12 +249,11 @@ class Correlator:
                 self.state.closed_groups[group.id] = group
                 emit(group, "close", detail="all changes ended")
 
-        counts = merged_counts
         for group_action in emitted:
             group = group_action.group
-            if group.id not in counts:
-                counts[group.id] = self.independent(group)
-            group_action.independent_count = counts[group.id]
+            if group.id not in independent_counts:
+                independent_counts[group.id] = self.independent(group)
+            group_action.independent_count = independent_counts[group.id]
             group_action.root = group.root
         return emitted
 
@@ -303,9 +302,9 @@ class Correlator:
             for key, member in group.members.items():
                 if key not in expired:
                     aliases[self.representative(group, member)].append(key)
-            for members in aliases.values():
-                representative = min(members)
-                for key in members:
+            for keys in aliases.values():
+                representative = min(keys)
+                for key in keys:
                     group.members[key].representative = (
                         None if key == representative else representative
                     )
@@ -335,9 +334,10 @@ class Correlator:
         demoted: list[EpisodeKey] = []
         for groups in (state.open_groups, state.closed_groups):
             for group_id, group in list(groups.items()):
+                root_project = group.root.key.project_id
                 if (
-                    owners.get(group_id, group.root.key.project_id) in keep
-                    and group.root.key.project_id in keep
+                    owners.get(group_id, root_project) in keep
+                    and root_project in keep
                     and all(key.series_key.project_id in keep for key in group.members)
                 ):
                     for member in group.members.values():
@@ -735,17 +735,15 @@ class Correlator:
             member.footprint_loaded = True
             if member.footprint:
                 for edge, count in member.footprint.edges.items():
-                    if count > 0 and edge[0] != edge[2]:
-                        if (
-                            observation_minute
-                            - self.state.edge_seen_at.get(edge, observation_minute)
-                            > self.cfg.call_map_retention
-                        ):
-                            self.state.edges[edge] = count
-                        else:
-                            self.state.edges[edge] += count
-                        self.state.edge_seen_at[edge] = observation_minute
-                        self._graph = None
+                    if count <= 0 or edge.caller == edge.callee:
+                        continue
+                    last_seen = self.state.edge_seen_at.get(edge, observation_minute)
+                    if observation_minute - last_seen > self.cfg.call_map_retention:
+                        self.state.edges[edge] = count
+                    else:
+                        self.state.edges[edge] += count
+                    self.state.edge_seen_at[edge] = observation_minute
+                    self._graph = None
         return member.footprint
 
     @property

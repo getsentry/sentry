@@ -13,7 +13,11 @@ from sentry import features, options
 from sentry.anomaly_detection.checkpoint import codec
 from sentry.anomaly_detection.checkpoint.replay import advance_org
 from sentry.anomaly_detection.contracts import AnomalyGroupKey
-from sentry.anomaly_detection.evaluation.organization import AnomalyDecision, EvaluatorConfig
+from sentry.anomaly_detection.evaluation.organization import (
+    AnomalyDecision,
+    Checkpoint,
+    EvaluatorConfig,
+)
 from sentry.anomaly_detection.grouptype import AnomalyDetection, MinuteDecisions
 from sentry.anomaly_detection.inputs.hourly_snapshot import hourly_rows
 from sentry.anomaly_detection.inputs.measurements import collect
@@ -183,14 +187,14 @@ def _stranded_groups(
     Group keys hash the episode start, so a group from a discarded checkpoint never
     receives another decision and would stay open forever.
     """
-    project_ids = {detector.id: project_id for project_id, detector in detectors.items()}
+    project_by_detector = {detector.id: project_id for project_id, detector in detectors.items()}
     tracked = {decision.group_key for decision in decisions}
     stranded: dict[tuple[datetime, int], set[AnomalyGroupKey]] = defaultdict(set)
     for detector_id, group_key in DetectorState.objects.filter(
-        detector_id__in=project_ids, is_triggered=True
+        detector_id__in=project_by_detector.keys(), is_triggered=True
     ).values_list("detector_id", "detector_group_key"):
         if group_key is not None and group_key not in tracked:
-            stranded[minute, project_ids[detector_id]].add(AnomalyGroupKey(group_key))
+            stranded[minute, project_by_detector[detector_id]].add(AnomalyGroupKey(group_key))
     if stranded:
         count = sum(len(keys) for keys in stranded.values())
         metrics.incr("anomaly_detection.stranded_groups_resolved", amount=count)
@@ -254,24 +258,23 @@ def _run_organization(organization_id: int, target: datetime) -> bool:
         .values_list("next_minute", "checkpoint")
         .get_or_none()
     )
-    stored_minute, stored_checkpoint = stored if stored is not None else (None, None)
-    checkpoint = codec.decode(bytes(stored_checkpoint)) if stored_checkpoint is not None else None
-    if stored_checkpoint is not None and checkpoint is None:
-        metrics.incr("anomaly_detection.checkpoint_discarded")
     target_utc = target.replace(tzinfo=UTC)
-    max_resume_lag = timedelta(minutes=options.get("anomaly_detection.max_resume_lag_minutes"))
-    if (
-        checkpoint is not None
-        and stored_minute is not None
-        and stored_minute < target_utc - max_resume_lag
-    ):
-        # Replaying a long pause would publish anomalies long after they happened.
-        metrics.incr("anomaly_detection.checkpoint_expired")
-        checkpoint = None
+    stored_minute: datetime | None = None
+    checkpoint: Checkpoint | None = None
+    if stored is not None:
+        stored_minute, stored_blob = stored
+        checkpoint = codec.decode(bytes(stored_blob))
+        max_resume_lag = timedelta(minutes=options.get("anomaly_detection.max_resume_lag_minutes"))
+        if checkpoint is None:
+            metrics.incr("anomaly_detection.checkpoint_discarded")
+        elif stored_minute < target_utc - max_resume_lag:
+            # Replaying a long pause would publish anomalies long after they happened.
+            metrics.incr("anomaly_detection.checkpoint_expired")
+            checkpoint = None
+        if stored_minute >= target_utc:
+            # A cold start here would republish a minute the detectors already processed.
+            return False
     resume_minute = stored_minute if checkpoint is not None else None
-    if stored_minute is not None and stored_minute >= target_utc:
-        # A cold start here would republish a minute the detectors already processed.
-        return False
 
     end = target
     if resume_minute is None:

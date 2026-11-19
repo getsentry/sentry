@@ -30,8 +30,8 @@ from sentry.anomaly_detection.correlation.footprint import (
 )
 from sentry.anomaly_detection.correlation.shared_dependencies import (
     DependencySlice,
+    PairStats,
     SharedConfig,
-    SharedDeps,
     learn,
 )
 from sentry.anomaly_detection.evaluation.novelty import Novelty
@@ -401,16 +401,18 @@ def test_shared_learning_counts_staggered_incidents_in_novelty_history_once() ->
             # Episodes are recorded when they open and end later.
             slowdown.ended_at = failures.ended_at = onset + 10 * MINUTE
 
+    def learned_pair() -> PairStats | None:
+        return learn(novelty.state.history, now, coverage=novelty.state.coverage).get(
+            ORDERS, replica
+        )
+
     incidents = [START + timedelta(hours=9 * i, minutes=7 * i) for i in range(1, 4)]
     for onset in incidents[:2]:
         record_incident(onset)
-    assert (
-        learn(novelty.state.history, now, coverage=novelty.state.coverage).get(ORDERS, replica)
-        is None
-    )
+    assert learned_pair() is None
 
     record_incident(incidents[2])
-    pair = learn(novelty.state.history, now, coverage=novelty.state.coverage).get(ORDERS, replica)
+    pair = learned_pair()
     assert pair is not None
     assert pair.co == 3
 
@@ -431,7 +433,7 @@ class _SharedLatent:
                 for key in (ORDERS, replica)
             ]
         )
-        self.learned: SharedDeps = learn({}, START, config, coverage={})
+        self.learned = learn({}, START, config, coverage={})
         self.correlator = Correlator()
         self.first, self.second = _episode(ORDERS), _episode(replica)
         self.support = _episode(support_key)

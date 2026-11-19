@@ -95,20 +95,16 @@ class Baseline:
         series: Series,
         t: datetime,
         excluded_minutes: set[datetime],
-        anchor: datetime | None = None,
         weights: Series | None = None,
         pending: set[datetime] | None = None,
     ) -> ExpectedValue | None:
         """Estimate the level from prior minutes, replacing excluded observations with earlier ones."""
-        end = anchor or t
         points: list[tuple[datetime, float, float]] = []
-        recent: list[float | None] = []
         skipped = 0
         hour_shapes: dict[datetime, float] = {}
         for i in range(self.cfg.window_min, 0, -1):
-            minute = end - i * MINUTE
+            minute = t - i * MINUTE
             value = series.get(minute)
-            recent.append(value)
             if value is None:
                 continue
             if minute in excluded_minutes:
@@ -119,7 +115,7 @@ class Baseline:
                     hour_shapes[hour] = self.shape(key, hour)
                 points.append((minute, hour_shapes[hour], value))
         if skipped:
-            minute = end - self.cfg.window_min * MINUTE
+            minute = t - self.cfg.window_min * MINUTE
             for _ in range(self.cfg.reach_back_min):
                 minute -= MINUTE
                 value = series.get(minute)
@@ -148,7 +144,6 @@ class Baseline:
             key,
             t,
             expected,
-            tuple(recent[-10:]),
             len(points),
             *_estimate_band(self.cfg, band_points, level, expected, offset, pooled),
         )
@@ -162,7 +157,6 @@ class Baseline:
             key,
             t,
             expected,
-            (),
             point_count,
             *_band(expected, offset_for(key), sigma, self.cfg.k),
         )

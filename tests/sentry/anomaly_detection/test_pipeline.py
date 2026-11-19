@@ -212,19 +212,19 @@ def test_duration_promotion_waits_for_supported_anomaly_after_gap() -> None:
     assert list(restarted) == [opened]
 
 
-def _peer_rows(peer_key: SeriesKey, slow_minutes: set[int], end: int) -> list[SeriesRow]:
+def _key_latency_rows(key: SeriesKey, p95s: list[float], samples: float) -> list[SeriesRow]:
+    """A p95 and sample count for `key` at each minute from T0."""
     rows = []
-    for i in range(end):
-        p95 = 450.0 if i in slow_minutes else 30.0
-        for metric, value in ((peer_key.metric, p95), (Metric.COUNT_SAMPLE, 500.0)):
+    for i, p95 in enumerate(p95s):
+        for metric, value in ((key.metric, p95), (Metric.COUNT_SAMPLE, samples)):
             rows.append(
                 SeriesRow(
                     T0 + i * MINUTE,
-                    peer_key.signal,
+                    key.signal,
                     metric,
-                    peer_key.project_id,
-                    peer_key.env,
-                    peer_key.dim_value,
+                    key.project_id,
+                    key.env,
+                    key.dim_value,
                     value,
                 )
             )
@@ -235,7 +235,8 @@ def test_duration_judgment_does_not_see_backdated_peer_opened_on_same_tick() -> 
     start = T0 + 480 * MINUTE
     duration_look = start + 60 * MINUTE
     peer_key = SeriesKey(PROJECT, "prod", Signal.OUTBOUND_DB, Metric.P95_DURATION, "peer")
-    rows = _routine_slowdown_rows(flare_minutes=3) + _peer_rows(peer_key, {536, 538, 540}, 541)
+    peer_p95s = [450.0 if i in (536, 538, 540) else 30.0 for i in range(541)]
+    rows = _routine_slowdown_rows(flare_minutes=3) + _key_latency_rows(peer_key, peer_p95s, 500.0)
     evaluator = OrgEvaluator(NoFootprints(), projects=(PROJECT,))
     evaluator.series_history.cfg.close_after = 1
     assert not evaluator.advance(rows=rows, hourly_rows=[], start=start, end=duration_look)
@@ -413,30 +414,11 @@ def test_simultaneous_excursions_do_not_change_each_others_prior() -> None:
     assert evaluator.novelty.state.history[right_key] == [peer]
 
 
-def _bad_then_healthy_latency_rows(key: SeriesKey) -> list[SeriesRow]:
-    """Empty latency percentiles for 70 minutes, then healthy ones."""
-    rows = []
-    for offset in range(180):
-        p95 = 0.0 if offset < 70 else 100.0
-        for metric, value in ((Metric.P95_DURATION, p95), (Metric.COUNT_SAMPLE, 100.0)):
-            rows.append(
-                SeriesRow(
-                    T0 + offset * MINUTE,
-                    key.signal,
-                    metric,
-                    key.project_id,
-                    key.env,
-                    key.dim_value,
-                    value,
-                )
-            )
-    return rows
-
-
 def test_healthy_measurements_restore_latency_detection() -> None:
     evaluator = OrgEvaluator(NoFootprints(), projects=(PROJECT,))
     key = SeriesKey(PROJECT, "prod", Signal.OUTBOUND_DB, Metric.P95_DURATION, "primary")
-    rows = _bad_then_healthy_latency_rows(key)
+    # Empty latency percentiles for 70 minutes, then healthy ones.
+    rows = _key_latency_rows(key, [0.0] * 70 + [100.0] * 110, 100.0)
     middle = T0 + 61 * MINUTE
     evaluator.advance(rows=rows, hourly_rows=[], start=T0, end=middle)
     assert key in evaluator.series_history.state.exclude

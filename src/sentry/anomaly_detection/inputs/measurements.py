@@ -198,8 +198,10 @@ def _collect_errors(
     if not envs:
         return
     release = Column(ERROR_RELEASE)
-    top_releases = (
-        run_errors(
+    release_cap = len(current_envs) * MAX_SLICES
+    top_releases: list[SnubaRow] = []
+    if current_envs:
+        top_releases = run_errors(
             organization,
             Query(
                 match=Entity("events"),
@@ -208,20 +210,17 @@ def _collect_errors(
                 groupby=[env_group, release],
                 orderby=[OrderBy(count, Direction.DESC), OrderBy(release, Direction.ASC)],
                 limitby=LimitBy([Column("env")], MAX_SLICES),
-                limit=Limit(len(current_envs) * MAX_SLICES + 1),
+                limit=Limit(release_cap + 1),
             ),
             _REFERRER,
         )
-        if current_envs
-        else []
-    )
     releases: dict[str, list[str]] = defaultdict(list)
     for row in top_releases:
         if row["env"] not in current_envs:
             raise IncompleteCollection("Unexpected release environment")
         if row[ERROR_RELEASE]:
             releases[row["env"]].append(row[ERROR_RELEASE])
-    if len(top_releases) > len(current_envs) * MAX_SLICES or any(
+    if len(top_releases) > release_cap or any(
         len(group) > MAX_SLICES for group in releases.values()
     ):
         raise IncompleteCollection("Errors release query exceeded grouping bound")
@@ -485,7 +484,6 @@ def _scoped_span_series(
                         metric in point and point[metric] is None for metric in signal.metrics
                     )
                 ]
-            if not signal.dimension:
                 present.update((utc(point["time"]), key[0]) for point in data)
             yield from _normalize(
                 data,
@@ -541,10 +539,10 @@ def collect(
             if spans_enabled
             else ()
         )
-        request_groups: list[tuple[str, ...]] = [(env,) for env in request_envs]
         rows.extend(_collect_errors(organization, project, start, end, rollup, request_envs))
         if not spans_enabled:
             continue
+        request_groups: list[tuple[str, ...]] = [(env,) for env in request_envs]
         params = SnubaParams(organization=organization, projects=[project], start=start, end=end)
         requests = list(
             _span_series(

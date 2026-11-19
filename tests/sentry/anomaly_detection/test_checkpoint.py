@@ -58,9 +58,7 @@ class Footprints:
             slices={
                 Slice(Service(PROJECT, ENV), Signal.ENDPOINTS, ENDPOINT): SliceStats(0.5, 400.0)
             },
-            edges=Counter(
-                {CallEdge(Service(42, "production"), "example.com", Service(43, "production")): 1}
-            ),
+            edges=Counter({CallEdge(Service(PROJECT, ENV), "example.com", Service(43, ENV)): 1}),
         )
 
 
@@ -449,14 +447,13 @@ def test_rotating_full_slice_cohorts_bound_checkpoint_state() -> None:
 
 
 def test_live_slice_and_samples_survive_two_full_rotations() -> None:
-    projects = (PROJECT,)
     (opened,), checkpoint = advance_org(
         rows=_endpoint_rows(0, 155),
         hourly_rows=(),
         start=START,
         end=_at(155),
         footprints=Footprints(),
-        projects=projects,
+        projects=(PROJECT,),
     )
     assert not opened.is_resolved
 
@@ -480,7 +477,7 @@ def test_live_slice_and_samples_survive_two_full_rotations() -> None:
             start=_at(minute),
             end=_at(minute + 1),
             footprints=Footprints(),
-            projects=projects,
+            projects=(PROJECT,),
             checkpoint=_round_trip(checkpoint),
         )
         assert not decisions
@@ -498,7 +495,7 @@ def test_live_slice_and_samples_survive_two_full_rotations() -> None:
         start=_at(157),
         end=_at(200),
         footprints=Footprints(),
-        projects=projects,
+        projects=(PROJECT,),
         checkpoint=checkpoint,
     )
     assert closed == replace(opened, timestamp=closed.timestamp, is_resolved=True)

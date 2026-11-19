@@ -25,12 +25,16 @@ START = datetime(2025, 10, 1)  # Collector timestamps are naive UTC.
 MINUTE = timedelta(minutes=1)
 
 
-def _where(query: Query, lhs: Column | Function) -> Condition:
-    (condition,) = (
+def _where_all(query: Query, lhs: Column | Function) -> list[Condition]:
+    return [
         condition
         for condition in query.where or ()
         if isinstance(condition, Condition) and condition.lhs == lhs
-    )
+    ]
+
+
+def _where(query: Query, lhs: Column | Function) -> Condition:
+    (condition,) = _where_all(query, lhs)
     return condition
 
 
@@ -42,14 +46,6 @@ def _candidate(group: Group, users: int, *, env: str = "prod", prior: int = 0) -
         "count()": users,
         "prior_users": prior,
     }
-
-
-def _where_all(query: Query, lhs: Column | Function) -> list[Condition]:
-    return [
-        condition
-        for condition in query.where or ()
-        if isinstance(condition, Condition) and condition.lhs == lhs
-    ]
 
 
 # The environment discovery reply that precedes each project's candidate query.

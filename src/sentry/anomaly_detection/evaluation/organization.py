@@ -43,6 +43,8 @@ _MINUTE = timedelta(minutes=1)
 _HARM_WINDOW = timedelta(minutes=10)
 _VOUCH_WINDOW = timedelta(minutes=30)
 _POINT_LIFETIME = timedelta(minutes=30)
+# Observed minutes before an absorbed episode's duration is first judged.
+_FIRST_DURATION_LOOK = 60.0
 CONTEXT_HORIZON = timedelta(hours=6)
 _HARM_PROMOTES = frozenset({Signal.OUTBOUND_DB, Signal.OUTBOUND_HTTP})
 _VOUCH_SIGNALS = frozenset({Signal.ERROR_RATE, Signal.FAILED_RATE, Signal.ERRORS})
@@ -171,8 +173,7 @@ class Admission:
                         state.absorbed[episode] = event
                         action_kind = "latent"
             elif action_kind in ("close", "expire"):
-                state.absorbed.pop(episode, None)
-                state.next_look.pop(episode, None)
+                self.forget([episode])
             elif episode in state.absorbed:
                 if action_kind == "escalate":
                     escalated_at, escalated_ratio = event.escalations[-1]
@@ -269,7 +270,7 @@ class Admission:
 
     def _check_duration(self, event: ChangeEvent, minute: datetime) -> NoveltyEvidence | None:
         episode = episode_key(event)
-        next_duration_check = self.state.next_look.get(episode, 60.0)
+        next_duration_check = self.state.next_look.get(episode, _FIRST_DURATION_LOOK)
         if (
             event.change_type == ChangeType.CHANGE_POINT
             or minute - event.start < next_duration_check * _MINUTE
@@ -330,8 +331,7 @@ class DecisionLog:
         ]
 
     def retain(self, group_keys: Iterable[AnomalyGroupKey]) -> None:
-        retained = set(group_keys)
-        for group_key in self.published.keys() - retained:
+        for group_key in self.published.keys() - set(group_keys):
             del self.published[group_key]
 
     def drop_projects(
@@ -535,16 +535,15 @@ class OrgEvaluator:
         if minute.minute == 0:
             self._prune_context(minute)
             if minute.hour == 0:
-                self.corr.shared = (
-                    shared_dependencies.learn(
+                if self.config.shared_dependencies:
+                    self.corr.shared = shared_dependencies.learn(
                         state.novelty.history,
                         minute,
                         coverage=state.novelty.coverage,
                         complete_since=state.novelty.complete_since,
                     )
-                    if self.config.shared_dependencies
-                    else SharedDeps()
-                )
+                else:
+                    self.corr.shared = SharedDeps()
 
         candidates = self._evaluate_measurements(minute, rows)
         opened_changes = [event for kind, event in candidates if kind == "open"]
