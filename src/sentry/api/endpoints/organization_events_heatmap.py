@@ -1,4 +1,5 @@
 import math
+from decimal import Decimal
 from typing import Any, NamedTuple, NotRequired, TypedDict
 
 from drf_spectacular.utils import extend_schema
@@ -91,10 +92,11 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
         """
         Python's default float-to-string uses scientific notation for very small
         values (e.g. 8.527e-06), which the search query parser does not support.
-        Fixed-point with 20 decimal places produces a plain decimal string the parser can handle.
+        Formatting the shortest repr as a Decimal produces the exact plain decimal string
+        the parser can handle, without rounding the value.
         """
         if "e" in str(value) or "E" in str(value):
-            return f"{value:.20f}".rstrip("0").rstrip(".")
+            return format(Decimal(repr(value)), "f")
         else:
             return str(value)
 

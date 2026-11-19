@@ -536,6 +536,13 @@ class TestFormatLongFloat:
         result = OrganizationEventsHeatmapEndpoint._format_long_float(0.0)
         assert result == "0.0"
 
+    def test_small_number_is_not_rounded(self) -> None:
+        # Rounding the minimum up would exclude the smallest value from the first bucket.
+        for value in [1.2345678901234567e-05, 4e-21]:
+            result = OrganizationEventsHeatmapEndpoint._format_long_float(value)
+            assert "e" not in result
+            assert float(result) == value
+
     def test_very_small_number_is_parseable(self) -> None:
         # Ensure the formatted string looks like a plain decimal Python float
         result = OrganizationEventsHeatmapEndpoint._format_long_float(1.23e-10)
