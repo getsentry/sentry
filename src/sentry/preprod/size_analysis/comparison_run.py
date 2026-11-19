@@ -9,8 +9,10 @@ from django.db import router, transaction
 from django.utils import timezone
 
 from sentry.models.files.file import File
+from sentry.models.project import Project
+from sentry.objectstore import UsecaseId
 from sentry.preprod.models import PreprodArtifactSizeComparison, PreprodArtifactSizeMetrics
-from sentry.preprod.objectstore import ObjectstoreFile
+from sentry.preprod.objectstore import ObjectstoreFile, writes_to_objectstore
 from sentry.preprod.size_analysis.compare import compare_size_analysis
 from sentry.preprod.size_analysis.models import ComparisonResults, SizeAnalysisResults
 from sentry.preprod.vcs.pr_comments.size_tasks import create_preprod_size_pr_comment_task
@@ -26,7 +28,7 @@ class _PreparedSizeComparison:
 
     head_metric: PreprodArtifactSizeMetrics
     base_metric: PreprodArtifactSizeMetrics
-    result_file: File | None
+    result_file: File | ObjectstoreFile | None
 
 
 def run_size_analysis_comparisons(
@@ -35,7 +37,7 @@ def run_size_analysis_comparisons(
     follow_up_artifact_ids: Iterable[int],
 ) -> None:
     """One task invocation's comparisons, recorded together last so a failure leaves no rows."""
-    result_files: list[File] = []
+    result_files: list[File | ObjectstoreFile] = []
     try:
         prepared_comparisons: list[_PreparedSizeComparison] = []
         for comp in comparisons:
@@ -120,7 +122,9 @@ def run_size_analysis_comparison(
     )
 
     file_name = str(comparison.id)
-    result_file = _store_size_comparison_results(file_name, comparison_results)
+    result_file = _store_size_comparison_results(
+        head_size_metric.preprod_artifact.project, file_name, comparison_results
+    )
     _record_success(comparison, result_file)
 
     logger.info(
@@ -188,7 +192,9 @@ def _prepare_size_analysis_comparison(
     )
 
     provisional_file_name = f"{head_size_metric.id}-{base_size_metric.id}"
-    result_file = _store_size_comparison_results(provisional_file_name, comparison_results)
+    result_file = _store_size_comparison_results(
+        head_size_metric.preprod_artifact.project, provisional_file_name, comparison_results
+    )
     return _PreparedSizeComparison(
         head_metric=head_size_metric, base_metric=base_size_metric, result_file=result_file
     )
@@ -223,10 +229,11 @@ def _record_size_analysis_comparison(org_id: int, prepared: _PreparedSizeCompari
         return
 
     # The file was stored before its row existed, so it takes the row id as its name here
-    prepared.result_file.name = str(comparison.id)
-    prepared.result_file.save(update_fields=["name"])
+    if isinstance(prepared.result_file, File):
+        prepared.result_file.name = str(comparison.id)
+        prepared.result_file.save(update_fields=["name"])
 
-    comparison.file_id = prepared.result_file.id
+    _set_result_file(comparison, prepared.result_file)
     comparison.state = PreprodArtifactSizeComparison.State.SUCCESS
     comparison.save()
 
@@ -333,10 +340,19 @@ def _claim_comparison(
     return True
 
 
-def _record_success(comparison: PreprodArtifactSizeComparison, result_file: File) -> None:
+def _set_result_file(
+    comparison: PreprodArtifactSizeComparison, result_file: File | ObjectstoreFile
+) -> None:
+    comparison.file_id = result_file.id if isinstance(result_file, File) else None
+    comparison.storage_path = result_file.key if isinstance(result_file, ObjectstoreFile) else None
+
+
+def _record_success(
+    comparison: PreprodArtifactSizeComparison, result_file: File | ObjectstoreFile
+) -> None:
     try:
         with transaction.atomic(router.db_for_write(PreprodArtifactSizeComparison)):
-            comparison.file_id = result_file.id
+            _set_result_file(comparison, result_file)
             comparison.state = PreprodArtifactSizeComparison.State.SUCCESS
             comparison.save()
     except BaseException:
@@ -344,15 +360,20 @@ def _record_success(comparison: PreprodArtifactSizeComparison, result_file: File
         raise
 
 
-def _store_size_comparison_results(name: str, comparison_results: ComparisonResults) -> File:
+def _store_size_comparison_results(
+    project: Project, name: str, comparison_results: ComparisonResults
+) -> File | ObjectstoreFile:
+    results_bytes = dumps_htmlsafe(comparison_results.dict()).encode()
+    if writes_to_objectstore(project):
+        return ObjectstoreFile.put(
+            UsecaseId.PREPROD_SIZE, project, BytesIO(results_bytes), len(results_bytes), name
+        )
     file = File.objects.create(
         name=name,
         type="size_analysis_comparison.json",
         headers={"Content-Type": "application/json"},
     )
     try:
-        results_json = dumps_htmlsafe(comparison_results.dict())
-        results_bytes = results_json.encode()
         file.putfile(BytesIO(results_bytes))
     except BaseException:
         _delete_unreferenced_result_files([file])
@@ -360,16 +381,23 @@ def _store_size_comparison_results(name: str, comparison_results: ComparisonResu
     return file
 
 
-def _delete_unreferenced_result_files(files: Sequence[File]) -> None:
+def _delete_unreferenced_result_files(files: Sequence[File | ObjectstoreFile]) -> None:
     for file in files:
         try:
-            referencing_comparisons = PreprodArtifactSizeComparison.objects.filter(file_id=file.id)
+            if isinstance(file, ObjectstoreFile):
+                referencing_comparisons = PreprodArtifactSizeComparison.objects.filter(
+                    storage_path=file.key
+                )
+            else:
+                referencing_comparisons = PreprodArtifactSizeComparison.objects.filter(
+                    file_id=file.id
+                )
             if not referencing_comparisons.exists():
                 file.delete()
         except Exception:
             logger.exception(
                 "preprod.size_analysis.compare.result_file_cleanup_failed",
-                extra={"file_id": file.id},
+                extra={"file": file.key if isinstance(file, ObjectstoreFile) else file.id},
             )
 
 

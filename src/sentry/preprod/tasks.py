@@ -4,7 +4,8 @@ import datetime
 import logging
 import uuid
 from collections.abc import Callable
-from typing import Any
+from dataclasses import dataclass
+from typing import IO, Any
 
 import sentry_sdk
 from django.db import router, transaction
@@ -13,8 +14,10 @@ from taskbroker_client.retry import Retry
 
 from sentry.constants import DataCategory
 from sentry.models.commitcomparison import CommitComparison
+from sentry.models.files.file import File
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.objectstore import UsecaseId
 from sentry.preprod.build_distribution_webhooks import send_build_distribution_webhook
 from sentry.preprod.eap.write import (
     produce_preprod_build_distribution_to_eap,
@@ -36,15 +39,16 @@ from sentry.preprod.size_analysis.models import SizeAnalysisResults
 from sentry.preprod.size_analysis.monitors import maybe_emit_issues_from_absolute_size_results
 from sentry.preprod.size_analysis.tasks import compare_preprod_artifact_size_analysis
 from sentry.preprod.size_analysis.webhooks import send_size_analysis_webhook
+from sentry.preprod.objectstore import ObjectstoreFile, writes_to_objectstore
 from sentry.preprod.vcs.pr_comments.size_tasks import create_preprod_size_pr_comment_task
 from sentry.preprod.vcs.pr_comments.tasks import create_preprod_pr_comment_task
 from sentry.preprod.vcs.status_checks.size.tasks import create_preprod_status_check_task
 from sentry.silo.base import SiloMode
 from sentry.tasks.assemble import (
-    AssembleResult,
     AssembleTask,
     ChunkFileState,
     assemble_file,
+    assemble_file_blobs,
     get_assemble_status,
     set_assemble_status,
 )
@@ -72,6 +76,48 @@ def process_artifact(
     **kwargs: Any,
 ) -> None:
     pass
+
+
+@dataclass
+class PreprodAssembly:
+    bundle: File | ObjectstoreFile
+    bundle_temp_file: IO[bytes]
+
+    @property
+    def file_id(self) -> int | None:
+        return self.bundle.id if isinstance(self.bundle, File) else None
+
+    @property
+    def storage_path(self) -> str | None:
+        return self.bundle.key if isinstance(self.bundle, ObjectstoreFile) else None
+
+
+def _assemble_file(
+    task: str,
+    project: Project,
+    name: str,
+    checksum: str,
+    chunks: list[str],
+    file_type: str,
+    usecase: UsecaseId,
+    filename: str,
+) -> PreprodAssembly | None:
+    if not writes_to_objectstore(project):
+        result = assemble_file(task, project, name, checksum, chunks, file_type)
+        return PreprodAssembly(*result) if result else None
+
+    stream = assemble_file_blobs(task, project, name, checksum, chunks)
+    if stream is None:
+        return None
+    try:
+        size = stream.seek(0, 2)
+        stream.seek(0)
+        stored = ObjectstoreFile.put(usecase, project, stream, size, filename)
+        stream.seek(0)
+        return PreprodAssembly(stored, stream)
+    except BaseException:
+        stream.close()
+        raise
 
 
 @instrumented_task(
@@ -108,13 +154,15 @@ def assemble_preprod_artifact(
         project = Project.objects.get(id=project_id, organization=organization)
         bind_organization_context(organization)
 
-        assemble_result = assemble_file(
+        assemble_result = _assemble_file(
             task=AssembleTask.PREPROD_ARTIFACT,
-            org_or_project=project,
+            project=project,
             name=f"preprod-artifact-{uuid.uuid4().hex}",
             checksum=checksum,
             chunks=chunks,
             file_type="preprod.artifact",
+            usecase=UsecaseId.PREPROD_ARTIFACTS,
+            filename=f"preprod_artifact_{artifact_id}.zip",
         )
 
         if assemble_result is None:
@@ -132,8 +180,9 @@ def assemble_preprod_artifact(
             },
         )
 
-        PreprodArtifact.objects.filter(id=artifact_id).update(
-            file_id=assemble_result.bundle.id,
+        PreprodArtifact.objects.filter(id=artifact_id, project=project).update(
+            file_id=assemble_result.file_id,
+            storage_path=assemble_result.storage_path,
             state=PreprodArtifact.ArtifactState.UPLOADED,
         )
 
@@ -325,7 +374,8 @@ def _assemble_preprod_artifact_file(
     org_id: int,
     checksum: str,
     chunks: Any,
-    callback: Callable[[AssembleResult, Any], None],
+    usecase: UsecaseId,
+    callback: Callable[[PreprodAssembly, Project], None],
 ) -> None:
     logger.info(
         "Starting preprod file assembly",
@@ -349,13 +399,15 @@ def _assemble_preprod_artifact_file(
             ChunkFileState.ASSEMBLING,
         )
 
-        assemble_result = assemble_file(
+        assemble_result = _assemble_file(
             task=assemble_task,
-            org_or_project=project,
+            project=project,
             name=f"preprod-file-{assemble_task}-{uuid.uuid4().hex}",
             checksum=checksum,
             chunks=chunks,
             file_type="preprod.file",
+            usecase=usecase,
+            filename="analysis.json" if usecase == UsecaseId.PREPROD_SIZE else "installable",
         )
         if assemble_result is None:
             state, detail = get_assemble_status(assemble_task, project_id, checksum)
@@ -372,7 +424,8 @@ def _assemble_preprod_artifact_file(
             )
             return
 
-        callback(assemble_result, project)
+        with assemble_result.bundle_temp_file:
+            callback(assemble_result, project)
     except Exception as e:
         logger.exception(
             "Failed to assemble preprod file",
@@ -395,7 +448,7 @@ def _assemble_preprod_artifact_file(
 
 
 def _assemble_preprod_artifact_size_analysis(
-    assemble_result: AssembleResult, project: Project, artifact_id: int | None, org_id: int
+    assemble_result: PreprodAssembly, project: Project, artifact_id: int | None, org_id: int
 ) -> None:
     if artifact_id is None:
         logger.error(
@@ -422,10 +475,6 @@ def _assemble_preprod_artifact_size_analysis(
         )
         # Clean up the assembled file since we can't associate it with an artifact
         try:
-            # Close the temporary file handle first
-            if hasattr(assemble_result, "bundle_temp_file") and assemble_result.bundle_temp_file:
-                assemble_result.bundle_temp_file.close()
-            # Then delete the file object
             assemble_result.bundle.delete()
         except Exception:
             pass  # Ignore cleanup errors
@@ -458,7 +507,8 @@ def _assemble_preprod_artifact_size_analysis(
                     metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT,
                     defaults={
                         "identifier": None,
-                        "analysis_file_id": assemble_result.bundle.id,
+                        "analysis_file_id": assemble_result.file_id,
+                        "analysis_storage_path": assemble_result.storage_path,
                         "min_install_size": None,
                         "max_install_size": size_analysis_results.install_size,
                         "min_download_size": None,
@@ -485,7 +535,8 @@ def _assemble_preprod_artifact_size_analysis(
                         metrics_artifact_type=app_component.component_type,
                         identifier=identifier,
                         defaults={
-                            "analysis_file_id": assemble_result.bundle.id,
+                            "analysis_file_id": assemble_result.file_id,
+                            "analysis_storage_path": assemble_result.storage_path,
                             "min_install_size": None,  # No min value at this time
                             "max_install_size": app_component.install_size,
                             "min_download_size": None,  # No min value at this time
@@ -559,7 +610,8 @@ def _assemble_preprod_artifact_size_analysis(
             extra={
                 "preprod_artifact_id": preprod_artifact.id,
                 "size_metrics_ids": [size_metrics.id for size_metrics in size_metrics_updated],
-                "analysis_file_id": assemble_result.bundle.id,
+                "analysis_file_id": assemble_result.file_id,
+                "analysis_storage_path": assemble_result.storage_path,
                 "was_created": was_created,
                 "project_id": project.id,
                 "organization_id": org_id,
@@ -614,12 +666,6 @@ def _assemble_preprod_artifact_size_analysis(
         # Re-raise to trigger further error handling if needed
         raise
     finally:
-        # Ensure the temp file is closed to avoid resource leaks
-        try:
-            assemble_result.bundle_temp_file.close()
-        except Exception:
-            pass
-
         time_now = timezone.now()
         e2e_size_analysis_duration = time_now - preprod_artifact.date_added
         artifact_type_name = "unknown"
@@ -714,6 +760,7 @@ def assemble_preprod_artifact_size_analysis(
         org_id,
         checksum,
         chunks,
+        UsecaseId.PREPROD_SIZE,
         lambda assemble_result, project: _assemble_preprod_artifact_size_analysis(
             assemble_result, project, artifact_id, org_id
         ),
@@ -721,7 +768,7 @@ def assemble_preprod_artifact_size_analysis(
 
 
 def _assemble_preprod_artifact_installable_app(
-    assemble_result: AssembleResult, project: Project, artifact_id: int, org_id: int
+    assemble_result: PreprodAssembly, project: Project, artifact_id: int, org_id: int
 ) -> None:
     try:
         preprod_artifact = PreprodArtifact.objects.select_related("mobile_app_info").get(
@@ -740,10 +787,6 @@ def _assemble_preprod_artifact_installable_app(
         )
         # Clean up the assembled file since we can't associate it with an artifact
         try:
-            # Close the temporary file handle first
-            if hasattr(assemble_result, "bundle_temp_file") and assemble_result.bundle_temp_file:
-                assemble_result.bundle_temp_file.close()
-            # Then delete the file object
             assemble_result.bundle.delete()
         except Exception:
             pass  # Ignore cleanup errors
@@ -751,8 +794,15 @@ def _assemble_preprod_artifact_installable_app(
 
     # Update artifact state in its own transaction with proper database routing
     with transaction.atomic(router.db_for_write(PreprodArtifact)):
-        preprod_artifact.installable_app_file_id = assemble_result.bundle.id
-        preprod_artifact.save(update_fields=["installable_app_file_id", "date_updated"])
+        preprod_artifact.installable_app_file_id = assemble_result.file_id
+        preprod_artifact.installable_app_storage_path = assemble_result.storage_path
+        preprod_artifact.save(
+            update_fields=[
+                "installable_app_file_id",
+                "installable_app_storage_path",
+                "date_updated",
+            ]
+        )
 
     send_build_distribution_webhook(artifact=preprod_artifact, organization_id=org_id)
 
@@ -828,6 +878,7 @@ def assemble_preprod_artifact_installable_app(
         org_id,
         checksum,
         chunks,
+        UsecaseId.PREPROD_DISTRIBUTION,
         lambda assemble_result, project: _assemble_preprod_artifact_installable_app(
             assemble_result, project, artifact_id, org_id
         ),
