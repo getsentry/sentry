@@ -391,6 +391,47 @@ it('customizes chip labels while retaining the remove control', async () => {
   expect(onChange).toHaveBeenCalledWith([options[1]], expect.anything());
 });
 
+it('removes the last selected item with Backspace when the search is empty', async () => {
+  const onChange = jest.fn();
+  render(
+    <Select
+      multiple
+      aria-label="Fruit"
+      options={options}
+      value={['apple', 'cherry']}
+      onChange={onChange}
+    />,
+    {wrapper: ThemeWrapper}
+  );
+
+  await userEvent.tab();
+  await userEvent.keyboard('a{Backspace}');
+  expect(screen.getByRole('combobox', {name: 'Fruit'})).toHaveValue('');
+  expect(onChange).not.toHaveBeenCalled();
+
+  await userEvent.keyboard('{Backspace}');
+  expect(onChange).toHaveBeenCalledWith([options[0]], expect.anything());
+});
+
+it('keeps the last selected item on Backspace when clearable is false', async () => {
+  const onChange = jest.fn();
+  render(
+    <Select
+      multiple
+      clearable={false}
+      aria-label="Fruit"
+      options={options}
+      value={['apple', 'cherry']}
+      onChange={onChange}
+    />,
+    {wrapper: ThemeWrapper}
+  );
+
+  await userEvent.tab();
+  await userEvent.keyboard('{Backspace}');
+  expect(onChange).not.toHaveBeenCalled();
+});
+
 it('customizes indicators while retaining the clear control', async () => {
   const onChange = jest.fn();
   render(
@@ -789,6 +830,56 @@ it('runs the caller keyboard handler before opening or choosing options', async 
   await userEvent.keyboard('{ArrowDown}');
   expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
   expect(onOpenChange).not.toHaveBeenCalled();
+});
+
+it.each([true, false])(
+  'opens the menu and then selects an option with Space (searchable: %s)',
+  async searchable => {
+    const onChange = jest.fn();
+    render(
+      <Select
+        aria-label="Fruit"
+        options={options}
+        value={null}
+        onChange={onChange}
+        searchable={searchable}
+      />,
+      {wrapper: ThemeWrapper}
+    );
+
+    await userEvent.tab();
+    await userEvent.keyboard('[Space]');
+
+    expect(screen.getByRole('listbox')).toBeInTheDocument();
+    expect(screen.getByRole('combobox', {name: 'Fruit'})).toHaveValue('');
+    expect(onChange).not.toHaveBeenCalled();
+
+    await userEvent.keyboard('[Space]');
+
+    expect(onChange.mock.calls[0]?.[0]).toBe(options[0]);
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+  }
+);
+
+it('inserts Space into an active search query', async () => {
+  const onChange = jest.fn();
+  render(
+    <Select
+      aria-label="Fruit"
+      options={options}
+      value={[]}
+      onChange={onChange}
+      multiple
+    />,
+    {wrapper: ThemeWrapper}
+  );
+
+  await userEvent.tab();
+  await userEvent.keyboard('apple[Space]');
+
+  expect(screen.getByRole('combobox', {name: 'Fruit'})).toHaveValue('apple ');
+  expect(screen.getByRole('option', {name: 'Apple'})).toBeInTheDocument();
+  expect(onChange).not.toHaveBeenCalled();
 });
 
 it('keeps the controlled menu closed while entering text', async () => {

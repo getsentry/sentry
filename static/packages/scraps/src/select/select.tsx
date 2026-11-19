@@ -474,12 +474,13 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
       overlayState.close();
       return;
     }
-    if (event.key === ' ' && !searchable && !isOpen) {
+    const isSpaceAction = event.key === ' ' && (!searchable || !query);
+    if (isSpaceAction && !isOpen) {
       event.preventDefault();
       overlayState.open();
       return;
     }
-    if (isOpen && (event.key === 'Enter' || (!searchable && event.key === ' '))) {
+    if (isOpen && (event.key === 'Enter' || isSpaceAction)) {
       event.preventDefault();
       const key = focusedKey ?? delegate.getFirstKey();
       if (key != null) {
@@ -521,7 +522,8 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
       (event.key === 'Backspace' || event.key === 'Delete')
     ) {
       remove(focusedChip, 'pop-value');
-    } else if (event.key === 'Backspace' && clearable) {
+    } else if (event.key === 'Backspace' && (clearable ?? multiple)) {
+      event.preventDefault();
       if (multiple) {
         remove(selected.length - 1, 'pop-value');
       } else {
