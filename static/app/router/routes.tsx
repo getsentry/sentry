@@ -1201,11 +1201,27 @@ function buildRoutes(): RouteObject[] {
               },
               children: [
                 {
+                  path: 'new/',
+                  name: t('New Service Account'),
+                  component: make(
+                    () =>
+                      import('sentry/views/settings/organizationServiceAccounts/newServiceAccount')
+                  ),
+                },
+                {
                   path: ':serviceAccountId/',
                   name: t('Service Account'),
                   component: make(
                     () =>
                       import('sentry/views/settings/organizationServiceAccounts/serviceAccountDetails')
+                  ),
+                },
+                {
+                  path: ':serviceAccountId/edit/',
+                  name: t('Edit Service Account'),
+                  component: make(
+                    () =>
+                      import('sentry/views/settings/organizationServiceAccounts/editServiceAccount')
                   ),
                 },
               ],

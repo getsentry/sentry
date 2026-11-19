@@ -13,3 +13,10 @@ export interface ServiceAccount {
   projectIds: string[];
   scopes: string[];
 }
+
+export interface ServiceAccountInput {
+  allProjects: boolean;
+  name: string;
+  projectIds: number[];
+  scopes: string[];
+}

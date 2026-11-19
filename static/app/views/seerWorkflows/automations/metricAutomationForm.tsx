@@ -45,6 +45,7 @@ import {useCreateConfig, useUpdateConfig} from './hooks/configs';
 import {ConnectMonitorsDrawer} from './connectMonitorsDrawer';
 import {MonitorTable} from './monitorTable';
 import {
+  DEFAULT_SERVICE_ACCOUNT_SCOPES,
   getServiceAccountProjectIds,
   ServiceAccountPermissions,
   ServiceAccountProjects,
@@ -64,14 +65,6 @@ const schema = z.object({
     .array(z.string())
     .min(1, t('Give the service account at least one permission.')),
 });
-
-const DEFAULT_SERVICE_ACCOUNT_SCOPES = [
-  'event:read',
-  'member:read',
-  'org:read',
-  'project:read',
-  'team:read',
-];
 
 export type MetricAutomationFormHandle = {reset: () => void};
 
