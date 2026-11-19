@@ -3,11 +3,13 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import Any
 
+import psycopg2
 import pytest
 from django.apps import apps
-from django.db import IntegrityError, connection, models, transaction
+from django.db import IntegrityError, OperationalError, connection, models, transaction
 from django.db.migrations.state import ModelState, ProjectState
 from django.test import override_settings
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 from django_zero_downtime_migrations.backends.postgres.schema import UnsafeOperationException
 
@@ -195,6 +197,58 @@ class PartitionedIndexTest(TransactionTestCase):
             with connection.cursor() as cursor:
                 cursor.execute(sql.TABLE_EXISTS, [self.index.name])
                 assert cursor.fetchone() == (False,)
+
+    def session_lock_timeout(self) -> str:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT setting || unit FROM pg_settings WHERE name = 'lock_timeout'")
+            return cursor.fetchone()[0]
+
+    def drop_statements(self) -> list[str]:
+        with safe_editor() as editor:
+            editor.add_index(RangePartitionedFixture, self.index)
+        with CaptureQueriesContext(connection) as queries, safe_editor() as editor:
+            editor.remove_index(RangePartitionedFixture, self.index)
+        return [
+            q["sql"]
+            for q in queries.captured_queries
+            if q["sql"].startswith(("SET lock_timeout", "DROP INDEX"))
+        ]
+
+    def test_remove_index_uses_configured_lock_timeout(self) -> None:
+        with fixture_tables(), override_settings(ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT="10s"):
+            previous = self.session_lock_timeout()
+            assert self.drop_statements() == [
+                "SET lock_timeout TO '10s'",
+                'DROP INDEX IF EXISTS "fx_partitions_range_vd_idx"',
+                f"SET lock_timeout TO '{previous}'",
+            ]
+            assert self.session_lock_timeout() == previous
+
+    def test_remove_index_falls_back_to_default_lock_timeout(self) -> None:
+        with fixture_tables(), override_settings(ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT=None):
+            previous = self.session_lock_timeout()
+            assert self.drop_statements() == [
+                "SET lock_timeout TO '5s'",
+                'DROP INDEX IF EXISTS "fx_partitions_range_vd_idx"',
+                f"SET lock_timeout TO '{previous}'",
+            ]
+            assert self.session_lock_timeout() == previous
+
+    def test_remove_index_gives_up_waiting_for_the_lock(self) -> None:
+        with fixture_tables(), override_settings(ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT="100ms"):
+            with safe_editor() as editor:
+                editor.add_index(RangePartitionedFixture, self.index)
+            # Any open transaction reading the table conflicts with the drop.
+            reader = psycopg2.connect(**connection.get_connection_params())
+            try:
+                with reader.cursor() as cursor:
+                    cursor.execute(f'SELECT 1 FROM "{RANGE_TABLE}" LIMIT 1')
+                with pytest.raises(OperationalError, match="lock timeout"):
+                    with safe_editor() as editor:
+                        editor.remove_index(RangePartitionedFixture, self.index)
+            finally:
+                reader.close()
+            assert index_state(self.index.name)[0] is True
 
     def test_add_index_replaces_invalid_partition_index(self) -> None:
         with fixture_tables():

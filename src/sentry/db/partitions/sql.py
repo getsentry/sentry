@@ -84,6 +84,9 @@ DETACH_PARTITION_CONCURRENTLY = "ALTER TABLE {table} DETACH PARTITION {partition
 FINALIZE_DETACH_PARTITION = "ALTER TABLE {table} DETACH PARTITION {partition} FINALIZE"
 DROP_TABLE = "DROP TABLE {table}"
 
+# Used for statements that take a strong lock on a live partitioned table, when no
+# `ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT` is configured.
+DEFAULT_LOCK_TIMEOUT = "5s"
 SET_LOCK_TIMEOUT = "SET lock_timeout TO '{timeout}'"
 SET_LOCAL_LOCK_TIMEOUT = "SET LOCAL lock_timeout TO '{timeout}'"
 RESET_LOCK_TIMEOUT = "SET lock_timeout TO DEFAULT"

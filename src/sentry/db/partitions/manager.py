@@ -38,8 +38,6 @@ from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
-LOCK_TIMEOUT = "5s"
-
 
 @dataclass(frozen=True)
 class RangeTable:
@@ -83,7 +81,7 @@ def _attach_range_partition(target: RangeTable, bound: RangePartitionBound) -> N
     }
     with transaction.atomic(using=target.connection.alias):
         with target.connection.cursor() as cursor:
-            cursor.execute(sql.SET_LOCAL_LOCK_TIMEOUT.format(timeout=LOCK_TIMEOUT))
+            cursor.execute(sql.SET_LOCAL_LOCK_TIMEOUT.format(timeout=sql.DEFAULT_LOCK_TIMEOUT))
             cursor.execute(sql.CREATE_STANDALONE_PARTITION.format(**values))
             cursor.execute(sql.ADD_RANGE_BOUND_CHECK.format(**values))
             cursor.execute(sql.ATTACH_RANGE_PARTITION.format(**values))
@@ -131,7 +129,7 @@ def ensure_range_partitions(target: RangeTable, now: datetime | None = None) -> 
 
 def _execute_outside_transaction(connection: BaseDatabaseWrapper, statement: str) -> None:
     with connection.cursor() as cursor:
-        cursor.execute(sql.SET_LOCK_TIMEOUT.format(timeout=LOCK_TIMEOUT))
+        cursor.execute(sql.SET_LOCK_TIMEOUT.format(timeout=sql.DEFAULT_LOCK_TIMEOUT))
         try:
             cursor.execute(statement)
         finally:

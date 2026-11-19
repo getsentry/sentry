@@ -14,7 +14,7 @@ from __future__ import annotations
 import copy
 import hashlib
 from collections.abc import Callable, Iterator
-from contextlib import contextmanager
+from contextlib import AbstractContextManager, contextmanager
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, cast
@@ -227,6 +227,11 @@ def _unsafe(message: str) -> UnsafeOperationException:
 
 
 class SafePartitioningSchemaEditorMixin(PartitioningSchemaEditorMixin):
+    # Provided by the zero downtime migrations editor this is mixed into.
+    LOCK_TIMEOUT: str | None
+    STATEMENT_TIMEOUT: str | None
+    _set_operation_timeout: Callable[..., AbstractContextManager[None]]
+
     def _partitioned_table_info(self, model: type[Model]) -> PartitionedTableInfo | None:
         # Partitioned tables are only ever created from a declaration, so tables without
         # one skip the catalog lookups.
@@ -312,10 +317,13 @@ class SafePartitioningSchemaEditorMixin(PartitioningSchemaEditorMixin):
         if self._partitioned_table_info(model) is None:
             super().remove_index(model, index, concurrently=concurrently)
             return
-        # Postgres' `_delete_index_sql` ignores a custom template, so build the statement here.
-        self.execute(
-            _statement(PGAccessExclusive(sql.DROP_INDEX), name=self.quote_name(index.name))
-        )
+        # Partitioned indexes can't be dropped concurrently. The plain drop takes an ACCESS
+        # EXCLUSIVE lock on the table and all of its partitions, and every query queues
+        # behind it while it waits, so it always runs with a lock timeout.
+        lock_timeout = self.LOCK_TIMEOUT or sql.DEFAULT_LOCK_TIMEOUT
+        with self._set_operation_timeout(self.STATEMENT_TIMEOUT, lock_timeout):
+            # Postgres' `_delete_index_sql` ignores a custom template, so build it here.
+            self.execute(Statement(sql.DROP_INDEX, name=self.quote_name(index.name)))
 
     def add_constraint(self, model: type[Model], constraint: BaseConstraint) -> None:
         if isinstance(constraint, UniqueConstraint) and self._partitioned_table_info(model):
