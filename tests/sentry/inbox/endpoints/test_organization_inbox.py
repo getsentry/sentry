@@ -484,36 +484,25 @@ class OrganizationInboxIndexTest(APITestCase):
         assert back.status_code == 200, back.data
         assert [entry["id"] for entry in back.data] == [str(items[2].id), str(items[1].id)]
 
-    def test_missing_subjects_do_not_take_up_page_slots(self) -> None:
-        issue = self.create_inbox_item(
-            subject_id=str(self.group.id), last_activity_at=before_now(minutes=2)
-        )
+    def test_items_with_missing_subjects_are_omitted(self) -> None:
+        item = self.create_inbox_item(subject_id=str(self.group.id))
         self.create_inbox_item_event(
-            inbox_item=issue, data={"assignment_source": None, "activity_id": 1}
+            inbox_item=item, data={"assignment_source": None, "activity_id": 1}
         )
-        notebook = self.create_inbox_item(
-            subject_type="notebook",
-            subject_id=str(self.create_notebook(organization=self.organization).id),
-            last_activity_at=before_now(minutes=1),
-        )
-        self.create_inbox_item_event(inbox_item=notebook, type="notebook.participant_added")
-
         deleted = self.create_group()
-        self.create_inbox_item(subject_id=str(deleted.id))
-        deleted.delete()
-        other_org_project = self.create_project(organization=self.create_organization())
-        self.create_inbox_item(subject_id=str(self.create_group(project=other_org_project).id))
-        self.create_inbox_item(subject_type="removed.type", subject_id=str(self.group.id))
-        self.create_inbox_item(subject_id=f"0{self.group.id}")
-        self.create_inbox_item(subject_id="9223372036854775808")
-        self.create_inbox_item(subject_type="notebook", subject_id="invalid")
-
-        response = self.get_success_response(self.organization.slug, per_page=2)
-
-        assert [entry["id"] for entry in response.data] == [str(notebook.id), str(issue.id)]
-        assert all(
-            attrs["results"] == "false" for attrs in parse_link_header(response["Link"]).values()
+        stale = self.create_inbox_item(subject_id=str(deleted.id))
+        self.create_inbox_item_event(
+            inbox_item=stale, data={"assignment_source": None, "activity_id": 1}
         )
+        deleted.delete()
+        unregistered = self.create_inbox_item(subject_type="removed.type", subject_id="1")
+        self.create_inbox_item_event(
+            inbox_item=unregistered, data={"assignment_source": None, "activity_id": 1}
+        )
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert [entry["id"] for entry in response.data] == [str(item.id)]
 
     def test_empty_inbox_pagination(self) -> None:
         response = self.get_success_response(self.organization.slug)

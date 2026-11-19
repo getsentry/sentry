@@ -9,7 +9,7 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.inbox.endpoints.base import OrganizationInboxEndpoint
-from sentry.inbox.filters import InboxFilterSerializer, filter_existing_subjects, filter_inbox_items
+from sentry.inbox.filters import InboxFilterSerializer, filter_inbox_items
 from sentry.inbox.response_types import InboxCountResponse
 from sentry.models.organization import Organization
 from sentry.notifications.models.inboxitem import InboxItem
@@ -45,5 +45,5 @@ class OrganizationInboxCountEndpoint(OrganizationInboxEndpoint):
             user_id=user.id,
             status=ObjectStatus.ACTIVE,
         )
-        count = filter_existing_subjects(filter_inbox_items(items, filters.validated_data)).count()
+        count = filter_inbox_items(items, filters.validated_data).count()
         return Response({"count": count})

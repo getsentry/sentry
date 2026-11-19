@@ -1,13 +1,9 @@
 from typing import Literal, TypedDict
 
-from django.db.models import BigIntegerField, Case, Exists, F, OuterRef, Q, QuerySet, When
-from django.db.models.functions import Cast
+from django.db.models import Exists, F, OuterRef, Q, QuerySet
 from rest_framework import serializers
 
-from sentry.db.models.fields.bounded import I64_MAX
 from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
-from sentry.models.group import Group
-from sentry.notebooks.models import Notebook
 from sentry.notifications.models.inboxitem import InboxItem
 from sentry.notifications.models.inboxitemevent import InboxItemEvent
 
@@ -98,23 +94,3 @@ def filter_inbox_items(items: QuerySet[InboxItem], filters: InboxFilters) -> Que
     elif is_read == "false":
         items = items.filter(UNREAD_ITEMS)
     return items
-
-
-def filter_existing_subjects(items: QuerySet[InboxItem]) -> QuerySet[InboxItem]:
-    # Cast only canonical IDs in range so stale references cannot fail the query.
-    subject_pk = Case(
-        When(
-            Q(subject_id__regex=r"^(0|[1-9][0-9]{0,17})$")
-            | Q(subject_id__regex=r"^[1-9][0-9]{18}$", subject_id__lte=str(I64_MAX)),
-            then=Cast("subject_id", BigIntegerField()),
-        ),
-    )
-    issues = Group.objects.filter(
-        id=OuterRef("subject_pk"), project__organization_id=OuterRef("organization_id")
-    )
-    notebooks = Notebook.objects.filter(
-        id=OuterRef("subject_pk"), organization_id=OuterRef("organization_id")
-    )
-    return items.alias(subject_pk=subject_pk).filter(
-        Q(Exists(issues), subject_type="issue") | Q(Exists(notebooks), subject_type="notebook")
-    )

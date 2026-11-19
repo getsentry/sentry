@@ -13,30 +13,13 @@ class OrganizationInboxCountTest(APITestCase):
         self.login_as(self.user)
 
     def test_counts_only_the_viewers_active_items(self) -> None:
-        self.create_inbox_item(subject_id=str(self.group.id))
-        self.create_inbox_item(
-            subject_id=str(self.create_group().id), last_read_at=before_now(minutes=1)
-        )
+        self.create_inbox_item(subject_id="unread")
+        self.create_inbox_item(subject_id="newer", last_read_at=before_now(minutes=1))
         read_at = before_now(minutes=1)
-        self.create_inbox_item(
-            subject_type="notebook",
-            subject_id=str(self.create_notebook(organization=self.organization).id),
-            last_activity_at=read_at,
-            last_read_at=read_at,
-        )
-        self.create_inbox_item(
-            subject_id=str(self.create_group().id), status=ObjectStatus.PENDING_DELETION
-        )
-        self.create_inbox_item(user=self.create_user(), subject_id=str(self.group.id))
-        other_org = self.create_organization()
-        self.create_inbox_item(
-            organization=other_org,
-            subject_type="notebook",
-            subject_id=str(self.create_notebook(organization=other_org).id),
-        )
-        missing_notebook = self.create_notebook(organization=self.organization)
-        self.create_inbox_item(subject_type="notebook", subject_id=str(missing_notebook.id))
-        missing_notebook.delete()
+        self.create_inbox_item(subject_id="read", last_activity_at=read_at, last_read_at=read_at)
+        self.create_inbox_item(subject_id="removed", status=ObjectStatus.PENDING_DELETION)
+        self.create_inbox_item(user=self.create_user())
+        self.create_inbox_item(organization=self.create_organization())
 
         response = self.get_success_response(self.organization.slug)
 
@@ -49,9 +32,9 @@ class OrganizationInboxCountTest(APITestCase):
         assert response.data == {"count": 1}
 
     def test_subject_event_and_id_filters(self) -> None:
-        first = self.create_inbox_item(subject_id=str(self.group.id))
-        second = self.create_inbox_item(subject_id=str(self.create_group().id))
-        self.create_inbox_item(subject_type="other", subject_id=first.subject_id)
+        first = self.create_inbox_item(subject_id="1")
+        second = self.create_inbox_item(subject_id="2")
+        self.create_inbox_item(subject_type="other", subject_id="1")
         self.create_inbox_item_event(
             inbox_item=first, type="issue.pr_ready_for_review", data={"summary": "PR ready"}
         )
@@ -63,7 +46,7 @@ class OrganizationInboxCountTest(APITestCase):
         assert response.data == {"count": 2}
 
         response = self.get_success_response(
-            self.organization.slug, subject_type="issue", subject_id=first.subject_id
+            self.organization.slug, subject_type="issue", subject_id="1"
         )
         assert response.data == {"count": 1}
 
@@ -78,10 +61,10 @@ class OrganizationInboxCountTest(APITestCase):
         assert response.data == {"count": 2}
 
     def test_recipient_filter(self) -> None:
-        team = self.create_inbox_item(subject_id=str(self.group.id))
+        team = self.create_inbox_item(subject_id="team")
         self.create_inbox_item_event(inbox_item=team, type="issue.team_assigned")
         self.create_inbox_item_event(inbox_item=team, type="issue.team_mentioned")
-        user = self.create_inbox_item(subject_id=str(self.create_group().id))
+        user = self.create_inbox_item(subject_id="user")
         self.create_inbox_item_event(inbox_item=user, type="issue.pr_ready_for_review")
 
         response = self.get_success_response(self.organization.slug, recipient="team")
