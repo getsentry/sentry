@@ -14,15 +14,12 @@ const COLUMNS: TableColumnConfig[] = [
   {key: 'access', width: 'auto'},
 ];
 
-export function getPermissionCount(scopes: string[]) {
+export function PermissionCount({scopes}: {scopes: string[]}) {
   const selected = new Set(scopes);
-  return PERMISSIONS.filter(
+  const count = PERMISSIONS.filter(
     permission => getPermissionLevel(permission, selected) !== 'no-access'
   ).length;
-}
-
-export function PermissionCount({scopes}: {scopes: string[]}) {
-  return <Text>{tn('%s permission', '%s permissions', getPermissionCount(scopes))}</Text>;
+  return <Text>{tn('%s permission', '%s permissions', count)}</Text>;
 }
 
 /**
