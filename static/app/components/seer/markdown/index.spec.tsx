@@ -251,4 +251,21 @@ describe('SeerMarkdown', () => {
       });
     });
   });
+
+  describe('issue short ids', () => {
+    it.each(['SENTRY-1AB', 'MY-PROJ-12'])('links %s', shortId => {
+      render(<SeerMarkdown raw={`Caused by ${shortId} upstream`} />);
+
+      expect(screen.getByRole('link', {name: shortId})).toBeInTheDocument();
+    });
+
+    it.each(['During GPT-OSS slowdowns', 'During `GPT-OSS` slowdowns'])(
+      'does not link GPT-OSS in %s',
+      raw => {
+        render(<SeerMarkdown raw={raw} />);
+
+        expect(screen.queryByRole('link')).not.toBeInTheDocument();
+      }
+    );
+  });
 });

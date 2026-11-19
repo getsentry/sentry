@@ -26,7 +26,7 @@ export function BasicDemo() {
   return <SeerMarkdown raw={BASIC_MD} />;
 }
 
-const LINKIFY_MD = `The issue SENTRY-1234 was caused by a race condition in the auth flow. Related issues include \`PROJECT-5678\` and BACKEND-9012.
+const LINKIFY_MD = `The issue SENTRY-1234 was caused by a race condition in the auth flow. Related issues include \`PROJECT-5678\` and BACKEND-9012. Uppercase words like GPT-OSS stay plain text.
 
 See the [documentation](https://docs.sentry.io) for more details.`;
 
