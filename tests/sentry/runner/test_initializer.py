@@ -702,6 +702,16 @@ def test_single_organization_reuses_github_app_client_id(settings: types.SimpleN
     bootstrap_options(settings)
 
     assert settings.GITHUB_APP_ID == "app-client-id"
+    assert settings.SENTRY_GITHUB_LOGIN_CLIENT_ID == "login-client-id"
+
+
+def test_github_login_client_id_follows_login_setting(settings: types.SimpleNamespace) -> None:
+    settings.GITHUB_APP_ID = "login-client-id"
+
+    with pytest.warns(DeprecatedSettingWarning):
+        bootstrap_options(settings)
+
+    assert settings.SENTRY_GITHUB_LOGIN_CLIENT_ID == "login-client-id"
 
 
 def test_single_organization_keeps_option_github_client_id_remap(
@@ -723,6 +733,7 @@ def test_single_organization_keeps_option_github_client_id_remap(
 
     assert settings.GITHUB_APP_ID == "login-client-id"
     assert settings.SENTRY_GITHUB_APP_CLIENT_ID == "app-client-id"
+    assert settings.SENTRY_GITHUB_LOGIN_CLIENT_ID == "login-client-id"
 
 
 @pytest.mark.parametrize(

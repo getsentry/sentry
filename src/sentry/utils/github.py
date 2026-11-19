@@ -42,7 +42,7 @@ def verify_signature(payload: bytes, signature: str, key_id: str, subpath: str) 
     if not payload or not signature or not key_id:
         raise ValueError("Invalid payload, signature, or key_id")
 
-    client_id = settings.GITHUB_APP_ID
+    client_id = settings.SENTRY_GITHUB_LOGIN_CLIENT_ID
     client_secret = settings.GITHUB_API_SECRET
     client = _GitHubClient(client_id=client_id, client_secret=client_secret)
     response = client.get(f"/meta/public_keys/{subpath}")

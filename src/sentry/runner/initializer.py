@@ -301,6 +301,10 @@ def bootstrap_options(settings: Any, config: str | None = None) -> None:
             if k in migrated_options_mapper and v is not None:
                 setattr(settings, migrated_options_mapper[k], v)
 
+    settings.SENTRY_GITHUB_LOGIN_CLIENT_ID = settings.SENTRY_OPTIONS.get(
+        "github-login.client-id", settings.GITHUB_APP_ID
+    )
+
     # Single organization mode reuses the GitHub integration app for SSO. The
     # remap in initialize_app handles the option key; this handles the setting.
     if settings.SENTRY_SINGLE_ORGANIZATION:

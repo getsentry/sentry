@@ -2884,6 +2884,9 @@ EMAIL_SUBJECT_PREFIX = DEAD
 # Shared btw Auth Provider and Social Auth Plugin
 GITHUB_APP_ID = DEAD
 GITHUB_API_SECRET = DEAD
+# The GitHub login client ID before single-organization mode replaces
+# GITHUB_APP_ID with the integration app's. Bootstrap derives it.
+SENTRY_GITHUB_LOGIN_CLIENT_ID: str = ""
 
 # Used by Auth Provider
 GITHUB_REQUIRE_VERIFIED_EMAIL = DEAD

@@ -26,6 +26,11 @@ credentials into the login settings, even without the application initializer's
 legacy app remap. This changes unused GitHub login settings in API gateway
 bootstrap; API gateway has no GitHub login consumers.
 
+Single organization mode replaces `GITHUB_APP_ID` with the integration app's
+client ID. Bootstrap first copies `github-login.client-id` (or `GITHUB_APP_ID`)
+into `SENTRY_GITHUB_LOGIN_CLIENT_ID`, and secret scanning signature
+verification reads that, so it keeps the login client ID in every mode.
+
 The symbolicator, symbol server, and chart rendering enablement flags are
 also deployment settings; they no longer change while the process is running.
 
