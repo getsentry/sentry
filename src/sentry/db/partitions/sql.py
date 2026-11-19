@@ -92,6 +92,9 @@ DROP_CONSTRAINT = "ALTER TABLE {table} DROP CONSTRAINT {name}"
 # comment: a partition detached by hand is kept, e.g. to preserve its data.
 EXPIRING_PARTITION_COMMENT = "Expired: dropped by Sentry partition maintenance."
 MARK_PARTITION_EXPIRING = "COMMENT ON TABLE {partition} IS '" + EXPIRING_PARTITION_COMMENT + "'"
+# Removes the mark from a partition that is no longer expired, e.g. because its detach
+# failed and retention was raised since.
+UNMARK_PARTITION_EXPIRING = "COMMENT ON TABLE {partition} IS NULL"
 DETACH_PARTITION_CONCURRENTLY = "ALTER TABLE {table} DETACH PARTITION {partition} CONCURRENTLY"
 FINALIZE_DETACH_PARTITION = "ALTER TABLE {table} DETACH PARTITION {partition} FINALIZE"
 DROP_TABLE = "DROP TABLE {table}"
@@ -144,7 +147,11 @@ LIST_STANDALONE_TABLES_LIKE = """
     ORDER BY c.relname
 """
 LIST_PARTITIONS = """
-    SELECT c.relname, pg_get_expr(c.relpartbound, c.oid), i.inhdetachpending
+    SELECT
+        c.relname,
+        pg_get_expr(c.relpartbound, c.oid),
+        i.inhdetachpending,
+        obj_description(c.oid, 'pg_class')
     FROM pg_inherits AS i
     JOIN pg_class AS c ON c.oid = i.inhrelid
     WHERE i.inhparent = to_regclass(%s)

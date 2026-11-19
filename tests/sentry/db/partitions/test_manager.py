@@ -59,6 +59,11 @@ def locked_tables() -> list[str]:
         return [row[0] for row in cursor.fetchall()]
 
 
+def mark_expiring(partition: str) -> None:
+    with connection.cursor() as cursor:
+        cursor.execute(sql.MARK_PARTITION_EXPIRING.format(partition=f'"{partition}"'))
+
+
 def detach(partition: str) -> None:
     with connection.cursor() as cursor:
         cursor.execute(f'ALTER TABLE "{RANGE_TABLE}" DETACH PARTITION "{partition}"')
@@ -290,6 +295,67 @@ class ExpirePartitionsTest(TransactionTestCase):
             assert list_detached_range_partitions(connection, RANGE_TABLE) == []
 
     @freeze_time(CREATED_AT)
+    def test_stale_mark_is_removed(self) -> None:
+        with fixture_tables():
+            # Marked as expired, but the detach failed, so it's still attached.
+            mark_expiring(week(4))
+            assert [p.expiring for p in list_partitions(connection, RANGE_TABLE)] == [
+                True,
+                False,
+                False,
+            ]
+            # Retention was raised since, so it isn't expired anymore.
+            assert (
+                expire_partitions(
+                    RangePartitionedFixture,
+                    before=datetime(2024, 3, 5, tzinfo=UTC),
+                    now=datetime(2024, 3, 20, tzinfo=UTC),
+                )
+                == []
+            )
+            assert [p.expiring for p in list_partitions(connection, RANGE_TABLE)] == [
+                False,
+                False,
+                False,
+            ]
+            # Detaching it by hand now keeps it, even once it's past retention.
+            detach(week(4))
+            assert (
+                expire_partitions(
+                    RangePartitionedFixture,
+                    before=datetime(2024, 3, 12, tzinfo=UTC),
+                    now=datetime(2024, 3, 20, tzinfo=UTC),
+                )
+                == []
+            )
+            assert list_detached_range_partitions(connection, RANGE_TABLE) == [
+                DetachedPartition(week(4), datetime(2024, 3, 4, tzinfo=UTC), expiring=False)
+            ]
+
+    @freeze_time(CREATED_AT)
+    def test_marked_detached_partitions_are_only_dropped_once_expired(self) -> None:
+        with fixture_tables():
+            # Detached as expired, but the drop failed and retention was raised since.
+            mark_expiring(week(18))
+            detach(week(18))
+            assert (
+                expire_partitions(
+                    RangePartitionedFixture,
+                    before=datetime(2024, 3, 5, tzinfo=UTC),
+                    now=datetime(2024, 3, 27, tzinfo=UTC),
+                )
+                == []
+            )
+            assert [p.name for p in list_detached_range_partitions(connection, RANGE_TABLE)] == [
+                week(18)
+            ]
+            assert expire_partitions(
+                RangePartitionedFixture,
+                before=datetime(2024, 3, 26, tzinfo=UTC),
+                now=datetime(2024, 3, 27, tzinfo=UTC),
+            ) == [week(18), week(4), week(11)]
+
+    @freeze_time(CREATED_AT)
     def test_finishes_interrupted_detach(self) -> None:
         with fixture_tables():
             pending = PartitionInfo(
@@ -368,8 +434,7 @@ class MaintainPartitionsTest(TransactionTestCase):
     @freeze_time(CREATED_AT)
     def test_reports_failed_drops(self) -> None:
         with fixture_tables():
-            with connection.cursor() as cursor:
-                cursor.execute(sql.MARK_PARTITION_EXPIRING.format(partition=f'"{week(18)}"'))
+            mark_expiring(week(18))
             detach(week(18))
             # Retrying the drop fails again, e.g. on another lock timeout. The gauges are
             # still reported.

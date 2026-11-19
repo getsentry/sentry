@@ -149,10 +149,13 @@ def expire_range_partitions(
     concurrently and then dropped. A detach of an expired partition that was
     interrupted earlier is finished with FINALIZE. A partition this detached but
     failed to drop, for example because the drop timed out, is no longer attached to
-    the table, so it is found by its name and its mark and dropped as well.
-    Partitions detached any other way, e.g. by hand to keep their data, don't have
-    the mark and are never dropped. Returns the names of the dropped partitions, or
-    of the partitions that would be dropped with ``dry_run``.
+    the table, so it is found by its name and its mark and dropped as well, if it is
+    still older than ``before``. Partitions detached any other way, e.g. by hand to
+    keep their data, don't have the mark and are never dropped. A partition that
+    carries the mark but isn't expired anymore, e.g. because its detach failed and
+    retention was raised since, has the mark removed, so detaching it by hand later
+    keeps it. Returns the names of the dropped partitions, or of the partitions that
+    would be dropped with ``dry_run``.
     """
     now = now if now is not None else timezone.now()
     if before > now:
@@ -161,8 +164,13 @@ def expire_range_partitions(
         raise RuntimeError("Partitions can't be detached concurrently inside a transaction.")
 
     expired = []
+
+    def is_expired(start: datetime) -> bool:
+        return target.spec.interval.advance(start) <= before
+
     for detached in list_detached_range_partitions(target.connection, target.table):
-        if not detached.expiring:
+        # The mark alone never decides a drop, it could be stale.
+        if not detached.expiring or not is_expired(detached.start):
             continue
         expired.append(detached.name)
         if dry_run:
@@ -179,6 +187,17 @@ def expire_range_partitions(
     for partition in list_partitions(target.connection, target.table):
         _, end = partition.range_bounds()
         if end is None or end > before:
+            if partition.expiring and not dry_run:
+                _execute_outside_transaction(
+                    target.connection,
+                    sql.UNMARK_PARTITION_EXPIRING.format(
+                        partition=_quote(target.connection, partition.name)
+                    ),
+                )
+                logger.info(
+                    "partitions.expire.unmarked",
+                    extra={"table": target.table, "partition": partition.name},
+                )
             continue
         expired.append(partition.name)
         if dry_run:

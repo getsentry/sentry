@@ -46,6 +46,8 @@ class PartitionInfo:
     name: str
     bound: str
     detach_pending: bool
+    # Marked by partition maintenance right before it detaches the partition.
+    expiring: bool = False
 
     def range_bounds(self) -> tuple[datetime | None, datetime | None]:
         """Parsed range bounds. ``None`` stands for MINVALUE or MAXVALUE."""
@@ -90,7 +92,10 @@ def get_partitioned_table_info(
 def list_partitions(connection: BaseDatabaseWrapper, table: str) -> list[PartitionInfo]:
     with connection.cursor() as cursor:
         cursor.execute(sql.LIST_PARTITIONS, [table])
-        return [PartitionInfo(name, bound, pending) for name, bound, pending in cursor.fetchall()]
+        return [
+            PartitionInfo(name, bound, pending, comment == sql.EXPIRING_PARTITION_COMMENT)
+            for name, bound, pending, comment in cursor.fetchall()
+        ]
 
 
 def _like_prefix(value: str) -> str:
