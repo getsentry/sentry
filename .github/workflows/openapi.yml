@@ -97,6 +97,10 @@ jobs:
           repositories: |
             sentry
             publish
+          permission-contents: write
+          # Craft reads PRs for the changelog and opens the publish issue.
+          permission-pull-requests: read
+          permission-issues: write
 
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

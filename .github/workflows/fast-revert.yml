@@ -26,6 +26,10 @@ jobs:
         with:
           client-id: ${{ vars.SENTRY_FAST_REVERT_BOT_CLIENT_ID }}
           private-key: ${{ secrets.SENTRY_FAST_REVERT_BOT_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+          # Reverting a PR that changed .github/workflows/ needs this to push.
+          permission-workflows: write
 
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
