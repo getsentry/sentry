@@ -287,6 +287,10 @@ class SafePartitioningSchemaEditorMixin(PartitioningSchemaEditorMixin):
         concurrently on each partition and attached. The parent index becomes valid
         once every partition has an attached index. Each step is skipped if it was
         already done, so a failed migration can be re-run.
+
+        A partition that is being detached can't get the index, and the parent index
+        would stay invalid for good, so that is refused up front, and the migration
+        fails if the parent index isn't valid at the end.
         """
         table = model._meta.db_table
         if self.connection.in_atomic_block and not self.collect_sql:
@@ -295,11 +299,19 @@ class SafePartitioningSchemaEditorMixin(PartitioningSchemaEditorMixin):
                 f"concurrently on each partition, which can't run in a transaction. "
                 f"Use a non-atomic migration."
             )
+        partitions = list_partitions(self.connection, table)
+        pending = [partition.name for partition in partitions if partition.detach_pending]
+        if pending:
+            raise _unsafe(
+                f"Can't add index {index.name} to {table} while {', '.join(pending)} is being "
+                f"detached: the index would stay invalid. Finish the detach first with "
+                f"`sentry partitions expire --execute`, or `ALTER TABLE {table} DETACH "
+                f"PARTITION <partition> FINALIZE` for a partition detached by hand, then "
+                f"rerun the migration."
+            )
         parent = index.create_sql(model, self, sql=PGAccessExclusive(sql.CREATE_INDEX_ON_ONLY))
         self.execute(parent)
-        for partition in list_partitions(self.connection, table):
-            if partition.detach_pending:
-                continue
+        for partition in partitions:
             with self.connection.cursor() as cursor:
                 cursor.execute(sql.ATTACHED_PARTITION_INDEX, [index.name, partition.name])
                 if cursor.fetchone() is not None:
@@ -335,6 +347,18 @@ class SafePartitioningSchemaEditorMixin(PartitioningSchemaEditorMixin):
                         )
                     )
                 )
+            )
+
+        if self.collect_sql:
+            return
+        with self.connection.cursor() as cursor:
+            cursor.execute(sql.INDEX_IS_VALID, [index.name])
+            row = cursor.fetchone()
+        if row is None or not row[0]:
+            raise _unsafe(
+                f"Index {index.name} on {table} is still invalid after indexing every "
+                f"partition, e.g. because a partition was attached or detached meanwhile. "
+                f"Rerun the migration, or remove the index and add it again."
             )
 
     @contextmanager

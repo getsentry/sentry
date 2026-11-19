@@ -2,6 +2,7 @@ import re
 from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import Any
+from unittest import mock
 
 import psycopg2
 import pytest
@@ -367,6 +368,57 @@ class PartitionedIndexTest(TransactionTestCase):
             with connection.cursor() as cursor:
                 cursor.execute(sql.INDEX_IS_VALID, [child])
                 assert cursor.fetchone() == (True,)
+
+    def test_add_index_refuses_while_a_partition_is_being_detached(self) -> None:
+        with fixture_tables():
+            partition = list_partitions(connection, RANGE_TABLE)[0].name
+            # An open transaction on the table makes the second phase of a concurrent
+            # detach wait, and the lock timeout cancels it halfway.
+            reader = psycopg2.connect(**connection.get_connection_params())
+            try:
+                with reader.cursor() as cursor:
+                    cursor.execute(f'SELECT 1 FROM "{RANGE_TABLE}" LIMIT 1')
+                with pytest.raises(OperationalError, match="lock timeout"):
+                    with connection.cursor() as cursor:
+                        cursor.execute("SET lock_timeout TO '100ms'")
+                        try:
+                            cursor.execute(
+                                f'ALTER TABLE "{RANGE_TABLE}" DETACH PARTITION "{partition}" '
+                                "CONCURRENTLY"
+                            )
+                        finally:
+                            cursor.execute("SET lock_timeout TO DEFAULT")
+            finally:
+                reader.close()
+            assert [p.detach_pending for p in list_partitions(connection, RANGE_TABLE)] == [
+                True,
+                False,
+                False,
+            ]
+            with pytest.raises(UnsafeOperationException, match="is being detached"):
+                with safe_editor() as editor:
+                    editor.add_index(RangePartitionedFixture, self.index)
+            with connection.cursor() as cursor:
+                cursor.execute(sql.TABLE_EXISTS, [self.index.name])
+                assert cursor.fetchone() == (False,)
+                # Finishing the detach makes it possible again.
+                cursor.execute(
+                    f'ALTER TABLE "{RANGE_TABLE}" DETACH PARTITION "{partition}" FINALIZE'
+                )
+            with safe_editor() as editor:
+                editor.add_index(RangePartitionedFixture, self.index)
+            assert index_state(self.index.name)[0] is True
+
+    def test_add_index_fails_when_the_parent_index_stays_invalid(self) -> None:
+        with fixture_tables():
+            # As if a partition was attached without the index while this ran.
+            partitions = list_partitions(connection, RANGE_TABLE)[1:]
+            with (
+                mock.patch("sentry.db.partitions.schema.list_partitions", return_value=partitions),
+                pytest.raises(UnsafeOperationException, match="is still invalid"),
+            ):
+                with safe_editor() as editor:
+                    editor.add_index(RangePartitionedFixture, self.index)
 
     def test_add_index_inside_a_transaction_is_rejected(self) -> None:
         with fixture_tables():
