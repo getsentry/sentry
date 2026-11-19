@@ -121,9 +121,11 @@ def migrate_payload(artifact: PreprodArtifact, payload: LegacyPayload) -> bool:
         stored = ObjectstoreFile.put(payload.usecase, artifact.project, tmp, size, payload.filename)
 
     try:
+        copied_digest = hashlib.sha1()
         with stored.getfile() as stream:
-            matches = hashlib.file_digest(stream, "sha1").digest() == digest.digest()
-        if not matches:
+            while chunk := stream.read(1024 * 1024):
+                copied_digest.update(chunk)
+        if copied_digest.digest() != digest.digest():
             raise ValueError(f"Objectstore integrity mismatch for file {source.id}")
     except Exception:
         stored.delete()

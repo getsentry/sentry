@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import IO
 from unittest.mock import patch
 
 from django.core.files.base import ContentFile
@@ -98,7 +99,7 @@ class MigratePreprodTest(CliTestCase):
         other = self.create_preprod_artifact(project=self.project, file_id=source.id)
         original_get = ObjectstoreFile.getfile
 
-        def replace(stored: ObjectstoreFile):
+        def replace(stored: ObjectstoreFile) -> IO[bytes]:
             artifact.update(file_id=replacement.id)
             return original_get(stored)
 
