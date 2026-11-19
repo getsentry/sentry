@@ -9,8 +9,9 @@ on:
       - releases/**
   pull_request:
     # `labeled` lets the override label start a full run without a new push.
-    # Other labels are ignored below. Job `if`, job `name`, and concurrency
-    # can't read env, so the label condition is repeated in each of them.
+    # Every label event runs normally and reports `Acceptance`, like
+    # backend.yml. If the newest run on a commit doesn't report `Acceptance`,
+    # the merge box waits for it even when an older run on that commit passed.
     types: [opened, synchronize, reopened, labeled]
   merge_group:
     types: [checks_requested]
@@ -22,8 +23,7 @@ on:
 # Cancel in progress workflows on pull_requests.
 # https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
 concurrency:
-  # Ignored label events get their own group so they don't cancel the real run.
-  group: "${{ github.workflow }}-${{ (github.event.action == 'labeled' && github.event.label.name != 'Trigger: Override Selective Testing') && github.run_id || github.head_ref || github.run_id }}"
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
 # hack for https://github.com/actions/cache/issues/810#issuecomment-1222550359
@@ -42,9 +42,7 @@ env:
 
 jobs:
   files-changed:
-    if: >-
-      (github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group') &&
-      !(github.event.action == 'labeled' && github.event.label.name != 'Trigger: Override Selective Testing')
+    if: github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'merge_group'
     name: detect what files changed
     runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 3
@@ -430,9 +428,7 @@ jobs:
   acceptance-required-checks:
     # this is a required check so we need this job to always run and report a status.
     if: always()
-    # A skipped job counts as passing, so an ignored label event must not
-    # report `Acceptance`, or it could replace a real failure on this commit.
-    name: "${{ (github.event.action == 'labeled' && github.event.label.name != 'Trigger: Override Selective Testing') && 'Acceptance (ignored label event)' || 'Acceptance' }}"
+    name: Acceptance
     needs: [acceptance, files-changed]
     runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 3
