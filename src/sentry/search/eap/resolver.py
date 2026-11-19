@@ -223,7 +223,7 @@ class SearchResolver:
 
         # Some datasets like trace metrics require we inject additional
         # conditions in the top level.
-        dataset_conditions = self.resolve_dataset_conditions(selected_columns, equations)
+        dataset_conditions = self.resolve_dataset_conditions(selected_columns, equations, where)
         where = and_trace_item_filters(where, dataset_conditions)
 
         return where, having, contexts
@@ -1653,8 +1653,9 @@ class SearchResolver:
         self,
         selected_columns: list[str] | None,
         equations: list[str] | None,
+        where: TraceItemFilter | None = None,
     ) -> TraceItemFilter | None:
-        extra_conditions = self.config.extra_conditions(self, selected_columns, equations)
+        extra_conditions = self.config.extra_conditions(self, selected_columns, equations, where)
 
         return and_trace_item_filters(extra_conditions)
 

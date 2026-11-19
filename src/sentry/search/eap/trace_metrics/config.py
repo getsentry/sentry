@@ -26,14 +26,19 @@ class TraceMetricsSearchResolverConfig(SearchResolverConfig):
         search_resolver: SearchResolver,
         selected_columns: list[str] | None,
         equations: list[str] | None,
+        where: TraceItemFilter | None = None,
     ) -> TraceItemFilter | None:
+        # the aggregations can still be histograms when the config has a metric, so check them
+        if where is not None and _filters_on_value(where):
+            self._extra_conditions_from_columns(search_resolver, selected_columns, equations, where)
+
         # use the metric from the config first if it exists
         if extra_conditions := self._extra_conditions_from_metric(search_resolver):
             return extra_conditions
 
         # then try to parse metric from the aggregations
         if extra_conditions := self._extra_conditions_from_columns(
-            search_resolver, selected_columns, equations
+            search_resolver, selected_columns, equations, where
         ):
             return extra_conditions
 
@@ -44,6 +49,7 @@ class TraceMetricsSearchResolverConfig(SearchResolverConfig):
         search_resolver: SearchResolver,
         selected_columns: list[str] | None,
         equations: list[str] | None,
+        where: TraceItemFilter | None,
     ) -> TraceItemFilter | None:
         """While we also add the metric conditions inside -if combinators for each aggregate, adding it to the top level
         where should help clickhouse prune more rows"""
@@ -95,6 +101,14 @@ class TraceMetricsSearchResolverConfig(SearchResolverConfig):
                 "Cannot aggregate all metrics and singlular metrics in the same query."
             )
 
+        # Snuba applies the where to a histogram row's mean, not to each of its buckets
+        if (
+            where is not None
+            and _filters_on_value(where)
+            and any(metric.metric_type == "histogram" for metric in selected_metrics)
+        ):
+            raise InvalidSearchQuery("Filtering on value is not supported for histogram metrics")
+
         # at this point we only have selected metrics remaining
         filters = [metric.get_filter() for metric in selected_metrics]
         return or_trace_item_filters(*filters)
@@ -106,6 +120,21 @@ class TraceMetricsSearchResolverConfig(SearchResolverConfig):
         if self.metric is None:
             return None
         return self.metric.get_filter()
+
+
+def _filters_on_value(trace_filter: TraceItemFilter) -> bool:
+    match trace_filter.WhichOneof("value"):
+        case "and_filter":
+            return any(_filters_on_value(f) for f in trace_filter.and_filter.filters)
+        case "or_filter":
+            return any(_filters_on_value(f) for f in trace_filter.or_filter.filters)
+        case "not_filter":
+            return any(_filters_on_value(f) for f in trace_filter.not_filter.filters)
+        case "comparison_filter":
+            return trace_filter.comparison_filter.key.name == "sentry.value"
+        case "exists_filter":
+            return trace_filter.exists_filter.key.name == "sentry.value"
+    return False
 
 
 ALLOWED_METRIC_TYPES: list[TraceMetricType] = ["counter", "gauge", "distribution"]

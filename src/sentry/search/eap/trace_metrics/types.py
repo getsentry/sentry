@@ -1,7 +1,12 @@
 from dataclasses import dataclass
 from typing import Literal
 
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeKey, AttributeValue
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
+    AttributeKey,
+    AttributeValue,
+    Function,
+    HistogramMode,
+)
 from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     AndFilter,
     ComparisonFilter,
@@ -11,7 +16,24 @@ from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
     TraceItemFilter,
 )
 
-TraceMetricType = Literal["counter", "gauge", "distribution"]
+from sentry.exceptions import InvalidSearchQuery
+from sentry.search.eap.types import SearchResolverConfig
+
+TraceMetricType = Literal["counter", "gauge", "distribution", "histogram"]
+
+# The aggregates Snuba can compute from histogram buckets
+HISTOGRAM_BUCKET_FUNCTIONS = {
+    Function.FUNCTION_COUNT,
+    Function.FUNCTION_SUM,
+    Function.FUNCTION_AVG,
+    Function.FUNCTION_MIN,
+    Function.FUNCTION_MAX,
+    Function.FUNCTION_P50,
+    Function.FUNCTION_P75,
+    Function.FUNCTION_P90,
+    Function.FUNCTION_P95,
+    Function.FUNCTION_P99,
+}
 
 # Represents "any unit" — no unit filter is applied
 ANY_UNIT = "-"
@@ -89,3 +111,15 @@ class TraceMetric:
             )
 
         return TraceItemFilter(and_filter=AndFilter(filters=filters))
+
+
+def get_histogram_mode(
+    search_config: SearchResolverConfig, trace_metric: TraceMetric | None
+) -> HistogramMode.ValueType:
+    # Only OTLP histogram rows hold buckets, every other metric is aggregated as is
+    if trace_metric is None or trace_metric.metric_type != "histogram":
+        return HistogramMode.HISTOGRAM_MODE_UNSPECIFIED
+    # Paths without the flag would aggregate each point's mean as one sample, so reject them
+    if not search_config.otlp_histograms:
+        raise InvalidSearchQuery("Invalid parameter histogram")
+    return HistogramMode.HISTOGRAM_MODE_BUCKETS

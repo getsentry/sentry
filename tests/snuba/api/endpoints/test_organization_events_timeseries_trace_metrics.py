@@ -1,12 +1,15 @@
 from datetime import timedelta
 from typing import Any
+from unittest import mock
 
 import pytest
 from django.urls import reverse
 from rest_framework.response import Response
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import HistogramMode
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.testutils.helpers.datetime import before_now
+from sentry.utils.snuba_rpc import _make_rpc_requests
 from tests.snuba.api.endpoints.test_organization_events import (
     OrganizationEventsEndpointTestBase,
 )
@@ -485,6 +488,29 @@ class OrganizationEventsStatsTraceMetricsEndpointTest(OrganizationEventsEndpoint
 
         # only the metrics with a unit of none should be counted
         assert response.data["timeSeries"][0]["values"][0]["value"] == 1
+
+    @mock.patch("sentry.utils.snuba_rpc._make_rpc_requests", wraps=_make_rpc_requests)
+    def test_histogram_aggregates_use_buckets(self, mock_rpc_request: mock.MagicMock) -> None:
+        with self.feature("organizations:tracemetrics-otlp-histograms"):
+            response = self._do_request(
+                data={
+                    "start": self.start,
+                    "end": self.end,
+                    "interval": "1h",
+                    "yAxis": "count(value,foo,histogram,-)",
+                    "project": self.project.id,
+                    "dataset": "tracemetrics",
+                },
+            )
+        assert response.status_code == 200, response.content
+
+        aggregation = (
+            mock_rpc_request.call_args.kwargs["timeseries_requests"][0]
+            .expressions[0]
+            .conditional_aggregation
+        )
+        assert aggregation.key.name == "sentry.value"
+        assert aggregation.histogram_mode == HistogramMode.HISTOGRAM_MODE_BUCKETS
 
     def test_equation_where_one_term_has_no_data(self) -> None:
         trace_metrics = []

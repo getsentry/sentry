@@ -864,6 +864,21 @@ class TestMetricAlertsTraceMetricsValidator(TestMetricAlertsDetectorValidator):
         assert "Invalid trace metrics aggregate" in str(validator.errors)
 
     @with_feature(["organizations:tracemetrics-enabled"])
+    def test_create_detector_trace_metrics_histogram_aggregate(self) -> None:
+        data = {
+            **self.trace_metrics_data,
+            "dataSources": [
+                {
+                    **self.trace_metrics_data["dataSources"][0],  # type: ignore[index]
+                    "aggregate": "p95(value,foo,histogram,-)",
+                }
+            ],
+        }
+        validator = MetricIssueDetectorValidator(data=data, context=self.context)
+        assert not validator.is_valid()
+        assert "Invalid trace metrics aggregate" in str(validator.errors)
+
+    @with_feature(["organizations:tracemetrics-enabled"])
     def test_create_detector_trace_metrics_valid_aggregates(self) -> None:
         data_per_second = {
             **self.trace_metrics_data,

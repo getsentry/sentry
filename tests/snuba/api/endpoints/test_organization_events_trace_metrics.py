@@ -4,6 +4,7 @@ from unittest.mock import MagicMock
 import pytest
 from django.test import override_settings
 from rest_framework.exceptions import ErrorDetail
+from sentry_protos.snuba.v1.trace_item_attribute_pb2 import HistogramMode
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
 
 from sentry.conf.types.sentry_config import SentryMode
@@ -545,6 +546,67 @@ class OrganizationEventsTraceMetricsEndpointTest(OrganizationEventsEndpointTestB
 
         mock_table_rpc.assert_called_once()
         assert mock_table_rpc.call_args.args[0][0].meta.project_ids == [project1.id]
+
+    @mock.patch("sentry.utils.snuba_rpc.table_rpc", wraps=table_rpc)
+    def test_histogram_aggregates_use_buckets(self, mock_table_rpc: MagicMock) -> None:
+        response = self.do_request(
+            {
+                "field": [
+                    "count(value,foo,histogram,-)",
+                    "per_second(value,foo,histogram,-)",
+                    "count(value,bar,distribution,-)",
+                ],
+                "project": self.project.id,
+                "dataset": self.dataset,
+            },
+            features={"organizations:tracemetrics-otlp-histograms": True},
+        )
+        assert response.status_code == 200, response.content
+
+        count, per_second, distribution_count = mock_table_rpc.call_args.args[0][0].columns
+        assert count.conditional_aggregation.key.name == "sentry.value"
+        assert count.conditional_aggregation.histogram_mode == HistogramMode.HISTOGRAM_MODE_BUCKETS
+        rate = per_second.formula.left.conditional_aggregation
+        assert rate.key.name == "sentry.value"
+        assert rate.histogram_mode == HistogramMode.HISTOGRAM_MODE_BUCKETS
+        assert distribution_count.conditional_aggregation.key.name == "sentry.project_id"
+        assert (
+            distribution_count.conditional_aggregation.histogram_mode
+            == HistogramMode.HISTOGRAM_MODE_UNSPECIFIED
+        )
+
+    def test_histogram_aggregates_without_buckets(self) -> None:
+        for field in ["count_unique(value,foo,histogram,-)", "count(metric.name,foo,histogram,-)"]:
+            response = self.do_request(
+                {"field": [field], "project": self.project.id, "dataset": self.dataset},
+                features={"organizations:tracemetrics-otlp-histograms": True},
+            )
+            assert response.status_code == 400, response.content
+
+    def test_histogram_aggregates_filtering_on_value(self) -> None:
+        for metric in [{}, {"metricName": "bar", "metricType": "counter"}]:
+            response = self.do_request(
+                {
+                    "field": ["count(value,foo,histogram,-)"],
+                    "query": "value:>250",
+                    "project": self.project.id,
+                    "dataset": self.dataset,
+                    **metric,
+                },
+                features={"organizations:tracemetrics-otlp-histograms": True},
+            )
+            assert response.status_code == 400, response.content
+            assert (
+                response.data["detail"]
+                == "Filtering on value is not supported for histogram metrics"
+            )
+
+    def test_histogram_aggregates_without_flag(self) -> None:
+        for field in ["count(value,foo,histogram,-)", "per_second(value,foo,histogram,-)"]:
+            response = self.do_request(
+                {"field": [field], "project": self.project.id, "dataset": self.dataset}
+            )
+            assert response.status_code == 400, response.content
 
     def test_aggregate_with_unit_returns_unit_in_meta(self) -> None:
         """Test that when a unit is specified in the aggregate, it appears in meta["units"]."""

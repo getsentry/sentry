@@ -14,6 +14,7 @@ class PreprodSizeSearchResolverConfig(SearchResolverConfig):
         search_resolver: SearchResolver,
         selected_columns: list[str] | None,
         equations: list[str] | None,
+        where: TraceItemFilter | None = None,
     ) -> TraceItemFilter | None:
         return TraceItemFilter(
             comparison_filter=ComparisonFilter(

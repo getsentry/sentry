@@ -50,12 +50,15 @@ class SearchResolverConfig:
     # Temporary to rollout deprecation
     disable_deprecated_functions: bool = False
     api_attribute_visibility_include_internal_convention_attributes: bool = False
+    # Temporary to rollout OTLP histograms, only used by trace metrics
+    otlp_histograms: bool = False
 
     def extra_conditions(
         self,
         search_resolver: "SearchResolver",
         selected_columns: list[str] | None,
         equations: list[str] | None,
+        where: TraceItemFilter | None = None,
     ) -> TraceItemFilter | None:
         return None
 

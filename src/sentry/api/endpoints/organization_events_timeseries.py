@@ -465,6 +465,9 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 extrapolation_mode=extrapolation_mode,
                 disable_array_attributes=disable_array_attributes,
                 saved_formulas=saved_formulas,
+                otlp_histograms=features.has(
+                    "organizations:tracemetrics-otlp-histograms", organization, actor=request.user
+                ),
             )
         elif dataset == PreprodSize:
             return PreprodSizeSearchResolverConfig(
