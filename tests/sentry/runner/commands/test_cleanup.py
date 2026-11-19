@@ -1,16 +1,18 @@
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from io import BytesIO
 from typing import Any
 from unittest.mock import patch
 
 import click
 import pytest
-from django.db import DatabaseError
+from django.db import DatabaseError, connection
 
+from fixtures.partitions import RangePartitionedFixture, fixture_tables
 from sentry.ai_monitoring.models import AIConversationMetadata
 from sentry.constants import ObjectStatus
+from sentry.db.partitions.catalog import list_partitions
 from sentry.models.files.file import File
 from sentry.models.group import Group
 from sentry.models.groupopenperiodactivity import GroupOpenPeriodActivity
@@ -22,6 +24,7 @@ from sentry.notifications.platform.types import NotificationProviderKey, Notific
 from sentry.runner.commands.cleanup import (
     CleanupExecutionAborted,
     _cleanup,
+    drop_expired_table_partitions,
     generate_bulk_query_deletes,
     models_which_use_deletions_code_path,
     models_which_use_expiry_deletions,
@@ -44,13 +47,15 @@ from sentry.seer.models.workflow import (
     SeerWorkflowStrategy,
 )
 from sentry.silo.base import SiloMode
-from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.cases import TestCase, TransactionTestCase
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.timeseries_annotations.models import AnnotationType, TimeseriesAnnotation
 from sentry.uptime.models import UptimeResponseCapture, UptimeSubscription
 from sentry.viewer_context import ActorType, get_viewer_context
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
+
+RANGE_TABLE = RangePartitionedFixture._meta.db_table
 
 
 class SynchronousTaskQueue:
@@ -889,3 +894,48 @@ class RemoveInactiveNotificationThreadsTest(TestCase):
         remove_inactive_notification_threads(lambda model: False, models_attempted)
 
         assert {"notificationthread", "notificationrecord"} <= models_attempted
+
+
+class DropExpiredTablePartitionsTest(TransactionTestCase):
+    def _run(self, days: int, project_id: int | None = None) -> None:
+        run_bulk_query_deletes(
+            [(RangePartitionedFixture, "date_added", None)],
+            lambda model: False,
+            days=days,
+            project=None,
+            project_id=project_id,
+            models_attempted=set(),
+        )
+
+    def test_drops_partitions_then_deletes_remaining_rows(self) -> None:
+        with freeze_time(datetime(2024, 3, 6, 12, tzinfo=UTC)), fixture_tables():
+            for day in (5, 12, 14, 19):
+                RangePartitionedFixture.objects.create(
+                    date_added=datetime(2024, 3, day, tzinfo=UTC)
+                )
+            with freeze_time(datetime(2024, 3, 20, tzinfo=UTC)):
+                # The cutoff is 03-13: the week of 03-04 is dropped, and the row of 03-12
+                # is deleted from the week of 03-11.
+                self._run(days=7)
+            assert [p.name for p in list_partitions(connection, RANGE_TABLE)] == [
+                f"{RANGE_TABLE}_p20240311",
+                f"{RANGE_TABLE}_p20240318",
+            ]
+            assert sorted(
+                RangePartitionedFixture.objects.values_list("date_added__day", flat=True)
+            ) == [14, 19]
+
+    def test_scoped_runs_do_not_drop_partitions(self) -> None:
+        with patch("sentry.db.partitions.manager.drop_partitions_for_cleanup") as drop:
+            drop_expired_table_partitions(RangePartitionedFixture, "date_added", 7, project_id=1)
+            drop_expired_table_partitions(
+                RangePartitionedFixture, "date_added", 7, None, partition=(1, 2, "id")
+            )
+        assert drop.call_count == 0
+
+    def test_unpartitioned_tables_only_delete_rows(self) -> None:
+        with fixture_tables(partitioned=False):
+            RangePartitionedFixture.objects.create(date_added=before_now(days=10))
+            RangePartitionedFixture.objects.create(date_added=before_now(days=1))
+            self._run(days=7)
+            assert RangePartitionedFixture.objects.count() == 1

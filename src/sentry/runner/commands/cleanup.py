@@ -908,6 +908,38 @@ def generate_bulk_query_deletes() -> list[tuple[type[BaseModel], str, str | None
     return BULK_QUERY_DELETES
 
 
+def drop_expired_table_partitions(
+    model_tp: type[BaseModel],
+    dtfield: str,
+    days: int,
+    project_id: int | None,
+    partition: tuple[int, int, str] | None = None,
+) -> None:
+    """
+    For Postgres range partitioned tables, drop whole partitions older than the
+    cutoff before the row by row deletes run. Only an unscoped run does this, and
+    only the first bucket when the run is split with --partition-bucket.
+    """
+    if project_id is not None or (partition is not None and partition[0] != 0):
+        return
+
+    from sentry.db.partitions.manager import drop_partitions_for_cleanup
+    from sentry.utils import metrics
+
+    cutoff = timezone.now() - timedelta(days=days)
+    try:
+        for name in drop_partitions_for_cleanup(model_tp, dtfield, cutoff):
+            debug_output(f">> Dropped partition {name} of {model_tp.__name__}")
+    except Exception:
+        capture_exception(tags={"model": model_tp.__name__})
+        metrics.incr(
+            "cleanup.error",
+            instance=model_tp.__name__,
+            tags={"model": model_tp.__name__, "type": "drop_table_partitions"},
+            sample_rate=1.0,
+        )
+
+
 def run_bulk_query_deletes(
     bulk_query_deletes: list[tuple[type[BaseModel], str, str | None]],
     is_filtered: Callable[[type[BaseModel]], bool],
@@ -933,6 +965,7 @@ def run_bulk_query_deletes(
         else:
             debug_output(f"Removing {model_tp.__name__} for days={days} project={project or '*'}")
             models_attempted.add(model_tp.__name__.lower())
+            drop_expired_table_partitions(model_tp, dtfield, days, project_id, partition)
             try:
                 BulkDeleteQuery(
                     model=model_tp,
@@ -1037,6 +1070,7 @@ def run_bulk_deletes_in_deletes(
         else:
             debug_output(f"Removing {model_tp.__name__} for days={days} project={project or '*'}")
             models_attempted.add(model_tp.__name__.lower())
+            drop_expired_table_partitions(model_tp, dtfield, days, project_id)
             try:
                 defer_dt_filter = model_tp is File
                 q = BulkDeleteQuery(

@@ -905,6 +905,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.cadence.tasks",
     "sentry.conduit.tasks",
     "sentry.data_export.tasks",
+    "sentry.db.partitions.tasks",
     "sentry.debug_files.objectstore_migration.tasks",
     "sentry.debug_files.tasks",
     "sentry.deletions.tasks.groups",
@@ -1117,6 +1118,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
     "collect-project-platforms": {
         "task": "issues:sentry.tasks.collect_project_platforms",
         "schedule": crontab("0", "3", "*", "*", "*"),
+    },
+    "maintain-partitions": {
+        "task": "deletions:sentry.db.partitions.tasks.maintain_partitions",
+        "schedule": crontab("17", "*", "*", "*", "*"),
     },
     "deliver-from-outbox": {
         "task": "hybridcloud:sentry.tasks.enqueue_outbox_jobs",
