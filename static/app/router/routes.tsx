@@ -1175,6 +1175,45 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
+      path: 'service-accounts/',
+      name: t('Service Accounts'),
+      children: [
+        {
+          component: make(
+            () =>
+              import('sentry/views/settings/organizationServiceAccounts/serviceAccountsLayout')
+          ),
+          children: [
+            {
+              index: true,
+              component: make(
+                () => import('sentry/views/settings/organizationServiceAccounts')
+              ),
+            },
+            {
+              handle: {
+                settingsBreadcrumb: {
+                  type: 'link',
+                  label: t('Service Accounts'),
+                  to: '/settings/:orgId/service-accounts/',
+                },
+              },
+              children: [
+                {
+                  path: ':serviceAccountId/',
+                  name: t('Service Account'),
+                  component: make(
+                    () =>
+                      import('sentry/views/settings/organizationServiceAccounts/serviceAccountDetails')
+                  ),
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+    {
       path: 'relay/',
       name: t('Relay'),
       component: make(() => import('sentry/views/settings/organizationRelay')),
