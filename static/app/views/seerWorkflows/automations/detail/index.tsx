@@ -1,4 +1,4 @@
-import {Fragment, useRef, useState} from 'react';
+import {Fragment, useEffect, useRef, useState} from 'react';
 import {Outlet} from 'react-router';
 import {useTheme} from '@emotion/react';
 import {IconDelete} from '@sentry/icons/delete';
@@ -89,6 +89,15 @@ export default function AutomationDetail() {
       setIsConfiguring(false);
     }
   }
+  // Scroll restoration brings back a revisited tab's old position, which would
+  // leave its content scrolled under the pinned header. Start each tab at the top.
+  const scrolledTabRef = useRef(activeTab);
+  useEffect(() => {
+    if (scrolledTabRef.current !== activeTab) {
+      scrolledTabRef.current = activeTab;
+      window.scrollTo(0, 0);
+    }
+  }, [activeTab]);
   // Show who last updated the automation, falling back to who created it
   const displayUserId = config?.updatedBy || config?.createdBy;
   const {data: displayUser} = useUserFromId({
