@@ -47,6 +47,7 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.redis import use_redis_cluster
 from sentry.testutils.objectstore import debug_files_test_both_backends
+from sentry.testutils.skips import requires_objectstore
 
 _NO_RELEASE = cast(str, None)
 
@@ -244,6 +245,36 @@ class AssembleDifTest(BaseAssembleTest):
 
 
 class AssembleArtifactsTest(BaseAssembleTest):
+    @requires_objectstore
+    def test_reupload_objectstore_bundle(self) -> None:
+        bundle = self.create_artifact_bundle(
+            org=self.organization,
+            bundle_id=uuid.UUID("67429b2f-1d9e-43bb-a626-771a1e37555c"),
+            use_objectstore=True,
+        )
+        key = bundle.storage_path
+        assert key is not None
+        session = bundle.get_objectstore_session()
+        payload = self.create_artifact_bundle_zip(
+            fixture_path="artifact_bundle_debug_ids", project=self.project.id
+        )
+        blob = FileBlob.from_file_with_organization(ContentFile(payload), self.organization)
+        with self.capture_on_commit_callbacks(execute=True):
+            assemble_artifacts(
+                org_id=self.organization.id,
+                project_ids=[self.project.id],
+                version="1.0",
+                dist=None,
+                checksum=sha1(payload).hexdigest(),
+                chunks=[blob.checksum],
+            )
+        bundle.refresh_from_db()
+        assert bundle.storage_path is None
+        assert bundle.file is not None
+        with bundle.file.getfile() as contents:
+            assert contents.read() == payload
+        assert session.get(key) is None
+
     def test_artifacts_with_debug_ids(self) -> None:
         bundle_file = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id
@@ -281,9 +312,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
                 debug_id_artifact_bundle = DebugIdArtifactBundle.objects.get(
                     organization_id=self.organization.id, debug_id=debug_id
                 )
-                file = debug_id_artifact_bundle.artifact_bundle.file
-                assert file is not None
-                assert file.size == len(bundle_file)
+                assert debug_id_artifact_bundle.artifact_bundle.get_file_size() == len(bundle_file)
                 assert (
                     str(debug_id_artifact_bundle.artifact_bundle.bundle_id)
                     == "67429b2f-1d9e-43bb-a626-771a1e37555c"

@@ -35,6 +35,7 @@ from sentry.models.project import Project
 from sentry.tasks.assemble import assemble_artifacts
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
+from sentry.testutils.skips import requires_objectstore
 from sentry.utils import json
 
 
@@ -1133,9 +1134,11 @@ class GetArtifactBundlesContainingDebugIdTest(TestCase):
 
 
 class RenewArtifactBundleTest(TestCase):
-    def setUp(self) -> None:
+    def create_old_bundle(self, use_objectstore: bool = False) -> None:
         self.old_date = timezone.now() - timedelta(days=60)
-        self.artifact_bundle = self.create_artifact_bundle(self.organization, artifact_count=1)
+        self.artifact_bundle = self.create_artifact_bundle(
+            self.organization, artifact_count=1, use_objectstore=use_objectstore
+        )
         ArtifactBundle.objects.filter(id=self.artifact_bundle.id).update(date_added=self.old_date)
         ProjectArtifactBundle.objects.create(
             organization_id=self.organization.id,
@@ -1178,6 +1181,7 @@ class RenewArtifactBundleTest(TestCase):
         }
 
     def test_renews_bundle_and_linked_rows(self) -> None:
+        self.create_old_bundle()
         now = self.renew()
 
         assert ArtifactBundle.objects.get(id=self.artifact_bundle.id).date_added == now
@@ -1185,7 +1189,37 @@ class RenewArtifactBundleTest(TestCase):
 
     @override_options({"sourcemaps.artifact-bundles.date-only-on-bundle": True})
     def test_renews_only_the_bundle_with_date_only_on_bundle(self) -> None:
+        self.create_old_bundle()
         now = self.renew()
 
         assert ArtifactBundle.objects.get(id=self.artifact_bundle.id).date_added == now
+        assert self.linked_dates() == {self.old_date}
+
+    @requires_objectstore
+    def test_failed_renewal_retries_on_next_access(self) -> None:
+        self.create_old_bundle(use_objectstore=True)
+        session = self.artifact_bundle.get_objectstore_session()
+        with (
+            patch.object(ArtifactBundle, "get_objectstore_session", return_value=session),
+            patch.object(session, "extend_expiry", side_effect=OSError("Objectstore unavailable")),
+        ):
+            self.renew()
+
+        assert ArtifactBundle.objects.get(id=self.artifact_bundle.id).date_added == self.old_date
+        assert self.linked_dates() == {self.old_date}
+
+        now = self.renew()
+        assert ArtifactBundle.objects.get(id=self.artifact_bundle.id).date_added == now
+        assert self.linked_dates() == {now}
+
+    @requires_objectstore
+    def test_missing_object_leaves_bundle_and_linked_dates_unchanged(self) -> None:
+        self.create_old_bundle(use_objectstore=True)
+        assert self.artifact_bundle.storage_path is not None
+        self.artifact_bundle.get_objectstore_session().delete(self.artifact_bundle.storage_path)
+
+        self.renew()
+
+        self.artifact_bundle.refresh_from_db()
+        assert self.artifact_bundle.date_added == self.old_date
         assert self.linked_dates() == {self.old_date}

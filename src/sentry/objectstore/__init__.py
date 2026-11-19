@@ -53,6 +53,10 @@ def default_attachment_retention() -> int:
     return int(options.get("system.event-retention-days") or 0) or 30
 
 
+def artifact_bundle_retention() -> timedelta:
+    return timedelta(days=90 + options.get("system.debug-files-renewal-age-threshold-days"))
+
+
 class SentryMetricsBackend(MetricsBackend):
     def increment(
         self,
@@ -88,6 +92,7 @@ class UsecaseId(Enum):
 
     ATTACHMENTS = "attachments"
     DEBUG_FILES = "debug_files"
+    ARTIFACT_BUNDLES = "artifact_bundles"
     PROFILE_ATTACHMENTS = "profile_attachments"
     # Deprecated: retained for migration compatibility only.
     # Use PREPROD_SIZE or PREPROD_SNAPSHOTS for new code.
@@ -116,6 +121,10 @@ class UsecaseId(Enum):
                 return ObjectstoreClientUsecase(
                     self.value,
                     expiration_policy=TimeToLive(timedelta(days=default_attachment_retention())),
+                )
+            case UsecaseId.ARTIFACT_BUNDLES:
+                return ObjectstoreClientUsecase(
+                    self.value, expiration_policy=TimeToIdle(artifact_bundle_retention())
                 )
             case UsecaseId.PREPROD | UsecaseId.PREPROD_SNAPSHOTS | UsecaseId.PREPROD_SIZE:
                 return ObjectstoreClientUsecase(
@@ -166,19 +175,22 @@ def _get_client() -> Client:
 _USECASES: dict[UsecaseId, ObjectstoreClientUsecase] = {}
 
 
-def get_session(usecase: UsecaseId, project: Project | int, *, org: int | None = None) -> Session:
-    """Return an Objectstore session scoped to a project.
+def get_session(
+    usecase: UsecaseId, project: Project | int | None = None, *, org: int | None = None
+) -> Session:
+    """Return an Objectstore session scoped to an organization and optionally a project.
 
-    There are two ways to construct a session:
+    There are three ways to construct a session:
     - Project model: ``get_session(UsecaseId.ATTACHMENTS, project)``
     - Project and org IDs: ``get_session(UsecaseId.ATTACHMENTS, project_id, org=org_id)``
+    - Org ID only: ``get_session(UsecaseId.ARTIFACT_BUNDLES, org=org_id)``
 
     When passing a project model, ``org`` is optional and must match the
-    project's organization. It is required when passing a project ID.
+    project's organization. It is required when passing a project ID or omitting the project.
     """
-    if isinstance(project, int):
+    if project is None or isinstance(project, int):
         if org is None:
-            raise TypeError("org is required when project is an ID")
+            raise TypeError("org is required when project is an ID or omitted")
         project_id = project
         org_id = org
     else:
@@ -192,6 +204,8 @@ def get_session(usecase: UsecaseId, project: Project | int, *, org: int | None =
         objectstore_usecase = usecase.create()
         _USECASES[usecase] = objectstore_usecase
 
+    if project_id is None:
+        return _get_client().session(objectstore_usecase, org=org_id)
     return _get_client().session(objectstore_usecase, org=org_id, project=project_id)
 
 

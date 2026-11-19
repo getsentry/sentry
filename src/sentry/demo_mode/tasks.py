@@ -16,7 +16,7 @@ from sentry.models.artifactbundle import (
     ReleaseArtifactBundle,
 )
 from sentry.models.debugfile import ProguardArtifactRelease, ProjectDebugFile
-from sentry.models.files import FileBlobOwner
+from sentry.models.files import File, FileBlobOwner
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.objectstore import UsecaseId, get_session
@@ -155,8 +155,17 @@ def _sync_artifact_bundle(source_artifact_bundle: ArtifactBundle, target_org: Or
                 router.db_for_write(ReleaseArtifactBundle),
             )
         ):
-            assert source_artifact_bundle.file is not None
-            blobs = source_artifact_bundle.file.blobs.all()
+            file = source_artifact_bundle.file
+            if source_artifact_bundle.storage_path is not None:
+                file = File.objects.create(
+                    name="artifact-bundle.zip",
+                    type="artifact.bundle",
+                    headers={"Content-Type": source_artifact_bundle.get_content_type()},
+                )
+                with source_artifact_bundle.get_file() as contents:
+                    file.putfile(contents)
+            assert file is not None
+            blobs = file.blobs.all()
             for blob in blobs:
                 FileBlobOwner.objects.get_or_create(
                     organization_id=target_org.id,
@@ -169,13 +178,13 @@ def _sync_artifact_bundle(source_artifact_bundle: ArtifactBundle, target_org: Or
                 artifact_count=source_artifact_bundle.artifact_count,
                 date_last_modified=source_artifact_bundle.date_last_modified,
                 date_uploaded=source_artifact_bundle.date_uploaded,
-                file=source_artifact_bundle.file,
+                file=file,
                 indexing_state=source_artifact_bundle.indexing_state,
             )
 
             _sync_project_artifact_bundle(source_artifact_bundle, target_artifact_bundle)
             _sync_release_artifact_bundle(source_artifact_bundle, target_artifact_bundle)
-    except IntegrityError as e:
+    except Exception as e:
         sentry_sdk.capture_exception(e)
 
 
