@@ -7,6 +7,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import traces
 from snuba_sdk import Column, Condition, Limit, Op, Query, Storage
 from snuba_sdk import Request as SnqlRequest
 
@@ -250,6 +251,10 @@ class OrganizationProfilingChunksEndpoint(OrganizationProfilingBaseEndpoint):
         profiler_id = serializer.validated_data["profiler_id"].hex
 
         chunk_ids = get_chunk_ids(snuba_params, profiler_id, project_ids[0])
+
+        span = traces.get_current_span()
+        if span:
+            span.set_attribute("profiling.chunks.count", len(chunk_ids))
 
         # Vroom fails with "no chunks found to merge" when given no chunk IDs, which the UI
         # shows as "Failed to fetch profiles". Log it so we can track how often a span
