@@ -13,6 +13,8 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {useStarredSegment} from 'sentry/views/insights/common/utils/useStarredSegment';
 import type {SpanResponse} from 'sentry/views/insights/types';
 
+export const STARRED_SEGMENT_TABLE_QUERY_KEY = 'starred-segment-table';
+
 interface Props {
   isStarred: boolean;
   segmentName: string;
@@ -20,23 +22,9 @@ interface Props {
   projectSlug?: string;
 }
 
-type TableRow = Simplify<
-  Partial<SpanResponse> & Pick<SpanResponse, 'is_starred_transaction' | 'transaction'>
->;
+type TableRow = Simplify<Partial<SpanResponse> & Pick<SpanResponse, 'transaction'>>;
 
 type TableData = {data: TableRow[]};
-
-function isTableResponse(response: unknown): response is ApiResponse<TableData> {
-  return (
-    typeof response === 'object' &&
-    response !== null &&
-    'json' in response &&
-    typeof response.json === 'object' &&
-    response.json !== null &&
-    'data' in response.json &&
-    Array.isArray(response.json.data)
-  );
-}
 
 export function StarredSegmentCell({
   segmentName,
@@ -59,12 +47,15 @@ export function StarredSegmentCell({
 
   const updateTableData = (newIsStarred: boolean) => {
     queryClient.setQueriesData(
-      apiOptions.queryFilter('/organizations/$organizationIdOrSlug/events/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      (oldResponse: unknown) => {
-        if (!isTableResponse(oldResponse)) {
-          return oldResponse;
+      {
+        ...apiOptions.queryFilter('/organizations/$organizationIdOrSlug/events/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
+        predicate: ({queryKey}) => queryKey.at(-1) === STARRED_SEGMENT_TABLE_QUERY_KEY,
+      },
+      (oldResponse: ApiResponse<TableData> | undefined) => {
+        if (!oldResponse) {
+          return;
         }
         return {
           ...oldResponse,

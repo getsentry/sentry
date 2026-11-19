@@ -72,15 +72,25 @@ type DiscoverQueryOptions = Omit<
 >;
 
 export function useDiscoverQuery({
+  additionalQueryKey = [],
   options,
   ...props
-}: DiscoverQueryPropsWithThresholds & {options?: DiscoverQueryOptions}) {
-  const res = useQuery({
-    ...apiOptions.as<TableData>()('/organizations/$organizationIdOrSlug/events/', {
+}: DiscoverQueryPropsWithThresholds & {
+  additionalQueryKey?: readonly unknown[];
+  options?: DiscoverQueryOptions;
+}) {
+  const tableOptions = apiOptions.as<TableData>()(
+    '/organizations/$organizationIdOrSlug/events/',
+    {
       path: {organizationIdOrSlug: props.orgSlug},
       query: getDiscoverQueryPayload(props),
       staleTime: 0,
-    }),
+    }
+  );
+  const baseQueryKey: ApiQueryKey = tableOptions.queryKey;
+  const res = useQuery({
+    ...tableOptions,
+    queryKey: [...baseQueryKey, ...additionalQueryKey] as const,
     select: selectJsonWithHeaders,
     ...options,
   });

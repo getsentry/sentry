@@ -6,20 +6,19 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 
-import {StarredSegmentCell} from './starredSegmentCell';
+import {STARRED_SEGMENT_TABLE_QUERY_KEY, StarredSegmentCell} from './starredSegmentCell';
 
 const organization = OrganizationFixture();
 
-function eventsQueryKey(field: string[]) {
-  return apiOptions.as<unknown>()('/organizations/$organizationIdOrSlug/events/', {
+const otherTableKey = apiOptions.as<unknown>()(
+  '/organizations/$organizationIdOrSlug/events/',
+  {
     path: {organizationIdOrSlug: organization.slug},
-    query: {field},
+    query: {field: ['is_starred_transaction', 'transaction']},
     staleTime: 0,
-  }).queryKey;
-}
-
-const starredTableKey = eventsQueryKey(['is_starred_transaction', 'transaction']);
-const otherTableKey = eventsQueryKey(['transaction']);
+  }
+).queryKey;
+const starredTableKey = [...otherTableKey, STARRED_SEGMENT_TABLE_QUERY_KEY];
 
 function renderCell() {
   const queryClient = makeTestQueryClient();
@@ -33,7 +32,7 @@ function renderCell() {
     headers: {},
   });
   queryClient.setQueryData(otherTableKey, {
-    json: {data: [{transaction: 'checkout'}]},
+    json: {data: [{transaction: 'checkout', is_starred_transaction: false}]},
     headers: {},
   });
 
@@ -77,7 +76,7 @@ describe('StarredSegmentCell', () => {
     );
   });
 
-  it('leaves rows without the starred field unchanged', async () => {
+  it('leaves unmarked events tables unchanged even if they have the starred field', async () => {
     const queryClient = renderCell();
 
     await userEvent.click(
@@ -90,7 +89,7 @@ describe('StarredSegmentCell', () => {
       })
     );
     expect(queryClient.getQueryData(otherTableKey)).toEqual({
-      json: {data: [{transaction: 'checkout'}]},
+      json: {data: [{transaction: 'checkout', is_starred_transaction: false}]},
       headers: {},
     });
   });

@@ -82,6 +82,7 @@ function toWrappedDiscoverQueryProps<T>({
 
 type WrappedDiscoverQueryProps<T> = {
   eventView: EventView;
+  additionalQueryKey?: readonly unknown[];
   allowAggregateConditions?: boolean;
   caseInsensitive?: CaseInsensitive;
   cursor?: string;
@@ -114,6 +115,7 @@ function useWrappedDiscoverQueryBase<T>({
   disableAggregateExtrapolation,
   samplingMode,
   pageFiltersReady,
+  additionalQueryKey,
   refetchInterval,
   caseInsensitive,
   logQuery,
@@ -168,6 +170,7 @@ function useWrappedDiscoverQueryBase<T>({
     referrer,
     cursor,
     limit,
+    additionalQueryKey,
     options: {
       enabled: enabled && pageFiltersReady, // TODO this has a bug: if enabled is undefined, this short-circuits to undefined, which becomes true, regardless of pageFiltersReady
       refetchOnWindowFocus: false,
