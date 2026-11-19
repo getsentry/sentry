@@ -15,6 +15,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.files.file import File
 from sentry.models.group import Group
+from sentry.models.groupredirect import GroupRedirect
 
 COMMENT_ATTACHMENT_FILE_TYPE = "issue.comment.attachment"
 FEATURE_NAME = "organizations:issue-comment-attachments"
@@ -32,8 +33,12 @@ ALLOWED_CONTENT_TYPES = frozenset(
 )
 
 # The file row has no foreign key to the issue, so the issue it was uploaded to
-# is kept in the file headers and checked on every read.
+# is kept in the file headers and checked on every read. Merging moves comments
+# to the surviving issue, so issues merged into it are accepted too.
 GROUP_ID_HEADER = "Sentry-Group-Id"
+
+# How many merges in a row to follow from the issue a file was uploaded to.
+MAX_MERGE_HOPS = 10
 
 STREAM_CHUNK_SIZE = 64 * 1024
 RANGE_PATTERN = re.compile(r"^bytes=(\d*)-(\d*)$")
@@ -78,6 +83,27 @@ def parse_range(header: str, size: int) -> tuple[int, int] | None:
     if start >= size or end < start:
         return None
     return start, min(end, size - 1)
+
+
+def belongs_to_group(file: File, group: Group) -> bool:
+    """
+    True when the file was uploaded to this issue, or to an issue that was
+    later merged into it.
+    """
+    uploaded_to = file.headers.get(GROUP_ID_HEADER)
+    if not uploaded_to or not uploaded_to.isdecimal():
+        return False
+    # An issue is merged away at most once, so its redirects form a chain.
+    # Old redirects are not repointed when the target is merged again.
+    group_id = int(uploaded_to)
+    for _ in range(MAX_MERGE_HOPS + 1):
+        if group_id == group.id:
+            return True
+        redirect = GroupRedirect.objects.get_or_none(previous_group_id=group_id)
+        if redirect is None:
+            return False
+        group_id = redirect.group_id
+    return False
 
 
 @cell_silo_endpoint
@@ -146,7 +172,7 @@ class GroupCommentAttachmentDetailsEndpoint(GroupEndpoint):
             file = File.objects.get(id=int(attachment_id), type=COMMENT_ATTACHMENT_FILE_TYPE)
         except (ValueError, File.DoesNotExist):
             return Response(status=404)
-        if file.headers.get(GROUP_ID_HEADER) != str(group.id):
+        if not belongs_to_group(file, group):
             return Response(status=404)
 
         size = file.size or 0

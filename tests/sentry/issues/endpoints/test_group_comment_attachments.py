@@ -10,6 +10,7 @@ from sentry.issues.endpoints.group_comment_attachments import (
 )
 from sentry.models.files.file import File
 from sentry.models.group import Group
+from sentry.models.groupredirect import GroupRedirect
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
 
@@ -216,6 +217,39 @@ class GroupCommentAttachmentDetailsTest(APITestCase):
         response = self.get(url)
 
         assert response.status_code == 404
+
+    def test_attachment_from_an_issue_merged_into_this_one(self) -> None:
+        primary = self.create_group()
+        GroupRedirect.objects.create(
+            organization_id=self.organization.id,
+            group_id=primary.id,
+            previous_group_id=self.group.id,
+        )
+        url = self.attachment_url.replace(f"/issues/{self.group.id}/", f"/issues/{primary.id}/")
+
+        response = self.get(url)
+
+        assert response.status_code == 200
+        assert b"".join(response.streaming_content) == VIDEO_BYTES
+
+    def test_attachment_after_two_merges(self) -> None:
+        middle = self.create_group()
+        final = self.create_group()
+        GroupRedirect.objects.create(
+            organization_id=self.organization.id,
+            group_id=middle.id,
+            previous_group_id=self.group.id,
+        )
+        GroupRedirect.objects.create(
+            organization_id=self.organization.id,
+            group_id=final.id,
+            previous_group_id=middle.id,
+        )
+        url = self.attachment_url.replace(f"/issues/{self.group.id}/", f"/issues/{final.id}/")
+
+        response = self.get(url)
+
+        assert response.status_code == 200
 
     def test_file_that_is_not_a_comment_attachment(self) -> None:
         file = File.objects.create(
