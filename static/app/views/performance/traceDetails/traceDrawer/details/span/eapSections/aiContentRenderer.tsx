@@ -85,10 +85,6 @@ function JsonTree({value: markedValue}: {value: unknown}) {
   );
 }
 
-/**
- * Markdown doesn't parse code for annotations, so inline code marks its scrubbed
- * ranges itself.
- */
 function ScrubbedInlineCode({children}: {children: string}) {
   return (
     <InlineCode variant="neutral">

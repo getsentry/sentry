@@ -43,8 +43,6 @@ export function DefaultBlockquote({children}: {children: ReactNode}) {
   return <Quote>{children}</Quote>;
 }
 
-// Code isn't parsed for annotations, so the default code renderers drop their
-// marks rather than show them as stray characters.
 export function DefaultInlineCode({children}: {children: string}) {
   return <InlineCode variant="neutral">{stripAnnotations(children)}</InlineCode>;
 }

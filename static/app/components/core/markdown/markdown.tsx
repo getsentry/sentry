@@ -19,10 +19,6 @@ export type MarkdownComponents = Partial<{
   /** Text annotated with `annotate`, along with its data. */
   Annotation: ComponentType<WithDefault<{children: string; data: string}>>;
   Blockquote: ComponentType<WithDefault<{children: ReactNode}>>;
-  /**
-   * Code isn't parsed for annotations, so `children` keeps their marks. `Default`
-   * drops them.
-   */
   CodeBlock: ComponentType<WithDefault<{children: string; lang?: string}>>;
   Emphasis: ComponentType<WithDefault<{children: ReactNode}>>;
   Heading: ComponentType<
@@ -31,7 +27,6 @@ export type MarkdownComponents = Partial<{
   HorizontalRule: ComponentType<WithDefault<Record<PropertyKey, unknown>>>;
   Html: ComponentType<WithDefault<{html: TrustedHTML}>>;
   Image: ComponentType<{src: string; alt?: string; title?: string | null}>;
-  /** Keeps the marks of annotations, like `CodeBlock`. */
   InlineCode: ComponentType<WithDefault<{children: string}>>;
   LineBreak: ComponentType<WithDefault<Record<PropertyKey, unknown>>>;
   Link: ComponentType<
