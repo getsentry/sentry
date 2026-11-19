@@ -335,12 +335,13 @@ function Chart({
   const isCombinedChart = visualizes.length > 1;
   const heatMapYAxis = getSpansHeatMapYAxis(visualize);
   const isHeatMap = !isCombinedChart && isSpansHeatMap(visualize, organization);
-  const {droppedData, annotations, layerControl, onAnnotationClick} = useChartLayers({
-    dataset,
-    interval: chartInterval,
-    source: 'explore',
-    enabled: !isHeatMap,
-  });
+  const {droppedData, annotations, layerControl, onAnnotationClick, showConfidence} =
+    useChartLayers({
+      dataset,
+      interval: chartInterval,
+      source: 'explore',
+      enabled: !isHeatMap,
+    });
   const showTransformationControls =
     visualize.visible &&
     organization.features.includes('explore-interpolation-and-smoothing');
@@ -566,6 +567,7 @@ function Chart({
               isDroppedDataLoading={droppedData.isLoading}
               annotations={annotations}
               onAnnotationClick={onAnnotationClick}
+              showConfidence={showConfidence}
               chartXRangeSelection={
                 isAttributeBreakdown
                   ? {

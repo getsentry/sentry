@@ -17,6 +17,7 @@ import type {AnnotationItem} from './annotations/types';
 import {useAnnotationFlagLog} from './annotations/useAnnotationFlagLog';
 import {annotationContextTab} from './contextDrawer/chartContextDrawer';
 import type {ChartLayer, ChartLayersControlProps} from './chartLayersControl';
+import {CONFIDENCE_LAYER, useConfidenceLayer} from './useConfidenceLayer';
 
 const RELEASES_LAYER = 'releases';
 const FLAGS_LAYER = 'flags';
@@ -48,6 +49,8 @@ export function useChartLayers({
     {dataset, interval},
     {source, enabled, hidden, showAnnotationTabs: areAnnotationsEnabled}
   );
+
+  const confidence = useConfidenceLayer({source, enabled});
 
   const {releases: releaseStats} = useReleaseStats(selection, {
     enabled: areAnnotationsEnabled,
@@ -107,6 +110,7 @@ export function useChartLayers({
 
   const layers = [
     ...(droppedData.layerControl?.layers ?? []),
+    ...(confidence.layerControl?.layers ?? []),
     releasesLayer,
     flagsLayer,
   ].filter(defined);
@@ -114,6 +118,8 @@ export function useChartLayers({
   function onLayerChange(value: string, selected: boolean) {
     if (value === DROPPED_DATA_LAYER) {
       droppedData.layerControl?.onChange(value, selected);
+    } else if (value === CONFIDENCE_LAYER) {
+      confidence.layerControl?.onChange(value, selected);
     } else if (value === RELEASES_LAYER) {
       setIsReleasesLayerOn(selected);
       trackAnalytics('releases.bubbles_legend', {organization, selected});
@@ -137,5 +143,11 @@ export function useChartLayers({
     [openContextDrawer]
   );
 
-  return {droppedData, annotations, layerControl, onAnnotationClick};
+  return {
+    droppedData,
+    annotations,
+    layerControl,
+    onAnnotationClick,
+    showConfidence: confidence.showConfidence,
+  };
 }

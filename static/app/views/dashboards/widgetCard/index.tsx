@@ -448,6 +448,7 @@ function WidgetCard(props: Props) {
               legendSelection={legendSelectionForWidget}
               onLegendSelectionChange={handleLegendSelectionChange}
               showReleases={chartLayers.showReleases}
+              showConfidence={chartLayers.showConfidence}
               droppedData={chartLayers.droppedData.band}
               isDroppedDataLoading={chartLayers.droppedData.isLoading}
             />

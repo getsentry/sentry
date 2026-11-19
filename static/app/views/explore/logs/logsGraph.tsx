@@ -11,7 +11,11 @@ import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {ChartLayersControl} from 'sentry/components/charts/chartLayersControl';
+import {
+  ChartLayersControl,
+  combineLayerControls,
+} from 'sentry/components/charts/chartLayersControl';
+import {useConfidenceLayer} from 'sentry/components/charts/useConfidenceLayer';
 import {DroppedDataFilterNote} from 'sentry/components/droppedData/droppedDataFilterNote';
 import {DroppedDataLLMContext} from 'sentry/components/droppedData/droppedDataLLMContext';
 import {useDroppedDataLayer} from 'sentry/components/droppedData/useDroppedDataLayer';
@@ -188,6 +192,11 @@ function Graph({
     {dataset: DiscoverDatasets.OURLOGS, interval: chartInterval},
     {source: 'explore', hidden: tableIsEmpty || tableIsPending}
   );
+  const confidence = useConfidenceLayer({source: 'explore'});
+  const layerControl = combineLayerControls([
+    droppedData.layerControl,
+    confidence.layerControl,
+  ]);
 
   // Invalid `_if` filters skip the backend request; surface that as a chart error
   // instead of an empty/no-data state.
@@ -286,9 +295,7 @@ function Graph({
 
   const Actions = visualize.visible ? (
     <Fragment>
-      {droppedData.layerControl ? (
-        <ChartLayersControl {...droppedData.layerControl} />
-      ) : null}
+      {layerControl ? <ChartLayersControl {...layerControl} /> : null}
       <CompactSelect
         trigger={triggerProps => (
           <OverlayTrigger.Button
@@ -359,6 +366,7 @@ function Graph({
               droppedData={droppedData.band}
               plottables={plottables}
               isDroppedDataLoading={droppedData.isLoading}
+              showConfidence={confidence.showConfidence}
             />
           )
         }

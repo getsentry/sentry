@@ -160,6 +160,15 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
   renderTooltipSeriesDetails?: (seriesNames: string[], timestamp: number) => string;
 
   /**
+   * Marks low-confidence buckets on the plot and in the tooltip. Only takes
+   * effect when the organization has the `data-browsing-time-series-confidence`
+   * feature.
+   *
+   * Default: `true`
+   */
+  showConfidence?: boolean;
+
+  /**
    * Defines the legend's visibility.
    *
    * - `auto`: Show the legend if there are multiple series.
@@ -220,9 +229,10 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // the backend zerofills the data
 
   const organization = useOrganization({allowNull: true});
-  const segmentBy: readonly TimeSeriesSegmentField[] = organization?.features.includes(
-    'data-browsing-time-series-confidence'
-  )
+  const showConfidence =
+    (props.showConfidence ?? true) &&
+    (organization?.features.includes('data-browsing-time-series-confidence') ?? false);
+  const segmentBy: readonly TimeSeriesSegmentField[] = showConfidence
     ? ['completeness', 'confidence']
     : ['completeness'];
 

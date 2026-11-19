@@ -3,7 +3,11 @@ import {Fragment, useMemo} from 'react';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {ChartLayersControl} from 'sentry/components/charts/chartLayersControl';
+import {
+  ChartLayersControl,
+  combineLayerControls,
+} from 'sentry/components/charts/chartLayersControl';
+import {useConfidenceLayer} from 'sentry/components/charts/useConfidenceLayer';
 import {DroppedDataFilterNote} from 'sentry/components/droppedData/droppedDataFilterNote';
 import {useDroppedDataLayer} from 'sentry/components/droppedData/useDroppedDataLayer';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -275,6 +279,11 @@ function Graph({
     {dataset: DiscoverDatasets.TRACEMETRICS, interval},
     {source: 'explore', enabled: showChart}
   );
+  const confidence = useConfidenceLayer({source: 'explore', enabled: showChart});
+  const layerControl = combineLayerControls([
+    droppedData.layerControl,
+    confidence.layerControl,
+  ]);
   const height = visualize.visible ? STACKED_GRAPH_HEIGHT : MINIMIZED_GRAPH_HEIGHT;
 
   // ECharts keeps its toolbox zoom window across option merges, so a chart that
@@ -298,9 +307,7 @@ function Graph({
         }
         Actions={
           <Fragment>
-            {droppedData.layerControl ? (
-              <ChartLayersControl {...droppedData.layerControl} />
-            ) : null}
+            {layerControl ? <ChartLayersControl {...layerControl} /> : null}
             {actions}
           </Fragment>
         }
@@ -330,6 +337,7 @@ function Graph({
               droppedData={droppedData.band}
               plottables={plottables}
               isDroppedDataLoading={droppedData.isLoading}
+              showConfidence={confidence.showConfidence}
             />
           ) : undefined
         }

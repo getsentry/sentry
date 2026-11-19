@@ -1,6 +1,10 @@
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {ChartLayersControl, type ChartLayer} from './chartLayersControl';
+import {
+  ChartLayersControl,
+  combineLayerControls,
+  type ChartLayer,
+} from './chartLayersControl';
 
 const RELEASES: ChartLayer = {value: 'releases', label: 'Releases', selected: true};
 const DROPPED_SPANS: ChartLayer = {
@@ -85,5 +89,27 @@ describe('ChartLayersControl', () => {
     );
 
     expect(screen.getByRole('button', {name: 'Chart layers'})).toHaveTextContent(/^$/);
+  });
+});
+
+describe('combineLayerControls', () => {
+  it('lists every layer and sends each change to the control that owns the layer', () => {
+    const onReleasesChange = jest.fn();
+    const onDroppedDataChange = jest.fn();
+    const combined = combineLayerControls([
+      {layers: [RELEASES], onChange: onReleasesChange},
+      undefined,
+      {layers: [DROPPED_SPANS], onChange: onDroppedDataChange},
+    ]);
+
+    expect(combined?.layers).toEqual([RELEASES, DROPPED_SPANS]);
+
+    combined?.onChange('dropped-data', true);
+    expect(onDroppedDataChange).toHaveBeenCalledWith('dropped-data', true);
+    expect(onReleasesChange).not.toHaveBeenCalled();
+  });
+
+  it('returns nothing when no control has layers', () => {
+    expect(combineLayerControls([undefined, undefined])).toBeUndefined();
   });
 });

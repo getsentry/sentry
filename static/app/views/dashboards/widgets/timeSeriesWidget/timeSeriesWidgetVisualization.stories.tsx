@@ -867,7 +867,8 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
           differently from high-confidence data, and the tooltip labels them. This only
           happens when the organization has the{' '}
           <code>data-browsing-time-series-confidence</code> feature, which these examples
-          turn on.
+          turn on. Pass <code>showConfidence={false}</code> to draw low-confidence data
+          like any other data, e.g., when the user turns off the Confidence chart layer.
         </p>
 
         <WithTimeSeriesConfidenceFeature>
@@ -897,6 +898,17 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
                   new Bars(lowConfidenceDurationP50TimeSeries, {
                     stack: 'all',
                   }),
+                ]}
+              />
+            </MediumWidget>
+          </Storybook.SideBySide>
+          <Storybook.SideBySide>
+            <MediumWidget>
+              <TimeSeriesWidgetVisualization
+                showConfidence={false}
+                plottables={[
+                  new Line(lowConfidenceDurationTimeSeries),
+                  new Line(lowConfidenceDurationP50TimeSeries),
                 ]}
               />
             </MediumWidget>

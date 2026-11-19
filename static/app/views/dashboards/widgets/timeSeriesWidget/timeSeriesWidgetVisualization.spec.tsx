@@ -1,5 +1,7 @@
 import type {CallbackDataParams} from 'echarts/types/dist/shared';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
+import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -148,5 +150,49 @@ describe('TimeSeriesWidgetVisualization', () => {
     expect(fromAnnotations).toBe(fromDroppedData);
     expect(fromAnnotations).toContain('Dropped Spans');
     expect(fromAnnotations).toContain('Releases');
+  });
+
+  describe('confidence', () => {
+    const organization = OrganizationFixture({
+      features: ['data-browsing-time-series-confidence'],
+    });
+    const lowConfidencePlottables = [
+      new Line(
+        TimeSeriesFixture({
+          values: [
+            {timestamp: 1729796400000, value: 10},
+            {timestamp: 1729798200000, value: 20, confidence: 'low'},
+            {timestamp: 1729800000000, value: 30},
+          ],
+        })
+      ),
+    ];
+
+    function plottedLineStyles() {
+      const {series} = jest.mocked(BaseChart).mock.calls.at(-1)![0];
+      return series?.map(item =>
+        'lineStyle' in item ? item.lineStyle?.type : undefined
+      );
+    }
+
+    it('marks low-confidence buckets by default', () => {
+      render(<TimeSeriesWidgetVisualization plottables={lowConfidencePlottables} />, {
+        organization,
+      });
+
+      expect(plottedLineStyles()).toContain('dashed');
+    });
+
+    it('does not mark low-confidence buckets when showConfidence is off', () => {
+      render(
+        <TimeSeriesWidgetVisualization
+          plottables={lowConfidencePlottables}
+          showConfidence={false}
+        />,
+        {organization}
+      );
+
+      expect(plottedLineStyles()).not.toContain('dashed');
+    });
   });
 });

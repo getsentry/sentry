@@ -273,4 +273,40 @@ describe('useChartLayers', () => {
     expect(result.current.layerControl).toBeUndefined();
     expect(droppedDataRequest).not.toHaveBeenCalled();
   });
+
+  it('toggles and tracks low-confidence markers from the Confidence layer', async () => {
+    const confidenceOrganization = OrganizationFixture({
+      features: [
+        'explore-data-fidelity-annotations',
+        'data-browsing-time-series-confidence',
+      ],
+    });
+    const {result} = renderHookWithProviders(
+      () =>
+        useChartLayers({
+          dataset: DiscoverDatasets.SPANS,
+          interval: '1h',
+          source: 'explore',
+        }),
+      {organization: confidenceOrganization}
+    );
+
+    await waitFor(() =>
+      expect(result.current.layerControl?.layers.map(layer => layer.value)).toEqual([
+        'dropped-data',
+        'confidence',
+      ])
+    );
+    expect(result.current.showConfidence).toBe(true);
+
+    act(() => result.current.layerControl!.onChange('confidence', false));
+
+    expect(result.current.showConfidence).toBe(false);
+    expect(result.current.droppedData.band).toBeDefined();
+    expect(trackAnalytics).toHaveBeenCalledWith('explore.confidence.layer_toggled', {
+      organization: confidenceOrganization,
+      source: 'explore',
+      selected: false,
+    });
+  });
 });
