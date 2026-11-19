@@ -134,6 +134,7 @@ export function EmptyState({
 }
 
 const SuggestionButton = styled(Button)`
+  isolation: isolate;
   width: 100%;
   height: auto;
   padding: ${p => p.theme.space.sm} ${p => p.theme.space.md};
