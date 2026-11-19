@@ -17,15 +17,11 @@ export const DO_NOT_USE_BUTTON_ICON_SIZES: Record<ButtonSize, SVGIconProps['size
 };
 
 interface ButtonStyleProps {
+  busy: boolean;
   /**
    * True when the button is disabled or aria-disabled.
    */
   disabled: boolean;
-  /**
-   * True when the button is disabled, aria-disabled, or busy. It keeps its
-   * color on focus and hover and gets no hover background.
-   */
-  inactive: boolean;
   shapeVariant: 'rectangular' | 'square';
   size: ButtonSize;
   theme: Theme;
@@ -48,8 +44,8 @@ export function DO_NOT_USE_getButtonStyles(
     p.disabled || ariaDisabled === true || ariaDisabled === 'true'
   );
   const props: ButtonStyleProps = {
+    busy: Boolean(p.busy),
     disabled,
-    inactive: disabled || Boolean(p.busy),
     shapeVariant: p.shapeVariant,
     size: p.size,
     theme: p.theme,
@@ -192,7 +188,7 @@ function getChonkyStyles(p: ButtonStyleProps, tokens: ChonkyTokens): StrictCSSOb
 
     '&:focus-visible': {
       outline: 'none',
-      color: p.inactive ? undefined : tokens.content,
+      color: p.disabled || p.busy ? undefined : tokens.content,
 
       '&::after': tokens.focus,
     },
@@ -219,7 +215,7 @@ function getChonkyStyles(p: ButtonStyleProps, tokens: ChonkyTokens): StrictCSSOb
 
     '&:hover': {
       '--button-lift': `calc(${size.lift} + 1px)`,
-      color: p.inactive ? undefined : tokens.content,
+      color: p.disabled || p.busy ? undefined : tokens.content,
     },
 
     '&:active, &[aria-expanded="true"], &[aria-checked="true"]': {
@@ -271,11 +267,11 @@ function getTransparentStyles(p: ButtonStyleProps): StrictCSSObject {
     },
 
     '&:hover': {
-      backgroundColor: p.inactive ? 'inherit' : p.theme.colors.gray100,
+      backgroundColor: p.disabled || p.busy ? 'inherit' : p.theme.colors.gray100,
     },
 
     '&:active': {
-      backgroundColor: p.inactive ? 'inherit' : p.theme.colors.gray200,
+      backgroundColor: p.disabled || p.busy ? 'inherit' : p.theme.colors.gray200,
     },
   };
 }
