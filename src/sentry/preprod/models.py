@@ -4,7 +4,7 @@ import logging
 from collections import defaultdict
 from enum import IntEnum, StrEnum
 from functools import partial
-from typing import Any, ClassVar, Self, TypedDict, assert_never, cast
+from typing import IO, Any, ClassVar, Self, TypedDict, assert_never, cast
 
 from django.db import models, transaction
 from django.db.models import BooleanField, Case, IntegerField, OuterRef, Subquery, Sum, Value, When
@@ -14,6 +14,7 @@ from django.dispatch import receiver
 from objectstore_client import Session
 
 from sentry.backup.scopes import RelocationScope
+from sentry.constants import DataCategory
 from sentry.db.models.base import DefaultFieldsModel, cell_silo_model
 from sentry.db.models.fields.bounded import (
     BoundedBigIntegerField,
@@ -26,8 +27,9 @@ from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.files.file import File
+from sentry.models.project import Project
 from sentry.objectstore import UsecaseId, get_session
-from sentry.preprod.objectstore import ObjectstoreFile
+from sentry.preprod.objectstore import ObjectstoreFile, retention_days
 
 HAS_INSTALLABLE_FILE = models.Q(installable_app_file_id__isnull=False) | models.Q(
     installable_app_storage_path__isnull=False
@@ -259,6 +261,36 @@ class PreprodArtifact(DefaultFieldsModel):
         return (
             self.installable_app_storage_path is not None
             or self.installable_app_file_id is not None
+        )
+
+    @staticmethod
+    def put_artifact_file(
+        project: Project, stream: IO[bytes], size: int, *, artifact_id: int
+    ) -> ObjectstoreFile:
+        # Launchpad uses the original build for both products.
+        return ObjectstoreFile.put(
+            UsecaseId.PREPROD_ARTIFACTS,
+            project,
+            stream,
+            size,
+            filename=f"preprod_artifact_{artifact_id}.zip",
+            content_type="application/octet-stream",
+            ttl_days=max(
+                retention_days(project, DataCategory.SIZE_ANALYSIS),
+                retention_days(project, DataCategory.INSTALLABLE_BUILD),
+            ),
+        )
+
+    @staticmethod
+    def put_installable_file(project: Project, stream: IO[bytes], size: int) -> ObjectstoreFile:
+        return ObjectstoreFile.put(
+            UsecaseId.PREPROD_DISTRIBUTION,
+            project,
+            stream,
+            size,
+            filename="installable",
+            content_type="application/octet-stream",
+            ttl_days=retention_days(project, DataCategory.INSTALLABLE_BUILD),
         )
 
     def get_installable_file(self) -> File | ObjectstoreFile:
@@ -663,6 +695,18 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
     analysis_file_id = BoundedBigIntegerField(db_index=True, null=True)
     analysis_storage_path = models.TextField(null=True)
 
+    @staticmethod
+    def put_analysis_file(project: Project, stream: IO[bytes], size: int) -> ObjectstoreFile:
+        return ObjectstoreFile.put(
+            UsecaseId.PREPROD_SIZE,
+            project,
+            stream,
+            size,
+            filename="analysis.json",
+            content_type="application/json",
+            ttl_days=retention_days(project, DataCategory.SIZE_ANALYSIS),
+        )
+
     def get_analysis_file(self) -> File | ObjectstoreFile:
         if self.analysis_storage_path:
             return ObjectstoreFile.lookup(
@@ -735,6 +779,20 @@ class PreprodArtifactSizeComparison(DefaultFieldsModel):
     )
 
     organization_id = BoundedBigIntegerField(db_index=True)
+
+    @staticmethod
+    def put_result_file(
+        project: Project, stream: IO[bytes], size: int, *, filename: str = "comparison.json"
+    ) -> ObjectstoreFile:
+        return ObjectstoreFile.put(
+            UsecaseId.PREPROD_SIZE,
+            project,
+            stream,
+            size,
+            filename=filename,
+            content_type="application/json",
+            ttl_days=retention_days(project, DataCategory.SIZE_ANALYSIS),
+        )
 
     def get_result_file(self) -> File | ObjectstoreFile:
         if self.storage_path:

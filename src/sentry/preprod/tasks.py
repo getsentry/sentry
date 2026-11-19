@@ -5,6 +5,7 @@ import logging
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
+from functools import partial
 from typing import IO, Any
 
 import sentry_sdk
@@ -17,7 +18,6 @@ from sentry.models.commitcomparison import CommitComparison
 from sentry.models.files.file import File
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.objectstore import UsecaseId
 from sentry.preprod.build_distribution_webhooks import send_build_distribution_webhook
 from sentry.preprod.eap.write import (
     produce_preprod_build_distribution_to_eap,
@@ -99,8 +99,7 @@ def _assemble_file(
     checksum: str,
     chunks: list[str],
     file_type: str,
-    usecase: UsecaseId,
-    filename: str,
+    put_file: Callable[[Project, IO[bytes], int], ObjectstoreFile],
 ) -> PreprodAssembly | None:
     if not writes_to_objectstore(project):
         result = assemble_file(task, project, name, checksum, chunks, file_type)
@@ -112,7 +111,7 @@ def _assemble_file(
     try:
         size = stream.seek(0, 2)
         stream.seek(0)
-        stored = ObjectstoreFile.put(usecase, project, stream, size, filename)
+        stored = put_file(project, stream, size)
         stream.seek(0)
         return PreprodAssembly(stored, stream)
     except BaseException:
@@ -161,8 +160,7 @@ def assemble_preprod_artifact(
             checksum=checksum,
             chunks=chunks,
             file_type="preprod.artifact",
-            usecase=UsecaseId.PREPROD_ARTIFACTS,
-            filename=f"preprod_artifact_{artifact_id}.zip",
+            put_file=partial(PreprodArtifact.put_artifact_file, artifact_id=artifact_id),
         )
 
         if assemble_result is None:
@@ -374,7 +372,7 @@ def _assemble_preprod_artifact_file(
     org_id: int,
     checksum: str,
     chunks: Any,
-    usecase: UsecaseId,
+    put_file: Callable[[Project, IO[bytes], int], ObjectstoreFile],
     callback: Callable[[PreprodAssembly, Project], None],
 ) -> None:
     logger.info(
@@ -406,8 +404,7 @@ def _assemble_preprod_artifact_file(
             checksum=checksum,
             chunks=chunks,
             file_type="preprod.file",
-            usecase=usecase,
-            filename="analysis.json" if usecase == UsecaseId.PREPROD_SIZE else "installable",
+            put_file=put_file,
         )
         if assemble_result is None:
             state, detail = get_assemble_status(assemble_task, project_id, checksum)
@@ -760,7 +757,7 @@ def assemble_preprod_artifact_size_analysis(
         org_id,
         checksum,
         chunks,
-        UsecaseId.PREPROD_SIZE,
+        PreprodArtifactSizeMetrics.put_analysis_file,
         lambda assemble_result, project: _assemble_preprod_artifact_size_analysis(
             assemble_result, project, artifact_id, org_id
         ),
@@ -878,7 +875,7 @@ def assemble_preprod_artifact_installable_app(
         org_id,
         checksum,
         chunks,
-        UsecaseId.PREPROD_DISTRIBUTION,
+        PreprodArtifact.put_installable_file,
         lambda assemble_result, project: _assemble_preprod_artifact_installable_app(
             assemble_result, project, artifact_id, org_id
         ),

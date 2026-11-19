@@ -17,23 +17,11 @@ def writes_to_objectstore(project: Project) -> bool:
     return features.has("organizations:objectstore-preprod-exclusive-write", project.organization)
 
 
-def retention_days(usecase: UsecaseId, project: Project) -> int:
-    def days(category: DataCategory) -> int:
-        return (
-            quotas.backend.get_event_retention(organization=project.organization, category=category)
-            or 90
-        )
-
-    match usecase:
-        case UsecaseId.PREPROD_ARTIFACTS:
-            # Launchpad uses the original build for both products.
-            return max(days(DataCategory.SIZE_ANALYSIS), days(DataCategory.INSTALLABLE_BUILD))
-        case UsecaseId.PREPROD_DISTRIBUTION:
-            return days(DataCategory.INSTALLABLE_BUILD)
-        case UsecaseId.PREPROD_SIZE:
-            return days(DataCategory.SIZE_ANALYSIS)
-        case _:
-            raise ValueError(f"Unexpected preprod use case: {usecase}")
+def retention_days(project: Project, category: DataCategory) -> int:
+    return (
+        quotas.backend.get_event_retention(organization=project.organization, category=category)
+        or 90
+    )
 
 
 @dataclass(frozen=True)
@@ -54,17 +42,23 @@ class ObjectstoreFile:
 
     @classmethod
     def put(
-        cls, usecase: UsecaseId, project: Project, stream: IO[bytes], size: int, filename: str
+        cls,
+        usecase: UsecaseId,
+        project: Project,
+        stream: IO[bytes],
+        size: int,
+        *,
+        filename: str,
+        content_type: str,
+        ttl_days: int,
     ) -> ObjectstoreFile:
         session = get_session(usecase, project)
         key = session.put(
             stream,
             filename=filename,
-            content_type="application/json"
-            if usecase == UsecaseId.PREPROD_SIZE
-            else "application/octet-stream",
+            content_type=content_type,
             metadata={"uncompressed-size": str(size)},
-            expiration_policy=TimeToLive(timedelta(days=retention_days(usecase, project))),
+            expiration_policy=TimeToLive(timedelta(days=ttl_days)),
         )
         return cls(session, key, size)
 

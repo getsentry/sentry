@@ -10,7 +10,6 @@ from django.utils import timezone
 
 from sentry.models.files.file import File
 from sentry.models.project import Project
-from sentry.objectstore import UsecaseId
 from sentry.preprod.models import PreprodArtifactSizeComparison, PreprodArtifactSizeMetrics
 from sentry.preprod.objectstore import ObjectstoreFile, writes_to_objectstore
 from sentry.preprod.size_analysis.compare import compare_size_analysis
@@ -365,8 +364,8 @@ def _store_size_comparison_results(
 ) -> File | ObjectstoreFile:
     results_bytes = dumps_htmlsafe(comparison_results.dict()).encode()
     if writes_to_objectstore(project):
-        return ObjectstoreFile.put(
-            UsecaseId.PREPROD_SIZE, project, BytesIO(results_bytes), len(results_bytes), name
+        return PreprodArtifactSizeComparison.put_result_file(
+            project, BytesIO(results_bytes), len(results_bytes), filename=name
         )
     file = File.objects.create(
         name=name,
