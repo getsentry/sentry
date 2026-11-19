@@ -46,6 +46,7 @@ jobs:
         with:
           token: ${{ steps.token.outputs.token }}
           fetch-depth: 0
+          persist-credentials: true
       - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
         if: startsWith(inputs.workspace, 'static/packages/')
         with:

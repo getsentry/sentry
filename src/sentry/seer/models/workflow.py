@@ -191,24 +191,6 @@ class SeerWorkflowConfigVersion(DefaultFieldsModel):
     __repr__ = sane_repr("config_id", "version")
 
 
-@cell_silo_model
-class SeerWorkflowTriggerBinding(DefaultFieldsModel):
-    """Connect a WFE Action to an automation; a config may have multiple bindings."""
-
-    __relocation_scope__ = RelocationScope.Excluded
-
-    workflow_config = FlexibleForeignKey("seer.SeerWorkflowConfig", on_delete=models.CASCADE)
-    trigger_action = models.OneToOneField(
-        "workflow_engine.Action", on_delete=models.CASCADE, related_name="seer_workflow_binding"
-    )
-
-    class Meta:
-        app_label = "seer"
-        db_table = "seer_workflowtriggerbinding"
-
-    __repr__ = sane_repr("workflow_config_id", "trigger_action_id")
-
-
 class SeerWorkflowRunStatus(models.TextChoices):
     QUEUED = "queued"
     RUNNING = "running"

@@ -37,6 +37,7 @@ interface ChartVisualizationProps {
   chartXRangeSelection?: Partial<ChartXRangeSelectionProps>;
   droppedData?: DroppedDataProps;
   isDroppedDataLoading?: boolean;
+  onAnnotationClick?: (items: AnnotationItem[]) => void;
   /**
    * Overrides the plottables derived from `chartInfo`, e.g. when several
    * aggregates are plotted on the same chart.
@@ -109,6 +110,7 @@ export function ChartVisualization({
   chartRef,
   droppedData,
   isDroppedDataLoading = false,
+  onAnnotationClick,
   plottables: plottablesOverride,
   tooltipLimit,
 }: ChartVisualizationProps) {
@@ -168,6 +170,7 @@ export function ChartVisualization({
         chartXRangeSelection={chartXRangeSelection}
         droppedData={activeDroppedData}
         annotations={annotations}
+        onAnnotationClick={onAnnotationClick}
         renderTooltipSeriesDetails={renderTooltipSeriesDetails}
         tooltipLimit={tooltipLimit}
       />

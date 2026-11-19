@@ -46,7 +46,6 @@ from sentry.seer.models.workflow import (
 from sentry.seer.workflows.base import (
     AllProjects,
     AutomationDefinition,
-    AutomationTrigger,
     ConfigUpdate,
     ScopeSelection,
     SelectedMonitors,
@@ -139,7 +138,7 @@ def sync_schedule(config: SeerWorkflowConfig) -> None:
         )
 
 
-class ScheduleTrigger(AutomationTrigger[ScheduledRunInputs]):
+class ScheduleDefinition(AutomationDefinition[ScheduledRunInputs]):
     """Runs on the config's schedule, over the projects the config selects."""
 
     inputs_type = ScheduledRunInputs
@@ -267,15 +266,14 @@ def record_scheduled_automation_run(
 
 
 def _run(organization_id: int, config_id: int, scheduled_for: datetime) -> ScheduledRunOutcome:
-    # Imported here because definitions imports this module for its table of pairings.
+    # Imported here because definitions imports this module for its strategy table.
     from sentry.seer.workflows.definitions import find_definition
 
     config = SeerWorkflowConfig.objects.get_or_none(id=config_id, organization_id=organization_id)
     definition = find_definition(config.strategy) if config is not None else None
     if (
         config is None
-        or definition is None
-        or not isinstance(definition.trigger, ScheduleTrigger)
+        or not isinstance(definition, ScheduleDefinition)
         or schedule_for(config) is None
     ):
         # The config was deleted, disabled, or no longer runs on a schedule, but its

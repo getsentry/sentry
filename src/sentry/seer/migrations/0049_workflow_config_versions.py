@@ -25,7 +25,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("seer", "0047_convert_seer_workflow_actions"),
+        ("seer", "0048_remove_seer_workflow_trigger_binding"),
         ("sentry", "1255_grouprelease_drop_stale_checks"),
     ]
 

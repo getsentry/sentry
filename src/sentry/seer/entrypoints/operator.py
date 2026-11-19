@@ -227,6 +227,7 @@ class SeerAutofixOperator[CachePayloadT]:
             trigger_push_changes,
         )
         from sentry.seer.autofix.feature.models import FEATURE_ID as AUTOFIX_FEATURE_ID
+        from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
         from sentry.seer.autofix.steps import AutofixStep
 
         event_lifecyle = SeerOperatorEventLifecycleMetric(
@@ -251,6 +252,13 @@ class SeerAutofixOperator[CachePayloadT]:
                     existing_state is None or existing_state.run_id != run_id
                 ):
                     existing_state = get_autofix_run_state(group, run_id)
+                single_run_state = (
+                    get_autofix_agent_state(
+                        group.organization, group.id, sources=(SINGLE_RUN_FEATURE_ID,)
+                    )
+                    if run_id is None
+                    else None
+                )
             except Exception as e:
                 with SeerOperatorEventLifecycleMetric(
                     interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_ERROR,
@@ -261,27 +269,39 @@ class SeerAutofixOperator[CachePayloadT]:
                     )
                 lifecycle.record_failure(failure_reason=e)
                 return
-            if existing_state:
-                has_complete_stage = get_autofix_explorer_status(stopping_point, existing_state)
+            blocking_state = existing_state
+            has_complete_stage = (
+                get_autofix_explorer_status(stopping_point, existing_state)
+                if existing_state
+                else None
+            )
+            if (
+                has_complete_stage is None
+                and single_run_state is not None
+                and single_run_state.status != "error"
+            ):
+                blocking_state = single_run_state
+                has_complete_stage = single_run_state.status != "processing"
+            if blocking_state:
                 lifecycle.add_extras(
                     {
-                        "existing_run_id": str(existing_state.run_id),
-                        "existing_run_status": str(existing_state.status),
+                        "existing_run_id": str(blocking_state.run_id),
+                        "existing_run_status": str(blocking_state.status),
                     }
                 )
 
-                # For now, we don't support re-runs over slack -- it causes a confusing UX without
-                # reliably being able to edit messages.
-                if has_complete_stage is not None:
-                    with SeerOperatorEventLifecycleMetric(
-                        interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_ALREADY_EXISTS,
-                        entrypoint_key=self.entrypoint.key,
-                    ).capture():
-                        self.entrypoint.on_trigger_autofix_already_exists(
-                            run_id=existing_state.run_id,
-                            has_complete_stage=has_complete_stage,
-                        )
-                    return
+            # For now, we don't support re-runs over slack -- it causes a confusing UX without
+            # reliably being able to edit messages.
+            if blocking_state and has_complete_stage is not None:
+                with SeerOperatorEventLifecycleMetric(
+                    interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_ALREADY_EXISTS,
+                    entrypoint_key=self.entrypoint.key,
+                ).capture():
+                    self.entrypoint.on_trigger_autofix_already_exists(
+                        run_id=blocking_state.run_id,
+                        has_complete_stage=has_complete_stage,
+                    )
+                return
 
             try:
                 if not run_id:
