@@ -56,8 +56,8 @@ export function FirstEventFooter({
 
   return (
     <GridFooter>
-      <LeadingSlot>{leading}</LeadingSlot>
-      <Flex align="center" justify="center" display={{zero: 'none', xl: 'flex'}}>
+      <Flex align="center">{leading}</Flex>
+      <Flex align="center" justify="center">
         {flexProps => (
           <motion.div
             {...flexProps}
@@ -116,13 +116,9 @@ export function FirstEventFooter({
   );
 }
 
-const OnboardingButtonBar = styled((props: GridProps) => (
-  <Grid flow="column" align="center" gap="xl" {...props} />
-))`
-  margin: ${p => p.theme.space.xl} ${p => p.theme.space['3xl']};
-  justify-self: end;
-  margin-left: auto;
-`;
+function OnboardingButtonBar(props: GridProps) {
+  return <Grid flow="column" align="center" gap="xl" justifySelf="end" {...props} />;
+}
 
 const AnimatedText = styled(motion.div, {
   shouldForwardProp: prop => prop !== 'errorReceived',
@@ -138,10 +134,4 @@ const indicatorAnimation: Variants = ONBOARDING_ENTER.variants;
 const WaitingIndicator = styled(motion.div)`
   ${pulsingIndicatorStyles};
   background-color: ${p => p.theme.colors.pink400};
-`;
-
-const LeadingSlot = styled('div')`
-  display: flex;
-  align-items: center;
-  margin: auto ${p => p.theme.space['3xl']};
 `;

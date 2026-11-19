@@ -12,7 +12,6 @@ import {
 } from 'sentry/components/onboarding/onboardingContext';
 import {Stepper} from 'sentry/components/onboarding/stepper';
 import {useRecentCreatedProject} from 'sentry/components/onboarding/useRecentCreatedProject';
-import {Override} from 'sentry/components/override';
 import {Redirect} from 'sentry/components/redirect';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {categoryList} from 'sentry/data/platformPickerCategories';
@@ -394,11 +393,7 @@ export function OnboardingWithoutContext() {
         style={{zIndex: 100}}
       >
         <LogoSentry showWordmark={false} height="24px" />
-        <Flex align="center" justify="end" gap="md">
-          <Override
-            name="onboarding:targeted-onboarding-header"
-            source="targeted-onboarding"
-          />
+        <Flex align="center" justify="end">
           <OnboardingSkipButton stepId={stepObj.id} />
         </Flex>
       </Grid>
