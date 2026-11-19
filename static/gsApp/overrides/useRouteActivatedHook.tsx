@@ -32,6 +32,8 @@ export function useRouteActivatedHook({location, matches}: Props) {
   // this hook is above the normal organization context so we have to
   // set it from a lower level and pass it here
   const [organization, setOrganization] = useState<Organization | null>(null);
+  // The route the user navigated from, unset on the first page of a page load.
+  const [referrerRoute, setReferrerRoute] = useState<string | undefined>(undefined);
 
   // keep track of the previous URL so we can detect trigger hooks after resetting the route params
   const previousUrl = getUrlFromLocation(prevLocation);
@@ -66,6 +68,9 @@ export function useRouteActivatedHook({location, matches}: Props) {
             url: previousUrl, // pass in the previous URL
             // pass in the parameterized path as well
             parameterized_path: reloadPath,
+            ...(referrerRoute === undefined
+              ? {}
+              : {previous_parameterized_path: convertToReloadPath(referrerRoute)}),
             ...analyticsParams,
           },
           {time: mountTime}
@@ -76,7 +81,7 @@ export function useRouteActivatedHook({location, matches}: Props) {
         trackMetric(eventKey, 1);
       });
     },
-    [analyticsParams, mountTime, previousUrl, _eventName, _eventKey]
+    [analyticsParams, mountTime, previousUrl, referrerRoute, _eventName, _eventKey]
   );
 
   // This hook is called when the route changes
@@ -87,6 +92,11 @@ export function useRouteActivatedHook({location, matches}: Props) {
     // the we need to emit it immediately before handing the new route
     if (considerSendingAnalytics && !readyToSend) {
       sendRouteParams(prevRoute, organization);
+    }
+
+    // On mount prevRoute equals currentRoute, so the first page keeps no referrer.
+    if (prevRoute !== currentRoute) {
+      setReferrerRoute(prevRoute);
     }
 
     // when the route changes, reset the analytics params

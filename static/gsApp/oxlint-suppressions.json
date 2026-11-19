@@ -198,11 +198,6 @@
       "count": 5
     }
   },
-  "overrides/useRouteActivatedHook.spec.tsx": {
-    "@sentry/require-fake-timer-cleanup": {
-      "count": 9
-    }
-  },
   "views/amCheckout/components/cartDiff.tsx": {
     "@sentry/scraps/no-dom-coupling": {
       "count": 2

@@ -60,7 +60,12 @@ describe('useRouteActivatedHook', () => {
   });
 
   afterEach(() => {
-    jest.mocked(rawTrackAnalyticsEvent).mockClear();
+    try {
+      act(() => jest.runOnlyPendingTimers());
+    } finally {
+      jest.useRealTimers();
+      jest.mocked(rawTrackAnalyticsEvent).mockClear();
+    }
   });
 
   it('calls rawTrackAnalyticsEvent after one seconds if org is set', () => {
@@ -193,6 +198,7 @@ describe('useRouteActivatedHook', () => {
         eventName: 'Page View: Organizations :OrgId Releases :Release',
         eventKey: 'page_view.organizations.:org_id.releases.:release',
         parameterized_path: 'organizations.:org_id.releases.:release',
+        previous_parameterized_path: 'settings.:org_id.projects.:project_id',
         organization: expect.objectContaining(organization),
         subscription: expect.objectContaining(subscription),
         url: `http://localhost/organizations/${organization.slug}/releases/some-release/`,
@@ -266,6 +272,7 @@ describe('useRouteActivatedHook', () => {
         eventName: 'Page View: Organizations :OrgId Releases :Release',
         eventKey: 'page_view.organizations.:org_id.releases.:release',
         parameterized_path: 'organizations.:org_id.releases.:release',
+        previous_parameterized_path: 'settings.:org_id.projects.:project_id',
         organization: expect.objectContaining(organization),
         subscription: expect.objectContaining(subscription),
         url: `http://localhost/organizations/${organization.slug}/releases/some-release/`,
@@ -273,5 +280,40 @@ describe('useRouteActivatedHook', () => {
       {time: loadTime}
     );
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledTimes(2);
+  });
+
+  it('sends the route the user navigated from as previous_parameterized_path', () => {
+    jest.useFakeTimers();
+    const {result, rerender} = renderHook(useRouteActivatedHook, {
+      initialProps: props,
+    });
+    act(() => result.current.setOrganization(organization));
+    act(() => jest.advanceTimersByTime(DEFAULT_ADVANCE_PERIOD));
+
+    // The first page of a page load has no previous route
+    expect(jest.mocked(rawTrackAnalyticsEvent).mock.calls[0]![0]).not.toHaveProperty(
+      'previous_parameterized_path'
+    );
+
+    act(() => rerender(genProps({matches: RELEASES_MATCHES})));
+    act(() => jest.advanceTimersByTime(DEFAULT_ADVANCE_PERIOD));
+    act(() =>
+      rerender(genProps({matches: [makeMatch('/organizations/:orgId/issues/')]}))
+    );
+    act(() => jest.advanceTimersByTime(DEFAULT_ADVANCE_PERIOD));
+
+    expect(rawTrackAnalyticsEvent).toHaveBeenCalledTimes(3);
+    expect(jest.mocked(rawTrackAnalyticsEvent).mock.calls[1]![0]).toEqual(
+      expect.objectContaining({
+        parameterized_path: 'organizations.:org_id.releases.:release',
+        previous_parameterized_path: 'settings.:org_id.projects.:project_id',
+      })
+    );
+    expect(jest.mocked(rawTrackAnalyticsEvent).mock.calls[2]![0]).toEqual(
+      expect.objectContaining({
+        parameterized_path: 'organizations.:org_id.issues',
+        previous_parameterized_path: 'organizations.:org_id.releases.:release',
+      })
+    );
   });
 });
