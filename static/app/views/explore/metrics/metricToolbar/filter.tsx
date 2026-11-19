@@ -109,6 +109,7 @@ export function Filter({disableValidation, ...props}: FilterProps) {
 /**
  * Per-metric search bar whose query is controlled by the caller. Attribute
  * suggestions are scoped to the metric unless `skipTraceMetricFilter` is set.
+ * @public used by the upcoming dashboards unified visualize list
  */
 export function MetricFilterBar({
   traceMetric,
