@@ -52,9 +52,7 @@ export function useDeleteClassifier(classifierId: string) {
       fetchMutation<void>({
         url: getApiUrl(
           '/organizations/$organizationIdOrSlug/classifiers/$classifierId/',
-          {
-            path: {organizationIdOrSlug: organization.slug, classifierId},
-          }
+          {path: {organizationIdOrSlug: organization.slug, classifierId}}
         ),
         method: 'DELETE',
       }),

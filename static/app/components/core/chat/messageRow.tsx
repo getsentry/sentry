@@ -6,8 +6,10 @@ import {Flex} from '@sentry/scraps/layout';
  * - `compact`: sub-turn connective content (tool calls, reasoning) that sits
  *   between bubbles, or a surface that stacks turns directly and would read too
  *   airy at the default spacing.
+ * - `line`: one-line rows (tool calls, reasoning, other spans) stacked in a
+ *   run, spaced like the rows of a single list rather than separate blocks.
  */
-type MessageRowDensity = 'default' | 'compact';
+type MessageRowDensity = 'default' | 'compact' | 'line';
 
 interface MessageRowProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
@@ -23,7 +25,7 @@ interface MessageRowProps extends React.HTMLAttributes<HTMLDivElement> {
   density?: MessageRowDensity;
 }
 
-const DENSITY_PADDING = {default: 'xl', compact: 'md xl'} as const;
+const DENSITY_PADDING = {default: 'xl', compact: 'md xl', line: '2xs xl'} as const;
 
 /**
  * The full-width row that positions a single message turn within a conversation.
