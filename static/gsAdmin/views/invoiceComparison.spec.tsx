@@ -104,6 +104,28 @@ describe('InvoiceComparison', () => {
     expect(screen.getByText('1 row')).toBeInTheDocument();
   });
 
+  it('shows why a mismatch is expected', async () => {
+    const body = comparisonBody();
+    MockApiClient.addMockResponse({
+      url: COMPARISON_URL,
+      body: {
+        ...body,
+        rows: [
+          {
+            ...body.rows[0],
+            status: 'expected_mismatch',
+            expected_mismatch_reason: 'Known cause.',
+          },
+        ],
+      },
+    });
+
+    renderComparison({start: '2026-11-09', end: '2026-11-09'});
+
+    await userEvent.hover(await screen.findByText('expected_mismatch'));
+    expect(await screen.findByText('Known cause.')).toBeInTheDocument();
+  });
+
   it('does not say a range is empty when every row is a hidden small mismatch', async () => {
     MockApiClient.addMockResponse({
       url: COMPARISON_URL,

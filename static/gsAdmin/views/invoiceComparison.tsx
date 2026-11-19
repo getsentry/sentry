@@ -12,6 +12,7 @@ import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
@@ -22,7 +23,12 @@ import {getCells} from 'sentry/utils/cells';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-type RowStatus = 'match' | 'mismatch' | 'legacy_only' | 'platform_only';
+type RowStatus =
+  | 'match'
+  | 'mismatch'
+  | 'expected_mismatch'
+  | 'legacy_only'
+  | 'platform_only';
 
 type Row = {
   delta_cents: number;
@@ -38,6 +44,8 @@ type Row = {
   platform_invoice_count: number;
   platform_invoice_guid: string | null;
   status: RowStatus;
+  // Why the backend considers the mismatch expected. Absent from older backends.
+  expected_mismatch_reason?: string | null;
 };
 
 type Summary = {
@@ -66,6 +74,7 @@ type ComparisonResponse = {
 const STATUS_VARIANT: Record<RowStatus, TagProps['variant']> = {
   match: 'success',
   mismatch: 'warning',
+  expected_mismatch: 'muted',
   legacy_only: 'danger',
   platform_only: 'danger',
 };
@@ -593,7 +602,12 @@ export function InvoiceComparison() {
                       <RightCell>{formatPercent(row.delta_pct)}</RightCell>
                       <RightCell>{formatDollars(row.delta_cents)}</RightCell>
                       <td>
-                        <Tag variant={STATUS_VARIANT[row.status]}>{row.status}</Tag>
+                        <Tooltip
+                          disabled={!row.expected_mismatch_reason}
+                          title={row.expected_mismatch_reason}
+                        >
+                          <Tag variant={STATUS_VARIANT[row.status]}>{row.status}</Tag>
+                        </Tooltip>
                       </td>
                     </tr>
                   ))}
