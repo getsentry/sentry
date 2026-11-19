@@ -696,60 +696,43 @@ def outbox_silo_modes() -> list[SiloMode]:
 
 
 class OutboxContext(threading.local):
-    in_outbox_context: bool = False
-    flush_override: bool | None = None
-    """The flush flag a caller passed to an enclosing outbox_context, or None if none did."""
-
-    @property
-    def flushing_enabled(self) -> bool | None:
-        """Whether outbox saves drain on commit; None outside any outbox_context."""
-        if not self.in_outbox_context:
-            return None
-
-        # 1. A flag was passed to this context, or 2. to an enclosing one: use it
-        if self.flush_override is not None:
-            return self.flush_override
-
-        # 3. No caller passed a flag: flush
-        return True
+    flushing_enabled: bool | None = None
 
 
 _outbox_context = OutboxContext()
 
 
-def get_outbox_flush_override() -> bool | None:
-    """The flush flag a caller passed to an enclosing outbox_context, or None if none did."""
-    return _outbox_context.flush_override
+def get_outbox_flushing_enabled() -> bool | None:
+    """The enclosing outbox_context's flush flag, or None outside any outbox_context."""
+    return _outbox_context.flushing_enabled
 
 
 @contextlib.contextmanager
 def outbox_context(
     inner: Atomic | None = None, flush: bool | None = None
 ) -> Generator[Atomic | None]:
-    original_in_outbox_context = _outbox_context.in_outbox_context
-    original_override = _outbox_context.flush_override
-
-    # Without a flag of our own, keep the one an enclosing caller passed
+    # If we don't specify our flush, use the outer specified override
     if flush is None:
-        flush = original_override
+        flush = _outbox_context.flushing_enabled
+        # But if there is no outer override, default to True
+        if flush is None:
+            flush = True
 
-    assert flush is False or inner, "Must either set a transaction or flush=False"
+    assert not flush or inner, "Must either set a transaction or flush=False"
+
+    original = _outbox_context.flushing_enabled
 
     if inner:
         assert inner.using is not None
         with unguarded_write(using=inner.using), enforce_constraints(inner):
-            _outbox_context.in_outbox_context = True
-            _outbox_context.flush_override = flush
+            _outbox_context.flushing_enabled = flush
             try:
                 yield inner
             finally:
-                _outbox_context.in_outbox_context = original_in_outbox_context
-                _outbox_context.flush_override = original_override
+                _outbox_context.flushing_enabled = original
     else:
-        _outbox_context.in_outbox_context = True
-        _outbox_context.flush_override = flush
+        _outbox_context.flushing_enabled = flush
         try:
             yield None
         finally:
-            _outbox_context.in_outbox_context = original_in_outbox_context
-            _outbox_context.flush_override = original_override
+            _outbox_context.flushing_enabled = original
