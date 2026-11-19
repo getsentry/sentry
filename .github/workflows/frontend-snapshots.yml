@@ -37,7 +37,7 @@ jobs:
 
       - uses: pnpm/action-setup@36de12bed180fa130ed56a35e7344f2fa7a820ab # v4
 
-      - uses: ./.github/actions/node-modules-cache-paths
+      - uses: $/.github/actions/node-modules-cache-paths
         id: workspace-cache
 
       - name: node_modules cache

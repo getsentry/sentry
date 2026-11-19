@@ -372,7 +372,8 @@ function WidgetCard(props: Props) {
         props.onDuplicate,
         props.onEdit,
         data?.timeseriesResults,
-        canAskSeer ? askSeer : undefined
+        canAskSeer ? askSeer : undefined,
+        dashboardQueryPriority
       )
     : [];
   const actions = props.onContextMenuAction

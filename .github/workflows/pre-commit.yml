@@ -73,7 +73,7 @@ jobs:
               - 'scripts/oxlint-suppressions.ts'
               - 'stylelint.config.js'
 
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: $/.github/actions/setup-node-pnpm
 
       - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
         with:

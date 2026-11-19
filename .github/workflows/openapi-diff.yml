@@ -42,12 +42,12 @@ jobs:
           filters: .github/file-filters.yml
 
       - name: Setup sentry env
-        uses: ./.github/actions/setup-sentry
+        uses: $/.github/actions/setup-sentry
         with:
           mode: migrations
         if: steps.changes.outputs.api_docs == 'true'
 
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: $/.github/actions/setup-node-pnpm
         if: steps.changes.outputs.api_docs == 'true'
 
       - name: Build OpenAPI Derefed JSON

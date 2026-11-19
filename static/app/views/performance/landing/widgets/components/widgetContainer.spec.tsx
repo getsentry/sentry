@@ -5,7 +5,6 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {ConfigStore} from 'sentry/stores/configStore';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
-import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayContext} from 'sentry/utils/performance/contexts/performanceDisplayContext';
@@ -41,25 +40,18 @@ function WrappedComponent({data, withStaticFilters = false, ...rest}: any) {
 
   return (
     <OrganizationContext value={data.organization}>
-      <MetricsCardinalityProvider
-        location={data.router.location}
-        organization={data.organization}
-      >
-        <MEPSettingProvider forceTransactions>
-          <PerformanceDisplayContext
-            value={{performanceType: ProjectPerformanceType.ANY}}
-          >
-            <WidgetContainer
-              chartHeight={100}
-              allowedCharts={allowedCharts}
-              rowChartSettings={[]}
-              withStaticFilters={withStaticFilters}
-              {...data}
-              {...rest}
-            />
-          </PerformanceDisplayContext>
-        </MEPSettingProvider>
-      </MetricsCardinalityProvider>
+      <MEPSettingProvider forceTransactions>
+        <PerformanceDisplayContext value={{performanceType: ProjectPerformanceType.ANY}}>
+          <WidgetContainer
+            chartHeight={100}
+            allowedCharts={allowedCharts}
+            rowChartSettings={[]}
+            withStaticFilters={withStaticFilters}
+            {...data}
+            {...rest}
+          />
+        </PerformanceDisplayContext>
+      </MEPSettingProvider>
     </OrganizationContext>
   );
 }
@@ -113,18 +105,6 @@ describe('Performance > Widgets > WidgetContainer', () => {
         ],
       },
       match: [(...args) => issuesPredicate(...args)],
-    });
-
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: '/organizations/org-slug/metrics-compatibility/',
-      body: [],
-    });
-
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: '/organizations/org-slug/metrics-compatibility-sums/',
-      body: [],
     });
   });
 

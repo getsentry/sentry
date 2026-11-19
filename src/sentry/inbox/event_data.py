@@ -3,7 +3,54 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
 from dataclasses import dataclass, fields
-from typing import Self
+from typing import Annotated, Self, TypedDict
+
+from sentry.apidocs.descriptions import ApiDescription
+
+
+class IssueAssignedDataResponse(TypedDict):
+    assignmentSource: Annotated[
+        str | None,
+        ApiDescription("The source of the issue assignment, if available"),
+    ]
+    activityId: Annotated[str, ApiDescription("The issue activity ID")]
+
+
+class IssueMentionedDataResponse(TypedDict):
+    commentId: Annotated[str, ApiDescription("The comment ID")]
+
+
+class IssuePRReadyForReviewDataResponse(TypedDict):
+    prUrl: Annotated[str, ApiDescription("The pull request URL")]
+    seerRunId: Annotated[str, ApiDescription("The Seer run ID")]
+
+
+class NotebookCompletedDataResponse(TypedDict):
+    seerRunId: Annotated[str, ApiDescription("The Seer run ID")]
+    generation: Annotated[
+        int, ApiDescription("The investigation generation completed by the Seer run")
+    ]
+
+
+class NotebookMentionedDataResponse(TypedDict):
+    commentId: Annotated[str, ApiDescription("The comment ID")]
+    blockId: Annotated[
+        str | None, ApiDescription("The notebook block ID, or null for a comment on the notebook")
+    ]
+
+
+class NotebookParticipantAddedDataResponse(TypedDict):
+    pass
+
+
+InboxEventDataResponse = (
+    IssueAssignedDataResponse
+    | IssueMentionedDataResponse
+    | IssuePRReadyForReviewDataResponse
+    | NotebookCompletedDataResponse
+    | NotebookMentionedDataResponse
+    | NotebookParticipantAddedDataResponse
+)
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -24,7 +71,7 @@ class InboxEventData(ABC):
         return cls(**{key: value for key, value in payload.items() if key in names})
 
     @abstractmethod
-    def serialize(self) -> Mapping[str, object]:
+    def serialize(self) -> InboxEventDataResponse:
         """Return the API representation, with string IDs and camelCase keys."""
 
     def get_url(self, subject_url: str) -> str:
