@@ -29,6 +29,9 @@ concurrency:
 env:
   SEGMENT_DOWNLOAD_TIMEOUT_MINS: 3
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-26.04-arm
