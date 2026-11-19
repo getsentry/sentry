@@ -299,6 +299,26 @@ class JiraInstalledTest(APITestCase):
 
         assert_halt_metric(mock_record_event, "JWT is missing required claim")
 
+    @responses.activate
+    def test_ignores_unsigned_client_key(self) -> None:
+        self.add_response()
+        # The token is for this site and the body's external_id matches it, but the body
+        # names another site's clientKey, which the token doesn't vouch for.
+        body = {
+            **self.body(client_key="some-other-tenant"),
+            "external_id": self.external_id,
+            "metadata": {
+                "shared_secret": self.shared_secret,
+                "base_url": "https://example.atlassian.net",
+            },
+        }
+
+        self.get_success_response(
+            **body, extra_headers=dict(HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn())
+        )
+
+        assert not JiraConnectClientKey.objects.filter(client_key="some-other-tenant").exists()
+
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate
     def test_rejects_when_jwt_iss_does_not_match_client_key(

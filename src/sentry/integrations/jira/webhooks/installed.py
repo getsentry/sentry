@@ -129,7 +129,12 @@ class JiraSentryInstalledWebhook(JiraWebhookBase):
                 )
 
             data = JiraIntegrationProvider().build_integration(state)
+            # The body isn't covered by the JWT, so only trust a clientKey that matches the
+            # signed `iss`. Otherwise a token for one site could bind another site's
+            # clientKey to its integration.
             client_key = state.get("clientKey")
+            if client_key != decoded_claims.get("iss"):
+                client_key = None
             if client_key and data["external_id"] == client_key:
                 # A site already rekeyed to its cloud ID still installs with its clientKey
                 # (the verified `iss` above), so update that integration instead of
