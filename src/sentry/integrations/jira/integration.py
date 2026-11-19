@@ -1523,9 +1523,10 @@ class JiraIntegration(IssueSyncIntegration):
         try:
             transition = [t for t in transitions if t.get("to", {}).get("id") == jira_status][0]
         except IndexError:
-            # TODO(jess): Email for failure
             logger.warning("jira.status-sync-fail", extra=log_context)
-            return
+            raise IntegrationConfigurationError(
+                f"Jira issue {external_issue.key} has no workflow transition to status {jira_status}."
+            )
 
         try:
             client.transition_issue(external_issue.key, transition["id"])

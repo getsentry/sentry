@@ -6,7 +6,11 @@ from sentry.integrations.example import ExampleIntegration
 from sentry.integrations.models import ExternalIssue, Integration
 from sentry.integrations.tasks import sync_status_outbound
 from sentry.integrations.types import EventLifecycleOutcome
-from sentry.shared_integrations.exceptions import ApiUnauthorized, IntegrationFormError
+from sentry.shared_integrations.exceptions import (
+    ApiUnauthorized,
+    IntegrationConfigurationError,
+    IntegrationFormError,
+)
 from sentry.testutils.asserts import assert_count_of_metric, assert_halt_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode_of, cell_silo_test
@@ -22,6 +26,10 @@ def raise_integration_form_error(*args: object, **kwargs: object) -> None:
 
 def raise_api_unauthorized_error(*args: object, **kwargs: object) -> None:
     raise ApiUnauthorized(text="auth failed")
+
+
+def raise_integration_configuration_error(*args: object, **kwargs: object) -> None:
+    raise IntegrationConfigurationError("no transition")
 
 
 @cell_silo_test
@@ -164,3 +172,30 @@ class TestSyncStatusOutbound(TestCase):
         )
 
         assert_halt_metric(mock_record=mock_record, error_msg=ApiUnauthorized("auth failed"))
+
+    @mock.patch("sentry.integrations.tasks.sync_status_outbound.analytics.record")
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @mock.patch.object(ExampleIntegration, "sync_status_outbound")
+    def test_integration_configuration_error_halts(
+        self,
+        mock_sync_status: mock.MagicMock,
+        mock_record: mock.MagicMock,
+        mock_analytics: mock.MagicMock,
+    ) -> None:
+        mock_sync_status.side_effect = raise_integration_configuration_error
+        external_issue: ExternalIssue = self.create_integration_external_issue(
+            group=self.group, key="foo_integration", integration=self.example_integration
+        )
+
+        sync_status_outbound(self.group.id, external_issue_id=external_issue.id)
+
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.HALTED, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=0
+        )
+        assert_halt_metric(
+            mock_record=mock_record, error_msg=IntegrationConfigurationError("no transition")
+        )
+        mock_analytics.assert_not_called()

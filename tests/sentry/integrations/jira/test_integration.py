@@ -1023,6 +1023,29 @@ class RegionJiraIntegrationTest(APITestCase):
                 installation.sync_status_outbound(external_issue, True, self.project.id)
                 mock_transition_issue.assert_called_with("SEN-5", "31")
 
+    def test_outbound_issue_sync_no_transition_to_status(self) -> None:
+        external_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id, integration_id=self.integration.id, key="SEN-5"
+        )
+
+        with assume_test_silo_mode_of(IntegrationExternalProject):
+            IntegrationExternalProject.objects.create(
+                external_id="10100",
+                organization_integration_id=OrganizationIntegration.objects.get(
+                    organization_id=self.organization.id, integration_id=self.integration.id
+                ).id,
+                resolved_status="10101",
+                unresolved_status="99999",
+            )
+
+        installation = self.get_installation()
+
+        with mock.patch.object(StubJiraApiClient, "transition_issue") as mock_transition_issue:
+            with mock.patch.object(installation, "get_client", get_client):
+                with pytest.raises(IntegrationConfigurationError):
+                    installation.sync_status_outbound(external_issue, False, self.project.id)
+                mock_transition_issue.assert_not_called()
+
     @responses.activate
     def test_sync_assignee_outbound_case_insensitive(self) -> None:
         user = serialize_rpc_user(self.create_user(email="bob@example.com"))
