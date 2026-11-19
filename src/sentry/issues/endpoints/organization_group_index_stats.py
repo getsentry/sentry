@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError, PermissionDenied
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -10,8 +11,20 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.helpers.group_index import build_query_params_from_request, calculate_stats_period
 from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.group_stream import StreamGroupSerializerSnuba
+from sentry.api.serializers.models.group_stream import (
+    StreamGroupSerializerSnuba,
+    StreamGroupSerializerSnubaResponse,
+)
 from sentry.api.utils import get_date_range_from_stats_period, handle_query_errors
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
+)
+from sentry.apidocs.parameters import GlobalParams, IssueParams, OrganizationParams
+from sentry.apidocs.response_types import DetailResponse
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.issues.endpoints.organization_group_index import ERR_INVALID_STATS_PERIOD
 from sentry.models.group import Group
 from sentry.models.organization import Organization
@@ -19,10 +32,11 @@ from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 
+@extend_schema(tags=["Events"])
 @cell_silo_endpoint
 class OrganizationGroupIndexStatsEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
     permission_classes = (OrganizationEventPermission,)
     enforce_rate_limit = True
@@ -39,35 +53,42 @@ class OrganizationGroupIndexStatsEndpoint(OrganizationEndpoint):
         }
     )
 
-    def get(self, request: Request, organization: Organization) -> Response:
+    @extend_schema(
+        operation_id="listOrganizationIssueStats",
+        summary="List Stats for an Organization's Issues",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            IssueParams.STATS_GROUPS,
+            GlobalParams.ENVIRONMENT,
+            OrganizationParams.PROJECT,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.STATS_PERIOD_START,
+            GlobalParams.STATS_PERIOD_END,
+            GlobalParams.START,
+            GlobalParams.END,
+            IssueParams.GROUP_STATS_PERIOD,
+            IssueParams.DEFAULT_QUERY,
+            IssueParams.GROUP_INDEX_EXPAND,
+            IssueParams.STATS_COLLAPSE,
+        ],
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationGroupIndexStatsGetResponse", list[StreamGroupSerializerSnubaResponse]
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[StreamGroupSerializerSnubaResponse]] | Response[DetailResponse]:
         """
-        Get the stats on an Organization's Issues
-        `````````````````````````````
-        Return a list of issues (groups) with the requested stats.  All parameters are
-        supplied as query string parameters.
-
-        :qparam list groups: A list of group ids
-        :qparam list expand: an optional list of strings to opt in to additional data. Supports `inbox`
-        :qparam list collapse: an optional list of strings to opt out of certain pieces of data. Supports `stats`, `lifetime`, `filtered`, and `base`
-
-        The ``groupStatsPeriod`` parameter can be used to select the timeline
-        stats which should be present. Possible values are: '' (disable),
-        '24h', '14d'
-
-        The ``statsPeriod`` parameter can be used to select a date window starting
-        from now. Ex. ``14d``.
-
-        The ``start`` and ``end`` parameters can be used to select an absolute
-        date period to fetch issues from.
-
-        :qparam string statsPeriod: an optional stat period (can be one of
-                                    ``"24h"``, ``"14d"``, and ``""``).
-        :qparam string groupStatsPeriod: an optional stat period (can be one of
-                                    ``"24h"``, ``"14d"``, and ``""``).
-        :qparam string start:       Beginning date. You must also provide ``end``.
-        :qparam string end:         End date. You must also provide ``start``.
+        Return counts, first and last seen, and stats for the requested issues. Use it to
+        fill in stats for an issue list fetched with `collapse=stats`. The `query` filters
+        the `filtered` counts.
         """
-
         stats_period = request.GET.get("groupStatsPeriod")
         start, end = get_date_range_from_stats_period(request.GET)
 

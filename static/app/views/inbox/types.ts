@@ -90,6 +90,7 @@ export interface InboxItem {
   subtitle: string;
   title: string | null;
   unreadEventCount: number;
+  url: string;
 }
 
 export type InboxSubject = Pick<InboxItem, 'subjectId' | 'subjectType'>;

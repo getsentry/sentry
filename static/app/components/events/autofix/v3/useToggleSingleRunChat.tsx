@@ -30,12 +30,15 @@ export function useRerunSingleRun(
   const openSingleRunChat = useOpenSingleRunChat();
   const disabled = useAutofixCreditsDisabled('root_cause', {enabled});
 
-  const rerun = useCallback(async () => {
-    const run = await startStep('root_cause');
-    if (run.isSingleRun) {
-      openSingleRunChat(run.runId);
-    }
-  }, [startStep, openSingleRunChat]);
+  const rerun = useCallback(
+    async (userContext?: string) => {
+      const run = await startStep('root_cause', {userContext});
+      if (run.isSingleRun) {
+        openSingleRunChat(run.runId);
+      }
+    },
+    [startStep, openSingleRunChat]
+  );
 
   return {rerun, disabled};
 }

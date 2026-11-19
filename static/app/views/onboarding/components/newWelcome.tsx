@@ -1,6 +1,7 @@
 import {useEffect} from 'react';
 import {IconBot} from '@sentry/icons/bot';
 import {IconGraph} from '@sentry/icons/graph';
+import {IconNext} from '@sentry/icons/next';
 import {IconProfiling} from '@sentry/icons/profiling';
 import {IconSeer} from '@sentry/icons/seer';
 import {IconSpan} from '@sentry/icons/span';
@@ -10,7 +11,7 @@ import {IconWarning} from '@sentry/icons/warning';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {FeatureBadge} from '@sentry/scraps/badge';
-import {Button} from '@sentry/scraps/button';
+import {Button, LinkButton} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
@@ -131,7 +132,6 @@ export function NewWelcomeUI(props: StepProps) {
   const showAgentSetup = organization.features.includes('onboarding-agentic-setup');
   const {
     run,
-    onboardingCode,
     isAgentConnected,
     isSetupComplete,
     hasRunFailed,
@@ -161,14 +161,20 @@ export function NewWelcomeUI(props: StepProps) {
 
   const handleComplete = useWelcomeHandleComplete(props.onComplete);
 
-  const handleCopyCommand = (source: 'install_command' | 'prompt') => {
-    trackAnalytics('onboarding.scm_welcome_agent_command_copied', {organization, source});
+  const handleCopyCommand = (source: 'install_command' | 'prompt', handoffId: string) => {
+    trackAnalytics('onboarding.scm_welcome_agent_command_copied', {
+      organization,
+      source,
+      handoff_id: handoffId,
+      run_id: run?.runId,
+    });
   };
 
   const handleSelectSnippet = (source: 'install_command' | 'prompt') => {
     trackAnalytics('onboarding.scm_welcome_agent_snippet_selected', {
       organization,
       source,
+      run_id: run?.runId,
     });
   };
 
@@ -214,12 +220,23 @@ export function NewWelcomeUI(props: StepProps) {
                   hasProgressFailed={hasProgressFailed}
                   onRefresh={() => void refreshRun()}
                   isAgentConnected={isAgentConnected}
-                  onboardingCode={onboardingCode}
                   onCopyCommand={handleCopyCommand}
                   onRetry={restartRun}
                   onSelectSnippet={handleSelectSnippet}
                   onSetupInBrowser={handleComplete}
                   run={run}
+                  metaAction={
+                    isSetupComplete ? undefined : (
+                      <LinkButton
+                        variant="transparent"
+                        size="xs"
+                        icon={<IconNext size="xs" />}
+                        to={`/organizations/${organization.slug}/issues/`}
+                      >
+                        {t("I'm finished")}
+                      </LinkButton>
+                    )
+                  }
                 />
               </MotionContainer>
             ) : (

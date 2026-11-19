@@ -2103,6 +2103,68 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 response_data = json.loads(response.content)
                 assert len(response_data["data"]) == 1, query
 
+    def test_query_ipv6_address_conditions(self) -> None:
+        project = self.create_project(teams=[self.team])
+
+        replay_v4_id = uuid.uuid4().hex
+        replay_v6_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+
+        self.store_replays(mock_replay(seq1_timestamp, project.id, replay_v4_id))
+        self.store_replays(mock_replay(seq2_timestamp, project.id, replay_v4_id))
+        self.store_replays(
+            mock_replay(seq1_timestamp, project.id, replay_v6_id, ipv4="2001:db8::1")
+        )
+        self.store_replays(
+            mock_replay(seq2_timestamp, project.id, replay_v6_id, ipv4="2001:db8::1")
+        )
+
+        with self.feature(self.features):
+            queries = {
+                'user.ip:"2001:db8::1"': {replay_v6_id},
+                'user.ip_address:"2001:0db8:0000::0001"': {replay_v6_id},
+                '!user.ip:"2001:db8::1"': {replay_v4_id},
+                "!user.ip:127.0.0.1": {replay_v6_id},
+                'user.ip:"2001:db8::2"': set(),
+                'user.ip:[127.0.0.1, "2001:db8::1"]': {replay_v4_id, replay_v6_id},
+                'user.ip:[10.0.0.1, "2001:db8::1"]': {replay_v6_id},
+                '!user.ip:[127.0.0.1, "2001:db8::1"]': set(),
+                '!user.ip:[10.0.0.1, "2001:db8::2"]': {replay_v4_id, replay_v6_id},
+                'user.ip:""': set(),
+                '!user.ip:""': {replay_v4_id, replay_v6_id},
+            }
+            for query, expected_ids in queries.items():
+                response = self.client.get(self.url, {"field": ["id"], "query": query})
+                assert response.status_code == 200, query
+                data = response.json()["data"]
+                assert {item["id"] for item in data} == expected_ids, query
+
+            response = self.client.get(
+                self.url, {"field": ["id", "user"], "query": f"id:{replay_v6_id}"}
+            )
+            assert response.status_code == 200
+            assert response.json()["data"][0]["user"]["ip"] == "2001:db8::1"
+
+    def test_query_empty_ipv6(self) -> None:
+        self._test_empty_filters("user.ip", "ipv4", None, "2001:db8::1")
+
+    def test_query_invalid_ipv6_addresses(self) -> None:
+        project = self.create_project(teams=[self.team])
+        replay1_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id))
+
+        with self.feature(self.features):
+            queries = [
+                'user.ip:"2001:db8::g"',
+                'user.ip:"fe80::1%eth0"',
+                'user.ip:[127.0.0.1, "2001:db8:::1"]',
+            ]
+            for query in queries:
+                response = self.client.get(self.url, {"field": ["id"], "query": query})
+                assert response.status_code == 400, query
+
     def test_query_invalid_ipv4_addresses(self) -> None:
         project = self.create_project(teams=[self.team])
 

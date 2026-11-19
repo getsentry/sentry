@@ -1,7 +1,6 @@
 import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
-import * as qs from 'query-string';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
@@ -24,6 +23,7 @@ import {
 } from 'sentry/utils/performance/contexts/useMEPSettingContext';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import * as qs from 'sentry/utils/url/qs';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';

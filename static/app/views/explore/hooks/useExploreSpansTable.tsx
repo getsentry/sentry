@@ -13,6 +13,7 @@ import {
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 
+import {useExploreQuerySpeed} from './useExploreQuerySpeed';
 import {useProgressiveQuery, type RPCQueryExtras} from './useProgressiveQuery';
 
 interface UseExploreSpansTableOptions {
@@ -61,6 +62,7 @@ export function useExploreSpansTable({
   const dataset = useSpansDataset();
   const fields = useQueryParamsFields();
   const sortBys = useQueryParamsSortBys();
+  const {isReady: querySpeedReady, samplingMode} = useExploreQuerySpeed();
 
   const fieldsKey = JSON.stringify(fields);
   const identityKey = useMemo(
@@ -72,12 +74,23 @@ export function useExploreSpansTable({
         limit,
         query,
         queryExtras,
+        samplingMode,
         selection.datetime,
         selection.environments,
         selection.projects,
         sortBys,
       ]),
-    [cursor, dataset, extrapolate, limit, query, queryExtras, selection, sortBys]
+    [
+      cursor,
+      dataset,
+      extrapolate,
+      limit,
+      query,
+      queryExtras,
+      samplingMode,
+      selection,
+      sortBys,
+    ]
   );
   const [requestState, setRequestState] = useState<SpanSamplesRequestState>({
     lastResolved: null,
@@ -122,7 +135,7 @@ export function useExploreSpansTable({
     queryHookImplementation: useExploreSpansTableImp, // oxlint-disable-line react/hooks -- useProgressiveQuery takes the query hook as a value and calls it per accuracy tier.
     queryHookArgs: {
       cursor: visibleSamples ? '' : undefined,
-      enabled,
+      enabled: enabled && querySpeedReady,
       limit,
       query: constrainedQuery,
       queryExtras,
@@ -130,6 +143,7 @@ export function useExploreSpansTable({
     queryOptions: {
       canTriggerHighAccuracy,
       disableExtrapolation: !extrapolate,
+      samplingMode,
     },
   });
 

@@ -1,6 +1,9 @@
 """
 A collection of human- and LLM-friendly models to represent Sentry data like issues, traces, and profiles.
 These should be kept in sync with the models in Seer.
+
+DEPRECATED: These back the Sentry<>Seer RPC surface, which is being removed in
+favour of the public Sentry API via codemode. Do not add new models here.
 """
 
 from __future__ import annotations
@@ -140,27 +143,6 @@ class OrganizationProjectsResponse(BaseModel):
 
 class OrganizationFeaturesResponse(BaseModel):
     features: list[str]
-
-
-class GitHubEnterpriseConfigSuccessResponse(BaseModel):
-    success: Literal[True] = True
-    base_url: str
-    verify_ssl: bool
-    encrypted_access_token: str
-    permissions: dict[str, Any]
-
-
-class GitHubEnterpriseConfigErrorResponse(BaseModel):
-    success: Literal[False] = False
-
-
-class SendSeerWebhookSuccessResponse(BaseModel):
-    success: Literal[True] = True
-
-
-class SendSeerWebhookErrorResponse(BaseModel):
-    success: Literal[False] = False
-    error: str
 
 
 class NotifySeerPrCreatedSuccessResponse(BaseModel):
@@ -749,28 +731,6 @@ class IssuesStatsResponse(BaseModel):
     def __eq__(self, other: object) -> bool:
         if isinstance(other, list):
             return list(self.__root__) == other
-        return super().__eq__(other)
-
-    def __hash__(self) -> int:
-        return id(self)
-
-
-class CallCustomToolResponse(BaseModel):
-    """`call_custom_tool` returns the bare string the tool's `execute()` produced.
-    Wraps in a `__root__` passthrough so the wire stays a JSON string."""
-
-    __root__: str
-
-    def dict(self, **kwargs: Any) -> Any:
-        # Unwrap so the dispatcher serializes the bare string the pre-typed
-        # registry emitted, not `{"__root__": "..."}`.
-        return self.__root__
-
-    def __eq__(self, other: object) -> bool:
-        # Match the legacy wire shape (bare str) so callers comparing against
-        # `result == "literal"` keep working without an explicit `.dict()`.
-        if isinstance(other, str):
-            return self.__root__ == other
         return super().__eq__(other)
 
     def __hash__(self) -> int:
