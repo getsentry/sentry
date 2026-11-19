@@ -3219,6 +3219,31 @@ class TestSingleRunCompletion(TestCase):
 
                 assert self._events(mocks) == ["root_cause_completed", "coding_completed"]
 
+    def test_failed_pr_is_sent_to_entrypoints_once(self) -> None:
+        for error_code, reason in (
+            ("out_of_credits", "out_of_credits"),
+            (None, "pr_creation_failed"),
+        ):
+            with self.subTest(error_code=error_code):
+                SeerRun.objects.filter(id=self.seer_run.id).update(extras={})
+                state = self._state(single_run_memory_block(_ROOT_CAUSE, with_code=True))
+                state.repo_pr_states = {
+                    "test-repo": RepoPRState(
+                        repo_name="test-repo",
+                        pr_creation_status="error",
+                        pr_creation_error_code=error_code,
+                    )
+                }
+
+                failures = [
+                    c.kwargs["kwargs"]["event_payload"]["failure_reason"]
+                    for mocks in (self._execute(state), self._execute(state))
+                    for c in mocks["updates"].call_args_list
+                    if c.kwargs["kwargs"]["event_type"] == SentryAppEventType.SEER_ERRORED
+                ]
+
+                assert failures == [reason]
+
     def test_code_without_root_cause_announces_only_coding(self) -> None:
         mocks = self._execute(self._state(single_run_memory_block(with_code=True)))
 

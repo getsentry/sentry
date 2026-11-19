@@ -134,7 +134,13 @@ def get_run_stopping_point(
     )
 
 
-SingleRunStage = Literal["root_cause", "coding", "pr_created", "stopped"]
+def _pr_failure_reason(state: SeerRunState) -> str:
+    if any(pr.pr_creation_error_code == OUT_OF_CREDITS for pr in state.repo_pr_states.values()):
+        return OUT_OF_CREDITS
+    return PR_CREATION_FAILED_REASON
+
+
+SingleRunStage = Literal["root_cause", "coding", "pr_created", "pr_failed", "stopped"]
 SINGLE_RUN_ANNOUNCED_STAGES_KEY = "single_run_announced_stages"
 # Set once the completion hook has launched a single run's coding agent, so later
 # completions (replies) don't launch it again.
@@ -299,6 +305,10 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             reached.append("coding")
         if pull_requests:
             reached.append("pr_created")
+        elif state.repo_pr_states and all(
+            pr.pr_creation_status == "error" for pr in state.repo_pr_states.values()
+        ):
+            reached.append("pr_failed")
         stop = single_run_stop_payload(state)
         if stop is not None and not {"coding", "pr_created"} & set(reached):
             reached.append("stopped")
@@ -386,6 +396,11 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
                     organization,
                     SentryAppEventType.SEER_STOPPED,
                     {"run_id": run_id, "group_id": group.id, "stop": stop},
+                )
+                continue
+            if stage == "pr_failed":
+                cls._notify_entrypoints_of_failure(
+                    organization, run_id, group, _pr_failure_reason(state)
                 )
                 continue
             if stage == "root_cause":
@@ -623,15 +638,8 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
             if state.repo_pr_states and not pull_requests:
                 # Seer adds one entry per repository before asking the provider to open
                 # a PR. If every request fails, the entries remain but there is no PR.
-                out_of_credits = any(
-                    pr.pr_creation_error_code == OUT_OF_CREDITS
-                    for pr in state.repo_pr_states.values()
-                )
                 cls._notify_entrypoints_of_failure(
-                    organization,
-                    run_id,
-                    group,
-                    OUT_OF_CREDITS if out_of_credits else PR_CREATION_FAILED_REASON,
+                    organization, run_id, group, _pr_failure_reason(state)
                 )
                 return
 
