@@ -81,10 +81,21 @@ export function seriesFromEventsStats(
  * happened. A series left with no points is dropped entirely, since the chart
  * schema requires at least one.
  */
-export function seriesFromTimeSeries(timeSeries: TimeSeries[]): ChartSeries {
+export function seriesFromTimeSeries(
+  timeSeries: TimeSeries[],
+  {
+    transformations,
+    yAxes,
+  }: Pick<EmbedOutput<'spansQuery'>, 'transformations' | 'yAxes'> = {}
+): ChartSeries {
   return timeSeries
-    .map(series => ({
-      label: formatTimeSeriesName(series),
+    .map((series, index) => ({
+      label: [
+        formatTimeSeriesName({...series, requestedTransformations: undefined}),
+        ...(transformations?.[index % (yAxes?.length || 1)] ??
+          series.requestedTransformations ??
+          []),
+      ].join(' · '),
       data: series.values
         .filter(item => item.value !== null)
         .map(item => ({
@@ -127,6 +138,7 @@ interface QueryEmbedChartProps {
   series: ChartSeries;
   title: string;
   unit: ChartUnit;
+  unsupportedTransformations?: boolean;
 }
 
 /** The timeseries preview every charting query embed shares. */
@@ -138,7 +150,16 @@ export function QueryEmbedChart({
   series,
   title,
   unit,
+  unsupportedTransformations,
 }: QueryEmbedChartProps) {
+  if (unsupportedTransformations) {
+    return (
+      <Alert role="alert" variant="warning">
+        {t('Chart transformations are not available for this organization')}
+      </Alert>
+    );
+  }
+
   if (isPending) {
     return (
       <Flex align="center" height={CHART_HEIGHT} justify="center" width="100%">

@@ -1,6 +1,9 @@
+import {OrganizationFixture} from 'sentry-fixture/organization';
+
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
+import {decodeMetricsQueryParams} from 'sentry/views/explore/metrics/metricQuery';
 
 jest.mock('sentry/components/charts/baseChart', () => ({
   BaseChart: jest.fn(() => null),
@@ -40,6 +43,79 @@ function ExampleMetricsQueryEmbed({
 }
 
 describe('metrics query embed', () => {
+  it.each([
+    {
+      mode: 'aggregate',
+      sort: '-p95(value)',
+      apiSort: '-p95_value_checkout_latency_distribution_millisecond',
+    },
+    {
+      mode: 'aggregate',
+      sort: '-p95_value_checkout_latency_distribution_millisecond',
+      apiSort: '-p95_value_checkout_latency_distribution_millisecond',
+    },
+    {
+      mode: 'aggregate',
+      sort: undefined,
+      apiSort: '-p95_value_checkout_latency_distribution_millisecond',
+    },
+    {mode: 'samples', sort: 'timestamp', apiSort: 'timestamp'},
+  ])(
+    'preserves $mode sort $sort through execution and Explore',
+    async ({mode, sort, apiSort}) => {
+      const table = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        body: {data: []},
+      });
+      const timeseries = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-timeseries/',
+        body: {timeSeries: TIME_SERIES},
+      });
+      render(
+        <ExampleMetricsQueryEmbed
+          data={{
+            ...METRIC,
+            mode,
+            sort,
+            fields: ['timestamp', 'metric.value'],
+            groupBy: mode === 'aggregate' ? ['service.name'] : undefined,
+            yAxes: ['p95(value)'],
+            transformations: [['smooth(sma,3)']],
+            statsPeriod: '24h',
+          }}
+        />,
+        {
+          organization: OrganizationFixture({
+            features: ['explore-interpolation-and-smoothing'],
+          }),
+        }
+      );
+      expect(await screen.findByTestId('seer-chart-content')).toBeInTheDocument();
+      expect(table).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({query: expect.objectContaining({sort: apiSort})})
+      );
+      if (mode === 'aggregate') {
+        expect(timeseries).toHaveBeenCalledWith(
+          '/organizations/org-slug/events-timeseries/',
+          expect.objectContaining({query: expect.objectContaining({sort: apiSort})})
+        );
+      }
+      const href = screen.getByRole('link', {name: 'View Metrics'}).getAttribute('href')!;
+      const params = new URL(href, 'https://sentry.io').searchParams;
+      const restored = decodeMetricsQueryParams(params.get('metric')!);
+      expect(
+        mode === 'aggregate'
+          ? restored?.queryParams.aggregateSortBys
+          : restored?.queryParams.sortBys
+      ).toEqual([
+        mode === 'aggregate'
+          ? {field: 'p95(value,checkout.latency,distribution,millisecond)', kind: 'desc'}
+          : {field: 'timestamp', kind: 'asc'},
+      ]);
+    }
+  );
+
   it('qualifies a bare y-axis with the metric it measures', () => {
     render(
       <ExampleMetricsQueryEmbed

@@ -16,7 +16,10 @@ import {
   seriesFromTimeSeries,
 } from './queryEmbed/queryEmbedChart';
 import {QUERY_EMBED_ROW_LIMIT} from './queryEmbed/queryEmbedConstants';
-import {useQueryEmbedEventsTable} from './queryEmbed/queryEmbedQueries';
+import {
+  useHasUnsupportedQueryTransformations,
+  useQueryEmbedEventsTable,
+} from './queryEmbed/queryEmbedQueries';
 import {
   eventColumns,
   eventRowKey,
@@ -91,13 +94,19 @@ function LogsQueryChart({
   sort: Sort | undefined;
 }) {
   const groupBy = getLogsGroupBy(data);
+  const unsupportedTransformations = useHasUnsupportedQueryTransformations(
+    data.transformations
+  );
 
   // Logs charts through `/events-timeseries/` like the Logs page itself, not
   // the `/events-stats/` endpoint the Discover-backed embeds use.
   const query = useFetchEventsTimeSeries(
     DiscoverDatasets.OURLOGS,
     {
+      enabled: !unsupportedTransformations,
       yAxis: resolveLogsYAxes(data),
+      transformations: data.transformations,
+      interval: data.interval,
       query: data.query,
       groupBy: groupBy.length > 0 ? groupBy : undefined,
       topEvents: groupBy.length > 0 ? QUERY_EMBED_ROW_LIMIT : undefined,
@@ -118,9 +127,10 @@ function LogsQueryChart({
       hasTable={hasTable}
       isError={query.isError}
       isPending={query.isPending}
-      series={seriesFromTimeSeries(timeSeries)}
+      series={seriesFromTimeSeries(timeSeries, data)}
       title={data.title ?? t('Logs over time')}
       unit={chartUnitFromTimeSeries(timeSeries)}
+      unsupportedTransformations={unsupportedTransformations}
     />
   );
 }

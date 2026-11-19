@@ -40,6 +40,7 @@ function isRawGroupBy(value: any): value is RawGroupBy {
 export type RawVisualize = {
   yAxes: string[];
   chartType?: number;
+  transformations?: string[];
 };
 
 export function isRawVisualize(value: any): value is RawVisualize {
