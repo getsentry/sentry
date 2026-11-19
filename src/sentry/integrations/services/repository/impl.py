@@ -4,7 +4,7 @@ from datetime import timedelta
 from functools import partial
 from typing import Any
 
-from django.db import IntegrityError, router, transaction
+from django.db import IntegrityError, connections, router, transaction
 from django.utils import timezone
 
 from sentry.api.serializers import serialize
@@ -22,7 +22,6 @@ from sentry.integrations.services.repository.model import (
 )
 from sentry.integrations.services.repository.serial import serialize_repository
 from sentry.integrations.source_code_management.auto_link_repos import auto_link_repos_by_name
-from sentry.integrations.source_code_management.repo_rename import get_repo_rename
 from sentry.models.code_review_event import CodeReviewEvent
 from sentry.models.commit import Commit
 from sentry.models.grouplink import GroupLink
@@ -201,41 +200,64 @@ class DatabaseBackedRepositoryService(RepositoryService):
         provider: str,
         renames: list[RpcRepositoryRename],
     ) -> list[int]:
-        renames_by_id = {rename.id: rename for rename in renames}
-        renamed: list[Repository] = []
-        with transaction.atomic(router.db_for_write(Repository)):
-            repositories = (
-                Repository.objects.filter(
-                    organization_id=organization_id,
-                    integration_id=integration_id,
-                    provider=provider,
-                    id__in=renames_by_id.keys(),
-                    status__in=(ObjectStatus.ACTIVE, ObjectStatus.DISABLED),
-                )
-                .select_for_update()
-                .order_by("id")
+        if not renames:
+            return []
+        # One conditional UPDATE, so only rows that get renamed are locked, and
+        # config["name"] is merged into the config as it is at write time.
+        values = ", ".join(
+            ["(%s::bigint, %s::text, %s::text, %s::text, %s::text, %s::text, %s::text)"]
+            * len(renames)
+        )
+        params: list[Any] = []
+        for rename in renames:
+            params.extend(
+                [
+                    rename.id,
+                    rename.external_id,
+                    rename.expected_name,
+                    rename.expected_url,
+                    rename.expected_config_name,
+                    rename.name,
+                    rename.url,
+                ]
             )
-            for repository in repositories:
-                rename = renames_by_id[repository.id]
-                if repository.external_id != rename.external_id:
-                    continue
-                changes = get_repo_rename(repository, name=rename.name, url=rename.url)
-                if changes is None:
-                    continue
-                # A webhook may have written newer values after the caller read the row.
-                if (
-                    repository.name != rename.expected_name
-                    or repository.url != rename.expected_url
-                    or repository.config.get("name") != rename.expected_config_name
-                ):
-                    continue
-                repository.name = changes["name"]
-                repository.url = changes["url"]
-                repository.config = changes["config"]
-                renamed.append(repository)
-
-            Repository.objects.bulk_update(renamed, fields=["name", "url", "config"])
-        return [repository.id for repository in renamed]
+        params.extend(
+            [
+                organization_id,
+                integration_id,
+                provider,
+                ObjectStatus.ACTIVE,
+                ObjectStatus.DISABLED,
+            ]
+        )
+        config = "COALESCE(NULLIF(r.config, ''), '{}')::jsonb"
+        sql = f"""
+            UPDATE sentry_repository AS r
+            SET name = v.name,
+                url = v.url,
+                config = jsonb_set({config}, '{{name}}', to_jsonb(v.name))::text
+            FROM (VALUES {values}) AS v(
+                id, external_id, expected_name, expected_url, expected_config_name, name, url
+            )
+            WHERE r.id = v.id
+                AND r.organization_id = %s
+                AND r.integration_id = %s
+                AND r.provider = %s
+                AND r.status IN (%s, %s)
+                AND r.external_id = v.external_id
+                AND r.name = v.expected_name
+                AND r.url IS NOT DISTINCT FROM v.expected_url
+                AND ({config} ->> 'name') IS NOT DISTINCT FROM v.expected_config_name
+                AND NOT (
+                    r.name = v.name
+                    AND r.url IS NOT DISTINCT FROM v.url
+                    AND ({config} ->> 'name') IS NOT DISTINCT FROM v.name
+                )
+            RETURNING r.id
+        """
+        with connections[router.db_for_write(Repository)].cursor() as cursor:
+            cursor.execute(sql, params)
+            return sorted(row[0] for row in cursor.fetchall())
 
     def enable_repositories_by_external_ids(
         self,
@@ -245,24 +267,20 @@ class DatabaseBackedRepositoryService(RepositoryService):
         provider: str,
         external_ids: list[str],
     ) -> list[RpcRepository]:
-        with transaction.atomic(router.db_for_write(Repository)):
-            repositories = list(
-                Repository.objects.filter(
-                    organization_id=organization_id,
-                    integration_id=integration_id,
-                    provider=provider,
-                    external_id__in=external_ids,
-                    status__in=[ObjectStatus.ACTIVE, ObjectStatus.DISABLED],
-                )
-                .select_for_update()
-                .order_by("id")
-            )
-            Repository.objects.filter(
-                id__in=[repo.id for repo in repositories], status=ObjectStatus.DISABLED
-            ).update(status=ObjectStatus.ACTIVE)
-        for repository in repositories:
-            repository.status = ObjectStatus.ACTIVE
-        return [serialize_repository(repository) for repository in repositories]
+        using = router.db_for_write(Repository)
+        repositories = Repository.objects.using(using).filter(
+            organization_id=organization_id,
+            integration_id=integration_id,
+            provider=provider,
+            external_id__in=external_ids,
+        )
+        # The UPDATE locks only the disabled rows it changes, so a writer that holds
+        # a lock on an already-active repo doesn't block the restore.
+        repositories.filter(status=ObjectStatus.DISABLED).update(status=ObjectStatus.ACTIVE)
+        return [
+            serialize_repository(repository)
+            for repository in repositories.filter(status=ObjectStatus.ACTIVE).order_by("id")
+        ]
 
     def transfer_repository_to_integration(
         self,
