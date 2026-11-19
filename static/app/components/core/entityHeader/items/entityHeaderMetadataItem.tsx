@@ -7,6 +7,7 @@ import type {UserAvatar} from '@sentry/scraps/avatar';
 import {
   METADATA_TEXT_HEIGHT,
   METADATA_TEXT_STYLES,
+  METADATA_VALUE_TEXT_STYLES,
 } from '@sentry/scraps/entityHeader/constants';
 import {InfoText} from '@sentry/scraps/info';
 import type {Responsive} from '@sentry/scraps/layout';
@@ -103,8 +104,9 @@ interface EntityHeaderMetadataListOptions {
   filter?: (entry: EntityHeaderMetadataListEntry) => boolean;
   /**
    * Entries past this collapse behind "+N more", which lists them on hover or
-   * focus. Omitted, every entry is shown. Responsive: plain keys resolve
-   * against the header's width, `screen:` keys against the viewport.
+   * focus. Omitted or `NaN`, every entry is shown; a negative count shows
+   * none. Responsive: plain keys resolve against the header's width,
+   * `screen:` keys against the viewport.
    */
   maxVisible?: Responsive<number>;
   /**
@@ -220,7 +222,7 @@ interface MetadataItemFrameProps {
   hasTrailingDivider?: boolean;
   /**
    * Comes before the graphic: a list's own graphic and label, carried by its
-   * first entry so they wrap together.
+   * first drawn item so they wrap together.
    */
   lead?: React.ReactNode;
   /**
@@ -286,7 +288,7 @@ function MetadataValue({value: props, isInteractive}: MetadataValueProps) {
         ))}
       <EntityHeaderText
         behavior={getValueBehavior(props, isInteractive)}
-        styles={METADATA_TEXT_STYLES}
+        styles={METADATA_VALUE_TEXT_STYLES}
       >
         {props.value}
       </EntityHeaderText>
@@ -365,15 +367,19 @@ function MetadataList({
   mode = 'compact',
 }: EntityHeaderMetadataListProps & {hasTrailingDivider: boolean}) {
   const {t} = useTranslation();
-  const resolvedMaxVisible = useResponsivePropValue(maxVisible);
+  const responsiveMaxVisible = useResponsivePropValue(maxVisible);
+  const resolvedMaxVisible =
+    responsiveMaxVisible === undefined || Number.isNaN(responsiveMaxVisible)
+      ? undefined
+      : Math.max(0, responsiveMaxVisible);
 
   const filtered = getFilteredEntries({items, filter});
   const sorted = sort ? filtered.toSorted(sort) : filtered;
   const visible = sorted.slice(0, resolvedMaxVisible);
   const hidden = resolvedMaxVisible === undefined ? [] : sorted.slice(resolvedMaxVisible);
 
-  // The list's graphic and label travel with its first entry, so they wrap
-  // with it.
+  // The list's graphic and label travel with its first drawn item, so they
+  // wrap with it: the first entry, or "+N more" when every entry collapses.
   const lead = (
     <Fragment>
       {leadingGraphic && <MetadataGraphic graphic={leadingGraphic} isLoading={false} />}
@@ -405,9 +411,9 @@ function MetadataList({
           />
         ))}
         {/*
-          Collapsed entries stay in the list, so a screen reader hears all of
-          them and the count it announces is the real one. Read-only, so they
-          add no tab stop that cannot be seen.
+          Collapsed entries stay in the list, so a screen reader hears every
+          entry, and "+N more" is the list's last item. Read-only, so they add
+          no tab stop that cannot be seen.
         */}
         {hidden.map(entry => (
           <VisuallyHidden key={entry.key} role="listitem">
@@ -418,7 +424,13 @@ function MetadataList({
           An item of its own, read after every entry, and wrapping with them.
         */}
         {hidden.length > 0 && (
-          <Flex role="listitem" align="center" gap="md" minHeight={METADATA_TEXT_HEIGHT}>
+          <MetadataItemFrame
+            isLoading={false}
+            leadingGraphic={undefined}
+            hasTrailingDivider={hasTrailingDivider}
+            lead={visible.length === 0 ? lead : undefined}
+            role="listitem"
+          >
             <InfoText
               {...METADATA_TEXT_STYLES}
               variant="muted"
@@ -432,8 +444,7 @@ function MetadataList({
             >
               {t('+%s more', hidden.length)}
             </InfoText>
-            {hasTrailingDivider && <MetadataDivider />}
-          </Flex>
+          </MetadataItemFrame>
         )}
       </Container>
     </Container>

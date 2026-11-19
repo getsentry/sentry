@@ -219,4 +219,28 @@ describe('EntityHeader', () => {
     ),
     viewport => ({viewport, tags: {area: 'core'}})
   );
+
+  // A value wider than the header truncates, so the pipe after it follows the
+  // text that shows rather than landing on top of it.
+  it.snapshot(
+    'long value',
+    () => (
+      <EntityHeader
+        title={{type: 'text', label: 'Conversation', value: 'Trip planning'}}
+        metadata={{
+          label: 'Conversation properties',
+          items: [
+            {
+              label: 'Model',
+              type: 'text',
+              mode: 'full',
+              value: 'anthropic/claude-opus-very-long-model-identifier-2026',
+            },
+            {label: 'Started at', type: 'text', value: '2h ago'},
+          ],
+        }}
+      />
+    ),
+    {viewport: 240, tags: {area: 'core'}}
+  );
 });

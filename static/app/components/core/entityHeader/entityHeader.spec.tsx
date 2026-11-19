@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {IconStar} from '@sentry/icons/star';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
@@ -1707,6 +1708,59 @@ describe('EntityHeader', () => {
       );
 
       expect(screen.getByText('+2 more')).toBeInTheDocument();
+    });
+
+    it.each([0, -2])(
+      'draws the label and graphic before "+N more" when maxVisible is %s',
+      maxVisible => {
+        render(
+          <EntityHeader
+            title={{type: 'text', label: 'Conversation', value: 'Trip planning'}}
+            metadata={{
+              label: 'Conversation properties',
+              items: [
+                {
+                  label: 'Tools',
+                  type: 'list',
+                  mode: 'full',
+                  leadingGraphic: <IconStar data-test-id="tools-graphic" />,
+                  items: toolEntries(tools),
+                  maxVisible,
+                },
+                {label: 'Region', type: 'text', value: 'us'},
+              ],
+            }}
+          />
+        );
+
+        const entries = within(screen.getByRole('list', {name: 'Tools'})).getAllByRole(
+          'listitem'
+        );
+        expect(entries.map(entry => isClipped(entry))).toEqual([
+          true,
+          true,
+          true,
+          true,
+          true,
+          false,
+        ]);
+
+        const trigger = entries.at(-1)!;
+        expect(trigger).toHaveTextContent(/^Tools\+5 more$/);
+        expect(within(trigger).getByTestId('tools-graphic')).toBeInTheDocument();
+        expect(within(trigger).getAllByTestId('metadata-divider')).toHaveLength(1);
+        expect(screen.getAllByTestId('metadata-divider')).toHaveLength(1);
+      }
+    );
+
+    it('shows every entry when maxVisible is NaN', () => {
+      renderTools({maxVisible: Number.NaN});
+
+      const entries = within(screen.getByRole('list', {name: 'Tools'})).getAllByRole(
+        'listitem'
+      );
+      expect(entries.map(entry => isClipped(entry))).toEqual(tools.map(() => false));
+      expect(screen.queryByText(/more$/)).not.toBeInTheDocument();
     });
   });
 
