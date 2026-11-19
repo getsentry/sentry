@@ -34,17 +34,35 @@ import {
   selectTraceItemTagCollection,
   traceItemAttributeKeysOptions,
 } from 'sentry/views/explore/utils/traceItemAttributeKeysOptions';
+import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
 
 const EMPTY_ALIASES: TagCollection = {};
 
-interface FilterProps {
+interface MetricFilterBarProps {
+  onSearch: (query: string) => void;
+  query: string;
   traceMetric: TraceMetric;
-  disableValidation?: boolean;
   disabled?: boolean;
+  /**
+   * Ask Seer needs the Explore query params context, so leave this off when
+   * the bar is controlled from elsewhere.
+   */
+  enableAISearch?: boolean;
   environments?: string[];
   portalTarget?: HTMLElement;
   projectIds?: number[];
   skipTraceMetricFilter?: boolean;
+  /**
+   * Attribute validation results used to flag unknown filter keys.
+   */
+  validatedFields?: EventValidationData['query']['fields'];
+}
+
+interface FilterProps extends Omit<
+  MetricFilterBarProps,
+  'enableAISearch' | 'onSearch' | 'query' | 'validatedFields'
+> {
+  disableValidation?: boolean;
 }
 
 interface MetricsSearchBarProps {
@@ -65,17 +83,52 @@ function MetricsSearchBar({
   return <TraceItemSearchQueryBuilder {...tracesItemSearchQueryBuilderProps} />;
 }
 
-export function Filter({
+/**
+ * Per-metric search bar that reads and writes the query through the Explore
+ * query params context.
+ */
+export function Filter({disableValidation, ...props}: FilterProps) {
+  const {traceMetric, skipTraceMetricFilter, projectIds, environments, disabled} = props;
+  const query = useQueryParamsQuery();
+  const setQuery = useSetQueryParamsQuery();
+
+  const {data: validatedSearchQueryData} = useValidateMetricsTab({
+    enabled:
+      !disableValidation &&
+      Boolean(query) &&
+      (skipTraceMetricFilter || Boolean(createTraceMetricFilter(traceMetric))) &&
+      !disabled,
+    projectIds,
+    environments,
+  });
+
+  return (
+    <MetricFilterBar
+      {...props}
+      query={query}
+      onSearch={setQuery}
+      validatedFields={validatedSearchQueryData?.query.fields}
+      enableAISearch
+    />
+  );
+}
+
+/**
+ * Per-metric search bar whose query is controlled by the caller. Attribute
+ * suggestions are scoped to the metric unless `skipTraceMetricFilter` is set.
+ */
+export function MetricFilterBar({
   traceMetric,
+  query,
+  onSearch,
   skipTraceMetricFilter,
   projectIds,
   environments,
   portalTarget,
   disabled,
-  disableValidation,
-}: FilterProps) {
-  const query = useQueryParamsQuery();
-  const setQuery = useSetQueryParamsQuery();
+  enableAISearch = false,
+  validatedFields,
+}: MetricFilterBarProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
@@ -98,16 +151,6 @@ export function Filter({
   });
   const isSearchBarDisabled =
     isLoading || (!skipTraceMetricFilter && !traceMetricFilter) || disabled;
-
-  const {data: validatedSearchQueryData} = useValidateMetricsTab({
-    enabled:
-      !disableValidation &&
-      Boolean(query) &&
-      (skipTraceMetricFilter || Boolean(traceMetricFilter)) &&
-      !disabled,
-    projectIds,
-    environments,
-  });
 
   const visibleNumberTags = useMemo(() => {
     const staticNumberTags = SENTRY_TRACEMETRIC_NUMBER_TAGS.reduce<TagCollection>(
@@ -196,7 +239,7 @@ export function Filter({
     const localStringTags: TagCollection = {...visibleStringTags};
     const localInvalidFilterKeys: string[] = [];
 
-    for (const item of validatedSearchQueryData?.query.fields ?? []) {
+    for (const item of validatedFields ?? []) {
       if (HiddenTraceMetricSearchFields.includes(item.name)) {
         continue;
       }
@@ -249,7 +292,7 @@ export function Filter({
     };
   }, [
     supportsArrays,
-    validatedSearchQueryData?.query.fields,
+    validatedFields,
     visibleArrayTags,
     visibleBooleanTags,
     visibleNumberTags,
@@ -269,10 +312,10 @@ export function Filter({
         numberSecondaryAliases: EMPTY_ALIASES,
         stringSecondaryAliases: EMPTY_ALIASES,
         initialQuery: query,
-        onSearch: setQuery,
+        onSearch,
         searchSource: 'tracemetrics',
         namespace: traceMetric.name,
-        defaultToAskSeerOnFreeTextSearch: true,
+        defaultToAskSeerOnFreeTextSearch: enableAISearch,
         attributeQuery,
         hiddenAttributeKeys: HiddenTraceMetricSearchFields,
         projects: projectIds,
@@ -287,13 +330,14 @@ export function Filter({
       };
     }, [
       attributeQuery,
+      enableAISearch,
       environments,
       invalidFilterKeys,
       isSearchBarDisabled,
+      onSearch,
       portalTarget,
       projectIds,
       query,
-      setQuery,
       skipTraceMetricFilter,
       traceMetric.name,
       validatedArrayTags,
@@ -312,7 +356,7 @@ export function Filter({
       // This prevents race conditions when navigating between different metrics
       key={traceMetric.name}
       {...searchQueryBuilderProviderProps}
-      enableAISearch
+      enableAISearch={enableAISearch}
     >
       <MetricsSearchBar
         tracesItemSearchQueryBuilderProps={tracesItemSearchQueryBuilderProps}
