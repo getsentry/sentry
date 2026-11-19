@@ -19,6 +19,7 @@ from django.utils import timezone
 from django.utils.encoding import force_bytes, force_str, smart_str
 from google.api_core.exceptions import (
     BadGateway,
+    Forbidden,
     GatewayTimeout,
     InternalServerError,
     ServiceUnavailable,
@@ -441,6 +442,16 @@ class GoogleCloudStorage(Storage):
 # and payloads are deterministic, so re-uploading the same object is safe.
 REPLAY_GCS_RETRYABLE_ERRORS = (*GCS_RETRYABLE_ERRORS, InternalServerError, BadGateway)
 
+# GCS briefly rejects valid credentials with this 403. Other 403s, like missing IAM
+# permissions, aren't transient.
+_GCS_INVALID_CREDENTIALS_MESSAGE = "Request had invalid authentication credentials"
+
+
+def is_replay_gcs_retryable_error(e: Exception) -> bool:
+    if isinstance(e, REPLAY_GCS_RETRYABLE_ERRORS):
+        return True
+    return isinstance(e, Forbidden) and _GCS_INVALID_CREDENTIALS_MESSAGE in str(e)
+
 
 class GoogleCloudStorageWithReplayUploadPolicy(GoogleCloudStorage):
     """Google cloud storage class with replay upload policy."""
@@ -457,7 +468,7 @@ class GoogleCloudStorageWithReplayUploadPolicy(GoogleCloudStorage):
 
         def should_retry(attempt: int, e: Exception) -> bool:
             """Retry transient GCS exceptions up to the limit."""
-            return attempt <= REPLAY_GCS_RETRIES and isinstance(e, REPLAY_GCS_RETRYABLE_ERRORS)
+            return attempt <= REPLAY_GCS_RETRIES and is_replay_gcs_retryable_error(e)
 
         # Retry cadence: After a brief period of fast retries the function will retry once
         # per second for two minutes.
