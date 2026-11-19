@@ -301,7 +301,7 @@ export const useSeerExplorer = () => {
         },
       });
     },
-    onSuccess: (response, params) => {
+    onSuccess: async (response, params) => {
       if (isLatestRequest(params) && isCurrentRun(params.runId)) {
         setRequestError(null);
       }
@@ -312,8 +312,10 @@ export const useSeerExplorer = () => {
           payload: response.sentry_run_id ?? response.run_id,
         });
       } else {
-        // invalidate the query so fresh data is fetched
-        queryClient.invalidateQueries({
+        // Stay pending until the refetch lands. A poll that ran before the server saved the
+        // message may have stored a finished session; ending the send before fresh data
+        // arrives would drop the optimistic message until then.
+        await queryClient.invalidateQueries({
           queryKey: makeSeerExplorerQueryKey(params.orgSlug, params.runId),
         });
       }

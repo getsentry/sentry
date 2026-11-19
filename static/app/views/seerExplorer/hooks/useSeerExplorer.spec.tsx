@@ -12,7 +12,7 @@ import {
   useSeerExplorerChatDispatch,
   useSeerExplorerChatState,
 } from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
-import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/types';
+import type {Block, SeerExplorerResponse} from 'sentry/views/seerExplorer/types';
 import * as seerExplorerUtils from 'sentry/views/seerExplorer/utils';
 
 import {useSeerExplorer} from './useSeerExplorer';
@@ -653,6 +653,81 @@ describe('useSeerExplorer', () => {
         headers: {'X-Hits': 7},
         status: 200,
       });
+    });
+
+    it('keeps a sent message on screen when a poll returns the old session mid-send', async () => {
+      const runId = 'run-stale-poll';
+      const url = `/organizations/${organization.slug}/seer/explorer-chat/${runId}/`;
+      const block = (id: string, role: Block['message']['role'], content: string) => ({
+        id,
+        message: {role, content},
+        timestamp: '2024-01-01T00:00:00Z',
+        loading: role === 'assistant',
+      });
+      const question = block('user-1', 'user', 'Question');
+      MockApiClient.addMockResponse({
+        url,
+        method: 'GET',
+        body: {session: {blocks: [question], status: 'completed'}},
+      });
+      let finishSend!: () => void;
+      MockApiClient.addMockResponse({
+        url,
+        method: 'POST',
+        asyncDelay: new Promise<void>(resolve => {
+          finishSend = resolve;
+        }),
+        body: {run_id: 1},
+      });
+
+      let queryClient!: QueryClient;
+      const followUpOnScreen: boolean[] = []; // One entry per render.
+      const {result} = renderHookWithProviders(
+        () => {
+          queryClient = useQueryClient();
+          const explorer = useSeerExplorer();
+          followUpOnScreen.push(
+            !!explorer.sessionData?.blocks.some(b => b.message.content === 'Follow-up')
+          );
+          return explorer;
+        },
+        {organization, additionalWrapper: SeerExplorerChatStateProvider}
+      );
+      act(() => result.current.switchToRun(runId));
+      await waitFor(() => expect(result.current.sessionData?.status).toBe('completed'));
+
+      act(() => result.current.sendMessage('Follow-up'));
+      expect(followUpOnScreen.at(-1)).toBe(true);
+      // A poll during the slow send still gets the old session, without the message.
+      await act(() =>
+        queryClient.refetchQueries({
+          queryKey: seerExplorerUtils.makeSeerExplorerQueryKey(organization.slug, runId),
+        })
+      );
+
+      // The server saves the message, then the send finishes.
+      MockApiClient.addMockResponse({
+        url,
+        method: 'GET',
+        asyncDelay: 10,
+        body: {
+          session: {
+            blocks: [
+              question,
+              block('user-2', 'user', 'Follow-up'),
+              block('loading-3', 'assistant', 'Thinking...'),
+            ],
+            status: 'processing',
+            updated_at: new Date().toISOString(),
+          },
+        },
+      });
+      act(() => finishSend());
+      await waitFor(() =>
+        expect(result.current.sessionData?.blocks.map(b => b.id)).toContain('user-2')
+      );
+
+      expect(followUpOnScreen.slice(followUpOnScreen.indexOf(true))).not.toContain(false);
     });
 
     it('keeps the alert when an older send succeeds after a newer send failed', async () => {
