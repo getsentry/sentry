@@ -1,7 +1,12 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  cleanup,
+  renderHookWithProviders,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 
@@ -35,6 +40,7 @@ describe('useRecentCreatedProject', () => {
 
   afterEach(() => {
     try {
+      cleanup();
       jest.runOnlyPendingTimers();
     } finally {
       jest.useRealTimers();
