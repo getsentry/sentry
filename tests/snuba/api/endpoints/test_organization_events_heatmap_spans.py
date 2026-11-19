@@ -120,3 +120,16 @@ class OrganizationEventsHeatmapSpansEndpointTest(OrganizationEventsEndpointTestB
         assert response.data["meta"]["yAxis"]["bucketCount"] == 50
         assert response.data["meta"]["yAxis"]["bucketSize"] == 10
         assert len({row["yAxis"] for row in response.data["values"]}) == 50
+
+    def test_cross_event_span_query(self) -> None:
+        self.store_spans(
+            [self.create_span({"description": "foo"}, duration=100, start_ts=self.start)],
+        )
+
+        response = self._do_request(data={**self.base_data, "spanQuery": "span.description:bar"})
+        assert response.status_code == 200, response.content
+        assert sum(row["zAxis"] for row in response.data["values"]) == 0
+
+        response = self._do_request(data={**self.base_data, "spanQuery": "span.description:foo"})
+        assert response.status_code == 200, response.content
+        assert sum(row["zAxis"] for row in response.data["values"]) == 1

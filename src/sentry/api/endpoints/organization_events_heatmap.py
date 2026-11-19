@@ -14,7 +14,7 @@ from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.search.eap.types import SearchResolverConfig
+from sentry.search.eap.types import AdditionalQueries, SearchResolverConfig
 from sentry.search.events.fields import parse_function
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.referrer import Referrer
@@ -190,12 +190,23 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
             pinned_bounds = self._parse_pinned_bounds(request)
 
             query = request.GET.get("query", "")
+            additional_queries = self.get_additional_queries(request)
+            disable_aggregate_extrapolation = (
+                request.GET.get("disableAggregateExtrapolation", "0") == "1"
+            )
 
         with handle_query_errors():
             bucket_ranges = (
                 pinned_bounds
                 if pinned_bounds is not None
-                else self.query_y_bucket_ranges(snuba_params, dataset, query, yAxis)
+                else self.query_y_bucket_ranges(
+                    snuba_params,
+                    dataset,
+                    query,
+                    yAxis,
+                    additional_queries,
+                    disable_aggregate_extrapolation,
+                )
             )
             use_log_scale: bool = bool(y_log_scale and bucket_ranges.range > 1)
             if bucket_ranges.min_value != bucket_ranges.max_value:
@@ -240,8 +251,11 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
                 query_string=query,
                 y_axes=yAxes.values(),
                 referrer=Referrer.API_EXPLORE_HEATMAP_QUERY_DATA.value,
-                config=SearchResolverConfig(),
+                config=SearchResolverConfig(
+                    disable_aggregate_extrapolation=disable_aggregate_extrapolation
+                ),
                 sampling_mode=snuba_params.sampling_mode,
+                additional_queries=additional_queries,
             )
 
             heatmap = []
@@ -321,7 +335,13 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
         return LimitTuple(min_bound, max_bound)
 
     def query_y_bucket_ranges(
-        self, snuba_params: SnubaParams, dataset: Any, query: str, yAxis: str
+        self,
+        snuba_params: SnubaParams,
+        dataset: Any,
+        query: str,
+        yAxis: str,
+        additional_queries: AdditionalQueries,
+        disable_aggregate_extrapolation: bool,
     ) -> LimitTuple:
         """Determine across all the x buckets what ranges we see the y value go to so we can use that to make the full
         heatmap"""
@@ -335,8 +355,12 @@ class OrganizationEventsHeatmapEndpoint(OrganizationEventsEndpointBase):
             y_axes=columns,
             referrer=Referrer.API_EXPLORE_HEATMAP_FIND_Y_BOUNDS.value,
             # Don't zerofill so we don't autoinclude 0 as a minimum
-            config=SearchResolverConfig(zerofill_timeseries=False),
+            config=SearchResolverConfig(
+                zerofill_timeseries=False,
+                disable_aggregate_extrapolation=disable_aggregate_extrapolation,
+            ),
             sampling_mode=snuba_params.sampling_mode,
+            additional_queries=additional_queries,
         )
         if len(result.data["data"]) == 0:
             return LimitTuple(0, 0)
