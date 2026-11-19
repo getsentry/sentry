@@ -2,7 +2,7 @@
 
 from collections.abc import Mapping
 
-from sentry.anomaly_detection.contracts import SeriesKey
+from sentry.anomaly_detection.contracts import Metric, SeriesKey
 from sentry.anomaly_detection.evaluation.series import Series, samples_key
 
 ZERO_SHARE = 0.5
@@ -14,7 +14,7 @@ def check(series: Mapping[SeriesKey, Series]) -> dict[SeriesKey, str | None]:
     """Return an issue or None for assessed series; omit series with insufficient samples."""
     assessments: dict[SeriesKey, str | None] = {}
     for key, latency in series.items():
-        if not key.metric.startswith("p95"):
+        if key.metric != Metric.P95_DURATION:
             continue
         samples = series.get(samples_key(key), {})
         eligible = []

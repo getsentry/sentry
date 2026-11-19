@@ -23,11 +23,18 @@ from snuba_sdk import (
     Query,
 )
 
-from sentry.anomaly_detection.contracts import ChangeEvent, ChangeType, SeriesKey
+from sentry.anomaly_detection.contracts import (
+    ChangeEvent,
+    ChangeType,
+    Metric,
+    SeriesKey,
+    SeriesRow,
+    Service,
+    Signal,
+)
 from sentry.anomaly_detection.inputs.measurements import (
     ERROR_USER,
     MAX_ENVIRONMENTS,
-    Row,
     _error_env,
     _error_where,
     _number,
@@ -65,11 +72,11 @@ def _observed_at(timestamp: datetime) -> datetime:
 
 
 class NewFailureThresholds:
-    def __init__(self, samples: Mapping[tuple[str, str], Sequence[tuple[datetime, float]]]) -> None:
+    def __init__(self, samples: Mapping[Service, Sequence[tuple[datetime, float]]]) -> None:
         self._samples = samples
-        self._thresholds: dict[tuple[tuple[str, str], datetime], float] = {}
+        self._thresholds: dict[tuple[Service, datetime], float] = {}
 
-    def at(self, scope: tuple[str, str], observation_end: datetime) -> float:
+    def at(self, scope: Service, observation_end: datetime) -> float:
         """Scale the threshold using only buckets closed at observation_end."""
         end = _hour_floor(_utc(observation_end))
         key = scope, end
@@ -83,7 +90,7 @@ class NewFailureThresholds:
             )
         return self._thresholds[key]
 
-    def falling_scopes(self, start: datetime, end: datetime) -> Iterator[tuple[str, str]]:
+    def falling_scopes(self, start: datetime, end: datetime) -> Iterator[Service]:
         """Find environments where existing users can cross without a new error."""
         boundary = _hour_floor(start) + _HOUR
         while boundary <= end:
@@ -107,10 +114,10 @@ class _FailureScope:
     environment: str
     start: datetime
     end: datetime
-    thresholds: NewFailureThresholds | Mapping[tuple[str, str], float]
+    thresholds: NewFailureThresholds | Mapping[Service, float]
 
     def threshold_windows(self, start: datetime, end: datetime) -> Iterator[_ThresholdWindow]:
-        key = str(self.project.id), self.environment
+        key = Service(self.project.id, self.environment)
         if not isinstance(self.thresholds, NewFailureThresholds):
             threshold = self.thresholds.get(key, float(_MIN_NEW_USERS))
             if not math.isfinite(threshold) or threshold <= 0:
@@ -136,27 +143,27 @@ class _IssueCrossing(NamedTuple):
     users: int
 
 
-def new_failure_thresholds(hourly_rows: Sequence[Row]) -> NewFailureThresholds:
-    samples: dict[tuple[str, str], list[tuple[datetime, float]]] = defaultdict(list)
-    for hour, signal, metric, project, env, dimension, value in hourly_rows:
+def new_failure_thresholds(hourly_rows: Sequence[SeriesRow]) -> NewFailureThresholds:
+    samples: dict[Service, list[tuple[datetime, float]]] = defaultdict(list)
+    for row in hourly_rows:
         if (
-            signal == "errors"
-            and metric == "count_unique(user)"
-            and not dimension
-            and (sample := _number(value)) is not None
+            row.signal == Signal.ERRORS
+            and row.metric == Metric.COUNT_UNIQUE_USER
+            and not row.dim_value
+            and (sample := _number(row.value)) is not None
         ):
-            samples[(project, env)].append((_utc(hour), sample))
+            samples[Service(row.project_id, row.env)].append((_utc(row.ts), sample))
     return NewFailureThresholds(samples)
 
 
 def collect_new_failure_modes(
     organization: Organization,
     projects: Sequence[Project],
-    thresholds: NewFailureThresholds | Mapping[tuple[str, str], float],
+    thresholds: NewFailureThresholds | Mapping[Service, float],
     start: datetime,
     end: datetime,
     *,
-    current_rows: Sequence[Row],
+    current_rows: Sequence[SeriesRow],
 ) -> list[ChangeEvent]:
     """Find issue milestones observable at minute closes in (start, end]."""
     projects_by_id = _project_map(organization, projects)
@@ -165,7 +172,7 @@ def collect_new_failure_modes(
         return []
 
     active_environments = _active_error_environments(current_rows, start, end)
-    boundary_environments: dict[str, set[str]] = defaultdict(set)
+    boundary_environments: dict[int, set[str]] = defaultdict(set)
     if isinstance(thresholds, NewFailureThresholds):
         for project_id, environment in thresholds.falling_scopes(start, end):
             boundary_environments[project_id].add(environment)
@@ -187,19 +194,19 @@ def collect_new_failure_modes(
 
 
 def _active_error_environments(
-    rows: Sequence[Row], start: datetime, end: datetime
-) -> dict[str, set[str]]:
-    environments_by_project: dict[str, set[str]] = defaultdict(set)
-    for minute, signal, metric, project_id, environment, dimension, value in rows:
+    rows: Sequence[SeriesRow], start: datetime, end: datetime
+) -> dict[int, set[str]]:
+    environments_by_project: dict[int, set[str]] = defaultdict(set)
+    for row in rows:
         if (
-            start <= _utc(minute) < end
-            and signal == "errors"
-            and metric == "count()"
-            and not dimension
-            and value is not None
-            and value > 0
+            start <= _utc(row.ts) < end
+            and row.signal == Signal.ERRORS
+            and row.metric == Metric.COUNT
+            and not row.dim_value
+            and row.value is not None
+            and row.value > 0
         ):
-            environments_by_project[project_id].add(environment)
+            environments_by_project[row.project_id].add(row.env)
     return environments_by_project
 
 
@@ -294,10 +301,10 @@ def _collect_title_crossings(
             continue
         yield ChangeEvent(
             key=SeriesKey(
-                str(scope.project.id),
+                scope.project.id,
                 scope.environment,
-                "new_issue",
-                "count_unique(user)",
+                Signal.NEW_ISSUE,
+                Metric.COUNT_UNIQUE_USER,
                 str(first_group.id),
             ),
             change_type=ChangeType.NEW_FAILURE_MODE,

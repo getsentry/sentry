@@ -12,14 +12,26 @@ from sentry_protos.snuba.v1.endpoint_time_series_pb2 import (
 from sentry_protos.snuba.v1.request_common_pb2 import PageToken
 from snuba_sdk import Column, Function, Op
 
-from sentry.anomaly_detection.contracts import ChangeEvent, ChangeType, SeriesKey
-from sentry.anomaly_detection.correlation.footprint import FOOTPRINT_DEFERRED, Footprint
+from sentry.anomaly_detection.contracts import (
+    ChangeEvent,
+    ChangeType,
+    Metric,
+    SeriesKey,
+    SeriesRow,
+    Service,
+    Signal,
+)
+from sentry.anomaly_detection.correlation.footprint import (
+    FOOTPRINT_DEFERRED,
+    CallEdge,
+    Footprint,
+    Slice,
+)
 from sentry.anomaly_detection.inputs import measurements, new_failures, trace_lookup
 from sentry.anomaly_detection.inputs.measurements import (
     ERROR_RELEASE,
     ERROR_USER,
     IncompleteCollection,
-    Row,
     collect,
 )
 from sentry.grouping.grouptype import ErrorGroupType
@@ -64,19 +76,19 @@ class TestCollection(TestCase):
         ):
             rows = collect(self.organization, [self.project], start, start + 2 * MINUTE, "1m")
 
-        project = str(self.project.id)
+        project = self.project.id
         expected = [
-            (START, "errors", "", "", 8.0, 0.0),
-            (START, "errors", "prod,blue", "", 0.0, 0.0),
-            (START + MINUTE, "errors", "", "", 0.0, 0.0),
-            (START + MINUTE, "errors", "prod,blue", "", 4.0, 2.0),
-            (START, "errors_by_release", "prod,blue", "service,2", 0.0, 0.0),
-            (START + MINUTE, "errors_by_release", "prod,blue", "service,2", 4.0, 2.0),
+            (START, Signal.ERRORS, "", "", 8.0, 0.0),
+            (START, Signal.ERRORS, "prod,blue", "", 0.0, 0.0),
+            (START + MINUTE, Signal.ERRORS, "", "", 0.0, 0.0),
+            (START + MINUTE, Signal.ERRORS, "prod,blue", "", 4.0, 2.0),
+            (START, Signal.ERRORS_BY_RELEASE, "prod,blue", "service,2", 0.0, 0.0),
+            (START + MINUTE, Signal.ERRORS_BY_RELEASE, "prod,blue", "service,2", 4.0, 2.0),
         ]
         assert {row[:-1]: row[-1] for row in rows} == {
             (ts, signal, metric, project, env, dimension): value
             for ts, signal, env, dimension, count, users in expected
-            for metric, value in [("count()", count), ("count_unique(user)", users)]
+            for metric, value in [(Metric.COUNT, count), (Metric.COUNT_UNIQUE_USER, users)]
         }
         assert raw.call_count == 5
         for index, call in enumerate(raw.call_args_list):
@@ -175,33 +187,43 @@ class TestCollection(TestCase):
             assert list(request.meta.project_ids) == [self.project.id]
             assert request.granularity_secs == 60
         assert len(rpc.call_args_list) == 5
-        project = str(self.project.id)
-        assert (START, "requests", "count()", project, env, "", 1000.0) in rows
-        assert (START, "requests", "count_sample()", project, env, "", 100.0) in rows
-        for metric in ("count()", "count_sample()"):
-            assert (START, "failed_requests", metric, project, env, "", 0.0) in rows
-            assert (START + MINUTE, "requests", metric, project, env, "", 0.0) in rows
-            assert (START + 2 * MINUTE, "requests", metric, project, env, "", 0.0) in rows
-        assert all(ts == START for ts, signal, *_ in rows if signal == "failed_requests")
+        project = self.project.id
+        requests, failed = Signal.REQUESTS, Signal.FAILED_REQUESTS
+        assert SeriesRow(START, requests, Metric.COUNT, project, env, "", 1000.0) in rows
+        assert SeriesRow(START, requests, Metric.COUNT_SAMPLE, project, env, "", 100.0) in rows
+        for metric in (Metric.COUNT, Metric.COUNT_SAMPLE):
+            assert SeriesRow(START, failed, metric, project, env, "", 0.0) in rows
+            assert SeriesRow(START + MINUTE, requests, metric, project, env, "", 0.0) in rows
+            assert SeriesRow(START + 2 * MINUTE, requests, metric, project, env, "", 0.0) in rows
+        assert all(ts == START for ts, signal, *_ in rows if signal == Signal.FAILED_REQUESTS)
         assert (
-            START,
-            "endpoints",
-            "failure_rate()",
-            project,
-            env,
-            dimensions["transaction"],
-            0.0,
-        ) in rows
-        assert (START, "outbound_db", "p95(span.duration)", project, env, "primary", 30.0) in rows
+            SeriesRow(
+                START,
+                Signal.ENDPOINTS,
+                Metric.FAILURE_RATE,
+                project,
+                env,
+                dimensions["transaction"],
+                0.0,
+            )
+            in rows
+        )
         assert (
-            START + MINUTE,
-            "outbound_http",
-            "p95(span.duration)",
-            project,
-            env,
-            "example.com",
-            None,
-        ) in rows
+            SeriesRow(START, Signal.OUTBOUND_DB, Metric.P95_DURATION, project, env, "primary", 30.0)
+            in rows
+        )
+        assert (
+            SeriesRow(
+                START + MINUTE,
+                Signal.OUTBOUND_HTTP,
+                Metric.P95_DURATION,
+                project,
+                env,
+                "example.com",
+                None,
+            )
+            in rows
+        )
         assert all(
             value is None for ts, _, _, _, _, dim, value in rows if ts == START + MINUTE and dim
         )
@@ -270,10 +292,10 @@ class TestCollection(TestCase):
             rows = collect(
                 self.organization, [self.project], START, START + timedelta(hours=1), "1h"
             )
-        project = str(self.project.id)
+        project = self.project.id
         assert rows == [
-            (START, "errors", "count()", project, "test", "", 0.0),
-            (START, "errors", "count_unique(user)", project, "test", "", 0.0),
+            SeriesRow(START, Signal.ERRORS, Metric.COUNT, project, "test", "", 0.0),
+            SeriesRow(START, Signal.ERRORS, Metric.COUNT_UNIQUE_USER, project, "test", "", 0.0),
         ]
         assert raw.call_args.args[0].query.granularity.granularity == 3600
 
@@ -297,8 +319,8 @@ class TestEnrichment(TestCase):
             type=ErrorGroupType.type_id + 1,
             create_open_period=False,
         )
-        project = str(self.project.id)
-        thresholds = {(project, "prod"): 2.0}
+        project = self.project.id
+        thresholds = {Service(project, "prod"): 2.0}
         with mock.patch.object(
             new_failures,
             "_run_errors",
@@ -319,10 +341,12 @@ class TestEnrichment(TestCase):
                 thresholds,
                 START,
                 START + 2 * MINUTE,
-                current_rows=[(START + MINUTE, "errors", "count()", project, "prod", "", 1.0)],
+                current_rows=[
+                    SeriesRow(START + MINUTE, Signal.ERRORS, Metric.COUNT, project, "prod", "", 1.0)
+                ],
             )
         assert change.key == SeriesKey(
-            project, "prod", "new_issue", "count_unique(user)", str(first.id)
+            project, "prod", Signal.NEW_ISSUE, Metric.COUNT_UNIQUE_USER, str(first.id)
         )
         assert change.change_type == ChangeType.NEW_FAILURE_MODE
         assert change.detected_at == START + 2 * MINUTE
@@ -341,8 +365,8 @@ class TestEnrichment(TestCase):
             project=self.project,
             first_seen=START.replace(tzinfo=timezone.utc),
         )
-        project = str(self.project.id)
-        thresholds = {(project, "prod"): 11.5}
+        project = self.project.id
+        thresholds = {Service(project, "prod"): 11.5}
         with (
             mock.patch.object(new_failures, "_ISSUE_USER_PAGE_SIZE", 10),
             mock.patch.object(
@@ -361,7 +385,9 @@ class TestEnrichment(TestCase):
                 thresholds,
                 START,
                 START + 2 * MINUTE,
-                current_rows=[(START, "errors", "count()", project, "prod", "", 10.0)],
+                current_rows=[
+                    SeriesRow(START, Signal.ERRORS, Metric.COUNT, project, "prod", "", 10.0)
+                ],
             )
         (_, first_page, _), (_, second_page, _) = [call.args for call in query.call_args_list[1:]]
         assert first_page.limit.limit == 10
@@ -385,7 +411,7 @@ class TestEnrichment(TestCase):
         group = self.create_group(
             project=self.project, first_seen=START.replace(tzinfo=timezone.utc)
         )
-        project = str(self.project.id)
+        project = self.project.id
         with mock.patch.object(
             new_failures,
             "_run_errors",
@@ -397,21 +423,23 @@ class TestEnrichment(TestCase):
             (change,) = new_failures.collect_new_failure_modes(
                 self.organization,
                 [self.project],
-                {(project, "historical"): 40.0},
+                {Service(project, "historical"): 40.0},
                 START,
                 START + MINUTE,
                 current_rows=[
-                    (START, "errors", "count()", project, "new", "", 10.0),
-                    (START, "errors", "count()", project, "historical", "", 0.0),
-                    (START + MINUTE, "errors", "count()", project, "future", "", 20.0),
+                    SeriesRow(START, Signal.ERRORS, Metric.COUNT, project, "new", "", 10.0),
+                    SeriesRow(START, Signal.ERRORS, Metric.COUNT, project, "historical", "", 0.0),
+                    SeriesRow(
+                        START + MINUTE, Signal.ERRORS, Metric.COUNT, project, "future", "", 20.0
+                    ),
                 ],
             )
         assert (change.key.env, change.expected, change.confidence) == ("new", 10, 0.9)
         assert query.call_count == 2
 
     def test_trace_footprint_joins_parent_only_in_same_trace(self) -> None:
-        project = str(self.project.id)
-        key = SeriesKey(project, "prod", "endpoints", "p95(span.duration)", "GET /x")
+        project = self.project.id
+        key = SeriesKey(project, "prod", Signal.ENDPOINTS, Metric.P95_DURATION, "GET /x")
         change = ChangeEvent(key, ChangeType.SLOWDOWN, START, 100, 10, 0.9)
         trace1, trace2 = "a" * 32, "b" * 32
         scope = {"project.id": self.project.id, "environment": "prod"}
@@ -462,8 +490,9 @@ class TestEnrichment(TestCase):
         assert footprint.window == (START - MINUTE, observation_end)
         expected_end = observation_end.replace(tzinfo=timezone.utc)
         assert all(call.kwargs["params"].end == expected_end for call in table.call_args_list)
-        assert footprint.slices[(project, "prod", "", "")].trace_share == 0.5
-        assert footprint.edges == {(f"{project}/prod", "backend", f"{project}/prod"): 1}
+        service = Service(project, "prod")
+        assert footprint.slices[Slice(service, None, "")].trace_share == 0.5
+        assert footprint.edges == {CallEdge(service, "backend", service): 1}
         assert table.call_count == 7
         assert table.call_args_list[0].kwargs["config"].filters == (
             ("environment", ("prod",)),
@@ -474,7 +503,7 @@ class TestEnrichment(TestCase):
         detected = START + 35 * MINUTE
         trace = "a" * 32
         change = ChangeEvent(
-            SeriesKey(str(self.project.id), "prod", "new_issue", "count_unique(user)", "11"),
+            SeriesKey(self.project.id, "prod", Signal.NEW_ISSUE, Metric.COUNT_UNIQUE_USER, "11"),
             ChangeType.NEW_FAILURE_MODE,
             START,
             10,
@@ -511,7 +540,7 @@ class TestEnrichment(TestCase):
 
     def test_untraced_error_does_not_sample_matching_transaction_names(self) -> None:
         change = ChangeEvent(
-            SeriesKey(str(self.project.id), "prod", "errors", "count()"),
+            SeriesKey(self.project.id, "prod", Signal.ERRORS, Metric.COUNT),
             ChangeType.SPIKE,
             START,
             10,
@@ -530,7 +559,7 @@ class TestEnrichment(TestCase):
 
     def test_exhausted_footprint_budget_does_not_cache_misses(self) -> None:
         change = ChangeEvent(
-            SeriesKey(str(self.project.id), "prod", "requests", "count()"),
+            SeriesKey(self.project.id, "prod", Signal.REQUESTS, Metric.COUNT),
             ChangeType.SPIKE,
             START,
             10,
@@ -550,15 +579,25 @@ class TestEnrichment(TestCase):
 
 
 def test_failure_thresholds_use_only_observed_hourly_error_users() -> None:
-    rows: list[Row] = [
-        (START, "errors", "count_unique(user)", "10", "prod", "", 300.0),
-        (START + timedelta(hours=1), "errors", "count_unique(user)", "10", "prod", "", None),
-        (START, "errors", "count_unique(user)", "10", "stage", "", 5.0),
-        (START, "errors_by_release", "count_unique(user)", "10", "stage", "v1", 2000.0),
-        (START, "errors", "count_unique(user)", "10", "unobserved", "", None),
+    rows = [
+        SeriesRow(START, Signal.ERRORS, Metric.COUNT_UNIQUE_USER, 10, "prod", "", 300.0),
+        SeriesRow(
+            START + timedelta(hours=1),
+            Signal.ERRORS,
+            Metric.COUNT_UNIQUE_USER,
+            10,
+            "prod",
+            "",
+            None,
+        ),
+        SeriesRow(START, Signal.ERRORS, Metric.COUNT_UNIQUE_USER, 10, "stage", "", 5.0),
+        SeriesRow(
+            START, Signal.ERRORS_BY_RELEASE, Metric.COUNT_UNIQUE_USER, 10, "stage", "v1", 2000.0
+        ),
+        SeriesRow(START, Signal.ERRORS, Metric.COUNT_UNIQUE_USER, 10, "unobserved", "", None),
     ]
     thresholds = new_failures.new_failure_thresholds(rows)
     observation_end = START + timedelta(hours=2)
-    assert thresholds.at(("10", "prod"), observation_end) == 15.0
-    assert thresholds.at(("10", "stage"), observation_end) == 10.0
-    assert thresholds.at(("10", "unobserved"), observation_end) == 10.0
+    assert thresholds.at(Service(10, "prod"), observation_end) == 15.0
+    assert thresholds.at(Service(10, "stage"), observation_end) == 10.0
+    assert thresholds.at(Service(10, "unobserved"), observation_end) == 10.0

@@ -35,6 +35,7 @@ from snuba_sdk import (
     Request,
 )
 
+from sentry.anomaly_detection.contracts import Metric, SeriesRow, Signal
 from sentry.search.eap.rpc_utils import and_trace_item_filters, or_trace_item_filters
 from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams, SnubaRow
@@ -49,7 +50,6 @@ if TYPE_CHECKING:
     from sentry.models.project import Project
     from sentry.search.eap.resolver import SearchResolver
 
-Row = tuple[datetime, str, str, str, str, str, float | None]
 Interval = Literal["1m", "1h"]
 
 MAX_ENVIRONMENTS = 8
@@ -61,26 +61,31 @@ _ROLLUPS: dict[Interval, int] = {"1m": 60, "1h": 3600}
 
 ERROR_USER = "tags[sentry:user]"
 ERROR_RELEASE = "tags[sentry:release]"
-ERROR_METRICS = ("count()", "count_unique(user)")
-SPAN_COUNTS = ("count()", "count_sample()")
-SPAN_LATENCY = (*SPAN_COUNTS, "p95(span.duration)")
+ERROR_METRICS = (Metric.COUNT, Metric.COUNT_UNIQUE_USER)
+SPAN_COUNTS = (Metric.COUNT, Metric.COUNT_SAMPLE)
+SPAN_LATENCY = (*SPAN_COUNTS, Metric.P95_DURATION)
 REQUEST_QUERY = "is_transaction:true"
 FAILED_QUERY = f"{REQUEST_QUERY} http.response_status_code:>=500"
 
 
 @dataclass(frozen=True)
 class SpanSignal:
-    name: str
+    name: Signal
     query: str
-    dimension: str
-    metrics: tuple[str, ...]
+    dimension: str  # Span attribute that slices the signal; empty for service totals.
+    metrics: tuple[Metric, ...]
 
 
 SPAN_SLICES = (
-    SpanSignal("endpoints", REQUEST_QUERY, "transaction", (*SPAN_LATENCY, "failure_rate()")),
-    SpanSignal("outbound_db", "span.category:db", "db.name", SPAN_LATENCY),
     SpanSignal(
-        "outbound_http", "span.op:http.client", "span.domain", (*SPAN_LATENCY, "failure_rate()")
+        Signal.ENDPOINTS, REQUEST_QUERY, "transaction", (*SPAN_LATENCY, Metric.FAILURE_RATE)
+    ),
+    SpanSignal(Signal.OUTBOUND_DB, "span.category:db", "db.name", SPAN_LATENCY),
+    SpanSignal(
+        Signal.OUTBOUND_HTTP,
+        "span.op:http.client",
+        "span.domain",
+        (*SPAN_LATENCY, Metric.FAILURE_RATE),
     ),
 )
 
@@ -89,10 +94,10 @@ class IncompleteCollection(RuntimeError):
     """A response violated a collection bound; don't advance over incomplete data."""
 
 
-def _project_map(organization: Organization, projects: Sequence[Project]) -> dict[str, Project]:
+def _project_map(organization: Organization, projects: Sequence[Project]) -> dict[int, Project]:
     if any(project.organization_id != organization.id for project in projects):
         raise ValueError("Anomaly detection projects must belong to the organization")
-    return {str(project.id): project for project in projects}
+    return {project.id: project for project in projects}
 
 
 def _utc(value: datetime | str | int) -> datetime:
@@ -112,14 +117,14 @@ def _number(value: object) -> float | None:
 def _normalize(
     data: Sequence[SnubaRow],
     *,
-    project: str,
-    signal: str,
-    metrics: tuple[str, ...],
+    project_id: int,
+    signal: Signal,
+    metrics: tuple[Metric, ...],
     start: datetime,
     end: datetime,
     env: str,
     dimension: str = "",
-) -> Iterator[Row]:
+) -> Iterator[SeriesRow]:
     for point in data:
         timestamp = _utc(point["time"])
         if not start <= timestamp < end:
@@ -128,11 +133,11 @@ def _normalize(
             if metric not in point:
                 continue
             value = _number(point[metric])
-            if metric in {"p95(span.duration)", "failure_rate()"} and not _number(
-                point.get("count_sample()")
+            if metric in (Metric.P95_DURATION, Metric.FAILURE_RATE) and not _number(
+                point.get(Metric.COUNT_SAMPLE)
             ):
                 value = None
-            yield timestamp, signal, metric, project, env, dimension, value
+            yield SeriesRow(timestamp, signal, metric, project_id, env, dimension, value)
 
 
 def _windows(start: datetime, end: datetime, rollup: int) -> Iterator[tuple[datetime, datetime]]:
@@ -200,7 +205,7 @@ def _collect_errors(
     end: datetime,
     rollup: int,
     request_envs: tuple[str, ...],
-) -> Iterator[Row]:
+) -> Iterator[SeriesRow]:
     scope = _error_where(project, start, end)
     count = Function("count", [])
     env = _error_env()
@@ -254,15 +259,17 @@ def _collect_errors(
         for name, values in releases.items()
     ]
     queries: list[
-        tuple[str, list[Column | Function], Condition | BooleanCondition, set[tuple[str, str]]]
+        tuple[Signal, list[Column | Function], Condition | BooleanCondition, set[tuple[str, str]]]
     ] = [
-        ("errors", [env_group], Condition(env, Op.IN, envs), {(name, "") for name in envs}),
+        (Signal.ERRORS, [env_group], Condition(env, Op.IN, envs), {(name, "") for name in envs}),
     ]
     if release_conditions:
         release_where = (
             Or(release_conditions) if len(release_conditions) > 1 else release_conditions[0]
         )
-        queries.append(("errors_by_release", [env_group, release], release_where, release_groups))
+        queries.append(
+            (Signal.ERRORS_BY_RELEASE, [env_group, release], release_where, release_groups)
+        )
 
     step = timedelta(seconds=rollup)
     bucket = Column("time")
@@ -300,12 +307,12 @@ def _collect_errors(
                 seen.add(key)
                 point = {
                     "time": timestamp,
-                    "count()": row.get("count()"),
-                    "count_unique(user)": row.get("users"),
+                    Metric.COUNT: row.get("count()"),
+                    Metric.COUNT_UNIQUE_USER: row.get("users"),
                 }
                 yield from _normalize(
                     [point],
-                    project=str(project.id),
+                    project_id=project.id,
                     signal=signal,
                     metrics=ERROR_METRICS,
                     start=left,
@@ -319,7 +326,9 @@ def _collect_errors(
                 for name, dimension in covered_groups:
                     if (timestamp, name, dimension) not in seen:
                         for metric in ERROR_METRICS:
-                            yield timestamp, signal, metric, str(project.id), name, dimension, 0.0
+                            yield SeriesRow(
+                                timestamp, signal, metric, project.id, name, dimension, 0.0
+                            )
 
 
 def _span_attribute_filter(
@@ -440,7 +449,7 @@ def _span_series(
     groups: list[tuple[str, ...]],
     *,
     positive_requests: set[tuple[datetime, str]] | None = None,
-) -> Iterator[Row]:
+) -> Iterator[SeriesRow]:
     # The timeseries RPC can stringify a null group as "None". Filter the
     # missing/empty scope separately and don't group it by environment.
     for missing in (False, True):
@@ -470,7 +479,7 @@ def _scoped_span_series(
     *,
     missing: bool,
     positive_requests: set[tuple[datetime, str]] | None,
-) -> Iterator[Row]:
+) -> Iterator[SeriesRow]:
     allowed = set(groups)
     fields = ["environment", signal.dimension] if signal.dimension else ["environment"]
     config = ScopedSpans()
@@ -498,7 +507,7 @@ def _scoped_span_series(
             search_resolver=resolver,
             params=params,
             query_string=signal.query,
-            y_axes=list(signal.metrics),
+            y_axes=[metric.value for metric in signal.metrics],
             groupby=fields[1:] if missing else fields,
             referrer=_REFERRER,
             sampling_mode=None,
@@ -541,7 +550,7 @@ def _scoped_span_series(
                 present.update((_utc(point["time"]), key[0]) for point in data)
             yield from _normalize(
                 data,
-                project=str(project.id),
+                project_id=project.id,
                 signal=signal.name,
                 metrics=signal.metrics,
                 start=left,
@@ -559,7 +568,7 @@ def _scoped_span_series(
                     ):
                         continue
                     for metric in signal.metrics:
-                        yield timestamp, signal.name, metric, str(project.id), env, "", 0.0
+                        yield SeriesRow(timestamp, signal.name, metric, project.id, env, "", 0.0)
 
 
 def collect(
@@ -568,7 +577,7 @@ def collect(
     start: datetime,
     end: datetime,
     interval: Interval,
-) -> list[Row]:
+) -> list[SeriesRow]:
     """Collect measurements in [start, end), with bucket-aligned naive UTC timestamps.
 
     Group discovery bounds the active environments and slices. Only covered
@@ -584,7 +593,7 @@ def collect(
     ):
         raise ValueError("Anomaly collection window must align with its bucket boundaries")
 
-    rows: list[Row] = []
+    rows: list[SeriesRow] = []
     for project in _project_map(organization, projects).values():
         spans_enabled = Spans.filter_project(project)
         request_groups = []
@@ -609,15 +618,15 @@ def collect(
                 start,
                 end,
                 rollup,
-                SpanSignal("requests", REQUEST_QUERY, "", SPAN_COUNTS),
+                SpanSignal(Signal.REQUESTS, REQUEST_QUERY, "", SPAN_COUNTS),
                 request_groups,
             )
         )
         rows.extend(requests)
         positive_requests = {
-            (timestamp, env)
-            for timestamp, _, metric, _, env, _, value in requests
-            if metric == "count()" and value is not None and value > 0
+            (row.ts, row.env)
+            for row in requests
+            if row.metric == Metric.COUNT and row.value is not None and row.value > 0
         }
         rows.extend(
             _span_series(
@@ -626,7 +635,7 @@ def collect(
                 start,
                 end,
                 rollup,
-                SpanSignal("failed_requests", FAILED_QUERY, "", SPAN_COUNTS),
+                SpanSignal(Signal.FAILED_REQUESTS, FAILED_QUERY, "", SPAN_COUNTS),
                 request_groups,
                 positive_requests=positive_requests,
             )

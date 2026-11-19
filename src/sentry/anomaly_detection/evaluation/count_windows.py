@@ -8,7 +8,7 @@ from collections.abc import Callable
 from datetime import datetime
 from typing import TYPE_CHECKING, NamedTuple
 
-from sentry.anomaly_detection.contracts import ExpectedValue, SeriesKey
+from sentry.anomaly_detection.contracts import ExpectedValue, SeriesKey, Signal
 from sentry.anomaly_detection.evaluation.baseline import MINUTE, Baseline, weight_key
 from sentry.anomaly_detection.evaluation.series import is_share
 
@@ -100,7 +100,7 @@ def pooled_recovery(
     """Return whether a window is measurable and whether it still shows an excess."""
     counts = state.counts
     key = expectation.key
-    if (key.signal == "failed_rate" or is_share(key)) and state.failure_reference is None:
+    if (key.signal == Signal.FAILED_RATE or is_share(key)) and state.failure_reference is None:
         return False, False
     assert counts is not None
     for window_minutes in (state.window,) if state.window else cfg.windows:
@@ -127,7 +127,7 @@ def window_test(
     """Return the shortest window with enough evidence to reject its baseline."""
     counts = state.counts
     assert counts is not None
-    uses_trials = expectation.key.signal == "failed_rate" or is_share(expectation.key)
+    uses_trials = expectation.key.signal == Signal.FAILED_RATE or is_share(expectation.key)
     min_excess = cfg.min_abs_excess if p_max <= cfg.window_p else 1.0
     candidate_windows = (only_minutes,) if only_minutes else _windows_for(cfg, counts)
     for window_minutes in candidate_windows:

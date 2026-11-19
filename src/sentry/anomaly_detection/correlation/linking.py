@@ -7,16 +7,11 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from itertools import chain, pairwise
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Literal, Protocol
 
-from sentry.anomaly_detection.contracts import ChangeEvent, SeriesKey
+from sentry.anomaly_detection.contracts import ChangeEvent, Metric, SeriesKey, Signal
 from sentry.anomaly_detection.correlation import call_graph
-from sentry.anomaly_detection.correlation.footprint import (
-    Footprint,
-    base_signal,
-    service_of,
-    slice_of,
-)
+from sentry.anomaly_detection.correlation.footprint import Footprint, service_of, slice_of
 from sentry.anomaly_detection.correlation.shared_dependencies import PairStats, SharedDeps
 
 if TYPE_CHECKING:
@@ -24,6 +19,13 @@ if TYPE_CHECKING:
 
 _CAUSE_LEAD = timedelta(minutes=20)
 _LATENT_SLOW_RATIO = 3.0
+
+# Why two episodes belong together: "series", "alias" and "part" are one piece of
+# evidence measured several ways; "shared" is a learned common dependency; "cause"
+# and "effect" orient the incoming episode along a call path; "sibling" is weaker.
+LinkKind = Literal["series", "alias", "part", "shared", "cause", "effect", "sibling"]
+# Signals that can explain one another within a service.
+Family = Literal["latency", "failure"] | Signal
 
 
 class _Evidence(Protocol):
@@ -54,7 +56,7 @@ class _Evidence(Protocol):
 @dataclass(frozen=True)
 class Link:
     member: MemberState
-    kind: str
+    kind: LinkKind
     share: float
     detail: str
     trace: bool = False
@@ -82,7 +84,7 @@ def link(
     incoming_member: MemberState,
     existing_member: MemberState,
     *,
-    error_signals: frozenset[str],
+    error_signals: frozenset[Signal],
 ) -> Link | None:
     incoming, existing = incoming_member.event, existing_member.event
     incoming_key, existing_key = incoming.key, existing.key
@@ -298,7 +300,7 @@ def is_downstream_support(
     stats = footprint.touches(latent.key, evidence.cfg.min_share) if footprint else None
     if not stats or evidence._order(event.key, latent.key, (footprint,)) != call_graph.DOWNSTREAM:
         return False
-    if latent.key.metric.startswith("p95") and (
+    if latent.key.metric == Metric.P95_DURATION and (
         stats.p95_ms is None
         or not latent.expected
         or stats.p95_ms < _LATENT_SLOW_RATIO * latent.expected
@@ -331,8 +333,8 @@ def _comovement(
     if not incoming_series or not existing_series:
         return None
     paired_bins = zip(
-        _log_bins(incoming_series, overlap_start, overlap_end, incoming.key, failure_family),
-        _log_bins(existing_series, overlap_start, overlap_end, existing.key, failure_family),
+        _log_bins(incoming_series, overlap_start, overlap_end, failure_family),
+        _log_bins(existing_series, overlap_start, overlap_end, failure_family),
         strict=True,
     )
     moves = [
@@ -394,12 +396,12 @@ def overlap(a: ChangeEvent, b: ChangeEvent, tolerance: timedelta) -> bool:
     return first.ended_at is None or later.start <= first.ended_at + tolerance
 
 
-def _family(key: SeriesKey, error_signals: frozenset[str]) -> str:
-    if key.metric.startswith(("p95", "slow_rate(")):
+def _family(key: SeriesKey, error_signals: frozenset[Signal]) -> Family:
+    if key.metric == Metric.P95_DURATION:
         return "latency"
-    if key.metric == "failure_rate()" or key.signal in error_signals:
+    if key.metric == Metric.FAILURE_RATE or key.signal in error_signals:
         return "failure"
-    return base_signal(key.signal)
+    return key.signal
 
 
 def shared_detail(pair: PairStats) -> str:
@@ -412,11 +414,10 @@ def _log_bins(
     series: Mapping[datetime, float | None],
     start: datetime,
     end: datetime,
-    key: SeriesKey,
     failure_family: bool,
 ) -> Iterable[float | None]:
     step = timedelta(minutes=10)
-    offset = 1e-4 if failure_family or key.metric.startswith("slow_rate(") else 1.0
+    offset = 1e-4 if failure_family else 1.0
     bin_start = start
     while bin_start + step <= end:
         values = sorted(

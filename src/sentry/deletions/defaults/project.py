@@ -153,9 +153,3 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
             relations.append(ModelRelation(m3, {"project_id": instance.id}, ModelDeletionTask))
 
         return relations
-
-    def delete_instance(self, instance: Project) -> None:
-        from sentry.anomaly_detection.checkpoint.replay import remove_project_state
-
-        remove_project_state(organization_id=instance.organization_id, project_id=instance.id)
-        super().delete_instance(instance)

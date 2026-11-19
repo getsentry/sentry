@@ -6,25 +6,38 @@ from datetime import datetime, timedelta
 import pytest
 
 from sentry.anomaly_detection.checkpoint.codec import _restore, _snapshot
-from sentry.anomaly_detection.contracts import ChangeEvent, ChangeType, SeriesKey, Urgency
+from sentry.anomaly_detection.contracts import (
+    ChangeAction,
+    ChangeEvent,
+    ChangeType,
+    Metric,
+    SeriesKey,
+    Service,
+    Signal,
+    Urgency,
+)
 from sentry.anomaly_detection.correlation.correlator import Correlator, episode_key
 from sentry.anomaly_detection.correlation.footprint import (
     FOOTPRINT_DEFERRED,
+    CallEdge,
     Footprint,
     FootprintResult,
     SliceStats,
     service_of,
     slice_of,
 )
-from sentry.anomaly_detection.correlation.shared_dependencies import SharedConfig, learn
+from sentry.anomaly_detection.correlation.shared_dependencies import (
+    DependencySlice,
+    SharedConfig,
+    learn,
+)
 from sentry.anomaly_detection.evaluation.organization import OrgEvaluator
-from tests.sentry.anomaly_detection.test_parity import make_handlers
 
 START = datetime(2024, 1, 1)
 MINUTE = timedelta(minutes=1)
-LATENCY = "p95(span.duration)"
-CHECKOUT = SeriesKey("1", "production", "endpoints", LATENCY, "/checkout")
-ORDERS = SeriesKey("2", "production", "outbound_db", LATENCY, "orders")
+LATENCY = Metric.P95_DURATION
+CHECKOUT = SeriesKey(1, "production", Signal.ENDPOINTS, LATENCY, "/checkout")
+ORDERS = SeriesKey(2, "production", Signal.OUTBOUND_DB, LATENCY, "orders")
 
 
 def _episode(
@@ -48,7 +61,9 @@ def _checkout_footprint(target: SeriesKey = ORDERS, share: float = 0.8) -> Footp
         CHECKOUT,
         ["trace-1", "trace-2"],
         slices={slice_of(target): SliceStats(share, 100, 2)},
-        edges=Counter({(service_of(CHECKOUT), "orders.example.com", service_of(target)): 2}),
+        edges=Counter(
+            {CallEdge(service_of(CHECKOUT), "orders.example.com", service_of(target)): 2}
+        ),
     )
 
 
@@ -56,17 +71,14 @@ def _checkout_footprint(target: SeriesKey = ORDERS, share: float = 0.8) -> Footp
     ("primary", "alias"),
     [
         (
-            SeriesKey("1", "production", "errors", "count()"),
-            SeriesKey("1", "production", "errors", "count_unique(user)"),
+            SeriesKey(1, "production", Signal.ERRORS, Metric.COUNT),
+            SeriesKey(1, "production", Signal.ERRORS, Metric.COUNT_UNIQUE_USER),
         ),
         (
-            SeriesKey("1", "production", "error_rate", "errors/requests"),
-            SeriesKey("1", "production", "failed_rate", "failed_requests/requests"),
+            SeriesKey(1, "production", Signal.ERROR_RATE, Metric.ERRORS_PER_REQUEST),
+            SeriesKey(1, "production", Signal.FAILED_RATE, Metric.FAILED_PER_REQUEST),
         ),
-        (
-            CHECKOUT,
-            SeriesKey("1", "production", "endpoints_slow", "slow_rate(>100ms)", "/checkout"),
-        ),
+        (CHECKOUT, replace(CHECKOUT, metric=Metric.FAILURE_RATE)),
     ],
 )
 def test_signal_aliases_are_one_piece_of_evidence(primary: SeriesKey, alias: SeriesKey) -> None:
@@ -102,7 +114,7 @@ def test_trace_link_localizes_downstream_and_closes_after_all_changes_end() -> N
     assert joined[0].group is opened.group
     assert joined[0].root is orders
     assert opened.group.localization == "2/production database orders"
-    assert opened.group.blast_radius == ["1/production", "2/production"]
+    assert opened.group.blast_radius == [Service(1, "production"), Service(2, "production")]
     assert opened.group.urgency == Urgency.MEDIUM
 
     checkout.ended_at = START + 5 * MINUTE
@@ -117,9 +129,9 @@ def test_trace_link_localizes_downstream_and_closes_after_all_changes_end() -> N
 
 
 def test_generic_service_trace_touch_is_not_a_cross_project_link() -> None:
-    totals = SeriesKey("2", "production", "error_rate", "errors/requests")
+    totals = SeriesKey(2, "production", Signal.ERROR_RATE, Metric.ERRORS_PER_REQUEST)
     correlator = Correlator(_Traces({CHECKOUT: _checkout_footprint(totals)}))
-    events = [
+    events: list[ChangeAction] = [
         ("open", _episode(CHECKOUT)),
         ("open", _episode(totals, change_type=ChangeType.SPIKE)),
     ]
@@ -134,7 +146,8 @@ def test_routine_downstream_change_supports_localization_without_independent_evi
 ) -> None:
     correlator = Correlator(_Traces({CHECKOUT: _checkout_footprint()}))
     checkout, orders = _episode(CHECKOUT), _episode(ORDERS)
-    latent, opened = ("latent", orders), ("open", checkout)
+    latent: ChangeAction = ("latent", orders)
+    opened: ChangeAction = ("open", checkout)
     first, second = (latent, opened) if latent_first else (opened, latent)
     correlator.step(START, [first])
     actions = correlator.step(START + MINUTE, [second])
@@ -163,7 +176,7 @@ def test_new_failure_mode_requires_nearby_change_in_its_own_service(
     orders = _episode(ORDERS)
     checkout = _episode(CHECKOUT, START + 40 * MINUTE)
     failure = _episode(
-        SeriesKey(ORDERS.project, ORDERS.env, "new_issue", "count()", "ORDERS-1"),
+        SeriesKey(ORDERS.project_id, ORDERS.env, Signal.NEW_ISSUE, Metric.COUNT, "ORDERS-1"),
         START + 46 * MINUTE,
         ChangeType.NEW_FAILURE_MODE,
     )
@@ -178,7 +191,7 @@ def test_new_failure_mode_requires_nearby_change_in_its_own_service(
 
 
 def test_latent_escalation_sets_urgency_when_opening_without_a_group() -> None:
-    rate = SeriesKey("1", "production", "error_rate", "errors/requests")
+    rate = SeriesKey(1, "production", Signal.ERROR_RATE, Metric.ERRORS_PER_REQUEST)
     event = _episode(rate, change_type=ChangeType.SPIKE)
     correlator = Correlator()
     assert not correlator.step(START, [("latent", event)])
@@ -191,13 +204,13 @@ def test_latent_escalation_sets_urgency_when_opening_without_a_group() -> None:
 
 
 def test_common_cause_merges_groups_and_remaps_members() -> None:
-    cart = SeriesKey("3", "production", "endpoints", LATENCY, "/cart")
+    cart = SeriesKey(3, "production", Signal.ENDPOINTS, LATENCY, "/cart")
     checkout, cart_event, orders = _episode(CHECKOUT), _episode(cart), _episode(ORDERS)
     cart_footprint = Footprint(
         cart,
         ["cart-trace"],
         slices={slice_of(ORDERS): SliceStats(1, 100, 1)},
-        edges=Counter({(service_of(cart), "orders.example.com", service_of(ORDERS)): 1}),
+        edges=Counter({CallEdge(service_of(cart), "orders.example.com", service_of(ORDERS)): 1}),
     )
     correlator = Correlator(_Traces({CHECKOUT: _checkout_footprint(), cart: cart_footprint}))
     correlator.step(START + MINUTE, [("open", checkout), ("open", cart_event)])
@@ -216,7 +229,7 @@ def test_common_cause_merges_groups_and_remaps_members() -> None:
 
 
 def test_merge_carries_sustained_urgency_after_recovery() -> None:
-    dependency_key = replace(ORDERS, project=CHECKOUT.project)
+    dependency_key = replace(ORDERS, project_id=CHECKOUT.project_id)
     correlator = Correlator(_Traces({CHECKOUT: _checkout_footprint(dependency_key)}))
     checkout = _episode(CHECKOUT)
     (opened,) = correlator.step(START, [("open", checkout)])
@@ -259,24 +272,24 @@ def test_same_issue_matches_structured_identity_not_display_evidence(
 
     assert actions[0].kind == expected_action
     assert len(correlator.groups) == group_count
-    assert opened.group.driving_issues == ["123"]
+    assert opened.group.driving_issues == [123]
 
 
 def test_deferred_footprint_is_retried_after_checkpoint_restore() -> None:
     checkout = _episode(CHECKOUT)
     unrelated = _episode(
-        SeriesKey("3", "production", "endpoints", LATENCY, "/help"), START + MINUTE
+        SeriesKey(3, "production", Signal.ENDPOINTS, LATENCY, "/help"), START + MINUTE
     )
     traces = _Traces({CHECKOUT: FOOTPRINT_DEFERRED})
-    handlers = make_handlers(CHECKOUT.project, ORDERS.project, unrelated.key.project)
-    evaluator = OrgEvaluator(traces, handlers=handlers)
+    projects = (CHECKOUT.project_id, ORDERS.project_id, unrelated.key.project_id)
+    evaluator = OrgEvaluator(traces, projects=projects)
     (opened,) = evaluator.corr.step(checkout.start, [("open", checkout)])
     evaluator.corr.step(unrelated.start, [("open", unrelated)])
     assert (CHECKOUT, unrelated.start + MINUTE) in traces.calls
 
     orders = _episode(ORDERS, START + 2 * MINUTE)
     next_traces = _Traces({CHECKOUT: _checkout_footprint()})
-    restored = _restore(next_traces, _snapshot(evaluator, orders.start), handlers=handlers)
+    restored = _restore(next_traces, _snapshot(evaluator, orders.start), projects=projects)
     actions = restored.corr.step(orders.start, [("open", orders)])
 
     assert (CHECKOUT, orders.start + MINUTE) in next_traces.calls
@@ -287,7 +300,7 @@ def test_deferred_footprint_is_retried_after_checkpoint_restore() -> None:
 
 
 def test_shared_dependency_learning_links_repeated_co_onsets_without_traces() -> None:
-    replica = SeriesKey("3", "production", "outbound_db", LATENCY, "orders")
+    replica = SeriesKey(3, "production", Signal.OUTBOUND_DB, LATENCY, "orders")
     varied_onsets = [START + timedelta(hours=i * 9, minutes=i * 7) for i in range(6)]
     history = {
         ORDERS: [_episode(ORDERS, onset) for onset in varied_onsets],
@@ -311,13 +324,15 @@ def test_shared_dependency_learning_links_repeated_co_onsets_without_traces() ->
 
 @pytest.mark.parametrize("latent_first", [True, False])
 def test_shared_latent_bridges_groups_without_joining_namesake(latent_first: bool) -> None:
-    replica = replace(ORDERS, project="3")
-    support_key = replace(ORDERS, project="4")
-    namesake = replace(ORDERS, project="5")
-    support_slice = (service_of(support_key), support_key.signal, support_key.dim_value)
+    replica = replace(ORDERS, project_id=3)
+    support_key = replace(ORDERS, project_id=4)
+    namesake = replace(ORDERS, project_id=5)
+    support_slice = DependencySlice(
+        service_of(support_key), support_key.signal, support_key.dim_value
+    )
     config = SharedConfig(
         force=[
-            (support_slice, (service_of(key), key.signal, key.dim_value))
+            (support_slice, DependencySlice(service_of(key), key.signal, key.dim_value))
             for key in (ORDERS, replica)
         ]
     )

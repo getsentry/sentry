@@ -12,6 +12,7 @@ from sentry.anomaly_detection.checkpoint.event_codec import (
     _EventWriter,
     _iso,
     _key,
+    _read_key,
     _time,
 )
 from sentry.anomaly_detection.contracts import SeriesKey
@@ -75,7 +76,7 @@ def _read_series(data: list[Any]) -> dict[SeriesKey, Series]:
     minutes: dict[datetime, datetime] = {}
     for key, history in data:
         points: Series = {}
-        series[SeriesKey(*key)] = points
+        series[_read_key(key)] = points
         if not history:
             continue
         first, dense, compressed, packed = history
@@ -172,7 +173,7 @@ def _detector(detector: SeriesHistory, events: _EventWriter) -> dict[str, Any]:
 def _restore_detector(detector: SeriesHistory, data: dict[str, Any], events: _EventReader) -> None:
     watched = {}
     for fields in data["watched"]:
-        key = SeriesKey(*fields)
+        key = _read_key(fields)
         rule = next(
             (
                 rule
@@ -186,13 +187,13 @@ def _restore_detector(detector: SeriesHistory, data: dict[str, Any], events: _Ev
             raise ValueError("Invalid anomaly checkpoint detector rule")
         watched[key] = rule
     detector.watched = watched
-    detector.exclude = {SeriesKey(*key): reason for key, reason in data["exclude"]}
+    detector.exclude = {_read_key(key): reason for key, reason in data["exclude"]}
     detector._pseudo = {
-        (SeriesKey(*key), datetime.fromisoformat(ts)): floor for key, ts, floor in data["pseudo"]
+        (_read_key(key), datetime.fromisoformat(ts)): floor for key, ts, floor in data["pseudo"]
     }
     for key_fields, state_data in data["state"]:
         count_rows = state_data["counts"]
-        series_key = SeriesKey(*key_fields)
+        series_key = _read_key(key_fields)
         detector.state[series_key] = SeriesState(
             recent=deque(
                 (
@@ -271,16 +272,16 @@ def _change_points(cp: RateShiftTracker, events: _EventWriter) -> dict[str, Any]
 def _restore_change_points(
     cp: RateShiftTracker, data: dict[str, Any], events: _EventReader
 ) -> None:
-    cp.watched = [SeriesKey(*key) for key in data["watched"]]
-    cp.exclude = {SeriesKey(*key): reason for key, reason in data["exclude"]}
+    cp.watched = [_read_key(key) for key in data["watched"]]
+    cp.exclude = {_read_key(key): reason for key, reason in data["exclude"]}
     cp.state = {
-        SeriesKey(*key): RateShiftState(
+        _read_key(key): RateShiftState(
             hits, events.optional(index), level_before, _time(hold_until)
         )
         for key, hits, index, level_before, hold_until in data["state"]
     }
     cp.spike_minutes = {
-        SeriesKey(*key): {datetime.fromisoformat(ts) for ts in times}
+        _read_key(key): {datetime.fromisoformat(ts) for ts in times}
         for key, times in data["spike_minutes"]
     }
-    cp._spike_seen = {SeriesKey(*key): datetime.fromisoformat(ts) for key, ts in data["spike_seen"]}
+    cp._spike_seen = {_read_key(key): datetime.fromisoformat(ts) for key, ts in data["spike_seen"]}

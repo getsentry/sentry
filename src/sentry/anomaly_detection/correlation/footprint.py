@@ -4,17 +4,25 @@ from collections import Counter
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
-from typing import Final, Literal
+from typing import Final, Literal, NamedTuple
 
-from sentry.anomaly_detection.contracts import SeriesKey
+from sentry.anomaly_detection.contracts import SeriesKey, Service, Signal
 
-SLICE_LAYERS = {"endpoints": 1, "outbound_db": 2, "outbound_http": 2}
-DEPENDENCY_SIGNALS = frozenset({"outbound_db", "outbound_http"})
+# Depth of each sliced signal below its service total, which is layer 0.
+SLICE_LAYERS = {Signal.ENDPOINTS: 1, Signal.OUTBOUND_DB: 2, Signal.OUTBOUND_HTTP: 2}
+DEPENDENCY_SIGNALS = frozenset({Signal.OUTBOUND_DB, Signal.OUTBOUND_HTTP})
 
-# A blank signal and dimension describe the whole project and environment.
-Slice = tuple[str, str, str, str]
-# Caller service, outbound domain, callee service. Services are "project/environment".
-CallEdge = tuple[str, str, str]
+
+class Slice(NamedTuple):
+    service: Service
+    signal: Signal | None  # None, with an empty dimension, is the whole service.
+    dim_value: str
+
+
+class CallEdge(NamedTuple):
+    caller: Service
+    domain: str  # The caller's outbound HTTP span domain.
+    callee: Service
 
 
 @dataclass(frozen=True)
@@ -30,7 +38,6 @@ class Footprint:
     traces: list[str]
     slices: dict[Slice, SliceStats] = field(default_factory=dict)
     edges: Counter[CallEdge] = field(default_factory=Counter)
-    via: str = "traces"
     window: tuple[datetime, datetime] | None = None
 
     def touches(self, key: SeriesKey, min_share: float = 0.2) -> SliceStats | None:
@@ -47,17 +54,11 @@ FOOTPRINT_DEFERRED: Final = _FootprintStatus.DEFERRED
 FootprintResult = Footprint | None | Literal[_FootprintStatus.DEFERRED]
 
 
-def base_signal(signal: str) -> str:
-    base = signal.removesuffix("_slow")
-    return base if base in SLICE_LAYERS else signal
-
-
-def service_of(key: SeriesKey) -> str:
-    return f"{key.project}/{key.env or ''}"
+def service_of(key: SeriesKey) -> Service:
+    return Service(key.project_id, key.env)
 
 
 def slice_of(key: SeriesKey) -> Slice:
-    signal = base_signal(key.signal)
-    if signal in SLICE_LAYERS and key.dim_value:
-        return key.project, key.env or "", signal, key.dim_value
-    return key.project, key.env or "", "", ""
+    if key.signal in SLICE_LAYERS and key.dim_value:
+        return Slice(service_of(key), key.signal, key.dim_value)
+    return Slice(service_of(key), None, "")

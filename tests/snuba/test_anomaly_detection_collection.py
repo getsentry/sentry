@@ -4,7 +4,7 @@ from uuid import uuid4
 
 from snuba_sdk import Column, Entity, Limit, Query
 
-from sentry.anomaly_detection.contracts import SeriesKey
+from sentry.anomaly_detection.contracts import Metric, SeriesKey, SeriesRow, Signal
 from sentry.anomaly_detection.evaluation.series import build
 from sentry.anomaly_detection.inputs import new_failures
 from sentry.anomaly_detection.inputs.measurements import (
@@ -63,12 +63,14 @@ class TestAnomalyDetectionCollection(TestCase, SnubaTestCase, SpanTestCase):
         assert {row["event_id"]: row[ERROR_USER] or "" for row in stored} == users_by_event
 
         rows = collect(self.organization, [self.project], start, end, "1m")
-        project = str(self.project.id)
+        project = self.project.id
+        errors, by_release = Signal.ERRORS, Signal.ERRORS_BY_RELEASE
+        count, users = Metric.COUNT, Metric.COUNT_UNIQUE_USER
         assert sorted(rows) == [
-            (bucket, "errors", "count()", project, "", "", 4.0),
-            (bucket, "errors", "count_unique(user)", project, "", "", 2.0),
-            (bucket, "errors_by_release", "count()", project, "", "v1", 4.0),
-            (bucket, "errors_by_release", "count_unique(user)", project, "", "v1", 2.0),
+            SeriesRow(bucket, errors, count, project, "", "", 4.0),
+            SeriesRow(bucket, errors, users, project, "", "", 2.0),
+            SeriesRow(bucket, by_release, count, project, "", "v1", 4.0),
+            SeriesRow(bucket, by_release, users, project, "", "v1", 2.0),
         ]
 
     def test_collect_errors_counts_distinct_users_within_window(self) -> None:
@@ -89,30 +91,16 @@ class TestAnomalyDetectionCollection(TestCase, SnubaTestCase, SpanTestCase):
         rows = collect(self.organization, [self.project], start, end, "1m")
 
         bucket = timestamp.replace(second=0, tzinfo=None)
-        project = str(self.project.id)
+        project = self.project.id
+        errors, count, users = Signal.ERRORS, Metric.COUNT, Metric.COUNT_UNIQUE_USER
+        before, after = bucket - timedelta(minutes=1), bucket + timedelta(minutes=1)
         assert sorted(rows) == [
-            (bucket - timedelta(minutes=1), "errors", "count()", project, "production", "", 0.0),
-            (
-                bucket - timedelta(minutes=1),
-                "errors",
-                "count_unique(user)",
-                project,
-                "production",
-                "",
-                0.0,
-            ),
-            (bucket, "errors", "count()", project, "production", "", 2.0),
-            (bucket, "errors", "count_unique(user)", project, "production", "", 1.0),
-            (bucket + timedelta(minutes=1), "errors", "count()", project, "production", "", 0.0),
-            (
-                bucket + timedelta(minutes=1),
-                "errors",
-                "count_unique(user)",
-                project,
-                "production",
-                "",
-                0.0,
-            ),
+            SeriesRow(before, errors, count, project, "production", "", 0.0),
+            SeriesRow(before, errors, users, project, "production", "", 0.0),
+            SeriesRow(bucket, errors, count, project, "production", "", 2.0),
+            SeriesRow(bucket, errors, users, project, "production", "", 1.0),
+            SeriesRow(after, errors, count, project, "production", "", 0.0),
+            SeriesRow(after, errors, users, project, "production", "", 0.0),
         ]
 
         # An errors-only scope remains covered after its last error leaves the window.
@@ -120,8 +108,8 @@ class TestAnomalyDetectionCollection(TestCase, SnubaTestCase, SpanTestCase):
         quiet_end = quiet_start + timedelta(minutes=1)
         quiet_bucket = quiet_start.replace(tzinfo=None)
         assert collect(self.organization, [self.project], quiet_start, quiet_end, "1m") == [
-            (quiet_bucket, "errors", "count()", project, "production", "", 0.0),
-            (quiet_bucket, "errors", "count_unique(user)", project, "production", "", 0.0),
+            SeriesRow(quiet_bucket, errors, count, project, "production", "", 0.0),
+            SeriesRow(quiet_bucket, errors, users, project, "production", "", 0.0),
         ]
 
     def test_collect_request_failures_and_endpoint_latency_within_window(self) -> None:
@@ -151,7 +139,7 @@ class TestAnomalyDetectionCollection(TestCase, SnubaTestCase, SpanTestCase):
         rows = collect(self.organization, [self.project], start, end, "1m")
 
         bucket = timestamp.replace(second=0, tzinfo=None)
-        project = str(self.project.id)
+        project = self.project.id
         assert all(start.replace(tzinfo=None) <= row[0] < end.replace(tzinfo=None) for row in rows)
         totals = {row[:3]: row[-1] for row in rows if row[1] in {"requests", "failed_requests"}}
         assert totals == {
@@ -165,7 +153,15 @@ class TestAnomalyDetectionCollection(TestCase, SnubaTestCase, SpanTestCase):
             (bucket + timedelta(minutes=1), "requests", "count_sample()"): 0.0,
         }
         assert [row for row in rows if row[0] == bucket and row[2] == "p95(span.duration)"] == [
-            (bucket, "endpoints", "p95(span.duration)", project, "production", endpoint, 250.0),
+            SeriesRow(
+                bucket,
+                Signal.ENDPOINTS,
+                Metric.P95_DURATION,
+                project,
+                "production",
+                endpoint,
+                250.0,
+            ),
         ]
 
     def test_collect_distinguishes_omitted_and_literal_none_span_environments(self) -> None:
@@ -247,18 +243,22 @@ class TestAnomalyDetectionCollection(TestCase, SnubaTestCase, SpanTestCase):
         series = build(collect(self.organization, [self.project], start, end, "1m"))
 
         bucket = start.replace(tzinfo=None)
-        project = str(self.project.id)
-        assert series[SeriesKey(project, "production", "requests", "count()")] == {bucket: 1.0}
-        assert series[SeriesKey(project, "production", "errors", "count()")] == {bucket: 0.0}
-        assert series[SeriesKey(project, "production", "errors", "count_unique(user)")] == {
+        project = self.project.id
+        assert series[SeriesKey(project, "production", Signal.REQUESTS, Metric.COUNT)] == {
+            bucket: 1.0
+        }
+        assert series[SeriesKey(project, "production", Signal.ERRORS, Metric.COUNT)] == {
             bucket: 0.0
         }
-        assert series[SeriesKey(project, "production", "error_rate", "errors/requests")] == {
-            bucket: 0.0
-        }
-        assert {key.signal for key in series if key.env == "worker"} == {"outbound_http"}
         assert series[
-            SeriesKey(project, "worker", "outbound_http", "p95(span.duration)", "Other")
+            SeriesKey(project, "production", Signal.ERRORS, Metric.COUNT_UNIQUE_USER)
+        ] == {bucket: 0.0}
+        assert series[
+            SeriesKey(project, "production", Signal.ERROR_RATE, Metric.ERRORS_PER_REQUEST)
+        ] == {bucket: 0.0}
+        assert {key.signal for key in series if key.env == "worker"} == {Signal.OUTBOUND_HTTP}
+        assert series[
+            SeriesKey(project, "worker", Signal.OUTBOUND_HTTP, Metric.P95_DURATION, "Other")
         ] == {bucket: 250.0}
 
     def test_unnamed_database_spans_do_not_consume_slice_slots(self) -> None:
@@ -320,7 +320,9 @@ class TestAnomalyDetectionIssueEnrichment(TestCase, SnubaTestCase):
                 start,
                 end,
                 current_rows=[
-                    (late, "errors", "count()", str(self.project.id), "new-env", "", 1.0),
+                    SeriesRow(
+                        late, Signal.ERRORS, Metric.COUNT, self.project.id, "new-env", "", 1.0
+                    ),
                 ],
             )
 

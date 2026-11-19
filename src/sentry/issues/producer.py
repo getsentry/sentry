@@ -17,11 +17,7 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.run import process_message
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.utils import json
-from sentry.utils.arroyo_producer import (
-    SingletonProducer,
-    get_arroyo_producer,
-    get_future_tracking_producer,
-)
+from sentry.utils.arroyo_producer import get_arroyo_producer, get_future_tracking_producer
 from sentry.utils.kafka_config import get_topic_definition
 from sentry.utils.safe import get_path, set_path
 
@@ -52,7 +48,6 @@ _occurrence_producer = get_future_tracking_producer(
     producer_name="sentry.issues.producer",
     producer_factory=_get_occurrence_producer,
 )
-_confirmed_occurrence_producer = SingletonProducer(_get_occurrence_producer)
 
 
 def produce_occurrence_to_kafka(
@@ -60,8 +55,6 @@ def produce_occurrence_to_kafka(
     occurrence: IssueOccurrence | None = None,
     status_change: StatusChangeMessage | None = None,
     event_data: dict[str, Any] | None = None,
-    *,
-    wait_for_delivery: bool = False,
 ) -> None:
     if payload_type == PayloadType.OCCURRENCE:
         payload_data = _prepare_occurrence_message(occurrence, event_data)
@@ -87,14 +80,8 @@ def produce_occurrence_to_kafka(
 
     try:
         topic = get_topic_definition(Topic.INGEST_OCCURRENCES)["real_topic_name"]
-        destination = ArroyoTopic(topic)
-        if wait_for_delivery:
-            _confirmed_occurrence_producer.produce(destination, payload).result(timeout=30)
-        else:
-            _occurrence_producer.produce(destination, payload)
+        _occurrence_producer.produce(ArroyoTopic(topic), payload)
     except KafkaException:
-        if wait_for_delivery:
-            raise
         logger.exception(
             "Failed to send occurrence to issue platform",
             extra={

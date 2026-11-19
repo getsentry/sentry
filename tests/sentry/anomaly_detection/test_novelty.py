@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from sentry.anomaly_detection.contracts import ChangeEvent, ChangeType, SeriesKey
+from sentry.anomaly_detection.contracts import ChangeEvent, ChangeType, Metric, SeriesKey, Signal
 from sentry.anomaly_detection.correlation.shared_dependencies import learn
 from sentry.anomaly_detection.evaluation import quality
 from sentry.anomaly_detection.evaluation.baseline import Baseline
@@ -14,10 +14,10 @@ from sentry.anomaly_detection.evaluation.series import Series, samples_key
 
 T0 = datetime(2024, 11, 4, 8)
 MINUTE = timedelta(minutes=1)
-FLAPPY = SeriesKey("1", "prod", "endpoints", "p95(span.duration)", "/flappy")
-QUIET = SeriesKey("1", "prod", "outbound_db", "p95(span.duration)", "db")
-RATE = SeriesKey("1", "prod", "error_rate", "errors/requests")
-FAILED_RATE = SeriesKey("1", "prod", "failed_rate", "failed_requests/requests")
+FLAPPY = SeriesKey(1, "prod", Signal.ENDPOINTS, Metric.P95_DURATION, "/flappy")
+QUIET = SeriesKey(1, "prod", Signal.OUTBOUND_DB, Metric.P95_DURATION, "db")
+RATE = SeriesKey(1, "prod", Signal.ERROR_RATE, Metric.ERRORS_PER_REQUEST)
+FAILED_RATE = SeriesKey(1, "prod", Signal.FAILED_RATE, Metric.FAILED_PER_REQUEST)
 
 
 def excursion(key: SeriesKey, start: datetime, ratio: float) -> ChangeEvent:
@@ -109,7 +109,7 @@ def test_peers_contribute_to_the_prior_but_flapping_peers_are_capped() -> None:
         novelty.record(excursion(FLAPPY, start, 9.0))
         novelty.record(excursion(QUIET, start, 9.0))
     t = T0 + timedelta(days=3)
-    newcomer = SeriesKey("2", "prod", "endpoints", "p95(span.duration)", "/new")
+    newcomer = SeriesKey(2, "prod", Signal.ENDPOINTS, Metric.P95_DURATION, "/new")
     event = excursion(newcomer, t, 9.0)
 
     pooled = novelty.judge(event, 9.0, t)
@@ -186,8 +186,8 @@ def test_mask_dim_for_correlation_labels(value: str, expected: str) -> None:
 def rates(error_count: Callable[[int], float], *, minutes: int = 300) -> dict[SeriesKey, Series]:
     errors: Series = {T0 + i * MINUTE: error_count(i) for i in range(minutes)}
     return {
-        SeriesKey("1", "prod", "requests", "count()"): dict.fromkeys(errors, 10_000.0),
-        SeriesKey("1", "prod", "errors", "count()"): errors,
+        SeriesKey(1, "prod", Signal.REQUESTS, Metric.COUNT): dict.fromkeys(errors, 10_000.0),
+        SeriesKey(1, "prod", Signal.ERRORS, Metric.COUNT): errors,
         RATE: {ts: value / 10_000 if value is not None else None for ts, value in errors.items()},
     }
 
@@ -248,10 +248,10 @@ def test_long_spike_does_not_open_a_duplicate_change_point() -> None:
 def test_failed_request_steps_require_sampled_excess(sample_failures: float, opens: bool) -> None:
     counts: Series = {T0 + i * MINUTE: 20.0 if i < 170 else 60.0 for i in range(240)}
     series: dict[SeriesKey, Series] = {
-        SeriesKey("1", "prod", "requests", "count()"): dict.fromkeys(counts, 10_000.0),
-        SeriesKey("1", "prod", "requests", "count_sample()"): dict.fromkeys(counts, 1_000.0),
-        SeriesKey("1", "prod", "failed_requests", "count()"): counts,
-        SeriesKey("1", "prod", "failed_requests", "count_sample()"): {
+        SeriesKey(1, "prod", Signal.REQUESTS, Metric.COUNT): dict.fromkeys(counts, 10_000.0),
+        SeriesKey(1, "prod", Signal.REQUESTS, Metric.COUNT_SAMPLE): dict.fromkeys(counts, 1_000.0),
+        SeriesKey(1, "prod", Signal.FAILED_REQUESTS, Metric.COUNT): counts,
+        SeriesKey(1, "prod", Signal.FAILED_REQUESTS, Metric.COUNT_SAMPLE): {
             t: 2.0 if i < 170 else sample_failures for i, t in enumerate(counts)
         },
         FAILED_RATE: dict.fromkeys(counts, None),
@@ -311,7 +311,7 @@ def test_gaps_do_not_count_as_quiet_history_or_excursion_duration() -> None:
 
 
 def test_shared_learning_uses_joint_coverage_not_unobserved_history() -> None:
-    replica = SeriesKey("2", QUIET.env, QUIET.signal, QUIET.metric, QUIET.dim_value)
+    replica = SeriesKey(2, QUIET.env, QUIET.signal, QUIET.metric, QUIET.dim_value)
     novelty = Novelty()
     end = T0 + timedelta(hours=5)
     observe_window(novelty, QUIET, T0, end)
@@ -327,7 +327,7 @@ def test_shared_learning_uses_joint_coverage_not_unobserved_history() -> None:
 
 
 def test_shared_learning_does_not_depend_on_project_order() -> None:
-    replica = SeriesKey("2", QUIET.env, QUIET.signal, QUIET.metric, QUIET.dim_value)
+    replica = SeriesKey(2, QUIET.env, QUIET.signal, QUIET.metric, QUIET.dim_value)
     end = T0 + timedelta(days=14)
     dense = [T0 + timedelta(hours=hour, minutes=phase) for hour in range(336) for phase in (10, 16)]
     sparse = [T0 + timedelta(hours=hour, minutes=13) for hour in range(10)]
@@ -345,12 +345,12 @@ def test_shared_learning_does_not_depend_on_project_order() -> None:
 
 
 def test_shared_learning_counts_staggered_cross_metric_incidents_once() -> None:
-    replica = SeriesKey("2", QUIET.env, QUIET.signal, QUIET.metric, QUIET.dim_value)
+    replica = SeriesKey(2, QUIET.env, QUIET.signal, QUIET.metric, QUIET.dim_value)
     rate = SeriesKey(
-        QUIET.project, QUIET.env, QUIET.signal, "failed_requests/requests", QUIET.dim_value
+        QUIET.project_id, QUIET.env, QUIET.signal, Metric.FAILED_PER_REQUEST, QUIET.dim_value
     )
     replica_rate = SeriesKey(
-        replica.project, replica.env, replica.signal, rate.metric, replica.dim_value
+        replica.project_id, replica.env, replica.signal, rate.metric, replica.dim_value
     )
     end = T0 + timedelta(days=14)
     starts = [T0 + timedelta(hours=hour, minutes=phase) for hour, phase in ((1, 10), (4, 30))]
@@ -377,7 +377,7 @@ def test_shared_learning_counts_staggered_cross_metric_incidents_once() -> None:
 
 
 def test_shared_learning_uses_joint_phase_opportunities_across_hour_boundary() -> None:
-    replica = SeriesKey("2", QUIET.env, QUIET.signal, QUIET.metric, QUIET.dim_value)
+    replica = SeriesKey(2, QUIET.env, QUIET.signal, QUIET.metric, QUIET.dim_value)
     end = T0 + timedelta(days=14)
     mostly_observed = ((1 << 59) - 1) & ~1  # Minutes 1–58, not the incident phases.
     sparse = {T0 + timedelta(hours=hour): mostly_observed for hour in range(336)}

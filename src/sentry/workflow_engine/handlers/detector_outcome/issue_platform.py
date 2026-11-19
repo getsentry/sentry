@@ -21,9 +21,7 @@ class IssuePlatformOutcomeHandler(DetectorOutcomeHandler):
     BaseDetectorHandler for all detector outcomes.
     """
 
-    def handle(
-        self, detector: Detector, evaluation: DetectorEvaluation, *, wait_for_delivery: bool = False
-    ) -> None:
+    def handle(self, detector: Detector, evaluation: DetectorEvaluation) -> None:
         occurrence, status_change = None, None
         result = evaluation.result
 
@@ -48,11 +46,9 @@ class IssuePlatformOutcomeHandler(DetectorOutcomeHandler):
                 sample_rate=1,
             )
 
-        delivery_options = {"wait_for_delivery": True} if wait_for_delivery else {}
         produce_occurrence_to_kafka(
             payload_type=payload_type,
             occurrence=occurrence,
             status_change=status_change,
             event_data=evaluation.data["event_data"],
-            **delivery_options,
         )

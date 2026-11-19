@@ -4,25 +4,33 @@ from datetime import datetime, timedelta
 from sentry.anomaly_detection.checkpoint.codec import _restore, _snapshot
 from sentry.anomaly_detection.contracts import (
     AnomalyGroup,
+    AnomalyGroupKey,
     ChangeEvent,
     ChangeType,
+    Metric,
     SeriesKey,
+    SeriesRow,
+    Service,
+    Signal,
     Urgency,
 )
 from sentry.anomaly_detection.correlation.correlator import GroupAction
 from sentry.anomaly_detection.correlation.footprint import Footprint
 from sentry.anomaly_detection.evaluation.organization import OrgEvaluator, evaluate_org
-from sentry.anomaly_detection.evaluation.series import SeriesRow
 from sentry.utils import json
-from tests.sentry.anomaly_detection.test_parity import make_handlers
 
 T0 = datetime(2020, 11, 2, 12)
 MINUTE = timedelta(minutes=1)
+PROJECT = 42
 
 
 class NoFootprints:
     def footprint(self, event: ChangeEvent, observation_end: datetime) -> Footprint | None:
         return None
+
+
+def _db_row(t: datetime, metric: Metric, value: float) -> SeriesRow:
+    return SeriesRow(t, Signal.OUTBOUND_DB, metric, PROJECT, "prod", "primary", value)
 
 
 def latency_rows(
@@ -33,13 +41,13 @@ def latency_rows(
         t = T0 + i * MINUTE
         if missing_from is not None and missing_from <= i < spike_end:
             # The dependency percentile still appears, but its sample count is absent.
-            rows.append((t, "outbound_db", "p95(span.duration)", "42", "prod", "primary", 0.0))
+            rows.append(_db_row(t, Metric.P95_DURATION, 0.0))
             continue
         p95 = (30.0 + i % 3) * (15 if 120 <= i < spike_end else 1)
         rows.extend(
             [
-                (t, "outbound_db", "p95(span.duration)", "42", "prod", "primary", p95),
-                (t, "outbound_db", "count_sample()", "42", "prod", "primary", 500.0),
+                _db_row(t, Metric.P95_DURATION, p95),
+                _db_row(t, Metric.COUNT_SAMPLE, 500.0),
             ]
         )
     return rows
@@ -55,7 +63,7 @@ def test_minute_observations_open_and_resolve_the_same_group() -> None:
         start=start,
         end=end,
         footprints=NoFootprints(),
-        handlers=make_handlers("42"),
+        projects=(PROJECT,),
     )
 
     assert not opened.is_resolved
@@ -76,7 +84,7 @@ def test_minute_observations_open_and_resolve_the_same_group() -> None:
         start=start,
         end=end,
         footprints=NoFootprints(),
-        handlers=make_handlers("42"),
+        projects=(PROJECT,),
     )
 
 
@@ -85,9 +93,9 @@ def test_absent_sample_source_does_not_resolve_an_open_change() -> None:
     gap_end = T0 + 230 * MINUTE
     end = T0 + 300 * MINUTE
     rows = latency_rows(spike_end=230, missing_from=165, end=300)
-    evaluator = OrgEvaluator(NoFootprints(), handlers=make_handlers("42"))
-    before_gap = [row for row in rows if row[0] < gap_end]
-    after_gap = [row for row in rows if row[0] >= gap_end]
+    evaluator = OrgEvaluator(NoFootprints(), projects=(PROJECT,))
+    before_gap = [row for row in rows if row.ts < gap_end]
+    after_gap = [row for row in rows if row.ts >= gap_end]
     (opened,) = evaluator.advance(rows=before_gap, hourly_rows=[], start=start, end=gap_end)
     assert not opened.is_resolved
 
@@ -99,7 +107,7 @@ def test_absent_sample_source_does_not_resolve_an_open_change() -> None:
 def test_unusual_but_short_single_slowdown_does_not_qualify() -> None:
     start = T0 + 120 * MINUTE
     end = T0 + 140 * MINUTE
-    evaluator = OrgEvaluator(NoFootprints(), handlers=make_handlers("42"))
+    evaluator = OrgEvaluator(NoFootprints(), projects=(PROJECT,))
     assert not evaluator.advance(
         rows=latency_rows(spike_end=132), hourly_rows=[], start=start, end=end
     )
@@ -116,16 +124,8 @@ def _routine_slowdown_rows(*, flare_minutes: int = 5) -> list[SeriesRow]:
         slow = i >= 480 or any(lo <= i < hi for lo, hi in short_flares)
         rows.extend(
             [
-                (
-                    t,
-                    "outbound_db",
-                    "p95(span.duration)",
-                    "42",
-                    "prod",
-                    "primary",
-                    450.0 if slow else 30.0,
-                ),
-                (t, "outbound_db", "count_sample()", "42", "prod", "primary", 500.0),
+                _db_row(t, Metric.P95_DURATION, 450.0 if slow else 30.0),
+                _db_row(t, Metric.COUNT_SAMPLE, 500.0),
             ]
         )
     return rows
@@ -136,7 +136,7 @@ def test_routine_slowdown_qualifies_when_it_lasts_unusually_long() -> None:
     duration_look = start + 60 * MINUTE
     rows = _routine_slowdown_rows()
 
-    evaluator = OrgEvaluator(NoFootprints(), handlers=make_handlers("42"))
+    evaluator = OrgEvaluator(NoFootprints(), projects=(PROJECT,))
     assert not evaluator.advance(rows=rows, hourly_rows=[], start=start, end=duration_look)
     (latent,) = evaluator.absorbed.values()
     assert latent.start == start and latent.sustained_at is not None
@@ -156,16 +156,15 @@ def test_duration_promotion_waits_for_supported_anomaly_after_gap() -> None:
     unsupported_return = healthy_return + MINUTE
     supported_return = unsupported_return + MINUTE
     rows: list[SeriesRow] = []
-    for t, signal, metric, project, env, dim, value in _routine_slowdown_rows():
-        if first_look <= t < healthy_return:
+    for row in _routine_slowdown_rows():
+        if first_look <= row.ts < healthy_return:
             continue
-        if t == healthy_return and metric == "p95(span.duration)":
-            value = 30.0
-        elif t == unsupported_return and metric == "count_sample()":
-            value = 1.0
-        rows.append((t, signal, metric, project, env, dim, value))
-    handlers = make_handlers("42")
-    evaluator = OrgEvaluator(NoFootprints(), handlers=handlers)
+        if row.ts == healthy_return and row.metric == Metric.P95_DURATION:
+            row = row._replace(value=30.0)
+        elif row.ts == unsupported_return and row.metric == Metric.COUNT_SAMPLE:
+            row = row._replace(value=1.0)
+        rows.append(row)
+    evaluator = OrgEvaluator(NoFootprints(), projects=(PROJECT,))
     assert not evaluator.advance(rows=rows, hourly_rows=[], start=start, end=first_look)
     checkpoint = json.loads(json.dumps(_snapshot(evaluator, first_look)))
 
@@ -183,7 +182,7 @@ def test_duration_promotion_waits_for_supported_anomaly_after_gap() -> None:
 
     # A restarted poll catches up through the gap and healthy return before
     # processing the first supported anomalous tick in its publication window.
-    restarted = _restore(NoFootprints(), checkpoint, handlers=handlers)
+    restarted = _restore(NoFootprints(), checkpoint, projects=(PROJECT,))
     assert (
         restarted.advance(
             rows=rows, hourly_rows=[], start=supported_return, end=supported_return + MINUTE
@@ -195,13 +194,13 @@ def test_duration_promotion_waits_for_supported_anomaly_after_gap() -> None:
 def test_duration_judgment_does_not_see_backdated_peer_opened_on_same_tick() -> None:
     start = T0 + 480 * MINUTE
     duration_look = start + 60 * MINUTE
-    peer_key = SeriesKey("42", "prod", "outbound_db", "p95(span.duration)", "peer")
+    peer_key = SeriesKey(PROJECT, "prod", Signal.OUTBOUND_DB, Metric.P95_DURATION, "peer")
     rows = _routine_slowdown_rows(flare_minutes=3) + [
-        (
+        SeriesRow(
             T0 + i * MINUTE,
             peer_key.signal,
             metric,
-            peer_key.project,
+            peer_key.project_id,
             peer_key.env,
             peer_key.dim_value,
             value,
@@ -209,10 +208,10 @@ def test_duration_judgment_does_not_see_backdated_peer_opened_on_same_tick() -> 
         for i in range(541)
         for metric, value in (
             (peer_key.metric, 450.0 if i in (536, 538, 540) else 30.0),
-            ("count_sample()", 500.0),
+            (Metric.COUNT_SAMPLE, 500.0),
         )
     ]
-    evaluator = OrgEvaluator(NoFootprints(), handlers=make_handlers("42"))
+    evaluator = OrgEvaluator(NoFootprints(), projects=(PROJECT,))
     evaluator.series_history.cfg.close_after = 1
     assert not evaluator.advance(rows=rows, hourly_rows=[], start=start, end=duration_look)
     (latent,) = evaluator.absorbed.values()
@@ -236,7 +235,7 @@ def test_new_failure_mode_opens_only_after_crossing_the_standalone_threshold() -
     weak_at = T0 + 3 * MINUTE
     detected_at = T0 + 5 * MINUTE
     issue = ChangeEvent(
-        SeriesKey("42", "prod", "new_issue", "count_unique(user)", "PRIVATE-42"),
+        SeriesKey(PROJECT, "prod", Signal.NEW_ISSUE, Metric.COUNT_UNIQUE_USER, "PRIVATE-42"),
         ChangeType.NEW_FAILURE_MODE,
         T0,
         actual=60.0,
@@ -246,7 +245,7 @@ def test_new_failure_mode_opens_only_after_crossing_the_standalone_threshold() -
         evidence=["private failure payload", "issues:PRIVATE-42"],
     )
     weak = replace(issue, actual=10.0, confidence=0.5, detected_at=weak_at)
-    evaluator = OrgEvaluator(NoFootprints(), handlers=make_handlers("42"))
+    evaluator = OrgEvaluator(NoFootprints(), projects=(PROJECT,))
     assert not evaluator.advance(
         rows=[], hourly_rows=[], start=T0, end=detected_at, new_issues=[weak]
     )
@@ -267,7 +266,7 @@ def test_new_failure_mode_opens_only_after_crossing_the_standalone_threshold() -
 
 def test_first_qualification_pins_the_owner_through_reroot_and_merge() -> None:
     selected = ChangeEvent(
-        SeriesKey("42", "prod", "endpoints", "p95(span.duration)", "/private"),
+        SeriesKey(PROJECT, "prod", Signal.ENDPOINTS, Metric.P95_DURATION, "/private"),
         ChangeType.SLOWDOWN,
         T0,
         actual=700.0,
@@ -275,7 +274,7 @@ def test_first_qualification_pins_the_owner_through_reroot_and_merge() -> None:
         confidence=0.9,
     )
     other = ChangeEvent(
-        SeriesKey("93", "staging", "errors", "count_unique(user)"),
+        SeriesKey(93, "staging", Signal.ERRORS, Metric.COUNT_UNIQUE_USER),
         ChangeType.SPIKE,
         T0,
         actual=50.0,
@@ -284,9 +283,12 @@ def test_first_qualification_pins_the_owner_through_reroot_and_merge() -> None:
         evidence=["private cross-project details"],
     )
     group = AnomalyGroup(
-        "stable-group", T0, [selected, other], blast_radius=["42/prod", "93/staging"]
+        AnomalyGroupKey("stable-group"),
+        T0,
+        [selected, other],
+        blast_radius=[Service(PROJECT, "prod"), Service(93, "staging")],
     )
-    evaluator = OrgEvaluator(NoFootprints(), handlers=make_handlers("42", "93"))
+    evaluator = OrgEvaluator(NoFootprints(), projects=(PROJECT, 93))
     assert not evaluator._decisions([GroupAction(T0, "open", group, root=selected)])
 
     (opened,) = evaluator._decisions(
@@ -312,7 +314,11 @@ def test_first_qualification_pins_the_owner_through_reroot_and_merge() -> None:
     (resolved,) = evaluator._decisions(
         [
             GroupAction(
-                T0 + 3 * MINUTE, "close", group, root=other, merged_into="other-project-group"
+                T0 + 3 * MINUTE,
+                "close",
+                group,
+                root=other,
+                merged_into=AnomalyGroupKey("other-project-group"),
             )
         ]
     )
@@ -321,7 +327,7 @@ def test_first_qualification_pins_the_owner_through_reroot_and_merge() -> None:
 
 def test_cold_start_does_not_publish_a_group_that_closes_on_the_boundary() -> None:
     failure = ChangeEvent(
-        SeriesKey("42", "prod", "new_issue", "count_unique(user)", "42"),
+        SeriesKey(PROJECT, "prod", Signal.NEW_ISSUE, Metric.COUNT_UNIQUE_USER, "42"),
         ChangeType.NEW_FAILURE_MODE,
         T0,
         actual=60.0,
@@ -336,18 +342,18 @@ def test_cold_start_does_not_publish_a_group_that_closes_on_the_boundary() -> No
         start=closes_at,
         end=closes_at + MINUTE,
         footprints=NoFootprints(),
-        handlers=make_handlers("42"),
+        projects=(PROJECT,),
         new_issues=[failure],
     )
 
 
 def test_simultaneous_excursions_do_not_change_each_others_prior() -> None:
-    left_key = SeriesKey("42", "prod", "endpoints", "p95(span.duration)", "/left")
+    left_key = SeriesKey(PROJECT, "prod", Signal.ENDPOINTS, Metric.P95_DURATION, "/left")
     right_key = replace(left_key, dim_value="/right")
     candidate_minute = T0 + timedelta(hours=12)
     candidate = ChangeEvent(left_key, ChangeType.SLOWDOWN, candidate_minute, 40.0, 20.0, 0.9)
     peer = replace(candidate, key=right_key)
-    evaluator = OrgEvaluator(NoFootprints(), handlers=make_handlers("42"))
+    evaluator = OrgEvaluator(NoFootprints(), projects=(PROJECT,))
     for offset in range(720):
         minute = T0 + offset * MINUTE
         evaluator.novelty.observe(left_key, minute)
@@ -364,14 +370,16 @@ def test_simultaneous_excursions_do_not_change_each_others_prior() -> None:
 
 
 def test_healthy_measurements_restore_latency_detection() -> None:
-    evaluator = OrgEvaluator(NoFootprints(), handlers=make_handlers("42"))
-    key = SeriesKey("42", "prod", "outbound_db", "p95(span.duration)", "primary")
+    evaluator = OrgEvaluator(NoFootprints(), projects=(PROJECT,))
+    key = SeriesKey(PROJECT, "prod", Signal.OUTBOUND_DB, Metric.P95_DURATION, "primary")
     rows = [
-        (T0 + offset * MINUTE, key.signal, metric, key.project, key.env, key.dim_value, value)
+        SeriesRow(
+            T0 + offset * MINUTE, key.signal, metric, key.project_id, key.env, key.dim_value, value
+        )
         for offset in range(180)
         for metric, value in (
-            ("p95(span.duration)", 0.0 if offset < 70 else 100.0),
-            ("count_sample()", 100.0),
+            (Metric.P95_DURATION, 0.0 if offset < 70 else 100.0),
+            (Metric.COUNT_SAMPLE, 100.0),
         )
     ]
     middle = T0 + 61 * MINUTE

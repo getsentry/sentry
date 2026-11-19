@@ -8,10 +8,10 @@ __all__ = ("AnomalyDetectionState",)
 
 @cell_silo_model
 class AnomalyDetectionState(DefaultFieldsModel):
-    """Correlated source checkpoint and outbox, not Workflow Engine detector state.
+    """An organization's anomaly evaluator checkpoint and the first minute it hasn't evaluated.
 
-    Project monitors are Workflow Engine Detector rows. This cell-local row keeps the
-    organization-wide statistical cursor and pending issue transitions atomic.
+    Project monitors are Workflow Engine Detector rows, which also own issue state. This
+    cell-local row holds the organization-wide statistical state that correlates them.
     """
 
     __relocation_scope__ = RelocationScope.Excluded
@@ -19,9 +19,8 @@ class AnomalyDetectionState(DefaultFieldsModel):
     organization = FlexibleForeignKey(
         "sentry.Organization", db_index=False, on_delete=models.CASCADE
     )
-    next_minute = models.DateTimeField(null=True)
-    checkpoint = models.JSONField(null=True)
-    delivery = models.JSONField(null=True)
+    next_minute = models.DateTimeField()
+    checkpoint = models.JSONField()
 
     class Meta:
         app_label = "sentry"

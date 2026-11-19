@@ -1,28 +1,31 @@
 from __future__ import annotations
 
 import zlib
-from collections.abc import Sequence
+from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime, timedelta
 from hashlib import sha256
+from typing import Any
 
 import orjson
-from django.db import router, transaction
+from django.db import IntegrityError, router, transaction
 from django.utils import timezone
 from taskbroker_client.retry import Retry
 
-from sentry import features
-from sentry.anomaly_detection.checkpoint.codec import retained_group_keys
+from sentry import features, options
+from sentry.anomaly_detection.checkpoint.codec import is_current
 from sentry.anomaly_detection.checkpoint.replay import advance_org
-from sentry.anomaly_detection.delivery.outbox import PendingTransitionDrain, next_state_revision
-from sentry.anomaly_detection.delivery.pending_transitions import DeliveryState
-from sentry.anomaly_detection.detector_handler import enabled_anomaly_detectors, get_anomaly_handler
-from sentry.anomaly_detection.grouptype import AnomalyDetection
-from sentry.anomaly_detection.inputs.measurements import Row, collect
+from sentry.anomaly_detection.contracts import AnomalyGroupKey, Metric, SeriesRow, Signal
+from sentry.anomaly_detection.evaluation.organization import AnomalyDecision
+from sentry.anomaly_detection.grouptype import AnomalyDetection, MinuteDecisions
+from sentry.anomaly_detection.inputs.measurements import collect
 from sentry.anomaly_detection.inputs.new_failures import (
     collect_new_failure_modes,
     new_failure_thresholds,
 )
 from sentry.anomaly_detection.inputs.trace_lookup import TraceLookup
+from sentry.constants import ObjectStatus
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.locks import locks
 from sentry.models.anomaly_detection_state import AnomalyDetectionState
 from sentry.models.organization import Organization, OrganizationStatus
@@ -34,16 +37,29 @@ from sentry.types.cell import get_local_cell
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
+from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
+from sentry.workflow_engine.processors.detector import process_detectors
+from sentry.workflow_engine.types import DetectorType
 
 FEATURE = "organizations:anomaly-detector"
 _MINUTE = timedelta(minutes=1)
 _INGEST_DELAY = timedelta(minutes=2)
 _MINUTE_WARMUP = timedelta(hours=5)
 _HOURLY_LOOKBACK = timedelta(days=16)
-_MAX_CATCHUP = timedelta(minutes=15)
-_MAX_ORGS_PER_TICK = 20
-_MAX_PROJECTS = 10
+# State that hasn't advanced this long belongs to an organization that stopped evaluating.
+_ABANDONED_STATE_AGE = timedelta(days=1)
+_RESOLVED_STATE_RETENTION = timedelta(days=30)
 _MAX_CACHE_BYTES = 900_000
+
+
+def _enabled_detectors() -> BaseQuerySet[Detector]:
+    return Detector.objects.filter(
+        type=DetectorType.ANOMALY_DETECTION.value,
+        status=ObjectStatus.ACTIVE,
+        enabled=True,
+        project__status=ObjectStatus.ACTIVE,
+        project__organization__status=OrganizationStatus.ACTIVE,
+    )
 
 
 def _eligible(organization: Organization) -> bool:
@@ -62,20 +78,29 @@ def _closed_end() -> datetime:
     silo_mode=SiloMode.CELL,
 )
 def schedule_anomaly_detectors() -> None:
-    cell = get_local_cell().name
-    cursor_key = f"anomaly-detection:fanout:v1:{cell}"
+    now = timezone.now()
+    AnomalyDetectionState.objects.filter(date_updated__lt=now - _ABANDONED_STATE_AGE).delete()
+    # Every anomaly episode has its own group key, so resolved detector state only grows.
+    DetectorState.objects.filter(
+        detector__type=DetectorType.ANOMALY_DETECTION.value,
+        is_triggered=False,
+        date_updated__lt=now - _RESOLVED_STATE_RETENTION,
+    ).delete()
+
+    max_organizations = options.get("anomaly_detection.max_organizations_per_tick")
+    cursor_key = f"anomaly-detection:fanout:v1:{get_local_cell().name}"
     after = cache.get(cursor_key, 0)
     candidates = (
-        enabled_anomaly_detectors()
+        _enabled_detectors()
         .order_by("project__organization_id")
         .values_list("project__organization_id", flat=True)
         .distinct()
     )
     organization_ids = list(
-        candidates.filter(project__organization_id__gt=after)[:_MAX_ORGS_PER_TICK]
+        candidates.filter(project__organization_id__gt=after)[:max_organizations]
     )
-    if len(organization_ids) < _MAX_ORGS_PER_TICK and after:
-        spare = _MAX_ORGS_PER_TICK - len(organization_ids)
+    if len(organization_ids) < max_organizations and after:
+        spare = max_organizations - len(organization_ids)
         organization_ids.extend(candidates.filter(project__organization_id__lte=after)[:spare])
 
     organizations = Organization.objects.in_bulk(organization_ids)
@@ -90,26 +115,88 @@ def schedule_anomaly_detectors() -> None:
 
 def _hourly_rows(
     organization: Organization, projects: Sequence[Project], end: datetime
-) -> list[Row]:
+) -> list[SeriesRow]:
     end = end.replace(minute=0)
     scope = ":".join(str(project.id) for project in projects)
     scope_key = sha256(scope.encode()).hexdigest()
-    key = f"anomaly-detection:hourly:v1:{get_local_cell().name}:{organization.id}:{scope_key}:{end.isoformat()}"
+    key = f"anomaly-detection:hourly:v2:{get_local_cell().name}:{organization.id}:{scope_key}:{end.isoformat()}"
     payload = cache.get(key)
     if payload is not None:
-        return [
-            (datetime.fromisoformat(ts), signal, metric, project, env, dim, value)
-            for ts, signal, metric, project, env, dim, value in orjson.loads(
-                zlib.decompress(payload)
-            )
-        ]
+        try:
+            return [
+                SeriesRow(
+                    datetime.fromisoformat(ts),
+                    Signal(signal),
+                    Metric(metric),
+                    project_id,
+                    env,
+                    dim_value,
+                    value,
+                )
+                for ts, signal, metric, project_id, env, dim_value, value in orjson.loads(
+                    zlib.decompress(payload)
+                )
+            ]
+        except (zlib.error, orjson.JSONDecodeError, TypeError, ValueError):
+            metrics.incr("anomaly_detection.hourly_snapshot_corrupt")
+            cache.delete(key)
     rows = collect(organization, projects, end - _HOURLY_LOOKBACK, end, "1h")
-    payload = zlib.compress(orjson.dumps(rows))
+    # orjson encodes tuples but not named tuples.
+    payload = zlib.compress(orjson.dumps([tuple(row) for row in rows]))
     if len(payload) <= _MAX_CACHE_BYTES:
         cache.set(key, payload, 3600)
     else:
         metrics.incr("anomaly_detection.hourly_snapshot_too_large")
     return rows
+
+
+def _publish(decisions: Sequence[AnomalyDecision], detectors: Mapping[int, Detector]) -> None:
+    """Send decisions through Workflow Engine in minute order.
+
+    The stateful handler skips minutes a group already processed, so republishing
+    after a failed checkpoint commit doesn't duplicate issue transitions.
+    """
+    decisions_by_minute: dict[tuple[datetime, int], dict[AnomalyGroupKey, AnomalyDecision]] = (
+        defaultdict(dict)
+    )
+    for decision in decisions:
+        if decision.project_id in detectors:
+            minute_decisions = decisions_by_minute[decision.timestamp, decision.project_id]
+            minute_decisions[decision.group_key] = decision
+    for (minute, project_id), minute_decisions in sorted(decisions_by_minute.items()):
+        detector = detectors[project_id]
+        packet = DataPacket(
+            source_id=str(detector.id),
+            packet=MinuteDecisions(minute=minute, decisions=minute_decisions),
+        )
+        process_detectors(packet, [detector])
+
+
+def _commit_checkpoint(
+    organization_id: int,
+    *,
+    stored_minute: datetime | None,
+    next_minute: datetime,
+    checkpoint: dict[str, Any],
+) -> bool:
+    """Compare-and-set the checkpoint; return False if another worker advanced it first.
+
+    `stored_minute` is the cursor read before evaluating, or None if there was no row.
+    """
+    if stored_minute is None:
+        try:
+            with transaction.atomic(using=router.db_for_write(AnomalyDetectionState)):
+                AnomalyDetectionState.objects.create(
+                    organization_id=organization_id, next_minute=next_minute, checkpoint=checkpoint
+                )
+        except IntegrityError:
+            return False
+        return True
+    return bool(
+        AnomalyDetectionState.objects.filter(
+            organization_id=organization_id, next_minute=stored_minute
+        ).update(next_minute=next_minute, checkpoint=checkpoint, date_updated=timezone.now())
+    )
 
 
 def _run_organization(organization_id: int, target: datetime) -> bool:
@@ -120,72 +207,46 @@ def _run_organization(organization_id: int, target: datetime) -> bool:
     if organization is None or not _eligible(organization):
         return False
 
-    db = router.db_for_write(AnomalyDetectionState)
-    states = AnomalyDetectionState.objects.using(db).filter(organization_id=organization_id)
-    eligible_detectors = enabled_anomaly_detectors().filter(
-        project__organization_id=organization_id
-    )
-    initial = states.values_list("id", "next_minute", "delivery").get_or_none()
-    created = False
-    if initial is None:
-        if not eligible_detectors.exists():
-            return False
-        state, created = states.get_or_create(organization_id=organization_id)
-        initial = state.id, state.next_minute, state.delivery
-    state_id, cursor, raw_delivery = initial
-    state_rows = states.filter(id=state_id)
-    drain = PendingTransitionDrain(state_id, organization_id, db)
-    target_utc = target.replace(tzinfo=UTC)
-    has_pending = raw_delivery is not None and bool(raw_delivery["pending"])
-    if cursor is not None and cursor >= target_utc:
-        return drain.run() if has_pending else False
-    if has_pending:
-        # Give existing work a turn, but keep evaluation ahead of the remaining
-        # broker waits. Both passes share a single delivery budget.
-        drain.run(max_checks=1)
-
-    # Read the revision together with the checkpoint, after our own queue writes
-    # but before the final project scope query. Project deletion can now find and
-    # invalidate this row even on the worker's first evaluation.
-    snapshot = state_rows.values_list("next_minute", "date_updated", "checkpoint").get_or_none()
-    if snapshot is None:
-        return False
-    next_minute, revision, previous_checkpoint = snapshot
-    if next_minute is not None and next_minute >= target_utc:
-        return drain.run()
+    max_projects = options.get("anomaly_detection.max_projects_per_organization")
     detector_rows = list(
-        eligible_detectors.order_by("project_id", "id")
+        _enabled_detectors()
+        .filter(project__organization_id=organization_id)
+        .order_by("project_id", "id")
         .distinct("project_id")
-        .select_related("project")[: _MAX_PROJECTS + 1]
+        .select_related("project")[: max_projects + 1]
     )
     if not detector_rows:
-        if created:
-            # The advisory lookup may have raced removal of the last detector.
-            with transaction.atomic(using=db):
-                empty = (
-                    state_rows.select_for_update(skip_locked=True)
-                    .filter(next_minute__isnull=True, date_updated=revision)
-                    .get_or_none()
-                )
-                if empty is not None:
-                    empty.delete(using=db)
-        return drain.run() if has_pending else False
-    if len(detector_rows) > _MAX_PROJECTS:
-        raise RuntimeError("Anomaly detection organization exceeds the project limit")
+        AnomalyDetectionState.objects.filter(organization_id=organization_id).delete()
+        return False
+    if len(detector_rows) > max_projects:
+        metrics.incr("anomaly_detection.project_limit_exceeded")
+        return False
+    detectors = {detector.linked_project.id: detector for detector in detector_rows}
     projects = [detector.linked_project for detector in detector_rows]
-    detector_ids = {detector.linked_project.id: detector.id for detector in detector_rows}
-    handlers = {
-        str(detector.linked_project.id): get_anomaly_handler(detector) for detector in detector_rows
-    }
+
+    stored = (
+        AnomalyDetectionState.objects.filter(organization_id=organization_id)
+        .values_list("next_minute", "checkpoint")
+        .get_or_none()
+    )
+    stored_minute, checkpoint = stored if stored is not None else (None, None)
+    if checkpoint is not None and not is_current(checkpoint):
+        metrics.incr("anomaly_detection.checkpoint_discarded")
+        checkpoint = None
+    resume_minute = stored_minute if checkpoint is not None else None
+    target_utc = target.replace(tzinfo=UTC)
+    if resume_minute is not None and resume_minute >= target_utc:
+        return False
 
     end = target
-    if next_minute is None:
+    if resume_minute is None:
         # Collect warmup data, but only publish the active state at the boundary.
         publish_from = end - _MINUTE
         fetch_start = publish_from - _MINUTE_WARMUP
     else:
-        fetch_start = publish_from = next_minute.astimezone(UTC).replace(tzinfo=None)
-        end = min(end, publish_from + _MAX_CATCHUP)
+        fetch_start = publish_from = resume_minute.astimezone(UTC).replace(tzinfo=None)
+        max_catchup = timedelta(minutes=options.get("anomaly_detection.max_catchup_minutes"))
+        end = min(end, publish_from + max_catchup)
 
     rows = collect(organization, projects, fetch_start, end, "1m")
     hourly_rows = _hourly_rows(organization, projects, end)
@@ -197,45 +258,29 @@ def _run_organization(organization_id: int, target: datetime) -> bool:
         end,
         current_rows=rows,
     )
-    decisions, checkpoint = advance_org(
+    decisions, next_checkpoint = advance_org(
         rows=rows,
         hourly_rows=hourly_rows,
         start=publish_from,
         end=end,
         footprints=TraceLookup(organization, projects),
         new_issues=new_issues,
-        checkpoint=previous_checkpoint,
-        handlers=handlers,
+        checkpoint=checkpoint,
+        projects=detectors.keys(),
     )
-    metrics.distribution("anomaly_detection.checkpoint_bytes", len(orjson.dumps(checkpoint)))
-    retained_keys = retained_group_keys(checkpoint)
-    # A Redis lease can expire during evaluation. Fence against a newer evaluator,
-    # queue progress, or deletion and stage only on the live locked delivery.
-    with transaction.atomic(using=db):
-        live = (
-            state_rows.filter(next_minute=next_minute, date_updated=revision)
-            .select_for_update(skip_locked=True)
-            .values_list("delivery")
-            .get_or_none()
-        )
-        if live is None:
-            return False
-        delivery = DeliveryState.from_json(live[0])
-        delivery.stage(
-            decisions,
-            detector_ids,
-            start=publish_from,
-            end=end,
-            retained_keys=retained_keys,
-        )
-        state_rows.update(
-            next_minute=end.replace(tzinfo=UTC),
-            checkpoint=checkpoint,
-            delivery=delivery.to_json(),
-            date_updated=next_state_revision(revision),
-        )
-    continue_draining = drain.run() if delivery.pending else False
-    return end < target or continue_draining
+    metrics.distribution("anomaly_detection.checkpoint_bytes", len(orjson.dumps(next_checkpoint)))
+    # Publish before committing: a crash in between replays the same minutes, which
+    # the detectors' per-group dedupe ignores. Committing first could lose transitions.
+    _publish(decisions, detectors)
+    committed = _commit_checkpoint(
+        organization_id,
+        stored_minute=stored_minute,
+        next_minute=end.replace(tzinfo=UTC),
+        checkpoint=next_checkpoint,
+    )
+    if not committed:
+        metrics.incr("anomaly_detection.checkpoint_conflict")
+    return committed and end < target
 
 
 @instrumented_task(

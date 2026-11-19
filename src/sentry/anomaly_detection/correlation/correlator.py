@@ -11,9 +11,14 @@ from typing import Literal, Protocol
 
 from sentry.anomaly_detection.contracts import (
     AnomalyGroup,
+    AnomalyGroupKey,
+    ChangeAction,
     ChangeEvent,
     ChangeType,
+    EpisodeKey,
+    Metric,
     SeriesKey,
+    Signal,
     Urgency,
 )
 from sentry.anomaly_detection.correlation import call_graph, linking
@@ -23,7 +28,6 @@ from sentry.anomaly_detection.correlation.footprint import (
     CallEdge,
     Footprint,
     FootprintResult,
-    base_signal,
     service_of,
     slice_of,
 )
@@ -31,12 +35,11 @@ from sentry.anomaly_detection.correlation.shared_dependencies import SharedDeps
 from sentry.anomaly_detection.evaluation.novelty import mask_dim, size_of
 from sentry.utils import json
 
-ERROR_SIGNALS = frozenset({"errors", "error_rate", "failed_rate", "new_issue"})
+ERROR_SIGNALS = frozenset({Signal.ERRORS, Signal.ERROR_RATE, Signal.FAILED_RATE, Signal.NEW_ISSUE})
 FAILING_SHARE = 0.2
 URGENCY_RANK = {Urgency.LOW: 0, Urgency.MEDIUM: 1, Urgency.HIGH: 2}
 
-EpisodeKey = tuple[SeriesKey, ChangeType, datetime]
-ActionKind = Literal["open", "join", "localize", "urgency", "update", "reopen", "close"]
+GroupActionKind = Literal["open", "join", "localize", "urgency", "update", "reopen", "close"]
 
 
 class FootprintSource(Protocol):
@@ -81,8 +84,8 @@ class GroupState:
 
 @dataclass
 class CorrelationState:
-    open_groups: dict[str, GroupState] = field(default_factory=dict)
-    closed_groups: dict[str, GroupState] = field(default_factory=dict)
+    open_groups: dict[AnomalyGroupKey, GroupState] = field(default_factory=dict)
+    closed_groups: dict[AnomalyGroupKey, GroupState] = field(default_factory=dict)
     latent: dict[EpisodeKey, ChangeEvent] = field(default_factory=dict)
     edges: Counter[CallEdge] = field(default_factory=Counter)
     edge_seen_at: dict[CallEdge, datetime] = field(default_factory=dict)
@@ -94,17 +97,17 @@ class GroupAction:
     """Actions reference the group, root and independent count as of the end of the step."""
 
     t: datetime
-    kind: ActionKind
+    kind: GroupActionKind
     group: AnomalyGroup
     event: ChangeEvent | None = None
     detail: str = ""
-    merged_into: str | None = None
+    merged_into: AnomalyGroupKey | None = None
     root: ChangeEvent | None = None
     independent_count: int = 1
 
 
 def episode_key(event: ChangeEvent) -> EpisodeKey:
-    return event.key, event.change_type, event.start
+    return EpisodeKey(event.key, event.change_type, event.start)
 
 
 class Correlator:
@@ -135,19 +138,19 @@ class Correlator:
     def shared(self, value: SharedDeps) -> None:
         self.state.shared = value
 
-    def step(self, t: datetime, actions: Sequence[tuple[str, ChangeEvent]]) -> list[GroupAction]:
+    def step(self, t: datetime, actions: Sequence[ChangeAction]) -> list[GroupAction]:
         """Consume detector actions in event time, including empty ticks for quiet close."""
         opened: list[MemberState] = []
         new_latent: list[ChangeEvent] = []
         emitted: list[tuple[GroupState, GroupAction]] = []
-        merged_counts: dict[str, int] = {}
+        merged_counts: dict[AnomalyGroupKey, int] = {}
 
         def emit(
             state: GroupState,
-            kind: ActionKind,
+            kind: GroupActionKind,
             event: ChangeEvent | None = None,
             detail: str = "",
-            merged_into: str | None = None,
+            merged_into: AnomalyGroupKey | None = None,
         ) -> None:
             # The survivor can union member evidence after the merge. The closed group's
             # representative keys must not be followed into the survivor's membership.
@@ -346,7 +349,7 @@ class Correlator:
         service = service_of(event.key)
         if service not in state.group.blast_radius:
             state.group.blast_radius.append(service)
-        for issue in sorted(str(issue_id) for issue_id in event.issue_ids):
+        for issue in sorted(event.issue_ids):
             if issue not in state.group.driving_issues:
                 state.group.driving_issues.append(issue)
 
@@ -406,7 +409,7 @@ class Correlator:
 
     def _same_issue(self, t: datetime, state: GroupState) -> GroupState | None:
         issue_keys = {
-            (event.key.project, issue)
+            (event.key.project_id, issue)
             for event in state.group.change_events
             for issue in event.issue_ids
         }
@@ -417,7 +420,7 @@ class Correlator:
                 other is not state
                 and t - other.group.opened_at <= self.cfg.tolerance
                 and any(
-                    (event.key.project, issue) in issue_keys
+                    (event.key.project_id, issue) in issue_keys
                     for event in other.group.change_events
                     for issue in event.issue_ids
                 )
@@ -589,7 +592,7 @@ class Correlator:
             {service_of(m.event.key) for m in members if self.shared.get(key, m.event.key)}
         )
         if shared:
-            localization += f" (shared with {', '.join(shared)})"
+            localization += f" (shared with {', '.join(map(str, shared))})"
         if waiting := _waiting_on(key, best.footprint):
             localization += f", waiting on {waiting}"
         if best.event is state.root and localization == state.group.localization:
@@ -672,10 +675,10 @@ class _Emit(Protocol):
     def __call__(
         self,
         state: GroupState,
-        kind: ActionKind,
+        kind: GroupActionKind,
         event: ChangeEvent | None = None,
         detail: str = "",
-        merged_into: str | None = None,
+        merged_into: AnomalyGroupKey | None = None,
     ) -> None: ...
 
 
@@ -688,28 +691,30 @@ def urgency(
         key = event.key
         level = event.expected * ratio if event.expected else event.actual
         if key.signal not in ERROR_SIGNALS and (
-            key.metric != "failure_rate()" or level - event.expected < FAILING_SHARE
+            key.metric != Metric.FAILURE_RATE or level - event.expected < FAILING_SHARE
         ):
             continue
         if escalated or (
-            key.metric == "count_unique(user)" and level - event.expected >= high_users
+            key.metric == Metric.COUNT_UNIQUE_USER and level - event.expected >= high_users
         ):
             return Urgency.HIGH
         has_failure = True
     if (
         has_failure
         or any(esc for _, _, esc in members)
-        or len({event.key.project for event, _, _ in members}) > 1
+        or len({event.key.project_id for event, _, _ in members}) > 1
     ):
         return Urgency.MEDIUM
     return Urgency.LOW
 
 
-def _group_id(event: ChangeEvent) -> str:
+def _group_id(event: ChangeEvent) -> AnomalyGroupKey:
     key = event.key
     start = event.start.astimezone(UTC) if event.start.tzinfo else event.start.replace(tzinfo=UTC)
+    # Hash the project as a string: group keys predate integer project IDs, and
+    # detector state of active groups must survive checkpoint format changes.
     identity = (
-        key.project,
+        str(key.project_id),
         key.env,
         key.signal,
         key.metric,
@@ -717,39 +722,41 @@ def _group_id(event: ChangeEvent) -> str:
         event.change_type,
         start.isoformat(),
     )
-    return hashlib.sha256(json.dumps(identity).encode()).hexdigest()[:32]
+    return AnomalyGroupKey(hashlib.sha256(json.dumps(identity).encode()).hexdigest()[:32])
+
+
+_SLICE_NOUNS = {
+    Signal.ENDPOINTS: "endpoint",
+    Signal.OUTBOUND_DB: "database",
+    Signal.OUTBOUND_HTTP: "dependency",
+}
+_TOTAL_NOUNS = {
+    Signal.ERROR_RATE: "error rate",
+    Signal.FAILED_RATE: "failed-request rate",
+    Signal.ERRORS: "affected users",
+    Signal.REQUESTS: "traffic",
+}
 
 
 def _localize(key: SeriesKey) -> str:
-    signal = base_signal(key.signal)
     if not call_graph.is_project_level(key):
-        kind = {"endpoints": "endpoint", "outbound_db": "database", "outbound_http": "dependency"}[
-            signal
-        ]
-        return f"{service_of(key)} {kind} {mask_dim(key.dim_value)}"
-    names = {
-        "error_rate": "error rate",
-        "failed_rate": "failed-request rate",
-        "errors": "affected users",
-        "requests": "traffic",
-    }
-    if signal == "new_issue":
+        return f"{service_of(key)} {_SLICE_NOUNS[key.signal]} {mask_dim(key.dim_value)}"
+    if key.signal == Signal.NEW_ISSUE:
         return f"{service_of(key)} new issue {key.dim_value}"
-    return f"{service_of(key)} {names.get(signal, signal)} (service-wide)"
+    return f"{service_of(key)} {_TOTAL_NOUNS.get(key.signal, key.signal)} (service-wide)"
 
 
 def _waiting_on(key: SeriesKey, footprint: Footprint | None) -> str | None:
-    if base_signal(key.signal) != "endpoints" or footprint is None:
+    if key.signal != Signal.ENDPOINTS or footprint is None:
         return None
     own = footprint.slices.get(slice_of(key))
     if own is None or not own.p95_ms:
         return None
-    project, env, _, _ = slice_of(key)
     waits = [
-        (stats.p95_ms, signal, dimension)
-        for (p, e, signal, dimension), stats in footprint.slices.items()
-        if (p, e) == (project, env)
-        and signal in DEPENDENCY_SIGNALS
+        (stats.p95_ms, part.signal, part.dim_value)
+        for part, stats in footprint.slices.items()
+        if part.service == service_of(key)
+        and part.signal in DEPENDENCY_SIGNALS
         and stats.trace_share >= 0.5
         and stats.p95_ms is not None
         and stats.p95_ms >= 0.6 * own.p95_ms
@@ -757,5 +764,5 @@ def _waiting_on(key: SeriesKey, footprint: Footprint | None) -> str | None:
     if not waits:
         return None
     duration, signal, dimension = max(waits)
-    kind = "database" if signal == "outbound_db" else "calls to"
+    kind = "database" if signal == Signal.OUTBOUND_DB else "calls to"
     return f"{kind} {mask_dim(dimension)} (p95 {duration / 1000:.1f}s of {own.p95_ms / 1000:.1f}s)"

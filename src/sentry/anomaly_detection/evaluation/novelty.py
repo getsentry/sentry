@@ -15,14 +15,25 @@ import re
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from typing import NamedTuple
 
-from sentry.anomaly_detection.contracts import ChangeEvent, SeriesKey
+from sentry.anomaly_detection.contracts import ChangeEvent, Metric, SeriesKey, Signal
 
 DAY = 86400.0
 _MINUTE = timedelta(minutes=1)
 
 # One bit per minute keeps a full hour of observations in a single JSON-safe integer.
 HourlyCoverage = dict[datetime, int]
+
+
+class NoveltyKind(NamedTuple):
+    """Series whose excursions pool into one another's prior."""
+
+    signal: Signal
+    metric: Metric
+
+    def __str__(self) -> str:
+        return f"{self.signal}|{self.metric}"
 
 
 @dataclass
@@ -45,7 +56,7 @@ class Verdict:
     similar: int
     history_days: float
     pooled_rate: float
-    kind: str
+    kind: NoveltyKind
     p_normal: float = 0.0
     lasting_min: float | None = None
 
@@ -57,7 +68,7 @@ class Verdict:
             "similar": self.similar,
             "history_days": round(self.history_days, 2),
             "pooled_rate": round(self.pooled_rate, 4),
-            "kind": self.kind,
+            "kind": str(self.kind),
             "p_normal": round(self.p_normal, 3),
         }
         if self.lasting_min is not None:
@@ -180,7 +191,7 @@ class Novelty:
 
     def _pooled(
         self,
-        kind: str,
+        kind: NoveltyKind,
         similar: Callable[[_Ex], bool],
         base: float,
         t: datetime,
@@ -251,9 +262,8 @@ def mask_dim(v: str) -> str:
     return _HEX.sub("*", v)
 
 
-def kind_of(key: SeriesKey) -> str:
-    # Pool slow-rate series across different thresholds, but not across different signals.
-    return f"{key.signal}|{key.metric.split('(>')[0]}"
+def kind_of(key: SeriesKey) -> NoveltyKind:
+    return NoveltyKind(key.signal, key.metric)
 
 
 def size_of(ratio: float) -> float:

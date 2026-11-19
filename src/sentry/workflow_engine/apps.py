@@ -6,7 +6,7 @@ class Config(AppConfig):
 
     def ready(self) -> None:
         # Import items that use registries or respond to events
-        import sentry.anomaly_detection.detector_handler  # NOQA
+        import sentry.anomaly_detection.grouptype  # NOQA
         import sentry.issue_detection.grouptype  # NOQA
         import sentry.workflow_engine.handlers.condition  # NOQA
         import sentry.workflow_engine.handlers.workflow  # NOQA

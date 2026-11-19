@@ -2,24 +2,27 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from sentry.anomaly_detection.contracts import ChangeEvent, ChangeType, SeriesKey
-from sentry.anomaly_detection.detector_handler import (
-    AnomalyDetectionDetectorHandler,
-    MinuteMeasurements,
+from sentry.anomaly_detection.contracts import (
+    ChangeAction,
+    ChangeEvent,
+    ChangeType,
+    Metric,
+    SeriesKey,
+    SeriesRow,
+    Signal,
 )
 from sentry.anomaly_detection.evaluation.baseline import Baseline
+from sentry.anomaly_detection.evaluation.organization import OrgEvaluator
 from sentry.anomaly_detection.evaluation.rate_shifts import ChangePointConfig, RateShiftTracker
-from sentry.anomaly_detection.evaluation.series import Series, SeriesRow, build, samples_key
+from sentry.anomaly_detection.evaluation.series import Series, build, samples_key
 from sentry.anomaly_detection.evaluation.series_history import DetectConfig, SeriesHistory
-from sentry.workflow_engine.models import DataPacket, Detector
-from sentry.workflow_engine.types import DetectorType
 
 START = datetime(2024, 1, 8, 12)
-REQUESTS = SeriesKey("1", "prod", "requests", "count()")
-ERRORS = SeriesKey("1", "prod", "errors", "count()")
-LATENCY = SeriesKey("1", "prod", "outbound_db", "p95(span.duration)", "catalog-db")
-FAILURES = SeriesKey("1", "prod", "endpoints", "failure_rate()", "/api/task")
-ERROR_RATE = SeriesKey("1", "prod", "error_rate", "errors/requests")
+REQUESTS = SeriesKey(1, "prod", Signal.REQUESTS, Metric.COUNT)
+ERRORS = SeriesKey(1, "prod", Signal.ERRORS, Metric.COUNT)
+LATENCY = SeriesKey(1, "prod", Signal.OUTBOUND_DB, Metric.P95_DURATION, "catalog-db")
+FAILURES = SeriesKey(1, "prod", Signal.ENDPOINTS, Metric.FAILURE_RATE, "/api/task")
+ERROR_RATE = SeriesKey(1, "prod", Signal.ERROR_RATE, Metric.ERRORS_PER_REQUEST)
 
 
 def minute(i: int) -> datetime:
@@ -28,6 +31,11 @@ def minute(i: int) -> datetime:
 
 def points(start: int, end: int, value: float | None) -> Series:
     return dict.fromkeys((minute(i) for i in range(start, end)), value)
+
+
+class NoFootprints:
+    def footprint(self, event: ChangeEvent, observation_end: datetime, /) -> None:
+        return None
 
 
 class MeasurementStream:
@@ -40,24 +48,25 @@ class MeasurementStream:
             for key, values in series.items()
             if (retained := {ts: value for ts, value in values.items() if ts < START})
         }
-        self.history = SeriesHistory(prior, baseline, cfg)
-        self.change_points = RateShiftTracker(self.history.series, baseline)
-        detector = Detector(project_id=1, type=DetectorType.ANOMALY_DETECTION)
-        handler = detector.detector_handler
-        assert isinstance(handler, AnomalyDetectionDetectorHandler)
-        self.handler = handler
+        self.evaluator = OrgEvaluator(NoFootprints(), projects=(1,))
+        self.evaluator.series.update(prior)
+        self.evaluator.series_history = SeriesHistory(self.evaluator.series, baseline, cfg)
+        self.evaluator.rate_shifts = RateShiftTracker(self.evaluator.series, baseline)
+        self.history = self.evaluator.series_history
+        self.change_points = self.evaluator.rate_shifts
 
-    def step(self, ts: datetime) -> list[tuple[str, ChangeEvent]]:
-        rows: list[SeriesRow] = [
-            (ts, key.signal, key.metric, key.project, key.env, key.dim_value, values[ts])
+    def step(self, ts: datetime) -> list[ChangeAction]:
+        rows = [
+            SeriesRow(
+                ts, key.signal, key.metric, key.project_id, key.env, key.dim_value, values[ts]
+            )
             for key, values in self.series.items()
             if ts in values
         ]
-        packet = DataPacket(source_id="test", packet=MinuteMeasurements(ts, rows))
-        return self.handler.evaluate_measurements(packet, self.history, self.change_points).changes
+        return self.evaluator._evaluate_project(1, ts, rows)
 
 
-def step(det: MeasurementStream, start: int, end: int) -> list[tuple[str, ChangeEvent]]:
+def step(det: MeasurementStream, start: int, end: int) -> list[ChangeAction]:
     return [action for i in range(start, end) for action in det.step(minute(i))]
 
 
@@ -90,7 +99,7 @@ def test_errors_only_spike_uses_first_flagged_minute() -> None:
 
 
 def test_slowdown_requires_sampled_spans_not_extrapolated_volume() -> None:
-    extrapolated = SeriesKey("1", "prod", "outbound_db", "count()", "catalog-db")
+    extrapolated = SeriesKey(1, "prod", Signal.OUTBOUND_DB, Metric.COUNT, "catalog-db")
     series = {
         LATENCY: points(0, 60, 20.0) | points(60, 120, 300.0),
         samples_key(LATENCY): points(0, 120, 1.0),
@@ -344,22 +353,22 @@ def test_mostly_zero_share_uses_sample_weighted_level() -> None:
 
 def test_build_masks_empty_latency_and_distinguishes_zero_from_missing_rate_inputs() -> None:
     rows: list[SeriesRow] = [
-        (minute(0), "requests", "count()", "1", "prod", "", 2000),
-        (minute(1), "requests", "count()", "1", "prod", "", 2000),
-        (minute(0), "requests", "count_sample()", "1", "prod", "", 20),
-        (minute(1), "requests", "count_sample()", "1", "prod", "", 20),
-        (minute(0), "failed_requests", "count_sample()", "1", "prod", "", 5),
-        (minute(0), "errors", "count()", "1", "prod", "", 0),
-        (minute(0), "outbound_db", "p95(span.duration)", "1", "prod", "catalog-db", 0),
-        (minute(0), "outbound_db", "count_sample()", "1", "prod", "catalog-db", 0),
+        SeriesRow(minute(0), Signal.REQUESTS, Metric.COUNT, 1, "prod", "", 2000),
+        SeriesRow(minute(1), Signal.REQUESTS, Metric.COUNT, 1, "prod", "", 2000),
+        SeriesRow(minute(0), Signal.REQUESTS, Metric.COUNT_SAMPLE, 1, "prod", "", 20),
+        SeriesRow(minute(1), Signal.REQUESTS, Metric.COUNT_SAMPLE, 1, "prod", "", 20),
+        SeriesRow(minute(0), Signal.FAILED_REQUESTS, Metric.COUNT_SAMPLE, 1, "prod", "", 5),
+        SeriesRow(minute(0), Signal.ERRORS, Metric.COUNT, 1, "prod", "", 0),
+        SeriesRow(minute(0), Signal.OUTBOUND_DB, Metric.P95_DURATION, 1, "prod", "catalog-db", 0),
+        SeriesRow(minute(0), Signal.OUTBOUND_DB, Metric.COUNT_SAMPLE, 1, "prod", "catalog-db", 0),
     ]
     series = build(rows)
     assert series[LATENCY] == {minute(0): None}
-    assert series[SeriesKey("1", "prod", "failed_rate", "failed_requests/requests")] == {
+    assert series[SeriesKey(1, "prod", Signal.FAILED_RATE, Metric.FAILED_PER_REQUEST)] == {
         minute(0): 0.25,
         minute(1): None,
     }
-    assert series[SeriesKey("1", "prod", "error_rate", "errors/requests")] == {
+    assert series[SeriesKey(1, "prod", Signal.ERROR_RATE, Metric.ERRORS_PER_REQUEST)] == {
         minute(0): 0.0,
         minute(1): None,
     }

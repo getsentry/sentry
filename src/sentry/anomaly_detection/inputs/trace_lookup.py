@@ -9,13 +9,21 @@ from typing import TYPE_CHECKING
 
 from snuba_sdk import Column, Condition, Direction, Entity, Limit, Op, OrderBy, Query
 
-from sentry.anomaly_detection.contracts import ChangeEvent, ChangeType, SeriesKey
+from sentry.anomaly_detection.contracts import (
+    ChangeEvent,
+    ChangeType,
+    Metric,
+    SeriesKey,
+    Service,
+    Signal,
+)
 from sentry.anomaly_detection.correlation.footprint import (
     FOOTPRINT_DEFERRED,
+    CallEdge,
     Footprint,
     FootprintResult,
+    Slice,
     SliceStats,
-    base_signal,
 )
 from sentry.anomaly_detection.inputs.measurements import (
     ERROR_RELEASE,
@@ -43,7 +51,9 @@ _TRACE_SAMPLE = 20
 _TRACE_SPAN_LIMIT = 300
 _MAX_FOOTPRINTS = 32
 _TRACE_ID = re.compile(r"[0-9a-f]{32}", re.IGNORECASE)
-_ERROR_SIGNALS = frozenset({"errors", "error_rate", "errors_by_release", "new_issue"})
+_ERROR_SIGNALS = frozenset(
+    {Signal.ERRORS, Signal.ERROR_RATE, Signal.ERRORS_BY_RELEASE, Signal.NEW_ISSUE}
+)
 _SPAN_BY_NAME = {signal.name: signal for signal in SPAN_SLICES}
 
 
@@ -74,12 +84,12 @@ class TraceLookup:
         """Look up affected traces using only data before the exclusive observation end."""
         if change.change_type in {ChangeType.DROP, ChangeType.SILENCE} or not self.span_projects:
             return None
-        project = self.projects.get(change.key.project)
+        project = self.projects.get(change.key.project_id)
         if project is None:
             return None
         detected = _utc(change.detected_at or change.start)
         onset = _utc(change.start)
-        if change.key.signal == "new_issue":
+        if change.key.signal == Signal.NEW_ISSUE:
             # An issue can cross the user threshold long after its onset.
             if not change.issue_ids:
                 return None
@@ -154,15 +164,15 @@ class TraceLookup:
         self, change: ChangeEvent, project: Project, start: datetime, end: datetime
     ) -> Footprint | None:
         key = change.key
-        name = base_signal(key.signal)
+        name = key.signal
         if name in _ERROR_SIGNALS:
             conditions = [
                 *_error_where(project, start, end),
                 Condition(_error_env(), Op.EQ, key.env),
             ]
-            if name == "new_issue":
+            if name == Signal.NEW_ISSUE:
                 conditions.append(Condition(Column("group_id"), Op.IN, list(change.issue_ids)))
-            elif name == "errors_by_release":
+            elif name == Signal.ERRORS_BY_RELEASE:
                 conditions.append(Condition(Column(ERROR_RELEASE), Op.EQ, key.dim_value))
             traces = _traces(
                 _run_errors(
@@ -191,11 +201,11 @@ class TraceLookup:
         if (signal := _SPAN_BY_NAME.get(name)) is not None:
             query = signal.query
             filters = ((signal.dimension, (key.dim_value,)),)
-            if key.metric == "failure_rate()":
+            if key.metric == Metric.FAILURE_RATE:
                 query += " !span.status:[ok,cancelled,unknown]"
-        elif name == "requests":
+        elif name == Signal.REQUESTS:
             query, filters = REQUEST_QUERY, ()
-        elif name in {"failed_requests", "failed_rate"}:
+        elif name in (Signal.FAILED_REQUESTS, Signal.FAILED_RATE):
             query, filters = FAILED_QUERY, ()
         else:
             return None
@@ -209,8 +219,8 @@ class TraceLookup:
         filters = (("trace", tuple(traces)),)
         scope = ["project.id", "environment"]
         aggregates = ["count_unique(trace)", "p95(span.duration)", "count_sample()"]
-        footprint_queries = [
-            ("", REQUEST_QUERY, ""),
+        footprint_queries: list[tuple[Signal | None, str, str]] = [
+            (None, REQUEST_QUERY, ""),
             *((s.name, s.query, s.dimension) for s in SPAN_SLICES),
         ]
         for signal, query, dimension in footprint_queries:
@@ -226,12 +236,17 @@ class TraceLookup:
                 filters=filters,
             )
             for row in rows:
-                project, env = str(row["project.id"]), row.get("environment") or ""
+                service = _service(row)
                 dim = row.get(dimension) or "" if dimension else ""
                 count = _number(row.get("count_sample()"))
                 touched = _number(row.get("count_unique(trace)"))
-                if project in self.projects and (not dimension or dim) and count and touched:
-                    footprint.slices[(project, env, signal, dim)] = SliceStats(
+                if (
+                    service.project_id in self.projects
+                    and (not dimension or dim)
+                    and count
+                    and touched
+                ):
+                    footprint.slices[Slice(service, signal, dim)] = SliceStats(
                         min(touched / len(traces), 1.0),
                         _number(row.get("p95(span.duration)")),
                         int(count),
@@ -258,25 +273,25 @@ class TraceLookup:
             limit=_TRACE_SPAN_LIMIT,
             filters=filters,
         )
-        callers = {
-            (row["trace"], row["span_id"]): (_service(row), row["span.domain"])
-            for row in calls
-            if row.get("span_id")
-            and row.get("span.domain")
-            and str(row["project.id"]) in self.projects
-        }
+        callers: dict[tuple[str, str | None], tuple[Service, str]] = {}
+        for row in calls:
+            caller = _service(row)
+            if row.get("span_id") and row.get("span.domain") and caller.project_id in self.projects:
+                callers[row["trace"], row["span_id"]] = caller, row["span.domain"]
         joined = set()
         for row in transactions:
-            if str(row["project.id"]) not in self.projects:
+            callee = _service(row)
+            if callee.project_id not in self.projects:
                 continue
             child = (row["trace"], row["span_id"])
             if child in joined:
                 continue
-            if (caller := callers.get((row["trace"], row.get("parent_span")))) is not None:
-                footprint.edges[(*caller, _service(row))] += 1
+            if (call := callers.get((row["trace"], row.get("parent_span")))) is not None:
+                caller, domain = call
+                footprint.edges[CallEdge(caller, domain, callee)] += 1
                 joined.add(child)
         return footprint
 
 
-def _service(row: SnubaRow) -> str:
-    return f"{row['project.id']}/{row.get('environment') or ''}"
+def _service(row: SnubaRow) -> Service:
+    return Service(int(row["project.id"]), row.get("environment") or "")

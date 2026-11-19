@@ -369,8 +369,28 @@ class StatefulDetectorHandler(
     def thresholds(self) -> DetectorThresholds:
         """
         Configure default thresholds at the detector level.
+
+        Levels default to a threshold of 1 for each condition in the detector's trigger condition
+        group. Handlers that override `evaluate_priorities` without a condition group must return
+        every priority they can emit here (e.g. `{LOW: 1, MEDIUM: 1, HIGH: 1}`); levels without a
+        threshold never transition.
         """
         return {}
+
+    def evaluate_priorities(
+        self,
+        data_packet: DataPacket[DataPacketType],
+        values: Mapping[DetectorGroupKey, DataPacketEvaluationType],
+    ) -> DetectorEvaluations:
+        """
+        Decide the evaluated priority for each group that has not processed this packet yet.
+
+        Defaults to evaluating the detector's trigger condition group. Override to supply priorities
+        directly: return `DetectorEvaluation.create_issue(group_key, priority)` or
+        `DetectorEvaluation.ok(group_key)` per group. Dedupe, thresholds, activation IDs, state
+        persistence and resolution are still handled by `evaluate`.
+        """
+        return DetectorHandler.evaluate(self, data_packet, values)
 
     @abc.abstractmethod
     def extract_dedupe_value(self, data_packet: DataPacket[DataPacketType]) -> int:
@@ -453,7 +473,7 @@ class StatefulDetectorHandler(
         values: Mapping[DetectorGroupKey, DataPacketEvaluationType],
     ) -> DetectorEvaluations:
         """
-        Layers dedupe, priority thresholds, and durable state over `DetectorHandler.evaluate`.
+        Layers dedupe, priority thresholds, and durable state over `evaluate_priorities`.
 
         Groups that already processed this packet's dedupe value are skipped. Each remaining group's
         condition evaluation advances its threshold counters, and only priority transitions produce
@@ -472,7 +492,7 @@ class StatefulDetectorHandler(
             self.state_manager.enqueue_dedupe_update(group_key, dedupe_value)
             unprocessed_values[group_key] = data_value
 
-        condition_evaluations = super().evaluate(data_packet, unprocessed_values)
+        condition_evaluations = self.evaluate_priorities(data_packet, unprocessed_values)
         results: dict[DetectorGroupKey, DetectorEvaluation] = {}
 
         for group_key, condition_evaluation in condition_evaluations.evaluations.items():

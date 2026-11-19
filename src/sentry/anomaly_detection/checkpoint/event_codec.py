@@ -4,7 +4,14 @@ from datetime import datetime
 from math import isfinite
 from typing import Any
 
-from sentry.anomaly_detection.contracts import ChangeEvent, ChangeType, SeriesKey
+from sentry.anomaly_detection.contracts import (
+    ChangeEvent,
+    ChangeType,
+    Metric,
+    SeriesKey,
+    Service,
+    Signal,
+)
 
 
 def _iso(ts: datetime | None) -> str | None:
@@ -15,8 +22,22 @@ def _time(value: str | None) -> datetime | None:
     return datetime.fromisoformat(value) if value is not None else None
 
 
-def _key(key: SeriesKey) -> list[str]:
-    return [key.project, key.env, key.signal, key.metric, key.dim_value]
+def _key(key: SeriesKey) -> list[int | str]:
+    return [key.project_id, key.env, key.signal, key.metric, key.dim_value]
+
+
+def _read_key(data: list[Any]) -> SeriesKey:
+    project_id, env, signal, metric, dim_value = data
+    return SeriesKey(project_id, env, Signal(signal), Metric(metric), dim_value)
+
+
+def _service(service: Service) -> list[int | str]:
+    return [service.project_id, service.env]
+
+
+def _read_service(data: list[Any]) -> Service:
+    project_id, env = data
+    return Service(project_id, env)
 
 
 _NOVELTY_FIELDS = (
@@ -109,7 +130,7 @@ class _EventReader:
     def __init__(self, records: list[dict[str, Any]]) -> None:
         self._events = [
             ChangeEvent(
-                key=SeriesKey(*data["key"]),
+                key=_read_key(data["key"]),
                 change_type=ChangeType(data["change_type"]),
                 start=datetime.fromisoformat(data["start"]),
                 actual=data["actual"],

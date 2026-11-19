@@ -10,17 +10,17 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from itertools import combinations
-from typing import Protocol
+from typing import NamedTuple, Protocol
 
-from sentry.anomaly_detection.contracts import SeriesKey
-from sentry.anomaly_detection.correlation.footprint import (
-    DEPENDENCY_SIGNALS,
-    base_signal,
-    service_of,
-)
+from sentry.anomaly_detection.contracts import Metric, SeriesKey, Service, Signal
+from sentry.anomaly_detection.correlation.footprint import DEPENDENCY_SIGNALS, service_of
 from sentry.anomaly_detection.evaluation.novelty import HourlyCoverage, coverage_between
 
-DependencySlice = tuple[str, str, str]  # service, signal, dimension
+
+class DependencySlice(NamedTuple):
+    service: Service
+    signal: Signal  # One of DEPENDENCY_SIGNALS.
+    dim_value: str  # Database or domain name.
 
 
 @dataclass
@@ -62,9 +62,8 @@ class Excursion(Protocol):
 
 
 def _dependency_slice(key: SeriesKey) -> DependencySlice | None:
-    signal = base_signal(key.signal)
-    if signal in DEPENDENCY_SIGNALS and key.dim_value not in ("", "None"):
-        return service_of(key), signal, key.dim_value
+    if key.signal in DEPENDENCY_SIGNALS and key.dim_value not in ("", "None"):
+        return DependencySlice(service_of(key), key.signal, key.dim_value)
     return None
 
 
@@ -78,7 +77,7 @@ def learn(
     """Use only excursion onsets in the rolling window before `until`."""
     cfg = cfg or SharedConfig()
     since = until - timedelta(days=cfg.window_days)
-    excursions_by_slice: dict[DependencySlice, list[tuple[str, Excursion]]] = defaultdict(list)
+    excursions_by_slice: dict[DependencySlice, list[tuple[Metric, Excursion]]] = defaultdict(list)
     observed: dict[DependencySlice, HourlyCoverage] = defaultdict(dict)
     for key, excursions in history.items():
         dependency = _dependency_slice(key)
@@ -95,10 +94,10 @@ def learn(
             hours[hour] = hours.get(hour, 0) | mask
 
     tolerance = timedelta(minutes=cfg.coincide_min)
-    by_name: dict[tuple[str, str], list[DependencySlice]] = defaultdict(list)
+    by_name: dict[tuple[Signal, str], list[DependencySlice]] = defaultdict(list)
     for dependency, candidates in sorted(excursions_by_slice.items()):
         if len(candidates) >= cfg.min_co:
-            by_name[dependency[1:]].append(dependency)
+            by_name[dependency.signal, dependency.dim_value].append(dependency)
 
     pairs: dict[frozenset[DependencySlice], PairStats] = {}
     for dependencies in by_name.values():
@@ -130,14 +129,14 @@ def _observed_at(hours: HourlyCoverage, minute: datetime) -> bool:
 
 
 def _distinct_onsets(
-    excursions: list[tuple[str, Excursion]], coverage: HourlyCoverage, tolerance: timedelta
+    excursions: list[tuple[Metric, Excursion]], coverage: HourlyCoverage, tolerance: timedelta
 ) -> list[datetime]:
     ordered = sorted(
         ((metric, exc) for metric, exc in excursions if _observed_at(coverage, exc.start)),
         key=lambda item: (item[1].start, item[0]),
     )
     starts: set[datetime] = set()
-    unmatched: list[tuple[str, Excursion]] = []
+    unmatched: list[tuple[Metric, Excursion]] = []
     for metric, exc in ordered:
         unmatched = [
             (other_metric, other)

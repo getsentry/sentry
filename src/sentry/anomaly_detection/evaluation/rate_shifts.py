@@ -13,15 +13,22 @@ import statistics
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Literal, NamedTuple
+from typing import NamedTuple
 
-from sentry.anomaly_detection.contracts import ChangeEvent, ChangeType, SeriesKey
+from sentry.anomaly_detection.contracts import (
+    ChangeAction,
+    ChangeEvent,
+    ChangeType,
+    Metric,
+    SeriesKey,
+    Signal,
+)
 from sentry.anomaly_detection.evaluation.baseline import Baseline
 from sentry.anomaly_detection.evaluation.series import Series, rate_parts
 
 MINUTE = timedelta(minutes=1)
 RATE_FLOOR = 1e-6
-RATES = {"error_rate", "failed_rate"}
+RATES = frozenset({Signal.ERROR_RATE, Signal.FAILED_RATE})
 
 
 class _Observation(NamedTuple):
@@ -74,11 +81,11 @@ class RateShiftTracker:
         self._spike_seen: dict[SeriesKey, datetime] = {}
         self.refresh()
 
-    def refresh(self, *, project: str | None = None) -> int:
+    def refresh(self, *, project_id: int | None = None) -> int:
         new = [
             key
             for key in sorted(self.series)
-            if (project is None or key.project == project)
+            if (project_id is None or key.project_id == project_id)
             and key.signal in RATES
             and not key.dim_value
             and key not in self.exclude
@@ -100,23 +107,19 @@ class RateShiftTracker:
             marked_minutes.update(_minutes(max(event.start - MINUTE, window_start), minute))
             self._spike_seen[event.key] = minute
 
-    def step(
-        self, minute: datetime, *, project: str | None = None
-    ) -> list[tuple[Literal["open", "close"], ChangeEvent]]:
+    def step(self, minute: datetime, *, project_id: int | None = None) -> list[ChangeAction]:
         if minute.minute % self.cfg.every:
             return []
         actions = []
         for key in self.watched:
-            if project is not None and key.project != project:
+            if project_id is not None and key.project_id != project_id:
                 continue
             action = self._step(key, minute)
             if action is not None:
                 actions.append(action)
         return actions
 
-    def _step(
-        self, key: SeriesKey, minute: datetime
-    ) -> tuple[Literal["open", "close"], ChangeEvent] | None:
+    def _step(self, key: SeriesKey, minute: datetime) -> ChangeAction | None:
         config, state = self.cfg, self.state[key]
         recent_boundary = minute - config.after_min * MINUTE
         history_start = recent_boundary - config.before_min * MINUTE
@@ -214,7 +217,9 @@ class RateShiftTracker:
         parts = rate_parts(key)
         assert parts is not None
         numerator, denominator = (self.series.get(part, {}) for part in parts[:2])
-        total_traffic = self.series.get(SeriesKey(key.project, key.env, "requests", "count()"), {})
+        total_traffic = self.series.get(
+            SeriesKey(key.project_id, key.env, Signal.REQUESTS, Metric.COUNT), {}
+        )
         spike_minutes = self.spike_minutes[key]
         observations = []
         for minute in _minutes(start, end):

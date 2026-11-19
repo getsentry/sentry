@@ -8,8 +8,16 @@ from datetime import datetime, timedelta
 from statistics import median
 from typing import Literal, NamedTuple
 
-from sentry.anomaly_detection.contracts import ChangeEvent, ChangeType, ExpectedValue, SeriesKey
-from sentry.anomaly_detection.evaluation import count_windows
+from sentry.anomaly_detection.contracts import (
+    ChangeAction,
+    ChangeEvent,
+    ChangeType,
+    ExpectedValue,
+    Metric,
+    SeriesKey,
+    Signal,
+)
+from sentry.anomaly_detection.evaluation import count_windows, quality
 from sentry.anomaly_detection.evaluation.baseline import MINUTE, Baseline, weight_key, zscore
 from sentry.anomaly_detection.evaluation.series import (
     Series,
@@ -22,8 +30,8 @@ from sentry.anomaly_detection.evaluation.series import (
 
 @dataclass(frozen=True)
 class Rule:
-    signal: str
-    metric: str
+    signal: Signal
+    metric: Metric
     direction: Literal["up", "down"]
     change: ChangeType
     slices: bool = False
@@ -32,16 +40,16 @@ class Rule:
 
 
 RULES = (
-    Rule("error_rate", "errors/requests", "up", ChangeType.SPIKE),
-    Rule("failed_rate", "failed_requests/requests", "up", ChangeType.SPIKE),
-    Rule("errors", "count_unique(user)", "up", ChangeType.SPIKE),
-    Rule("errors", "count()", "up", ChangeType.SPIKE, only_without_traffic=True),
-    Rule("requests", "count()", "down", ChangeType.DROP, persist=(8, 10)),
-    Rule("endpoints", "p95(span.duration)", "up", ChangeType.SLOWDOWN, slices=True),
-    Rule("outbound_db", "p95(span.duration)", "up", ChangeType.SLOWDOWN, slices=True),
-    Rule("outbound_http", "p95(span.duration)", "up", ChangeType.SLOWDOWN, slices=True),
-    Rule("endpoints", "failure_rate()", "up", ChangeType.SPIKE, slices=True),
-    Rule("outbound_http", "failure_rate()", "up", ChangeType.SPIKE, slices=True),
+    Rule(Signal.ERROR_RATE, Metric.ERRORS_PER_REQUEST, "up", ChangeType.SPIKE),
+    Rule(Signal.FAILED_RATE, Metric.FAILED_PER_REQUEST, "up", ChangeType.SPIKE),
+    Rule(Signal.ERRORS, Metric.COUNT_UNIQUE_USER, "up", ChangeType.SPIKE),
+    Rule(Signal.ERRORS, Metric.COUNT, "up", ChangeType.SPIKE, only_without_traffic=True),
+    Rule(Signal.REQUESTS, Metric.COUNT, "down", ChangeType.DROP, persist=(8, 10)),
+    Rule(Signal.ENDPOINTS, Metric.P95_DURATION, "up", ChangeType.SLOWDOWN, slices=True),
+    Rule(Signal.OUTBOUND_DB, Metric.P95_DURATION, "up", ChangeType.SLOWDOWN, slices=True),
+    Rule(Signal.OUTBOUND_HTTP, Metric.P95_DURATION, "up", ChangeType.SLOWDOWN, slices=True),
+    Rule(Signal.ENDPOINTS, Metric.FAILURE_RATE, "up", ChangeType.SPIKE, slices=True),
+    Rule(Signal.OUTBOUND_HTTP, Metric.FAILURE_RATE, "up", ChangeType.SPIKE, slices=True),
 )
 
 
@@ -113,11 +121,11 @@ class SeriesHistory:
         self._pseudo: dict[tuple[SeriesKey, datetime], float] = {}
         self.refresh()
 
-    def refresh(self, *, project: str | None = None) -> int:
+    def refresh(self, *, project_id: int | None = None) -> int:
         """Start watching newly available series; preserve existing episode state."""
         added = 0
         for key in sorted(self.series.keys() - self.watched.keys() - self.exclude.keys()):
-            if project is not None and key.project != project:
+            if project_id is not None and key.project_id != project_id:
                 continue
             for rule in RULES:
                 if (key.signal, key.metric, bool(key.dim_value)) != (
@@ -126,7 +134,7 @@ class SeriesHistory:
                     rule.slices,
                 ):
                     continue
-                if rule.only_without_traffic and has_traffic(self.series, key.project, key.env):
+                if rule.only_without_traffic and has_traffic(self.series, key.project_id, key.env):
                     continue
                 self.watched[key] = rule
                 self.state[key] = SeriesState(recent=deque(maxlen=rule.persist[1]))
@@ -134,10 +142,39 @@ class SeriesHistory:
                 break
         return added
 
-    def prune_pseudo(self, hour: datetime, *, project: str) -> None:
+    def prune_pseudo(self, hour: datetime, *, project_id: int) -> None:
         for key in list(self._pseudo):
-            if key[0].project == project and key[1] != hour:
+            if key[0].project_id == project_id and key[1] != hour:
                 del self._pseudo[key]
+
+    def check_quality(self, minute: datetime, *, project_id: int) -> None:
+        """Exclude series whose last hour can't support detection; restore recovered ones.
+
+        Uses only observed history and doesn't abandon recovery of an open excursion.
+        """
+        recent_minutes = [minute - offset * MINUTE for offset in range(60)]
+        measurements = {
+            key: {
+                observed_minute: values[observed_minute]
+                for observed_minute in recent_minutes
+                if observed_minute in values
+            }
+            for key, values in self.series.items()
+            if key.project_id == project_id
+            and key.metric in (Metric.P95_DURATION, Metric.COUNT_SAMPLE)
+        }
+        restored_series = False
+        for key, invalid_reason in quality.check(measurements).items():
+            if invalid_reason is not None:
+                self.exclude[key] = invalid_reason
+            elif self.exclude.pop(key, None) is not None:
+                restored_series = True
+        for key in self.exclude.keys() & self.watched.keys():
+            if key.project_id == project_id and self.state[key].open is None:
+                del self.watched[key]
+                del self.state[key]
+        if restored_series:
+            self.refresh(project_id=project_id)
 
     def has_novelty_observation(self, key: SeriesKey, minute: datetime) -> bool:
         rule = self.watched.get(key)
@@ -175,7 +212,7 @@ class SeriesHistory:
         """Size changes against a one-event prior at the usual volume, not an exact zero."""
         volume_key = weight_key(key)
         if volume_key is None:
-            return self.cfg.pseudo_events if key.metric.startswith("count") else 1e-9
+            return self.cfg.pseudo_events if key.metric.is_count else 1e-9
         cache_key = (key, t.replace(minute=0))
         if cache_key not in self._pseudo:
             typical = self._window_median(volume_key, t)
@@ -203,15 +240,13 @@ class SeriesHistory:
             else None,
         )
 
-    def _step_series(
-        self, key: SeriesKey, rule: Rule, minute: datetime
-    ) -> tuple[str, ChangeEvent] | None:
+    def step_series(self, key: SeriesKey, rule: Rule, minute: datetime) -> ChangeAction | None:
         cfg, state = self.cfg, self.state[key]
         # An excluded series can finish recovering, but cannot reopen before the
         # next quality check re-enables it.
         if state.open is None and (
             key in self.exclude
-            or (rule.only_without_traffic and has_traffic(self.series, key.project, key.env))
+            or (rule.only_without_traffic and has_traffic(self.series, key.project_id, key.env))
         ):
             state.recent.clear()
             state.counts = None
@@ -223,7 +258,9 @@ class SeriesHistory:
         sample_key = samples_key(key)
         samples = self._get(sample_key, minute)
         counted = bool(cfg.windows) and (
-            parts is not None or sampled_share or (key.signal, key.metric) == ("errors", "count()")
+            parts is not None
+            or sampled_share
+            or (key.signal, key.metric) == (Signal.ERRORS, Metric.COUNT)
         )
         if counted and state.counts is None:
             state.counts = deque(
@@ -247,7 +284,7 @@ class SeriesHistory:
                 assert state.counts is not None
                 # Explicit zero sample trials contribute nothing; unknown coverage invalidates the window.
                 zero_trials = (sampled_share and samples == 0) or (
-                    key.signal == "failed_rate" and rate_samples == rate_events == 0
+                    key.signal == Signal.FAILED_RATE and rate_samples == rate_events == 0
                 )
                 count_windows.push(state.counts, minute, missing=not zero_trials)
             self._unavailable(state, minute, is_latency)
@@ -385,7 +422,7 @@ class SeriesHistory:
         expectation: ExpectedValue,
         measurement: count_windows.Measurement,
         hit: count_windows.WindowHit | None,
-    ) -> tuple[str, ChangeEvent]:
+    ) -> ChangeAction:
         key, minute = expectation.key, expectation.ts
         actual, expected, ratio, z = measurement
         flagged_readings = [reading for reading in state.recent if reading.flagged]
@@ -430,7 +467,7 @@ class SeriesHistory:
         state.anchor_sigma = anchor_expectation.sigma
         state.anchor_points = anchor_expectation.point_count
         state.excluded.update(reading.minute for reading in flagged_readings)
-        if key.signal == "failed_rate" or is_share(key):
+        if key.signal == Signal.FAILED_RATE or is_share(key):
             state.failure_reference = (
                 hit.failure_reference
                 if hit
@@ -454,7 +491,7 @@ class SeriesHistory:
         flagged: bool,
         recovery_valid: bool,
         update_evidence: bool,
-    ) -> tuple[str, ChangeEvent] | None:
+    ) -> ChangeAction | None:
         cfg = self.cfg
         event = state.open
         assert event is not None
@@ -496,7 +533,7 @@ class SeriesHistory:
 
     def _close_episode(
         self, st: SeriesState, event: ChangeEvent, t: datetime, chronic: bool
-    ) -> tuple[str, ChangeEvent]:
+    ) -> ChangeAction:
         event.ended_at = t
         if chronic:
             event.evidence.append(

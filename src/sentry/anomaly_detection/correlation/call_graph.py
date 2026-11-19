@@ -3,12 +3,11 @@
 from collections import Counter, defaultdict
 from collections.abc import Mapping, Sequence
 
-from sentry.anomaly_detection.contracts import SeriesKey
+from sentry.anomaly_detection.contracts import SeriesKey, Service, Signal
 from sentry.anomaly_detection.correlation.footprint import (
     SLICE_LAYERS,
     CallEdge,
     Footprint,
-    base_signal,
     service_of,
 )
 
@@ -18,12 +17,12 @@ UPSTREAM = -1
 
 class _CallGraph:
     def __init__(self, edges: Mapping[CallEdge, int], *, majority: bool = False) -> None:
-        call_counts: Counter[tuple[str, str]] = Counter()
+        call_counts: Counter[tuple[Service, Service]] = Counter()
         for (caller, _, callee), count in edges.items():
             if caller != callee and count > 0:
                 call_counts[caller, callee] += count
-        self.forward: dict[str, set[str]] = defaultdict(set)
-        self.domains: dict[tuple[str, str], set[str]] = defaultdict(set)
+        self.forward: dict[Service, set[Service]] = defaultdict(set)
+        self.domains: dict[tuple[Service, str], set[Service]] = defaultdict(set)
         for caller, domain, callee in edges:
             forward_count, reverse_count = call_counts[caller, callee], call_counts[callee, caller]
             if not forward_count or (
@@ -32,8 +31,8 @@ class _CallGraph:
                 continue
             self.forward[caller].add(callee)
             self.domains[caller, domain].add(callee)
-        self._reachable: dict[str, set[str]] = {}
-        self.depth: dict[str, int] = {}
+        self._reachable: dict[Service, set[Service]] = {}
+        self.depth: dict[Service, int] = {}
         if majority:
             calls = sorted(
                 (caller, callee) for caller, callees in self.forward.items() for callee in callees
@@ -53,7 +52,7 @@ class _CallGraph:
     def position(self, key: SeriesKey) -> int:
         return self.depth.get(service_of(key), 0) * 3 + _layer(key)
 
-    def reachable(self, start: str) -> set[str]:
+    def reachable(self, start: Service) -> set[Service]:
         if start not in self._reachable:
             seen, pending = {start}, [start]
             while pending:
@@ -65,13 +64,13 @@ class _CallGraph:
             self._reachable[start] = seen
         return self._reachable[start]
 
-    def _on_path(self, key: SeriesKey, target: str) -> bool:
+    def _on_path(self, key: SeriesKey, target: Service) -> bool:
         source = service_of(key)
         if target not in self.reachable(source):
             return False
         if _layer(key) < 2:
             return True  # Service totals and endpoints sit above their outbound calls.
-        if base_signal(key.signal) != "outbound_http":
+        if key.signal != Signal.OUTBOUND_HTTP:
             return False  # A database slice isn't a step toward another project.
         return any(
             target == callee or target in self.reachable(callee)
@@ -107,4 +106,4 @@ def is_project_level(key: SeriesKey) -> bool:
 
 
 def _layer(key: SeriesKey) -> int:
-    return SLICE_LAYERS.get(base_signal(key.signal), 0) if key.dim_value else 0
+    return SLICE_LAYERS.get(key.signal, 0) if key.dim_value else 0

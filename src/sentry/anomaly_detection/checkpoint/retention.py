@@ -5,10 +5,18 @@ from collections.abc import Set as AbstractSet
 from dataclasses import replace
 from datetime import datetime, timedelta
 
-from sentry.anomaly_detection.contracts import ChangeEvent, ChangeType, SeriesKey
+from sentry.anomaly_detection.contracts import (
+    AnomalyGroupKey,
+    ChangeAction,
+    ChangeType,
+    EpisodeKey,
+    Metric,
+    SeriesKey,
+    Service,
+    Signal,
+)
 from sentry.anomaly_detection.correlation.correlator import (
     Correlator,
-    EpisodeKey,
     GroupState,
     _localize,
     episode_key,
@@ -54,8 +62,8 @@ def _history_floor(evaluator: OrgEvaluator, cursor: datetime) -> datetime:
 
 
 def _trim_group_metadata(group: GroupState) -> None:
-    services = {service_of(key[0]) for key in group.members}
-    issues = {str(issue) for member in group.members.values() for issue in member.event.issue_ids}
+    services = {service_of(key.series_key) for key in group.members}
+    issues = {issue for member in group.members.values() for issue in member.event.issue_ids}
     blast_radius = group.group.blast_radius
     # Localization can name peers that are no longer represented. Fall back to
     # the retained root without relocalizing (which may query trace evidence).
@@ -107,7 +115,9 @@ def _prune_group_members(corr: Correlator, cursor: datetime) -> None:
 def _prune_novelty(evaluator: OrgEvaluator, cursor: datetime) -> None:
     novelty = evaluator.novelty
     novelty.prune(cursor)
-    cohorts: dict[tuple[str, str, str, bool], list[tuple[datetime, SeriesKey]]] = defaultdict(list)
+    cohorts: dict[tuple[int, Signal, Metric, bool], list[tuple[datetime, SeriesKey]]] = defaultdict(
+        list
+    )
     for key in novelty.coverage.keys() | novelty.history.keys():
         hours = novelty.coverage.get(key, {})
         latest_observation = datetime.min
@@ -117,7 +127,7 @@ def _prune_novelty(evaluator: OrgEvaluator, cursor: datetime) -> None:
         latest_excursion = max(
             (record.start for record in novelty.history.get(key, ())), default=datetime.min
         )
-        cohorts[key.project, key.signal, key.metric, bool(key.dim_value)].append(
+        cohorts[key.project_id, key.signal, key.metric, bool(key.dim_value)].append(
             (max(latest_observation, latest_excursion), key)
         )
     retained = evaluator.series_history.watched.keys() | evaluator.rate_shifts.state.keys()
@@ -134,23 +144,23 @@ def _prune_novelty(evaluator: OrgEvaluator, cursor: datetime) -> None:
 
 
 def _reconcile_correlation(
-    evaluator: OrgEvaluator, projects: AbstractSet[str], boundary: datetime
+    evaluator: OrgEvaluator, projects: AbstractSet[int], boundary: datetime
 ) -> list[AnomalyDecision]:
     corr = evaluator.corr
     state = corr.state
 
-    def service_in_scope(service: str) -> bool:
-        return service.partition("/")[0] in projects
+    def service_in_scope(service: Service) -> bool:
+        return service.project_id in projects
 
-    retired = set()
-    discarded_open = set()
+    retired: set[AnomalyGroupKey] = set()
+    discarded_open: set[AnomalyGroupKey] = set()
     for groups in (state.open_groups, state.closed_groups):
         for group_id, group in list(groups.items()):
             previous = evaluator.qualified.get(group_id)
             if (
-                (previous is not None and str(previous.project_id) not in projects)
-                or group.root.key.project not in projects
-                or any(key[0].project not in projects for key in group.members)
+                (previous is not None and previous.project_id not in projects)
+                or group.root.key.project_id not in projects
+                or any(key.series_key.project_id not in projects for key in group.members)
             ):
                 retired.add(group_id)
                 if group.closed_at is None:
@@ -167,7 +177,7 @@ def _reconcile_correlation(
                         and member.closed_at is None
                         and member.event.ended_at is None
                         and member.event.change_type != ChangeType.NEW_FAILURE_MODE
-                        and key[0].project in projects
+                        and key.series_key.project_id in projects
                     ):
                         state.latent[key] = member.event
                         evaluator.absorbed.pop(key, None)
@@ -176,11 +186,13 @@ def _reconcile_correlation(
                 _trim_group_metadata(group)
                 for member in group.members.values():
                     if (footprint := member.footprint) is not None:
-                        for slice_key in list(footprint.slices):
-                            if slice_key[0] not in projects:
-                                del footprint.slices[slice_key]
+                        for part in list(footprint.slices):
+                            if not service_in_scope(part.service):
+                                del footprint.slices[part]
                         for edge in list(footprint.edges):
-                            if not service_in_scope(edge[0]) or not service_in_scope(edge[2]):
+                            if not service_in_scope(edge.caller) or not service_in_scope(
+                                edge.callee
+                            ):
                                 del footprint.edges[edge]
 
     for group in corr.groups:
@@ -189,7 +201,7 @@ def _reconcile_correlation(
         ]
     closes = []
     for group_id, decision in list(evaluator.qualified.items()):
-        owner_enabled = str(decision.project_id) in projects
+        owner_enabled = decision.project_id in projects
         if group_id in discarded_open and owner_enabled and not decision.is_resolved:
             # The current root may differ from the published owner. Close the
             # original lifecycle at the scope boundary, never migrate it.
@@ -198,16 +210,16 @@ def _reconcile_correlation(
             del evaluator.qualified[group_id]
     for edges in (state.edges, state.edge_seen_at):
         for edge in list(edges):
-            if not service_in_scope(edge[0]) or not service_in_scope(edge[2]):
+            if not service_in_scope(edge.caller) or not service_in_scope(edge.callee):
                 del edges[edge]
     for pair_key, pair in list(state.shared.pairs.items()):
-        if not service_in_scope(pair.a[0]) or not service_in_scope(pair.b[0]):
+        if not service_in_scope(pair.a.service) or not service_in_scope(pair.b.service):
             del state.shared.pairs[pair_key]
     return closes
 
 
 def _reconcile_projects(
-    evaluator: OrgEvaluator, projects: AbstractSet[str], boundary: datetime
+    evaluator: OrgEvaluator, projects: AbstractSet[int], boundary: datetime
 ) -> list[AnomalyDecision]:
     detector, cp, novelty = evaluator.series_history, evaluator.rate_shifts, evaluator.novelty
     for mapping in (
@@ -223,27 +235,29 @@ def _reconcile_projects(
         novelty.history,
     ):
         for key in list(mapping):
-            if key.project not in projects:
+            if key.project_id not in projects:
                 del mapping[key]
-    cp.watched[:] = [key for key in cp.watched if key.project in projects]
+    cp.watched[:] = [key for key in cp.watched if key.project_id in projects]
     detector.exclude = {
-        key: reason for key, reason in detector.exclude.items() if key.project in projects
+        key: reason for key, reason in detector.exclude.items() if key.project_id in projects
     }
     for key, hour in list(detector._pseudo):
-        if key.project not in projects:
+        if key.project_id not in projects:
             del detector._pseudo[key, hour]
 
     for episodes in (evaluator.absorbed, evaluator.next_look, evaluator.corr.state.latent):
         for episode in list(episodes):
-            if episode[0].project not in projects:
+            if episode.series_key.project_id not in projects:
                 del episodes[episode]
     for service in list(evaluator.harm):
-        if service[0] not in projects:
+        if service.project_id not in projects:
             del evaluator.harm[service]
-    evaluator.pending_issues[:] = [e for e in evaluator.pending_issues if e.key.project in projects]
-    evaluator.known_issues[:] = [e for e in evaluator.known_issues if e.key.project in projects]
+    evaluator.pending_issues[:] = [
+        e for e in evaluator.pending_issues if e.key.project_id in projects
+    ]
+    evaluator.known_issues[:] = [e for e in evaluator.known_issues if e.key.project_id in projects]
     evaluator.point_closes[:] = [
-        (ts, e) for ts, e in evaluator.point_closes if e.key.project in projects
+        (ts, e) for ts, e in evaluator.point_closes if e.key.project_id in projects
     ]
     return _reconcile_correlation(evaluator, projects, boundary)
 
@@ -266,18 +280,20 @@ def _evict_stale_series(
                 live[key] = minute
                 break
 
-    slices: dict[tuple[str, str], dict[tuple[str, str], tuple[bool, datetime]]] = defaultdict(dict)
-    environments: dict[str, dict[str, tuple[bool, datetime]]] = defaultdict(dict)
+    slices: dict[tuple[int, Signal], dict[tuple[str, str], tuple[bool, datetime]]] = defaultdict(
+        dict
+    )
+    environments: dict[int, dict[str, tuple[bool, datetime]]] = defaultdict(dict)
     for key, points in evaluator.series.items():
         seen = next(reversed(points), datetime.min)
         priority = (key in live, live.get(key, seen))
         if key.dim_value:
             if seen >= floor:
                 group = key.env, key.dim_value
-                members = slices[key.project, key.signal]
+                members = slices[key.project_id, key.signal]
                 members[group] = max(priority, members.get(group, priority))
         else:
-            envs = environments[key.project]
+            envs = environments[key.project_id]
             envs[key.env] = max(priority, envs.get(key.env, priority))
 
     # Live episodes take their metric group with them, not extra slots. If they
@@ -299,9 +315,9 @@ def _evict_stale_series(
     evicted: set[SeriesKey] = set()
     for key in evaluator.series:
         if key.dim_value:
-            if (key.env, key.dim_value) not in kept_slices.get((key.project, key.signal), ()):
+            if (key.env, key.dim_value) not in kept_slices.get((key.project_id, key.signal), ()):
                 evicted.add(key)
-        elif key.env not in kept_envs[key.project]:
+        elif key.env not in kept_envs[key.project_id]:
             # Empty aggregate keys preserve the presence of request instrumentation
             # for this environment, but environments themselves are bounded.
             evicted.add(key)
@@ -310,7 +326,7 @@ def _evict_stale_series(
         return []
 
     over_cap = 0
-    expirations: list[tuple[str, ChangeEvent]] = []
+    expirations: list[ChangeAction] = []
     maps = (
         evaluator.series,
         det.watched,

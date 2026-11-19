@@ -19,7 +19,7 @@ from sentry.workflow_engine.caches.data_source import (
     get_data_sources_by_detector_and_source_id,
 )
 from sentry.workflow_engine.handlers.detector_outcome import DetectorOutcome
-from sentry.workflow_engine.models import DataPacket, Detector
+from sentry.workflow_engine.models import DataPacket, DataSourceDetector, Detector
 from sentry.workflow_engine.processors import DetectorEvaluation
 from sentry.workflow_engine.types import (
     DetectorGroupKey,
@@ -359,6 +359,10 @@ class BaseDetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationT
             data_sources = get_data_sources_by_detector_and_source_id(self.detector.id, source_id)
 
             if not data_sources:
+                # Detectors invoked directly (e.g. via `process_detectors`) may have no data sources.
+                if not DataSourceDetector.objects.filter(detector_id=self.detector.id).exists():
+                    return []
+
                 logger.warning(
                     "Matching data source not found for detector while generating occurrence evidence data",
                     extra={

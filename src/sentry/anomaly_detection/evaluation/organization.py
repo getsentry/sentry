@@ -2,53 +2,74 @@
 
 from bisect import bisect_right
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta
 from math import isfinite
+from typing import Literal, NotRequired, TypedDict
 
-from sentry.anomaly_detection.contracts import ChangeEvent, ChangeType, SeriesKey, Urgency
+from sentry.anomaly_detection.contracts import (
+    AnomalyGroupKey,
+    ChangeAction,
+    ChangeEvent,
+    ChangeType,
+    EpisodeKey,
+    Metric,
+    SeriesKey,
+    SeriesRow,
+    Service,
+    Signal,
+    Urgency,
+)
 from sentry.anomaly_detection.correlation import shared_dependencies
 from sentry.anomaly_detection.correlation.correlator import (
     ERROR_SIGNALS,
     Correlator,
     FootprintSource,
     GroupAction,
+    episode_key,
 )
-from sentry.anomaly_detection.detector_handler import (
-    AnomalyDetectionDetectorHandler,
-    MinuteMeasurements,
-)
+from sentry.anomaly_detection.correlation.footprint import service_of
 from sentry.anomaly_detection.evaluation.baseline import Baseline
 from sentry.anomaly_detection.evaluation.novelty import Novelty, size_of
 from sentry.anomaly_detection.evaluation.rate_shifts import RateShiftTracker
-from sentry.anomaly_detection.evaluation.series import Series, SeriesRow
+from sentry.anomaly_detection.evaluation.series import Series, build
 from sentry.anomaly_detection.evaluation.series_history import SeriesHistory
-from sentry.workflow_engine.models import DataPacket
 
 _MINUTE = timedelta(minutes=1)
 _HARM_WINDOW = timedelta(minutes=10)
 _VOUCH_WINDOW = timedelta(minutes=30)
 _POINT_LIFETIME = timedelta(minutes=30)
 _CONTEXT_HORIZON = timedelta(hours=6)
-_HARM_PROMOTES = ("outbound_db", "outbound_http")
-_VOUCH_SIGNALS = ("error_rate", "failed_rate", "errors")
+_HARM_PROMOTES = frozenset({Signal.OUTBOUND_DB, Signal.OUTBOUND_HTTP})
+_VOUCH_SIGNALS = frozenset({Signal.ERROR_RATE, Signal.FAILED_RATE, Signal.ERRORS})
 
-EpisodeKey = tuple[SeriesKey, ChangeType, datetime]
-Service = tuple[str, str]
-ChangeAction = tuple[str, ChangeEvent]
+# The root's signal as published; signals without a public description are "other".
+PublicSignal = Signal | Literal["other"]
+
+
+class AnomalyEvidence(TypedDict):
+    """Occurrence evidence. Only project-scoped facts about the root change, never
+    dimensions, other services or free-form issue evidence."""
+
+    signal: PublicSignal
+    change_type: ChangeType
+    started_at: str  # ISO 8601, naive UTC.
+    actual: NotRequired[float]
+    expected: NotRequired[float]
+    confidence: NotRequired[float]
 
 
 @dataclass(frozen=True)
 class AnomalyDecision:
-    group_key: str
+    group_key: AnomalyGroupKey
     project_id: int
     timestamp: datetime
     urgency: Urgency
     is_resolved: bool
     title: str
-    evidence: Mapping[str, object]
-    env: str
+    evidence: AnomalyEvidence
+    env: str  # Empty means no environment.
 
 
 def evaluate_org(
@@ -58,11 +79,11 @@ def evaluate_org(
     start: datetime,
     end: datetime,
     footprints: FootprintSource,
-    handlers: Mapping[str, AnomalyDetectionDetectorHandler],
+    projects: Iterable[int],
     new_issues: Sequence[ChangeEvent] = (),
 ) -> Sequence[AnomalyDecision]:
     """Evaluate [start, end), using earlier minute rows to warm the model (naive UTC)."""
-    return OrgEvaluator(footprints, handlers=handlers).advance(
+    return OrgEvaluator(footprints, projects=projects).advance(
         rows=rows, hourly_rows=hourly_rows, start=start, end=end, new_issues=new_issues
     )
 
@@ -70,17 +91,9 @@ def evaluate_org(
 class OrgEvaluator:
     """Own the shared streaming state for one organization's ordered evaluation windows."""
 
-    def __init__(
-        self,
-        footprints: FootprintSource,
-        *,
-        handlers: Mapping[str, AnomalyDetectionDetectorHandler],
-    ) -> None:
-        self.handlers = dict(sorted(handlers.items()))
-        if any(
-            project != str(handler.detector.project_id) for project, handler in handlers.items()
-        ):
-            raise ValueError("Anomaly handler map keys must match their detector project IDs")
+    def __init__(self, footprints: FootprintSource, *, projects: Iterable[int]) -> None:
+        # Project IDs with an enabled detector, in a stable scoring order.
+        self.projects: tuple[int, ...] = tuple(sorted(set(projects)))
         self.series: dict[SeriesKey, Series] = {}
         self.hourly: dict[SeriesKey, Series] = {}
         self.baseline = Baseline(self.hourly)
@@ -88,7 +101,7 @@ class OrgEvaluator:
         self.rate_shifts = RateShiftTracker(self.series, self.baseline)
         self.corr = Correlator(footprints, series=self.series)
         self.novelty = Novelty()
-        self.qualified: dict[str, AnomalyDecision] = {}
+        self.qualified: dict[AnomalyGroupKey, AnomalyDecision] = {}
         self.next_minute: datetime | None = None
         self.absorbed: dict[EpisodeKey, ChangeEvent] = {}
         self.next_look: dict[EpisodeKey, float] = {}
@@ -115,15 +128,14 @@ class OrgEvaluator:
         # quality exclusions causal, regardless of where polling batches are split.
         rows_by_minute: dict[datetime, list[SeriesRow]] = defaultdict(list)
         for row in rows:
-            measurement_minute, _, _, project_id, _, _, _ = row
             if (
-                project_id in self.handlers
-                and measurement_minute < end
-                and (self.next_minute is None or measurement_minute >= self.next_minute)
+                row.project_id in self.projects
+                and row.ts < end
+                and (self.next_minute is None or row.ts >= self.next_minute)
             ):
-                rows_by_minute[measurement_minute].append(row)
+                rows_by_minute[row.ts].append(row)
         self._load_hourly_baselines(hourly_rows, end)
-        self._queue_issues([event for event in new_issues if event.key.project in self.handlers])
+        self._queue_issues([event for event in new_issues if event.key.project_id in self.projects])
 
         first_publish_minute = _minute_ceiling(start)
         cold_start = self.next_minute is None
@@ -157,14 +169,11 @@ class OrgEvaluator:
         return decisions
 
     def _load_hourly_baselines(self, hourly_rows: Sequence[SeriesRow], end: datetime) -> None:
-        rows_by_project: dict[str, list[SeriesRow]] = defaultdict(list)
-        for row in hourly_rows:
-            hour, _, _, project_id, _, _, _ = row
-            if project_id in self.handlers and hour < end:
-                rows_by_project[project_id].append(row)
-        for project_id, project_rows in rows_by_project.items():
-            for key, hourly_values in self.handlers[project_id].load_baseline(project_rows).items():
-                self.hourly.setdefault(key, {}).update(hourly_values)
+        scoped_rows = (
+            row for row in hourly_rows if row.project_id in self.projects and row.ts < end
+        )
+        for key, hourly_values in build(scoped_rows).items():
+            self.hourly.setdefault(key, {}).update(hourly_values)
 
     def _queue_issues(self, events: Sequence[ChangeEvent]) -> None:
         if not events:
@@ -172,11 +181,11 @@ class OrgEvaluator:
         # A low-impact vouch and a later standalone crossing are different milestones
         # of the same episode; only repeated reports of the same milestone are duplicates.
         seen = {
-            (_episode(event), _is_standalone_issue(event))
+            (episode_key(event), _is_standalone_issue(event))
             for event in (*self.known_issues, *self.pending_issues)
         }
         for event in events:
-            key = (_episode(event), _is_standalone_issue(event))
+            key = (episode_key(event), _is_standalone_issue(event))
             if event.change_type != ChangeType.NEW_FAILURE_MODE or key in seen:
                 continue
             if self.next_minute and _available_at(event) < self.next_minute - _CONTEXT_HORIZON:
@@ -185,7 +194,7 @@ class OrgEvaluator:
             self.pending_issues.append(
                 replace(event, evidence=list(event.evidence), ended_at=None, escalations=[])
             )
-        self.pending_issues.sort(key=lambda event: (_available_at(event), _episode(event)))
+        self.pending_issues.sort(key=lambda event: (_available_at(event), episode_key(event)))
 
     def _step(self, minute: datetime, rows: Sequence[SeriesRow]) -> list[AnomalyDecision]:
         if minute.minute == 0:
@@ -229,23 +238,16 @@ class OrgEvaluator:
     def _evaluate_project_measurements(
         self, minute: datetime, rows: Sequence[SeriesRow]
     ) -> list[ChangeAction]:
-        rows_by_project: dict[str, list[SeriesRow]] = defaultdict(list)
+        rows_by_project: dict[int, list[SeriesRow]] = defaultdict(list)
         for row in rows:
-            rows_by_project[row[3]].append(row)
+            rows_by_project[row.project_id].append(row)
 
         candidates: list[ChangeAction] = []
-        for project_id, handler in self.handlers.items():
-            packet = DataPacket(
-                source_id=str(handler.detector.id),
-                packet=MinuteMeasurements(minute=minute, rows=rows_by_project.get(project_id, ())),
+        for project_id in self.projects:
+            candidates.extend(
+                self._evaluate_project(project_id, minute, rows_by_project.get(project_id, ()))
             )
-            evaluation = handler.evaluate_measurements(
-                packet, self.series_history, self.rate_shifts
-            )
-            candidates.extend(evaluation.changes)
-            for key in evaluation.observed:
-                self.novelty.observe(key, minute)
-        if len(self.handlers) > 1 and len(candidates) > 1:
+        if len(self.projects) > 1 and len(candidates) > 1:
             # Keep the original scoring order across projects: series changes first,
             # then change points. Correlation can use this order to break ties.
             series_order = {key: index for index, key in enumerate(self.series_history.watched)}
@@ -259,6 +261,36 @@ class OrgEvaluator:
 
             candidates.sort(key=scoring_order)
         return candidates
+
+    def _evaluate_project(
+        self, project_id: int, minute: datetime, rows: Sequence[SeriesRow]
+    ) -> list[ChangeAction]:
+        history, change_points = self.series_history, self.rate_shifts
+        measurements = build(rows)
+        discovered_series = bool(measurements.keys() - history.series.keys())
+        for key, values in measurements.items():
+            history.series.setdefault(key, {}).update(values)
+        if discovered_series:
+            history.refresh(project_id=project_id)
+            change_points.refresh(project_id=project_id)
+
+        if minute.minute == 0:
+            history.check_quality(minute, project_id=project_id)
+            history.prune_pseudo(minute, project_id=project_id)
+
+        for key in measurements:
+            if history.has_novelty_observation(key, minute):
+                self.novelty.observe(key, minute)
+
+        changes: list[ChangeAction] = []
+        for key, rule in history.watched.items():
+            if key.project_id == project_id and (action := history.step_series(key, rule, minute)):
+                changes.append(action)
+        for key in change_points.watched:
+            if key.project_id == project_id and (state := history.state.get(key)) and state.open:
+                change_points.note_spike(state.open, minute)
+        changes.extend(change_points.step(minute, project_id=project_id))
+        return changes
 
     def _prune_context(self, minute: datetime) -> None:
         context_start = minute - _CONTEXT_HORIZON
@@ -284,7 +316,7 @@ class OrgEvaluator:
     def _note_harm(self, events: Sequence[ChangeEvent]) -> None:
         for event in events:
             if _is_harm(event):
-                self.harm.setdefault(_service(event), []).append(event)
+                self.harm.setdefault(service_of(event.key), []).append(event)
 
     def _harm_for(
         self, event: ChangeEvent, minute: datetime, candidates: Sequence[ChangeEvent]
@@ -297,7 +329,7 @@ class OrgEvaluator:
         latest_harm = event.ended_at or minute
         return any(
             _is_harm(harm)
-            and _service(harm) == _service(event)
+            and service_of(harm.key) == service_of(event.key)
             and earliest_harm <= harm.start <= latest_harm
             and (harm.ended_at is None or harm.ended_at >= earliest_harm)
             for harm in candidates
@@ -305,14 +337,14 @@ class OrgEvaluator:
 
     def _judge(self, minute: datetime, candidates: Sequence[ChangeAction]) -> list[ChangeAction]:
         """Judge sizes and retire episodes without recording this minute's opens."""
-        actions = []
+        actions: list[ChangeAction] = []
         for action_kind, event in candidates:
-            episode = _episode(event)
+            episode = episode_key(event)
             if action_kind == "open":
                 verdict = self.novelty.judge(event, size_of(event.open_ratio), minute)
                 event.novelty = verdict.as_dict()
                 if not verdict.unusual:
-                    service_harm = self.harm.get(_service(event), ())
+                    service_harm = self.harm.get(service_of(event.key), ())
                     if self._harm_for(event, minute, service_harm):
                         event.novelty["harm"] = True
                     else:
@@ -339,7 +371,7 @@ class OrgEvaluator:
     def _promote_event(
         self, event: ChangeEvent, minute: datetime, novelty: Mapping[str, object]
     ) -> ChangeAction:
-        episode = _episode(event)
+        episode = episode_key(event)
         self.absorbed.pop(episode, None)
         self.next_look.pop(episode, None)
         event.novelty = dict(novelty)
@@ -354,11 +386,11 @@ class OrgEvaluator:
     ) -> list[ChangeAction]:
         if not self.absorbed:
             return []
-        actions = []
+        actions: list[ChangeAction] = []
         new_harm = [event for event in (*new_changes, *new_failures) if _is_harm(event)]
         vouches: dict[Service, list[ChangeEvent]] = defaultdict(list)
         for event in self.known_issues:
-            vouches[_service(event)].append(event)
+            vouches[service_of(event.key)].append(event)
         for event in list(self.absorbed.values()):
             if event.ended_at is not None:
                 continue
@@ -376,7 +408,7 @@ class OrgEvaluator:
                 and not event.key.dim_value
                 and any(
                     abs(issue.start - event.start) <= _VOUCH_WINDOW
-                    for issue in vouches.get(_service(event), ())
+                    for issue in vouches.get(service_of(event.key), ())
                 )
             ):
                 actions.append(
@@ -385,7 +417,7 @@ class OrgEvaluator:
         return actions
 
     def _check_duration(self, event: ChangeEvent, minute: datetime) -> Mapping[str, object] | None:
-        episode = _episode(event)
+        episode = episode_key(event)
         next_duration_check = self.next_look.get(episode, 60.0)
         if (
             event.change_type == ChangeType.CHANGE_POINT
@@ -433,24 +465,22 @@ def _first_decision(action: GroupAction) -> AnomalyDecision:
     assert root is not None  # Correlator.step attaches the final root to every action.
     # Correlation includes trace edges, dimensions, other services and free-form issue
     # evidence. None of those is safe to persist on a project-scoped occurrence.
-    title, signal = _PUBLIC_SIGNALS.get(root.key.signal, ("Unexpected change detected", "other"))
-    if root.key.metric == "failure_rate()":
+    signal: PublicSignal = root.key.signal if root.key.signal in _PUBLIC_TITLES else "other"
+    title = _PUBLIC_TITLES.get(root.key.signal, "Unexpected change detected")
+    if root.key.metric == Metric.FAILURE_RATE:
         title = "More requests failed"
-    evidence: dict[str, object] = {
-        "signal": signal,
-        "change_type": root.change_type.value,
-        "started_at": root.start.isoformat(),
-    }
-    for name, value in (
-        ("actual", root.actual),
-        ("expected", root.expected),
-        ("confidence", root.confidence),
-    ):
-        if isfinite(value):
-            evidence[name] = value
+    evidence = AnomalyEvidence(
+        signal=signal, change_type=root.change_type, started_at=root.start.isoformat()
+    )
+    if isfinite(root.actual):
+        evidence["actual"] = root.actual
+    if isfinite(root.expected):
+        evidence["expected"] = root.expected
+    if isfinite(root.confidence):
+        evidence["confidence"] = root.confidence
     return AnomalyDecision(
         group_key=action.group.id,
-        project_id=int(root.key.project),
+        project_id=root.key.project_id,
         timestamp=action.t,
         urgency=action.group.urgency,
         is_resolved=False,
@@ -460,15 +490,15 @@ def _first_decision(action: GroupAction) -> AnomalyDecision:
     )
 
 
-_PUBLIC_SIGNALS = {
-    "error_rate": ("Error rate increased", "error_rate"),
-    "failed_rate": ("More requests failed", "failed_rate"),
-    "errors": ("Errors increased", "errors"),
-    "requests": ("Request volume dropped", "requests"),
-    "endpoints": ("Endpoint latency increased", "endpoints"),
-    "outbound_db": ("Database latency increased", "outbound_db"),
-    "outbound_http": ("Outbound request latency increased", "outbound_http"),
-    "new_issue": ("New failure detected", "new_issue"),
+_PUBLIC_TITLES = {
+    Signal.ERROR_RATE: "Error rate increased",
+    Signal.FAILED_RATE: "More requests failed",
+    Signal.ERRORS: "Errors increased",
+    Signal.REQUESTS: "Request volume dropped",
+    Signal.ENDPOINTS: "Endpoint latency increased",
+    Signal.OUTBOUND_DB: "Database latency increased",
+    Signal.OUTBOUND_HTTP: "Outbound request latency increased",
+    Signal.NEW_ISSUE: "New failure detected",
 }
 
 
@@ -485,13 +515,5 @@ def _is_standalone_issue(event: ChangeEvent) -> bool:
     return event.actual >= event.expected
 
 
-def _episode(event: ChangeEvent) -> EpisodeKey:
-    return event.key, event.change_type, event.start
-
-
-def _service(event: ChangeEvent) -> Service:
-    return event.key.project, event.key.env
-
-
 def _is_harm(event: ChangeEvent) -> bool:
-    return event.key.signal in ERROR_SIGNALS or event.key.metric == "failure_rate()"
+    return event.key.signal in ERROR_SIGNALS or event.key.metric == Metric.FAILURE_RATE
