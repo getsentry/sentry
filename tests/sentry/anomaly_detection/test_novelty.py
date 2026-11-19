@@ -10,6 +10,7 @@ from sentry.anomaly_detection.changepoint import ChangePointDetector
 from sentry.anomaly_detection.contracts import ChangeEvent, ChangeType, SeriesKey
 from sentry.anomaly_detection.novelty import Novelty, mask_dim
 from sentry.anomaly_detection.series import Series, samples_key
+from sentry.anomaly_detection.shared import learn
 
 T0 = datetime(2024, 11, 4, 8)
 MINUTE = timedelta(minutes=1)
@@ -33,10 +34,15 @@ def excursion(key: SeriesKey, start: datetime, ratio: float) -> ChangeEvent:
     )
 
 
+def observe_window(novelty: Novelty, key: SeriesKey, start: datetime, end: datetime) -> None:
+    for offset in range((end - start) // MINUTE):
+        novelty.observe(key, start + offset * MINUTE)
+
+
 def test_quiet_series_stays_sensitive_after_days_of_history() -> None:
     novelty = Novelty()
-    novelty.observe(QUIET, T0)
     t = T0 + timedelta(days=4)
+    observe_window(novelty, QUIET, T0, t)
     event = excursion(QUIET, t, 1.5)
 
     verdict = novelty.judge(event, 1.5, t)
@@ -51,7 +57,7 @@ def test_quiet_series_stays_sensitive_after_days_of_history() -> None:
 
 def test_limited_history_does_not_absorb_an_excursion_on_the_mean_alone() -> None:
     novelty = Novelty()
-    novelty.observe(QUIET, T0)
+    observe_window(novelty, QUIET, T0, T0 + timedelta(hours=14))
     novelty.record(excursion(QUIET, T0 + timedelta(hours=10), 21.0))
     t = T0 + timedelta(hours=14)
     event = excursion(QUIET, t, 14.5)
@@ -66,7 +72,7 @@ def test_limited_history_does_not_absorb_an_excursion_on_the_mean_alone() -> Non
 
 def test_repeated_flares_become_routine_but_a_larger_one_is_rare() -> None:
     novelty = Novelty()
-    novelty.observe(FLAPPY, T0)
+    observe_window(novelty, FLAPPY, T0, T0 + timedelta(days=4))
     verdicts = []
     for i in range(30):
         start = T0 + timedelta(minutes=144 * i)
@@ -96,8 +102,8 @@ def test_repeated_flares_become_routine_but_a_larger_one_is_rare() -> None:
 
 def test_peers_contribute_to_the_prior_but_flapping_peers_are_capped() -> None:
     novelty = Novelty()
-    novelty.observe(FLAPPY, T0)
-    novelty.observe(QUIET, T0)
+    observe_window(novelty, FLAPPY, T0, T0 + timedelta(days=3))
+    observe_window(novelty, QUIET, T0, T0 + timedelta(days=3))
     for i in range(30):
         start = T0 + timedelta(minutes=144 * i)
         novelty.record(excursion(FLAPPY, start, 9.0))
@@ -116,7 +122,7 @@ def test_peers_contribute_to_the_prior_but_flapping_peers_are_capped() -> None:
 
 def test_routine_size_can_become_unusual_by_duration() -> None:
     novelty = Novelty()
-    novelty.observe(FLAPPY, T0)
+    observe_window(novelty, FLAPPY, T0, T0 + timedelta(days=4))
     for i in range(30):
         start = T0 + timedelta(minutes=144 * i)
         event = excursion(FLAPPY, start, 9.0)
@@ -141,9 +147,10 @@ def test_routine_size_can_become_unusual_by_duration() -> None:
 
 def test_prune_preserves_horizon_boundary_and_exposure() -> None:
     novelty = Novelty()
-    novelty.observe(FLAPPY, T0)
-    novelty.observe(QUIET, T0)
     boundary = T0 + timedelta(days=1)
+    end = boundary + timedelta(days=14)
+    observe_window(novelty, FLAPPY, T0, end)
+    observe_window(novelty, QUIET, T0, end)
     novelty.record(excursion(FLAPPY, boundary - MINUTE, 20.0))
     retained = excursion(FLAPPY, boundary, 9.0)
     novelty.record(retained)
@@ -265,19 +272,73 @@ def test_quality_flags_zero_p95_at_the_inclusive_thresholds() -> None:
     issues = quality.check(series)
 
     assert set(issues) == {FLAPPY}
-    assert "0ms in 50% of minutes despite ~20 sampled spans/min" in issues[FLAPPY]
+    issue = issues[FLAPPY]
+    assert issue is not None
+    assert "0ms in 50% of minutes despite ~20 sampled spans/min" in issue
 
 
 @pytest.mark.parametrize(
-    ("minute_count", "sample_count", "zeros"),
-    [(29, 20.0, 29), (30, 19.0, 30), (30, None, 30), (30, 20.0, 14)],
+    ("minute_count", "sample_count", "zeros", "assessment"),
+    [(29, 20.0, 29, {}), (30, 19.0, 30, {}), (30, None, 30, {}), (30, 20.0, 14, {FLAPPY: None})],
 )
 def test_quality_leaves_healthy_or_insufficiently_sampled_series_alone(
-    minute_count: int, sample_count: float | None, zeros: int
+    minute_count: int,
+    sample_count: float | None,
+    zeros: int,
+    assessment: dict[SeriesKey, str | None],
 ) -> None:
     series: dict[SeriesKey, Series] = {
         FLAPPY: {T0 + i * MINUTE: 0.0 if i < zeros else 120.0 for i in range(minute_count)},
         samples_key(FLAPPY): {T0 + i * MINUTE: sample_count for i in range(minute_count)},
     }
 
-    assert quality.check(series) == {}
+    assert quality.check(series) == assessment
+
+
+def test_gaps_do_not_count_as_quiet_history_or_excursion_duration() -> None:
+    novelty = Novelty()
+    later = T0 + timedelta(hours=2)
+    observe_window(novelty, FLAPPY, T0, T0 + 5 * MINUTE)
+    observed = excursion(FLAPPY, T0, 4.0)
+    observed.ended_at = T0 + timedelta(hours=1)
+    novelty.record(observed)
+    candidate = excursion(FLAPPY, later, 4.0)
+
+    verdict = novelty.judge_duration(candidate, 60, later)
+
+    assert verdict.history_days == pytest.approx(5 / 1440)
+    assert verdict.similar == 0
+
+
+def test_shared_learning_uses_joint_coverage_not_unobserved_history() -> None:
+    replica = SeriesKey("2", QUIET.env, QUIET.signal, QUIET.metric, QUIET.dim_value)
+    novelty = Novelty()
+    end = T0 + timedelta(hours=5)
+    observe_window(novelty, QUIET, T0, end)
+    observe_window(novelty, replica, T0 - timedelta(days=13), end)
+    for offset in range(3):
+        onset = T0 + timedelta(hours=offset)
+        novelty.record(excursion(QUIET, onset, 10.0))
+        novelty.record(excursion(replica, onset, 10.0))
+
+    dependencies = learn(novelty.history, end, coverage=novelty.coverage)
+
+    assert dependencies.get(QUIET, replica) is None
+
+
+def test_shared_learning_does_not_depend_on_project_order() -> None:
+    replica = SeriesKey("2", QUIET.env, QUIET.signal, QUIET.metric, QUIET.dim_value)
+    end = T0 + timedelta(days=14)
+    dense = [T0 + timedelta(hours=hour, minutes=phase) for hour in range(336) for phase in (10, 16)]
+    sparse = [T0 + timedelta(hours=hour, minutes=13) for hour in range(10)]
+    same_onsets = [T0 + timedelta(hours=hour, minutes=40) for hour in range(22)]
+
+    for dense_key, sparse_key in ((QUIET, replica), (replica, QUIET)):
+        novelty = Novelty()
+        observe_window(novelty, dense_key, T0, end)
+        observe_window(novelty, sparse_key, T0, end)
+        for key, starts in ((dense_key, dense), (sparse_key, sparse)):
+            for onset in [*starts, *same_onsets]:
+                novelty.record(excursion(key, onset, 10.0))
+
+        assert learn(novelty.history, end, coverage=novelty.coverage).get(QUIET, replica) is None

@@ -55,7 +55,6 @@ _MAX_CATCHUP = timedelta(minutes=15)
 _MAX_ORGS_PER_TICK = 20
 _MAX_PROJECTS = 10
 _MAX_DELIVERIES = 4
-_MAX_CHECKPOINT_BYTES = 8 * 1024 * 1024
 _MAX_CACHE_BYTES = 900_000
 _INGEST_RETRY_DELAY = timedelta(minutes=5)
 
@@ -135,12 +134,13 @@ def _hourly_rows(
     return rows
 
 
-def _deliver_one(state_id: int, organization_id: int, db: str) -> bool:
-    """Advance at most one FIFO entry. False means there is no deliverable work.
+def _deliver_one(
+    state_id: int, organization_id: int, db: str, waiting: set[str]
+) -> tuple[bool, bool] | None:
+    """Check one activation's head. Return (made progress, pending remains), if checked.
 
-    A short row lock fences retries even if the org lease expires. Kafka and Postgres
-    cannot share a commit: a crash in between replays the same project, fingerprint,
-    and deterministic occurrence/status ID; never acknowledge just a handler return.
+    The row lock fences retries even if the org lease expires. Kafka and Postgres
+    cannot share a commit: a crash in between replays the deterministic transition ID.
     """
     with transaction.atomic(using=db):
         state_rows = AnomalyDetectionState.objects.using(db).filter(
@@ -153,11 +153,19 @@ def _deliver_one(state_id: int, organization_id: int, db: str) -> bool:
                 .get()
             )
         except AnomalyDetectionState.DoesNotExist:
-            return False
+            return None
         delivery = DeliveryState.from_json(raw_delivery)
-        if not delivery.pending:
-            return False
-        pending = delivery.pending[0]
+        index = next(
+            (
+                i
+                for i, item in enumerate(delivery.pending)
+                if item.transition.group_key not in waiting
+            ),
+            None,
+        )
+        if index is None:
+            return None
+        pending = delivery.pending[index]
         transition = pending.transition
         detector = _enabled_detectors().get_or_none(
             id=pending.detector_id,
@@ -171,76 +179,103 @@ def _deliver_one(state_id: int, organization_id: int, db: str) -> bool:
                 "anomaly_detection.delivery_detector_inactive",
                 extra={"organization_id": organization_id, "detector_id": pending.detector_id},
             )
-            delivery.retire(pending.logical_key)
-            state_rows.update(delivery=delivery.to_json(), date_updated=timezone.now())
-            return True
-        if pending.confirm_ingested:
+            delivery.retire_owner(pending.logical_key)
+        else:
             fingerprint = hash_fingerprint(
                 AnomalyDetectionDetectorHandler(detector).get_issue_fingerprint(
                     transition.group_key
                 )
             )
             group = get_group_from_fingerprint(transition.project_id, fingerprint)
-            # The consumer moves status changes to the end of a batch. Observe
-            # opens and closes in the issue DB before subsequent work.
+            # Wait for opens and updates to be visible before sending a close: a
+            # broker acknowledgement does not mean the consumer has applied them.
             # A manually resolved issue already has the intended close state.
-            ingested = group is not None and (
+            if group is not None and (
                 group.status == GroupStatus.RESOLVED
                 if transition.is_resolved
                 else group.last_seen >= transition.timestamp_utc
-            )
-            if not ingested:
-                if (
-                    group is None
-                    and GroupHash.objects.filter(
-                        project_id=transition.project_id,
-                        hash__in=fingerprint,
-                        group_tombstone_id__isnull=False,
-                    ).exists()
-                ):
-                    metrics.incr("anomaly_detection.delivery_tombstoned")
-                    delivery.retire(pending.logical_key)
-                    state_rows.update(delivery=delivery.to_json(), date_updated=timezone.now())
-                    return True
-                if transition.is_resolved and group is None:
-                    # FIFO already observed this lifecycle's open. Its issue
-                    # was removed since then; do not send an orphan close.
-                    logger.warning(
-                        "anomaly_detection.delivery_issue_removed",
-                        extra={"organization_id": organization_id, "detector_id": detector.id},
-                    )
-                    delivery.retire(pending.logical_key)
-                    state_rows.update(delivery=delivery.to_json(), date_updated=timezone.now())
-                    return True
+            ):
+                delivery.pending.pop(index)
+            elif group is None and _is_tombstoned(transition.project_id, fingerprint):
+                metrics.incr("anomaly_detection.delivery_tombstoned")
+                delivery.retire_activation(pending)
+            elif group is None and not pending.is_open:
+                # This activation's open was already observed. Its issue was
+                # removed; neither recreate it with an update nor send an orphan close.
+                logger.warning(
+                    "anomaly_detection.delivery_issue_removed",
+                    extra={"organization_id": organization_id, "detector_id": detector.id},
+                )
+                delivery.retire_activation(pending)
+            else:
                 now = timezone.now()
-                if (
+                published = (
                     pending.broker_acked_at is None
                     or now - pending.broker_acked_at >= _INGEST_RETRY_DELAY
-                ):
+                )
+                if published:
                     publish_anomaly_transition(detector, transition)
                     pending.broker_acked_at = now
-                    state_rows.update(delivery=delivery.to_json(), date_updated=timezone.now())
+                waiting.add(transition.group_key)
+                moved = delivery.defer_activation(transition.group_key)
+                if published or moved:
+                    state_rows.update(delivery=delivery.to_json(), date_updated=now)
                 metrics.incr("anomaly_detection.delivery_waiting_for_ingest")
-                return False
-        else:
-            publish_anomaly_transition(detector, transition)
-        delivery.pending.pop(0)
+                return published, True
         state_rows.update(delivery=delivery.to_json(), date_updated=timezone.now())
-        return True
+        return True, bool(delivery.pending)
 
 
-def _drain(state_id: int, organization_id: int, db: str) -> None:
+def _is_tombstoned(project_id: int, fingerprint: Sequence[str]) -> bool:
+    return GroupHash.objects.filter(
+        project_id=project_id, hash__in=fingerprint, group_tombstone_id__isnull=False
+    ).exists()
+
+
+def _drain(state_id: int, organization_id: int, db: str) -> tuple[bool, bool]:
+    """Return (pending remains, enqueue continuation) after a bounded drain."""
+    waiting: set[str] = set()
+    made_progress = False
     for _ in range(_MAX_DELIVERIES):
-        if not _deliver_one(state_id, organization_id, db):
-            break
+        result = _deliver_one(state_id, organization_id, db, waiting)
+        if result is None:
+            return True, False
+        progressed, pending_remains = result
+        if not pending_remains:
+            return False, False
+        made_progress |= progressed
+    # If the whole pass was waiting on ingestion, let the next cron tick retry.
+    return True, made_progress
 
 
-def _run_organization(organization_id: int, end: datetime) -> None:
+def _run_organization(organization_id: int, target: datetime) -> bool:
+    """Make one bounded unit of progress; return whether to enqueue a continuation."""
     organization = Organization.objects.get_or_none(
         id=organization_id, status=OrganizationStatus.ACTIVE
     )
     if organization is None or not _eligible(organization):
-        return
+        return False
+
+    db = router.db_for_write(AnomalyDetectionState)
+    state_rows = AnomalyDetectionState.objects.using(db).filter(organization_id=organization_id)
+    delivery_rows = state_rows.values_list("id", "next_minute", "delivery")
+    saved_delivery = delivery_rows.get_or_none()
+    if saved_delivery is not None:
+        state_id, _, delivery_data = saved_delivery
+        if DeliveryState.from_json(delivery_data).pending:
+            pending_remains, continue_draining = _drain(state_id, organization_id, db)
+            if pending_remains:
+                # Commit at most one evaluation batch while there is work to deliver.
+                return continue_draining
+            saved_delivery = delivery_rows.get_or_none()
+            if saved_delivery is None:
+                return False
+        delivery = DeliveryState.from_json(saved_delivery[2])
+    else:
+        delivery = DeliveryState()
+    if delivery.pending:
+        # A worker holding a newer lease may have staged another batch.
+        return False
 
     detector_rows = list(
         _enabled_detectors()
@@ -250,39 +285,48 @@ def _run_organization(organization_id: int, end: datetime) -> None:
         .select_related("project")[: _MAX_PROJECTS + 1]
     )
     if not detector_rows:
-        return
+        return False
     if len(detector_rows) > _MAX_PROJECTS:
         raise RuntimeError("Anomaly detection organization exceeds the project limit")
     projects = [detector.linked_project for detector in detector_rows]
     detector_ids = {detector.linked_project.id: detector.id for detector in detector_rows}
 
-    db = router.db_for_write(AnomalyDetectionState)
-    state, _ = AnomalyDetectionState.objects.using(db).get_or_create(
-        organization_id=organization_id
-    )
-    delivery = DeliveryState.from_json(state.delivery)
-    if delivery.pending:
-        _drain(state.id, organization_id, db)
-        state = AnomalyDetectionState.objects.using(db).get(id=state.id)
-        delivery = DeliveryState.from_json(state.delivery)
-        if delivery.pending:
-            # Backpressure: do not expand the durable queue while earlier work is stuck.
-            return
+    if saved_delivery is None:
+        state, created = state_rows.get_or_create(organization_id=organization_id)
+        if not created:
+            # Another worker acquired the lease and created a checkpoint meanwhile.
+            return False
+        state_id, next_minute = state.id, state.next_minute
+    else:
+        state_id, next_minute, _ = saved_delivery
 
-    if state.next_minute is None:
+    end = target
+    if next_minute is None:
         # Collect warmup data, but only publish the active state at the boundary.
         publish_from = end - _MINUTE
         fetch_start = publish_from - _MINUTE_WARMUP
     else:
-        fetch_start = publish_from = state.next_minute.astimezone(UTC).replace(tzinfo=None)
+        fetch_start = publish_from = next_minute.astimezone(UTC).replace(tzinfo=None)
         end = min(end, publish_from + _MAX_CATCHUP)
         if publish_from >= end:
-            return
+            return False
+
+    current_row = state_rows.values_list("checkpoint").get_or_none(
+        id=state_id, next_minute=next_minute
+    )
+    if current_row is None:
+        return False
+    (previous_checkpoint,) = current_row
 
     rows = collect(organization, projects, fetch_start, end, "1m")
     hourly_rows = _hourly_rows(organization, projects, end)
     new_issues = collect_new_failure_modes(
-        organization, projects, new_failure_thresholds(hourly_rows), fetch_start, end
+        organization,
+        projects,
+        new_failure_thresholds(hourly_rows),
+        fetch_start,
+        end,
+        current_rows=rows,
     )
     decisions, checkpoint = advance_org(
         rows=rows,
@@ -291,13 +335,10 @@ def _run_organization(organization_id: int, end: datetime) -> None:
         end=end,
         footprints=TraceLookup(organization, projects),
         new_issues=new_issues,
-        checkpoint=state.checkpoint,
+        checkpoint=previous_checkpoint,
         current_projects={str(p.id) for p in projects},
     )
-    size = len(orjson.dumps(checkpoint))
-    metrics.distribution("anomaly_detection.checkpoint_bytes", size)
-    if size > _MAX_CHECKPOINT_BYTES:
-        raise RuntimeError("Anomaly evaluation checkpoint exceeded its capacity")
+    metrics.distribution("anomaly_detection.checkpoint_bytes", len(orjson.dumps(checkpoint)))
     delivery.stage(
         decisions,
         detector_ids,
@@ -310,8 +351,8 @@ def _run_organization(organization_id: int, end: datetime) -> None:
     updated = (
         AnomalyDetectionState.objects.using(db)
         .filter(
-            id=state.id,
-            next_minute=state.next_minute,
+            id=state_id,
+            next_minute=next_minute,
         )
         .update(
             next_minute=end.replace(tzinfo=UTC),
@@ -320,8 +361,13 @@ def _run_organization(organization_id: int, end: datetime) -> None:
             date_updated=timezone.now(),
         )
     )
-    if updated and delivery.pending:
-        _drain(state.id, organization_id, db)
+    if not updated:
+        return False
+    if delivery.pending:
+        pending_remains, continue_draining = _drain(state_id, organization_id, db)
+        if pending_remains:
+            return continue_draining
+    return end < target
 
 
 @instrumented_task(
@@ -349,4 +395,6 @@ def run_anomaly_detection(organization_id: int, end: str) -> None:
         metrics.incr("anomaly_detection.worker_already_running")
         return
     with acquired:
-        _run_organization(organization_id, target)
+        should_continue = _run_organization(organization_id, target)
+    if should_continue:
+        run_anomaly_detection.delay(organization_id, target.replace(tzinfo=UTC).isoformat())

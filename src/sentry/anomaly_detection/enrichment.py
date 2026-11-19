@@ -5,12 +5,23 @@ from __future__ import annotations
 import math
 import re
 from collections import defaultdict
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from datetime import UTC, datetime, timedelta
 from statistics import median
 from typing import TYPE_CHECKING
 
-from snuba_sdk import Column, Condition, Direction, Entity, Function, Limit, Op, OrderBy, Query
+from snuba_sdk import (
+    Column,
+    Condition,
+    Direction,
+    Entity,
+    Function,
+    Limit,
+    Offset,
+    Op,
+    OrderBy,
+    Query,
+)
 
 from sentry.anomaly_detection.collection import (
     ERROR_RELEASE,
@@ -29,7 +40,13 @@ from sentry.anomaly_detection.collection import (
     _utc,
 )
 from sentry.anomaly_detection.contracts import ChangeEvent, ChangeType, SeriesKey
-from sentry.anomaly_detection.footprint import Footprint, SliceStats, base_signal
+from sentry.anomaly_detection.footprint import (
+    FOOTPRINT_DEFERRED,
+    Footprint,
+    FootprintResult,
+    SliceStats,
+    base_signal,
+)
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.group import Group
 from sentry.search.events.types import SnubaParams, SnubaRow
@@ -50,7 +67,7 @@ _SPAN_BY_NAME = {signal.name: signal for signal in SPAN_SLICES}
 _ISSUE_LIFETIME = timedelta(hours=1)
 _MAX_NEW_GROUPS = 100  # candidate groups per project
 _MAX_NEW_FAMILIES = 25  # queried families per project/environment
-_MAX_ISSUE_EVENTS = 500  # earliest events per family
+_ISSUE_USER_PAGE_SIZE = 10_000  # SnQL limits each page to 10,000 rows.
 _MIN_NEW_USERS = 10
 
 
@@ -64,18 +81,6 @@ def _traces(rows: Sequence[SnubaRow], field: str) -> list[str]:
     )
 
 
-def _issue_ids(change: ChangeEvent) -> list[int]:
-    ids = next(
-        (s.removeprefix("issues:") for s in change.evidence if s.startswith("issues:")),
-        change.key.dim_value,
-    )
-    return [
-        int(value)
-        for value in ids.split(",", _MAX_NEW_GROUPS)[:_MAX_NEW_GROUPS]
-        if value.isascii() and value.isdigit() and len(value) <= 19
-    ]
-
-
 class TraceLookup:
     """Correlator footprint source. Scope the sample to the change before expanding its traces."""
 
@@ -85,9 +90,12 @@ class TraceLookup:
         self.span_projects = [
             project for project in self.projects.values() if Spans.filter_project(project)
         ]
-        self.cache: dict[tuple[SeriesKey, ChangeType, datetime, datetime], Footprint | None] = {}
+        self.cache: dict[
+            tuple[SeriesKey, ChangeType, datetime, datetime, tuple[int, ...]], Footprint | None
+        ] = {}
 
-    def footprint(self, change: ChangeEvent) -> Footprint | None:
+    def footprint(self, change: ChangeEvent, observation_end: datetime) -> FootprintResult:
+        """Look up affected traces using only data before the exclusive observation end."""
         if change.change_type in {ChangeType.DROP, ChangeType.SILENCE} or not self.span_projects:
             return None
         project = self.projects.get(change.key.project)
@@ -95,15 +103,25 @@ class TraceLookup:
             return None
         detected = _utc(change.detected_at or change.start)
         onset = _utc(change.start)
-        start = onset - timedelta(minutes=1)
-        end = min(
-            max(detected, onset + timedelta(minutes=3)), onset + timedelta(minutes=15)
-        ) + timedelta(minutes=1)
-        cache_key = (change.key, change.change_type, start, end)
+        if change.key.signal == "new_issue":
+            # An issue can cross the user threshold long after its onset.
+            if not change.issue_ids:
+                return None
+            start = max(onset - timedelta(minutes=1), detected - timedelta(minutes=15))
+            end = detected
+        else:
+            start = onset - timedelta(minutes=1)
+            end = min(
+                max(detected, onset + timedelta(minutes=3)), onset + timedelta(minutes=15)
+            ) + timedelta(minutes=1)
+        end = min(end, _utc(observation_end))
+        if start >= end:
+            return None
+        cache_key = (change.key, change.change_type, start, end, change.issue_ids)
         if cache_key in self.cache:
             return self.cache[cache_key]
         if len(self.cache) >= _MAX_FOOTPRINTS:
-            return None
+            return FOOTPRINT_DEFERRED
         self.cache[cache_key] = self._lookup(change, project, start, end)
         return self.cache[cache_key]
 
@@ -167,10 +185,7 @@ class TraceLookup:
                 Condition(_error_env(), Op.EQ, key.env),
             ]
             if name == "new_issue":
-                ids = _issue_ids(change)
-                if not ids:
-                    return None
-                conditions.append(Condition(Column("group_id"), Op.IN, ids))
+                conditions.append(Condition(Column("group_id"), Op.IN, list(change.issue_ids)))
             elif name == "errors_by_release":
                 conditions.append(Condition(Column(ERROR_RELEASE), Op.EQ, key.dim_value))
             traces = _traces(
@@ -192,31 +207,8 @@ class TraceLookup:
             )
             if traces:
                 result = self._build(key, traces, start, end)
-                if result.slices:
+                if result.slices or result.edges:
                     return result
-            count = Function("count", [])
-            transaction = Column("transaction")
-            rows = _run_errors(
-                self.organization,
-                Query(
-                    match=Entity("events"),
-                    select=[count],
-                    where=conditions,
-                    groupby=[transaction],
-                    orderby=[OrderBy(count, Direction.DESC), OrderBy(transaction, Direction.ASC)],
-                    limit=Limit(3),
-                ),
-                _REFERRER,
-            )
-            transactions = tuple(row["transaction"] for row in rows if row["transaction"])
-            if transactions and (
-                fallback := self._sample_spans(
-                    project, key.env, start, end, REQUEST_QUERY, (("transaction", transactions),)
-                )
-            ):
-                result = self._build(key, fallback, start, end)
-                result.via = "failing transactions"
-                return result if result.slices else None
             return None
 
         filters: tuple[tuple[str, tuple[str, ...]], ...]
@@ -334,6 +326,8 @@ def collect_new_failure_modes(
     thresholds: Mapping[tuple[str, str], float],
     start: datetime,
     end: datetime,
+    *,
+    current_rows: Sequence[Row],
 ) -> list[ChangeEvent]:
     """Find new failure modes and weaker corroborating issues in [start, end)."""
     projects_by_id = _project_map(organization, projects)
@@ -341,12 +335,19 @@ def collect_new_failure_modes(
     changes: list[ChangeEvent] = []
     if start >= end:
         return changes
+    current_environments: dict[str, set[str]] = defaultdict(set)
+    for minute, signal, metric, project_id, env, dimension, value in current_rows:
+        if (
+            start <= _utc(minute) < end
+            and signal == "errors"
+            and metric == "count()"
+            and not dimension
+            and value is not None
+            and value > 0
+        ):
+            current_environments[project_id].add(env)
     for project_id, project in projects_by_id.items():
-        environments = sorted(
-            (env, threshold)
-            for (pid, env), threshold in thresholds.items()
-            if pid == project_id and math.isfinite(threshold) and threshold > 0
-        )[:MAX_ENVIRONMENTS]
+        environments = sorted(current_environments.get(project_id, ()))[:MAX_ENVIRONMENTS]
         if not environments:
             continue
         oldest = start - _ISSUE_LIFETIME
@@ -362,7 +363,10 @@ def collect_new_failure_modes(
             continue
         groups_by_id = {group.id: group for group in groups}
         group_id = Column("group_id")
-        for env, threshold in environments:
+        for env in environments:
+            threshold = thresholds.get((project_id, env), float(_MIN_NEW_USERS))
+            if not math.isfinite(threshold) or threshold <= 0:
+                threshold = float(_MIN_NEW_USERS)
             conditions = [Condition(_error_env(), Op.EQ, env)]
             candidates = _run_errors(
                 organization,
@@ -407,35 +411,24 @@ def collect_new_failure_modes(
                 window_end = min(first_seen + _ISSUE_LIFETIME, end)
                 if window_end <= start:
                     continue
-                ids = [group.id for group, _, _ in members]
-                timestamp = Column("timestamp")
-                user = Column(ERROR_USER)
-                events = _run_errors(
-                    organization,
-                    Query(
-                        match=Entity("events"),
-                        select=[timestamp, user],
-                        where=[
-                            *_error_where(
-                                project, first_seen.replace(second=0, microsecond=0), window_end
-                            ),
-                            *conditions,
-                            Condition(group_id, Op.IN, ids),
-                        ],
-                        orderby=[
-                            OrderBy(timestamp, Direction.ASC),
-                            OrderBy(Column("event_id"), Direction.ASC),
-                        ],
-                        limit=Limit(_MAX_ISSUE_EVENTS),
-                    ),
-                    _REFERRER,
-                )
+                ids = tuple(group.id for group, _, _ in members)
                 cutoffs = (
                     (float(_MIN_NEW_USERS), threshold)
                     if threshold > _MIN_NEW_USERS
                     else (threshold,)
                 )
-                for cutoff, crossed_at, users in _crossings(events, cutoffs):
+                first_user_times = _first_user_times(
+                    organization,
+                    [
+                        *_error_where(
+                            project, first_seen.replace(second=0, microsecond=0), window_end
+                        ),
+                        *conditions,
+                        Condition(group_id, Op.IN, list(ids)),
+                    ],
+                    math.ceil(cutoffs[-1]),
+                )
+                for cutoff, crossed_at, users in _crossings(first_user_times, cutoffs):
                     if not start <= crossed_at < window_end:
                         continue
                     confirmed = cutoff == threshold
@@ -456,24 +449,54 @@ def collect_new_failure_modes(
                             detected_at=crossed_at.replace(second=0, microsecond=0)
                             + timedelta(minutes=1),
                             peak_ratio=users / threshold,
-                            evidence=[title[:200], "issues:" + ",".join(map(str, ids))],
+                            evidence=[title[:200]],
+                            issue_ids=ids,
                         )
                     )
     return sorted(changes, key=lambda change: (change.detected_at or change.start, change.key))
 
 
+def _first_user_times(
+    organization: Organization, conditions: list[Condition], users_needed: int
+) -> Iterator[datetime]:
+    # Deduplicate across the whole family before applying the limit: a flood
+    # from one user must not hide later first occurrences from other users.
+    user = Column(ERROR_USER)
+    first_seen = Function("min", [Column("timestamp")], "first_seen")
+    where = [*conditions, Condition(user, Op.NEQ, "")]
+    for offset in range(0, users_needed, _ISSUE_USER_PAGE_SIZE):
+        limit = min(users_needed - offset, _ISSUE_USER_PAGE_SIZE)
+        rows = _run_errors(
+            organization,
+            Query(
+                match=Entity("events"),
+                select=[first_seen],
+                where=where,
+                groupby=[user],
+                orderby=[
+                    OrderBy(Column("first_seen"), Direction.ASC),
+                    OrderBy(user, Direction.ASC),
+                ],
+                limit=Limit(limit),
+                offset=Offset(offset) if offset else None,
+            ),
+            _REFERRER,
+        )
+        for row in rows:
+            yield _utc(row["first_seen"])
+        if len(rows) < limit:
+            break
+
+
 def _crossings(
-    events: Sequence[SnubaRow], cutoffs: tuple[float, ...]
+    first_user_times: Iterator[datetime], cutoffs: tuple[float, ...]
 ) -> list[tuple[float, datetime, int]]:
-    users: set[str] = set()
     found: list[tuple[float, datetime, int]] = []
-    for event in events:
-        if user := event.get(ERROR_USER):
-            users.add(user)
-            if len(users) >= cutoffs[len(found)]:
-                found.append((cutoffs[len(found)], _utc(event["timestamp"]), len(users)))
-                if len(found) == len(cutoffs):
-                    break
+    for users, first_seen in enumerate(first_user_times, start=1):
+        if users >= cutoffs[len(found)]:
+            found.append((cutoffs[len(found)], first_seen, users))
+            if len(found) == len(cutoffs):
+                break
     # Skip redundant weak evidence if the strong crossing is observable in the
     # same minute, but never hide earlier evidence using later events.
     if len(found) == 2 and found[0][1].replace(second=0, microsecond=0) == found[1][1].replace(

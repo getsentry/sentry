@@ -12,13 +12,17 @@ from __future__ import annotations
 
 import math
 import re
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 from sentry.anomaly_detection.contracts import ChangeEvent, SeriesKey
 
 DAY = 86400.0
+_MINUTE = timedelta(minutes=1)
+
+# One bit per minute keeps a full hour of observations in a single JSON-safe integer.
+HourlyCoverage = dict[datetime, int]
 
 
 @dataclass
@@ -86,14 +90,16 @@ class Novelty:
     def __init__(self, cfg: NoveltyConfig | None = None) -> None:
         self.cfg = cfg or NoveltyConfig()
         self.history: dict[SeriesKey, list[_Ex]] = {}
-        self.first_seen: dict[SeriesKey, datetime] = {}
-        self.kinds: dict[str, set[SeriesKey]] = {}
+        self.coverage: dict[SeriesKey, HourlyCoverage] = {}
 
-    def observe(self, key: SeriesKey, first: datetime) -> None:
-        """Register when a watched series' data starts (its exposure can't be older)."""
-        if key not in self.first_seen or first < self.first_seen[key]:
-            self.first_seen[key] = first
-        self.kinds.setdefault(kind_of(key), set()).add(key)
+    def observe(self, key: SeriesKey, minute: datetime) -> None:
+        hour = minute.replace(minute=0)
+        hours = self.coverage.setdefault(key, {})
+        hours[hour] = hours.get(hour, 0) | (1 << minute.minute)
+
+    def observed_duration(self, event: ChangeEvent, now: datetime) -> int:
+        end = min(event.ended_at, now) if event.ended_at is not None else now
+        return self._covered_minutes(event.key, event.start, end)
 
     def judge(self, e: ChangeEvent, size: float, t: datetime) -> Verdict:
         floor = size / self.cfg.comparable
@@ -106,7 +112,11 @@ class Novelty:
         floor = minutes / cfg.comparable
         base = cfg.base_rate * min(1.0, cfg.base_minutes / floor) if floor > 0 else cfg.base_rate
         verdict = self._judge(
-            e, t, lambda x: _duration_min(x, t) >= floor, base, size_of(e.peak_ratio)
+            e,
+            t,
+            lambda record: self.observed_duration(record.event, t) >= floor,
+            base,
+            size_of(e.peak_ratio),
         )
         verdict.lasting_min = minutes
         return verdict
@@ -115,7 +125,7 @@ class Novelty:
         self.history.setdefault(e.key, []).append(_Ex(e.start, e))
 
     def prune(self, t: datetime) -> None:
-        """Drop excursions outside the history horizon without resetting series exposure."""
+        """Drop excursions and observations outside the rolling history horizon."""
         horizon = t - timedelta(days=self.cfg.horizon_days)
         for key in list(self.history):
             within_horizon = [record for record in self.history[key] if record.start >= horizon]
@@ -123,13 +133,19 @@ class Novelty:
                 self.history[key] = within_horizon
             else:
                 del self.history[key]
+        first_hour = horizon.replace(minute=0)
+        for key, hours in list(self.coverage.items()):
+            for hour in list(hours):
+                if hour < first_hour:
+                    del hours[hour]
+            if not hours:
+                del self.coverage[key]
 
     def _judge(
         self, e: ChangeEvent, t: datetime, similar: Callable[[_Ex], bool], base: float, size: float
     ) -> Verdict:
         cfg, key = self.cfg, e.key
         kind = kind_of(key)
-        self.observe(key, self.first_seen.get(key, t))
         horizon = t - timedelta(days=cfg.horizon_days)
         count = sum(
             1
@@ -153,9 +169,14 @@ class Novelty:
             p_normal=p_normal,
         )
 
-    def _exposure(self, key: SeriesKey, t: datetime) -> float:
-        first = self.first_seen.get(key, t)
-        return max(0.0, min(self.cfg.horizon_days, (t - first).total_seconds() / DAY))
+    def _exposure(self, key: SeriesKey, now: datetime) -> float:
+        start = now - timedelta(days=self.cfg.horizon_days)
+        return self._covered_minutes(key, start, now) / (DAY / 60)
+
+    def _covered_minutes(self, key: SeriesKey, start: datetime, end: datetime) -> int:
+        return sum(
+            mask.bit_count() for _, mask in coverage_between(self.coverage.get(key, {}), start, end)
+        )
 
     def _pooled(
         self,
@@ -167,8 +188,8 @@ class Novelty:
         exclude: SeriesKey,
     ) -> float:
         count, days = 0.0, 0.0
-        for key in sorted(self.kinds[kind]):
-            if key == exclude:
+        for key in sorted(self.coverage):
+            if key == exclude or kind_of(key) != kind:
                 continue
             exposure = self._exposure(key, t)
             if exposure <= 0:
@@ -242,8 +263,24 @@ def size_of(ratio: float) -> float:
     return max(ratio, 1 / ratio)
 
 
-def _duration_min(record: _Ex, t: datetime) -> float:
-    return ((record.event.ended_at or t) - record.start).total_seconds() / 60
+def coverage_between(
+    hours: HourlyCoverage, start: datetime, end: datetime
+) -> Iterator[tuple[datetime, int]]:
+    """Yield observed-minute masks clipped to the minute-aligned interval [start, end)."""
+    if start >= end:
+        return
+    first_hour = start.replace(minute=0)
+    last_hour = (end - _MINUTE).replace(minute=0)
+    for hour, mask in hours.items():
+        if not first_hour <= hour <= last_hour:
+            continue
+        if hour == first_hour:
+            mask &= ~((1 << start.minute) - 1)
+        if hour == last_hour:
+            minute_count = int((end - hour) / _MINUTE)
+            mask &= (1 << minute_count) - 1
+        if mask:
+            yield hour, mask
 
 
 def _minutes(m: float) -> str:

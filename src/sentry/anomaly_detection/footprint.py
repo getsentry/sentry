@@ -3,6 +3,8 @@
 from collections import Counter
 from dataclasses import dataclass, field
 from datetime import datetime
+from enum import Enum
+from typing import Final, Literal
 
 from sentry.anomaly_detection.contracts import SeriesKey
 
@@ -34,6 +36,15 @@ class Footprint:
     def touches(self, key: SeriesKey, min_share: float = 0.2) -> SliceStats | None:
         stats = self.slices.get(slice_of(key))
         return stats if stats is not None and stats.trace_share >= min_share else None
+
+
+class _FootprintStatus(Enum):
+    DEFERRED = "deferred"
+
+
+# A budget miss is not evidence that the event has no affected traces.
+FOOTPRINT_DEFERRED: Final = _FootprintStatus.DEFERRED
+FootprintResult = Footprint | None | Literal[_FootprintStatus.DEFERRED]
 
 
 def base_signal(signal: str) -> str:

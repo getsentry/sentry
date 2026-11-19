@@ -12,8 +12,6 @@ from sentry.anomaly_detection.pipeline import AnomalyDecision
 from sentry.workflow_engine.types import DetectorPriorityLevel
 
 _STATE_VERSION = 2
-_MAX_PINS = 1024
-_MAX_PENDING = 256
 _PRIORITIES = {
     Urgency.LOW: DetectorPriorityLevel.LOW,
     Urgency.MEDIUM: DetectorPriorityLevel.MEDIUM,
@@ -29,7 +27,8 @@ class Pin:
     title: str
     activation_key: str
     closed: bool = False
-    retired: bool = False
+    owner_retired: bool = False
+    activation_retired: bool = False
 
 
 @dataclass
@@ -37,7 +36,7 @@ class PendingTransition:
     logical_key: str  # The evaluator's group key, not the published activation key.
     detector_id: int
     transition: AnomalyTransition
-    confirm_ingested: bool
+    is_open: bool
     broker_acked_at: datetime | None = None
 
 
@@ -61,7 +60,8 @@ class DeliveryState:
                     title=item["title"],
                     activation_key=item["activation_key"],
                     closed=item["closed"],
-                    retired=item["retired"],
+                    owner_retired=item["retired"],
+                    activation_retired=item.get("activation_retired", False),
                 )
                 for group_key, item in value["pins"].items()
             },
@@ -79,7 +79,7 @@ class DeliveryState:
                         evidence={},
                         env=item["env"],
                     ),
-                    confirm_ingested=item["confirm_ingested"],
+                    is_open=item["confirm_ingested"] and not item["is_resolved"],
                     broker_acked_at=(
                         datetime.fromisoformat(item["broker_acked_at"])
                         if item["broker_acked_at"]
@@ -101,7 +101,8 @@ class DeliveryState:
                     "title": pin.title,
                     "activation_key": pin.activation_key,
                     "closed": pin.closed,
-                    "retired": pin.retired,
+                    "retired": pin.owner_retired,
+                    "activation_retired": pin.activation_retired,
                 }
                 for group_key, pin in self.pins.items()
             },
@@ -116,7 +117,8 @@ class DeliveryState:
                     "is_resolved": item.transition.is_resolved,
                     "title": item.transition.title,
                     "env": item.transition.env,
-                    "confirm_ingested": item.confirm_ingested,
+                    # In version 2 this flag distinguished opens and closes from updates.
+                    "confirm_ingested": item.is_open or item.transition.is_resolved,
                     "broker_acked_at": (
                         item.broker_acked_at.isoformat() if item.broker_acked_at else None
                     ),
@@ -125,10 +127,33 @@ class DeliveryState:
             ],
         }
 
-    def retire(self, logical_key: str) -> None:
-        """Drop an undeliverable lifecycle without ever rebinding its owner."""
-        self.pins[logical_key] = replace(self.pins[logical_key], retired=True)
+    def retire_owner(self, logical_key: str) -> None:
+        """Drop work for a disabled or deleted owner without rebinding it."""
+        self.pins[logical_key] = replace(self.pins[logical_key], owner_retired=True)
         self.pending = [item for item in self.pending if item.logical_key != logical_key]
+
+    def retire_activation(self, pending: PendingTransition) -> None:
+        activation_key = pending.transition.group_key
+        pin = self.pins[pending.logical_key]
+        if pin.activation_key == activation_key:
+            self.pins[pending.logical_key] = replace(pin, activation_retired=True)
+        self.pending = [
+            item for item in self.pending if item.transition.group_key != activation_key
+        ]
+
+    def defer_activation(self, activation_key: str) -> bool:
+        """Give other activations a turn without reordering this activation's work."""
+        deferred: list[PendingTransition] = []
+        other: list[PendingTransition] = []
+        for item in self.pending:
+            if item.transition.group_key == activation_key:
+                deferred.append(item)
+            else:
+                other.append(item)
+        if not other:
+            return False
+        self.pending = other + deferred
+        return True
 
     def stage(
         self,
@@ -140,13 +165,18 @@ class DeliveryState:
         retained_keys: set[str],
     ) -> None:
         """Use evaluator order within a minute. An update cannot repoint an existing issue."""
+        non_resolution_by_identity: dict[tuple[str, datetime], PendingTransition] = {}
         for decision in sorted(decisions, key=lambda decision: decision.timestamp):
             if not start <= decision.timestamp < end:
                 continue
             key = decision.group_key
             pin = self.pins.get(key)
             needs_open = pin is None or pin.closed
-            if pin is not None and pin.retired:
+            if pin is not None and pin.owner_retired:
+                continue
+            if pin is not None and pin.activation_retired and not pin.closed:
+                if decision.is_resolved:
+                    self.pins[key] = replace(pin, closed=True)
                 continue
             if decision.is_resolved and (pin is None or pin.closed):
                 continue
@@ -160,30 +190,36 @@ class DeliveryState:
             elif pin.closed:
                 # An in-flight close retry still targets the old activation. Reuse
                 # the owner, not the fingerprint, when the evaluator reopens it.
-                pin = replace(pin, activation_key=uuid4().hex)
+                pin = replace(pin, activation_key=uuid4().hex, activation_retired=False)
             self.pins[key] = replace(pin, closed=decision.is_resolved)
-            self.pending.append(
-                PendingTransition(
-                    logical_key=key,
-                    detector_id=pin.detector_id,
-                    transition=AnomalyTransition(
-                        group_key=pin.activation_key,
-                        project_id=pin.project_id,
-                        timestamp=decision.timestamp,
-                        priority=_PRIORITIES[decision.urgency],
-                        is_resolved=decision.is_resolved,
-                        title=pin.title,
-                        # Internal evidence may contain data from other projects.
-                        evidence={},
-                        env=pin.env,
-                    ),
-                    confirm_ingested=needs_open or decision.is_resolved,
-                )
+            priority = _PRIORITIES[decision.urgency]
+            identity = (pin.activation_key, decision.timestamp)
+            if not decision.is_resolved and identity in non_resolution_by_identity:
+                # An open and update in the same minute share an occurrence ID.
+                previous = non_resolution_by_identity[identity]
+                previous.transition = replace(previous.transition, priority=priority)
+                continue
+            pending = PendingTransition(
+                logical_key=key,
+                detector_id=pin.detector_id,
+                transition=AnomalyTransition(
+                    group_key=pin.activation_key,
+                    project_id=pin.project_id,
+                    timestamp=decision.timestamp,
+                    priority=priority,
+                    is_resolved=decision.is_resolved,
+                    title=pin.title,
+                    # Internal evidence may contain data from other projects.
+                    evidence={},
+                    env=pin.env,
+                ),
+                is_open=needs_open,
             )
+            self.pending.append(pending)
+            if not decision.is_resolved:
+                non_resolution_by_identity[identity] = pending
         # Scope reconciliation can discard an open group without emitting a close.
         queued = {item.logical_key for item in self.pending}
         self.pins = {
             key: pin for key, pin in self.pins.items() if key in retained_keys or key in queued
         }
-        if len(self.pending) > _MAX_PENDING or len(self.pins) > _MAX_PINS:
-            raise RuntimeError("Anomaly delivery state exceeded its capacity")

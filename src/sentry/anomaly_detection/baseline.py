@@ -45,10 +45,25 @@ class Baseline:
         self.hourly = hourly
         self.cfg = cfg or BaselineConfig()
         self._shape_cache: dict[tuple[SeriesKey, datetime], float | None] = {}
+        self._fallback_cache: dict[tuple[SeriesKey, datetime], float] = {}
         self._windows: dict[datetime, tuple[tuple[datetime, datetime], ...]] = {}
 
     def shape(self, key: SeriesKey, t: datetime) -> float:
-        return self.raw_shape(key, t) or 1.0
+        shape = self.raw_shape(key, t)
+        if shape is not None:
+            return shape
+        # A missing hour still needs the same units as fitted seasonal observations.
+        day = t.replace(hour=0, minute=0, second=0, microsecond=0)
+        cache_key = (key, day)
+        if cache_key not in self._fallback_cache:
+            cutoff = day - timedelta(days=self.cfg.history_days)
+            values = [
+                value
+                for hour, value in self.hourly.get(key, {}).items()
+                if cutoff <= hour < day and value is not None and value > 0
+            ]
+            self._fallback_cache[cache_key] = median(values) if values else 1.0
+        return self._fallback_cache[cache_key]
 
     def raw_shape(self, key: SeriesKey, t: datetime) -> float | None:
         """Prefer history from the same hour and day type (weekday or weekend)."""
@@ -61,7 +76,7 @@ class Baseline:
             same_type = [
                 value for day, value in values if (day.weekday() >= 5) == (hour.weekday() >= 5)
             ]
-            selected = same_type if len(same_type) >= 5 else [value for _, value in values]
+            selected = same_type if len(same_type) >= 3 else [value for _, value in values]
             shape = median(selected) if len(selected) >= 3 else 0.0
             self._shape_cache[cache_key] = shape if shape > 0 else None
         return self._shape_cache[cache_key]
@@ -79,7 +94,7 @@ class Baseline:
         key: SeriesKey,
         series: Series,
         t: datetime,
-        excluded: set[datetime],
+        excluded_minutes: set[datetime],
         anchor: datetime | None = None,
         weights: Series | None = None,
         pending: set[datetime] | None = None,
@@ -90,24 +105,24 @@ class Baseline:
         recent: list[float | None] = []
         skipped = 0
         hour_shapes: dict[datetime, float] = {}
-        for ts, hour in window:
-            value = series.get(ts)
+        for minute, hour in window:
+            value = series.get(minute)
             recent.append(value)
             if value is None:
                 continue
-            if ts in excluded:
+            if minute in excluded_minutes:
                 skipped += 1
             else:
                 if hour not in hour_shapes:
                     hour_shapes[hour] = self.shape(key, hour)
-                points.append((ts, hour_shapes[hour], value))
+                points.append((minute, hour_shapes[hour], value))
         if skipped:
-            ts = window[0][0]
+            minute = window[0][0]
             for _ in range(self.cfg.reach_back_min):
-                ts -= MINUTE
-                value = series.get(ts)
-                if value is not None and ts not in excluded:
-                    points.append((ts, self.shape(key, ts), value))
+                minute -= MINUTE
+                value = series.get(minute)
+                if value is not None and minute not in excluded_minutes:
+                    points.append((minute, self.shape(key, minute), value))
                     skipped -= 1
                     if not skipped:
                         break
@@ -119,9 +134,9 @@ class Baseline:
             # A mostly-zero rate's median misses intermittent failures. Pool its events and
             # denominators instead, ignoring recently flagged minutes while a change is pending.
             unflagged = [
-                (ts, ratio)
-                for (ts, _, _), ratio in zip(points, ratios)
-                if ts not in (pending or ())
+                (minute, ratio)
+                for (minute, _, _), ratio in zip(points, ratios)
+                if minute not in (pending or ())
             ]
             if unflagged:
                 level = _pooled(unflagged, weights)
@@ -154,7 +169,7 @@ class Baseline:
 
 def _pooled(points: list[tuple[datetime, float]], weights: Series | None) -> float:
     if weights:
-        weighted = [(ratio, w) for ts, ratio in points if (w := weights.get(ts))]
+        weighted = [(ratio, w) for minute, ratio in points if (w := weights.get(minute))]
         if total := sum(weight for _, weight in weighted):
             return sum(ratio * weight for ratio, weight in weighted) / total
     return sum(ratio for _, ratio in points) / len(points)

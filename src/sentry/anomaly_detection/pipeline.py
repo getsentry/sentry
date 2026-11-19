@@ -19,7 +19,7 @@ from sentry.anomaly_detection.correlate import (
 )
 from sentry.anomaly_detection.detect import Detector
 from sentry.anomaly_detection.novelty import Novelty, size_of
-from sentry.anomaly_detection.series import Series, SeriesRow, build
+from sentry.anomaly_detection.series import Series, SeriesRow, build, samples_key
 
 _MINUTE = timedelta(minutes=1)
 _HARM_WINDOW = timedelta(minutes=10)
@@ -105,31 +105,35 @@ class OrgEvaluator:
             self.hourly.setdefault(key, {}).update(values)
         self._queue_issues(new_issues)
 
-        first = _minute_ceiling(start)
-        cold = self.next_minute is None
-        t = self.next_minute or min(
-            first,
-            min(minutes, default=first),
-            _minute_ceiling(_available_at(self.pending_issues[0]))
-            if self.pending_issues
-            else first,
+        first_publish_minute = _minute_ceiling(start)
+        cold_start = self.next_minute is None
+        first_issue_minute = first_publish_minute
+        if self.pending_issues:
+            first_issue_minute = _minute_ceiling(_available_at(self.pending_issues[0]))
+        minute = self.next_minute or min(
+            first_publish_minute,
+            min(minutes, default=first_publish_minute),
+            first_issue_minute,
         )
+        while minute < first_publish_minute and minute < end:
+            self._step(minute, minutes.pop(minute, ()))
+            minute += _MINUTE
+
         decisions: list[AnomalyDecision] = []
-        while t < first and t < end:
-            self._step(t, minutes.pop(t, ()))
-            t += _MINUTE
-        if cold:
-            # An outage can already be active when runtime first comes online. Publish
-            # its current state, not the historical transitions used to learn it.
+        if cold_start and minute < end:
+            # Publish the active state after processing the boundary tick, not a warmup
+            # incident that resolves on the boundary or an intermediate severity.
+            self._step(minute, minutes.pop(minute, ()))
             decisions.extend(
-                replace(decision, timestamp=start)
+                replace(decision, timestamp=minute)
                 for decision in self.qualified.values()
                 if not decision.is_resolved
             )
-        while t < end:
-            decisions.extend(self._step(t, minutes.pop(t, ())))
-            t += _MINUTE
-        self.next_minute = t
+            minute += _MINUTE
+        while minute < end:
+            decisions.extend(self._step(minute, minutes.pop(minute, ())))
+            minute += _MINUTE
+        self.next_minute = minute
         return decisions
 
     def _queue_issues(self, events: Sequence[ChangeEvent]) -> None:
@@ -153,40 +157,39 @@ class OrgEvaluator:
             )
         self.pending_issues.sort(key=lambda event: (_available_at(event), _episode(event)))
 
-    def _step(self, t: datetime, rows: Sequence[SeriesRow]) -> list[AnomalyDecision]:
-        if rows:
-            new_series = False
-            for key, values in build(rows).items():
-                new_series |= key not in self.series
+    def _step(self, minute: datetime, rows: Sequence[SeriesRow]) -> list[AnomalyDecision]:
+        measurements = build(rows)
+        if measurements:
+            discovered_series = bool(measurements.keys() - self.series.keys())
+            for key, values in measurements.items():
                 self.series.setdefault(key, {}).update(values)
-                if key in self.det.watched and values[t] is not None:
-                    if key not in self.novelty.first_seen:
-                        self.novelty.observe(key, t)
-            if new_series:
+            if discovered_series:
                 self.det.refresh()
                 self.cp.refresh()
-                for key in self.det.watched:
-                    if key not in self.novelty.first_seen and self.series[key].get(t) is not None:
-                        self.novelty.observe(key, t)
 
-        if t.minute == 0:
-            self._prune_context(t)
-            self._check_quality(t)
-        if t.hour == 0 and t.minute == 0:
-            self.corr.shared = shared.learn(self.novelty.history, t)
+        if minute.minute == 0:
+            self._prune_context(minute)
+            self._check_quality(minute)
+            if minute.hour == 0:
+                self.corr.shared = shared.learn(
+                    self.novelty.history, minute, coverage=self.novelty.coverage
+                )
+        for key in measurements.keys() & self.det.watched.keys():
+            if self._has_novelty_observation(key, minute):
+                self.novelty.observe(key, minute)
 
-        candidates = self.det.step(t)
+        candidates = self.det.step(minute)
         for key in self.cp.watched:
             state = self.det.state.get(key)
             if state is not None and state.open is not None:
-                self.cp.note_spike(state.open, t)
-        candidates.extend(self.cp.step(t))
+                self.cp.note_spike(state.open, minute)
+        candidates.extend(self.cp.step(minute))
         opens = [event for kind, event in candidates if kind == "open"]
         self._note_harm(opens)
-        actions = self._judge(t, candidates)
+        actions = self._judge(minute, candidates)
 
         # Issues are known only once their evidence is available, never at first seen.
-        ready = bisect_right(self.pending_issues, t, key=_available_at)
+        ready = bisect_right(self.pending_issues, minute, key=_available_at)
         issues = self.pending_issues[:ready]
         del self.pending_issues[:ready]
         self.known_issues.extend(issues)
@@ -194,18 +197,27 @@ class OrgEvaluator:
         strong = [event for event in issues if _is_standalone_issue(event)]
         self._note_harm(strong)
         actions.extend(("open", event) for event in strong)
-        self.point_closes.extend((t + _POINT_LIFETIME, event) for event in strong)
-        actions.extend(self._promote(t, opens, strong))
+        self.point_closes.extend((minute + _POINT_LIFETIME, event) for event in strong)
+        actions.extend(self._promote(minute, opens, strong))
 
         # A new failure mode is a point observation. Other members, if any, still
         # hold its group open until they end.
-        ready = bisect_right(self.point_closes, t, key=lambda item: item[0])
+        ready = bisect_right(self.point_closes, minute, key=lambda item: item[0])
         for _, event in self.point_closes[:ready]:
-            event.ended_at = t
+            event.ended_at = minute
             actions.append(("close", event))
         del self.point_closes[:ready]
 
-        return self._decisions(self.corr.step(t, actions))
+        return self._decisions(self.corr.step(minute, actions))
+
+    def _has_novelty_observation(self, key: SeriesKey, minute: datetime) -> bool:
+        rule = self.det.watched.get(key)
+        if rule is None or key in self.det.exclude or self.series[key].get(minute) is None:
+            return False
+        if rule.change == ChangeType.SLOWDOWN:
+            samples = self.series.get(samples_key(key), {}).get(minute)
+            return samples is not None and samples >= self.det.cfg.min_samples
+        return True
 
     def _prune_context(self, t: datetime) -> None:
         floor = t - _CONTEXT_HORIZON
@@ -229,17 +241,24 @@ class OrgEvaluator:
     def _check_quality(self, t: datetime) -> None:
         # Use only observed history; a future change in instrumentation must not
         # retroactively exclude a series. Don't abandon the recovery of an open change.
-        recent = {
-            key: {ts: values[ts] for i in range(60) if (ts := t - i * _MINUTE) in values}
+        recent_minutes = [t - offset * _MINUTE for offset in range(60)]
+        measurements = {
+            key: {minute: values[minute] for minute in recent_minutes if minute in values}
             for key, values in self.series.items()
             if key.metric.startswith("p95") or key.metric == "count_sample()"
         }
-        if issues := quality.check(recent):
-            self.det.exclude = {**self.det.exclude, **issues}
+        restored_series = False
+        for key, invalid_reason in quality.check(measurements).items():
+            if invalid_reason is not None:
+                self.det.exclude[key] = invalid_reason
+            elif self.det.exclude.pop(key, None) is not None:
+                restored_series = True
         for key in self.det.exclude.keys() & self.det.watched.keys():
             if self.det.state[key].open is None:
                 del self.det.watched[key]
                 del self.det.state[key]
+        if restored_series:
+            self.det.refresh()
 
     def _note_harm(self, events: Sequence[ChangeEvent]) -> None:
         for event in events:
@@ -263,11 +282,12 @@ class OrgEvaluator:
 
     def _judge(self, t: datetime, candidates: Sequence[ChangeAction]) -> list[ChangeAction]:
         actions = []
+        new_excursions = []
         for kind, event in candidates:
             key = _episode(event)
             if kind == "open":
                 verdict = self.novelty.judge(event, size_of(event.open_ratio), t)
-                self.novelty.record(event)
+                new_excursions.append(event)
                 event.novelty = verdict.as_dict()
                 if not verdict.unusual:
                     if self._harm_for(event, t, self.harm.get(_service(event), ())):
@@ -297,6 +317,8 @@ class OrgEvaluator:
                         )
                 continue
             actions.append((kind, event))
+        for event in new_excursions:
+            self.novelty.record(event)
         return actions
 
     def _promote_event(
@@ -310,38 +332,30 @@ class OrgEvaluator:
         return "open", event
 
     def _promote(
-        self, t: datetime, candidates: Sequence[ChangeEvent], strong: Sequence[ChangeEvent]
+        self,
+        minute: datetime,
+        new_changes: Sequence[ChangeEvent],
+        new_failures: Sequence[ChangeEvent],
     ) -> list[ChangeAction]:
         if not self.absorbed:
             return []
-        out = []
-        new_harm = [event for event in (*candidates, *strong) if _is_harm(event)]
+        actions = []
+        new_harm = [event for event in (*new_changes, *new_failures) if _is_harm(event)]
         vouches: dict[Service, list[ChangeEvent]] = defaultdict(list)
         for event in self.known_issues:
             vouches[_service(event)].append(event)
         for event in list(self.absorbed.values()):
             if event.ended_at is not None:
                 continue
-            if self._harm_for(event, t, new_harm):
-                out.append(self._promote_event(event, t, (event.novelty or {}) | {"harm": True}))
+            if self._harm_for(event, minute, new_harm):
+                actions.append(
+                    self._promote_event(event, minute, (event.novelty or {}) | {"harm": True})
+                )
                 continue
-            slot = _episode(event)
-            minutes = (t - event.start) / _MINUTE
-            if (
-                event.change_type != ChangeType.CHANGE_POINT
-                and minutes >= self.next_look.get(slot, 60.0)
-                and self.series[event.key].get(t) is not None
-            ):
-                # Absorbed episodes get another look at 60, 120, 240, ... minutes.
-                self.next_look[slot] = 2 * minutes
-                verdict = self.novelty.judge_duration(event, minutes, t)
-                if verdict.unusual:
-                    out.append(
-                        self._promote_event(
-                            event, t, verdict.as_dict() | {"opened_on_duration": True}
-                        )
-                    )
-                    continue
+            duration_verdict = self._check_duration(event, minute)
+            if duration_verdict is not None:
+                actions.append(self._promote_event(event, minute, duration_verdict))
+                continue
             if (
                 event.key.signal in _VOUCH_SIGNALS
                 and not event.key.dim_value
@@ -350,8 +364,27 @@ class OrgEvaluator:
                     for issue in vouches.get(_service(event), ())
                 )
             ):
-                out.append(self._promote_event(event, t, (event.novelty or {}) | {"vouched": True}))
-        return out
+                actions.append(
+                    self._promote_event(event, minute, (event.novelty or {}) | {"vouched": True})
+                )
+        return actions
+
+    def _check_duration(self, event: ChangeEvent, minute: datetime) -> Mapping[str, object] | None:
+        episode = _episode(event)
+        next_duration_check = self.next_look.get(episode, 60.0)
+        if (
+            event.change_type == ChangeType.CHANGE_POINT
+            or minute - event.start < next_duration_check * _MINUTE
+            or not self._has_novelty_observation(event.key, minute)
+        ):
+            return None
+        observed_minutes = self.novelty.observed_duration(event, minute)
+        if observed_minutes < next_duration_check:
+            return None
+        # Rejudge after 60, 120, 240, ... observed minutes, not wall-clock gaps.
+        self.next_look[episode] = 2 * observed_minutes
+        verdict = self.novelty.judge_duration(event, observed_minutes, minute)
+        return verdict.as_dict() | {"opened_on_duration": True} if verdict.unusual else None
 
     def _decisions(self, actions: Sequence[GroupAction]) -> list[AnomalyDecision]:
         # A step can both change urgency and merge the same group. Its final action

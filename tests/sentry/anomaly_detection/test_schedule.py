@@ -1,6 +1,6 @@
 from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 import pytest
 
@@ -21,6 +21,7 @@ from sentry.issues.ingest import hash_fingerprint
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.occurrence_consumer import _process_message
 from sentry.issues.status_change_message import StatusChangeMessage
+from sentry.locks import locks
 from sentry.models.anomaly_detection_state import AnomalyDetectionState
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
@@ -30,7 +31,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import cell_silo_test
 from sentry.workflow_engine.models import DataPacket, Detector
-from sentry.workflow_engine.types import DetectorType
+from sentry.workflow_engine.types import DetectorPriorityLevel, DetectorType
 
 NOW = datetime(2025, 1, 1, 12, 3, 12, tzinfo=UTC)
 END = datetime(2025, 1, 1, 12, 1)
@@ -146,6 +147,10 @@ class TestAnomalySchedule(TestCase):
             (START - timedelta(hours=5), END),
             (END, expected_end),
         ]
+        assert [call.kwargs for call in collect_issues.call_args_list] == [
+            {"current_rows": []},
+            {"current_rows": []},
+        ]
         assert [call.kwargs["start"] for call in advance.call_args_list] == [START, END]
         assert [call.kwargs["current_projects"] for call in advance.call_args_list] == [
             {str(self.project.id), str(leaving.project_id)},
@@ -154,6 +159,78 @@ class TestAnomalySchedule(TestCase):
         assert [call.kwargs["checkpoint"] for call in advance.call_args_list] == [None, checkpoint]
         state = AnomalyDetectionState.objects.get(organization=self.organization)
         assert state.next_minute == expected_end.replace(tzinfo=UTC)
+
+    @freeze_time(NOW)
+    def test_worker_enqueues_bounded_catchup_after_releasing_lease(self) -> None:
+        self.make_detector(self.project)
+        start = END - timedelta(minutes=31)
+        state, _ = AnomalyDetectionState.objects.get_or_create(organization=self.organization)
+        state.update(next_minute=start.replace(tzinfo=UTC))
+        target = END.replace(tzinfo=UTC).isoformat()
+        with (
+            self.feature(FEATURES),
+            patch.object(schedule, "collect", return_value=[]),
+            patch.object(schedule, "_hourly_rows", return_value=[]),
+            patch.object(schedule, "collect_new_failure_modes", return_value=[]),
+            patch.object(
+                schedule,
+                "advance_org",
+                return_value=([], {"version": CHECKPOINT_VERSION, "qualified": []}),
+            ) as advance,
+            patch.object(locks, "get") as get_lock,
+            patch.object(schedule.run_anomaly_detection, "delay") as enqueue,
+        ):
+            lease = get_lock.return_value.acquire.return_value
+
+            def enqueue_after_release(_organization_id: int, _end: str) -> None:
+                assert lease.__exit__.call_count == enqueue.call_count
+
+            enqueue.side_effect = enqueue_after_release
+            schedule.run_anomaly_detection(self.organization.id, target)
+            schedule.run_anomaly_detection(*enqueue.call_args.args)
+            schedule.run_anomaly_detection(*enqueue.call_args.args)
+
+        assert enqueue.call_args_list == [call(self.organization.id, target)] * 2
+        assert [entry.kwargs["end"] for entry in advance.call_args_list] == [
+            start + timedelta(minutes=15),
+            start + timedelta(minutes=30),
+            END,
+        ]
+        state.refresh_from_db()
+        assert state.next_minute == END.replace(tzinfo=UTC)
+
+    @freeze_time(NOW)
+    def test_commits_large_batch_and_drains_a_bounded_number_per_run(self) -> None:
+        self.make_detector(self.project)
+        decisions = [decision(self.project.id, key=f"group-{index}") for index in range(320)]
+        checkpoint = {
+            "version": CHECKPOINT_VERSION,
+            "qualified": [{"group_key": item.group_key} for item in decisions],
+        }
+        with (
+            self.feature(FEATURES),
+            patch.object(schedule, "collect", return_value=[]),
+            patch.object(schedule, "_hourly_rows", return_value=[]),
+            patch.object(schedule, "collect_new_failure_modes", return_value=[]),
+            patch.object(schedule, "advance_org", return_value=(decisions, checkpoint)) as advance,
+            patch.object(schedule, "publish_anomaly_transition") as publish,
+        ):
+            assert schedule._run_organization(self.organization.id, END)
+            assert publish.call_count == schedule._MAX_DELIVERIES
+            assert schedule._run_organization(self.organization.id, END + timedelta(minutes=1))
+            assert publish.call_count == 2 * schedule._MAX_DELIVERIES
+
+        advance.assert_called_once()
+        state = AnomalyDetectionState.objects.get(organization=self.organization)
+        assert state.next_minute == END.replace(tzinfo=UTC)
+        assert state.checkpoint == checkpoint
+        delivery = DeliveryState.from_json(state.delivery)
+        assert len(delivery.pending) == len(delivery.pins) == 320
+        assert {entry.args[1].group_key for entry in publish.call_args_list} == {
+            item.transition.group_key
+            for item in delivery.pending
+            if item.broker_acked_at is not None
+        }
 
     def test_cold_worker_publishes_anomaly_still_active_after_warmup(self) -> None:
         detector = self.make_detector(self.project)
@@ -265,6 +342,79 @@ class TestAnomalySchedule(TestCase):
         assert not DeliveryState.from_json(state.delivery).pending
 
     @freeze_time(NOW)
+    def test_independent_opens_do_not_wait_for_prior_activation(self) -> None:
+        detector = self.make_detector(self.project)
+        project_id = self.project.id
+        state, _ = AnomalyDetectionState.objects.get_or_create(organization=self.organization)
+        state.update(next_minute=START.replace(tzinfo=UTC))
+        later_minute = END + timedelta(minutes=1)
+        target = later_minute + timedelta(minutes=1)
+        decisions = [
+            decision(project_id, urgency=Urgency.MEDIUM),
+            decision(project_id, key="independent"),
+            decision(project_id, timestamp=END),
+            decision(project_id, timestamp=later_minute, resolved=True),
+        ]
+        checkpoint = {
+            "version": CHECKPOINT_VERSION,
+            "qualified": [{"group_key": "group"}, {"group_key": "independent"}],
+        }
+        groups: dict[tuple[str, ...], SimpleNamespace] = {}
+        handler = AnomalyDetectionDetectorHandler(detector)
+
+        def fingerprint(transition: AnomalyTransition) -> tuple[str, ...]:
+            return tuple(hash_fingerprint(handler.get_issue_fingerprint(transition.group_key)))
+
+        with (
+            self.feature(FEATURES),
+            patch.object(schedule, "collect", return_value=[]),
+            patch.object(schedule, "_hourly_rows", return_value=[]),
+            patch.object(schedule, "collect_new_failure_modes", return_value=[]),
+            patch.object(schedule, "advance_org", return_value=(decisions, checkpoint)) as advance,
+            patch.object(
+                schedule,
+                "get_group_from_fingerprint",
+                side_effect=lambda _project_id, fingerprint: groups.get(tuple(fingerprint)),
+            ),
+            patch.object(schedule, "publish_anomaly_transition") as publish,
+        ):
+            assert not schedule._run_organization(self.organization.id, target)
+            first_open, second_open = [entry.args[1] for entry in publish.call_args_list]
+            assert first_open.group_key != second_open.group_key
+            assert not first_open.is_resolved
+            assert not second_open.is_resolved
+
+            groups[fingerprint(second_open)] = SimpleNamespace(
+                last_seen=START.replace(tzinfo=UTC), status=GroupStatus.UNRESOLVED
+            )
+            schedule._run_organization(self.organization.id, target + timedelta(minutes=1))
+            assert publish.call_count == 2
+            state.refresh_from_db()
+            pending = DeliveryState.from_json(state.delivery).pending
+            assert [item.transition.group_key for item in pending] == [first_open.group_key] * 3
+
+            first_group = groups[fingerprint(first_open)] = SimpleNamespace(
+                last_seen=START.replace(tzinfo=UTC), status=GroupStatus.UNRESOLVED
+            )
+            schedule._run_organization(self.organization.id, target)
+            assert publish.call_count == 3
+            update = publish.call_args.args[1]
+            assert update.group_key == first_open.group_key
+            assert update.priority == DetectorPriorityLevel.HIGH
+            assert not update.is_resolved
+
+            schedule._run_organization(self.organization.id, target)
+            assert publish.call_count == 3  # Broker acknowledgement cannot unblock the close.
+            first_group.last_seen = END.replace(tzinfo=UTC)
+            schedule._run_organization(self.organization.id, target)
+            assert publish.call_count == 4
+            close = publish.call_args.args[1]
+            assert close.group_key == first_open.group_key
+            assert close.is_resolved
+
+        advance.assert_called_once()
+
+    @freeze_time(NOW)
     def test_late_close_retry_only_targets_its_activation(self) -> None:
         detector = self.make_detector(self.project)
         handler = AnomalyDetectionDetectorHandler(detector)
@@ -342,9 +492,99 @@ class TestAnomalySchedule(TestCase):
             assert old_group.status == GroupStatus.RESOLVED
             assert new_group.status == GroupStatus.UNRESOLVED
 
-    def test_disabled_pinned_detector_does_not_block_other_deliveries(self) -> None:
+    def test_missing_issue_does_not_retire_a_queued_reopen(self) -> None:
+        self.assert_queued_reopen_survives_retirement(tombstoned=False)
+
+    def test_tombstoned_issue_does_not_retire_a_queued_reopen(self) -> None:
+        self.assert_queued_reopen_survives_retirement(tombstoned=True)
+
+    def assert_queued_reopen_survives_retirement(self, *, tombstoned: bool) -> None:
         detector = self.make_detector(self.project)
-        replacement = self.make_detector(self.project)
+        delivery = DeliveryState()
+        detector_ids = {self.project.id: detector.id}
+        delivery.stage(
+            [decision(self.project.id)],
+            detector_ids,
+            start=START,
+            end=END,
+            retained_keys={"group"},
+        )
+        original = delivery.pending.pop().transition  # The first open already drained.
+        original_fingerprint = hash_fingerprint(
+            AnomalyDetectionDetectorHandler(detector).get_issue_fingerprint(original.group_key)
+        )
+        target = END + timedelta(minutes=2)
+        delivery.stage(
+            [
+                decision(self.project.id, timestamp=END, resolved=True),
+                decision(self.project.id, timestamp=END + timedelta(minutes=1)),
+            ],
+            detector_ids,
+            start=END,
+            end=target,
+            retained_keys={"group"},
+        )
+        state, _ = AnomalyDetectionState.objects.get_or_create(organization=self.organization)
+        state.update(delivery=delivery.to_json(), next_minute=target.replace(tzinfo=UTC))
+        with (
+            self.feature(FEATURES),
+            patch.object(
+                schedule,
+                "_is_tombstoned",
+                side_effect=lambda _project_id, fingerprint: (
+                    tombstoned and fingerprint == original_fingerprint
+                ),
+            ),
+            patch.object(schedule, "publish_anomaly_transition") as publish,
+        ):
+            schedule._run_organization(self.organization.id, target)
+
+        publish.assert_called_once()
+        owner, reopened = publish.call_args.args
+        assert owner == detector
+        assert not reopened.is_resolved
+        assert reopened.group_key != original.group_key
+        state.refresh_from_db()
+        delivery = DeliveryState.from_json(state.delivery)
+        assert [item.transition for item in delivery.pending] == [reopened]
+        assert not delivery.pins["group"].activation_retired
+
+    def test_project_limit_does_not_block_committed_delivery(self) -> None:
+        detector = self.make_detector(self.project)
+        self.make_detector(self.create_project())
+        delivery = DeliveryState()
+        delivery.stage(
+            [decision(self.project.id)],
+            {self.project.id: detector.id},
+            start=START,
+            end=END,
+            retained_keys={"group"},
+        )
+        expected = delivery.pending[0].transition
+        state, _ = AnomalyDetectionState.objects.get_or_create(organization=self.organization)
+        state.update(delivery=delivery.to_json(), next_minute=END.replace(tzinfo=UTC))
+        with (
+            self.feature(FEATURES),
+            patch.object(schedule, "_MAX_PROJECTS", 1),
+            patch.object(schedule, "collect") as collect,
+            patch.object(schedule, "get_group_from_fingerprint", return_value=None) as lookup,
+            patch.object(schedule, "publish_anomaly_transition") as publish,
+        ):
+            target = END + timedelta(minutes=1)
+            schedule._run_organization(self.organization.id, target)
+            lookup.return_value = SimpleNamespace(last_seen=START.replace(tzinfo=UTC))
+            with pytest.raises(RuntimeError, match="exceeds the project limit"):
+                schedule._run_organization(self.organization.id, target)
+
+        publish.assert_called_once_with(detector, expected)
+        collect.assert_not_called()
+        state.refresh_from_db()
+        assert state.next_minute == END.replace(tzinfo=UTC)
+        assert not DeliveryState.from_json(state.delivery).pending
+
+    def test_disabled_pinned_detector_drains_when_no_projects_are_eligible(self) -> None:
+        detector = self.make_detector(self.project)
+        replacement = self.make_detector(self.project, enabled=False)
         delivery = DeliveryState()
         delivery.stage(
             [decision(self.project.id), decision(self.project.id, resolved=True)],
@@ -367,7 +607,8 @@ class TestAnomalySchedule(TestCase):
         delivery = DeliveryState.from_json(state.delivery)
         assert not delivery.pending
         assert delivery.pins["group"].detector_id == detector.id
-        assert delivery.pins["group"].retired
+        assert delivery.pins["group"].owner_retired
+        replacement.update(enabled=True)
         delivery.stage(
             [
                 decision(self.project.id, timestamp=END),
@@ -412,7 +653,7 @@ def test_delivery_pins_scope_and_rejects_unopened_groups() -> None:
         assert item.transition.evidence == {}
 
 
-def test_delivery_keeps_pin_on_reopen_and_confirms_qualified_low_priority() -> None:
+def test_delivery_keeps_pin_on_reopen_and_identifies_low_priority_open() -> None:
     state = DeliveryState()
     state.stage(
         [decision(1, urgency=Urgency.LOW), decision(1, resolved=True)],
@@ -423,7 +664,7 @@ def test_delivery_keeps_pin_on_reopen_and_confirms_qualified_low_priority() -> N
     )
     assert [item.transition.is_resolved for item in state.pending] == [False, True]
     first_activation = state.pending[0].transition.group_key
-    assert state.pending[0].confirm_ingested
+    assert state.pending[0].is_open
     assert state.pending[1].transition.group_key == first_activation
     state.pending.clear()
     state = DeliveryState.from_json(state.to_json())
@@ -440,10 +681,9 @@ def test_delivery_keeps_pin_on_reopen_and_confirms_qualified_low_priority() -> N
     )
     state = DeliveryState.from_json(state.to_json())
     reopened, escalation, closed = state.pending
-    assert reopened.transition.group_key != first_activation
-    assert reopened.confirm_ingested
-    assert not escalation.confirm_ingested
-    assert closed.confirm_ingested
+    assert reopened.is_open
+    assert not escalation.is_open
+    assert not closed.is_open
     assert [item.transition.is_resolved for item in state.pending] == [False, False, True]
     for item in state.pending:
         assert item.transition.group_key == reopened.transition.group_key
@@ -458,3 +698,71 @@ def test_delivery_forgets_unqueued_pins_removed_from_evaluator_scope() -> None:
     state.stage([], {}, start=END, end=END + timedelta(minutes=1), retained_keys=set())
     assert not state.pins
     assert not state.pending
+
+
+def test_delivery_coalesces_same_minute_open_update_in_place() -> None:
+    state = DeliveryState()
+    state.stage(
+        [
+            decision(1, urgency=Urgency.MEDIUM),
+            decision(1, key="independent"),
+            decision(1, urgency=Urgency.HIGH),
+            decision(1, resolved=True),
+        ],
+        {1: 11},
+        start=START,
+        end=END,
+        retained_keys={"group", "independent"},
+    )
+    opened, independent, closed = DeliveryState.from_json(state.to_json()).pending
+    assert [item.logical_key for item in (opened, independent, closed)] == [
+        "group",
+        "independent",
+        "group",
+    ]
+    assert opened.is_open
+    assert opened.transition.priority == DetectorPriorityLevel.HIGH
+    assert closed.transition.is_resolved
+    assert opened.transition.group_key == closed.transition.group_key
+
+
+def test_retired_activation_suppresses_updates_until_evaluator_reopens() -> None:
+    state = DeliveryState()
+    state.stage([decision(1)], {1: 11}, start=START, end=END, retained_keys={"group"})
+    retired = state.pending[0]
+    state.retire_activation(retired)
+    state = DeliveryState.from_json(state.to_json())
+    state.stage(
+        [
+            decision(1, timestamp=END),
+            decision(1, timestamp=END, resolved=True),
+            decision(1, timestamp=END + timedelta(minutes=1)),
+        ],
+        {1: 12},
+        start=END,
+        end=END + timedelta(minutes=2),
+        retained_keys={"group"},
+    )
+    (reopened,) = state.pending
+    assert reopened.detector_id == retired.detector_id == 11
+    assert reopened.is_open
+    assert reopened.transition.group_key != retired.transition.group_key
+    assert reopened.transition.timestamp == END + timedelta(minutes=1)
+
+
+def test_delivery_retains_pins_across_evaluation_batches() -> None:
+    state = DeliveryState()
+    retained_keys: set[str] = set()
+    for batch in range(5):
+        minute = START + timedelta(minutes=batch)
+        decisions = [decision(1, key=f"group-{batch}-{i}", timestamp=minute) for i in range(225)]
+        retained_keys.update(item.group_key for item in decisions)
+        state.stage(
+            decisions,
+            {1: 11},
+            start=minute,
+            end=minute + timedelta(minutes=1),
+            retained_keys=retained_keys,
+        )
+        state.pending.clear()
+    assert DeliveryState.from_json(state.to_json()).pins.keys() == retained_keys

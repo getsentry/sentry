@@ -1,12 +1,22 @@
 from collections import Counter
 from collections.abc import Mapping
+from dataclasses import replace
 from datetime import datetime, timedelta
 
 import pytest
 
+from sentry.anomaly_detection.checkpoint import _restore, _snapshot
 from sentry.anomaly_detection.contracts import ChangeEvent, ChangeType, SeriesKey, Urgency
 from sentry.anomaly_detection.correlate import Correlator, episode_key
-from sentry.anomaly_detection.footprint import Footprint, SliceStats, service_of, slice_of
+from sentry.anomaly_detection.footprint import (
+    FOOTPRINT_DEFERRED,
+    Footprint,
+    FootprintResult,
+    SliceStats,
+    service_of,
+    slice_of,
+)
+from sentry.anomaly_detection.pipeline import OrgEvaluator
 from sentry.anomaly_detection.shared import learn
 
 START = datetime(2024, 1, 1)
@@ -23,10 +33,12 @@ def _episode(
 
 
 class _Traces:
-    def __init__(self, footprints: Mapping[SeriesKey, Footprint]) -> None:
+    def __init__(self, footprints: Mapping[SeriesKey, FootprintResult]) -> None:
         self.footprints = footprints
+        self.calls: list[tuple[SeriesKey, datetime]] = []
 
-    def footprint(self, event: ChangeEvent) -> Footprint | None:
+    def footprint(self, event: ChangeEvent, observation_end: datetime) -> FootprintResult:
+        self.calls.append((event.key, observation_end))
         return self.footprints.get(event.key)
 
 
@@ -115,11 +127,16 @@ def test_generic_service_trace_touch_is_not_a_cross_project_link() -> None:
     assert len([action for action in actions if action.kind == "open"]) == 2
 
 
-def test_routine_downstream_change_supports_localization_without_independent_evidence() -> None:
+@pytest.mark.parametrize("latent_first", [True, False], ids=["latent-first", "open-first"])
+def test_routine_downstream_change_supports_localization_without_independent_evidence(
+    latent_first: bool,
+) -> None:
     correlator = Correlator(_Traces({CHECKOUT: _checkout_footprint()}))
     checkout, orders = _episode(CHECKOUT), _episode(ORDERS)
-    assert correlator.step(START, [("latent", orders)]) == []
-    actions = correlator.step(START + MINUTE, [("open", checkout)])
+    latent, opened = ("latent", orders), ("open", checkout)
+    first, second = (latent, opened) if latent_first else (opened, latent)
+    correlator.step(START, [first])
+    actions = correlator.step(START + MINUTE, [second])
 
     assert len(correlator.groups) == 1
     assert actions[0].root is orders
@@ -129,6 +146,47 @@ def test_routine_downstream_change_supports_localization_without_independent_evi
     promoted = correlator.step(START + 2 * MINUTE, [("open", orders)])
     assert promoted
     assert all(action.independent_count == 2 for action in promoted)
+
+
+@pytest.mark.parametrize(
+    ("orders_escalations", "expected_action", "group_count"),
+    [
+        pytest.param([], "open", 2, id="only-checkout-started-recently"),
+        pytest.param([(START + 45 * MINUTE, 20)], "join", 1, id="orders-also-worsened"),
+    ],
+)
+def test_new_failure_mode_requires_nearby_change_in_its_own_service(
+    orders_escalations: list[tuple[datetime, float]], expected_action: str, group_count: int
+) -> None:
+    correlator = Correlator(_Traces({CHECKOUT: _checkout_footprint()}))
+    orders = _episode(ORDERS)
+    checkout = _episode(CHECKOUT, START + 40 * MINUTE)
+    failure = _episode(
+        SeriesKey(ORDERS.project, ORDERS.env, "new_issue", "count()", "ORDERS-1"),
+        START + 46 * MINUTE,
+        ChangeType.NEW_FAILURE_MODE,
+    )
+    correlator.step(orders.start, [("open", orders)])
+    assert correlator.step(checkout.start, [("open", checkout)])[0].kind == "join"
+
+    orders.escalations = orders_escalations
+    actions = correlator.step(failure.start, [("open", failure)])
+
+    assert actions[0].kind == expected_action
+    assert len(correlator.groups) == group_count
+
+
+def test_latent_escalation_sets_urgency_when_opening_without_a_group() -> None:
+    rate = SeriesKey("1", "production", "error_rate", "errors/requests")
+    event = _episode(rate, change_type=ChangeType.SPIKE)
+    correlator = Correlator()
+    assert not correlator.step(START, [("latent", event)])
+    event.novelty = {"opened_on_escalation": True}
+
+    actions = correlator.step(START + MINUTE, [("open", event)])
+
+    assert actions[0].kind == "open"
+    assert actions[0].group.urgency == Urgency.HIGH
 
 
 def test_common_cause_merges_groups_and_remaps_members() -> None:
@@ -156,6 +214,76 @@ def test_common_cause_merges_groups_and_remaps_members() -> None:
     assert correlator.independent(survivor) == 3
 
 
+def test_merge_carries_sustained_urgency_after_recovery() -> None:
+    dependency_key = replace(ORDERS, project=CHECKOUT.project)
+    correlator = Correlator(_Traces({CHECKOUT: _checkout_footprint(dependency_key)}))
+    checkout = _episode(CHECKOUT)
+    (opened,) = correlator.step(START, [("open", checkout)])
+    checkout.sustained_at = START + 30 * MINUTE
+    correlator.step(checkout.sustained_at, [])
+    assert opened.group.urgency == Urgency.MEDIUM
+    checkout.ended_at = START + 31 * MINUTE
+    correlator.step(checkout.ended_at, [("close", checkout)])
+
+    dependency = _episode(dependency_key, START + 34 * MINUTE)
+    (dependency_opened,) = correlator.step(dependency.start, [("open", dependency)])
+    assert dependency_opened.group.urgency == Urgency.LOW
+    restarted = _episode(CHECKOUT, START + 36 * MINUTE)
+    actions = correlator.step(restarted.start, [("open", restarted)])
+
+    (closed,) = [action for action in actions if action.kind == "close"]
+    assert closed.group is opened.group
+    assert closed.merged_into == dependency_opened.group.id
+    (survivor,) = correlator.groups
+    assert survivor.group is dependency_opened.group
+    assert survivor.group.urgency == Urgency.MEDIUM
+
+
+@pytest.mark.parametrize(
+    ("second_issue_id", "expected_action", "group_count"),
+    [(123, "join", 1), (456, "open", 2)],
+)
+def test_same_issue_matches_structured_identity_not_display_evidence(
+    second_issue_id: int, expected_action: str, group_count: int
+) -> None:
+    first = _episode(CHECKOUT)
+    second = _episode(replace(CHECKOUT, env="staging"), START + MINUTE)
+    first.issue_ids = (123,)
+    second.issue_ids = (second_issue_id,)
+    first.evidence = second.evidence = ["issues:999"]
+    correlator = Correlator()
+    (opened,) = correlator.step(first.start, [("open", first)])
+
+    actions = correlator.step(second.start, [("open", second)])
+
+    assert actions[0].kind == expected_action
+    assert len(correlator.groups) == group_count
+    assert opened.group.driving_issues == ["123"]
+
+
+def test_deferred_footprint_is_retried_after_checkpoint_restore() -> None:
+    checkout = _episode(CHECKOUT)
+    unrelated = _episode(
+        SeriesKey("3", "production", "endpoints", LATENCY, "/help"), START + MINUTE
+    )
+    traces = _Traces({CHECKOUT: FOOTPRINT_DEFERRED})
+    evaluator = OrgEvaluator(traces)
+    (opened,) = evaluator.corr.step(checkout.start, [("open", checkout)])
+    evaluator.corr.step(unrelated.start, [("open", unrelated)])
+    assert (CHECKOUT, unrelated.start + MINUTE) in traces.calls
+
+    orders = _episode(ORDERS, START + 2 * MINUTE)
+    next_traces = _Traces({CHECKOUT: _checkout_footprint()})
+    restored = _restore(next_traces, _snapshot(evaluator, orders.start))
+    actions = restored.corr.step(orders.start, [("open", orders)])
+
+    assert (CHECKOUT, orders.start + MINUTE) in next_traces.calls
+    assert all(key != unrelated.key for key, _ in next_traces.calls)
+    assert actions[0].kind == "join"
+    assert actions[0].group.id == opened.group.id
+    assert actions[0].root is orders
+
+
 def test_shared_dependency_learning_links_repeated_co_onsets_without_traces() -> None:
     replica = SeriesKey("3", "production", "outbound_db", LATENCY, "orders")
     varied_onsets = [START + timedelta(hours=i * 9, minutes=i * 7) for i in range(6)]
@@ -164,8 +292,10 @@ def test_shared_dependency_learning_links_repeated_co_onsets_without_traces() ->
         replica: [_episode(replica, onset + MINUTE) for onset in varied_onsets],
     }
     now = START + timedelta(days=3)
+    observed_hours = {START + timedelta(hours=i): (1 << 60) - 1 for i in range(72)}
+    coverage = {key: observed_hours for key in history}
     correlator = Correlator()
-    correlator.shared = learn(history, now)
+    correlator.shared = learn(history, now, coverage=coverage)
     actions = correlator.step(
         now, [("open", _episode(ORDERS, now)), ("open", _episode(replica, now))]
     )
@@ -174,7 +304,7 @@ def test_shared_dependency_learning_links_repeated_co_onsets_without_traces() ->
     assert all(action.independent_count == 1 for action in actions)
     localization = actions[-1].group.localization
     assert localization is not None and "shared with" in localization
-    assert learn(history, START).get(ORDERS, replica) is None
+    assert learn(history, START, coverage=coverage).get(ORDERS, replica) is None
 
 
 def test_late_downstream_change_cannot_explain_earlier_onset() -> None:

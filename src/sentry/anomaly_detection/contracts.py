@@ -75,6 +75,7 @@ class ChangeEvent:
     escalations: list[tuple[datetime, float]] = field(default_factory=list)
     recent_ratio: float | None = None
     sustained_at: datetime | None = None
+    issue_ids: tuple[int, ...] = ()
 
 
 class Urgency(StrEnum):

@@ -13,17 +13,26 @@ import statistics
 from collections.abc import Iterator
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
-from typing import Literal
+from typing import Literal, NamedTuple
 
 from sentry.anomaly_detection.baseline import Baseline
 from sentry.anomaly_detection.contracts import ChangeEvent, ChangeType, SeriesKey
-from sentry.anomaly_detection.series import Series
+from sentry.anomaly_detection.series import Series, rate_parts
 
 MINUTE = timedelta(minutes=1)
-RATES = {
-    "error_rate": ("errors", "requests"),
-    "failed_rate": ("failed_requests", "requests"),
-}
+RATE_FLOOR = 1e-6
+RATES = {"error_rate", "failed_rate"}
+
+
+class _Observation(NamedTuple):
+    minute: datetime
+    events: float
+    requests: float
+    shape: float
+    traffic: float
+
+    def log_rate(self, floor: float) -> float:
+        return math.log((self.events / self.requests + floor) / self.shape)
 
 
 @dataclass
@@ -104,22 +113,27 @@ class ChangePointDetector:
         cfg, state = self.cfg, self.state[key]
         split = t - cfg.after_min * MINUTE
         before_start = split - cfg.before_min * MINUTE
-        values = self._x(key, before_start, t)
-        if values is None:
+        observations = self._observations(key, before_start, t)
+        before_points = [point for point in observations if point.minute <= split]
+        after_points = [point for point in observations if point.minute > split]
+        if (
+            len(after_points) < max(1, cfg.after_min // 2)
+            or len(before_points) < max(1, cfg.before_min // 2)
+            or statistics.median(point.traffic for point in observations) < cfg.min_requests
+        ):
+            state.hits = 0
             return None
-        after = [value for ts, value in values if ts > split]
-        before = [value for ts, value in values if ts <= split]
-        if len(after) < cfg.after_min // 2 or len(before) < cfg.before_min // 2:
-            return None
+        # A fixed rate floor and raw hourly shapes keep the frozen level comparable.
+        after = [point.log_rate(RATE_FLOOR) for point in after_points]
+        before = [point.log_rate(RATE_FLOOR) for point in before_points]
+        pooled = self._pooled_ratio(before_points, after_points)
         median_after, median_before = statistics.median(after), statistics.median(before)
         min_shift = math.log(cfg.min_shift)
 
         if state.open is not None:
             event = state.open
             shift = median_after - state.level_before
-            event.peak_ratio = max(
-                event.peak_ratio, min(math.exp(shift), self._pooled_ratio(key, t))
-            )
+            event.peak_ratio = max(event.peak_ratio, min(math.exp(shift), pooled))
             recovered = shift < min_shift / 2
             if recovered or (state.hold_until is not None and t >= state.hold_until):
                 event.ended_at = t
@@ -130,13 +144,15 @@ class ChangePointDetector:
         if (state.hold_until is not None and t < state.hold_until) or self._spike_seen.get(
             key
         ) == t:
+            state.hits = 0
             return None
 
         shift = median_after - median_before
         sigma = max(1.4826 * statistics.median(abs(v - median_before) for v in before), 0.05)
         z = shift / (1.253 * sigma * math.sqrt(1 / len(after) + 1 / len(before)))
-        pooled = self._pooled_ratio(key, t)
-        excess = self._excess_per_min(key, t, min(shift, math.log(max(pooled, 1.0))))
+        excess = statistics.mean(point.events for point in after_points) * (
+            1 - math.exp(-min(shift, math.log(max(pooled, 1.0))))
+        )
         if not (
             shift >= min_shift
             and pooled >= cfg.min_shift
@@ -149,13 +165,20 @@ class ChangePointDetector:
         if state.hits < cfg.persist:
             return None
 
-        start = _split([(ts, v) for ts, v in values if ts > t - cfg.split_min * MINUTE]) or split
+        split_point = _split(
+            [
+                (point.minute, point.log_rate(RATE_FLOOR))
+                for point in observations
+                if point.minute > t - cfg.split_min * MINUTE
+            ]
+        )
+        start = split_point or split
         event = ChangeEvent(
             key=key,
             change_type=ChangeType.CHANGE_POINT,
             start=start,
-            actual=self._rate(key, start, t),
-            expected=self._rate(key, before_start, split),
+            actual=_rate([point for point in observations if point.minute >= start]),
+            expected=_rate(before_points),
             confidence=round(min(0.99, 0.5 + 0.05 * z), 2),
             detected_at=t,
             peak_ratio=pooled,
@@ -166,85 +189,52 @@ class ChangePointDetector:
         state.hold_until = t + cfg.hold * MINUTE
         return "open", event
 
-    def _counts(self, key: SeriesKey) -> tuple[Series, Series]:
-        num_signal, den_signal = RATES[key.signal]
-        return (
-            self.series.get(SeriesKey(key.project, key.env, num_signal, "count()"), {}),
-            self.series.get(SeriesKey(key.project, key.env, den_signal, "count()"), {}),
-        )
-
-    def _x(
-        self, key: SeriesKey, start: datetime, end: datetime
-    ) -> list[tuple[datetime, float]] | None:
-        num, den = self._counts(key)
-        volumes = [d for ts in _minutes(start, end) if (d := den.get(ts))]
-        if not volumes or (typical := statistics.median(volumes)) < self.cfg.min_requests:
-            return None
-        floor = 0.5 / typical  # Half an event a minute at typical traffic.
-        skip = self.spike_minutes[key]
-        shape = self._shapes(key, start, end)
-        out = []
-        for ts in _minutes(start, end):
-            requests = den.get(ts)
-            if not requests or ts in skip:
+    def _observations(self, key: SeriesKey, start: datetime, end: datetime) -> list[_Observation]:
+        parts = rate_parts(key)
+        assert parts is not None
+        numerator, denominator = (self.series.get(part, {}) for part in parts[:2])
+        total_traffic = self.series.get(SeriesKey(key.project, key.env, "requests", "count()"), {})
+        spike_minutes = self.spike_minutes[key]
+        observations = []
+        for minute in _minutes(start, end):
+            if minute in spike_minutes:
                 continue
-            rate = (num.get(ts) or 0.0) / requests
-            out.append((ts, math.log(rate / shape[ts] + floor)))
-        return out
+            requests, events = denominator.get(minute), numerator.get(minute)
+            if not requests or events is None:
+                continue
+            observations.append(
+                _Observation(
+                    minute,
+                    events,
+                    requests,
+                    self.baseline.shape(key, minute),
+                    total_traffic.get(minute) or requests,
+                )
+            )
+        return observations
 
-    def _shapes(self, key: SeriesKey, start: datetime, end: datetime) -> dict[datetime, float]:
-        """Normalize hour-of-day shapes, or use a flat shape if any hour lacks history."""
-        raw: dict[datetime, float] = {}
-        for ts in _minutes(start, end):
-            shape = self.baseline.raw_shape(key, ts)
-            if shape is None:
-                return dict.fromkeys(_minutes(start, end), 1.0)
-            raw[ts] = shape
-        if not raw:
-            return {}
-        mean = statistics.mean(raw.values())
-        return {ts: value / mean for ts, value in raw.items()}
+    def _pooled_ratio(self, before: list[_Observation], after: list[_Observation]) -> float:
+        # Add the event prior before normalizing so it has the same units as the observations.
+        prior = self.cfg.pseudo_events
+        return _seasonal_rate(after, prior) / _seasonal_rate(before, prior)
 
-    def _rate(self, key: SeriesKey, start: datetime, end: datetime) -> float:
-        num, den = self._counts(key)
-        n = sum(num.get(ts) or 0 for ts in _minutes(start, end))
-        d = sum(den.get(ts) or 0 for ts in _minutes(start, end))
-        return n / d if d else 0.0
 
-    def _pooled_ratio(self, key: SeriesKey, t: datetime) -> float:
-        """Compare pooled rates after seasonal adjustment and an event-count floor."""
-        split = t - self.cfg.after_min * MINUTE
-        before_start = split - self.cfg.before_min * MINUTE
-        shapes = self._shapes(key, before_start, t)
-        after_shape = statistics.mean(shapes[ts] for ts in _minutes(split, t))
-        before_shape = statistics.mean(shapes[ts] for ts in _minutes(before_start, split))
-        after = self._rate(key, split, t) / after_shape
-        before = self._rate(key, before_start, split) / before_shape
-        floor = self._floor(key, before_start, split)
-        return (after + floor) / (before + floor)
+def _rate(points: list[_Observation]) -> float:
+    requests = sum(point.requests for point in points)
+    return sum(point.events for point in points) / requests if requests else 0.0
 
-    def _floor(self, key: SeriesKey, start: datetime, end: datetime) -> float:
-        """One event/minute as a rate, using sampled volume for failed spans."""
-        metric = "count()" if key.signal == "error_rate" else "count_sample()"
-        volume = self.series.get(SeriesKey(key.project, key.env, "requests", metric), {})
-        values = [v for ts in _minutes(start, end) if (v := volume.get(ts))]
-        typical = statistics.median(values) if values else 0.0
-        return min(1.0, self.cfg.pseudo_events / typical) if typical > 0 else 1.0
 
-    def _excess_per_min(self, key: SeriesKey, t: datetime, shift: float) -> float:
-        """Extra errors (or sampled failed spans) a minute at the new level."""
-        num_signal, _ = RATES[key.signal]
-        metric = "count_sample()" if key.signal == "failed_rate" else "count()"
-        num = self.series.get(SeriesKey(key.project, key.env, num_signal, metric), {})
-        values = [num.get(ts) or 0 for ts in _minutes(t - self.cfg.after_min * MINUTE, t)]
-        return statistics.mean(values) * (1 - math.exp(-shift)) if values else 0.0
+def _seasonal_rate(points: list[_Observation], prior: float) -> float:
+    return (sum(point.events for point in points) + prior * len(points)) / sum(
+        point.requests * point.shape for point in points
+    )
 
 
 def _minutes(start: datetime, end: datetime) -> Iterator[datetime]:
-    t = start + MINUTE
-    while t <= end:
-        yield t
-        t += MINUTE
+    minute = start + MINUTE
+    while minute <= end:
+        yield minute
+        minute += MINUTE
 
 
 def _split(values: list[tuple[datetime, float]]) -> datetime | None:

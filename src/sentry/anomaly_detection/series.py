@@ -18,8 +18,6 @@ RATES = {
 def build(rows: Iterable[SeriesRow]) -> dict[SeriesKey, Series]:
     series: dict[SeriesKey, Series] = defaultdict(dict)
     for ts, signal, metric, project, env, dim_value, value in rows:
-        if project == "Other" or dim_value == "Other":
-            continue  # The bucket groups unrelated values, so has no stable baseline.
         series[SeriesKey(project, env, signal, metric, dim_value)][ts] = value
     _mask_empty_spans(series)
     _derive_rates(series)

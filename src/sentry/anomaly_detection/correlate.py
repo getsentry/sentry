@@ -20,9 +20,11 @@ from sentry.anomaly_detection.contracts import (
 )
 from sentry.anomaly_detection.footprint import (
     DEPENDENCY_SIGNALS,
+    FOOTPRINT_DEFERRED,
     SLICE_LAYERS,
     CallEdge,
     Footprint,
+    FootprintResult,
     base_signal,
     service_of,
     slice_of,
@@ -42,7 +44,7 @@ ActionKind = Literal["open", "join", "localize", "urgency", "update", "reopen", 
 
 
 class FootprintSource(Protocol):
-    def footprint(self, event: ChangeEvent, /) -> Footprint | None: ...
+    def footprint(self, event: ChangeEvent, observation_end: datetime, /) -> FootprintResult: ...
 
 
 @dataclass
@@ -188,7 +190,13 @@ class Correlator:
                 new_latent.append(event)
             elif action == "open" and owner is None:
                 self.state.latent.pop(key, None)
-                opened.append(MemberState(event, event.open_ratio))
+                opened.append(
+                    MemberState(
+                        event,
+                        event.open_ratio,
+                        escalated=bool((event.novelty or {}).get("opened_on_escalation")),
+                    )
+                )
             elif owner is not None and action in ("open", "escalate") and owner.closed_at is None:
                 member = owner.members[key]
                 if member.closed_at is not None:
@@ -219,7 +227,7 @@ class Correlator:
                 self._on_open(t, member, emit)
         for event in new_latent:
             if episode_key(event) in self.state.latent:
-                self._attach_shared_latent(t, event, emit)
+                self._attach_new_latent(t, event, emit)
 
         for action, event in actions:
             if action not in ("close", "expire"):
@@ -503,7 +511,7 @@ class Correlator:
         service = service_of(event.key)
         if service not in state.group.blast_radius:
             state.group.blast_radius.append(service)
-        for issue in sorted(_issue_ids(event)):
+        for issue in sorted(str(issue_id) for issue_id in event.issue_ids):
             if issue not in state.group.driving_issues:
                 state.group.driving_issues.append(issue)
 
@@ -519,6 +527,8 @@ class Correlator:
         for member in other.members.values():
             self._add_member(into, member)
         into.group.opened_at = min(into.group.opened_at, other.group.opened_at)
+        if URGENCY_RANK[other.group.urgency] > URGENCY_RANK[into.group.urgency]:
+            into.group.urgency = other.group.urgency
         del self.state.open_groups[other.group.id]
         other.closed_at = t
         for remaining in self.state.open_groups.values():
@@ -553,22 +563,26 @@ class Correlator:
         )
 
     def _failure_mode_home(self, t: datetime, event: ChangeEvent) -> GroupState | None:
-        if event.change_type == ChangeType.NEW_FAILURE_MODE:
-            for state in self.state.open_groups.values():
-                members = list(self._live_members(t, state))
-                if service_of(event.key) in {service_of(m.event.key) for m in members} and any(
-                    abs(m.event.start - event.start) <= self.cfg.tolerance
-                    or _worse_near(m.event, event.start, self.cfg.tolerance, t)
-                    for m in members
-                ):
-                    return state
+        if event.change_type != ChangeType.NEW_FAILURE_MODE:
+            return None
+        service = service_of(event.key)
+        for state in self.state.open_groups.values():
+            if any(
+                service_of(member.event.key) == service
+                and (
+                    abs(member.event.start - event.start) <= self.cfg.tolerance
+                    or _worse_near(member.event, event.start, self.cfg.tolerance, t)
+                )
+                for member in self._live_members(t, state)
+            ):
+                return state
         return None
 
     def _same_issue(self, t: datetime, state: GroupState) -> GroupState | None:
         issue_keys = {
             (event.key.project, issue)
             for event in state.group.change_events
-            for issue in _issue_ids(event)
+            for issue in event.issue_ids
         }
         if not issue_keys:
             return None
@@ -579,7 +593,7 @@ class Correlator:
                 and any(
                     (event.key.project, issue) in issue_keys
                     for event in other.group.change_events
-                    for issue in _issue_ids(event)
+                    for issue in event.issue_ids
                 )
             ):
                 return other
@@ -590,45 +604,64 @@ class Correlator:
     ) -> None:
         event = source.event
         tolerance = self.cfg.tolerance
-        for key, latent in list(self.state.latent.items()):
+        support: MemberState | None
+        for latent in list(self.state.latent.values()):
             pair = self.shared.get(event.key, latent.key)
-            near = abs(latent.start - _onset(event)) <= tolerance
-            if pair and (near or abs(latent.start - event.start) <= tolerance):
-                self._attach_support(state, latent, emit, _shared_detail(pair), alias_of=source)
-            elif latent.key == event.key and _overlap(event, latent, tolerance):
-                self._attach_support(state, latent, emit, "same series", alias_of=source)
-            elif (
-                near and latent.start <= event.start + tolerance and not _project_level(latent.key)
-            ):
-                footprint = self._footprint(source, t)
-                stats = footprint.touches(latent.key, self.cfg.min_share) if footprint else None
-                if not stats or self._order(event.key, latent.key, (footprint,)) != 1:
-                    continue
-                if latent.key.metric.startswith("p95") and (
-                    stats.p95_ms is None
-                    or not latent.expected
-                    or stats.p95_ms < LATENT_SLOW_RATIO * latent.expected
-                ):
-                    continue
-                self._attach_support(
-                    state, latent, emit, "downstream routine change seen in affected traces"
+            near_onset = abs(latent.start - _onset(event)) <= tolerance
+            if pair and (near_onset or abs(latent.start - event.start) <= tolerance):
+                support = self._attach_support(
+                    state, latent, emit, _shared_detail(pair), alias_of=source
                 )
+            elif latent.key == event.key and _overlap(event, latent, tolerance):
+                support = self._attach_support(state, latent, emit, "same series", alias_of=source)
             else:
-                continue
-            self.state.latent.pop(key, None)
-            self._bridge_support(t, state, state.members[key], emit)
+                support = self._attach_downstream_support(t, state, source, latent, emit)
+            if support is not None:
+                self._bridge_support(t, state, support, emit)
 
-    def _attach_shared_latent(self, t: datetime, event: ChangeEvent, emit: _Emit) -> None:
+    def _attach_new_latent(self, t: datetime, latent: ChangeEvent, emit: _Emit) -> None:
         for state in self.state.open_groups.values():
-            for member in self._live_members(t, state):
-                if abs(event.start - member.event.start) <= self.cfg.tolerance and (
-                    pair := self.shared.get(event.key, member.event.key)
+            for source in self._live_members(t, state):
+                if abs(latent.start - source.event.start) <= self.cfg.tolerance and (
+                    pair := self.shared.get(latent.key, source.event.key)
                 ):
-                    self._attach_support(state, event, emit, _shared_detail(pair), alias_of=member)
-                    self.state.latent.pop(episode_key(event), None)
-                    state.last_activity = t
-                    self._update_group(t, state, emit)
-                    return
+                    self._attach_support(state, latent, emit, _shared_detail(pair), alias_of=source)
+                elif (
+                    not source.latent
+                    and (support := self._attach_downstream_support(t, state, source, latent, emit))
+                    is not None
+                ):
+                    self._bridge_support(t, state, support, emit)
+                else:
+                    continue
+                state.last_activity = t
+                self._update_group(t, state, emit)
+                return
+
+    def _attach_downstream_support(
+        self, t: datetime, state: GroupState, source: MemberState, latent: ChangeEvent, emit: _Emit
+    ) -> MemberState | None:
+        event = source.event
+        tolerance = self.cfg.tolerance
+        if (
+            abs(latent.start - _onset(event)) > tolerance
+            or latent.start > event.start + tolerance
+            or _project_level(latent.key)
+        ):
+            return None
+        footprint = self._footprint(source, t)
+        stats = footprint.touches(latent.key, self.cfg.min_share) if footprint else None
+        if not stats or self._order(event.key, latent.key, (footprint,)) != 1:
+            return None
+        if latent.key.metric.startswith("p95") and (
+            stats.p95_ms is None
+            or not latent.expected
+            or stats.p95_ms < LATENT_SLOW_RATIO * latent.expected
+        ):
+            return None
+        return self._attach_support(
+            state, latent, emit, "downstream routine change seen in affected traces"
+        )
 
     def _attach_support(
         self,
@@ -638,12 +671,14 @@ class Correlator:
         detail: str,
         *,
         alias_of: MemberState | None = None,
-    ) -> None:
+    ) -> MemberState:
         member = MemberState(event, event.open_ratio, latent=True)
         self._add_member(state, member)
         if alias_of is not None:
             self._union(state, member, alias_of)
+        self.state.latent.pop(episode_key(event), None)
         emit(state, "join", event, detail)
+        return member
 
     def _bridge_support(
         self, t: datetime, state: GroupState, support: MemberState, emit: _Emit
@@ -810,7 +845,10 @@ class Correlator:
 
     def _footprint(self, member: MemberState, t: datetime) -> Footprint | None:
         if self.footprints is not None and not member.footprint_loaded:
-            member.footprint = self.footprints.footprint(member.event)
+            footprint = self.footprints.footprint(member.event, t + timedelta(minutes=1))
+            if footprint is FOOTPRINT_DEFERRED:
+                return None
+            member.footprint = footprint
             member.footprint_loaded = True
             if member.footprint:
                 for edge, count in member.footprint.edges.items():
@@ -963,16 +1001,6 @@ def _group_id(event: ChangeEvent) -> str:
         start.isoformat(),
     )
     return hashlib.sha256(json.dumps(identity).encode()).hexdigest()[:32]
-
-
-def _issue_ids(event: ChangeEvent) -> set[str]:
-    return {
-        issue
-        for evidence in event.evidence
-        if evidence.startswith("issues:")
-        for issue in evidence.removeprefix("issues:").split(",")
-        if issue.isascii() and issue.isdigit()
-    }
 
 
 def _error_path(source: SeriesKey, target: SeriesKey, footprint: Footprint) -> bool:

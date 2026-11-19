@@ -14,7 +14,7 @@ REPORTS = "/reports"
 
 
 class NoFootprints:
-    def footprint(self, event: ChangeEvent) -> None:
+    def footprint(self, event: ChangeEvent, observation_end: datetime) -> None:
         return None
 
 

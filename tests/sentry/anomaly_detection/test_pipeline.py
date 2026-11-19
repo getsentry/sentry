@@ -18,7 +18,7 @@ MINUTE = timedelta(minutes=1)
 
 
 class NoFootprints:
-    def footprint(self, event: ChangeEvent) -> Footprint | None:
+    def footprint(self, event: ChangeEvent, observation_end: datetime) -> Footprint | None:
         return None
 
 
@@ -216,3 +216,63 @@ def test_first_qualification_pins_the_owner_through_reroot_and_merge() -> None:
         ]
     )
     assert resolved == replace(updated, timestamp=T0 + 3 * MINUTE, is_resolved=True)
+
+
+def test_cold_start_does_not_publish_a_group_that_closes_on_the_boundary() -> None:
+    failure = ChangeEvent(
+        SeriesKey("42", "prod", "new_issue", "count_unique(user)", "42"),
+        ChangeType.NEW_FAILURE_MODE,
+        T0,
+        actual=60.0,
+        expected=10.0,
+        confidence=0.9,
+    )
+    closes_at = T0 + timedelta(minutes=45)
+
+    assert not evaluate_org(
+        rows=[],
+        hourly_rows=[],
+        start=closes_at,
+        end=closes_at + MINUTE,
+        footprints=NoFootprints(),
+        new_issues=[failure],
+    )
+
+
+def test_simultaneous_excursions_do_not_change_each_others_prior() -> None:
+    left_key = SeriesKey("42", "prod", "endpoints", "p95(span.duration)", "/left")
+    right_key = replace(left_key, dim_value="/right")
+    candidate_minute = T0 + timedelta(hours=12)
+    candidate = ChangeEvent(left_key, ChangeType.SLOWDOWN, candidate_minute, 40.0, 20.0, 0.9)
+    peer = replace(candidate, key=right_key)
+    evaluator = OrgEvaluator(NoFootprints())
+    for offset in range(720):
+        minute = T0 + offset * MINUTE
+        evaluator.novelty.observe(left_key, minute)
+        evaluator.novelty.observe(right_key, minute)
+    evaluator.novelty.record(replace(candidate, start=T0 + MINUTE))
+    prior = evaluator.novelty.judge(candidate, 1.0, candidate_minute)
+
+    evaluator._judge(candidate_minute, [("open", peer), ("open", candidate)])
+
+    assert candidate.novelty == prior.as_dict()
+
+
+def test_healthy_measurements_restore_latency_detection() -> None:
+    evaluator = OrgEvaluator(NoFootprints())
+    key = SeriesKey("42", "prod", "outbound_db", "p95(span.duration)", "primary")
+    rows = [
+        (T0 + offset * MINUTE, key.signal, metric, key.project, key.env, key.dim_value, value)
+        for offset in range(180)
+        for metric, value in (
+            ("p95(span.duration)", 0.0 if offset < 70 else 100.0),
+            ("count_sample()", 100.0),
+        )
+    ]
+    middle = T0 + 61 * MINUTE
+    evaluator.advance(rows=rows, hourly_rows=[], start=T0, end=middle)
+    assert key in evaluator.det.exclude
+
+    evaluator.advance(rows=rows, hourly_rows=[], start=middle, end=T0 + 121 * MINUTE)
+    assert key not in evaluator.det.exclude
+    assert key in evaluator.det.watched

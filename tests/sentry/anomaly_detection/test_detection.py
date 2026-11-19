@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 import pytest
 
 from sentry.anomaly_detection.baseline import Baseline
+from sentry.anomaly_detection.changepoint import ChangePointConfig, ChangePointDetector
 from sentry.anomaly_detection.contracts import ChangeEvent, ChangeType, SeriesKey
 from sentry.anomaly_detection.detect import DetectConfig, Detector
 from sentry.anomaly_detection.series import Series, SeriesRow, build, samples_key
@@ -12,6 +13,7 @@ REQUESTS = SeriesKey("1", "prod", "requests", "count()")
 ERRORS = SeriesKey("1", "prod", "errors", "count()")
 LATENCY = SeriesKey("1", "prod", "outbound_db", "p95(span.duration)", "catalog-db")
 FAILURES = SeriesKey("1", "prod", "endpoints", "failure_rate()", "/api/task")
+ERROR_RATE = SeriesKey("1", "prod", "error_rate", "errors/requests")
 
 
 def minute(i: int) -> datetime:
@@ -145,6 +147,52 @@ def test_sparse_failures_accumulate_evidence_and_recover() -> None:
     assert event.ended_at is not None and event.ended_at >= minute(190)
 
 
+def test_minute_opened_failure_spike_can_recover_on_pooled_samples() -> None:
+    detector = Detector(
+        {
+            FAILURES: points(0, 60, 0.0) | points(60, 63, 1.0) | points(63, 180, 0.0),
+            samples_key(FAILURES): points(0, 63, 100.0) | points(63, 180, 1.0),
+        },
+        Baseline({}),
+    )
+    [(opened, event)] = step(detector, 0, 63)
+    assert opened == "open"
+    assert detector.state[FAILURES].window == 0
+    assert step(detector, 63, 75) == []
+    assert step(detector, 75, 180) == [("close", event)]
+
+
+def test_sparse_failure_spike_does_not_learn_degraded_rate_as_recovery() -> None:
+    detector = Detector(
+        {
+            FAILURES: points(0, 150, 0.0) | {minute(i): float(i % 4 != 0) for i in range(150, 400)},
+            samples_key(FAILURES): points(0, 400, 1.0),
+        },
+        Baseline({}),
+    )
+    actions = step(detector, 0, 400)
+    assert actions[0][0] == "open"
+    assert all(action != "close" for action, _ in actions)
+    assert detector.state[FAILURES].open is actions[0][1]
+
+
+def test_window_spike_reports_pooled_rate_on_a_healthy_minute() -> None:
+    detector = Detector(
+        {
+            FAILURES: points(0, 240, 0.0) | points(152, 159, 1.0),
+            samples_key(FAILURES): points(0, 240, 1.0),
+        },
+        Baseline({}),
+        DetectConfig(windows=(60,), window_p=0.02),
+    )
+    actions = step(detector, 0, 165)
+    [(action, event)] = actions
+    assert action == "open"
+    assert event.detected_at == minute(159)
+    assert event.actual == pytest.approx(7 / 60)
+    assert 0 < event.expected < event.actual
+
+
 def test_occasional_sparse_failure_is_not_a_spike() -> None:
     series = {
         FAILURES: points(0, 340, 0.0) | {minute(152): 1.0, minute(190): 1.0},
@@ -175,6 +223,22 @@ def test_history_scales_level_by_hour_and_prefers_same_day_type() -> None:
     assert ev.expected == 20.0
     assert ev.sigma == pytest.approx(0.1)
     assert ev.lower < ev.expected < ev.upper
+
+
+def test_missing_history_for_target_hour_uses_recent_signal_units() -> None:
+    hourly: Series = {START - timedelta(days=i, hours=1): 200.0 for i in range(1, 15)}
+    ev = Baseline({REQUESTS: hourly}).expected(REQUESTS, points(-60, 0, 10.0), START, set())
+    assert ev is not None
+    assert ev.expected == 10.0
+
+
+def test_weekend_shape_uses_two_weekends_when_available() -> None:
+    saturday = START + timedelta(days=5)
+    hourly: Series = {}
+    for i in range(1, 15):
+        day = saturday - timedelta(days=i)
+        hourly[day] = 20.0 if day.weekday() >= 5 else 100.0
+    assert Baseline({REQUESTS: hourly}).raw_shape(REQUESTS, saturday) == 20.0
 
 
 def test_warmup_requires_observations_and_widens_band() -> None:
@@ -231,3 +295,74 @@ def test_refresh_adds_new_series_without_resetting_existing_state() -> None:
     assert det.state[ERRORS] is error_state
     assert set(det.watched) == {ERRORS, REQUESTS}
     assert det.refresh() == 0
+    series[ERRORS].update(points(60, 65, 100.0))
+    series[REQUESTS].update(points(60, 65, 20_000.0))
+    assert step(det, 0, 65) == []
+
+
+def test_raw_error_episode_can_close_after_requests_arrive() -> None:
+    series = {ERRORS: points(-60, 60, 5.0) | points(60, 63, 100.0) | points(63, 100, 5.0)}
+    detector = Detector(series, Baseline({}))
+    [(opened, event)] = step(detector, 0, 63)
+    assert opened == "open"
+    series[REQUESTS] = points(63, 100, 1000.0)
+    detector.refresh()
+    assert step(detector, 63, 100) == [("close", event)]
+
+
+def test_change_point_ignores_known_spikes_in_the_pooled_gate() -> None:
+    series = {
+        REQUESTS: points(0, 230, 10_000.0),
+        ERRORS: points(0, 170, 20.0) | points(130, 135, 1000.0) | points(170, 230, 30.0),
+        ERROR_RATE: points(0, 230, None),
+    }
+    detector = ChangePointDetector(series, Baseline({}))
+    spike = ChangeEvent(ERROR_RATE, ChangeType.SPIKE, minute(130), 0.1, 0.002, 0.9)
+    detector.note_spike(spike, minute(134))
+    [(action, event)] = [action for i in range(230) for action in detector.step(minute(i))]
+    assert action == "open"
+    assert event.expected == pytest.approx(0.002, rel=0.01)
+    assert event.actual == 0.003
+
+
+def test_uncovered_change_point_tick_resets_persistence() -> None:
+    series = {
+        REQUESTS: points(0, 220, 1000.0),
+        ERRORS: points(0, 170, 20.0) | points(170, 220, 40.0),
+        ERROR_RATE: points(0, 220, None),
+    }
+    detector = ChangePointDetector(series, Baseline({}), ChangePointConfig(persist=2))
+    assert detector.step(minute(185)) == []
+    assert detector.state[ERROR_RATE].hits == 1
+    counts = series[ERRORS]
+    series[ERRORS] = points(0, 220, None)
+    assert detector.step(minute(190)) == []
+    series[ERRORS] = counts
+    assert detector.step(minute(195)) == []
+    assert detector.state[ERROR_RATE].hits == 1
+
+
+def test_change_point_recovery_uses_the_same_seasonal_scale_as_open() -> None:
+    # A high-rate hour falls out of the window while the 50% regression is still present.
+    hourly: Series = {
+        START + timedelta(hours=hour, days=-day): 0.008 if hour == 0 else 0.002
+        for day in range(1, 15)
+        for hour in range(-3, 6)
+    }
+    errors = (
+        points(-180, 0, 20.0)
+        | points(0, 60, 80.0)
+        | points(60, 65, 20.0)
+        | points(65, 200, 30.0)
+        | points(200, 240, 20.0)
+    )
+    detector = ChangePointDetector(
+        {REQUESTS: points(-180, 240, 10_000.0), ERRORS: errors, ERROR_RATE: dict.fromkeys(errors)},
+        Baseline({ERROR_RATE: hourly}),
+    )
+    [(opened, event)] = [action for i in range(-180, 200) for action in detector.step(minute(i))]
+    assert opened == "open"
+    assert [action for i in range(200, 240) for action in detector.step(minute(i))] == [
+        ("close", event)
+    ]
+    assert event.evidence[-1] == "recovered"

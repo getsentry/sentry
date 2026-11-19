@@ -73,6 +73,19 @@ class CountTotals(NamedTuple):
     level: float | None
 
 
+class Measurement(NamedTuple):
+    actual: float
+    expected: float
+    ratio: float
+    z: float
+
+
+class WindowHit(NamedTuple):
+    minutes: int
+    measurement: Measurement
+    failure_reference: tuple[float, float] | None = None
+
+
 @dataclass
 class DetectorState:
     recent: deque[tuple[datetime, bool, float | None]] = field(
@@ -89,6 +102,7 @@ class DetectorState:
     worse_run: list[float] = field(default_factory=list)
     counts: deque[CountTotals] | None = None
     window: int = 0
+    failure_reference: tuple[float, float] | None = None
     closed_at: datetime | None = None
     recent_ratios: deque[float | None] = field(default_factory=lambda: deque(maxlen=30))
 
@@ -104,7 +118,7 @@ class Detector:
         self.series = series
         self.baseline = baseline
         self.cfg = cfg or DetectConfig()
-        self.exclude = exclude if exclude is not None else {}
+        self.exclude = dict(exclude) if exclude is not None else {}
         self.watched: dict[SeriesKey, Rule] = {}
         self.state: dict[SeriesKey, DetectorState] = {}
         self._pseudo: dict[tuple[SeriesKey, datetime], float] = {}
@@ -181,54 +195,64 @@ class Detector:
             t,
             st.excluded,
             weights=self.series.get(weights) if weights else None,
-            pending={ts for ts, flagged, _ in st.recent if flagged} if weights else None,
+            pending={minute for minute, flagged, _ in st.recent if flagged} if weights else None,
         )
 
     def _step_series(
-        self, key: SeriesKey, rule: Rule, t: datetime
+        self, key: SeriesKey, rule: Rule, minute: datetime
     ) -> tuple[str, ChangeEvent] | None:
-        cfg, st = self.cfg, self.state[key]
-        actual = self._get(key, t)
+        cfg, state = self.cfg, self.state[key]
+        if (
+            state.open is None
+            and rule.only_without_traffic
+            and has_traffic(self.series, key.project, key.env)
+        ):
+            state.recent.clear()
+            state.counts = None
+            return None
+        actual = self._get(key, minute)
         parts = rate_parts(key)
         is_latency = rule.change == ChangeType.SLOWDOWN
         sampled_share = is_share(key)
         sample_key = samples_key(key)
-        samples = self._get(sample_key, t)
+        samples = self._get(sample_key, minute)
         counted = bool(cfg.windows) and (
             parts is not None or sampled_share or (key.signal, key.metric) == ("errors", "count()")
         )
-        if counted and st.counts is None:
-            st.counts = deque(
+        if counted and state.counts is None:
+            state.counts = deque(
                 [CountTotals(None, 0, 0, 0, 0, 0, 0, None)],
                 maxlen=max(cfg.windows) + DISPERSION_MIN + 1,
             )
         # Exclusions only affect recent baseline windows; the open episode's reference is frozen.
         horizon = self.baseline.cfg.window_min + self.baseline.cfg.reach_back_min
-        st.excluded.discard(t - (horizon + 1) * MINUTE)
+        state.excluded.discard(minute - (horizon + 1) * MINUTE)
 
-        num, den, sampled_den = (self._get(k, t) for k in parts) if parts else (None, None, None)
+        num, den, sampled_den = (
+            (self._get(k, minute) for k in parts) if parts else (None, None, None)
+        )
         rate_missing = parts is not None and (num is None or not den or not sampled_den)
         share_missing = sampled_share and not samples
         drop_missing = rule.direction == "down" and sample_key in self.series and samples is None
         if actual is None or rate_missing or share_missing or drop_missing:
             if counted:
-                assert st.counts is not None
+                assert state.counts is not None
                 # Explicit zero sample trials contribute nothing; unknown coverage invalidates the window.
                 zero_trials = (sampled_share and samples == 0) or (
                     key.signal == "failed_rate" and sampled_den == num == 0
                 )
-                _push(st.counts, t, missing=not zero_trials)
-            self._unavailable(st, t, is_latency)
+                _push(state.counts, minute, missing=not zero_trials)
+            self._unavailable(state, minute, is_latency)
             return None
-        ev = self._expected(key, st, t)
+        ev = self._expected(key, state, minute)
         if ev is None:
             if counted:
-                assert st.counts is not None
-                _push(st.counts, t, missing=True)
-            self._unavailable(st, t, is_latency)
+                assert state.counts is not None
+                _push(state.counts, minute, missing=True)
+            self._unavailable(state, minute, is_latency)
             return None
 
-        prior = self.pseudo(key, t)
+        prior = self.pseudo(key, minute)
         ratio = (actual + prior) / (ev.expected + prior)
         up = rule.direction == "up"
         passes_ratio = ratio >= cfg.min_ratio if up else ratio <= 1 / cfg.min_ratio
@@ -246,15 +270,16 @@ class Detector:
             # A genuine drop reduces its own sample count. Judge it against its pre-drop volume,
             # and retain that evidence once the drop is open.
             enough = beyond and (
-                st.open is not None or self._window_median(sample_key, t) >= cfg.min_samples
+                state.open is not None or self._window_median(sample_key, minute) >= cfg.min_samples
             )
         flagged = beyond and enough
         if is_latency:
-            st.recent_ratios.append(ratio if (samples or 0) >= cfg.latency_min_samples else None)
+            state.recent_ratios.append(ratio if (samples or 0) >= cfg.latency_min_samples else None)
 
-        window = 0
+        measurement = Measurement(actual, ev.expected, ratio, z)
+        hit = None
         if counted:
-            assert st.counts is not None
+            assert state.counts is not None
             if parts:
                 assert num is not None and den and sampled_den
                 observed, denominator = num, den
@@ -267,10 +292,10 @@ class Detector:
             else:
                 observed, denominator, extra_noise = actual, 1.0, 0.0
                 volume = ev.expected / cfg.min_abs_excess
-            shape = self.baseline.shape(key, t)
+            shape = self.baseline.shape(key, minute)
             _push(
-                st.counts,
-                t,
+                state.counts,
+                minute,
                 observed,
                 ev.expected * denominator,
                 extra_noise,
@@ -278,28 +303,22 @@ class Detector:
                 denominator * shape,
                 ev.expected / shape,
             )
-            if not flagged and (st.open is None or st.window):
-                bounded = key.signal == "failed_rate" or sampled_share
-                hit = self._window_test(st, st.counts, ev, cfg.window_p, bounded)
-                if hit:
-                    window, ratio, z = hit
+            if not flagged:
+                if state.open is None or state.window:
+                    hit = self._window_test(state, ev, cfg.window_p, only=state.window)
+                if hit is not None:
+                    measurement = hit.measurement
                     flagged = beyond = True
-                elif st.window and self._window_test(
-                    st, st.counts, ev, cfg.hold_p, bounded, only=st.window
-                ):
-                    beyond = True
-                if st.window and not flagged:
-                    valid = self._can_measure_window(st, st.counts, st.window) and (
-                        (not bounded and parts is None)
-                        or st.counts[-1].volume - st.counts[-1 - st.window].volume >= 1
-                    )
+                elif state.open is not None and (state.window or not valid):
+                    valid, held = self._pooled_recovery(state, ev)
+                    beyond = beyond or held
 
-        st.recent.append((t, flagged, actual))
-        if st.open is None:
-            if flagged and sum(flag for _, flag, _ in st.recent) >= rule.persist[0]:
-                return self._open_episode(key, rule, st, t, actual, ev, ratio, z, window)
+        state.recent.append((minute, flagged, actual))
+        if state.open is None:
+            if flagged and sum(flag for _, flag, _ in state.recent) >= rule.persist[0]:
+                return self._open_episode(rule, state, ev, measurement, hit)
             return None
-        return self._update_episode(st, rule, t, actual, ev, ratio, z, beyond, flagged, valid)
+        return self._update_episode(state, rule, minute, measurement, beyond, flagged, valid)
 
     @staticmethod
     def _unavailable(st: DetectorState, t: datetime, is_latency: bool) -> None:
@@ -335,21 +354,20 @@ class Detector:
 
     def _open_episode(
         self,
-        key: SeriesKey,
         rule: Rule,
         st: DetectorState,
-        t: datetime,
-        actual: float,
         ev: ExpectedValue,
-        ratio: float,
-        z: float,
-        window: int,
+        measurement: Measurement,
+        hit: WindowHit | None,
     ) -> tuple[str, ChangeEvent]:
-        flagged = [(ts, value) for ts, flag, value in st.recent if flag]
+        key, t = ev.key, ev.ts
+        actual, expected, ratio, z = measurement
+        flagged = [(minute, value) for minute, flag, value in st.recent if flag]
         anchor = start = flagged[0][0]
         change = rule.change
         if change == ChangeType.DROP and all(value == 0 for _, value in flagged):
             change = ChangeType.SILENCE
+        window = hit.minutes if hit else 0
         if window:
             assert st.counts is not None
             start = min(start, _excess_start(st.counts, window, self.cfg.min_ratio))
@@ -358,7 +376,7 @@ class Detector:
             change,
             start,
             actual,
-            ev.expected,
+            expected,
             _confidence(z, self.baseline.cfg.k),
             detected_at=t,
             peak_ratio=ratio,
@@ -380,7 +398,11 @@ class Detector:
         st.anchor_level = anchor_ev.expected / self.baseline.shape(key, anchor)
         st.anchor_sigma = anchor_ev.sigma
         st.anchor_points = anchor_ev.point_count
-        st.excluded.update(ts for ts, _ in flagged)
+        st.excluded.update(minute for minute, _ in flagged)
+        if key.signal == "failed_rate" or is_share(key):
+            st.failure_reference = (
+                hit.failure_reference if hit else self._failure_reference(key, st, anchor)
+            )
         st.open = event
         st.window = window
         st.score = float(self.cfg.close_after)
@@ -390,55 +412,53 @@ class Detector:
 
     def _update_episode(
         self,
-        st: DetectorState,
+        state: DetectorState,
         rule: Rule,
-        t: datetime,
-        actual: float,
-        ev: ExpectedValue,
-        ratio: float,
-        z: float,
+        minute: datetime,
+        measurement: Measurement,
         beyond: bool,
         flagged: bool,
         valid: bool,
     ) -> tuple[str, ChangeEvent] | None:
         cfg = self.cfg
-        event = st.open
+        event = state.open
         assert event is not None
+        actual, expected, ratio, z = measurement
         if flagged:
-            st.score = min(cfg.evidence_cap, st.score + 1)
+            state.score = min(cfg.evidence_cap, state.score + 1)
         elif valid and not beyond:
-            st.score = max(0.0, st.score - 1)
+            state.score = max(0.0, state.score - 1)
         if rule.change == ChangeType.SLOWDOWN:
-            duration = (t - event.start) // MINUTE
-            recent = [r for r in list(st.recent_ratios)[-duration - 1 :] if r is not None]
+            duration = (minute - event.start) // MINUTE
+            recent = [r for r in list(state.recent_ratios)[-duration - 1 :] if r is not None]
             event.recent_ratio = median(recent) if len(recent) >= 15 else None
             if cfg.sustained and event.sustained_at is None and event.recent_ratio is not None:
                 min_ratio, minutes = cfg.sustained
                 if event.recent_ratio >= min_ratio and duration >= minutes:
-                    event.sustained_at = t
+                    event.sustained_at = minute
                     self.sustained_now.append(event)
-        st.excluded.add(t)
+        state.excluded.add(minute)
         direction = 1 if rule.direction == "up" else -1
         if flagged or valid:
             if (ratio - event.peak_ratio) * direction > 0:
-                event.peak_ratio, event.actual, event.expected = ratio, actual, ev.expected
+                event.peak_ratio, event.actual, event.expected = ratio, actual, expected
                 if z:
                     event.confidence = max(event.confidence, _confidence(z, self.baseline.cfg.k))
-        if flagged and direction * math.log(ratio / st.level_ratio) >= math.log(
+        if flagged and direction * math.log(ratio / state.level_ratio) >= math.log(
             cfg.escalate_factor
         ):
-            st.worse_run.append(ratio)
+            state.worse_run.append(ratio)
         else:
-            st.worse_run.clear()
-        if len(st.worse_run) >= cfg.escalate_n:
-            st.level_ratio = median(st.worse_run)
-            event.escalations.append((t - (cfg.escalate_n - 1) * MINUTE, st.level_ratio))
-            st.worse_run.clear()
+            state.worse_run.clear()
+        if len(state.worse_run) >= cfg.escalate_n:
+            state.level_ratio = median(state.worse_run)
+            event.escalations.append((minute - (cfg.escalate_n - 1) * MINUTE, state.level_ratio))
+            state.worse_run.clear()
             return "escalate", event
-        if st.score == 0:
-            return self._close_episode(st, event, t, chronic=False)
-        if flagged and t - event.start >= timedelta(hours=cfg.chronic_hours):
-            return self._close_episode(st, event, t, chronic=True)
+        if state.score == 0:
+            return self._close_episode(state, event, minute, chronic=False)
+        if flagged and minute - event.start >= timedelta(hours=cfg.chronic_hours):
+            return self._close_episode(state, event, minute, chronic=True)
         return None
 
     def _close_episode(
@@ -449,7 +469,7 @@ class Detector:
             event.evidence.append(
                 f"chronic: not recovered after {self.cfg.chronic_hours:g}h, taken as the new level"
             )
-            st.excluded = {ts for ts in st.excluded if ts < event.start}
+            st.excluded = {minute for minute in st.excluded if minute < event.start}
         else:
             event.evidence.append("recovered")
         st.open = st.anchor = st.anchor_level = None
@@ -457,13 +477,16 @@ class Detector:
         st.anchor_points = 0
         st.score = 0.0
         st.window = 0
+        st.failure_reference = None
         st.closed_at = t
         st.recent.clear()
         st.recent_ratios.clear()
         return ("expire" if chronic else "close"), event
 
     @staticmethod
-    def _can_measure_window(st: DetectorState, counts: deque[CountTotals], window: int) -> bool:
+    def _can_measure_window(st: DetectorState, window: int) -> bool:
+        counts = st.counts
+        assert counts is not None
         if len(counts) <= window:
             return False
         first = counts[-1 - window]
@@ -471,35 +494,48 @@ class Detector:
             return False
         return counts[-1].missing == first.missing
 
+    def _pooled_recovery(self, st: DetectorState, ev: ExpectedValue) -> tuple[bool, bool]:
+        counts = st.counts
+        if (ev.key.signal == "failed_rate" or is_share(ev.key)) and st.failure_reference is None:
+            return False, False
+        assert counts is not None
+        for window in (st.window,) if st.window else self.cfg.windows:
+            if not self._can_measure_window(st, window):
+                continue
+            if weight_key(ev.key) and counts[-1].volume - counts[-1 - window].volume < 1:
+                continue
+            return True, self._window_test(st, ev, self.cfg.hold_p, only=window) is not None
+        return False, False
+
     def _window_test(
-        self,
-        st: DetectorState,
-        counts: deque[CountTotals],
-        ev: ExpectedValue,
-        p_max: float,
-        bounded: bool,
-        only: int = 0,
-    ) -> tuple[int, float, float] | None:
+        self, st: DetectorState, ev: ExpectedValue, p_max: float, *, only: int = 0
+    ) -> WindowHit | None:
         """Return the shortest window with enough evidence to reject its baseline."""
+        counts = st.counts
+        assert counts is not None
+        bounded = ev.key.signal == "failed_rate" or is_share(ev.key)
         cfg = self.cfg
         last = counts[-1]
         need = cfg.min_abs_excess if p_max <= cfg.window_p else 1.0
         for w in (only,) if only else self._windows_for(counts):
-            if not self._can_measure_window(st, counts, w):
+            if not self._can_measure_window(st, w):
                 continue
             first = counts[-1 - w]
             n = last.events - first.events
             if bounded:
-                hit = self._share_test(counts, w, n, need, p_max)
-                if hit:
-                    return w, *hit
+                hit = self._share_test(st, w, need, p_max)
+                if hit is not None:
+                    return hit
                 continue
             # Freeze the level at the start of the window; minute fits inside a sparse change
             # could absorb failures before enough evidence accumulates to open the episode.
-            level = first.level if first.level is not None else counts[-w].level
+            level = st.anchor_level if st.open is not None else first.level
+            if level is None:
+                level = counts[-w].level
             if level is None:
                 continue
             e = level * (last.shaped_denominator - first.shaped_denominator)
+            expected_events = e
             if n - e < need or (n + 1) / (e + 1) < cfg.min_ratio:
                 continue
             seen = ev.point_count
@@ -514,7 +550,23 @@ class Detector:
                 relative_variance += 1 / samples
             p = _nb_sf(n, e, 1 / relative_variance)
             if p < p_max:
-                return w, (n + 1) / (e + 1), _score(p)
+                denominator: float = w
+                if weight_key(ev.key):
+                    denominator = sum(
+                        (counts[i].shaped_denominator - counts[i - 1].shaped_denominator)
+                        / self.baseline.shape(ev.key, counts[i].ts or ev.ts)
+                        for i in range(-w, 0)
+                    )
+                if denominator:
+                    return WindowHit(
+                        w,
+                        Measurement(
+                            n / denominator,
+                            expected_events / denominator,
+                            (n + 1) / (e + 1),
+                            _score(p),
+                        ),
+                    )
         return None
 
     def _windows_for(self, counts: deque[CountTotals]) -> tuple[int, ...]:
@@ -529,26 +581,52 @@ class Detector:
         first = next((i for i, w in enumerate(windows) if w * per_min >= 1), len(windows) - 1)
         return windows[first : first + 2]
 
-    def _share_test(
-        self, counts: deque[CountTotals], w: int, n: float, need: float, p_max: float
+    def _failure_reference(
+        self, key: SeriesKey, st: DetectorState, end_minute: datetime
     ) -> tuple[float, float] | None:
-        """Compare sampled failures over sampled trials using a beta-binomial predictive tail."""
-        cfg = self.cfg
-        end = len(counts) - 1 - w
+        trial_key = weight_key(key)
+        assert trial_key is not None
+        events = trials = 0.0
+        for age in range(1, DISPERSION_MIN + 1):
+            minute = end_minute - age * MINUTE
+            if minute in st.excluded:
+                continue
+            rate, volume = self._get(key, minute), self._get(trial_key, minute)
+            if rate is not None and volume:
+                events += round(rate * volume)
+                trials += volume
+        return (events, trials) if trials else None
+
+    def _failure_history(self, counts: deque[CountTotals], end: int) -> tuple[float, float] | None:
         start = max(0, end - DISPERSION_MIN)
-        before, first, last = counts[start], counts[end], counts[-1]
-        if end - start - (first.missing - before.missing) < 10:
+        before, last = counts[start], counts[end]
+        if end - start - (last.missing - before.missing) < 10:
             return None
-        hist_events = first.events - before.events
-        hist_trials = (first.volume - before.volume) * cfg.min_samples
-        trials = (last.volume - first.volume) * cfg.min_samples
-        if trials < 1 or hist_trials < 1:
+        trials = (last.volume - before.volume) * self.cfg.min_samples
+        return (last.events - before.events, trials) if trials >= 1 else None
+
+    def _share_test(self, st: DetectorState, w: int, need: float, p_max: float) -> WindowHit | None:
+        """Compare sampled failures over sampled trials using a beta-binomial predictive tail."""
+        counts = st.counts
+        assert counts is not None
+        end = len(counts) - 1 - w
+        reference = (
+            st.failure_reference if st.open is not None else self._failure_history(counts, end)
+        )
+        if reference is None:
+            return None
+        hist_events, hist_trials = reference
+        first, last = counts[end], counts[-1]
+        n = last.events - first.events
+        trials = (last.volume - first.volume) * self.cfg.min_samples
+        if trials < 1:
             return None
         expected = trials * (hist_events + 0.5) / (hist_trials + 1)
         ratio = (n + 1) / (expected + 1)
-        if n - expected < need or ratio < cfg.min_ratio:
+        if n - expected < need or ratio < self.cfg.min_ratio:
             return None
-        phi = _dispersion(counts, w)
+        # Do not estimate dispersion from potentially anomalous traffic inside an open episode.
+        phi = 1.0 if st.open is not None else _dispersion(counts, w)
         p = _betabinom_sf(
             n / phi,
             trials / phi,
@@ -556,7 +634,9 @@ class Detector:
             max(0.0, hist_trials - hist_events) / phi + 0.5,
         )
         if p < p_max:
-            return ratio, _score(p)
+            return WindowHit(
+                w, Measurement(n / trials, expected / trials, ratio, _score(p)), reference
+            )
         return None
 
 
