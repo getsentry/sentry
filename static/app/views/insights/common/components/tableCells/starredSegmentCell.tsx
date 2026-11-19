@@ -59,11 +59,9 @@ export function StarredSegmentCell({
 
   const updateTableData = (newIsStarred: boolean) => {
     queryClient.setQueriesData(
-      {
-        queryKey: apiOptions.queryKey('/organizations/$organizationIdOrSlug/events/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-      },
+      apiOptions.queryFilter('/organizations/$organizationIdOrSlug/events/', {
+        path: {organizationIdOrSlug: organization.slug},
+      }),
       (oldResponse: unknown) => {
         if (!isTableResponse(oldResponse)) {
           return oldResponse;
