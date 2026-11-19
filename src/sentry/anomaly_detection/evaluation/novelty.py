@@ -10,14 +10,20 @@ learn, and retaining the live event lets it learn the final size and duration.
 
 from __future__ import annotations
 
-import math
 import re
-from collections.abc import Callable, Iterator
-from dataclasses import dataclass
+from collections.abc import Callable, Iterable, Iterator
+from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import NamedTuple
 
-from sentry.anomaly_detection.contracts import ChangeEvent, Metric, SeriesKey, Signal
+from sentry.anomaly_detection.contracts import (
+    ChangeEvent,
+    Metric,
+    NoveltyEvidence,
+    SeriesKey,
+    Signal,
+)
+from sentry.anomaly_detection.evaluation.distributions import gamma_sf
 
 DAY = 86400.0
 _MINUTE = timedelta(minutes=1)
@@ -60,20 +66,20 @@ class Verdict:
     p_normal: float = 0.0
     lasting_min: float | None = None
 
-    def as_dict(self) -> dict[str, bool | float | int | str]:
-        data: dict[str, bool | float | int | str] = {
-            "unusual": self.unusual,
-            "size": round(self.size, 2),
-            "return_days": round(self.return_days, 2),
-            "similar": self.similar,
-            "history_days": round(self.history_days, 2),
-            "pooled_rate": round(self.pooled_rate, 4),
-            "kind": str(self.kind),
-            "p_normal": round(self.p_normal, 3),
-        }
+    def as_evidence(self) -> NoveltyEvidence:
+        evidence = NoveltyEvidence(
+            unusual=self.unusual,
+            size=round(self.size, 2),
+            return_days=round(self.return_days, 2),
+            similar=self.similar,
+            history_days=round(self.history_days, 2),
+            pooled_rate=round(self.pooled_rate, 4),
+            kind=str(self.kind),
+            p_normal=round(self.p_normal, 3),
+        )
         if self.lasting_min is not None:
-            data["lasting_min"] = round(self.lasting_min)
-        return data
+            evidence["lasting_min"] = round(self.lasting_min)
+        return evidence
 
     def text(self) -> str:
         basis = (
@@ -88,28 +94,24 @@ class Verdict:
 
 
 @dataclass
-class _Ex:
-    start: datetime
-    event: ChangeEvent
+class NoveltyState:
+    """Recorded excursions and observed minutes per series, within the rolling horizon."""
 
-    @property
-    def size(self) -> float:
-        return size_of(self.event.peak_ratio)
-
-    @property
-    def ended_at(self) -> datetime | None:
-        return self.event.ended_at
+    history: dict[SeriesKey, list[ChangeEvent]] = field(default_factory=dict)
+    coverage: dict[SeriesKey, HourlyCoverage] = field(default_factory=dict)
+    # Where a series' history became complete after older excursions were capped away;
+    # its coverage before then has no matching excursions.
+    complete_since: dict[SeriesKey, datetime] = field(default_factory=dict)
 
 
 class Novelty:
-    def __init__(self, cfg: NoveltyConfig | None = None) -> None:
+    def __init__(self, cfg: NoveltyConfig | None = None, state: NoveltyState | None = None):
         self.cfg = cfg or NoveltyConfig()
-        self.history: dict[SeriesKey, list[_Ex]] = {}
-        self.coverage: dict[SeriesKey, HourlyCoverage] = {}
+        self.state = state or NoveltyState()
 
     def observe(self, key: SeriesKey, minute: datetime) -> None:
         hour = minute.replace(minute=0)
-        hours = self.coverage.setdefault(key, {})
+        hours = self.state.coverage.setdefault(key, {})
         hours[hour] = hours.get(hour, 0) | (1 << minute.minute)
 
     def observed_duration(self, event: ChangeEvent, now: datetime) -> int:
@@ -119,7 +121,7 @@ class Novelty:
     def judge(self, e: ChangeEvent, size: float, t: datetime) -> Verdict:
         floor = size / self.cfg.comparable
         base = self.cfg.base_rate * min(1.0, 1.5 / floor) if floor > 0 else self.cfg.base_rate
-        return self._judge(e, t, lambda x: x.size >= floor, base, size)
+        return self._judge(e, t, lambda record: size_of(record.peak_ratio) >= floor, base, size)
 
     def judge_duration(self, e: ChangeEvent, minutes: float, t: datetime) -> Verdict:
         """Rejudge a flare that may be routine in size but has lasted unusually long."""
@@ -129,7 +131,7 @@ class Novelty:
         verdict = self._judge(
             e,
             t,
-            lambda record: self.observed_duration(record.event, t) >= floor,
+            lambda record: self.observed_duration(record, t) >= floor,
             base,
             size_of(e.peak_ratio),
         )
@@ -137,42 +139,79 @@ class Novelty:
         return verdict
 
     def record(self, e: ChangeEvent) -> None:
-        self.history.setdefault(e.key, []).append(_Ex(e.start, e))
+        self.state.history.setdefault(e.key, []).append(e)
 
     def prune(self, t: datetime) -> None:
         """Drop excursions and observations outside the rolling history horizon."""
+        state = self.state
         horizon = t - timedelta(days=self.cfg.horizon_days)
-        for key in list(self.history):
-            within_horizon = [record for record in self.history[key] if record.start >= horizon]
+        for key in list(state.history):
+            within_horizon = [record for record in state.history[key] if record.start >= horizon]
             if within_horizon:
-                self.history[key] = within_horizon
+                state.history[key] = within_horizon
             else:
-                del self.history[key]
+                del state.history[key]
         first_hour = horizon.replace(minute=0)
-        for key, hours in list(self.coverage.items()):
+        for key, hours in list(state.coverage.items()):
             for hour in list(hours):
                 if hour < first_hour:
                     del hours[hour]
             if not hours:
-                del self.coverage[key]
+                del state.coverage[key]
+        for key, since in list(state.complete_since.items()):
+            if since <= horizon or key not in state.history:
+                del state.complete_since[key]
+
+    def cap_history(self, max_records: int) -> None:
+        """Keep each series' latest excursions, remembering where its history is complete."""
+        for key, records in self.state.history.items():
+            if len(records) > max_records:
+                del records[:-max_records]
+                self.state.complete_since[key] = records[0].start
+
+    def keys(self) -> set[SeriesKey]:
+        return self.state.coverage.keys() | self.state.history.keys()
+
+    def last_seen(self, key: SeriesKey) -> datetime:
+        """The latest observed minute or recorded excursion start of a series."""
+        latest_observation = datetime.min
+        if hours := self.state.coverage.get(key):
+            latest_hour = max(hours)
+            latest_observation = latest_hour + (hours[latest_hour].bit_length() - 1) * _MINUTE
+        latest_excursion = max(
+            (record.start for record in self.state.history.get(key, ())), default=datetime.min
+        )
+        return max(latest_observation, latest_excursion)
+
+    def forget(self, keys: Iterable[SeriesKey]) -> None:
+        state = self.state
+        for key in keys:
+            state.history.pop(key, None)
+            state.coverage.pop(key, None)
+            state.complete_since.pop(key, None)
 
     def _judge(
-        self, e: ChangeEvent, t: datetime, similar: Callable[[_Ex], bool], base: float, size: float
+        self,
+        e: ChangeEvent,
+        t: datetime,
+        similar: Callable[[ChangeEvent], bool],
+        base: float,
+        size: float,
     ) -> Verdict:
         cfg, key = self.cfg, e.key
         kind = kind_of(key)
         horizon = t - timedelta(days=cfg.horizon_days)
         count = sum(
             1
-            for record in self.history.get(key, [])
-            if record.event is not e and record.start >= horizon and similar(record)
+            for record in self.state.history.get(key, [])
+            if record is not e and record.start >= horizon and similar(record)
         )
         exposure = self._exposure(key, t)
         pooled = self._pooled(kind, similar, base, t, horizon, exclude=key)
         shape = count + cfg.prior_weight_days * pooled
         rate_param = exposure + cfg.prior_weight_days
         mean_rate = shape / rate_param
-        p_normal = _gammaincc(shape, rate_param / cfg.min_return_days) if shape > 0 else 0.0
+        p_normal = gamma_sf(shape, rate_param / cfg.min_return_days) if shape > 0 else 0.0
         return Verdict(
             unusual=p_normal < cfg.absorb_confidence,
             size=size,
@@ -190,20 +229,21 @@ class Novelty:
 
     def _covered_minutes(self, key: SeriesKey, start: datetime, end: datetime) -> int:
         return sum(
-            mask.bit_count() for _, mask in coverage_between(self.coverage.get(key, {}), start, end)
+            mask.bit_count()
+            for _, mask in coverage_between(self.state.coverage.get(key, {}), start, end)
         )
 
     def _pooled(
         self,
         kind: NoveltyKind,
-        similar: Callable[[_Ex], bool],
+        similar: Callable[[ChangeEvent], bool],
         base: float,
         t: datetime,
         horizon: datetime,
         exclude: SeriesKey,
     ) -> float:
         count, days = 0.0, 0.0
-        for key in sorted(self.coverage):
+        for key in sorted(self.state.coverage):
             if key == exclude or kind_of(key) != kind:
                 continue
             exposure = self._exposure(key, t)
@@ -211,47 +251,13 @@ class Novelty:
                 continue
             hits = sum(
                 1
-                for record in self.history.get(key, [])
+                for record in self.state.history.get(key, [])
                 if record.start >= horizon and similar(record)
             )
             count += min(hits, self.cfg.pool_cap_per_day * exposure)
             days += exposure
         # The cold-start rate counts as one series-day, and each peer's influence is capped.
         return (count + base) / (days + 1.0)
-
-
-def _gammaincc(a: float, x: float) -> float:
-    """Regularized upper incomplete gamma Q(a, x) = P(Gamma(a, 1) >= x)."""
-    if x <= 0:
-        return 1.0
-    lead = math.exp(-x + a * math.log(x) - math.lgamma(a))
-    if x < a + 1:  # Series for P(a, x), the complement of Q(a, x).
-        ap, term = a, 1 / a
-        total = term
-        for _ in range(500):
-            ap += 1
-            term *= x / ap
-            total += term
-            if abs(term) < abs(total) * 1e-12:
-                break
-        return max(0.0, 1 - total * lead)
-
-    tiny = 1e-300  # Continued fraction for Q(a, x), using the modified Lentz method.
-    b = x + 1 - a
-    c, d = 1 / tiny, 1 / b
-    h = d
-    for i in range(1, 500):
-        an = -i * (i - a)
-        b += 2
-        d = an * d + b
-        d = tiny if abs(d) < tiny else d
-        c = b + an / c
-        c = tiny if abs(c) < tiny else c
-        d = 1 / d
-        h *= d * c
-        if abs(d * c - 1) < 1e-12:
-            break
-    return lead * h
 
 
 _POD = re.compile(r"-[0-9a-f]{8,10}-[0-9a-z]{5}$")

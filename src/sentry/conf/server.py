@@ -1094,6 +1094,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "workflow_engine:sentry.anomaly_detection.schedule.schedule_anomaly_detectors",
         "schedule": timedelta(minutes=1),
     },
+    "cleanup-anomaly-detection-state": {
+        "task": "workflow_engine:sentry.anomaly_detection.schedule.cleanup_anomaly_detection_state",
+        "schedule": crontab("0", "*", "*", "*", "*"),
+    },
     "resolve-stale-sourcemap-detectors": {
         "task": "workflow_engine:sentry.processing_errors.tasks.resolve_stale_sourcemap_detectors",
         "schedule": crontab("*/5", "*", "*", "*", "*"),

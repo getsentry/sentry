@@ -2,7 +2,7 @@
 
 import math
 from collections import deque
-from collections.abc import Mapping
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from statistics import median
@@ -25,6 +25,7 @@ from sentry.anomaly_detection.evaluation.series import (
     is_share,
     rate_parts,
     samples_key,
+    uses_trials,
 )
 
 
@@ -102,6 +103,18 @@ class SeriesState:
     recent_ratios: deque[float | None] = field(default_factory=lambda: deque(maxlen=30))
 
 
+@dataclass
+class SeriesHistoryState:
+    """Watched series, their rolling evidence, and exclusions; everything a restart needs."""
+
+    watched: dict[SeriesKey, Rule] = field(default_factory=dict)
+    series_states: dict[SeriesKey, SeriesState] = field(default_factory=dict)
+    exclude: dict[SeriesKey, str] = field(default_factory=dict)
+    # Pseudo-event floors are computed on the first observation in an hour, not at the
+    # hour boundary; recomputing a floor mid-hour after a restart would change sizing.
+    pseudo: dict[tuple[SeriesKey, datetime], float] = field(default_factory=dict)
+
+
 class SeriesHistory:
     """Shared measurement history and numerical helpers for excursion scoring."""
 
@@ -110,21 +123,19 @@ class SeriesHistory:
         series: dict[SeriesKey, Series],
         baseline: Baseline,
         cfg: DetectConfig | None = None,
-        exclude: Mapping[SeriesKey, str] | None = None,
+        state: SeriesHistoryState | None = None,
     ):
         self.series = series
         self.baseline = baseline
         self.cfg = cfg or DetectConfig()
-        self.exclude = dict(exclude) if exclude is not None else {}
-        self.watched: dict[SeriesKey, Rule] = {}
-        self.state: dict[SeriesKey, SeriesState] = {}
-        self._pseudo: dict[tuple[SeriesKey, datetime], float] = {}
+        self.state = state or SeriesHistoryState()
         self.refresh()
 
     def refresh(self, *, project_id: int | None = None) -> int:
         """Start watching newly available series; preserve existing episode state."""
         added = 0
-        for key in sorted(self.series.keys() - self.watched.keys() - self.exclude.keys()):
+        state = self.state
+        for key in sorted(self.series.keys() - state.watched.keys() - state.exclude.keys()):
             if project_id is not None and key.project_id != project_id:
                 continue
             for rule in RULES:
@@ -136,16 +147,17 @@ class SeriesHistory:
                     continue
                 if rule.only_without_traffic and has_traffic(self.series, key.project_id, key.env):
                     continue
-                self.watched[key] = rule
-                self.state[key] = SeriesState(recent=deque(maxlen=rule.persist[1]))
+                state.watched[key] = rule
+                state.series_states[key] = SeriesState(recent=deque(maxlen=rule.persist[1]))
                 added += 1
                 break
         return added
 
     def prune_pseudo(self, hour: datetime, *, project_id: int) -> None:
-        for key in list(self._pseudo):
+        pseudo = self.state.pseudo
+        for key in list(pseudo):
             if key[0].project_id == project_id and key[1] != hour:
-                del self._pseudo[key]
+                del pseudo[key]
 
     def check_quality(self, minute: datetime, *, project_id: int) -> None:
         """Exclude series whose last hour can't support detection; restore recovered ones.
@@ -163,22 +175,23 @@ class SeriesHistory:
             if key.project_id == project_id
             and key.metric in (Metric.P95_DURATION, Metric.COUNT_SAMPLE)
         }
+        state = self.state
         restored_series = False
         for key, invalid_reason in quality.check(measurements).items():
             if invalid_reason is not None:
-                self.exclude[key] = invalid_reason
-            elif self.exclude.pop(key, None) is not None:
+                state.exclude[key] = invalid_reason
+            elif state.exclude.pop(key, None) is not None:
                 restored_series = True
-        for key in self.exclude.keys() & self.watched.keys():
-            if key.project_id == project_id and self.state[key].open is None:
-                del self.watched[key]
-                del self.state[key]
+        for key in state.exclude.keys() & state.watched.keys():
+            if key.project_id == project_id and state.series_states[key].open is None:
+                del state.watched[key]
+                del state.series_states[key]
         if restored_series:
             self.refresh(project_id=project_id)
 
     def has_novelty_observation(self, key: SeriesKey, minute: datetime) -> bool:
-        rule = self.watched.get(key)
-        if rule is None or key in self.exclude or self._get(key, minute) is None:
+        rule = self.state.watched.get(key)
+        if rule is None or key in self.state.exclude or self._get(key, minute) is None:
             return False
         if rule.change == ChangeType.SLOWDOWN:
             samples = self._get(samples_key(key), minute)
@@ -187,16 +200,46 @@ class SeriesHistory:
 
     def has_anomalous_observation(self, event: ChangeEvent, minute: datetime) -> bool:
         """Whether this tick's minute or window test flagged the active episode."""
-        state = self.state.get(event.key)
+        state = self.state.series_states.get(event.key)
         if (
             state is None
             or state.open is not event
-            or event.key in self.exclude
+            or event.key in self.state.exclude
             or not state.recent
         ):
             return False
         reading = state.recent[-1]
         return reading.minute == minute and reading.flagged
+
+    def open_keys(self) -> set[SeriesKey]:
+        return {key for key, state in self.state.series_states.items() if state.open}
+
+    def expire(self, key: SeriesKey, at: datetime, reason: str) -> ChangeEvent | None:
+        """End the series' open episode without observing recovery, and reset its evidence."""
+        state = self.state.series_states.get(key)
+        if state is None or state.open is None:
+            return None
+        event = state.open
+        event.ended_at = at
+        event.evidence.append(reason)
+        self.state.series_states[key] = SeriesState(recent=deque(maxlen=state.recent.maxlen))
+        return event
+
+    def forget(self, keys: Iterable[SeriesKey]) -> None:
+        state = self.state
+        forgotten = set(keys)
+        for key in forgotten:
+            state.watched.pop(key, None)
+            state.series_states.pop(key, None)
+            state.exclude.pop(key, None)
+        for pseudo_key in [pseudo_key for pseudo_key in state.pseudo if pseudo_key[0] in forgotten]:
+            del state.pseudo[pseudo_key]
+
+    def drop_projects(self, keep: set[int]) -> None:
+        state = self.state
+        keys = state.watched.keys() | state.series_states.keys() | state.exclude.keys()
+        keys |= {key for key, _ in state.pseudo}
+        self.forget(key for key in keys if key.project_id not in keep)
 
     def _get(self, key: SeriesKey, t: datetime) -> float | None:
         return self.series.get(key, {}).get(t)
@@ -214,12 +257,11 @@ class SeriesHistory:
         if volume_key is None:
             return self.cfg.pseudo_events if key.metric.is_count else 1e-9
         cache_key = (key, t.replace(minute=0))
-        if cache_key not in self._pseudo:
+        pseudo = self.state.pseudo
+        if cache_key not in pseudo:
             typical = self._window_median(volume_key, t)
-            self._pseudo[cache_key] = (
-                min(1.0, self.cfg.pseudo_events / typical) if typical > 0 else 1.0
-            )
-        return self._pseudo[cache_key]
+            pseudo[cache_key] = min(1.0, self.cfg.pseudo_events / typical) if typical > 0 else 1.0
+        return pseudo[cache_key]
 
     def _expected(
         self, key: SeriesKey, state: SeriesState, minute: datetime
@@ -241,11 +283,11 @@ class SeriesHistory:
         )
 
     def step_series(self, key: SeriesKey, rule: Rule, minute: datetime) -> ChangeAction | None:
-        cfg, state = self.cfg, self.state[key]
+        cfg, state = self.cfg, self.state.series_states[key]
         # An excluded series can finish recovering, but cannot reopen before the
         # next quality check re-enables it.
         if state.open is None and (
-            key in self.exclude
+            key in self.state.exclude
             or (rule.only_without_traffic and has_traffic(self.series, key.project_id, key.env))
         ):
             state.recent.clear()
@@ -296,6 +338,9 @@ class SeriesHistory:
                 count_windows.push(state.counts, minute, missing=True)
             self._unavailable(state, minute, is_latency)
             return None
+        observation = count_windows.Reading(
+            actual, samples, rate_events, rate_denominator, rate_samples
+        )
 
         prior = self.pseudo(key, minute)
         ratio = (actual + prior) / (expectation.expected + prior)
@@ -305,16 +350,7 @@ class SeriesHistory:
         k = self.baseline.cfg.k
         beyond = z > k if up else z < -k
         if up:
-            minute_valid, enough = self._up_evidence(
-                key,
-                rule,
-                actual,
-                expectation.expected,
-                samples,
-                rate_events,
-                rate_denominator,
-                rate_samples,
-            )
+            minute_valid, enough = self._up_evidence(key, rule, expectation.expected, observation)
         elif samples is None:
             minute_valid, enough = True, expectation.expected >= cfg.min_samples
         else:
@@ -337,11 +373,7 @@ class SeriesHistory:
                 state.counts,
                 minute,
                 expectation,
-                actual,
-                samples,
-                rate_events,
-                rate_denominator,
-                rate_samples,
+                observation,
                 distinct_rate_samples=parts is not None and parts[1] != parts[2],
                 cfg=cfg,
                 shape=self.baseline.shape(key, minute),
@@ -393,18 +425,11 @@ class SeriesHistory:
             state.recent_ratios.append(None)
 
     def _up_evidence(
-        self,
-        key: SeriesKey,
-        rule: Rule,
-        actual: float,
-        expected: float,
-        samples: float | None,
-        rate_events: float | None,
-        rate_denominator: float | None,
-        rate_samples: float | None,
+        self, key: SeriesKey, rule: Rule, expected: float, observation: count_windows.Reading
     ) -> tuple[bool, bool]:
         """Return whether normal and anomalous readings are sufficiently supported, respectively."""
         cfg = self.cfg
+        actual, samples, rate_events, rate_denominator, rate_samples = observation
         if rate_events is not None and rate_denominator and rate_samples:
             valid = rate_samples >= cfg.min_samples
             return valid, valid and rate_events - expected * rate_denominator >= cfg.min_abs_excess
@@ -472,7 +497,7 @@ class SeriesHistory:
         state.anchor_sigma = anchor_expectation.sigma
         state.anchor_points = anchor_expectation.point_count
         state.excluded.update(reading.minute for reading in flagged_readings)
-        if key.signal == Signal.FAILED_RATE or is_share(key):
+        if uses_trials(key):
             state.failure_reference = (
                 hit.failure_reference
                 if hit

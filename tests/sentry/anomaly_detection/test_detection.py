@@ -15,7 +15,12 @@ from sentry.anomaly_detection.evaluation.baseline import Baseline
 from sentry.anomaly_detection.evaluation.organization import OrgEvaluator
 from sentry.anomaly_detection.evaluation.rate_shifts import ChangePointConfig, RateShiftTracker
 from sentry.anomaly_detection.evaluation.series import Series, build, samples_key
-from sentry.anomaly_detection.evaluation.series_history import DetectConfig, SeriesHistory
+from sentry.anomaly_detection.evaluation.series_history import (
+    DetectConfig,
+    SeriesHistory,
+    SeriesHistoryState,
+)
+from tests.sentry.anomaly_detection.test_helpers import NoFootprints
 
 START = datetime(2024, 1, 8, 12)
 REQUESTS = SeriesKey(1, "prod", Signal.REQUESTS, Metric.COUNT)
@@ -31,11 +36,6 @@ def minute(i: int) -> datetime:
 
 def points(start: int, end: int, value: float | None) -> Series:
     return dict.fromkeys((minute(i) for i in range(start, end)), value)
-
-
-class NoFootprints:
-    def footprint(self, event: ChangeEvent, observation_end: datetime, /) -> None:
-        return None
 
 
 class MeasurementStream:
@@ -63,7 +63,7 @@ class MeasurementStream:
             for key, values in self.series.items()
             if ts in values
         ]
-        return self.evaluator._evaluate_project(1, ts, rows)
+        return self.evaluator._evaluate_measurements(ts, rows)
 
 
 def step(det: MeasurementStream, start: int, end: int) -> list[ChangeAction]:
@@ -146,7 +146,7 @@ def test_excluded_latency_can_recover_but_cannot_reopen_between_quality_checks()
     # The hourly quality check sees mostly zeros but keeps the active episode.
     assert step(detector, 120, 130) == [("close", event)]
     assert event.ended_at == minute(129)
-    assert LATENCY in detector.history.exclude
+    assert LATENCY in detector.history.state.exclude
 
     assert step(detector, 130, 136) == []
 
@@ -223,7 +223,7 @@ def test_minute_opened_failure_spike_can_recover_on_pooled_samples() -> None:
     )
     [(opened, event)] = step(detector, 0, 63)
     assert opened == "open"
-    assert detector.history.state[FAILURES].window == 0
+    assert detector.history.state.series_states[FAILURES].window == 0
     assert step(detector, 63, 75) == []
     assert step(detector, 75, 180) == [("close", event)]
 
@@ -244,7 +244,7 @@ def test_pooled_recovery_does_not_replace_peak_with_unsupported_minute() -> None
     # The trailing window has enough volume to hold the spike, but this minute
     # has only one trial and is not eligible to replace the peak measurement.
     assert step(detector, 63, 64) == []
-    assert detector.history.state[FAILURES].open is event
+    assert detector.history.state.series_states[FAILURES].open is event
     assert (event.actual, event.expected, event.peak_ratio, event.confidence) == peak
 
 
@@ -259,7 +259,7 @@ def test_sparse_failure_spike_does_not_learn_degraded_rate_as_recovery() -> None
     actions = step(detector, 0, 400)
     assert actions[0][0] == "open"
     assert all(action != "close" for action, _ in actions)
-    assert detector.history.state[FAILURES].open is actions[0][1]
+    assert detector.history.state.series_states[FAILURES].open is actions[0][1]
 
 
 def test_window_spike_reports_pooled_rate_on_a_healthy_minute() -> None:
@@ -316,15 +316,10 @@ def test_sparse_error_count_window_opens_below_per_minute_excess() -> None:
 
 
 def test_history_scales_level_by_hour_and_prefers_same_day_type() -> None:
-    hourly: Series = {}
+    hourly: Series = {START - timedelta(days=i, hours=1): 100.0 for i in range(1, 15)}
     # Three weekdays and four weekend days, so ignoring day type would pick the weekend value.
-    for i in range(1, 15):
-        day = START - timedelta(days=i)
-        hourly[day - timedelta(hours=1)] = 100.0
-        if day.weekday() >= 5:
-            hourly[day] = 20_000.0
-        elif i <= 5:
-            hourly[day] = 200.0
+    hourly |= {START - timedelta(days=i): 20_000.0 for i in (1, 2, 8, 9)}
+    hourly |= {START - timedelta(days=i): 200.0 for i in (3, 4, 5)}
     baseline = Baseline({REQUESTS: hourly})
     ev = baseline.expected(REQUESTS, points(-60, 0, 10.0), START, set())
     assert ev is not None
@@ -395,13 +390,15 @@ def test_build_masks_empty_latency_and_distinguishes_zero_from_missing_rate_inpu
 
 def test_refresh_adds_new_series_without_resetting_existing_state() -> None:
     series = {ERRORS: points(0, 60, 5.0)}
-    det = SeriesHistory(series, Baseline({}), exclude={LATENCY: "unsupported"})
-    error_state = det.state[ERRORS]
+    det = SeriesHistory(
+        series, Baseline({}), state=SeriesHistoryState(exclude={LATENCY: "unsupported"})
+    )
+    error_state = det.state.series_states[ERRORS]
     series[LATENCY] = points(0, 60, 20.0)
     series[REQUESTS] = points(0, 60, 1000.0)
     assert det.refresh() == 1
-    assert det.state[ERRORS] is error_state
-    assert set(det.watched) == {ERRORS, REQUESTS}
+    assert det.state.series_states[ERRORS] is error_state
+    assert set(det.state.watched) == {ERRORS, REQUESTS}
     assert det.refresh() == 0
 
     # A raw-errors series watched before traffic arrives must not open once requests exist.
@@ -410,8 +407,8 @@ def test_refresh_adds_new_series_without_resetting_existing_state() -> None:
     assert step(stream, 0, 60) == []
     series[REQUESTS] = points(60, 70, 1000.0)
     assert step(stream, 60, 70) == []
-    assert ERRORS in stream.history.watched
-    assert stream.history.state[ERRORS].open is None
+    assert ERRORS in stream.history.state.watched
+    assert stream.history.state.series_states[ERRORS].open is None
 
 
 def test_raw_error_episode_can_close_after_requests_arrive() -> None:

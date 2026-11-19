@@ -37,6 +37,8 @@ from sentry.ai_monitoring.conversation_titles import (
     conversation_id_hash,
 )
 from sentry.ai_monitoring.models import AIConversationMetadata
+from sentry.anomaly_detection.checkpoint import codec
+from sentry.anomaly_detection.evaluation.organization import Checkpoint, EvaluatorState
 from sentry.auth.access import RpcBackedAccess
 from sentry.auth.services.auth.model import RpcAuthState, RpcMemberSsoState
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
@@ -98,6 +100,7 @@ from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.activity import Activity
+from sentry.models.anomaly_detection_state import AnomalyDetectionState
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apidevicecode import ApiDeviceCode
 from sentry.models.apikey import ApiKey
@@ -3056,6 +3059,24 @@ class Factories:
             detector = Factories.create_detector()
 
         return DetectorState.objects.create(detector=detector, **kwargs)
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.CELL)
+    def create_anomaly_detection_state(
+        organization: Organization | None = None,
+        next_minute: datetime | None = None,
+        checkpoint: bytes | None = None,
+        **kwargs: Any,
+    ) -> AnomalyDetectionState:
+        if organization is None:
+            organization = Factories.create_organization()
+        if next_minute is None:
+            next_minute = timezone.now().replace(second=0, microsecond=0)
+        if checkpoint is None:
+            checkpoint = codec.encode(Checkpoint({}, {}, EvaluatorState()))
+        return AnomalyDetectionState.objects.create(
+            organization=organization, next_minute=next_minute, checkpoint=checkpoint, **kwargs
+        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)

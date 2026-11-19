@@ -30,26 +30,33 @@ from sentry.anomaly_detection.inputs.measurements import (
     FAILED_QUERY,
     REQUEST_QUERY,
     SPAN_SLICES,
+)
+from sentry.anomaly_detection.inputs.query import (
     ScopedSpans,
-    _error_env,
-    _error_where,
-    _number,
-    _project_map,
-    _run_errors,
-    _utc,
+    error_env,
+    error_where,
+    number,
+    project_map,
+    run_errors,
+    utc,
 )
 from sentry.search.events.types import SnubaParams, SnubaRow
 from sentry.snuba.referrer import Referrer
+from sentry.snuba.rpc_dataset_common import TableQuery
 from sentry.snuba.spans_rpc import Spans
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.models.project import Project
+    from sentry.search.eap.resolver import SearchResolver
 
 _TRACE = "contexts[trace.trace_id]"
 _REFERRER = Referrer.ANOMALY_DETECTION_ENRICH.value
 _TRACE_SAMPLE = 20
 _TRACE_SPAN_LIMIT = 300
+_SLICE_LIMIT = 100
+_SCOPE = ["project.id", "environment"]
+_SLICE_AGGREGATES = ["count_unique(trace)", "p95(span.duration)", "count_sample()"]
 _MAX_FOOTPRINTS = 32
 _TRACE_ID = re.compile(r"[0-9a-f]{32}", re.IGNORECASE)
 _ERROR_SIGNALS = frozenset(
@@ -68,12 +75,33 @@ def _traces(rows: Sequence[SnubaRow], field: str) -> list[str]:
     )
 
 
+def _table_query(
+    name: str,
+    resolver: SearchResolver,
+    query: str,
+    columns: list[str],
+    orderby: list[str],
+    limit: int,
+) -> TableQuery:
+    return TableQuery(
+        name=name,
+        query_string=query,
+        selected_columns=columns,
+        orderby=orderby,
+        offset=0,
+        limit=limit,
+        referrer=_REFERRER,
+        sampling_mode="HIGHEST_ACCURACY",
+        resolver=resolver,
+    )
+
+
 class TraceLookup:
     """Correlator footprint source. Scope the sample to the change before expanding its traces."""
 
     def __init__(self, organization: Organization, projects: Sequence[Project]) -> None:
         self.organization = organization
-        self.projects = _project_map(organization, projects)
+        self.projects = project_map(organization, projects)
         self.span_projects = [
             project for project in self.projects.values() if Spans.filter_project(project)
         ]
@@ -88,8 +116,8 @@ class TraceLookup:
         project = self.projects.get(change.key.project_id)
         if project is None:
             return None
-        detected = _utc(change.detected_at or change.start)
-        onset = _utc(change.start)
+        detected = utc(change.detected_at or change.start)
+        onset = utc(change.start)
         if change.key.signal == Signal.NEW_ISSUE:
             # An issue can cross the user threshold long after its onset.
             if not change.issue_ids:
@@ -101,7 +129,7 @@ class TraceLookup:
             end = min(
                 max(detected, onset + timedelta(minutes=3)), onset + timedelta(minutes=15)
             ) + timedelta(minutes=1)
-        end = min(end, _utc(observation_end))
+        end = min(end, utc(observation_end))
         if start >= end:
             return None
         cache_key = (change.key, change.change_type, start, end, change.issue_ids)
@@ -112,31 +140,17 @@ class TraceLookup:
         self.cache[cache_key] = self._lookup(change, project, start, end)
         return self.cache[cache_key]
 
-    def _span_rows(
+    def _resolver(
         self,
         projects: Sequence[Project],
         start: datetime,
         end: datetime,
-        *,
-        query: str,
-        columns: list[str],
-        orderby: list[str],
-        limit: int,
         filters: tuple[tuple[str, tuple[str, ...]], ...],
-    ) -> list[SnubaRow]:
-        return Spans.run_table_query(
-            params=SnubaParams(
-                organization=self.organization, projects=projects, start=start, end=end
-            ),
-            query_string=query,
-            selected_columns=columns,
-            orderby=orderby,
-            offset=0,
-            limit=limit,
-            referrer=_REFERRER,
-            config=ScopedSpans(filters=filters, disable_aggregate_extrapolation=True),
-            sampling_mode="HIGHEST_ACCURACY",
-        )["data"]
+    ) -> SearchResolver:
+        return Spans.get_resolver(
+            SnubaParams(organization=self.organization, projects=projects, start=start, end=end),
+            ScopedSpans(filters=filters, disable_aggregate_extrapolation=True),
+        )
 
     def _sample_spans(
         self,
@@ -149,17 +163,16 @@ class TraceLookup:
     ) -> list[str]:
         if project not in self.span_projects:
             return []
-        rows = self._span_rows(
-            [project],
-            start,
-            end,
-            query=query,
-            columns=["trace", "span.duration"],
-            orderby=["-span.duration", "trace"],
-            limit=_TRACE_SAMPLE,
-            filters=(("environment", (env,)), *filters),
+        resolver = self._resolver([project], start, end, (("environment", (env,)), *filters))
+        sample = _table_query(
+            "sample",
+            resolver,
+            query,
+            ["trace", "span.duration"],
+            ["-span.duration", "trace"],
+            _TRACE_SAMPLE,
         )
-        return _traces(rows, "trace")
+        return _traces(Spans.run_bulk_table_queries([sample])["sample"]["data"], "trace")
 
     def _lookup(
         self, change: ChangeEvent, project: Project, start: datetime, end: datetime
@@ -168,8 +181,8 @@ class TraceLookup:
         name = key.signal
         if name in _ERROR_SIGNALS:
             conditions = [
-                *_error_where(project, start, end),
-                Condition(_error_env(), Op.EQ, key.env),
+                *error_where(project, start, end),
+                Condition(error_env(), Op.EQ, key.env),
                 # Untraced errors would otherwise crowd traced ones out of the sample.
                 Condition(Column(_TRACE), Op.IS_NOT_NULL),
             ]
@@ -178,7 +191,7 @@ class TraceLookup:
             elif name == Signal.ERRORS_BY_RELEASE:
                 conditions.append(Condition(Column(ERROR_RELEASE), Op.EQ, key.dim_value))
             traces = _traces(
-                _run_errors(
+                run_errors(
                     self.organization,
                     Query(
                         match=Entity("events"),
@@ -195,7 +208,7 @@ class TraceLookup:
                 _TRACE,
             )
             if traces:
-                result = self._build(key, traces, start, end)
+                result = self._build(traces, start, end)
                 if result.slices or result.edges:
                     return result
             return None
@@ -213,36 +226,59 @@ class TraceLookup:
         else:
             return None
         traces = self._sample_spans(project, key.env, start, end, query, filters)
-        return self._build(key, traces, start, end) if traces else None
+        return self._build(traces, start, end) if traces else None
 
-    def _build(
-        self, key: SeriesKey, traces: list[str], start: datetime, end: datetime
-    ) -> Footprint:
-        footprint = Footprint(event=key, traces=traces, window=(start, end))
-        filters = (("trace", tuple(traces)),)
-        scope = ["project.id", "environment"]
-        aggregates = ["count_unique(trace)", "p95(span.duration)", "count_sample()"]
-        footprint_queries: list[tuple[Signal | None, str, str]] = [
+    def _build(self, traces: list[str], start: datetime, end: datetime) -> Footprint:
+        resolver = self._resolver(self.span_projects, start, end, (("trace", tuple(traces)),))
+        slices: list[tuple[Signal | None, str, str]] = [
             (None, REQUEST_QUERY, ""),
             *((s.name, s.query, s.dimension) for s in SPAN_SLICES),
         ]
-        for signal, query, dimension in footprint_queries:
-            fields = [*scope, dimension] if dimension else scope
-            rows = self._span_rows(
-                self.span_projects,
-                start,
-                end,
-                query=query,
-                columns=[*fields, *aggregates],
-                orderby=["-count_unique(trace)", *fields],
-                limit=100,
-                filters=filters,
+        queries = []
+        for index, (_, query, dimension) in enumerate(slices):
+            fields = [*_SCOPE, dimension] if dimension else _SCOPE
+            queries.append(
+                _table_query(
+                    f"slice-{index}",
+                    resolver,
+                    query,
+                    [*fields, *_SLICE_AGGREGATES],
+                    ["-count_unique(trace)", *fields],
+                    _SLICE_LIMIT,
+                )
             )
-            for row in rows:
+        # A span ID is only unique within its trace. Join HTTP client spans to
+        # transactions by (trace, parent) rather than domain/transaction names.
+        queries.append(
+            _table_query(
+                "calls",
+                resolver,
+                "span.op:http.client",
+                [*_SCOPE, "trace", "span_id", "span.domain"],
+                ["trace", "span_id"],
+                _TRACE_SPAN_LIMIT,
+            )
+        )
+        queries.append(
+            _table_query(
+                "transactions",
+                resolver,
+                REQUEST_QUERY,
+                [*_SCOPE, "trace", "span_id", "parent_span"],
+                ["trace", "span_id"],
+                _TRACE_SPAN_LIMIT,
+            )
+        )
+        # The queries only share the sampled traces, so dispatch them together.
+        results = Spans.run_bulk_table_queries(queries)
+
+        footprint = Footprint()
+        for index, (signal, _, dimension) in enumerate(slices):
+            for row in results[f"slice-{index}"]["data"]:
                 service = _service(row)
                 dim = row.get(dimension) or "" if dimension else ""
-                count = _number(row.get("count_sample()"))
-                touched = _number(row.get("count_unique(trace)"))
+                count = number(row.get("count_sample()"))
+                touched = number(row.get("count_unique(trace)"))
                 if (
                     service.project_id in self.projects
                     and (not dimension or dim)
@@ -251,38 +287,15 @@ class TraceLookup:
                 ):
                     footprint.slices[Slice(service, signal, dim)] = SliceStats(
                         min(touched / len(traces), 1.0),
-                        _number(row.get("p95(span.duration)")),
-                        int(count),
+                        number(row.get("p95(span.duration)")),
                     )
-        # A span ID is only unique within its trace. Join HTTP client spans to
-        # transactions by (trace, parent) rather than domain/transaction names.
-        calls = self._span_rows(
-            self.span_projects,
-            start,
-            end,
-            query="span.op:http.client",
-            columns=[*scope, "trace", "span_id", "span.domain"],
-            orderby=["trace", "span_id"],
-            limit=_TRACE_SPAN_LIMIT,
-            filters=filters,
-        )
-        transactions = self._span_rows(
-            self.span_projects,
-            start,
-            end,
-            query=REQUEST_QUERY,
-            columns=[*scope, "trace", "span_id", "parent_span"],
-            orderby=["trace", "span_id"],
-            limit=_TRACE_SPAN_LIMIT,
-            filters=filters,
-        )
         callers: dict[tuple[str, str | None], tuple[Service, str]] = {}
-        for row in calls:
+        for row in results["calls"]["data"]:
             caller = _service(row)
             if row.get("span_id") and row.get("span.domain") and caller.project_id in self.projects:
                 callers[row["trace"], row["span_id"]] = caller, row["span.domain"]
         joined = set()
-        for row in transactions:
+        for row in results["transactions"]["data"]:
             callee = _service(row)
             if callee.project_id not in self.projects:
                 continue

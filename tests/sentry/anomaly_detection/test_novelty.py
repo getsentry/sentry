@@ -8,7 +8,7 @@ from sentry.anomaly_detection.contracts import ChangeEvent, ChangeType, Metric, 
 from sentry.anomaly_detection.correlation.shared_dependencies import learn
 from sentry.anomaly_detection.evaluation import quality
 from sentry.anomaly_detection.evaluation.baseline import Baseline
-from sentry.anomaly_detection.evaluation.novelty import Novelty, _gammaincc, mask_dim
+from sentry.anomaly_detection.evaluation.novelty import Novelty, mask_dim
 from sentry.anomaly_detection.evaluation.rate_shifts import RateShiftTracker
 from sentry.anomaly_detection.evaluation.series import Series, samples_key
 
@@ -53,28 +53,6 @@ def test_quiet_series_stays_sensitive_after_days_of_history() -> None:
     assert verdict.return_days == pytest.approx(12.0)
     # With a 0.25/day base rate and two prior days, the posterior shape is 1/2.
     assert verdict.p_normal == pytest.approx(math.erfc(math.sqrt(6 / 3)))
-
-
-@pytest.mark.parametrize(
-    ("a", "x"),
-    [
-        # Series branch (x < a + 1).
-        (1, 0.5),
-        (1, 1.9),
-        (3, 0.5),
-        (3, 3.9),
-        (50, 40.0),
-        (50, 49.0),
-        # Continued-fraction branch.
-        (1, 3.0),
-        (3, 6.0),
-        (50, 60.0),
-    ],
-)
-def test_upper_incomplete_gamma_matches_integer_shape_closed_form(a: int, x: float) -> None:
-    # For integer shape, Q(a, x) = e^-x * sum_{k<a} x^k / k!.
-    exact = math.exp(-x) * math.fsum(x**k / math.factorial(k) for k in range(a))
-    assert _gammaincc(a, x) == pytest.approx(exact, rel=1e-11)
 
 
 def test_limited_history_does_not_absorb_an_excursion_on_the_mean_alone() -> None:
@@ -163,7 +141,7 @@ def test_routine_size_can_become_unusual_by_duration() -> None:
     long = novelty.judge_duration(flare, 60, t + 60 * MINUTE)
     assert long.unusual
     assert long.similar == 0
-    assert long.as_dict()["lasting_min"] == 60
+    assert long.as_evidence()["lasting_min"] == 60
     assert "lasting 60m+" in long.text()
 
 
@@ -185,8 +163,8 @@ def test_prune_preserves_horizon_boundary_and_exposure() -> None:
 
     novelty.prune(t)
 
-    assert set(novelty.history) == {FLAPPY}
-    assert [record.event for record in novelty.history[FLAPPY]] == [retained]
+    assert set(novelty.state.history) == {FLAPPY}
+    assert novelty.state.history[FLAPPY] == [retained]
     assert novelty.judge(event, 9.0, t) == before
     quiet = excursion(QUIET, t, 9.0)
     assert novelty.judge(quiet, 9.0, t).history_days == 14.0
@@ -263,7 +241,7 @@ def test_long_spike_does_not_open_a_duplicate_change_point() -> None:
         detector.note_spike(spike, t)
         assert detector.step(t) == []
 
-    assert len(detector.spike_minutes[RATE]) == 150
+    assert len(detector.state[RATE].spike_minutes) == 150
 
 
 @pytest.mark.parametrize(("sample_failures", "opens"), [(2.0, False), (6.0, True)])
@@ -343,7 +321,7 @@ def test_shared_learning_uses_joint_coverage_not_unobserved_history() -> None:
         novelty.record(excursion(QUIET, onset, 10.0))
         novelty.record(excursion(replica, onset, 10.0))
 
-    dependencies = learn(novelty.history, end, coverage=novelty.coverage)
+    dependencies = learn(novelty.state.history, end, coverage=novelty.state.coverage)
 
     assert dependencies.get(QUIET, replica) is None
 
@@ -363,7 +341,10 @@ def test_shared_learning_does_not_depend_on_project_order() -> None:
             for onset in [*starts, *same_onsets]:
                 novelty.record(excursion(key, onset, 10.0))
 
-        assert learn(novelty.history, end, coverage=novelty.coverage).get(QUIET, replica) is None
+        assert (
+            learn(novelty.state.history, end, coverage=novelty.state.coverage).get(QUIET, replica)
+            is None
+        )
 
 
 def test_shared_learning_counts_staggered_cross_metric_incidents_once() -> None:
@@ -377,12 +358,13 @@ def test_shared_learning_counts_staggered_cross_metric_incidents_once() -> None:
     end = T0 + timedelta(days=14)
     starts = [T0 + timedelta(hours=hour, minutes=phase) for hour, phase in ((1, 10), (4, 30))]
     observed = {T0 + timedelta(hours=hour): (1 << 60) - 1 for hour in range(336)}
+    # The failure-rate metric of each slice starts one minute after its latency metric.
+    lags = {QUIET: timedelta(), replica: timedelta(), rate: MINUTE, replica_rate: MINUTE}
     history: dict[SeriesKey, list[ChangeEvent]] = {}
-    for key in (QUIET, replica, rate, replica_rate):
+    for key, lag in lags.items():
         history[key] = []
         for start in starts:
-            onset = start + (MINUTE if key.metric == rate.metric else timedelta())
-            event = excursion(key, onset, 10.0)
+            event = excursion(key, start + lag, 10.0)
             event.ended_at = start + 3 * MINUTE
             history[key].append(event)
     coverage = dict.fromkeys(history, observed)
@@ -395,7 +377,7 @@ def test_shared_learning_counts_staggered_cross_metric_incidents_once() -> None:
 
     pair = learn(history, end, coverage=coverage).get(QUIET, replica)
     assert pair is not None
-    assert (pair.co, pair.n_a, pair.n_b) == (3, 3, 3)
+    assert pair.co == 3
 
 
 def test_shared_learning_uses_joint_phase_opportunities_across_hour_boundary() -> None:
@@ -415,3 +397,27 @@ def test_shared_learning_uses_joint_phase_opportunities_across_hour_boundary() -
 
     assert learn(history, end, coverage={QUIET: dense, replica: dense}).get(QUIET, replica)
     assert learn(history, end, coverage={QUIET: dense, replica: sparse}).get(QUIET, replica) is None
+
+
+def test_shared_learning_ignores_coverage_before_capped_history() -> None:
+    # Two services call the same API from hourly jobs, so their onsets coincide by schedule.
+    job = SeriesKey(1, "prod", Signal.OUTBOUND_HTTP, Metric.P95_DURATION, "api.example.com")
+    other_job = SeriesKey(2, job.env, job.signal, job.metric, job.dim_value)
+    until = T0 + timedelta(days=14)
+    novelty = Novelty()
+    for key in (job, other_job):
+        observe_window(novelty, key, T0, until)
+        for hour in range(14 * 24):
+            novelty.record(excursion(key, T0 + timedelta(hours=hour, minutes=5), 10.0))
+
+    novelty.cap_history(64)
+    shared = learn(
+        novelty.state.history,
+        until,
+        coverage=novelty.state.coverage,
+        complete_since=novelty.state.complete_since,
+    )
+
+    # Counting the dropped onsets' hours as quiet opportunities would make 64 scheduled
+    # co-onsets look far beyond chance.
+    assert shared.get(job, other_job) is None

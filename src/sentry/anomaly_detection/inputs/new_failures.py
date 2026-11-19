@@ -41,15 +41,14 @@ from sentry.anomaly_detection.contracts import (
     Service,
     Signal,
 )
-from sentry.anomaly_detection.inputs.measurements import (
-    ERROR_USER,
-    MAX_ENVIRONMENTS,
-    _error_env,
-    _error_where,
-    _number,
-    _project_map,
-    _run_errors,
-    _utc,
+from sentry.anomaly_detection.inputs.measurements import ERROR_USER, MAX_ENVIRONMENTS
+from sentry.anomaly_detection.inputs.query import (
+    error_env,
+    error_where,
+    number,
+    project_map,
+    run_errors,
+    utc,
 )
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.models.group import Group
@@ -102,7 +101,7 @@ class NewFailureThresholds:
 
     def at(self, scope: Service, observation_end: datetime) -> float:
         """Scale the threshold using only buckets closed at observation_end."""
-        end = _hour_floor(_utc(observation_end))
+        end = _hour_floor(utc(observation_end))
         key = scope, end
         if key not in self._thresholds:
             start = end - _THRESHOLD_LOOKBACK
@@ -167,7 +166,7 @@ class _TitleWindow(NamedTuple):
 
     @property
     def onset(self) -> datetime:
-        return _utc(self.lead.first_seen)
+        return utc(self.lead.first_seen)
 
 
 class _TitleCandidate(NamedTuple):
@@ -194,9 +193,9 @@ def new_failure_thresholds(hourly_rows: Sequence[SeriesRow]) -> NewFailureThresh
             row.signal == Signal.ERRORS
             and row.metric == Metric.COUNT_UNIQUE_USER
             and not row.dim_value
-            and (sample := _number(row.value)) is not None
+            and (sample := number(row.value)) is not None
         ):
-            samples[Service(row.project_id, row.env)].append((_utc(row.ts), sample))
+            samples[Service(row.project_id, row.env)].append((utc(row.ts), sample))
     return NewFailureThresholds(samples)
 
 
@@ -206,37 +205,31 @@ def collect_new_failure_modes(
     thresholds: NewFailureThresholds | Mapping[Service, float],
     start: datetime,
     end: datetime,
-    *,
-    current_rows: Sequence[SeriesRow],
 ) -> list[ChangeEvent]:
     """Find issue milestones observable at minute closes in (start, end]."""
-    projects_by_id = _project_map(organization, projects)
-    start, end = _utc(start), _utc(end)
+    projects_by_id = project_map(organization, projects)
+    start, end = utc(start), utc(end)
     if start >= end:
         return []
 
-    error_counts = _active_error_environments(current_rows, start, end)
     boundary_environments: dict[int, set[str]] = defaultdict(set)
     if isinstance(thresholds, NewFailureThresholds):
         for project_id, environment in thresholds.falling_scopes(start, end):
             boundary_environments[project_id].add(environment)
     candidates: list[_TitleCandidate] = []
     for project_id, project in projects_by_id.items():
-        counts = error_counts.get(project_id, {})
-        # Keep the busiest environments, so short-lived preview environments
-        # cannot displace production.
-        environments = set(sorted(counts, key=lambda env: (-counts[env], env))[:MAX_ENVIRONMENTS])
-        # Scopes from the bounded hourly snapshot supplement current errors;
-        # a quiet scope's threshold change cannot displace an active scope.
-        environments.update(boundary_environments.get(project_id, ()))
-        if not environments:
-            continue
         windows = [
             window
             for window in _title_windows(_recent_error_groups(project, start, end))
             if window.onset + _ISSUE_LIFETIME > start
         ]
-        if windows:
+        if not windows:
+            continue
+        environments = set(_received_environments(organization, project, windows, start, end))
+        # Scopes from the bounded hourly snapshot supplement received errors;
+        # a quiet scope's threshold change cannot displace an active scope.
+        environments.update(boundary_environments.get(project_id, ()))
+        if environments:
             candidates.extend(
                 _title_candidates(
                     organization, project, sorted(environments), windows, thresholds, start, end
@@ -272,21 +265,56 @@ def collect_new_failure_modes(
     return sorted(changes, key=lambda change: (change.detected_at or change.start, change.key))
 
 
-def _active_error_environments(
-    rows: Sequence[SeriesRow], start: datetime, end: datetime
-) -> dict[int, dict[str, float]]:
-    counts_by_project: dict[int, dict[str, float]] = defaultdict(lambda: defaultdict(float))
-    for row in rows:
-        if (
-            start <= _utc(row.ts) < end
-            and row.signal == Signal.ERRORS
-            and row.metric == Metric.COUNT
-            and not row.dim_value
-            and row.value is not None
-            and row.value > 0
-        ):
-            counts_by_project[row.project_id][row.env] += row.value
-    return counts_by_project
+def _window_conditions(
+    project: Project, windows: Sequence[_TitleWindow], end: datetime
+) -> list[Condition]:
+    """Scope errors to the windows' groups, as received before end."""
+    return [
+        # Every member event follows its group's first seen, and Relay
+        # bounds how far an event's timestamp can lead its receipt.
+        *error_where(
+            project,
+            _minute_floor(min(window.onset for window in windows)),
+            end + _MAX_FUTURE_SKEW,
+        ),
+        Condition(Column("received"), Op.LT, end.replace(tzinfo=UTC)),
+        Condition(
+            Column("group_id"), Op.IN, [group.id for window in windows for group in window.groups]
+        ),
+    ]
+
+
+def _received_environments(
+    organization: Organization,
+    project: Project,
+    windows: Sequence[_TitleWindow],
+    start: datetime,
+    end: datetime,
+) -> list[str]:
+    """Rank environments by the windows' errors received in [start, end).
+
+    A crossing needs a user received in the interval. Rank by receive time, not
+    event time: a late event's timestamp can precede the interval.
+    """
+    count = Function("count", [])
+    rows = run_errors(
+        organization,
+        Query(
+            match=Entity("events"),
+            select=[count],
+            groupby=[error_env("env")],
+            where=[
+                *_window_conditions(project, windows, end),
+                Condition(Column("received"), Op.GTE, start.replace(tzinfo=UTC)),
+            ],
+            # Keep the busiest environments, so short-lived preview environments
+            # cannot displace production.
+            orderby=[OrderBy(count, Direction.DESC), OrderBy(Column("env"), Direction.ASC)],
+            limit=Limit(MAX_ENVIRONMENTS),
+        ),
+        _REFERRER,
+    )
+    return [row["env"] for row in rows]
 
 
 def _recent_error_groups(project: Project, start: datetime, end: datetime) -> list[Group]:
@@ -363,7 +391,7 @@ def _title_candidates(
             Function("notEquals", [user, ""]),
         ],
     )
-    rows = _run_errors(
+    rows = run_errors(
         organization,
         Query(
             match=Entity("events"),
@@ -372,18 +400,10 @@ def _title_candidates(
                 Function("count", []),
                 Function("uniqExactIf", [user, prior_user], "prior_users"),
             ],
-            groupby=[_error_env("env"), Column("group_id")],
+            groupby=[error_env("env"), Column("group_id")],
             where=[
-                # Every member event follows its group's first seen, and Relay
-                # bounds how far an event's timestamp can lead its receipt.
-                *_error_where(
-                    project,
-                    _minute_floor(min(window.onset for window in windows)),
-                    end + _MAX_FUTURE_SKEW,
-                ),
-                Condition(Column("received"), Op.LT, end.replace(tzinfo=UTC)),
-                Condition(_error_env(), Op.IN, environments),
-                Condition(Column("group_id"), Op.IN, list(windows_by_group)),
+                *_window_conditions(project, windows, end),
+                Condition(error_env(), Op.IN, environments),
             ],
             limit=Limit(len(environments) * len(windows_by_group)),
         ),
@@ -392,9 +412,9 @@ def _title_candidates(
     stats: dict[tuple[str, int], tuple[float, float, float]] = {}
     for row in rows:
         environment = row.get("env")
-        users = _number(row.get("users"))
-        event_count = _number(row.get("count()"))
-        prior_users = _number(row.get("prior_users"))
+        users = number(row.get("users"))
+        event_count = number(row.get("count()"))
+        prior_users = number(row.get("prior_users"))
         if (
             environment not in environments
             or row.get("group_id") not in windows_by_group
@@ -460,9 +480,9 @@ def _collect_title_crossings(
     first_user_times = _first_user_times(
         organization,
         [
-            *_error_where(scope.project, first_minute, window_end + _MAX_FUTURE_SKEW),
+            *error_where(scope.project, first_minute, window_end + _MAX_FUTURE_SKEW),
             Condition(Column("received"), Op.LT, window_end.replace(tzinfo=UTC)),
-            Condition(_error_env(), Op.EQ, scope.environment),
+            Condition(error_env(), Op.EQ, scope.environment),
             Condition(Column("group_id"), Op.IN, list(issue_ids)),
         ],
         users_needed,
@@ -500,7 +520,7 @@ def _first_user_times(
     where = [*conditions, Condition(user, Op.NEQ, "")]
     for offset in range(0, users_needed, _ISSUE_USER_PAGE_SIZE):
         limit = min(users_needed - offset, _ISSUE_USER_PAGE_SIZE)
-        rows = _run_errors(
+        rows = run_errors(
             organization,
             Query(
                 match=Entity("events"),
@@ -517,7 +537,7 @@ def _first_user_times(
             _REFERRER,
         )
         for row in rows:
-            yield _utc(row["first_seen"])
+            yield utc(row["first_seen"])
         if len(rows) < limit:
             break
 

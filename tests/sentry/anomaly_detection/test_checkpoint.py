@@ -1,31 +1,24 @@
-import json  # noqa: S003 -- sentry.utils.json can't reject NaN/Infinity like Postgres jsonb
-from base64 import b64decode
+import zlib
 from collections import Counter, deque
 from collections.abc import Sequence
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from math import copysign, inf
 from random import Random
-from typing import Any
 from unittest.mock import patch
 
-import orjson
 import pytest
 
 from sentry import options
 from sentry.anomaly_detection import schedule
-from sentry.anomaly_detection.checkpoint.codec import (
-    CHECKPOINT_VERSION,
-    _restore,
-    _snapshot,
-    is_current,
-)
-from sentry.anomaly_detection.checkpoint.replay import advance_org
-from sentry.anomaly_detection.checkpoint.retention import _evict_stale_series, _history_floor
+from sentry.anomaly_detection.checkpoint import codec
+from sentry.anomaly_detection.checkpoint.replay import advance_org, snapshot
+from sentry.anomaly_detection.checkpoint.retention import evict_stale_series, history_floor
 from sentry.anomaly_detection.contracts import (
     ChangeEvent,
     ChangeType,
     Metric,
+    NoveltyEvidence,
     SeriesKey,
     SeriesRow,
     Service,
@@ -36,10 +29,15 @@ from sentry.anomaly_detection.correlation.correlator import MemberState, episode
 from sentry.anomaly_detection.correlation.footprint import CallEdge, Footprint, Slice, SliceStats
 from sentry.anomaly_detection.correlation.shared_dependencies import DependencySlice, PairStats
 from sentry.anomaly_detection.evaluation.count_windows import DISPERSION_MIN, CountTotals
-from sentry.anomaly_detection.evaluation.organization import AnomalyDecision, OrgEvaluator
+from sentry.anomaly_detection.evaluation.organization import (
+    AnomalyDecision,
+    Checkpoint,
+    OrgEvaluator,
+)
 from sentry.anomaly_detection.evaluation.series import samples_key
 from sentry.anomaly_detection.grouptype import AnomalyDetection
 from sentry.anomaly_detection.inputs.measurements import MAX_ENVIRONMENTS, MAX_SLICES, SPAN_SLICES
+from sentry.anomaly_detection.inputs.trace_lookup import TraceLookup
 from sentry.models.anomaly_detection_state import AnomalyDetectionState
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -51,22 +49,18 @@ START = datetime(2024, 1, 8, 12)
 PROJECT = 42
 ENV = "production"
 ENDPOINT = "/checkout"
+LATENCY = SeriesKey(PROJECT, ENV, Signal.ENDPOINTS, Metric.P95_DURATION, ENDPOINT)
 
 
 class Footprints:
-    def footprint(self, event: ChangeEvent, observation_end: datetime) -> Footprint:
+    def footprint(self, event: ChangeEvent, observation_end: datetime, /) -> Footprint:
         return Footprint(
-            event=event.key,
-            traces=["trace-1"],
             slices={
-                Slice(Service(PROJECT, ENV), Signal.ENDPOINTS, ENDPOINT): SliceStats(
-                    0.5, 400.0, 100
-                )
+                Slice(Service(PROJECT, ENV), Signal.ENDPOINTS, ENDPOINT): SliceStats(0.5, 400.0)
             },
             edges=Counter(
                 {CallEdge(Service(42, "production"), "example.com", Service(43, "production")): 1}
             ),
-            window=(event.start, min(observation_end, event.start + timedelta(minutes=5))),
         )
 
 
@@ -74,9 +68,10 @@ def _at(minute: int) -> datetime:
     return START + timedelta(minutes=minute)
 
 
-def _round_trip(checkpoint: dict[str, Any]) -> dict[str, Any]:
-    # Postgres jsonb rejects non-finite numbers; never write them as null.
-    return json.loads(json.dumps(checkpoint, sort_keys=True, allow_nan=False))
+def _round_trip(checkpoint: Checkpoint) -> Checkpoint:
+    restored = codec.decode(codec.encode(checkpoint))
+    assert restored is not None
+    return restored
 
 
 def _endpoint_rows(
@@ -92,14 +87,18 @@ def _endpoint_rows(
     ]
 
 
-def test_split_slowdown_matches_continuous_activation_and_resolution() -> None:
-    hourly: list[SeriesRow] = [
+def _endpoint_hourly() -> list[SeriesRow]:
+    return [
         SeriesRow(ts, Signal.ENDPOINTS, metric, PROJECT, ENV, ENDPOINT, value)
         for hour in range(12, 16)
         for day in range(1, 15)
         for ts in [START.replace(hour=hour) - timedelta(days=day)]
         for metric, value in ((Metric.COUNT_SAMPLE, 6000.0), (Metric.P95_DURATION, 100.0))
     ]
+
+
+def test_split_slowdown_matches_continuous_activation_and_resolution() -> None:
+    hourly = _endpoint_hourly()
     continuous = OrgEvaluator(Footprints(), projects=(PROJECT,)).advance(
         rows=_endpoint_rows(0, 200),
         hourly_rows=hourly,
@@ -112,7 +111,7 @@ def test_split_slowdown_matches_continuous_activation_and_resolution() -> None:
     assert opened.group_key == closed.group_key
     assert opened.evidence == closed.evidence
 
-    checkpoint: dict[str, Any] | None = None
+    checkpoint: Checkpoint | None = None
     split: list[AnomalyDecision] = []
     # Before detection persistence, after detection but before public qualification,
     # after qualification, and after observed recovery but before the quiet close.
@@ -129,20 +128,37 @@ def test_split_slowdown_matches_continuous_activation_and_resolution() -> None:
         checkpoint = _round_trip(checkpoint)
         split.extend(decisions)
     assert split == list(continuous)
-
     assert checkpoint is not None
-    # Detector/group/novelty must all have observed mutations on one live event;
-    # resnapshotting it after recovery must not create stale parallel copies.
-    (event,) = checkpoint["events"]
-    assert event["change_type"] == ChangeType.SLOWDOWN
-    assert event["sustained_at"] is not None
-    assert event["ended_at"] is not None
-    assert {d["group_key"] for d in checkpoint["qualified"]} == {opened.group_key}
+    assert checkpoint.state.published.keys() == {opened.group_key}
 
 
-@pytest.mark.parametrize("fresh_shape", (None, 1000.0))
+def test_shared_change_event_identity_survives_round_trip() -> None:
+    _, checkpoint = advance_org(
+        rows=_endpoint_rows(0, 158),
+        hourly_rows=_endpoint_hourly(),
+        start=START,
+        end=_at(158),
+        footprints=Footprints(),
+        projects=(PROJECT,),
+    )
+    restored = _round_trip(checkpoint)
+
+    event = restored.state.series_history.series_states[LATENCY].open
+    assert event is not None
+    (group,) = restored.state.correlation.open_groups.values()
+    assert group.root is event
+    assert group.members[episode_key(event)].event is event
+
+
+@pytest.mark.parametrize(
+    ("recovery_level", "override_hours"),
+    # The 15:00 level is 250. Fresh hourly measurements at the same timestamps must
+    # override carried support.
+    ((250.0, ()), (1000.0, (15,))),
+    ids=("carried-support", "fresh-override"),
+)
 def test_restored_slowdown_uses_seasonal_history_when_hourly_top_slices_change(
-    fresh_shape: float | None,
+    recovery_level: float, override_hours: tuple[int, ...]
 ) -> None:
     # The normal level changes from 100 to 250 at 15:00. A fixed-scale
     # fallback would still see normal 15:00 latency as a slowdown.
@@ -157,26 +173,15 @@ def test_restored_slowdown_uses_seasonal_history_when_hourly_top_slices_change(
         )
     ]
     opening_rows = _endpoint_rows(0, 180, slow_until=180)
-    recovery_rows = _endpoint_rows(180, 230, normal=fresh_shape or 250.0)
+    recovery_rows = _endpoint_rows(180, 230, normal=recovery_level)
     fresh = [
         SeriesRow(ts, signal, metric, project, env, "/other", value)
         for ts, signal, metric, project, env, _, value in hourly
+    ] + [
+        row._replace(value=recovery_level if row.metric == Metric.P95_DURATION else row.value)
+        for row in hourly
+        if row.ts.hour in override_hours
     ]
-    if fresh_shape is not None:
-        # Fresh measurements at the same timestamps must override carried support.
-        fresh += [
-            SeriesRow(
-                ts,
-                signal,
-                metric,
-                project,
-                env,
-                dim,
-                fresh_shape if metric == Metric.P95_DURATION else value,
-            )
-            for ts, signal, metric, project, env, dim, value in hourly
-            if ts.hour == 15
-        ]
     # This bucket was not closed at the split and must not be persisted then.
     latest: list[SeriesRow] = [
         SeriesRow(_at(180), signal, metric, project, env, dim, 10_000.0)
@@ -200,13 +205,11 @@ def test_restored_slowdown_uses_seasonal_history_when_hourly_top_slices_change(
         projects=(PROJECT,),
     )
     checkpoint = _round_trip(checkpoint)
-    key = SeriesKey(PROJECT, ENV, Signal.ENDPOINTS, Metric.P95_DURATION, ENDPOINT)
-    restored = _restore(Footprints(), checkpoint, projects=(PROJECT,))
-    assert restored.hourly == {
-        key: {
+    assert checkpoint.hourly == {
+        LATENCY: {
             ts: value
             for ts, _, metric, _, _, _, value in hourly
-            if metric == key.metric and ts.date() >= (START - timedelta(days=14)).date()
+            if metric == LATENCY.metric and ts.date() >= (START - timedelta(days=14)).date()
         }
     }
 
@@ -220,7 +223,7 @@ def test_restored_slowdown_uses_seasonal_history_when_hourly_top_slices_change(
         checkpoint=checkpoint,
     )
     assert [*opens, *closes] == list(continuous)
-    assert not checkpoint["hourly_support"]
+    assert not checkpoint.hourly
 
 
 def test_split_during_change_point_persistence_and_open_episode() -> None:
@@ -264,7 +267,7 @@ def test_split_during_change_point_persistence_and_open_episode() -> None:
         projects=(PROJECT,),
         checkpoint=_round_trip(checkpoint),
     )
-    closed, checkpoint = advance_org(
+    closed, _ = advance_org(
         rows=rows(180, 250),
         hourly_rows=(),
         start=_at(180),
@@ -275,9 +278,6 @@ def test_split_during_change_point_persistence_and_open_episode() -> None:
     )
     assert not before_open
     assert [*opened, *closed] == list(expected)
-    (event,) = checkpoint["events"]
-    assert event["change_type"] == ChangeType.CHANGE_POINT
-    assert event["ended_at"] is not None
 
 
 def test_closed_group_can_continue_with_pending_issue_after_restart() -> None:
@@ -306,12 +306,9 @@ def test_closed_group_can_continue_with_pending_issue_after_restart() -> None:
         new_issues=issues,
     )
     assert [decision.is_resolved for decision in initial] == [False, True]
-    (pending_index,) = checkpoint["pending_issues"]
-    assert checkpoint["events"][pending_index]["issue_ids"] == [123]
-    (restored_pending,) = _restore(
-        Footprints(), _round_trip(checkpoint), projects=(PROJECT,)
-    ).pending_issues
-    assert restored_pending.issue_ids == (123,)
+    checkpoint = _round_trip(checkpoint)
+    (pending,) = checkpoint.state.pending_issues
+    assert pending.issue_ids == (123,)
     continued, checkpoint = advance_org(
         rows=(),
         hourly_rows=(),
@@ -319,7 +316,7 @@ def test_closed_group_can_continue_with_pending_issue_after_restart() -> None:
         end=_at(94),
         footprints=Footprints(),
         projects=(PROJECT,),
-        checkpoint=_round_trip(checkpoint),
+        checkpoint=checkpoint,
     )
     continuous = OrgEvaluator(Footprints(), projects=(PROJECT,)).advance(
         rows=(),
@@ -331,7 +328,7 @@ def test_closed_group_can_continue_with_pending_issue_after_restart() -> None:
     assert [decision.is_resolved for decision in continued] == [False, True]
     assert [*initial, *continued] == list(continuous)
     assert {decision.group_key for decision in continuous} == {initial[0].group_key}
-    assert {d["group_key"] for d in checkpoint["qualified"]} == {initial[0].group_key}
+    assert checkpoint.state.published.keys() == {initial[0].group_key}
 
 
 def test_minute_support_is_bounded_without_losing_the_episode_anchor_window() -> None:
@@ -349,10 +346,13 @@ def test_minute_support_is_bounded_without_losing_the_episode_anchor_window() ->
         footprints=Footprints(),
         projects=(PROJECT,),
     )
-    restored = _restore(Footprints(), _round_trip(checkpoint), projects=(PROJECT,))
+    restored = _round_trip(checkpoint)
+    # Minutes absent inside the retained span restore as known-missing.
     assert restored.series == {
         SeriesKey(PROJECT, ENV, Signal.REQUESTS, Metric.COUNT): {
-            ts: value for ts, value in values.items() if ts != START
+            **{_at(i): None for i in range(1, 1570)},
+            _at(1): -0.0,
+            _at(1569): 1 / 3,
         },
         SeriesKey(PROJECT, "staging", Signal.REQUESTS, Metric.COUNT): {},
     }
@@ -360,29 +360,30 @@ def test_minute_support_is_bounded_without_losing_the_episode_anchor_window() ->
     assert restored_zero is not None and copysign(1, restored_zero) == -1
 
 
-def test_dense_collector_checkpoint_round_trips_at_full_history_depth() -> None:
+def test_series_and_count_windows_round_trip_at_full_history_depth() -> None:
     evaluator = OrgEvaluator(Footprints(), projects=(PROJECT,))
-    cursor = evaluator.next_minute = _at(1569)
-    floor = _history_floor(evaluator, cursor)
-    minutes = [_at(i) for i in range((cursor - floor) // timedelta(minutes=1))]
+    cursor = evaluator.state.next_minute = _at(1569)
+    floor = history_floor(evaluator, cursor)
+    minutes = [
+        floor + timedelta(minutes=i) for i in range((cursor - floor) // timedelta(minutes=1))
+    ]
     rng = Random(2)
-    # All span metrics/companions for the full top-slice cohort, across five
-    # projects and two environments. Vary the values so the test does not rely
-    # on measurements compressing well. The old 8 MiB limit could not fit this.
+    # All span metrics and companions for a full top-slice cohort, with values that
+    # don't compress well.
     series = evaluator.series
-    for project in range(5):
-        for env in (ENV, "staging"):
-            for signal in SPAN_SLICES:
-                for dim in range(MAX_SLICES):
-                    for metric in signal.metrics:
-                        key = SeriesKey(project, env, signal.name, metric, f"slice-{dim}")
-                        series[key] = {minute: rng.random() for minute in minutes}
+    for signal in SPAN_SLICES:
+        for dim in range(MAX_SLICES):
+            for metric in signal.metrics:
+                key = SeriesKey(PROJECT, ENV, signal.name, metric, f"slice-{dim}")
+                series[key] = {minute: rng.random() for minute in minutes}
     evaluator.series_history.refresh()
     rolling_length = max(evaluator.series_history.cfg.windows) + DISPERSION_MIN + 1
-    for key in evaluator.series_history.watched:
-        if key.metric != "failure_rate()":
-            continue
-        state = evaluator.series_history.state[key]
+    failure_keys = [
+        key for key in evaluator.series_history.state.watched if key.metric == Metric.FAILURE_RATE
+    ]
+    assert failure_keys
+    for key in failure_keys:
+        state = evaluator.series_history.state.series_states[key]
         state.failure_reference = (2.0, 400.0)
         state.counts = deque(
             (
@@ -392,17 +393,11 @@ def test_dense_collector_checkpoint_round_trips_at_full_history_depth() -> None:
             maxlen=rolling_length,
         )
 
-    checkpoint = _snapshot(evaluator, cursor)
-    raw_uncompressed_size = sum(len(points) * 8 for points in series.values())
-    assert raw_uncompressed_size > 8 * 1024 * 1024
-    # Each dense chunk stays within its lossless raw budget, regardless of entropy.
-    assert all(
-        dense and len(b64decode(payload)) <= len(minutes) * 8
-        for _, (_, dense, _, payload) in checkpoint["series"]
-    )
-    restored = _restore(Footprints(), _round_trip(checkpoint), projects=(PROJECT,))
+    restored = _round_trip(snapshot(evaluator, cursor))
     assert restored.series == series
-    assert restored.series_history.state == evaluator.series_history.state
+    assert restored.state.series_history == evaluator.series_history.state
+    restored_counts = restored.state.series_history.series_states[failure_keys[0]].counts
+    assert restored_counts is not None and restored_counts.maxlen == rolling_length
 
 
 def test_rotating_full_slice_cohorts_bound_checkpoint_state() -> None:
@@ -428,35 +423,29 @@ def test_rotating_full_slice_cohorts_bound_checkpoint_state() -> None:
             end=_at(batch + 1),
             footprints=Footprints(),
             projects=(PROJECT,),
-            checkpoint=None if checkpoint is None else _round_trip(checkpoint),
+            checkpoint=checkpoint,
         )
+        checkpoint = _round_trip(checkpoint)
     assert checkpoint is not None
-    restored = _restore(Footprints(), _round_trip(checkpoint), projects=(PROJECT,))
-    expected_keys = {
-        SeriesKey(
-            PROJECT, f"env-{env}", Signal.ENDPOINTS, Metric.FAILURE_RATE, f"/route/{batch}/{dim}"
-        )
-        for env in range(MAX_ENVIRONMENTS)
-        for dim in range(MAX_SLICES)
-        for batch in (3, 4)
-    }
-    assert (
-        restored.series_history.watched.keys()
-        == restored.series_history.state.keys()
-        == expected_keys
-    )
-    assert restored.series.keys() == expected_keys | {
+
+    def failure_keys(batches: Sequence[int]) -> set[SeriesKey]:
+        return {
+            SeriesKey(
+                PROJECT, f"env-{env}", Signal.ENDPOINTS, Metric.FAILURE_RATE, f"/route/{b}/{dim}"
+            )
+            for env in range(MAX_ENVIRONMENTS)
+            for dim in range(MAX_SLICES)
+            for b in batches
+        }
+
+    expected_keys = failure_keys((3, 4))
+    history = checkpoint.state.series_history
+    assert history.watched.keys() == history.series_states.keys() == expected_keys
+    assert checkpoint.series.keys() == expected_keys | {
         replace(key, metric=Metric.COUNT_SAMPLE) for key in expected_keys
     }
-    assert all(state.counts for state in restored.series_history.state.values())
-    assert restored.novelty.coverage.keys() == {
-        SeriesKey(
-            PROJECT, f"env-{env}", Signal.ENDPOINTS, Metric.FAILURE_RATE, f"/route/{batch}/{dim}"
-        )
-        for env in range(MAX_ENVIRONMENTS)
-        for dim in range(MAX_SLICES)
-        for batch in (1, 2, 3, 4)
-    }
+    assert all(state.counts for state in history.series_states.values())
+    assert checkpoint.state.novelty.coverage.keys() == failure_keys((1, 2, 3, 4))
 
 
 def test_live_slice_and_samples_survive_two_full_rotations() -> None:
@@ -496,53 +485,47 @@ def test_live_slice_and_samples_survive_two_full_rotations() -> None:
         )
         assert not decisions
 
-    restored = _restore(Footprints(), _round_trip(checkpoint), projects=projects)
-    key = SeriesKey(PROJECT, ENV, Signal.ENDPOINTS, Metric.P95_DURATION, ENDPOINT)
-    state = restored.series_history.state[key]
-    assert state.open is restored.corr.state.open_groups[opened.group_key].root
+    checkpoint = _round_trip(checkpoint)
+    state = checkpoint.state.series_history.series_states[LATENCY]
+    assert state.open is checkpoint.state.correlation.open_groups[opened.group_key].root
     assert state.open is not None and state.open.ended_at is None
-    assert restored.series[samples_key(key)][_at(154)] == 100.0
-    assert len(restored.series) == 2 * (2 * MAX_ENVIRONMENTS * MAX_SLICES)
+    assert checkpoint.series[samples_key(LATENCY)][_at(154)] == 100.0
+    assert len(checkpoint.series) == 2 * (2 * MAX_ENVIRONMENTS * MAX_SLICES)
 
-    (closed,), checkpoint = advance_org(
+    (closed,), _ = advance_org(
         rows=_endpoint_rows(157, 200),
         hourly_rows=(),
         start=_at(157),
         end=_at(200),
         footprints=Footprints(),
         projects=projects,
-        checkpoint=_round_trip(checkpoint),
+        checkpoint=checkpoint,
     )
     assert closed == replace(opened, timestamp=closed.timestamp, is_resolved=True)
-    (event,) = checkpoint["events"]
-    assert "recovered" in event["evidence"]
 
 
 def test_over_capacity_active_slices_expire_deterministically() -> None:
     evaluator = OrgEvaluator(Footprints(), projects=(PROJECT,))
     cap = 2 * MAX_ENVIRONMENTS * MAX_SLICES
-    keys = [
-        SeriesKey(PROJECT, ENV, Signal.ENDPOINTS, Metric.P95_DURATION, f"/route/{i:03}")
-        for i in range(cap + 1)
-    ]
+    keys = [replace(LATENCY, dim_value=f"/route/{i:03}") for i in range(cap + 1)]
     # Reverse encounter order, and give the otherwise first tie loser a newer observation.
     for key in reversed(keys):
-        minute = _at(1) if key == keys[0] else START
-        evaluator.series[key] = {minute: 400.0}
-        evaluator.series[samples_key(key)] = {minute: 100.0}
+        evaluator.series[key] = {START: 400.0}
+        evaluator.series[samples_key(key)] = {START: 100.0}
+    evaluator.series[keys[0]] = {_at(1): 400.0}
+    evaluator.series[samples_key(keys[0])] = {_at(1): 100.0}
     evaluator.series_history.refresh()
+    series_states = evaluator.series_history.state.series_states
     for key in keys:
-        evaluator.series_history.state[key].open = ChangeEvent(
-            key, ChangeType.SLOWDOWN, START, 400.0, 100.0, 0.9
-        )
+        series_states[key].open = ChangeEvent(key, ChangeType.SLOWDOWN, START, 400.0, 100.0, 0.9)
     dropped = keys[1]
-    event = evaluator.series_history.state[dropped].open
+    event = series_states[dropped].open
     with patch("sentry.anomaly_detection.checkpoint.retention.metrics.incr") as incr:
-        assert not _evict_stale_series(evaluator, _at(2), _at(1))
+        assert not evict_stale_series(evaluator, _at(2), _at(1))
     incr.assert_called_once_with("anomaly_detection.active_episode_evicted", amount=1)
 
     kept = set(keys) - {dropped}
-    assert evaluator.series_history.state.keys() == kept
+    assert series_states.keys() == kept
     assert evaluator.series.keys() == kept | {samples_key(key) for key in kept}
     assert event is not None and event.ended_at == _at(1)
     assert event.evidence == ["expired: active episode exceeded checkpoint cohort budget"]
@@ -566,9 +549,9 @@ def test_stale_slice_evicts_watch_state_but_keeps_aggregate_presence() -> None:
         footprints=Footprints(),
         projects=(PROJECT,),
     )
-    before = _restore(Footprints(), checkpoint, projects=(PROJECT,))
-    assert before.series_history.state[stale].counts
-    before.series_history.exclude = {stale: "unreliable metrics"}
+    checkpoint = _round_trip(checkpoint)
+    assert checkpoint.state.series_history.series_states[stale].counts
+    checkpoint.state.series_history.exclude[stale] = "unreliable metrics"
     _, checkpoint = advance_org(
         rows=[
             SeriesRow(
@@ -580,35 +563,29 @@ def test_stale_slice_evicts_watch_state_but_keeps_aggregate_presence() -> None:
         end=_at(1570),
         footprints=Footprints(),
         projects=(PROJECT,),
-        checkpoint=_round_trip(_snapshot(before, _at(1))),
+        checkpoint=checkpoint,
     )
-    restored = _restore(Footprints(), _round_trip(checkpoint), projects=(PROJECT,))
+    restored = _round_trip(checkpoint)
     assert restored.series == {total: {}, current: {_at(1569): None}}
-    assert (
-        restored.series_history.watched.keys()
-        == restored.series_history.state.keys()
-        == {total, current}
-    )
-    assert stale not in restored.series_history.exclude
+    history = restored.state.series_history
+    assert history.watched.keys() == history.series_states.keys() == {total, current}
+    assert stale not in history.exclude
     # Retiring minute data does not lose recent novelty exposure.
-    assert restored.novelty.coverage[stale][START] == 1
+    assert restored.state.novelty.coverage[stale][START] == 1
 
 
-@pytest.mark.parametrize("present_but_unmeasured", (False, True))
-def test_unobserved_open_slice_expires_without_claiming_recovery(
-    present_but_unmeasured: bool,
-) -> None:
-    key = SeriesKey(PROJECT, ENV, Signal.ENDPOINTS, Metric.P95_DURATION, ENDPOINT)
+def _unobserved_open_slice() -> tuple[AnomalyDecision, Checkpoint]:
+    """An open, published slowdown whose measurements then stop arriving."""
     event = ChangeEvent(
-        key, ChangeType.SLOWDOWN, START, 400.0, 100.0, 0.9, open_ratio=4.0, sustained_at=_at(30)
+        LATENCY, ChangeType.SLOWDOWN, START, 400.0, 100.0, 0.9, open_ratio=4.0, sustained_at=_at(30)
     )
     evaluator = OrgEvaluator(Footprints(), projects=(PROJECT,))
-    evaluator.series[key] = {START: event.actual}
+    evaluator.series[LATENCY] = {START: event.actual}
     evaluator.series_history.refresh()
-    evaluator.series_history.state[key].open = event
-    evaluator._decisions(evaluator.corr.step(START, [("open", event)]))
-    (opened,) = evaluator._decisions(evaluator.corr.step(_at(30), []))
-    evaluator.next_minute = _at(31)
+    evaluator.series_history.state.series_states[LATENCY].open = event
+    evaluator.decision_log.record(evaluator.corr.step(START, [("open", event)]))
+    (opened,) = evaluator.decision_log.record(evaluator.corr.step(_at(30), []))
+    evaluator.state.next_minute = _at(31)
 
     decisions, checkpoint = advance_org(
         rows=(),
@@ -617,30 +594,15 @@ def test_unobserved_open_slice_expires_without_claiming_recovery(
         end=_at(1569),
         footprints=Footprints(),
         projects=(PROJECT,),
-        checkpoint=_round_trip(_snapshot(evaluator, _at(31))),
+        checkpoint=_round_trip(snapshot(evaluator, _at(31))),
     )
     assert not decisions
-    assert key in _restore(Footprints(), checkpoint, projects=(PROJECT,)).series_history.state
-    decisions, checkpoint = advance_org(
-        rows=(
-            [SeriesRow(_at(1569), key.signal, key.metric, PROJECT, ENV, key.dim_value, None)]
-            if present_but_unmeasured
-            else ()
-        ),
-        hourly_rows=(),
-        start=_at(1569),
-        end=_at(1570),
-        footprints=Footprints(),
-        projects=(PROJECT,),
-        checkpoint=_round_trip(checkpoint),
-    )
-    assert not decisions  # The correlator still observes its normal quiet window.
-    restored = _restore(Footprints(), checkpoint, projects=(PROJECT,))
-    if present_but_unmeasured:
-        assert restored.series_history.state[key].open is None
-    else:
-        assert key not in restored.series_history.state
-    expired = restored.corr.state.open_groups[opened.group_key].root
+    assert LATENCY in checkpoint.state.series_history.series_states
+    return opened, _round_trip(checkpoint)
+
+
+def _assert_expires_then_closes_quietly(opened: AnomalyDecision, checkpoint: Checkpoint) -> None:
+    expired = checkpoint.state.correlation.open_groups[opened.group_key].root
     assert expired.ended_at == _at(1569)
     assert expired.evidence == ["expired: measurements no longer collected"]
 
@@ -651,42 +613,75 @@ def test_unobserved_open_slice_expires_without_claiming_recovery(
         end=_at(1585),
         footprints=Footprints(),
         projects=(PROJECT,),
-        checkpoint=_round_trip(checkpoint),
+        checkpoint=checkpoint,
     )
     assert list(decisions) == [replace(opened, timestamp=_at(1584), is_resolved=True)]
 
 
+def test_uncollected_open_slice_expires_without_claiming_recovery() -> None:
+    opened, checkpoint = _unobserved_open_slice()
+
+    decisions, checkpoint = advance_org(
+        rows=(),
+        hourly_rows=(),
+        start=_at(1569),
+        end=_at(1570),
+        footprints=Footprints(),
+        projects=(PROJECT,),
+        checkpoint=checkpoint,
+    )
+    assert not decisions  # The correlator still observes its normal quiet window.
+    checkpoint = _round_trip(checkpoint)
+    assert LATENCY not in checkpoint.state.series_history.series_states
+    _assert_expires_then_closes_quietly(opened, checkpoint)
+
+
+def test_unmeasured_open_slice_expires_without_claiming_recovery() -> None:
+    opened, checkpoint = _unobserved_open_slice()
+
+    decisions, checkpoint = advance_org(
+        rows=[SeriesRow(_at(1569), LATENCY.signal, LATENCY.metric, PROJECT, ENV, ENDPOINT, None)],
+        hourly_rows=(),
+        start=_at(1569),
+        end=_at(1570),
+        footprints=Footprints(),
+        projects=(PROJECT,),
+        checkpoint=checkpoint,
+    )
+    assert not decisions  # The correlator still observes its normal quiet window.
+    checkpoint = _round_trip(checkpoint)
+    assert checkpoint.state.series_history.series_states[LATENCY].open is None
+    _assert_expires_then_closes_quietly(opened, checkpoint)
+
+
 def test_checkpoint_prunes_old_group_members_without_losing_live_aliases() -> None:
     evaluator = OrgEvaluator(Footprints(), projects=(PROJECT,))
-    key = SeriesKey(PROJECT, ENV, Signal.ENDPOINTS, Metric.P95_DURATION, ENDPOINT)
-    root = ChangeEvent(key, ChangeType.SLOWDOWN, START, 400.0, 100.0, 0.9, ended_at=_at(5))
+    root = ChangeEvent(LATENCY, ChangeType.SLOWDOWN, START, 400.0, 100.0, 0.9, ended_at=_at(5))
     evaluator.corr.step(START, [("open", root)])
     (group,) = evaluator.corr.groups
     group.members[episode_key(root)].closed_at = _at(5)
 
-    alias_key = replace(key, dim_value="/alias")
-    old = replace(root, key=replace(alias_key, project_id=43), start=_at(1), issue_ids=(123,))
-    live = replace(root, key=alias_key, start=_at(400), ended_at=None)
-    recent = replace(root, key=alias_key, start=_at(390), ended_at=_at(395), issue_ids=(456,))
+    alias_key = replace(LATENCY, dim_value="/alias")
+    old = root.replace(key=replace(alias_key, project_id=43), start=_at(1), issue_ids=(123,))
+    live = root.replace(key=alias_key, start=_at(400), ended_at=None)
+    recent = root.replace(key=alias_key, start=_at(390), ended_at=_at(395), issue_ids=(456,))
     group.members[episode_key(old)] = MemberState(old, 4.0, closed_at=old.ended_at)
     group.members[episode_key(live)] = MemberState(live, 4.0, representative=episode_key(old))
     group.members[episode_key(recent)] = MemberState(
         recent, 4.0, closed_at=recent.ended_at, representative=episode_key(old)
     )
-    group.group.change_events.extend((old, live, recent))
-    group.group.blast_radius.append(Service(43, ENV))
-    group.group.driving_issues[:] = [123, 456]
-    group.group.localization = f"{PROJECT}/{ENV} endpoint {ENDPOINT} (shared with 43/{ENV})"
-    evaluator.next_minute = _at(410)
+    group.localization = f"{PROJECT}/{ENV} endpoint {ENDPOINT} (shared with 43/{ENV})"
+    evaluator.state.next_minute = _at(410)
 
-    checkpoint = _round_trip(_snapshot(evaluator, _at(410)))
-    restored = _restore(Footprints(), checkpoint, projects=(PROJECT,))
+    restored = OrgEvaluator(
+        Footprints(), projects=(PROJECT,), checkpoint=_round_trip(snapshot(evaluator, _at(410)))
+    )
     (continued,) = restored.corr.groups
     assert continued.root == root
-    assert continued.group.change_events == [root, live, recent]
-    assert continued.group.blast_radius == [Service(PROJECT, ENV)]
-    assert continued.group.driving_issues == [456]
-    assert continued.group.localization == f"{PROJECT}/{ENV} endpoint {ENDPOINT}"
+    assert continued.change_events == [root, live, recent]
+    assert continued.blast_radius == [Service(PROJECT, ENV)]
+    assert continued.driving_issues == [456]
+    assert continued.localization == f"{PROJECT}/{ENV} endpoint {ENDPOINT}"
     assert set(restored.corr.by_event) == {
         episode_key(root),
         episode_key(live),
@@ -705,8 +700,9 @@ def test_novelty_retains_recent_excursions_but_ages_out_old_ones() -> None:
         footprints=Footprints(),
         projects=(PROJECT,),
     )
-    assert checkpoint["novelty"]["history"]
-    assert checkpoint["novelty"]["coverage"]
+    checkpoint = _round_trip(checkpoint)
+    assert checkpoint.state.novelty.history
+    assert checkpoint.state.novelty.coverage
     _, checkpoint = advance_org(
         rows=(),
         hourly_rows=(),
@@ -714,10 +710,10 @@ def test_novelty_retains_recent_excursions_but_ages_out_old_ones() -> None:
         end=_at(200) + timedelta(days=15),
         footprints=Footprints(),
         projects=(PROJECT,),
-        checkpoint=_round_trip(checkpoint),
+        checkpoint=checkpoint,
     )
-    assert not checkpoint["novelty"]["history"]
-    assert not checkpoint["novelty"]["coverage"]
+    assert not checkpoint.state.novelty.history
+    assert not checkpoint.state.novelty.coverage
 
 
 @pytest.mark.parametrize(("published_owner", "emit_close"), ((PROJECT, True), (43, False)))
@@ -725,8 +721,8 @@ def test_project_scope_change_retires_mixed_group_without_rebinding(
     published_owner: int, emit_close: bool
 ) -> None:
     disabled = 43
-    retained_key = SeriesKey(PROJECT, ENV, Signal.ENDPOINTS, Metric.P95_DURATION, ENDPOINT)
-    removed_key = SeriesKey(disabled, ENV, Signal.ENDPOINTS, Metric.P95_DURATION, ENDPOINT)
+    retained_key = LATENCY
+    removed_key = replace(LATENCY, project_id=disabled)
     retained = ChangeEvent(
         retained_key,
         ChangeType.SLOWDOWN,
@@ -747,20 +743,21 @@ def test_project_scope_change_retires_mixed_group_without_rebinding(
         evaluator.novelty.record(event)
     evaluator.series_history.refresh()
     for event in (retained, removed):
-        evaluator.series_history.state[event.key].open = event
+        evaluator.series_history.state.series_states[event.key].open = event
 
-    evaluator._decisions(evaluator.corr.step(START, [("open", retained)]))
-    (opened,) = evaluator._decisions(evaluator.corr.step(_at(30), []))
-    evaluator._decisions(evaluator.corr.step(_at(31), [("open", removed)]))
+    record = evaluator.decision_log.record
+    record(evaluator.corr.step(START, [("open", retained)]))
+    (opened,) = record(evaluator.corr.step(_at(30), []))
+    record(evaluator.corr.step(_at(31), [("open", removed)]))
     mixed = evaluator.corr.state.open_groups[opened.group_key]
     assert opened.project_id == PROJECT
-    assert mixed.group.change_events == [retained, removed]
+    assert mixed.change_events == [retained, removed]
     assert evaluator.corr.state.edges
     # Even when correlation's current root has changed, the published owner is
     # pinned to the decision. Simulate both owners to cover both close paths.
     mixed.root = removed
     opened = replace(opened, project_id=published_owner, env="published-env")
-    evaluator.qualified[opened.group_key] = opened
+    evaluator.state.published[opened.group_key] = opened
 
     # Persist additional disabled-project state beyond the group's events.
     cp_key = SeriesKey(disabled, ENV, Signal.ERROR_RATE, Metric.ERRORS_PER_REQUEST)
@@ -769,7 +766,7 @@ def test_project_scope_change_retires_mixed_group_without_rebinding(
     evaluator.rate_shifts.state[cp_key].hits = 2
     a = DependencySlice(Service(PROJECT, ENV), Signal.OUTBOUND_HTTP, "example.com")
     b = DependencySlice(Service(disabled, ENV), Signal.OUTBOUND_HTTP, "example.com")
-    evaluator.corr.shared.pairs[frozenset((a, b))] = PairStats(a, b, 5, 5, 5, 0.1, 0.001)
+    evaluator.corr.shared.pairs[frozenset((a, b))] = PairStats(a, b, 5, 0.1)
     pending = ChangeEvent(
         SeriesKey(disabled, ENV, Signal.NEW_ISSUE, Metric.COUNT_UNIQUE_USER, "123"),
         ChangeType.NEW_FAILURE_MODE,
@@ -778,8 +775,8 @@ def test_project_scope_change_retires_mixed_group_without_rebinding(
         10.0,
         0.9,
     )
-    evaluator.pending_issues.append(pending)
-    evaluator.next_minute = _at(32)
+    evaluator.state.pending_issues.append(pending)
+    evaluator.state.next_minute = _at(32)
 
     decisions, checkpoint = advance_org(
         rows=[SeriesRow(_at(32), Signal.REQUESTS, Metric.COUNT, disabled, ENV, "", 100.0)],
@@ -789,37 +786,34 @@ def test_project_scope_change_retires_mixed_group_without_rebinding(
         footprints=Footprints(),
         projects=(PROJECT,),
         new_issues=[pending],
-        checkpoint=_round_trip(_snapshot(evaluator, _at(32))),
+        checkpoint=_round_trip(snapshot(evaluator, _at(32))),
     )
     assert len(decisions) == int(emit_close)
     assert all(
         decision == replace(opened, timestamp=_at(32), is_resolved=True) for decision in decisions
     )
-    assert not {d["group_key"] for d in checkpoint["qualified"]}
-    restored = _restore(Footprints(), checkpoint, projects=(PROJECT,))
-    assert set(restored.series) == {retained_key}
-    assert set(restored.series_history.state) == {retained_key}
+    restored = _round_trip(checkpoint).state
+    assert not restored.published
+    assert set(checkpoint.series) == {retained_key}
+    assert set(restored.series_history.series_states) == {retained_key}
     assert set(restored.novelty.coverage) == set(restored.novelty.history) == {retained_key}
-    assert not restored.rate_shifts.state
+    assert not restored.rate_shifts
     assert not restored.pending_issues
     assert not restored.known_issues
-    assert not restored.corr.groups
-    assert not restored.corr.by_event
-    assert not restored.corr.state.edges
-    assert not restored.corr.state.edge_seen_at
-    assert not restored.corr.shared.pairs
-    candidate = restored.corr.state.latent[episode_key(retained)]
-    assert candidate is restored.series_history.state[retained_key].open
-    assert len(checkpoint["events"]) == 1
+    assert not restored.correlation.open_groups
+    assert not restored.correlation.closed_groups
+    assert not restored.correlation.edges
+    assert not restored.correlation.edge_seen_at
+    assert not restored.correlation.shared.pairs
+    candidate = restored.correlation.latent[episode_key(retained)]
+    assert candidate is restored.series_history.series_states[retained_key].open
 
 
-def _checkpoint_with_pending_issue(novelty: dict[str, Any] | None = None) -> dict[str, Any]:
+def _checkpoint_with_pending_issue(novelty: NoveltyEvidence | None = None) -> Checkpoint:
     evaluator = OrgEvaluator(Footprints(), projects=(PROJECT,))
-    evaluator.series[SeriesKey(PROJECT, ENV, Signal.ENDPOINTS, Metric.P95_DURATION, ENDPOINT)] = {
-        _at(-1): 100.0
-    }
+    evaluator.series[LATENCY] = {_at(-1): 100.0}
     evaluator.series_history.refresh()
-    evaluator.pending_issues.append(
+    evaluator.state.pending_issues.append(
         ChangeEvent(
             SeriesKey(PROJECT, ENV, Signal.NEW_ISSUE, Metric.COUNT_UNIQUE_USER, "123"),
             ChangeType.NEW_FAILURE_MODE,
@@ -830,77 +824,31 @@ def _checkpoint_with_pending_issue(novelty: dict[str, Any] | None = None) -> dic
             novelty=novelty,
         )
     )
-    evaluator.next_minute = START
-    return _round_trip(_snapshot(evaluator, START))
+    evaluator.state.next_minute = START
+    return snapshot(evaluator, START)
 
 
-@pytest.mark.parametrize(
-    "version",
-    (
-        None,
-        CHECKPOINT_VERSION - 1,
-        CHECKPOINT_VERSION + 1,
-        float(CHECKPOINT_VERSION),
-        str(CHECKPOINT_VERSION),
-        True,
-    ),
-)
-def test_unsupported_checkpoint_version_fails_without_advancing(version: object) -> None:
-    current = _checkpoint_with_pending_issue()
-    assert is_current(current)
-    _restore(Footprints(), current, projects=(PROJECT,))
+def test_unreadable_or_other_version_checkpoint_decodes_to_none() -> None:
+    blob = codec.encode(_checkpoint_with_pending_issue())
+    assert codec.decode(blob) is not None
 
-    checkpoint = {key: value for key, value in current.items() if key != "version"}
-    if version is not None:
-        checkpoint["version"] = version
-    assert not is_current(checkpoint)
-    with pytest.raises(ValueError, match="Unsupported anomaly checkpoint version"):
-        advance_org(
-            rows=(),
-            hourly_rows=(),
-            start=START,
-            end=_at(1),
-            footprints=Footprints(),
-            projects=(PROJECT,),
-            checkpoint=checkpoint,
-        )
+    with patch.object(codec, "CHECKPOINT_VERSION", codec.CHECKPOINT_VERSION + 1):
+        assert codec.decode(blob) is None
+    assert codec.decode(b"") is None
+    assert codec.decode(b"not a checkpoint") is None
+    assert codec.decode(blob[:-8]) is None
+    assert codec.decode(zlib.compress(b"\x93\x01\x02\x03")) is None
 
 
-def test_non_finite_novelty_survives_strict_json_round_trip() -> None:
-    novelty = {"return_days": inf, "size": -inf, "history_days": 14}
-    checkpoint = _checkpoint_with_pending_issue(novelty)
-    (record,) = checkpoint["events"]
-    assert record["novelty"]["return_days"] == "inf"
-    assert record["novelty"]["size"] == "-inf"
-    (restored,) = _restore(Footprints(), checkpoint, projects=(PROJECT,)).pending_issues
+def test_non_finite_novelty_survives_round_trip() -> None:
+    novelty = NoveltyEvidence(return_days=inf, size=-inf, history_days=14.0)
+    checkpoint = _round_trip(_checkpoint_with_pending_issue(novelty))
+    (restored,) = checkpoint.state.pending_issues
     assert restored.novelty == novelty
 
 
-@pytest.mark.parametrize("index", (1, 999, -1, False, "0", 0.0))
-def test_corrupt_event_reference_fails_restore(index: object) -> None:
-    checkpoint = _checkpoint_with_pending_issue()
-    assert len(checkpoint["events"]) == 1
-    checkpoint["pending_issues"] = [index]
-    with pytest.raises(ValueError, match="Invalid anomaly checkpoint event reference"):
-        _restore(Footprints(), checkpoint, projects=(PROJECT,))
-
-
-def test_watched_series_without_detector_rule_fails_restore() -> None:
-    checkpoint = _checkpoint_with_pending_issue()
-    assert checkpoint["detector"]["watched"]
-    # Sampled span counts are companion series; no detector rule watches them.
-    checkpoint["detector"]["watched"].append(
-        [PROJECT, ENV, Signal.ENDPOINTS, Metric.COUNT_SAMPLE, ENDPOINT]
-    )
-    with pytest.raises(ValueError, match="Invalid anomaly checkpoint detector rule"):
-        _restore(Footprints(), checkpoint, projects=(PROJECT,))
-
-
 def test_empty_advance_with_narrower_scope_keeps_other_projects_hourly_support() -> None:
-    keys = [
-        SeriesKey(project, ENV, Signal.ENDPOINTS, Metric.P95_DURATION, ENDPOINT)
-        for project in (PROJECT, 43)
-    ]
+    keys = [replace(LATENCY, project_id=project) for project in (PROJECT, 43)]
     hours = [START - timedelta(days=day) for day in range(1, 8)]
     evaluator = OrgEvaluator(Footprints(), projects=(PROJECT, 43))
     for key in keys:
@@ -908,10 +856,10 @@ def test_empty_advance_with_narrower_scope_keeps_other_projects_hourly_support()
         evaluator.hourly[key] = dict.fromkeys(hours, 100.0)
     evaluator.series_history.refresh()
     for key in keys:
-        state = evaluator.series_history.state[key]
+        state = evaluator.series_history.state.series_states[key]
         state.open = ChangeEvent(key, ChangeType.SLOWDOWN, _at(-1), 400.0, 100.0, 0.9)
         state.anchor_level = 100.0
-    evaluator.next_minute = START
+    evaluator.state.next_minute = START
 
     # An empty range snapshots without reconciling scope; it must not silently
     # drop the seasonal support of open anchored episodes it still retains.
@@ -922,12 +870,17 @@ def test_empty_advance_with_narrower_scope_keeps_other_projects_hourly_support()
         end=START,
         footprints=Footprints(),
         projects=(PROJECT,),
-        checkpoint=_round_trip(_snapshot(evaluator, START)),
+        checkpoint=_round_trip(snapshot(evaluator, START)),
     )
     assert not decisions
-    restored = _restore(Footprints(), _round_trip(checkpoint), projects=(PROJECT, 43))
-    assert set(restored.series_history.state) == set(keys)
+    restored = _round_trip(checkpoint)
+    assert set(restored.state.series_history.series_states) == set(keys)
     assert restored.hourly == {key: dict.fromkeys(hours, 100.0) for key in keys}
+
+
+def _measurement(key_index: int, minute_index: int, scale: float) -> float:
+    # Deterministic and non-repeating, so values don't compress to a pattern.
+    return scale * (1 + ((key_index * 104_729 + minute_index * 7_919) % 1_009) / 10_090)
 
 
 @cell_silo_test
@@ -937,16 +890,14 @@ class TestDenseWorkerCheckpoint(TestCase):
             self.create_project(organization=self.organization)
             for _ in range(options.get("anomaly_detection.max_projects_per_organization"))
         ]
-        detectors = [
+        for project in projects:
             self.create_detector(project=project, type=DetectorType.ANOMALY_DETECTION, enabled=True)
-            for project in projects
-        ]
         project_ids = {project.id for project in projects}
         scale = {
-            "count()": 1000.0,
-            "count_sample()": 100.0,
-            "p95(span.duration)": 100.0,
-            "failure_rate()": 0.1,
+            Metric.COUNT: 1000.0,
+            Metric.COUNT_SAMPLE: 100.0,
+            Metric.P95_DURATION: 100.0,
+            Metric.FAILURE_RATE: 0.1,
         }
         series = [
             SeriesKey(project, f"env-{env}", signal.name, metric, f"slice-{dim}")
@@ -956,15 +907,10 @@ class TestDenseWorkerCheckpoint(TestCase):
             for dim in range(MAX_SLICES)
             for metric in signal.metrics
         ]
-        sampled: dict[SeriesKey, dict[datetime, float]] = {
-            key: {} for key in series if key.dim_value == "slice-0" and key.env == "env-0"
-        }
-        # A full, non-repeating slice cohort at all project slots. Keep the
-        # workload shorter than warmup while exceeding the old 8 MiB cap.
+        # A full, non-repeating slice cohort at all project slots, shorter than warmup.
         warm_minutes = 128
         first_end = _at(warm_minutes)
         second_end = _at(warm_minutes + 1)
-        rng = Random(2)
 
         def collect(
             organization: Organization,
@@ -975,55 +921,54 @@ class TestDenseWorkerCheckpoint(TestCase):
         ) -> list[SeriesRow]:
             assert organization == self.organization
             assert {project.id for project in scoped_projects} == project_ids
-            if interval == "1h":
-                return []
-            rows: list[SeriesRow] = []
-            minute = max(start, START)
-            while minute < end:
-                capture = minute in (START, first_end)
-                for key in series:
-                    value = scale[key.metric] * (1 + 0.1 * rng.random())
-                    rows.append(
-                        SeriesRow(
-                            minute,
-                            key.signal,
-                            key.metric,
-                            key.project_id,
-                            key.env,
-                            key.dim_value,
-                            value,
-                        )
-                    )
-                    if capture and key in sampled:
-                        sampled[key][minute] = value
-                minute += timedelta(minutes=1)
-            return rows
+            assert interval == "1m"
+            first = max(start, START)
+            return [
+                SeriesRow(
+                    minute,
+                    key.signal,
+                    key.metric,
+                    key.project_id,
+                    key.env,
+                    key.dim_value,
+                    _measurement(
+                        index, (minute - START) // timedelta(minutes=1), scale[key.metric]
+                    ),
+                )
+                for offset in range((end - first) // timedelta(minutes=1))
+                for minute in [first + timedelta(minutes=offset)]
+                for index, key in enumerate(series)
+            ]
 
         with (
             self.feature(
-                {schedule.FEATURE: True, AnomalyDetection.build_ingest_feature_name(): True}
+                {
+                    schedule.FEATURE: True,
+                    schedule.ACTIVATION_ID_FEATURE: True,
+                    AnomalyDetection.build_ingest_feature_name(): True,
+                }
             ),
             patch.object(schedule, "collect", side_effect=collect),
+            patch.object(schedule, "hourly_rows", return_value=[]),
+            patch.object(schedule, "collect_new_failure_modes", return_value=[]),
+            patch.object(TraceLookup, "footprint", return_value=None),
         ):
             assert not schedule._run_organization(self.organization.id, first_end)
             state = AnomalyDetectionState.objects.get(organization=self.organization)
             assert state.next_minute == first_end.replace(tzinfo=UTC)
-            assert state.checkpoint is not None
-            assert len(orjson.dumps(state.checkpoint)) > 8 * 1024 * 1024
+            assert codec.decode(bytes(state.checkpoint)) is not None
 
             assert not schedule._run_organization(self.organization.id, second_end)
             state.refresh_from_db()
             assert state.next_minute == second_end.replace(tzinfo=UTC)
 
-        assert state.checkpoint is not None
-        restored = _restore(
-            Footprints(),
-            state.checkpoint,
-            projects=tuple(detector.project_id for detector in detectors),
-        )
-        assert restored.next_minute == second_end
+        restored = codec.decode(bytes(state.checkpoint))
+        assert restored is not None
+        assert restored.state.next_minute == second_end
         assert restored.series.keys() == set(series)
         assert all(len(points) == warm_minutes + 1 for points in restored.series.values())
-        for key, points in sampled.items():
-            assert points.keys() == {START, first_end}
-            assert all(restored.series[key][minute] == value for minute, value in points.items())
+        for index, key in [(0, series[0]), (len(series) - 1, series[-1])]:
+            assert restored.series[key] == {
+                _at(minute): _measurement(index, minute, scale[key.metric])
+                for minute in range(warm_minutes + 1)
+            }

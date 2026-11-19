@@ -24,7 +24,7 @@ class Migration(CheckedMigration):
                 ("date_updated", models.DateTimeField(auto_now=True)),
                 ("date_added", models.DateTimeField(auto_now_add=True)),
                 ("next_minute", models.DateTimeField()),
-                ("checkpoint", models.JSONField()),
+                ("checkpoint", models.BinaryField()),
                 (
                     "organization",
                     sentry.db.models.fields.foreignkey.FlexibleForeignKey(

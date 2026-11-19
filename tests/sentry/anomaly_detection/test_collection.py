@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta, timezone
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -26,25 +27,46 @@ from sentry.anomaly_detection.correlation.footprint import (
     Footprint,
     Slice,
 )
-from sentry.anomaly_detection.inputs import measurements, new_failures, trace_lookup
+from sentry.anomaly_detection.inputs import (
+    hourly_snapshot,
+    measurements,
+    new_failures,
+    trace_lookup,
+)
 from sentry.anomaly_detection.inputs.measurements import (
     ERROR_RELEASE,
     ERROR_USER,
     MAX_ENVIRONMENTS,
     MAX_SLICES,
+    REQUEST_QUERY,
     IncompleteCollection,
     collect,
 )
+from sentry.anomaly_detection.inputs.query import ScopedSpans
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.rpc_dataset_common import LimitBy as SpanLimitBy
+from sentry.snuba.rpc_dataset_common import TableQuery
 from sentry.snuba.spans_rpc import Spans
 from sentry.testutils.cases import TestCase
 from sentry.utils import snuba_rpc
+from sentry.utils.cache import cache
 from sentry.utils.snuba import SnubaError
 
 START = datetime(2025, 10, 1)
 MINUTE = timedelta(minutes=1)
+RAW_SNQL = "sentry.anomaly_detection.inputs.query.raw_snql_query"
+
+
+def _bulk(*replies: dict[str, list[dict[str, Any]]]) -> mock.Mock:
+    """Answer each bulk span call with its rows by query name; unnamed queries are empty."""
+    pending = list(replies)
+
+    def run(queries: list[TableQuery]) -> dict[str, dict[str, list[dict[str, Any]]]]:
+        reply = pending.pop(0) if pending else {}
+        return {str(query.name): {"data": reply.get(str(query.name), [])} for query in queries}
+
+    return mock.Mock(side_effect=run)
 
 
 class TestCollection(TestCase):
@@ -73,7 +95,7 @@ class TestCollection(TestCase):
             },
         ]
         with (
-            mock.patch.object(measurements, "raw_snql_query", side_effect=replies) as raw,
+            mock.patch(RAW_SNQL, side_effect=replies) as raw,
             mock.patch.object(Spans, "filter_project", return_value=False),
         ):
             rows = collect(self.organization, [self.project], start, start + 2 * MINUTE, "1m")
@@ -173,7 +195,7 @@ class TestCollection(TestCase):
             ]
 
         with (
-            mock.patch.object(measurements, "raw_snql_query", return_value={"data": []}),
+            mock.patch(RAW_SNQL, return_value={"data": []}),
             mock.patch.object(Spans, "filter_project", return_value=True),
             mock.patch.object(Spans, "run_table_query", side_effect=discover) as table,
             mock.patch.object(snuba_rpc, "timeseries_rpc", side_effect=timeseries) as rpc,
@@ -196,10 +218,10 @@ class TestCollection(TestCase):
             assert kwargs["referrer"] == Referrer.ANOMALY_DETECTION_COLLECT
             assert kwargs.get("sampling_mode") is None
             config = kwargs["config"]
-            assert isinstance(config, measurements.ScopedSpans)
+            assert isinstance(config, ScopedSpans)
             if len(kwargs["selected_columns"]) == 2:
                 assert kwargs["limit"] == MAX_ENVIRONMENTS
-                assert kwargs["limit_by"] is None
+                assert kwargs.get("limit_by") is None
                 assert config.filters == ()
                 assert config.named_dimension == named[kwargs["query_string"]]
             else:
@@ -257,9 +279,8 @@ class TestCollection(TestCase):
 
     def test_propagates_failure_and_rejects_overflowing_slice_partitions(self) -> None:
         with (
-            mock.patch.object(
-                measurements,
-                "raw_snql_query",
+            mock.patch(
+                RAW_SNQL,
                 side_effect=[
                     {"data": [{"env": "prod"}]},
                     {"data": []},
@@ -279,7 +300,7 @@ class TestCollection(TestCase):
             {"environment": "", "transaction": "/empty"},
         ]
         with (
-            mock.patch.object(measurements, "raw_snql_query", return_value={"data": []}),
+            mock.patch(RAW_SNQL, return_value={"data": []}),
             mock.patch.object(Spans, "filter_project", return_value=True),
             mock.patch.object(
                 Spans,
@@ -293,7 +314,7 @@ class TestCollection(TestCase):
 
     def test_hourly_request_and_reject_foreign_project(self) -> None:
         foreign = self.create_project(organization=self.create_organization())
-        with mock.patch.object(measurements, "raw_snql_query") as raw:
+        with mock.patch(RAW_SNQL) as raw:
             with pytest.raises(ValueError, match="belong to the organization"):
                 collect(
                     self.organization,
@@ -304,9 +325,8 @@ class TestCollection(TestCase):
                 )
             raw.assert_not_called()
         with (
-            mock.patch.object(
-                measurements,
-                "raw_snql_query",
+            mock.patch(
+                RAW_SNQL,
                 side_effect=[
                     {"data": [{"env": "test"}]},
                     {"data": []},
@@ -326,6 +346,58 @@ class TestCollection(TestCase):
         ]
         assert raw.call_args.args[0].query.granularity.granularity == 3600
 
+    def test_environment_inventory_is_cached_and_merged_with_current_window(self) -> None:
+        lookback = (START - timedelta(days=1)).replace(tzinfo=timezone.utc)
+
+        def discover(
+            *, params: Any, query_string: str, selected_columns: list[str], **kwargs: object
+        ) -> dict[str, list[dict[str, Any]]]:
+            if query_string != REQUEST_QUERY or selected_columns != ["environment", "count()"]:
+                return {"data": []}
+            if params.start == lookback:
+                return {
+                    "data": [
+                        {"environment": "prod", "count()": 50},
+                        {"environment": "stage", "count()": 5},
+                    ]
+                }
+            return {"data": [{"environment": "preview", "count()": 10}]}
+
+        with (
+            mock.patch.object(measurements, "MAX_ENVIRONMENTS", 2),
+            mock.patch(RAW_SNQL, return_value={"data": []}) as raw,
+            mock.patch.object(Spans, "filter_project", return_value=True),
+            mock.patch.object(Spans, "run_table_query", side_effect=discover) as table,
+            mock.patch.object(snuba_rpc, "timeseries_rpc", return_value=[TimeSeriesResponse()]),
+        ):
+            first = collect(self.organization, [self.project], START, START + MINUTE, "1m")
+            second = collect(
+                self.organization, [self.project], START + MINUTE, START + 2 * MINUTE, "1m"
+            )
+
+        # Request scopes also keep their errors measurable, so errors show the ranking.
+        assert {row.env for row in first if row.signal == Signal.ERRORS} == {"prod", "stage"}
+        # The cached inventory is merged with the current window, busiest first.
+        assert {row.env for row in second if row.signal == Signal.ERRORS} == {"prod", "preview"}
+        request_windows = [
+            (call.kwargs["params"].start, call.kwargs["params"].end)
+            for call in table.call_args_list
+            if call.kwargs["query_string"] == REQUEST_QUERY
+            and len(call.kwargs["selected_columns"]) == 2
+        ]
+        assert request_windows == [
+            (lookback, (START + MINUTE).replace(tzinfo=timezone.utc)),
+            (
+                (START + MINUTE).replace(tzinfo=timezone.utc),
+                (START + 2 * MINUTE).replace(tzinfo=timezone.utc),
+            ),
+        ]
+        # The errors inventory scans the lookback once.
+        error_starts = [call.args[0].query.where[1].rhs for call in raw.call_args_list]
+        assert [rhs for rhs in error_starts if rhs < START.replace(tzinfo=timezone.utc)] == [
+            lookback
+        ]
+
 
 class TestEnrichment(TestCase):
     def test_trace_footprint_joins_parent_only_in_same_trace(self) -> None:
@@ -339,55 +411,60 @@ class TestEnrichment(TestCase):
             mock.patch.object(Spans, "filter_project", return_value=True),
             mock.patch.object(
                 Spans,
-                "run_table_query",
-                side_effect=[
-                    {"data": [{"trace": trace1}, {"trace": trace2}]},
+                "run_bulk_table_queries",
+                _bulk(
+                    {"sample": [{"trace": trace1}, {"trace": trace2}]},
                     {
-                        "data": [
+                        "slice-0": [
                             {
                                 **scope,
                                 "count_unique(trace)": 1,
                                 "count_sample()": 3,
                                 "p95(span.duration)": 100,
                             }
-                        ]
-                    },
-                    {"data": []},
-                    {"data": []},
-                    {"data": []},
-                    {
-                        "data": [
+                        ],
+                        "calls": [
                             {
                                 **scope,
                                 "trace": trace1,
                                 "span_id": "parent",
                                 "span.domain": "backend",
                             }
-                        ]
-                    },
-                    {
-                        "data": [
+                        ],
+                        "transactions": [
                             {**scope, "trace": trace1, "span_id": "child", "parent_span": "parent"},
                             {**scope, "trace": trace2, "span_id": "child", "parent_span": "parent"},
-                        ]
+                        ],
                     },
-                ],
-            ) as table,
+                ),
+            ) as bulk,
         ):
             lookup = trace_lookup.TraceLookup(self.organization, [self.project])
             footprint = lookup.footprint(change, observation_end)
             assert isinstance(footprint, Footprint)
             assert lookup.footprint(change, observation_end) is footprint
-        assert footprint.window == (START - MINUTE, observation_end)
-        expected_end = observation_end.replace(tzinfo=timezone.utc)
-        assert all(call.kwargs["params"].end == expected_end for call in table.call_args_list)
+        (sample,), footprint_queries = (call.args[0] for call in bulk.call_args_list)
+        queries = [sample, *footprint_queries]
+        assert all(
+            (query.resolver.params.start, query.resolver.params.end)
+            == (
+                (START - MINUTE).replace(tzinfo=timezone.utc),
+                observation_end.replace(tzinfo=timezone.utc),
+            )
+            for query in queries
+        )
         service = Service(project, "prod")
         assert footprint.slices[Slice(service, None, "")].trace_share == 0.5
         assert footprint.edges == {CallEdge(service, "backend", service): 1}
-        assert table.call_count == 7
-        assert table.call_args_list[0].kwargs["config"].filters == (
+        # One sample, then the slices and both sides of the call join in one batch.
+        assert len(footprint_queries) == 6
+        assert sample.resolver.config.filters == (
             ("environment", ("prod",)),
             ("transaction", ("GET /x",)),
+        )
+        assert all(
+            query.resolver.config.filters == (("trace", (trace1, trace2)),)
+            for query in footprint_queries
         )
 
     def test_late_new_issue_samples_near_detection_with_typed_issue_ids(self) -> None:
@@ -407,9 +484,9 @@ class TestEnrichment(TestCase):
         with (
             mock.patch.object(Spans, "filter_project", return_value=True),
             mock.patch.object(
-                trace_lookup, "_run_errors", return_value=[{"contexts[trace.trace_id]": trace}]
+                trace_lookup, "run_errors", return_value=[{"contexts[trace.trace_id]": trace}]
             ) as errors,
-            mock.patch.object(Spans, "run_table_query", return_value={"data": []}) as spans,
+            mock.patch.object(Spans, "run_bulk_table_queries", _bulk()) as spans,
         ):
             lookup = trace_lookup.TraceLookup(self.organization, [self.project])
             assert lookup.footprint(change, detected + MINUTE) is None
@@ -422,12 +499,11 @@ class TestEnrichment(TestCase):
         assert last.op == Op.LT
         assert snql.where[-1].lhs == Column("group_id")
         assert snql.where[-1].rhs == [11, 12]
-        assert spans.call_count == 6
+        (queries,) = spans.call_args.args
+        assert len(queries) == 6
         expected_end = detected.replace(tzinfo=timezone.utc)
-        assert all(call.kwargs["params"].end == expected_end for call in spans.call_args_list)
-        assert all(
-            call.kwargs["config"].filters == (("trace", (trace,)),) for call in spans.call_args_list
-        )
+        assert all(query.resolver.params.end == expected_end for query in queries)
+        assert all(query.resolver.config.filters == (("trace", (trace,)),) for query in queries)
 
     def test_untraced_error_does_not_sample_matching_transaction_names(self) -> None:
         change = ChangeEvent(
@@ -440,8 +516,8 @@ class TestEnrichment(TestCase):
         )
         with (
             mock.patch.object(Spans, "filter_project", return_value=True),
-            mock.patch.object(trace_lookup, "_run_errors", return_value=[{}]) as errors,
-            mock.patch.object(Spans, "run_table_query") as spans,
+            mock.patch.object(trace_lookup, "run_errors", return_value=[{}]) as errors,
+            mock.patch.object(Spans, "run_bulk_table_queries") as spans,
         ):
             lookup = trace_lookup.TraceLookup(self.organization, [self.project])
             assert lookup.footprint(change, START + MINUTE) is None
@@ -462,7 +538,7 @@ class TestEnrichment(TestCase):
         )
         with (
             mock.patch.object(Spans, "filter_project", return_value=True),
-            mock.patch.object(Spans, "run_table_query", return_value={"data": []}) as spans,
+            mock.patch.object(Spans, "run_bulk_table_queries", _bulk()) as spans,
             mock.patch.object(trace_lookup, "_MAX_FOOTPRINTS", 1),
         ):
             lookup = trace_lookup.TraceLookup(self.organization, [self.project])
@@ -470,6 +546,99 @@ class TestEnrichment(TestCase):
             assert lookup.footprint(change, START + 2 * MINUTE) is FOOTPRINT_DEFERRED
             assert lookup.footprint(change, START + MINUTE) is None
         spans.assert_called_once()
+
+
+class TestHourlySnapshot(TestCase):
+    ROWS = [
+        SeriesRow(START, Signal.ERRORS, Metric.COUNT, 1, "", "", 4.0),
+        SeriesRow(START, Signal.ENDPOINTS, Metric.P95_DURATION, 1, "prod", "GET /x", None),
+    ]
+    HOUR = START + timedelta(hours=2)
+
+    def test_reuses_snapshot_within_hour(self) -> None:
+        with mock.patch.object(hourly_snapshot, "collect", return_value=self.ROWS) as collected:
+            first = hourly_snapshot.hourly_rows(self.organization, [self.project], self.HOUR)
+            second = hourly_snapshot.hourly_rows(
+                self.organization, [self.project], self.HOUR + 30 * MINUTE
+            )
+        collected.assert_called_once_with(
+            self.organization, [self.project], self.HOUR - timedelta(days=16), self.HOUR, "1h"
+        )
+        assert first == second == self.ROWS
+        (errors, latency) = second
+        assert errors.ts.tzinfo is None
+        assert type(errors.signal) is Signal and type(errors.metric) is Metric
+        assert latency.value is None
+
+    def test_large_snapshot_is_chunked_and_reused(self) -> None:
+        rows = [
+            SeriesRow(START, Signal.ENDPOINTS, Metric.COUNT, 1, "prod", f"/{index}", float(index))
+            for index in range(500)
+        ]
+        with (
+            mock.patch.object(hourly_snapshot, "_CHUNK_BYTES", 256),
+            mock.patch.object(hourly_snapshot, "cache", wraps=cache) as spy,
+            mock.patch.object(hourly_snapshot, "collect", return_value=rows) as collected,
+        ):
+            assert hourly_snapshot.hourly_rows(self.organization, [self.project], self.HOUR) == rows
+            assert hourly_snapshot.hourly_rows(self.organization, [self.project], self.HOUR) == rows
+        collected.assert_called_once()
+        (chunks, _), _ = spy.set_many.call_args
+        assert len(chunks) > 1
+        assert all(len(chunk) <= 256 for chunk in chunks.values())
+
+    def test_missing_or_corrupt_chunk_recollects_and_repairs(self) -> None:
+        with (
+            mock.patch.object(hourly_snapshot, "_CHUNK_BYTES", 16),
+            mock.patch.object(hourly_snapshot, "cache", wraps=cache) as spy,
+            mock.patch.object(hourly_snapshot, "collect", return_value=self.ROWS) as collected,
+            mock.patch.object(hourly_snapshot, "metrics") as metrics,
+        ):
+            hourly_snapshot.hourly_rows(self.organization, [self.project], self.HOUR)
+            (chunks, _), _ = spy.set_many.call_args
+            first_chunk, last_chunk = list(chunks)[0], list(chunks)[-1]
+
+            cache.delete(first_chunk)
+            assert hourly_snapshot.hourly_rows(self.organization, [self.project], self.HOUR) == (
+                self.ROWS
+            )
+            # The recollection rewrote the snapshot.
+            assert hourly_snapshot.hourly_rows(self.organization, [self.project], self.HOUR) == (
+                self.ROWS
+            )
+            assert collected.call_count == 2
+
+            cache.set(last_chunk, b"corrupt", 3600)
+            assert hourly_snapshot.hourly_rows(self.organization, [self.project], self.HOUR) == (
+                self.ROWS
+            )
+            assert hourly_snapshot.hourly_rows(self.organization, [self.project], self.HOUR) == (
+                self.ROWS
+            )
+            assert collected.call_count == 3
+        assert metrics.incr.call_args_list == [
+            mock.call("anomaly_detection.hourly_snapshot_corrupt", tags={"reason": "missing"}),
+            mock.call("anomaly_detection.hourly_snapshot_corrupt", tags={"reason": "digest"}),
+        ]
+
+    def test_project_scopes_and_hours_do_not_collide(self) -> None:
+        other = self.create_project(organization=self.organization)
+        scopes = [
+            ([self.project], self.HOUR),
+            ([self.project, other], self.HOUR),
+            ([self.project], self.HOUR + timedelta(hours=1)),
+        ]
+        snapshots = [
+            [SeriesRow(START, Signal.ERRORS, Metric.COUNT, 1, "", "", float(index))]
+            for index in range(len(scopes))
+        ]
+        with mock.patch.object(hourly_snapshot, "collect", side_effect=snapshots) as collected:
+            for _ in range(2):
+                assert [
+                    hourly_snapshot.hourly_rows(self.organization, projects, end)
+                    for projects, end in scopes
+                ] == snapshots
+        assert collected.call_count == len(scopes)
 
 
 def test_failure_thresholds_use_only_observed_hourly_error_users() -> None:

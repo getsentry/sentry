@@ -1,11 +1,9 @@
-"""Shared data for aggregate series, change episodes, and anomaly groups."""
+"""Shared data for aggregate series and change episodes."""
 
-from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
-from functools import cached_property
-from typing import Any, Literal, NamedTuple, NewType
+from typing import Any, Literal, NamedTuple, NewType, TypedDict
 
 
 class Signal(StrEnum):
@@ -96,24 +94,9 @@ class ExpectedValue:
     expected: float
     recent_actuals: tuple[float | None, ...]
     point_count: int
-    _estimate_band: Callable[[], tuple[float, float, float]] = field(repr=False, compare=False)
-
-    @cached_property
-    def _band(self) -> tuple[float, float, float]:
-        # Most observations don't pass the ratio test, so never need log-space MAD.
-        return self._estimate_band()
-
-    @property
-    def sigma(self) -> float:
-        return self._band[0]
-
-    @property
-    def lower(self) -> float:
-        return self._band[1]
-
-    @property
-    def upper(self) -> float:
-        return self._band[2]
+    sigma: float
+    lower: float
+    upper: float
 
 
 class ChangeType(StrEnum):
@@ -134,24 +117,102 @@ class EpisodeKey(NamedTuple):
     start: datetime
 
 
-@dataclass
+class NoveltyEvidence(TypedDict, total=False):
+    """How an episode was judged against its history, and why it was later promoted."""
+
+    unusual: bool
+    size: float
+    return_days: float
+    similar: int
+    history_days: float
+    pooled_rate: float
+    kind: str
+    p_normal: float
+    lasting_min: int
+    harm: bool
+    vouched: bool
+    opened_on_escalation: bool
+    opened_on_duration: bool
+    unusual_since: datetime
+
+
 class ChangeEvent:
-    key: SeriesKey
-    change_type: ChangeType
-    start: datetime
-    actual: float
-    expected: float
-    confidence: float
-    evidence: list[str] = field(default_factory=list)
-    detected_at: datetime | None = None
-    ended_at: datetime | None = None
-    peak_ratio: float = 1.0
-    open_ratio: float = 1.0
-    novelty: dict[str, Any] | None = None
-    escalations: list[tuple[datetime, float]] = field(default_factory=list)
-    recent_ratio: float | None = None
-    sustained_at: datetime | None = None
-    issue_ids: tuple[int, ...] = ()
+    """One change episode on one series.
+
+    Deliberately not a dataclass, because msgspec would store dataclasses inline: the
+    detectors, correlator, novelty model and admission policy hold and update the same
+    instance, and the checkpoint stores each instance once and restores shared references
+    to it. Use `is` for identity; `==` compares values, like the dataclass it replaced.
+    """
+
+    __slots__ = (
+        "key",
+        "change_type",
+        "start",
+        "actual",
+        "expected",
+        "confidence",
+        "evidence",
+        "detected_at",
+        "ended_at",
+        "peak_ratio",
+        "open_ratio",
+        "novelty",
+        "escalations",
+        "recent_ratio",
+        "sustained_at",
+        "issue_ids",
+    )
+
+    def __init__(
+        self,
+        key: SeriesKey,
+        change_type: ChangeType,
+        start: datetime,
+        actual: float,
+        expected: float,
+        confidence: float,
+        evidence: list[str] | None = None,
+        detected_at: datetime | None = None,
+        ended_at: datetime | None = None,
+        peak_ratio: float = 1.0,
+        open_ratio: float = 1.0,
+        novelty: NoveltyEvidence | None = None,
+        escalations: list[tuple[datetime, float]] | None = None,
+        recent_ratio: float | None = None,
+        sustained_at: datetime | None = None,
+        issue_ids: tuple[int, ...] = (),
+    ) -> None:
+        self.key = key
+        self.change_type = change_type
+        self.start = start
+        self.actual = actual
+        self.expected = expected
+        self.confidence = confidence
+        self.evidence = evidence if evidence is not None else []
+        self.detected_at = detected_at
+        self.ended_at = ended_at
+        self.peak_ratio = peak_ratio
+        self.open_ratio = open_ratio
+        self.novelty = novelty
+        self.escalations = escalations if escalations is not None else []
+        self.recent_ratio = recent_ratio
+        self.sustained_at = sustained_at
+        self.issue_ids = issue_ids
+
+    def replace(self, **changes: Any) -> "ChangeEvent":
+        """A new, independent episode with the given fields changed (shallow copy)."""
+        return ChangeEvent(**({name: getattr(self, name) for name in self.__slots__} | changes))
+
+    def __repr__(self) -> str:
+        return f"ChangeEvent({self.key}, {self.change_type}, start={self.start.isoformat()})"
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, ChangeEvent):
+            return NotImplemented
+        return all(getattr(self, name) == getattr(other, name) for name in self.__slots__)
+
+    __hash__ = None  # type: ignore[assignment]  # Mutable, so unhashable.
 
 
 # A detector's report on an episode at a minute. "latent" is an open judged routine,
@@ -164,15 +225,3 @@ class Urgency(StrEnum):
     LOW = "low"
     MEDIUM = "medium"
     HIGH = "high"
-
-
-@dataclass
-class AnomalyGroup:
-    id: AnomalyGroupKey
-    opened_at: datetime
-    change_events: list[ChangeEvent] = field(default_factory=list)
-    driving_issues: list[int] = field(default_factory=list)
-    localization: str | None = None
-    blast_radius: list[Service] = field(default_factory=list)
-    urgency: Urgency = Urgency.LOW
-    possibly_related: list[AnomalyGroupKey] = field(default_factory=list)

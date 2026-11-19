@@ -2,16 +2,19 @@
 
 from __future__ import annotations
 
-import itertools
 import math
 from collections import deque
-from collections.abc import Callable, Iterable
+from collections.abc import Callable
 from datetime import datetime
 from typing import TYPE_CHECKING, NamedTuple
 
-from sentry.anomaly_detection.contracts import ExpectedValue, SeriesKey, Signal
+from sentry.anomaly_detection.contracts import ExpectedValue, SeriesKey
 from sentry.anomaly_detection.evaluation.baseline import MINUTE, Baseline, weight_key
-from sentry.anomaly_detection.evaluation.series import is_share
+from sentry.anomaly_detection.evaluation.distributions import (
+    beta_binomial_sf,
+    negative_binomial_sf,
+)
+from sentry.anomaly_detection.evaluation.series import is_share, uses_trials
 
 if TYPE_CHECKING:
     from sentry.anomaly_detection.evaluation.series_history import DetectConfig, SeriesState
@@ -49,15 +52,21 @@ class WindowHit(NamedTuple):
     level: float | None = None
 
 
+class Reading(NamedTuple):
+    """One minute's observation of a series and, for service rates, its parts."""
+
+    actual: float
+    samples: float | None
+    rate_events: float | None
+    rate_denominator: float | None
+    rate_samples: float | None
+
+
 def record(
     counts: deque[CountTotals],
     minute: datetime,
     expectation: ExpectedValue,
-    actual: float,
-    samples: float | None,
-    rate_events: float | None,
-    rate_denominator: float | None,
-    rate_samples: float | None,
+    reading: Reading,
     *,
     distinct_rate_samples: bool,
     cfg: DetectConfig,
@@ -65,6 +74,7 @@ def record(
     episode_open: bool,
     closed_at: datetime | None,
 ) -> None:
+    actual, samples, rate_events, rate_denominator, rate_samples = reading
     if rate_events is not None:
         assert rate_denominator and rate_samples
         observed_events, denominator = rate_events, rate_denominator
@@ -112,7 +122,7 @@ def pooled_recovery(
     """Return whether a window is measurable and whether it still shows an excess."""
     counts = state.counts
     key = expectation.key
-    if (key.signal == Signal.FAILED_RATE or is_share(key)) and state.failure_reference is None:
+    if uses_trials(key) and state.failure_reference is None:
         return False, False
     assert counts is not None
     for window_minutes in (state.window,) if state.window else cfg.windows:
@@ -139,13 +149,12 @@ def window_test(
     """Return the shortest window with enough evidence to reject its baseline."""
     counts = state.counts
     assert counts is not None
-    uses_trials = expectation.key.signal == Signal.FAILED_RATE or is_share(expectation.key)
     min_excess = cfg.min_abs_excess if p_max <= cfg.window_p else 1.0
     candidate_windows = (only_minutes,) if only_minutes else _windows_for(cfg, counts)
     for window_minutes in candidate_windows:
         if not _can_measure_window(counts, state.closed_at, window_minutes):
             continue
-        if uses_trials:
+        if uses_trials(expectation.key):
             hit = _share_test(cfg, state, window_minutes, min_excess, p_max)
         else:
             hit = _count_test(cfg, baseline, state, expectation, window_minutes, min_excess, p_max)
@@ -204,7 +213,9 @@ def _count_test(
     )
     if samples > 0:
         relative_variance += 1 / samples
-    tail_probability = _nb_sf(observed_events, prior_adjusted_expectation, 1 / relative_variance)
+    tail_probability = negative_binomial_sf(
+        observed_events, prior_adjusted_expectation, 1 / relative_variance
+    )
     if tail_probability < p_max:
         denominator: float = window_minutes
         if weight_key(expectation.key):
@@ -300,7 +311,7 @@ def _share_test(
         return None
     # Do not estimate dispersion from potentially anomalous traffic inside an open episode.
     dispersion = 1.0 if state.open is not None else _dispersion(counts, window_minutes)
-    tail_probability = _betabinom_sf(
+    tail_probability = beta_binomial_sf(
         observed_events / dispersion,
         trials / dispersion,
         reference_events / dispersion + 0.5,
@@ -396,87 +407,6 @@ def _history_level(
         return None
     denominator = history_last.shaped_denominator - before_history.shaped_denominator
     return (history_last.events - before_history.events) / denominator if denominator > 0 else 0.0
-
-
-def _nb_sf(n: float, mean: float, size: float) -> float:
-    """P(X >= n) for a negative binomial with the given mean and shape."""
-    k = math.ceil(n - 1e-9)
-    if k <= 0:
-        return 1.0
-    if mean <= 0:
-        return 0.0
-    size = min(size, 1e9)
-    q = mean / (size + mean)
-
-    def log_pmf(x: int) -> float:
-        return (
-            math.lgamma(x + size)
-            - math.lgamma(size)
-            - math.lgamma(x + 1)
-            + size * math.log1p(-q)
-            + x * math.log(q)
-        )
-
-    # Sum away from the mean, so the terms shrink until they stop mattering.
-    if k > mean:
-        return min(
-            1.0,
-            _sum_terms(log_pmf(k), itertools.count(k), lambda x: (x + size) / (x + 1) * q),
-        )
-    lower = _sum_terms(log_pmf(k - 1), range(k - 1, 0, -1), lambda x: x / ((x - 1 + size) * q))
-    return max(0.0, 1.0 - lower)
-
-
-def _betabinom_sf(successes: float, trials: float, a: float, b: float) -> float:
-    """P(X >= successes) for trials with an uncertain success rate Beta(a, b)."""
-    k, n = math.ceil(successes - 1e-9), round(trials)
-    if k <= 0:
-        return 1.0
-    if k > n:
-        return 0.0
-    lg = math.lgamma
-
-    def log_pmf(x: int) -> float:
-        return (
-            lg(n + 1)
-            - lg(x + 1)
-            - lg(n - x + 1)
-            + lg(x + a)
-            + lg(n - x + b)
-            - lg(n + a + b)
-            - (lg(a) + lg(b) - lg(a + b))
-        )
-
-    # Sum away from the mean, so the terms shrink until they stop mattering.
-    if k > n * a / (a + b):
-        return min(
-            1.0,
-            _sum_terms(
-                log_pmf(k),
-                range(k, n),
-                lambda x: (n - x) / (x + 1) * (x + a) / (n - x - 1 + b),
-            ),
-        )
-    lower = _sum_terms(
-        log_pmf(k - 1),
-        range(k - 1, 0, -1),
-        lambda x: x / (n - x + 1) * (n - x + b) / (x - 1 + a),
-    )
-    return max(0.0, 1.0 - lower)
-
-
-def _sum_terms(log_first: float, steps: Iterable[int], ratio: Callable[[int], float]) -> float:
-    """Sum probability terms from exp(log_first), multiplying by ratio(x) at each step x.
-
-    Stops once a term underflows or no longer changes the total.
-    """
-    term = total = math.exp(log_first)
-    for x in steps:
-        term *= ratio(x)
-        total += term
-        if term <= total * 1e-17:
-            break
-    return total
 
 
 def _score(p: float) -> float:

@@ -14,6 +14,7 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.search.events.types import SnubaRow
+from tests.sentry.anomaly_detection.test_helpers import NoFootprints
 
 START = datetime(2024, 1, 8, 12)  # Collector timestamps are naive UTC.
 MINUTES = 200
@@ -21,11 +22,6 @@ PROJECT = 42
 ENV = "production"
 CHECKOUT = "/checkout"
 REPORTS = "/reports"
-
-
-class NoFootprints:
-    def footprint(self, event: ChangeEvent, observation_end: datetime) -> None:
-        return None
 
 
 def _at(minute: int) -> datetime:
@@ -175,6 +171,45 @@ def test_registered_projects_keep_independent_slowdown_lifecycles() -> None:
     assert other_open.env == other_close.env == "staging"
 
 
+class FirstUserErrors:
+    """Answer new-failure error queries for one group; each user's first event is
+    received at its own timestamp."""
+
+    def __init__(self, group: Group, first_users: list[datetime]) -> None:
+        self.group = group
+        self.first_users = first_users
+        self.run_start = START
+        self.offsets: list[int] = []
+
+    def __call__(self, _organization: Organization, query: Query, _referrer: str) -> list[SnubaRow]:
+        bounds = {
+            (condition.lhs.name, condition.op): condition.rhs.replace(tzinfo=None)
+            for condition in query.where or ()
+            if isinstance(condition, Condition)
+            and isinstance(condition.lhs, Column)
+            and isinstance(condition.rhs, datetime)
+        }
+        times = [
+            ts
+            for ts in self.first_users
+            if bounds["timestamp", Op.GTE] <= ts < bounds["received", Op.LT]
+            and ts < bounds["timestamp", Op.LT]
+        ]
+        if query.groupby == [Column(ERROR_USER)]:
+            return self._user_page(query, times)
+        if not times:
+            return []
+        prior = sum(ts < self.run_start for ts in times)
+        row = {"group_id": self.group.id, "users": len(times), "count()": len(times)}
+        return [{**row, "env": ENV, "prior_users": prior}]
+
+    def _user_page(self, query: Query, times: list[datetime]) -> list[SnubaRow]:
+        assert query.limit is not None
+        offset = query.offset.offset if query.offset else 0
+        self.offsets.append(offset)
+        return [{"first_seen": ts} for ts in times[offset : offset + query.limit.limit]]
+
+
 @pytest.mark.parametrize(
     ("prior_hour", "closing_hour", "new_users", "expected", "page_offsets"),
     [
@@ -229,34 +264,7 @@ def test_new_failure_thresholds_match_live_and_catchup_across_hour_close(
         )
     ]
 
-    offsets: list[int] = []
-    run_start = [START]
-
-    def error_rows(_organization: Organization, query: Query, _referrer: str) -> list[SnubaRow]:
-        bounds = {
-            (condition.lhs.name, condition.op): condition.rhs.replace(tzinfo=None)
-            for condition in query.where or ()
-            if isinstance(condition, Condition)
-            and isinstance(condition.lhs, Column)
-            and isinstance(condition.rhs, datetime)
-        }
-        # Each user's first event is received at its own timestamp.
-        times = [
-            ts
-            for ts in first_users
-            if bounds["timestamp", Op.GTE] <= ts < bounds["received", Op.LT]
-            and ts < bounds["timestamp", Op.LT]
-        ]
-        if query.groupby != [Column(ERROR_USER)]:
-            if not times:
-                return []
-            prior = sum(ts < run_start[0] for ts in times)
-            row = {"group_id": group.id, "users": len(times), "count()": len(times)}
-            return [{**row, "env": ENV, "prior_users": prior}]
-        assert query.limit is not None
-        offset = query.offset.offset if query.offset else 0
-        offsets.append(offset)
-        return [{"first_seen": ts} for ts in times[offset : offset + query.limit.limit]]
+    error_rows = FirstUserErrors(group, first_users)
 
     def run(boundaries: Sequence[int]) -> tuple[list[ChangeEvent], list[pipeline.AnomalyDecision]]:
         issues: list[ChangeEvent] = []
@@ -264,7 +272,7 @@ def test_new_failure_thresholds_match_live_and_catchup_across_hour_close(
         checkpoint = None
         for left, right in zip(boundaries[:-1], boundaries[1:], strict=True):
             start, end = _at(left), _at(right)
-            run_start[0] = start
+            error_rows.run_start = start
             # Match scheduler refresh: at :00 it gains the newly closed bucket
             # and drops the oldest bucket of its 16-day history.
             hour = end.replace(minute=0)
@@ -276,7 +284,6 @@ def test_new_failure_thresholds_match_live_and_catchup_across_hour_close(
                 new_failures.new_failure_thresholds(hourly),
                 start,
                 end,
-                current_rows=rows,
             )
             issues.extend(new_issues)
             batch, checkpoint = advance_org(
@@ -295,13 +302,13 @@ def test_new_failure_thresholds_match_live_and_catchup_across_hour_close(
     with (
         patch.object(new_failures, "_recent_error_groups", lambda *_: [group]),
         patch.object(new_failures, "_ISSUE_USER_PAGE_SIZE", 500),
-        patch.object(new_failures, "_run_errors", error_rows),
+        patch.object(new_failures, "run_errors", error_rows),
     ):
         live = run(range(55, 64))
         assert run((55, 60, 63)) == live
-        offsets.clear()
+        error_rows.offsets.clear()
         assert run((55, 63)) == live
-    assert offsets == page_offsets
+    assert error_rows.offsets == page_offsets
     issues, decisions = live
     assert [(e.detected_at, e.actual, e.expected, e.confidence) for e in issues] == [
         (_at(minute), users, threshold, confidence)

@@ -5,7 +5,8 @@ from datetime import datetime, timedelta
 
 import pytest
 
-from sentry.anomaly_detection.checkpoint.codec import _restore, _snapshot
+from sentry.anomaly_detection.checkpoint import codec
+from sentry.anomaly_detection.checkpoint.replay import snapshot
 from sentry.anomaly_detection.contracts import (
     ChangeAction,
     ChangeEvent,
@@ -16,8 +17,8 @@ from sentry.anomaly_detection.contracts import (
     Signal,
     Urgency,
 )
-from sentry.anomaly_detection.correlation.call_graph import DOWNSTREAM, UPSTREAM, _CallGraph
-from sentry.anomaly_detection.correlation.correlator import Correlator, episode_key
+from sentry.anomaly_detection.correlation.call_graph import DOWNSTREAM, UPSTREAM, CallGraph
+from sentry.anomaly_detection.correlation.correlator import Correlator, GroupAction, episode_key
 from sentry.anomaly_detection.correlation.footprint import (
     FOOTPRINT_DEFERRED,
     CallEdge,
@@ -30,6 +31,7 @@ from sentry.anomaly_detection.correlation.footprint import (
 from sentry.anomaly_detection.correlation.shared_dependencies import (
     DependencySlice,
     SharedConfig,
+    SharedDeps,
     learn,
 )
 from sentry.anomaly_detection.evaluation.novelty import Novelty
@@ -60,13 +62,18 @@ class _Traces:
 
 def _checkout_footprint(target: SeriesKey = ORDERS, share: float = 0.8) -> Footprint:
     return Footprint(
-        CHECKOUT,
-        ["trace-1", "trace-2"],
-        slices={slice_of(target): SliceStats(share, 100, 2)},
+        slices={slice_of(target): SliceStats(share, 100)},
         edges=Counter(
             {CallEdge(service_of(CHECKOUT), "orders.example.com", service_of(target)): 2}
         ),
     )
+
+
+# Indices into [latent, open] for the order two actions arrive in.
+ARRIVAL_ORDERS = [
+    pytest.param((0, 1), id="latent-first"),
+    pytest.param((1, 0), id="open-first"),
+]
 
 
 @pytest.mark.parametrize(
@@ -113,10 +120,8 @@ def test_timing_alone_does_not_group_projects() -> None:
     correlator = Correlator()
     actions = correlator.step(START, [("open", _episode(CHECKOUT)), ("open", _episode(ORDERS))])
 
-    opened = [action.group for action in actions if action.kind == "open"]
-    assert len(opened) == 2
-    assert opened[0].possibly_related == [opened[1].id]
-    assert opened[1].possibly_related == [opened[0].id]
+    assert [action.kind for action in actions] == ["open", "open"]
+    assert len(correlator.groups) == 2
 
 
 def test_trace_link_localizes_downstream_and_closes_after_all_changes_end() -> None:
@@ -173,17 +178,15 @@ def test_service_total_without_footprint_links_its_slice_by_timing(
     assert actions[0].independent_count == 2
 
 
-@pytest.mark.parametrize("latent_first", [True, False], ids=["latent-first", "open-first"])
+@pytest.mark.parametrize("order", ARRIVAL_ORDERS)
 def test_routine_downstream_change_supports_localization_without_independent_evidence(
-    latent_first: bool,
+    order: tuple[int, int],
 ) -> None:
     correlator = Correlator(_Traces({CHECKOUT: _checkout_footprint()}))
     checkout, orders = _episode(CHECKOUT), _episode(ORDERS)
-    latent: ChangeAction = ("latent", orders)
-    opened: ChangeAction = ("open", checkout)
-    first, second = (latent, opened) if latent_first else (opened, latent)
-    correlator.step(START, [first])
-    actions = correlator.step(START + MINUTE, [second])
+    arrivals: list[ChangeAction] = [("latent", orders), ("open", checkout)]
+    correlator.step(START, [arrivals[order[0]]])
+    actions = correlator.step(START + MINUTE, [arrivals[order[1]]])
 
     assert len(correlator.groups) == 1
     assert actions[0].root is orders
@@ -195,19 +198,17 @@ def test_routine_downstream_change_supports_localization_without_independent_evi
     assert all(action.independent_count == 2 for action in promoted)
 
 
-@pytest.mark.parametrize("latent_first", [True, False], ids=["latent-first", "open-first"])
+@pytest.mark.parametrize("order", ARRIVAL_ORDERS)
 def test_routine_downstream_change_supports_source_promoted_on_escalation(
-    latent_first: bool,
+    order: tuple[int, int],
 ) -> None:
     correlator = Correlator(_Traces({CHECKOUT: _checkout_footprint()}))
     escalated_at = START + 40 * MINUTE
     checkout, orders = _episode(CHECKOUT), _episode(ORDERS, escalated_at)
     checkout.novelty = {"unusual_since": escalated_at, "opened_on_escalation": True}
-    latent: ChangeAction = ("latent", orders)
-    opened: ChangeAction = ("open", checkout)
-    first, second = (latent, opened) if latent_first else (opened, latent)
-    correlator.step(escalated_at, [first])
-    actions = correlator.step(escalated_at + MINUTE, [second])
+    arrivals: list[ChangeAction] = [("latent", orders), ("open", checkout)]
+    correlator.step(escalated_at, [arrivals[order[0]]])
+    actions = correlator.step(escalated_at + MINUTE, [arrivals[order[1]]])
 
     assert len(correlator.groups) == 1
     assert actions[0].root is orders
@@ -259,9 +260,7 @@ def test_common_cause_merges_groups_and_remaps_members() -> None:
     cart = SeriesKey(3, "production", Signal.ENDPOINTS, LATENCY, "/cart")
     checkout, cart_event, orders = _episode(CHECKOUT), _episode(cart), _episode(ORDERS)
     cart_footprint = Footprint(
-        cart,
-        ["cart-trace"],
-        slices={slice_of(ORDERS): SliceStats(1, 100, 1)},
+        slices={slice_of(ORDERS): SliceStats(1, 100)},
         edges=Counter({CallEdge(service_of(cart), "orders.example.com", service_of(ORDERS)): 1}),
     )
     correlator = Correlator(_Traces({CHECKOUT: _checkout_footprint(), cart: cart_footprint}))
@@ -273,9 +272,8 @@ def test_common_cause_merges_groups_and_remaps_members() -> None:
     assert correlator.by_event[episode_key(checkout)] is survivor
     assert correlator.by_event[episode_key(cart_event)] is survivor
     assert survivor.root is orders
-    assert survivor.group.possibly_related == []
     (closed,) = [action for action in merged if action.kind == "close"]
-    assert closed.merged_into == survivor.group.id
+    assert closed.merged_into == survivor.id
     assert closed.independent_count == 1
     assert correlator.independent(survivor) == 3
 
@@ -301,8 +299,8 @@ def test_merge_carries_sustained_urgency_after_recovery() -> None:
     assert closed.group is opened.group
     assert closed.merged_into == dependency_opened.group.id
     (survivor,) = correlator.groups
-    assert survivor.group is dependency_opened.group
-    assert survivor.group.urgency == Urgency.MEDIUM
+    assert survivor is dependency_opened.group
+    assert survivor.urgency == Urgency.MEDIUM
 
 
 @pytest.mark.parametrize(
@@ -341,7 +339,8 @@ def test_deferred_footprint_is_retried_after_checkpoint_restore() -> None:
 
     orders = _episode(ORDERS, START + 2 * MINUTE)
     next_traces = _Traces({CHECKOUT: _checkout_footprint()})
-    restored = _restore(next_traces, _snapshot(evaluator, orders.start), projects=projects)
+    checkpoint = codec.decode(codec.encode(snapshot(evaluator, orders.start)))
+    restored = OrgEvaluator(next_traces, projects=projects, checkpoint=checkpoint)
     actions = restored.corr.step(orders.start, [("open", orders)])
 
     assert (CHECKOUT, orders.start + MINUTE) in next_traces.calls
@@ -405,50 +404,70 @@ def test_shared_learning_counts_staggered_incidents_in_novelty_history_once() ->
     incidents = [START + timedelta(hours=9 * i, minutes=7 * i) for i in range(1, 4)]
     for onset in incidents[:2]:
         record_incident(onset)
-    assert learn(novelty.history, now, coverage=novelty.coverage).get(ORDERS, replica) is None
+    assert (
+        learn(novelty.state.history, now, coverage=novelty.state.coverage).get(ORDERS, replica)
+        is None
+    )
 
     record_incident(incidents[2])
-    pair = learn(novelty.history, now, coverage=novelty.coverage).get(ORDERS, replica)
+    pair = learn(novelty.state.history, now, coverage=novelty.state.coverage).get(ORDERS, replica)
     assert pair is not None
-    assert (pair.co, pair.n_a, pair.n_b) == (3, 3, 3)
+    assert pair.co == 3
 
 
-@pytest.mark.parametrize("latent_first", [True, False])
-def test_shared_latent_bridges_groups_without_joining_namesake(latent_first: bool) -> None:
-    replica = replace(ORDERS, project_id=3)
-    support_key = replace(ORDERS, project_id=4)
-    namesake = replace(ORDERS, project_id=5)
-    support_slice = DependencySlice(
-        service_of(support_key), support_key.signal, support_key.dim_value
-    )
-    config = SharedConfig(
-        force=[
-            (support_slice, DependencySlice(service_of(key), key.signal, key.dim_value))
-            for key in (ORDERS, replica)
-        ]
-    )
-    correlator = Correlator()
-    support = _episode(support_key)
-    first, second, unrelated = (_episode(key) for key in (ORDERS, replica, namesake))
-    correlator.step(START, [("open", unrelated), ("open", first)])
-    if latent_first:
-        # The latent excursion can predate the availability of learned evidence.
-        correlator.step(START, [("latent", support)])
-    correlator.shared = learn({}, START, config, coverage={})
-    actions = correlator.step(START + MINUTE, [("open", second)])
-    if not latent_first:
-        assert len(correlator.state.open_groups) == 3
-        actions = correlator.step(START + 2 * MINUTE, [("latent", support)])
+class _SharedLatent:
+    """ORDERS and a replica each share a dependency with a support slice; a third
+    project's database has the same name. ORDERS and the namesake are already open."""
 
-    owner = correlator.by_event[episode_key(support)]
-    assert len(correlator.state.open_groups) == 2
-    assert set(owner.members) == {episode_key(event) for event in (first, second, support)}
-    assert owner.members[episode_key(support)].latent
-    assert correlator.independent(owner) == 1
-    assert episode_key(support) not in correlator.state.latent
-    assert any(
-        action.kind == "close" and action.merged_into == owner.group.id for action in actions
-    )
+    def __init__(self) -> None:
+        replica = replace(ORDERS, project_id=3)
+        support_key = replace(ORDERS, project_id=4)
+        support_slice = DependencySlice(
+            service_of(support_key), support_key.signal, support_key.dim_value
+        )
+        config = SharedConfig(
+            force=[
+                (support_slice, DependencySlice(service_of(key), key.signal, key.dim_value))
+                for key in (ORDERS, replica)
+            ]
+        )
+        self.learned: SharedDeps = learn({}, START, config, coverage={})
+        self.correlator = Correlator()
+        self.first, self.second = _episode(ORDERS), _episode(replica)
+        self.support = _episode(support_key)
+        namesake = _episode(replace(ORDERS, project_id=5))
+        self.correlator.step(START, [("open", namesake), ("open", self.first)])
+
+    def assert_bridged(self, actions: list[GroupAction]) -> None:
+        correlator, support = self.correlator, self.support
+        owner = correlator.by_event[episode_key(support)]
+        assert len(correlator.state.open_groups) == 2
+        assert set(owner.members) == {
+            episode_key(event) for event in (self.first, self.second, support)
+        }
+        assert owner.members[episode_key(support)].latent
+        assert correlator.independent(owner) == 1
+        assert episode_key(support) not in correlator.state.latent
+        assert any(action.kind == "close" and action.merged_into == owner.id for action in actions)
+
+
+def test_shared_latent_before_learning_bridges_groups_without_joining_namesake() -> None:
+    scenario = _SharedLatent()
+    scenario.correlator.step(START, [("latent", scenario.support)])
+    scenario.correlator.shared = scenario.learned
+    actions = scenario.correlator.step(START + MINUTE, [("open", scenario.second)])
+
+    scenario.assert_bridged(actions)
+
+
+def test_shared_latent_after_opens_bridges_groups_without_joining_namesake() -> None:
+    scenario = _SharedLatent()
+    scenario.correlator.shared = scenario.learned
+    scenario.correlator.step(START + MINUTE, [("open", scenario.second)])
+    assert len(scenario.correlator.state.open_groups) == 3
+    actions = scenario.correlator.step(START + 2 * MINUTE, [("latent", scenario.support)])
+
+    scenario.assert_bridged(actions)
 
 
 def test_late_downstream_change_cannot_explain_earlier_onset() -> None:
@@ -511,13 +530,13 @@ def test_majority_call_graph_keeps_one_direction_per_service_pair(
 ) -> None:
     edges = _call_edges(*calls)
 
-    assert _CallGraph(edges, majority=True).order(_total(1), _total(2)) == expected
+    assert CallGraph(edges, majority=True).order(_total(1), _total(2)) == expected
     # Without a majority, calls in both directions leave the pair unordered.
-    assert _CallGraph(edges).order(_total(1), _total(2)) is None
+    assert CallGraph(edges).order(_total(1), _total(2)) is None
 
 
 def test_majority_call_graph_bounds_depth_in_call_cycles() -> None:
-    graph = _CallGraph(_call_edges((1, 2, 1), (2, 3, 1), (3, 1, 1)), majority=True)
+    graph = CallGraph(_call_edges((1, 2, 1), (2, 3, 1), (3, 1, 1)), majority=True)
 
     assert set(graph.depth) == {_service(1), _service(2), _service(3)}
     assert max(graph.depth.values()) <= 3
@@ -527,7 +546,7 @@ def test_majority_call_graph_bounds_depth_in_call_cycles() -> None:
 
 def test_majority_call_graph_positions_follow_the_longest_call_path() -> None:
     # Calls relax in caller order, so 4 -> 3 is seen after 3 -> 2; 4 -> 2 is a shortcut.
-    graph = _CallGraph(_call_edges((3, 2, 1), (4, 2, 1), (4, 3, 1)), majority=True)
+    graph = CallGraph(_call_edges((3, 2, 1), (4, 2, 1), (4, 3, 1)), majority=True)
     database = SeriesKey(4, "production", Signal.OUTBOUND_DB, LATENCY, "orders")
     endpoint = SeriesKey(4, "production", Signal.ENDPOINTS, LATENCY, "/checkout")
     keys = [_total(2), _total(3), database, endpoint, _total(4)]

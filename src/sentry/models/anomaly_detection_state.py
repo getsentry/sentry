@@ -20,7 +20,7 @@ class AnomalyDetectionState(DefaultFieldsModel):
         "sentry.Organization", db_index=False, on_delete=models.CASCADE
     )
     next_minute = models.DateTimeField()
-    checkpoint = models.JSONField()
+    checkpoint = models.BinaryField()  # See sentry.anomaly_detection.checkpoint.codec.
 
     class Meta:
         app_label = "sentry"

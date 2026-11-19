@@ -2,33 +2,31 @@ from dataclasses import replace
 from datetime import datetime, timedelta
 from unittest.mock import patch
 
-from sentry.anomaly_detection.checkpoint.codec import _snapshot
-from sentry.anomaly_detection.checkpoint.replay import advance_org
+import pytest
+
+from sentry.anomaly_detection.checkpoint import codec
+from sentry.anomaly_detection.checkpoint.replay import advance_org, snapshot
 from sentry.anomaly_detection.contracts import (
-    AnomalyGroup,
     AnomalyGroupKey,
     ChangeEvent,
     ChangeType,
     Metric,
     SeriesKey,
     SeriesRow,
-    Service,
     Signal,
     Urgency,
 )
-from sentry.anomaly_detection.correlation.correlator import GroupAction
-from sentry.anomaly_detection.correlation.footprint import Footprint
-from sentry.anomaly_detection.evaluation.organization import OrgEvaluator, evaluate_org
-from sentry.utils import json
+from sentry.anomaly_detection.correlation.correlator import AnomalyGroup, GroupAction
+from sentry.anomaly_detection.evaluation.organization import (
+    EvaluatorConfig,
+    OrgEvaluator,
+    evaluate_org,
+)
+from tests.sentry.anomaly_detection.test_helpers import NoFootprints
 
 T0 = datetime(2020, 11, 2, 12)
 MINUTE = timedelta(minutes=1)
 PROJECT = 42
-
-
-class NoFootprints:
-    def footprint(self, event: ChangeEvent, observation_end: datetime) -> Footprint | None:
-        return None
 
 
 def _db_row(t: datetime, metric: Metric, value: float) -> SeriesRow:
@@ -115,7 +113,7 @@ def test_unusual_but_short_single_slowdown_does_not_qualify() -> None:
         rows=latency_rows(spike_end=132), hourly_rows=[], start=start, end=end
     )
     (group,) = evaluator.corr.groups
-    assert group.group.urgency == Urgency.LOW
+    assert group.urgency == Urgency.LOW
     assert group.closed_at is None
 
     # The same slowdown, lasting through the window, does publish.
@@ -149,7 +147,7 @@ def test_routine_slowdown_qualifies_when_it_lasts_unusually_long() -> None:
 
     evaluator = OrgEvaluator(NoFootprints(), projects=(PROJECT,))
     assert not evaluator.advance(rows=rows, hourly_rows=[], start=start, end=duration_look)
-    (latent,) = evaluator.absorbed.values()
+    (latent,) = evaluator.state.admission.absorbed.values()
     assert latent.start == start and latent.sustained_at is not None
 
     (opened,) = evaluator.advance(
@@ -157,7 +155,24 @@ def test_routine_slowdown_qualifies_when_it_lasts_unusually_long() -> None:
     )
     assert opened.timestamp == duration_look
     assert not opened.is_resolved
-    assert not evaluator.absorbed
+    assert not evaluator.state.admission.absorbed
+
+
+def _routine_slowdown_with_gap_rows(
+    gap_start: datetime, healthy_return: datetime, unsupported_return: datetime
+) -> list[SeriesRow]:
+    """No rows in [gap_start, healthy_return), then a healthy minute, then a slow minute
+    without enough samples, then the slowdown again."""
+    rows: list[SeriesRow] = []
+    for row in _routine_slowdown_rows():
+        if gap_start <= row.ts < healthy_return:
+            continue
+        if row.ts == healthy_return and row.metric == Metric.P95_DURATION:
+            row = row._replace(value=30.0)
+        elif row.ts == unsupported_return and row.metric == Metric.COUNT_SAMPLE:
+            row = row._replace(value=1.0)
+        rows.append(row)
+    return rows
 
 
 def test_duration_promotion_waits_for_supported_anomaly_after_gap() -> None:
@@ -166,23 +181,15 @@ def test_duration_promotion_waits_for_supported_anomaly_after_gap() -> None:
     healthy_return = first_look + 5 * MINUTE
     unsupported_return = healthy_return + MINUTE
     supported_return = unsupported_return + MINUTE
-    rows: list[SeriesRow] = []
-    for row in _routine_slowdown_rows():
-        if first_look <= row.ts < healthy_return:
-            continue
-        if row.ts == healthy_return and row.metric == Metric.P95_DURATION:
-            row = row._replace(value=30.0)
-        elif row.ts == unsupported_return and row.metric == Metric.COUNT_SAMPLE:
-            row = row._replace(value=1.0)
-        rows.append(row)
+    rows = _routine_slowdown_with_gap_rows(first_look, healthy_return, unsupported_return)
     evaluator = OrgEvaluator(NoFootprints(), projects=(PROJECT,))
     assert not evaluator.advance(rows=rows, hourly_rows=[], start=start, end=first_look)
-    checkpoint = json.loads(json.dumps(_snapshot(evaluator, first_look)))
+    checkpoint = codec.decode(codec.encode(snapshot(evaluator, first_look)))
 
     assert not evaluator.advance(rows=rows, hourly_rows=[], start=first_look, end=supported_return)
-    (latent,) = evaluator.absorbed.values()
+    (latent,) = evaluator.state.admission.absorbed.values()
     assert evaluator.novelty.observed_duration(latent, supported_return) == 61
-    assert not evaluator.next_look
+    assert not evaluator.state.admission.next_look
 
     expected = evaluator.advance(
         rows=rows, hourly_rows=[], start=supported_return, end=supported_return + MINUTE
@@ -205,30 +212,34 @@ def test_duration_promotion_waits_for_supported_anomaly_after_gap() -> None:
     assert list(restarted) == [opened]
 
 
+def _peer_rows(peer_key: SeriesKey, slow_minutes: set[int], end: int) -> list[SeriesRow]:
+    rows = []
+    for i in range(end):
+        p95 = 450.0 if i in slow_minutes else 30.0
+        for metric, value in ((peer_key.metric, p95), (Metric.COUNT_SAMPLE, 500.0)):
+            rows.append(
+                SeriesRow(
+                    T0 + i * MINUTE,
+                    peer_key.signal,
+                    metric,
+                    peer_key.project_id,
+                    peer_key.env,
+                    peer_key.dim_value,
+                    value,
+                )
+            )
+    return rows
+
+
 def test_duration_judgment_does_not_see_backdated_peer_opened_on_same_tick() -> None:
     start = T0 + 480 * MINUTE
     duration_look = start + 60 * MINUTE
     peer_key = SeriesKey(PROJECT, "prod", Signal.OUTBOUND_DB, Metric.P95_DURATION, "peer")
-    rows = _routine_slowdown_rows(flare_minutes=3) + [
-        SeriesRow(
-            T0 + i * MINUTE,
-            peer_key.signal,
-            metric,
-            peer_key.project_id,
-            peer_key.env,
-            peer_key.dim_value,
-            value,
-        )
-        for i in range(541)
-        for metric, value in (
-            (peer_key.metric, 450.0 if i in (536, 538, 540) else 30.0),
-            (Metric.COUNT_SAMPLE, 500.0),
-        )
-    ]
+    rows = _routine_slowdown_rows(flare_minutes=3) + _peer_rows(peer_key, {536, 538, 540}, 541)
     evaluator = OrgEvaluator(NoFootprints(), projects=(PROJECT,))
     evaluator.series_history.cfg.close_after = 1
     assert not evaluator.advance(rows=rows, hourly_rows=[], start=start, end=duration_look)
-    (latent,) = evaluator.absorbed.values()
+    (latent,) = evaluator.state.admission.absorbed.values()
     # Only the peer's four backdated minutes qualify; the past flares lasted three.
     evaluator.novelty.cfg.comparable = 15.0
     prior = evaluator.novelty.judge_duration(latent, 60, duration_look)
@@ -236,10 +247,10 @@ def test_duration_judgment_does_not_see_backdated_peer_opened_on_same_tick() -> 
 
     evaluator.advance(rows=rows, hourly_rows=[], start=duration_look, end=duration_look + MINUTE)
 
-    (peer,) = evaluator.novelty.history[peer_key]
-    assert peer.event.detected_at == duration_look
-    assert evaluator.novelty.observed_duration(peer.event, duration_look) == 4
-    assert latent.novelty == prior.as_dict() | {"opened_on_duration": True}
+    (peer,) = evaluator.novelty.state.history[peer_key]
+    assert peer.detected_at == duration_look
+    assert evaluator.novelty.observed_duration(peer, duration_look) == 4
+    assert latent.novelty == prior.as_evidence() | {"opened_on_duration": True}
     assert (
         evaluator.novelty.judge_duration(latent, 60, duration_look).pooled_rate > prior.pooled_rate
     )
@@ -258,12 +269,13 @@ def test_new_failure_mode_opens_only_after_crossing_the_standalone_threshold() -
         detected_at=detected_at,
         evidence=["private failure payload", "issues:PRIVATE-42"],
     )
-    weak = replace(issue, actual=10.0, confidence=0.5, detected_at=weak_at)
+    weak = issue.replace(actual=10.0, confidence=0.5, detected_at=weak_at)
     evaluator = OrgEvaluator(NoFootprints(), projects=(PROJECT,))
     assert not evaluator.advance(
         rows=[], hourly_rows=[], start=T0, end=detected_at, new_issues=[weak]
     )
-    assert len(evaluator.known_issues) == 1  # the weak crossing was seen but did not open
+    # The weak crossing was seen but did not open.
+    assert len(evaluator.state.known_issues) == 1
     (opened,) = evaluator.advance(
         rows=[],
         hourly_rows=[],
@@ -297,15 +309,13 @@ def test_first_qualification_pins_the_owner_through_reroot_and_merge() -> None:
         evidence=["private cross-project details"],
     )
     group = AnomalyGroup(
-        AnomalyGroupKey("stable-group"),
-        T0,
-        [selected, other],
-        blast_radius=[Service(PROJECT, "prod"), Service(93, "staging")],
+        AnomalyGroupKey("stable-group"), T0, root=selected, last_activity=T0, localization=""
     )
     evaluator = OrgEvaluator(NoFootprints(), projects=(PROJECT, 93))
-    assert not evaluator._decisions([GroupAction(T0, "open", group, root=selected)])
+    record = evaluator.decision_log.record
+    assert not record([GroupAction(T0, "open", group, root=selected)])
 
-    (opened,) = evaluator._decisions(
+    (opened,) = record(
         [GroupAction(T0 + MINUTE, "join", group, root=selected, independent_count=2)]
     )
     assert opened.urgency == Urgency.LOW
@@ -321,11 +331,11 @@ def test_first_qualification_pins_the_owner_through_reroot_and_merge() -> None:
     }
 
     group.urgency = Urgency.HIGH
-    (updated,) = evaluator._decisions(
+    (updated,) = record(
         [GroupAction(T0 + 2 * MINUTE, "urgency", group, root=other, independent_count=2)]
     )
     assert updated == replace(opened, timestamp=T0 + 2 * MINUTE, urgency=Urgency.HIGH)
-    (resolved,) = evaluator._decisions(
+    (resolved,) = record(
         [
             GroupAction(
                 T0 + 3 * MINUTE,
@@ -370,7 +380,7 @@ def test_cold_start_does_not_publish_a_group_that_closes_on_the_boundary() -> No
         end=closes_at + MINUTE,
         footprints=NoFootprints(),
         projects=(PROJECT,),
-        new_issues=[replace(failure)],
+        new_issues=[failure.replace()],
     )
 
 
@@ -379,47 +389,147 @@ def test_simultaneous_excursions_do_not_change_each_others_prior() -> None:
     right_key = replace(left_key, dim_value="/right")
     candidate_minute = T0 + timedelta(hours=12)
     candidate = ChangeEvent(left_key, ChangeType.SLOWDOWN, candidate_minute, 40.0, 20.0, 0.9)
-    peer = replace(candidate, key=right_key)
+    peer = candidate.replace(key=right_key)
     evaluator = OrgEvaluator(NoFootprints(), projects=(PROJECT,))
     for offset in range(720):
         minute = T0 + offset * MINUTE
         evaluator.novelty.observe(left_key, minute)
         evaluator.novelty.observe(right_key, minute)
-    earlier = replace(candidate, start=T0 + MINUTE)
+    earlier = candidate.replace(start=T0 + MINUTE)
     evaluator.novelty.record(earlier)
     prior = evaluator.novelty.judge(candidate, 1.0, candidate_minute)
 
     # Drive the production minute step with both endpoints opening in the same minute.
     with patch.object(
         evaluator,
-        "_evaluate_project_measurements",
+        "_evaluate_measurements",
         lambda minute, rows: [("open", peer), ("open", candidate)],
     ):
         evaluator._step(candidate_minute, [])
 
-    assert candidate.novelty == prior.as_dict()
+    assert candidate.novelty == prior.as_evidence()
     # Both opens are recorded, but only after judging.
-    assert [item.event for item in evaluator.novelty.history[left_key]] == [earlier, candidate]
-    assert [item.event for item in evaluator.novelty.history[right_key]] == [peer]
+    assert evaluator.novelty.state.history[left_key] == [earlier, candidate]
+    assert evaluator.novelty.state.history[right_key] == [peer]
+
+
+def _bad_then_healthy_latency_rows(key: SeriesKey) -> list[SeriesRow]:
+    """Empty latency percentiles for 70 minutes, then healthy ones."""
+    rows = []
+    for offset in range(180):
+        p95 = 0.0 if offset < 70 else 100.0
+        for metric, value in ((Metric.P95_DURATION, p95), (Metric.COUNT_SAMPLE, 100.0)):
+            rows.append(
+                SeriesRow(
+                    T0 + offset * MINUTE,
+                    key.signal,
+                    metric,
+                    key.project_id,
+                    key.env,
+                    key.dim_value,
+                    value,
+                )
+            )
+    return rows
 
 
 def test_healthy_measurements_restore_latency_detection() -> None:
     evaluator = OrgEvaluator(NoFootprints(), projects=(PROJECT,))
     key = SeriesKey(PROJECT, "prod", Signal.OUTBOUND_DB, Metric.P95_DURATION, "primary")
-    rows = [
-        SeriesRow(
-            T0 + offset * MINUTE, key.signal, metric, key.project_id, key.env, key.dim_value, value
-        )
-        for offset in range(180)
-        for metric, value in (
-            (Metric.P95_DURATION, 0.0 if offset < 70 else 100.0),
-            (Metric.COUNT_SAMPLE, 100.0),
-        )
-    ]
+    rows = _bad_then_healthy_latency_rows(key)
     middle = T0 + 61 * MINUTE
     evaluator.advance(rows=rows, hourly_rows=[], start=T0, end=middle)
-    assert key in evaluator.series_history.exclude
+    assert key in evaluator.series_history.state.exclude
 
     evaluator.advance(rows=rows, hourly_rows=[], start=middle, end=T0 + 121 * MINUTE)
-    assert key not in evaluator.series_history.exclude
-    assert key in evaluator.series_history.watched
+    assert key not in evaluator.series_history.state.exclude
+    assert key in evaluator.series_history.state.watched
+
+
+def _error_step_rows() -> list[SeriesRow]:
+    # A sustained 1.45x error increase: large enough for a change point, not a 1.5x spike.
+    rows = []
+    for i in range(250):
+        errors = 145.0 if 140 <= i < 205 else 100.0
+        for signal, metric, value in (
+            (Signal.REQUESTS, Metric.COUNT, 10000.0),
+            (Signal.REQUESTS, Metric.COUNT_SAMPLE, 5000.0),
+            (Signal.ERRORS, Metric.COUNT, errors),
+        ):
+            rows.append(SeriesRow(T0 + i * MINUTE, signal, metric, PROJECT, "prod", "", value))
+    return rows
+
+
+@pytest.mark.parametrize(
+    ("config", "expected"),
+    [
+        pytest.param(
+            EvaluatorConfig(),
+            [(False, ChangeType.CHANGE_POINT), (True, ChangeType.CHANGE_POINT)],
+            id="default",
+        ),
+        pytest.param(EvaluatorConfig(rate_shifts=False), [], id="rate-shifts-disabled"),
+    ],
+)
+def test_rate_shift_config_gates_change_points(
+    config: EvaluatorConfig, expected: list[tuple[bool, ChangeType]]
+) -> None:
+    evaluator = OrgEvaluator(NoFootprints(), projects=(PROJECT,), config=config)
+    decisions = evaluator.advance(
+        rows=_error_step_rows(), hourly_rows=[], start=T0, end=T0 + 250 * MINUTE
+    )
+
+    assert [
+        (decision.is_resolved, decision.evidence["change_type"]) for decision in decisions
+    ] == expected
+
+
+@pytest.mark.parametrize(
+    ("config", "expected"),
+    [
+        pytest.param(EvaluatorConfig(), [], id="default"),
+        pytest.param(EvaluatorConfig(novelty_admission=False), [False], id="admission-disabled"),
+    ],
+)
+def test_novelty_admission_config_gates_absorbing_routine_excursions(
+    config: EvaluatorConfig, expected: list[bool]
+) -> None:
+    start = T0 + 480 * MINUTE
+    evaluator = OrgEvaluator(NoFootprints(), projects=(PROJECT,), config=config)
+    decisions = evaluator.advance(
+        rows=_routine_slowdown_rows(), hourly_rows=[], start=start, end=start + 60 * MINUTE
+    )
+
+    assert [decision.is_resolved for decision in decisions] == expected
+
+
+@pytest.mark.parametrize(
+    ("config", "learned"),
+    [
+        pytest.param(EvaluatorConfig(), True, id="default"),
+        pytest.param(EvaluatorConfig(shared_dependencies=False), False, id="sharing-disabled"),
+    ],
+)
+def test_shared_dependency_config_gates_midnight_learning(
+    config: EvaluatorConfig, learned: bool
+) -> None:
+    midnight = datetime(2020, 11, 5)
+    primary = SeriesKey(PROJECT, "prod", Signal.OUTBOUND_DB, Metric.P95_DURATION, "orders")
+    replica = replace(primary, project_id=PROJECT + 1)
+    evaluator = OrgEvaluator(NoFootprints(), projects=(PROJECT, replica.project_id), config=config)
+    minute = midnight - timedelta(days=3)
+    while minute < midnight:
+        evaluator.novelty.observe(primary, minute)
+        evaluator.novelty.observe(replica, minute)
+        minute += MINUTE
+    # Both slices slow down together at three unrelated times of day.
+    for day in range(3):
+        onset = midnight - timedelta(days=3) + timedelta(hours=9 * day + 2, minutes=7 * day)
+        for key in (primary, replica):
+            event = ChangeEvent(key, ChangeType.SLOWDOWN, onset, 450.0, 30.0, 0.9)
+            event.ended_at = onset + 10 * MINUTE
+            evaluator.novelty.record(event)
+
+    evaluator.advance(rows=[], hourly_rows=[], start=midnight - MINUTE, end=midnight + MINUTE)
+
+    assert (evaluator.corr.shared.get(primary, replica) is not None) is learned

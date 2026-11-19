@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+import statistics
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -40,11 +41,11 @@ class _Evidence(Protocol):
     @property
     def shared(self) -> SharedDeps: ...
 
-    def _footprint(
+    def footprint(
         self, member: MemberState, observation_minute: datetime, /
     ) -> Footprint | None: ...
 
-    def _order(
+    def order(
         self,
         reference_key: SeriesKey,
         compared_key: SeriesKey,
@@ -122,7 +123,7 @@ def link(
             if incoming_total
             else (existing_member, incoming_member)
         )
-        footprint = evidence._footprint(total, observation_minute)
+        footprint = evidence.footprint(total, observation_minute)
         # A missing or deferred footprint isn't evidence of absence; fall back to timing.
         if footprint is not None:
             stats = footprint.touches(part.event.key, cfg.min_share)
@@ -157,7 +158,7 @@ def link(
     )
     # A trace tie rejected on timing must not fall through to weaker evidence.
     if trace_share is not None:
-        direction = evidence._order(
+        direction = evidence.order(
             incoming_key, existing_key, (incoming_member.footprint, existing_member.footprint)
         )
         if (
@@ -237,7 +238,7 @@ def link(
         if onset_gap <= (tolerance if same_family else cfg.co_onset):
             return Link(existing_member, "sibling", 1.0, "same service, nearby onset")
     elif onset_gap <= cfg.co_onset and failure_totals:
-        direction = evidence._order(incoming_key, existing_key)
+        direction = evidence.order(incoming_key, existing_key)
         if direction is not None:
             return Link(
                 existing_member,
@@ -258,7 +259,7 @@ def _trace_share(
 ) -> float | None:
     trace_shares = []
     for source, target in ((incoming_member, existing_member), (existing_member, incoming_member)):
-        footprint = evidence._footprint(source, observation_minute)
+        footprint = evidence.footprint(source, observation_minute)
         if footprint is None:
             continue
         if call_graph.is_project_level(target.event.key) and not (
@@ -298,9 +299,9 @@ def is_downstream_support(
     tolerance = evidence.cfg.tolerance
     if abs(latent.start - onset(event)) > tolerance or call_graph.is_project_level(latent.key):
         return False
-    footprint = evidence._footprint(source, t)
+    footprint = evidence.footprint(source, t)
     stats = footprint.touches(latent.key, evidence.cfg.min_share) if footprint else None
-    if not stats or evidence._order(event.key, latent.key, (footprint,)) != call_graph.DOWNSTREAM:
+    if not stats or evidence.order(event.key, latent.key, (footprint,)) != call_graph.DOWNSTREAM:
         return False
     if latent.key.metric == Metric.P95_DURATION and (
         stats.p95_ms is None
@@ -349,24 +350,16 @@ def _comovement(
     ]
     if len(moves) < max(3, comove_min / timedelta(minutes=10) - 3):
         return None
-    incoming_mean = sum(incoming_move for incoming_move, _ in moves) / len(moves)
-    existing_mean = sum(existing_move for _, existing_move in moves) / len(moves)
-    incoming_sum_squares = sum((move - incoming_mean) ** 2 for move, _ in moves)
-    existing_sum_squares = sum((move - existing_mean) ** 2 for _, move in moves)
-    if not incoming_sum_squares or not existing_sum_squares:
+    incoming_moves, existing_moves = zip(*moves)
+    try:
+        return statistics.correlation(incoming_moves, existing_moves)
+    except statistics.StatisticsError:  # A constant series has no correlation.
         return None
-    sum_cross_deviations = sum(
-        (incoming_move - incoming_mean) * (existing_move - existing_mean)
-        for incoming_move, existing_move in moves
-    )
-    # The normalizing factor for the standard deviations cancels in the correlation.
-    std_scale = math.sqrt(incoming_sum_squares * existing_sum_squares)
-    return sum_cross_deviations / std_scale
 
 
 def _error_path(source: SeriesKey, target: SeriesKey, footprint: Footprint) -> bool:
     caller, callee = service_of(source), service_of(target)
-    return caller != callee and callee in call_graph._CallGraph(footprint.edges).reachable(caller)
+    return caller != callee and callee in call_graph.CallGraph(footprint.edges).reachable(caller)
 
 
 def onset(event: ChangeEvent) -> datetime:

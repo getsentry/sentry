@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import math
 import statistics
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import NamedTuple
@@ -24,6 +24,7 @@ from sentry.anomaly_detection.contracts import (
     Signal,
 )
 from sentry.anomaly_detection.evaluation.baseline import Baseline
+from sentry.anomaly_detection.evaluation.distributions import MAD_TO_SIGMA, MEDIAN_SE_FACTOR
 from sentry.anomaly_detection.evaluation.series import Series, rate_parts
 
 MINUTE = timedelta(minutes=1)
@@ -63,6 +64,9 @@ class RateShiftState:
     open: ChangeEvent | None = None
     level_before: float = 0.0
     hold_until: datetime | None = None
+    # Minutes covered by open spikes on this series, excluded from its windows.
+    spike_minutes: set[datetime] = field(default_factory=set)
+    spike_seen: datetime | None = None
 
 
 @dataclass
@@ -72,13 +76,10 @@ class RateShiftTracker:
     series: dict[SeriesKey, Series]
     baseline: Baseline
     cfg: ChangePointConfig = field(default_factory=ChangePointConfig)
-    exclude: dict[SeriesKey, str] = field(default_factory=dict)
+    # Watched series in scoring order.
+    state: dict[SeriesKey, RateShiftState] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        self.watched: list[SeriesKey] = []
-        self.state: dict[SeriesKey, RateShiftState] = {}
-        self.spike_minutes: dict[SeriesKey, set[datetime]] = {}
-        self._spike_seen: dict[SeriesKey, datetime] = {}
         self.refresh()
 
     def refresh(self, *, project_id: int | None = None) -> int:
@@ -88,36 +89,56 @@ class RateShiftTracker:
             if (project_id is None or key.project_id == project_id)
             and key.signal in RATES
             and not key.dim_value
-            and key not in self.exclude
             and key not in self.state
         ]
         for key in new:
-            self.watched.append(key)
             self.state[key] = RateShiftState()
-            self.spike_minutes[key] = set()
         return len(new)
 
     def note_spike(self, event: ChangeEvent, minute: datetime) -> None:
         """Mark minutes covered by an open spike event on a watched series."""
-        if event.key in self.spike_minutes:
+        state = self.state.get(event.key)
+        if state is not None:
             # Older minutes cannot enter a detection window again as event time advances.
             window_start = minute - (self.cfg.after_min + self.cfg.before_min) * MINUTE
-            marked_minutes = self.spike_minutes[event.key]
-            marked_minutes.intersection_update(_minutes(window_start, minute))
-            marked_minutes.update(_minutes(max(event.start - MINUTE, window_start), minute))
-            self._spike_seen[event.key] = minute
+            state.spike_minutes.intersection_update(_minutes(window_start, minute))
+            state.spike_minutes.update(_minutes(max(event.start - MINUTE, window_start), minute))
+            state.spike_seen = minute
 
     def step(self, minute: datetime, *, project_id: int | None = None) -> list[ChangeAction]:
         if minute.minute % self.cfg.every:
             return []
         actions = []
-        for key in self.watched:
+        for key in self.state:
             if project_id is not None and key.project_id != project_id:
                 continue
             action = self._step(key, minute)
             if action is not None:
                 actions.append(action)
         return actions
+
+    def open_keys(self) -> set[SeriesKey]:
+        return {key for key, state in self.state.items() if state.open}
+
+    def expire(self, key: SeriesKey, at: datetime, reason: str) -> ChangeEvent | None:
+        """End the series' open shift without observing recovery, and reset its state."""
+        state = self.state.get(key)
+        if state is None or state.open is None:
+            return None
+        event = state.open
+        event.ended_at = at
+        event.evidence.append(reason)
+        self.state[key] = RateShiftState(
+            spike_minutes=state.spike_minutes, spike_seen=state.spike_seen
+        )
+        return event
+
+    def forget(self, keys: Iterable[SeriesKey]) -> None:
+        for key in keys:
+            self.state.pop(key, None)
+
+    def drop_projects(self, keep: set[int]) -> None:
+        self.forget([key for key in self.state if key.project_id not in keep])
 
     def _step(self, key: SeriesKey, minute: datetime) -> ChangeAction | None:
         config, state = self.cfg, self.state[key]
@@ -152,7 +173,7 @@ class RateShiftTracker:
         if (
             not measurable
             or (state.hold_until is not None and minute < state.hold_until)
-            or self._spike_seen.get(key) == minute
+            or state.spike_seen == minute
         ):
             state.hits = 0
             return None
@@ -168,9 +189,9 @@ class RateShiftTracker:
         median_deviation = statistics.median(
             abs(rate - historical_level) for rate in historical_log_rates
         )
-        historical_sigma = max(1.4826 * median_deviation, 0.05)
+        historical_sigma = max(MAD_TO_SIGMA * median_deviation, 0.05)
         standard_error = (
-            1.253
+            MEDIAN_SE_FACTOR
             * historical_sigma
             * math.sqrt(1 / len(recent_log_rates) + 1 / len(historical_log_rates))
         )
@@ -226,7 +247,7 @@ class RateShiftTracker:
         total_traffic = self.series.get(
             SeriesKey(key.project_id, key.env, Signal.REQUESTS, Metric.COUNT), {}
         )
-        spike_minutes = self.spike_minutes[key]
+        spike_minutes = self.state[key].spike_minutes
         observations = []
         for minute in _minutes(start, end):
             if minute in spike_minutes:

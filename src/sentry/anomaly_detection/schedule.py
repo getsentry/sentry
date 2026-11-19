@@ -1,30 +1,21 @@
 from __future__ import annotations
 
-import zlib
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime, timedelta
-from hashlib import sha256
 from typing import Any
 
-import orjson
 from django.db import IntegrityError, router, transaction
 from django.utils import timezone
 from taskbroker_client.retry import Retry
 
 from sentry import features, options
-from sentry.anomaly_detection.checkpoint.codec import is_current
+from sentry.anomaly_detection.checkpoint import codec
 from sentry.anomaly_detection.checkpoint.replay import advance_org
-from sentry.anomaly_detection.contracts import (
-    AnomalyGroupKey,
-    ChangeType,
-    Metric,
-    SeriesRow,
-    Signal,
-    Urgency,
-)
-from sentry.anomaly_detection.evaluation.organization import AnomalyDecision
+from sentry.anomaly_detection.contracts import AnomalyGroupKey
+from sentry.anomaly_detection.evaluation.organization import AnomalyDecision, EvaluatorConfig
 from sentry.anomaly_detection.grouptype import AnomalyDetection, MinuteDecisions
+from sentry.anomaly_detection.inputs.hourly_snapshot import hourly_rows
 from sentry.anomaly_detection.inputs.measurements import collect
 from sentry.anomaly_detection.inputs.new_failures import (
     collect_new_failure_modes,
@@ -32,11 +23,11 @@ from sentry.anomaly_detection.inputs.new_failures import (
 )
 from sentry.anomaly_detection.inputs.trace_lookup import TraceLookup
 from sentry.constants import ObjectStatus
+from sentry.db.models.base import Model
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.locks import locks
 from sentry.models.anomaly_detection_state import AnomalyDetectionState
 from sentry.models.organization import Organization, OrganizationStatus
-from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import workflow_engine_tasks
@@ -44,19 +35,22 @@ from sentry.types.cell import get_local_cell
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
+from sentry.utils.query import bulk_delete_objects
 from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
 from sentry.workflow_engine.processors.detector import process_detectors
 from sentry.workflow_engine.types import DetectorType
 
 FEATURE = "organizations:anomaly-detector"
+# Reopened groups must create new issues (see AnomalyDetectionDetectorHandler).
+ACTIVATION_ID_FEATURE = "organizations:workflow-engine-rotate-activation-id"
 _MINUTE = timedelta(minutes=1)
 _INGEST_DELAY = timedelta(minutes=2)
 _MINUTE_WARMUP = timedelta(hours=5)
-_HOURLY_LOOKBACK = timedelta(days=16)
 # State that hasn't advanced this long belongs to an organization that stopped evaluating.
 _ABANDONED_STATE_AGE = timedelta(days=1)
 _RESOLVED_STATE_RETENTION = timedelta(days=30)
-_MAX_CACHE_BYTES = 900_000
+_CLEANUP_BATCH_SIZE = 1000
+_CLEANUP_MAX_BATCHES = 50
 
 
 def _enabled_detectors() -> BaseQuerySet[Detector]:
@@ -71,7 +65,11 @@ def _enabled_detectors() -> BaseQuerySet[Detector]:
 
 def _eligible(organization: Organization) -> bool:
     # Unreleased Issue Platform types have a separate consumer-side ingest gate.
-    return features.has(FEATURE, organization) and AnomalyDetection.allow_ingest(organization)
+    return (
+        features.has(FEATURE, organization)
+        and features.has(ACTIVATION_ID_FEATURE, organization)
+        and AnomalyDetection.allow_ingest(organization)
+    )
 
 
 def _closed_end() -> datetime:
@@ -85,15 +83,6 @@ def _closed_end() -> datetime:
     silo_mode=SiloMode.CELL,
 )
 def schedule_anomaly_detectors() -> None:
-    now = timezone.now()
-    AnomalyDetectionState.objects.filter(date_updated__lt=now - _ABANDONED_STATE_AGE).delete()
-    # Every anomaly episode has its own group key, so resolved detector state only grows.
-    DetectorState.objects.filter(
-        detector__type=DetectorType.ANOMALY_DETECTION.value,
-        is_triggered=False,
-        date_updated__lt=now - _RESOLVED_STATE_RETENTION,
-    ).delete()
-
     max_organizations = options.get("anomaly_detection.max_organizations_per_tick")
     cursor_key = f"anomaly-detection:fanout:v1:{get_local_cell().name}"
     after = cache.get(cursor_key, 0)
@@ -120,49 +109,52 @@ def schedule_anomaly_detectors() -> None:
     cache.set(cursor_key, organization_ids[-1] if organization_ids else 0, 3600)
 
 
-def _hourly_rows(
-    organization: Organization, projects: Sequence[Project], end: datetime
-) -> list[SeriesRow]:
-    end = end.replace(minute=0)
-    scope = ":".join(str(project.id) for project in projects)
-    scope_key = sha256(scope.encode()).hexdigest()
-    key = f"anomaly-detection:hourly:v2:{get_local_cell().name}:{organization.id}:{scope_key}:{end.isoformat()}"
-    payload = cache.get(key)
-    if payload is not None:
-        try:
-            return [
-                SeriesRow(
-                    datetime.fromisoformat(ts),
-                    Signal(signal),
-                    Metric(metric),
-                    project_id,
-                    env,
-                    dim_value,
-                    value,
-                )
-                for ts, signal, metric, project_id, env, dim_value, value in orjson.loads(
-                    zlib.decompress(payload)
-                )
-            ]
-        except (zlib.error, orjson.JSONDecodeError, TypeError, ValueError):
-            metrics.incr("anomaly_detection.hourly_snapshot_corrupt")
-            cache.delete(key)
-    rows = collect(organization, projects, end - _HOURLY_LOOKBACK, end, "1h")
-    # orjson encodes tuples but not named tuples.
-    payload = zlib.compress(orjson.dumps([tuple(row) for row in rows]))
-    if len(payload) <= _MAX_CACHE_BYTES:
-        cache.set(key, payload, 3600)
-    else:
-        metrics.incr("anomaly_detection.hourly_snapshot_too_large")
-    return rows
+@instrumented_task(
+    name="sentry.anomaly_detection.schedule.cleanup_anomaly_detection_state",
+    namespace=workflow_engine_tasks,
+    processing_deadline_duration=120,
+    silo_mode=SiloMode.CELL,
+)
+def cleanup_anomaly_detection_state() -> None:
+    """Delete abandoned checkpoints and old resolved detector state in bounded batches."""
+    now = timezone.now()
+    _bulk_delete(AnomalyDetectionState, date_updated__lt=now - _ABANDONED_STATE_AGE)
+    # Every anomaly episode has its own group key, so resolved detector state only grows.
+    _bulk_delete(
+        DetectorState,
+        detector__type=DetectorType.ANOMALY_DETECTION.value,
+        is_triggered=False,
+        date_updated__lt=now - _RESOLVED_STATE_RETENTION,
+    )
 
 
-def _publish(decisions: Sequence[AnomalyDecision], detectors: Mapping[int, Detector]) -> None:
-    """Send decisions through Workflow Engine in minute order.
+def _bulk_delete(model: type[Model], **filters: Any) -> None:
+    for _ in range(_CLEANUP_MAX_BATCHES):
+        if not bulk_delete_objects(model, limit=_CLEANUP_BATCH_SIZE, **filters):
+            return
+    metrics.incr("anomaly_detection.cleanup_incomplete", tags={"model": model.__name__})
 
-    The stateful handler skips minutes a group already processed, so republishing
-    after a failed checkpoint commit doesn't duplicate issue transitions.
+
+def _evaluator_config() -> EvaluatorConfig:
+    return EvaluatorConfig(
+        rate_shifts=options.get("anomaly_detection.rate_shifts.enabled"),
+        novelty_admission=options.get("anomaly_detection.novelty_admission.enabled"),
+        shared_dependencies=options.get("anomaly_detection.shared_dependencies.enabled"),
+    )
+
+
+def _publish(
+    decisions: Sequence[AnomalyDecision],
+    detectors: Mapping[int, Detector],
+    resolved: Mapping[tuple[datetime, int], set[AnomalyGroupKey]] | None = None,
+) -> None:
+    """Send decisions and resolutions through Workflow Engine in minute order.
+
+    `resolved` is keyed by (minute, project ID). The stateful handler skips minutes a
+    group already processed, so republishing after a failed checkpoint commit doesn't
+    duplicate issue transitions.
     """
+    resolved = resolved or {}
     decisions_by_minute: dict[tuple[datetime, int], dict[AnomalyGroupKey, AnomalyDecision]] = (
         defaultdict(dict)
     )
@@ -170,48 +162,38 @@ def _publish(decisions: Sequence[AnomalyDecision], detectors: Mapping[int, Detec
         if decision.project_id in detectors:
             minute_decisions = decisions_by_minute[decision.timestamp, decision.project_id]
             minute_decisions[decision.group_key] = decision
-    for (minute, project_id), minute_decisions in sorted(decisions_by_minute.items()):
+    for minute, project_id in sorted(decisions_by_minute.keys() | resolved.keys()):
         detector = detectors[project_id]
         packet = DataPacket(
             source_id=str(detector.id),
-            packet=MinuteDecisions(minute=minute, decisions=minute_decisions),
+            packet=MinuteDecisions(
+                minute=minute,
+                decisions=decisions_by_minute.get((minute, project_id), {}),
+                resolved=frozenset(resolved.get((minute, project_id), ())),
+            ),
         )
         process_detectors(packet, [detector])
 
 
-def _resolve_stranded_groups(
+def _stranded_groups(
     decisions: Sequence[AnomalyDecision], detectors: Mapping[int, Detector], minute: datetime
-) -> list[AnomalyDecision]:
-    """Resolve open groups that a cold start no longer tracks.
+) -> dict[tuple[datetime, int], set[AnomalyGroupKey]]:
+    """Open groups that a cold start no longer tracks, keyed for `_publish(resolved=...)`.
 
     Group keys hash the episode start, so a group from a discarded checkpoint never
     receives another decision and would stay open forever.
     """
     project_ids = {detector.id: project_id for project_id, detector in detectors.items()}
     tracked = {decision.group_key for decision in decisions}
-    stranded = [
-        AnomalyDecision(
-            group_key=AnomalyGroupKey(group_key),
-            project_id=project_ids[detector_id],
-            timestamp=minute,
-            urgency=Urgency.LOW,
-            is_resolved=True,
-            title="",
-            # Resolutions never build an occurrence, so this evidence is never shown.
-            evidence={
-                "signal": "other",
-                "change_type": ChangeType.CHANGE_POINT,
-                "started_at": minute.isoformat(),
-            },
-            env="",
-        )
-        for detector_id, group_key in DetectorState.objects.filter(
-            detector_id__in=project_ids, is_triggered=True
-        ).values_list("detector_id", "detector_group_key")
-        if group_key is not None and group_key not in tracked
-    ]
+    stranded: dict[tuple[datetime, int], set[AnomalyGroupKey]] = defaultdict(set)
+    for detector_id, group_key in DetectorState.objects.filter(
+        detector_id__in=project_ids, is_triggered=True
+    ).values_list("detector_id", "detector_group_key"):
+        if group_key is not None and group_key not in tracked:
+            stranded[minute, project_ids[detector_id]].add(AnomalyGroupKey(group_key))
     if stranded:
-        metrics.incr("anomaly_detection.stranded_groups_resolved", amount=len(stranded))
+        count = sum(len(keys) for keys in stranded.values())
+        metrics.incr("anomaly_detection.stranded_groups_resolved", amount=count)
     return stranded
 
 
@@ -220,7 +202,7 @@ def _commit_checkpoint(
     *,
     stored_minute: datetime | None,
     next_minute: datetime,
-    checkpoint: dict[str, Any],
+    checkpoint: bytes,
 ) -> bool:
     """Compare-and-set the checkpoint; return False if another worker advanced it first.
 
@@ -272,10 +254,10 @@ def _run_organization(organization_id: int, target: datetime) -> bool:
         .values_list("next_minute", "checkpoint")
         .get_or_none()
     )
-    stored_minute, checkpoint = stored if stored is not None else (None, None)
-    if checkpoint is not None and not is_current(checkpoint):
+    stored_minute, stored_checkpoint = stored if stored is not None else (None, None)
+    checkpoint = codec.decode(bytes(stored_checkpoint)) if stored_checkpoint is not None else None
+    if stored_checkpoint is not None and checkpoint is None:
         metrics.incr("anomaly_detection.checkpoint_discarded")
-        checkpoint = None
     target_utc = target.replace(tzinfo=UTC)
     max_resume_lag = timedelta(minutes=options.get("anomaly_detection.max_resume_lag_minutes"))
     if (
@@ -302,36 +284,32 @@ def _run_organization(organization_id: int, target: datetime) -> bool:
         end = min(end, publish_from + max_catchup)
 
     rows = collect(organization, projects, fetch_start, end, "1m")
-    hourly_rows = _hourly_rows(organization, projects, end)
+    hourly = hourly_rows(organization, projects, end)
     new_issues = collect_new_failure_modes(
-        organization,
-        projects,
-        new_failure_thresholds(hourly_rows),
-        fetch_start,
-        end,
-        current_rows=rows,
+        organization, projects, new_failure_thresholds(hourly), fetch_start, end
     )
     decisions, next_checkpoint = advance_org(
         rows=rows,
-        hourly_rows=hourly_rows,
+        hourly_rows=hourly,
         start=publish_from,
         end=end,
         footprints=TraceLookup(organization, projects),
         new_issues=new_issues,
         checkpoint=checkpoint,
         projects=detectors.keys(),
+        config=_evaluator_config(),
     )
-    metrics.distribution("anomaly_detection.checkpoint_bytes", len(orjson.dumps(next_checkpoint)))
-    if resume_minute is None:
-        decisions = [*decisions, *_resolve_stranded_groups(decisions, detectors, publish_from)]
+    blob = codec.encode(next_checkpoint)
+    metrics.distribution("anomaly_detection.checkpoint_bytes", len(blob))
+    stranded = _stranded_groups(decisions, detectors, publish_from) if resume_minute is None else {}
     # Publish before committing: a crash in between replays the same minutes, which
     # the detectors' per-group dedupe ignores. Committing first could lose transitions.
-    _publish(decisions, detectors)
+    _publish(decisions, detectors, resolved=stranded)
     committed = _commit_checkpoint(
         organization_id,
         stored_minute=stored_minute,
         next_minute=end.replace(tzinfo=UTC),
-        checkpoint=next_checkpoint,
+        checkpoint=blob,
     )
     if not committed:
         metrics.incr("anomaly_detection.checkpoint_conflict")

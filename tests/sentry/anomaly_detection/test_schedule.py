@@ -1,22 +1,18 @@
 import dataclasses
 from datetime import UTC, datetime, timedelta
-from typing import Any
 from unittest.mock import call, patch
 
 import pytest
 
 from sentry import features
 from sentry.anomaly_detection import schedule
-from sentry.anomaly_detection.checkpoint.codec import CHECKPOINT_VERSION, is_current
-from sentry.anomaly_detection.contracts import (
-    AnomalyGroupKey,
-    ChangeType,
-    Metric,
-    SeriesRow,
-    Signal,
-    Urgency,
+from sentry.anomaly_detection.checkpoint import codec
+from sentry.anomaly_detection.contracts import AnomalyGroupKey, Metric, SeriesRow, Signal, Urgency
+from sentry.anomaly_detection.evaluation.organization import (
+    AnomalyDecision,
+    Checkpoint,
+    EvaluatorState,
 )
-from sentry.anomaly_detection.evaluation.organization import AnomalyDecision
 from sentry.anomaly_detection.grouptype import AnomalyDetection
 from sentry.anomaly_detection.inputs.trace_lookup import TraceLookup
 from sentry.constants import ObjectStatus
@@ -25,16 +21,18 @@ from sentry.issues.producer import PayloadType
 from sentry.locks import locks
 from sentry.models.anomaly_detection_state import AnomalyDetectionState
 from sentry.models.group import GroupStatus
-from sentry.models.organization import Organization, OrganizationStatus
+from sentry.models.organization import OrganizationStatus
 from sentry.models.project import Project
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import cell_silo_test
 from sentry.types.cell import get_local_cell
 from sentry.utils import metrics
+from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.locking.lock import Lock
 from sentry.workflow_engine.models import Detector, DetectorState
 from sentry.workflow_engine.types import DetectorPriorityLevel, DetectorType
+from tests.sentry.anomaly_detection.test_helpers import anomaly_decision
 
 NOW = datetime(2025, 1, 1, 12, 3, 12, tzinfo=UTC)
 END = datetime(2025, 1, 1, 12, 1)
@@ -42,40 +40,21 @@ START = END - timedelta(minutes=1)
 FEATURES = {
     schedule.FEATURE: True,
     AnomalyDetection.build_ingest_feature_name(): True,
-    "organizations:workflow-engine-rotate-activation-id": True,
+    schedule.ACTIVATION_ID_FEATURE: True,
 }
-CHECKPOINT = {"version": CHECKPOINT_VERSION, "qualified": []}
+CHECKPOINT = Checkpoint({}, {}, EvaluatorState())
+BLOB = codec.encode(CHECKPOINT)
 PRODUCE = (
     "sentry.workflow_engine.handlers.detector_outcome.issue_platform.produce_occurrence_to_kafka"
 )
 
 
 def decision(project_id: int, *, timestamp: datetime = START) -> AnomalyDecision:
-    return AnomalyDecision(
-        group_key=AnomalyGroupKey("group"),
-        project_id=project_id,
-        timestamp=timestamp,
-        urgency=Urgency.HIGH,
-        is_resolved=False,
-        title=f"Anomaly in project {project_id}",
-        evidence={
-            "signal": Signal.ERRORS,
-            "change_type": ChangeType.SPIKE,
-            "started_at": START.isoformat(),
-        },
-        env="production",
-    )
+    return anomaly_decision(project_id, timestamp, urgency=Urgency.HIGH)
 
 
-def save_state(
-    organization: Organization, next_minute: datetime, checkpoint: dict[str, Any]
-) -> AnomalyDetectionState:
-    # No factory exists for this cell-local checkpoint row.
-    return AnomalyDetectionState.objects.create(
-        organization=organization,
-        next_minute=next_minute.replace(tzinfo=UTC),
-        checkpoint=checkpoint,
-    )
+def checkpoint_at(next_minute: datetime) -> Checkpoint:
+    return Checkpoint({}, {}, EvaluatorState(next_minute=next_minute))
 
 
 def organization_lease(organization_id: int) -> Lock:
@@ -86,34 +65,18 @@ def organization_lease(organization_id: int) -> Lock:
     )
 
 
-def hourly_series(project_id: int, hour: datetime) -> list[SeriesRow]:
-    return [
-        SeriesRow(
-            hour - timedelta(hours=1),
-            Signal.ERRORS,
-            Metric.COUNT_UNIQUE_USER,
-            project_id,
-            "production",
-            "",
-            4.0,
-        ),
-        SeriesRow(
-            hour - timedelta(hours=2),
-            Signal.ERRORS,
-            Metric.COUNT_UNIQUE_USER,
-            project_id,
-            "",
-            "",
-            None,
-        ),
-    ]
-
-
 @cell_silo_test
 class TestAnomalySchedule(TestCase):
     def make_detector(self, project: Project, *, enabled: bool = True) -> Detector:
         return self.create_detector(
             project=project, type=DetectorType.ANOMALY_DETECTION.value, enabled=enabled
+        )
+
+    def save_state(self, next_minute: datetime, checkpoint: bytes = BLOB) -> AnomalyDetectionState:
+        return self.create_anomaly_detection_state(
+            organization=self.organization,
+            next_minute=next_minute.replace(tzinfo=UTC),
+            checkpoint=checkpoint,
         )
 
     @freeze_time(NOW)
@@ -134,12 +97,15 @@ class TestAnomalySchedule(TestCase):
         project = self.create_project(organization=inactive_project)
         self.make_detector(project)
         project.update(status=ObjectStatus.PENDING_DELETION)
+        # Inactive organizations and projects pass the gates; only status filters drop them.
+        gated: dict[tuple[object, ...], set[str]] = {
+            (organization,): set(FEATURES)
+            for organization in (self.organization, inactive, inactive_project)
+        }
+        gated[(ingest_disabled,)] = {schedule.FEATURE}
 
         def allowed(name: str, *entities: object, **_kwargs: object) -> bool:
-            # Inactive organizations and projects pass the gates; only status filters drop them.
-            if entities in ((self.organization,), (inactive,), (inactive_project,)):
-                return name in FEATURES
-            return entities == (ingest_disabled,) and name == schedule.FEATURE
+            return name in gated.get(entities, ())
 
         with (
             patch.object(features, "has", side_effect=allowed),
@@ -167,10 +133,10 @@ class TestAnomalySchedule(TestCase):
             assert [entry.args[0] for entry in enqueue.call_args_list] == ids[2:] + ids[:1]
 
     @freeze_time(NOW)
-    def test_prunes_abandoned_checkpoints_and_old_resolved_detector_state(self) -> None:
+    def test_cleanup_prunes_abandoned_checkpoints_and_old_resolved_detector_state(self) -> None:
         detector = self.make_detector(self.project)
-        active = save_state(self.organization, END, CHECKPOINT)
-        abandoned = save_state(self.create_organization(), END, CHECKPOINT)
+        active = self.save_state(END)
+        abandoned = self.create_anomaly_detection_state(organization=self.create_organization())
         AnomalyDetectionState.objects.filter(id=abandoned.id).update(
             date_updated=NOW - timedelta(days=1, minutes=1)
         )
@@ -196,7 +162,7 @@ class TestAnomalySchedule(TestCase):
             date_updated=NOW - timedelta(days=29)
         )
 
-        schedule.schedule_anomaly_detectors()
+        schedule.cleanup_anomaly_detection_state()
 
         assert list(AnomalyDetectionState.objects.values_list("id", flat=True)) == [active.id]
         assert set(DetectorState.objects.values_list("id", flat=True)) == {
@@ -219,7 +185,7 @@ class TestAnomalySchedule(TestCase):
         with (
             self.feature(FEATURES),
             patch.object(schedule, "collect", return_value=[]) as collect,
-            patch.object(schedule, "_hourly_rows", return_value=[]),
+            patch.object(schedule, "hourly_rows", return_value=[]),
             patch.object(schedule, "collect_new_failure_modes", return_value=[]) as collect_issues,
             patch.object(schedule, "advance_org", return_value=([], CHECKPOINT)) as advance,
         ):
@@ -237,10 +203,6 @@ class TestAnomalySchedule(TestCase):
             (START - timedelta(hours=5), END),
             (END, expected_end),
         ]
-        assert [entry.kwargs for entry in collect_issues.call_args_list] == [
-            {"current_rows": []},
-            {"current_rows": []},
-        ]
         assert [entry.kwargs["start"] for entry in advance.call_args_list] == [START, END]
         assert [entry.kwargs["projects"] for entry in advance.call_args_list] == [
             {self.project.id, leaving.project_id},
@@ -253,15 +215,40 @@ class TestAnomalySchedule(TestCase):
         state = AnomalyDetectionState.objects.get(organization=self.organization)
         assert state.next_minute == expected_end.replace(tzinfo=UTC)
 
+    def test_evaluator_stages_follow_options(self) -> None:
+        self.make_detector(self.project)
+        with (
+            self.feature(FEATURES),
+            self.options(
+                {
+                    "anomaly_detection.rate_shifts.enabled": True,
+                    "anomaly_detection.novelty_admission.enabled": False,
+                    "anomaly_detection.shared_dependencies.enabled": True,
+                }
+            ),
+            patch.object(schedule, "collect", return_value=[]),
+            patch.object(schedule, "hourly_rows", return_value=[]),
+            patch.object(schedule, "collect_new_failure_modes", return_value=[]),
+            patch.object(schedule, "advance_org", return_value=([], CHECKPOINT)) as advance,
+        ):
+            schedule._run_organization(self.organization.id, END)
+
+        config = advance.call_args.kwargs["config"]
+        assert (config.rate_shifts, config.novelty_admission, config.shared_dependencies) == (
+            True,
+            False,
+            True,
+        )
+
     @freeze_time(NOW)
     def test_worker_enqueues_bounded_catchup_after_releasing_lease(self) -> None:
         self.make_detector(self.project)
         start = END - timedelta(minutes=31)
-        state = save_state(self.organization, start, CHECKPOINT)
+        state = self.save_state(start)
         target = END.replace(tzinfo=UTC).isoformat()
         lease = organization_lease(self.organization.id)
 
-        def evaluate_under_lease(**_kwargs: object) -> tuple[list[AnomalyDecision], dict[str, Any]]:
+        def evaluate_under_lease(**_kwargs: object) -> tuple[list[AnomalyDecision], Checkpoint]:
             assert lease.locked()
             return [], CHECKPOINT
 
@@ -271,7 +258,7 @@ class TestAnomalySchedule(TestCase):
         with (
             self.feature(FEATURES),
             patch.object(schedule, "collect", return_value=[]),
-            patch.object(schedule, "_hourly_rows", return_value=[]),
+            patch.object(schedule, "hourly_rows", return_value=[]),
             patch.object(schedule, "collect_new_failure_modes", return_value=[]),
             patch.object(schedule, "advance_org", side_effect=evaluate_under_lease) as advance,
             patch.object(
@@ -309,6 +296,47 @@ class TestAnomalySchedule(TestCase):
         enqueue.assert_not_called()
         incr.assert_any_call("anomaly_detection.worker_already_running")
 
+    @freeze_time(NOW)
+    def test_lock_backend_failure_on_a_free_lease_propagates(self) -> None:
+        self.make_detector(self.project)
+        with (
+            patch.object(Lock, "acquire", side_effect=UnableToAcquireLock("backend down")),
+            patch.object(schedule, "_run_organization") as run,
+            patch.object(schedule.run_anomaly_detection, "delay") as enqueue,
+            pytest.raises(UnableToAcquireLock),
+        ):
+            schedule.run_anomaly_detection(
+                self.organization.id, END.replace(tzinfo=UTC).isoformat()
+            )
+
+        assert not organization_lease(self.organization.id).locked()
+        run.assert_not_called()
+        enqueue.assert_not_called()
+
+    @freeze_time(NOW)
+    def test_failed_evaluation_releases_lease_without_advancing(self) -> None:
+        self.make_detector(self.project)
+        start = END - timedelta(minutes=31)
+        state = self.save_state(start)
+        with (
+            self.feature(FEATURES),
+            patch.object(schedule, "collect", return_value=[]),
+            patch.object(schedule, "hourly_rows", return_value=[]),
+            patch.object(schedule, "collect_new_failure_modes", return_value=[]),
+            patch.object(schedule, "advance_org", side_effect=RuntimeError("evaluation failed")),
+            patch.object(schedule.run_anomaly_detection, "delay") as enqueue,
+            pytest.raises(RuntimeError, match="evaluation failed"),
+        ):
+            schedule.run_anomaly_detection(
+                self.organization.id, END.replace(tzinfo=UTC).isoformat()
+            )
+
+        assert not organization_lease(self.organization.id).locked()
+        enqueue.assert_not_called()
+        state.refresh_from_db()
+        assert state.next_minute == start.replace(tzinfo=UTC)
+        assert bytes(state.checkpoint) == BLOB
+
     def test_worker_rejects_end_off_utc_minute_boundary(self) -> None:
         with patch.object(schedule, "_run_organization") as run:
             for end in (
@@ -326,11 +354,11 @@ class TestAnomalySchedule(TestCase):
     @freeze_time(NOW)
     def test_checkpoint_far_behind_target_restarts_cold(self) -> None:
         self.make_detector(self.project)
-        state = save_state(self.organization, END - timedelta(minutes=61), CHECKPOINT)
+        state = self.save_state(END - timedelta(minutes=61))
         with (
             self.feature(FEATURES),
             patch.object(schedule, "collect", return_value=[]) as collect,
-            patch.object(schedule, "_hourly_rows", return_value=[]),
+            patch.object(schedule, "hourly_rows", return_value=[]),
             patch.object(schedule, "collect_new_failure_modes", return_value=[]),
             patch.object(schedule, "advance_org", return_value=([], CHECKPOINT)) as advance,
             patch.object(schedule.run_anomaly_detection, "delay") as enqueue,
@@ -350,16 +378,16 @@ class TestAnomalySchedule(TestCase):
         enqueue.assert_not_called()
         state.refresh_from_db()
         assert state.next_minute == END.replace(tzinfo=UTC)
-        assert state.checkpoint == CHECKPOINT
+        assert codec.decode(bytes(state.checkpoint)) == CHECKPOINT
 
     @freeze_time(NOW)
     def test_cold_start_resolves_groups_the_expired_checkpoint_left_open(self) -> None:
         detector = self.make_detector(self.project)
-        save_state(self.organization, END - timedelta(minutes=61), CHECKPOINT)
+        self.save_state(END - timedelta(minutes=61))
         with (
             self.feature(FEATURES),
             patch.object(schedule, "collect", return_value=[]),
-            patch.object(schedule, "_hourly_rows", return_value=[]),
+            patch.object(schedule, "hourly_rows", return_value=[]),
             patch.object(schedule, "collect_new_failure_modes", return_value=[]),
             patch.object(schedule, "advance_org", return_value=([], CHECKPOINT)),
             patch.object(metrics, "incr") as incr,
@@ -391,21 +419,16 @@ class TestAnomalySchedule(TestCase):
         with (
             self.feature(FEATURES),
             patch.object(schedule, "collect", return_value=[]),
-            patch.object(schedule, "_hourly_rows", return_value=[]),
+            patch.object(schedule, "hourly_rows", return_value=[]),
             patch.object(schedule, "collect_new_failure_modes", return_value=[]),
             patch.object(
                 schedule, "advance_org", return_value=([decision(self.project.id)], CHECKPOINT)
             ),
             patch(PRODUCE) as produce,
         ):
-            schedule._publish([ongoing, stale], {self.project.id: detector})
-            [stale_fingerprint] = [
-                entry.kwargs["occurrence"].fingerprint
-                for entry in produce.call_args_list
-                if entry.kwargs["occurrence"]
-                .fingerprint[0]
-                .startswith(f"detector:{detector.id}:stale:")
-            ]
+            schedule._publish([stale], {self.project.id: detector})
+            stale_fingerprint = produce.call_args.kwargs["occurrence"].fingerprint
+            schedule._publish([ongoing], {self.project.id: detector})
             produce.reset_mock()
             assert not schedule._run_organization(self.organization.id, END)
 
@@ -418,52 +441,15 @@ class TestAnomalySchedule(TestCase):
             )
         ) == {"group": True, "stale": False}
 
-    def test_stale_checkpoint_at_target_waits_for_an_unprocessed_minute(self) -> None:
+    def test_unreadable_checkpoint_at_target_waits_for_an_unprocessed_minute(self) -> None:
         self.make_detector(self.project)
-        state = save_state(
-            self.organization, END, {"version": CHECKPOINT_VERSION - 1, "qualified": []}
-        )
+        state = self.save_state(END, b"not a checkpoint")
         with self.feature(FEATURES), patch.object(schedule, "collect") as collect:
             assert not schedule._run_organization(self.organization.id, END)
 
         collect.assert_not_called()
         state.refresh_from_db()
         assert state.next_minute == END.replace(tzinfo=UTC)
-
-    def test_hourly_rows_reuses_cached_snapshot_within_hour(self) -> None:
-        hour = datetime(2025, 1, 1, 12)
-        rows = hourly_series(self.project.id, hour)
-        with patch.object(schedule, "collect", return_value=rows) as collect:
-            first = schedule._hourly_rows(
-                self.organization, [self.project], hour + timedelta(minutes=7)
-            )
-            second = schedule._hourly_rows(
-                self.organization, [self.project], hour + timedelta(minutes=59)
-            )
-
-        collect.assert_called_once_with(
-            self.organization, [self.project], hour - timedelta(days=16), hour, "1h"
-        )
-        assert first == rows
-        assert second == rows
-        assert all(row.ts.tzinfo is None for row in second)
-        assert [row.value for row in second] == [4.0, None]
-        assert all(type(row.signal) is Signal for row in second)
-        assert all(type(row.metric) is Metric for row in second)
-
-    def test_hourly_rows_requeries_when_snapshot_too_large_to_cache(self) -> None:
-        hour = datetime(2025, 1, 1, 12)
-        rows = hourly_series(self.project.id, hour)
-        with (
-            patch.object(schedule, "_MAX_CACHE_BYTES", 0),
-            patch.object(schedule, "collect", return_value=rows) as collect,
-            patch.object(metrics, "incr") as incr,
-        ):
-            assert schedule._hourly_rows(self.organization, [self.project], hour) == rows
-            assert schedule._hourly_rows(self.organization, [self.project], hour) == rows
-
-        assert collect.call_count == 2
-        assert incr.call_args_list.count(call("anomaly_detection.hourly_snapshot_too_large")) == 2
 
     def test_cold_worker_publishes_anomaly_evaluated_from_measurements(self) -> None:
         self.make_detector(self.project)
@@ -479,7 +465,7 @@ class TestAnomalySchedule(TestCase):
             )
             for age in range(64, -1, -1)
         ]
-        hourly_rows = [
+        hourly = [
             SeriesRow(
                 START - timedelta(days=days, hours=hours),
                 Signal.ERRORS,
@@ -495,7 +481,7 @@ class TestAnomalySchedule(TestCase):
         with (
             self.feature(FEATURES),
             patch.object(schedule, "collect", return_value=minute_rows),
-            patch.object(schedule, "_hourly_rows", return_value=hourly_rows),
+            patch.object(schedule, "hourly_rows", return_value=hourly),
             patch.object(schedule, "collect_new_failure_modes", return_value=[]),
             patch.object(TraceLookup, "footprint", return_value=None),
             patch(PRODUCE) as produce,
@@ -512,7 +498,9 @@ class TestAnomalySchedule(TestCase):
         assert occurrence.detection_time == START.replace(tzinfo=UTC)
         state = AnomalyDetectionState.objects.get(organization=self.organization)
         assert state.next_minute == END.replace(tzinfo=UTC)
-        assert is_current(state.checkpoint)
+        stored = codec.decode(bytes(state.checkpoint))
+        assert stored is not None
+        assert stored.state.next_minute == END
 
     @freeze_time(NOW)
     def test_replay_after_failed_commit_publishes_once(self) -> None:
@@ -520,7 +508,7 @@ class TestAnomalySchedule(TestCase):
         with (
             self.feature(FEATURES),
             patch.object(schedule, "collect", return_value=[]),
-            patch.object(schedule, "_hourly_rows", return_value=[]),
+            patch.object(schedule, "hourly_rows", return_value=[]),
             patch.object(schedule, "collect_new_failure_modes", return_value=[]),
             patch.object(
                 schedule, "advance_org", return_value=([decision(self.project.id)], CHECKPOINT)
@@ -545,32 +533,33 @@ class TestAnomalySchedule(TestCase):
         assert occurrence.detection_time == START.replace(tzinfo=UTC)
         state = AnomalyDetectionState.objects.get(organization=self.organization)
         assert state.next_minute == END.replace(tzinfo=UTC)
-        assert state.checkpoint == CHECKPOINT
+        assert bytes(state.checkpoint) == BLOB
 
     @freeze_time(NOW)
     def test_checkpoint_conflict_keeps_other_worker_progress(self) -> None:
         self.make_detector(self.project)
         start = END - timedelta(minutes=30)
-        state = save_state(self.organization, start, CHECKPOINT)
-        winner = {**CHECKPOINT, "worker": "winner"}
+        state = self.save_state(start)
+        winner = codec.encode(checkpoint_at(END))
 
         def evaluate_while_another_worker_commits(
             **_kwargs: object,
-        ) -> tuple[list[AnomalyDecision], dict[str, Any]]:
+        ) -> tuple[list[AnomalyDecision], Checkpoint]:
             AnomalyDetectionState.objects.filter(id=state.id).update(
                 next_minute=END.replace(tzinfo=UTC), checkpoint=winner
             )
-            return [], {**CHECKPOINT, "worker": "loser"}
+            return [], checkpoint_at(start + timedelta(minutes=15))
 
         with (
             self.feature(FEATURES),
             patch.object(schedule, "collect", return_value=[]),
-            patch.object(schedule, "_hourly_rows", return_value=[]),
+            patch.object(schedule, "hourly_rows", return_value=[]),
             patch.object(schedule, "collect_new_failure_modes", return_value=[]),
             patch.object(
                 schedule, "advance_org", side_effect=evaluate_while_another_worker_commits
             ) as advance,
             patch.object(schedule.run_anomaly_detection, "delay") as enqueue,
+            patch.object(metrics, "incr") as incr,
         ):
             schedule.run_anomaly_detection(
                 self.organization.id, END.replace(tzinfo=UTC).isoformat()
@@ -580,23 +569,55 @@ class TestAnomalySchedule(TestCase):
         assert advance.call_args.kwargs["start"] == start
         assert advance.call_args.kwargs["end"] == start + timedelta(minutes=15)
         enqueue.assert_not_called()
+        incr.assert_any_call("anomaly_detection.checkpoint_conflict")
         state.refresh_from_db()
         assert state.next_minute == END.replace(tzinfo=UTC)
-        assert state.checkpoint == winner
+        assert bytes(state.checkpoint) == winner
+
+    @freeze_time(NOW)
+    def test_cold_start_race_keeps_the_first_inserted_checkpoint(self) -> None:
+        self.make_detector(self.project)
+        winner = codec.encode(checkpoint_at(END))
+
+        def evaluate_while_another_worker_inserts(
+            **_kwargs: object,
+        ) -> tuple[list[AnomalyDecision], Checkpoint]:
+            self.save_state(END, winner)
+            return [], checkpoint_at(END)
+
+        with (
+            self.feature(FEATURES),
+            patch.object(schedule, "collect", return_value=[]),
+            patch.object(schedule, "hourly_rows", return_value=[]),
+            patch.object(schedule, "collect_new_failure_modes", return_value=[]),
+            patch.object(
+                schedule, "advance_org", side_effect=evaluate_while_another_worker_inserts
+            ),
+            patch.object(schedule.run_anomaly_detection, "delay") as enqueue,
+            patch.object(metrics, "incr") as incr,
+        ):
+            schedule.run_anomaly_detection(
+                self.organization.id, END.replace(tzinfo=UTC).isoformat()
+            )
+
+        enqueue.assert_not_called()
+        incr.assert_any_call("anomaly_detection.checkpoint_conflict")
+        state = AnomalyDetectionState.objects.get(organization=self.organization)
+        assert state.next_minute == END.replace(tzinfo=UTC)
+        assert bytes(state.checkpoint) == winner
 
     def test_stale_checkpoint_version_restarts_cold(self) -> None:
         self.make_detector(self.project)
-        state = save_state(
-            self.organization,
-            END - timedelta(minutes=10),
-            {"version": CHECKPOINT_VERSION - 1, "qualified": []},
-        )
+        with patch.object(codec, "CHECKPOINT_VERSION", codec.CHECKPOINT_VERSION - 1):
+            stale = codec.encode(checkpoint_at(END - timedelta(minutes=10)))
+        state = self.save_state(END - timedelta(minutes=10), stale)
         with (
             self.feature(FEATURES),
             patch.object(schedule, "collect", return_value=[]) as collect,
-            patch.object(schedule, "_hourly_rows", return_value=[]),
+            patch.object(schedule, "hourly_rows", return_value=[]),
             patch.object(schedule, "collect_new_failure_modes", return_value=[]),
             patch.object(schedule, "advance_org", return_value=([], CHECKPOINT)) as advance,
+            patch.object(metrics, "incr") as incr,
         ):
             assert not schedule._run_organization(self.organization.id, END)
 
@@ -606,9 +627,10 @@ class TestAnomalySchedule(TestCase):
         advance.assert_called_once()
         assert advance.call_args.kwargs["checkpoint"] is None
         assert advance.call_args.kwargs["start"] == START
+        incr.assert_any_call("anomaly_detection.checkpoint_discarded")
         state.refresh_from_db()
         assert state.next_minute == END.replace(tzinfo=UTC)
-        assert state.checkpoint == CHECKPOINT
+        assert bytes(state.checkpoint) == BLOB
 
     def test_project_limit_skips_organization(self) -> None:
         self.make_detector(self.project)
@@ -628,7 +650,7 @@ class TestAnomalySchedule(TestCase):
 
     def test_no_enabled_detectors_deletes_checkpoint(self) -> None:
         self.make_detector(self.project, enabled=False)
-        save_state(self.organization, END, CHECKPOINT)
+        self.save_state(END)
         with self.feature(FEATURES), patch.object(schedule, "collect") as collect:
             assert not schedule._run_organization(self.organization.id, END)
 
@@ -638,15 +660,23 @@ class TestAnomalySchedule(TestCase):
     def test_worker_rechecks_gate_before_querying(self) -> None:
         self.make_detector(self.project)
         with (
-            self.feature(
-                {schedule.FEATURE: True, AnomalyDetection.build_ingest_feature_name(): False}
-            ),
+            self.feature({**FEATURES, AnomalyDetection.build_ingest_feature_name(): False}),
             patch.object(schedule, "collect") as collect,
         ):
             assert not schedule._run_organization(self.organization.id, END)
 
         collect.assert_not_called()
         assert not AnomalyDetectionState.objects.filter(organization=self.organization).exists()
+
+    def test_worker_requires_activation_id_rotation(self) -> None:
+        self.make_detector(self.project)
+        with (
+            self.feature({**FEATURES, schedule.ACTIVATION_ID_FEATURE: False}),
+            patch.object(schedule, "collect") as collect,
+        ):
+            assert not schedule._run_organization(self.organization.id, END)
+
+        collect.assert_not_called()
 
     def test_worker_rechecks_scope_after_last_project_becomes_ineligible(self) -> None:
         self.make_detector(self.project)

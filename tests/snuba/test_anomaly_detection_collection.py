@@ -15,18 +15,14 @@ from sentry.anomaly_detection.contracts import (
 )
 from sentry.anomaly_detection.evaluation.series import build
 from sentry.anomaly_detection.inputs import new_failures
-from sentry.anomaly_detection.inputs.measurements import (
-    ERROR_USER,
-    MAX_SLICES,
-    _error_where,
-    _run_errors,
-    collect,
-)
+from sentry.anomaly_detection.inputs.measurements import ERROR_USER, MAX_SLICES, collect
 from sentry.anomaly_detection.inputs.new_failures import (
     NewFailureThresholds,
     new_failure_thresholds,
 )
+from sentry.anomaly_detection.inputs.query import error_where, run_errors
 from sentry.models.group import Group
+from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import SnubaTestCase, SpanTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
 
@@ -62,14 +58,15 @@ class TestAnomalyDetectionCollection(TestCase, SnubaTestCase, SpanTestCase):
 
         end = start + timedelta(minutes=1)
         bucket = start.replace(tzinfo=None)
-        stored = _run_errors(
+        stored = run_errors(
             self.organization,
             Query(
                 match=Entity("events"),
                 select=[Column("event_id"), Column(ERROR_USER)],
-                where=_error_where(self.project, bucket, end.replace(tzinfo=None)),
+                where=error_where(self.project, bucket, end.replace(tzinfo=None)),
                 limit=Limit(len(users_by_event) + 1),
             ),
+            Referrer.ANOMALY_DETECTION_COLLECT.value,
         )
         # The empty-tag event is present, but Snuba does not count it as a third user.
         # Verify presence by event ID without depending on whether SQL returns null or ''.
@@ -344,22 +341,7 @@ class TestAnomalyDetectionIssueEnrichment(TestCase, SnubaTestCase):
         end: datetime,
     ) -> list[ChangeEvent]:
         return new_failures.collect_new_failure_modes(
-            self.organization,
-            [self.project],
-            thresholds,
-            start,
-            end,
-            current_rows=[
-                SeriesRow(
-                    start.replace(tzinfo=None),
-                    Signal.ERRORS,
-                    Metric.COUNT,
-                    self.project.id,
-                    "prod",
-                    "",
-                    1.0,
-                )
-            ],
+            self.organization, [self.project], thresholds, start, end
         )
 
     def test_crosses_once_across_adjacent_runs_and_ignores_anonymous_events(self) -> None:
@@ -478,3 +460,22 @@ class TestAnomalyDetectionIssueEnrichment(TestCase, SnubaTestCase):
         assert change.detected_at == (start + timedelta(minutes=1)).replace(tzinfo=None)
         assert change.actual == change.expected == 10
         assert change.start == (start - timedelta(minutes=10)).replace(tzinfo=None)
+
+    def test_late_event_alone_is_observed_in_an_otherwise_silent_window(self) -> None:
+        start = before_now(minutes=20).replace(second=0, microsecond=0)
+        end = start + timedelta(minutes=1)
+        onset = start - timedelta(minutes=30)
+        group = self._group(onset)
+        for i in range(9):
+            self._error(group, f"user-{i}", onset)
+        # The only error received in the window happened 25 minutes earlier.
+        self._error(group, "user-late", onset + timedelta(minutes=5), received=start)
+        # Counted by event time, the window has no errors at all.
+        window_rows = collect(self.organization, [self.project], start, end, "1m")
+        assert not any(row.value for row in window_rows if row.signal == Signal.ERRORS)
+
+        (change,) = self._collect({Service(self.project.id, "prod"): 10.0}, start, end)
+
+        assert change.key.env == "prod"
+        assert change.detected_at == end.replace(tzinfo=None)
+        assert change.actual == 10

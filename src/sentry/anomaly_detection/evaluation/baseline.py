@@ -4,10 +4,10 @@ import math
 from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime, timedelta
-from functools import partial
 from statistics import median
 
 from sentry.anomaly_detection.contracts import ExpectedValue, SeriesKey
+from sentry.anomaly_detection.evaluation.distributions import MAD_TO_SIGMA
 from sentry.anomaly_detection.evaluation.series import Series, is_share, rate_parts, samples_key
 
 MINUTE = timedelta(minutes=1)
@@ -50,7 +50,6 @@ class Baseline:
         self.cfg = cfg or BaselineConfig()
         self._shape_cache: dict[tuple[SeriesKey, datetime], float | None] = {}
         self._fallback_cache: dict[tuple[SeriesKey, datetime], float] = {}
-        self._windows: dict[datetime, tuple[tuple[datetime, datetime], ...]] = {}
 
     def checkpoint_hourly_bounds(self, cursor: datetime) -> tuple[datetime, datetime]:
         """Keep enough history for both same-hour shapes and the daily fallback."""
@@ -90,14 +89,6 @@ class Baseline:
             self._shape_cache[cache_key] = shape if shape > 0 else None
         return self._shape_cache[cache_key]
 
-    def _window(self, end: datetime) -> tuple[tuple[datetime, datetime], ...]:
-        if end not in self._windows:
-            if len(self._windows) >= 512:
-                self._windows.clear()
-            minutes = (end - i * MINUTE for i in range(self.cfg.window_min, 0, -1))
-            self._windows[end] = tuple((minute, _hour(minute)) for minute in minutes)
-        return self._windows[end]
-
     def expected(
         self,
         key: SeriesKey,
@@ -109,12 +100,13 @@ class Baseline:
         pending: set[datetime] | None = None,
     ) -> ExpectedValue | None:
         """Estimate the level from prior minutes, replacing excluded observations with earlier ones."""
-        window = self._window(anchor or t)
+        end = anchor or t
         points: list[tuple[datetime, float, float]] = []
         recent: list[float | None] = []
         skipped = 0
         hour_shapes: dict[datetime, float] = {}
-        for minute, hour in window:
+        for i in range(self.cfg.window_min, 0, -1):
+            minute = end - i * MINUTE
             value = series.get(minute)
             recent.append(value)
             if value is None:
@@ -122,11 +114,12 @@ class Baseline:
             if minute in excluded_minutes:
                 skipped += 1
             else:
+                hour = _hour(minute)
                 if hour not in hour_shapes:
                     hour_shapes[hour] = self.shape(key, hour)
                 points.append((minute, hour_shapes[hour], value))
         if skipped:
-            minute = window[0][0]
+            minute = end - self.cfg.window_min * MINUTE
             for _ in range(self.cfg.reach_back_min):
                 minute -= MINUTE
                 value = series.get(minute)
@@ -157,7 +150,7 @@ class Baseline:
             expected,
             tuple(recent[-10:]),
             len(points),
-            partial(_estimate_band, self.cfg, band_points, level, expected, offset, pooled),
+            *_estimate_band(self.cfg, band_points, level, expected, offset, pooled),
         )
 
     def anchored(
@@ -171,7 +164,7 @@ class Baseline:
             expected,
             (),
             point_count,
-            partial(_band, expected, offset_for(key), sigma, self.cfg.k),
+            *_band(expected, offset_for(key), sigma, self.cfg.k),
         )
 
 
@@ -201,7 +194,7 @@ def _estimate_band(
         sigma = math.sqrt(sum(max(r, 0.0) ** 2 for r in residuals) / len(residuals))
     else:
         center = median(residuals)
-        sigma = 1.4826 * median(abs(r - center) for r in residuals)
+        sigma = MAD_TO_SIGMA * median(abs(r - center) for r in residuals)
     sigma = max(sigma, cfg.sigma_floor)
     # Warmup widens the band instead of making short histories look more certain.
     sigma *= math.sqrt(max(cfg.full_points, len(points)) / len(points))

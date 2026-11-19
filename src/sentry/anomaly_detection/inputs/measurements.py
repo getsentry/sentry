@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import math
 from collections import defaultdict
 from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
@@ -10,13 +9,6 @@ from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Literal
 
 from sentry_protos.snuba.v1.endpoint_time_series_pb2 import TimeSeries
-from sentry_protos.snuba.v1.trace_item_attribute_pb2 import AttributeValue, StrArray
-from sentry_protos.snuba.v1.trace_item_filter_pb2 import (
-    ComparisonFilter,
-    ExistsFilter,
-    NotFilter,
-    TraceItemFilter,
-)
 from snuba_sdk import (
     And,
     BooleanCondition,
@@ -32,24 +24,31 @@ from snuba_sdk import (
     Or,
     OrderBy,
     Query,
-    Request,
 )
 
 from sentry.anomaly_detection.contracts import Metric, SeriesRow, Signal
+from sentry.anomaly_detection.inputs.query import (
+    ScopedSpans,
+    error_env,
+    error_where,
+    number,
+    project_map,
+    run_errors,
+    span_attribute_filter,
+    utc,
+)
 from sentry.search.eap.rpc_utils import and_trace_item_filters, or_trace_item_filters
-from sentry.search.eap.types import SearchResolverConfig
 from sentry.search.events.types import SnubaParams, SnubaRow
-from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.rpc_dataset_common import LimitBy as SpanLimitBy
 from sentry.snuba.spans_rpc import Spans
+from sentry.types.cell import get_local_cell
 from sentry.utils import snuba_rpc
-from sentry.utils.snuba import raw_snql_query
+from sentry.utils.cache import cache
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.models.project import Project
-    from sentry.search.eap.resolver import SearchResolver
 
 Interval = Literal["1m", "1h"]
 
@@ -57,6 +56,10 @@ MAX_ENVIRONMENTS = 8
 MAX_SLICES = 10
 _BUCKETS_PER_QUERY = 96
 _ENVIRONMENT_LOOKBACK = timedelta(days=1)
+# Environment discovery scans the lookback; minute runs reuse it this long. The
+# current window is always queried too, so only quiet-window coverage of a
+# brand-new environment can lag by up to this TTL.
+_ENVIRONMENT_CACHE_TTL = 600
 _REFERRER = Referrer.ANOMALY_DETECTION_COLLECT.value
 _ROLLUPS: dict[Interval, int] = {"1m": 60, "1h": 3600}
 
@@ -95,24 +98,13 @@ class IncompleteCollection(RuntimeError):
     """A response violated a collection bound; don't advance over incomplete data."""
 
 
-def _project_map(organization: Organization, projects: Sequence[Project]) -> dict[int, Project]:
-    if any(project.organization_id != organization.id for project in projects):
-        raise ValueError("Anomaly detection projects must belong to the organization")
-    return {project.id: project for project in projects}
-
-
-def _utc(value: datetime | str | int) -> datetime:
-    if isinstance(value, str):
-        value = datetime.fromisoformat(value)
-    elif isinstance(value, int):
-        value = datetime.fromtimestamp(value, timezone.utc)
-    return value.astimezone(timezone.utc).replace(tzinfo=None) if value.tzinfo else value
-
-
-def _number(value: object) -> float | None:
-    if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value):
-        return float(value)
-    return None
+def _environment_cache_key(
+    organization: Organization, project: Project, dataset: str, rollup: int
+) -> str:
+    return (
+        f"anomaly-detection:environments:v1:{get_local_cell().name}:"
+        f"{organization.id}:{project.id}:{dataset}:{rollup}"
+    )
 
 
 def _normalize(
@@ -127,14 +119,14 @@ def _normalize(
     dimension: str = "",
 ) -> Iterator[SeriesRow]:
     for point in data:
-        timestamp = _utc(point["time"])
+        timestamp = utc(point["time"])
         if not start <= timestamp < end:
             continue
         for metric in metrics:
             if metric not in point:
                 continue
-            value = _number(point[metric])
-            if metric in (Metric.P95_DURATION, Metric.FAILURE_RATE) and not _number(
+            value = number(point[metric])
+            if metric in (Metric.P95_DURATION, Metric.FAILURE_RATE) and not number(
                 point.get(Metric.COUNT_SAMPLE)
             ):
                 value = None
@@ -149,49 +141,21 @@ def _windows(start: datetime, end: datetime, rollup: int) -> Iterator[tuple[date
         start = boundary
 
 
-# Environment comes back nullable in the errors dataset. Use one expression for
-# grouping and filtering so null and empty environment mean the same thing.
-def _error_env(alias: str | None = None) -> Function:
-    return Function("coalesce", [Column("environment"), ""], alias)
-
-
-def _error_where(project: Project, start: datetime, end: datetime) -> list[Condition]:
-    return [
-        Condition(Column("project_id"), Op.EQ, project.id),
-        Condition(Column("timestamp"), Op.GTE, start.replace(tzinfo=timezone.utc)),
-        Condition(Column("timestamp"), Op.LT, end.replace(tzinfo=timezone.utc)),
-    ]
-
-
-def _run_errors(
-    organization: Organization, query: Query, referrer: str = _REFERRER
-) -> list[SnubaRow]:
-    response = raw_snql_query(
-        Request(
-            dataset=Dataset.Events.value,
-            app_id="errors",
-            query=query,
-            tenant_ids={"organization_id": organization.id},
-        ),
-        referrer=referrer,
-    )
-    return response["data"]
-
-
 def _error_environments(
     organization: Organization, scope: list[Condition], limit: int
 ) -> list[str]:
     count = Function("count", [])
-    top_envs = _run_errors(
+    top_envs = run_errors(
         organization,
         Query(
             match=Entity("events"),
             select=[count],
             where=scope,
-            groupby=[_error_env("env")],
+            groupby=[error_env("env")],
             orderby=[OrderBy(count, Direction.DESC), OrderBy(Column("env"), Direction.ASC)],
             limit=Limit(limit),
         ),
+        _REFERRER,
     )
     envs: list[str] = [row["env"] for row in top_envs]
     if len(envs) > limit or len(set(envs)) != len(envs):
@@ -207,28 +171,35 @@ def _collect_errors(
     rollup: int,
     request_envs: tuple[str, ...],
 ) -> Iterator[SeriesRow]:
-    scope = _error_where(project, start, end)
+    scope = error_where(project, start, end)
     count = Function("count", [])
-    env = _error_env()
-    env_group = _error_env("env")
+    env = error_env()
+    env_group = error_env("env")
     current_envs = _error_environments(organization, scope, MAX_ENVIRONMENTS)
     envs = list(dict.fromkeys([*current_envs, *request_envs]))
     prior_slots = MAX_ENVIRONMENTS - len(current_envs)
     if prior_slots:
         # Keep recently active errors-only scopes measurable through a quiet window.
         # Give current errors priority, and never let history evict a request scope.
-        prior_scope = _error_where(project, start - _ENVIRONMENT_LOOKBACK, start)
-        if envs:
-            prior_scope.append(Condition(env, Op.NOT_IN, envs))
-        prior_envs = _error_environments(organization, prior_scope, prior_slots)
-        if set(prior_envs).intersection(envs):
-            raise IncompleteCollection("Unexpected prior error environment")
-        envs = [*envs, *prior_envs]
+        # Fill the slots from a cached inventory ranked without excluding those
+        # scopes: at most MAX_ENVIRONMENTS current and request scopes each can
+        # precede the prior ones, so twice the bound always fills every slot.
+        cache_key = _environment_cache_key(organization, project, "errors", rollup)
+        inventory: list[str] | None = cache.get(cache_key)
+        if inventory is None:
+            inventory = _error_environments(
+                organization,
+                error_where(project, start - _ENVIRONMENT_LOOKBACK, end),
+                2 * MAX_ENVIRONMENTS,
+            )
+            cache.set(cache_key, inventory, _ENVIRONMENT_CACHE_TTL)
+        covered = set(envs)
+        envs.extend([name for name in inventory if name not in covered][:prior_slots])
     if not envs:
         return
     release = Column(ERROR_RELEASE)
     top_releases = (
-        _run_errors(
+        run_errors(
             organization,
             Query(
                 match=Entity("events"),
@@ -239,6 +210,7 @@ def _collect_errors(
                 limitby=LimitBy([Column("env")], MAX_SLICES),
                 limit=Limit(len(current_envs) * MAX_SLICES + 1),
             ),
+            _REFERRER,
         )
         if current_envs
         else []
@@ -280,10 +252,10 @@ def _collect_errors(
         bucket_count = (right - left) // step
         # Use native time grouping. Only fill empty buckets for scopes the
         # successful, bounded query actually covered.
-        where = _error_where(project, left, right)
+        where = error_where(project, left, right)
         for signal, groups, condition, allowed in queries:
             cap = len(allowed) * bucket_count
-            result = _run_errors(
+            result = run_errors(
                 organization,
                 Query(
                     match=Entity("events"),
@@ -293,12 +265,13 @@ def _collect_errors(
                     granularity=Granularity(rollup),
                     limit=Limit(cap + 1),
                 ),
+                _REFERRER,
             )
             if len(result) > cap:
                 raise IncompleteCollection("Errors time series exceeded its row bound")
             seen: set[tuple[datetime, str, str]] = set()
             for row in result:
-                timestamp = _utc(row["time"])
+                timestamp = utc(row["time"])
                 name, dimension = row["env"], row.get(ERROR_RELEASE) or ""
                 key = (timestamp, name, dimension)
                 if not left <= timestamp < right or (timestamp - left) % step:
@@ -332,101 +305,65 @@ def _collect_errors(
                             )
 
 
-def _span_attribute_filter(
-    resolver: SearchResolver, field: str, values: tuple[str, ...]
-) -> TraceItemFilter | None:
-    attribute, _ = resolver.resolve_attribute(field)
-    key = attribute.proto_definition
-    nonempty = [value for value in values if value]
-    filters: list[TraceItemFilter] = []
-    if nonempty:
-        filters.append(
-            TraceItemFilter(
-                comparison_filter=ComparisonFilter(
-                    key=key,
-                    op=ComparisonFilter.OP_IN,
-                    value=AttributeValue(val_str_array=StrArray(values=nonempty)),
-                )
-            )
+def _span_environments(params: SnubaParams, query: str, *, dimension: str = "") -> dict[str, float]:
+    """Count the busiest environments, merging null and empty into the "" scope."""
+    response = Spans.run_table_query(
+        params=params,
+        query_string=query,
+        selected_columns=["environment", "count()"],
+        orderby=["-count()", "environment"],
+        offset=0,
+        limit=MAX_ENVIRONMENTS,
+        referrer=_REFERRER,
+        config=ScopedSpans(named_dimension=dimension),
+    )
+    counts: dict[str, float] = defaultdict(float)
+    for row in response["data"]:
+        counts[row.get("environment") or ""] += number(row.get("count()")) or 0.0
+    return dict(counts)
+
+
+def _request_environments(
+    organization: Organization, project: Project, start: datetime, end: datetime, rollup: int
+) -> tuple[str, ...]:
+    """Rank request scopes over the lookback, so a silent window still reports zeros."""
+    key = _environment_cache_key(organization, project, "spans", rollup)
+    cached: list[tuple[str, float]] | None = cache.get(key)
+    if cached is None:
+        discovery = SnubaParams(
+            organization=organization,
+            projects=[project],
+            start=start - _ENVIRONMENT_LOOKBACK,
+            end=end,
         )
-    if "" in values:
-        filters.extend(
-            (
-                TraceItemFilter(
-                    not_filter=NotFilter(
-                        filters=[TraceItemFilter(exists_filter=ExistsFilter(key=key))]
-                    )
-                ),
-                TraceItemFilter(
-                    comparison_filter=ComparisonFilter(
-                        key=key, op=ComparisonFilter.OP_EQUALS, value=AttributeValue(val_str="")
-                    )
-                ),
-            )
-        )
-    return or_trace_item_filters(*filters)
+        counts = _span_environments(discovery, REQUEST_QUERY)
+        cache.set(key, list(counts.items()), _ENVIRONMENT_CACHE_TTL)
+    else:
+        # Merge the current window so the cache never delays a new environment.
+        current = SnubaParams(organization=organization, projects=[project], start=start, end=end)
+        counts = defaultdict(float, cached)
+        for env, count in _span_environments(current, REQUEST_QUERY).items():
+            counts[env] += count
+    return tuple(sorted(counts, key=lambda env: (-counts[env], env))[:MAX_ENVIRONMENTS])
 
 
-@dataclass(frozen=True, kw_only=True)
-class ScopedSpans(SearchResolverConfig):
-    filters: tuple[tuple[str, tuple[str, ...]], ...] = ()
-    named_dimension: str = ""
-    stable_timestamp_quantization: bool = False
-    zerofill_timeseries: bool = False
-
-    def extra_conditions(
-        self,
-        search_resolver: SearchResolver,
-        selected_columns: list[str] | None,
-        equations: list[str] | None,
-    ) -> TraceItemFilter | None:
-        filters = [
-            _span_attribute_filter(search_resolver, field, values) for field, values in self.filters
-        ]
-        if self.named_dimension:
-            attribute, _ = search_resolver.resolve_attribute(self.named_dimension)
-            key = attribute.proto_definition
-            filters.extend(
-                [
-                    TraceItemFilter(exists_filter=ExistsFilter(key=key)),
-                    TraceItemFilter(
-                        comparison_filter=ComparisonFilter(
-                            key=key,
-                            op=ComparisonFilter.OP_NOT_EQUALS,
-                            value=AttributeValue(val_str=""),
-                        )
-                    ),
-                ]
-            )
-        return and_trace_item_filters(*filters)
-
-
-def _span_groups(
-    params: SnubaParams,
-    query: str,
-    *,
-    dimension: str = "",
-    envs: tuple[str, ...] | None = None,
+def _span_slices(
+    params: SnubaParams, query: str, dimension: str, envs: tuple[str, ...]
 ) -> list[tuple[str, ...]]:
-    if envs == ():
+    if not envs:
         return []
-    fields = ["environment"]
-    partitioned = envs is not None
-    if partitioned:
-        fields.append(dimension)
-    limit = len(envs) * MAX_SLICES if envs is not None else MAX_ENVIRONMENTS
+    fields = ["environment", dimension]
+    limit = len(envs) * MAX_SLICES
     response = Spans.run_table_query(
         params=params,
         query_string=query,
         selected_columns=[*fields, "count()"],
         orderby=["-count()", *fields],
         offset=0,
-        limit=limit + partitioned,
+        limit=limit + 1,
         referrer=_REFERRER,
-        config=ScopedSpans(
-            filters=(("environment", envs),) if envs is not None else (), named_dimension=dimension
-        ),
-        limit_by=SpanLimitBy(columns=["environment"], limit=MAX_SLICES) if partitioned else None,
+        config=ScopedSpans(filters=(("environment", envs),), named_dimension=dimension),
+        limit_by=SpanLimitBy(columns=["environment"], limit=MAX_SLICES),
     )
     data = response["data"]
     groups: list[tuple[str, ...]] = list(
@@ -436,7 +373,7 @@ def _span_groups(
     # collapse to the "" scope, so the extra row detects an overflowing bound.
     if len(data) > limit:
         raise IncompleteCollection("Spans group discovery exceeded its partition limit")
-    if envs is not None and any(group[0] not in envs or not group[1] for group in groups):
+    if any(group[0] not in envs or not group[1] for group in groups):
         raise IncompleteCollection("Unexpected Spans slice group")
     return groups
 
@@ -498,7 +435,7 @@ def _scoped_span_series(
             *(
                 and_trace_item_filters(
                     *(
-                        _span_attribute_filter(resolver, field, (value,))
+                        span_attribute_filter(resolver, field, (value,))
                         for field, value in zip(fields, group)
                     )
                 )
@@ -549,7 +486,7 @@ def _scoped_span_series(
                     )
                 ]
             if not signal.dimension:
-                present.update((_utc(point["time"]), key[0]) for point in data)
+                present.update((utc(point["time"]), key[0]) for point in data)
             yield from _normalize(
                 data,
                 project_id=project.id,
@@ -586,7 +523,7 @@ def collect(
     request and error scopes can report zero; query failures propagate.
     """
     rollup = _ROLLUPS[interval]
-    start, end = _utc(start), _utc(end)
+    start, end = utc(start), utc(end)
     if start >= end:
         return []
     if any(
@@ -596,19 +533,15 @@ def collect(
         raise ValueError("Anomaly collection window must align with its bucket boundaries")
 
     rows: list[SeriesRow] = []
-    for project in _project_map(organization, projects).values():
+    for project in project_map(organization, projects).values():
         spans_enabled = Spans.filter_project(project)
-        request_groups = []
-        if spans_enabled:
-            # Discover traffic scopes even when the collection window itself is silent.
-            discovery = SnubaParams(
-                organization=organization,
-                projects=[project],
-                start=start - _ENVIRONMENT_LOOKBACK,
-                end=end,
-            )
-            request_groups = _span_groups(discovery, REQUEST_QUERY)
-        request_envs = tuple(group[0] for group in request_groups)
+        # Discover traffic scopes even when the collection window itself is silent.
+        request_envs = (
+            _request_environments(organization, project, start, end, rollup)
+            if spans_enabled
+            else ()
+        )
+        request_groups: list[tuple[str, ...]] = [(env,) for env in request_envs]
         rows.extend(_collect_errors(organization, project, start, end, rollup, request_envs))
         if not spans_enabled:
             continue
@@ -647,11 +580,8 @@ def collect(
                 environments = request_envs
             else:
                 environments = tuple(
-                    group[0]
-                    for group in _span_groups(params, signal.query, dimension=signal.dimension)
+                    _span_environments(params, signal.query, dimension=signal.dimension)
                 )
-            slices = _span_groups(
-                params, signal.query, dimension=signal.dimension, envs=environments
-            )
+            slices = _span_slices(params, signal.query, signal.dimension, environments)
             rows.extend(_span_series(organization, project, start, end, rollup, signal, slices))
     return rows

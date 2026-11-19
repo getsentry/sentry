@@ -109,17 +109,14 @@ class TestAnomalyDetectionTraceLookup(TestCase, SnubaTestCase, SpanTestCase):
             footprint = lookup.footprint(change, observation_end)
 
         assert isinstance(footprint, Footprint)
-        assert footprint.traces == [trace]
-        assert footprint.window == (start - timedelta(minutes=1), observation_end)
         frontend = Service(self.project.id, "production")
         callee = Service(backend.id, "production")
-        assert {
-            item: (stats.trace_share, stats.spans) for item, stats in footprint.slices.items()
-        } == {
-            Slice(frontend, None, ""): (1.0, 1),
-            Slice(callee, None, ""): (1.0, 1),
-            Slice(frontend, Signal.ENDPOINTS, "GET /checkout"): (1.0, 1),
-            Slice(callee, Signal.ENDPOINTS, "GET /api"): (1.0, 1),
-            Slice(frontend, Signal.OUTBOUND_HTTP, "backend"): (1.0, 1),
+        # Only the traced error's trace is expanded: one sampled trace touches every slice.
+        assert {item: stats.trace_share for item, stats in footprint.slices.items()} == {
+            Slice(frontend, None, ""): 1.0,
+            Slice(callee, None, ""): 1.0,
+            Slice(frontend, Signal.ENDPOINTS, "GET /checkout"): 1.0,
+            Slice(callee, Signal.ENDPOINTS, "GET /api"): 1.0,
+            Slice(frontend, Signal.OUTBOUND_HTTP, "backend"): 1.0,
         }
         assert footprint.edges == Counter({CallEdge(frontend, "backend", callee): 1})

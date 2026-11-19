@@ -2,7 +2,6 @@
 
 from collections import Counter
 from dataclasses import dataclass, field
-from datetime import datetime
 from enum import Enum
 from typing import Final, Literal, NamedTuple
 
@@ -29,16 +28,12 @@ class CallEdge(NamedTuple):
 class SliceStats:
     trace_share: float
     p95_ms: float | None
-    spans: int
 
 
 @dataclass
 class Footprint:
-    event: SeriesKey
-    traces: list[str]
     slices: dict[Slice, SliceStats] = field(default_factory=dict)
     edges: Counter[CallEdge] = field(default_factory=Counter)
-    window: tuple[datetime, datetime] | None = None
 
     def touches(self, key: SeriesKey, min_share: float = 0.2) -> SliceStats | None:
         stats = self.slices.get(slice_of(key))

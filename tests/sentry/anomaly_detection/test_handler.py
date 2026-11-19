@@ -2,7 +2,7 @@ import dataclasses
 from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, patch
 
-from sentry.anomaly_detection.contracts import AnomalyGroupKey, ChangeType, Signal, Urgency
+from sentry.anomaly_detection.contracts import AnomalyGroupKey, ChangeType, Urgency
 from sentry.anomaly_detection.evaluation.organization import AnomalyDecision, AnomalyEvidence
 from sentry.anomaly_detection.grouptype import (
     AnomalyDetection,
@@ -24,6 +24,7 @@ from sentry.workflow_engine.types import (
     DetectorPriorityLevel,
     DetectorType,
 )
+from tests.sentry.anomaly_detection.test_helpers import anomaly_decision
 
 MINUTE = datetime(2025, 1, 1, 12)
 ROTATE_ACTIVATION = "organizations:workflow-engine-rotate-activation-id"
@@ -31,7 +32,7 @@ PRODUCE = (
     "sentry.workflow_engine.handlers.detector_outcome.issue_platform.produce_occurrence_to_kafka"
 )
 EVIDENCE: AnomalyEvidence = {
-    "signal": Signal.ERRORS,
+    "signal": "errors",
     "change_type": ChangeType.SPIKE,
     "started_at": "2025-01-01T11:57:00",
     "actual": 200.0,
@@ -56,25 +57,26 @@ class TestAnomalyDetectionDetectorHandler(TestCase):
         urgency: Urgency = Urgency.MEDIUM,
         resolved: bool = False,
         project_id: int | None = None,
+        group_key: str = "group",
     ) -> AnomalyDecision:
-        return AnomalyDecision(
-            group_key=AnomalyGroupKey("group"),
-            project_id=self.project.id if project_id is None else project_id,
-            timestamp=minute,
+        return anomaly_decision(
+            self.project.id if project_id is None else project_id,
+            minute,
+            group_key=group_key,
             urgency=urgency,
             is_resolved=resolved,
             title="Errors increased in production",
             evidence=EVIDENCE,
-            env="production",
         )
 
     def process(
-        self, decision: AnomalyDecision
+        self, *decisions: AnomalyDecision
     ) -> list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluation]]]:
         packet = DataPacket(
             source_id=str(self.detector.id),
             packet=MinuteDecisions(
-                minute=decision.timestamp, decisions={decision.group_key: decision}
+                minute=decisions[0].timestamp,
+                decisions={decision.group_key: decision for decision in decisions},
             ),
         )
         with self.feature(ROTATE_ACTIVATION):
@@ -204,3 +206,45 @@ class TestAnomalyDetectionDetectorHandler(TestCase):
         assert self.process(self.decision(MINUTE, project_id=other_project.id)) == []
         self.produce.assert_not_called()
         assert not DetectorState.objects.filter(detector=self.detector).exists()
+
+    def test_mixed_packet_skips_processed_group_and_opens_new_one(self) -> None:
+        self.open(self.decision(MINUTE, group_key="a"))
+        self.produce.reset_mock()
+        other_project = self.create_project()
+
+        [(_, evaluations)] = self.process(
+            self.decision(MINUTE, group_key="a", urgency=Urgency.HIGH),
+            self.decision(MINUTE, group_key="b"),
+            self.decision(MINUTE, group_key="foreign", project_id=other_project.id),
+        )
+
+        assert evaluations.keys() == {"b"}
+        assert isinstance(evaluations["b"].result, IssueOccurrence)
+        self.produce.assert_called_once()
+        assert dict(
+            DetectorState.objects.filter(detector=self.detector).values_list(
+                "detector_group_key", "is_triggered"
+            )
+        ) == {"a": True, "b": True}
+        assert DetectorState.objects.get(
+            detector=self.detector, detector_group_key="a"
+        ).state == str(DetectorPriorityLevel.MEDIUM.value)
+
+    def test_resolved_set_closes_group_without_a_decision(self) -> None:
+        opened = self.open(self.decision(MINUTE))
+        packet = DataPacket(
+            source_id=str(self.detector.id),
+            packet=MinuteDecisions(
+                minute=MINUTE + timedelta(minutes=1),
+                decisions={},
+                resolved=frozenset({AnomalyGroupKey("group")}),
+            ),
+        )
+        with self.feature(ROTATE_ACTIVATION):
+            [(_, evaluations)] = process_detectors(packet, [self.detector])
+
+        result = evaluations["group"].result
+        assert isinstance(result, StatusChangeMessage)
+        assert isinstance(opened.result, IssueOccurrence)
+        assert result.fingerprint == opened.result.fingerprint
+        assert not DetectorState.objects.get(detector=self.detector).is_triggered

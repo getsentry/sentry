@@ -58,10 +58,14 @@ class AnomalyDetection(GroupType):
 
 @dataclass(frozen=True)
 class MinuteDecisions:
-    """One project's anomaly decisions for one evaluated minute, keyed by group."""
+    """One project's anomaly decisions for one evaluated minute, keyed by group.
+
+    `resolved` closes open groups the evaluator no longer tracks (e.g. after a cold start).
+    """
 
     minute: datetime  # Naive UTC, like the evaluator.
     decisions: Mapping[AnomalyGroupKey, AnomalyDecision]
+    resolved: frozenset[AnomalyGroupKey] = frozenset()
 
 
 class AnomalyDetectionDetectorHandler(
@@ -74,6 +78,8 @@ class AnomalyDetectionDetectorHandler(
     """
 
     # Each activation of a group is a new issue; a reopen never regresses a closed one.
+    # Requires `organizations:workflow-engine-rotate-activation-id`, which the scheduler
+    # checks before evaluating an organization.
     regression_timeout = timedelta(0)
 
     @property
@@ -90,17 +96,18 @@ class AnomalyDetectionDetectorHandler(
     def extract_value(
         self, data_packet: DataPacket[MinuteDecisions]
     ) -> DetectorGroupValues[DetectorPriorityLevel]:
-        return DetectorGroupValues(
-            {
-                group_key: (
+        packet = data_packet.packet
+        values: dict[DetectorGroupKey, DetectorPriorityLevel] = dict.fromkeys(
+            packet.resolved, DetectorPriorityLevel.OK
+        )
+        for group_key, decision in packet.decisions.items():
+            if decision.project_id == self.detector.project_id:
+                values[group_key] = (
                     DetectorPriorityLevel.OK
                     if decision.is_resolved
                     else URGENCY_PRIORITY[decision.urgency]
                 )
-                for group_key, decision in data_packet.packet.decisions.items()
-                if decision.project_id == self.detector.project_id
-            }
-        )
+        return DetectorGroupValues(values)
 
     @override
     def evaluate_priorities(

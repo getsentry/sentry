@@ -15,7 +15,7 @@ DOWNSTREAM = 1
 UPSTREAM = -1
 
 
-class _CallGraph:
+class CallGraph:
     def __init__(self, edges: Mapping[CallEdge, int], *, majority: bool = False) -> None:
         call_counts: Counter[tuple[Service, Service]] = Counter()
         for (caller, _, callee), count in edges.items():
@@ -98,7 +98,7 @@ def observed_order(
     for footprint in footprints:
         if footprint:
             trace_edges.update(footprint.edges)
-    return _CallGraph(trace_edges).order(reference_key, compared_key) if trace_edges else None
+    return CallGraph(trace_edges).order(reference_key, compared_key) if trace_edges else None
 
 
 def is_project_level(key: SeriesKey) -> bool:

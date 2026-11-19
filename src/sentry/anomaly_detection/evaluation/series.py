@@ -29,6 +29,11 @@ def is_share(key: SeriesKey) -> bool:
     return key.metric == Metric.FAILURE_RATE
 
 
+def uses_trials(key: SeriesKey) -> bool:
+    """Whether the series counts failures out of sampled trials rather than plain events."""
+    return key.signal == Signal.FAILED_RATE or is_share(key)
+
+
 def rate_parts(key: SeriesKey) -> tuple[SeriesKey, SeriesKey, SeriesKey] | None:
     """Return a service rate's events, denominator, and samples behind that denominator."""
     p, e = key.project_id, key.env

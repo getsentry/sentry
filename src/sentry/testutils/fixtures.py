@@ -25,6 +25,7 @@ from sentry.integrations.types import IntegrationProviderSlug
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.issues.models.groupderiveddata import GroupDerivedData
 from sentry.models.activity import Activity
+from sentry.models.anomaly_detection_state import AnomalyDetectionState
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.custominboundfilter import CustomInboundFilter
 from sentry.models.environment import Environment
@@ -1106,6 +1107,9 @@ class Fixtures:
 
     def create_detector_state(self, *args: Any, **kwargs: Any) -> DetectorState:
         return Factories.create_detector_state(*args, **kwargs)
+
+    def create_anomaly_detection_state(self, *args: Any, **kwargs: Any) -> AnomalyDetectionState:
+        return Factories.create_anomaly_detection_state(*args, **kwargs)
 
     def create_data_source_detector(self, *args: Any, **kwargs: Any) -> DataSourceDetector:
         return Factories.create_data_source_detector(*args, **kwargs)
