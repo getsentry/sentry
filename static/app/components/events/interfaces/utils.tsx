@@ -53,7 +53,7 @@ export function findImageForAddress({event, addrMode, address}: ImageForAddressP
  * MetricKit images can lack `code_file`, in which case Symbolicator fills in
  * the dSYM name on `debug_file`.
  */
-export function getImageName(image: Image | null | undefined) {
+export function getImageName(image: Image | null | undefined): string | undefined {
   return image?.code_file ?? image?.debug_file ?? undefined;
 }
 
