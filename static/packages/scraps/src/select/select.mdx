@@ -15,8 +15,8 @@ resources:
 ---
 
 import {useState} from 'react';
+import {IconSearch} from '@sentry/icons/search';
 
-import {Container} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 import {Text} from '@sentry/scraps/text';
 
@@ -156,16 +156,12 @@ Use the `disabled` prop to disable the select, preventing user interaction.
 
 ## Leading Content
 
-Use `controlLeadingItems` to add content before the selected value and search input.
+Pass an icon or text to `controlLeadingItems`. Select adds padding and centers the content vertically before the value and search input.
 
 <Storybook.Demo>
   <Storybook.Grid>
     <SingleSelectDemo
-      controlLeadingItems={
-        <Container paddingLeft="lg">
-          <Text bold>Environment</Text>
-        </Container>
-      }
+      controlLeadingItems={<IconSearch size="sm" variant="muted" aria-hidden />}
       size="md"
       placeholder="medium"
       options={[
@@ -176,11 +172,7 @@ Use `controlLeadingItems` to add content before the selected value and search in
     <SingleSelectDemo
       size="sm"
       placeholder="small"
-      controlLeadingItems={
-        <Container paddingLeft="lg">
-          <Text bold>Environment</Text>
-        </Container>
-      }
+      controlLeadingItems={<Text bold>Environment</Text>}
       initialValue={'item1'}
       options={[
         {value: 'item1', label: 'Item 1'},
@@ -190,11 +182,7 @@ Use `controlLeadingItems` to add content before the selected value and search in
     <SingleSelectDemo
       size="xs"
       placeholder="x-small"
-      controlLeadingItems={
-        <Container paddingLeft="lg">
-          <Text bold>Environment</Text>
-        </Container>
-      }
+      controlLeadingItems={<IconSearch size="xs" variant="muted" aria-hidden />}
       options={[
         {value: 'item1', label: 'Item 1'},
         {value: 'item2', label: 'Item 2'},
@@ -207,11 +195,8 @@ Use `controlLeadingItems` to add content before the selected value and search in
 <Select
   value={value}
   onChange={option => setValue(option?.value ?? null)}
-  controlLeadingItems={
-    <Container paddingLeft="lg">
-      <Text bold>Environment</Text>
-    </Container>
-  }
+  aria-label="Environment"
+  controlLeadingItems={<IconSearch size="sm" variant="muted" aria-hidden />}
   placeholder="Choose environment"
   options={options}
 />

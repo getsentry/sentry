@@ -47,11 +47,11 @@ export function getSelectStyles(
   {
     disabled,
     focused,
-    multiple,
+    hasChips,
     searchable,
   }: {
     focused: boolean;
-    multiple: boolean;
+    hasChips: boolean;
     searchable: boolean;
     disabled?: boolean;
   }
@@ -79,21 +79,21 @@ export function getSelectStyles(
       opacity: disabled ? 0.6 : undefined,
     },
     values: {
-      display: multiple ? 'flex' : 'grid',
+      display: hasChips ? 'flex' : 'grid',
       flex: 1,
       minWidth: 0,
       alignItems: 'center',
-      flexWrap: multiple ? 'wrap' : undefined,
-      maxHeight: multiple ? '12em' : undefined,
-      overflowY: multiple ? 'auto' : undefined,
+      flexWrap: hasChips ? 'wrap' : undefined,
+      maxHeight: hasChips ? '12em' : undefined,
+      overflowY: hasChips ? 'auto' : undefined,
       paddingLeft: form.paddingLeft,
-      gap: multiple ? theme.space.xs : undefined,
+      gap: hasChips ? theme.space.xs : undefined,
     },
     input: {
-      gridArea: multiple ? undefined : '1 / 1',
-      flex: multiple ? '1 1 1em' : undefined,
+      gridArea: hasChips ? undefined : '1 / 1',
+      flex: hasChips ? '1 1 1em' : undefined,
       minWidth: 0,
-      width: multiple ? '1em' : '100%',
+      width: hasChips ? '1em' : '100%',
       border: 0,
       padding: 0,
       margin: 0,
@@ -113,7 +113,7 @@ export function getSelectStyles(
     },
     valueLabel: {whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden'},
     placeholder: {
-      gridArea: multiple ? undefined : '1 / 1',
+      gridArea: '1 / 1',
       color: disabled ? color : theme.tokens.content.secondary,
     },
     indicators: {

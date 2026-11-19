@@ -1,4 +1,5 @@
 import {useMemo, useRef, useState} from 'react';
+import {IconSearch} from '@sentry/icons/search';
 
 import {Select, type SelectHandle} from '@sentry/scraps/select';
 
@@ -8,7 +9,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {type ScmAnalyticsFlow, scmFlowVariantParams} from './scmAnalyticsFlow';
-import {ScmSearchIcon} from './scmSearchIcon';
 import {useScmRepos} from './useScmRepos';
 import {useScmRepoSelection} from './useScmRepoSelection';
 
@@ -178,7 +178,7 @@ export function ScmRepoSelector({
       blurInputOnSelect={false}
       clearable
       searchable
-      controlLeadingItems={<ScmSearchIcon />}
+      controlLeadingItems={<IconSearch size="sm" variant="muted" aria-hidden />}
       virtualized
       styles={{container: base => ({...base, width: '100%'})}}
     />

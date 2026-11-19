@@ -63,7 +63,7 @@ export interface BaseSelectProps<
   className?: string;
   /** Customize content while Select retains input, option, and chip behavior. */
   components?: SelectComponents<TOption>;
-  /** Content inside the control, before the selected value and input. */
+  /** Centered content inside the control, before the selected value and input. */
   controlLeadingItems?: React.ReactNode;
   /** Allow values that are not in `options`. */
   creatable?: boolean;
@@ -147,6 +147,7 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
     inputRef: providedInputRef,
     isLoading,
     dropdownIndicator,
+    controlLeadingItems,
     placeholder,
     isValueEqual,
     multiple = false,
@@ -563,7 +564,12 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
       }
     },
   };
-  const css = getSelectStyles(theme, size, {disabled, focused, multiple, searchable});
+  const css = getSelectStyles(theme, size, {
+    disabled,
+    focused,
+    hasChips: multiple && selected.length > 0,
+    searchable,
+  });
   const optionStyle = (option: TOption) => ({
     data: option,
     isDisabled: Boolean(disabled || option.disabled),
@@ -717,7 +723,11 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
           }
         }}
       >
-        {props.controlLeadingItems}
+        {controlLeadingItems != null && typeof controlLeadingItems !== 'boolean' && (
+          <Flex align="center" flexShrink={0} gap="xs" paddingLeft="lg">
+            {controlLeadingItems}
+          </Flex>
+        )}
         <div css={css.values}>
           {multiple &&
             selectedRows.map(({option, key}, index) => (

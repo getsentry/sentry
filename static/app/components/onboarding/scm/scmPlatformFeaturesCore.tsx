@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useEffect, useId, useMemo, useRef, useState} from 'react';
 import {useTheme, css} from '@emotion/react';
 import {IconBroadcast} from '@sentry/icons/broadcast';
+import {IconSearch} from '@sentry/icons/search';
 import {useDebouncedCallback} from '@tanstack/react-pacer';
 import {motion} from 'framer-motion';
 import {PlatformIcon} from 'platformicons';
@@ -43,7 +44,6 @@ import {
   shouldSuggestFramework,
   toSelectedSdk,
 } from './scmPlatformHelpers';
-import {ScmSearchIcon} from './scmSearchIcon';
 import {useScmResolvedPlatform} from './useScmResolvedPlatform';
 
 type PlatformOption = (typeof platformOptions)[number];
@@ -575,7 +575,7 @@ export function ScmPlatformFeaturesCore({
               onChange={handleManualPickerChange}
               onInputChange={handleManualPickerSearch}
               searchable
-              controlLeadingItems={<ScmSearchIcon />}
+              controlLeadingItems={<IconSearch size="sm" variant="muted" aria-hidden />}
               virtualized
               styles={manualPickerStyles}
             />
@@ -590,7 +590,7 @@ export function ScmPlatformFeaturesCore({
               onInputChange={handleManualPickerSearch}
               clearable
               searchable
-              controlLeadingItems={<ScmSearchIcon />}
+              controlLeadingItems={<IconSearch size="sm" variant="muted" aria-hidden />}
               virtualized
               styles={manualPickerStyles}
             />

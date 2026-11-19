@@ -1,5 +1,6 @@
 import type {ReactNode} from 'react';
 import {IconCheckmark} from '@sentry/icons/checkmark';
+import {IconSearch} from '@sentry/icons/search';
 
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
@@ -36,6 +37,24 @@ describe('Select', () => {
     size => ({tags: {area: 'core', size, state: 'saved'}})
   );
 
+  it.snapshot.each(['xs', 'sm', 'md'] as const)(
+    'leading icon alignment at size %s',
+    size => (
+      <Stack padding="md" width="300px">
+        <Select
+          aria-label="Search environments"
+          placeholder="Search environments"
+          options={options}
+          value={null}
+          size={size}
+          controlLeadingItems={<IconSearch size="sm" variant="muted" aria-hidden />}
+          onChange={() => {}}
+        />
+      </Stack>
+    ),
+    size => ({tags: {area: 'core', size, state: 'leading-icon'}})
+  );
+
   it.snapshot(
     'empty, clearable multiple, and disabled',
     () => (
@@ -45,6 +64,14 @@ describe('Select', () => {
           placeholder="Select an environment"
           options={options}
           value={null}
+          onChange={() => {}}
+        />
+        <Select
+          aria-label="Empty environments"
+          placeholder="Select environments"
+          options={options}
+          value={[]}
+          multiple
           onChange={() => {}}
         />
         <Select
