@@ -242,9 +242,9 @@ class TestShardPlan:
         [
             (0, (0, [])),
             (1, (1, [0])),
-            (40, (1, [0])),
-            (41, (2, [0, 1])),
-            (999, (5, list(range(5)))),
+            (30, (1, [0])),
+            (31, (2, [0, 1])),
+            (999, (7, list(range(7)))),
         ],
     )
     def test_shards(self, items: int, expected: tuple[int, list[int]]) -> None:
