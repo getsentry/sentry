@@ -19,6 +19,8 @@ on:
     - cron: '0 6 * * *'
   workflow_dispatch:
 
+permissions: {}
+
 # Cancel in progress workflows on pull_requests.
 # https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
 concurrency:
