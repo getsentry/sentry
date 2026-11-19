@@ -69,18 +69,16 @@ export const restrictedImportPaths = [
       'Optional chaining `?.` and nullish coalescing operators `??` are available and preferred over using `lodash/get`. See https://github.com/getsentry/frontend-handbook#new-syntax for more information',
   },
   {
-    name: 'react-router',
-    importNames: ['withRouter'],
-    message:
-      "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead.",
-  },
-  {
     name: 'react-select',
     message: "Use '@sentry/scraps/select' instead.",
   },
   {
     name: 'qs',
-    message: 'Please use query-string instead of qs',
+    message: "Use 'sentry/utils/url/qs' instead.",
+  },
+  {
+    name: 'query-string',
+    message: "Use 'sentry/utils/url/qs' instead.",
   },
   {
     name: 'moment',
@@ -537,10 +535,10 @@ const base = defineConfig({
     '@sentry/no-digits-in-tn': 'error',
     '@sentry/no-dynamic-translations': 'error',
     '@sentry/no-flag-comments': 'error',
-    '@sentry/no-legacy-router-imports': 'error',
     '@sentry/no-query-data-type-parameters': 'error',
     '@sentry/no-raw-css-in-styled': 'error',
     '@sentry/no-redundant-default-argument': 'error',
+    '@sentry/no-shadow-dangerous-globals': 'error',
     '@sentry/no-static-translations': 'error',
     '@sentry/no-styled-shortcut': 'error',
     '@sentry/no-unnecessary-use-callback': 'error',

@@ -63,7 +63,7 @@ class OrganizationNotebookBlockExecutionIndexEndpoint(OrganizationNotebookBlockE
             OpenApiExample(
                 "Example request",
                 value={
-                    "investigationVersion": 2,
+                    "notebookVersion": 2,
                     "version": 1,
                     "requestId": "00000000-0000-4000-8000-000000000001",
                 },
@@ -108,7 +108,7 @@ class OrganizationNotebookBlockExecutionIndexEndpoint(OrganizationNotebookBlockE
         try:
             execution, created = create_block_execution(
                 block=block,
-                expected_notebook_version=validator.validated_data["investigation_version"],
+                expected_notebook_version=validator.validated_data["notebook_version"],
                 expected_block_version=validator.validated_data["version"],
                 user_id=actor_id,
                 project_ids=project_ids,

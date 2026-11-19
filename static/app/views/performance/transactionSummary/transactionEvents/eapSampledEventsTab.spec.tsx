@@ -12,9 +12,7 @@ import {EAPSampledEventsTab} from './eapSampledEventsTab';
 
 describe('EAPSampledEventsTab', () => {
   const project = ProjectFixture({id: '1', platform: 'javascript'});
-  const organization = OrganizationFixture({
-    features: ['performance-view'],
-  });
+  const organization = OrganizationFixture();
 
   beforeEach(() => {
     ProjectsStore.loadInitialData([project]);
@@ -101,7 +99,6 @@ describe('EAPSampledEventsTab', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    ProjectsStore.reset();
   });
 
   it('renders the filter bar and table', async () => {

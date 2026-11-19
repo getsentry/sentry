@@ -20,6 +20,7 @@ describe('ProjectsDashboard', () => {
   const teams = [team];
 
   beforeEach(() => {
+    TeamStore.reset();
     TeamStore.loadInitialData(teams);
     MockApiClient.addMockResponse({
       url: `/teams/${org.slug}/${team.slug}/members/`,
@@ -33,7 +34,6 @@ describe('ProjectsDashboard', () => {
   });
 
   afterEach(() => {
-    TeamStore.reset();
     MockApiClient.clearMockResponses();
   });
 

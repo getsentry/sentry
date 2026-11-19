@@ -8,8 +8,8 @@ from .group_impact_assessment import GroupImpactAssessmentEndpoint
 from .group_notes import GroupNotesEndpoint
 from .group_notes_details import GroupNotesDetailsEndpoint
 from .group_pull_requests import GroupPullRequestsEndpoint
+from .group_related import GroupRelatedEndpoint
 from .group_similar_issues import GroupSimilarIssuesEndpoint
-from .group_similar_issues_embeddings import GroupSimilarIssuesEmbeddingsEndpoint
 from .group_tombstone import GroupTombstoneEndpoint
 from .group_tombstone_details import GroupTombstoneDetailsEndpoint
 from .organization_code_mapping_repo_prefixes import OrganizationCodeMappingRepoPrefixesEndpoint
@@ -52,7 +52,7 @@ __all__ = (
     "GroupNotesDetailsEndpoint",
     "GroupNotesEndpoint",
     "GroupPullRequestsEndpoint",
-    "GroupSimilarIssuesEmbeddingsEndpoint",
+    "GroupRelatedEndpoint",
     "GroupSimilarIssuesEndpoint",
     "GroupTombstoneDetailsEndpoint",
     "GroupTombstoneEndpoint",

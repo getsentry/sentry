@@ -28,6 +28,11 @@ buffer_tasks = app.taskregistry.create_namespace(
     app_feature="errors",
 )
 
+cadence_tasks = app.taskregistry.create_namespace(
+    "cadence",
+    app_feature="shared",
+)
+
 conduit_tasks = app.taskregistry.create_namespace(
     "conduit",
     app_feature="conduit",

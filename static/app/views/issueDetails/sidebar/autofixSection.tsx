@@ -39,7 +39,7 @@ import {AutofixStartCard} from 'sentry/components/events/autofix/v3/autofixStart
 import {useAutoTriggerAutofix} from 'sentry/components/events/autofix/v3/useAutoTriggerAutofix';
 import {
   useIsSingleRunChatOpen,
-  useToggleSingleRunChat,
+  useOpenSingleRunChat,
 } from 'sentry/components/events/autofix/v3/useToggleSingleRunChat';
 import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
@@ -50,7 +50,10 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {hasAutofixPage, makeSeerLocation} from 'sentry/views/issueDetails/autofix/utils';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/foldSection';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
@@ -297,7 +300,10 @@ function AutofixPreviews({
   referrer,
   singleRunId,
 }: AutofixPreviewsProps) {
-  const toggleSingleRunChat = useToggleSingleRunChat(singleRunId);
+  const organization = useOrganization();
+  const location = useLocation();
+  const navigate = useNavigate();
+  const openSingleRunChat = useOpenSingleRunChat();
   const hasRootCause =
     sections.findLast(isRootCauseSection)?.artifacts?.some(isRootCauseArtifact) ?? false;
 
@@ -364,7 +370,22 @@ function AutofixPreviews({
           icon={<IconSeer />}
           aria-label={t('Open Autofix')}
           variant="primary"
-          onClick={defined(singleRunId) ? toggleSingleRunChat : openSeerDrawer}
+          onClick={
+            defined(singleRunId)
+              ? () => {
+                  if (hasAutofixPage(organization)) {
+                    navigate(
+                      makeSeerLocation({
+                        organization,
+                        groupId: group.id,
+                        query: location.query,
+                      })
+                    );
+                  }
+                  openSingleRunChat(singleRunId);
+                }
+              : openSeerDrawer
+          }
           analyticsEventKey="issue_details.seer_opened"
           analyticsEventName="Issue Details: Seer Opened"
           analyticsParams={{

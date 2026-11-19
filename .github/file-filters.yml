@@ -75,6 +75,9 @@ embed_widget_schema:
 embed_widget_codegen:
   - added|modified: 'src/sentry/seer/agent/embed_widgets.generated.json'
 
+nav_snapshot_codegen:
+  - added|modified: 'src/sentry/seer/nav_snapshot.generated.json'
+
 test_utility_only_paths:
   - 'src/sentry/replays/testutils.py'
   - 'fixtures/search-syntax/**/*'
@@ -161,6 +164,12 @@ api_docs: &api_docs
   - *backend_all
   - 'api-docs/**'
   - 'tests/apidocs/**'
+
+# The @sentry/api package builds from the API spec, so it rebuilds whenever
+# the spec might change, and when the package itself does.
+api_client:
+  - *api_docs
+  - 'static/packages/api/**'
 
 # This is the ultimate controller for backend.yml
 backend_any_type: &backend_any_type

@@ -828,9 +828,14 @@ class OrganizationAIConversationDetailsEndpointTest(BaseAIConversationsTestCase)
             "end": (now + timedelta(hours=1)).isoformat(),
         }
 
-        response = self.do_request(conversation_id, query)
+        run_bulk_table_queries = Spans.run_bulk_table_queries
+        with patch.object(
+            Spans, "run_bulk_table_queries", side_effect=run_bulk_table_queries
+        ) as mock_run_bulk:
+            response = self.do_request(conversation_id, query)
         assert response.status_code == 200
         assert len(response.data["spans"]) == 3
+        assert mock_run_bulk.call_args.args[0][0].orderby == ["precise.start_ts", "span_id"]
 
         span_timestamps = [span["precise.start_ts"] for span in response.data["spans"]]
         assert span_timestamps == sorted(span_timestamps)

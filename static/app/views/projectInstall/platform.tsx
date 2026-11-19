@@ -1,13 +1,10 @@
 import {Fragment} from 'react';
-import styled from '@emotion/styled';
 import type {LocationDescriptorObject} from 'history';
 import {parseAsStringLiteral, useQueryStates} from 'nuqs';
 
-import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
-import {Feature} from 'sentry/components/acl/feature';
 import {NotFound} from 'sentry/components/errors/notFound';
 import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import type {
@@ -18,7 +15,6 @@ import {platformProductAvailability} from 'sentry/components/onboarding/productS
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {setPageFiltersStorage} from 'sentry/components/pageFilters/persistence';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {performance as performancePlatforms} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {PlatformIntegration, Project} from 'sentry/types/project';
@@ -117,8 +113,6 @@ export function ProjectInstallPlatform({project, platform}: Props) {
   }
 
   const issueStreamLink = `/organizations/${organization.slug}/issues/`;
-  const showPerformancePrompt = performancePlatforms.includes(platform.id);
-  const isGettingStarted = window.location.href.indexOf('getting-started') > 0;
   const showDocsWithProductSelection =
     (platformProductAvailability[platform.id] ?? []).length > 0;
 
@@ -156,27 +150,6 @@ export function ProjectInstallPlatform({project, platform}: Props) {
         />
       )}
       <div>
-        {isGettingStarted && showPerformancePrompt && (
-          <Feature
-            features="performance-view"
-            overrideName="feature-disabled:performance-new-project"
-          >
-            {({hasFeature}) => {
-              if (hasFeature) {
-                return null;
-              }
-              return (
-                <Alert.Container>
-                  <StyledAlert variant="info">
-                    {t(
-                      'Your selected platform supports performance, but your organization does not have performance enabled.'
-                    )}
-                  </StyledAlert>
-                </Alert.Container>
-              );
-            }}
-          </Feature>
-        )}
         <Grid
           flow={{zero: 'row', xl: 'column'}}
           align="center"
@@ -213,7 +186,3 @@ export function ProjectInstallPlatform({project, platform}: Props) {
     </Fragment>
   );
 }
-
-const StyledAlert = styled(Alert)`
-  margin-top: ${p => p.theme.space.xl};
-`;

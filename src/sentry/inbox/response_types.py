@@ -1,5 +1,6 @@
+from collections.abc import Mapping
 from datetime import datetime
-from typing import Any, Literal, TypedDict
+from typing import Literal, TypedDict
 
 from sentry.users.api.serializers.user import SerializedAvatarFields
 
@@ -25,7 +26,7 @@ class InboxItemEventResponse(TypedDict):
     id: str
     type: str
     actor: InboxActorResponse
-    data: dict[str, Any]  # Event-specific keys are camelCase and IDs are strings.
+    data: Mapping[str, object]
     summary: str
     isUnread: bool
     dateAdded: datetime
@@ -36,6 +37,7 @@ class InboxItemResponse(TypedDict):
     subjectType: str
     subjectId: str
     title: str | None  # Null when the subject is unavailable.
+    url: str  # Latest event's URL, falling back to the subject's inbox URL.
     subtitle: str  # The latest event's summary.
     eventTypes: list[str]
     eventCount: int

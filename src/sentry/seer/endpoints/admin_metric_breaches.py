@@ -38,7 +38,7 @@ from sentry.models.group import Group
 from sentry.models.groupopenperiod import should_create_open_periods
 from sentry.models.organization import Organization
 from sentry.seer.models.workflow import SeerWorkflowConfig, SeerWorkflowStrategy
-from sentry.seer.workflows.breached_metrics import BreachedMetricWorkflow
+from sentry.seer.workflows.workflow import SeerWorkflow
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription
 from sentry.workflow_engine.models import DataCondition, DataPacket, DataSourceDetector, Detector
@@ -121,14 +121,13 @@ def prepare_synthetic_breach(
     configs = SeerWorkflowConfig.objects.filter(
         organization_id=organization.id,
         strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
-        enabled=True,
         backing_workflow__status=ObjectStatus.ACTIVE,
         backing_workflow__enabled=True,
         backing_workflow__detectorworkflow__detector=detector,
     )
     environment = query.environment.name if query.environment else None
     if not any(
-        BreachedMetricWorkflow(config_id=config.id, organization_id=organization.id).matches_scope(
+        SeerWorkflow(config_id=config.id, organization_id=organization.id).matches_scope(
             detector.project_id, environment
         )
         for config in configs

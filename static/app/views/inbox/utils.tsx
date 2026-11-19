@@ -4,13 +4,12 @@ import {IconSeer} from '@sentry/icons/seer';
 import type {SVGIconProps} from '@sentry/icons/svgIcon';
 
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types/organization';
-import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 
 import {
   INBOX_SUBJECT_TYPES,
   type InboxEventType,
   type InboxFilters,
+  type InboxRecipient,
   type InboxSubject,
   type InboxSubjectType,
 } from './types';
@@ -67,14 +66,16 @@ export const INBOX_EVENT_TYPE_CONFIG: Record<InboxEventType, InboxEventTypeConfi
   },
 };
 
-export function hasInboxFilters(filters: InboxFilters) {
-  return filters.subjectType.length > 0 || filters.eventType.length > 0;
-}
+export const INBOX_RECIPIENT_LABELS: Record<InboxRecipient, string> = {
+  team: t('Team'),
+  user: t('User'),
+};
 
-export function getInboxItemPath(organization: Organization, item: InboxSubject) {
-  const {pathSegment} = INBOX_SUBJECT_CONFIG[item.subjectType];
-  return normalizeUrl(
-    `/organizations/${organization.slug}/inbox/${pathSegment}/${item.subjectId}/`
+export function hasInboxFilters(filters: InboxFilters) {
+  return (
+    filters.subjectType.length > 0 ||
+    filters.eventType.length > 0 ||
+    filters.recipient.length > 0
   );
 }
 

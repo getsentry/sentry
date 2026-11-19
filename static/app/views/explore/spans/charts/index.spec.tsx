@@ -87,6 +87,10 @@ function timeseriesResultFixture(overrides: Partial<SortedTimeSeries> = {}) {
 }
 
 describe('ExploreCharts', () => {
+  beforeEach(() => {
+    PageFiltersStore.reset();
+  });
+
   describe('range selection', () => {
     const timeseriesResult = timeseriesResultFixture({
       data: {
@@ -126,10 +130,6 @@ describe('ExploreCharts', () => {
 
     beforeEach(() => {
       PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
-    });
-
-    afterEach(() => {
-      PageFiltersStore.reset();
     });
 
     it.each<Record<string, string>>([
@@ -638,6 +638,82 @@ describe('ExploreCharts', () => {
       expect(single).toBeEnabled();
     });
 
+    it('hides the heatmap chart type without explore-dev-features', async () => {
+      render(
+        <ControlledExploreCharts
+          initialVisualizes={[{yAxes: ['count(span.duration)']}]}
+        />,
+        {
+          organization: OrganizationFixture(),
+        }
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Chart type'}));
+      expect(screen.getByRole('option', {name: 'Line'})).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'Heatmap'})).not.toBeInTheDocument();
+    });
+
+    function mockOutlierBound(count: number) {
+      PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events/',
+        match: [
+          MockApiClient.matchQuery({referrer: 'api.explore.spans-heatmap-outlier-bound'}),
+        ],
+        body: {
+          data: [
+            {
+              'min(span.duration)': 1,
+              'p95(span.duration)': 100,
+              'p99(span.duration)': 200,
+              'max(span.duration)': 100_000,
+              'count()': count,
+            },
+          ],
+        },
+      });
+    }
+
+    it('shows outliers when the selected cutoff has no bounds', async () => {
+      mockOutlierBound(10);
+      render(
+        <ControlledExploreCharts
+          initialVisualizes={[{yAxes: ['heatmap(span.duration)']}]}
+        />,
+        {organization: OrganizationFixture({features: ['explore-dev-features']})}
+      );
+
+      expect(
+        await screen.findByRole('button', {name: 'Outliers: shown'})
+      ).toBeInTheDocument();
+    });
+
+    it('lets outliers be turned off for heatmap', async () => {
+      mockOutlierBound(5_000);
+      render(
+        <ControlledExploreCharts
+          initialVisualizes={[{yAxes: ['heatmap(span.duration)']}]}
+        />,
+        {organization: OrganizationFixture({features: ['explore-dev-features']})}
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Outliers: p99.9'}));
+      await userEvent.click(screen.getByRole('option', {name: 'Show all'}));
+
+      expect(screen.getByRole('button', {name: 'Outliers: shown'})).toBeInTheDocument();
+    });
+
+    it('locks the chart type for heatmap', async () => {
+      render(
+        <ControlledExploreCharts
+          initialVisualizes={[{yAxes: ['heatmap(span.duration)']}]}
+        />,
+        {organization: OrganizationFixture({features: ['explore-dev-features']})}
+      );
+
+      expect(await screen.findByRole('button', {name: 'Chart type'})).toBeDisabled();
+    });
+
     it('keeps the aggregates together when the chart is collapsed', async () => {
       const onSetVisualizes = jest.fn();
       render(
@@ -665,10 +741,6 @@ describe('ExploreCharts', () => {
 
     beforeEach(() => {
       PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
-    });
-
-    afterEach(() => {
-      PageFiltersStore.reset();
     });
 
     function renderCharts({

@@ -10,15 +10,17 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {AgentHandoffPrompt} from './agentHandoffPrompt';
-import {AgentHandoffFlow} from './useAgentHandoff';
+import {AgentHandoffFlow} from './types';
 
 describe('AgentHandoffPrompt', () => {
   const organization = OrganizationFixture();
   const url = `/organizations/${organization.slug}/agent-handoff/prompts/`;
   const context = {runId: 'a'.repeat(32)};
   const feedbackSource = 'agent-handoff-prompt-test';
+  const code = 'sntryh_example';
+  const handoffId = 'a'.repeat(32);
   const prompt =
-    'Follow the instructions verbatim at https://sentry.io/agent-handoff/. Your handoff code is `sntryh_example`.';
+    'Read and follow https://sentry-jest-tests.example.com/agent-handoff.md verbatim. Your handoff code is `sntryh_example`.';
   const write = jest.fn();
 
   beforeEach(() => {
@@ -42,7 +44,7 @@ describe('AgentHandoffPrompt', () => {
     const mint = MockApiClient.addMockResponse({
       url,
       method: 'POST',
-      body: {prompt, expiresAt: new Date(Date.now() + 300_000).toISOString()},
+      body: {code, handoffId, expiresAt: new Date(Date.now() + 300_000).toISOString()},
     });
     const onCopySuccess = jest.fn();
 
@@ -58,12 +60,20 @@ describe('AgentHandoffPrompt', () => {
 
     expect(screen.getByRole('link', {name: 'See the full instructions'})).toHaveAttribute(
       'href',
-      'https://sentry.io/agent-handoff/?preview=1&flow=onboarding'
+      'https://sentry.io/agent-handoff.md?preview=1&flow=onboarding'
     );
-    expect(screen.getByText(/Follow the instructions verbatim/)).toBeInTheDocument();
+    expect(screen.getByText(/Read and follow/)).toHaveTextContent(
+      'Read and follow https://sentry-jest-tests.example.com/agent-handoff.md verbatim. Your handoff code is sntryh_****.'
+    );
+    expect(
+      screen.getByRole('link', {
+        name: 'https://sentry-jest-tests.example.com/agent-handoff.md',
+      })
+    ).toHaveAttribute('href', 'https://sentry-jest-tests.example.com/agent-handoff.md');
     await userEvent.click(screen.getByRole('button', {name: 'Copy agent prompt'}));
 
     await waitFor(() => expect(onCopySuccess).toHaveBeenCalledTimes(1));
+    expect(onCopySuccess).toHaveBeenCalledWith(handoffId);
     expect(mint).toHaveBeenCalledWith(
       url,
       expect.objectContaining({
@@ -86,7 +96,7 @@ describe('AgentHandoffPrompt', () => {
     const mint = MockApiClient.addMockResponse({
       url,
       method: 'POST',
-      body: {prompt, expiresAt: new Date(Date.now() + 300_000).toISOString()},
+      body: {code, handoffId, expiresAt: new Date(Date.now() + 300_000).toISOString()},
     });
     render(
       <AgentHandoffPrompt
@@ -141,6 +151,33 @@ describe('AgentHandoffPrompt', () => {
     expect(onSelect).toHaveBeenCalledTimes(1);
     expect(document.activeElement?.textContent).toContain('sntryh_****');
     expect(window.getSelection()?.toString()).toContain('sntryh_****');
+    expect(screen.getByText('sntryh_****')).toHaveAttribute('data-selected', 'true');
+
+    await userEvent.click(screen.getByRole('textbox', {name: 'Prior input'}));
+
+    expect(screen.getByText('sntryh_****')).not.toHaveAttribute('data-selected');
+  });
+
+  it('does not select the prompt when its guide link is clicked', async () => {
+    const onSelect = jest.fn();
+    render(
+      <AgentHandoffPrompt
+        context={context}
+        feedbackSource={feedbackSource}
+        flow={AgentHandoffFlow.ONBOARDING}
+        onSelect={onSelect}
+      />,
+      {organization}
+    );
+
+    await userEvent.click(
+      screen.getByRole('link', {
+        name: 'https://sentry-jest-tests.example.com/agent-handoff.md',
+      })
+    );
+
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(screen.getByText('sntryh_****')).not.toHaveAttribute('data-selected');
   });
 
   it('shows prompt creation errors', async () => {

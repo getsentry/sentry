@@ -52,7 +52,6 @@ import {DEPLOY_PREVIEW_CONFIG, NODE_ENV} from 'sentry/constants';
 import {t, toggleLocaleDebug} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {EventIdResponse} from 'sentry/types/event';
 import type {ShortIdResponse} from 'sentry/types/group';
 import type {Member, Team} from 'sentry/types/organization';
@@ -304,7 +303,7 @@ export function GlobalCommandPaletteActions() {
   const user = useUser();
   const isSentryEmployee = useIsSentryEmployee();
   const {projects} = useProjects();
-  const {organizations} = useLegacyStore(OrganizationsStore);
+  const organizations = useStore(OrganizationsStore, state => state.organizations);
   const {isSelfHosted, singleOrganization} = useStore(
     ConfigStore,
     useShallow(state => ({
@@ -484,12 +483,10 @@ export function GlobalCommandPaletteActions() {
             keywords={[t('release health')]}
             to={`${prefix}/explore/releases/`}
           />
-          {organization.features.includes('gen-ai-conversations') && (
-            <CMDKAction
-              display={{label: t('Agents')}}
-              to={`${prefix}/explore/${EXPLORE_AGENTS_SUB_PATH}/?referrer=cmdk`}
-            />
-          )}
+          <CMDKAction
+            display={{label: t('Agents')}}
+            to={`${prefix}/explore/${EXPLORE_AGENTS_SUB_PATH}/?referrer=cmdk`}
+          />
           <CMDKAction
             display={{label: t('Saved Queries')}}
             to={`${prefix}/explore/saved-queries/`}
@@ -556,7 +553,7 @@ export function GlobalCommandPaletteActions() {
 
         {/* Hide the Insights section once the insights-to-dashboards migration
             is active; Crons and Uptime now live under the Monitors section. */}
-        {organization.features.includes('performance-view') && !hasInsightsRollout && (
+        {!hasInsightsRollout && (
           <CMDKAction
             display={{
               label: t('Insights'),

@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
-import {DateTime} from 'sentry/components/dateTime';
+import {DateTime} from '@sentry/scraps/dateTime';
+
 import {t, tct} from 'sentry/locale';
 import {formatDuration} from 'sentry/utils/duration/formatDuration';
 
@@ -15,7 +16,9 @@ export function ReplayTooltipTime({startTimestampMs, timestampMs}: Props) {
     <Fragment>
       <TooltipTime>
         {tct('Date: [date]', {
-          date: <DateTime date={timestampMs} year seconds timeZone />,
+          date: (
+            <DateTime date={timestampMs} precision="second" year="always" showTimezone />
+          ),
         })}
       </TooltipTime>
       <TooltipTime>

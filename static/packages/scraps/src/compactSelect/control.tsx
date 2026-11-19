@@ -535,14 +535,13 @@ export function Control<Value extends SelectKey>({
             >
               <FocusScope contain>
                 {hasHeader && (
-                  <Header borderBottom={searchEnabled ? 'none' : 'muted'}>
-                    <Flex
-                      align="center"
-                      justify="between"
-                      gap="xl"
-                      minHeight="24px"
-                      padding={searchEnabled ? 'xs lg 0 lg' : 'xs lg'}
-                    >
+                  <Header
+                    borderBottom={searchEnabled ? 'none' : 'muted'}
+                    padding={searchEnabled ? 'xs lg 0 lg' : 'xs lg'}
+                  >
+                    {/* The clear button's height, so the header doesn't resize
+                        when it appears or disappears */}
+                    <Flex align="center" justify="between" gap="xl" minHeight="24px">
                       {menuTitle && <Title>{menuTitle}</Title>}
                       <Flex align="center" gap="xs" marginLeft="auto">
                         {loading && <StyledSpinner size={12} />}

@@ -1,3 +1,4 @@
+import {ActivityFeedFixture} from 'sentry-fixture/activityFeed';
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
 import {InboxItemFixture} from 'sentry-fixture/inboxItem';
@@ -5,6 +6,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {GroupActivityType, type GroupActivity} from 'sentry/types/group';
 import Inbox from 'sentry/views/inbox';
 import {InvestigationDetailFixture} from 'sentry/views/investigations/fixtures';
 
@@ -18,10 +20,10 @@ const INBOX_ROUTES = [
 
 const NEXT_CURSOR = '2020-01-01T00:00:00+00:00|3:0:0';
 
-function mockIssuePreviewRequests(groupId: string) {
+function mockIssuePreviewRequests(groupId: string, activity: GroupActivity[] = []) {
   MockApiClient.addMockResponse({
     url: `/organizations/org-slug/issues/${groupId}/`,
-    body: GroupFixture({id: groupId, metadata: {type: 'TypeError'}}),
+    body: GroupFixture({id: groupId, metadata: {type: 'TypeError'}, activity}),
   });
   MockApiClient.addMockResponse({
     url: `/organizations/org-slug/issues/${groupId}/events/recommended/`,
@@ -35,6 +37,30 @@ function mockIssuePreviewRequests(groupId: string) {
     url: '/projects/org-slug/project-slug/events/event-id/owners/',
     body: {owners: [], rules: []},
   });
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/issues/${groupId}/first-last-release/`,
+    body: {firstRelease: null, lastRelease: null},
+  });
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/issues/${groupId}/integrations/`,
+    body: [],
+  });
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/issues/${groupId}/external-issues/`,
+    body: [],
+  });
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/sentry-app-components/',
+    body: [],
+  });
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/sentry-app-installations/',
+    body: [],
+  });
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/issues/${groupId}/pull-requests/`,
+    body: {pullRequests: []},
+  });
 }
 
 describe('Inbox', () => {
@@ -42,7 +68,6 @@ describe('Inbox', () => {
 
   const issueItem = InboxItemFixture({
     id: '1',
-    subjectType: 'issue',
     subjectId: '7656018581',
     title: "TypeError: Cannot read properties of undefined (reading 'id')",
   });
@@ -122,6 +147,21 @@ describe('Inbox', () => {
     render(<Inbox />, {organization});
 
     expect(await screen.findByText('Your inbox is empty')).toBeInTheDocument();
+  });
+
+  it('links to the Inbox notification settings', async () => {
+    render(<Inbox />, {organization});
+
+    const settingsButton = await screen.findByRole('button', {
+      name: 'Inbox notification settings',
+    });
+    expect(settingsButton).toHaveAttribute(
+      'href',
+      '/settings/account/notifications/inbox/'
+    );
+
+    await userEvent.hover(settingsButton);
+    expect(await screen.findByText('Go to Inbox settings')).toBeInTheDocument();
   });
 
   it('shows an error state when items fail to load', async () => {
@@ -280,6 +320,96 @@ describe('Inbox', () => {
       screen.getByRole('link', {name: /TypeError: Cannot read properties/})
     ).not.toHaveAttribute('aria-current');
     await expectMarkedRead({subjectType: 'issue', subjectId: '9999'});
+  });
+
+  it('highlights and scrolls to the activity selected by the URL fragment', async () => {
+    const scrollIntoView = jest.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    mockIssuePreviewRequests(issueItem.subjectId, [
+      ActivityFeedFixture({id: '123', data: {text: 'First comment'}}),
+      ActivityFeedFixture({id: '456', data: {text: 'Second comment'}}),
+    ]);
+    const issuePath = `/organizations/${organization.slug}/inbox/issue/${issueItem.subjectId}`;
+    const currentActivity = '[aria-current="location"]';
+    const {router} = render(<Inbox />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: `${issuePath}#activity=456`},
+        routes: INBOX_ROUTES,
+      },
+    });
+
+    const secondComment = await screen.findByText('Second comment');
+    const highlightedRow = secondComment.closest(currentActivity);
+    expect(highlightedRow).toBeInTheDocument();
+    await waitFor(() => expect(scrollIntoView.mock.contexts).toContain(highlightedRow));
+
+    router.navigate(`${issuePath}#activity-123`);
+
+    await waitFor(() => {
+      const firstRow = screen.getByText('First comment').closest(currentActivity);
+      expect(firstRow).toBeInTheDocument();
+      expect(scrollIntoView.mock.contexts).toContain(firstRow);
+    });
+    expect(
+      screen.queryByText('Second comment')?.closest(currentActivity)
+    ).not.toBeInTheDocument();
+
+    router.navigate(`${issuePath}#activity-missing`);
+
+    await waitFor(() =>
+      expect(
+        screen.queryByText('First comment')?.closest(currentActivity)
+      ).not.toBeInTheDocument()
+    );
+  });
+
+  it('reveals the linked activity inside a collapsed status rollup', async () => {
+    const scrollIntoView = jest.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    mockIssuePreviewRequests(issueItem.subjectId, [
+      {
+        id: '4',
+        type: GroupActivityType.SET_REGRESSION,
+        dateCreated: '2026-07-20T12:00:00Z',
+        data: {},
+      },
+      {
+        id: '3',
+        type: GroupActivityType.SET_RESOLVED,
+        dateCreated: '2026-07-20T11:00:00Z',
+        data: {},
+      },
+      {
+        id: '2',
+        type: GroupActivityType.SET_REGRESSION,
+        dateCreated: '2026-07-20T10:00:00Z',
+        data: {},
+      },
+      {
+        id: '1',
+        type: GroupActivityType.SET_RESOLVED,
+        dateCreated: '2026-07-20T09:00:00Z',
+        data: {},
+      },
+    ]);
+
+    render(<Inbox />, {
+      organization,
+      initialRouterConfig: {
+        location: {
+          pathname: `/organizations/${organization.slug}/inbox/issue/${issueItem.subjectId}#activity-1`,
+        },
+        routes: INBOX_ROUTES,
+      },
+    });
+
+    expect(await screen.findByRole('button', {name: 'Hide 2 events'})).toBeVisible();
+    const [latestResolution, olderResolution] = screen.getAllByText('Resolved');
+    const highlightedRow = olderResolution!.closest('[aria-current="location"]');
+    expect(highlightedRow).toBeInTheDocument();
+    expect(latestResolution!.closest('[aria-current="location"]')).toBeNull();
+    await waitFor(() => expect(scrollIntoView.mock.contexts).toContain(highlightedRow));
   });
 
   it('marks an item outside the loaded page and filters as read', async () => {
@@ -781,6 +911,50 @@ describe('Inbox', () => {
   });
 
   describe('filters', () => {
+    it('filters by team recipient and removes the filter', async () => {
+      const filteredRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/inbox/',
+        match: [MockApiClient.matchQuery({recipient: ['team']})],
+        body: [notebookItem],
+      });
+
+      const {router} = render(<Inbox />, {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: '/organizations/org-slug/inbox/'},
+          routes: INBOX_ROUTES,
+        },
+      });
+
+      expect(
+        await screen.findByRole('link', {name: /TypeError: Cannot read properties/})
+      ).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Filter'}));
+      await userEvent.hover(screen.getByRole('menuitem', {name: 'Recipient'}));
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Team'}));
+      await userEvent.keyboard('{Escape}');
+      await userEvent.keyboard('{Escape}');
+
+      expect(
+        await screen.findByRole('link', {name: notebookItem.title!})
+      ).toBeInTheDocument();
+      expect(filteredRequest).toHaveBeenCalled();
+      expect(router.location.query).toEqual({recipient: 'team'});
+      expect(
+        screen.queryByRole('link', {name: /TypeError: Cannot read properties/})
+      ).not.toBeInTheDocument();
+
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Remove Recipient filter'})
+      );
+
+      expect(
+        await screen.findByRole('link', {name: /TypeError: Cannot read properties/})
+      ).toBeInTheDocument();
+      expect(router.location.query).toEqual({});
+    });
+
     it('filters by subject', async () => {
       const filteredRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/inbox/',
@@ -801,8 +975,10 @@ describe('Inbox', () => {
       ).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('button', {name: 'Filter'}));
-      await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Subject'}));
-      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Investigation'}));
+      await userEvent.hover(screen.getByRole('menuitem', {name: 'Subject'}));
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Investigation'})
+      );
 
       await waitFor(() => expect(filteredRequest).toHaveBeenCalled());
       expect(
@@ -841,9 +1017,9 @@ describe('Inbox', () => {
       });
 
       await userEvent.click(await screen.findByRole('button', {name: 'Filter'}));
-      await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Type'}));
+      await userEvent.hover(screen.getByRole('menuitem', {name: 'Type'}));
       await userEvent.click(
-        screen.getByRole('menuitemradio', {name: 'Issue assigned to you'})
+        await screen.findByRole('menuitemradio', {name: 'Issue assigned to you'})
       );
       await userEvent.click(
         screen.getByRole('menuitemradio', {name: 'Investigation mentioned you'})
@@ -917,8 +1093,10 @@ describe('Inbox', () => {
       expect(screen.getAllByTestId('unread-inbox-item-indicator')).toHaveLength(2);
 
       await userEvent.click(screen.getByRole('button', {name: 'Filter'}));
-      await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Subject'}));
-      await userEvent.click(screen.getByRole('menuitemradio', {name: 'Investigation'}));
+      await userEvent.hover(screen.getByRole('menuitem', {name: 'Subject'}));
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Investigation'})
+      );
       await waitFor(() =>
         expect(
           screen.queryByRole('link', {name: /TypeError: Cannot read properties/})
@@ -972,39 +1150,59 @@ describe('Inbox', () => {
       expect(router.location.query).toEqual({});
     });
 
-    it('keeps filters in item links', async () => {
+    it('keeps filters when following an item URL with a query and fragment', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/inbox/',
-        match: [MockApiClient.matchQuery({subject_type: ['notebook']})],
-        body: [notebookItem],
+        match: [
+          MockApiClient.matchQuery({subject_type: ['notebook'], recipient: ['team']}),
+        ],
+        body: [
+          {
+            ...notebookItem,
+            url: `${notebookItem.url}?comment=1#comment-1`,
+          },
+        ],
       });
 
-      render(<Inbox />, {
+      const {router} = render(<Inbox />, {
         organization,
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/inbox/',
-            query: {subjectType: 'notebook', project: '1'},
+            query: {subjectType: 'notebook', recipient: 'team', project: '1'},
           },
           routes: INBOX_ROUTES,
         },
       });
 
-      expect(
-        await screen.findByRole('link', {
-          name: /OperationalError: could not connect to server/,
-        })
-      ).toHaveAttribute(
+      const item = await screen.findByRole('link', {
+        name: /OperationalError: could not connect to server/,
+      });
+      expect(item).toHaveAttribute(
         'href',
-        '/organizations/org-slug/inbox/notebook/1000210/?subjectType=notebook'
+        '/organizations/org-slug/inbox/notebook/1000210/?comment=1&recipient=team&subjectType=notebook#comment-1'
       );
+
+      await userEvent.click(item);
+
+      expect(router.location.hash).toBe('#comment-1');
+      expect(router.location.query).toEqual({
+        comment: '1',
+        recipient: 'team',
+        subjectType: 'notebook',
+      });
+      await expectMarkedRead(notebookItem);
     });
 
     it('ignores unknown filter values in the url', async () => {
       const unfilteredRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/inbox/',
         match: [
-          MockApiClient.matchQuery({subject_type: undefined, event_type: undefined}),
+          MockApiClient.matchQuery({
+            subject_type: undefined,
+            event_type: undefined,
+            recipient: undefined,
+          }),
         ],
         body: [issueItem],
       });
@@ -1014,7 +1212,7 @@ describe('Inbox', () => {
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/inbox/',
-            query: {subjectType: 'bogus'},
+            query: {subjectType: 'bogus', recipient: 'bogus'},
           },
           routes: INBOX_ROUTES,
         },
@@ -1026,6 +1224,9 @@ describe('Inbox', () => {
       expect(unfilteredRequest).toHaveBeenCalled();
       expect(
         screen.queryByRole('button', {name: 'Remove Subject filter'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Remove Recipient filter'})
       ).not.toBeInTheDocument();
     });
   });

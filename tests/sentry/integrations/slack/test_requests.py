@@ -71,7 +71,6 @@ class SlackRequestTest(TestCase):
     def test_exposes_data(self) -> None:
         assert self.slack_request.data["type"] == "foo"
 
-    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     def test_validated_slack_identity_becomes_viewer(self) -> None:
         self.create_integration(
             organization=self.organization, external_id="T001", provider="slack"
@@ -91,7 +90,6 @@ class SlackRequestTest(TestCase):
             propagated = ViewerContext.deserialize(orjson.loads(headers["sentry-viewer-context"]))
             assert propagated.actor.user_id == self.user.id
 
-    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     def test_bot_does_not_use_linked_user(self) -> None:
         self.create_integration(
             organization=self.organization, external_id="T001", provider="slack"
@@ -107,7 +105,6 @@ class SlackRequestTest(TestCase):
             assert ctx is not None
             assert ctx.actor.type == ActorType.UNKNOWN
 
-    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     def test_unlinked_slack_identity_does_not_inherit_user(self) -> None:
         self.create_integration(
             organization=self.organization, external_id="T001", provider="slack"
@@ -123,7 +120,6 @@ class SlackRequestTest(TestCase):
             assert ctx is not None
             assert ctx.actor.type == ActorType.UNKNOWN
 
-    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     def test_invalid_webhook_does_not_set_viewer(self) -> None:
         ctx = ViewerContext(actor=Actor(type=ActorType.UNKNOWN))
         with (

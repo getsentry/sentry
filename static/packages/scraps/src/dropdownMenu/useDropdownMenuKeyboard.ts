@@ -1,10 +1,9 @@
 import type * as React from 'react';
-import {useMemo} from 'react';
 import {useKeyboard} from '@react-aria/interactions';
 import type {useMenu} from '@react-aria/menu';
 import {mergeProps} from '@react-aria/utils';
 import type {TreeState} from '@react-stately/tree';
-import type {Key, Node} from '@react-types/shared';
+import type {Key} from '@react-types/shared';
 
 import type {MenuItemProps} from './item';
 import {getMenuItemKey} from './utils';
@@ -17,25 +16,19 @@ interface UseDropdownMenuKeyboardOptions {
   menuRef: React.RefObject<HTMLUListElement | null>;
   searchRef: React.RefObject<HTMLInputElement | null>;
   state: TreeState<MenuItemProps>;
-  /** Top-level nodes of the menu, in order. */
-  stateCollection: Array<Node<MenuItemProps>>;
-  /** Menu state of the parent menu, if this menu is a submenu. */
-  parentMenuState?: TreeState<MenuItemProps>;
 }
 
 /**
  * Keyboard navigation of a menu: moves focus between the search field and the
- * items, closes a submenu with ArrowLeft, and ignores key events unless this
- * menu is the focused (leaf) one.
+ * items. Opening and closing submenus with the arrow keys is handled by
+ * `useSubmenuTrigger`.
  */
 export function useDropdownMenuKeyboard({
   focusableKeys,
   menuProps,
   menuRef,
-  parentMenuState,
   searchRef,
   state,
-  stateCollection,
 }: UseDropdownMenuKeyboardOptions) {
   /**
    * Moves focus to an item by key. Items outside a virtualized window are not
@@ -59,6 +52,12 @@ export function useDropdownMenuKeyboard({
 
   const {keyboardProps} = useKeyboard({
     onKeyDown: e => {
+      // Submenus are portaled, but React still bubbles their events through
+      // this menu. Only handle events from this menu's own items.
+      if (!menuRef.current?.contains(e.target as HTMLElement)) {
+        e.continuePropagation();
+        return;
+      }
       // Read from the collection rather than the DOM, since a virtualized menu
       // only mounts some of its items. The key comes from the event target:
       // React Aria has already moved focusedKey to the next item by now.
@@ -68,7 +67,6 @@ export function useDropdownMenuKeyboard({
       if (
         e.key === 'ArrowDown' &&
         searchRef.current &&
-        menuRef.current &&
         targetKey !== undefined &&
         targetKey === focusableKeys.at(-1)
       ) {
@@ -78,7 +76,6 @@ export function useDropdownMenuKeyboard({
       if (
         e.key === 'ArrowUp' &&
         searchRef.current &&
-        menuRef.current &&
         targetKey !== undefined &&
         targetKey === focusableKeys[0]
       ) {
@@ -87,54 +84,12 @@ export function useDropdownMenuKeyboard({
         searchRef.current.focus();
         return;
       }
-      // ArrowLeft closes a submenu, but leaves the root menu open.
-      if (e.key === 'ArrowLeft' && parentMenuState) {
-        parentMenuState.selectionManager.clearSelection();
-        return;
-      }
       e.continuePropagation();
     },
   });
 
-  /**
-   * Whether this menu/submenu is the current focused one, which in a nested,
-   * tree-like menu system should be the leaf submenu. This information is
-   * used for controlling keyboard events. See ``modifiedMenuProps` below.
-   */
-  const hasFocus = useMemo(() => {
-    // A submenu is a leaf when it does not contain any expanded submenu. This
-    // logically follows from the tree-like structure and single-selection
-    // nature of menus.
-    const isLeafSubmenu = !stateCollection.some(node => {
-      const isSection = node.hasChildNodes && !node.value?.submenu;
-      // A submenu with key [key] is expanded if
-      // state.selectionManager.isSelected([key]) = true
-      return isSection
-        ? [...node.childNodes].some(child =>
-            state.selectionManager.isSelected(`${child.key}`)
-          )
-        : state.selectionManager.isSelected(`${node.key}`);
-    });
-
-    return isLeafSubmenu;
-  }, [stateCollection, state.selectionManager]);
-
-  // Menu props from useMenu, modified to disable keyboard events if the
-  // current menu does not have focus.
-  const modifiedMenuProps = useMemo(
-    () => ({
-      ...menuProps,
-      ...(!hasFocus && {
-        onKeyUp: () => null,
-        onKeyDown: () => null,
-      }),
-    }),
-    [menuProps, hasFocus]
-  );
-
   return {
     focusItem,
-    hasFocus,
-    menuProps: mergeProps(modifiedMenuProps, keyboardProps),
+    menuProps: mergeProps(menuProps, keyboardProps),
   };
 }

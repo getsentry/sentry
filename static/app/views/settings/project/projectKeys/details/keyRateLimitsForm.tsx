@@ -69,15 +69,15 @@ export function KeyRateLimitsForm({
 
   function getAllowedRateLimitValues(currentRateLimit?: number) {
     const {rateLimit} = data;
-    const {window} = rateLimit ?? {};
+    const {window: rateLimitWindow} = rateLimit ?? {};
 
-    if (defined(window)) {
-      if (currentRateLimit !== window) {
+    if (defined(rateLimitWindow)) {
+      if (currentRateLimit !== rateLimitWindow) {
         return PREDEFINED_RATE_LIMIT_VALUES;
       }
 
-      if (!PREDEFINED_RATE_LIMIT_VALUES.includes(window)) {
-        return sortBy([...PREDEFINED_RATE_LIMIT_VALUES, window]);
+      if (!PREDEFINED_RATE_LIMIT_VALUES.includes(rateLimitWindow)) {
+        return sortBy([...PREDEFINED_RATE_LIMIT_VALUES, rateLimitWindow]);
       }
     }
 
