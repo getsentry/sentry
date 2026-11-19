@@ -49,7 +49,7 @@ from sentry.workflow_engine.models import (
     Detector,
 )
 from sentry.workflow_engine.models.detector_group import DetectorGroup
-from sentry.workflow_engine.types import DetectorAPIOperation, FeatureGate
+from sentry.workflow_engine.types import FeatureGate, WorkflowEngineAPIOperation
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from tests.sentry.workflow_engine.endpoints.test_helpers import (
     GATE_FEATURE,
@@ -85,7 +85,7 @@ class OrganizationDetectorIndexBaseTest(APITestCase):
 class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
     def test_discovery_exclusion_does_not_hide_existing_rows(self) -> None:
         with override_detector_api_availability(
-            ErrorGroupType.slug, {DetectorAPIOperation.DISCOVER: False}
+            ErrorGroupType.slug, {WorkflowEngineAPIOperation.DISCOVER: False}
         ):
             response = self.get_success_response(
                 self.organization.slug, qs_params={"id": [self.error_detector.id]}
@@ -115,7 +115,7 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         # per_page=1 catches exclusion applied after pagination, which returns an empty page
         self.create_detector(project=self.project, type=ErrorGroupType.slug)
         # LIST also requires GET, so denying either hides the type from the list
-        for operation in (DetectorAPIOperation.LIST, DetectorAPIOperation.GET):
+        for operation in (WorkflowEngineAPIOperation.LIST, WorkflowEngineAPIOperation.GET):
             with (
                 self.subTest(operation=operation.value),
                 override_detector_api_availability(ErrorGroupType.slug, {operation: False}),
@@ -137,7 +137,7 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
             with (
                 self.subTest(qs_params=qs_params),
                 override_detector_api_availability(
-                    ErrorGroupType.slug, {DetectorAPIOperation.LIST: False}
+                    ErrorGroupType.slug, {WorkflowEngineAPIOperation.LIST: False}
                 ),
             ):
                 response = self.get_success_response(self.organization.slug, qs_params=qs_params)
@@ -148,8 +148,8 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         with override_detector_api_availability(
             ErrorGroupType.slug,
             {
-                DetectorAPIOperation.GET: FeatureGate(GATE_FEATURE),
-                DetectorAPIOperation.LIST: True,
+                WorkflowEngineAPIOperation.GET: FeatureGate(GATE_FEATURE),
+                WorkflowEngineAPIOperation.LIST: True,
             },
         ):
             for enabled in (False, True):
@@ -168,9 +168,9 @@ class OrganizationDetectorIndexGetTest(OrganizationDetectorIndexBaseTest):
         with override_detector_api_availability(
             ErrorGroupType.slug,
             {
-                DetectorAPIOperation.POST: False,
-                DetectorAPIOperation.PUT: False,
-                DetectorAPIOperation.DELETE: False,
+                WorkflowEngineAPIOperation.POST: False,
+                WorkflowEngineAPIOperation.PUT: False,
+                WorkflowEngineAPIOperation.DELETE: False,
             },
         ):
             response = self.get_success_response(
@@ -1194,7 +1194,9 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
             project=self.project, type=MonitorIncidentType.slug, enabled=True
         )
         with (
-            override_detector_api_availability(MetricIssue.slug, {DetectorAPIOperation.PUT: False}),
+            override_detector_api_availability(
+                MetricIssue.slug, {WorkflowEngineAPIOperation.PUT: False}
+            ),
             assert_querysets_unchanged(
                 detectors=Detector.objects.filter(id__in=[allowed_detector.id, self.detector.id])
             ),
@@ -1212,9 +1214,9 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
         with override_detector_api_availability(
             MetricIssue.slug,
             {
-                DetectorAPIOperation.PUT: FeatureGate(GATE_FEATURE),
-                DetectorAPIOperation.LIST: False,
-                DetectorAPIOperation.GET: False,
+                WorkflowEngineAPIOperation.PUT: FeatureGate(GATE_FEATURE),
+                WorkflowEngineAPIOperation.LIST: False,
+                WorkflowEngineAPIOperation.GET: False,
             },
         ):
             with (
@@ -1240,7 +1242,7 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
         allowed_detector = ensure_cron_detector(self.create_monitor(project=self.project))
         assert allowed_detector is not None
         with override_detector_api_availability(
-            MetricIssue.slug, {DetectorAPIOperation.PUT: False}
+            MetricIssue.slug, {WorkflowEngineAPIOperation.PUT: False}
         ):
             response = self.get_success_response(
                 self.organization.slug,
@@ -1858,7 +1860,7 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
         detector_ids = [self.detector.id, self.error_detector.id]
         with (
             override_detector_api_availability(
-                ErrorGroupType.slug, {DetectorAPIOperation.DELETE: False}
+                ErrorGroupType.slug, {WorkflowEngineAPIOperation.DELETE: False}
             ),
             assert_querysets_unchanged(
                 detectors=Detector.objects.filter(id__in=detector_ids),
@@ -1879,9 +1881,9 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
         with override_detector_api_availability(
             MetricIssue.slug,
             {
-                DetectorAPIOperation.DELETE: FeatureGate(GATE_FEATURE),
-                DetectorAPIOperation.LIST: False,
-                DetectorAPIOperation.GET: False,
+                WorkflowEngineAPIOperation.DELETE: FeatureGate(GATE_FEATURE),
+                WorkflowEngineAPIOperation.LIST: False,
+                WorkflowEngineAPIOperation.GET: False,
             },
         ):
             with (
@@ -1911,7 +1913,7 @@ class OrganizationDetectorDeleteTest(OrganizationDetectorIndexBaseTest):
 
     def test_delete_exclusion_skips_type_in_query_selection(self) -> None:
         with override_detector_api_availability(
-            ErrorGroupType.slug, {DetectorAPIOperation.DELETE: False}
+            ErrorGroupType.slug, {WorkflowEngineAPIOperation.DELETE: False}
         ):
             self.get_success_response(
                 self.organization.slug,
