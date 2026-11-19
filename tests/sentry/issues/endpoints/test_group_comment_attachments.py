@@ -294,6 +294,9 @@ class GroupCommentAttachmentDetailsTest(APITestCase):
         ("bytes=0-1,4-5", 10, None),
         ("items=0-1", 10, None),
         ("bytes=0-", 0, None),
+        # Too many digits for int(): unsatisfiable, not a server error.
+        ("bytes=" + "9" * 5000 + "-", 10, None),
+        ("bytes=-" + "9" * 5000, 10, None),
     ],
 )
 def test_parse_range(header: str, size: int, expected: tuple[int, int] | None) -> None:

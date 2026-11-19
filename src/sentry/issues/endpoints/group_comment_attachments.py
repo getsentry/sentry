@@ -72,14 +72,18 @@ def parse_range(header: str, size: int) -> tuple[int, int] | None:
     start_str, end_str = match.groups()
     if not start_str and not end_str:
         return None
-    if not start_str:
-        # Suffix range: the last N bytes.
-        length = int(end_str)
-        if length == 0:
-            return None
-        return max(size - length, 0), size - 1
-    start = int(start_str)
-    end = int(end_str) if end_str else size - 1
+    try:
+        if not start_str:
+            # Suffix range: the last N bytes.
+            length = int(end_str)
+            if length == 0:
+                return None
+            return max(size - length, 0), size - 1
+        start = int(start_str)
+        end = int(end_str) if end_str else size - 1
+    except ValueError:
+        # More digits than int() converts: no file is that large anyway.
+        return None
     if start >= size or end < start:
         return None
     return start, min(end, size - 1)
