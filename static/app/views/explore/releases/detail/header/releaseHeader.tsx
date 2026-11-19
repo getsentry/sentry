@@ -10,7 +10,7 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Container, Stack} from '@sentry/scraps/layout';
 import {LinkTabs} from '@sentry/scraps/tabs';
 
-import {IdBadge} from 'sentry/components/idBadge';
+import {ProjectsBadge} from 'sentry/components/core/badge/projectsBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
@@ -174,7 +174,9 @@ export function ReleaseHeader({
           type: 'page-title',
           label: formatVersion(version),
           leadingGraphic: (
-            <IdBadge project={project} disableLink avatarSize={16} hideName />
+            <ProjectsBadge
+              projectPlatforms={project.platform ? [project.platform] : []}
+            />
           ),
           pagination: {
             previous: {

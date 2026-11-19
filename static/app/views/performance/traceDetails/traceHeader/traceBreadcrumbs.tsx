@@ -2,7 +2,7 @@ import {IconCopyId} from '@sentry/icons/copyId';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {IconOpen} from '@sentry/icons/open';
 
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {ProjectsBadge} from 'sentry/components/core/badge/projectsBadge';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -110,13 +110,7 @@ export function TraceBreadcrumbs({
         type: 'page-title',
         label: formatVersion(traceSlug),
         leadingGraphic: project ? (
-          <ProjectBadge
-            hideName
-            disableLink
-            project={project}
-            avatarSize={16}
-            avatarProps={{hasTooltip: true, tooltip: project.slug}}
-          />
+          <ProjectsBadge projectPlatforms={project.platform ? [project.platform] : []} />
         ) : (
           <Placeholder width="16px" height="16px" />
         ),

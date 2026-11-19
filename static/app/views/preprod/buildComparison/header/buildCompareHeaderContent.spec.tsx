@@ -67,7 +67,7 @@ describe('BuildCompareHeaderContent', () => {
     // The crumb carries the project badge so it matches the page it leads back
     // to. The project is android; the build's own platform is apple, so this
     // icon can only be the crumb's.
-    expect(screen.getByTestId('platform-icon-android')).toBeInTheDocument();
+    expect(screen.getByAltText('android')).toBeInTheDocument();
 
     expect(
       screen.getByRole('heading', {name: 'Compare Builds', level: 1})

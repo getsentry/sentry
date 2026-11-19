@@ -12,7 +12,7 @@ import type {BreadcrumbListProps} from '@sentry/scraps/breadcrumbList';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 
 import {ConfirmDelete} from 'sentry/components/confirmDelete';
-import {IdBadge} from 'sentry/components/idBadge';
+import {ProjectsBadge} from 'sentry/components/core/badge/projectsBadge';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -76,7 +76,9 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
   const pageTitle = {
     type: 'page-title',
     label: artifactId,
-    leadingGraphic: project && <IdBadge project={project} avatarSize={16} hideName />,
+    leadingGraphic: project && (
+      <ProjectsBadge projectPlatforms={project.platform ? [project.platform] : []} />
+    ),
   } as const;
 
   const breadcrumbItems: BreadcrumbListProps['items'] | undefined = projectSlug
