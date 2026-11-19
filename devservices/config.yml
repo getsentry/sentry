@@ -209,6 +209,10 @@ x-sentry-service-config:
       ]
     backend-ci:
       [snuba, postgres, redis, bigtable, redis-cluster, symbolicator, objectstore]
+    # backend-ci without Snuba, ClickHouse, Kafka or Symbolicator, for full-run
+    # backend test shards whose tests use none of them (see
+    # .github/workflows/scripts/backend-test-services.py).
+    backend-ci-lite: [postgres, redis, bigtable, redis-cluster, objectstore]
     symbolicator: [postgres, snuba, symbolicator, spotlight, objectstore]
     memcached: [postgres, snuba, memcached, spotlight]
     tracing:

@@ -17,6 +17,10 @@ its own files. pytest args pass through unchanged.
   durations file, each shard gets whole selected files, balanced by the
   per-file test counts in `selected-tests.counts.json`, and a file too big for
   one shard gets several shards, which split it by test.
+- Service-colored full runs (BACKEND_TEST_SERVICE_COLOR set): the first
+  BACKEND_SNUBA_SHARDS shards run the files that need Snuba, Kafka or
+  Symbolicator, and the rest run every other file on "lite" shards without
+  those services. See backend-test-services.py.
 """
 
 from __future__ import annotations
@@ -33,6 +37,14 @@ from pathlib import Path
 import pytest
 
 DURATIONS_FILE = Path(__file__).parent / "backend-test-durations.json"
+# Which services each test file used in the last measured full run.
+SERVICES_FILE = Path(__file__).parent / "backend-test-services.json"
+# Puts a file on Snuba shards whatever SERVICES_FILE says, e.g. while a new
+# Snuba dependency waits for the file to be measured again.
+SNUBA_PRAGMA = "# backend-ci: snuba"
+# Relay (which produces to Kafka) and Symbolicator run in containers, so
+# pytest_service_guard can't see them being used. These mark their tests.
+SNUBA_HINTS = ("RelayStoreHelper", "relay_server", "requires_symbolicator", ".mark.symbolicator")
 # Full runs split files slower than 1/PIECES_PER_SHARD of a shard by test.
 # Files run in collection order, so a big file that starts late on an xdist
 # worker holds up the whole shard; this bounds how big that can be.
@@ -122,6 +134,31 @@ def plan_full_shards(
     ]
 
 
+def needs_snuba(path: str, services: dict[str, list[str]]) -> bool:
+    """Whether a file must run on a shard with Snuba, Kafka and Symbolicator.
+
+    Only files measured as using none of them go to lite shards, so new and
+    renamed files start on Snuba shards until the next measurement.
+    """
+    if services.get(path) != []:
+        return True
+    source = Path(path).read_text()
+    return SNUBA_PRAGMA in source or any(hint in source for hint in SNUBA_HINTS)
+
+
+def plan_colored_shards(
+    weights: dict[str, float], total: int, snuba_shards: int, snuba_files: set[str]
+) -> list[Shard]:
+    """Snuba files on shards [0, snuba_shards), the rest on the others."""
+    snuba = {path: w for path, w in weights.items() if path in snuba_files}
+    lite = {path: w for path, w in weights.items() if path not in snuba_files}
+    snuba_plan = plan_full_shards(snuba, snuba_shards)
+    lite_plan = plan_full_shards(lite, total - snuba_shards)
+    if snuba_plan is None or lite_plan is None:
+        raise ValueError(f"BACKEND_SNUBA_SHARDS={snuba_shards} leaves a shard with no files")
+    return snuba_plan + lite_plan
+
+
 def list_test_files(args: list[str]) -> list[str]:
     """Every .py file pytest could collect from the paths in `args`, minus --ignore.
 
@@ -207,6 +244,58 @@ def run_full_shard(args: list[str], total: int, group: int) -> int:
     )
 
 
+def run_colored_shard(args: list[str], total: int, group: int, color: str) -> int:
+    """Like run_full_shard, but no fallback: a lite shard can't run Snuba tests."""
+    try:
+        snuba_shards = int(os.environ.get("BACKEND_SNUBA_SHARDS", "0"))
+        if not 0 < snuba_shards < total or not 0 <= group < total:
+            raise ValueError(f"BACKEND_SNUBA_SHARDS={snuba_shards} must be in (0, {total})")
+        expected = "snuba" if group < snuba_shards else "lite"
+        if color != expected:
+            raise ValueError(f"shard {group} is a {expected} shard, got color {color}")
+        if color == "lite" and os.environ.get("BACKEND_TEST_SERVICE_GUARD") != "enforce":
+            raise ValueError("lite shards need BACKEND_TEST_SERVICE_GUARD=enforce")
+        files = list_test_files(args)
+        if not files or not per_file_plan_applies(args, files):
+            raise ValueError("needs test files under the working directory, and no -m/-k")
+        services = json.loads(SERVICES_FILE.read_text())["files"]
+        snuba_files = {path for path in files if needs_snuba(path, services)}
+        weights = file_weights(files)
+        plan = plan_colored_shards(weights, total, snuba_shards, snuba_files)
+    except (OSError, ValueError, KeyError) as exc:
+        print(f"pytest-selected: cannot plan service-colored shards: {exc}", file=sys.stderr)
+        return int(pytest.ExitCode.USAGE_ERROR)
+
+    snuba_seconds = sum(weights[path] for path in snuba_files)
+    print(
+        f"pytest-selected: {color} shard; {len(snuba_files)} of {len(files)} files and "
+        f"{snuba_seconds:.0f} of {sum(weights.values()):.0f} test-seconds need Snuba",
+        file=sys.stderr,
+    )
+    # Like TOTAL_TEST_GROUPS below: tests that run pytest-selected.py
+    # themselves must not inherit this shard's plan.
+    os.environ.pop("BACKEND_TEST_SERVICE_COLOR")
+    os.environ.pop("BACKEND_SNUBA_SHARDS", None)
+    if color == "lite":
+        # A guard failure is deterministic, so don't rerun it.
+        os.environ["PYTEST_ADDOPTS"] = (
+            f"{os.environ.get('PYTEST_ADDOPTS', '')} --rerun-except=ServiceGuardError"
+        )
+    artifacts = Path(".artifacts")
+    artifacts.mkdir(exist_ok=True)
+    return run_planned_shard(
+        args, plan, group, len(files), artifacts / f"full-tests.shard-{group}.txt"
+    )
+
+
+def add_plugin(name: str) -> None:
+    """Load a plugin from this directory in pytest and its xdist workers."""
+    os.environ["PYTHONPATH"] = os.pathsep.join(
+        filter(None, [str(Path(__file__).parent), os.environ.get("PYTHONPATH")])
+    )
+    os.environ["PYTEST_PLUGINS"] = ",".join(filter(None, [os.environ.get("PYTEST_PLUGINS"), name]))
+
+
 def run_planned_shard(
     args: list[str], plan: list[Shard], group: int, file_count: int, shard_file: Path
 ) -> int:
@@ -227,12 +316,7 @@ def run_planned_shard(
     os.environ["TOTAL_TEST_GROUPS"] = "1"
     os.environ["TEST_GROUP"] = "0"
     os.environ["PYTEST_SHARD_PARTS"] = str(parts_file)
-    os.environ["PYTHONPATH"] = os.pathsep.join(
-        filter(None, [str(Path(__file__).parent), os.environ.get("PYTHONPATH")])
-    )
-    os.environ["PYTEST_PLUGINS"] = ",".join(
-        filter(None, [os.environ.get("PYTEST_PLUGINS"), "pytest_shard_plugin"])
-    )
+    add_plugin("pytest_shard_plugin")
     start_assert_rewrite_prewarm(shard_file)
     return int(pytest.main(args))
 
@@ -241,6 +325,16 @@ def main(args: list[str]) -> int:
     selected_file = os.environ.get("SELECTED_TESTS_FILE")
     total = int(os.environ.get("TOTAL_TEST_GROUPS", 1))
     group = int(os.environ.get("TEST_GROUP", 0))
+    color = os.environ.get("BACKEND_TEST_SERVICE_COLOR", "")
+    if os.environ.get("BACKEND_TEST_SERVICE_GUARD"):
+        # Ahead of tests/conftest.py, so it can wrap Kafka clients before
+        # sentry imports them.
+        add_plugin("pytest_service_guard")
+    if color:
+        if selected_file:
+            print("pytest-selected: service colors are for full runs only", file=sys.stderr)
+            return int(pytest.ExitCode.USAGE_ERROR)
+        return run_colored_shard(args, total, group, color)
     if not selected_file and total > 1 and DURATIONS_FILE.is_file():
         return run_full_shard(args, total, group)
     if not selected_file or not os.path.isfile(selected_file) or total <= 1:
