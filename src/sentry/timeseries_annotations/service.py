@@ -28,9 +28,11 @@ class TimeseriesAnnotationData:
     start_timestamp: datetime
 
     project_id: int | None = None
+    environment_id: int | None = None
     end_timestamp: datetime | None = None
     interval_type: IntervalType = IntervalType.POINT
     scope: AnnotationScope = AnnotationScope.GLOBAL
+    severity: Severity = Severity.LOW
     tags: Mapping[str, Any] | None = None
 
     created_by: ActorId | None = None
@@ -46,12 +48,14 @@ class TimeseriesAnnotationData:
             id=annotation.id,
             organization_id=annotation.organization_id,
             project_id=annotation.project_id,
+            environment_id=annotation.environment_id,
             annotation_type=AnnotationType(annotation.annotation_type),
             description=annotation.description,
             start_timestamp=annotation.start_timestamp,
             end_timestamp=annotation.end_timestamp,
             interval_type=IntervalType(annotation.interval_type),
             scope=AnnotationScope(annotation.scope),
+            severity=Severity(annotation.severity),
             tags=annotation.tags,
             created_by=_actor_from_model(annotation),
             created_by_label=annotation.created_by_label,
@@ -86,11 +90,13 @@ def create_timeseries_annotation(data: TimeseriesAnnotationData) -> TimeseriesAn
     annotation = TimeseriesAnnotation.objects.create(
         organization_id=data.organization_id,
         project_id=data.project_id,
+        environment_id=data.environment_id,
         start_timestamp=data.start_timestamp,
         end_timestamp=data.end_timestamp,
         interval_type=data.interval_type,
         annotation_type=data.annotation_type,
         scope=data.scope,
+        severity=data.severity,
         description=data.description,
         tags=dict(data.tags) if data.tags is not None else None,
         created_by_id=created_by_id,

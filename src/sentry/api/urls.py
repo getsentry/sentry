@@ -2487,7 +2487,7 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-notebooks",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/annotations/$",
+        r"^(?P<organization_id_or_slug>[^/]+)/timeseries-annotations/$",
         OrganizationTimeseriesAnnotationEndpoint.as_view(),
         name="sentry-api-0-organization-timeseries-annotations",
     ),

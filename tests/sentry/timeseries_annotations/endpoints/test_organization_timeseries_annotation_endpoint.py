@@ -219,3 +219,87 @@ class OrganizationTimeseriesAnnotationEndpointTest(APITestCase):
             str(live_range.id),
             str(open_fresh.id),
         }
+
+
+@with_feature("organizations:timeseries-annotations")
+class CreateOrganizationTimeseriesAnnotationEndpointTest(APITestCase):
+    endpoint = "sentry-api-0-organization-timeseries-annotations"
+    method = "post"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(self.user)
+
+    def _payload(self, **kwargs: object) -> dict[str, object]:
+        payload: dict[str, object] = dict(
+            annotationType="custom",
+            description="Deployed hotfix",
+            startTimestamp=before_now(days=1).isoformat(),
+        )
+        payload.update(kwargs)
+        return payload
+
+    def test_creates_point_annotation(self) -> None:
+        response = self.get_success_response(
+            self.organization.slug, **self._payload(), status_code=201
+        )
+        annotation = TimeseriesAnnotation.objects.get(id=response.data["id"])
+        assert annotation.organization_id == self.organization.id
+        assert annotation.annotation_type == AnnotationType.CUSTOM
+        assert annotation.interval_type == IntervalType.POINT
+        assert annotation.scope == AnnotationScope.GLOBAL
+        assert annotation.severity == Severity.LOW
+        assert annotation.created_by_id == self.user.id
+        assert response.data["createdBy"] == {"type": "user", "id": str(self.user.id)}
+
+    def test_creates_range_annotation(self) -> None:
+        start = before_now(days=2)
+        end = before_now(days=1)
+        response = self.get_success_response(
+            self.organization.slug,
+            **self._payload(
+                annotationType="sentry_outage",
+                scope="spans",
+                severity="high",
+                startTimestamp=start.isoformat(),
+                endTimestamp=end.isoformat(),
+                tags={"region": "us"},
+            ),
+            status_code=201,
+        )
+        annotation = TimeseriesAnnotation.objects.get(id=response.data["id"])
+        assert annotation.interval_type == IntervalType.RANGE
+        assert annotation.end_timestamp is not None
+        assert annotation.scope == AnnotationScope.SPANS
+        assert annotation.severity == Severity.HIGH
+        assert annotation.tags == {"region": "us"}
+
+    def test_scopes_annotation_to_project(self) -> None:
+        project = self.create_project(organization=self.organization)
+        response = self.get_success_response(
+            self.organization.slug, **self._payload(projectId=project.id), status_code=201
+        )
+        assert TimeseriesAnnotation.objects.get(id=response.data["id"]).project_id == project.id
+
+    def test_inaccessible_project_is_403(self) -> None:
+        other_org = self.create_organization()
+        foreign_project = self.create_project(organization=other_org)
+        self.get_error_response(
+            self.organization.slug, **self._payload(projectId=foreign_project.id), status_code=403
+        )
+        assert not TimeseriesAnnotation.objects.exists()
+
+    def test_invalid_type_is_400(self) -> None:
+        self.get_error_response(
+            self.organization.slug, **self._payload(annotationType="bogus"), status_code=400
+        )
+
+    def test_end_before_start_is_400(self) -> None:
+        self.get_error_response(
+            self.organization.slug,
+            **self._payload(
+                startTimestamp=before_now(days=1).isoformat(),
+                endTimestamp=before_now(days=2).isoformat(),
+            ),
+            status_code=400,
+        )
