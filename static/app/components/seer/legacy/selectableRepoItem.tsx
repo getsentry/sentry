@@ -18,24 +18,30 @@ interface Props {
 export function SelectableRepoItem({repo, isSelected, onToggle}: Props) {
   const isSeerSupportedProvider = useIsSeerSupportedProvider();
   const isSupportedProvider = isSeerSupportedProvider(repo.provider);
+  const isConnected = !!repo.integrationId;
+  const isSelectable = isSupportedProvider && isConnected;
 
   return (
     <RepoListItemContainer
       selected={isSelected}
-      disabled={!isSupportedProvider}
+      disabled={!isSelectable}
       role="button"
       tabIndex={0}
       data-repo-id={repo.externalId}
       onClick={() => {
-        if (isSupportedProvider) {
+        if (isSelectable) {
           onToggle(repo.externalId);
         }
       }}
     >
       <Tooltip
-        title={t('Support for %s will be coming soon', repo.provider?.name)}
+        title={
+          isSupportedProvider
+            ? t("Seer can't access this repository without an integration")
+            : t('Support for %s will be coming soon', repo.provider?.name)
+        }
         showUnderline={false}
-        disabled={isSupportedProvider}
+        disabled={isSelectable}
       >
         <Flex justify="between" align="center" padding="md lg">
           <Flex justify="between" align="center" width="100%">
@@ -48,7 +54,7 @@ export function SelectableRepoItem({repo, isSelected, onToggle}: Props) {
                 checked={isSelected}
                 size="sm"
                 readOnly
-                disabled={!isSupportedProvider}
+                disabled={!isSelectable}
               />
             </Flex>
           </Flex>
