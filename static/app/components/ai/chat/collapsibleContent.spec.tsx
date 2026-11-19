@@ -29,6 +29,24 @@ describe('CollapsibleContent', () => {
     expect(screen.getByText('body').closest('details')).toHaveAttribute('open');
   });
 
+  it('expands when openWhen turns true after mounting', () => {
+    const {rerender} = render(
+      <CollapsibleContent title="Tool calls">
+        <span>body</span>
+      </CollapsibleContent>
+    );
+    const details = screen.getByText('body').closest('details');
+    expect(details).not.toHaveAttribute('open');
+
+    rerender(
+      <CollapsibleContent title="Tool calls" openWhen>
+        <span>body</span>
+      </CollapsibleContent>
+    );
+
+    expect(details).toHaveAttribute('open');
+  });
+
   it('fires onToggle with the new open state', async () => {
     const onToggle = jest.fn();
     render(

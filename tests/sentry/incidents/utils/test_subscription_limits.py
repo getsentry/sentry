@@ -22,14 +22,10 @@ class TestIsMetricSubscriptionAllowed:
         with self.fake_features(set()):
             assert is_metric_subscription_allowed(Dataset.Events.value, self.org) is True
 
-    # -- Transactions: requires :performance-view --
+    # -- Transactions: ungated --
 
-    def test_transactions_without_any_features(self) -> None:
+    def test_transactions_always_allowed(self) -> None:
         with self.fake_features(set()):
-            assert is_metric_subscription_allowed(Dataset.Transactions.value, self.org) is False
-
-    def test_transactions_with_performance_view(self) -> None:
-        with self.fake_features({"organizations:performance-view"}):
             assert is_metric_subscription_allowed(Dataset.Transactions.value, self.org) is True
 
     # -- EAP: requires :visibility-explore-view --

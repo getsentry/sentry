@@ -14,6 +14,7 @@ import {FormField} from 'sentry/components/forms/formField';
 import {
   CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION,
   SENTRY_APP_PERMISSIONS,
+  SERVICE_ACCOUNT_SENTRY_APP_PERMISSION,
   type PermissionObj,
 } from 'sentry/constants';
 import {t} from 'sentry/locale';
@@ -181,7 +182,9 @@ function SpecialPermissionField({
 }
 
 function findResource(r: PermissionResource) {
-  return SENTRY_APP_PERMISSIONS.find(permissions => permissions.resource === r);
+  return [...SENTRY_APP_PERMISSIONS, SERVICE_ACCOUNT_SENTRY_APP_PERMISSION].find(
+    permissions => permissions.resource === r
+  );
 }
 
 /**

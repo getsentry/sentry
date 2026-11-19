@@ -235,12 +235,7 @@ class ScmCreateProjectTest(AcceptanceTestCase):
             self.create_scm_project("Django", "python-django", "sentry")
 
     def test_create_without_repository(self) -> None:
-        with self.feature(
-            {
-                "organizations:onboarding-scm-project-creation": True,
-                "organizations:performance-view": True,
-            }
-        ):
+        with self.feature({"organizations:onboarding-scm-project-creation": True}):
             self.load_project_creation_page()
 
             platform_input = self.browser.element('input[aria-autocomplete="list"]')

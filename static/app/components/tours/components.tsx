@@ -1,9 +1,20 @@
 import type {HTMLAttributes} from 'react';
-import {Fragment, useContext, useEffect, useEffectEvent, useMemo, useRef} from 'react';
+import {
+  Fragment,
+  useContext,
+  useEffect,
+  useEffectEvent,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useState,
+} from 'react';
 import {createPortal} from 'react-dom';
 import {ClassNames, ThemeProvider, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {createFocusManager} from '@react-aria/focus';
 import {mergeProps} from '@react-aria/utils';
+import {VisuallyHidden} from '@react-aria/visually-hidden';
 import {IconClose} from '@sentry/icons/close';
 
 import {Button} from '@sentry/scraps/button';
@@ -23,6 +34,7 @@ import {
   useTourReducer,
   type TourContextType,
   type TourEnumType,
+  type TourFocusScope,
   type TourState,
   type TourStep,
   type TourVariant,
@@ -110,20 +122,27 @@ export function TourContextProvider<T extends TourEnumType>({
   );
   const {endTour, previousStep, nextStep, currentStepId} = tourContextValue;
   const isTourActive = currentStepId !== null;
-  // Set when the user steps through a subtle tour from a focused guide, so the
-  // next guide can take focus over.
-  const focusHandoffRef = useRef(false);
+  // Each run of the tour gets its own focus scope. It is state, not memoized,
+  // because the guides' effects need it to stay the same for the whole run.
+  const [focusScopeRun, setFocusScopeRun] = useState(() => ({
+    isTourActive,
+    focusScope: createTourFocusScope({isRunning: isTourActive}),
+  }));
+  if (focusScopeRun.isTourActive !== isTourActive) {
+    setFocusScopeRun({
+      isTourActive,
+      focusScope: createTourFocusScope({isRunning: isTourActive}),
+    });
+  }
+  const {focusScope} = focusScopeRun;
+  // A layout effect, so the scope ends before the last guide's effects clean up
+  // and return focus.
+  useLayoutEffect(() => focusScope.end, [focusScope]);
   const variantTourContextValue = {
     ...tourContextValue,
     variant,
-    focusHandoffRef: variant === 'subtle' ? focusHandoffRef : undefined,
+    focusScope,
   };
-
-  useEffect(() => {
-    if (!isTourActive) {
-      focusHandoffRef.current = false;
-    }
-  }, [isTourActive]);
 
   // Subtle tours leave the page usable, so their guides handle Escape only
   // while focused instead.
@@ -234,11 +253,6 @@ export interface TourElementProps<T extends TourEnumType> extends Omit<
    * The position of the tour element.
    */
   position?: UseOverlayProps['position'];
-  /**
-   * Where focus goes when a subtle tour's guide closes while focused. Defaults
-   * to this element, which may no longer be on the page.
-   */
-  returnFocusRef?: React.RefObject<HTMLElement | null>;
 }
 
 export function TourElement<T extends TourEnumType>({
@@ -279,7 +293,6 @@ export function TourElementContent<T extends TourEnumType>({
   className,
   actions,
   margin,
-  returnFocusRef,
 }: TourElementContentProps<T>) {
   const organization = useOrganization({allowNull: true});
   const {
@@ -291,7 +304,7 @@ export function TourElementContent<T extends TourEnumType>({
     nextStep,
     endTour,
     variant,
-    focusHandoffRef,
+    focusScope,
   } = tourContextValue;
   const stepCount = currentStepId ? orderedStepIds.indexOf(id) + 1 : 0;
   const stepTotal = orderedStepIds.length;
@@ -312,22 +325,15 @@ export function TourElementContent<T extends TourEnumType>({
     }
   }, [isOpen, id, organization, tourKey, stepCount]);
 
-  // Keyboard users keep their place when the step changes under them.
-  const withFocusHandoff = (changeStep: () => void) => (event: React.MouseEvent) => {
-    if (focusHandoffRef && event.currentTarget === document.activeElement) {
-      focusHandoffRef.current = true;
-    }
-    changeStep();
-  };
   const defaultActions = (
     <Grid flow="column" align="center" gap="md">
       {hasPreviousStep && (
-        <TextTourAction size="xs" onClick={withFocusHandoff(previousStep)}>
+        <TextTourAction size="xs" onClick={previousStep}>
           {t('Previous')}
         </TextTourAction>
       )}
       {hasNextStep ? (
-        <TourAction size="xs" onClick={withFocusHandoff(nextStep)}>
+        <TourAction size="xs" onClick={nextStep}>
           {t('Next')}
         </TourAction>
       ) : (
@@ -373,18 +379,7 @@ export function TourElementContent<T extends TourEnumType>({
       handleDismiss={dismiss}
       // Spotlight tours blur the page, so only subtle tours can be clicked away.
       onClickOutside={variant === 'subtle' ? dismiss : undefined}
-      onKeyDown={
-        variant === 'subtle'
-          ? event => {
-              if (event.key === 'Escape') {
-                event.stopPropagation();
-                dismiss();
-              }
-            }
-          : undefined
-      }
-      focusHandoffRef={focusHandoffRef}
-      returnFocusRef={returnFocusRef}
+      focusScope={focusScope}
       variant={variant}
       stepCount={stepCount}
       stepTotal={stepTotal}
@@ -413,10 +408,14 @@ interface TourGuideProps extends Omit<
    */
   actions?: React.ReactNode;
   /**
-   * When true as the guide opens, the guide takes focus and resets it.
+   * Shared by a tour's guides, so focus returns once the tour ends rather than
+   * at each step. Without it, a subtle guide returns focus when it closes.
    */
-  focusHandoffRef?: React.RefObject<boolean>;
-  handleDismiss?: (e: React.MouseEvent) => void;
+  focusScope?: TourFocusScope;
+  /**
+   * Called by the close button, and by Escape while a subtle guide has focus.
+   */
+  handleDismiss?: (e: React.SyntheticEvent) => void;
   id?: string;
   margin?: number;
   offset?: UseOverlayProps['offset'];
@@ -424,21 +423,41 @@ interface TourGuideProps extends Omit<
    * Called after a click outside the guide. The click still goes through.
    */
   onClickOutside?: () => void;
-  /**
-   * Handles keys pressed while focus is inside the guide. The guide can then be
-   * focused, and returns focus to the page when it closes.
-   */
-  onKeyDown?: (event: React.KeyboardEvent) => void;
   position?: UseOverlayProps['position'];
-  /**
-   * Where focus goes when the guide closes while focused. Defaults to the
-   * highlighted element.
-   */
-  returnFocusRef?: React.RefObject<HTMLElement | null>;
   stepCount?: number;
   stepTotal?: number;
   title?: React.ReactNode;
+  /**
+   * A subtle guide acts as a dialog: it takes focus as it opens, keeps Tab
+   * inside itself, closes on Escape, and returns focus to the page.
+   */
   variant?: TourVariant;
+}
+
+function isEditable(element: Element | null) {
+  return (
+    element instanceof HTMLElement &&
+    (element.isContentEditable || element.matches('input, textarea, select'))
+  );
+}
+
+function createTourFocusScope({isRunning}: {isRunning: boolean}): TourFocusScope {
+  let returnTarget: HTMLElement | null = null;
+  let hasEntered = false;
+  return {
+    end: () => {
+      isRunning = false;
+    },
+    enter: previousFocus => {
+      if (!returnTarget && previousFocus instanceof HTMLElement) {
+        returnTarget = previousFocus;
+      }
+      const isFirst = !hasEntered;
+      hasEntered = true;
+      return isFirst;
+    },
+    exit: () => (isRunning ? null : returnTarget),
+  };
 }
 
 const zIndex = {
@@ -467,9 +486,7 @@ export function TourGuide({
   offset,
   margin,
   onClickOutside,
-  onKeyDown,
-  focusHandoffRef,
-  returnFocusRef,
+  focusScope,
   variant,
 }: TourGuideProps) {
   const theme = useTheme();
@@ -535,18 +552,28 @@ export function TourGuide({
     }
   }, [isOpen, triggerRef]);
 
-  const isFocusable = defined(onKeyDown);
+  const isSubtle = variant === 'subtle';
+  const [isFocusRingVisible, setIsFocusRingVisible] = useState(false);
   useEffect(() => {
     const overlay = overlayRef.current;
     // The guide's element attaches after it opens, and this runs again then.
-    if (!isOpen || !isFocusable || !overlay) {
+    if (!isOpen || !isSubtle || !overlay) {
       return;
     }
-    if (focusHandoffRef?.current) {
-      focusHandoffRef.current = false;
+    // A guide outside a tour is a scope of its own.
+    const scope = focusScope ?? createTourFocusScope({isRunning: false});
+    // Like a react-aria dialog, the guide takes focus as it opens. A tour can
+    // start on its own at any time, so it leaves focus with a field the user
+    // may be typing in.
+    if (
+      !overlay.contains(document.activeElement) &&
+      !isEditable(document.activeElement)
+    ) {
+      // Only the tour's first guide shows the focus ring, so the user notices
+      // the tour start; later steps take focus without it.
+      setIsFocusRingVisible(scope.enter(document.activeElement));
       overlay.focus();
     }
-    const returnFocusTarget = returnFocusRef?.current ?? triggerRef.current;
     let hasFocus = overlay.contains(document.activeElement);
     const handleFocusIn = () => {
       hasFocus = true;
@@ -564,21 +591,53 @@ export function TourGuide({
     return () => {
       overlay.removeEventListener('focusin', handleFocusIn);
       overlay.removeEventListener('focusout', handleFocusOut);
-      // Leave focus alone when the next guide takes it over, or when something
-      // else, like a modal, has already moved it.
+      // Leave focus alone while the tour moves on to its next guide, or when
+      // something else, like a modal, has already moved it.
       const isFocusLost =
         !document.activeElement || document.activeElement === document.body;
-      if (hasFocus && isFocusLost && !focusHandoffRef?.current) {
-        if (returnFocusTarget?.isConnected) {
-          returnFocusTarget.focus();
-        }
+      const returnTarget = scope.exit();
+      if (hasFocus && isFocusLost && returnTarget?.isConnected) {
+        // Focus goes back to where it was. When nothing had focus, nothing gets
+        // it, so the next Tab starts from the page again.
+        returnTarget.focus();
       }
     };
-  }, [isOpen, isFocusable, overlayRef, triggerRef, focusHandoffRef, returnFocusRef]);
+  }, [isOpen, isSubtle, overlayRef, focusScope]);
 
-  const focusProps: HTMLAttributes<HTMLElement> = isFocusable
-    ? {tabIndex: -1, onKeyDown}
-    : {};
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === 'Escape' && handleDismiss) {
+      event.stopPropagation();
+      handleDismiss(event);
+    }
+    // Tab cycles through the guide, like a react-aria FocusScope with `contain`.
+    // Unlike `contain`, other focus moves are left alone: a click on the page
+    // closes the guide and focuses what was clicked, and a modal can take over.
+    if (event.key === 'Tab' && !event.altKey && !event.ctrlKey && !event.metaKey) {
+      event.preventDefault();
+      const focusManager = createFocusManager(
+        {current: event.currentTarget},
+        {tabbable: true, wrap: true}
+      );
+      if (event.shiftKey) {
+        focusManager.focusPrevious();
+      } else {
+        focusManager.focusNext();
+      }
+    }
+  };
+  const titleId = useId();
+  const descriptionId = useId();
+  const dialogProps: HTMLAttributes<HTMLElement> & {'data-focus-ring'?: boolean} =
+    isSubtle
+      ? {
+          role: 'dialog',
+          tabIndex: -1,
+          onKeyDown: handleKeyDown,
+          'data-focus-ring': isFocusRingVisible || undefined,
+          'aria-labelledby': title ? titleId : undefined,
+          'aria-describedby': description ? descriptionId : undefined,
+        }
+      : {};
 
   return (
     <Fragment>
@@ -596,9 +655,9 @@ export function TourGuide({
       </ClassNames>
       {isOpen && defined(title) && defined(description)
         ? createPortal(
-            <PositionWrapper
+            <GuidePositionWrapper
               zIndex={zIndex.overlay}
-              {...mergeProps(overlayProps, focusProps)}
+              {...mergeProps(overlayProps, dialogProps)}
             >
               <ThemeProvider theme={darkTheme}>
                 <ClassNames>
@@ -631,7 +690,7 @@ export function TourGuide({
                             align="center"
                             minHeight={theme.form.sm.height}
                           >
-                            <Text size="sm" variant="muted" bold>
+                            <Text size="sm" variant="muted" bold aria-hidden>
                               {countText}
                             </Text>
                             {isDismissVisible && (
@@ -647,14 +706,31 @@ export function TourGuide({
                         )}
                         {title && (
                           <Container padding="xs 0">
-                            <Text as="div" size="xl" bold density="comfortable">
+                            <Text
+                              as="div"
+                              id={titleId}
+                              size="xl"
+                              bold
+                              density="comfortable"
+                            >
                               {title}
                             </Text>
                           </Container>
                         )}
                         {description && (
                           <Container padding="xs 0">
-                            <Text as="div" size="md" density="comfortable">
+                            <Text
+                              as="div"
+                              id={descriptionId}
+                              size="md"
+                              density="comfortable"
+                            >
+                              {/* Screen readers hear the step here instead of the visible "1/2". */}
+                              {isStepCountVisible && (
+                                <VisuallyHidden>
+                                  {t('Step %s of %s.', stepCount, stepTotal)}{' '}
+                                </VisuallyHidden>
+                              )}
                               {description}
                             </Text>
                           </Container>
@@ -669,7 +745,7 @@ export function TourGuide({
                   )}
                 </ClassNames>
               </ThemeProvider>
-            </PositionWrapper>,
+            </GuidePositionWrapper>,
             document.body
           )
         : null}
@@ -686,6 +762,18 @@ export function TourAction(props: React.ComponentProps<typeof Button>) {
 export function TextTourAction(props: React.ComponentProps<typeof Button>) {
   return <Button {...props} variant="transparent" size="sm" />;
 }
+
+/**
+ * The tour's first guide shows the focus ring on its visible box, rather than
+ * the browser's outline around the wrapper that positions it.
+ */
+const GuidePositionWrapper = styled(PositionWrapper)`
+  outline: none;
+
+  &[data-focus-ring]:focus-visible > [data-overlay] {
+    ${p => p.theme.focusRing()};
+  }
+`;
 
 const BlurWindow = styled('div')`
   content: '';

@@ -264,7 +264,7 @@ interface PaginationReducerState {
 type PaginationReducerAction =
   | {type: 'next'}
   | {type: 'previous'}
-  | {list: any[]; pageSize: number; type: 'initialize'};
+  | {list: readonly unknown[]; pageSize: number; type: 'initialize'};
 
 function paginationReducer(
   state: PaginationReducerState,

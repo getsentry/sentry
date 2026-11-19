@@ -253,9 +253,10 @@ describe('SpansTabContent', () => {
     await userEvent.keyboard('{Escape}');
     await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
     expect(screen.getByRole('menuitemradio', {name: 'New Query'})).toBeEnabled();
-    expect(
-      screen.getByRole('menuitemradio', {name: 'Dashboard widget'})
-    ).not.toHaveAttribute('aria-disabled', 'true');
+    expect(screen.getByRole('menuitem', {name: 'Dashboard widget'})).not.toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
     expect(screen.getByRole('menuitemradio', {name: 'Monitor for'})).toHaveAttribute(
       'aria-disabled',
       'true'

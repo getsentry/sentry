@@ -422,7 +422,6 @@ export function EventsTable({
                   return renderError(queryError);
                 }
 
-                // oxlint-disable-next-line react/todo
                 tableData ??= {data: []};
                 const pageEventsCount = tableData?.data?.length ?? 0;
                 const parsedPageLinks = parseLinkHeader(pageLinks);

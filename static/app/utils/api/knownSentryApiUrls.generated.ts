@@ -91,6 +91,7 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/ai-conversations/$conversationId/'
   | '/organizations/$organizationIdOrSlug/alert-rule-detector/'
   | '/organizations/$organizationIdOrSlug/alert-rule-workflow/'
+  | '/organizations/$organizationIdOrSlug/annotations/'
   | '/organizations/$organizationIdOrSlug/api-keys/'
   | '/organizations/$organizationIdOrSlug/api-keys/$apiKeyId/'
   | '/organizations/$organizationIdOrSlug/artifactbundle/assemble/'
