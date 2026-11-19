@@ -17,6 +17,7 @@ from sentry.integrations.models.organization_integration import OrganizationInte
 from sentry.integrations.perforce.integration import PerforceIntegrationProvider
 from sentry.integrations.services.repository.impl import DatabaseBackedRepositoryService
 from sentry.integrations.source_code_management import sync_repos as sync_repos_module
+from sentry.integrations.source_code_management.repo_audit import log_repo_change
 from sentry.integrations.source_code_management.sync_repos import (
     sync_repos_for_org,
 )
@@ -516,6 +517,52 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
             for repo in repos:
                 repo.refresh_from_db()
                 assert repo.status == ObjectStatus.ACTIVE
+
+    @patch(
+        "sentry.plugins.providers.integration_repository.IntegrationRepositoryProvider.on_create_repository"
+    )
+    def test_restore_retry_finishes_repos_after_partial_failure(
+        self, mock_on_create: MagicMock, _: MagicMock
+    ) -> None:
+        with assume_test_silo_mode(SiloMode.CELL):
+            for external_id, name in (("1", "sentry"), ("2", "snuba")):
+                Repository.objects.create(
+                    organization_id=self.organization.id,
+                    name=f"getsentry/{name}",
+                    external_id=external_id,
+                    provider="integrations:github",
+                    integration_id=self.integration.id,
+                    status=ObjectStatus.DISABLED,
+                )
+
+        calls = 0
+
+        def fail_first_audit(**kwargs: Any) -> None:
+            nonlocal calls
+            calls += 1
+            if calls == 1:
+                raise Exception("audit write failed")
+            log_repo_change(**kwargs)
+
+        with patch.object(sync_repos_module, "log_repo_change", side_effect=fail_first_audit):
+            # The first attempt enables both repos, then fails on the first audit write.
+            with pytest.raises(Exception, match="audit write failed"):
+                sync_repos_module.restore_repos_batch(
+                    organization_integration_id=self.oi.id, external_ids=["1", "2"]
+                )
+            sync_repos_module.restore_repos_batch(
+                organization_integration_id=self.oi.id, external_ids=["1", "2"]
+            )
+
+        assert mock_on_create.call_count == 2
+        with assume_test_silo_mode_of(AuditLogEntry):
+            assert (
+                AuditLogEntry.objects.filter(
+                    organization_id=self.organization.id,
+                    event=audit_log.get_event_id("REPO_ENABLED"),
+                ).count()
+                == 2
+            )
 
     @responses.activate
     def test_no_changes_needed(self, _: MagicMock) -> None:
