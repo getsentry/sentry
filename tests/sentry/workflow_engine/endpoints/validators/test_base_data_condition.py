@@ -15,6 +15,7 @@ from sentry.workflow_engine.types import DataConditionHandler
 
 
 class MockDataConditionHandler(DataConditionHandler[dict[str, str]]):
+    group = DataConditionHandler.Group.DETECTOR_TRIGGER
     comparison_json_schema = {"type": "number"}
     condition_result_schema = {"type": "boolean"}
 
@@ -170,6 +171,7 @@ class TestBooleanConditionResult(TestCase):
 
 
 class MockComplexDataConditionHandler(DataConditionHandler[dict[str, Any]]):
+    group = DataConditionHandler.Group.DETECTOR_TRIGGER
     comparison_json_schema = {
         "type": "object",
         "properties": {

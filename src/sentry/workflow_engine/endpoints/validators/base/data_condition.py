@@ -74,7 +74,7 @@ class BaseDataConditionValidator(
                 handler = condition_handler_registry.get(condition_type)
             except NoRegistrationExistsError:
                 handler = None
-            if getattr(handler, "group", None) in _BOOLEAN_CONDITION_RESULT_GROUPS:
+            if handler is not None and handler.group in _BOOLEAN_CONDITION_RESULT_GROUPS:
                 data = {**data, "condition_result": True}
         return super().to_internal_value(data)
 
@@ -133,7 +133,7 @@ class BaseDataConditionValidator(
                     "Invalid condition result value for condition type"
                 )
 
-        if getattr(handler, "group", None) in _BOOLEAN_CONDITION_RESULT_GROUPS:
+        if handler.group in _BOOLEAN_CONDITION_RESULT_GROUPS:
             value = self._to_boolean_condition_result(value)
 
         try:
