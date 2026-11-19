@@ -206,8 +206,15 @@ def classify_link(url: str) -> NotificationLink:
     if re.match(r"^/issues/\d+(/|$)", path):
         if query.get("seerDrawer") == ["true"]:
             return NotificationLink.ISSUE_WITH_SEER
-        # Metric alert notifications link to the metric issue rather than the monitor.
-        if query.get("referrer", [""])[0].startswith("metric_alert"):
+        # Metric alert notifications link to the metric issue rather than the monitor. The
+        # referrer is `metric_alert_<provider>` when sent and `metric-alert-<provider>` once
+        # decorated.
+        referrer = query.get("referrer", [""])[0]
+        parsed_referrer = parse_referrer(referrer)
+        if referrer.startswith("metric_alert") or (
+            parsed_referrer is not None
+            and parsed_referrer.source == NotificationSource.METRIC_ALERT
+        ):
             return NotificationLink.ALERT
         return NotificationLink.ISSUE
     if path.startswith(("/monitors/", "/alerts/", "/issues/alerts/")):

@@ -226,6 +226,14 @@ class RecordEngagementTest(TestCase):
             NotificationLink.ALERT,
         ),
         (
+            "https://acme.sentry.io/issues/1/?openPeriod=5&referrer=metric-alert-discord&notification_uuid=x",
+            NotificationLink.ALERT,
+        ),
+        (
+            "https://acme.sentry.io/issues/1/?referrer=issue-slack&notification_uuid=x",
+            NotificationLink.ISSUE,
+        ),
+        (
             "https://sentry.io/organizations/acme/issues/alerts/rules/backend/3/details/",
             NotificationLink.ALERT,
         ),
