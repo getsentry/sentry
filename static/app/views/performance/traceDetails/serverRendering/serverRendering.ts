@@ -1,4 +1,7 @@
-import {SEARCH_PAGE__SERVER_RENDERING__TYPE} from '@sentry/conventions/attributes/search';
+import {
+  SEARCH_PAGE__SERVER_RENDERING__AGE,
+  SEARCH_PAGE__SERVER_RENDERING__TYPE,
+} from '@sentry/conventions/attributes/search';
 
 import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
 import type {
@@ -52,9 +55,6 @@ interface PageServerRendering {
 const PAGELOAD_OP = 'pageload';
 const CACHE_ORIGIN_LINK_TYPE = 'cache_origin';
 const SERVER_REQUEST_LINK_TYPE = 'server_request';
-// TODO: Use the constant from `@sentry/conventions` when a release has it.
-// https://github.com/getsentry/sentry-conventions/pull/799
-const PAGE_SERVER_RENDERING_AGE = 'page.server_rendering.age';
 
 export function getServerRenderingType(
   value: string | number | boolean | undefined
@@ -115,7 +115,9 @@ function findLinkOfType(
 
 /** SDKs clamp the age at 0, so a negative value is not valid. */
 function getRenderAge(attributes: TraceItemResponseAttribute[]): number | undefined {
-  const age = Number(getAttributeValue(attributes, PAGE_SERVER_RENDERING_AGE, 'number'));
+  const age = Number(
+    getAttributeValue(attributes, SEARCH_PAGE__SERVER_RENDERING__AGE, 'number')
+  );
   return Number.isFinite(age) && age >= 0 ? age : undefined;
 }
 

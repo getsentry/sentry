@@ -68,7 +68,7 @@
     "@rspack/core": "2.3.2",
     "@rspack/plugin-react-refresh": "2.0.2",
     "@sentry/bundler-plugins": "11.12.0",
-    "@sentry/conventions": "^0.33.0",
+    "@sentry/conventions": "^0.34.0",
     "@sentry/sqlish": "1.0.1",
     "@swc/plugin-emotion": "20.0.2",
     "@types/gtag.js": "^0.0.12",

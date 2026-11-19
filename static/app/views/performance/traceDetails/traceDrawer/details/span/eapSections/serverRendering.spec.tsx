@@ -1,4 +1,5 @@
 import {
+  SEARCH_PAGE__SERVER_RENDERING__AGE,
   SEARCH_PAGE__SERVER_RENDERING__TYPE,
   SEARCH_SENTRY__LINK__TYPE,
 } from '@sentry/conventions/attributes/search';
@@ -51,7 +52,7 @@ describe('ServerRenderingSection', () => {
   }
 
   function ageAttribute(seconds: number): TraceItemResponseAttribute {
-    return {name: 'page.server_rendering.age', type: 'int', value: seconds};
+    return {name: SEARCH_PAGE__SERVER_RENDERING__AGE, type: 'int', value: seconds};
   }
 
   function makeLink(

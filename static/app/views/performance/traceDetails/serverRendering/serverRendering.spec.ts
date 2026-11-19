@@ -1,4 +1,5 @@
 import {
+  SEARCH_PAGE__SERVER_RENDERING__AGE,
   SEARCH_PAGE__SERVER_RENDERING__TYPE,
   SEARCH_SENTRY__LINK__TYPE,
 } from '@sentry/conventions/attributes/search';
@@ -81,7 +82,7 @@ describe('getPageServerRendering', () => {
       op: 'pageload',
       attributes: [
         ...typeAttribute('static'),
-        {name: 'page.server_rendering.age', type: 'int', value: 172800},
+        {name: SEARCH_PAGE__SERVER_RENDERING__AGE, type: 'int', value: 172800},
       ],
       links: [makeLink('cache_origin')],
     });
@@ -104,7 +105,7 @@ describe('getPageServerRendering', () => {
       op: 'pageload',
       attributes: [
         ...typeAttribute('static'),
-        {name: 'page.server_rendering.age', type: 'int', value: -5},
+        {name: SEARCH_PAGE__SERVER_RENDERING__AGE, type: 'int', value: -5},
       ],
       links: [makeLink('cache_origin')],
     });
