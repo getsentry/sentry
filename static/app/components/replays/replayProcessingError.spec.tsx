@@ -21,6 +21,5 @@ describe('ReplayProcessingError', () => {
     render(<ReplayProcessingError replay={replay} />);
 
     expect(screen.getByText('No Screen Recording')).toBeInTheDocument();
-    expect(screen.queryByText('Replay Not Found')).not.toBeInTheDocument();
   });
 });

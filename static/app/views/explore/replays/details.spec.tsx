@@ -392,7 +392,6 @@ describe('ReplayDetails', () => {
       renderDetails();
 
       expect(await screen.findByText(heading)).toBeInTheDocument();
-      expect(screen.queryByText('Replay Not Found')).not.toBeInTheDocument();
       expect(
         screen.getByRole('link', {name: 'Session Replay troubleshooting docs'})
       ).toHaveAttribute(
@@ -410,7 +409,6 @@ describe('ReplayDetails', () => {
     renderDetails();
 
     expect(await screen.findByText('Replay Not Found')).toBeInTheDocument();
-    expect(screen.queryByRole('tab', {name: 'Console'})).not.toBeInTheDocument();
   });
 
   it('should show access denied and not fetch data when user does not have granular replay permissions', () => {

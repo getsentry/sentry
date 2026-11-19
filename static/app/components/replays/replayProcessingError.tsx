@@ -18,6 +18,33 @@ interface Props {
   replay?: ReplayReader | null;
 }
 
+/**
+ * Copy for errors that only break the player. Returns null when the replay has
+ * nothing else to show, so the generic Replay Not Found message is used.
+ */
+function getPlayerOnlyError(replay: ReplayReader | null) {
+  if (!replay?.hasTimelineData()) {
+    return null;
+  }
+  if (replay.isMissingFullSnapshot()) {
+    return {
+      heading: t('No Screen Recording'),
+      reason: t(
+        'The SDK sent events for this replay but never captured the page itself, so there is nothing to play back.'
+      ),
+    };
+  }
+  if (replay.isMissingMeta()) {
+    return {
+      heading: t('Recording Cannot Be Played'),
+      reason: t(
+        'The SDK captured the page but not the screen size it was shown at, so the recording cannot be played back.'
+      ),
+    };
+  }
+  return null;
+}
+
 export function ReplayProcessingError({className, replay: replayProp}: Props) {
   const contextReplay = useReplayReader();
   const replay = replayProp ?? contextReplay;
@@ -35,23 +62,7 @@ export function ReplayProcessingError({className, replay: replayProp}: Props) {
     });
   }, [replay, sdk]);
 
-  const playerOnlyError = replay?.hasTimelineData()
-    ? replay.isMissingFullSnapshot()
-      ? {
-          heading: t('No Screen Recording'),
-          reason: t(
-            'The SDK sent events for this replay but never captured the page itself, so there is nothing to play back.'
-          ),
-        }
-      : replay.isMissingMeta()
-        ? {
-            heading: t('Recording Cannot Be Played'),
-            reason: t(
-              'The SDK captured the page but not the screen size it was shown at, so the recording cannot be played back.'
-            ),
-          }
-        : null
-    : null;
+  const playerOnlyError = getPlayerOnlyError(replay);
 
   if (playerOnlyError) {
     return (
