@@ -510,6 +510,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.seer",
     "sentry.scm",
     "sentry.cadence",
+    "sentry.db.partitions.apps.PartitionsConfig",
 )
 
 # Silence internal hints from Django's system checks
@@ -3390,6 +3391,11 @@ ZERO_DOWNTIME_MIGRATIONS_RAISE_FOR_UNSAFE = True
 ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT: str | None = None
 ZERO_DOWNTIME_MIGRATIONS_STATEMENT_TIMEOUT: str | None = None
 ZERO_DOWNTIME_MIGRATIONS_IDEMPOTENT_SQL = False
+
+# Tables created as partitioned tables in this environment. Each one must belong to a
+# model that declares `__partitioning__`. Listing a table only affects how it is
+# created; an existing table is never converted. See `sentry.db.partitions`.
+SENTRY_PARTITIONED_TABLES: frozenset[str] = frozenset()
 
 if int(PG_VERSION.split(".", maxsplit=1)[0]) < 12:
     # In v0.6 of django-pg-zero-downtime-migrations this settings is deprecated for PostreSQLv12+

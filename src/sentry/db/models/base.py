@@ -20,6 +20,8 @@ from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models.fields.uuid import UUIDField
 from sentry.db.models.manager.base import BaseManager, create_silo_limited_copy
+from sentry.db.partitions.spec import PartitioningSpec
+from sentry.db.partitions.validation import validate_model_partitioning
 from sentry.silo.base import SiloLimit, SiloMode
 
 from .fields.bounded import BoundedBigAutoField
@@ -62,6 +64,10 @@ class BaseModel(models.Model):
     # more fields, none of which are foreign keys, that are `unique=True` or `unique_together` for
     # an entire Sentry instance.
     __relocation_custom_ordinal__: list[str] | None = None
+
+    # How the table is partitioned in environments that list it in
+    # `SENTRY_PARTITIONED_TABLES`. See `sentry.db.partitions`.
+    __partitioning__: ClassVar[PartitioningSpec | None] = None
 
     objects: ClassVar[BaseManager[Self]] = BaseManager()
 
@@ -399,6 +405,8 @@ def __model_class_prepared(sender: Any, **kwargs: Any) -> None:
             f"{sender!r} model is in the `getsentry` app, and therefore cannot be exported. "
             f"Please set `__relocation_scope__ = RelocationScope.Excluded` on the model definition."
         )
+
+    validate_model_partitioning(sender)
 
     from sentry.hybridcloud.outbox.base import ReplicatedCellModel, ReplicatedControlModel
 
