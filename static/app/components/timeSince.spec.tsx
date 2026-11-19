@@ -1,8 +1,9 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {DateTimeProvider} from '@sentry/scraps/datetime';
+import {DateTimeProvider} from '@sentry/scraps/dateTime';
+import {getRelativeDate} from '@sentry/scraps/relativeTime';
 
-import {getRelativeDate, TimeSince} from 'sentry/components/timeSince';
+import {TimeSince} from './timeSince';
 
 describe('TimeSince', () => {
   const now = new Date();
@@ -20,7 +21,7 @@ describe('TimeSince', () => {
   });
 
   it('renders regular style', () => {
-    render(<TimeSince date={pastFiveSec} unitStyle="regular" />);
+    render(<TimeSince date={pastFiveSec} unitStyle="long" />);
     expect(screen.getByText('5 seconds ago')).toBeInTheDocument();
   });
 
@@ -30,7 +31,7 @@ describe('TimeSince', () => {
   });
 
   it('renders a extrashort date', () => {
-    render(<TimeSince unitStyle="extraShort" date={pastTenMin} />);
+    render(<TimeSince unitStyle="narrow" date={pastTenMin} />);
     expect(screen.getByText('10m ago')).toBeInTheDocument();
   });
 
@@ -45,21 +46,21 @@ describe('TimeSince', () => {
   });
 
   it('renders a custom suffix with shortened', () => {
-    render(<TimeSince unitStyle="extraShort" date={pastTenMin} suffix="atrás" />);
+    render(<TimeSince unitStyle="narrow" date={pastTenMin} suffix="atrás" />);
     expect(screen.getByText('10m atrás')).toBeInTheDocument();
   });
 
   it('omits the affix that does not apply rather than printing it', () => {
     // Only one of prefix/suffix is ever used, so a caller that supplies just
     // one must not leak `undefined` when the other direction is taken.
-    expect(getRelativeDate(futureTenMin, 'ago')).toBe('10 minutes');
-    expect(getRelativeDate(pastTenMin, undefined, 'in')).toBe('10 minutes');
+    expect(getRelativeDate(futureTenMin, {suffix: 'ago', prefix: ''})).toBe('10 minutes');
+    expect(getRelativeDate(pastTenMin, {prefix: 'in', suffix: ''})).toBe('10 minutes');
   });
 
   it('respects timezone in tooltip', async () => {
     const date = new Date('2024-01-15T12:00:00Z');
     render(
-      <DateTimeProvider value={{timezone: 'America/New_York', clockDisplay: '12'}}>
+      <DateTimeProvider value={{timezone: 'America/New_York', clock: '12'}}>
         <TimeSince date={date} />
       </DateTimeProvider>
     );
@@ -73,7 +74,7 @@ describe('TimeSince', () => {
 
     function renderInNewYork(element: React.ReactElement) {
       return render(
-        <DateTimeProvider value={{timezone: 'America/New_York', clockDisplay: '12'}}>
+        <DateTimeProvider value={{timezone: 'America/New_York', clock: '12'}}>
           {element}
         </DateTimeProvider>
       );

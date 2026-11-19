@@ -5,9 +5,10 @@ import type {
   PrebuiltWidget,
   PrebuiltDashboard,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {SCREEN_RENDERING_SPAN_OPERATIONS_CONDITION} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/constants';
-import {SCREEN_RENDERING_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/mobileVitals/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
+
+import {SCREEN_RENDERING_SPAN_OPERATIONS_CONDITION} from './constants';
+import {SCREEN_RENDERING_DASHBOARD_TITLE} from './settings';
 
 const SPAN_OPERATIONS_TABLE: PrebuiltWidget = {
   id: 'span-operations-table',

@@ -6,3 +6,4 @@ class Config(AppConfig):
 
     def ready(self) -> None:
         import sentry.inbox.issue  # noqa: F401
+        import sentry.inbox.notebook  # noqa: F401

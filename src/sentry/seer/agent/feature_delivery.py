@@ -3,11 +3,16 @@ from __future__ import annotations
 from typing import Any, Protocol
 from uuid import UUID
 
+from sentry.issues.impact.delivery import deliver_impact_assessment
+from sentry.issues.impact.types import IMPACT_FEATURE_ID
 from sentry.seer.agent.types import FeatureRunStatus
 from sentry.seer.agentic_triage.delivery import deliver_agentic_triage_result
 from sentry.seer.autofix.feature.delivery import deliver_autofix_feature_result
 from sentry.seer.autofix.feature.models import FEATURE_ID as AUTOFIX_FEATURE_ID
 from sentry.seer.autofix.feature.models import LEGACY_FEATURE_ID as LEGACY_AUTOFIX_FEATURE_ID
+from sentry.seer.autofix.feature.models import (
+    SINGLE_RUN_FEATURE_ID as AUTOFIX_SINGLE_RUN_FEATURE_ID,
+)
 from sentry.seer.monitor_cleanup.runs import deliver_monitor_cleanup_result
 from sentry.seer.smart_assignment.delivery import deliver_smart_assignment_result
 
@@ -31,6 +36,8 @@ DELIVERY_HANDLERS: dict[str, FeatureDeliveryFn] = {
     "night_shift": deliver_agentic_triage_result,
     "smart_assignment": deliver_smart_assignment_result,
     AUTOFIX_FEATURE_ID: deliver_autofix_feature_result,
+    AUTOFIX_SINGLE_RUN_FEATURE_ID: deliver_autofix_feature_result,
+    IMPACT_FEATURE_ID: deliver_impact_assessment,
     # Runs started before the autofix_rca -> autofix rename deliver the old id.
     LEGACY_AUTOFIX_FEATURE_ID: deliver_autofix_feature_result,
 }

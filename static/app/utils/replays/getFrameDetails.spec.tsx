@@ -2,8 +2,8 @@ import {ReplayErrorFrameFixture} from 'sentry-fixture/replay/error';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {getFrameDetails} from 'sentry/utils/replays/getFrameDetails';
-import type {ReplayFrame} from 'sentry/utils/replays/types';
+import {getFrameDetails} from './getFrameDetails';
+import type {ReplayFrame} from './types';
 
 describe('getFrameDetails', () => {
   describe('issue frames', () => {
@@ -56,6 +56,25 @@ describe('getFrameDetails', () => {
       expect(screen.getByTestId('description')).toHaveTextContent(expected, {
         normalizeWhitespace: true,
       });
+    });
+
+    it('titles a web-vital frame without a description', () => {
+      const {description: _description, ...frame} = webVital;
+      const {title} = getFrameDetails(frame as unknown as ReplayFrame);
+      render(<div data-test-id="title">{title}</div>);
+      expect(screen.getByTestId('title')).toHaveTextContent(/^Web Vital$/);
+    });
+
+    it('describes a navigation frame without a description', () => {
+      const frame = {
+        ...base,
+        op: 'navigation.navigate',
+        startTimestamp: new Date(),
+        endTimestamp: new Date(),
+        endTimestampMs: 0,
+      };
+      const {description} = getFrameDetails(frame as unknown as ReplayFrame);
+      expect(description).toBe('Unknown URL');
     });
 
     it('shows the web-vital value when the rating is missing', () => {

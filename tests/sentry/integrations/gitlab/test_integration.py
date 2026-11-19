@@ -1582,7 +1582,13 @@ class GitLabIntegrationApiPipelineTest(APITestCase):
         assert hook.call_count == 1
 
     @responses.activate
-    def test_reinstall_sync_relinks_repositories_with_overlapping_webhook_updates(self) -> None:
+    @patch(
+        "sentry.integrations.gitlab.tasks._consume_webhook_reconciliation_capacity",
+        return_value=Mock(wait_time=0),
+    )
+    def test_reinstall_sync_relinks_repositories_with_overlapping_webhook_updates(
+        self, _consume_capacity: Mock
+    ) -> None:
         self._run_pipeline()
         integration = Integration.objects.get(provider="gitlab")
         org_integration = OrganizationIntegration.objects.get(
@@ -1671,7 +1677,11 @@ class GitLabIntegrationApiPipelineTest(APITestCase):
         sync.assert_not_called()
 
     @responses.activate
-    def test_reinstall_bypasses_settings_reconcile_debounce(self) -> None:
+    @patch(
+        "sentry.integrations.gitlab.tasks._consume_webhook_reconciliation_capacity",
+        return_value=Mock(wait_time=0),
+    )
+    def test_reinstall_bypasses_settings_reconcile_debounce(self, _consume_capacity: Mock) -> None:
         self._run_pipeline()
         integration = Integration.objects.get(provider="gitlab")
         org_integration = OrganizationIntegration.objects.get(

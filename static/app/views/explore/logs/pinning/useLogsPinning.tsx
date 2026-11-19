@@ -1,7 +1,8 @@
 import {useCallback, useMemo} from 'react';
 import {parseAsArrayOf, parseAsString, useQueryState} from 'nuqs';
 
-const LOGS_PINNED_KEY = 'logsPinned';
+export const LOGS_PINNED_KEY = 'logsPinned';
+export const logsPinnedParser = parseAsArrayOf(parseAsString);
 
 export interface LogsPinning {
   clearPinnedRows: () => void;
@@ -14,7 +15,7 @@ export interface LogsPinning {
 export function useLogsPinning(): LogsPinning | undefined {
   const [pinnedRowsList, setPinnedRowsList] = useQueryState(
     LOGS_PINNED_KEY,
-    parseAsArrayOf(parseAsString).withDefault([]).withOptions({history: 'replace'})
+    logsPinnedParser.withDefault([]).withOptions({history: 'replace'})
   );
 
   const pinnedRows = useMemo(() => new Set(pinnedRowsList), [pinnedRowsList]);

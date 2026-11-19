@@ -2,10 +2,11 @@ import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {DroppedDataOutcomeList} from 'sentry/components/droppedData/drawer/droppedDataOutcomeList';
 import {droppedEventsToOutcomeSections} from 'sentry/components/droppedData/outcomeSections';
 import type {AskSeerHandler} from 'sentry/components/droppedData/outcomeSections';
 import type {OutcomeRow} from 'sentry/components/droppedData/types';
+
+import {DroppedDataOutcomeList} from './droppedDataOutcomeList';
 
 function OutcomeList({
   droppedEvents,

@@ -7,8 +7,9 @@ import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
-import {DetailedError} from 'sentry/components/errors/detailedError';
 import {t} from 'sentry/locale';
+
+import {DetailedError} from './errors/detailedError';
 
 type DefaultProps = {
   mini: boolean;
@@ -36,10 +37,13 @@ type Props = DefaultProps & {
   message?: React.ReactNode;
   /** Overrides dismissal. By default, dismissing retries the children. */
   onDismiss?: () => void;
+  /** Clears a caught error when changed, without remounting healthy children. */
+  resetKey?: React.Key;
 };
 
 type State = {
   error: Error | null;
+  resetKey: Props['resetKey'];
 };
 
 const exclamation = ['Raspberries', 'Snap', 'Frig', 'Welp', 'Uhhhh', 'Hmmm'] as const;
@@ -55,13 +59,23 @@ export class ErrorBoundary extends Component<Props, State> {
 
   state: State = {
     error: null,
+    resetKey: this.props.resetKey,
   };
+
+  static getDerivedStateFromProps(props: Props, state: State): Partial<State> | null {
+    if (!Object.is(props.resetKey, state.resetKey)) {
+      return {error: null, resetKey: props.resetKey};
+    }
+    return null;
+  }
 
   componentDidMount(): void {
     // Reset error state on HMR (Hot Module Replacement) in development
     // This ensures that when React Fast Refresh occurs, the error boundary
     // doesn't persist stale error state after code fixes
     if (process.env.NODE_ENV === 'development') {
+      // https://github.com/oxc-project/tsgolint/issues/1278
+      // oxlint-disable-next-line typescript/prefer-optional-chain
       if (typeof module !== 'undefined' && module.hot) {
         module.hot.accept(this.handleClose);
       }
@@ -92,6 +106,8 @@ export class ErrorBoundary extends Component<Props, State> {
   componentWillUnmount(): void {
     // Clean up HMR listeners to prevent memory leaks
     if (process.env.NODE_ENV === 'development') {
+      // https://github.com/oxc-project/tsgolint/issues/1278
+      // oxlint-disable-next-line typescript/prefer-optional-chain
       if (typeof module !== 'undefined' && module.hot) {
         module.hot.dispose(this.handleClose);
       }

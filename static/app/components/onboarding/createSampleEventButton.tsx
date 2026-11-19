@@ -4,12 +4,8 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import type {ButtonProps} from '@sentry/scraps/button';
 import {Button} from '@sentry/scraps/button';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  clearIndicators,
-} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -83,7 +79,7 @@ export function CreateSampleEventButton({
         });
       }
 
-      addLoadingMessage(t('Processing sample event...'), {
+      toast.loading(t('Processing sample event...'), {
         duration: EVENT_POLL_RETRIES * EVENT_POLL_INTERVAL,
       });
     },
@@ -121,7 +117,7 @@ export function CreateSampleEventButton({
           if (abortController.signal.aborted) {
             return;
           }
-          clearIndicators();
+          toast.dismiss();
 
           trackAnalytics('sample_event.created', {
             organization,
@@ -143,7 +139,7 @@ export function CreateSampleEventButton({
           if (abortController.signal.aborted) {
             return;
           }
-          clearIndicators();
+          toast.dismiss();
 
           const duration = Math.ceil(performance.now() - t0);
           trackAnalytics('sample_event.failed', {
@@ -156,7 +152,7 @@ export function CreateSampleEventButton({
             source,
           });
 
-          addErrorMessage(t('Failed to load sample event'));
+          toast.error(t('Failed to load sample event'));
 
           Sentry.withScope(scope => {
             scope.setTag('groupID', groupID);
@@ -175,8 +171,8 @@ export function CreateSampleEventButton({
         scope.setExtra('error', error);
         Sentry.captureException(new Error('Failed to create sample event'));
       });
-      clearIndicators();
-      addErrorMessage(t('Failed to create a new sample event'));
+      toast.dismiss();
+      toast.error(t('Failed to create a new sample event'));
     },
   });
 

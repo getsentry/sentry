@@ -49,13 +49,13 @@ export function SelectOption<TValue, TOption extends SelectValue<TValue>>(
   const renderedLabel = OptionLabel ? <OptionLabel option={data} /> : label;
   const {value, selectionMode, priority, ...itemProps} = data;
 
-  const isMultiple = defined(selectionMode) ? selectionMode === 'multiple' : isMulti;
+  const isMultiple = selectionMode == null ? isMulti : selectionMode === 'multiple';
 
   // Unless the priority prop is explicitly defined, use 'default' for all items.
   const itemPriority = priority ?? 'default';
   const innerWrapProps: React.ComponentProps<typeof ListItem>['innerWrapProps'] & {
     'data-test-id'?: string;
-  } = {'data-test-id': defined(value) ? String(value) : undefined};
+  } = {'data-test-id': value == null ? undefined : String(value)};
 
   return (
     <ClassNames>
@@ -116,7 +116,3 @@ const StyledIconCheckmark = styled(IconCheckmark, {
 })<{isMultiple: boolean}>`
   color: ${p => (p.isMultiple ? p.theme.colors.white : undefined)};
 `;
-
-function defined<T>(value: T | null | undefined): value is T {
-  return value !== null && value !== undefined;
-}

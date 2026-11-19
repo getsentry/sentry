@@ -5,7 +5,7 @@ import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 import {
   PrimaryNavigationContextProvider,
   usePrimaryNavigation,
-} from 'sentry/views/navigation/primaryNavigationContext';
+} from './primaryNavigationContext';
 
 function renderPrimaryNavigation(pathname: string) {
   return renderHookWithProviders(usePrimaryNavigation, {

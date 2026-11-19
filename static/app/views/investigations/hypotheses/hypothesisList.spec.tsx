@@ -4,10 +4,8 @@ import {
   InvestigationHypothesesFixture,
   InvestigationHypothesisFixture,
 } from 'sentry/views/investigations/fixtures';
-import {
-  HypothesisList,
-  HypothesisListPlaceholder,
-} from 'sentry/views/investigations/hypotheses/hypothesisList';
+
+import {HypothesisList, HypothesisListPlaceholder} from './hypothesisList';
 
 describe('HypothesisList', () => {
   it('renders one card per hypothesis', () => {

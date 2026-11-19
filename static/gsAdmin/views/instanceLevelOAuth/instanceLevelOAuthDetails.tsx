@@ -7,12 +7,12 @@ import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {formatChartDateTime} from 'sentry/components/charts/formatChartDateTime';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {getFormattedDate} from 'sentry/utils/dates';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
@@ -109,7 +109,7 @@ function ClientDetailsForm({clientDetails}: {clientDetails: ClientDetails}) {
       ) {
         return;
       }
-      addErrorMessage('Unable to update client settings.');
+      toast.error('Unable to update client settings.');
     },
   });
   const form = useScrapsForm({
@@ -255,7 +255,9 @@ export function InstanceLevelOAuthDetails() {
         name: data.name,
         id: data.id,
         clientID: data.clientID,
-        createdAt: getFormattedDate(data.dateAdded, 'MMM Do YYYY'),
+        createdAt: formatChartDateTime(data.dateAdded, 'ordinalDateWithYear', {
+          timezone: 'UTC',
+        }),
         allowedOrigins: data.allowedOrigins.join(' '),
         homepageUrl: data.homepageUrl,
         redirectUris: data.redirectUris.join(' '),

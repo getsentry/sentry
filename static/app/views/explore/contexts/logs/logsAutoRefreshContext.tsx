@@ -8,6 +8,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useLogsApiOptionsWithInfinite} from 'sentry/views/explore/logs/useLogsApiOptions';
 
+import {LOGS_ANCHOR_TIMESTAMP_KEY} from './logsPageParams';
+
 export const LOGS_AUTO_REFRESH_KEY = 'live';
 export const LOGS_REFRESH_INTERVAL_KEY = 'refreshEvery';
 const LOGS_REFRESH_INTERVAL_DEFAULT = 5000;
@@ -170,6 +172,10 @@ export function useSetLogsAutoRefresh() {
         delete target.query[LOGS_AUTO_REFRESH_KEY];
       } else {
         target.query[LOGS_AUTO_REFRESH_KEY] = autoRefresh;
+      }
+
+      if (autoRefresh === 'enabled') {
+        delete target.query[LOGS_ANCHOR_TIMESTAMP_KEY];
       }
 
       navigateIfQueryChanged(navigate, location, target);

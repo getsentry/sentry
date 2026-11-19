@@ -1,11 +1,14 @@
 from datetime import datetime
 from unittest.mock import Mock
 
+from django.contrib.auth.models import AnonymousUser
 from django.contrib.sessions.backends.base import SessionBase
 from rest_framework.request import Request
 
 from sentry.auth_v2.utils.session import SessionBuilder, SessionSerializer
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.testutils.cases import TestCase
+from sentry.users.models.user import User
 
 EXPIRY_DATE = datetime(2023, 12, 31)
 
@@ -114,7 +117,7 @@ class SessionBuilderTest(TestCase):
         for key, value in properties.items():
             mock_attributes[key] = value
 
-        self.request.user = Mock(**mock_attributes)
+        self.request.user = Mock(spec=User, **mock_attributes)
         return self.request.user
 
     def test_initialize_does_not_override_flags(self) -> None:
@@ -152,7 +155,14 @@ class SessionBuilderTest(TestCase):
         assert len(self.request.session.data) == 0
 
     def test_initialize_anonymous_user(self) -> None:
-        self.create_mock_user(is_anonymous=True)
+        self.request.user = AnonymousUser()
+        self.session_builder.initialize_auth_flags()
+        assert len(self.request.session.data) == 0
+
+    def test_initialize_service_account(self) -> None:
+        self.request.user = ServiceAccountPrincipal(
+            service_account_id=1, organization_id=1, name="sa"
+        )
         self.session_builder.initialize_auth_flags()
         assert len(self.request.session.data) == 0
 

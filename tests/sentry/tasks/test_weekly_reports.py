@@ -1549,9 +1549,7 @@ class WeeklyReportsTest(
     ) -> None:
         """Test that schedule_organizations uses Redis to track minimum organization ID."""
         timestamp = self.timestamp
-        redis_cluster = redis.clusters.get("default").get_local_client_for_key(
-            "weekly_reports_org_id_min"
-        )
+        redis_cluster = redis.redis_clusters.get_binary("default")
 
         # Create multiple organizations
         org1 = self.organization  # Use existing organization
@@ -1622,9 +1620,7 @@ class WeeklyReportsTest(
     def test_set_last_processed_org_id_sets_a_ttl(self) -> None:
         """The progress marker expires on its own, so an interrupted run cannot leak it."""
         timestamp = self.timestamp
-        redis_cluster = redis.clusters.get("default").get_local_client_for_key(
-            "weekly_reports_org_id_min"
-        )
+        redis_cluster = redis.redis_clusters.get_binary("default")
         key = f"weekly_reports_org_id_min:{timestamp}"
         redis_cluster.delete(key)
 
@@ -1640,9 +1636,7 @@ class WeeklyReportsTest(
     ) -> None:
         """A run that dies before delete_min_org_id must not leave a key without a TTL."""
         timestamp = self.timestamp
-        redis_cluster = redis.clusters.get("default").get_local_client_for_key(
-            "weekly_reports_org_id_min"
-        )
+        redis_cluster = redis.redis_clusters.get_binary("default")
         key = f"weekly_reports_org_id_min:{timestamp}"
         redis_cluster.delete(key)
 
@@ -1667,9 +1661,7 @@ class WeeklyReportsTest(
     ) -> None:
         """Test that schedule_organizations starts from the beginning when no Redis key exists."""
         timestamp = self.timestamp
-        redis_cluster = redis.clusters.get("default").get_local_client_for_key(
-            "weekly_reports_org_id_min"
-        )
+        redis_cluster = redis.redis_clusters.get_binary("default")
 
         # Ensure Redis key doesn't exist
         redis_cluster.delete(f"weekly_reports_org_id_min:{timestamp}")

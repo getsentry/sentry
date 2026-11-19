@@ -8,39 +8,38 @@ import {defined} from 'sentry/utils/defined';
 import {type EventsMetaType} from 'sentry/utils/discover/eventView';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useLogsAutoRefreshEnabled} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
+import {useExploreQuerySpeed} from 'sentry/views/explore/hooks/useExploreQuerySpeed';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {useQueryParamsSortBys} from 'sentry/views/explore/queryParams/context';
+import {getStaleTimeForEventView} from 'sentry/views/insights/common/queries/useSpansQuery';
+
 import {
   LOCAL_LOG_ROWS_FOR_EXPANDED_INFINITE_PAGES,
   MAX_LOGS_INFINITE_QUERY_PAGES,
   MAX_LOGS_INFINITE_QUERY_PAGES_EXPANDED,
   QUERY_PAGE_LIMIT,
   QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH,
-} from 'sentry/views/explore/logs/constants';
+} from './constants';
 import {
   getInitialLogPageParam,
   getLogPageParam,
   getParamBasedQuery,
   isAnchoredPageParam,
   type LogPageParam,
-} from 'sentry/views/explore/logs/logsInfinitePageParams';
+} from './logsInfinitePageParams';
 import {
   OurLogKnownFieldKey,
   type EventsLogsResult,
   type OurLogsResponseItem,
-} from 'sentry/views/explore/logs/types';
-import {useAutoFetchWindow} from 'sentry/views/explore/logs/useAutoFetchWindow';
-import {useLogAnchor} from 'sentry/views/explore/logs/useLogAnchor';
+} from './types';
+import {useAutoFetchWindow} from './useAutoFetchWindow';
+import {useLogAnchor} from './useLogAnchor';
 import {
   useLogsApiOptionsWithInfinite,
   type LogsInfiniteQueryKey,
-} from 'sentry/views/explore/logs/useLogsApiOptions';
-import {
-  isRowVisibleInVirtualStream,
-  useVirtualStreaming,
-} from 'sentry/views/explore/logs/useVirtualStreaming';
-import {getTimeBasedSortBy} from 'sentry/views/explore/logs/utils';
-import {useQueryParamsSortBys} from 'sentry/views/explore/queryParams/context';
-import {getStaleTimeForEventView} from 'sentry/views/insights/common/queries/useSpansQuery';
+} from './useLogsApiOptions';
+import {isRowVisibleInVirtualStream, useVirtualStreaming} from './useVirtualStreaming';
+import {getTimeBasedSortBy} from './utils';
 
 /**
  * `maxPages` is evaluated before `useInfiniteQuery` returns `data`, so we base it on the
@@ -69,6 +68,7 @@ export function useInfiniteLogsQuery({
 } = {}) {
   const _referrer = 'api.explore.logs-table';
   const autoRefresh = useLogsAutoRefreshEnabled();
+  const {isReady: querySpeedReady} = useExploreQuerySpeed();
 
   const {infiniteApiOptions: anchoredApiOptions} = useLogsApiOptionsWithInfinite({
     referrer: _referrer,
@@ -148,7 +148,8 @@ export function useInfiniteLogsQuery({
         if (
           !response.json?.data?.length && // no matches found
           response.json?.meta?.dataScanned === 'partial' && // partial scan performed
-          !baseOptions?.data?.highFidelity // not high fidelity mode
+          !baseOptions?.data?.highFidelity && // not high fidelity mode
+          baseOptions?.query?.sampling !== SAMPLING_MODE.LOW_PRIORITY
         ) {
           const retryOptions: QueryKeyEndpointOptions = {
             ...baseOptions,
@@ -200,7 +201,7 @@ export function useInfiniteLogsQuery({
     getPreviousPageParam,
     getNextPageParam,
     initialPageParam,
-    enabled: !disabled,
+    enabled: !disabled && querySpeedReady,
     staleTime:
       staleTimeOverride ??
       (autoRefresh ? Infinity : getStaleTimeForEventView(other.eventView)),
@@ -347,12 +348,12 @@ export function useInfiniteLogsQuery({
   const nextPageHasData = nextPageLink?.results ?? false;
   const nextPageCursor = nextPageLink?.cursor;
 
+  const canFetchNextPage = hasNextPage && nextPageHasData;
+
   const _fetchNextPage = useCallback(
     () =>
-      hasNextPage && nextPageHasData
-        ? !isFetching && !isError && fetchNextPage()
-        : Promise.resolve(),
-    [hasNextPage, fetchNextPage, isFetching, isError, nextPageHasData]
+      canFetchNextPage ? !isFetching && !isError && fetchNextPage() : Promise.resolve(),
+    [canFetchNextPage, fetchNextPage, isFetching, isError]
   );
 
   const dataScannedList = data?.pages?.map(page => page.json.meta?.dataScanned);
@@ -365,10 +366,7 @@ export function useInfiniteLogsQuery({
   const limit = autoRefresh ? QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH : QUERY_PAGE_LIMIT;
 
   const canAutoFetchNextPage =
-    !!highFidelity &&
-    hasNextPage &&
-    nextPageHasData &&
-    (lastPageLength === 0 || _data.length < limit);
+    !!highFidelity && canFetchNextPage && (lastPageLength === 0 || _data.length < limit);
 
   const {shouldAutoFetchNextPage, resumeAutoFetch} = useAutoFetchWindow({
     queryKey: queryKeyWithInfinite,
@@ -402,6 +400,7 @@ export function useInfiniteLogsQuery({
     fetchPreviousPage: _fetchPreviousPage,
     refetch,
     hasNextPage,
+    canFetchNextPage,
     queryKey: queryKeyWithInfinite,
     hasPreviousPage,
     isFetchingNextPage: _data.length > 0 && isFetchingNextPage,

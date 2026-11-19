@@ -1,12 +1,6 @@
-import {parse} from 'query-string';
-
 import {loadFixtures} from 'sentry-test/loadFixtures';
 
-import type {
-  ParseResult,
-  SearchConfig,
-  TokenResult,
-} from 'sentry/components/searchSyntax/parser';
+import type {ParseResult, SearchConfig, TokenResult} from './parser';
 import {
   BooleanOperator,
   FilterType,
@@ -14,12 +8,8 @@ import {
   parseSearch,
   TermOperator,
   Token,
-} from 'sentry/components/searchSyntax/parser';
-import {
-  getKeyLabel,
-  getKeyName,
-  stringifyToken,
-} from 'sentry/components/searchSyntax/utils';
+} from './parser';
+import {getKeyLabel, getKeyName, stringifyToken} from './utils';
 
 type TestCase = {
   /**
@@ -147,11 +137,6 @@ const normalizeResult = (tokens: Array<TokenResult<Token>>) =>
       delete token.text;
       // @ts-expect-error keep test data simple
       delete token.config;
-
-      if (!parse) {
-        // @ts-expect-error keep test data simple
-        delete token.parsed;
-      }
 
       // @ts-expect-error token warnings only exist in the FE atm
       delete token.warning;

@@ -125,3 +125,14 @@ class SeerAdminAgenticTriageTriggerTest(APITestCase):
         self.login_as(user=non_staff_user)
         response = super().get_response(organization_id=self.organization.id)
         assert response.status_code == 403
+
+    def test_trigger_passes_single_run(self) -> None:
+        with patch(
+            "sentry.seer.endpoints.admin_agentic_triage_trigger.run_agentic_triage_for_org"
+        ) as mock_task:
+            self.get_success_response(
+                organization_id=self.organization.id, single_run=True, status_code=200
+            )
+
+        options = mock_task.apply_async.call_args.kwargs["kwargs"]["options"]
+        assert options["single_run"] is True

@@ -1,5 +1,6 @@
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useQuery} from '@tanstack/react-query';
+
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface GenerateIssueViewTitleParams {
@@ -16,20 +17,17 @@ export function useGenerateIssueViewTitle({
   enabled = true,
 }: GenerateIssueViewTitleParams) {
   const organization = useOrganization();
-  return useApiQuery<GenerateIssueViewTitleResponse>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/issue-view-title/generate/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
+  return useQuery({
+    ...apiOptions.as<GenerateIssueViewTitleResponse>()(
+      '/organizations/$organizationIdOrSlug/issue-view-title/generate/',
       {
+        path: {organizationIdOrSlug: organization.slug},
         method: 'POST',
         data: {query},
-      },
-    ],
-    {
-      staleTime: 5 * 60 * 1000,
-      enabled: !organization.hideAiFeatures && enabled && !!query,
-      retry: false,
-    }
-  );
+        staleTime: 5 * 60 * 1000,
+      }
+    ),
+    enabled: !organization.hideAiFeatures && enabled && !!query,
+    retry: false,
+  });
 }

@@ -20,6 +20,7 @@ import {useLinkedPullRequests} from 'sentry/components/group/externalIssuesList/
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
+import {SeerOutOfCreditsCta} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
@@ -48,21 +49,12 @@ import {
   groupEventApiOptions,
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
-import {
-  IssuePreviewHeaderActions,
-  OpenIssueButton,
-} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewHeaderActions';
-import {
-  IssuePreviewSeerProvider,
-  useIssuePreviewSeer,
-} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSeer';
-import {
-  IssuePreviewSummary,
-  type IssueSummary,
-} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSummary';
 import {IssueSeenTimes} from 'sentry/views/issueList/pages/issueSeenTimes';
 import {useAssignmentFilter} from 'sentry/views/issueList/pages/useAssignmentFilter';
 
+import {IssuePreviewHeaderActions, OpenIssueButton} from './issuePreviewHeaderActions';
+import {IssuePreviewSeerProvider, useIssuePreviewSeer} from './issuePreviewSeer';
+import {IssuePreviewSummary, type IssueSummary} from './issuePreviewSummary';
 import {IssuePreviewTimeline} from './issuePreviewTimeline';
 
 interface IssuePreviewProps {
@@ -317,6 +309,17 @@ function IssuePreviewContent() {
         <LoadingIndicator />
       ) : (
         <Stack gap="2xl" paddingTop="xl" paddingBottom="md">
+          {/* The header's disabled Seer button has no room for the CTA. */}
+          {!previewSeer.creditCheck.hasEnoughCredits && (
+            <SeerOutOfCreditsCta
+              reason={
+                previewSeer.creditAction === 'root_cause'
+                  ? 'autofix-start'
+                  : 'autofix-continue'
+              }
+              denialReason={previewSeer.creditCheck.denialReason}
+            />
+          )}
           {summary && <IssuePreviewSummary summary={summary} />}
           {event && hasEventStackTrace(event, group) && (
             <Container key={event.id}>

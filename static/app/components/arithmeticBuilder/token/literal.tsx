@@ -10,12 +10,6 @@ import {
   isTokenParenthesis,
   TokenKind,
 } from 'sentry/components/arithmeticBuilder/token';
-import {DeleteButton} from 'sentry/components/arithmeticBuilder/token/deleteButton';
-import {
-  GridCell,
-  LeftGridCell,
-  Row,
-} from 'sentry/components/arithmeticBuilder/token/styles';
 import {
   nextTokenKeyOfKind,
   tokenizeExpression,
@@ -25,6 +19,9 @@ import {focusTarget} from 'sentry/components/tokenizedInput/grid/utils';
 import {InputBox} from 'sentry/components/tokenizedInput/token/inputBox';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
+
+import {DeleteButton} from './deleteButton';
+import {GridCell, LeftGridCell, Row} from './styles';
 
 interface ArithmeticTokenLiteralProps {
   item: Node<Token>;

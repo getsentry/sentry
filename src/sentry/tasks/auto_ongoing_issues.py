@@ -156,7 +156,7 @@ def run_auto_transition_issues_new_to_ongoing(
     **kwargs: Any,
 ) -> None:
     """
-    Child task of `auto_transition_issues_new_to_ongoing`
+    Child task of `schedule_auto_transition_issues_new_to_ongoing`
     to conduct the update of specified Groups to Ongoing.
     """
     with traces.start_span(
@@ -255,7 +255,7 @@ def run_auto_transition_issues_regressed_to_ongoing(
     **kwargs: Any,
 ) -> None:
     """
-    Child task of `auto_transition_issues_regressed_to_ongoing`
+    Child task of `schedule_auto_transition_issues_regressed_to_ongoing`
     to conduct the update of specified Groups to Ongoing.
     """
     with traces.start_span(
@@ -354,7 +354,7 @@ def run_auto_transition_issues_escalating_to_ongoing(
     **kwargs: Any,
 ) -> None:
     """
-    Child task of `auto_transition_issues_escalating_to_ongoing`
+    Child task of `schedule_auto_transition_issues_escalating_to_ongoing`
     to conduct the update of specified Groups to Ongoing.
     """
     with traces.start_span(

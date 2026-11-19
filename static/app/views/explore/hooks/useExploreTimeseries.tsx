@@ -9,11 +9,6 @@ import {defaultAggregateSortBys} from 'sentry/views/explore/contexts/pageParamsC
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {
-  useProgressiveQuery,
-  type RPCQueryExtras,
-} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
-import {
   useQueryParamsAggregateSortBys,
   useQueryParamsExtrapolate,
   useQueryParamsGroupBys,
@@ -30,6 +25,10 @@ import {
   useSortedTimeSeries,
   type SortedTimeSeries,
 } from 'sentry/views/insights/common/queries/useSortedTimeSeries';
+
+import {useExploreQuerySpeed} from './useExploreQuerySpeed';
+import {useProgressiveQuery, type RPCQueryExtras} from './useProgressiveQuery';
+import {useTopEvents} from './useTopEvents';
 
 interface UseExploreTimeseriesOptions {
   enabled: boolean;
@@ -48,6 +47,7 @@ export const useExploreTimeseries = ({
 }: UseExploreTimeseriesOptions) => {
   const visualizes = useQueryParamsVisualizes();
   const extrapolate = useQueryParamsExtrapolate();
+  const {isReady: querySpeedReady, samplingMode} = useExploreQuerySpeed();
   const topEvents = useTopEvents();
   const isTopN = topEvents ? topEvents > 0 : false;
 
@@ -60,10 +60,11 @@ export const useExploreTimeseries = ({
 
   return useProgressiveQuery<typeof useExploreTimeseriesImpl>({
     queryHookImplementation: useExploreTimeseriesImpl, // oxlint-disable-line react/hooks -- useProgressiveQuery takes the query hook as a value and calls it per accuracy tier.
-    queryHookArgs: {query, enabled, queryExtras},
+    queryHookArgs: {query, enabled: enabled && querySpeedReady, queryExtras},
     queryOptions: {
       canTriggerHighAccuracy,
       disableExtrapolation: !extrapolate,
+      samplingMode,
     },
   });
 };

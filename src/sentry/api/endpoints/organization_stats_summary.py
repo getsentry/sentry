@@ -2,7 +2,7 @@ import csv
 from collections.abc import Iterator
 from contextlib import contextmanager
 from io import StringIO
-from typing import Any, TypedDict, cast
+from typing import Annotated, TypedDict, cast
 
 from django.http import HttpResponse
 from drf_spectacular.utils import extend_schema
@@ -19,6 +19,7 @@ from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs.constants import RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.organization_examples import OrganizationExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -112,16 +113,18 @@ class OrgStatsSummaryQueryParamsSerializer(serializers.Serializer):
     )
 
 
-class _ProjectSummaryStats(TypedDict):  # this response is pretty dynamic, leaving generic
-    id: str
-    slug: str
-    stats: list[dict[str, Any]]
+class _ProjectSummaryStats(TypedDict):
+    id: Annotated[int, ApiDescription("ID of the project")]
+    slug: Annotated[str, ApiDescription("Slug of the project")]
+    stats: Annotated[
+        list[_CategoryStats], ApiDescription("Outcome counts of the project by data category")
+    ]
 
 
 class StatsSummaryApiResponse(TypedDict):
-    start: str
-    end: str
-    projects: list[_ProjectSummaryStats]
+    start: Annotated[str, ApiDescription("Start of the queried time range (ISO 8601)")]
+    end: Annotated[str, ApiDescription("End of the queried time range (ISO 8601)")]
+    projects: Annotated[list[_ProjectSummaryStats], ApiDescription("Outcome stats of each project")]
 
 
 @extend_schema(tags=["Organizations"])

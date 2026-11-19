@@ -1,11 +1,12 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {NUM_DESKTOP_COLS} from 'sentry/views/dashboards/constants';
+
 import {
   getPrebuiltDashboardConfig,
   PREBUILT_DASHBOARDS,
   PrebuiltDashboardId,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+} from './prebuiltConfigs';
 
 // Must match the limits enforced by the backend serializer at
 // src/sentry/api/serializers/rest_framework/dashboard.py.

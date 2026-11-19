@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import cast
 
 import sentry_sdk
@@ -15,6 +16,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEndpoint
+from sentry.api.endpoints.organization_explore_formulas import FORMULA_PREFIX
 from sentry.api.helpers.creator import get_creator_reference
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
@@ -32,6 +34,7 @@ from sentry.apidocs.parameters import (
 )
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.principal import acting_user_id, has_user, is_owned_by_acting_user
 from sentry.explore.endpoints.bases import (
     ExploreSavedQueryPermission,
     filter_to_accessible_explore_queries,
@@ -321,9 +324,10 @@ def sync_prebuilt_queries_starred(organization: Organization, user: User) -> Non
 @cell_silo_endpoint
 class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
-        "POST": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
+        "POST": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
+    idempotent_methods = frozenset()
     owner = ApiOwner.EXPLORE
     permission_classes = (ExploreSavedQueryPermission,)
 
@@ -333,13 +337,16 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
         )
 
     @extend_schema(
-        operation_id="List an Organization's Explore Saved Queries",
+        operation_id="listOrganizationExploreSavedQueries",
+        summary="List an Organization's Explore Saved Queries",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             VisibilityParams.PER_PAGE,
             CursorQueryParam,
             ExploreSavedQueriesParams.QUERY,
             ExploreSavedQueriesParams.SORT,
+            ExploreSavedQueriesParams.EXCLUDE,
+            ExploreSavedQueriesParams.STARRED,
         ],
         request=None,
         responses={
@@ -367,7 +374,7 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
 
         try:
             lock = locks.get(
-                f"explore:sync_prebuilt_queries:{organization.id}:{request.user.id}",
+                f"explore:sync_prebuilt_queries:{organization.id}:{acting_user_id(request.user)}",
                 duration=10,
                 name="sync_prebuilt_queries",
             )
@@ -377,7 +384,8 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
                 # Deletes old prebuilt queries from the database if they should no longer exist.
                 # Stars prebuilt queries for the user if it is the first time they are being fetched by the user.
                 sync_prebuilt_queries(organization)
-                sync_prebuilt_queries_starred(organization, request.user)
+                if has_user(request.user):
+                    sync_prebuilt_queries_starred(organization, request.user)
         except UnableToAcquireLock:
             # Another process is already syncing the prebuilt queries. We can skip syncing this time.
             pass
@@ -410,8 +418,8 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
 
         last_visited_query = Subquery(
             ExploreSavedQueryLastVisited.objects.filter(
+                is_owned_by_acting_user(request.user),
                 organization=organization,
-                user_id=request.user.id,
                 explore_saved_query_id=OuterRef("id"),
             ).values("last_visited")[:1]
         )
@@ -449,7 +457,7 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
                 elif sort_by == "myqueries":
                     order_by.append(
                         Case(
-                            When(created_by_id=request.user.id, then=-1),
+                            When(is_owned_by_acting_user(request.user, "created_by_id"), then=-1),
                             default="created_by_id",
                             output_field=IntegerField(),
                         ),
@@ -463,8 +471,8 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
                     queryset = queryset.annotate(
                         is_starred=Exists(
                             ExploreSavedQueryStarred.objects.filter(
+                                is_owned_by_acting_user(request.user),
                                 explore_saved_query_id=OuterRef("id"),
-                                user_id=request.user.id,
                                 starred=True,
                             )
                         )
@@ -480,9 +488,22 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
 
         exclude = request.query_params.get("exclude")
         if exclude == "shared":
-            queryset = queryset.filter(created_by_id=request.user.id)
+            queryset = queryset.filter(is_owned_by_acting_user(request.user, "created_by_id"))
         elif exclude == "owned":
-            queryset = queryset.exclude(created_by_id=request.user.id)
+            queryset = queryset.exclude(is_owned_by_acting_user(request.user, "created_by_id"))
+
+        formula = request.query_params.get("formula")
+        saved_formula_feature = features.has(
+            "organizations:explore-saved-formulas", organization, actor=request.user
+        )
+        if formula is not None and saved_formula_feature:
+            if formula.startswith(FORMULA_PREFIX):
+                formula = re.escape(formula)
+                queryset = queryset.filter(
+                    query__query__regex=rf'(^|[^\\]"|[[:space:]])(-)?{formula}\([^")]*\)(:|")'
+                )
+            else:
+                raise ParseError(f"Formulas start with {FORMULA_PREFIX}")
 
         starred = request.query_params.get("starred")
 
@@ -490,14 +511,16 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
             queryset = (
                 queryset.filter(
                     id__in=ExploreSavedQueryStarred.objects.filter(
-                        organization=organization, user_id=request.user.id, starred=True
+                        is_owned_by_acting_user(request.user),
+                        organization=organization,
+                        starred=True,
                     ).values_list("explore_saved_query_id", flat=True)
                 )
                 .annotate(
                     position=Subquery(
                         ExploreSavedQueryStarred.objects.filter(
+                            is_owned_by_acting_user(request.user),
                             explore_saved_query_id=OuterRef("id"),
-                            user_id=request.user.id,
                             starred=True,
                         ).values("position")[:1]
                     )
@@ -525,7 +548,8 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
         )
 
     @extend_schema(
-        operation_id="Create a New Trace Explorer Saved Query",
+        operation_id="createOrganizationExploreSavedQuery",
+        summary="Create a New Explore Saved Query",
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=ExploreSavedQuerySerializer,
         responses={
@@ -540,7 +564,7 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
         self, request: Request, organization: Organization
     ) -> Response[ExploreSavedQueryResponse] | Response[ValidationErrorResponse]:
         """
-        Create a new trace explorersaved query for the given organization.
+        Create a new Explore saved query for the given organization.
         """
         if not request.user.is_authenticated:
             return Response(status=400)
@@ -570,13 +594,14 @@ class ExploreSavedQueriesEndpoint(OrganizationEndpoint):
             name=data["name"],
             query=data["query"],
             dataset=data["dataset"],
+            query_priority=data.get("query_priority"),
             **get_creator_reference(request),
         )
 
         model.set_projects(data["project_ids"])
 
         try:
-            if "starred" in request.data and request.data["starred"]:
+            if "starred" in request.data and request.data["starred"] and has_user(request.user):
                 ExploreSavedQueryStarred.objects.insert_starred_query(
                     organization, request.user, model, starred=True
                 )

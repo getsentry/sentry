@@ -2,6 +2,7 @@ import {useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import omitBy from 'lodash/omitBy';
 import orderBy from 'lodash/orderBy';
+import {useQueryStates} from 'nuqs';
 
 import type {FormProps} from 'sentry/components/forms/form';
 import {FormModel} from 'sentry/components/forms/model';
@@ -12,19 +13,16 @@ import type {
   BaseDetectorUpdatePayload,
   DetectorType,
 } from 'sentry/types/workflowEngine/detectors';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {DetectorFormBreadcrumbs} from 'sentry/views/detectors/components/forms/common/breadcrumbs';
-import {
-  useDetectorDraft,
-  type DetectorDraftSchema,
-} from 'sentry/views/detectors/components/forms/common/detectorDraft';
-import {NewDetectorFooter} from 'sentry/views/detectors/components/forms/common/footer';
 import {MonitorFeedbackButton} from 'sentry/views/detectors/components/monitorFeedbackButton';
 import {useCreateDetectorFormSubmit} from 'sentry/views/detectors/hooks/useCreateDetectorFormSubmit';
 import {hasDetectorWriteAccess} from 'sentry/views/detectors/utils/permissions';
+
+import {DetectorFormBreadcrumbs} from './common/breadcrumbs';
+import {useDetectorDraft, type DetectorDraftSchema} from './common/detectorDraft';
+import {NewDetectorFooter} from './common/footer';
 
 type NewDetectorLayoutProps<TFormData, TUpdatePayload> = {
   children: React.ReactNode;
@@ -52,7 +50,8 @@ export function NewDetectorLayout<
   detectorType,
   draftSchema,
 }: NewDetectorLayoutProps<TFormData, TUpdatePayload>) {
-  const location = useLocation();
+  const [{project: urlProjectIds, environment: urlEnvironments}] =
+    useQueryStates(pageFilterParsers);
   const theme = useTheme();
   const maxWidth = theme.breakpoints.xl;
   const organization = useOrganization();
@@ -68,10 +67,9 @@ export function NewDetectorLayout<
     const writableProjects = projects.filter(project =>
       hasDetectorWriteAccess({organization, project})
     );
-    const requestedProjectId = [
-      draftFormData?.projectId,
-      decodeScalar(location.query.project),
-    ].find(id => writableProjects.some(p => p.id === id));
+    const requestedProjectId = [draftFormData?.projectId, urlProjectIds[0]].find(id =>
+      writableProjects.some(p => p.id === id)
+    );
     if (requestedProjectId) {
       return requestedProjectId;
     }
@@ -81,7 +79,7 @@ export function NewDetectorLayout<
       ['desc', 'desc']
     );
     return sorted[0]?.id ?? '';
-  }, [draftFormData, location.query.project, organization, projects]);
+  }, [draftFormData, urlProjectIds, organization, projects]);
 
   const formSubmitHandler = useCreateDetectorFormSubmit({
     detectorType,
@@ -90,7 +88,7 @@ export function NewDetectorLayout<
 
   const {onFieldChange: validateEagerly} = useFormEagerValidation(formModel);
 
-  const initialEnvironment = decodeScalar(location.query.environment, '');
+  const initialEnvironment = urlEnvironments[0] ?? '';
   const initialData = useMemo(() => {
     // Only keep the draft's project if it passed the write-access check above.
     const draftProjectId =

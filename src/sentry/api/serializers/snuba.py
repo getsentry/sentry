@@ -6,11 +6,8 @@ from datetime import datetime
 from typing import TYPE_CHECKING, Any, NotRequired, Protocol, TypedDict, cast
 
 if TYPE_CHECKING:
-    from django.contrib.auth.models import AnonymousUser
-
+    from sentry.auth.principal import RequestPrincipal
     from sentry.models.organization import Organization
-    from sentry.users.models.user import User
-    from sentry.users.services.user import RpcUser
     from sentry.utils.snuba import SnubaTSResult
 
 
@@ -46,7 +43,7 @@ class TimeSeriesLookup(Protocol):
         self,
         organization: Organization | None,
         item_list: list[tuple[object, ...]],
-        user: User | RpcUser | AnonymousUser | None,
+        user: RequestPrincipal | None,
     ) -> Mapping[tuple[object, ...], object]: ...
 
 
@@ -115,7 +112,7 @@ class SnubaTSResultSerializer:
         self,
         organization: Organization | None,
         lookup: TimeSeriesLookup | None,
-        user: User | RpcUser | AnonymousUser | None,
+        user: RequestPrincipal | None,
     ) -> None:
         self.organization = organization
         self.lookup = lookup

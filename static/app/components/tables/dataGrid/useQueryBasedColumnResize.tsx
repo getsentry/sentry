@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {useCallback, useMemo, useRef} from 'react';
 import dropRightWhile from 'lodash/dropRightWhile';
 
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
@@ -27,12 +27,23 @@ export function useQueryBasedColumnResize<Col extends GridColumnOrder<unknown>>(
     }));
   }, [columns, queryParam]);
 
+  // One resize can commit several columns before the URL updates, so later
+  // commits build on earlier ones rather than on the stale location.
+  const pendingWidthsRef = useRef<{location: typeof location; widths: number[]}>(null);
+
   const handleResizeColumn = useCallback(
     (columnIndex: number, resizedColumn: Col) => {
-      const widths = columnsWidthWidths.map(
-        (column, i) =>
-          (i === columnIndex ? resizedColumn.width : column.width) ?? COL_WIDTH_UNDEFINED
+      const pending = pendingWidthsRef.current;
+      const baseWidths =
+        pending?.location === location
+          ? pending.widths
+          : columnsWidthWidths.map(column => column.width ?? COL_WIDTH_UNDEFINED);
+      const widths = baseWidths.with(
+        columnIndex,
+        resizedColumn.width ?? COL_WIDTH_UNDEFINED
       );
+      pendingWidthsRef.current = {location, widths};
+
       navigate(
         {
           pathname: location.pathname,
@@ -44,7 +55,7 @@ export function useQueryBasedColumnResize<Col extends GridColumnOrder<unknown>>(
         {replace: true}
       );
     },
-    [columnsWidthWidths, location.pathname, location.query, navigate]
+    [columnsWidthWidths, location, navigate]
   );
 
   return {

@@ -1,9 +1,9 @@
-from typing import Any
+from typing import Any, TypedDict
 
 from django.conf import settings
 from django.db import router, transaction
 from django.db.models import Exists, F, OuterRef, Q
-from drf_spectacular.utils import extend_schema, extend_schema_serializer
+from drf_spectacular.utils import extend_schema, extend_schema_field, extend_schema_serializer
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -18,7 +18,13 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberSerializer
 from sentry.api.serializers.models.organization_member.response import OrganizationMemberResponse
-from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
+    RESPONSE_FORBIDDEN,
+    RESPONSE_NOT_FOUND,
+    RESPONSE_TOO_MANY_REQUESTS,
+    RESPONSE_UNAUTHORIZED,
+)
 from sentry.apidocs.examples.organization_member_examples import OrganizationMemberExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, OrganizationParams
 from sentry.apidocs.response_types import (
@@ -28,18 +34,21 @@ from sentry.apidocs.response_types import (
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.authenticators import available_authenticators
+from sentry.auth.principal import require_user
 from sentry.core.endpoints.organization_member_utils import (
     ERR_RATE_LIMITED,
     ROLE_CHOICES,
     MemberConflictValidationError,
+    TeamAssignment,
     get_allowed_org_roles,
+    resolve_active_teams,
     save_team_assignments,
 )
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberinvite import OrganizationMemberInvite
-from sentry.models.team import Team, TeamStatus
+from sentry.models.team import Team
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.roles import organization_roles, team_roles
 from sentry.search.utils import tokenize_query
@@ -48,6 +57,47 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.users.api.parsers.email import AllowedEmailField
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
+
+
+class TeamRoleAssignmentSerializer(serializers.Serializer[dict[str, Any]]):
+    teamSlug = serializers.CharField(
+        trim_whitespace=False, help_text="The slug of the team to assign the member to."
+    )
+    role = serializers.ChoiceField(
+        choices=[role.id for role in team_roles.get_all()],
+        allow_null=True,
+        help_text="The team role to assign. Use null for the default team role.",
+    )
+
+
+@extend_schema_field(TeamRoleAssignmentSerializer(many=True))
+class TeamAssignmentsField(
+    serializers.Field[
+        tuple[TeamAssignment, ...], object, list[dict[str, str | None]], tuple[TeamAssignment, ...]
+    ]
+):
+    def to_internal_value(self, data: object) -> tuple[TeamAssignment, ...]:
+        # Supplied entries are complete values even when the containing update is partial.
+        serializer = TeamRoleAssignmentSerializer(data=data, many=True, context=self.context)
+        serializer.is_valid(raise_exception=True)
+        entries = serializer.validated_data
+        teams = resolve_active_teams(
+            self.context["organization"], [entry["teamSlug"] for entry in entries]
+        )
+        roles_by_slug = {
+            entry["teamSlug"]: team_roles.get(entry["role"]) if entry["role"] is not None else None
+            for entry in entries
+        }
+        return tuple(TeamAssignment(team, roles_by_slug[team.slug]) for team in teams)
+
+    def to_representation(self, value: tuple[TeamAssignment, ...]) -> list[dict[str, str | None]]:
+        return [
+            {
+                "teamSlug": assignment.team.slug,
+                "role": assignment.role.id if assignment.role else None,
+            }
+            for assignment in value
+        ]
 
 
 @extend_schema_serializer(deprecate_fields=["role", "teams"])
@@ -72,11 +122,9 @@ class OrganizationMemberRequestSerializer(serializers.Serializer[dict[str, Any]]
         default=list,
         help_text="Deprecated, use `teamRoles`. Slugs of teams to add the member to.",
     )  # deprecated, use teamRoles
-    teamRoles = serializers.ListField(
+    teamRoles = TeamAssignmentsField(
         required=False,
-        allow_null=True,
-        default=list,
-        child=serializers.JSONField(),
+        default=(),
         help_text="""The team and team-roles assigned to the member. Team roles can be either:
         - `contributor` - Can view and act on issues. Depending on organization settings, they can also add team members.
         - `admin` - Has full management access to their team's membership and projects.""",
@@ -144,32 +192,16 @@ class OrganizationMemberRequestSerializer(serializers.Serializer[dict[str, Any]]
             )
         return role
 
-    def validate_teams(self, teams: list[Team]) -> list[Team]:
-        valid_teams = list(
-            Team.objects.filter(
-                organization=self.context["organization"], status=TeamStatus.ACTIVE, slug__in=teams
-            )
-        )
+    def validate_teams(self, teams: list[str]) -> list[Team]:
+        return resolve_active_teams(self.context["organization"], teams)
 
-        if len(valid_teams) != len(teams):
-            raise serializers.ValidationError("Invalid teams")
 
-        return valid_teams
+class _OrganizationErrorResponse(TypedDict):
+    organization: str
 
-    def validate_teamRoles(self, teamRoles: list[dict[str, Any]]) -> list[tuple[Team, str]]:
-        roles = {item["role"] for item in teamRoles}
-        valid_roles = [r.id for r in team_roles.get_all()] + [None]
-        if roles.difference(valid_roles):
-            raise serializers.ValidationError("Invalid team-role")
-        team_slugs = [item["teamSlug"] for item in teamRoles]
-        valid_teams = self.validate_teams(team_slugs)
 
-        # Avoids O(n * n) search
-        team_role_map = {item["teamSlug"]: item["role"] for item in teamRoles}
-        # TODO(dlee): Check if they have permissions to assign team role for each team
-        valid_team_roles = [(team, team_role_map[team.slug]) for team in valid_teams]
-
-        return valid_team_roles
+class _EmailErrorResponse(TypedDict):
+    email: str
 
 
 @cell_silo_endpoint
@@ -337,9 +369,11 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         request=OrganizationMemberRequestSerializer,
         responses={
             201: OrganizationMemberSerializer,
+            400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
+            429: RESPONSE_TOO_MANY_REQUESTS,
         },
         examples=OrganizationMemberExamples.CREATE_ORG_MEMBER,
     )
@@ -348,11 +382,14 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
     ) -> (
         Response[OrganizationMemberResponse]
         | Response[DetailResponse]
+        | Response[_OrganizationErrorResponse]
+        | Response[_EmailErrorResponse]
         | Response[ValidationErrorResponse]
     ):
         """
         Add or invite a member to an organization.
         """
+        inviter = require_user(request)
         assigned_org_role = (
             request.data.get("orgRole")
             or request.data.get("role")
@@ -393,11 +430,12 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             return Response(as_validation_errors(serializer), status=400)
 
         result = serializer.validated_data
+        team_assignments: tuple[TeamAssignment, ...] | None = result.get("teamRoles")
 
         if ratelimits.for_organization_member_invite(
             organization=organization,
             email=result["email"],
-            user=request.user,
+            user=inviter,
             auth=request.auth,
         ):
             metrics.incr(
@@ -415,22 +453,18 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
         members_can_only_invite_to_members_teams = (
             not organization.flags.allow_joinleave and not organization.flags.disable_member_invite
         )
-        has_teams = bool(result.get("teamRoles") or result.get("teams"))
+        has_teams = bool(team_assignments or result.get("teams"))
 
         if is_member and members_can_only_invite_to_members_teams and has_teams:
             requester_teams = set(
                 OrganizationMember.objects.filter(
                     organization=organization,
-                    user_id=request.user.id,
+                    user_id=inviter.id,
                     user_is_active=True,
                 ).values_list("teams__slug", flat=True)
             )
-            team_slugs = list(
-                set(
-                    [team.slug for team, _ in result.get("teamRoles", [])]
-                    + [team.slug for team in result.get("teams", [])]
-                )
-            )
+            team_slugs = {assignment.team.slug for assignment in (team_assignments or [])}
+            team_slugs.update(team.slug for team in result.get("teams", []))
             # ensure that the requester is a member of all teams they are trying to assign
             if not requester_teams.issuperset(team_slugs):
                 return Response(
@@ -461,7 +495,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
                 organization=organization,
                 email=result["email"],
                 role=assigned_org_role,
-                inviter_id=request.user.id,
+                inviter_id=inviter.id,
             )
 
             if settings.SENTRY_ENABLE_INVITES:
@@ -469,10 +503,10 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             om.save()
 
         # Do not set team-roles when inviting members
-        if "teamRoles" in result or "teams" in result:
+        if team_assignments is not None or "teams" in result:
             teams = (
-                [team for team, _ in result.get("teamRoles")]
-                if "teamRoles" in result and result["teamRoles"]
+                [assignment.team for assignment in team_assignments]
+                if team_assignments
                 else result.get("teams")
             )
             save_team_assignments(om, teams)
@@ -481,7 +515,7 @@ class OrganizationMemberIndexEndpoint(OrganizationEndpoint):
             referrer = request.query_params.get("referrer")
             om.send_invite_email(referrer)
             member_invited.send_robust(
-                member=om, user=request.user, sender=self, referrer=request.data.get("referrer")
+                member=om, user=inviter, sender=self, referrer=request.data.get("referrer")
             )
 
         self.create_audit_entry(

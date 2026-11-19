@@ -2,13 +2,6 @@ import {useState} from 'react';
 
 import {t} from 'sentry/locale';
 import {
-  getRawSections,
-  PrettyRawToggle,
-  Sections,
-  type SectionProps,
-} from 'sentry/views/explore/conversations/components/evaluationSpanTab';
-import {EmptySpanTab} from 'sentry/views/explore/conversations/components/spanTabContent';
-import {
   ExtractionResults,
   ExtractionSource,
 } from 'sentry/views/insights/pages/agents/components/extractionContent';
@@ -16,6 +9,14 @@ import {
   getExtractionRows,
   type Extraction,
 } from 'sentry/views/insights/pages/agents/utils/extraction';
+
+import {
+  getRawSections,
+  PrettyRawToggle,
+  Sections,
+  type SectionProps,
+} from './evaluationSpanTab';
+import {EmptySpanTab} from './spanTabContent';
 
 /**
  * The source text with each found value highlighted, followed by each field

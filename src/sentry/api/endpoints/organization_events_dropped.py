@@ -1,4 +1,4 @@
-from typing import Any, TypedDict
+from typing import Annotated, Any, TypedDict
 
 import sentry_sdk
 from drf_spectacular.utils import OpenApiResponse, extend_schema
@@ -24,6 +24,7 @@ from sentry.api.helpers.data_annotations import (
 )
 from sentry.api.utils import handle_query_errors
 from sentry.apidocs import constants as api_constants
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.parameters import GlobalParams, OrganizationParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
@@ -35,28 +36,60 @@ _ACCEPTED = "accepted"
 
 
 class DroppedEventsBucket(TypedDict):
-    type: str
-    category: str
-    outcome: str
-    reason: str
-    start: float
-    end: float
-    count: float
-    tags: list[str]
+    type: Annotated[str, ApiDescription("Annotation type. Always `system`")]
+    category: Annotated[str, ApiDescription("Data category of the events, such as `log_item`")]
+    outcome: Annotated[
+        str,
+        ApiDescription(
+            "Outcome of the events, such as `rate_limited` or `filtered`, or `accepted` for accepted events"
+        ),
+    ]
+    reason: Annotated[
+        str,
+        ApiDescription(
+            "Reason for the outcome within its outcome class, or `accepted` for accepted events"
+        ),
+    ]
+    start: Annotated[
+        float, ApiDescription("Start of the bucket, in milliseconds since the Unix epoch")
+    ]
+    end: Annotated[float, ApiDescription("End of the bucket, in milliseconds since the Unix epoch")]
+    count: Annotated[float, ApiDescription("Number of events in the bucket")]
+    tags: Annotated[
+        list[str],
+        ApiDescription(
+            "Whether the drop is `intentional` (user-configured) or `unintentional`. Empty for accepted events"
+        ),
+    ]
 
 
 class DroppedEventsMeta(TypedDict):
-    dataset: str
-    start: float
-    end: float
-    interval: float
-    suppressedDrops: list[SuppressedDrop]
+    dataset: Annotated[str, ApiDescription("Dataset that was queried")]
+    start: Annotated[
+        float,
+        ApiDescription("Start of the queried time range, in milliseconds since the Unix epoch"),
+    ]
+    end: Annotated[
+        float, ApiDescription("End of the queried time range, in milliseconds since the Unix epoch")
+    ]
+    interval: Annotated[float, ApiDescription("Width of each bucket, in milliseconds")]
+    suppressedDrops: Annotated[
+        list[SuppressedDrop],
+        ApiDescription(
+            "Dropped volume withheld from `droppedEvents` because it is a known SDK misreport"
+        ),
+    ]
 
 
 class DroppedEventsResponse(TypedDict):
-    meta: DroppedEventsMeta
-    droppedEvents: list[DroppedEventsBucket]
-    acceptedEvents: list[DroppedEventsBucket]
+    meta: Annotated[DroppedEventsMeta, ApiDescription("Metadata about the query")]
+    droppedEvents: Annotated[
+        list[DroppedEventsBucket],
+        ApiDescription("Dropped event volume, one entry per bucket, outcome and reason"),
+    ]
+    acceptedEvents: Annotated[
+        list[DroppedEventsBucket], ApiDescription("Accepted event volume, one entry per bucket")
+    ]
 
 
 class DroppedEventsQueryParamsSerializer(serializers.Serializer[dict[str, Any]]):

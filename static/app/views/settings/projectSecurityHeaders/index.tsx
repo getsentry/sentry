@@ -21,7 +21,8 @@ import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
-import {ReportUri} from 'sentry/views/settings/projectSecurityHeaders/reportUri';
+
+import {ReportUri} from './reportUri';
 
 function ProjectSecurityHeaders() {
   const organization = useOrganization();

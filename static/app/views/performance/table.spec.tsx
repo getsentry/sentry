@@ -9,9 +9,8 @@ import {EventView} from 'sentry/utils/discover/eventView';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {Table} from 'sentry/views/performance/table';
 
-const FEATURES = ['performance-view'];
+import {Table} from './table';
 
 const initializeData = (settings = {}, features: string[] = []) => {
   const projects = [
@@ -19,7 +18,7 @@ const initializeData = (settings = {}, features: string[] = []) => {
     ProjectFixture({id: '2', slug: '2'}),
   ];
   return _initializeData({
-    features: [...FEATURES, ...features],
+    features,
     projects,
     selectedProject: projects[0],
     ...settings,

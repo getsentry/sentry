@@ -6,6 +6,7 @@ from django.http import HttpRequest
 from django.test import RequestFactory, override_settings
 from rest_framework.request import Request
 
+from sentry.auth.principal import acting_user_id
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.middleware.auth import AuthenticationMiddleware
 from sentry.models.apikey import ApiKey
@@ -51,7 +52,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
         with outbox_runner():
             self.middleware.process_request(request)
             # Force the user object to materialize
-            request.user.id
+            acting_user_id(request.user)
 
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.user.refresh_from_db()
@@ -133,7 +134,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
             request.META["HTTP_AUTHORIZATION"] = f"Bearer {self._agent_token(self.user)}"
             self.middleware.process_request(request)
         assert request.user.is_authenticated
-        assert request.user.id == self.user.id
+        assert acting_user_id(request.user) == self.user.id
         assert request.auth is not None
         assert request.auth.kind == agent_token.AGENT_TOKEN_KIND
         assert request.auth.user_id == self.user.id
@@ -165,7 +166,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
             request.META["HTTP_AUTHORIZATION"] = f"Bearer {self._agent_token(self.user)}"
             self.middleware.process_request(request)
         assert request.user.is_authenticated
-        assert request.user.id == self.user.id
+        assert acting_user_id(request.user) == self.user.id
         assert request.auth is not None
         assert request.auth.user_id == self.user.id
 
@@ -181,8 +182,8 @@ class AuthenticationMiddlewareTestCase(TestCase):
             request.META["HTTP_AUTHORIZATION"] = f"Bearer {self._agent_token(self.user)}"
             self.middleware.process_request(request)
         assert request.user.is_authenticated
-        assert request.user.id == self.user.id
-        assert request.user.id != session_user.id
+        assert acting_user_id(request.user) == self.user.id
+        assert acting_user_id(request.user) != session_user.id
         assert request.auth is not None
         assert request.auth.user_id == self.user.id
 
@@ -236,7 +237,7 @@ class AuthenticationMiddlewareTestCase(TestCase):
         with outbox_runner():
             self.middleware.process_request(request)
             # Should be logged in and have logged a UserIp record.
-            assert request.user.id == self.user.id
+            assert acting_user_id(request.user) == self.user.id
             assert mock_geo_by_addr.call_count == 1
 
         with assume_test_silo_mode(SiloMode.CONTROL):

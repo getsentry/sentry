@@ -1,12 +1,14 @@
 import orjson
 import sentry_sdk
-from django.http import HttpRequest, HttpResponse
+from django.http import HttpResponse
+from rest_framework.request import Request
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.auth.principal import acting_user_id
 from sentry.grouping.api import load_grouping_config
 from sentry.grouping.grouping_info import get_grouping_info
 from sentry.interfaces.stacktrace import StacktraceOrder
@@ -19,11 +21,12 @@ from sentry.users.services.user_option.service import get_option_from_list
 @cell_silo_endpoint
 class EventGroupingInfoEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
 
-    def get(self, request: HttpRequest, project: Project, event_id: str) -> HttpResponse:
+    def get(self, request: Request, project: Project, event_id: str) -> HttpResponse:
         """
         Returns the grouping information for an event
         `````````````````````````````````````````````
@@ -43,11 +46,14 @@ class EventGroupingInfoEndpoint(ProjectEndpoint):
         # stacktrace, which by default is upside down compared to the event JSON. Therefore, unless
         # user has set a preference to prevent it, we want to flip the grouping info stacktraces,
         # too.
+        user_id = acting_user_id(request.user)
+        user_options = (
+            user_option_service.get_many(filter={"user_ids": [user_id]})
+            if user_id is not None
+            else []
+        )
         should_reverse_stacktraces = (
-            get_option_from_list(
-                user_option_service.get_many(filter={"user_ids": [request.user.id]}),
-                key="stacktrace_order",
-            )
+            get_option_from_list(user_options, key="stacktrace_order")
             != StacktraceOrder.MOST_RECENT_LAST
         )
         # Create an instance-level copy so we don't mutate the class-level dict,

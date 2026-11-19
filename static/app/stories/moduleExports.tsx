@@ -1,8 +1,7 @@
 import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Stack} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
-
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
 
 export function ModuleExports(props: {exports: TypeLoader.TypeLoaderResult['exports']}) {
   if (!props.exports?.exports || !props.exports.module) {
@@ -81,7 +80,7 @@ export function ModuleExports(props: {exports: TypeLoader.TypeLoaderResult['expo
       <CodeBlock
         dark
         language="tsx"
-        onCopy={() => addSuccessMessage('Imports copied to clipboard')}
+        onCopy={() => toast.success('Imports copied to clipboard')}
       >
         {lines.join('\n')}
       </CodeBlock>

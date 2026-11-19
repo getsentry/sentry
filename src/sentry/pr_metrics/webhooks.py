@@ -1518,8 +1518,8 @@ def _apply_activity_into_doc(
 ) -> None:
     """Apply one processed event to the PR's activity document, under a row lock.
 
-    ``get_or_create`` the 1:1 row (race-safe on its unique constraint), then lock
-    it and run the pure reducer, so concurrent webhook processors for one PR
+    ``get_or_create`` the 1:1 row under ``select_for_update`` (race-safe on its unique
+    constraint), then run the pure reducer, so concurrent webhook processors for one PR
     serialize on the document. The reducer can't be expressed as an atomic JSONB
     update, so the lock is required. ``date_updated`` is bumped on every fold so
     retention keys off last-write, not creation.
@@ -1532,8 +1532,7 @@ def _apply_activity_into_doc(
     no-op, exactly like the legacy row insert it replaces.
     """
     with transaction.atomic(using=router.db_for_write(PullRequestActivityLog)):
-        PullRequestActivityLog.objects.get_or_create(pull_request=pr)
-        log = PullRequestActivityLog.objects.select_for_update().get(pull_request=pr)
+        log, _ = PullRequestActivityLog.objects.select_for_update().get_or_create(pull_request=pr)
         doc = log.data if log.data.get("version") else new_document()
         apply_activity(
             doc,

@@ -23,6 +23,7 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.users.models.authenticator import Authenticator
 from sentry.users.models.user_option import UserOption
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 from tests.sentry.core.endpoints.test_organization_member_index import (
     mock_organization_roles_get_factory,
 )
@@ -35,8 +36,35 @@ class OrganizationMemberTestBase(APITestCase):
         super().setUp()
         self.login_as(self.user)
 
+    def _service_account_context(self) -> str:
+        service_account = self.create_service_account(
+            organization=self.organization, scope_list=["member:admin", "org:read"]
+        )
+        return encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+
 
 class GetOrganizationMemberTest(OrganizationMemberTestBase):
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_cannot_read_member(self) -> None:
+        member = self.create_member(
+            organization=self.organization, user=self.create_user(), role="member"
+        )
+
+        response = self.client.get(
+            reverse(self.endpoint, args=[self.organization.slug, member.id]),
+            HTTP_X_VIEWER_CONTEXT=self._service_account_context(),
+        )
+
+        assert response.status_code == 403, response.content
+        assert response.data["detail"]["code"] == "user-required"
+
     def test_me(self) -> None:
         response = self.get_success_response(self.organization.slug, "me")
 
@@ -167,6 +195,72 @@ class GetOrganizationMemberTest(OrganizationMemberTestBase):
 
 class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMixin):
     method = "put"
+
+    def test_invalid_team_roles(self) -> None:
+        member = self.create_member(
+            organization=self.organization,
+            user=self.create_user(),
+            role="member",
+            teams=[self.team],
+        )
+
+        invalid_team_roles: list[object] = [
+            None,
+            {},
+            "team-slug",
+            [None],
+            [True],
+            ["team-slug"],
+            [[]],
+            [{}],
+            [{"role": "admin"}],
+            [{"teamSlug": "team-slug"}],
+            [{"teamSlug": {}, "role": None}],
+            [{"teamSlug": [], "role": None}],
+            [{"teamSlug": "team-slug", "role": {}}],
+            [{"teamSlug": "team-slug", "role": []}],
+        ]
+        for team_roles in invalid_team_roles:
+            response = self.get_error_response(
+                self.organization.slug,
+                member.id,
+                orgRole="manager",
+                teamRoles=team_roles,
+                status_code=400,
+            )
+
+            assert "teamRoles" in response.data
+        member.refresh_from_db()
+        assert member.role == "member"
+        assert list(member.teams.all()) == [self.team]
+
+    def test_empty_team_roles_clears_teams(self) -> None:
+        member = self.create_member(
+            organization=self.organization,
+            user=self.create_user(),
+            role="member",
+            teams=[self.team],
+        )
+
+        self.get_success_response(self.organization.slug, member.id, teamRoles=[])
+        assert list(member.teams.all()) == []
+
+    def test_omitted_team_roles_preserves_assignments(self) -> None:
+        member = self.create_member(
+            organization=self.organization,
+            user=self.create_user(),
+            role="member",
+            teams=[self.team],
+        )
+        OrganizationMemberTeam.objects.filter(organizationmember=member).update(role="admin")
+
+        self.get_success_response(self.organization.slug, member.id, orgRole="member")
+
+        assert list(
+            OrganizationMemberTeam.objects.filter(organizationmember=member).values_list(
+                "team_id", "role"
+            )
+        ) == [(self.team.id, "admin")]
 
     def setUp(self) -> None:
         super().setUp()
@@ -935,6 +1029,22 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
 
 class DeleteOrganizationMemberTest(OrganizationMemberTestBase):
     method = "delete"
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_cannot_remove_member(self) -> None:
+        member = self.create_member(
+            organization=self.organization, user=self.create_user(), role="member"
+        )
+
+        response = self.client.delete(
+            reverse(self.endpoint, args=[self.organization.slug, member.id]),
+            HTTP_X_VIEWER_CONTEXT=self._service_account_context(),
+        )
+
+        assert response.status_code == 403, response.content
+        assert response.data["detail"]["code"] == "user-required"
+        assert OrganizationMember.objects.filter(id=member.id).exists()
 
     def setUp(self) -> None:
         super().setUp()

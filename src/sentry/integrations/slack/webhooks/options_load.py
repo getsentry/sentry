@@ -97,7 +97,7 @@ class SlackOptionsLoadEndpoint(Endpoint):
         group = (
             Group.objects.select_related("project__organization")
             .filter(id=slack_request.group_id)
-            .first()
+            .get_or_none()
         )
 
         if group and not integration_service.get_organization_integrations(

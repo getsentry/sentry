@@ -13,10 +13,11 @@ import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import type {ExploreQueryChangedReason} from 'sentry/views/explore/hooks/useSaveQuery';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+import type {ExploreQueryChangedReason} from './useSaveQuery';
 
 export enum SavedQueryType {
   DISCOVER = 'discover',
@@ -145,6 +146,7 @@ export type ReadableSavedQuery = {
   environment?: string[];
   errorsOnly?: boolean;
   isPrebuilt?: boolean;
+  queryPriority?: 'normal' | 'faster';
   start?: string;
   statsPeriod?: string;
 };
@@ -170,6 +172,7 @@ export class SavedQuery {
   environment?: string[];
   errorsOnly?: boolean;
   isPrebuilt?: boolean;
+  queryPriority?: 'normal' | 'faster';
   start?: string | DateString;
   statsPeriod?: string;
 
@@ -195,6 +198,10 @@ export class SavedQuery {
     this.environment = savedQuery.environment;
     this.errorsOnly = savedQuery.errorsOnly;
     this.isPrebuilt = savedQuery.isPrebuilt;
+    this.queryPriority =
+      savedQuery.queryPriority === 'normal' || savedQuery.queryPriority === 'faster'
+        ? savedQuery.queryPriority
+        : undefined;
     this.statsPeriod = savedQuery.statsPeriod;
     this.start = savedQuery.start;
     this.dataset = savedQuery.dataset;
@@ -357,7 +364,9 @@ function savedQueryApiOptions({
 
 export function useGetSavedQuery(id?: string) {
   const organization = useOrganization();
-  const {data, isLoading, isFetched} = useQuery(savedQueryApiOptions({organization, id}));
+  const {data, isLoading, isFetched, isError} = useQuery(
+    savedQueryApiOptions({organization, id})
+  );
   const savedQuery = useMemo(() => {
     if (!defined(data)) {
       return;
@@ -366,7 +375,7 @@ export function useGetSavedQuery(id?: string) {
       ? new SavedQuery(data)
       : undefined;
   }, [data]);
-  return {data: savedQuery, isLoading, isFetched};
+  return {data: savedQuery, isError, isLoading, isFetched};
 }
 
 export function useInvalidateSavedQuery(id?: string) {

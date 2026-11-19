@@ -1,15 +1,15 @@
 import {Fragment, useEffect, useState} from 'react';
 import {IconGithub} from '@sentry/icons/github';
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {type ModalRenderProps} from '@sentry/scraps/modal';
 import {Prose} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {type ModalRenderProps} from 'sentry/actionCreators/modal';
 import {SelectField} from 'sentry/components/forms/fields/selectField';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -18,8 +18,9 @@ import {t, tct} from 'sentry/locale';
 import type {UserIdentityConfig} from 'sentry/types/auth';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 
@@ -71,11 +72,11 @@ export function PrivateGamingSdkAccessModal({
     isError,
     data: userIdentities,
     refetch,
-  } = useApiQuery<UserIdentityConfig[]>(
-    [getApiUrl('/users/$userId/user-identities/', {path: {userId: 'me'}})],
-    {
+  } = useQuery(
+    apiOptions.as<UserIdentityConfig[]>()('/users/$userId/user-identities/', {
+      path: {userId: 'me'},
       staleTime: Infinity,
-    }
+    })
   );
 
   const mutation = useMutation<
@@ -98,7 +99,7 @@ export function PrivateGamingSdkAccessModal({
       );
 
       if (platformsWithErrors.length > 0) {
-        addErrorMessage(
+        toast.error(
           tct(
             'Invitation to console repositories for these platforms have failed: [errors]',
             {
@@ -109,7 +110,7 @@ export function PrivateGamingSdkAccessModal({
       }
 
       if (successfulPlatforms.length > 0) {
-        addSuccessMessage(
+        toast.success(
           tct('Invitation to these platforms has been sent: [platforms]', {
             platforms: successfulPlatforms.join(','),
           })
@@ -132,7 +133,7 @@ export function PrivateGamingSdkAccessModal({
             ? errorResponse.responseJSON.detail
             : t('Unknown Error occurred'),
       });
-      addErrorMessage(errorMessage);
+      toast.error(errorMessage);
     },
   });
 

@@ -18,6 +18,7 @@ const SELECTOR_PSEUDOS = new Set([
 /** A selector is scoped when its subject has an explicit class, ID, or attribute. */
 function isScoped(nodes: readonly selectorParser.Node[]): boolean {
   // Only the final compound selects the subject; earlier compounds select ancestors.
+  // @ts-expect-error TS5115: Instantiations of the following types appear infinitely circular.
   nodes = nodes.slice(nodes.findLastIndex(node => node.type === 'combinator') + 1);
   return nodes.some(node => {
     if (

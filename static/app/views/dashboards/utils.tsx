@@ -4,7 +4,6 @@ import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 import trimStart from 'lodash/trimStart';
 import {parseAsJson} from 'nuqs';
-import * as qs from 'query-string';
 import {z} from 'zod';
 
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
@@ -36,21 +35,23 @@ import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {FieldKind} from 'sentry/utils/fields';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {decodeList} from 'sentry/utils/queryString';
+import * as qs from 'sentry/utils/url/qs';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
-import {DEFAULT_STATS_PERIOD} from 'sentry/views/dashboards/data';
+
+import {DEFAULT_STATS_PERIOD} from './data';
 import type {
   DashboardDetails,
   DashboardFilters,
   GlobalFilter,
   Widget,
   WidgetQuery,
-} from 'sentry/views/dashboards/types';
+} from './types';
 import {
   DashboardFilterKeys,
   DisplayType,
   WIDGET_TYPE_TO_SAVED_QUERY_DATASET,
   WidgetType,
-} from 'sentry/views/dashboards/types';
+} from './types';
 
 type ValidationError = {
   [key: string]: string | string[] | ValidationError[] | ValidationError;

@@ -6,7 +6,8 @@ import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestin
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {PageOverviewWebVitalsDetailPanel} from 'sentry/views/insights/browser/webVitals/components/pageOverviewWebVitalsDetailPanel';
+
+import {PageOverviewWebVitalsDetailPanel} from './pageOverviewWebVitalsDetailPanel';
 
 describe('PageOverviewWebVitalsDetailPanel', () => {
   const organization = OrganizationFixture({

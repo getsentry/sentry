@@ -52,6 +52,7 @@ from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.models.repository import Repository
 from sentry.models.team import Team
 from sentry.models.userreport import UserReport
+from sentry.monitors.logic.checkin_config import get_checkin_config_id
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -376,6 +377,7 @@ def create_monitor(project: Project, environment: Environment) -> None:
     MonitorCheckIn.objects.create(
         monitor_environment=monitor_env,
         status=CheckInStatus.OK if monitor_env.status == MonitorStatus.OK else CheckInStatus.ERROR,
+        checkin_config_id=get_checkin_config_id(monitor.config),
     )
 
 
@@ -1180,7 +1182,7 @@ def create_mock_attachment(event_id: str, project: Project) -> None:
 
 def create_mock_user_feedback(project: Project, has_attachment: bool = True) -> None:
     # Get an existing release for this project instead of creating a new one
-    release = Release.objects.filter(projects=project).first()
+    release = Release.objects.filter(projects=project).first()  # noqa: S035
 
     event = {
         "project_id": project.id,

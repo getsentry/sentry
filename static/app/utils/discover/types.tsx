@@ -16,6 +16,7 @@ export enum DisplayModes {
 
 export enum DiscoverDatasets {
   DISCOVER = 'discover',
+  ENRICHMENT_ATTRIBUTES = 'enrichment_attributes',
   ERRORS = 'errors',
   METRICS = 'metrics',
   METRICS_ENHANCED = 'metricsEnhanced',
@@ -36,6 +37,7 @@ export const DiscoverDatasetsToDatasetMap = {
 // (ourlogs, tracemetrics) out of user-facing URLs.
 export const DiscoverDatasetToUrlParam: Record<DiscoverDatasets, string> = {
   [DiscoverDatasets.DISCOVER]: 'discover',
+  [DiscoverDatasets.ENRICHMENT_ATTRIBUTES]: 'enrichment_attributes',
   [DiscoverDatasets.ERRORS]: 'errors',
   [DiscoverDatasets.METRICS]: 'metrics',
   [DiscoverDatasets.METRICS_ENHANCED]: 'metricsEnhanced',

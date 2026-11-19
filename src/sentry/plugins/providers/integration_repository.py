@@ -182,6 +182,7 @@ class IntegrationRepositoryProvider(Generic[InstT]):
                 organization_id=organization_id,
                 providers=[self.id],
                 external_id=filters.get("external_id"),
+                external_ids=filters.get("external_ids"),
             )
         }
         return [
@@ -378,11 +379,17 @@ class IntegrationRepositoryProvider(Generic[InstT]):
         Includes unlinked rows this provider may adopt: plugin-era ones and ones with no
         provider (see ``_adoptable_repositories``).
         """
+        external_id_list = sorted(external_ids)
         provider_repos = repository_service.get_repositories(
             organization_id=organization.id,
             providers=[self.id],
+            external_ids=external_id_list,
         )
-        legacy_repos = self._adoptable_repositories(organization.id, has_integration=False)
+        legacy_repos = self._adoptable_repositories(
+            organization.id,
+            external_ids=external_id_list,
+            has_integration=False,
+        )
 
         found: dict[str, RpcRepository] = {}
         for repo in provider_repos + legacy_repos:

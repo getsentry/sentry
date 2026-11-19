@@ -12,9 +12,9 @@ import {IconClose} from '@sentry/icons/close';
 import {Button} from '@sentry/scraps/button';
 import {Image, type ImageProps} from '@sentry/scraps/image';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 
 type ShowcaseContextValue = {

@@ -988,6 +988,12 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "workflow_engine.incidentgroupopenperiod": [
                 DateUpdatedComparator("date_updated", "date_added")
             ],
+            "telemetry_classifiers.telemetryclassifier": [
+                DateUpdatedComparator("date_updated", "date_added"),
+            ],
+            "timeseries_annotations.timeseriesannotation": [
+                DateUpdatedComparator("date_updated", "date_added"),
+            ],
             "tempest.tempestcredentials": [
                 DateUpdatedComparator("date_updated", "date_added"),
             ],

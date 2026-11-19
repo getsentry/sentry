@@ -3,7 +3,7 @@ import {DetailedProjectFixture} from 'sentry-fixture/project';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {fireEvent, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ProjectAlertSettings from 'sentry/views/settings/projectAlerts/settings';
+import ProjectAlertSettings from './settings';
 
 describe('ProjectAlertSettings', () => {
   // 12 minutes

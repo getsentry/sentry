@@ -1,5 +1,6 @@
 import type {ReactNode} from 'react';
 
+import {getDuration} from '@sentry/scraps/duration';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -8,25 +9,33 @@ import {TurnMeta} from 'sentry/components/ai/chat/turnMeta';
 import {t, tn} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {ToolTag} from 'sentry/views/explore/conversations/components/toolTag';
-import {TranscriptSpanRow} from 'sentry/views/explore/conversations/components/transcriptSpanRow';
-import type {ToolCall} from 'sentry/views/explore/conversations/utils/conversationMessages';
+import {useSelectionOpenState} from 'sentry/views/explore/conversations/hooks/useSelectionOpenState';
+import {
+  isSubAgentCall,
+  type ToolCall,
+  type TurnCall,
+} from 'sentry/views/explore/conversations/utils/conversationMessages';
 import {getToolInputPreview} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {getToolOutputBytes} from 'sentry/views/insights/pages/agents/utils/getToolOutputBytes';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 
+import {SubAgentRow, type RenderTranscriptMessages} from './subAgentRow';
+import {ToolTag} from './toolTag';
+import {TranscriptSpanRow} from './transcriptSpanRow';
+
 interface MessageToolCallsProps {
   nodeMap: Map<string, AITraceSpanNode>;
   onSelectNode: (node: AITraceSpanNode) => void;
+  /** Renders a sub-agent's transcript when its row is expanded. */
+  renderMessages: RenderTranscriptMessages;
   /**
-   * The selected node id when it matches one of these tool calls, otherwise
-   * null — scoped by the parent turn so the prop is stable when the selection
-   * lands elsewhere.
+   * The selected node id when it is one of these calls or inside one of them,
+   * otherwise null — scoped by the parent turn so the prop is stable when the
+   * selection lands elsewhere.
    */
   selectedToolCallId: string | null;
-  toolCalls: ToolCall[];
+  toolCalls: TurnCall[];
 }
 
 /**
@@ -42,26 +51,44 @@ const COLLAPSE_THRESHOLD = 5;
  * collapsed by default, to keep tool-heavy turns compact; shorter runs render
  * inline. Each row is an accent wrench + `ToolTag` capped at the message width,
  * with the size and duration right-aligned. Selection shows an outline.
+ * Sub-agents the turn's tools started share the list as collapsed rows.
  */
 export function MessageToolCalls({
   toolCalls,
   selectedToolCallId,
   nodeMap,
   onSelectNode,
+  renderMessages,
 }: MessageToolCallsProps) {
   const organization = useOrganization();
+  // Keeps the group open when one of its calls is (or holds) the selection, so
+  // a deep-linked or timeline-selected row stays visible instead of hidden.
+  const [isOpen, setIsOpen] = useSelectionOpenState(selectedToolCallId);
 
   const rows = (
     <Stack gap="xs" width="100%">
-      {toolCalls.map(tool => (
-        <ToolCallRow
-          key={tool.nodeId}
-          tool={tool}
-          node={nodeMap.get(tool.nodeId)}
-          isSelected={tool.nodeId === selectedToolCallId}
-          onSelectNode={onSelectNode}
-        />
-      ))}
+      {toolCalls.map(call => {
+        if (isSubAgentCall(call)) {
+          return (
+            <SubAgentRow
+              key={call.nodeId}
+              call={call}
+              nodeMap={nodeMap}
+              selectedNodeId={selectedToolCallId}
+              renderMessages={renderMessages}
+            />
+          );
+        }
+        return (
+          <ToolCallRow
+            key={call.nodeId}
+            tool={call}
+            node={nodeMap.get(call.nodeId)}
+            isSelected={call.nodeId === selectedToolCallId}
+            onSelectNode={onSelectNode}
+          />
+        );
+      })}
     </Stack>
   );
 
@@ -70,30 +97,40 @@ export function MessageToolCalls({
     return rows;
   }
 
-  const errorCount = toolCalls.filter(tool => tool.hasError).length;
+  const errorCount = toolCalls.filter(call => call.hasError).length;
+  const subAgentCount = toolCalls.filter(isSubAgentCall).length;
+  const toolCount = toolCalls.length - subAgentCount;
 
   // Aggregate the same per-row values into a run-level total so the summary
   // hints at how heavy the collapsed group is. Duration is the sum of each
   // call's own duration (parallel calls are counted separately), matching the
   // numbers on the rows rather than wall-clock elapsed time.
   const totalDuration = toolCalls.reduce(
-    (sum, tool) => sum + (tool.duration && tool.duration > 0 ? tool.duration : 0),
+    (sum, call) => sum + (call.duration && call.duration > 0 ? call.duration : 0),
     0
   );
-  const totalBytes = toolCalls.reduce((sum, tool) => {
-    const node = nodeMap.get(tool.nodeId);
+  const totalBytes = toolCalls.reduce((sum, call) => {
+    if (isSubAgentCall(call)) {
+      return sum;
+    }
+    const node = nodeMap.get(call.nodeId);
     return sum + (node ? getToolOutputBytes(node) : 0);
   }, 0);
 
   return (
     <CollapsibleChatRow
-      // Keep the group open when one of its calls is the current selection so a
-      // deep-linked/timeline-selected row stays visible instead of hidden.
-      defaultOpen={selectedToolCallId !== null}
+      open={isOpen}
       title={
         <Flex align="center" gap="sm" minWidth={0}>
           <Text size="sm" variant="muted">
-            {tn('%s tool call', '%s tool calls', toolCalls.length)}
+            {[
+              toolCount > 0 ? tn('%s tool call', '%s tool calls', toolCount) : null,
+              subAgentCount > 0
+                ? tn('%s sub-agent', '%s sub-agents', subAgentCount)
+                : null,
+            ]
+              .filter(Boolean)
+              .join(', ')}
           </Text>
           {errorCount > 0 && (
             <Text size="sm" variant="danger">
@@ -110,17 +147,20 @@ export function MessageToolCalls({
           }
           duration={
             totalDuration > 0 ? (
-              <MetaValue>{getDuration(totalDuration, 2, true)}</MetaValue>
+              <MetaValue>
+                {getDuration(totalDuration, {precision: 2, style: 'short'})}
+              </MetaValue>
             ) : null
           }
         />
       }
-      onToggle={open =>
+      onOpenChange={open => {
+        setIsOpen(open);
         trackAnalytics('conversations.detail.expand-tool-calls', {
           organization,
           expanded: open,
-        })
-      }
+        });
+      }}
     >
       <Container paddingTop="xs">{rows}</Container>
     </CollapsibleChatRow>
@@ -159,7 +199,9 @@ function ToolCallRow({tool, node, isSelected, onSelectNode}: ToolCallRowProps) {
           metric={node ? <ToolOutputSize node={node} /> : null}
           duration={
             tool.duration === undefined || tool.duration <= 0 ? null : (
-              <MetaValue>{getDuration(tool.duration, 2, true)}</MetaValue>
+              <MetaValue>
+                {getDuration(tool.duration, {precision: 2, style: 'short'})}
+              </MetaValue>
             )
           }
         />

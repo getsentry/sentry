@@ -65,9 +65,9 @@ def test_default_prefix() -> None:
     cache.debounce(**kwargs)
 
     expected_key = "relayconfig-debounce:k:abc"
-    redis = cache._get_redis_client(expected_key)
+    redis = cache.cluster
 
-    assert redis.get(expected_key) == b"1"
+    assert redis.get(expected_key) == "1"
 
 
 def test_custom_prefix() -> None:
@@ -81,6 +81,6 @@ def test_custom_prefix() -> None:
     cache.debounce(**kwargs)
 
     expected_key = "hello:world:k:abc"
-    redis = cache._get_redis_client(expected_key)
+    redis = cache.cluster
 
-    assert redis.get(expected_key) == b"1"
+    assert redis.get(expected_key) == "1"

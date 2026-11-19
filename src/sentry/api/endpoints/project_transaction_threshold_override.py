@@ -11,6 +11,7 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import ProjectTransactionThresholdOverridePermission
 from sentry.api.bases.organization_events import OrganizationEventsEndpointBase
 from sentry.api.serializers import serialize
+from sentry.auth.principal import acting_user_id
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.transaction_threshold import (
@@ -82,9 +83,6 @@ class ProjectTransactionThresholdOverrideEndpoint(OrganizationEventsEndpointBase
         return projects[0]
 
     def get(self, request: Request, organization: Organization) -> Response:
-        if not self.has_feature(organization, request):
-            return self.respond(status=status.HTTP_404_NOT_FOUND)
-
         project = self.get_project(request, organization)
 
         try:
@@ -105,9 +103,6 @@ class ProjectTransactionThresholdOverrideEndpoint(OrganizationEventsEndpointBase
         )
 
     def post(self, request: Request, organization: Organization) -> Response:
-        if not self.has_feature(organization, request):
-            return self.respond(status=status.HTTP_404_NOT_FOUND)
-
         project = self.get_project(request, organization)
         serializer = ProjectTransactionThresholdOverrideSerializer(
             data=request.data,
@@ -133,7 +128,7 @@ class ProjectTransactionThresholdOverrideEndpoint(OrganizationEventsEndpointBase
                 defaults={
                     "threshold": data["threshold"],
                     "metric": data["metric"],
-                    "edited_by_id": request.user.id,
+                    "edited_by_id": acting_user_id(request.user),
                 },
             )
 
@@ -146,9 +141,6 @@ class ProjectTransactionThresholdOverrideEndpoint(OrganizationEventsEndpointBase
         )
 
     def delete(self, request: Request, organization: Organization) -> Response:
-        if not self.has_feature(organization, request):
-            return self.respond(status=status.HTTP_404_NOT_FOUND)
-
         project = self.get_project(request, organization)
         transaction = request.data.get("transaction")
         if not transaction:

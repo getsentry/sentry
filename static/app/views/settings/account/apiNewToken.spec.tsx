@@ -10,8 +10,9 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
-import * as indicators from 'sentry/actionCreators/indicator';
-import ApiNewToken from 'sentry/views/settings/account/apiNewToken';
+import {toast} from '@sentry/scraps/toast';
+
+import ApiNewToken from './apiNewToken';
 
 describe('ApiNewToken', () => {
   it('renders', () => {
@@ -182,7 +183,7 @@ describe('ApiNewToken', () => {
   });
 
   it('shows error message when token creation fails', async () => {
-    jest.spyOn(indicators, 'addErrorMessage');
+    jest.spyOn(toast, 'error');
 
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -197,7 +198,7 @@ describe('ApiNewToken', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Create Token'}));
 
-    await waitFor(() => expect(indicators.addErrorMessage).toHaveBeenCalled());
+    await waitFor(() => expect(toast.error).toHaveBeenCalled());
   });
 
   it('does not render CI-only permissions for personal tokens', () => {
@@ -211,6 +212,43 @@ describe('ApiNewToken', () => {
     render(<ApiNewToken />);
     expect(screen.getByRole('textbox', {name: 'Project'})).toBeInTheDocument();
     expect(screen.queryByRole('textbox', {name: 'Dashboards'})).not.toBeInTheDocument();
+  });
+
+  it('does not render service account permissions without the service-accounts flag', () => {
+    render(<ApiNewToken />);
+    expect(
+      screen.queryByRole('textbox', {name: 'Service Accounts'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('submits service account scopes with the service-accounts flag', async () => {
+    MockApiClient.clearMockResponses();
+    const assignMock = MockApiClient.addMockResponse({
+      method: 'POST',
+      url: '/api-tokens/',
+    });
+
+    render(<ApiNewToken />, {
+      organization: OrganizationFixture({features: ['service-accounts']}),
+    });
+
+    await selectEvent.select(
+      screen.getByRole('textbox', {name: 'Service Accounts'}),
+      'Read & Write'
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Create Token'}));
+
+    await waitFor(() =>
+      expect(assignMock).toHaveBeenCalledWith(
+        '/api-tokens/',
+        expect.objectContaining({
+          data: expect.objectContaining({
+            scopes: ['service_account:read', 'service_account:write'],
+          }),
+        })
+      )
+    );
   });
 
   describe('with granular-permission-scopes-ui', () => {

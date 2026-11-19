@@ -8,8 +8,6 @@ import {Text} from '@sentry/scraps/text';
 import * as Storybook from 'sentry/stories';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {PRLinksBar} from 'sentry/views/seerExplorer/components/prLinksBar';
-import {SeerExplorerContent} from 'sentry/views/seerExplorer/components/seerExplorerContent';
 import {
   SeerExplorerChatStateProvider,
   useSeerExplorerChatDispatch,
@@ -20,6 +18,9 @@ import type {
   RepoPRState,
   SeerExplorerResponse,
 } from 'sentry/views/seerExplorer/types';
+
+import {PRLinksBar} from './prLinksBar';
+import {SeerExplorerContent} from './seerExplorerContent';
 
 function prState(overrides: Partial<RepoPRState> & {repo_name: string}): RepoPRState {
   return {
@@ -61,6 +62,16 @@ const PUSH_FAILED = prState({
   repo_name: 'acme/web',
   pr_creation_error: 'Pushing to seer/add-service-tests was rejected by a branch rule.',
   pr_creation_status: 'error',
+});
+
+const OUT_OF_CREDITS = prState({
+  repo_name: 'acme/billing',
+  pr_creation_error: "Your organization doesn't have enough Seer credits for this.",
+  pr_creation_error_code: 'out_of_credits',
+  pr_creation_status: 'error',
+  pr_number: null,
+  pr_url: null,
+  title: 'fix: Retry failed invoice webhooks',
 });
 
 const ALL_STATES = [COMPLETED, CREATING, UPDATING, ERRORED, PUSH_FAILED];
@@ -106,6 +117,20 @@ export default Storybook.story('PRLinksBar', story => {
     <Frame>
       <PRLinksBar repoPRStates={byRepo(PUSH_FAILED)} />
     </Frame>
+  ));
+
+  story('Failed for credits', () => (
+    <Stack gap="md">
+      <Text variant="muted">
+        The PR could not be opened because the organization ran out of Seer credits. The
+        button has no retry; hover it and its tooltip says the PR failed for credits
+        instead of the raw backend error. There is no CTA under the bar: the
+        out-of-credits alert above the chat composer covers it.
+      </Text>
+      <Frame>
+        <PRLinksBar repoPRStates={byRepo(COMPLETED, OUT_OF_CREDITS)} />
+      </Frame>
+    </Stack>
   ));
 
   story('Several repos', () => (

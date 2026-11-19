@@ -2,14 +2,11 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import NotRequired, TypedDict, cast
 
-from django.contrib.auth.models import AnonymousUser
-
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.apiapplication import ApiApplicationSerializerResponse
+from sentry.auth.principal import RequestPrincipal
 from sentry.models.apitoken import ApiToken
 from sentry.types.token import AuthTokenType
-from sentry.users.models.user import User
-from sentry.users.services.user.model import RpcUser
 
 
 class ApiTokenSerializerResponse(TypedDict):
@@ -30,7 +27,7 @@ class ApiTokenSerializer(Serializer[ApiTokenSerializerResponse]):
     def get_attrs(
         self,
         item_list: Sequence[ApiToken],
-        user: User | RpcUser | AnonymousUser,
+        user: RequestPrincipal,
         **kwargs: object,
     ) -> dict[ApiToken, dict[str, object]]:
         apps = {
@@ -49,7 +46,7 @@ class ApiTokenSerializer(Serializer[ApiTokenSerializerResponse]):
         self,
         obj: ApiToken,
         attrs: Mapping[str, object],
-        user: User | RpcUser | AnonymousUser,
+        user: RequestPrincipal,
         **kwargs: object,
     ) -> ApiTokenSerializerResponse:
         data: ApiTokenSerializerResponse = {

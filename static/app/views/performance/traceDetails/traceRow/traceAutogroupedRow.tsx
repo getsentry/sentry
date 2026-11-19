@@ -2,14 +2,15 @@ import {t} from 'sentry/locale';
 import {TraceIcons} from 'sentry/views/performance/traceDetails/traceIcons';
 import type {ParentAutogroupNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/parentAutogroupNode';
 import type {SiblingAutogroupNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/siblingAutogroupNode';
-import {AutogroupedTraceBar} from 'sentry/views/performance/traceDetails/traceRow/traceBar';
+
+import {AutogroupedTraceBar} from './traceBar';
 import {
   maybeFocusTraceRow,
   TRACE_COUNT_FORMATTER,
   TraceChildrenButton,
   TraceRowConnectors,
   type TraceRowProps,
-} from 'sentry/views/performance/traceDetails/traceRow/traceRow';
+} from './traceRow';
 
 export function TraceAutogroupedRow(
   props: TraceRowProps<ParentAutogroupNode | SiblingAutogroupNode>

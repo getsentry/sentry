@@ -1,6 +1,8 @@
 import type {RangeTuple} from 'fuse.js/basic';
 import {mat3, vec2} from 'gl-matrix';
 
+import {findRangeBinarySearch, Rect} from 'sentry/utils/profiling/speedscope';
+
 import {
   computeConfigViewWithStrategy,
   computeHighlightedBounds,
@@ -9,8 +11,7 @@ import {
   getCenterScaleMatrixFromConfigPosition,
   getContext,
   makeProjectionMatrix,
-} from 'sentry/utils/profiling/gl/utils';
-import {findRangeBinarySearch, Rect} from 'sentry/utils/profiling/speedscope';
+} from './utils';
 
 describe('makeProjectionMatrix', () => {
   it('should return a projection matrix', () => {

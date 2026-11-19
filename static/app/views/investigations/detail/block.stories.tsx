@@ -6,7 +6,6 @@ import {
   InvestigationFixtureApi,
   investigationExecutionFixtureKey,
 } from 'sentry/views/investigations/__stories__/investigationFixtureApi';
-import {InvestigationNotebookBlock} from 'sentry/views/investigations/detail/block';
 import {
   InvestigationBlockExecutionFixture,
   InvestigationBlockFixture,
@@ -15,6 +14,8 @@ import {
   InvestigationQueryOutputFixture,
   InvestigationTranscriptBlockFixture,
 } from 'sentry/views/investigations/fixtures';
+
+import {InvestigationNotebookBlock} from './block';
 
 const notRunBlock = InvestigationBlockFixture({
   id: 'not-run-block',

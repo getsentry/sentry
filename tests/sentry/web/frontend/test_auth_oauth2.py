@@ -228,6 +228,15 @@ class AuthOAuth2Test(AuthProviderTestCase):
         assert str(messages[0]).startswith("Authentication error")
         assert auth_resp.context["user"] != self.user
 
+    @mock.patch("sentry.auth.providers.oauth2.safe_urlopen")
+    def test_callback_without_state_is_rejected(self, urlopen: mock.MagicMock) -> None:
+        auth_resp = self.client.post(f"{self.login_path}?code=1234", {"init": True}, follow=True)
+
+        messages = list(auth_resp.context["messages"])
+        assert len(messages) == 1
+        assert str(messages[0]).startswith("Authentication error")
+        assert not urlopen.called
+
     def test_response_errors(self) -> None:
         auth_data = {"error_description": "Mock failure"}
 

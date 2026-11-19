@@ -39,17 +39,29 @@ class OrganizationEventsFacetsEndpointTest(SnubaTestCase, APITestCase):
         sort_key = lambda row: row["name"] if row["name"] is not None else ""
         assert sorted(expected, key=sort_key) == sorted(actual["topValues"], key=sort_key)
 
-    def test_performance_view_feature(self) -> None:
-        self.features.update(
-            {
-                "organizations:discover-basic": False,
-                "organizations:performance-view": True,
-            }
-        )
+    def test_without_discover_basic(self) -> None:
+        self.features.update({"organizations:discover-basic": False})
         with self.feature(self.features):
             response = self.client.get(self.url, data={"project": self.project.id}, format="json")
 
         assert response.status_code == 200, response.content
+
+    def test_trace_timestamp_outside_retention(self) -> None:
+        with (
+            self.feature(self.features),
+            mock.patch("sentry.quotas.backend.get_event_retention", return_value=30),
+        ):
+            response = self.client.get(
+                self.url,
+                data={
+                    "project": self.project.id,
+                    "statsPeriod": "90d",
+                    "traceTimestamp": before_now(days=60).timestamp(),
+                },
+                format="json",
+            )
+
+        assert response.status_code == 400, response.content
 
     def test_simple(self) -> None:
         self.store_event(

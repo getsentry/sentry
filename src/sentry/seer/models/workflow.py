@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from django.db import models
 from pydantic import BaseModel
@@ -41,8 +41,12 @@ MAX_WORKFLOW_CONFIGS_PER_ORG = 50
 class SeerWorkflowConfigExtras(BaseModel):
     # The default strategy that seeded this config; unset for user-created configs.
     seeded_default: SeerWorkflowStrategy | None = None
-    # Optional user-supplied name
-    name: str | None = None
+    # The user who most recently updated this config through the API, or "bot" for
+    # non-user callers. Unset until the first update.
+    updated_by: int | Literal["bot"] | None = None
+    # Settings for the automation's trigger and action, in the shapes those classes declare.
+    trigger_settings: dict[str, Any] | None = None
+    action_settings: dict[str, Any] | None = None
 
 
 class SeerWorkflowFilters(BaseModel):
@@ -83,6 +87,8 @@ class SeerWorkflowConfig(DefaultFieldsModel):
         null=True,
     )
     strategy = models.CharField(max_length=256, choices=SeerWorkflowStrategy.choices)
+    # Deprecated and being removed: automations read and write their enabled state, name and
+    # creator on `backing_workflow`.
     enabled = models.BooleanField(default=False)
     schedule = models.CharField(
         max_length=256, choices=SeerWorkflowSchedule.choices, default=SeerWorkflowSchedule.DAILY

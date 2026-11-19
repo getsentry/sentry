@@ -7,7 +7,8 @@ import type {TeamParticipant, UserParticipant} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/foldSection';
-import {ParticipantList} from 'sentry/views/issueDetails/sidebar/participantList';
+
+import {ParticipantList} from './participantList';
 
 export function PeopleSection({
   userParticipants,

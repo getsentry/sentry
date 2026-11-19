@@ -1,12 +1,13 @@
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import TypedDict, cast
+from typing import Annotated, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import Serializer, register
-from sentry.auth.principal import acting_user, owned_by_acting_user
+from sentry.apidocs.descriptions import ApiDescription
+from sentry.auth.principal import acting_user, is_owned_by_acting_user
 from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
@@ -19,26 +20,44 @@ from sentry.users.services.user.service import user_service
 
 
 class GroupSearchViewTimeFilters(TypedDict, total=False):
-    start: str | None
-    end: str | None
-    period: str | None
-    utc: bool | None
+    start: Annotated[str | None, ApiDescription("Start of the time range (ISO 8601)")]
+    end: Annotated[str | None, ApiDescription("End of the time range (ISO 8601)")]
+    period: Annotated[str | None, ApiDescription("Relative time period, such as 14d")]
+    utc: Annotated[bool | None, ApiDescription("Whether the time range is in UTC")]
 
 
 class GroupSearchViewSerializerResponse(TypedDict):
-    id: str
-    createdBy: UserSerializerResponse | None
-    name: str
-    query: str
-    querySort: SORT_LITERALS
-    projects: list[int]
-    environments: list[str]
-    timeFilters: GroupSearchViewTimeFilters
-    lastVisited: datetime | None
-    dateCreated: datetime | None
-    dateUpdated: datetime
-    starred: bool
-    stars: int
+    id: Annotated[str, ApiDescription("ID of the issue view")]
+    createdBy: Annotated[
+        UserSerializerResponse | None, ApiDescription("User who created the issue view")
+    ]
+    name: Annotated[str, ApiDescription("Name of the issue view")]
+    query: Annotated[str, ApiDescription("Search query of the issue view")]
+    querySort: Annotated[SORT_LITERALS, ApiDescription("How issues in the view are sorted")]
+    projects: Annotated[
+        list[int], ApiDescription("IDs of the projects in the view. [-1] means all projects")
+    ]
+    environments: Annotated[
+        list[str],
+        ApiDescription(
+            "Names of the environments in the view. An empty list means all environments"
+        ),
+    ]
+    timeFilters: Annotated[
+        GroupSearchViewTimeFilters, ApiDescription("Time range of the issue view")
+    ]
+    lastVisited: Annotated[
+        datetime | None,
+        ApiDescription("When the requesting user last viewed the issue view (ISO 8601)"),
+    ]
+    dateCreated: Annotated[
+        datetime | None, ApiDescription("When the issue view was created (ISO 8601)")
+    ]
+    dateUpdated: Annotated[
+        datetime, ApiDescription("When the issue view was last updated (ISO 8601)")
+    ]
+    starred: Annotated[bool, ApiDescription("Whether the requesting user starred the issue view")]
+    stars: Annotated[int, ApiDescription("Number of users who starred the issue view")]
 
 
 @register(GroupSearchView)
@@ -57,13 +76,13 @@ class GroupSearchViewSerializer(Serializer[GroupSearchViewSerializerResponse]):
         attrs: dict[GroupSearchView, dict[str, object]] = {}
 
         last_visited_views = GroupSearchViewLastVisited.objects.filter(
-            owned_by_acting_user(user),
+            is_owned_by_acting_user(user),
             organization=self.organization,
             group_search_view_id__in=[item.id for item in item_list],
         )
         user_starred_view_ids = set(
             GroupSearchViewStarred.objects.filter(
-                owned_by_acting_user(user), organization=self.organization
+                is_owned_by_acting_user(user), organization=self.organization
             ).values_list("group_search_view_id", flat=True)
         )
         last_visited_map = {lv.group_search_view_id: lv for lv in last_visited_views}

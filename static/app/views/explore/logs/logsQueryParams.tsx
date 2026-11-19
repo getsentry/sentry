@@ -1,14 +1,17 @@
 import type {Location} from 'history';
+import isEqual from 'lodash/isEqual';
 import type {inferParserType} from 'nuqs';
 
 import {defined} from 'sentry/utils/defined';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {AggregationKey} from 'sentry/utils/fields';
+import {decodeList} from 'sentry/utils/queryString';
 import {LOGS_CURSOR_KEY} from 'sentry/views/explore/contexts/logs/constants';
 import {defaultLogFields} from 'sentry/views/explore/contexts/logs/fields';
 import {
   LOGS_AGGREGATE_CURSOR_KEY,
   LOGS_AGGREGATE_FN_KEY,
+  LOGS_ANCHOR_TIMESTAMP_KEY,
   LOGS_AGGREGATE_PARAM_KEY,
   LOGS_FIELDS_KEY,
   LOGS_GROUP_BY_KEY,
@@ -18,7 +21,6 @@ import {
   LOGS_AGGREGATE_SORT_BYS_KEY,
   LOGS_SORT_BYS_KEY,
 } from 'sentry/views/explore/contexts/logs/sortBys';
-import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import {getAggregateFields} from 'sentry/views/explore/queryParams/aggregateField';
 import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
 import {getAggregateSortBys} from 'sentry/views/explore/queryParams/aggregateSortBy';
@@ -45,6 +47,8 @@ import {getSortBys} from 'sentry/views/explore/queryParams/sortBy';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 import {isVisualize, VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
+
+import {OurLogKnownFieldKey} from './types';
 
 const LOGS_MODE_KEY = 'mode';
 export const LOGS_AGGREGATE_FIELD_KEY = 'aggregateField';
@@ -156,14 +160,37 @@ export function getLogsQueryParamsUpdates(
   };
 }
 
+export function dropLogAnchorIfQueryChanged(
+  location: Location,
+  target: Location
+): Location {
+  const changed = [
+    LOGS_MODE_KEY,
+    LOGS_QUERY_KEY,
+    LOGS_CURSOR_KEY,
+    LOGS_FIELDS_KEY,
+    LOGS_SORT_BYS_KEY,
+  ].some(key => !isEqual(decodeList(target.query[key]), decodeList(location.query[key])));
+
+  if (!changed || !(LOGS_ANCHOR_TIMESTAMP_KEY in target.query)) {
+    return target;
+  }
+
+  const {[LOGS_ANCHOR_TIMESTAMP_KEY]: _anchor, ...query} = target.query;
+  return {...target, query};
+}
+
 export function getTargetWithReadableQueryParams(
   location: Location,
   writableQueryParams: WritableQueryParams
 ): Location {
-  return applyQueryParamsUpdates(
-    LOGS_QUERY_PARSERS,
+  return dropLogAnchorIfQueryChanged(
     location,
-    getLogsQueryParamsUpdates(writableQueryParams)
+    applyQueryParamsUpdates(
+      LOGS_QUERY_PARSERS,
+      location,
+      getLogsQueryParamsUpdates(writableQueryParams)
+    )
   );
 }
 

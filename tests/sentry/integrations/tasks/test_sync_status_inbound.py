@@ -20,6 +20,7 @@ from sentry.models.groupresolution import GroupResolution
 from sentry.models.release import ReleaseStatus
 from sentry.signals import issue_unresolved
 from sentry.silo.base import SiloMode
+from sentry.tasks.auto_resolve_issues import auto_resolve_project_issues
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.features import Feature, with_feature
@@ -239,7 +240,11 @@ class TestSyncStatusInbound(TestCase):
 
     @mock.patch.object(ExampleIntegration, "get_resolve_sync_action")
     def test_unresolve(self, mock_get_resolve_sync_action: mock.MagicMock) -> None:
-        self.group.update(status=GroupStatus.RESOLVED)
+        self.project.update_option("sentry:resolve_age", 1)
+        self.group.update(
+            status=GroupStatus.RESOLVED,
+            last_seen=django_timezone.now() - timedelta(days=1),
+        )
 
         mock_get_resolve_sync_action.return_value = ResolveSyncAction.UNRESOLVE
 
@@ -252,6 +257,9 @@ class TestSyncStatusInbound(TestCase):
 
         self._assert_group_unresolved(self.group.id)
         self._assert_unresolve_activity_created()
+
+        auto_resolve_project_issues(self.project.id)
+        self._assert_group_unresolved(self.group.id)
 
     @mock.patch.object(ExampleIntegration, "get_resolve_sync_action")
     def test_noop(self, mock_get_resolve_sync_action: mock.MagicMock) -> None:

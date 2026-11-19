@@ -1,16 +1,21 @@
 from itertools import product
 
 import pytest
+from django.test import override_settings
 from django.urls import NoReverseMatch, reverse
 
 from sentry.api.serializers.models.exploresavedquery import QueryResponseType
 from sentry.explore.models import (
     ExploreSavedQuery,
     ExploreSavedQueryDataset,
+    ExploreSavedQueryLastVisited,
     ExploreSavedQueryProject,
     ExploreSavedQueryStarred,
 )
+from sentry.search.eap.constants import QueryPriorities
 from sentry.testutils.cases import APITestCase, SnubaTestCase
+from sentry.testutils.helpers.features import with_feature
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
 class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
@@ -392,7 +397,7 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
             assert self.model.name == "Test query"
             assert self.model.query == {"query": [{"fields": ["span.op"], "mode": "samples"}]}
 
-    def test_put_invalid_transformation_pipeline(self) -> None:
+    def test_put_invalid_transformation_function(self) -> None:
         for visualization_field in ["visualize", "aggregateField"]:
             url = reverse(
                 "sentry-api-0-explore-saved-query-detail", args=[self.org.slug, self.query_id]
@@ -729,6 +734,56 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 403, response.content
 
+    def test_put_updates_query_priority(self) -> None:
+        for dataset in ("spans", "logs"):
+            saved = ExploreSavedQuery.objects.create(
+                organization=self.org,
+                created_by_id=self.user.id,
+                name="Priority query",
+                query={"query": [{"fields": ["timestamp"], "mode": "samples"}]},
+                dataset=(
+                    ExploreSavedQueryDataset.SPANS
+                    if dataset == "spans"
+                    else ExploreSavedQueryDataset.OURLOGS
+                ),
+                query_priority=QueryPriorities.FASTER,
+            )
+            url = reverse("sentry-api-0-explore-saved-query-detail", args=[self.org.slug, saved.id])
+            with self.feature(self.feature_name):
+                response = self.client.put(
+                    url,
+                    {
+                        "name": "Priority query",
+                        "projects": self.project_ids,
+                        "dataset": dataset,
+                        "query": [{"fields": ["timestamp"], "mode": "samples"}],
+                        "range": "24h",
+                        "queryPriority": "normal",
+                    },
+                )
+            assert response.status_code == 200, response.content
+            assert response.data["dataset"] == dataset
+            assert response.data["queryPriority"] == "normal"
+            saved.refresh_from_db()
+            assert saved.query_priority == QueryPriorities.NORMAL
+
+            with self.feature(self.feature_name):
+                response = self.client.put(
+                    url,
+                    {
+                        "name": "Renamed query",
+                        "projects": self.project_ids,
+                        "dataset": dataset,
+                        "query": [{"fields": ["timestamp"], "mode": "samples"}],
+                        "range": "24h",
+                    },
+                )
+            assert response.status_code == 200, response.content
+            assert response.data["queryPriority"] == "normal"
+            saved.refresh_from_db()
+            assert saved.name == "Renamed query"
+            assert saved.query_priority == QueryPriorities.NORMAL
+
 
 class OrganizationExploreQueryVisitTest(APITestCase, SnubaTestCase):
     feature_name = "organizations:visibility-explore-view"
@@ -770,6 +825,31 @@ class OrganizationExploreQueryVisitTest(APITestCase, SnubaTestCase):
         assert query.visits == 2
         assert query.last_visited is not None
         assert query.last_visited > last_visited
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_visit_query_as_service_account(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.org, project_ids=self.project_ids
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.org.id,
+            ),
+            key="service-account-secret",
+        )
+
+        with self.feature(self.feature_name):
+            response = self.client.post(
+                self.url(self.query.id), HTTP_X_VIEWER_CONTEXT=viewer_context
+            )
+
+        assert response.status_code == 204, response.content
+        assert ExploreSavedQuery.objects.get(id=self.query.id).visits == 2
+        assert not ExploreSavedQueryLastVisited.objects.filter(
+            explore_saved_query=self.query
+        ).exists()
 
     def test_visit_query_no_access(self) -> None:
         last_visited = self.query.last_visited

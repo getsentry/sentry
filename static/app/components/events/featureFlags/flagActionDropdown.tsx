@@ -9,13 +9,14 @@ import {Container} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {RevealOnHover} from '@sentry/scraps/revealOnHover';
 
-import {makeFeatureFlagSearchKey} from 'sentry/components/events/featureFlags/utils';
 import {t} from 'sentry/locale';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {DrawerTab} from 'sentry/views/issueDetails/groupDistributions/types';
 import {Tab} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
+
+import {makeFeatureFlagSearchKey} from './utils';
 
 export function FlagActionDropdown({
   flag,

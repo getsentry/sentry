@@ -1,9 +1,10 @@
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+
 import {
   convertWidgetToBuilderState,
   convertWidgetToQueryParams,
-} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
-import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
+} from './convertWidgetToBuilderStateParams';
+import {getDefaultWidget} from './getDefaultWidget';
 
 describe('convertWidgetToBuilderStateParams', () => {
   it('should not pass along yAxis when converting a table to builder params', () => {

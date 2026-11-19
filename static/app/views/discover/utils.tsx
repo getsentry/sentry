@@ -27,7 +27,6 @@ import {
   isMeasurement,
   measurementType,
   PROFILING_FIELDS,
-  TRACING_FIELDS,
 } from 'sentry/utils/discover/fields';
 import {DisplayModes, SavedQueryDatasets, TOP_N} from 'sentry/utils/discover/types';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
@@ -53,12 +52,13 @@ import {
   type QueryTransformations,
 } from 'sentry/views/dashboards/utils/transformations';
 import {convertWidgetToQueryParams} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
-import {getAllViews} from 'sentry/views/discover/results/data';
-import {displayModeToDisplayType} from 'sentry/views/discover/savedQuery/utils';
-import type {FieldValue} from 'sentry/views/discover/table/types';
-import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {getMetricMonitorUrl} from 'sentry/views/insights/common/utils/getMetricMonitorUrl';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
+
+import {getAllViews} from './results/data';
+import {displayModeToDisplayType} from './savedQuery/utils';
+import type {FieldValue} from './table/types';
+import {FieldValueKind} from './table/types';
 
 /**
  * @returns whether `widgetType` is one that stores a {@link DisplayType} directly
@@ -386,13 +386,9 @@ export function generateFieldOptions({
   aggregations = AGGREGATIONS,
   fieldKeys = DISCOVER_FIELDS,
 }: FieldGeneratorOpts) {
-  let functions = Object.keys(aggregations);
+  const functions = Object.keys(aggregations);
 
   // Strip tracing features if the org doesn't have access.
-  if (!organization.features.includes('performance-view')) {
-    fieldKeys = fieldKeys.filter(item => !TRACING_FIELDS.includes(item));
-    functions = functions.filter(item => !TRACING_FIELDS.includes(item));
-  }
 
   // Strip profiling features if the org doesn't have access.
   if (!organization.features.includes('profiling')) {

@@ -10,8 +10,9 @@ import {
   withRequestedTransformations,
 } from 'sentry/views/dashboards/datasetConfig/utils/getSeriesRequestData';
 import type {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
-import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
+
+import {getWidgetStaleTime} from './getStaleTime';
 
 // Shared query options for dashboard widget series requests to `/events-timeseries/`
 export function getTimeseriesWidgetQueryOptions({

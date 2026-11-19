@@ -1,11 +1,12 @@
+import {ChartType} from 'sentry/views/insights/common/components/chart';
+
 import {
   parseAsBaseVisualizeList,
   parseVisualize,
   Visualize,
   VisualizeEquation,
   VisualizeFunction,
-} from 'sentry/views/explore/queryParams/visualize';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
+} from './visualize';
 
 describe('VisualizeFunction', () => {
   it('clears transformations explicitly and keeps legacy serialization unchanged', () => {

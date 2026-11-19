@@ -389,7 +389,7 @@ class EnhancementsConfig:
     # NOTE: You must add a version to ``VERSIONS`` any time attributes are added
     # to this class, s.t. no enhancements lacking these attributes are loaded
     # from cache.
-    # See ``GroupingConfigLoader._get_enhancements`` in src/sentry/grouping/api.py.
+    # See ``GroupingConfigLoader._get_base64_enhancements`` in src/sentry/grouping/api.py.
 
     def __init__(
         self,

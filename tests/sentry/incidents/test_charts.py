@@ -184,6 +184,36 @@ class BuildMetricAlertChartTest(TestCase):
         mock_generate_chart.assert_called()
         assert mock_client_get.call_args[1]["params"]["dataset"] == "tracemetrics"
 
+    @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
+    @patch("sentry.incidents.charts.client.get")
+    def test_eap_trace_metric_equation_alert(
+        self, mock_client_get: MagicMock, mock_generate_chart: MagicMock
+    ) -> None:
+        from sentry.snuba.models import SnubaQueryEventType
+
+        mock_client_get.return_value.data = {"data": []}
+        equation = "equation|count(value,failures,counter,-) / count(value,queries,counter,-)"
+        alert_rule = self.create_alert_rule(
+            query="",
+            dataset=Dataset.EventsAnalyticsPlatform,
+            aggregate=equation,
+            event_types=[SnubaQueryEventType.EventType.TRACE_ITEM_METRIC],
+        )
+        open_period_context = OpenPeriodContext(
+            id=1, date_started=timezone.now() - datetime.timedelta(minutes=2)
+        )
+
+        url = build_metric_alert_chart(
+            self.organization,
+            alert_context=AlertContext.from_alert_rule_incident(alert_rule),
+            snuba_query=alert_rule.snuba_query,
+            open_period_context=open_period_context,
+        )
+
+        assert url == "chart-url"
+        mock_generate_chart.assert_called()
+        assert mock_client_get.call_args[1]["params"]["yAxis"] == equation
+
 
 class FetchOpenPeriodsTest(BaseMetricIssueTest):
     @freeze_time(frozen_time)

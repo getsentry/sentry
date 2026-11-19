@@ -2,9 +2,8 @@ import {Fragment} from 'react';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Stack} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Heading, Text} from '@sentry/scraps/text';
-
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 
 interface ClientDetails {
   clientID: string;

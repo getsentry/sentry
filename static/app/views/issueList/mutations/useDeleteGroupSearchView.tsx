@@ -4,7 +4,8 @@ import {
   type UseMutationOptions,
 } from '@tanstack/react-query';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -60,7 +61,7 @@ export const useDeleteGroupSearchView = (
       options.onSuccess?.(data, parameters, onMutateResult, context);
     },
     onError: (error, variables, onMutateResult, context) => {
-      addErrorMessage(t('Failed to delete view'));
+      toast.error(t('Failed to delete view'));
       options.onError?.(error, variables, onMutateResult, context);
     },
   });

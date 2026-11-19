@@ -9,10 +9,10 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {useCustomMeasurements} from 'sentry/utils/useCustomMeasurements';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {WidgetBuilderSlideout} from 'sentry/views/dashboards/widgetBuilder/components/widgetBuilderSlideout';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {
   useSpanItemAttributes,
@@ -20,13 +20,14 @@ import {
   useTraceMetricItemAttributes,
 } from 'sentry/views/explore/hooks/useTraceItemAttributes';
 
+import {WidgetBuilderSlideout} from './widgetBuilderSlideout';
+
 jest.mock('sentry/utils/useCustomMeasurements');
 jest.mock('sentry/views/explore/hooks/useTraceItemAttributes');
-jest.mock('sentry/actionCreators/indicator');
-
 describe('WidgetBuilderSlideout', () => {
   let organization!: ReturnType<typeof OrganizationFixture>;
   beforeEach(() => {
+    jest.spyOn(toast, 'error').mockClear();
     organization = OrganizationFixture();
 
     jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
@@ -275,7 +276,7 @@ describe('WidgetBuilderSlideout', () => {
     await userEvent.click(await screen.findByText('Add Widget'));
 
     await waitFor(() => {
-      expect(addErrorMessage).toHaveBeenCalledWith('Title is required during creation');
+      expect(toast.error).toHaveBeenCalledWith('Title is required during creation');
     });
 
     expect(screen.getByText('Custom Widget Builder')).toBeInTheDocument();
@@ -710,6 +711,51 @@ describe('WidgetBuilderSlideout', () => {
     ).toBeInTheDocument();
 
     expect(screen.getAllByTestId('transaction-widget-disabled-wrapper')).toHaveLength(2);
+  });
+
+  it('links to the spans dataset keeping only the page filters when editing a transaction widget', async () => {
+    const organizationWithFeature = OrganizationFixture({
+      features: [
+        'discover-saved-queries-deprecation',
+        'performance-transaction-deprecation-banner',
+      ],
+    });
+    render(
+      <WidgetBuilderProvider>
+        <WidgetBuilderSlideout
+          dashboard={DashboardFixture([])}
+          dashboardFilters={{release: undefined}}
+          onClose={jest.fn()}
+          onQueryConditionChange={jest.fn()}
+          onSave={jest.fn()}
+          setIsPreviewDraggable={jest.fn()}
+          openWidgetTemplates={false}
+          setOpenWidgetTemplates={jest.fn()}
+        />
+      </WidgetBuilderProvider>,
+      {
+        organization: organizationWithFeature,
+        initialRouterConfig: {
+          route: '/dashboards/:widgetIndex/',
+          location: {
+            pathname: '/dashboards/1/',
+            query: {
+              dataset: WidgetType.TRANSACTIONS,
+              displayType: DisplayType.LINE,
+              project: ['1', '2'],
+              environment: 'prod',
+              statsPeriod: '7d',
+              utc: 'true',
+            },
+          },
+        },
+      }
+    );
+
+    expect(await screen.findByRole('link', {name: 'spans'})).toHaveAttribute(
+      'href',
+      '/dashboards/1/?environment=prod&project=1&project=2&statsPeriod=7d&utc=true'
+    );
   });
 
   it('should not show deprecation alert when flag enabled', async () => {

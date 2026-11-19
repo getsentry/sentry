@@ -835,8 +835,9 @@ CONDITION_GROUP_HELP_TEXT = """
 
 
             - `logicType`: `any`
-            - `type`: Any of `gt` (greater than), `lte` (less than or equal), or `anomaly_detection` (dynamic)
+            - `type`: Any of `gt` (greater than), `gte` (greater than or equal), `lt` (less than), `lte` (less than or equal), or `anomaly_detection` (dynamic)
             - `comparison`: Any positive integer. This is threshold that must be crossed for the monitor to create an issue, e.g. "Create a metric issue when there are more than 5 unresolved error events".
+                - If creating a **change** monitor, `comparison` is the current value as a percentage of the value `comparisonDelta` seconds earlier, not the size of the change. For example, use `120` with `gt` for 20% higher, or `70` with `lt` for 30% lower.
                 - If creating a **dynamic** monitor, see the options below.
                     - `seasonality`: `auto`
                     - `sensitivity`: Level of responsiveness. Options are one of `low`, `medium`, or `high`
@@ -851,7 +852,7 @@ CONDITION_GROUP_HELP_TEXT = """
                 - `0`: Resolved
 
 
-            **Threshold and Change Monitor**
+            **Threshold Monitor**
             ```json
                 "logicType": "any",
                 "conditions": [
@@ -863,6 +864,24 @@ CONDITION_GROUP_HELP_TEXT = """
                     {
                         "type": "lte",
                         "comparison": 10,
+                        "conditionResult": 0
+                    }
+                ],
+                "actions": []
+            ```
+
+            **Change Monitor** (20% higher than `comparisonDelta` seconds earlier)
+            ```json
+                "logicType": "any",
+                "conditions": [
+                    {
+                        "type": "gt",
+                        "comparison": 120,
+                        "conditionResult": 75
+                    },
+                    {
+                        "type": "lte",
+                        "comparison": 120,
                         "conditionResult": 0
                     }
                 ],

@@ -593,7 +593,7 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
   );
 
   const compare = (a: TValue | null | undefined, b: TValue | null | undefined) => {
-    if (props.isValueEqual && defined(a) && defined(b)) {
+    if (props.isValueEqual && a != null && b != null) {
       return props.isValueEqual(a, b);
     }
     return a === b;
@@ -601,12 +601,12 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
 
   const toOption = (val: TValue | null | undefined) =>
     flatOptions.find(option => compare(option.value, val)) ??
-    (creatable && defined(val)
+    (creatable && val != null
       ? ({value: val, label: String(val)} as TOption)
       : undefined);
 
   const mappedValue = props.multiple
-    ? props.value.map(toOption).filter(defined)
+    ? props.value.map(toOption).filter(option => option != null)
     : (toOption(props.value) ?? null);
 
   // Allow the provided `styles` prop to override default styles using the same
@@ -722,8 +722,4 @@ function SelectPicker<TValue, TOption extends SelectValue<TValue>>({
 }: SelectPickerProps<TValue, TOption>) {
   const Component: React.ComponentType<any> = creatable ? Creatable : ReactSelect;
   return <Component ref={ref as any} {...props} menuPlacement="auto" />;
-}
-
-function defined<T>(value: T | null | undefined): value is T {
-  return value !== null && value !== undefined;
 }

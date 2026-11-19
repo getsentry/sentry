@@ -219,6 +219,111 @@ describe('useWidgetRawCounts', () => {
     await waitFor(() => expect(totalCountRequest).toHaveBeenCalled());
   });
 
+  it('does not filter the trace metrics count by unit when aggregates have a dash unit', async () => {
+    const selection = PageFiltersFixture({projects: [2], environments: ['prod']});
+    const widget = WidgetFixture({
+      widgetType: WidgetType.TRACEMETRICS,
+      queries: [
+        {
+          name: '',
+          aggregates: [
+            'p50(value,my_metric,distribution,-)',
+            'p95(value,my_metric,distribution,-)',
+          ],
+          fields: [
+            'p50(value,my_metric,distribution,-)',
+            'p95(value,my_metric,distribution,-)',
+          ],
+          columns: [],
+          conditions: 'environment:prod',
+          orderby: '',
+        },
+      ],
+    });
+    const query = '( metric.name:my_metric metric.type:distribution )';
+
+    const normalRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{'count(value)': 11}]},
+      match: [
+        MockApiClient.matchQuery({
+          sampling: 'NORMAL',
+          dataset: 'tracemetrics',
+          query,
+          disableAggregateExtrapolation: '1',
+        }),
+      ],
+    });
+    const totalCountRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{'count(value)': 13}]},
+      match: [
+        MockApiClient.matchQuery({
+          sampling: 'NORMAL',
+          dataset: 'tracemetrics',
+          query,
+          extrapolationMode: 'serverOnly',
+        }),
+      ],
+    });
+
+    renderHookWithProviders(useWidgetRawCounts, {
+      initialProps: {selection, widget},
+    });
+
+    await waitFor(() => expect(normalRequest).toHaveBeenCalled());
+    await waitFor(() => expect(totalCountRequest).toHaveBeenCalled());
+  });
+
+  it('reads the trace metric after the condition argument of _if aggregates', async () => {
+    const selection = PageFiltersFixture({projects: [2], environments: ['prod']});
+    const widget = WidgetFixture({
+      widgetType: WidgetType.TRACEMETRICS,
+      queries: [
+        {
+          name: '',
+          aggregates: ['sum_if(`status:error`,value,metricA,counter,millisecond)'],
+          fields: ['sum_if(`status:error`,value,metricA,counter,millisecond)'],
+          columns: [],
+          conditions: '',
+          orderby: '',
+        },
+      ],
+    });
+
+    const normalRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{'count(value)': 11}]},
+      match: [
+        MockApiClient.matchQuery({
+          sampling: 'NORMAL',
+          dataset: 'tracemetrics',
+          query: '( metric.name:metricA metric.type:counter metric.unit:millisecond )',
+          disableAggregateExtrapolation: '1',
+        }),
+      ],
+    });
+    const totalCountRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{'count(value)': 13}]},
+      match: [
+        MockApiClient.matchQuery({
+          sampling: 'NORMAL',
+          dataset: 'tracemetrics',
+          query: '( metric.name:metricA metric.type:counter metric.unit:millisecond )',
+          extrapolationMode: 'serverOnly',
+        }),
+      ],
+    });
+
+    renderHookWithProviders(useWidgetRawCounts, {
+      initialProps: {selection, widget},
+    });
+
+    await waitFor(() => expect(normalRequest).toHaveBeenCalled());
+    await waitFor(() => expect(totalCountRequest).toHaveBeenCalled());
+  });
+
   it('does not fetch raw counts for non-timeseries display types', async () => {
     const selection = PageFiltersFixture();
     const widget = WidgetFixture({

@@ -18,9 +18,10 @@ import {
   getTraceNodeAttribute,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {getAiInstrumentationDocsLink} from 'sentry/views/insights/pages/agents/utils/docsLinks';
-import {hasAIInputAttribute} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiInput';
-import {hasAIOutputAttribute} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiOutput';
 import type {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/eapSpanNode';
+
+import {hasAIInputAttribute} from './aiInput';
+import {hasAIOutputAttribute} from './aiOutput';
 
 type SupportedSDKLanguage = 'javascript' | 'python';
 

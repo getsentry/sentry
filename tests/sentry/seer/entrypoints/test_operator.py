@@ -1,10 +1,19 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Any, TypedDict, cast
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from django.test import override_settings
+from django.utils import timezone
+from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE,
+    SEER_BILLING_FEATURE_AUTOFIX_INTEGRATIONS,
+    SEER_BILLING_FEATURE_SEER_AGENT_SLACK,
+)
+from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_seer_credits_pb2 import (
+    CheckSeerCreditsResponse,
+)
 
 from fixtures.seer.webhooks import MOCK_RUN_ID
 from sentry.integrations.types import EventLifecycleOutcome, ExternalProviders
@@ -18,6 +27,7 @@ from sentry.issues.action_log.types import (
 from sentry.locks import locks
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
+from sentry.notebooks.models.notebook import NotebookSourceType
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.agent.client_models import (
     CodingAgentState,
@@ -28,17 +38,24 @@ from sentry.seer.agent.client_models import (
     SeerRunState,
 )
 from sentry.seer.autofix.constants import AutofixReferrer
+from sentry.seer.autofix.exceptions import SeerOutOfCreditsException
+from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     CodingAgentProviderType,
 )
 from sentry.seer.entrypoints.cache import SeerOperatorInvestigationCache
+from sentry.seer.entrypoints.metrics import (
+    SeerOperatorEventLifecycleMetric,
+    SeerOperatorInteractionType,
+)
 from sentry.seer.entrypoints.operator import (
     SEER_EVENT_TO_ACTIVITY_TYPE,
     SeerAgentOperator,
     SeerAutofixOperator,
     SeerInvestigationOperator,
     SeerOperatorCompletionHook,
+    _create_seer_activity,
     get_autofix_explorer_status,
     process_autofix_updates,
     process_investigation_updates,
@@ -57,6 +74,7 @@ from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.asserts import assert_failure_metric, assert_halt_metric
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.action_log import capture_action_log
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.types.activity import ActivityType
 from sentry.utils.locking import UnableToAcquireLock
@@ -74,6 +92,7 @@ class MockAutofixEntrypoint(SeerAutofixEntrypoint[MockCachePayload]):
     def __init__(self) -> None:
         self.thread_id = str(uuid.uuid4())
         self.autofix_errors: list[str] = []
+        self.autofix_out_of_credits: list[bool] = []
         self.autofix_run_ids: list[int] = []
         self.autofix_update_cache_payloads: list[object] = []
         self.autofix_already_exists_states: list[tuple[int, bool]] = []
@@ -90,6 +109,9 @@ class MockAutofixEntrypoint(SeerAutofixEntrypoint[MockCachePayload]):
 
     def on_trigger_autofix_error(self, *, error: str) -> None:
         self.autofix_errors.append(error)
+
+    def on_trigger_autofix_out_of_credits(self, *, started: bool) -> None:
+        self.autofix_out_of_credits.append(started)
 
     def on_trigger_autofix_success(self, *, run_id: int) -> None:
         self.autofix_run_ids.append(run_id)
@@ -181,6 +203,10 @@ class SeerOperatorTest(TestCase):
                 stopping_point=AutofixStoppingPoint.ROOT_CAUSE,
             )
 
+        assert (
+            mock_trigger_autofix.call_args.kwargs["billing_feature"]
+            == SEER_BILLING_FEATURE_AUTOFIX_INTEGRATIONS
+        )
         activity = Activity.objects.get(group=self.group, type=ActivityType.TRIGGER_AUTOFIX.value)
         assert activity.user_id == self.user.id
         assert activity.data == {"referrer": AutofixReferrer.SLACK.value}
@@ -192,11 +218,83 @@ class SeerOperatorTest(TestCase):
             referrer=AutofixReferrer.SLACK.value,
         )
 
-    @patch("sentry.seer.autofix.autofix_agent.get_autofix_agent_state", return_value=None)
+    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_agent")
+    @patch("sentry.seer.agent.client.SeerAgentClient.get_run")
+    def test_slack_ignores_a_newer_single_run_when_a_step_run_finished(
+        self, mock_get_run: MagicMock, mock_trigger_autofix: MagicMock
+    ) -> None:
+        for state_id, source, minutes_ago in ((1, "autofix", 10), (2, SINGLE_RUN_FEATURE_ID, 1)):
+            run = self.create_seer_run(
+                organization=self.organization,
+                seer_run_state_id=state_id,
+                last_triggered_at=timezone.now() - timedelta(minutes=minutes_ago),
+            )
+            self.create_seer_agent_run(run=run, source=source, group=self.group)
+        step_block = MemoryBlock(
+            id="1",
+            message=Message(role="assistant", metadata={"step": "root_cause"}),
+            timestamp="2024-01-01T00:00:00Z",
+        )
+        mock_get_run.side_effect = lambda run_id, **_: SeerRunState(
+            run_id=run_id,
+            blocks=[step_block] if run_id == 1 else [],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+        )
+
+        self.operator.trigger_autofix(
+            group=self.group, user=self.user, stopping_point=AutofixStoppingPoint.ROOT_CAUSE
+        )
+
+        assert self.entrypoint.autofix_already_exists_states == [(1, True)]
+        mock_trigger_autofix.assert_not_called()
+
+    @patch("sentry.seer.autofix.autofix_agent.trigger_autofix_agent")
+    @patch("sentry.seer.autofix.autofix_agent.get_autofix_run_state")
+    @patch("sentry.seer.autofix.autofix_agent.get_autofix_agent_state")
+    def test_slack_continuation_reads_billing_feature_from_requested_run(
+        self, mock_get_latest: MagicMock, mock_get_requested: MagicMock, mock_trigger: MagicMock
+    ) -> None:
+        mock_get_latest.return_value = SeerRunState(
+            run_id=2,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            billing_feature=SEER_BILLING_FEATURE_AUTOFIX_INTEGRATIONS,
+        )
+        mock_get_requested.return_value = SeerRunState(
+            run_id=1,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+            billing_feature=SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE,
+        )
+
+        self.operator.trigger_autofix(
+            group=self.group,
+            user=self.user,
+            stopping_point=AutofixStoppingPoint.SOLUTION,
+            run_id=1,
+        )
+
+        mock_get_requested.assert_called_once_with(self.group, 1)
+        assert mock_trigger.call_args.kwargs["run_id"] == 1
+        assert mock_trigger.call_args.kwargs["billing_feature"] == (
+            SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE
+        )
+
+    @patch("sentry.seer.autofix.autofix_agent.get_autofix_agent_state")
     @patch("sentry.seer.autofix.autofix_agent.trigger_push_changes")
     def test_slack_open_pr_passes_commit_author(
-        self, mock_push_changes: MagicMock, _mock_get_autofix_state: MagicMock
+        self, mock_push_changes: MagicMock, mock_get_autofix_state: MagicMock
     ) -> None:
+        mock_get_autofix_state.return_value = SeerRunState(
+            run_id=MOCK_RUN_ID,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+        )
+
         def open_pr() -> None:
             self.operator.trigger_autofix(
                 group=self.group,
@@ -225,6 +323,93 @@ class SeerOperatorTest(TestCase):
             "email": "583231+octocat@users.noreply.github.com",
             "scm_login": "octocat",
         }
+
+    @patch("sentry.seer.autofix.autofix_agent.get_autofix_agent_state", return_value=None)
+    @patch(
+        "sentry.seer.autofix.autofix_agent.trigger_autofix_agent",
+        side_effect=SeerOutOfCreditsException(),
+    )
+    def test_trigger_autofix_out_of_credits_before_the_run_started(
+        self, _mock_trigger_autofix: MagicMock, _mock_get_autofix_state: MagicMock
+    ) -> None:
+        with patch(
+            "sentry.seer.entrypoints.operator.SeerOperatorEventLifecycleMetric",
+            wraps=SeerOperatorEventLifecycleMetric,
+        ) as mock_metric:
+            self.operator.trigger_autofix(
+                group=self.group, user=self.user, stopping_point=AutofixStoppingPoint.ROOT_CAUSE
+            )
+
+        assert self.entrypoint.autofix_out_of_credits == [False]
+        assert self.entrypoint.autofix_errors == []
+        assert self.entrypoint.autofix_run_ids == []
+        # Running out of credits is not counted as a trigger error.
+        assert [call.kwargs["interaction_type"] for call in mock_metric.call_args_list] == [
+            SeerOperatorInteractionType.OPERATOR_TRIGGER_AUTOFIX,
+            SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_OUT_OF_CREDITS,
+        ]
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    @patch("sentry.seer.autofix.autofix_agent.get_autofix_run_state")
+    @patch("sentry.seer.autofix.autofix_agent.get_autofix_agent_state", return_value=None)
+    @patch(
+        "sentry.seer.autofix.autofix_agent.trigger_autofix_agent",
+        side_effect=SeerOutOfCreditsException(),
+    )
+    def test_trigger_autofix_out_of_credits_after_the_run_started(
+        self,
+        _mock_trigger_autofix: MagicMock,
+        _mock_get_autofix_state: MagicMock,
+        mock_get_requested_run: MagicMock,
+        mock_record: MagicMock,
+    ) -> None:
+        mock_get_requested_run.return_value = SeerRunState(
+            run_id=MOCK_RUN_ID,
+            blocks=[],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+        )
+
+        self.operator.trigger_autofix(
+            group=self.group,
+            user=self.user,
+            stopping_point=AutofixStoppingPoint.SOLUTION,
+            run_id=MOCK_RUN_ID,
+        )
+
+        assert self.entrypoint.autofix_out_of_credits == [True]
+        assert self.entrypoint.autofix_errors == []
+        assert self.entrypoint.autofix_run_ids == []
+        assert_halt_metric(mock_record, "not_enough_seer_credits")
+
+    @patch(
+        "sentry.seer.autofix.autofix_agent.trigger_autofix_agent",
+        side_effect=SeerOutOfCreditsException(),
+    )
+    @patch("sentry.seer.autofix.autofix_agent.get_autofix_agent_state")
+    def test_trigger_autofix_out_of_credits_still_points_at_an_existing_run(
+        self, mock_get_autofix_state: MagicMock, mock_trigger_autofix: MagicMock
+    ) -> None:
+        mock_get_autofix_state.return_value = SeerRunState(
+            run_id=MOCK_RUN_ID,
+            blocks=[
+                MemoryBlock(
+                    id="1",
+                    message=Message(role="assistant", metadata={"step": "root_cause"}),
+                    timestamp="2024-01-01T00:00:00Z",
+                )
+            ],
+            status="completed",
+            updated_at="2024-01-01T00:00:00Z",
+        )
+
+        self.operator.trigger_autofix(
+            group=self.group, user=self.user, stopping_point=AutofixStoppingPoint.ROOT_CAUSE
+        )
+
+        assert self.entrypoint.autofix_already_exists_states == [(MOCK_RUN_ID, True)]
+        assert self.entrypoint.autofix_out_of_credits == []
+        mock_trigger_autofix.assert_not_called()
 
     @patch("sentry.seer.autofix.autofix_agent.trigger_coding_agent_handoff")
     def test_trigger_handoff_no_config_is_silent_halt(
@@ -469,6 +654,41 @@ class SeerOperatorTest(TestCase):
             cache_payload=cache_payload,
         )
 
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    @patch("sentry.seer.entrypoints.cache.SeerOperatorAutofixCache.get")
+    def test_process_autofix_updates_errored_reaches_entrypoints_without_activity(
+        self, mock_autofix_cache_get: MagicMock, _mock_has_access: MagicMock
+    ) -> None:
+        cache_payload = self.entrypoint.create_autofix_cache_payload()
+        mock_autofix_cache_get.return_value = SeerOperatorCacheResult(
+            payload=cache_payload, source="run_id", key="abc"
+        )
+        mock_entrypoint_cls = Mock(spec=SeerAutofixEntrypoint)
+        mock_entrypoint_cls.has_access.return_value = True
+        event_payload = {"run_id": MOCK_RUN_ID, "group_id": self.group.id}
+        activity_count = Activity.objects.filter(group=self.group).count()
+
+        with (
+            override_options({"issues.record-seer-actions-as-activities": True}),
+            patch.dict(
+                "sentry.seer.entrypoints.operator.autofix_entrypoint_registry.registrations",
+                {MockAutofixEntrypoint.key: mock_entrypoint_cls},
+                clear=True,
+            ),
+        ):
+            process_autofix_updates(
+                event_type=SentryAppEventType.SEER_ERRORED,
+                event_payload=event_payload,
+                organization_id=self.organization.id,
+            )
+
+        mock_entrypoint_cls.on_autofix_update.assert_called_once_with(
+            event_type=SentryAppEventType.SEER_ERRORED,
+            event_payload=event_payload,
+            cache_payload=cache_payload,
+        )
+        assert Activity.objects.filter(group=self.group).count() == activity_count
+
     def test_process_autofix_updates_no_operator_access(self) -> None:
         mock_entrypoint_cls = Mock(spec=SeerAutofixEntrypoint)
         event_type = SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED
@@ -550,6 +770,47 @@ class SeerOperatorTest(TestCase):
     @patch("sentry.quotas.backend.check_seer_quota", return_value=False)
     def test_can_trigger_autofix_returns_false_without_quota(self, mock_quota: MagicMock) -> None:
         assert SeerAutofixOperator.can_trigger_autofix(group=self.group) is False
+
+    @with_feature("organizations:token-billed-seer-enabled")
+    @patch(
+        "sentry.seer_credit.backend.check_seer_credits",
+        return_value=CheckSeerCreditsResponse(has_enough_credits=False),
+    )
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    def test_can_trigger_autofix_returns_false_without_root_cause_credits(
+        self, _mock_quota: MagicMock, mock_check_seer_credits: MagicMock
+    ) -> None:
+        assert SeerAutofixOperator.can_trigger_autofix(group=self.group) is False
+        mock_check_seer_credits.assert_called_once()
+
+    @patch("sentry.seer_credit.backend.check_seer_credits")
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=True)
+    def test_can_trigger_autofix_skips_credit_check_when_not_token_billed(
+        self, _mock_quota: MagicMock, mock_check_seer_credits: MagicMock
+    ) -> None:
+        assert SeerAutofixOperator.can_trigger_autofix(group=self.group) is True
+        mock_check_seer_credits.assert_not_called()
+
+    @with_feature("organizations:token-billed-seer-enabled")
+    @patch(
+        "sentry.seer_credit.backend.check_seer_credits",
+        return_value=CheckSeerCreditsResponse(has_enough_credits=True),
+    )
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=False)
+    def test_can_trigger_autofix_skips_quota_check_for_token_billed_orgs(
+        self, mock_quota: MagicMock, mock_check_seer_credits: MagicMock
+    ) -> None:
+        assert SeerAutofixOperator.can_trigger_autofix(group=self.group) is True
+        mock_check_seer_credits.assert_called_once()
+        mock_quota.assert_not_called()
+
+    @patch("sentry.seer.autofix.feature.dispatch.is_free_cohort_org", return_value=True)
+    @patch("sentry.quotas.backend.check_seer_quota", return_value=False)
+    def test_can_trigger_autofix_skips_quota_check_for_free_cohort_orgs(
+        self, mock_quota: MagicMock, _mock_free_cohort: MagicMock
+    ) -> None:
+        assert SeerAutofixOperator.can_trigger_autofix(group=self.group) is True
+        mock_quota.assert_not_called()
 
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
     def test_seer_event_creates_activity_rca_completed(self, _mock_has_access: MagicMock) -> None:
@@ -691,6 +952,20 @@ class SeerOperatorTest(TestCase):
             type=ActivityType.SEER_ITERATION_STARTED.value,
             user_id=self.user.id,
         ).exists()
+
+    def test_create_seer_activity_seer_stopped(self) -> None:
+        _create_seer_activity(
+            self.group,
+            SentryAppEventType.SEER_STOPPED,
+            {
+                "run_id": 1,
+                "group_id": self.group.id,
+                "stop": {"reason": "R", "suggestion": "S"},
+            },
+        )
+
+        activity = Activity.objects.get(group=self.group, type=ActivityType.SEER_STOPPED.value)
+        assert activity.data == {"run_id": 1, "reason": "R", "suggestion": "S"}
 
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
     def test_create_seer_activity_skips_non_seer_events(self, _mock_has_access: MagicMock) -> None:
@@ -1223,26 +1498,7 @@ class TestSeerAgentOperatorCodeMode(TestCase):
         self.operator = SeerAgentOperator(self.entrypoint)
 
     @patch("sentry.seer.entrypoints.operator.SeerAgentClient")
-    def test_slack_code_mode_enabled(self, mock_client_cls: MagicMock) -> None:
-        mock_client = Mock()
-        mock_client.start_run.return_value = Mock(seer_run_state_id=1)
-        mock_client.latest_run.return_value = None
-        mock_client_cls.return_value = mock_client
-
-        with self.feature("organizations:seer-slack-code-mode"):
-            self.operator.trigger_agent(
-                organization=self.organization,
-                user=self.user,
-                prompt="hi",
-                category_key="slack_thread",
-                category_value="thread-123",
-            )
-
-        mock_client_cls.assert_called_once()
-        assert mock_client_cls.call_args.kwargs["enable_code_mode_tools"] == "only"
-
-    @patch("sentry.seer.entrypoints.operator.SeerAgentClient")
-    def test_slack_code_mode_disabled(self, mock_client_cls: MagicMock) -> None:
+    def test_slack_thread_uses_code_mode(self, mock_client_cls: MagicMock) -> None:
         mock_client = Mock()
         mock_client.start_run.return_value = Mock(seer_run_state_id=1)
         mock_client.latest_run.return_value = None
@@ -1257,27 +1513,31 @@ class TestSeerAgentOperatorCodeMode(TestCase):
         )
 
         mock_client_cls.assert_called_once()
-        assert mock_client_cls.call_args.kwargs["enable_code_mode_tools"] == "off"
+        assert mock_client_cls.call_args.kwargs["enable_code_mode_tools"] == "only"
         mock_client.latest_run.assert_called_once_with(only_current_user=False)
 
     @patch("sentry.seer.entrypoints.operator.SeerAgentClient")
-    def test_non_slack_category_ignores_flag(self, mock_client_cls: MagicMock) -> None:
+    def test_non_slack_category_does_not_use_code_mode(self, mock_client_cls: MagicMock) -> None:
+        self.entrypoint.key = SeerEntrypointKey.SLACK
         mock_client = Mock()
         mock_client.start_run.return_value = Mock(seer_run_state_id=1)
         mock_client.latest_run.return_value = None
         mock_client_cls.return_value = mock_client
 
-        with self.feature("organizations:seer-slack-code-mode"):
-            self.operator.trigger_agent(
-                organization=self.organization,
-                user=self.user,
-                prompt="hi",
-                category_key="other_category",
-                category_value="val-123",
-            )
+        self.operator.trigger_agent(
+            organization=self.organization,
+            user=self.user,
+            prompt="hi",
+            category_key="other_category",
+            category_value="val-123",
+        )
 
         mock_client_cls.assert_called_once()
         assert mock_client_cls.call_args.kwargs["enable_code_mode_tools"] == "off"
+        assert (
+            mock_client.start_run.call_args.kwargs["billing_feature"]
+            == SEER_BILLING_FEATURE_SEER_AGENT_SLACK
+        )
 
     def _trigger_slack(self, mock_client_cls: Mock) -> None:
         mock_client = Mock()
@@ -1296,9 +1556,7 @@ class TestSeerAgentOperatorCodeMode(TestCase):
     def test_slack_create_pr_turns_on_pull_requests(self, mock_client_cls: MagicMock) -> None:
         self.organization.update_option("sentry:enable_seer_coding", True)
 
-        with self.feature(
-            ["organizations:seer-slack-code-mode", "organizations:ask-seer-create-pr"]
-        ):
+        with self.feature("organizations:ask-seer-create-pr"):
             self._trigger_slack(mock_client_cls)
 
         kwargs = mock_client_cls.call_args.kwargs
@@ -1310,9 +1568,7 @@ class TestSeerAgentOperatorCodeMode(TestCase):
     def test_slack_create_pr_defaults_coding_on_when_option_unset(
         self, mock_client_cls: MagicMock
     ) -> None:
-        with self.feature(
-            ["organizations:seer-slack-code-mode", "organizations:ask-seer-create-pr"]
-        ):
+        with self.feature("organizations:ask-seer-create-pr"):
             self._trigger_slack(mock_client_cls)
 
         kwargs = mock_client_cls.call_args.kwargs
@@ -1323,9 +1579,7 @@ class TestSeerAgentOperatorCodeMode(TestCase):
     def test_slack_create_pr_needs_the_coding_option(self, mock_client_cls: MagicMock) -> None:
         self.organization.update_option("sentry:enable_seer_coding", False)
 
-        with self.feature(
-            ["organizations:seer-slack-code-mode", "organizations:ask-seer-create-pr"]
-        ):
+        with self.feature("organizations:ask-seer-create-pr"):
             self._trigger_slack(mock_client_cls)
 
         kwargs = mock_client_cls.call_args.kwargs
@@ -1333,15 +1587,12 @@ class TestSeerAgentOperatorCodeMode(TestCase):
         assert kwargs["enable_write_pull_request"] is False
 
     @patch("sentry.seer.entrypoints.operator.SeerAgentClient")
-    def test_slack_create_pr_needs_code_mode(self, mock_client_cls: MagicMock) -> None:
-        self.organization.update_option("sentry:enable_seer_coding", True)
-
-        with self.feature("organizations:ask-seer-create-pr"):
-            self._trigger_slack(mock_client_cls)
+    def test_completion_hook_also_runs_when_the_run_fails(self, mock_client_cls: MagicMock) -> None:
+        self._trigger_slack(mock_client_cls)
 
         kwargs = mock_client_cls.call_args.kwargs
-        assert kwargs["enable_coding"] is False
-        assert kwargs["enable_write_pull_request"] is False
+        assert kwargs["on_completion_hook"] is SeerOperatorCompletionHook
+        assert kwargs["hook_call_on_failure"] is True
 
 
 class TestSeerInvestigationOperatorAccess(TestCase):
@@ -1427,6 +1678,37 @@ class TestProcessInvestigationUpdates(TestCase):
         self._process({"slack": entrypoint_cls})
 
         entrypoint_cls.on_investigation_update.assert_not_called()
+
+    def test_calls_entrypoint_for_metric_open_period_without_cache(self) -> None:
+        entrypoint_cls = self._make_entrypoint()
+        self.investigation.update(
+            source_type=NotebookSourceType.METRIC_OPEN_PERIOD,
+            source={"type": "metric_open_period", "ref": {"groupId": "1", "openPeriodId": "2"}},
+            source_key="open-period",
+            source_revision=1,
+        )
+
+        self._process({"slack": entrypoint_cls})
+
+        entrypoint_cls.on_investigation_update.assert_called_once_with(
+            cache_payload=None, run=self.orchestration_run
+        )
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_metric_open_period_records_failure_on_org_mismatch(self, mock_record: Mock) -> None:
+        entrypoint_cls = self._make_entrypoint()
+        self.investigation.update(
+            source_type=NotebookSourceType.METRIC_OPEN_PERIOD,
+            source={"type": "metric_open_period", "ref": {"groupId": "1", "openPeriodId": "2"}},
+            source_key="open-period",
+            source_revision=1,
+        )
+        self._set_cache("slack", {"organization_id": self.create_organization().id})
+
+        self._process({"slack": entrypoint_cls})
+
+        entrypoint_cls.on_investigation_update.assert_not_called()
+        assert_failure_metric(mock_record, "org_mismatch")
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_halts_without_operator_access(self, mock_record: Mock) -> None:

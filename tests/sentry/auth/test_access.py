@@ -1027,6 +1027,30 @@ class FromSentryAppTest(AccessFactoryTestCase):
         assert result.has_scope("team:write") is True
         assert result.has_scope("team:admin") is False
 
+    def _org_read_app_access(self) -> Access:
+        app = self.create_sentry_app(name="OrgReadApp", organization=self.org)
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            app.update(scope_list=["org:read"])
+        self.create_sentry_app_installation(organization=self.org, slug=app.slug, user=self.user)
+        return self.from_request(self.make_request(user=app.proxy_user), self.org)
+
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    def test_deprecated_scope_not_translated_without_granular_scopes(self) -> None:
+        result = self._org_read_app_access()
+        assert result.scopes == frozenset({"org:read"})
+        assert not result.has_scope("dashboard:write")
+        assert not result.has_scope("saved_query:write")
+        assert not result.has_scope("user_preference:write")
+
+    @with_feature("organizations:granular-permission-scopes")
+    @override_options({"auth.deprecated-scope-translation.enabled": True})
+    def test_deprecated_scope_translated_with_granular_scopes(self) -> None:
+        result = self._org_read_app_access()
+        assert result.has_scope("org:read")
+        assert result.has_scope("dashboard:write")
+        assert result.has_scope("saved_query:write")
+        assert result.has_scope("user_preference:write")
+
 
 @all_silo_test
 class RpcGlobalAccessTest(TestCase):
@@ -1440,6 +1464,7 @@ class ServiceAccountAccessTest(TestCase):
         result = self._access()
 
         assert isinstance(result, access.ServiceAccountAccess)
+        assert not result.has_all_projects
         assert not result.has_global_access
         assert not result.has_open_membership
         assert result.has_scope("project:read")
@@ -1483,6 +1508,8 @@ class ServiceAccountAccessTest(TestCase):
 
         result = self._access()
 
+        assert isinstance(result, access.ServiceAccountAccess)
+        assert result.has_all_projects
         # Org-wide access would also cover team and member actions, so it stays off.
         assert not result.has_global_access
         assert not result.has_open_membership

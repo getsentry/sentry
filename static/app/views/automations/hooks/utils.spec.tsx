@@ -6,7 +6,8 @@ import {
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
 import {AgeComparison} from 'sentry/views/automations/components/actionFilters/constants';
-import {findConflictingConditions} from 'sentry/views/automations/hooks/utils';
+
+import {findConflictingConditions} from './utils';
 
 describe('findConflictingConditions', () => {
   it('returns nothing when there is a valid trigger and logic type is ANY_SHORT_CIRCUIT', () => {

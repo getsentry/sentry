@@ -31,6 +31,8 @@ from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseenvironment import ReleaseEnvironment
 from sentry.models.repository import Repository
+from sentry.notifications.models.inboxitem import InboxItem
+from sentry.notifications.models.inboxitemevent import InboxItemEvent
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery
@@ -52,6 +54,24 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
 class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin, BaseWorkflowTest):
+    def test_deletes_all_inbox_subject_types(self) -> None:
+        org = self.create_organization()
+        for subject_type in ["issue", "notebook", "test.subject"]:
+            item = self.create_inbox_item(organization=org, subject_type=subject_type)
+            self.create_inbox_item_event(item)
+        survivor = self.create_inbox_item()
+        survivor_event = self.create_inbox_item_event(survivor)
+        org.update(status=OrganizationStatus.PENDING_DELETION)
+        self.ScheduledDeletion.schedule(instance=org, days=0)
+
+        with self.tasks(), outbox_runner():
+            run_scheduled_deletions()
+
+        assert not Organization.objects.filter(id=org.id).exists()
+        assert not InboxItem.objects.filter(organization_id=org.id).exists()
+        assert not InboxItemEvent.objects.exclude(id=survivor_event.id).exists()
+        assert InboxItemEvent.objects.filter(id=survivor_event.id).exists()
+
     def setUp(self) -> None:
         super().setUp()
         patcher = patch("sentry.deletions.defaults.repository.notify_seer_repository_deleted")

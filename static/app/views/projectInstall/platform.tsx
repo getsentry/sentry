@@ -1,12 +1,10 @@
-import {Fragment, useMemo} from 'react';
-import styled from '@emotion/styled';
+import {Fragment} from 'react';
 import type {LocationDescriptorObject} from 'history';
+import {parseAsStringLiteral, useQueryStates} from 'nuqs';
 
-import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 
-import Feature from 'sentry/components/acl/feature';
 import {NotFound} from 'sentry/components/errors/notFound';
 import {SdkDocumentation} from 'sentry/components/onboarding/gettingStartedDoc/sdkDocumentation';
 import type {
@@ -17,16 +15,14 @@ import {platformProductAvailability} from 'sentry/components/onboarding/productS
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {setPageFiltersStorage} from 'sentry/components/pageFilters/persistence';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {performance as performancePlatforms} from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {PlatformIntegration, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ProjectCreationVariant} from 'sentry/utils/analytics/projectCreationAnalyticsEvents';
-import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
-import {useLocation} from 'sentry/utils/useLocation';
+import {parseAsStringArray} from 'sentry/utils/url/parseAsStringArray';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -65,13 +61,17 @@ function ProjectCreationGettingStartedAnalytics({
   return null;
 }
 
+const platformParsers = {
+  projectCreationVariant: parseAsStringLiteral(['scm', 'legacy'] as const),
+  product: parseAsStringArray,
+};
+
 export function ProjectInstallPlatform({project, platform}: Props) {
   const organization = useOrganization();
-  const location = useLocation();
   const navigate = useNavigate();
-  const variantQuery = decodeScalar(location.query.projectCreationVariant);
-  const projectCreationVariant =
-    variantQuery === 'scm' || variantQuery === 'legacy' ? variantQuery : undefined;
+  const [{projectCreationVariant: variantParam, product}] =
+    useQueryStates(platformParsers);
+  const projectCreationVariant = variantParam ?? undefined;
 
   const isSelfHosted = ConfigStore.get('isSelfHosted');
 
@@ -87,10 +87,7 @@ export function ProjectInstallPlatform({project, platform}: Props) {
         ? 'project-creation'
         : undefined;
 
-  const products = useMemo(
-    () => decodeList(location.query.product ?? []) as ProductSolution[],
-    [location.query.product]
-  );
+  const products = product as ProductSolution[];
 
   const redirectWithProjectSelection = (to: LocationDescriptorObject) => {
     if (!project?.id) {
@@ -116,8 +113,6 @@ export function ProjectInstallPlatform({project, platform}: Props) {
   }
 
   const issueStreamLink = `/organizations/${organization.slug}/issues/`;
-  const showPerformancePrompt = performancePlatforms.includes(platform.id);
-  const isGettingStarted = window.location.href.indexOf('getting-started') > 0;
   const showDocsWithProductSelection =
     (platformProductAvailability[platform.id] ?? []).length > 0;
 
@@ -155,27 +150,6 @@ export function ProjectInstallPlatform({project, platform}: Props) {
         />
       )}
       <div>
-        {isGettingStarted && showPerformancePrompt && (
-          <Feature
-            features="performance-view"
-            overrideName="feature-disabled:performance-new-project"
-          >
-            {({hasFeature}) => {
-              if (hasFeature) {
-                return null;
-              }
-              return (
-                <Alert.Container>
-                  <StyledAlert variant="info">
-                    {t(
-                      'Your selected platform supports performance, but your organization does not have performance enabled.'
-                    )}
-                  </StyledAlert>
-                </Alert.Container>
-              );
-            }}
-          </Feature>
-        )}
         <Grid
           flow={{zero: 'row', xl: 'column'}}
           align="center"
@@ -212,7 +186,3 @@ export function ProjectInstallPlatform({project, platform}: Props) {
     </Fragment>
   );
 }
-
-const StyledAlert = styled(Alert)`
-  margin-top: ${p => p.theme.space.xl};
-`;

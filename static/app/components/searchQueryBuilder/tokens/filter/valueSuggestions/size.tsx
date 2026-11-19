@@ -1,6 +1,7 @@
 import {parseFilterValueSize} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/size/parser';
-import type {SuggestionSection} from 'sentry/components/searchQueryBuilder/tokens/filter/valueSuggestions/types';
 import {Token, type TokenResult} from 'sentry/components/searchSyntax/parser';
+
+import type {SuggestionSection} from './types';
 
 const SIZE_UNIT_SUGGESTIONS = ['bytes', 'kib', 'mib', 'gib'] as const;
 

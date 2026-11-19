@@ -1,11 +1,12 @@
 import type React from 'react';
 
 import type {Client} from 'sentry/api';
-import type {ContentBlock} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/types';
-import type {ReleaseRegistrySdk} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {Project, ProjectKey} from 'sentry/types/project';
+
+import type {ContentBlock} from './contentBlocks/types';
+import type {ReleaseRegistrySdk} from './useSourcePackageRegistries';
 
 export type {ContentBlock} from 'sentry/components/onboarding/gettingStartedDoc/contentBlocks/types';
 

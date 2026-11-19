@@ -8,14 +8,16 @@ import {
   type PersistedLogsPageParams,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {ExploreQueryParamsProvider} from 'sentry/views/explore/exploreQueryParamsProvider';
+import type {ReadableQueryParamsOptions} from 'sentry/views/explore/queryParams/readableQueryParams';
+import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
+
 import {
+  dropLogAnchorIfQueryChanged,
   getLogsQueryParamsUpdates,
   getReadableLogsQueryParams,
   isDefaultLogsFields,
   LOGS_QUERY_PARSERS,
-} from 'sentry/views/explore/logs/logsQueryParams';
-import type {ReadableQueryParamsOptions} from 'sentry/views/explore/queryParams/readableQueryParams';
-import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
+} from './logsQueryParams';
 
 interface LogsLocationQueryParamsProviderProps {
   children: ReactNode;
@@ -52,6 +54,7 @@ export function LogsLocationQueryParamsProvider({
     <ExploreQueryParamsProvider
       frozenParams={frozenParams}
       getQueryParamsUpdates={getLogsQueryParamsUpdates}
+      getTarget={dropLogAnchorIfQueryChanged}
       getReadableQueryParams={getReadableLogsQueryParams}
       isDefaultFields={isDefaultLogsFields}
       onSetWritableQueryParams={onSetWritableQueryParams}

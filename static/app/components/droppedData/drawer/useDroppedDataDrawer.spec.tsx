@@ -15,7 +15,6 @@ import {Button} from '@sentry/scraps/button';
 import {GlobalDrawer} from '@sentry/scraps/drawer';
 import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
-import {useDroppedDataDrawer} from 'sentry/components/droppedData/drawer/useDroppedDataDrawer';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -23,6 +22,8 @@ import {SeerExplorerSidebarLayout} from 'sentry/views/seerExplorer/components/si
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/seerExplorerContextProvider';
 import {SeerExplorerSessionsProvider} from 'sentry/views/seerExplorer/seerExplorerSessionContext';
+
+import {useDroppedDataDrawer} from './useDroppedDataDrawer';
 
 jest.mock('sentry/utils/analytics');
 
@@ -72,13 +73,18 @@ function mockMultiOutcomeDroppedData() {
 function DroppedDataTrigger({
   dataset,
   enabled,
-  interval,
+  interval = '1h',
+  projects,
 }: {
   dataset: DiscoverDatasets;
   enabled?: boolean;
   interval?: string;
+  projects?: number[];
 }) {
-  const openDroppedDataDrawer = useDroppedDataDrawer({dataset, interval}, {enabled});
+  const openDroppedDataDrawer = useDroppedDataDrawer(
+    {dataset, interval, projects},
+    {source: 'explore', enabled}
+  );
   return <Button onClick={openDroppedDataDrawer}>Open dropped data</Button>;
 }
 
@@ -92,7 +98,6 @@ describe('useDroppedDataDrawer', () => {
   });
 
   afterEach(() => {
-    PageFiltersStore.reset();
     localStorage.clear();
   });
 
@@ -109,7 +114,7 @@ describe('useDroppedDataDrawer', () => {
     expect(router.location.query.droppedData).toBe('spans');
     expect(trackAnalytics).toHaveBeenCalledWith(
       'explore.dropped_data.drawer_opened',
-      expect.objectContaining({dataset: DiscoverDatasets.SPANS})
+      expect.objectContaining({dataset: DiscoverDatasets.SPANS, source: 'explore'})
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Close Drawer'}));
@@ -412,6 +417,33 @@ describe('useDroppedDataDrawer', () => {
     ).toBeInTheDocument();
   });
 
+  it('refetches in place when the chart projects change', async () => {
+    const droppedDataRequest = mockDroppedData(10, '14d');
+
+    const {rerender} = render(
+      <DroppedDataTrigger dataset={DiscoverDatasets.SPANS} projects={[2]} />,
+      {
+        organization,
+        initialRouterConfig: {location: {pathname: '/explore/traces/'}},
+      }
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Open dropped data'}));
+    expect(await screen.findByText('10 dropped and filtered spans')).toBeInTheDocument();
+
+    rerender(<DroppedDataTrigger dataset={DiscoverDatasets.SPANS} projects={[3]} />);
+
+    await waitFor(() =>
+      expect(droppedDataRequest).toHaveBeenLastCalledWith(
+        expect.any(String),
+        expect.objectContaining({query: expect.objectContaining({project: [3]})})
+      )
+    );
+    expect(
+      screen.getByRole('complementary', {name: 'Dropped and Filtered Spans'})
+    ).toBeInTheDocument();
+  });
+
   it('closes when navigating to another page', async () => {
     mockDroppedData(10, '14d');
 
@@ -459,6 +491,7 @@ describe('useDroppedDataDrawer', () => {
         'explore.dropped_data.legend_outcome_toggled',
         expect.objectContaining({
           dataset: DiscoverDatasets.SPANS,
+          source: 'explore',
           outcome: 'filtered',
           selected: false,
         })
@@ -590,7 +623,11 @@ describe('useDroppedDataDrawer', () => {
       expect(screen.queryByText('14.29%')).not.toBeInTheDocument();
       expect(trackAnalytics).toHaveBeenCalledWith(
         'explore.dropped_data.scope_toggled',
-        expect.objectContaining({dataset: DiscoverDatasets.SPANS, scope: 'all'})
+        expect.objectContaining({
+          dataset: DiscoverDatasets.SPANS,
+          source: 'explore',
+          scope: 'all',
+        })
       );
 
       await userEvent.click(screen.getByRole('radio', {name: 'Unexpected'}));
@@ -770,7 +807,11 @@ describe('useDroppedDataDrawer', () => {
     expect(screen.getByTestId('seer-explorer-input')).toBeInTheDocument();
     expect(trackAnalytics).toHaveBeenCalledWith(
       'explore.dropped_data.ask_seer_clicked',
-      expect.objectContaining({dataset: DiscoverDatasets.SPANS, outcome: 'rate_limited'})
+      expect.objectContaining({
+        dataset: DiscoverDatasets.SPANS,
+        source: 'explore',
+        outcome: 'rate_limited',
+      })
     );
   });
 });

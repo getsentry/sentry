@@ -10,9 +10,10 @@ import {z} from 'zod';
 import {t} from 'sentry/locale';
 import type {EventTransaction} from 'sentry/types/event';
 import type {TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
-import {getTraceNodeAttribute} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
-import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {getTraceNodeAttribute} from './aiTraceNodes';
+import type {AITraceSpanNode} from './types';
 
 // As with evaluations, schemas describe the valid shape only and keep values as
 // sent. A field or answer that's present with the wrong type is shown raw
@@ -142,6 +143,11 @@ export function parseExtractionOutput(raw: unknown): ExtractionAnswer[] | null {
   }));
 }
 
+/** Whether a `gen_ai.operation.name` is the one of an extraction span. */
+export function isExtractionOperation(operationName: unknown): boolean {
+  return operationName === 'extract';
+}
+
 /**
  * Whether a span is an extraction, from its `gen_ai.operation.name`.
  */
@@ -150,9 +156,8 @@ export function isExtractionNode(
   attributes?: TraceItemResponseAttribute[],
   event?: EventTransaction
 ): boolean {
-  return (
-    getTraceNodeAttribute(SpanFields.GEN_AI_OPERATION_NAME, node, event, attributes) ===
-    'extract'
+  return isExtractionOperation(
+    getTraceNodeAttribute(SpanFields.GEN_AI_OPERATION_NAME, node, event, attributes)
   );
 }
 

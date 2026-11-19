@@ -42,9 +42,9 @@ system.secret-key: '%(secret_key)s'
 #
 # Two types of clusters are currently supported:
 #
-#   rb.Cluster
-#   A redis blaster cluster is the traditional cluster used by most services
-#   within sentry. This is the default type cluster type.
+#   Single Redis host
+#   A group without the ``is_redis_cluster`` flag connects to one Redis server.
+#   This is the default type. The group must have exactly one host.
 #
 #   rediscluster.StrictRedisCluster
 #   An official Redis Cluster can be configured by marking the named group with

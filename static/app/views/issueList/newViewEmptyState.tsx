@@ -1,4 +1,5 @@
 import styled from '@emotion/styled';
+import {useQueryState} from 'nuqs';
 
 import {Stack} from '@sentry/scraps/layout';
 
@@ -7,8 +8,6 @@ import {Panel} from 'sentry/components/panels/panel';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 type SearchSuggestion = {
@@ -31,17 +30,10 @@ const RECOMMENDED_SEARCHES: SearchSuggestion[] = [
 
 function Query({label, query}: SearchSuggestion) {
   const organization = useOrganization();
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [, setQueryParam] = useQueryState('query', {history: 'push'});
 
   const setQuery = () => {
-    navigate({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        query,
-      },
-    });
+    setQueryParam(query);
 
     trackAnalytics('issue_views.new_view.suggested_query_clicked', {
       query,

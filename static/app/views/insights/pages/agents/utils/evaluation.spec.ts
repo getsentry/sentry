@@ -6,8 +6,8 @@ import {
   parseEvaluationInput,
   parseEvaluationOutput,
   type ScoreAnswer,
-} from 'sentry/views/insights/pages/agents/utils/evaluation';
-import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
+} from './evaluation';
+import type {AITraceSpanNode} from './types';
 
 function makeNode(attributes: Record<string, string>): AITraceSpanNode {
   return {errors: new Set(), attributes} as unknown as AITraceSpanNode;

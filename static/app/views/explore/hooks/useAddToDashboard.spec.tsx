@@ -6,7 +6,6 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {useAddToDashboard} from 'sentry/views/explore/hooks/useAddToDashboard';
 import {
   useSetQueryParamsMode,
   useSetQueryParamsVisualizes,
@@ -14,6 +13,8 @@ import {
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {ToolbarSaveAs} from 'sentry/views/explore/toolbar/toolbarSaveAs';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+
+import {useAddToDashboard} from './useAddToDashboard';
 
 function Wrapper({children}: {children: ReactNode}) {
   return <SpansQueryParamsProvider>{children}</SpansQueryParamsProvider>;
@@ -54,7 +55,7 @@ describe('AddToDashboardButton', () => {
         <ToolbarSaveAs />
       </Wrapper>,
       {
-        organization: OrganizationFixture({features: ['dashboards-edit']}),
+        organization: OrganizationFixture(),
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/explore/traces/',
@@ -74,7 +75,7 @@ describe('AddToDashboardButton', () => {
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
-    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Dashboard widget'}));
+    await userEvent.hover(screen.getByRole('menuitem', {name: 'Dashboard widget'}));
     await userEvent.click(
       (await screen.findAllByRole('menuitemradio', {name: 'avg(span.duration)'}))[1]!
     );
@@ -335,12 +336,11 @@ describe('AddToDashboardButton', () => {
     );
   });
 
-  it('adds every aggregate and its pipeline plotted on the same chart', async () => {
+  it('adds every aggregate and its transformations plotted on the same chart', async () => {
     render(
       <Wrapper>
         <TestPage visualizeIndex={0} includeChartGroup />
-      </Wrapper>,
-      {organization: OrganizationFixture({features: ['explore-multi-aggregate-charts']})}
+      </Wrapper>
     );
 
     act(() => setMode(Mode.AGGREGATE));

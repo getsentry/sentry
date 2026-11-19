@@ -801,6 +801,26 @@ class DeleteOrganizationMemberTeamTest(OrganizationMemberTeamTestBase):
             team=idp_team, organizationmember=member
         ).exists()
 
+    def test_removing_pending_invite_keeps_team_subscriptions(self) -> None:
+        invite = self.create_member(
+            organization=self.org, email="invited@example.com", role="member", teams=[self.team]
+        )
+        group = self.create_group()
+        GroupAssignee.objects.create(group=group, team=self.team, project=group.project)
+        GroupSubscription.objects.create(
+            group=group,
+            project=group.project,
+            team=self.team,
+            reason=GroupSubscriptionReason.assigned,
+        )
+
+        self.login_as(self.user)
+        self.get_success_response(
+            self.org.slug, invite.id, self.team.slug, status_code=status.HTTP_200_OK
+        )
+
+        assert GroupSubscription.objects.filter(group=group, team=self.team).exists()
+
     def test_unsubscribe_user_from_team_issues_legacy(self) -> None:
         """
         We have some legacy DB rows from before the GroupSubscription table had a team_id

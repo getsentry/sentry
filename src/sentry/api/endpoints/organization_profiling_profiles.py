@@ -39,45 +39,8 @@ from sentry.profiles.profile_chunks import get_chunk_ids
 from sentry.profiles.utils import proxy_profiling_service
 from sentry.snuba.dataset import Dataset, StorageKey
 from sentry.snuba.referrer import Referrer
+from sentry.utils.sdk import sdk_logger
 from sentry.utils.snuba import raw_snql_query
-
-FLAMEGRAPH_DATA_SOURCE_PARAM = OpenApiParameter(
-    name="dataSource",
-    location="query",
-    required=False,
-    type=str,
-    enum=["transactions", "profiles", "functions", "spans"],
-    description=(
-        "Source dataset to build the flamegraph from. Defaults to `functions` when "
-        "`fingerprint` is set and `transactions` otherwise."
-    ),
-)
-
-FLAMEGRAPH_FINGERPRINT_PARAM = OpenApiParameter(
-    name="fingerprint",
-    location="query",
-    required=False,
-    type=int,
-    description="A UInt32 function fingerprint. Only valid when `dataSource=functions`.",
-)
-
-FLAMEGRAPH_QUERY_PARAM = OpenApiParameter(
-    name="query",
-    location="query",
-    required=False,
-    type=str,
-    description="Sentry [search syntax](https://docs.sentry.io/concepts/search/) to filter the candidate profiles.",
-)
-
-FLAMEGRAPH_EXPAND_PARAM = OpenApiParameter(
-    name="expand",
-    location="query",
-    required=False,
-    many=True,
-    type=str,
-    enum=["metrics"],
-    description="Optional expansions. Pass `metrics` to include flamegraph metric aggregates in the response.",
-)
 
 
 class OrganizationProfilingBaseEndpoint(OrganizationEventsEndpointBase):
@@ -89,12 +52,29 @@ class OrganizationProfilingBaseEndpoint(OrganizationEventsEndpointBase):
 
 class OrganizationProfilingFlamegraphSerializer(serializers.Serializer):
     # fingerprint is an UInt32
-    fingerprint = serializers.IntegerField(min_value=0, max_value=(1 << 32) - 1, required=False)
-    dataSource = serializers.ChoiceField(
-        ["transactions", "profiles", "functions", "spans"], required=False
+    fingerprint = serializers.IntegerField(
+        min_value=0,
+        max_value=(1 << 32) - 1,
+        required=False,
+        help_text="A UInt32 function fingerprint. Only valid when `dataSource=functions`.",
     )
-    query = serializers.CharField(required=False)
-    expand = serializers.ListField(child=serializers.ChoiceField(["metrics"]), required=False)
+    dataSource = serializers.ChoiceField(
+        ["transactions", "profiles", "functions", "spans"],
+        required=False,
+        help_text=(
+            "Source dataset to build the flamegraph from. Defaults to `functions` when "
+            "`fingerprint` is set and `transactions` otherwise."
+        ),
+    )
+    query = serializers.CharField(
+        required=False,
+        help_text="Sentry [search syntax](https://docs.sentry.io/concepts/search/) to filter the candidate profiles.",
+    )
+    expand = serializers.ListField(
+        child=serializers.ChoiceField(["metrics"]),
+        required=False,
+        help_text="Optional expansions. Pass `metrics` to include flamegraph metric aggregates in the response.",
+    )
 
     def validate(self, attrs: dict[str, object]) -> dict[str, object]:
         source = attrs.get("dataSource")
@@ -137,15 +117,13 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
             GlobalParams.STATS_PERIOD,
             GlobalParams.START,
             GlobalParams.END,
-            FLAMEGRAPH_DATA_SOURCE_PARAM,
-            FLAMEGRAPH_FINGERPRINT_PARAM,
-            FLAMEGRAPH_QUERY_PARAM,
-            FLAMEGRAPH_EXPAND_PARAM,
+            OrganizationProfilingFlamegraphSerializer,
         ],
         responses={
             200: inline_sentry_response_serializer(
                 "OrganizationProfilingFlamegraphResponse", dict[str, Any]
             ),
+            400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -272,6 +250,24 @@ class OrganizationProfilingChunksEndpoint(OrganizationProfilingBaseEndpoint):
         profiler_id = serializer.validated_data["profiler_id"].hex
 
         chunk_ids = get_chunk_ids(snuba_params, profiler_id, project_ids[0])
+
+        # Vroom fails with "no chunks found to merge" when given no chunk IDs, which the UI
+        # shows as "Failed to fetch profiles". Log it so we can track how often a span
+        # references a profiler ID that has no chunks in the requested window.
+        if not chunk_ids:
+            sdk_logger.warning(
+                "profiling.chunks.no_chunks_found",
+                attributes={
+                    "organization_id": organization.id,
+                    "project_id": project_ids[0],
+                    "profiler_id": profiler_id,
+                    "start": snuba_params.start_date.isoformat(),
+                    "end": snuba_params.end_date.isoformat(),
+                    "window_seconds": (
+                        snuba_params.end_date - snuba_params.start_date
+                    ).total_seconds(),
+                },
+            )
 
         return proxy_profiling_service(
             method="POST",

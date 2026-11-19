@@ -30,10 +30,11 @@ function getGraphQlErrorsFromResponseContext(event: Event): GraphQlError[] {
     responseData &&
     typeof responseData === 'object' &&
     'errors' in responseData &&
-    Array.isArray(responseData.errors) &&
-    responseData.errors.every((error: any) => typeof error === 'object')
+    Array.isArray(responseData.errors)
   ) {
-    return responseData.errors;
+    return responseData.errors.filter(
+      (error): error is GraphQlError => typeof error === 'object' && error !== null
+    );
   }
 
   return [];

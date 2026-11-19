@@ -1,10 +1,11 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {SearchQueryBuilderProvider} from 'sentry/components/searchQueryBuilder/context';
-import {KeyDescription} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/keyDescription';
 import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import type {Tag} from 'sentry/types/group';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
+
+import {KeyDescription} from './keyDescription';
 
 function renderKeyDescription(
   tag: Tag,

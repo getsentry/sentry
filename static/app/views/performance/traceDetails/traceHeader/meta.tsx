@@ -1,19 +1,20 @@
 import styled from '@emotion/styled';
 
+import {getDuration} from '@sentry/scraps/duration';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/traceDetails/traceApi/useTraceMeta';
 import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
-import {TraceHeaderComponents} from 'sentry/views/performance/traceDetails/traceHeader/styles';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
 import type {TraceOverviewData} from 'sentry/views/performance/traceDetails/useTraceOverviewData';
 import {useTraceQueryParams} from 'sentry/views/performance/traceDetails/useTraceQueryParams';
+
+import {TraceHeaderComponents} from './styles';
 
 type MetaDataProps = {
   children: React.ReactNode;
@@ -67,7 +68,7 @@ function getRootDuration(node: BaseNode | null) {
     return '\u2014';
   }
 
-  return getDuration(endTimestamp - startTimestamp, 2, true);
+  return getDuration(endTimestamp - startTimestamp, {precision: 2, style: 'short'});
 }
 
 export function Meta(props: MetaProps) {
@@ -132,7 +133,7 @@ export function Meta(props: MetaProps) {
       {ageStartTimestamp ? (
         <MetaSection headingText={t('Age')}>
           <TimeSince
-            unitStyle="extraShort"
+            unitStyle="narrow"
             date={new Date(ageStartTimestamp)}
             tooltipShowSeconds
             suffix=""

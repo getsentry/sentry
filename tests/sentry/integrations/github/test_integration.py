@@ -1952,7 +1952,8 @@ class GitHubIntegrationApiPipelineTest(APITestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        self.installation_id = "install_1"
+        # Numeric like real ids: the install flow only sends those to GitHub.
+        self.installation_id = "123456"
         self.user_id = "user_1"
         self.app_id = "app_1"
         self.access_token = "xxxxx-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
@@ -2116,6 +2117,36 @@ class GitHubIntegrationApiPipelineTest(APITestCase):
             }
         )
 
+    def _stub_installation_account(
+        self, *, account_type: str = "Organization", login: str = "Test-Organization"
+    ) -> None:
+        """Stub which GitHub account the installation is on."""
+        responses.replace(
+            responses.GET,
+            self.base_url + f"/app/installations/{self.installation_id}",
+            json={
+                "id": self.installation_id,
+                "app_id": self.app_id,
+                "account": {
+                    "id": 60591805,
+                    "login": login,
+                    "avatar_url": "http://example.com/avatar.png",
+                    "html_url": f"https://github.com/{login}",
+                    "type": account_type,
+                },
+            },
+        )
+
+    def _stub_github_org_role(self, role: str) -> None:
+        """The installation is on Test-Organization, where the OAuth user (octocat)
+        has this role."""
+        self._stub_installation_account()
+        responses.add(
+            responses.GET,
+            f"{self.base_url}/orgs/Test-Organization/memberships/octocat",
+            json={"state": "active", "role": role},
+        )
+
     def _advance_to_org_selection(self) -> str:
         """Initialize pipeline and complete OAuth, returning the pipeline signature."""
         resp = self._initialize_pipeline()
@@ -2238,8 +2269,10 @@ class GitHubIntegrationApiPipelineTest(APITestCase):
 
     @responses.activate
     def test_org_selection_new_installation_waiting_for_webhook(self) -> None:
-        """Reject a raw installation id until its signed webhook creates the integration."""
+        """Before the signed webhook creates the integration, reject a raw installation
+        id unless GitHub shows the user controls the installation."""
         self._advance_to_org_selection()
+        self._stub_github_org_role("member")
 
         with mock.patch("sentry.integrations.github.integration.metrics.incr") as mock_incr:
             resp = self._advance_step(
@@ -2259,6 +2292,50 @@ class GitHubIntegrationApiPipelineTest(APITestCase):
         )
 
     @responses.activate
+    def test_org_selection_new_installation_verified_by_github_org_admin(self) -> None:
+        """An admin of the installation's GitHub org doesn't have to wait for the webhook."""
+        self._advance_to_org_selection()
+        self._stub_github_org_role("admin")
+
+        resp = self._advance_step({"installation_id": self.installation_id})
+
+        assert resp.status_code == 200
+        assert resp.data["status"] == "complete"
+        assert OrganizationIntegration.objects.filter(
+            organization_id=self.organization.id,
+            integration__provider="github",
+            integration__external_id=self.installation_id,
+        ).exists()
+
+    @responses.activate
+    def test_org_selection_new_installation_on_another_users_account(self) -> None:
+        """A personal-account installation only counts if it's the OAuth user's own."""
+        self._advance_to_org_selection()
+        self._stub_installation_account(account_type="User", login="someone-else")
+
+        resp = self._advance_step({"installation_id": self.installation_id})
+
+        assert resp.status_code == 400
+        assert GitHubInstallationError.MISSING_INTEGRATION in resp.data["data"]["detail"]
+        assert not Integration.objects.filter(provider="github").exists()
+
+    @responses.activate
+    def test_org_selection_integration_without_installer_is_mismatch(self) -> None:
+        """Connecting an installation drops its recorded installer, so a raw installation
+        id for it can't be matched and is recorded."""
+        self.create_provider_integration(
+            provider="github", external_id=self.installation_id, metadata={}
+        )
+        self._advance_to_org_selection()
+
+        with mock.patch("sentry.integrations.github.integration.metrics.incr") as mock_incr:
+            resp = self._advance_step({"installation_id": self.installation_id})
+
+        assert resp.status_code == 400
+        assert GitHubInstallationError.USER_MISMATCH in resp.data["data"]["detail"]
+        mock_incr.assert_any_call("integrations.github.installation.missing_installer")
+
+    @responses.activate
     def test_org_selection_ignores_other_provider_with_same_external_id(self) -> None:
         """Installation ids are only unique per provider; another provider's row with the
         same external_id carries no GitHub sender metadata and must not be consulted."""
@@ -2266,6 +2343,7 @@ class GitHubIntegrationApiPipelineTest(APITestCase):
             provider="gcp", external_id=self.installation_id, name="Other"
         )
         self._advance_to_org_selection()
+        self._stub_github_org_role("member")
 
         resp = self._advance_step({"installation_id": self.installation_id})
         assert resp.status_code == 400

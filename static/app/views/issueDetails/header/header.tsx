@@ -14,7 +14,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {AnsiText} from 'sentry/components/ansiText';
 import {Count} from 'sentry/components/count';
 import {EventMessage} from 'sentry/components/events/eventMessage';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {useFeedbackSDKIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import {TourElement} from 'sentry/components/tours/components';
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
@@ -31,9 +30,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {GroupActions} from 'sentry/views/issueDetails/actions/index';
 import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
-import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/header/assigneeSelector';
-import {GroupStatusSubtitle} from 'sentry/views/issueDetails/header/groupStatusSubtitle';
-import {useIssueIdBreadcrumbItem} from 'sentry/views/issueDetails/header/issueIdBreadcrumb';
 import {
   IssueDetailsTour,
   IssueDetailsTourContext,
@@ -41,6 +37,10 @@ import {
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 import {TopBar} from 'sentry/views/navigation/topBar';
+
+import {GroupHeaderAssigneeSelector} from './assigneeSelector';
+import {GroupStatusSubtitle} from './groupStatusSubtitle';
+import {useIssueIdBreadcrumbItem} from './issueIdBreadcrumb';
 
 interface GroupHeaderProps {
   event: Event | null;
@@ -282,15 +282,11 @@ function HeaderActions({group}: {group: Group}) {
 
   if (hasFeedbackForm && feedback) {
     return (
-      <TopBar.Slot name="feedback">
-        <FeedbackButton
-          aria-label={feedbackLabel}
-          feedbackOptions={feedbackOptions}
-          tooltipProps={{title: feedbackLabel}}
-        >
-          {null}
-        </FeedbackButton>
-      </TopBar.Slot>
+      <TopBar.Slot
+        name="feedback"
+        feedbackOptions={feedbackOptions}
+        aria-label={feedbackLabel}
+      />
     );
   }
 

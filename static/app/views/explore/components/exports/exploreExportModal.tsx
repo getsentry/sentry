@@ -3,10 +3,10 @@ import {z} from 'zod';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm, useStore} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {generateExportRowCountOptions} from 'sentry/components/exports/generateExportRowCountOptions';
 import {
   type DataExportPayload,
@@ -14,7 +14,8 @@ import {
   useDataExport,
 } from 'sentry/components/exports/useDataExport';
 import {t} from 'sentry/locale';
-import type {ExploreExportConfig} from 'sentry/views/explore/components/exports/types';
+
+import type {ExploreExportConfig} from './types';
 
 enum ModalColumnValue {
   ALL = 'all',
@@ -89,7 +90,7 @@ export function ExploreExportModal({
 
       if (localDownloadForSubmit) {
         localDownloadForSubmit({format, limit: value.limit});
-        addSuccessMessage(t('Downloading file to your browser.'));
+        toast.success(t('Downloading file to your browser.'));
         closeModal();
         return;
       }
@@ -142,20 +143,20 @@ export function ExploreExportModal({
           {showFormatRadio && (
             <form.AppField name="format">
               {field => (
-                <field.Radio.Group
+                <field.RadioGroup
                   value={
                     columnsValue === ModalColumnValue.ALL ? 'jsonl' : field.state.value
                   }
-                  onChange={value =>
-                    field.handleChange(value as ExportModalFormValues['format'])
-                  }
+                  onChange={field.handleChange}
                   disabled={columnsValue === ModalColumnValue.ALL}
                 >
-                  <field.Layout.Stack label={t('Format')} align="start">
-                    <field.Radio.Item value="csv">{t('CSV')}</field.Radio.Item>
-                    <field.Radio.Item value="jsonl">{t('JSONL')}</field.Radio.Item>
-                  </field.Layout.Stack>
-                </field.Radio.Group>
+                  {({Item}) => (
+                    <field.Layout.Stack label={t('Format')} align="start">
+                      <Item value="csv">{t('CSV')}</Item>
+                      <Item value="jsonl">{t('JSONL')}</Item>
+                    </field.Layout.Stack>
+                  )}
+                </field.RadioGroup>
               )}
             </form.AppField>
           )}

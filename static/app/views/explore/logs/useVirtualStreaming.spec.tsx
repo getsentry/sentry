@@ -9,17 +9,15 @@ import {
   LOGS_AUTO_REFRESH_KEY,
   type AutoRefreshState,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
-import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import type {
-  EventsLogsResult,
-  OurLogsResponseItem,
-} from 'sentry/views/explore/logs/types';
-import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+
+import {LogsQueryParamsProvider} from './logsQueryParamsProvider';
+import type {EventsLogsResult, OurLogsResponseItem} from './types';
+import {OurLogKnownFieldKey} from './types';
 import {
   isRowVisibleInVirtualStream,
   updateVirtualStreamingTimestamp,
   useVirtualStreaming,
-} from 'sentry/views/explore/logs/useVirtualStreaming';
+} from './useVirtualStreaming';
 
 describe('useVirtualStreaming', () => {
   let requestAnimationFrameSpy: jest.SpyInstance<number, [FrameRequestCallback]>;

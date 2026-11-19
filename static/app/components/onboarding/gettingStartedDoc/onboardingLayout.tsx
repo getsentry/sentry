@@ -1,32 +1,13 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
+import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
-import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
-import {
-  docsFlowMarkdownParams,
-  docsFlowProjectIdParams,
-  docsFlowVariantParams,
-  DSN_COPIED_EVENT,
-  NEXT_STEP_CLICKED_EVENT,
-  resolveDocsFlowEvent,
-} from 'sentry/components/onboarding/gettingStartedDoc/docsFlowAnalytics';
-import {OnboardingCopyMarkdownButton} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCopyMarkdownButton';
-import {TabSelectionScope} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
-import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {
-  ProductSolution,
-  type ConfigType,
-  type Docs,
-  type DocsFlow,
-  type DocsParams,
-} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
-import {injectCopyDsnButtonIntoFirstConfigureStep} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import {
   PlatformOptionsControl,
   useUrlPlatformOptions,
@@ -35,12 +16,33 @@ import {ProductSelection} from 'sentry/components/onboarding/productSelection';
 import {OverrideOrDefault} from 'sentry/components/overrideOrDefault';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {Project, ProjectKey} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {AuthTokenGeneratorProvider} from './authTokenGenerator';
+import {
+  docsFlowMarkdownParams,
+  docsFlowProjectIdParams,
+  docsFlowVariantParams,
+  DSN_COPIED_EVENT,
+  NEXT_STEP_CLICKED_EVENT,
+  resolveDocsFlowEvent,
+} from './docsFlowAnalytics';
+import {OnboardingCopyMarkdownButton} from './onboardingCopyMarkdownButton';
+import {TabSelectionScope} from './selectedCodeTabContext';
+import {Step} from './step';
+import {
+  ProductSolution,
+  type ConfigType,
+  type Docs,
+  type DocsFlow,
+  type DocsParams,
+} from './types';
+import {useSourcePackageRegistries} from './useSourcePackageRegistries';
+import {injectCopyDsnButtonIntoFirstConfigureStep} from './utils';
 
 const ProductSelectionAvailabilityHook = OverrideOrDefault({
   overrideName: 'component:product-selection-availability',
@@ -83,7 +85,10 @@ export function OnboardingLayout({
     useSourcePackageRegistries(organization);
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
   const {platformOptions} = docsConfig;
-  const {urlPrefix, isSelfHosted} = useLegacyStore(ConfigStore);
+  const {urlPrefix, isSelfHosted} = useStore(
+    ConfigStore,
+    useShallow(state => ({urlPrefix: state.urlPrefix, isSelfHosted: state.isSelfHosted}))
+  );
 
   const {
     introduction,

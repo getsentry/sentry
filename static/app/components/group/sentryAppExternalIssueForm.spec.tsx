@@ -11,8 +11,9 @@ import {SentryAppInstallationFixture} from 'sentry-fixture/sentryAppInstallation
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
-import {SentryAppExternalIssueForm} from 'sentry/components/group/sentryAppExternalIssueForm';
 import {addQueryParamsToExistingUrl} from 'sentry/utils/queryString';
+
+import {SentryAppExternalIssueForm} from './sentryAppExternalIssueForm';
 
 describe('SentryAppExternalIssueForm', () => {
   const group = GroupFixture({

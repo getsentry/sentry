@@ -98,6 +98,27 @@ def _configure(
     ):
         mimetypes.add_type(type, "." + ext)
 
+    configure_settings(ctx, py, yaml)
+
+    from django.conf import settings
+
+    from .initializer import initialize_app
+
+    initialize_app(
+        {"config_path": py, "settings": settings, "options": yaml},
+        skip_service_validation=skip_service_validation,
+    )
+
+    if os.environ.get("OPENAPIGENERATE", False):
+        # see https://drf-spectacular.readthedocs.io/en/latest/customization.html#step-5-extensions
+        from sentry.apidocs import extensions  # NOQA
+
+
+def configure_settings(ctx: click.Context | None, py: str, yaml: str | None) -> None:
+    """
+    Load the settings files without initializing the app, which takes most of
+    the time `configure` does.
+    """
     if yaml is None:
         # `yaml` will be None when SENTRY_CONF is pointed
         # directly to a file, in which case, this file must exist
@@ -125,17 +146,6 @@ def _configure(
     # HACK: we need to force access of django.conf.settings to
     # ensure we don't hit any import-driven recursive behavior
     hasattr(settings, "INSTALLED_APPS")
-
-    from .initializer import initialize_app
-
-    initialize_app(
-        {"config_path": py, "settings": settings, "options": yaml},
-        skip_service_validation=skip_service_validation,
-    )
-
-    if os.environ.get("OPENAPIGENERATE", False):
-        # see https://drf-spectacular.readthedocs.io/en/latest/customization.html#step-5-extensions
-        from sentry.apidocs import extensions  # NOQA
 
 
 __installed = False

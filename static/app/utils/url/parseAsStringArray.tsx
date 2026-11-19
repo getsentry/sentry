@@ -1,16 +1,10 @@
 import {createMultiParser} from 'nuqs';
 
 /**
- * Reads a list param the way Sentry writes one.
- *
- * Values are repeated keys (`?project=1&project=2`) rather than a single
- * delimited value, so `parseAsArrayOf` is the wrong tool — it would split one
- * value and keep only the first key.
- *
- * Blank values are dropped so a bare `?project=` means no filter rather than a
- * filter on the empty string, matching `decodeList`. `eq` treats an empty list
- * as the default so clearing a filter removes the key instead of writing
- * `?project=` back.
+ * Like `parseAsNativeArrayOf(parseAsString)`, but drops blank values so a bare
+ * `?project=` reads as `[]` (matching `decodeList`) instead of `['']`.
+ * `eq` compares by value because `createMultiParser` defaults to `===`, which
+ * would stop `clearOnDefault` from removing an emptied key.
  */
 export const parseAsStringArray = createMultiParser<string[]>({
   parse: values => values.filter(Boolean),

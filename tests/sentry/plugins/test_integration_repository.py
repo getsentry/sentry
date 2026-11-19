@@ -7,6 +7,7 @@ from django.db import IntegrityError
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.repository import GitHubRepositoryProvider
+from sentry.integrations.services.repository import repository_service
 from sentry.models.repository import REPOSITORY_NAME_LENGTH, REPOSITORY_URL_LENGTH, Repository
 from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.plugins.providers.integration_repository import RepoExistsError
@@ -327,6 +328,20 @@ class IntegrationRepositoryTestCase(TestCase):
             assert repo.status == ObjectStatus.ACTIVE
             assert repo.provider == "integrations:github"
             assert repo.integration_id == self.integration.id
+
+    def test_create_repositories__scopes_lookups_to_external_ids(self, get_jwt: MagicMock) -> None:
+        other_config = {**self.config, "external_id": "999", "identifier": "getsentry/other"}
+
+        with patch.object(
+            repository_service,
+            "get_repositories",
+            wraps=repository_service.get_repositories,
+        ) as get_repositories:
+            self.provider.create_repositories([self.config, other_config], self.rpc_organization)
+
+        assert get_repositories.call_count == 4
+        for call in get_repositories.call_args_list:
+            assert set(call.kwargs["external_ids"]) == {"654321", "999"}
 
     def test_create_repository__does_not_adopt_over_an_existing_row(
         self, get_jwt: MagicMock

@@ -12,6 +12,7 @@ from uuid import uuid4
 
 from django.db import connection
 from django.db.utils import OperationalError
+from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
@@ -19,6 +20,7 @@ from rest_framework.response import Response
 
 from sentry import options
 from sentry.analytics.events.advanced_search_feature_gated import AdvancedSearchFeatureGateEvent
+from sentry.analytics.events.issue_search_endpoint_queried import IssueSearchEndpointQueriedEvent
 from sentry.feedback.lib.utils import FeedbackCreationSource
 from sentry.feedback.usecases.ingest.create_feedback import create_feedback_issue
 from sentry.incidents.grouptype import MetricIssue
@@ -70,7 +72,10 @@ from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
-from sentry.testutils.helpers.analytics import assert_last_analytics_event
+from sentry.testutils.helpers.analytics import (
+    assert_last_analytics_event,
+    get_matching_analytics_events,
+)
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import Feature, with_feature
 from sentry.testutils.silo import assume_test_silo_mode
@@ -79,6 +84,7 @@ from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.users.models.user_option import UserOption
 from sentry.utils import json
 from sentry.utils.snuba import SnubaQueryParams
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 from tests.sentry.feedback import mock_feedback_event
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
@@ -421,6 +427,42 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         )
         assert response.data == []
 
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_has_no_teams_or_self_to_search_by(self) -> None:
+        group = self.store_event(
+            data={"timestamp": before_now(seconds=1).isoformat(), "fingerprint": ["group-1"]},
+            project_id=self.project.id,
+        ).group
+        assert group is not None
+        GroupAssignee.objects.assign(group, self.team)
+        service_account = self.create_service_account(
+            organization=self.organization,
+            scope_list=["event:read"],
+            project_ids=[self.project.id],
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+
+        def search(query: str) -> list[str]:
+            response = self.client.get(
+                reverse(self.endpoint, args=[self.organization.slug]),
+                {"query": query, "project": [self.project.id]},
+                HTTP_X_VIEWER_CONTEXT=viewer_context,
+            )
+            assert response.status_code == 200, response.content
+            return [item["id"] for item in response.data]
+
+        assert search("is:unresolved") == [str(group.id)]
+        assert search("assigned:my_teams") == []
+        assert search("!assigned:my_teams") == [str(group.id)]
+        assert search("assigned:me") == []
+
     def test_trace_search(self) -> None:
         event = self.store_event(
             data={
@@ -467,7 +509,8 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         self.login_as(user=self.user)
         expected_detail = (
             'Error parsing search query: Boolean statements containing "OR" or "AND" are not '
-            "supported in this search"
+            "supported in this search. To match any of several values for one key, use a list, "
+            "such as `key:[foo, bar]`"
         )
 
         response = self.get_response(sort_by="date", query="title:hello OR title:goodbye")
@@ -557,6 +600,33 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         self.get_success_response(groupStatsPeriod="")
         response = self.get_response(groupStatsPeriod="48h")
         assert response.status_code == 400
+
+    def test_sessions_with_disabled_stats(self) -> None:
+        event = self.store_event(
+            data={"timestamp": self.min_ago.isoformat()}, project_id=self.project.id
+        )
+        self.login_as(user=self.user)
+
+        response = self.get_success_response(groupStatsPeriod="", expand="sessions")
+
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(event.group_id)
+        assert "sessionCount" not in response.data[0]
+
+    def test_sessions_with_disabled_stats_direct_hit(self) -> None:
+        event = self.store_event(
+            data={"timestamp": self.min_ago.isoformat()}, project_id=self.project.id
+        )
+        self.login_as(user=self.user)
+
+        response = self.get_success_response(
+            groupStatsPeriod="", expand="sessions", query=event.event_id
+        )
+
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == str(event.group_id)
+        assert response.data[0]["matchingEventId"] == event.event_id
+        assert "sessionCount" not in response.data[0]
 
     def test_environment(self) -> None:
         self.store_event(
@@ -906,6 +976,15 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_success_response(group=[self.group.id, group_2.id])
         assert {g["id"] for g in response.data} == {str(self.group.id), str(group_2.id)}
 
+    def test_lookup_by_group_id_invalid(self) -> None:
+        self.login_as(user=self.user)
+        response = self.get_error_response(group="not-an-int", status_code=400)
+        assert "group" in response.data
+        response = self.get_error_response(group="782672999178267162297826713017", status_code=400)
+        assert "group" in response.data
+        response = self.get_error_response(group="-1", status_code=400)
+        assert "group" in response.data
+
     def test_lookup_by_group_id_no_perms(self) -> None:
         organization = self.create_organization()
         project = self.create_project(organization=organization)
@@ -1094,6 +1173,39 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             HTTP_AUTHORIZATION=f"Bearer {token.token}",
         )
         assert response.status_code == 200, response.content
+
+    @override_settings(SEER_API_SHARED_SECRET="viewer-context-secret")
+    @patch("sentry.analytics.record")
+    def test_search_analytics_is_api_token_differs_for_ui_vs_api(
+        self, mock_record: MagicMock
+    ) -> None:
+        organization = self.project.organization
+        url = reverse("sentry-api-0-organization-group-index", args=[organization.slug])
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = self.create_user_auth_token(user=self.user, scope_list=["event:read"])
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.USER, actor_id=self.user.id),
+                organization_id=organization.id,
+            ),
+            key="viewer-context-secret",
+        )
+
+        token_response = self.client.get(
+            url, format="json", HTTP_AUTHORIZATION=f"Bearer {token.token}"
+        )
+        viewer_context_response = self.client.get(
+            url, format="json", HTTP_X_VIEWER_CONTEXT=viewer_context
+        )
+        self.login_as(user=self.user)
+        self.get_success_response()
+
+        assert token_response.status_code == 200, token_response.content
+        assert viewer_context_response.status_code == 200, viewer_context_response.content
+        assert [
+            event.is_api_token
+            for event in get_matching_analytics_events(mock_record, IssueSearchEndpointQueriedEvent)
+        ] == [True, True, False]
 
     @patch(
         "sentry.search.snuba.executors.PostgresSnubaQueryExecutor.query",

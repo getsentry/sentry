@@ -2,6 +2,7 @@ from dataclasses import dataclass
 
 from django.utils.functional import cached_property
 
+from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.models.apiapplication import ApiApplication
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
@@ -24,6 +25,7 @@ class Validator:
         self._validate_is_sentry_app_making_request()
         self._validate_app_is_owned_by_user()
         self._validate_application_is_active()
+        self._validate_sentry_app()
         self._validate_installation()
         return True
 
@@ -58,10 +60,37 @@ class Validator:
                 },
             )
 
+    def _validate_sentry_app(self) -> None:
+        if self.sentry_app.status == SentryAppStatus.DELETION_IN_PROGRESS:
+            raise SentryAppIntegratorError(
+                "Integration is being deleted",
+                status_code=401,
+                webhook_context={"sentry_app_id": self.sentry_app.id},
+            )
+
     def _validate_installation(self) -> None:
-        if self.install.sentry_app.id != self.sentry_app.id:
+        # The caller may have loaded the installation before deletion started.
+        try:
+            installation = SentryAppInstallation.objects.get(
+                id=self.install.id, date_deleted__isnull=True
+            )
+        except SentryAppInstallation.DoesNotExist:
+            raise SentryAppIntegratorError(
+                "Installation not found",
+                status_code=401,
+                webhook_context={"installation_uuid": self.install.uuid},
+            )
+
+        if installation.sentry_app_id != self.sentry_app.id:
             raise SentryAppIntegratorError(
                 f"Given installation is not for integration: {self.sentry_app.slug}",
+                webhook_context={"installation_uuid": self.install.uuid},
+            )
+
+        if installation.status == SentryAppInstallationStatus.PENDING_DELETION:
+            raise SentryAppIntegratorError(
+                "Installation is being deleted",
+                status_code=401,
                 webhook_context={"installation_uuid": self.install.uuid},
             )
 

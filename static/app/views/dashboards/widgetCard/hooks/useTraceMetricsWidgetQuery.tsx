@@ -33,16 +33,17 @@ import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
-import {
-  combineWidgetJsonQueryResults,
-  combineWidgetQueryResults,
-} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
-import {getSeriesConfidenceInformation} from 'sentry/views/dashboards/widgetCard/hooks/utils/getSeriesConfidenceInformation';
-import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
-import {getTimeseriesWidgetQueryOptions} from 'sentry/views/dashboards/widgetCard/hooks/utils/getTimeseriesWidgetQueryOptions';
 import {NONE_UNIT} from 'sentry/views/explore/metrics/constants';
 import {useMetricHeatMapData} from 'sentry/views/explore/metrics/hooks/useMetricHeatMapData';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
+
+import {
+  combineWidgetJsonQueryResults,
+  combineWidgetQueryResults,
+} from './utils/combineWidgetQueryResults';
+import {getSeriesConfidenceInformation} from './utils/getSeriesConfidenceInformation';
+import {getWidgetStaleTime} from './utils/getStaleTime';
+import {getTimeseriesWidgetQueryOptions} from './utils/getTimeseriesWidgetQueryOptions';
 
 type TraceMetricsTableResponse = EventsTableData;
 

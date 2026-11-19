@@ -15,6 +15,18 @@ from sentry.web.frontend.base import control_silo_view
 from . import SALT, UNABLE_TO_VERIFY_INSTALLATION, JiraSentryUIBaseView
 
 
+def build_configure_link(external_id: str) -> str:
+    """The link that connects a Jira site's integration to a Sentry org.
+
+    The pipeline loads everything else from the integration record, so the link only
+    needs to identify the installation.
+    """
+    return "{}.?signed_params={}".format(
+        absolute_uri("/extensions/jira/configure/"),
+        sign(salt=SALT, external_id=external_id),
+    )
+
+
 @control_silo_view
 class JiraSentryInstallationView(JiraSentryUIBaseView):
     """
@@ -32,12 +44,7 @@ class JiraSentryInstallationView(JiraSentryUIBaseView):
         except AtlassianConnectValidationError:
             return self.get_response({"error_message": UNABLE_TO_VERIFY_INSTALLATION})
 
-        # The pipeline loads everything else from the integration record, so the
-        # link only needs to identify the installation.
-        finish_link = "{}.?signed_params={}".format(
-            absolute_uri("/extensions/jira/configure/"),
-            sign(salt=SALT, external_id=integration.external_id),
-        )
+        finish_link = build_configure_link(integration.external_id)
 
         image_path = absolute_uri(get_asset_url("sentry", "images/sentry-glyph-black.png"))
         return self.get_response({"finish_link": finish_link, "image_path": image_path})

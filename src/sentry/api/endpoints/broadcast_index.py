@@ -18,7 +18,7 @@ from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, Organ
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import AdminBroadcastSerializer, BroadcastSerializer, serialize
 from sentry.api.validators import AdminBroadcastValidator, BroadcastValidator
-from sentry.auth.principal import acting_user_id, owned_by_acting_user, require_user
+from sentry.auth.principal import acting_user_id, is_owned_by_acting_user, require_user
 from sentry.db.models.query import in_icontains
 from sentry.models.broadcast import Broadcast, BroadcastSeen
 from sentry.organizations.services.organization.model import RpcOrganization
@@ -176,7 +176,7 @@ class BroadcastIndexEndpoint(ControlSiloOrganizationEndpoint):
             else:
                 unseen_queryset = queryset.exclude(
                     id__in=queryset.filter(
-                        owned_by_acting_user(request.user, "broadcastseen__user_id")
+                        is_owned_by_acting_user(request.user, "broadcastseen__user_id")
                     ).values("id")
                 )
 

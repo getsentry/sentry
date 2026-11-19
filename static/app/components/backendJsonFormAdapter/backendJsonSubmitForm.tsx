@@ -13,8 +13,8 @@ import type {ButtonProps} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 import type {SelectValue} from '@sentry/scraps/select';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -270,7 +270,7 @@ export function BackendJsonSubmitForm({
             nonFieldError ??
             (typeof detail === 'string' ? detail : detail?.message) ??
             getFirstError(fieldError);
-          addErrorMessage(message ?? t('An error occurred while submitting'));
+          toast.error(message ?? t('An error occurred while submitting'));
         }
       }
     },

@@ -5,16 +5,17 @@ import {z} from 'zod';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 
 import {InputCopyButton} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import type {ProjectKey} from 'sentry/types/project';
 import {selectText} from 'sentry/utils/selectText';
 import {useLocation} from 'sentry/utils/useLocation';
-import {OtlpTab} from 'sentry/views/settings/project/projectKeys/credentials/otlp';
-import {VercelTab} from 'sentry/views/settings/project/projectKeys/credentials/vercel';
 import {FieldList} from 'sentry/views/settings/project/projectKeys/fieldList';
+
+import {OtlpTab} from './otlp';
+import {VercelTab} from './vercel';
 
 type Props = {
   data: ProjectKey;
@@ -459,11 +460,13 @@ export function ProjectKeyCredentials({
       {availableTabs.length > 0 && (
         <Fragment>
           <Tabs value={activeTab} onChange={setActiveTab}>
-            <TabList>
-              {availableTabs.map(tab => (
-                <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
-              ))}
-            </TabList>
+            {({TabList}) => (
+              <TabList>
+                {availableTabs.map(tab => (
+                  <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
+                ))}
+              </TabList>
+            )}
           </Tabs>
           {renderTabContent()}
         </Fragment>

@@ -28,7 +28,11 @@ import {CrumbErrorTitle} from 'sentry/components/replays/breadcrumbs/errorTitle'
 import {SelectorList} from 'sentry/components/replays/breadcrumbs/selectorList';
 import {t, tct} from 'sentry/locale';
 import {explodeSlug} from 'sentry/utils';
-import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
+import {stripURLOrigin} from 'sentry/utils/url/stripURLOrigin';
+import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
+
+import {TabKey} from './hooks/useActiveReplayTab';
 import type {
   BreadcrumbFrame,
   ClickFrame,
@@ -52,17 +56,14 @@ import type {
   SwipeFrame,
   TapFrame,
   WebVitalFrame,
-} from 'sentry/utils/replays/types';
+} from './types';
 import {
   getFrameOpOrCategory,
   isCLSFrame,
   isDeadClick,
   isDeadRageClick,
   isRageClick,
-} from 'sentry/utils/replays/types';
-import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import {stripURLOrigin} from 'sentry/utils/url/stripURLOrigin';
-import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
+} from './types';
 
 interface Details {
   colorGraphicsToken: GraphicsVariant;
@@ -309,28 +310,28 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
   }),
   'navigation.navigate': (frame: NavigationFrame) => ({
     colorGraphicsToken: 'success',
-    description: stripURLOrigin(frame.description),
+    description: getNavigationDescription(frame),
     tabKey: TabKey.NETWORK,
     title: 'Page Load',
     icon: <IconLocation size="xs" />,
   }),
   'navigation.reload': (frame: NavigationFrame) => ({
     colorGraphicsToken: 'success',
-    description: stripURLOrigin(frame.description),
+    description: getNavigationDescription(frame),
     tabKey: TabKey.NETWORK,
     title: 'Reload',
     icon: <IconLocation size="xs" />,
   }),
   'navigation.back_forward': (frame: NavigationFrame) => ({
     colorGraphicsToken: 'success',
-    description: stripURLOrigin(frame.description),
+    description: getNavigationDescription(frame),
     tabKey: TabKey.NETWORK,
     title: 'Navigate Back/Forward',
     icon: <IconLocation size="xs" />,
   }),
   'navigation.push': (frame: NavigationFrame) => ({
     colorGraphicsToken: 'success',
-    description: stripURLOrigin(frame.description),
+    description: getNavigationDescription(frame),
     tabKey: TabKey.NETWORK,
     title: 'Navigation',
     icon: <IconLocation size="xs" />,
@@ -553,6 +554,12 @@ function stringifyNodeAttributes(node: ClickFrameNode | undefined) {
   return selector || t('an unknown element');
 }
 
+function getNavigationDescription(frame: NavigationFrame) {
+  return frame.description === undefined
+    ? t('Unknown URL')
+    : stripURLOrigin(frame.description);
+}
+
 function WebVitalTitle({frame}: {frame: WebVitalFrame}) {
   const vitalDefinition = function () {
     switch (frame.description) {
@@ -568,7 +575,9 @@ function WebVitalTitle({frame}: {frame: WebVitalFrame}) {
   };
   return (
     <Flex align="center" gap="xs">
-      {t('Web Vital: ') + toTitleCase(explodeSlug(frame.description))}
+      {frame.description === undefined
+        ? t('Web Vital')
+        : t('Web Vital: ') + toTitleCase(explodeSlug(frame.description))}
       <InfoTip
         size="xs"
         title={

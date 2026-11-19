@@ -3,14 +3,15 @@ import {TeamFixture} from 'sentry-fixture/team';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {TeamStore} from 'sentry/stores/teamStore';
+import type {DetailedTeam} from 'sentry/types/organization';
+
 import {
   defaultInviteProps,
   InviteMembersContext,
   type InviteMembersContextValue,
-} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
-import {InviteRowControl as InviteRowControlNew} from 'sentry/components/modals/inviteMembersModal/inviteRowControl';
-import {TeamStore} from 'sentry/stores/teamStore';
-import type {DetailedTeam} from 'sentry/types/organization';
+} from './inviteMembersContext';
+import {InviteRowControl as InviteRowControlNew, parseEmails} from './inviteRowControl';
 
 describe('InviteRowControlNew', () => {
   const teamData = [
@@ -103,6 +104,16 @@ describe('InviteRowControlNew', () => {
       await userEvent.type(emailInput, `${email}${delimiter}`);
       expect(mockSetEmails).toHaveBeenCalledTimes(3);
     });
+  });
+
+  it('adds only the addresses from a pasted address list', async () => {
+    const setEmails = jest.fn();
+    render(getComponent({...defaultInviteProps, setEmails}));
+    const emailInput = screen.getByRole('textbox', {name: 'Email Addresses'});
+    await userEvent.click(emailInput);
+    await userEvent.paste('Jane Doe <jane@example.com>, John Smith <john@example.com>');
+    expect(setEmails).toHaveBeenCalledWith(['jane@example.com', 'john@example.com'], 0);
+    expect(emailInput).toHaveValue('');
   });
 
   it('updates email addresses when new emails are inputted and input is unfocussed', async () => {
@@ -208,5 +219,27 @@ describe('InviteRowControlNew', () => {
     await userEvent.click(teamInput);
     expect(screen.getByText('#moo-deng')).toBeInTheDocument();
     expect(screen.queryByText('#moo-waan')).not.toBeInTheDocument();
+  });
+});
+
+describe('parseEmails', () => {
+  it.each([
+    ['jane@example.com', ['jane@example.com']],
+    ['jane@example.com, john@example.com', ['jane@example.com', 'john@example.com']],
+    ['jane@example.com\njohn@example.com', ['jane@example.com', 'john@example.com']],
+    ['Jane Doe <jane@example.com>', ['jane@example.com']],
+    [
+      '"Doe, Jane" <jane@example.com>; John <john@example.com>',
+      ['jane@example.com', 'john@example.com'],
+    ],
+    ['<mailto:jane@example.com>', ['jane@example.com']],
+    ["Jane O'Brien <jane.o'brien@example.com>", ["jane.o'brien@example.com"]],
+    ['[mailto:jane@example.com]', ['jane@example.com']],
+    ['not-an-email', ['not-an-email']],
+    ['not-an-email;', ['not-an-email']],
+    [';', []],
+    ['   ', []],
+  ])('parses %j', (input, expected) => {
+    expect(parseEmails(input)).toEqual(expected);
   });
 });

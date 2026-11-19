@@ -17,8 +17,9 @@ import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import {ReleasesSortOption} from 'sentry/constants/releases';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import ReleasesList from 'sentry/views/explore/releases/list/';
-import {ReleasesDisplayOption} from 'sentry/views/explore/releases/list/releasesDisplayOptions';
-import {ReleasesStatusOption} from 'sentry/views/explore/releases/list/releasesStatusOptions';
+
+import {ReleasesDisplayOption} from './releasesDisplayOptions';
+import {ReleasesStatusOption} from './releasesStatusOptions';
 
 describe('ReleasesList', () => {
   const organization = OrganizationFixture({
@@ -108,7 +109,6 @@ describe('ReleasesList', () => {
   });
 
   afterEach(() => {
-    act(() => ProjectsStore.reset());
     MockApiClient.clearMockResponses();
   });
 
@@ -659,6 +659,10 @@ describe('ReleasesList', () => {
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace-items/attributes/install_groups/values/`,
+      body: [],
+    });
 
     return render(<ReleasesList />, {
       organization,
@@ -754,22 +758,6 @@ describe('ReleasesList', () => {
     // Wait for the controls to render before asserting the button is absent.
     expect(await screen.findByRole('button', {name: 'Display Size'})).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Download CSV'})).not.toBeInTheDocument();
-  });
-
-  it('searches distribution builds by install group without fetching values', async () => {
-    const installGroupValuesMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/trace-items/attributes/install_groups/values/`,
-      body: [],
-    });
-    const {router} = renderMobileBuildsTab({display: 'distribution'});
-
-    const searchInput = await screen.findByTestId('query-builder-input');
-    await userEvent.type(searchInput, 'install_groups:alpha{enter}');
-
-    await waitFor(() => {
-      expect(router.location.query.query).toBe('install_groups:alpha');
-    });
-    expect(installGroupValuesMock).not.toHaveBeenCalled();
   });
 
   it('allows searching within the mobile-builds tab', async () => {

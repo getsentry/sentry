@@ -1,15 +1,16 @@
 import {mat3} from 'gl-matrix';
 
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
-import {TraceTimeCompression} from 'sentry/views/performance/traceDetails/traceRenderers/traceTimeCompression';
-import {TraceView} from 'sentry/views/performance/traceDetails/traceRenderers/traceView';
+
+import {TraceTimeCompression} from './traceTimeCompression';
+import {TraceView} from './traceView';
 import {
   CompressedTraceViewCalculations,
   NormalTraceViewCalculations,
   type CompressedView,
   type SpanMatrix,
   type TraceViewCalculationContext,
-} from 'sentry/views/performance/traceDetails/traceRenderers/traceViewCalculations';
+} from './traceViewCalculations';
 
 function makeCalculationContext({
   timeCompression = TraceTimeCompression.Disabled([0, 1000]),

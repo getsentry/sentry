@@ -1,5 +1,12 @@
 from urllib.parse import urlparse
 
+from sentry.utils.http import absolute_uri
+
+
+def get_bitbucket_key() -> str:
+    # Options are not available yet when integrations are imported during Django setup.
+    return f"{urlparse(absolute_uri()).hostname}.bitbucket"
+
 
 def parse_bitbucket_src_url(repo_url: str, source_url: str) -> tuple[str, str]:
     """

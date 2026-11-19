@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from collections.abc import Callable, Mapping, Sequence
 from datetime import date, datetime
 from typing import Any, cast
@@ -8,6 +9,7 @@ from typing import Any, cast
 import orjson
 from django.core.exceptions import ObjectDoesNotExist
 from sentry_relay.processing import parse_release
+from slack_sdk.models.blocks import SectionBlock
 
 from sentry import tagstore
 from sentry.constants import LOG_LEVELS
@@ -69,6 +71,8 @@ STATUSES = {"resolved": "resolved", "ignored": "ignored", "unresolved": "re-open
 MAX_BLOCK_TEXT_LENGTH = 256
 USER_FEEDBACK_MAX_BLOCK_TEXT_LENGTH = 1500
 MAX_SUGGESTED_ASSIGNEES = 3
+# Escaped titles contain entities like "&amp;", so a cut can leave half of one at the end.
+PARTIAL_SLACK_ENTITY_RE = re.compile(r"&[a-z]*$")
 
 
 def get_group_users_count(group: Group, rules: list[NotificationOrigin] | None = None) -> int:
@@ -424,9 +428,13 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         self.has_mentions_read_scope = has_mentions_read_scope
         self.workflow_id = workflow_id
         self.link_decorator = link_decorator
-        self._has_autofix = SeerAutofixOperator.has_access(
-            organization=self.group.organization, entrypoint_key=SeerEntrypointKey.SLACK
-        ) and SeerAutofixOperator.can_trigger_autofix(group=self.group)
+        self._has_autofix = (
+            not is_unfurl
+            and SeerAutofixOperator.has_access(
+                organization=self.group.organization, entrypoint_key=SeerEntrypointKey.SLACK
+            )
+            and SeerAutofixOperator.can_trigger_autofix(group=self.group)
+        )
 
     def get_title_block(
         self,
@@ -434,11 +442,16 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
         has_action: bool,
         title_link: str | None = None,
     ) -> SlackBlock:
-        title = build_attachment_title(event_or_group)
+        title = escape_slack_text(build_attachment_title(event_or_group))
         title_emojis = self.get_title_emoji(has_action)
-
-        title_text = f"{title_emojis} <{title_link}|*{escape_slack_text(title)}*>"
-        return self.get_markdown_block(title_text)
+        prefix = f"{title_emojis} <{title_link}|*"
+        suffix = "*>"
+        # Slack rejects the whole message when one section is too long, and some titles, such as
+        # native crash reports, carry an entire stack trace.
+        max_title_length = SectionBlock.text_max_length - len(prefix) - len(suffix)
+        if len(title) > max_title_length:
+            title = PARTIAL_SLACK_ENTITY_RE.sub("", title[: max_title_length - 3]) + "..."
+        return self.get_markdown_block(f"{prefix}{title}{suffix}")
 
     def get_title_emoji(self, has_action: bool) -> str:
         is_error_issue = self.group.issue_category == GroupCategory.ERROR

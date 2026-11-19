@@ -15,11 +15,6 @@ import {
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {traceAnalytics} from 'sentry/views/performance/traceDetails/traceAnalytics';
-import {TraceTreeNodeDetails} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceTreeNodeDetails';
-import {
-  usePassiveResizableDrawer,
-  type UsePassiveResizableDrawerOptions,
-} from 'sentry/views/performance/traceDetails/traceDrawer/usePassiveResizeableDrawer';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
 import type {TraceScheduler} from 'sentry/views/performance/traceDetails/traceRenderers/traceScheduler';
@@ -34,6 +29,12 @@ import {
   useTraceStateDispatch,
 } from 'sentry/views/performance/traceDetails/traceState/traceStateProvider';
 import {type TraceTabsReducerState} from 'sentry/views/performance/traceDetails/traceState/traceTabs';
+
+import {TraceTreeNodeDetails} from './tabs/traceTreeNodeDetails';
+import {
+  usePassiveResizableDrawer,
+  type UsePassiveResizableDrawerOptions,
+} from './usePassiveResizeableDrawer';
 
 type TraceDrawerProps = {
   manager: VirtualizedViewManager;

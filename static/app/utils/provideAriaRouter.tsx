@@ -2,7 +2,7 @@ import {useCallback} from 'react';
 import {useHref} from 'react-router';
 import {RouterProvider as AriaRouterProvider} from '@react-aria/utils';
 
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {useNavigate} from './useNavigate';
 
 /**
  * React aira has its own context for useTabs, useMenuItem, useLink, etc.
