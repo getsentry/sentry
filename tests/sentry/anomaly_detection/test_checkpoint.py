@@ -263,12 +263,12 @@ def test_dense_collector_checkpoint_round_trips_at_full_history_depth() -> None:
                     for metric in signal.metrics:
                         key = SeriesKey(str(project), env, signal.name, metric, f"slice-{dim}")
                         series[key] = {minute: rng.random() for minute in minutes}
-    evaluator.det.refresh()
-    rolling_length = max(evaluator.det.cfg.windows) + DISPERSION_MIN + 1
-    for key in evaluator.det.watched:
+    evaluator.series_history.refresh()
+    rolling_length = max(evaluator.series_history.cfg.windows) + DISPERSION_MIN + 1
+    for key in evaluator.series_history.watched:
         if key.metric != "failure_rate()":
             continue
-        state = evaluator.det.state[key]
+        state = evaluator.series_history.state[key]
         state.failure_reference = (2.0, 400.0)
         state.counts = deque(
             (
@@ -290,7 +290,7 @@ def test_dense_collector_checkpoint_round_trips_at_full_history_depth() -> None:
         Footprints(), orjson.loads(orjson.dumps(checkpoint)), handlers=make_handlers(PROJECT)
     )
     assert restored.series == series
-    assert restored.det.state == evaluator.det.state
+    assert restored.series_history.state == evaluator.series_history.state
 
 
 def test_rotating_full_slice_cohorts_bound_checkpoint_state() -> None:
@@ -326,11 +326,15 @@ def test_rotating_full_slice_cohorts_bound_checkpoint_state() -> None:
         for dim in range(MAX_SLICES)
         for batch in (3, 4)
     }
-    assert restored.det.watched.keys() == restored.det.state.keys() == expected_keys
+    assert (
+        restored.series_history.watched.keys()
+        == restored.series_history.state.keys()
+        == expected_keys
+    )
     assert restored.series.keys() == expected_keys | {
         replace(key, metric="count_sample()") for key in expected_keys
     }
-    assert all(state.counts for state in restored.det.state.values())
+    assert all(state.counts for state in restored.series_history.state.values())
     assert restored.novelty.coverage.keys() == {
         SeriesKey(PROJECT, f"env-{env}", "endpoints", "failure_rate()", f"/route/{batch}/{dim}")
         for env in range(MAX_ENVIRONMENTS)
@@ -356,8 +360,8 @@ def test_stale_slice_evicts_watch_state_but_keeps_aggregate_presence() -> None:
         handlers=make_handlers(PROJECT),
     )
     before = _restore(Footprints(), checkpoint, handlers=make_handlers(PROJECT))
-    assert before.det.state[stale].counts
-    before.det.exclude = {stale: "unreliable metrics"}
+    assert before.series_history.state[stale].counts
+    before.series_history.exclude = {stale: "unreliable metrics"}
     _, checkpoint = advance_org(
         rows=[(_at(1569), current.signal, current.metric, PROJECT, ENV, current.dim_value, None)],
         hourly_rows=(),
@@ -369,8 +373,12 @@ def test_stale_slice_evicts_watch_state_but_keeps_aggregate_presence() -> None:
     )
     restored = _restore(Footprints(), _round_trip(checkpoint), handlers=make_handlers(PROJECT))
     assert restored.series == {total: {}, current: {_at(1569): None}}
-    assert restored.det.watched.keys() == restored.det.state.keys() == {total, current}
-    assert stale not in restored.det.exclude
+    assert (
+        restored.series_history.watched.keys()
+        == restored.series_history.state.keys()
+        == {total, current}
+    )
+    assert stale not in restored.series_history.exclude
     # Retiring minute data does not lose recent novelty exposure.
     assert restored.novelty.coverage[stale][START] == 1
 
@@ -382,8 +390,8 @@ def test_unobserved_open_slice_expires_without_claiming_recovery() -> None:
     )
     evaluator = OrgEvaluator(Footprints(), handlers=make_handlers(PROJECT))
     evaluator.series[key] = {START: event.actual}
-    evaluator.det.refresh()
-    evaluator.det.state[key].open = event
+    evaluator.series_history.refresh()
+    evaluator.series_history.state[key].open = event
     evaluator._decisions(evaluator.corr.step(START, [("open", event)]))
     (opened,) = evaluator._decisions(evaluator.corr.step(_at(30), []))
     evaluator.next_minute = _at(31)
@@ -398,7 +406,10 @@ def test_unobserved_open_slice_expires_without_claiming_recovery() -> None:
         checkpoint=_round_trip(_snapshot(evaluator, _at(31))),
     )
     assert not decisions
-    assert key in _restore(Footprints(), checkpoint, handlers=make_handlers(PROJECT)).det.state
+    assert (
+        key
+        in _restore(Footprints(), checkpoint, handlers=make_handlers(PROJECT)).series_history.state
+    )
     decisions, checkpoint = advance_org(
         rows=(),
         hourly_rows=(),
@@ -410,7 +421,7 @@ def test_unobserved_open_slice_expires_without_claiming_recovery() -> None:
     )
     assert not decisions  # The correlator still observes its normal quiet window.
     restored = _restore(Footprints(), checkpoint, handlers=make_handlers(PROJECT))
-    assert key not in restored.det.state
+    assert key not in restored.series_history.state
     expired = restored.corr.state.open_groups[opened.group_key].root
     assert expired.ended_at == _at(1569)
     assert expired.evidence == ["expired: measurements no longer collected"]
@@ -510,9 +521,9 @@ def test_project_scope_change_retires_mixed_group_without_rebinding(
         evaluator.series[event.key] = {event.start: event.actual}
         evaluator.novelty.observe(event.key, event.start)
         evaluator.novelty.record(event)
-    evaluator.det.refresh()
+    evaluator.series_history.refresh()
     for event in (retained, removed):
-        evaluator.det.state[event.key].open = event
+        evaluator.series_history.state[event.key].open = event
 
     evaluator._decisions(evaluator.corr.step(START, [("open", retained)]))
     (opened,) = evaluator._decisions(evaluator.corr.step(_at(30), []))
@@ -530,8 +541,8 @@ def test_project_scope_change_retires_mixed_group_without_rebinding(
     # Persist additional disabled-project state beyond the group's events.
     cp_key = SeriesKey(disabled, ENV, "error_rate", "errors/requests")
     evaluator.series[cp_key] = {_at(30): 0.01}
-    evaluator.cp.refresh()
-    evaluator.cp.state[cp_key].hits = 2
+    evaluator.rate_shifts.refresh()
+    evaluator.rate_shifts.state[cp_key].hits = 2
     a = (f"{PROJECT}/{ENV}", "outbound_http", "example.com")
     b = (f"{disabled}/{ENV}", "outbound_http", "example.com")
     evaluator.corr.shared.pairs[frozenset((a, b))] = PairStats(a, b, 5, 5, 5, 0.1, 0.001)
@@ -563,9 +574,9 @@ def test_project_scope_change_retires_mixed_group_without_rebinding(
     assert not retained_group_keys(checkpoint)
     restored = _restore(Footprints(), checkpoint, handlers=make_handlers(PROJECT))
     assert set(restored.series) == {retained_key}
-    assert set(restored.det.state) == {retained_key}
+    assert set(restored.series_history.state) == {retained_key}
     assert set(restored.novelty.coverage) == set(restored.novelty.history) == {retained_key}
-    assert not restored.cp.state
+    assert not restored.rate_shifts.state
     assert not restored.pending_issues
     assert not restored.known_issues
     assert not restored.corr.groups
@@ -574,7 +585,7 @@ def test_project_scope_change_retires_mixed_group_without_rebinding(
     assert not restored.corr.state.edge_seen_at
     assert not restored.corr.shared.pairs
     candidate = restored.corr.state.latent[episode_key(retained)]
-    assert candidate is restored.det.state[retained_key].open
+    assert candidate is restored.series_history.state[retained_key].open
     assert len(checkpoint["events"]) == 1
 
 

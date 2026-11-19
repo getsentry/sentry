@@ -7,7 +7,7 @@ from confluent_kafka import KafkaException
 from django.test import override_settings
 
 from sentry.anomaly_detection.baseline import Baseline
-from sentry.anomaly_detection.changepoint import ChangePointDetector
+from sentry.anomaly_detection.changepoint import RateShiftTracker
 from sentry.anomaly_detection.contracts import ChangeType, SeriesKey
 from sentry.anomaly_detection.detect import SeriesHistory
 from sentry.anomaly_detection.grouptype import (
@@ -87,7 +87,7 @@ class TestAnomalyDetectionHandler(TestCase):
         )
         baseline = Baseline(hourly)
         history = SeriesHistory({other_key: {minute: 100.0}}, baseline)
-        change_points = ChangePointDetector(history.series, baseline)
+        change_points = RateShiftTracker(history.series, baseline)
 
         def evaluate(ts: datetime, *rows: SeriesRow) -> MeasurementEvaluation:
             packet = DataPacket(source_id="measurements", packet=MinuteMeasurements(ts, rows))

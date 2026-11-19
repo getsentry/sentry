@@ -17,7 +17,7 @@ from struct import Struct, pack
 from typing import Any
 from zlib import compress, decompress
 
-from sentry.anomaly_detection.changepoint import _CP
+from sentry.anomaly_detection.changepoint import RateShiftState
 from sentry.anomaly_detection.collection import MAX_ENVIRONMENTS, MAX_SLICES
 from sentry.anomaly_detection.contracts import (
     AnomalyGroup,
@@ -35,7 +35,13 @@ from sentry.anomaly_detection.correlate import (
     MemberState,
     episode_key,
 )
-from sentry.anomaly_detection.detect import DISPERSION_MIN, RULES, CountTotals, SeriesState
+from sentry.anomaly_detection.detect import (
+    DISPERSION_MIN,
+    RULES,
+    CountTotals,
+    RecentMinute,
+    SeriesState,
+)
 from sentry.anomaly_detection.footprint import Footprint, SliceStats
 from sentry.anomaly_detection.grouptype import AnomalyDetectionDetectorHandler
 from sentry.anomaly_detection.pipeline import _CONTEXT_HORIZON, AnomalyDecision, OrgEvaluator
@@ -429,7 +435,7 @@ def _read_correlation(data: dict[str, Any], events: _EventReader) -> Correlation
 
 
 def _detector(evaluator: OrgEvaluator, events: _EventWriter) -> dict[str, Any]:
-    detector = evaluator.det
+    detector = evaluator.series_history
     return {
         "watched": [_key(key) for key in detector.watched],
         "exclude": [[_key(key), reason] for key, reason in detector.exclude.items()],
@@ -442,7 +448,10 @@ def _detector(evaluator: OrgEvaluator, events: _EventWriter) -> dict[str, Any]:
             [
                 _key(key),
                 {
-                    "recent": [[ts.isoformat(), flag, actual] for ts, flag, actual in state.recent],
+                    "recent": [
+                        [reading.minute.isoformat(), reading.flagged, reading.actual]
+                        for reading in state.recent
+                    ],
                     "open": events.optional(state.open),
                     "anchor": _iso(state.anchor),
                     "anchor_level": state.anchor_level,
@@ -479,7 +488,7 @@ def _detector(evaluator: OrgEvaluator, events: _EventWriter) -> dict[str, Any]:
 
 
 def _restore_detector(evaluator: OrgEvaluator, data: dict[str, Any], events: _EventReader) -> None:
-    detector = evaluator.det
+    detector = evaluator.series_history
     watched = {}
     for fields in data["watched"]:
         key = SeriesKey(*fields)
@@ -500,46 +509,64 @@ def _restore_detector(evaluator: OrgEvaluator, data: dict[str, Any], events: _Ev
     detector._pseudo = {
         (SeriesKey(*key), datetime.fromisoformat(ts)): floor for key, ts, floor in data["pseudo"]
     }
-    for key, state in data["state"]:
-        counts = state["counts"]
-        series_key = SeriesKey(*key)
+    for key_fields, state_data in data["state"]:
+        count_rows = state_data["counts"]
+        series_key = SeriesKey(*key_fields)
         detector.state[series_key] = SeriesState(
             recent=deque(
                 (
-                    (datetime.fromisoformat(ts), flag, actual)
-                    for ts, flag, actual in state["recent"]
+                    RecentMinute(datetime.fromisoformat(minute_iso), flagged, actual)
+                    for minute_iso, flagged, actual in state_data["recent"]
                 ),
                 maxlen=watched[series_key].persist[1],
             ),
-            open=events.optional(state["open"]),
-            anchor=_time(state["anchor"]),
-            anchor_level=state["anchor_level"],
-            anchor_sigma=state["anchor_sigma"],
-            anchor_points=state["anchor_points"],
-            excluded={datetime.fromisoformat(ts) for ts in state["excluded"]},
-            score=state["score"],
-            level_ratio=state["level_ratio"],
-            worse_run=list(state["worse_run"]),
+            open=events.optional(state_data["open"]),
+            anchor=_time(state_data["anchor"]),
+            anchor_level=state_data["anchor_level"],
+            anchor_sigma=state_data["anchor_sigma"],
+            anchor_points=state_data["anchor_points"],
+            excluded={datetime.fromisoformat(minute_iso) for minute_iso in state_data["excluded"]},
+            score=state_data["score"],
+            level_ratio=state_data["level_ratio"],
+            worse_run=list(state_data["worse_run"]),
             counts=None
-            if counts is None
+            if count_rows is None
             else deque(
                 (
-                    CountTotals(_time(ts), n, expected, samples, missing, vol, den, level)
-                    for ts, n, expected, samples, missing, vol, den, level in counts
+                    CountTotals(
+                        _time(minute_iso),
+                        events_total,
+                        expected_total,
+                        samples,
+                        missing,
+                        volume,
+                        shaped_denominator,
+                        level,
+                    )
+                    for (
+                        minute_iso,
+                        events_total,
+                        expected_total,
+                        samples,
+                        missing,
+                        volume,
+                        shaped_denominator,
+                        level,
+                    ) in count_rows
                 ),
                 maxlen=max(detector.cfg.windows) + DISPERSION_MIN + 1,
             ),
-            window=state["window"],
-            closed_at=_time(state["closed_at"]),
-            recent_ratios=deque(state["recent_ratios"], maxlen=30),
-            failure_reference=tuple(state["failure_reference"])
-            if state["failure_reference"] is not None
+            window=state_data["window"],
+            closed_at=_time(state_data["closed_at"]),
+            recent_ratios=deque(state_data["recent_ratios"], maxlen=30),
+            failure_reference=tuple(state_data["failure_reference"])
+            if state_data["failure_reference"] is not None
             else None,
         )
 
 
 def _change_points(evaluator: OrgEvaluator, events: _EventWriter) -> dict[str, Any]:
-    cp = evaluator.cp
+    cp = evaluator.rate_shifts
     return {
         "watched": [_key(key) for key in cp.watched],
         "exclude": [[_key(key), reason] for key, reason in cp.exclude.items()],
@@ -564,11 +591,13 @@ def _change_points(evaluator: OrgEvaluator, events: _EventWriter) -> dict[str, A
 def _restore_change_points(
     evaluator: OrgEvaluator, data: dict[str, Any], events: _EventReader
 ) -> None:
-    cp = evaluator.cp
+    cp = evaluator.rate_shifts
     cp.watched = [SeriesKey(*key) for key in data["watched"]]
     cp.exclude = {SeriesKey(*key): reason for key, reason in data["exclude"]}
     cp.state = {
-        SeriesKey(*key): _CP(hits, events.optional(index), level_before, _time(hold_until))
+        SeriesKey(*key): RateShiftState(
+            hits, events.optional(index), level_before, _time(hold_until)
+        )
         for key, hits, index, level_before, hold_until in data["state"]
     }
     cp.spike_minutes = {
@@ -667,7 +696,7 @@ def _prune_novelty(evaluator: OrgEvaluator, cursor: datetime) -> None:
         cohorts[key.project, key.signal, key.metric, bool(key.dim_value)].append(
             (max(latest_observation, latest_excursion), key)
         )
-    retained = evaluator.det.watched.keys() | evaluator.cp.state.keys()
+    retained = evaluator.series_history.watched.keys() | evaluator.rate_shifts.state.keys()
     for (_, _, _, sliced), candidates in cohorts.items():
         limit = _NOVELTY_COHORTS * MAX_ENVIRONMENTS * (MAX_SLICES if sliced else 2)
         retained.update(key for _, key in sorted(candidates, reverse=True)[:limit])
@@ -849,7 +878,7 @@ def _reconcile_correlation(
 def _reconcile_projects(
     evaluator: OrgEvaluator, projects: AbstractSet[str], boundary: datetime
 ) -> list[AnomalyDecision]:
-    detector, cp, novelty = evaluator.det, evaluator.cp, evaluator.novelty
+    detector, cp, novelty = evaluator.series_history, evaluator.rate_shifts, evaluator.novelty
     for mapping in (
         evaluator.series,
         detector.watched,
@@ -934,7 +963,7 @@ def _evict_stale_series(
     if not evicted:
         return []
 
-    det, cp = evaluator.det, evaluator.cp
+    det, cp = evaluator.series_history, evaluator.rate_shifts
     expirations: list[tuple[str, ChangeEvent]] = []
     maps = (
         evaluator.series,

@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import pytest
 
 from sentry.anomaly_detection.baseline import Baseline
-from sentry.anomaly_detection.changepoint import ChangePointConfig, ChangePointDetector
+from sentry.anomaly_detection.changepoint import ChangePointConfig, RateShiftTracker
 from sentry.anomaly_detection.contracts import ChangeEvent, ChangeType, SeriesKey
 from sentry.anomaly_detection.detect import DetectConfig, SeriesHistory
 from sentry.anomaly_detection.grouptype import AnomalyDetectionDetectorHandler, MinuteMeasurements
@@ -38,7 +38,7 @@ class MeasurementStream:
             if (retained := {ts: value for ts, value in values.items() if ts < START})
         }
         self.history = SeriesHistory(prior, baseline, cfg)
-        self.change_points = ChangePointDetector(self.history.series, baseline)
+        self.change_points = RateShiftTracker(self.history.series, baseline)
         detector = Detector(project_id=1, type=DetectorType.ANOMALY_DETECTION)
         handler = detector.detector_handler
         assert isinstance(handler, AnomalyDetectionDetectorHandler)
@@ -345,7 +345,7 @@ def test_change_point_ignores_known_spikes_in_the_pooled_gate() -> None:
         ERRORS: points(0, 170, 20.0) | points(130, 135, 1000.0) | points(170, 230, 30.0),
         ERROR_RATE: points(0, 230, None),
     }
-    detector = ChangePointDetector(series, Baseline({}))
+    detector = RateShiftTracker(series, Baseline({}))
     spike = ChangeEvent(ERROR_RATE, ChangeType.SPIKE, minute(130), 0.1, 0.002, 0.9)
     detector.note_spike(spike, minute(134))
     [(action, event)] = [action for i in range(230) for action in detector.step(minute(i))]
@@ -360,7 +360,7 @@ def test_uncovered_change_point_tick_resets_persistence() -> None:
         ERRORS: points(0, 170, 20.0) | points(170, 220, 40.0),
         ERROR_RATE: points(0, 220, None),
     }
-    detector = ChangePointDetector(series, Baseline({}), ChangePointConfig(persist=2))
+    detector = RateShiftTracker(series, Baseline({}), ChangePointConfig(persist=2))
     assert detector.step(minute(185)) == []
     assert detector.state[ERROR_RATE].hits == 1
     counts = series[ERRORS]
@@ -385,7 +385,7 @@ def test_change_point_recovery_uses_the_same_seasonal_scale_as_open() -> None:
         | points(65, 200, 30.0)
         | points(200, 240, 20.0)
     )
-    detector = ChangePointDetector(
+    detector = RateShiftTracker(
         {REQUESTS: points(-180, 240, 10_000.0), ERRORS: errors, ERROR_RATE: dict.fromkeys(errors)},
         Baseline({ERROR_RATE: hourly}),
     )

@@ -51,7 +51,7 @@ class ChangePointConfig:
 
 
 @dataclass
-class _CP:
+class RateShiftState:
     hits: int = 0
     open: ChangeEvent | None = None
     level_before: float = 0.0
@@ -59,7 +59,9 @@ class _CP:
 
 
 @dataclass
-class ChangePointDetector:
+class RateShiftTracker:
+    """Track sustained rate shifts for the anomaly handler, not issue state."""
+
     series: dict[SeriesKey, Series]
     baseline: Baseline
     cfg: ChangePointConfig = field(default_factory=ChangePointConfig)
@@ -67,7 +69,7 @@ class ChangePointDetector:
 
     def __post_init__(self) -> None:
         self.watched: list[SeriesKey] = []
-        self.state: dict[SeriesKey, _CP] = {}
+        self.state: dict[SeriesKey, RateShiftState] = {}
         self.spike_minutes: dict[SeriesKey, set[datetime]] = {}
         self._spike_seen: dict[SeriesKey, datetime] = {}
         self.refresh()
@@ -84,114 +86,128 @@ class ChangePointDetector:
         ]
         for key in new:
             self.watched.append(key)
-            self.state[key] = _CP()
+            self.state[key] = RateShiftState()
             self.spike_minutes[key] = set()
         return len(new)
 
-    def note_spike(self, e: ChangeEvent, t: datetime) -> None:
+    def note_spike(self, event: ChangeEvent, minute: datetime) -> None:
         """Mark minutes covered by an open spike event on a watched series."""
-        if e.key in self.spike_minutes:
+        if event.key in self.spike_minutes:
             # Older minutes cannot enter a detection window again as event time advances.
-            window_start = t - (self.cfg.after_min + self.cfg.before_min) * MINUTE
-            marked = self.spike_minutes[e.key]
-            marked.intersection_update(_minutes(window_start, t))
-            marked.update(_minutes(max(e.start - MINUTE, window_start), t))
-            self._spike_seen[e.key] = t
+            window_start = minute - (self.cfg.after_min + self.cfg.before_min) * MINUTE
+            marked_minutes = self.spike_minutes[event.key]
+            marked_minutes.intersection_update(_minutes(window_start, minute))
+            marked_minutes.update(_minutes(max(event.start - MINUTE, window_start), minute))
+            self._spike_seen[event.key] = minute
 
     def step(
-        self, t: datetime, *, project: str | None = None
+        self, minute: datetime, *, project: str | None = None
     ) -> list[tuple[Literal["open", "close"], ChangeEvent]]:
-        if t.minute % self.cfg.every:
+        if minute.minute % self.cfg.every:
             return []
-        out = []
+        actions = []
         for key in self.watched:
             if project is not None and key.project != project:
                 continue
-            action = self._step(key, t)
+            action = self._step(key, minute)
             if action is not None:
-                out.append(action)
-        return out
+                actions.append(action)
+        return actions
 
     def _step(
-        self, key: SeriesKey, t: datetime
+        self, key: SeriesKey, minute: datetime
     ) -> tuple[Literal["open", "close"], ChangeEvent] | None:
-        cfg, state = self.cfg, self.state[key]
-        split = t - cfg.after_min * MINUTE
-        before_start = split - cfg.before_min * MINUTE
-        observations = self._observations(key, before_start, t)
-        before_points = [point for point in observations if point.minute <= split]
-        after_points = [point for point in observations if point.minute > split]
+        config, state = self.cfg, self.state[key]
+        recent_boundary = minute - config.after_min * MINUTE
+        history_start = recent_boundary - config.before_min * MINUTE
+        observations = self._observations(key, history_start, minute)
+        historical_points = [point for point in observations if point.minute <= recent_boundary]
+        recent_points = [point for point in observations if point.minute > recent_boundary]
         if (
-            len(after_points) < max(1, cfg.after_min // 2)
-            or len(before_points) < max(1, cfg.before_min // 2)
-            or statistics.median(point.traffic for point in observations) < cfg.min_requests
+            len(recent_points) < max(1, config.after_min // 2)
+            or len(historical_points) < max(1, config.before_min // 2)
+            or statistics.median(point.traffic for point in observations) < config.min_requests
         ):
             state.hits = 0
             return None
         # A fixed rate floor and raw hourly shapes keep the frozen level comparable.
-        after = [point.log_rate(RATE_FLOOR) for point in after_points]
-        before = [point.log_rate(RATE_FLOOR) for point in before_points]
-        pooled = self._pooled_ratio(before_points, after_points)
-        median_after, median_before = statistics.median(after), statistics.median(before)
-        min_shift = math.log(cfg.min_shift)
+        recent_log_rates = [point.log_rate(RATE_FLOOR) for point in recent_points]
+        historical_log_rates = [point.log_rate(RATE_FLOOR) for point in historical_points]
+        pooled_ratio = self._pooled_ratio(historical_points, recent_points)
+        recent_level = statistics.median(recent_log_rates)
+        historical_level = statistics.median(historical_log_rates)
+        min_log_shift = math.log(config.min_shift)
 
-        if state.open is not None:
-            event = state.open
-            shift = median_after - state.level_before
-            event.peak_ratio = max(event.peak_ratio, min(math.exp(shift), pooled))
-            recovered = shift < min_shift / 2
-            if recovered or (state.hold_until is not None and t >= state.hold_until):
-                event.ended_at = t
+        if event := state.open:
+            # Recovery uses the frozen pre-change level, not the moving historical window.
+            log_shift = recent_level - state.level_before
+            event.peak_ratio = max(event.peak_ratio, min(math.exp(log_shift), pooled_ratio))
+            recovered = log_shift < min_log_shift / 2
+            if recovered or (state.hold_until is not None and minute >= state.hold_until):
+                event.ended_at = minute
                 event.evidence.append("recovered" if recovered else "held: new level")
                 state.open = None
                 return "close", event
             return None
-        if (state.hold_until is not None and t < state.hold_until) or self._spike_seen.get(
+        if (state.hold_until is not None and minute < state.hold_until) or self._spike_seen.get(
             key
-        ) == t:
+        ) == minute:
             state.hits = 0
             return None
 
-        shift = median_after - median_before
-        sigma = max(1.4826 * statistics.median(abs(v - median_before) for v in before), 0.05)
-        z = shift / (1.253 * sigma * math.sqrt(1 / len(after) + 1 / len(before)))
-        excess = statistics.mean(point.events for point in after_points) * (
-            1 - math.exp(-min(shift, math.log(max(pooled, 1.0))))
+        log_shift = recent_level - historical_level
+        median_deviation = statistics.median(
+            abs(rate - historical_level) for rate in historical_log_rates
+        )
+        historical_sigma = max(1.4826 * median_deviation, 0.05)
+        standard_error = (
+            1.253
+            * historical_sigma
+            * math.sqrt(1 / len(recent_log_rates) + 1 / len(historical_log_rates))
+        )
+        z_score = log_shift / standard_error
+        excess_per_minute = statistics.mean(point.events for point in recent_points) * (
+            1 - math.exp(-min(log_shift, math.log(max(pooled_ratio, 1.0))))
         )
         if not (
-            shift >= min_shift
-            and pooled >= cfg.min_shift
-            and z >= cfg.min_z
-            and excess >= cfg.min_excess
+            log_shift >= min_log_shift
+            and pooled_ratio >= config.min_shift
+            and z_score >= config.min_z
+            and excess_per_minute >= config.min_excess
         ):
             state.hits = 0
             return None
         state.hits += 1
-        if state.hits < cfg.persist:
+        if state.hits < config.persist:
             return None
 
-        split_point = _split(
+        onset_search_start = minute - config.split_min * MINUTE
+        estimated_onset = _split(
             [
                 (point.minute, point.log_rate(RATE_FLOOR))
                 for point in observations
-                if point.minute > t - cfg.split_min * MINUTE
+                if point.minute > onset_search_start
             ]
         )
-        start = split_point or split
+        onset = estimated_onset or recent_boundary
         event = ChangeEvent(
             key=key,
             change_type=ChangeType.CHANGE_POINT,
-            start=start,
-            actual=_rate([point for point in observations if point.minute >= start]),
-            expected=_rate(before_points),
-            confidence=round(min(0.99, 0.5 + 0.05 * z), 2),
-            detected_at=t,
-            peak_ratio=pooled,
-            open_ratio=pooled,
-            evidence=[f"step {pooled:.2f}x vs the 2h before, z={z:.1f}, +{excess:.0f}/min"],
+            start=onset,
+            actual=_rate([point for point in observations if point.minute >= onset]),
+            expected=_rate(historical_points),
+            confidence=round(min(0.99, 0.5 + 0.05 * z_score), 2),
+            detected_at=minute,
+            peak_ratio=pooled_ratio,
+            open_ratio=pooled_ratio,
+            evidence=[
+                f"step {pooled_ratio:.2f}x vs the 2h before, z={z_score:.1f}, +{excess_per_minute:.0f}/min"
+            ],
         )
-        state.open, state.level_before, state.hits = event, median_before, 0
-        state.hold_until = t + cfg.hold * MINUTE
+        state.open = event
+        state.level_before = historical_level
+        state.hits = 0
+        state.hold_until = minute + config.hold * MINUTE
         return "open", event
 
     def _observations(self, key: SeriesKey, start: datetime, end: datetime) -> list[_Observation]:
@@ -244,17 +260,24 @@ def _minutes(start: datetime, end: datetime) -> Iterator[datetime]:
 
 def _split(values: list[tuple[datetime, float]]) -> datetime | None:
     """Find the upward split maximizing the difference in means, weighted by sample sizes."""
-    n = len(values)
-    if n < 10:
+    sample_count = len(values)
+    if sample_count < 10:
         return None
-    prefix = [0.0]
-    for _, value in values:
-        prefix.append(prefix[-1] + value)
-    best = 0.0
-    at = None
-    for i in range(5, n - 4):
-        left, right = prefix[i] / i, (prefix[n] - prefix[i]) / (n - i)
-        score = (right - left) * math.sqrt(i * (n - i) / n)
-        if score > best:
-            best, at = score, values[i][0]
-    return at
+    cumulative_rates = [0.0]
+    for _, log_rate in values:
+        cumulative_rates.append(cumulative_rates[-1] + log_rate)
+    best_score = 0.0
+    best_minute = None
+    for split_index in range(5, sample_count - 4):
+        recent_count = sample_count - split_index
+        historical_mean = cumulative_rates[split_index] / split_index
+        recent_mean = (
+            cumulative_rates[sample_count] - cumulative_rates[split_index]
+        ) / recent_count
+        score = (recent_mean - historical_mean) * math.sqrt(
+            split_index * recent_count / sample_count
+        )
+        if score > best_score:
+            best_score = score
+            best_minute = values[split_index][0]
+    return best_minute

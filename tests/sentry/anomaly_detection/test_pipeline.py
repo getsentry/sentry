@@ -283,8 +283,8 @@ def test_healthy_measurements_restore_latency_detection() -> None:
     ]
     middle = T0 + 61 * MINUTE
     evaluator.advance(rows=rows, hourly_rows=[], start=T0, end=middle)
-    assert key in evaluator.det.exclude
+    assert key in evaluator.series_history.exclude
 
     evaluator.advance(rows=rows, hourly_rows=[], start=middle, end=T0 + 121 * MINUTE)
-    assert key not in evaluator.det.exclude
-    assert key in evaluator.det.watched
+    assert key not in evaluator.series_history.exclude
+    assert key in evaluator.series_history.watched

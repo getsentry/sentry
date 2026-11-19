@@ -37,6 +37,8 @@ ERROR_SIGNALS = frozenset({"errors", "error_rate", "failed_rate", "new_issue"})
 CAUSE_LEAD = timedelta(minutes=20)
 LATENT_SLOW_RATIO = 3.0
 FAILING_SHARE = 0.2
+_DOWNSTREAM = 1
+_UPSTREAM = -1
 URGENCY_RANK = {Urgency.LOW: 0, Urgency.MEDIUM: 1, Urgency.HIGH: 2}
 
 EpisodeKey = tuple[SeriesKey, ChangeType, datetime]
@@ -350,130 +352,178 @@ class Correlator:
             elif event is not None and self._restart(event, member):
                 yield member
 
-    def _link(self, t: datetime, new: MemberState, member: MemberState) -> _Link | None:
-        event, existing = new.event, member.event
-        a, b = event.key, existing.key
-        onset, other_onset = _onset(event), _onset(existing)
-        gap = abs(onset - other_onset)
+    def _link(
+        self,
+        observation_minute: datetime,
+        incoming_member: MemberState,
+        existing_member: MemberState,
+    ) -> _Link | None:
+        incoming, existing = incoming_member.event, existing_member.event
+        incoming_key, existing_key = incoming.key, existing.key
+        incoming_onset, existing_onset = _onset(incoming), _onset(existing)
+        onset_gap = abs(incoming_onset - existing_onset)
         tolerance = self.cfg.tolerance
-        same_service = service_of(a) == service_of(b)
-        family_a, family_b = _family(a), _family(b)
-        same_family = family_a == family_b
+        same_service = service_of(incoming_key) == service_of(existing_key)
+        incoming_family, existing_family = _family(incoming_key), _family(existing_key)
+        same_family = incoming_family == existing_family
         failure_totals = (
-            family_a == family_b == "failure" and _project_level(a) and _project_level(b)
+            incoming_family == existing_family == "failure"
+            and _project_level(incoming_key)
+            and _project_level(existing_key)
         )
-        if a == b:
-            if event.change_type != existing.change_type and _overlap(event, existing, tolerance):
-                return _Link(member, "series", 1.0, "same series detected two ways")
-            if self._restart(event, member):
-                return _Link(member, "alias", 1.0, "same series restarted")
+        if incoming_key == existing_key:
+            if incoming.change_type != existing.change_type and _overlap(
+                incoming, existing, tolerance
+            ):
+                return _Link(existing_member, "series", 1.0, "same series detected two ways")
+            if self._restart(incoming, existing_member):
+                return _Link(existing_member, "alias", 1.0, "same series restarted")
         if (
-            not _project_level(a)
-            and slice_of(a) == slice_of(b)
-            and _overlap(event, existing, tolerance)
+            not _project_level(incoming_key)
+            and slice_of(incoming_key) == slice_of(existing_key)
+            and _overlap(incoming, existing, tolerance)
         ):
-            return _Link(member, "alias", 1.0, "same slice measured two ways")
+            return _Link(existing_member, "alias", 1.0, "same slice measured two ways")
         if same_service and failure_totals:
-            if gap <= tolerance:
-                return _Link(member, "alias", 1.0, "same service's errors measured two ways")
-            return None
-        if same_service and same_family and _project_level(a) != _project_level(b):
-            total, part = (new, member) if _project_level(a) else (member, new)
-            footprint = self._footprint(total, t)
-            stats = footprint.touches(part.event.key, self.cfg.min_share) if footprint else None
-            if stats and _overlap(event, existing, tolerance):
+            if onset_gap <= tolerance:
                 return _Link(
-                    member, "part", stats.trace_share, "slice contributes to its service total"
+                    existing_member, "alias", 1.0, "same service's errors measured two ways"
+                )
+            return None
+        if (
+            same_service
+            and same_family
+            and _project_level(incoming_key) != _project_level(existing_key)
+        ):
+            total, part = (
+                (incoming_member, existing_member)
+                if _project_level(incoming_key)
+                else (existing_member, incoming_member)
+            )
+            footprint = self._footprint(total, observation_minute)
+            stats = footprint.touches(part.event.key, self.cfg.min_share) if footprint else None
+            if stats and _overlap(incoming, existing, tolerance):
+                return _Link(
+                    existing_member,
+                    "part",
+                    stats.trace_share,
+                    "slice contributes to its service total",
                 )
             return None
 
-        if pair := self.shared.get(a, b):
+        if pair := self.shared.get(incoming_key, existing_key):
             if (
-                gap <= tolerance
-                or abs(event.start - existing.start) <= tolerance
+                onset_gap <= tolerance
+                or abs(incoming.start - existing.start) <= tolerance
                 or any(
-                    _worse_near(change, time, tolerance, t)
-                    for change, time in (
-                        (event, other_onset),
-                        (event, existing.start),
-                        (existing, onset),
-                        (existing, event.start),
+                    _worse_near(change, when, tolerance, observation_minute)
+                    for change, when in (
+                        (incoming, existing_onset),
+                        (incoming, existing.start),
+                        (existing, incoming_onset),
+                        (existing, incoming.start),
                     )
                 )
             ):
-                return _Link(member, "shared", 1.0, _shared_detail(pair))
+                return _Link(existing_member, "shared", 1.0, _shared_detail(pair))
             return None
 
-        share = self._trace_share(t, new, member)
-        if share is not None:
-            relation = self._order(a, b, (new.footprint, member.footprint))
-            if relation == 1:  # Existing member is downstream: the new change is its effect.
-                if other_onset > onset + tolerance or (
-                    event.start < other_onset - tolerance and gap > tolerance
+        trace_share = self._trace_share(observation_minute, incoming_member, existing_member)
+        # A trace tie rejected on timing must not fall through to weaker evidence.
+        if trace_share is not None:
+            direction = self._order(
+                incoming_key, existing_key, (incoming_member.footprint, existing_member.footprint)
+            )
+            if direction == _DOWNSTREAM:  # The incoming change is the existing member's effect.
+                if existing_onset > incoming_onset + tolerance or (
+                    incoming.start < existing_onset - tolerance and onset_gap > tolerance
                 ):
                     return None
-                window = self.cfg.effect_window
+                effect_window = self.cfg.effect_window
                 if (
-                    window is not None
-                    and onset - _last_onset(existing, onset + tolerance, t) > window
+                    effect_window is not None
+                    and incoming_onset
+                    - _last_onset(existing, incoming_onset + tolerance, observation_minute)
+                    > effect_window
                 ):
                     return None
                 return _Link(
-                    member,
+                    existing_member,
                     "effect",
-                    share,
+                    trace_share,
                     "affected traces pass through a downstream change",
                     True,
                 )
-            if relation == -1:  # New change is downstream and must explain the member's timing.
-                worsened = any(
-                    _worse_near(existing, at, tolerance, t) for at in (onset, event.start)
+
+            if direction == _UPSTREAM:  # The incoming change must explain the existing member.
+                existing_worsened = any(
+                    _worse_near(existing, when, tolerance, observation_minute)
+                    for when in (incoming_onset, incoming.start)
                 )
-                if onset > other_onset + tolerance and not worsened:
+                if incoming_onset > existing_onset + tolerance and not existing_worsened:
                     return None
-                if onset < other_onset - CAUSE_LEAD and not _worse_near(
-                    event, other_onset, tolerance, t
+                if incoming_onset < existing_onset - CAUSE_LEAD and not _worse_near(
+                    incoming, existing_onset, tolerance, observation_minute
                 ):
                     return None
                 return _Link(
-                    member,
+                    existing_member,
                     "cause",
-                    share,
+                    trace_share,
                     "affected traces pass through this downstream change",
                     True,
                 )
-            first = member if other_onset <= onset else new
-            ended = first.event.ended_at if first.closed_at is not None else None
-            if gap <= tolerance or (
-                gap <= CAUSE_LEAD and (ended is None or ended >= max(onset, other_onset))
+
+            earlier = existing_member if existing_onset <= incoming_onset else incoming_member
+            earlier_end = earlier.event.ended_at if earlier.closed_at is not None else None
+            if onset_gap <= tolerance or (
+                onset_gap <= CAUSE_LEAD
+                and (earlier_end is None or earlier_end >= max(incoming_onset, existing_onset))
             ):
-                return _Link(member, "sibling", share, "changes share affected traces", True)
+                return _Link(
+                    existing_member, "sibling", trace_share, "changes share affected traces", True
+                )
             return None
 
         if same_service:
             if (
                 same_family
-                and (r := self._comovement(t, new, member)) is not None
-                and r >= self.cfg.comove_r
+                and (
+                    correlation := self._comovement(
+                        observation_minute, incoming_member, existing_member
+                    )
+                )
+                is not None
+                and correlation >= self.cfg.comove_r
             ):
-                return _Link(member, "sibling", r, "same-service changes move together")
-            if gap <= (tolerance if same_family else self.cfg.co_onset):
-                return _Link(member, "sibling", 1.0, "same service, nearby onset")
-        elif gap <= self.cfg.co_onset and failure_totals:
-            relation = self._order(a, b)
-            if relation is not None:
                 return _Link(
-                    member,
-                    "effect" if relation == 1 else "cause",
+                    existing_member, "sibling", correlation, "same-service changes move together"
+                )
+            if onset_gap <= (tolerance if same_family else self.cfg.co_onset):
+                return _Link(existing_member, "sibling", 1.0, "same service, nearby onset")
+        elif onset_gap <= self.cfg.co_onset and failure_totals:
+            direction = self._order(incoming_key, existing_key)
+            if direction is not None:
+                return _Link(
+                    existing_member,
+                    "effect" if direction == _DOWNSTREAM else "cause",
                     0.5,
                     "errors along a known call path",
                 )
         return None
 
-    def _trace_share(self, t: datetime, a: MemberState, b: MemberState) -> float | None:
-        shares = []
-        for source, target in ((a, b), (b, a)):
-            footprint = self._footprint(source, t)
+    def _trace_share(
+        self,
+        observation_minute: datetime,
+        incoming_member: MemberState,
+        existing_member: MemberState,
+    ) -> float | None:
+        trace_shares = []
+        for source, target in (
+            (incoming_member, existing_member),
+            (existing_member, incoming_member),
+        ):
+            footprint = self._footprint(source, observation_minute)
             if footprint is None:
                 continue
             if _project_level(target.event.key) and not _error_path(
@@ -481,8 +531,8 @@ class Correlator:
             ):
                 continue
             if stats := footprint.touches(target.event.key, self.cfg.min_share):
-                shares.append(stats.trace_share)
-        return max(shares, default=None)
+                trace_shares.append(stats.trace_share)
+        return max(trace_shares, default=None)
 
     def _ties(self, event: ChangeEvent, a: _Link, b: _Link) -> bool:
         onsets = [_onset(change) for change in (event, a.member.event, b.member.event)]
@@ -651,7 +701,7 @@ class Correlator:
             return None
         footprint = self._footprint(source, t)
         stats = footprint.touches(latent.key, self.cfg.min_share) if footprint else None
-        if not stats or self._order(event.key, latent.key, (footprint,)) != 1:
+        if not stats or self._order(event.key, latent.key, (footprint,)) != _DOWNSTREAM:
             return None
         if latent.key.metric.startswith("p95") and (
             stats.p95_ms is None
@@ -740,7 +790,7 @@ class Correlator:
                 other_key = other.event.key
                 if (
                     other is member
-                    or self._order(key, other_key, (footprint, other.footprint)) != 1
+                    or self._order(key, other_key, (footprint, other.footprint)) != _DOWNSTREAM
                 ):
                     continue
                 if service_of(key) == service_of(other_key) or (
@@ -812,40 +862,64 @@ class Correlator:
                 return True
         return False
 
-    def _comovement(self, t: datetime, new: MemberState, member: MemberState) -> float | None:
-        event, existing = new.event, member.event
+    def _comovement(
+        self,
+        observation_minute: datetime,
+        incoming_member: MemberState,
+        existing_member: MemberState,
+    ) -> float | None:
+        incoming, existing = incoming_member.event, existing_member.event
         # Evaluate the same window after checkpoint restoration as in a continuous run.
-        start = max(event.start, existing.start, t - timedelta(hours=26))
-        end = min(t, existing.ended_at or t) if member.closed_at is not None else t
-        if end - start < self.cfg.comove_min:
+        overlap_start = max(
+            incoming.start, existing.start, observation_minute - timedelta(hours=26)
+        )
+        overlap_end = (
+            min(observation_minute, existing.ended_at or observation_minute)
+            if existing_member.closed_at is not None
+            else observation_minute
+        )
+        if overlap_end - overlap_start < self.cfg.comove_min:
             return None
-        a, b = self.series.get(event.key), self.series.get(existing.key)
-        if not a or not b:
+        incoming_series = self.series.get(incoming.key)
+        existing_series = self.series.get(existing.key)
+        if not incoming_series or not existing_series:
             return None
-        bins = zip(
-            _log_bins(a, start, end, event.key), _log_bins(b, start, end, existing.key), strict=True
+        paired_bins = zip(
+            _log_bins(incoming_series, overlap_start, overlap_end, incoming.key),
+            _log_bins(existing_series, overlap_start, overlap_end, existing.key),
+            strict=True,
         )
         moves = [
-            (next_a - prev_a, next_b - prev_b)
-            for (prev_a, prev_b), (next_a, next_b) in pairwise(bins)
-            if prev_a is not None
-            and prev_b is not None
-            and next_a is not None
-            and next_b is not None
+            (next_incoming - prev_incoming, next_existing - prev_existing)
+            for (prev_incoming, prev_existing), (next_incoming, next_existing) in pairwise(
+                paired_bins
+            )
+            if prev_incoming is not None
+            and prev_existing is not None
+            and next_incoming is not None
+            and next_existing is not None
         ]
         if len(moves) < max(3, self.cfg.comove_min / timedelta(minutes=10) - 3):
             return None
-        mean_a = sum(x for x, _ in moves) / len(moves)
-        mean_b = sum(y for _, y in moves) / len(moves)
-        spread_a = sum((x - mean_a) ** 2 for x, _ in moves)
-        spread_b = sum((y - mean_b) ** 2 for _, y in moves)
-        if not spread_a or not spread_b:
+        incoming_mean = sum(incoming_move for incoming_move, _ in moves) / len(moves)
+        existing_mean = sum(existing_move for _, existing_move in moves) / len(moves)
+        incoming_sum_squares = sum((move - incoming_mean) ** 2 for move, _ in moves)
+        existing_sum_squares = sum((move - existing_mean) ** 2 for _, move in moves)
+        if not incoming_sum_squares or not existing_sum_squares:
             return None
-        return sum((x - mean_a) * (y - mean_b) for x, y in moves) / math.sqrt(spread_a * spread_b)
+        sum_cross_deviations = sum(
+            (incoming_move - incoming_mean) * (existing_move - existing_mean)
+            for incoming_move, existing_move in moves
+        )
+        # The normalizing factor for the standard deviations cancels in the correlation.
+        std_scale = math.sqrt(incoming_sum_squares * existing_sum_squares)
+        return sum_cross_deviations / std_scale
 
-    def _footprint(self, member: MemberState, t: datetime) -> Footprint | None:
+    def _footprint(self, member: MemberState, observation_minute: datetime) -> Footprint | None:
         if self.footprints is not None and not member.footprint_loaded:
-            footprint = self.footprints.footprint(member.event, t + timedelta(minutes=1))
+            footprint = self.footprints.footprint(
+                member.event, observation_minute + timedelta(minutes=1)
+            )
             if footprint is FOOTPRINT_DEFERRED:
                 return None
             member.footprint = footprint
@@ -853,11 +927,15 @@ class Correlator:
             if member.footprint:
                 for edge, count in member.footprint.edges.items():
                     if count > 0 and edge[0] != edge[2]:
-                        if t - self.state.edge_seen_at.get(edge, t) > self.cfg.call_map_retention:
+                        if (
+                            observation_minute
+                            - self.state.edge_seen_at.get(edge, observation_minute)
+                            > self.cfg.call_map_retention
+                        ):
                             self.state.edges[edge] = count
                         else:
                             self.state.edges[edge] += count
-                        self.state.edge_seen_at[edge] = t
+                        self.state.edge_seen_at[edge] = observation_minute
                         self._graph = None
         return member.footprint
 
@@ -871,21 +949,26 @@ class Correlator:
         return self._call_graph.depth.get(service_of(key), 0) * 3 + _layer(key)
 
     def _order(
-        self, a: SeriesKey, b: SeriesKey, footprints: Sequence[Footprint | None] = ()
+        self,
+        reference_key: SeriesKey,
+        compared_key: SeriesKey,
+        footprints: Sequence[Footprint | None] = (),
     ) -> int | None:
-        """1 if b is downstream of a, -1 for the reverse, 0 for equal layer, None if unordered."""
-        if service_of(a) == service_of(b):
-            return (_layer(b) > _layer(a)) - (_layer(b) < _layer(a))
+        """How the compared key relates to the reference: downstream, upstream, equal or unordered."""
+        if service_of(reference_key) == service_of(compared_key):
+            return (_layer(compared_key) > _layer(reference_key)) - (
+                _layer(compared_key) < _layer(reference_key)
+            )
         # Prefer direction observed in the affected traces to the historical call map.
-        edges: Counter[CallEdge] = Counter()
+        trace_edges: Counter[CallEdge] = Counter()
         for footprint in footprints:
             if footprint:
-                edges.update(footprint.edges)
-        if edges:
-            order = _CallGraph(edges).order(a, b)
-            if order is not None:
-                return order
-        return self._call_graph.order(a, b)
+                trace_edges.update(footprint.edges)
+        if trace_edges:
+            trace_direction = _CallGraph(trace_edges).order(reference_key, compared_key)
+            if trace_direction is not None:
+                return trace_direction
+        return self._call_graph.order(reference_key, compared_key)
 
 
 class _Emit(Protocol):
@@ -901,30 +984,34 @@ class _Emit(Protocol):
 
 class _CallGraph:
     def __init__(self, edges: Mapping[CallEdge, int], *, majority: bool = False) -> None:
-        counts: Counter[tuple[str, str]] = Counter()
+        call_counts: Counter[tuple[str, str]] = Counter()
         for (caller, _, callee), count in edges.items():
             if caller != callee and count > 0:
-                counts[caller, callee] += count
+                call_counts[caller, callee] += count
         self.forward: dict[str, set[str]] = defaultdict(set)
         self.domains: dict[tuple[str, str], set[str]] = defaultdict(set)
         for caller, domain, callee in edges:
-            count, reverse = counts[caller, callee], counts[callee, caller]
-            if not count or (majority and (count, callee) <= (reverse, caller)):
+            forward_count, reverse_count = call_counts[caller, callee], call_counts[callee, caller]
+            if not forward_count or (
+                majority and (forward_count, callee) <= (reverse_count, caller)
+            ):
                 continue
             self.forward[caller].add(callee)
             self.domains[caller, domain].add(callee)
         self._reachable: dict[str, set[str]] = {}
         self.depth: dict[str, int] = {}
         if majority:
-            paths = sorted((a, b) for a, targets in self.forward.items() for b in targets)
-            limit = len({node for path in paths for node in path})
+            calls = sorted(
+                (caller, callee) for caller, callees in self.forward.items() for callee in callees
+            )
+            limit = len({service for call in calls for service in call})
             # Longest path for acyclic graphs. Bound relaxation for cyclic call maps.
             for _ in range(limit):
                 changed = False
-                for a, b in paths:
-                    depth = self.depth.get(a, 0) + 1
-                    if self.depth.get(b, 0) < depth <= limit:
-                        self.depth[b] = depth
+                for caller, callee in calls:
+                    callee_depth = self.depth.get(caller, 0) + 1
+                    if self.depth.get(callee, 0) < callee_depth <= limit:
+                        self.depth[callee] = callee_depth
                         changed = True
                 if not changed:
                     break
@@ -954,12 +1041,12 @@ class _CallGraph:
             for callee in self.domains.get((source, key.dim_value), ())
         )
 
-    def order(self, a: SeriesKey, b: SeriesKey) -> int | None:
-        downstream = self._on_path(a, service_of(b))
-        upstream = self._on_path(b, service_of(a))
-        if downstream == upstream:
+    def order(self, reference_key: SeriesKey, compared_key: SeriesKey) -> int | None:
+        compared_is_downstream = self._on_path(reference_key, service_of(compared_key))
+        reference_is_downstream = self._on_path(compared_key, service_of(reference_key))
+        if compared_is_downstream == reference_is_downstream:
             return None
-        return 1 if downstream else -1
+        return _DOWNSTREAM if compared_is_downstream else _UPSTREAM
 
 
 def urgency(
@@ -1018,16 +1105,21 @@ def _onset(event: ChangeEvent) -> datetime:
     return unusual_since if isinstance(unusual_since, datetime) else event.start
 
 
-def _worse_near(event: ChangeEvent, other: datetime, tolerance: timedelta, now: datetime) -> bool:
+def _worse_near(
+    event: ChangeEvent, other: datetime, tolerance: timedelta, observation_minute: datetime
+) -> bool:
     onset = _onset(event)
-    return (event.start < onset <= now and abs(onset - other) <= tolerance) or any(
-        when <= now and abs(when - other) <= tolerance for when, _ in event.escalations
+    return (event.start < onset <= observation_minute and abs(onset - other) <= tolerance) or any(
+        when <= observation_minute and abs(when - other) <= tolerance
+        for when, _ in event.escalations
     )
 
 
-def _last_onset(event: ChangeEvent, cutoff: datetime, now: datetime) -> datetime:
+def _last_onset(event: ChangeEvent, cutoff: datetime, observation_minute: datetime) -> datetime:
     onsets = chain((event.start, _onset(event)), (when for when, _ in event.escalations))
-    return max((when for when in onsets if when <= min(cutoff, now)), default=event.start)
+    return max(
+        (when for when in onsets if when <= min(cutoff, observation_minute)), default=event.start
+    )
 
 
 def _overlap(a: ChangeEvent, b: ChangeEvent, tolerance: timedelta) -> bool:
@@ -1103,12 +1195,12 @@ def _log_bins(
 ) -> Iterable[float | None]:
     step = timedelta(minutes=10)
     offset = 1e-4 if _family(key) == "failure" or key.metric.startswith("slow_rate(") else 1.0
-    t = start
-    while t + step <= end:
+    bin_start = start
+    while bin_start + step <= end:
         values = sorted(
             math.log(value + offset)
             for i in range(10)
-            if (value := series.get(t + timedelta(minutes=i))) is not None and value >= 0
+            if (value := series.get(bin_start + timedelta(minutes=i))) is not None and value >= 0
         )
         yield values[len(values) // 2] if values else None
-        t += step
+        bin_start += step

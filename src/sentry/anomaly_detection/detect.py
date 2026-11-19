@@ -86,13 +86,19 @@ class WindowHit(NamedTuple):
     failure_reference: tuple[float, float] | None = None
 
 
+class RecentMinute(NamedTuple):
+    """A minute's reading and whether it contributed anomaly evidence."""
+
+    minute: datetime
+    flagged: bool
+    actual: float | None
+
+
 @dataclass
 class SeriesState:
     """Rolling evidence and a frozen baseline for one measured series."""
 
-    recent: deque[tuple[datetime, bool, float | None]] = field(
-        default_factory=lambda: deque(maxlen=5)
-    )
+    recent: deque[RecentMinute] = field(default_factory=lambda: deque(maxlen=5))
     open: ChangeEvent | None = None
     anchor: datetime | None = None
     anchor_level: float | None = None
@@ -186,19 +192,23 @@ class SeriesHistory:
             )
         return self._pseudo[cache_key]
 
-    def _expected(self, key: SeriesKey, st: SeriesState, t: datetime) -> ExpectedValue | None:
-        if st.anchor_level is not None:
+    def _expected(
+        self, key: SeriesKey, state: SeriesState, minute: datetime
+    ) -> ExpectedValue | None:
+        if state.anchor_level is not None:
             return self.baseline.anchored(
-                key, t, st.anchor_level, st.anchor_sigma, st.anchor_points
+                key, minute, state.anchor_level, state.anchor_sigma, state.anchor_points
             )
         weights = weight_key(key)
         return self.baseline.expected(
             key,
             self.series.get(key, {}),
-            t,
-            st.excluded,
+            minute,
+            state.excluded,
             weights=self.series.get(weights) if weights else None,
-            pending={minute for minute, flagged, _ in st.recent if flagged} if weights else None,
+            pending={reading.minute for reading in state.recent if reading.flagged}
+            if weights
+            else None,
         )
 
     def _step_series(
@@ -231,10 +241,12 @@ class SeriesHistory:
         horizon = self.baseline.cfg.window_min + self.baseline.cfg.reach_back_min
         state.excluded.discard(minute - (horizon + 1) * MINUTE)
 
-        num, den, sampled_den = (
+        rate_events, rate_denominator, rate_samples = (
             (self._get(k, minute) for k in parts) if parts else (None, None, None)
         )
-        rate_missing = parts is not None and (num is None or not den or not sampled_den)
+        rate_missing = parts is not None and (
+            rate_events is None or not rate_denominator or not rate_samples
+        )
         share_missing = sampled_share and not samples
         drop_missing = rule.direction == "down" and sample_key in self.series and samples is None
         if actual is None or rate_missing or share_missing or drop_missing:
@@ -242,13 +254,13 @@ class SeriesHistory:
                 assert state.counts is not None
                 # Explicit zero sample trials contribute nothing; unknown coverage invalidates the window.
                 zero_trials = (sampled_share and samples == 0) or (
-                    key.signal == "failed_rate" and sampled_den == num == 0
+                    key.signal == "failed_rate" and rate_samples == rate_events == 0
                 )
                 _push(state.counts, minute, missing=not zero_trials)
             self._unavailable(state, minute, is_latency)
             return None
-        ev = self._expected(key, state, minute)
-        if ev is None:
+        expectation = self._expected(key, state, minute)
+        if expectation is None:
             if counted:
                 assert state.counts is not None
                 _push(state.counts, minute, missing=True)
@@ -256,18 +268,25 @@ class SeriesHistory:
             return None
 
         prior = self.pseudo(key, minute)
-        ratio = (actual + prior) / (ev.expected + prior)
+        ratio = (actual + prior) / (expectation.expected + prior)
         up = rule.direction == "up"
         passes_ratio = ratio >= cfg.min_ratio if up else ratio <= 1 / cfg.min_ratio
-        z = zscore(ev, actual) if passes_ratio else 0.0
+        z = zscore(expectation, actual) if passes_ratio else 0.0
         k = self.baseline.cfg.k
         beyond = z > k if up else z < -k
         if up:
             valid, enough = self._up_evidence(
-                key, rule, actual, ev.expected, samples, num, den, sampled_den
+                key,
+                rule,
+                actual,
+                expectation.expected,
+                samples,
+                rate_events,
+                rate_denominator,
+                rate_samples,
             )
         elif samples is None:
-            valid, enough = True, ev.expected >= cfg.min_samples
+            valid, enough = True, expectation.expected >= cfg.min_samples
         else:
             valid = samples >= cfg.min_samples
             # A genuine drop reduces its own sample count. Judge it against its pre-drop volume,
@@ -279,56 +298,59 @@ class SeriesHistory:
         if is_latency:
             state.recent_ratios.append(ratio if (samples or 0) >= cfg.latency_min_samples else None)
 
-        measurement = Measurement(actual, ev.expected, ratio, z)
+        measurement = Measurement(actual, expectation.expected, ratio, z)
         hit = None
         if counted:
             assert state.counts is not None
             if parts:
-                assert num is not None and den and sampled_den
-                observed, denominator = num, den
-                extra_noise = sampled_den if parts[1] != parts[2] else 0.0
-                volume = sampled_den / cfg.min_samples
+                assert rate_events is not None and rate_denominator and rate_samples
+                observed_events, denominator = rate_events, rate_denominator
+                extra_noise = rate_samples if parts[1] != parts[2] else 0.0
+                volume = rate_samples / cfg.min_samples
             elif sampled_share:
                 assert samples
-                observed, denominator, extra_noise = float(round(actual * samples)), samples, 0.0
+                observed_events = float(round(actual * samples))
+                denominator, extra_noise = samples, 0.0
                 volume = samples / cfg.min_samples
             else:
-                observed, denominator, extra_noise = actual, 1.0, 0.0
-                volume = ev.expected / cfg.min_abs_excess
+                observed_events, denominator, extra_noise = actual, 1.0, 0.0
+                volume = expectation.expected / cfg.min_abs_excess
             shape = self.baseline.shape(key, minute)
             _push(
                 state.counts,
                 minute,
-                observed,
-                ev.expected * denominator,
+                observed_events,
+                expectation.expected * denominator,
                 extra_noise,
                 volume,
                 denominator * shape,
-                ev.expected / shape,
+                expectation.expected / shape,
             )
             if not flagged:
                 if state.open is None or state.window:
-                    hit = self._window_test(state, ev, cfg.window_p, only=state.window)
+                    hit = self._window_test(
+                        state, expectation, cfg.window_p, only_minutes=state.window
+                    )
                 if hit is not None:
                     measurement = hit.measurement
                     flagged = beyond = True
                 elif state.open is not None and (state.window or not valid):
-                    valid, held = self._pooled_recovery(state, ev)
+                    valid, held = self._pooled_recovery(state, expectation)
                     beyond = beyond or held
 
-        state.recent.append((minute, flagged, actual))
+        state.recent.append(RecentMinute(minute, flagged, actual))
         if state.open is None:
-            if flagged and sum(flag for _, flag, _ in state.recent) >= rule.persist[0]:
-                return self._open_episode(rule, state, ev, measurement, hit)
+            if flagged and sum(reading.flagged for reading in state.recent) >= rule.persist[0]:
+                return self._open_episode(rule, state, expectation, measurement, hit)
             return None
         return self._update_episode(state, rule, minute, measurement, beyond, flagged, valid)
 
     @staticmethod
-    def _unavailable(st: SeriesState, t: datetime, is_latency: bool) -> None:
-        st.recent.append((t, False, None))
-        st.worse_run.clear()
+    def _unavailable(state: SeriesState, minute: datetime, is_latency: bool) -> None:
+        state.recent.append(RecentMinute(minute, flagged=False, actual=None))
+        state.worse_run.clear()
         if is_latency:
-            st.recent_ratios.append(None)
+            state.recent_ratios.append(None)
 
     def _up_evidence(
         self,
@@ -337,19 +359,19 @@ class SeriesHistory:
         actual: float,
         expected: float,
         samples: float | None,
-        num: float | None,
-        den: float | None,
-        sampled_den: float | None,
+        rate_events: float | None,
+        rate_denominator: float | None,
+        rate_samples: float | None,
     ) -> tuple[bool, bool]:
         """Return whether normal and anomalous readings are sufficiently supported, respectively."""
         cfg = self.cfg
-        if num is not None and den and sampled_den:
-            valid = sampled_den >= cfg.min_samples
-            return valid, valid and num - expected * den >= cfg.min_abs_excess
+        if rate_events is not None and rate_denominator and rate_samples:
+            valid = rate_samples >= cfg.min_samples
+            return valid, valid and rate_events - expected * rate_denominator >= cfg.min_abs_excess
         if is_share(key):
-            n = samples or 0.0
-            valid = n >= cfg.min_samples
-            return valid, valid and (actual - expected) * n >= cfg.min_abs_excess
+            share_samples = samples or 0.0
+            valid = share_samples >= cfg.min_samples
+            return valid, valid and (actual - expected) * share_samples >= cfg.min_abs_excess
         if rule.change == ChangeType.SLOWDOWN:
             valid = (samples or 0.0) >= cfg.min_samples
             return valid, valid and actual - expected >= cfg.min_latency_excess_ms
@@ -358,22 +380,22 @@ class SeriesHistory:
     def _open_episode(
         self,
         rule: Rule,
-        st: SeriesState,
-        ev: ExpectedValue,
+        state: SeriesState,
+        expectation: ExpectedValue,
         measurement: Measurement,
         hit: WindowHit | None,
     ) -> tuple[str, ChangeEvent]:
-        key, t = ev.key, ev.ts
+        key, minute = expectation.key, expectation.ts
         actual, expected, ratio, z = measurement
-        flagged = [(minute, value) for minute, flag, value in st.recent if flag]
-        anchor = start = flagged[0][0]
+        flagged_readings = [reading for reading in state.recent if reading.flagged]
+        anchor = start = flagged_readings[0].minute
         change = rule.change
-        if change == ChangeType.DROP and all(value == 0 for _, value in flagged):
+        if change == ChangeType.DROP and all(reading.actual == 0 for reading in flagged_readings):
             change = ChangeType.SILENCE
-        window = hit.minutes if hit else 0
-        if window:
-            assert st.counts is not None
-            start = min(start, _excess_start(st.counts, window, self.cfg.min_ratio))
+        window_minutes = hit.minutes if hit else 0
+        if window_minutes:
+            assert state.counts is not None
+            start = min(start, _excess_start(state.counts, window_minutes, self.cfg.min_ratio))
         event = ChangeEvent(
             key,
             change,
@@ -381,36 +403,39 @@ class SeriesHistory:
             actual,
             expected,
             _confidence(z, self.baseline.cfg.k),
-            detected_at=t,
+            detected_at=minute,
             peak_ratio=ratio,
             open_ratio=ratio,
         )
-        if window:
-            label = f"{window // 60}h" if window >= 60 and window % 60 == 0 else f"{window}m"
+        if window_minutes:
+            if window_minutes >= 60 and window_minutes % 60 == 0:
+                label = f"{window_minutes // 60}h"
+            else:
+                label = f"{window_minutes}m"
             event.evidence.append(f"{label} of counts: too many to be chance at this volume")
-        anchor_ev = self.baseline.expected(
+        anchor_expectation = self.baseline.expected(
             key,
             self.series[key],
             anchor,
-            st.excluded,
+            state.excluded,
             weights=self.series.get(weights) if (weights := weight_key(key)) else None,
         )
-        if anchor_ev is None:
-            anchor, anchor_ev = t, ev
-        st.anchor = anchor
-        st.anchor_level = anchor_ev.expected / self.baseline.shape(key, anchor)
-        st.anchor_sigma = anchor_ev.sigma
-        st.anchor_points = anchor_ev.point_count
-        st.excluded.update(minute for minute, _ in flagged)
+        if anchor_expectation is None:
+            anchor, anchor_expectation = minute, expectation
+        state.anchor = anchor
+        state.anchor_level = anchor_expectation.expected / self.baseline.shape(key, anchor)
+        state.anchor_sigma = anchor_expectation.sigma
+        state.anchor_points = anchor_expectation.point_count
+        state.excluded.update(reading.minute for reading in flagged_readings)
         if key.signal == "failed_rate" or is_share(key):
-            st.failure_reference = (
-                hit.failure_reference if hit else self._failure_reference(key, st, anchor)
+            state.failure_reference = (
+                hit.failure_reference if hit else self._failure_reference(key, state, anchor)
             )
-        st.open = event
-        st.window = window
-        st.score = float(self.cfg.close_after)
-        st.level_ratio = ratio
-        st.worse_run.clear()
+        state.open = event
+        state.window = window_minutes
+        state.score = float(self.cfg.close_after)
+        state.level_ratio = ratio
+        state.worse_run.clear()
         return "open", event
 
     def _update_episode(
@@ -486,89 +511,119 @@ class SeriesHistory:
         return ("expire" if chronic else "close"), event
 
     @staticmethod
-    def _can_measure_window(st: SeriesState, window: int) -> bool:
-        counts = st.counts
+    def _can_measure_window(state: SeriesState, window_minutes: int) -> bool:
+        counts = state.counts
         assert counts is not None
-        if len(counts) <= window:
+        if len(counts) <= window_minutes:
             return False
-        first = counts[-1 - window]
-        if st.closed_at is not None and (first.ts is None or first.ts < st.closed_at):
+        before_window = counts[-1 - window_minutes]
+        if state.closed_at is not None and (
+            before_window.ts is None or before_window.ts < state.closed_at
+        ):
             return False
-        return counts[-1].missing == first.missing
+        return counts[-1].missing == before_window.missing
 
-    def _pooled_recovery(self, st: SeriesState, ev: ExpectedValue) -> tuple[bool, bool]:
-        counts = st.counts
-        if (ev.key.signal == "failed_rate" or is_share(ev.key)) and st.failure_reference is None:
+    def _pooled_recovery(self, state: SeriesState, expectation: ExpectedValue) -> tuple[bool, bool]:
+        """Return whether a window is measurable and whether it still shows an excess."""
+        counts = state.counts
+        key = expectation.key
+        if (key.signal == "failed_rate" or is_share(key)) and state.failure_reference is None:
             return False, False
         assert counts is not None
-        for window in (st.window,) if st.window else self.cfg.windows:
-            if not self._can_measure_window(st, window):
+        for window_minutes in (state.window,) if state.window else self.cfg.windows:
+            if not self._can_measure_window(state, window_minutes):
                 continue
-            if weight_key(ev.key) and counts[-1].volume - counts[-1 - window].volume < 1:
+            if weight_key(key) and counts[-1].volume - counts[-1 - window_minutes].volume < 1:
                 continue
-            return True, self._window_test(st, ev, self.cfg.hold_p, only=window) is not None
+            hit = self._window_test(
+                state, expectation, self.cfg.hold_p, only_minutes=window_minutes
+            )
+            return True, hit is not None
         return False, False
 
     def _window_test(
-        self, st: SeriesState, ev: ExpectedValue, p_max: float, *, only: int = 0
+        self, state: SeriesState, expectation: ExpectedValue, p_max: float, *, only_minutes: int = 0
     ) -> WindowHit | None:
         """Return the shortest window with enough evidence to reject its baseline."""
-        counts = st.counts
+        counts = state.counts
         assert counts is not None
-        bounded = ev.key.signal == "failed_rate" or is_share(ev.key)
+        uses_trials = expectation.key.signal == "failed_rate" or is_share(expectation.key)
+        min_excess = self.cfg.min_abs_excess if p_max <= self.cfg.window_p else 1.0
+        candidate_windows = (only_minutes,) if only_minutes else self._windows_for(counts)
+        for window_minutes in candidate_windows:
+            if not self._can_measure_window(state, window_minutes):
+                continue
+            if uses_trials:
+                hit = self._share_test(state, window_minutes, min_excess, p_max)
+            else:
+                hit = self._count_test(state, expectation, window_minutes, min_excess, p_max)
+            if hit is not None:
+                return hit
+        return None
+
+    def _count_test(
+        self,
+        state: SeriesState,
+        expectation: ExpectedValue,
+        window_minutes: int,
+        min_excess: float,
+        p_max: float,
+    ) -> WindowHit | None:
+        """Compare counts against a frozen baseline using a negative binomial tail."""
+        counts = state.counts
+        assert counts is not None
         cfg = self.cfg
-        last = counts[-1]
-        need = cfg.min_abs_excess if p_max <= cfg.window_p else 1.0
-        for w in (only,) if only else self._windows_for(counts):
-            if not self._can_measure_window(st, w):
-                continue
-            first = counts[-1 - w]
-            n = last.events - first.events
-            if bounded:
-                hit = self._share_test(st, w, need, p_max)
-                if hit is not None:
-                    return hit
-                continue
-            # Freeze the level at the start of the window; minute fits inside a sparse change
-            # could absorb failures before enough evidence accumulates to open the episode.
-            level = st.anchor_level if st.open is not None else first.level
-            if level is None:
-                level = counts[-w].level
-            if level is None:
-                continue
-            e = level * (last.shaped_denominator - first.shaped_denominator)
-            expected_events = e
-            if n - e < need or (n + 1) / (e + 1) < cfg.min_ratio:
-                continue
-            seen = ev.point_count
-            e += 0.5 * w / seen
-            per_min = e / w
-            sigma = ev.sigma if per_min >= 5 else cfg.model_floor
-            model = max(cfg.model_floor**2, sigma**2 - 1 / max(per_min, 1.0))
-            samples = last.samples - first.samples
-            # Combine estimation uncertainty, model noise, event clumping, and sampling noise.
-            relative_variance = 1 / (per_min * seen) + model + (_dispersion(counts, w) - 1) / e
-            if samples > 0:
-                relative_variance += 1 / samples
-            p = _nb_sf(n, e, 1 / relative_variance)
-            if p < p_max:
-                denominator: float = w
-                if weight_key(ev.key):
-                    denominator = sum(
-                        (counts[i].shaped_denominator - counts[i - 1].shaped_denominator)
-                        / self.baseline.shape(ev.key, counts[i].ts or ev.ts)
-                        for i in range(-w, 0)
-                    )
-                if denominator:
-                    return WindowHit(
-                        w,
-                        Measurement(
-                            n / denominator,
-                            expected_events / denominator,
-                            (n + 1) / (e + 1),
-                            _score(p),
-                        ),
-                    )
+        before_window, window_end = counts[-1 - window_minutes], counts[-1]
+        observed_events = window_end.events - before_window.events
+        # Freeze the level at the start of the window; minute fits inside a sparse change
+        # could absorb failures before enough evidence accumulates to open the episode.
+        level = state.anchor_level if state.open is not None else before_window.level
+        if level is None:
+            level = counts[-window_minutes].level
+        if level is None:
+            return None
+        expected_events = level * (window_end.shaped_denominator - before_window.shaped_denominator)
+        if (
+            observed_events - expected_events < min_excess
+            or (observed_events + 1) / (expected_events + 1) < cfg.min_ratio
+        ):
+            return None
+
+        baseline_points = expectation.point_count
+        prior_adjusted_expectation = expected_events + 0.5 * window_minutes / baseline_points
+        expected_per_minute = prior_adjusted_expectation / window_minutes
+        sigma = expectation.sigma if expected_per_minute >= 5 else cfg.model_floor
+        model_variance = max(cfg.model_floor**2, sigma**2 - 1 / max(expected_per_minute, 1.0))
+        samples = window_end.samples - before_window.samples
+        # Combine estimation uncertainty, model noise, event clumping, and sampling noise.
+        relative_variance = (
+            1 / (expected_per_minute * baseline_points)
+            + model_variance
+            + (_dispersion(counts, window_minutes) - 1) / prior_adjusted_expectation
+        )
+        if samples > 0:
+            relative_variance += 1 / samples
+        tail_probability = _nb_sf(
+            observed_events, prior_adjusted_expectation, 1 / relative_variance
+        )
+        if tail_probability < p_max:
+            denominator: float = window_minutes
+            if weight_key(expectation.key):
+                denominator = sum(
+                    (counts[i].shaped_denominator - counts[i - 1].shaped_denominator)
+                    / self.baseline.shape(expectation.key, counts[i].ts or expectation.ts)
+                    for i in range(-window_minutes, 0)
+                )
+            if denominator:
+                return WindowHit(
+                    window_minutes,
+                    Measurement(
+                        observed_events / denominator,
+                        expected_events / denominator,
+                        (observed_events + 1) / (prior_adjusted_expectation + 1),
+                        _score(tail_probability),
+                    ),
+                )
         return None
 
     def _windows_for(self, counts: deque[CountTotals]) -> tuple[int, ...]:
@@ -576,22 +631,25 @@ class SeriesHistory:
         horizon = min(60, len(counts) - 1)
         if horizon < 10:
             return ()
-        per_min = (counts[-1].volume - counts[-1 - horizon].volume) / horizon
-        if per_min >= 1:
+        volume_per_minute = (counts[-1].volume - counts[-1 - horizon].volume) / horizon
+        if volume_per_minute >= 1:
             return ()
         windows = self.cfg.windows
-        first = next((i for i, w in enumerate(windows) if w * per_min >= 1), len(windows) - 1)
+        first = next(
+            (i for i, minutes in enumerate(windows) if minutes * volume_per_minute >= 1),
+            len(windows) - 1,
+        )
         return windows[first : first + 2]
 
     def _failure_reference(
-        self, key: SeriesKey, st: SeriesState, end_minute: datetime
+        self, key: SeriesKey, state: SeriesState, end_minute: datetime
     ) -> tuple[float, float] | None:
         trial_key = weight_key(key)
         assert trial_key is not None
         events = trials = 0.0
         for age in range(1, DISPERSION_MIN + 1):
             minute = end_minute - age * MINUTE
-            if minute in st.excluded:
+            if minute in state.excluded:
                 continue
             rate, volume = self._get(key, minute), self._get(trial_key, minute)
             if rate is not None and volume:
@@ -599,52 +657,65 @@ class SeriesHistory:
                 trials += volume
         return (events, trials) if trials else None
 
-    def _failure_history(self, counts: deque[CountTotals], end: int) -> tuple[float, float] | None:
-        start = max(0, end - DISPERSION_MIN)
-        before, last = counts[start], counts[end]
-        if end - start - (last.missing - before.missing) < 10:
+    def _failure_history(
+        self, counts: deque[CountTotals], end_index: int
+    ) -> tuple[float, float] | None:
+        start_index = max(0, end_index - DISPERSION_MIN)
+        before_history, history_end = counts[start_index], counts[end_index]
+        if end_index - start_index - (history_end.missing - before_history.missing) < 10:
             return None
-        trials = (last.volume - before.volume) * self.cfg.min_samples
-        return (last.events - before.events, trials) if trials >= 1 else None
+        trials = (history_end.volume - before_history.volume) * self.cfg.min_samples
+        return (history_end.events - before_history.events, trials) if trials >= 1 else None
 
-    def _share_test(self, st: SeriesState, w: int, need: float, p_max: float) -> WindowHit | None:
+    def _share_test(
+        self, state: SeriesState, window_minutes: int, min_excess: float, p_max: float
+    ) -> WindowHit | None:
         """Compare sampled failures over sampled trials using a beta-binomial predictive tail."""
-        counts = st.counts
+        counts = state.counts
         assert counts is not None
-        end = len(counts) - 1 - w
+        before_window_index = len(counts) - 1 - window_minutes
         reference = (
-            st.failure_reference if st.open is not None else self._failure_history(counts, end)
+            state.failure_reference
+            if state.open is not None
+            else self._failure_history(counts, before_window_index)
         )
         if reference is None:
             return None
-        hist_events, hist_trials = reference
-        first, last = counts[end], counts[-1]
-        n = last.events - first.events
-        trials = (last.volume - first.volume) * self.cfg.min_samples
+        reference_events, reference_trials = reference
+        before_window, window_end = counts[before_window_index], counts[-1]
+        observed_events = window_end.events - before_window.events
+        trials = (window_end.volume - before_window.volume) * self.cfg.min_samples
         if trials < 1:
             return None
-        expected = trials * (hist_events + 0.5) / (hist_trials + 1)
-        ratio = (n + 1) / (expected + 1)
-        if n - expected < need or ratio < self.cfg.min_ratio:
+        expected_events = trials * (reference_events + 0.5) / (reference_trials + 1)
+        ratio = (observed_events + 1) / (expected_events + 1)
+        if observed_events - expected_events < min_excess or ratio < self.cfg.min_ratio:
             return None
         # Do not estimate dispersion from potentially anomalous traffic inside an open episode.
-        phi = 1.0 if st.open is not None else _dispersion(counts, w)
-        p = _betabinom_sf(
-            n / phi,
-            trials / phi,
-            hist_events / phi + 0.5,
-            max(0.0, hist_trials - hist_events) / phi + 0.5,
+        dispersion = 1.0 if state.open is not None else _dispersion(counts, window_minutes)
+        tail_probability = _betabinom_sf(
+            observed_events / dispersion,
+            trials / dispersion,
+            reference_events / dispersion + 0.5,
+            max(0.0, reference_trials - reference_events) / dispersion + 0.5,
         )
-        if p < p_max:
+        if tail_probability < p_max:
             return WindowHit(
-                w, Measurement(n / trials, expected / trials, ratio, _score(p)), reference
+                window_minutes,
+                Measurement(
+                    observed_events / trials,
+                    expected_events / trials,
+                    ratio,
+                    _score(tail_probability),
+                ),
+                reference,
             )
         return None
 
 
 def _push(
     counts: deque[CountTotals],
-    t: datetime,
+    minute: datetime,
     events: float = 0.0,
     expected: float = 0.0,
     samples: float = 0.0,
@@ -657,7 +728,7 @@ def _push(
     prev = counts[-1]
     counts.append(
         CountTotals(
-            t,
+            minute,
             prev.events + events,
             prev.expected + expected,
             prev.samples + samples,
@@ -669,11 +740,11 @@ def _push(
     )
 
 
-def _excess_start(counts: deque[CountTotals], window: int, min_ratio: float) -> datetime:
+def _excess_start(counts: deque[CountTotals], window_minutes: int, min_ratio: float) -> datetime:
     """Find the suffix of the window with the most excess events."""
     start = counts[-1].ts
     best = excess = 0.0
-    for i in range(-1, -1 - window, -1):
+    for i in range(-1, -1 - window_minutes, -1):
         after, before = counts[i], counts[i - 1]
         excess += after.events - before.events - min_ratio * (after.expected - before.expected)
         if excess > best:
@@ -682,21 +753,22 @@ def _excess_start(counts: deque[CountTotals], window: int, min_ratio: float) -> 
     return start
 
 
-def _dispersion(counts: deque[CountTotals], w: int) -> float:
+def _dispersion(counts: deque[CountTotals], window_minutes: int) -> float:
     """Pearson dispersion in the minutes before the candidate window, floored at Poisson."""
-    end = len(counts) - 1 - w
-    start = max(0, end - DISPERSION_MIN)
-    if end - start < 10:
+    history_end = len(counts) - 1 - window_minutes
+    history_start = max(0, history_end - DISPERSION_MIN)
+    if history_end - history_start < 10:
         return 1.0
-    num = den = 0.0
-    for i in range(start + 1, end + 1):
-        point, prev = counts[i], counts[i - 1]
-        if point.missing != prev.missing:
+    squared_residuals = total_expected_events = 0.0
+    for i in range(history_start + 1, history_end + 1):
+        current, previous = counts[i], counts[i - 1]
+        if current.missing != previous.missing:
             continue
-        n, e = point.events - prev.events, point.expected - prev.expected
-        num += (n - e) ** 2
-        den += e
-    return max(1.0, num / den) if den > 0 else 1.0
+        observed_events = current.events - previous.events
+        expected_events = current.expected - previous.expected
+        squared_residuals += (observed_events - expected_events) ** 2
+        total_expected_events += expected_events
+    return max(1.0, squared_residuals / total_expected_events) if total_expected_events > 0 else 1.0
 
 
 def _nb_sf(n: float, mean: float, size: float) -> float:

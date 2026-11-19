@@ -6,7 +6,7 @@ import pytest
 
 from sentry.anomaly_detection import quality
 from sentry.anomaly_detection.baseline import Baseline
-from sentry.anomaly_detection.changepoint import ChangePointDetector
+from sentry.anomaly_detection.changepoint import RateShiftTracker
 from sentry.anomaly_detection.contracts import ChangeEvent, ChangeType, SeriesKey
 from sentry.anomaly_detection.novelty import Novelty, mask_dim
 from sentry.anomaly_detection.series import Series, samples_key
@@ -195,14 +195,14 @@ def rates(error_count: Callable[[int], float], *, minutes: int = 300) -> dict[Se
 @pytest.mark.parametrize("spike_height", [0, 200])
 def test_quiet_data_and_short_spikes_do_not_open_change_points(spike_height: int) -> None:
     series = rates(lambda i: 20 + i % 5 + (spike_height if 170 <= i < 180 else 0))
-    detector = ChangePointDetector(series, Baseline({}))
+    detector = RateShiftTracker(series, Baseline({}))
 
     assert not [action for t in series[RATE] for action in detector.step(t)]
 
 
 def test_sustained_step_opens_then_closes_on_recovery() -> None:
     series = rates(lambda i: 20 + i % 5 + (12 if 170 <= i < 240 else 0))
-    detector = ChangePointDetector(series, Baseline({}))
+    detector = RateShiftTracker(series, Baseline({}))
 
     [(opened_action, opened), (closed_action, closed)] = [
         action for t in series[RATE] for action in detector.step(t)
@@ -220,7 +220,7 @@ def test_sustained_step_opens_then_closes_on_recovery() -> None:
 
 def test_error_rate_step_from_zero_uses_an_event_count_floor() -> None:
     series = rates(lambda i: 3.0 if i >= 170 else 0.0, minutes=240)
-    detector = ChangePointDetector(series, Baseline({}))
+    detector = RateShiftTracker(series, Baseline({}))
 
     [event] = [
         event for t in series[RATE] for action, event in detector.step(t) if action == "open"
@@ -231,7 +231,7 @@ def test_error_rate_step_from_zero_uses_an_event_count_floor() -> None:
 
 def test_long_spike_does_not_open_a_duplicate_change_point() -> None:
     series = rates(lambda i: 20 + i % 5 + (40 if i >= 170 else 0), minutes=400)
-    detector = ChangePointDetector(series, Baseline({}))
+    detector = RateShiftTracker(series, Baseline({}))
     spike = ChangeEvent(RATE, ChangeType.SPIKE, T0 + 170 * MINUTE, 60.0, 20.0, 0.9)
 
     for i in range(170):
@@ -256,7 +256,7 @@ def test_failed_request_steps_require_sampled_excess(sample_failures: float, ope
         },
         FAILED_RATE: dict.fromkeys(counts, None),
     }
-    detector = ChangePointDetector(series, Baseline({}))
+    detector = RateShiftTracker(series, Baseline({}))
 
     actions = [action for t in counts for action, _ in detector.step(t)]
 

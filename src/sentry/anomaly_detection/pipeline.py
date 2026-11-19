@@ -9,7 +9,7 @@ from math import isfinite
 
 from sentry.anomaly_detection import shared
 from sentry.anomaly_detection.baseline import Baseline
-from sentry.anomaly_detection.changepoint import ChangePointDetector
+from sentry.anomaly_detection.changepoint import RateShiftTracker
 from sentry.anomaly_detection.contracts import ChangeEvent, ChangeType, SeriesKey, Urgency
 from sentry.anomaly_detection.correlate import (
     ERROR_SIGNALS,
@@ -81,8 +81,8 @@ class OrgEvaluator:
         self.series: dict[SeriesKey, Series] = {}
         self.hourly: dict[SeriesKey, Series] = {}
         self.baseline = Baseline(self.hourly)
-        self.det = SeriesHistory(self.series, self.baseline)
-        self.cp = ChangePointDetector(self.series, self.baseline)
+        self.series_history = SeriesHistory(self.series, self.baseline)
+        self.rate_shifts = RateShiftTracker(self.series, self.baseline)
         self.corr = Correlator(footprints, series=self.series)
         self.novelty = Novelty()
         self.qualified: dict[str, AnomalyDecision] = {}
@@ -110,21 +110,16 @@ class OrgEvaluator:
 
         # Insert a whole minute at a time. This keeps detection, novelty exposure and
         # quality exclusions causal, regardless of where polling batches are split.
-        minutes: dict[datetime, list[SeriesRow]] = defaultdict(list)
+        rows_by_minute: dict[datetime, list[SeriesRow]] = defaultdict(list)
         for row in rows:
+            measurement_minute, _, _, project_id, _, _, _ = row
             if (
-                row[3] in self.handlers
-                and row[0] < end
-                and (self.next_minute is None or row[0] >= self.next_minute)
+                project_id in self.handlers
+                and measurement_minute < end
+                and (self.next_minute is None or measurement_minute >= self.next_minute)
             ):
-                minutes[row[0]].append(row)
-        hourly_by_project: dict[str, list[SeriesRow]] = defaultdict(list)
-        for row in hourly_rows:
-            if row[3] in self.handlers and row[0] < end:
-                hourly_by_project[row[3]].append(row)
-        for project, project_rows in hourly_by_project.items():
-            for key, values in self.handlers[project].load_baseline(project_rows).items():
-                self.hourly.setdefault(key, {}).update(values)
+                rows_by_minute[measurement_minute].append(row)
+        self._load_hourly_baselines(hourly_rows, end)
         self._queue_issues([event for event in new_issues if event.key.project in self.handlers])
 
         first_publish_minute = _minute_ceiling(start)
@@ -134,18 +129,18 @@ class OrgEvaluator:
             first_issue_minute = _minute_ceiling(_available_at(self.pending_issues[0]))
         minute = self.next_minute or min(
             first_publish_minute,
-            min(minutes, default=first_publish_minute),
+            min(rows_by_minute, default=first_publish_minute),
             first_issue_minute,
         )
         while minute < first_publish_minute and minute < end:
-            self._step(minute, minutes.pop(minute, ()))
+            self._step(minute, rows_by_minute.pop(minute, ()))
             minute += _MINUTE
 
         decisions: list[AnomalyDecision] = []
         if cold_start and minute < end:
             # Publish the active state after processing the boundary tick, not a warmup
             # incident that resolves on the boundary or an intermediate severity.
-            self._step(minute, minutes.pop(minute, ()))
+            self._step(minute, rows_by_minute.pop(minute, ()))
             decisions.extend(
                 replace(decision, timestamp=minute)
                 for decision in self.qualified.values()
@@ -153,10 +148,20 @@ class OrgEvaluator:
             )
             minute += _MINUTE
         while minute < end:
-            decisions.extend(self._step(minute, minutes.pop(minute, ())))
+            decisions.extend(self._step(minute, rows_by_minute.pop(minute, ())))
             minute += _MINUTE
         self.next_minute = minute
         return decisions
+
+    def _load_hourly_baselines(self, hourly_rows: Sequence[SeriesRow], end: datetime) -> None:
+        rows_by_project: dict[str, list[SeriesRow]] = defaultdict(list)
+        for row in hourly_rows:
+            hour, _, _, project_id, _, _, _ = row
+            if project_id in self.handlers and hour < end:
+                rows_by_project[project_id].append(row)
+        for project_id, project_rows in rows_by_project.items():
+            for key, hourly_values in self.handlers[project_id].load_baseline(project_rows).items():
+                self.hourly.setdefault(key, {}).update(hourly_values)
 
     def _queue_issues(self, events: Sequence[ChangeEvent]) -> None:
         if not events:
@@ -180,82 +185,91 @@ class OrgEvaluator:
         self.pending_issues.sort(key=lambda event: (_available_at(event), _episode(event)))
 
     def _step(self, minute: datetime, rows: Sequence[SeriesRow]) -> list[AnomalyDecision]:
-        by_project: dict[str, list[SeriesRow]] = defaultdict(list)
-        for row in rows:
-            by_project[row[3]].append(row)
-
         if minute.minute == 0:
             self._prune_context(minute)
             if minute.hour == 0:
                 self.corr.shared = shared.learn(
                     self.novelty.history, minute, coverage=self.novelty.coverage
                 )
-        candidates: list[ChangeAction] = []
-        for project, handler in self.handlers.items():
-            result = handler.evaluate_measurements(
-                DataPacket(
-                    source_id=str(handler.detector.id),
-                    packet=MinuteMeasurements(minute=minute, rows=by_project.get(project, ())),
-                ),
-                self.det,
-                self.cp,
-            )
-            candidates.extend(result.changes)
-            for key in result.observed:
-                self.novelty.observe(key, minute)
-        if len(self.handlers) > 1 and len(candidates) > 1:
-            # Keep the original scoring order across projects: excursions first,
-            # then change points. Correlation can use this order to break ties.
-            order = {key: index for index, key in enumerate(self.det.watched)}
-            point_order = {key: index for index, key in enumerate(self.cp.watched)}
-            candidates.sort(
-                key=lambda action: (
-                    (1, point_order[action[1].key])
-                    if action[1].change_type == ChangeType.CHANGE_POINT
-                    else (0, order[action[1].key])
-                )
-            )
-        opens = [event for kind, event in candidates if kind == "open"]
-        self._note_harm(opens)
+
+        candidates = self._evaluate_project_measurements(minute, rows)
+        opened_changes = [event for kind, event in candidates if kind == "open"]
+        self._note_harm(opened_changes)
         actions = self._judge(minute, candidates)
 
         # Issues are known only once their evidence is available, never at first seen.
-        ready = bisect_right(self.pending_issues, minute, key=_available_at)
-        issues = self.pending_issues[:ready]
-        del self.pending_issues[:ready]
-        self.known_issues.extend(issues)
+        available_issue_count = bisect_right(self.pending_issues, minute, key=_available_at)
+        available_issues = self.pending_issues[:available_issue_count]
+        del self.pending_issues[:available_issue_count]
+        self.known_issues.extend(available_issues)
         # The producer also supplies vouch-only issues below the standalone impact threshold.
-        strong = [event for event in issues if _is_standalone_issue(event)]
-        self._note_harm(strong)
-        actions.extend(("open", event) for event in strong)
-        self.point_closes.extend((minute + _POINT_LIFETIME, event) for event in strong)
-        actions.extend(self._promote(minute, opens, strong))
+        standalone_failures = [event for event in available_issues if _is_standalone_issue(event)]
+        self._note_harm(standalone_failures)
+        actions.extend(("open", event) for event in standalone_failures)
+        self.point_closes.extend((minute + _POINT_LIFETIME, event) for event in standalone_failures)
+        actions.extend(self._promote(minute, opened_changes, standalone_failures))
 
         # A new failure mode is a point observation. Other members, if any, still
         # hold its group open until they end.
-        ready = bisect_right(self.point_closes, minute, key=lambda item: item[0])
-        for _, event in self.point_closes[:ready]:
+        due_close_count = bisect_right(self.point_closes, minute, key=lambda item: item[0])
+        for _, event in self.point_closes[:due_close_count]:
             event.ended_at = minute
             actions.append(("close", event))
-        del self.point_closes[:ready]
+        del self.point_closes[:due_close_count]
 
         return self._decisions(self.corr.step(minute, actions))
 
-    def _prune_context(self, t: datetime) -> None:
-        floor = t - _CONTEXT_HORIZON
+    def _evaluate_project_measurements(
+        self, minute: datetime, rows: Sequence[SeriesRow]
+    ) -> list[ChangeAction]:
+        rows_by_project: dict[str, list[SeriesRow]] = defaultdict(list)
+        for row in rows:
+            rows_by_project[row[3]].append(row)
+
+        candidates: list[ChangeAction] = []
+        for project_id, handler in self.handlers.items():
+            packet = DataPacket(
+                source_id=str(handler.detector.id),
+                packet=MinuteMeasurements(minute=minute, rows=rows_by_project.get(project_id, ())),
+            )
+            evaluation = handler.evaluate_measurements(
+                packet, self.series_history, self.rate_shifts
+            )
+            candidates.extend(evaluation.changes)
+            for key in evaluation.observed:
+                self.novelty.observe(key, minute)
+        if len(self.handlers) > 1 and len(candidates) > 1:
+            # Keep the original scoring order across projects: series changes first,
+            # then change points. Correlation can use this order to break ties.
+            series_order = {key: index for index, key in enumerate(self.series_history.watched)}
+            change_point_order = {key: index for index, key in enumerate(self.rate_shifts.watched)}
+
+            def scoring_order(action: ChangeAction) -> tuple[int, int]:
+                _, event = action
+                if event.change_type == ChangeType.CHANGE_POINT:
+                    return 1, change_point_order[event.key]
+                return 0, series_order[event.key]
+
+            candidates.sort(key=scoring_order)
+        return candidates
+
+    def _prune_context(self, minute: datetime) -> None:
+        context_start = minute - _CONTEXT_HORIZON
         self.known_issues[:] = [
-            issue for issue in self.known_issues if _available_at(issue) >= floor
+            issue for issue in self.known_issues if _available_at(issue) >= context_start
         ]
         for service, events in list(self.harm.items()):
             recent = [
-                event for event in events if event.ended_at is None or event.ended_at >= floor
+                event
+                for event in events
+                if event.ended_at is None or event.ended_at >= context_start
             ]
             if recent:
                 self.harm[service] = recent
             else:
                 del self.harm[service]
-        self.novelty.prune(t)
-        self.corr.prune(t)
+        self.novelty.prune(minute)
+        self.corr.prune(minute)
         retained = self.corr.state.open_groups.keys() | self.corr.state.closed_groups.keys()
         for group_key in self.qualified.keys() - retained:
             del self.qualified[group_key]
@@ -265,70 +279,68 @@ class OrgEvaluator:
             if _is_harm(event):
                 self.harm.setdefault(_service(event), []).append(event)
 
-    def _harm_for(self, event: ChangeEvent, t: datetime, candidates: Sequence[ChangeEvent]) -> bool:
+    def _harm_for(
+        self, event: ChangeEvent, minute: datetime, candidates: Sequence[ChangeEvent]
+    ) -> bool:
         # Routine dependencies can be causal; routine endpoints are symptoms. Errors
         # don't vouch for other recurring errors.
         if _is_harm(event) or event.key.signal not in _HARM_PROMOTES:
             return False
-        lo = event.start - _HARM_WINDOW
-        hi = event.ended_at or t
+        earliest_harm = event.start - _HARM_WINDOW
+        latest_harm = event.ended_at or minute
         return any(
             _is_harm(harm)
             and _service(harm) == _service(event)
-            and lo <= harm.start <= hi
-            and (harm.ended_at is None or harm.ended_at >= lo)
+            and earliest_harm <= harm.start <= latest_harm
+            and (harm.ended_at is None or harm.ended_at >= earliest_harm)
             for harm in candidates
         )
 
-    def _judge(self, t: datetime, candidates: Sequence[ChangeAction]) -> list[ChangeAction]:
+    def _judge(self, minute: datetime, candidates: Sequence[ChangeAction]) -> list[ChangeAction]:
         actions = []
-        new_excursions = []
-        for kind, event in candidates:
-            key = _episode(event)
-            if kind == "open":
-                verdict = self.novelty.judge(event, size_of(event.open_ratio), t)
-                new_excursions.append(event)
+        new_changes = []
+        for action_kind, event in candidates:
+            episode = _episode(event)
+            if action_kind == "open":
+                verdict = self.novelty.judge(event, size_of(event.open_ratio), minute)
+                new_changes.append(event)
                 event.novelty = verdict.as_dict()
                 if not verdict.unusual:
-                    if self._harm_for(event, t, self.harm.get(_service(event), ())):
+                    service_harm = self.harm.get(_service(event), ())
+                    if self._harm_for(event, minute, service_harm):
                         event.novelty["harm"] = True
                     else:
-                        self.absorbed[key] = event
-                        kind = "latent"
-            elif kind in ("close", "expire"):
-                self.absorbed.pop(key, None)
-                self.next_look.pop(key, None)
-            elif key in self.absorbed:
-                if kind == "escalate":
-                    when, ratio = event.escalations[-1]
-                    verdict = self.novelty.judge(event, size_of(ratio), t)
+                        self.absorbed[episode] = event
+                        action_kind = "latent"
+            elif action_kind in ("close", "expire"):
+                self.absorbed.pop(episode, None)
+                self.next_look.pop(episode, None)
+            elif episode in self.absorbed:
+                if action_kind == "escalate":
+                    escalated_at, escalated_ratio = event.escalations[-1]
+                    verdict = self.novelty.judge(event, size_of(escalated_ratio), minute)
                     if verdict.unusual:
-                        event.open_ratio = ratio
-                        actions.append(
-                            self._promote_event(
-                                event,
-                                t,
-                                verdict.as_dict()
-                                | {
-                                    "opened_on_escalation": True,
-                                    "unusual_since": when,
-                                },
-                            )
-                        )
+                        event.open_ratio = escalated_ratio
+                        evidence = verdict.as_dict() | {
+                            "opened_on_escalation": True,
+                            "unusual_since": escalated_at,
+                        }
+                        actions.append(self._promote_event(event, minute, evidence))
                 continue
-            actions.append((kind, event))
-        for event in new_excursions:
+            actions.append((action_kind, event))
+        # Judge every change against the same history before recording this minute's opens.
+        for event in new_changes:
             self.novelty.record(event)
         return actions
 
     def _promote_event(
-        self, event: ChangeEvent, t: datetime, novelty: Mapping[str, object]
+        self, event: ChangeEvent, minute: datetime, novelty: Mapping[str, object]
     ) -> ChangeAction:
-        key = _episode(event)
-        self.absorbed.pop(key, None)
-        self.next_look.pop(key, None)
+        episode = _episode(event)
+        self.absorbed.pop(episode, None)
+        self.next_look.pop(episode, None)
         event.novelty = dict(novelty)
-        event.detected_at = t
+        event.detected_at = minute
         return "open", event
 
     def _promote(
@@ -375,7 +387,7 @@ class OrgEvaluator:
         if (
             event.change_type == ChangeType.CHANGE_POINT
             or minute - event.start < next_duration_check * _MINUTE
-            or not self.det.has_novelty_observation(event.key, minute)
+            or not self.series_history.has_novelty_observation(event.key, minute)
         ):
             return None
         observed_minutes = self.novelty.observed_duration(event, minute)
@@ -389,9 +401,9 @@ class OrgEvaluator:
     def _decisions(self, actions: Sequence[GroupAction]) -> list[AnomalyDecision]:
         # A step can both change urgency and merge the same group. Its final action
         # wins; a group merged before it ever qualified must not briefly open.
-        touched = {action.group.id: action for action in actions}
-        out = []
-        for group_key, action in touched.items():
+        final_action_by_group = {action.group.id: action for action in actions}
+        decisions = []
+        for group_key, action in final_action_by_group.items():
             previous = self.qualified.get(group_key)
             group = action.group
             if action.kind == "close":
@@ -409,8 +421,8 @@ class OrgEvaluator:
             else:
                 continue
             self.qualified[group_key] = decision
-            out.append(decision)
-        return out
+            decisions.append(decision)
+        return decisions
 
 
 def _first_decision(action: GroupAction) -> AnomalyDecision:

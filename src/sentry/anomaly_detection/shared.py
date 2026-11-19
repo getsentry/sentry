@@ -46,10 +46,10 @@ class SharedDeps:
     learned_at: datetime | None = None
 
     def get(self, a: SeriesKey, b: SeriesKey) -> PairStats | None:
-        left, right = _dependency_slice(a), _dependency_slice(b)
-        if left is None or right is None or left == right:
+        first_slice, second_slice = _dependency_slice(a), _dependency_slice(b)
+        if first_slice is None or second_slice is None or first_slice == second_slice:
             return None
-        return self.pairs.get(frozenset((left, right)))
+        return self.pairs.get(frozenset((first_slice, second_slice)))
 
 
 class Excursion(Protocol):
@@ -93,20 +93,24 @@ def learn(
     ordered = {dependency: sorted(starts) for dependency, starts in onsets.items()}
     pairs: dict[frozenset[DependencySlice], PairStats] = {}
     for dependencies in by_name.values():
-        for a, b in combinations(dependencies, 2):
-            overlap = _overlap(observed[a], observed[b])
-            if not overlap:
+        for first, second in combinations(dependencies, 2):
+            sample_overlap = _overlap(observed[first], observed[second])
+            if not sample_overlap:
                 continue
-            starts_a = [start for start in ordered[a] if _observed_at(overlap, start)]
-            starts_b = [start for start in ordered[b] if _observed_at(overlap, start)]
-            observed_hours = sum(mask.bit_count() for mask in overlap.values()) / 60
-            stats = _pair_stats(a, b, starts_a, starts_b, observed_hours, cfg)
+            first_onsets = [
+                start for start in ordered[first] if _observed_at(sample_overlap, start)
+            ]
+            second_onsets = [
+                start for start in ordered[second] if _observed_at(sample_overlap, start)
+            ]
+            observed_hours = sum(mask.bit_count() for mask in sample_overlap.values()) / 60
+            stats = _pair_stats(first, second, first_onsets, second_onsets, observed_hours, cfg)
             if stats is not None and stats.p <= cfg.max_p:
-                pairs[frozenset((a, b))] = stats
-    for a, b in cfg.force:
-        pairs[frozenset((a, b))] = PairStats(a, b, 0, 0, 0, 0.0, 0.0)
-    for a, b in cfg.forbid:
-        pairs.pop(frozenset((a, b)), None)
+                pairs[frozenset((first, second))] = stats
+    for first, second in cfg.force:
+        pairs[frozenset((first, second))] = PairStats(first, second, 0, 0, 0, 0.0, 0.0)
+    for first, second in cfg.forbid:
+        pairs.pop(frozenset((first, second)), None)
     return SharedDeps(pairs, until)
 
 
@@ -122,45 +126,54 @@ def _observed_at(hours: HourlyCoverage, minute: datetime) -> bool:
 
 
 def _pair_stats(
-    a: DependencySlice,
-    b: DependencySlice,
-    starts_a: list[datetime],
-    starts_b: list[datetime],
-    hours: float,
+    first: DependencySlice,
+    second: DependencySlice,
+    first_onsets: list[datetime],
+    second_onsets: list[datetime],
+    observed_hours: float,
     cfg: SharedConfig,
 ) -> PairStats | None:
     # Match each onset at most once, even if one slice flaps around the other's onset.
     tolerance = timedelta(minutes=cfg.coincide_min)
-    left_index = right_index = co = 0
-    while left_index < len(starts_a) and right_index < len(starts_b):
-        delta = starts_a[left_index] - starts_b[right_index]
+    first_index = second_index = coincidences = 0
+    while first_index < len(first_onsets) and second_index < len(second_onsets):
+        delta = first_onsets[first_index] - second_onsets[second_index]
         if abs(delta) <= tolerance:
-            co += 1
-            left_index += 1
-            right_index += 1
+            coincidences += 1
+            first_index += 1
+            second_index += 1
         elif delta < timedelta():
-            left_index += 1
+            first_index += 1
         else:
-            right_index += 1
-    if co < cfg.min_co:
+            second_index += 1
+    if coincidences < cfg.min_co:
         return None
 
     offsets = {offset % 60 for offset in range(-cfg.coincide_min, cfg.coincide_min + 1)}
     expected = max(
-        _expected_matches(starts_a, starts_b, offsets, hours),
-        _expected_matches(starts_b, starts_a, offsets, hours),
+        _expected_matches(first_onsets, second_onsets, offsets, observed_hours),
+        _expected_matches(second_onsets, first_onsets, offsets, observed_hours),
     )
-    return PairStats(a, b, co, len(starts_a), len(starts_b), expected, _poisson_tail(co, expected))
+    return PairStats(
+        first,
+        second,
+        coincidences,
+        len(first_onsets),
+        len(second_onsets),
+        expected,
+        _poisson_tail(coincidences, expected),
+    )
 
 
 def _expected_matches(
     starts: list[datetime], peers: list[datetime], offsets: set[int], observed_hours: float
 ) -> float:
-    peer_phases = Counter(start.minute for start in peers)
+    peer_onsets_by_minute = Counter(start.minute for start in peers)
     return sum(
         min(
             1.0,
-            sum(peer_phases[(start.minute + offset) % 60] for offset in offsets) / observed_hours,
+            sum(peer_onsets_by_minute[(start.minute + offset) % 60] for offset in offsets)
+            / observed_hours,
         )
         for start in starts
     )

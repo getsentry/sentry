@@ -9,7 +9,7 @@ from uuid import UUID, uuid5
 
 from sentry.anomaly_detection import quality
 from sentry.anomaly_detection.baseline import MINUTE
-from sentry.anomaly_detection.changepoint import ChangePointDetector
+from sentry.anomaly_detection.changepoint import RateShiftTracker
 from sentry.anomaly_detection.contracts import ChangeEvent, SeriesKey
 from sentry.anomaly_detection.detect import SeriesHistory
 from sentry.anomaly_detection.series import Series, SeriesRow, build
@@ -108,7 +108,7 @@ class AnomalyDetectionDetectorHandler(BaseDetectorHandler[AnomalyTransition, boo
         self,
         packet: DataPacket[MinuteMeasurements],
         history: SeriesHistory,
-        change_points: ChangePointDetector,
+        change_points: RateShiftTracker,
     ) -> MeasurementEvaluation:
         """Advance local evidence; the caller correlates changes before publishing."""
         minute, rows = packet.packet.minute, packet.packet.rows
