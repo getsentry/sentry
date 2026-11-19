@@ -459,8 +459,7 @@ class OrganizationMemberDetailsEndpoint(OrganizationMemberEndpoint):
                 omt.role = None
             OrganizationMemberTeam.objects.bulk_update(omts, fields=["role"])
             omt_update_count = len(omts)
-            member.role = role
-            member.save()
+            member.save_role(role)
         if omt_update_count > 0:
             metrics.incr(
                 "team_roles.update_to_minimum",

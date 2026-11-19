@@ -414,9 +414,10 @@ class DatabaseBackedOrganizationService(OrganizationService):
         org_member: OrganizationMember | None = None
         try:
             # This transaction is required to bind the member to a variable
-            # when replication fails. The outbox_context is just to flag
-            # that this is an outbox-producing operation.
-            with outbox_context(transaction.atomic(router.db_for_write(OrganizationMember))):
+            # when replication fails. Control needs the accepted member right away.
+            with outbox_context(
+                transaction.atomic(router.db_for_write(OrganizationMember)), flush=True
+            ):
                 try:
                     org_member = OrganizationMember.objects.get(
                         user_id=user_id, organization_id=organization_id
@@ -659,7 +660,10 @@ class DatabaseBackedOrganizationService(OrganizationService):
         return serialize_rpc_organization(org)
 
     def remove_user(self, *, organization_id: int, user_id: int) -> RpcOrganizationMember | None:
-        with outbox_context(transaction.atomic(router.db_for_write(OrganizationMember))):
+        # Control reads user_id from the member mapping right away.
+        with outbox_context(
+            transaction.atomic(router.db_for_write(OrganizationMember)), flush=True
+        ):
             try:
                 org_member = OrganizationMember.objects.get(
                     organization_id=organization_id, user_id=user_id
@@ -698,7 +702,11 @@ class DatabaseBackedOrganizationService(OrganizationService):
         else:
             if roles.get(from_member.role).priority > roles.get(to_member.role).priority:
                 to_member.role = from_member.role
-            to_member.save()
+            # May promote to owner, which control reads straight away.
+            with outbox_context(
+                transaction.atomic(router.db_for_write(OrganizationMember)), flush=True
+            ):
+                to_member.save()
 
         assert to_member
 

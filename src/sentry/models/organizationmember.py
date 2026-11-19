@@ -1,10 +1,11 @@
 from __future__ import annotations
 
+import contextlib
 import datetime
 import logging
 import secrets
 from collections import defaultdict
-from collections.abc import Iterable, Mapping
+from collections.abc import Generator, Iterable, Mapping
 from datetime import timedelta
 from enum import Enum
 from hashlib import md5
@@ -24,7 +25,7 @@ from django.utils.translation import gettext_lazy as _
 from structlog import get_logger
 
 from bitfield.models import typed_dict_bitfield
-from sentry import features, roles
+from sentry import features, options, roles
 from sentry.backup.dependencies import NormalizedModelName, PrimaryKeyMap
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
@@ -38,7 +39,7 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.exceptions import UnableToAcceptMemberInvitationException
-from sentry.hybridcloud.models.outbox import outbox_context
+from sentry.hybridcloud.models.outbox import get_outbox_flush_override, outbox_context
 from sentry.hybridcloud.outbox.base import ReplicatedCellModel
 from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.hybridcloud.rpc import extract_id_from
@@ -287,6 +288,39 @@ class OrganizationMember(ReplicatedCellModel):
                 using=using,
                 update_fields=update_fields,
             )
+
+    @contextlib.contextmanager
+    def prepare_outboxes(
+        self, *, outbox_before_super: bool, flush: bool | None = None
+    ) -> Generator[None]:
+        # A flush flag a caller passed to an enclosing outbox_context still wins.
+        if flush is None and get_outbox_flush_override() is None:
+            flush = self._replication_flush()
+        with super().prepare_outboxes(outbox_before_super=outbox_before_super, flush=flush):
+            yield
+
+    def save_role(self, role: str) -> None:
+        """Saves a role change. Changes to or from owner replicate to control right away,
+        since control reads the owner role from the member mapping."""
+        top_dog = organization_roles.get_top_dog().id
+        owner_change = self.role != role and top_dog in (self.role, role)
+        self.role = role
+        with outbox_context(
+            transaction.atomic(router.db_for_write(OrganizationMember)),
+            flush=True if owner_change else None,
+        ):
+            self.save()
+
+    def _replication_flush(self) -> bool | None:
+        """Async unless control needs the new row right away. Callers that change user_id
+        or the owner role on an existing member pass flush=True themselves."""
+        if not options.get("hybridcloud.outbox.organization_member_async_replication.enabled"):
+            return None
+        if self._state.adding and (
+            self.user_id is not None or self.role == organization_roles.get_top_dog().id
+        ):
+            return None
+        return False
 
     def refresh_from_db(
         self,
