@@ -253,7 +253,7 @@ export function OnboardingWithoutContext() {
 
   const projectSlug = stepObj?.id === 'setup-docs' ? selectedProjectSlug : undefined;
 
-  const {project: recentCreatedProject, isProjectActive} = useRecentCreatedProject({
+  const {project: recentCreatedProject} = useRecentCreatedProject({
     orgSlug: organization.slug,
     projectSlug,
     // Wait until the first event is received as we have an UI element that depends on it
@@ -297,9 +297,6 @@ export function OnboardingWithoutContext() {
     }
   }, [location.query, navigate, onboardingContext, organization.slug, location.pathname]);
 
-  const shallProjectBeDeleted =
-    stepObj?.id === 'setup-docs' && defined(isProjectActive) && !isProjectActive;
-
   // Called onExitComplete
   const [containerHasFooter, setContainerHasFooter] = useState(false);
   const updateAnimationState = () => {
@@ -324,8 +321,6 @@ export function OnboardingWithoutContext() {
     stepIndex,
     onboardingSteps,
     goToStep,
-    recentCreatedProject,
-    isRecentCreatedProjectActive: isProjectActive,
   });
 
   const goNextStep = (
@@ -445,14 +440,7 @@ export function OnboardingWithoutContext() {
             <Stepper
               numSteps={onboardingSteps.length}
               currentStepIndex={stepIndex}
-              onClick={i => {
-                if (i < stepIndex && shallProjectBeDeleted) {
-                  handleGoBack(i);
-                  return;
-                }
-
-                goToStep(onboardingSteps[i]!);
-              }}
+              onClick={i => goToStep(onboardingSteps[i]!)}
             />
           </Flex>
         )}

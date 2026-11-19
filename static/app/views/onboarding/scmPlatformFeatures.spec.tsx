@@ -822,26 +822,38 @@ describe('ScmPlatformFeatures', () => {
       expect(createRequest).not.toHaveBeenCalled();
     });
 
-    it('creates a new project when the platform changed from the existing one', async () => {
-      const stalePythonProject = ProjectFixture({
+    it('edits the existing project when the platform changed', async () => {
+      const pythonProject = ProjectFixture({
+        id: '7',
         slug: 'python',
+        name: 'python',
         platform: 'python',
       });
-      ProjectsStore.loadInitialData([stalePythonProject]);
-      const newProject = ProjectFixture({
-        slug: 'javascript-nextjs',
-        platform: 'javascript-nextjs',
-      });
+      ProjectsStore.loadInitialData([pythonProject]);
       const createRequest = MockApiClient.addMockResponse({
         url: `/teams/${organization.slug}/${adminTeam.slug}/projects/`,
         method: 'POST',
-        body: newProject,
+        body: ProjectFixture({slug: 'javascript-nextjs', platform: 'javascript-nextjs'}),
+      });
+      const updateRequest = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${pythonProject.slug}/`,
+        method: 'PUT',
+        body: {
+          ...pythonProject,
+          slug: 'javascript-nextjs',
+          name: 'javascript-nextjs',
+          platform: 'javascript-nextjs',
+        },
+      });
+      const deleteRequest = MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${pythonProject.slug}/`,
+        method: 'DELETE',
       });
 
       const props = defaultProps({
         selectedPlatform: nextJsPlatform,
         selectedFeatures: [ProductSolution.ERROR_MONITORING],
-        createdProject: {slug: stalePythonProject.slug, messagingSelection: undefined},
+        createdProject: {slug: pythonProject.slug, messagingSelection: undefined},
       });
       render(<ScmPlatformFeatures {...props} />, {organization});
 
@@ -851,11 +863,22 @@ describe('ScmPlatformFeatures', () => {
       await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
 
       await waitFor(() => {
-        expect(createRequest).toHaveBeenCalled();
+        expect(props.onComplete).toHaveBeenCalledWith(nextJsPlatform, {
+          product: [ProductSolution.ERROR_MONITORING],
+        });
       });
-      expect(props.onComplete).toHaveBeenCalledWith(nextJsPlatform, {
-        product: [ProductSolution.ERROR_MONITORING],
+      expect(updateRequest).toHaveBeenCalledWith(
+        `/projects/${organization.slug}/${pythonProject.slug}/`,
+        expect.objectContaining({
+          data: expect.objectContaining({platform: 'javascript-nextjs'}),
+        })
+      );
+      expect(props.onCreatedProjectChange).toHaveBeenCalledWith({
+        slug: 'javascript-nextjs',
+        messagingSelection: undefined,
       });
+      expect(createRequest).not.toHaveBeenCalled();
+      expect(deleteRequest).not.toHaveBeenCalled();
     });
 
     it('forwards the detected platform to onComplete when the user did not click a card', async () => {

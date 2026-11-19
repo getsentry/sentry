@@ -14,6 +14,7 @@ import type {RequestDataFragment} from 'sentry/views/projectInstall/issueAlertOp
 import {useCreateProject} from './useCreateProject';
 import {
   type CreatedProjectWorkflow,
+  type ProjectWorkflowVariables,
   useCreateProjectWorkflow,
 } from './useCreateProjectWorkflow';
 const MUTATION_KEY = 'create-project-and-rules';
@@ -33,6 +34,36 @@ type Response = {
   workflowIds: string[];
   notificationRule?: CreatedProjectWorkflow;
 };
+
+type IntegrationAction = ReturnType<Variables['getIntegrationAction']>;
+
+/**
+ * The workflow created alongside a new project. Also used when onboarding
+ * edits its project's destination, so the edited project ends up with the
+ * same workflow a fresh creation would have.
+ */
+export function getProjectWorkflowVariables({
+  project,
+  alertRuleConfig,
+  integrationAction,
+}: {
+  alertRuleConfig: Partial<RequestDataFragment> | undefined;
+  integrationAction: IntegrationAction;
+  project: Project;
+}): ProjectWorkflowVariables {
+  return {
+    projectId: project.id,
+    name: project.name,
+    conditions: alertRuleConfig?.conditions,
+    isHighPriority:
+      (alertRuleConfig?.defaultRules ?? true) && !alertRuleConfig?.shouldCreateCustomRule,
+    actions: [
+      ...(alertRuleConfig?.actions ?? []),
+      ...(integrationAction ? [integrationAction] : []),
+    ],
+    frequency: alertRuleConfig?.frequency,
+  };
+}
 
 function useRollbackProject() {
   const api = useApi();
@@ -95,19 +126,9 @@ export function useCreateProjectAndRules() {
 
       try {
         const workflow = shouldCreateWorkflow
-          ? await createProjectWorkflow.mutateAsync({
-              projectId: project.id,
-              name: project.name,
-              conditions: alertRuleConfig?.conditions,
-              isHighPriority:
-                (alertRuleConfig?.defaultRules ?? true) &&
-                !alertRuleConfig?.shouldCreateCustomRule,
-              actions: [
-                ...(alertRuleConfig?.actions ?? []),
-                ...(integrationAction ? [integrationAction] : []),
-              ],
-              frequency: alertRuleConfig?.frequency,
-            })
+          ? await createProjectWorkflow.mutateAsync(
+              getProjectWorkflowVariables({project, alertRuleConfig, integrationAction})
+            )
           : undefined;
         const notificationRule = integrationAction ? workflow : undefined;
         const workflowIds = workflow ? [workflow.id] : [];
