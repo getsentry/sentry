@@ -46,6 +46,7 @@ import {
   VisualizeFunction,
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
+import {ToolbarQuerySpeed} from 'sentry/views/explore/toolbar/toolbarQuerySpeed';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   applyConditionalFilter,
@@ -119,6 +120,7 @@ export function LogsToolbar() {
     <Container data-test-id="logs-toolbar">
       <ToolbarVisualize />
       <ToolbarGroupBy />
+      <ToolbarQuerySpeed />
     </Container>
   );
 }

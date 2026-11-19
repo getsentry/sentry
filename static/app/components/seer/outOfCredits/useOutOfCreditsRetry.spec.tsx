@@ -5,9 +5,7 @@ import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 import {useOutOfCreditsRetry} from './useOutOfCreditsRetry';
 
 describe('useOutOfCreditsRetry', () => {
-  const organization = OrganizationFixture({
-    features: ['seer-credit-checks', 'token-billed-seer-enabled'],
-  });
+  const organization = OrganizationFixture({features: ['token-billed-seer-enabled']});
 
   afterEach(() => {
     MockApiClient.clearMockResponses();

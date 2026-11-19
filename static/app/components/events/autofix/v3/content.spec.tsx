@@ -7,12 +7,13 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {
-  ExplorerAutofixState,
+import {
   useExplorerAutofix,
+  type ExplorerAutofixState,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import type {SeerOutOfCreditsCtaProps} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
 import {registerOverride} from 'sentry/overrideRegistry';
+import type {Group} from 'sentry/types/group';
 import type {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 
 import {SeerDrawerContent} from './content';
@@ -73,6 +74,11 @@ function makeAiConfig(
     seerReposLinked: true,
     ...overrides,
   };
+}
+
+function AutofixDrawer({group}: {group: Group}) {
+  const autofix = useExplorerAutofix(group);
+  return <SeerDrawerContent aiConfig={makeAiConfig()} autofix={autofix} group={group} />;
 }
 
 describe('SeerDrawerContent', () => {
@@ -292,9 +298,7 @@ describe('SeerDrawerContent', () => {
   });
 
   describe('out of Seer credits', () => {
-    const organization = OrganizationFixture({
-      features: ['seer-credit-checks', 'token-billed-seer-enabled'],
-    });
+    const organization = OrganizationFixture({features: ['token-billed-seer-enabled']});
     const creditCheckUrl = `/organizations/${organization.slug}/seer/credit-check/`;
 
     // getsentry fills in the CTA; this stand-in shows what it was asked for.
@@ -305,10 +309,20 @@ describe('SeerDrawerContent', () => {
       return <div data-test-id="seer-out-of-credits-cta">{`${variant} ${reason}`}</div>;
     }
 
-    function mockCreditCheck(operation: string, hasEnoughCredits = false) {
+    function mockCreditCheck(
+      operation: string,
+      hasEnoughCredits = false,
+      billingFeature?: number
+    ) {
       return MockApiClient.addMockResponse({
         url: creditCheckUrl,
-        match: [MockApiClient.matchQuery({operation})],
+        match: [
+          MockApiClient.matchQuery(
+            billingFeature === undefined
+              ? {operation}
+              : {operation, billing_feature: billingFeature}
+          ),
+        ],
         body: {hasEnoughCredits},
       });
     }
@@ -364,12 +378,15 @@ describe('SeerDrawerContent', () => {
     });
 
     it('shows the continue alert above the root cause and disables the next step', async () => {
-      mockCreditCheck('autofix_solution');
+      const autofixWeb = 1; // SeerBillingFeature.AUTOFIX_WEB
+      const creditCheck = mockCreditCheck('autofix_solution', false, autofixWeb);
 
       render(
         <SeerDrawerContent
           aiConfig={makeAiConfig()}
-          autofix={makeAutofix({runState: ExplorerAutofixStateFixture()})}
+          autofix={makeAutofix({
+            runState: ExplorerAutofixStateFixture({billing_feature: autofixWeb}),
+          })}
           group={GroupFixture()}
         />,
         {organization}
@@ -381,6 +398,44 @@ describe('SeerDrawerContent', () => {
       expectAbove(cta, screen.getByText('The issue was caused by an unexpected value.'));
       expect(screen.getByRole('button', {name: 'Yes, make a plan'})).toBeDisabled();
       expect(screen.getByRole('button', {name: 'No'})).toBeDisabled();
+      expect(creditCheck).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([
+      {label: 'a free agentic-triage run', billingFeature: 4},
+      {label: 'an older unattributed run', billingFeature: null},
+      {label: 'a run with unspecified attribution', billingFeature: 0},
+    ])('can continue $label with an empty wallet', async ({billingFeature}) => {
+      const group = GroupFixture();
+      const url = `/organizations/${organization.slug}/issues/${group.id}/autofix/`;
+      MockApiClient.addMockResponse({
+        url,
+        body: {autofix: ExplorerAutofixStateFixture({billing_feature: billingFeature})},
+      });
+      const continueRun = MockApiClient.addMockResponse({
+        url,
+        method: 'POST',
+        body: {run_id: 42},
+        match: [
+          MockApiClient.matchData({step: 'solution', run_id: 42, referrer: 'api.web'}),
+        ],
+      });
+      const paidCheck = mockCreditCheck('autofix_solution');
+      // SeerBillingFeature.AUTOFIX_AGENTIC_TRIAGE
+      const triageCheck = mockCreditCheck('autofix_solution', true, 4);
+
+      render(<AutofixDrawer group={group} />, {organization});
+
+      const continueButton = await screen.findByRole('button', {
+        name: 'Yes, make a plan',
+      });
+      await waitFor(() => expect(continueButton).toBeEnabled());
+      expect(screen.queryByTestId('seer-out-of-credits-cta')).not.toBeInTheDocument();
+      expect(paidCheck).not.toHaveBeenCalled();
+      expect(triageCheck).toHaveBeenCalledTimes(billingFeature === 4 ? 1 : 0);
+
+      await userEvent.click(continueButton);
+      expect(continueRun).toHaveBeenCalledTimes(1);
     });
 
     it('shows the continue alert for a step that stopped, without touching its retry', async () => {
@@ -477,7 +532,7 @@ describe('SeerDrawerContent', () => {
       expect(screen.queryByTestId('seer-out-of-credits-cta')).not.toBeInTheDocument();
     });
 
-    it('starts as before without seer-credit-checks', () => {
+    it('starts as before without token-billed Seer', () => {
       const creditCheck = MockApiClient.addMockResponse({
         url: creditCheckUrl,
         body: {hasEnoughCredits: false},

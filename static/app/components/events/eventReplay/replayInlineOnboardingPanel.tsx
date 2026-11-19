@@ -146,7 +146,7 @@ const CloseDropdownMenu = styled(DropdownMenu)`
   z-index: 1;
 `;
 
-const Background = styled('div')<{image: any}>`
+const Background = styled('div')<{image: string}>`
   display: flex;
   justify-self: flex-end;
   position: absolute;

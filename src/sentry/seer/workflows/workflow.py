@@ -11,6 +11,7 @@ from django.db import router, transaction
 from django.db.models import Count, Q, QuerySet
 
 from sentry.constants import ObjectStatus
+from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.hybridcloud.models.outbox import OutboxDatabaseError, OutboxFlushError, outbox_context
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -38,12 +39,10 @@ from sentry.seer.workflows.base import (
 from sentry.seer.workflows.definitions import get_definition
 from sentry.service_accounts.models import (
     MAX_NAME_LENGTH,
+    ServiceAccountOwnerKind,
     ServiceAccountReplica,
 )
-from sentry.service_accounts.outbox import (
-    ServiceAccountOwnerKind,
-    service_account_create_outbox,
-)
+from sentry.service_accounts.outbox import service_account_create_outbox
 from sentry.service_accounts.services.service_account import (
     RpcServiceAccount,
     service_account_service,
@@ -84,20 +83,20 @@ class SeerWorkflow:
                 Organization.objects.using(database).select_for_update().filter(id=organization_id)
             )
             existing = set(configs.values_list("strategy", flat=True))
-            SeerWorkflowConfig.objects.using(database).bulk_create(
-                [
-                    SeerWorkflowConfig(
-                        organization_id=organization_id,
-                        strategy=strategy.value,
-                        filters=SeerWorkflowFilters(all_projects=True).dict(),
-                        extras=SeerWorkflowConfigExtras(seeded_default=strategy).dict(
-                            exclude_none=True
-                        ),
-                    )
-                    for strategy in SEER_DEFAULT_WORKFLOW_STRATEGIES
-                    if strategy.value not in existing
-                ]
-            )
+            for strategy in SEER_DEFAULT_WORKFLOW_STRATEGIES:
+                if strategy.value in existing:
+                    continue
+                config = SeerWorkflowConfig.objects.using(database).create(
+                    organization_id=organization_id,
+                    strategy=strategy.value,
+                    filters=SeerWorkflowFilters(all_projects=True).dict(),
+                    extras=SeerWorkflowConfigExtras(seeded_default=strategy).dict(
+                        exclude_none=True
+                    ),
+                )
+                update = ConfigUpdate(LockedConfig(config), get_definition(strategy))
+                update.setup_backing_workflow(name=None, created_by_id=None, enabled=False)
+                config.save(using=database, update_fields=sorted(update.dirty_fields))
 
     @overload
     @classmethod
@@ -110,6 +109,8 @@ class SeerWorkflow:
         schedule: SeerWorkflowSchedule = ...,
         scope: SelectedMonitors,
         environments: Sequence[str] = ...,
+        name: str | None = ...,
+        created_by_id: int | None = ...,
         extras: SeerWorkflowConfigExtras | None = ...,
         service_account_grant: SeerServiceAccountGrant,
     ) -> SeerWorkflow: ...
@@ -125,6 +126,8 @@ class SeerWorkflow:
         schedule: SeerWorkflowSchedule = ...,
         scope: ProjectSelection,
         environments: Sequence[str] = ...,
+        name: str | None = ...,
+        created_by_id: int | None = ...,
         extras: SeerWorkflowConfigExtras | None = ...,
         service_account_grant: SeerServiceAccountGrant,
     ) -> SeerWorkflow: ...
@@ -139,6 +142,8 @@ class SeerWorkflow:
         schedule: SeerWorkflowSchedule = SeerWorkflowSchedule.DAILY,
         scope: ScopeSelection,
         environments: Sequence[str] = (),
+        name: str | None = None,
+        created_by_id: int | None = None,
         extras: SeerWorkflowConfigExtras | None = None,
         service_account_grant: SeerServiceAccountGrant,
     ) -> SeerWorkflow:
@@ -160,7 +165,7 @@ class SeerWorkflow:
         extras = extras or SeerWorkflowConfigExtras()
         definition = get_definition(strategy)
         definition.validate_settings(extras)
-        validate_service_account_grant(organization_id, service_account_grant)
+        scopes = validate_service_account_grant(organization_id, service_account_grant)
 
         database = router.db_for_write(SeerWorkflowConfig)
         try:
@@ -190,18 +195,21 @@ class SeerWorkflow:
                     organization_id=organization_id,
                     owner_kind=ServiceAccountOwnerKind.SEER_WORKFLOW_CONFIG,
                     owner_id=config.id,
-                    name=_service_account_name(config.id, extras.name),
-                    scope_list=service_account_grant.scopes,
+                    name=_service_account_name(config.id, name),
+                    scope_list=scopes,
                     project_ids=service_account_grant.project_ids,
                     all_projects=service_account_grant.all_projects,
-                    created_by_id=extras.created_by,
+                    created_by_id=created_by_id,
                 ).save()
 
                 update = ConfigUpdate(LockedConfig(config), definition)
+                update.setup_backing_workflow(
+                    name=name, created_by_id=created_by_id, enabled=enabled
+                )
                 update.set_scope(scope)
                 if update.dirty_fields:
                     config.save(using=database, update_fields=sorted(update.dirty_fields))
-                definition.trigger.sync(config)
+                definition.sync(config)
                 transaction.on_commit(
                     partial(
                         logger.info,
@@ -257,7 +265,7 @@ class SeerWorkflow:
         Edge case: always false for empty selections, even if the org has no active projects.
         """
         config = self.get_config()
-        selected_projects = get_definition(config.strategy).trigger.projects(config).values("id")
+        selected_projects = get_definition(config.strategy).projects(config).values("id")
         counts = Project.objects.filter(
             organization_id=config.organization_id, status=ObjectStatus.ACTIVE
         ).aggregate(
@@ -270,7 +278,11 @@ class SeerWorkflow:
         """Delete the config with its project links, runs, trigger bindings, and service account."""
         self._delete_service_account()
         with lock_config(self.organization_id, self.config_id) as config:
-            get_definition(config.strategy).trigger.teardown(config)
+            get_definition(config.strategy).teardown(config)
+            workflow = config.backing_workflow
+            if workflow is not None and workflow.status == ObjectStatus.ACTIVE:
+                CellScheduledDeletion.schedule(workflow, days=0)
+                workflow.update(status=ObjectStatus.PENDING_DELETION)
             config.delete()
 
     def _delete_service_account(self) -> None:
@@ -323,13 +335,18 @@ class SeerWorkflow:
                 definition = get_definition(config.strategy)
                 update = ConfigUpdate(config, definition)
                 yield update
+                if update.workflow_dirty_fields:
+                    assert config.backing_workflow is not None
+                    config.backing_workflow.save(
+                        update_fields=[*sorted(update.workflow_dirty_fields), "date_updated"]
+                    )
                 if update.changed:
                     config.version += 1
                     config.save(
                         update_fields=[*sorted(update.dirty_fields), "version", "date_updated"]
                     )
                 # Even when unchanged, so a schedule that drifted from the config is repaired.
-                definition.trigger.sync(config)
+                definition.sync(config)
         except (OutboxFlushError, OutboxDatabaseError):
             logger.exception(
                 "seer.workflow.update.flush_failed",

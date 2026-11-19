@@ -3,9 +3,7 @@ import {Outlet} from 'react-router';
 import {FeatureBadge} from '@sentry/scraps/badge';
 import {Stack} from '@sentry/scraps/layout';
 
-import {Feature} from 'sentry/components/acl/feature';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
-import {NoAccess} from 'sentry/components/noAccess';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -20,20 +18,6 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 import {CONVERSATIONS_LANDING_TITLE, MAX_PICKABLE_DAYS} from './settings';
 
 function ConversationsLayout() {
-  const organization = useOrganization();
-
-  return (
-    <Feature
-      features="gen-ai-conversations"
-      organization={organization}
-      renderDisabled={NoAccess}
-    >
-      <ConversationsLayoutContent />
-    </Feature>
-  );
-}
-
-function ConversationsLayoutContent() {
   const organization = useOrganization();
   const {conversationId} = useParams<{conversationId?: string}>();
   const isDetailPage = !!conversationId;

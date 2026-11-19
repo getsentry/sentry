@@ -4,13 +4,12 @@ import {IconDelete} from '@sentry/icons/delete';
 import {IconEdit} from '@sentry/icons/edit';
 import {IconPause} from '@sentry/icons/pause';
 import {IconPlay} from '@sentry/icons/play';
-import noop from 'lodash/noop';
 
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {openConfirmModal} from '@sentry/scraps/confirm';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {Tabs} from '@sentry/scraps/tabs';
+import {LinkTabs} from '@sentry/scraps/tabs';
 import {Heading, Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
@@ -43,6 +42,7 @@ import type {MetricAutomationFormHandle} from 'sentry/views/seerWorkflows/automa
 import {STRATEGY_META} from 'sentry/views/seerWorkflows/strategies';
 import type {WorkflowStrategy} from 'sentry/views/seerWorkflows/types';
 import {
+  AUTO_REFRESH_INTERVAL,
   getAutomationDetailPath,
   getAutomationsPath,
   useAutomationsEnabled,
@@ -62,7 +62,10 @@ export default function AutomationDetail() {
   const basePath = getAutomationDetailPath(organization.slug, automationId);
   const navigate = useNavigate();
 
-  const {data, isPending, isError, refetch} = useFetchConfigs({ids: [automationId]});
+  const {data, isPending, isError, refetch} = useFetchConfigs(
+    {ids: [automationId]},
+    {refetchInterval: AUTO_REFRESH_INTERVAL}
+  );
   const config: AutomationConfig | undefined = data?.[0];
   const strategy = config?.strategy ?? '';
   const strategyMeta = Object.hasOwn(STRATEGY_META, strategy)
@@ -333,7 +336,7 @@ export default function AutomationDetail() {
               {headerCosts}
             </Stack>
           </Flex>
-          <Tabs onChange={noop} value={activeTab} size="sm">
+          <LinkTabs value={activeTab} size="sm">
             {({TabList}) => (
               <TabList>
                 <TabList.Item
@@ -352,7 +355,7 @@ export default function AutomationDetail() {
                 </TabList.Item>
               </TabList>
             )}
-          </Tabs>
+          </LinkTabs>
         </Stack>
         <Container padding="xl">
           <Outlet

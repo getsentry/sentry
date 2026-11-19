@@ -9,7 +9,7 @@ import {SeerCreditUsageMeter} from './seerCreditUsageMeter';
 
 const billingOrganization = OrganizationFixture({
   access: ['org:read', 'org:billing'],
-  features: ['seer-credit-checks', 'token-billed-seer-enabled'],
+  features: ['token-billed-seer-enabled'],
 });
 
 function mockWallet(
@@ -72,7 +72,7 @@ function cssColor(color: string) {
 }
 
 describe('SeerCreditUsageMeter', () => {
-  const settingsUrl = `/settings/${billingOrganization.slug}/billing/overview/`;
+  const settingsUrl = `/settings/${billingOrganization.slug}/billing/overview/#open-seer-auto-reload-modal`;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -194,7 +194,7 @@ describe('SeerCreditUsageMeter', () => {
   it('shows usage without auto-reload to members without billing access', async () => {
     const organization = OrganizationFixture({
       access: ['org:read'],
-      features: ['seer-credit-checks', 'token-billed-seer-enabled'],
+      features: ['token-billed-seer-enabled'],
     });
     const {wallet, autoTopUp} = mockWallet(organization, {autoReload: true});
 
@@ -216,7 +216,7 @@ describe('SeerCreditUsageMeter', () => {
     expect(autoTopUp).not.toHaveBeenCalled();
   });
 
-  it('shows nothing without seer-credit-checks', () => {
+  it('shows nothing without token-billed Seer', () => {
     const organization = OrganizationFixture({access: ['org:read', 'org:billing']});
     const {wallet, autoTopUp} = mockWallet(organization);
 

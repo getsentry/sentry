@@ -3,15 +3,14 @@ import styled from '@emotion/styled';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {IconOpen} from '@sentry/icons/open';
 import type {Location} from 'history';
-import noop from 'lodash/noop';
 import pick from 'lodash/pick';
 
 import {Badge, FeatureBadge} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
 import {Container, Stack} from '@sentry/scraps/layout';
-import {Tabs} from '@sentry/scraps/tabs';
+import {LinkTabs} from '@sentry/scraps/tabs';
 
-import {IdBadge} from 'sentry/components/idBadge';
+import {ProjectsBadge} from 'sentry/components/core/badge/projectsBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
@@ -175,7 +174,9 @@ export function ReleaseHeader({
           type: 'page-title',
           label: formatVersion(version),
           leadingGraphic: (
-            <IdBadge project={project} disableLink avatarSize={16} hideName />
+            <ProjectsBadge
+              projectPlatforms={project.platform ? [project.platform] : ['default']}
+            />
           ),
           pagination: {
             previous: {
@@ -238,7 +239,7 @@ export function ReleaseHeader({
       <TopBar.Slot name="feedback" feedbackOptions={releaseFeedbackOptions} />
       <Stack column="1 / -1">
         {tabsRootProps => (
-          <Tabs onChange={noop} value={getActiveTabTo()} {...tabsRootProps}>
+          <LinkTabs value={getActiveTabTo()} {...tabsRootProps}>
             {({TabList}) => (
               <TabList>
                 {tabs.map(tab => (
@@ -252,7 +253,7 @@ export function ReleaseHeader({
                 ))}
               </TabList>
             )}
-          </Tabs>
+          </LinkTabs>
         )}
       </Stack>
     </Layout.Header>

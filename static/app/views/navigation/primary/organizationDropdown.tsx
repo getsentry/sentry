@@ -26,7 +26,6 @@ import type {MenuItemTrailingAction} from '@sentry/scraps/menu';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Text} from '@sentry/scraps/text';
 
-import {OrganizationBadge} from 'sentry/components/idBadge/organizationBadge';
 import {BookmarkStarIcon} from 'sentry/components/projects/bookmarkStar';
 import {useUpdateProjectBookmark} from 'sentry/components/projects/useUpdateProjectBookmark';
 import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
@@ -84,7 +83,6 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   const settingsTour = useSettingsNavigationTour();
   const [isMenuOpen, setMenuOpen] = useState(false);
   const isProjectTourActive = settingsTour?.currentStepId === 'projects';
-  const triggerRef = useRef<HTMLButtonElement>(null);
   const organizations = useStore(OrganizationsStore, state => state.organizations);
 
   const [activeOrgs, inactiveOrgs] = partition(
@@ -167,7 +165,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
           size={size}
           aria-label={t('Toggle organization menu')}
           {...mergeProps(triggerProps, {className: tourProps.className})}
-          ref={mergeRefs(triggerProps.ref, tourProps.ref, triggerRef)}
+          ref={mergeRefs(triggerProps.ref, tourProps.ref)}
         />
       )}
     </SettingsNavigationTourElement>
@@ -194,8 +192,6 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
       <SettingsNavigationTourElement
         id="projects"
         position="right"
-        // The menu closes with the tour, so focus returns to its trigger.
-        returnFocusRef={triggerRef}
         title={
           hasNoProjects
             ? getSettingsScopeTitle('project')
@@ -473,8 +469,10 @@ function makeProjectMenuItem(
 function makeOrganizationMenuItem(org: OrganizationSummary): MenuItemProps {
   return {
     key: org.id,
-    label: <OrganizationBadge organization={org} />,
-    textValue: org.name,
+    label: org.name,
+    // The avatar goes in the leading slot, not the label, so these rows line up
+    // with items that have icons instead of getting an empty slot before the badge.
+    leadingItems: <OrganizationAvatar organization={org} size={16} />,
     to: resolveRoute(`/organizations/${org.slug}/issues/`, null, org),
   };
 }

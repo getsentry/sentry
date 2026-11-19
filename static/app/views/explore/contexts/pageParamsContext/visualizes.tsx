@@ -13,6 +13,10 @@ import {
   getFieldDefinition,
   NO_ARGUMENT_SPAN_AGGREGATES,
 } from 'sentry/utils/fields';
+import {
+  HEATMAP_AGGREGATE,
+  HEATMAP_FIELD_DEFINITION,
+} from 'sentry/views/explore/utils/heatMapAggregate';
 import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -110,9 +114,12 @@ export function updateVisualizeAggregate({
   }
 
   const newFieldDefinition = getFieldDefinition(newAggregate, 'span');
-  const oldFieldDefinition = oldAggregate
-    ? getFieldDefinition(oldAggregate, 'span')
-    : undefined;
+  const oldFieldDefinition =
+    oldAggregate === HEATMAP_AGGREGATE
+      ? HEATMAP_FIELD_DEFINITION
+      : oldAggregate
+        ? getFieldDefinition(oldAggregate, 'span')
+        : undefined;
 
   if (newFieldDefinition?.parameters?.length !== oldFieldDefinition?.parameters?.length) {
     const params = newFieldDefinition?.parameters?.map(p => p.defaultValue || '');

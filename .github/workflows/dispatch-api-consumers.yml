@@ -44,16 +44,17 @@ jobs:
           # Entries without an app use the release bot. It isn't known to be
           # installed on sentry-docs, which keeps the app it already uses.
           - repo: sentry-docs
-            app-client-id-var: SENTRY_API_SCHEMA_UPDATER_APP_CLIENT_ID
-            app-private-key-secret: SENTRY_API_SCHEMA_UPDATER_PRIVATE_KEY
+            schema-updater-app: true
     name: dispatch (${{ matrix.repo }})
     steps:
       - name: Get auth token
         id: token
         uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
         with:
-          client-id: ${{ vars[matrix.app-client-id-var || 'SENTRY_RELEASE_BOT_CLIENT_ID'] }}
-          private-key: ${{ secrets[matrix.app-private-key-secret || 'SENTRY_RELEASE_BOT_PRIVATE_KEY'] }}
+          # Name each secret explicitly. A computed secrets[...] lookup loads
+          # every repository secret into the runner.
+          client-id: ${{ matrix.schema-updater-app && vars.SENTRY_API_SCHEMA_UPDATER_APP_CLIENT_ID || vars.SENTRY_RELEASE_BOT_CLIENT_ID }}
+          private-key: ${{ matrix.schema-updater-app && secrets.SENTRY_API_SCHEMA_UPDATER_PRIVATE_KEY || secrets.SENTRY_RELEASE_BOT_PRIVATE_KEY }}
           owner: getsentry
           repositories: ${{ matrix.repo }}
           permission-actions: write
