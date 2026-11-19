@@ -5,10 +5,11 @@ from unittest import mock
 
 import msgpack
 import pytest
-from google.api_core.exceptions import BadGateway, InternalServerError
+from google.api_core.exceptions import BadGateway, Forbidden, InternalServerError
 
 _InternalServerError = cast("Callable[[str], InternalServerError]", InternalServerError)
 _BadGateway = cast("Callable[[str], BadGateway]", BadGateway)
+_Forbidden = cast("Callable[[str], Forbidden]", Forbidden)
 
 from sentry import options
 from sentry.replays.consumers.recording import (
@@ -627,9 +628,16 @@ def test_process_message_no_headers() -> None:
     assert process_message(kafka_message) is None
 
 
-@pytest.mark.parametrize("error", [_InternalServerError("500"), _BadGateway("502")])
+@pytest.mark.parametrize(
+    "error",
+    [
+        _InternalServerError("500"),
+        _BadGateway("502"),
+        _Forbidden("Request had invalid authentication credentials."),
+    ],
+)
 def test_commit_message_reraises_transient_server_errors(error: Exception) -> None:
-    """A 500/502 that outlasts the upload retries fails the task so it can be retried."""
+    """A transient GCS error that outlasts the upload retries fails the task."""
     with (
         mock.patch(
             "sentry.replays.consumers.recording.commit_recording_message",
@@ -648,6 +656,18 @@ def test_commit_message_drops_non_retryable_errors() -> None:
     with mock.patch(
         "sentry.replays.consumers.recording.commit_recording_message",
         side_effect=ValueError("boom"),
+    ):
+        assert (
+            commit_message(mock.Mock(), {"has_sent_replays_cache": None, "options_cache": None})
+            is None
+        )
+
+
+def test_commit_message_drops_permission_denied() -> None:
+    """A 403 for a missing permission is not transient, so the message is dropped."""
+    with mock.patch(
+        "sentry.replays.consumers.recording.commit_recording_message",
+        side_effect=_Forbidden("does not have storage.objects.create access"),
     ):
         assert (
             commit_message(mock.Mock(), {"has_sent_replays_cache": None, "options_cache": None})
