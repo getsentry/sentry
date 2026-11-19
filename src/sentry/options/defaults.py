@@ -4340,7 +4340,7 @@ register(
 )
 # Metric name -> metrics per second each process keeps, for SDK window sampling.
 # Read at SDK init, so a change needs a restart. SDKs without window sampling
-# ignore it, which sends the listed metrics unsampled.
+# ignore it, and the listed metrics keep their manual pre-sample.
 register(
     "sdk_metrics_window_sampling.rates",
     default={},

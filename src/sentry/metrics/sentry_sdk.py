@@ -13,8 +13,11 @@ def is_window_sampled(name: str) -> bool:
     Whether the SDK samples this metric name per time window. The SDK then sets
     `sentry.client_sample_rate` itself, so callers must not sample it first.
     """
-    window_sampling = get_client().options["_experiments"].get("metrics_window_sampling")
-    return name in (window_sampling or ())
+    client = get_client()
+    # SDKs without window sampling ignore the experiment and send every metric.
+    if type(client.metrics_batcher).__name__ != "LockFreeMetricsBatcher":
+        return False
+    return name in client.options["_experiments"]["metrics_window_sampling"]
 
 
 class SentrySDKMetricsBackend(MetricsBackend):

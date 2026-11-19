@@ -227,15 +227,18 @@ class TestSentrySDKMetricsBackend:
 
 
 @pytest.mark.parametrize(
-    ("experiments", "expected"),
+    ("batcher", "window_sampling", "expected"),
     [
-        ({}, False),
-        ({"metrics_window_sampling": None}, False),
-        ({"metrics_window_sampling": {"bar": 1}}, False),
-        ({"metrics_window_sampling": {"foo": 1}}, True),
+        ("LockFreeMetricsBatcher", {"bar": 1}, False),
+        ("LockFreeMetricsBatcher", {"foo": 1}, True),
+        # SDKs without window sampling ignore the experiment.
+        ("MetricsBatcher", {"foo": 1}, False),
     ],
 )
-def test_is_window_sampled(experiments: dict[str, object], expected: bool) -> None:
+def test_is_window_sampled(batcher: str, window_sampling: dict[str, float], expected: bool) -> None:
     with mock.patch("sentry.metrics.sentry_sdk.get_client") as get_client:
-        get_client.return_value.options = {"_experiments": experiments}
+        get_client.return_value.metrics_batcher = type(batcher, (), {})()
+        get_client.return_value.options = {
+            "_experiments": {"metrics_window_sampling": window_sampling}
+        }
         assert is_window_sampled("foo") is expected
