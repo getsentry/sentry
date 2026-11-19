@@ -515,22 +515,14 @@ class FormFieldExtractor {
 function printRegistry(source: string, fileName: string): string {
   const file = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest);
   // Normalize quotes in the string expressions copied from application code.
-  const result = ts.transform(file, [
-    context => root => {
-      const visit: ts.Visitor = node =>
-        ts.isStringLiteral(node)
-          ? context.factory.createStringLiteral(node.text)
-          : ts.visitEachChild(node, visit, context);
-      return ts.visitNode(root, visit, ts.isSourceFile);
-    },
-  ]);
-  try {
-    return ts
-      .createPrinter({newLine: ts.NewLineKind.LineFeed})
-      .printFile(result.transformed[0]!);
-  } finally {
-    result.dispose();
-  }
+  const printer = ts.createPrinter(
+    {newLine: ts.NewLineKind.LineFeed},
+    {
+      substituteNode: (_hint, node) =>
+        ts.isStringLiteral(node) ? ts.factory.createStringLiteral(node.text) : node,
+    }
+  );
+  return printer.printFile(file);
 }
 
 function generateRegistryFile(fields: ExtractedField[], outputPath: string): void {
