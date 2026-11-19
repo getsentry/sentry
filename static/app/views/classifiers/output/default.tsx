@@ -6,7 +6,7 @@ import {getHasResultQuery} from 'sentry/views/classifiers/utils';
 
 import {
   BaseClassifierVisualization,
-  toPlottable,
+  createPlottable,
   useClassifierTimeSeries,
 } from './baseVisualization';
 import type {ClassifierOutput, ClassifierVisualizationProps} from './types';
@@ -35,7 +35,9 @@ function DefaultClassifierVisualization({
       error={error}
       isPending={isPending}
       pageFilters={pageFilters}
-      plottables={[toPlottable(chartType, data?.timeSeries[0], {alias: t('Instances')})]}
+      plottables={[
+        createPlottable(chartType, data?.timeSeries[0], {alias: t('Instances')}),
+      ]}
       showLegend={false}
     />
   );
