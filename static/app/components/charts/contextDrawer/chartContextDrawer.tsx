@@ -76,7 +76,13 @@ export function ChartContextDrawer({
   const {selection} = usePageFilters();
   const [scope, setScope] = useState<DroppedDataScope>('unexpected');
   const [{contextTab}, setTabQuery] = useQueryStates(CHART_CONTEXT_TAB_PARSERS);
-  const tab = showAnnotationTabs ? (contextTab ?? 'dropped-data') : 'dropped-data';
+  const hasDroppedDataTab = organization.features.includes(
+    'explore-data-fidelity-annotations'
+  );
+  const defaultTab: ChartContextTab = hasDroppedDataTab ? 'dropped-data' : 'releases';
+  const shownContextTab =
+    contextTab === 'dropped-data' && !hasDroppedDataTab ? null : contextTab;
+  const tab = showAnnotationTabs ? (shownContextTab ?? defaultTab) : 'dropped-data';
 
   const {droppedEvents, acceptedEvents} = useDroppedData({dataset, interval, projects});
   const {releases} = useReleaseStats(selection, {enabled: showAnnotationTabs});
@@ -116,16 +122,33 @@ export function ChartContextDrawer({
   );
 
   const tabs: ChartContextTabItem[] = [
+    ...(hasDroppedDataTab
+      ? [
+          {
+            key: 'dropped-data' as const,
+            label: droppedDataLabel(dataset),
+            badge:
+              defined(droppedEvents) && defined(acceptedEvents)
+                ? formatDroppedShare(
+                    unexpectedDroppedShare(droppedEvents, acceptedEvents)
+                  )
+                : undefined,
+            panel: droppedDataPanel,
+          },
+        ]
+      : []),
     {
-      key: 'dropped-data',
-      label: droppedDataLabel(dataset),
-      badge:
-        defined(droppedEvents) && defined(acceptedEvents)
-          ? formatDroppedShare(unexpectedDroppedShare(droppedEvents, acceptedEvents))
-          : undefined,
+      key: 'releases',
+      label: t('Releases'),
+      badge: releases?.length,
+      panel: <TableComingSoon />,
     },
-    {key: 'releases', label: t('Releases'), badge: releases?.length},
-    {key: 'flags', label: t('Flags'), badge: flagLog?.length},
+    {
+      key: 'flags',
+      label: t('Flags'),
+      badge: flagLog?.length,
+      panel: <TableComingSoon />,
+    },
   ];
 
   return (
@@ -135,7 +158,7 @@ export function ChartContextDrawer({
           value={tab}
           onChange={nextTab => {
             void setTabQuery(
-              {contextTab: nextTab === 'dropped-data' ? null : nextTab},
+              {contextTab: nextTab === defaultTab ? null : nextTab},
               {history: 'replace'}
             );
             trackAnalytics('explore.chart_context.tab_selected', {
@@ -173,13 +196,9 @@ export function ChartContextDrawer({
                       padding-top: 0;
                     `}
                   >
-                    <TabPanels.Item key="dropped-data">{droppedDataPanel}</TabPanels.Item>
-                    <TabPanels.Item key="releases">
-                      <TableComingSoon />
-                    </TabPanels.Item>
-                    <TabPanels.Item key="flags">
-                      <TableComingSoon />
-                    </TabPanels.Item>
+                    {tabs.map(({key, panel}) => (
+                      <TabPanels.Item key={key}>{panel}</TabPanels.Item>
+                    ))}
                   </TabPanels>
                 )}
               </ClassNames>
@@ -202,6 +221,7 @@ interface ChartContextTabItem {
   badge: string | number | undefined;
   key: ChartContextTab;
   label: string;
+  panel: ReactNode;
 }
 
 interface ChartContextDrawerLayoutProps {

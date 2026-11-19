@@ -911,6 +911,31 @@ describe('useChartContextDrawer', () => {
       expect(router.location.query.contextTab).toBeUndefined();
     });
 
+    it('hides the dropped data tab when dropped data is not enabled', async () => {
+      const {router} = render(
+        <DroppedDataTrigger dataset={DiscoverDatasets.SPANS} showAnnotationTabs />,
+        {
+          organization: OrganizationFixture(),
+          initialRouterConfig: {
+            location: {
+              pathname: '/explore/traces/',
+              query: {droppedData: 'spans', contextTab: 'flags'},
+            },
+          },
+        }
+      );
+
+      await userEvent.click(await screen.findByRole('tab', {name: /Releases/}));
+
+      expect(screen.getByRole('tab', {name: /Releases/})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+      expect(screen.queryByRole('tab', {name: /Dropped Spans/})).not.toBeInTheDocument();
+      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+      expect(router.location.query.contextTab).toBeUndefined();
+    });
+
     it('shows only dropped data without annotation tabs', async () => {
       render(<DroppedDataTrigger dataset={DiscoverDatasets.SPANS} />, {
         organization,
