@@ -32,7 +32,9 @@ from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunMirrorStatus, S
 from sentry.seer.sentry_data_models import HeaderAuthConnectionData
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options, with_feature
-from sentry.testutils.requests import make_request
+from sentry.testutils.requests import drf_request_from_request, make_request
+from sentry.users.services.user.serial import serialize_rpc_user
+from sentry.users.services.user_option import user_option_service
 from sentry.utils.prompts import seer_monitoring_provider_dont_ask_feature
 
 
@@ -249,6 +251,8 @@ class TestSeerAgentClient(TestCase):
         client.start_run("Test query")
 
         body = mock_post.call_args[0][0]
+        assert "user_id" not in body["user_org_context"]
+        assert "user_name" not in body["user_org_context"]
         assert body["agent_run_options"]["enable_inbox_tools"] is False
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
@@ -690,6 +694,72 @@ class TestSeerAgentClient(TestCase):
         assert "max_iterations" not in body
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    def test_continue_run_attributes_each_message_to_its_sender(
+        self, mock_continue: MagicMock, mock_start: MagicMock, mock_access: MagicMock
+    ) -> None:
+        mock_access.return_value = (True, None)
+        mock_start.return_value = mock_continue.return_value = self._mock_run_response()
+        alice = self.create_user(name="Alice")
+        self.create_member(organization=self.organization, user=alice)
+        run = SeerAgentClient(self.organization, alice).start_run("Opening question")
+        assert run.seer_run_state_id is not None
+        opening_context = mock_start.call_args.args[0]["user_org_context"]
+        assert opening_context["user_id"] == alice.id
+        assert opening_context["user_name"] == "Alice"
+
+        bob = self.create_user(name="Bob")
+        other_bob = serialize_rpc_user(self.create_user(name="Bob"))
+        user_option_service.set_option(user_id=bob.id, key="timezone", value="America/Toronto")
+        request, _ = make_request()
+        for sender, timezone_name in ((bob, "America/Toronto"), (other_bob, None)):
+            SeerAgentClient(self.organization, sender).continue_run(
+                run.seer_run_state_id, "Follow up", request=drf_request_from_request(request)
+            )
+            assert mock_continue.call_args.args[0]["user_org_context"] == {
+                "org_slug": self.organization.slug,
+                "user_id": sender.id,
+                "user_name": "Bob",
+                "user_email": sender.email,
+                "user_timezone": timezone_name,
+                "user_ip": request.META["REMOTE_ADDR"],
+            }
+            assert mock_continue.call_args.kwargs["viewer_context"] == {
+                "organization_id": self.organization.id,
+                "user_id": sender.id,
+            }
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
+    @patch("sentry.receivers.outbox.cell.make_agent_chat_request")
+    @patch("sentry.seer.agent.client.make_agent_chat_request")
+    def test_start_run_and_continue_run_omit_blank_profile_name(
+        self, mock_continue: MagicMock, mock_start: MagicMock, mock_access: MagicMock
+    ) -> None:
+        mock_access.return_value = (True, None)
+        mock_start.side_effect = [self._mock_run_response(123), self._mock_run_response(124)]
+        mock_continue.return_value = self._mock_run_response()
+
+        for name in ("", "  "):
+            sender = self.create_user(name=name)
+            self.create_member(organization=self.organization, user=sender)
+            client = SeerAgentClient(self.organization, sender)
+            run = client.start_run("Opening question")
+            opening_context = mock_start.call_args.args[0]["user_org_context"]
+            assert opening_context["user_id"] == sender.id
+            assert "user_name" not in opening_context
+
+            assert run.seer_run_state_id is not None
+            client.continue_run(run.seer_run_state_id, "Follow up")
+            assert mock_continue.call_args.args[0]["user_org_context"] == {
+                "org_slug": self.organization.slug,
+                "user_id": sender.id,
+                "user_email": sender.email,
+                "user_timezone": None,
+                "user_ip": None,
+            }
+
+    @patch("sentry.seer.agent.client.has_seer_access_with_detail")
     @patch("sentry.seer.agent.client.make_agent_chat_request")
     def test_continue_run_basic(self, mock_post: MagicMock, mock_access: MagicMock) -> None:
         """Test continuing an existing run"""
@@ -746,13 +816,17 @@ class TestSeerAgentClient(TestCase):
             )
         ]
 
-        self.create_seer_run(organization=self.organization, seer_run_state_id=1)
+        creator = self.create_user(name="Alice")
+        self.create_seer_run(
+            organization=self.organization, seer_run_state_id=1, user_id=creator.id
+        )
         client = SeerAgentClient(self.organization, user=None)
         client.continue_run(1, "Follow up")
 
         mock_conns.assert_called_once_with(self.organization, None)
         mock_available.assert_not_called()
         body = mock_post.call_args[0][0]
+        assert "user_org_context" not in body
         assert body["monitoring_providers"][0]["provider_key"] == "datadog"
 
     @patch("sentry.seer.agent.client.has_seer_access_with_detail")

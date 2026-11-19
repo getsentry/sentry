@@ -36,6 +36,7 @@ from sentry.seer.agent.client_utils import (
     SeerFeatureRunRequest,
     SeerFeatureRunWireRequest,
     UserOrgContext,
+    build_sender_context,
     collect_user_org_context,
     enqueue_seer_run,
     fetch_run_status,
@@ -799,6 +800,11 @@ class SeerAgentClient:
             agent_run_options=agent_run_options,
             proxy_headers=get_proxy_headers() if self.enable_code_mode_tools != "off" else None,
         )
+
+        if self.user is not None and has_user(self.user):
+            chat_body["user_org_context"] = build_sender_context(
+                self.user, self.organization.slug, request
+            )
 
         if prompt_metadata:
             chat_body["query_metadata"] = prompt_metadata

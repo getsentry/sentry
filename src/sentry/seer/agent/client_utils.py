@@ -424,6 +424,22 @@ def has_seer_agent_access_with_detail(
     return True, None
 
 
+def build_sender_context(
+    user: SentryUser | RpcUser, org_slug: str, request: HttpRequest | Request | None
+) -> UserOrgContext:
+    user_options = user_option_service.get_many(filter={"user_ids": [user.id], "key": "timezone"})
+    context = UserOrgContext(
+        org_slug=org_slug,
+        user_id=user.id,
+        user_email=user.email,
+        user_timezone=get_option_from_list(user_options, key="timezone"),
+        user_ip=request.META.get("REMOTE_ADDR") if request is not None else None,
+    )
+    if user.name.strip():
+        context["user_name"] = user.name
+    return context
+
+
 def collect_user_org_context(
     user: RequestPrincipal | None,
     organization: Organization,
@@ -490,29 +506,15 @@ def collect_user_org_context(
         for p in my_projects
     ]
 
-    # Handle name attribute - SentryUser has name
-    user_name: str | None = None
-    if isinstance(user, (SentryUser, RpcUser)):
-        user_name = user.name
-
-    # Get user's timezone setting (IANA timezone name, e.g., "America/Los_Angeles")
-    user_options = user_option_service.get_many(filter={"user_ids": [user.id], "key": "timezone"})
-    user_timezone = get_option_from_list(user_options, key="timezone")
-
-    # Get IP address from http request, if provided
-    user_ip: str | None = request.META.get("REMOTE_ADDR") if request else None
-
-    return {
-        "org_slug": organization.slug,
-        "user_id": user.id,
-        "user_ip": user_ip,
-        "user_name": user_name,
-        "user_email": user.email,
-        "user_timezone": user_timezone,
-        "user_teams": user_teams,
-        "user_projects": user_projects,
-        "all_org_projects": all_org_projects,
-    }
+    context = build_sender_context(user, organization.slug, request)
+    context.update(
+        {
+            "user_teams": user_teams,
+            "user_projects": user_projects,
+            "all_org_projects": all_org_projects,
+        }
+    )
+    return context
 
 
 def get_proxy_headers() -> dict[str, str] | None:

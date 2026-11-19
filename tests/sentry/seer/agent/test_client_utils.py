@@ -84,6 +84,7 @@ class CollectUserOrgContextTest(TestCase):
 
     def test_collect_context_with_member(self) -> None:
         """Test context collection for a user who is an organization member"""
+        self.user.name = "Alice"
         context = collect_user_org_context(self.user, self.organization)
 
         assert context is not None
