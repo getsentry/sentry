@@ -11,6 +11,7 @@ import {Text} from '@sentry/scraps/text';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTimeout} from 'sentry/utils/useTimeout';
 import type {
@@ -270,14 +271,14 @@ export function ConnectScmBlock({
       staleTime: 0,
     }
   );
-  const [url, endpointOptions, marker] = repoAccessOptions.queryKey;
+  const repoAccessKey: ApiQueryKey = repoAccessOptions.queryKey;
   // A failed check keeps the last answer, so this is this pause's latest answer.
   const {data: access, refetch} = useQuery({
     ...repoAccessOptions,
     // Each pause gets its own answers. Seer just failed to open the repo, so an earlier pause's
     // answer, or one from a check it started, says nothing about this one. Moving the chat in or
     // out of its popped-out window remounts the popup but keeps this pause's answers.
-    queryKey: [url, endpointOptions, marker, {pauseId: pendingInput.id}] as const,
+    queryKey: [...repoAccessKey, {pauseId: pendingInput.id}] as const,
     // The fix happens in another tab, so coming back to this one is when to check again.
     refetchOnWindowFocus: true,
     // That other tab hides this one, and a popped-out chat stays on screen while it does, so keep
