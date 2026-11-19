@@ -69,7 +69,7 @@ function allInvestigationCommentsQueryKey({
   investigationId: string;
   organizationSlug: string;
 }) {
-  return apiOptions.queryKey(
+  return apiOptions.partialQueryKey(
     '/organizations/$organizationIdOrSlug/notebooks/$notebookId/comments/',
     {
       path: {organizationIdOrSlug: organizationSlug, notebookId: investigationId},
@@ -382,7 +382,7 @@ export function investigationCandidatesQueryOptions({
 }
 
 function allInvestigationCandidatesQueryKey(organizationSlug: string) {
-  return apiOptions.queryKey(
+  return apiOptions.partialQueryKey(
     '/organizations/$organizationIdOrSlug/investigations/candidates/',
     {path: {organizationIdOrSlug: organizationSlug}}
   );

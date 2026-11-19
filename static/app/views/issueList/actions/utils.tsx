@@ -206,7 +206,7 @@ export function invalidateIssueQueries({
   if (itemIds !== undefined) {
     for (const itemId of itemIds) {
       queryClient.invalidateQueries({
-        queryKey: apiOptions.queryKey(
+        queryKey: apiOptions.partialQueryKey(
           '/organizations/$organizationIdOrSlug/issues/$issueId/',
           {path: {organizationIdOrSlug: organizationSlug, issueId: itemId}}
         ),
@@ -216,9 +216,12 @@ export function invalidateIssueQueries({
   }
 
   queryClient.invalidateQueries({
-    queryKey: apiOptions.queryKey('/organizations/$organizationIdOrSlug/issues/*', {
-      path: {organizationIdOrSlug: organizationSlug},
-    }),
+    queryKey: apiOptions.partialQueryKey(
+      '/organizations/$organizationIdOrSlug/issues/*',
+      {
+        path: {organizationIdOrSlug: organizationSlug},
+      }
+    ),
   });
 }
 

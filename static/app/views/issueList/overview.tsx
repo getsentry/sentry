@@ -704,7 +704,7 @@ function IssueListOverviewInner({
 
   const invalidateIssueCounts = () => {
     queryClient.invalidateQueries({
-      queryKey: apiOptions.queryKey(
+      queryKey: apiOptions.partialQueryKey(
         '/organizations/$organizationIdOrSlug/issues-count/',
         {path: {organizationIdOrSlug: organization.slug}}
       ),

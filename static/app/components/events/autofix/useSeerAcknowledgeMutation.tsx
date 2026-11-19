@@ -25,14 +25,14 @@ export function useSeerAcknowledgeMutation() {
     onSuccess: () => {
       // Invalidate organization-level setup check
       queryClient.invalidateQueries({
-        queryKey: apiOptions.queryKey(
+        queryKey: apiOptions.partialQueryKey(
           '/organizations/$organizationIdOrSlug/seer/setup-check/',
           {path: {organizationIdOrSlug: organization.slug}}
         ),
       });
       // Invalidate all group-level autofix setup queries
       queryClient.invalidateQueries({
-        queryKey: apiOptions.queryKey(
+        queryKey: apiOptions.partialQueryKey(
           '/organizations/$organizationIdOrSlug/issues/$issueId/autofix/setup/*',
           {path: {organizationIdOrSlug: organization.slug}}
         ),

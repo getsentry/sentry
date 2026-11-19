@@ -78,7 +78,7 @@ export function useRevokeConsoleSdkPlatformInvite() {
     },
     onSettled: (_data, _error, {orgSlug}: UseRevokeConsoleSdkPlatformInviteParams) => {
       queryClient.invalidateQueries({
-        queryKey: apiOptions.queryKey(
+        queryKey: apiOptions.partialQueryKey(
           '/organizations/$organizationIdOrSlug/console-sdk-invites/',
           {path: {organizationIdOrSlug: orgSlug}}
         ),

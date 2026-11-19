@@ -224,7 +224,7 @@ function ToggleConsolePlatformsModal({
       })
       .finally(() => {
         queryClient.invalidateQueries({
-          queryKey: apiOptions.queryKey(
+          queryKey: apiOptions.partialQueryKey(
             '/organizations/$organizationIdOrSlug/console-sdk-invites/',
             {path: {organizationIdOrSlug: organization.slug}}
           ),

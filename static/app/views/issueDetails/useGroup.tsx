@@ -36,9 +36,12 @@ type GroupQueryKeyParameters = Pick<
 >;
 
 export function groupQueryKey(params: GroupQueryKeyParameters) {
-  return apiOptions.queryKey('/organizations/$organizationIdOrSlug/issues/$issueId/', {
-    path: {organizationIdOrSlug: params.organizationSlug, issueId: params.groupId},
-  });
+  return apiOptions.partialQueryKey(
+    '/organizations/$organizationIdOrSlug/issues/$issueId/',
+    {
+      path: {organizationIdOrSlug: params.organizationSlug, issueId: params.groupId},
+    }
+  );
 }
 
 interface UseGroupOptions {

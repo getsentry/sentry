@@ -124,7 +124,7 @@ function _apiOptions<
 
 const isExactMatch = (url: KnownApiUrlPattern): url is KnownApiUrl => !url.endsWith('*');
 
-function _queryKey(
+function _partialQueryKey(
   url: KnownApiUrlPattern,
   {
     path,
@@ -263,18 +263,18 @@ export const apiOptions = {
    *
    * @example
    * ```ts
-   * apiOptions.queryKey('/organizations/$organizationIdOrSlug/repos/', {
+   * apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/repos/', {
    *   path: {organizationIdOrSlug: organization.slug},
    * });
-   * apiOptions.queryKey('/organizations/$organizationIdOrSlug/issues/*', {
+   * apiOptions.partialQueryKey('/organizations/$organizationIdOrSlug/issues/*', {
    *   path: {organizationIdOrSlug: organization.slug},
    * });
    * ```
    */
-  queryKey: <TPattern extends KnownApiUrlPattern>(
+  partialQueryKey: <TPattern extends KnownApiUrlPattern>(
     url: TPattern,
     ...[options]: PatternPathOptions<TPattern> extends {path: unknown}
       ? [QueryKeyOptions<TPattern>]
       : [QueryKeyOptions<TPattern>?]
-  ) => _queryKey(url, options as never),
+  ) => _partialQueryKey(url, options as never),
 };

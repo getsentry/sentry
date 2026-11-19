@@ -40,13 +40,13 @@ export function DirectEnableButton({
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({
-        queryKey: apiOptions.queryKey(
+        queryKey: apiOptions.partialQueryKey(
           '/organizations/$organizationIdOrSlug/integrations/',
           {path: {organizationIdOrSlug: organization.slug}}
         ),
       });
       queryClient.invalidateQueries({
-        queryKey: apiOptions.queryKey(
+        queryKey: apiOptions.partialQueryKey(
           '/organizations/$organizationIdOrSlug/config/integrations/',
           {path: {organizationIdOrSlug: organization.slug}}
         ),

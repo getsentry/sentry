@@ -140,14 +140,14 @@ export function useTransactionThreshold({
             // The modal writes the threshold itself, so refetch rather than
             // patching the cache by hand.
             queryClient.invalidateQueries({
-              queryKey: apiOptions.queryKey(
+              queryKey: apiOptions.partialQueryKey(
                 '/organizations/$organizationIdOrSlug/project-transaction-threshold-override/',
                 {path: {organizationIdOrSlug: organization.slug}}
               ),
             });
             if (project) {
               queryClient.invalidateQueries({
-                queryKey: apiOptions.queryKey(
+                queryKey: apiOptions.partialQueryKey(
                   '/projects/$organizationIdOrSlug/$projectIdOrSlug/transaction-threshold/configure/',
                   {
                     path: {

@@ -28,7 +28,7 @@ export function useMutateActivity({organization, group}: Props) {
     organizationSlug: organization.slug,
     groupId: group.id,
   });
-  const activityQueryKey = apiOptions.queryKey(
+  const activityQueryKey = apiOptions.partialQueryKey(
     '/organizations/$organizationIdOrSlug/issues/$issueId/activities/',
     {path: {organizationIdOrSlug: organization.slug, issueId: group.id}}
   );

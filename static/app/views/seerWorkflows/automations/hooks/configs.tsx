@@ -28,7 +28,7 @@ function useConfigUrls(configId = '') {
       '/organizations/$organizationIdOrSlug/seer/workflows/configs/',
       {path: {organizationIdOrSlug: organization.slug}}
     ),
-    configsQueryKey: apiOptions.queryKey(
+    configsQueryKey: apiOptions.partialQueryKey(
       '/organizations/$organizationIdOrSlug/seer/workflows/configs/',
       {path: {organizationIdOrSlug: organization.slug}}
     ),
