@@ -1,16 +1,13 @@
-import {COMMENT_ATTACHMENT_UPLOAD_HEADERS} from 'sentry/components/activity/note/commentAttachmentButton';
+import {COMMENT_ATTACHMENT_UPLOAD_HEADERS} from './commentAttachmentButton';
 
 describe('comment attachment upload client', () => {
   const {Client} = jest.requireActual('sentry/api');
   let fetchSpy: jest.SpyInstance;
 
   beforeEach(() => {
-    fetchSpy = jest.spyOn(window, 'fetch').mockResolvedValue(
-      new Response(JSON.stringify({id: '5'}), {
-        status: 201,
-        headers: {'Content-Type': 'application/json'},
-      })
-    );
+    fetchSpy = jest
+      .spyOn(window, 'fetch')
+      .mockResolvedValue(Response.json({id: '5'}, {status: 201}));
   });
 
   afterEach(() => {
