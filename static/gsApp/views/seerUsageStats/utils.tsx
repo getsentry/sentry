@@ -5,15 +5,15 @@ import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getEndpointQueryDatetime} from 'sentry/views/organizationStats/usageStatsOrg';
 
-type LlmUsageGroup = {
+type SeerUsageGroup = {
   by: {category: string; feature: string};
   series: {credits: number[]};
   totals: {credits: number};
 };
 
-export type LlmUsageStats = {
+export type SeerUsageStatsResponse = {
   end: string;
-  groups: LlmUsageGroup[];
+  groups: SeerUsageGroup[];
   intervals: string[];
   start: string;
 };
@@ -27,12 +27,12 @@ export type ProductCredits = {
   totalCredits: number;
 };
 
-export function llmUsageStatsOptions(
+export function seerUsageStatsOptions(
   organization: Organization,
   dataDatetime: DateTimeObject
 ) {
-  return apiOptions.as<LlmUsageStats>()(
-    '/customers/$organizationIdOrSlug/llm-usage-stats/',
+  return apiOptions.as<SeerUsageStatsResponse>()(
+    '/customers/$organizationIdOrSlug/seer-usage-stats/',
     {
       path: {organizationIdOrSlug: organization.slug},
       query: {
@@ -68,7 +68,7 @@ function getProductLabel(feature: string): string {
  * Sums the credits of each billed feature into the product it belongs to. The
  * products keep a fixed order so their colors don't change between date ranges.
  */
-export function groupCreditsByProduct(stats: LlmUsageStats): ProductCredits[] {
+export function groupCreditsByProduct(stats: SeerUsageStatsResponse): ProductCredits[] {
   const creditsByLabel = new Map<string, ProductCredits>();
   for (const group of stats.groups) {
     const label = getProductLabel(group.by.feature);

@@ -13,7 +13,7 @@ describe('SeerUsageStats', () => {
     features: ['token-billed-seer-enabled'],
     access: ['org:read', 'org:billing'],
   });
-  const endpoint = `/customers/${organization.slug}/llm-usage-stats/`;
+  const endpoint = `/customers/${organization.slug}/seer-usage-stats/`;
   const initialRouterConfig = {
     location: {pathname: `/settings/${organization.slug}/stats/seer/`},
     route: '/settings/:orgId/stats/seer/',
