@@ -148,6 +148,8 @@ class Referrer(StrEnum):
     )
     API_EXPLORE_HEATMAP_FIND_Y_BOUNDS = "api.explore.heatmap.find-y-bounds"
     API_EXPLORE_HEATMAP_QUERY_DATA = "api.explore.heatmap.query-data"
+    API_EXPLORE_SPANS_HEATMAP_PERCENTILES = "api.explore.spans-heatmap-percentiles"
+    API_EXPLORE_SPANS_HEATMAP_OUTLIER_BOUND = "api.explore.spans-heatmap-outlier-bound"
     DATA_EXPORT_TASKS_EXPLORE = "data_export.tasks.explore"
 
     # ** Insights **
