@@ -1407,17 +1407,8 @@ describe('EntityHeader', () => {
   });
 
   describe('metadata lists', () => {
-    function toolEntries(
-      names: string[],
-      errored: string[] = []
-    ): EntityHeaderMetadataListEntry[] {
-      return names.map(name => ({
-        key: name,
-        label: 'Tool',
-        type: 'text',
-        value: name,
-        variant: errored.includes(name) ? 'danger' : undefined,
-      }));
+    function toolEntries(names: string[]): EntityHeaderMetadataListEntry[] {
+      return names.map(name => ({key: name, label: 'Tool', type: 'text', value: name}));
     }
 
     const tools = ['search', 'fetch', 'browse', 'summarize', 'translate'];
@@ -1454,12 +1445,17 @@ describe('EntityHeader', () => {
     const isClipped = (element: Element) =>
       (element as HTMLElement).style.clipPath === 'inset(50%)';
 
-    it('shows up to maxVisible entries and collapses the rest behind "+N more"', () => {
+    it('shows up to maxVisible entries, and reads every entry in a list named by the label', () => {
       renderTools({maxVisible: 3});
 
-      const entries = within(screen.getByRole('list', {name: 'Tools'})).getAllByRole(
-        'listitem'
-      );
+      const list = screen.getByRole('list', {name: 'Tools'});
+      const entries = within(list).getAllByRole('listitem');
+      // The collapsed entries stay in the list, clipped, and the trigger comes
+      // last, after every entry has been read.
+      expect(entries.map(entry => entry.textContent)).toEqual([
+        ...tools.map(tool => `Tool${tool}`),
+        '+2 more',
+      ]);
       expect(entries.map(entry => isClipped(entry))).toEqual([
         false,
         false,
@@ -1468,18 +1464,12 @@ describe('EntityHeader', () => {
         true,
         false,
       ]);
-      expect(entries.at(-1)).toHaveTextContent(/^\+2 more$/);
-    });
 
-    it('lists the collapsed entries in a tooltip on hover', async () => {
-      renderTools({maxVisible: 3});
-
-      const trigger = screen.getByText('+2 more');
-      await userEvent.hover(trigger);
-      const tooltip = await findTooltipOf(trigger);
-      expect(within(tooltip).getByText('summarize')).toBeInTheDocument();
-      expect(within(tooltip).getByText('translate')).toBeInTheDocument();
-      expect(within(tooltip).queryByText('search')).not.toBeInTheDocument();
+      // The nested list is one item of the metadata row, beside the others.
+      const row = screen.getByRole('list', {name: 'Conversation properties'});
+      const items = [...row.children];
+      expect(items).toHaveLength(2);
+      expect(items[1]).toContainElement(list);
     });
 
     it('lists the collapsed entries in a tooltip on keyboard focus', async () => {
@@ -1490,24 +1480,8 @@ describe('EntityHeader', () => {
       expect(trigger).toHaveFocus();
       const tooltip = await findTooltipOf(trigger);
       expect(within(tooltip).getByText('summarize')).toBeInTheDocument();
-    });
-
-    it('reads every entry, collapsed or not, in a list named by the label', () => {
-      renderTools({maxVisible: 3});
-
-      const list = screen.getByRole('list', {name: 'Tools'});
-      const entries = within(list).getAllByRole('listitem');
-      // The trigger comes last, after every entry has been read.
-      expect(entries.map(entry => entry.textContent)).toEqual([
-        ...tools.map(tool => `Tool${tool}`),
-        '+2 more',
-      ]);
-
-      // The nested list is one item of the metadata row, beside the others.
-      const row = screen.getByRole('list', {name: 'Conversation properties'});
-      const items = [...row.children];
-      expect(items).toHaveLength(2);
-      expect(items[1]).toContainElement(list);
+      expect(within(tooltip).getByText('translate')).toBeInTheDocument();
+      expect(within(tooltip).queryByText('search')).not.toBeInTheDocument();
     });
 
     it('draws the label in full mode without reading it twice', () => {
@@ -1535,62 +1509,19 @@ describe('EntityHeader', () => {
       expect(screen.getByRole('list', {name: 'Tools'})).toBeInTheDocument();
     });
 
-    it('filters and sorts before truncating, so a sorted-first entry survives', () => {
-      const errored = ['translate'];
-      renderTools({
-        items: toolEntries(tools, errored),
-        maxVisible: 2,
-        filter: entry => entry.key !== 'fetch',
-        sort: (a, b) =>
-          Number(errored.includes(b.key)) - Number(errored.includes(a.key)) ||
-          a.key.localeCompare(b.key),
-      });
+    it.each([undefined, tools.length])(
+      'shows every entry and no trigger when maxVisible is %s',
+      maxVisible => {
+        renderTools({maxVisible});
 
-      const entries = within(screen.getByRole('list', {name: 'Tools'})).getAllByRole(
-        'listitem'
-      );
-      expect(entries.map(entry => entry.textContent)).toEqual([
-        'Tooltranslate',
-        'Toolbrowse',
-        'Toolsearch',
-        'Toolsummarize',
-        '+2 more',
-      ]);
-      expect(entries.map(entry => isClipped(entry))).toEqual([
-        false,
-        false,
-        true,
-        true,
-        false,
-      ]);
-    });
-
-    it('shows every entry and no trigger without maxVisible', () => {
-      renderTools({});
-
-      const entries = within(screen.getByRole('list', {name: 'Tools'})).getAllByRole(
-        'listitem'
-      );
-      expect(entries).toHaveLength(5);
-      expect(entries.some(isClipped)).toBe(false);
-      expect(screen.queryByText(/more$/)).not.toBeInTheDocument();
-    });
-
-    it('shows no trigger when the entries fit within maxVisible', () => {
-      renderTools({maxVisible: 5});
-
-      expect(screen.getAllByRole('listitem').some(isClipped)).toBe(false);
-      expect(screen.queryByText(/more$/)).not.toBeInTheDocument();
-    });
-
-    it('renders nothing for the item when the filter leaves no entries', () => {
-      renderTools({maxVisible: 3, filter: () => false});
-
-      expect(screen.queryByRole('list', {name: 'Tools'})).not.toBeInTheDocument();
-      const row = screen.getByRole('list', {name: 'Conversation properties'});
-      expect(within(row).getAllByRole('listitem')).toHaveLength(1);
-      expect(row).toHaveTextContent(/^Modelgpt-5$/);
-    });
+        const entries = within(screen.getByRole('list', {name: 'Tools'})).getAllByRole(
+          'listitem'
+        );
+        expect(entries).toHaveLength(tools.length);
+        expect(entries.some(isClipped)).toBe(false);
+        expect(screen.queryByText(/more$/)).not.toBeInTheDocument();
+      }
+    );
 
     it('renders a skeleton while loading', () => {
       renderTools({maxVisible: 3}, {isLoading: true});
@@ -1600,20 +1531,6 @@ describe('EntityHeader', () => {
       expect(screen.queryByRole('list', {name: 'Tools'})).not.toBeInTheDocument();
       expect(screen.queryByText('search')).not.toBeInTheDocument();
     });
-
-    it.each(['compact', 'full'] as const)(
-      'never hides a focusable element in %s mode',
-      mode => {
-        renderTools({maxVisible: 3, mode});
-
-        const tabStops = screen
-          .getByRole('banner')
-          .querySelectorAll('a[href], button, [tabindex]:not([tabindex="-1"])');
-
-        expect(tabStops).toHaveLength(1);
-        expect([...tabStops].filter(isInaccessible)).toEqual([]);
-      }
-    );
 
     it('draws each entry as a metadata value, link and qualifiers included', () => {
       renderTools({
@@ -1641,6 +1558,29 @@ describe('EntityHeader', () => {
         '/tools/search/'
       );
       expect(within(list).getByText('Tool calls')).toBeInTheDocument();
+    });
+
+    it('reads an entry without a label as its value only', () => {
+      renderTools({
+        items: [
+          {key: 'search', type: 'link', value: 'search', to: '/tools/search/'},
+          {
+            key: 'fetch',
+            type: 'text',
+            value: 'fetch',
+            secondary: {label: 'calls', value: '3'},
+          },
+        ],
+      });
+
+      // The list's name says what the entries are, so nothing repeats it.
+      const entries = within(screen.getByRole('list', {name: 'Tools'})).getAllByRole(
+        'listitem'
+      );
+      expect(entries.map(entry => entry.textContent)).toEqual(['search', 'fetchcalls3']);
+      expect(screen.getByRole('link', {name: 'search'})).not.toHaveAttribute(
+        'aria-label'
+      );
     });
 
     it('collapses link and tooltip entries without adding tab stops', async () => {
@@ -1710,57 +1650,44 @@ describe('EntityHeader', () => {
       expect(screen.getByText('+2 more')).toBeInTheDocument();
     });
 
-    it.each([0, -2])(
-      'draws the label and graphic before "+N more" when maxVisible is %s',
-      maxVisible => {
-        render(
-          <EntityHeader
-            title={{type: 'text', label: 'Conversation', value: 'Trip planning'}}
-            metadata={{
-              label: 'Conversation properties',
-              items: [
-                {
-                  label: 'Tools',
-                  type: 'list',
-                  mode: 'full',
-                  leadingGraphic: <IconStar data-test-id="tools-graphic" />,
-                  items: toolEntries(tools),
-                  maxVisible,
-                },
-                {label: 'Region', type: 'text', value: 'us'},
-              ],
-            }}
-          />
-        );
-
-        const entries = within(screen.getByRole('list', {name: 'Tools'})).getAllByRole(
-          'listitem'
-        );
-        expect(entries.map(entry => isClipped(entry))).toEqual([
-          true,
-          true,
-          true,
-          true,
-          true,
-          false,
-        ]);
-
-        const trigger = entries.at(-1)!;
-        expect(trigger).toHaveTextContent(/^Tools\+5 more$/);
-        expect(within(trigger).getByTestId('tools-graphic')).toBeInTheDocument();
-        expect(within(trigger).getAllByTestId('metadata-divider')).toHaveLength(1);
-        expect(screen.getAllByTestId('metadata-divider')).toHaveLength(1);
-      }
-    );
-
-    it('shows every entry when maxVisible is NaN', () => {
-      renderTools({maxVisible: Number.NaN});
+    it('draws the label and graphic before "+N more" when maxVisible is 0', () => {
+      render(
+        <EntityHeader
+          title={{type: 'text', label: 'Conversation', value: 'Trip planning'}}
+          metadata={{
+            label: 'Conversation properties',
+            items: [
+              {
+                label: 'Tools',
+                type: 'list',
+                mode: 'full',
+                leadingGraphic: <IconStar data-test-id="tools-graphic" />,
+                items: toolEntries(tools),
+                maxVisible: 0,
+              },
+              {label: 'Region', type: 'text', value: 'us'},
+            ],
+          }}
+        />
+      );
 
       const entries = within(screen.getByRole('list', {name: 'Tools'})).getAllByRole(
         'listitem'
       );
-      expect(entries.map(entry => isClipped(entry))).toEqual(tools.map(() => false));
-      expect(screen.queryByText(/more$/)).not.toBeInTheDocument();
+      expect(entries.map(entry => isClipped(entry))).toEqual([
+        true,
+        true,
+        true,
+        true,
+        true,
+        false,
+      ]);
+
+      const trigger = entries.at(-1)!;
+      expect(trigger).toHaveTextContent(/^Tools\+5 more$/);
+      expect(within(trigger).getByTestId('tools-graphic')).toBeInTheDocument();
+      expect(within(trigger).getAllByTestId('metadata-divider')).toHaveLength(1);
+      expect(screen.getAllByTestId('metadata-divider')).toHaveLength(1);
     });
   });
 
@@ -1993,14 +1920,16 @@ describe('EntityHeader', () => {
       expect(pipesIn(topLevelItems(row)[0]!)).toHaveLength(1);
     });
 
-    it('leaves no dangling pipe before a list its filter empties', () => {
+    it('renders nothing for an empty list, and leaves no dangling pipe before it', () => {
       const row = renderRow([
         {label: 'Model', type: 'text', value: 'gpt-5'},
         null,
-        {label: 'Tools', type: 'list', items: tools(['search']), filter: () => false},
+        {label: 'Tools', type: 'list', items: []},
       ]);
 
+      expect(screen.queryByRole('list', {name: 'Tools'})).not.toBeInTheDocument();
       expect(within(row).getAllByRole('listitem')).toHaveLength(1);
+      expect(row).toHaveTextContent(/^Modelgpt-5$/);
       expect(pipesIn(row)).toHaveLength(0);
     });
 

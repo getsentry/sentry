@@ -2,12 +2,12 @@ import {Fragment} from 'react';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 import type {SVGIconProps} from '@sentry/icons/svgIcon';
 import type {PlatformIcon} from 'platformicons';
+import type {DistributedOmit} from 'type-fest';
 
 import type {UserAvatar} from '@sentry/scraps/avatar';
 import {
   METADATA_TEXT_HEIGHT,
   METADATA_TEXT_STYLES,
-  METADATA_VALUE_TEXT_STYLES,
 } from '@sentry/scraps/entityHeader/constants';
 import {InfoText} from '@sentry/scraps/info';
 import type {Responsive} from '@sentry/scraps/layout';
@@ -85,35 +85,39 @@ type EntityHeaderMetadataValueProps = EntityHeaderMetadataItemShared &
   );
 
 /**
+ * A text or link value whose `label` may be left out, as a list's entries
+ * may be.
+ */
+type MetadataValueData = DistributedOmit<EntityHeaderMetadataValueProps, 'label'> & {
+  /**
+   * Optional here: an entry the list's own label already explains, such as a
+   * tool under "Tools", need not repeat it. Without one, a link is named by
+   * its value alone.
+   */
+  label?: string;
+};
+
+/**
  * One entry of a list: a text or link value, keyed. A list cannot hold a
  * list.
  */
-export type EntityHeaderMetadataListEntry = EntityHeaderMetadataValueProps & {
-  /**
-   * Keys the entry, and is what `sort` and `filter` usually compare.
-   */
+export type EntityHeaderMetadataListEntry = MetadataValueData & {
   key: string;
 };
 
 interface EntityHeaderMetadataListOptions {
+  /**
+   * Shown in this order, so filter and sort them before passing them: the
+   * cut to `maxVisible` keeps the first ones.
+   */
   items: EntityHeaderMetadataListEntry[];
   type: 'list';
   /**
-   * Keeps entries out of the list entirely. Runs before `sort`.
-   */
-  filter?: (entry: EntityHeaderMetadataListEntry) => boolean;
-  /**
    * Entries past this collapse behind "+N more", which lists them on hover or
-   * focus. Omitted or `NaN`, every entry is shown; a negative count shows
-   * none. Responsive: plain keys resolve against the header's width,
-   * `screen:` keys against the viewport.
+   * focus. Omitted, every entry is shown. Responsive: plain keys resolve
+   * against the header's width, `screen:` keys against the viewport.
    */
   maxVisible?: Responsive<number>;
-  /**
-   * Orders the entries before they are cut to `maxVisible`, so the ones that
-   * matter most stay in view.
-   */
-  sort?: (a: EntityHeaderMetadataListEntry, b: EntityHeaderMetadataListEntry) => number;
 }
 
 type EntityHeaderMetadataListProps = EntityHeaderMetadataItemShared &
@@ -128,21 +132,10 @@ export type EntityHeaderMetadataItemProps =
   | EntityHeaderMetadataListProps;
 
 /**
- * The entries a list's `filter` keeps. Independent of `maxVisible`, so the
- * header can drop an emptied list without resolving it.
- */
-export function getFilteredEntries({
-  items,
-  filter,
-}: Pick<EntityHeaderMetadataListProps, 'items' | 'filter'>) {
-  return filter ? items.filter(filter) : items;
-}
-
-/**
  * The pipe that ends a property in the metadata row, drawn inside its item so
  * it wraps with it.
  */
-function MetadataDivider() {
+export function MetadataDivider() {
   return (
     <Container
       width="1px"
@@ -155,49 +148,11 @@ function MetadataDivider() {
   );
 }
 
-export function EntityHeaderMetadataItemSkeleton({
-  hasTrailingDivider,
-}: {
-  hasTrailingDivider: boolean;
-}) {
-  return (
-    <Flex
-      role="listitem"
-      align="center"
-      gap="md"
-      minWidth={0}
-      minHeight={METADATA_TEXT_HEIGHT}
-    >
-      <Placeholder width="120px" height={METADATA_TEXT_HEIGHT} />
-      {hasTrailingDivider && <MetadataDivider />}
-    </Flex>
-  );
-}
-
-function getValueBehavior(
-  props: EntityHeaderMetadataValueProps,
-  isInteractive: boolean
-): EntityHeaderTextBehavior {
-  if (!isInteractive) {
-    return {type: 'text', variant: props.type === 'text' ? props.variant : undefined};
-  }
-  return props.type === 'link'
-    ? {
-        type: 'link',
-        ...toLinkDestination(props),
-        'aria-label': `${props.label} ${props.value}`,
-        tooltip: props.tooltip,
-      }
-    : {type: 'text', variant: props.variant, tooltip: props.tooltip};
-}
-
-function MetadataGraphic({
-  graphic,
-  isLoading,
-}: {
-  graphic: EntityHeaderMetadataItemShared['leadingGraphic'];
-  isLoading: boolean;
-}) {
+/**
+ * A 16px box for a leading graphic. Left empty while loading, so the box keeps
+ * its width.
+ */
+function MetadataGraphic({children}: {children?: React.ReactNode}) {
   return (
     <Flex
       width="16px"
@@ -207,41 +162,27 @@ function MetadataGraphic({
       flexShrink={0}
       aria-hidden
     >
-      {isLoading ? null : graphic}
+      {children}
     </Flex>
   );
 }
 
 interface MetadataItemFrameProps {
   children: React.ReactNode;
-  isLoading: boolean;
-  leadingGraphic: EntityHeaderMetadataItemShared['leadingGraphic'];
-  /**
-   * Draws the pipe that ends this property in the metadata row.
-   */
-  hasTrailingDivider?: boolean;
-  /**
-   * Comes before the graphic: a list's own graphic and label, carried by its
-   * first drawn item so they wrap together.
-   */
-  lead?: React.ReactNode;
   /**
    * Omitted where the frame is not in a list, as in a tooltip.
    */
   role?: 'listitem';
+  /**
+   * Drawn after the content: the pipe that ends a property in the row.
+   */
+  trailing?: React.ReactNode;
 }
 
 // One named list item rather than a `dt`/`dd` pair: as a description list,
 // VoiceOver narrated the pairing — "term", "selectable list item", "end of
 // term" — before it ever reached the value.
-function MetadataItemFrame({
-  children,
-  isLoading,
-  leadingGraphic,
-  hasTrailingDivider,
-  lead,
-  role,
-}: MetadataItemFrameProps) {
+function MetadataItemFrame({children, role, trailing}: MetadataItemFrameProps) {
   return (
     <Flex
       role={role}
@@ -251,30 +192,72 @@ function MetadataItemFrame({
       minHeight={METADATA_TEXT_HEIGHT}
     >
       <Flex align="center" gap="xs" minWidth={0}>
-        {lead}
-        {leadingGraphic && (
-          <MetadataGraphic graphic={leadingGraphic} isLoading={isLoading} />
-        )}
         {children}
       </Flex>
-      {hasTrailingDivider && <MetadataDivider />}
+      {trailing}
     </Flex>
   );
 }
 
-interface MetadataValueProps {
-  /**
-   * Off for a copy that is only read, such as a collapsed list entry: a link
-   * draws as text and no tooltip is attached, so the copy adds no tab stop.
-   */
-  isInteractive: boolean;
-  value: EntityHeaderMetadataValueProps;
+export function EntityHeaderMetadataItemSkeleton({
+  trailing,
+}: {
+  trailing: React.ReactNode;
+}) {
+  return (
+    <MetadataItemFrame role="listitem" trailing={trailing}>
+      <Placeholder width="120px" height={METADATA_TEXT_HEIGHT} />
+    </MetadataItemFrame>
+  );
 }
 
-function MetadataValue({value: props, isInteractive}: MetadataValueProps) {
+/**
+ * A copy of an entry that is only read, such as a collapsed one: a link draws
+ * as text and the tooltip is dropped, so the copy adds no tab stop.
+ */
+function toReadOnlyEntry(
+  entry: EntityHeaderMetadataListEntry
+): EntityHeaderMetadataListEntry {
+  return {
+    key: entry.key,
+    label: entry.label,
+    leadingGraphic: entry.leadingGraphic,
+    mode: entry.mode,
+    secondary: entry.secondary,
+    type: 'text',
+    value: entry.value,
+    variant: entry.type === 'text' ? entry.variant : undefined,
+  };
+}
+
+function getValueBehavior(props: MetadataValueData): EntityHeaderTextBehavior {
+  return props.type === 'link'
+    ? {
+        type: 'link',
+        ...toLinkDestination(props),
+        'aria-label': props.label ? `${props.label} ${props.value}` : undefined,
+        tooltip: props.tooltip,
+      }
+    : {type: 'text', variant: props.variant, tooltip: props.tooltip};
+}
+
+interface MetadataValueProps {
+  value: MetadataValueData;
+  /**
+   * Keeps `secondary` from explaining its key in a tooltip, which is a tab
+   * stop. The rest of a read-only copy is made by `toReadOnlyEntry`.
+   */
+  readOnly?: boolean;
+}
+
+function MetadataValue({value: props, readOnly}: MetadataValueProps) {
   const {label, mode = 'compact', secondary} = props;
-  const isLink = isInteractive && props.type === 'link';
-  const needsOwnLabel = !isLink || mode === 'full';
+  const needsOwnLabel = Boolean(label) && (props.type !== 'link' || mode === 'full');
+  const secondaryLabel = secondary
+    ? label
+      ? `${label} ${secondary.label}`
+      : secondary.label
+    : undefined;
 
   return (
     <Fragment>
@@ -287,8 +270,10 @@ function MetadataValue({value: props, isInteractive}: MetadataValueProps) {
           <VisuallyHidden>{label}</VisuallyHidden>
         ))}
       <EntityHeaderText
-        behavior={getValueBehavior(props, isInteractive)}
-        styles={METADATA_VALUE_TEXT_STYLES}
+        behavior={getValueBehavior(props)}
+        // Truncates rather than overflowing its item, so the pipe after it
+        // follows the text a narrow header shows.
+        styles={{size: 'md', density: 'comfortable', ellipsis: true}}
       >
         {props.value}
       </EntityHeaderText>
@@ -299,20 +284,14 @@ function MetadataValue({value: props, isInteractive}: MetadataValueProps) {
             because a tooltip reaches assistive technology through
             `aria-describedby`, which is not announced on focus.
           */}
-          <VisuallyHidden>{`${label} ${secondary.label}`}</VisuallyHidden>
-          {isInteractive ? (
-            <InfoText
-              title={`${label} ${secondary.label}`}
-              variant="muted"
-              {...METADATA_TEXT_STYLES}
-            >
-              {secondary.value}
-            </InfoText>
-          ) : (
-            <Text variant="muted" {...METADATA_TEXT_STYLES}>
-              {secondary.value}
-            </Text>
-          )}
+          <VisuallyHidden>{secondaryLabel}</VisuallyHidden>
+          <InfoText
+            title={readOnly ? null : secondaryLabel}
+            variant="muted"
+            {...METADATA_TEXT_STYLES}
+          >
+            {secondary.value}
+          </InfoText>
         </Fragment>
       )}
     </Fragment>
@@ -321,68 +300,50 @@ function MetadataValue({value: props, isInteractive}: MetadataValueProps) {
 
 interface MetadataEntryProps {
   entry: EntityHeaderMetadataListEntry;
-  isInteractive: boolean;
-  /**
-   * Set on a list's last visible element when the list is not the row's last
-   * property.
-   */
-  hasTrailingDivider?: boolean;
   /**
    * Set on a list's first visible entry, which starts the property: it
    * carries the list's graphic and label.
    */
   lead?: React.ReactNode;
+  /**
+   * Draws a read-only copy, for a collapsed entry.
+   */
+  readOnly?: boolean;
   role?: 'listitem';
+  trailing?: React.ReactNode;
 }
 
-function MetadataEntry({
-  entry,
-  hasTrailingDivider,
-  isInteractive,
-  lead,
-  role,
-}: MetadataEntryProps) {
-  const {key: _key, ...value} = entry;
+function MetadataEntry({entry, lead, readOnly, role, trailing}: MetadataEntryProps) {
   return (
-    <MetadataItemFrame
-      isLoading={false}
-      leadingGraphic={value.leadingGraphic}
-      hasTrailingDivider={hasTrailingDivider}
-      lead={lead}
-      role={role}
-    >
-      <MetadataValue value={value} isInteractive={isInteractive} />
+    <MetadataItemFrame role={role} trailing={trailing}>
+      {lead}
+      {entry.leadingGraphic && <MetadataGraphic>{entry.leadingGraphic}</MetadataGraphic>}
+      <MetadataValue
+        value={readOnly ? toReadOnlyEntry(entry) : entry}
+        readOnly={readOnly}
+      />
     </MetadataItemFrame>
   );
 }
 
 function MetadataList({
   items,
-  filter,
-  sort,
   maxVisible,
   label,
   leadingGraphic,
-  hasTrailingDivider,
+  trailing,
   mode = 'compact',
-}: EntityHeaderMetadataListProps & {hasTrailingDivider: boolean}) {
+}: EntityHeaderMetadataListProps & {trailing: React.ReactNode}) {
   const {t} = useTranslation();
-  const responsiveMaxVisible = useResponsivePropValue(maxVisible);
-  const resolvedMaxVisible =
-    responsiveMaxVisible === undefined || Number.isNaN(responsiveMaxVisible)
-      ? undefined
-      : Math.max(0, responsiveMaxVisible);
-
-  const filtered = getFilteredEntries({items, filter});
-  const sorted = sort ? filtered.toSorted(sort) : filtered;
-  const visible = sorted.slice(0, resolvedMaxVisible);
-  const hidden = resolvedMaxVisible === undefined ? [] : sorted.slice(resolvedMaxVisible);
+  const cut = useResponsivePropValue(maxVisible) ?? items.length;
+  const visible = items.slice(0, cut);
+  const hidden = items.slice(cut);
 
   // The list's graphic and label travel with its first drawn item, so they
   // wrap with it: the first entry, or "+N more" when every entry collapses.
   const lead = (
     <Fragment>
-      {leadingGraphic && <MetadataGraphic graphic={leadingGraphic} isLoading={false} />}
+      {leadingGraphic && <MetadataGraphic>{leadingGraphic}</MetadataGraphic>}
       {/* The nested list's name already speaks the label. */}
       {mode === 'full' && (
         <Text {...METADATA_TEXT_STYLES} variant="muted" aria-hidden>
@@ -402,10 +363,9 @@ function MetadataList({
           <MetadataEntry
             key={entry.key}
             entry={entry}
-            isInteractive
             lead={index === 0 ? lead : undefined}
-            hasTrailingDivider={
-              hasTrailingDivider && hidden.length === 0 && index === visible.length - 1
+            trailing={
+              hidden.length === 0 && index === visible.length - 1 ? trailing : undefined
             }
             role="listitem"
           />
@@ -417,27 +377,22 @@ function MetadataList({
         */}
         {hidden.map(entry => (
           <VisuallyHidden key={entry.key} role="listitem">
-            <MetadataEntry entry={entry} isInteractive={false} />
+            <MetadataEntry entry={entry} readOnly />
           </VisuallyHidden>
         ))}
         {/*
           An item of its own, read after every entry, and wrapping with them.
         */}
         {hidden.length > 0 && (
-          <MetadataItemFrame
-            isLoading={false}
-            leadingGraphic={undefined}
-            hasTrailingDivider={hasTrailingDivider}
-            lead={visible.length === 0 ? lead : undefined}
-            role="listitem"
-          >
+          <MetadataItemFrame role="listitem" trailing={trailing}>
+            {visible.length === 0 && lead}
             <InfoText
               {...METADATA_TEXT_STYLES}
               variant="muted"
               title={
                 <Flex wrap="wrap" gap="sm md" paddingTop="xs" paddingBottom="xs">
                   {hidden.map(entry => (
-                    <MetadataEntry key={entry.key} entry={entry} isInteractive={false} />
+                    <MetadataEntry key={entry.key} entry={entry} readOnly />
                   ))}
                 </Flex>
               }
@@ -452,35 +407,27 @@ function MetadataList({
 }
 
 export function EntityHeaderMetadataItem({
-  hasTrailingDivider,
+  trailing,
   isLoading = false,
   ...props
-}: EntityHeaderMetadataItemProps & {hasTrailingDivider: boolean; isLoading?: boolean}) {
+}: EntityHeaderMetadataItemProps & {trailing: React.ReactNode; isLoading?: boolean}) {
   if (isLoading) {
     return (
-      <MetadataItemFrame
-        isLoading
-        leadingGraphic={props.leadingGraphic}
-        hasTrailingDivider={hasTrailingDivider}
-        role="listitem"
-      >
+      <MetadataItemFrame role="listitem" trailing={trailing}>
+        {props.leadingGraphic && <MetadataGraphic />}
         <Placeholder width="120px" height={METADATA_TEXT_HEIGHT} />
       </MetadataItemFrame>
     );
   }
 
   if (props.type === 'list') {
-    return <MetadataList {...props} hasTrailingDivider={hasTrailingDivider} />;
+    return <MetadataList {...props} trailing={trailing} />;
   }
 
   return (
-    <MetadataItemFrame
-      isLoading={false}
-      leadingGraphic={props.leadingGraphic}
-      hasTrailingDivider={hasTrailingDivider}
-      role="listitem"
-    >
-      <MetadataValue value={props} isInteractive />
+    <MetadataItemFrame role="listitem" trailing={trailing}>
+      {props.leadingGraphic && <MetadataGraphic>{props.leadingGraphic}</MetadataGraphic>}
+      <MetadataValue value={props} />
     </MetadataItemFrame>
   );
 }

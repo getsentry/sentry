@@ -1076,7 +1076,7 @@ A metadata `leadingGraphic` takes an icon from `@sentry/icons`, a `PlatformIcon`
 
 ### Lists
 
-`type: 'list'` groups related values under one label, such as the tools a conversation called. Each entry is a text or link metadata item with a `key`. Entries wrap with the rest of the row, with no pipes between them. `maxVisible` (responsive) collapses the rest behind "+N more". `filter` and `sort` run before the cut, so the entries that matter stay in view.
+`type: 'list'` groups related values under one label, such as the tools a conversation called. Each entry is a text or link metadata item with a `key`. An entry's `label` is optional, so leave it out when the list's label already says what the entry is; a link entry is then named by its value alone. Entries wrap with the rest of the row, with no pipes between them. `maxVisible` (responsive) collapses the rest behind "+N more". Entries show in the order you pass them, so filter and sort `items` first to keep the ones that matter in view. A list with no entries renders nothing.
 
 > [!NOTE]
 > A collapsed entry shows in the "+N more" tooltip without its own `tooltip`, and links show as text.
@@ -1090,9 +1090,6 @@ export const tools = [
   {name: 'find_restaurants', hasError: false},
   {name: 'internal_ping', hasError: false},
 ];
-export const erroredTools = new Set(
-  tools.filter(tool => tool.hasError).map(tool => tool.name)
-);
 
 <Storybook.Demo resizable direction="column" align="stretch">
   <EntityHeader
@@ -1106,16 +1103,15 @@ export const erroredTools = new Set(
           type: 'list',
           mode: 'full',
           maxVisible: {zero: 2, md: 4},
-          items: tools.map(tool => ({
-            key: tool.name,
-            label: 'Tool',
-            type: 'text',
-            value: tool.name,
-            variant: tool.hasError ? 'danger' : undefined,
-          })),
-          sort: (a, b) =>
-            Number(erroredTools.has(b.key)) - Number(erroredTools.has(a.key)),
-          filter: entry => entry.key !== 'internal_ping',
+          items: tools
+            .filter(tool => tool.name !== 'internal_ping')
+            .toSorted((a, b) => Number(b.hasError) - Number(a.hasError))
+            .map(tool => ({
+              key: tool.name,
+              type: 'text',
+              value: tool.name,
+              variant: tool.hasError ? 'danger' : undefined,
+            })),
         },
       ],
     }}
@@ -1135,16 +1131,16 @@ export const erroredTools = new Set(
         mode: 'full',
         // Two entries in a narrow header, four once it reaches `md`.
         maxVisible: {zero: 2, md: 4},
-        items: tools.map(tool => ({
-          key: tool.name,
-          label: t('Tool'),
-          type: 'text',
-          value: tool.name,
-          variant: tool.hasError ? 'danger' : undefined,
-        })),
-        // Errored tools first, so they survive the cut.
-        sort: (a, b) => Number(erroredTools.has(b.key)) - Number(erroredTools.has(a.key)),
-        filter: entry => entry.key !== 'internal_ping',
+        items: tools
+          .filter(tool => tool.name !== 'internal_ping')
+          // Errored tools first, so they survive the cut.
+          .toSorted((a, b) => Number(b.hasError) - Number(a.hasError))
+          .map(tool => ({
+            key: tool.name,
+            type: 'text',
+            value: tool.name,
+            variant: tool.hasError ? 'danger' : undefined,
+          })),
       },
     ],
   }}

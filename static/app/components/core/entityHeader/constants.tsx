@@ -11,13 +11,3 @@ export const METADATA_TEXT_STYLES = {
   density: 'comfortable',
   wrap: 'nowrap',
 } as const satisfies EntityHeaderTextStyles;
-
-/**
- * A metadata value, which truncates rather than overflowing its item, so the
- * pipe after it follows the text a narrow header shows.
- */
-export const METADATA_VALUE_TEXT_STYLES = {
-  size: 'md',
-  density: 'comfortable',
-  ellipsis: true,
-} as const satisfies EntityHeaderTextStyles;

@@ -7,7 +7,7 @@ import type {EntityHeaderMetadataItemProps} from './items/entityHeaderMetadataIt
 import {
   EntityHeaderMetadataItem,
   EntityHeaderMetadataItemSkeleton,
-  getFilteredEntries,
+  MetadataDivider,
 } from './items/entityHeaderMetadataItem';
 import type {EntityHeaderPeopleProps} from './items/entityHeaderPeople';
 import {EntityHeaderPeople} from './items/entityHeaderPeople';
@@ -125,9 +125,9 @@ export function EntityHeader({
     .filter(
       (entry): entry is {index: number; item: EntityHeaderMetadataItemProps} =>
         Boolean(entry.item) &&
-        // A list its `filter` empties renders nothing, so it must not count
-        // as the row's last item.
-        (entry.item?.type !== 'list' || getFilteredEntries(entry.item).length > 0)
+        // An empty list renders nothing, so it must not count as the row's
+        // last item.
+        (entry.item?.type !== 'list' || entry.item.items.length > 0)
     );
 
   const peopleLoading = Boolean(people) && (isLoading || Boolean(people?.isLoading));
@@ -199,19 +199,17 @@ export function EntityHeader({
                 minHeight={METADATA_TEXT_HEIGHT}
               >
                 {metadataSlots.map(({item, index}, position) => {
-                  const hasTrailingDivider = position < metadataSlots.length - 1;
+                  const isLast = position === metadataSlots.length - 1;
+                  const trailing = isLast ? null : <MetadataDivider />;
                   return item ? (
                     <EntityHeaderMetadataItem
                       key={index}
                       {...item}
-                      hasTrailingDivider={hasTrailingDivider}
+                      trailing={trailing}
                       isLoading={isLoading}
                     />
                   ) : (
-                    <EntityHeaderMetadataItemSkeleton
-                      key={index}
-                      hasTrailingDivider={hasTrailingDivider}
-                    />
+                    <EntityHeaderMetadataItemSkeleton key={index} trailing={trailing} />
                   );
                 })}
               </Flex>
