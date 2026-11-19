@@ -6,7 +6,7 @@ import {withForm} from '@sentry/scraps/form';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
-import {ENRICHMENT_ATTRIBUTE_PREFIX} from 'sentry/views/classifiers/utils';
+import {ENRICHMENT_ATTRIBUTE_PREFIX} from 'sentry/views/classifiers/constants';
 
 import {WizardBody, WizardFooter, WizardStep} from './wizardLayout';
 

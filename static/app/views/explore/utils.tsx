@@ -86,6 +86,7 @@ export interface GetExploreUrlArgs {
   interval?: string;
   mode?: Mode;
   query?: string;
+  queryPriority?: 'normal' | 'faster';
   referrer?: string;
   selection?: PageFilters;
   sort?: string;
@@ -110,6 +111,7 @@ export function getExploreUrl({
   chartSelection,
   visualize,
   query,
+  queryPriority,
   groupBy,
   sort,
   aggregateSort,
@@ -133,6 +135,7 @@ export function getExploreUrl({
     interval,
     mode,
     query,
+    queryPriority,
     aggregateField: aggregateField?.map(v => JSON.stringify(v)),
     visualize: visualize?.map(v => JSON.stringify(v)),
     groupBy,

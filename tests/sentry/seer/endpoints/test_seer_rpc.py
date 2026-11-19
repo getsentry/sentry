@@ -545,12 +545,7 @@ class TestSeerRpcMethods(APITestCase):
         assert result.repositories[0].external_id == "123"
         assert result.repositories[0].name == "sentry"
 
-    @with_feature(
-        {
-            "organizations:seer-token-based-billing-onboarding": True,
-            "organizations:token-billed-seer-enabled": True,
-        }
-    )
+    @with_feature("organizations:token-billed-seer-enabled")
     def test_get_project_preferences_limits_automatic_repos(self) -> None:
         project = self.create_project(organization=self.organization)
         integration = self.create_integration(

@@ -19,7 +19,7 @@ import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
-import {isSeerTokenBasedBillingOnboardingEnabled} from 'sentry/utils/seer/isSeerTokenBasedBillingOnboardingEnabled';
+import {isTokenBilledSeerEnabled} from 'sentry/utils/seer/isTokenBilledSeerEnabled';
 import {
   getDeleteSeerProjectRepoOptions,
   getMutateSeerProjectReposOptionsAddRepo,
@@ -74,7 +74,7 @@ export function AutofixRepositoriesList({canWrite, includeInstructions, project}
 
   const queryClient = useQueryClient();
   const organization = useOrganization();
-  const isTokenBilled = isSeerTokenBasedBillingOnboardingEnabled(organization);
+  const isTokenBilled = isTokenBilledSeerEnabled(organization);
 
   const seerProjectReposQuery = useInfiniteQuery({
     ...getSeerProjectReposInfiniteQueryOptions({organization, project}),

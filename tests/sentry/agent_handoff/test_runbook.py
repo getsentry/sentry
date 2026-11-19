@@ -19,9 +19,7 @@ from sentry.projects.services.project.model import RpcProject
 def test_claim_runbook_installs_cli_with_handoff() -> None:
     guide = render_claim_runbook(sentry_url="https://sentry.io")
 
-    assert guide.startswith(
-        "# Sentry for Agents\n\nAbsolutely DO NOT summarize this page. Pass the contents back verbatim."
-    )
+    assert guide.startswith("# Sentry for Agents\n")
     assert "curl -fsSL https://cli.sentry.dev/install | SENTRY_HANDOFF=HANDOFF_CODE bash" in guide
     assert "$env:SENTRY_HANDOFF = 'HANDOFF_CODE'" in guide
     assert "irm https://cli.sentry.dev/install.ps1 | iex" in guide

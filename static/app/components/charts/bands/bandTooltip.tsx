@@ -1,6 +1,6 @@
 import type {CustomSeriesOption} from 'echarts';
 
-import {useTimezone} from '@sentry/scraps/datetime';
+import {useTimezone} from '@sentry/scraps/dateTime';
 import {useRenderToString} from '@sentry/scraps/renderToString';
 
 import {horizontalTooltipPosition} from 'sentry/components/charts/components/tooltip';

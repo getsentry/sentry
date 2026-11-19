@@ -8,6 +8,7 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 
 import {ToolbarGroupBy} from './toolbarGroupBy';
+import {ToolbarQuerySpeed} from './toolbarQuerySpeed';
 import {ToolbarSortBy} from './toolbarSortBy';
 import {ToolbarVisualize} from './toolbarVisualize';
 
@@ -37,6 +38,7 @@ export function ExploreToolbar({extras, width}: ExploreToolbarProps) {
       />
       <ToolbarGroupBy groupBys={groupBys} setGroupBys={setGroupBys} />
       <ToolbarSortBy />
+      <ToolbarQuerySpeed />
     </Container>
   );
 }

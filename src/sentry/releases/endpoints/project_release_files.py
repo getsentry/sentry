@@ -34,7 +34,6 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ReleaseParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import MAX_RELEASE_FILES_OFFSET
-from sentry.debug_files.release_files import maybe_renew_releasefiles
 from sentry.models.distribution import Distribution
 from sentry.models.files.file import File
 from sentry.models.project import Project
@@ -146,9 +145,6 @@ class ReleaseFilesMixin(BaseEndpointMixin):
                 data_sources.append(source)
 
         def on_results(release_files: list[ReleaseFile]) -> Any:
-            # this should filter out all the "pseudo-ReleaseFile"s
-            maybe_renew_releasefiles([rf for rf in release_files if rf.id])
-
             return serialize(load_dist(release_files), request.user)
 
         # NOTE: Returned release files are ordered by name within their block,

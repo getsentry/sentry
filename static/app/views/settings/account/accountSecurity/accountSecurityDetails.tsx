@@ -9,10 +9,10 @@ import styled from '@emotion/styled';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Flex, Grid, Container} from '@sentry/scraps/layout';
 import {toast} from '@sentry/scraps/toast';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
