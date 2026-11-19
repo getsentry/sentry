@@ -48,10 +48,10 @@ class ProjectCommitsEndpoint(ProjectEndpoint):
         # for projects with long release history.
         if query:
             queryset = queryset.filter(key__istartswith=query).distinct("key", "date_added", "id")
-            order_by: tuple[str, ...] = ("key", "-date_added", "-id")
+            order_by = ["key", "-date_added", "-id"]
         else:
             queryset = queryset.distinct("date_added", "id")
-            order_by = ("-date_added", "-id")
+            order_by = ["-date_added", "-id"]
 
         return self.paginate(
             request=request,
