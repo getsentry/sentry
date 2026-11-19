@@ -28,6 +28,10 @@ export const authV2Routes: SentryRouteObject = {
           component: make(() => import('sentry/views/authV2/authLogin')),
         },
         {
+          path: 'auth/logout/',
+          component: make(() => import('sentry/views/authV2/authLogout')),
+        },
+        {
           path: 'auth/register/',
           component: make(() => import('sentry/views/authV2/authRegister')),
         },
