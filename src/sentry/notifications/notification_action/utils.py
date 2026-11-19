@@ -297,6 +297,8 @@ def execute_via_activity_type_registry(invocation: ActionInvocation) -> None:
 
     try:
         handler.invoke_action(invocation=invocation, activity=activity)
+    except ActionTargetNotFoundError:
+        raise
     except Exception:
         logger.exception("Error invoking action via activity handler", extra=logging_ctx)
         raise

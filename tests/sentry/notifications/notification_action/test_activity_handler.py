@@ -16,7 +16,11 @@ from sentry.notifications.notification_action.utils import (
 from sentry.services.eventstore.models import GroupEvent
 from sentry.types.activity import ActivityType
 from sentry.workflow_engine.models import Action
-from sentry.workflow_engine.types import ActionInvocation, WorkflowEventData
+from sentry.workflow_engine.types import (
+    ActionInvocation,
+    ActionTargetNotFoundError,
+    WorkflowEventData,
+)
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 
@@ -107,6 +111,18 @@ class TestExecuteViaActivityTypeRegistry(ActivityHandlerTest):
         ):
             execute_via_activity_type_registry(self._make_invocation(self._make_activity()))
         self.mock_handler.invoke_action.assert_not_called()
+
+    @mock.patch("sentry.notifications.notification_action.utils.logger")
+    def test_action_target_not_found_is_not_logged(self, mock_logger: mock.MagicMock) -> None:
+        self.mock_handler.invoke_action.side_effect = ActionTargetNotFoundError("app uninstalled")
+
+        with (
+            pytest.raises(ActionTargetNotFoundError),
+            mock.patch.object(activity_handler_registry, "get", return_value=self.mock_handler),
+        ):
+            execute_via_activity_type_registry(self.invocation)
+
+        mock_logger.exception.assert_not_called()
 
 
 class TestExecuteViaGroupTypeRegistryActivityPath(ActivityHandlerTest):
