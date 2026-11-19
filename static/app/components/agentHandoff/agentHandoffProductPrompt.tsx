@@ -1,20 +1,15 @@
 import {IconCopy} from '@sentry/icons/copy';
-import {IconOpen} from '@sentry/icons/open';
-import {useStore} from 'zustand';
 
 import {Button} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
-import {ConfigStore} from 'sentry/stores/configStore';
 
 import {
-  getHandoffPreviewUrl,
   HandoffAdvancedMenu,
   HandoffPromptAlerts,
   HandoffPromptBox,
@@ -24,8 +19,8 @@ import {useHandoffPromptCopy} from './useHandoffPromptCopy';
 
 interface AgentHandoffProductPromptProps {
   /**
-   * Short phrases describing what the agent will do, shown as checkmark bullets above
-   * "View all instructions". Keep to 3–5 items.
+   * Short phrases describing what the agent will do, shown as checkmark bullets. Keep
+   * to 3–5 items.
    */
   agentSteps: string[];
   context: AddFeatureContext | null;
@@ -41,9 +36,6 @@ export function AgentHandoffProductPrompt({
   onCopySuccess,
   onSelect,
 }: AgentHandoffProductPromptProps) {
-  const sentryUrl = useStore(ConfigStore, state => state.links.sentryUrl);
-  const previewUrl = getHandoffPreviewUrl(AgentHandoffFlow.ADD_FEATURE, sentryUrl);
-
   const {copyPrompt, copyDisabled, handoff, useIpPinning, toggleIpPinning} =
     useHandoffPromptCopy({
       flow: AgentHandoffFlow.ADD_FEATURE,
@@ -101,23 +93,11 @@ export function AgentHandoffProductPrompt({
           {t('Your agent will:')}
         </Text>
         <List symbol="bullet">
-          {[
-            ...agentSteps.map(step => (
-              <ListItem key={step}>
-                <Text size="sm">{step}</Text>
-              </ListItem>
-            )),
-            <ListItem key="view-all-instructions">
-              <Text size="sm">
-                <ExternalLink href={previewUrl}>
-                  <Flex as="span" align="center" gap="xs">
-                    {t('View all instructions')}
-                    <IconOpen size="xs" />
-                  </Flex>
-                </ExternalLink>
-              </Text>
-            </ListItem>,
-          ]}
+          {agentSteps.map(step => (
+            <ListItem key={step}>
+              <Text size="sm">{step}</Text>
+            </ListItem>
+          ))}
         </List>
       </Stack>
     </Stack>

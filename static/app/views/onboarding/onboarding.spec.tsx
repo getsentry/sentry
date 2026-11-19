@@ -552,12 +552,6 @@ describe('Onboarding', () => {
         screen.getByText('Detects your stack and installs the Sentry CLI')
       ).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Advanced options'})).toBeInTheDocument();
-      expect(
-        screen.getByRole('link', {name: 'See the full instructions'})
-      ).toHaveAttribute(
-        'href',
-        'https://sentry.io/agent-handoff.md?preview=1&flow=onboarding'
-      );
       expect(screen.getByRole('button', {name: /Set up manually/})).toBeInTheDocument();
       expect(screen.queryByTestId('onboarding-welcome-start')).not.toBeInTheDocument();
       expect(screen.queryByText('Error monitoring')).not.toBeInTheDocument();

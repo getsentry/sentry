@@ -58,10 +58,6 @@ describe('AgentHandoffPrompt', () => {
       {organization}
     );
 
-    expect(screen.getByRole('link', {name: 'See the full instructions'})).toHaveAttribute(
-      'href',
-      'https://sentry.io/agent-handoff.md?preview=1&flow=onboarding'
-    );
     expect(screen.getByText(/Read and follow/)).toHaveTextContent(
       'Read and follow https://sentry-jest-tests.example.com/agent-handoff.md verbatim. Your handoff code is sntryh_****.'
     );
