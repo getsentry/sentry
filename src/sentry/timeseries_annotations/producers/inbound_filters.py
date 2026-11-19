@@ -5,7 +5,7 @@ import logging
 from django.utils import timezone
 
 from sentry import features
-from sentry.auth.principal import RequestPrincipal, acting_user_id
+from sentry.auth.principal import RequestPrincipal, acting_user, acting_user_id
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.models.custominboundfilter import DataType
 from sentry.models.project import Project
@@ -52,12 +52,24 @@ def _create_filter_change_annotation(
     principal: RequestPrincipal,
 ) -> None:
     organization = project.organization
+    actor = acting_user(principal)
     # The framework-wide flag gates every annotation producer; the use-case flag on top
-    # rolls out or kills this one producer on its own.
-    if not (
-        features.has("organizations:timeseries-annotations", organization)
-        and features.has("organizations:timeseries-annotations-usecase-filter-change", organization)
-    ):
+    # rolls out or kills this one producer on its own. Evaluate per-user (actor), matching
+    # the read endpoint, so a user-scoped rollout reaches the same person on both paths.
+    framework_on = features.has("organizations:timeseries-annotations", organization, actor=actor)
+    usecase_on = features.has(
+        "organizations:timeseries-annotations-usecase-filter-change", organization, actor=actor
+    )
+    if not (framework_on and usecase_on):
+        logger.info(
+            "timeseries_annotations.producer_skipped_flag_off",
+            extra={
+                "organization_id": organization.id,
+                "project_id": project.id,
+                "framework_flag": framework_on,
+                "usecase_flag": usecase_on,
+            },
+        )
         return
     # Best-effort context: a producer failure must never break the filter write.
     try:

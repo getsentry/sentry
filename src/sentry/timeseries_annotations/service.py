@@ -9,8 +9,10 @@ from sentry.timeseries_annotations.models import (
     AnnotationScope,
     AnnotationType,
     IntervalType,
+    Severity,
     TimeseriesAnnotation,
 )
+from sentry.utils import metrics
 from sentry.viewer_context import ActorId, ActorType
 
 
@@ -81,7 +83,7 @@ def create_timeseries_annotation(data: TimeseriesAnnotationData) -> TimeseriesAn
     """Create a timeseries annotation."""
     created_by_id, created_by_service_account_id = _actor_columns(data.created_by)
 
-    return TimeseriesAnnotation.objects.create(
+    annotation = TimeseriesAnnotation.objects.create(
         organization_id=data.organization_id,
         project_id=data.project_id,
         start_timestamp=data.start_timestamp,
@@ -98,3 +100,12 @@ def create_timeseries_annotation(data: TimeseriesAnnotationData) -> TimeseriesAn
         updated_by_service_account_id=created_by_service_account_id,
         updated_by_label=data.created_by_label,
     )
+    metrics.incr(
+        "timeseries_annotations.created",
+        tags={
+            "annotation_type": AnnotationType(annotation.annotation_type).name.lower(),
+            "interval_type": IntervalType(annotation.interval_type).name.lower(),
+            "severity": Severity(annotation.severity).name.lower(),
+        },
+    )
+    return annotation
