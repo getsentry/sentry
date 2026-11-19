@@ -359,7 +359,10 @@ class IssueProducerRecordingTest(TestCase):
         assert event.inbox_item.user_id == self.user.id
         assert event.type == "issue.pr_ready_for_review"
         assert event.data == {
-            "pr_url": "https://github.com/example/repo/pull/1",
+            "activity_id": Activity.objects.get(
+                group=self.group, type=ActivityType.SEER_PR_READY_FOR_REVIEW.value
+            ).id,
+            "pr_urls": ["https://github.com/example/repo/pull/1"],
             "seer_run_id": 123,
         }
         assert event.actor_type == InboxActorType.SYSTEM
@@ -388,21 +391,19 @@ class IssueProducerRecordingTest(TestCase):
                 },
             )
 
-        events = InboxItemEvent.objects.values_list("inbox_item__user_id", "data__pr_url")
-        assert len(events) == 4
-        assert set(events) == {
-            (self.user.id, "https://github.com/example/repo/pull/1"),
-            (self.user.id, "https://github.com/example/repo/pull/2"),
-            (teammate.id, "https://github.com/example/repo/pull/1"),
-            (teammate.id, "https://github.com/example/repo/pull/2"),
-        }
+        pr_urls = [
+            "https://github.com/example/repo/pull/1",
+            "https://github.com/example/repo/pull/2",
+        ]
+        events = InboxItemEvent.objects.values_list("inbox_item__user_id", "data__pr_urls")
+        assert sorted(events) == sorted([(self.user.id, pr_urls), (teammate.id, pr_urls)])
 
-    def test_pr_ready_deduplicates_retries_and_preserves_separate_runs(self) -> None:
+    def test_pr_ready_records_each_run(self) -> None:
         self.create_group_owner(
             group=self.group, type=GroupOwnerType.SEER_SUGGESTED.value, user_id=self.user.id
         )
         with self.options({"issues.record-seer-actions-as-activities": True}):
-            for run_id in (123, 123, 456):
+            for run_id in (123, 456):
                 record_seer_activity(
                     group=self.group,
                     event_type=SentryAppEventType.SEER_PR_READY_FOR_REVIEW,
@@ -424,7 +425,10 @@ class IssueProducerRecordingTest(TestCase):
 
         with (
             self.options({"issues.record-seer-actions-as-activities": True}),
-            patch("sentry.seer.entrypoints.operator.Activity.objects.create_group_activity"),
+            patch(
+                "sentry.seer.entrypoints.operator.Activity.objects.create_group_activity",
+                return_value=Activity(id=456, type=ActivityType.SEER_PR_READY_FOR_REVIEW.value),
+            ),
         ):
             record_seer_activity(
                 group=self.group,
@@ -443,7 +447,7 @@ class IssueProducerRecordingTest(TestCase):
             )
 
         event = InboxItemEvent.objects.get()
-        assert event.data["pr_url"] == "https://github.com/example/repo/pull/1"
+        assert event.data["pr_urls"] == ["https://github.com/example/repo/pull/1"]
 
     def test_pr_ready_without_pull_request_list(self) -> None:
         with (

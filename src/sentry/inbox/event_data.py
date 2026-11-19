@@ -21,7 +21,8 @@ class IssueMentionedDataResponse(TypedDict):
 
 
 class IssuePRReadyForReviewDataResponse(TypedDict):
-    prUrl: Annotated[str, ApiDescription("The pull request URL")]
+    activityId: Annotated[str, ApiDescription("The issue activity ID")]
+    prUrls: Annotated[list[str], ApiDescription("The pull request URLs")]
     seerRunId: Annotated[str, ApiDescription("The Seer run ID")]
 
 
@@ -77,3 +78,7 @@ class InboxEventData(ABC):
     def get_url(self, subject_url: str) -> str:
         """Override to link to something on the subject's page, such as a comment."""
         return subject_url
+
+    def get_activity_id(self) -> int | None:
+        """The ID of the Activity this event records, if any."""
+        return None

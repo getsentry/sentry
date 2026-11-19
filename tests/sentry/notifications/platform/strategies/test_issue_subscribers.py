@@ -9,7 +9,9 @@ from sentry.notifications.platform.types import (
     NotificationTargetResourceType,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
+from sentry.types.actor import ActorType
 
 
 class IssueSubscribersActivityStrategyTest(TestCase):
@@ -128,3 +130,25 @@ class IssueSubscribersActivityStrategyTest(TestCase):
 
         email_targets = [t for t in targets if t.provider_key == NotificationProviderKey.EMAIL]
         assert not any(t.resource_id == self.user.email for t in email_targets)
+
+    @with_feature(
+        ["organizations:universal-inbox-recording", "organizations:universal-inbox-notifications"]
+    )
+    def test_excludes_users_notified_through_inbox(self) -> None:
+        user_b = self.create_user(email="b@example.com")
+        self.create_member(organization=self.organization, user=user_b, teams=[self.team])
+        for u in (self.user, user_b):
+            self.create_group_subscription(group=self.group, user_id=u.id, is_active=True)
+        activity = self.create_group_activity(
+            group=self.group,
+            type=ActivityType.NOTE.value,
+            data={
+                "text": "hi",
+                "mentions": [{"id": self.user.id, "actor_type": ActorType.USER.value}],
+            },
+        )
+
+        targets = IssueSubscribersActivityStrategy(activity=activity).get_targets()
+
+        emails = {t.resource_id for t in targets if t.provider_key == NotificationProviderKey.EMAIL}
+        assert emails == {"b@example.com"}

@@ -82,6 +82,9 @@ class IssueAssignedData(InboxEventData):
     def get_url(self, subject_url: str) -> str:
         return urlsplit(subject_url)._replace(fragment=f"activity-{self.activity_id}").geturl()
 
+    def get_activity_id(self) -> int:
+        return self.activity_id
+
 
 @dataclass(frozen=True, kw_only=True)
 class IssueMentionedData(InboxEventData):
@@ -93,14 +96,26 @@ class IssueMentionedData(InboxEventData):
     def get_url(self, subject_url: str) -> str:
         return urlsplit(subject_url)._replace(fragment=f"activity-{self.comment_id}").geturl()
 
+    def get_activity_id(self) -> int:
+        # Issue comments are NOTE activities, so the comment ID is the activity ID.
+        return self.comment_id
+
 
 @dataclass(frozen=True, kw_only=True)
 class IssuePRReadyForReviewData(InboxEventData):
-    pr_url: str
+    activity_id: int
+    pr_urls: list[str]
     seer_run_id: int  # Seer DbRunState ID.
 
     def serialize(self) -> IssuePRReadyForReviewDataResponse:
-        return {"prUrl": self.pr_url, "seerRunId": str(self.seer_run_id)}
+        return {
+            "activityId": str(self.activity_id),
+            "prUrls": self.pr_urls,
+            "seerRunId": str(self.seer_run_id),
+        }
+
+    def get_activity_id(self) -> int:
+        return self.activity_id
 
 
 ISSUE = IssueItemType()
