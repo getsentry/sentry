@@ -14,7 +14,7 @@ class WorkflowActivityKind(StrEnum):
     ISSUE_MENTIONED = "issue.mentioned"
 
 
-def _get_activity_kind(event_data: WorkflowEventData) -> str | None:
+def _get_activity_kind(event_data: WorkflowEventData) -> WorkflowActivityKind | None:
     event = event_data.event
     if not isinstance(event, Activity):
         return None
