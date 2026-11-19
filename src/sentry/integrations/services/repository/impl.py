@@ -222,6 +222,13 @@ class DatabaseBackedRepositoryService(RepositoryService):
                 changes = get_repo_rename(repository, name=rename.name, url=rename.url)
                 if changes is None:
                     continue
+                # A webhook may have written newer values after the caller read the row.
+                if (
+                    repository.name != rename.expected_name
+                    or repository.url != rename.expected_url
+                    or repository.config.get("name") != rename.expected_config_name
+                ):
+                    continue
                 repository.name = changes["name"]
                 repository.url = changes["url"]
                 repository.config = changes["config"]
@@ -229,6 +236,33 @@ class DatabaseBackedRepositoryService(RepositoryService):
 
             Repository.objects.bulk_update(renamed, fields=["name", "url", "config"])
         return [repository.id for repository in renamed]
+
+    def enable_repositories_by_external_ids(
+        self,
+        *,
+        organization_id: int,
+        integration_id: int,
+        provider: str,
+        external_ids: list[str],
+    ) -> list[RpcRepository]:
+        with transaction.atomic(router.db_for_write(Repository)):
+            repositories = list(
+                Repository.objects.filter(
+                    organization_id=organization_id,
+                    integration_id=integration_id,
+                    provider=provider,
+                    external_id__in=external_ids,
+                    status=ObjectStatus.DISABLED,
+                )
+                .select_for_update()
+                .order_by("id")
+            )
+            Repository.objects.filter(id__in=[repo.id for repo in repositories]).update(
+                status=ObjectStatus.ACTIVE
+            )
+        for repository in repositories:
+            repository.status = ObjectStatus.ACTIVE
+        return [serialize_repository(repository) for repository in repositories]
 
     def transfer_repository_to_integration(
         self,

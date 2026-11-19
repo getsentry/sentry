@@ -15,6 +15,7 @@ from sentry.integrations.gitlab.integration import GitlabIntegration
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.perforce.integration import PerforceIntegrationProvider
+from sentry.integrations.services.repository.impl import DatabaseBackedRepositoryService
 from sentry.integrations.source_code_management import sync_repos as sync_repos_module
 from sentry.integrations.source_code_management.sync_repos import (
     sync_repos_for_org,
@@ -314,6 +315,90 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
             assert repo.status == ObjectStatus.PENDING_DELETION
             assert repo.name == "getsentry/old-name"
             assert repo.url == "https://github.com/getsentry/old-name"
+
+    @responses.activate
+    def test_restore_keeps_rename_that_lands_first(self, _: MagicMock) -> None:
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="getsentry/old-name",
+                url="https://github.com/getsentry/old-name",
+                config={"name": "getsentry/old-name"},
+                external_id="1",
+                provider="integrations:github",
+                integration_id=self.integration.id,
+                status=ObjectStatus.DISABLED,
+            )
+
+        self._add_repos_response([{"id": 1, "full_name": "getsentry/new-name", "name": "new-name"}])
+
+        enable = DatabaseBackedRepositoryService.enable_repositories_by_external_ids
+
+        def rename_then_enable(self: DatabaseBackedRepositoryService, **kwargs: Any) -> Any:
+            # The rename commits between the sync's read and the restore write.
+            Repository.objects.filter(id=repo.id).update(
+                name="getsentry/new-name",
+                url="https://github.com/getsentry/new-name",
+                config={"name": "getsentry/new-name"},
+            )
+            return enable(self, **kwargs)
+
+        with (
+            patch.object(
+                DatabaseBackedRepositoryService,
+                "enable_repositories_by_external_ids",
+                rename_then_enable,
+            ),
+            self.tasks(),
+        ):
+            sync_repos_for_org(self.oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo.refresh_from_db()
+            assert repo.status == ObjectStatus.ACTIVE
+            assert repo.name == "getsentry/new-name"
+            assert repo.url == "https://github.com/getsentry/new-name"
+
+    @responses.activate
+    def test_rename_skips_repo_renamed_by_webhook_after_sync_read_it(self, _: MagicMock) -> None:
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo = Repository.objects.create(
+                organization_id=self.organization.id,
+                name="getsentry/old-name",
+                url=None,
+                config={"name": "getsentry/old-name"},
+                external_id="1",
+                provider="integrations:github",
+                integration_id=self.integration.id,
+                status=ObjectStatus.ACTIVE,
+            )
+
+        # The sync sees a stale URL and queues a URL-only repair for the old name.
+        self._add_repos_response([{"id": 1, "full_name": "getsentry/old-name", "name": "old-name"}])
+
+        find_renames = sync_repos_module._find_renames
+
+        def find_renames_then_webhook(**kwargs: Any) -> list[dict[str, Any]]:
+            renames = find_renames(**kwargs)
+            with assume_test_silo_mode(SiloMode.CELL):
+                Repository.objects.filter(id=repo.id).update(
+                    name="getsentry/new-name",
+                    url="https://github.com/getsentry/new-name",
+                    config={"name": "getsentry/new-name"},
+                )
+            return renames
+
+        with (
+            patch.object(sync_repos_module, "_find_renames", side_effect=find_renames_then_webhook),
+            self.tasks(),
+        ):
+            sync_repos_for_org(self.oi.id)
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo.refresh_from_db()
+            assert repo.name == "getsentry/new-name"
+            assert repo.url == "https://github.com/getsentry/new-name"
+            assert repo.config == {"name": "getsentry/new-name"}
 
     @responses.activate
     def test_skips_disable_for_repo_with_recent_activity(self, _: MagicMock) -> None:

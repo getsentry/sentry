@@ -120,8 +120,25 @@ class RepositoryService(RpcService):
 
         Each rename applies to the current row and writes only ``name``, ``url``, and
         ``config["name"]``. It skips a repository that is no longer active or disabled,
-        such as one pending deletion, or that no longer has the given integration,
-        provider, and external id.
+        such as one pending deletion, that no longer has the given integration,
+        provider, and external id, or whose name, URL, or ``config["name"]`` changed
+        since the caller read them.
+        """
+
+    @cell_rpc_method(resolve=ByOrganizationId())
+    @abstractmethod
+    def enable_repositories_by_external_ids(
+        self,
+        *,
+        organization_id: int,
+        integration_id: int,
+        provider: str,
+        external_ids: list[str],
+    ) -> list[RpcRepository]:
+        """
+        Re-enables disabled repositories by external_id for a given integration, and
+        returns the repositories that changed. Only ``status`` is written, so a
+        concurrent rename or config change is kept.
         """
 
     @cell_rpc_method(resolve=ByOrganizationId())

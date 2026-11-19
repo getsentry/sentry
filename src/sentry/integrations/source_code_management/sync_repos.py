@@ -422,9 +422,16 @@ def _find_renames(
         url = repo_provider.build_repository_url(integration, name)
         if get_repo_rename(repo, name=name, url=url) is None:
             continue
-        renames.append(
-            RpcRepositoryRename(id=repo.id, external_id=repo.external_id, name=name, url=url).dict()
+        rename = RpcRepositoryRename(
+            id=repo.id,
+            external_id=repo.external_id,
+            expected_name=repo.name,
+            expected_url=repo.url,
+            expected_config_name=repo.config.get("name"),
+            name=name,
+            url=url,
         )
+        renames.append(rename.dict())
     return renames
 
 
@@ -573,38 +580,34 @@ def restore_repos_batch(
     integration, rpc_org, provider_key = ctx
     provider = f"integrations:{provider_key}"
 
-    all_repos = repository_service.get_repositories(
+    restored_repos = repository_service.enable_repositories_by_external_ids(
         organization_id=rpc_org.id,
         integration_id=integration.id,
-        providers=[provider],
+        provider=provider,
         external_ids=external_ids,
     )
     integration_repo_provider = get_integration_repository_provider(integration)
-    restore_set = set(external_ids)
-    for repo in all_repos:
-        if repo.external_id in restore_set:
-            repo.status = ObjectStatus.ACTIVE
-            repository_service.update_repository(organization_id=rpc_org.id, update=repo)
-            log_repo_change(
-                event_name="REPO_ENABLED",
-                organization_id=rpc_org.id,
-                repo=repo,
-                source="automatic SCM syncing",
-                provider=provider_key,
+    for repo in restored_repos:
+        log_repo_change(
+            event_name="REPO_ENABLED",
+            organization_id=rpc_org.id,
+            repo=repo,
+            source="automatic SCM syncing",
+            provider=provider_key,
+        )
+        # the repo is already restored, so a failure here must not retry the batch
+        try:
+            integration_repo_provider.on_create_repository(repo, rpc_org)
+        except Exception:
+            logger.warning(
+                "sync_repos.restore_repos_batch.on_create_failed",
+                exc_info=True,
+                extra={
+                    "organization_id": rpc_org.id,
+                    "integration_id": integration.id,
+                    "repository_id": repo.id,
+                },
             )
-            # the repo is already restored, so a failure here must not retry the batch
-            try:
-                integration_repo_provider.on_create_repository(repo, rpc_org)
-            except Exception:
-                logger.warning(
-                    "sync_repos.restore_repos_batch.on_create_failed",
-                    exc_info=True,
-                    extra={
-                        "organization_id": rpc_org.id,
-                        "integration_id": integration.id,
-                        "repository_id": repo.id,
-                    },
-                )
 
 
 @instrumented_task(

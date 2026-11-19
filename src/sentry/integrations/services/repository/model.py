@@ -35,6 +35,10 @@ class RpcCreateRepository(RpcModel):
 class RpcRepositoryRename(RpcModel):
     id: int
     external_id: str
+    # The values the caller read. The rename is skipped if the row changed since.
+    expected_name: str
+    expected_url: str | None
+    expected_config_name: str | None
     name: str
     url: str
 
