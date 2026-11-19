@@ -25,6 +25,7 @@ from sentry.auth.principal import acting_user_id
 from sentry.models.organization import Organization
 from sentry.notebooks.endpoints.base import (
     OrganizationNotebooksBaseEndpoint,
+    filter_to_service_account_projects,
     organization_project_ids,
     require_notebook_writer,
     require_project_access,
@@ -167,6 +168,7 @@ class OrganizationNotebookIndexEndpoint(OrganizationNotebooksBaseEndpoint):
         notebooks: QuerySet[Notebook] = Notebook.objects.filter(
             organization=organization, status=requested_status
         ).filter(Q(source_key__isnull=True) | ~Exists(newer_lineage_revision))
+        notebooks = filter_to_service_account_projects(request, notebooks)
         query = request.GET.get("query")
         if query:
             notebooks = notebooks.filter(title__icontains=query)
