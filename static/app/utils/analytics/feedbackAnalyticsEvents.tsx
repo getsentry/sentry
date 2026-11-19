@@ -15,12 +15,9 @@ export type FeedbackEventParameters = {
   'feedback.summary.categories-rendered': {num_categories: number};
   'feedback.summary.categories-too-few-feedbacks': Record<string, unknown>;
   'feedback.summary.category-selected': {category: string};
-  'feedback.summary.seer-cta-rendered': Record<string, unknown>;
   'feedback.summary.summary-error': Record<string, unknown>;
   'feedback.summary.summary-rendered': Record<string, unknown>;
   'feedback.summary.summary-too-few-feedbacks': Record<string, unknown>;
-  'feedback.whats-new-banner-dismissed': Record<string, unknown>;
-  'feedback.whats-new-banner-viewed': Record<string, unknown>;
 };
 
 type FeedbackEventKey = keyof FeedbackEventParameters;
@@ -33,8 +30,6 @@ export const feedbackEventMap: Record<FeedbackEventKey, string | null> = {
   'feedback.list-item-selected': 'Selected Item in Feedback List',
   'feedback.details-integration-issue-clicked':
     'Clicked Integration Issue Button in Feedback Details',
-  'feedback.whats-new-banner-dismissed': 'Dismissed Feedback Whats New Banner',
-  'feedback.whats-new-banner-viewed': 'Viewed Feedback Whats New Banner',
   'feedback.mark-spam-clicked': 'Marked Feedback as Spam',
   'feedback.list-view-setup-sidebar': 'Viewed Feedback Onboarding Sidebar',
   'feedback.no_associated_event_found': 'Associated Event Not Found in Feedback',
@@ -44,7 +39,6 @@ export const feedbackEventMap: Record<FeedbackEventKey, string | null> = {
   'feedback.summary.categories-too-few-feedbacks':
     'Too Few Feedbacks to Render Feedback Categories',
   'feedback.summary.category-selected': 'Selected Feedback Category',
-  'feedback.summary.seer-cta-rendered': 'Rendered Feedback Summary Seer CTA',
   'feedback.summary.summary-error': 'Error Rendering Feedback Summary',
   'feedback.summary.summary-rendered': 'Rendered Feedback Summary',
   'feedback.summary.summary-too-few-feedbacks':

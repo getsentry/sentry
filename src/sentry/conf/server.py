@@ -2802,7 +2802,6 @@ SENTRY_PROFILES_FILE_STORAGE_CONFIG: dict[str, Any] = {
 }
 SENTRY_CONTROL_FILE_STORAGE_BACKEND = ""
 SENTRY_CONTROL_FILE_STORAGE_CONFIG: dict[str, Any] = {}
-SENTRY_CONFIGURED_OPTION_SETTINGS: frozenset[str] = frozenset()
 SENTRY_AUTH_FLY_CLIENT_SECRET = ""
 SENTRY_AUTH_GOOGLE_CLIENT_SECRET = ""
 SENTRY_AWS_LAMBDA_SECRET_ACCESS_KEY = ""
@@ -2837,6 +2836,7 @@ SENTRY_GITHUB_CONSOLE_SDK_APP_ID: int = 0
 SENTRY_SLACK_CLIENT_ID: str = ""
 SENTRY_SLACK_STAGING_CLIENT_ID: str = ""
 SENTRY_MSTEAMS_CLIENT_ID: str = ""
+# Empty tenant ID uses the multi-tenant botframework.com OAuth authority.
 SENTRY_MSTEAMS_TENANT_ID: str = ""
 SENTRY_VERCEL_CLIENT_ID: str = ""
 SENTRY_DISCORD_APPLICATION_ID: str = ""
@@ -2865,8 +2865,6 @@ SENTRY_DSYM_CACHE_PATH: str = "/tmp/sentry-dsym-cache"
 SENTRY_RELEASEFILE_CACHE_PATH: str = "/tmp/sentry-releasefile-cache"
 SENTRY_MAIL_ENABLE_REPLIES: bool = False
 SENTRY_MAIL_REPLY_HOSTNAME: str = ""
-SENTRY_SYSTEM_SUPPORT_EMAIL: str = ""
-SENTRY_SYSTEM_SECURITY_EMAIL: str = ""
 SENTRY_U2F_FACETS: list[str] = []
 SENTRY_SMS_TWILIO_ACCOUNT: str = ""
 SENTRY_SMS_TWILIO_NUMBER: str = ""
@@ -2883,6 +2881,9 @@ EMAIL_SUBJECT_PREFIX = DEAD
 # Shared btw Auth Provider and Social Auth Plugin
 GITHUB_APP_ID = DEAD
 GITHUB_API_SECRET = DEAD
+# The GitHub login client ID before single-organization mode replaces
+# GITHUB_APP_ID with the integration app's. Bootstrap derives it.
+SENTRY_GITHUB_LOGIN_CLIENT_ID: str = ""
 
 # Used by Auth Provider
 GITHUB_REQUIRE_VERIFIED_EMAIL = DEAD
@@ -3276,9 +3277,9 @@ SYMBOLICATOR_POLL_TIMEOUT = 5
 # defined in `src/sentry/lang/native/symbolicator.py`.
 # If a specific setting does not exist, this will fall back to the `default` pool.
 # If that is not configured, it will fall back to the `url` configured in
-# `symbolicator.options`.
+# `SENTRY_SYMBOLICATOR_OPTIONS`.
 # The settings here are intentionally empty and will fall back to
-# `symbolicator.options` for backwards compatibility.
+# `SENTRY_SYMBOLICATOR_OPTIONS` for deployments with a single pool.
 SYMBOLICATOR_POOL_URLS: dict[str, str] = {
     # "default": "...",
     # "js": "...",
@@ -3622,12 +3623,6 @@ USE_ROLE_SWAPPING_IN_TESTS = True
 
 # Threshold for the number of timeouts needed in a day to disable an integration
 BROKEN_TIMEOUT_THRESHOLD = 1000
-
-# This webhook url can be configured to log the changes made to runtime options as they
-# are changed by sentry configoptions.
-OPTIONS_AUTOMATOR_SLACK_WEBHOOK_URL: str | None = None
-
-OPTIONS_AUTOMATOR_HMAC_SECRET: str | None = None
 
 # Controls whether the SDK will send the metrics upstream to the S4S transport.
 SENTRY_SDK_UPSTREAM_METRICS_ENABLED = False
