@@ -2,7 +2,7 @@ from unittest.mock import patch
 
 import pytest
 import requests
-from django.http.response import HttpResponseBase
+from django.http import HttpResponse
 from django.test import override_settings
 
 from sentry.attachments.base import CachedAttachment
@@ -259,7 +259,7 @@ class EventAttachmentDetailsPermissionTest(PermissionTestCase, CreateAttachmentM
         close_streaming_response(self.assert_member_can_access(self.path))
         close_streaming_response(self.assert_can_access(self.owner, self.path))
 
-    def _get_as_service_account(self, scope_list: list[str]) -> HttpResponseBase:
+    def _get_as_service_account(self, scope_list: list[str]) -> HttpResponse:
         service_account = self.create_service_account(
             organization=self.organization, scope_list=scope_list, all_projects=True
         )
@@ -275,14 +275,16 @@ class EventAttachmentDetailsPermissionTest(PermissionTestCase, CreateAttachmentM
     @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
     @with_feature(["organizations:event-attachments", "organizations:service-accounts"])
     def test_service_account_needs_attachment_scope(self) -> None:
-        response = self._get_as_service_account(["event:read"])
+        response = self._get_as_service_account(["project:read", "event:read"])
         assert response.status_code == 403, response.content
 
     @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
     @with_feature(["organizations:event-attachments", "organizations:service-accounts"])
     def test_service_account_with_attachment_scope_ignores_role(self) -> None:
         self.organization.update_option("sentry:attachments_role", "owner")
-        response = self._get_as_service_account(["event:read", "event_attachment:read"])
+        response = self._get_as_service_account(
+            ["project:read", "event:read", "event_attachment:read"]
+        )
         assert response.status_code == 200, response.content
         close_streaming_response(response)
 
