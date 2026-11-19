@@ -136,9 +136,13 @@ class RepositoryService(RpcService):
         external_ids: list[str],
     ) -> list[RpcRepository]:
         """
-        Re-enables disabled repositories by external_id for a given integration, and
-        returns the repositories that changed. Only ``status`` is written, so a
-        concurrent rename or config change is kept.
+        Re-enables disabled repositories by external_id for a given integration. Only
+        ``status`` is written, so a concurrent rename or config change is kept.
+
+        Returns every matching repository that is now active, including ones that
+        were already active. A caller that failed after an earlier call can retry
+        and repeat its follow-up steps. Repositories in any other status, such as
+        pending deletion, are left alone and not returned.
         """
 
     @cell_rpc_method(resolve=ByOrganizationId())

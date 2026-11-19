@@ -252,14 +252,14 @@ class DatabaseBackedRepositoryService(RepositoryService):
                     integration_id=integration_id,
                     provider=provider,
                     external_id__in=external_ids,
-                    status=ObjectStatus.DISABLED,
+                    status__in=[ObjectStatus.ACTIVE, ObjectStatus.DISABLED],
                 )
                 .select_for_update()
                 .order_by("id")
             )
-            Repository.objects.filter(id__in=[repo.id for repo in repositories]).update(
-                status=ObjectStatus.ACTIVE
-            )
+            Repository.objects.filter(
+                id__in=[repo.id for repo in repositories], status=ObjectStatus.DISABLED
+            ).update(status=ObjectStatus.ACTIVE)
         for repository in repositories:
             repository.status = ObjectStatus.ACTIVE
         return [serialize_repository(repository) for repository in repositories]

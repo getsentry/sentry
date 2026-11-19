@@ -792,15 +792,16 @@ class EnableRepositoriesByExternalIdsTest(TestCase):
             external_ids=external_ids,
         )
 
-    def test_enables_only_disabled_repositories(self) -> None:
+    def test_enables_disabled_and_returns_active_repositories(self) -> None:
         disabled = self._create_repo("1", ObjectStatus.DISABLED)
         pending_deletion = self._create_repo("2", ObjectStatus.PENDING_DELETION)
+        # Already active, for example enabled by an earlier attempt that failed later.
         active = self._create_repo("3", ObjectStatus.ACTIVE)
 
         result = self._enable(["1", "2", "3"])
 
-        assert [repo.id for repo in result] == [disabled.id]
-        assert result[0].status == ObjectStatus.ACTIVE
+        assert [repo.id for repo in result] == [disabled.id, active.id]
+        assert {repo.status for repo in result} == {ObjectStatus.ACTIVE}
         disabled.refresh_from_db()
         pending_deletion.refresh_from_db()
         active.refresh_from_db()
