@@ -47,8 +47,10 @@ role-to-side mapping — callers express whose turn it is, not the layout.
 `density` sets the row's vertical breathing room. It defaults to `default`, the
 spacing for a full message turn. Use `compact` for sub-turn connective content —
 tool calls, reasoning — or on a surface that stacks turns directly and reads too
-airy at the default spacing. The row owns the token-to-pixel mapping, so callers
-express intent, not spacing.
+airy at the default spacing. Use `line` for a run of one-line rows, like tool
+calls and reasoning stacked between two messages, so they're spaced like the rows
+of one list. The row owns the token-to-pixel mapping, so callers express intent,
+not spacing.
 
 <Storybook.Demo align="stretch">
   <Container width="100%" background="secondary" radius="md">

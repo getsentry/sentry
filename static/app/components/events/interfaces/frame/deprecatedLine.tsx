@@ -187,7 +187,7 @@ export function DeprecatedLine({
   };
 
   const activeLineNumber = data.lineNo;
-  const contextLine = (data?.context || []).find((l: any) => l[0] === activeLineNumber);
+  const contextLine = data.context?.find(([lineNo]) => lineNo === activeLineNumber);
   // InApp or .NET because of: https://learn.microsoft.com/en-us/dotnet/standard/library-guidance/sourcelink
   const hasStacktraceLink =
     (data.inApp || event.platform === 'csharp') &&
@@ -256,7 +256,7 @@ export function DeprecatedLine({
               <ErrorBoundary>
                 <StacktraceLink
                   frame={data}
-                  line={contextLine ? contextLine[1] : ''}
+                  line={contextLine?.[1] ?? ''}
                   event={event}
                   disableSetup={isHoverPreviewed}
                 />

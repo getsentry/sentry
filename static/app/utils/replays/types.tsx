@@ -132,10 +132,12 @@ export type RawBreadcrumbFrame = TRawBreadcrumbFrame | ExtraBreadcrumbTypes;
 export type BreadcrumbFrameEvent = TBreadcrumbFrameEvent;
 export type RecordingFrame = TEventWithTime;
 export type OptionFrame = TOptionFrameEvent['data']['payload'];
-export type RawSpanFrame =
-  | Exclude<TRawSpanFrame, {op: ReplayWebVitalFrameOps}>
-  | CompatibleReplayWebVitalFrame;
-export type SpanFrameEvent = TSpanFrameEvent;
+export type RawSpanFrame = OptionalDescription<
+  Exclude<TRawSpanFrame, {op: ReplayWebVitalFrameOps}> | CompatibleReplayWebVitalFrame
+>;
+export type SpanFrameEvent = Omit<TSpanFrameEvent, 'data'> & {
+  data: Omit<TSpanFrameEvent['data'], 'payload'> & {payload: RawSpanFrame};
+};
 
 export function isRecordingFrame(
   attachment: Record<string, any>
@@ -319,6 +321,14 @@ type HydratedTimestamp = {
  */
 type OptionalData<T> = T extends {data: infer Data} ? Omit<T, 'data'> & {data?: Data} : T;
 
+/**
+ * Span frames can arrive without a `description`, even though the SDK types
+ * say it is required. For example, a `beforeAddRecordingEvent` hook can remove it.
+ */
+type OptionalDescription<T> = T extends {description: infer Description}
+  ? Omit<T, 'description'> & {description?: Description}
+  : T;
+
 type HydratedBreadcrumb<Category extends string> = Overwrite<
   OptionalData<Extract<TRawBreadcrumbFrame | ExtraBreadcrumbTypes, {category: Category}>>,
   HydratedTimestamp
@@ -351,7 +361,7 @@ type HydratedStartEndDate = {
   timestampMs: number;
 };
 type HydratedSpan<Op extends string> = Overwrite<
-  OptionalData<Extract<TRawSpanFrame, {op: Op}>>,
+  OptionalDescription<OptionalData<Extract<TRawSpanFrame, {op: Op}>>>,
   HydratedStartEndDate // TODO: do we need `{id:string}` added too?
 >;
 
@@ -431,7 +441,10 @@ export const BreadcrumbCategories = [
 ];
 
 // Spans
-export type SpanFrame = Overwrite<TRawSpanFrame, HydratedStartEndDate>;
+export type SpanFrame = Overwrite<
+  OptionalDescription<TRawSpanFrame>,
+  HydratedStartEndDate
+>;
 export type WebVitalFrame = HydratedSpan<
   | 'largest-contentful-paint'
   | 'cumulative-layout-shift'

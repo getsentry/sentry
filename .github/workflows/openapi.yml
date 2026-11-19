@@ -27,12 +27,12 @@ jobs:
           filters: .github/file-filters.yml
 
       - name: Setup sentry env
-        uses: ./.github/actions/setup-sentry
+        uses: $/.github/actions/setup-sentry
         with:
           mode: migrations
         if: steps.changes.outputs.api_client == 'true'
 
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: $/.github/actions/setup-node-pnpm
 
       - name: Build OpenAPI Derefed JSON
         if: steps.changes.outputs.api_client == 'true'
@@ -128,7 +128,7 @@ jobs:
 
       - name: Prepare release
         if: steps.preflight.outputs.version != ''
-        uses: getsentry/craft@v3
+        uses: getsentry/craft@b2a6fa4904f37b46f34b82330e0f3bf02a40f681 # 3.13.0
         env:
           GITHUB_TOKEN: ${{ steps.token.outputs.token }}
         with:

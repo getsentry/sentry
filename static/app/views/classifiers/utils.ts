@@ -7,19 +7,13 @@ import {
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types/core';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+import {ENRICHMENT_ATTRIBUTE_PREFIX} from './constants';
 import type {ClassifierDataset, ClassifierOutputType} from './types';
-
-export const CLASSIFIER_PREVIEW_PER_PAGE = 10;
-
-export const CLASSIFIER_DETAIL_DEFAULT_SELECTION = {
-  datetime: {period: '24h', start: null, end: null, utc: null},
-} satisfies Partial<PageFilters>;
 
 export function filterQueryHasEnvironment(filterQuery: string) {
   return new MutableSearch(filterQuery)
@@ -174,8 +168,6 @@ export function getClassifierFilterParts(filterQuery: string): ClassifierFilterP
     : {environments: [], agents: [], query: filterQuery};
 }
 
-export const ENRICHMENT_ATTRIBUTE_PREFIX = 'sentry.enrichment.';
-
 export function getClassifiersPath(organizationSlug: string) {
   return normalizeUrl(`/organizations/${organizationSlug}/seer/classifiers/`);
 }
@@ -207,6 +199,14 @@ export function getOutputTypeLabel(outputType: ClassifierOutputType) {
 
 export function getResultAttributeKey(resultAttribute: string) {
   return `${ENRICHMENT_ATTRIBUTE_PREFIX}${resultAttribute}`;
+}
+
+export function getResultField(resultAttribute: string) {
+  return `tags[${getResultAttributeKey(resultAttribute)},number]`;
+}
+
+export function getHasResultQuery(resultAttribute: string) {
+  return `has:${getResultField(resultAttribute)}`;
 }
 
 export function getEnvironmentsFilter(environments: readonly string[]) {

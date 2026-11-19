@@ -122,6 +122,8 @@ export const ALLOWED_SCOPES = [
   'project:read',
   'project:releases',
   'project:write',
+  'service_account:read',
+  'service_account:write',
   'team:admin',
   'team:read',
   'team:write',

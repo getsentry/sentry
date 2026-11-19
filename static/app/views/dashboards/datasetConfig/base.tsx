@@ -16,6 +16,7 @@ import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import type {
   DashboardFilters,
+  DashboardQueryPriority,
   DisplayType,
   Widget,
   WidgetQuery,
@@ -250,7 +251,8 @@ export interface DatasetConfig<SeriesResponse, TableResponse> {
     meta: MetaType,
     widget?: Widget,
     organization?: Organization,
-    dashboardFilters?: DashboardFilters
+    dashboardFilters?: DashboardFilters,
+    queryPriority?: DashboardQueryPriority
   ) => ReturnType<typeof getFieldRenderer>;
   /**
    * Generate field header used for mapping column

@@ -7,11 +7,12 @@ import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {Referrer} from 'sentry/views/classifiers/constants';
 import type {TelemetryClassifier} from 'sentry/views/classifiers/types';
-import {getResultAttributeKey} from 'sentry/views/classifiers/utils';
 import type {Conversation} from 'sentry/views/explore/conversations/hooks/useConversations';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 
+import {useClassifierOutput} from './useClassifierOutput';
 import {useClassifierPageFilters} from './useClassifierPageFilters';
 
 const CLASSIFIED_CONVERSATIONS_PER_PAGE = 20;
@@ -38,13 +39,15 @@ export function useClassifiedConversations(classifier: TelemetryClassifier) {
   const selection = useClassifierPageFilters(classifier);
   const datetimeParams = normalizeDateTimeParams(selection.datetime);
   const {cursor, setCursor, unsetCursor} = useTableCursor();
-  const [sort, setSortState] = useQueryState(
+  const [sortState, setSortState] = useQueryState(
     'sort',
     parseAsStringLiteral(CLASSIFIED_CONVERSATION_SORTS)
       .withDefault('-age')
       .withOptions({history: 'replace'})
   );
-  const resultField = `tags[${getResultAttributeKey(classifier.resultAttribute)},number]`;
+  const {isFiltered, resultField, resultQuery} = useClassifierOutput(classifier);
+  const sort: ClassifiedConversationSort =
+    isFiltered && sortState.endsWith('result') ? '-age' : sortState;
   const project = [Number(classifier.projectId)];
 
   const sortDirection = sort.startsWith('-') ? '-' : '';
@@ -66,14 +69,14 @@ export function useClassifiedConversations(classifier: TelemetryClassifier) {
         query: {
           dataset: DiscoverDatasets.ENRICHMENT_ATTRIBUTES,
           field: [CONVERSATION_ID_FIELD, resultField, TIMESTAMP_FIELD],
-          query: `has:${resultField}`,
+          query: resultQuery,
           sort: `${sortDirection}${sortField}`,
           per_page: CLASSIFIED_CONVERSATIONS_PER_PAGE,
           cursor,
           project,
           environment: selection.environments,
           ...datetimeParams,
-          referrer: 'api.classifiers.detail.conversations',
+          referrer: Referrer.DETAIL_CONVERSATIONS,
         },
         staleTime: 60_000,
       }

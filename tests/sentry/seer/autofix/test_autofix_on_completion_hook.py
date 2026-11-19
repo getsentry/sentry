@@ -493,6 +493,52 @@ class TestAutofixOnCompletionHookPipeline(TestCase):
         mock_trigger.assert_not_called()
 
     @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_agent")
+    def test_maybe_continue_pipeline_past_stopping_point(self, mock_trigger: MagicMock) -> None:
+        """Does not continue when a user ran a step past the stopping point."""
+        state = run_state(
+            blocks=[root_cause_memory_block(), solution_memory_block()],
+            metadata={
+                "group_id": self.group.id,
+                "stopping_point": AutofixStoppingPoint.ROOT_CAUSE.value,
+            },
+        )
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
+        mock_trigger.assert_not_called()
+
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_agent")
+    def test_maybe_continue_pipeline_continues_from_a_later_step(
+        self, mock_trigger: MagicMock
+    ) -> None:
+        """Continues from a step after the first one when the stopping point is still ahead."""
+        state = run_state(
+            blocks=[root_cause_memory_block(), solution_memory_block()],
+            metadata={
+                "group_id": self.group.id,
+                "stopping_point": AutofixStoppingPoint.CODE_CHANGES.value,
+            },
+        )
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
+        mock_trigger.assert_called_once()
+        assert mock_trigger.call_args.kwargs["step"] == AutofixStep.CODE_CHANGES
+
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_push_changes")
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_agent")
+    def test_maybe_continue_pipeline_ignores_a_step_outside_the_pipeline(
+        self, mock_trigger: MagicMock, mock_push_changes: MagicMock
+    ) -> None:
+        """Does nothing after a step that has no place in the pipeline order."""
+        state = run_state(
+            blocks=[root_cause_memory_block(), pr_iteration_memory_block()],
+            metadata={
+                "group_id": self.group.id,
+                "stopping_point": AutofixStoppingPoint.ROOT_CAUSE.value,
+            },
+        )
+        AutofixOnCompletionHook._maybe_continue_pipeline(self.organization, 123, state, self.group)
+        mock_trigger.assert_not_called()
+        mock_push_changes.assert_not_called()
+
+    @patch("sentry.seer.autofix.on_completion_hook.trigger_autofix_agent")
     def test_maybe_continue_pipeline_continues_to_next_step(self, mock_trigger: MagicMock) -> None:
         """Continues to next step when not at stopping point."""
         # No handoff configured - should continue with normal pipeline.
@@ -1348,9 +1394,7 @@ class TestPrIterationCompletionHook(TestCase):
     def test_a_branch_moved_retry_refused_for_credits_marks_the_run(
         self, mock_check_seer_credits: MagicMock
     ) -> None:
-        with self.feature(
-            ["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"]
-        ):
+        with self.feature("organizations:token-billed-seer-enabled"):
             outcome, retried = self._branch_moved_push(self._branch_moved())
 
         assert outcome == PrIterationOutcome.SENTRY_OUT_OF_CREDITS

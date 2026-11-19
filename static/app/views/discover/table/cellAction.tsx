@@ -3,6 +3,7 @@ import {IconEllipsis} from '@sentry/icons/ellipsis';
 
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
+import {getDuration} from '@sentry/scraps/duration';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {RevealOnHover} from '@sentry/scraps/revealOnHover';
@@ -17,7 +18,6 @@ import {
   isEquationAlias,
   isRelativeSpanOperationBreakdownField,
 } from 'sentry/utils/discover/fields';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 
 import type {TableColumn} from './types';
@@ -45,7 +45,7 @@ export function updateQuery(
 
   if (column.type === 'duration' && typeof value === 'number') {
     // values are assumed to be in milliseconds
-    value = getDuration(value / 1000, 2, true);
+    value = getDuration(value / 1000, {precision: 2, style: 'short'});
   }
 
   // De-duplicate array values

@@ -47,7 +47,7 @@ const FILTERS = {
     types.length === 0 || types.includes(item.op),
 
   searchTerm: (item: SpanFrame, searchTerm: string) =>
-    JSON.stringify(item.description).toLowerCase().includes(searchTerm),
+    !searchTerm || (item.description?.toLowerCase().includes(searchTerm) ?? false),
 };
 
 export function useNetworkFilters({networkFrames}: Options): Return {

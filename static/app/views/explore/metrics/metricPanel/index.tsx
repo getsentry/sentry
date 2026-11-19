@@ -28,6 +28,7 @@ import {
 } from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeTransformations';
 import {EXPLORE_FIVE_MIN_STALE_TIME} from 'sentry/views/explore/constants';
 import {useMetricsPanelAnalytics} from 'sentry/views/explore/hooks/useAnalytics';
+import {useExploreQuerySpeed} from 'sentry/views/explore/hooks/useExploreQuerySpeed';
 import {useMetricOptions} from 'sentry/views/explore/hooks/useMetricOptions';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
 import {
@@ -179,6 +180,7 @@ export function MetricPanel({
   });
 
   const areHeatMapsEnabled = canUseMetricsHeatMap(organization);
+  const {isReady: querySpeedReady, samplingMode} = useExploreQuerySpeed();
 
   const {result: timeseriesResult} = useMetricTimeseries({
     traceMetric,
@@ -207,8 +209,9 @@ export function MetricPanel({
     traceMetric,
     query: userQuery,
     interval: heatMapBucketDimensions?.interval,
+    sampling: samplingMode,
     yBuckets: heatMapBucketDimensions?.yBuckets,
-    enabled: areHeatMapsEnabled && isHeatmap && !isMetricOptionsEmpty,
+    enabled: areHeatMapsEnabled && isHeatmap && !isMetricOptionsEmpty && querySpeedReady,
   });
 
   useMetricsPanelAnalytics({

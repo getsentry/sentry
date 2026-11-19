@@ -22,6 +22,7 @@ interface AgenticSetupProps {
   feedbackSource: string;
   hasInitFailed: boolean;
   hasProgressFailed: boolean;
+  hasRunFailed: boolean;
   isAgentConnected: boolean;
   issueLinkReferrer: string;
   onCopyCommand: (source: AgentSetupCopySource, handoffId: string) => void;
@@ -34,13 +35,13 @@ interface AgenticSetupProps {
   handoffFlow?: AgentHandoffFlow;
   /** Tilts the setup card and adds the stacked brand border and shadows. */
   layered?: boolean;
-  onboardingCode?: string;
+  /** Rendered at the end of the row under the progress list. */
+  metaAction?: React.ReactNode;
 }
 
 export function AgenticSetup({
   hasInitFailed,
   isAgentConnected,
-  onboardingCode,
   onCopyCommand,
   onRetry,
   onSelectSnippet,
@@ -48,12 +49,13 @@ export function AgenticSetup({
   feedbackSource,
   issueLinkReferrer,
   hasProgressFailed,
+  hasRunFailed,
   onRefresh,
   run,
   handoffFlow = AgentHandoffFlow.ONBOARDING,
   layered = false,
+  metaAction,
 }: AgenticSetupProps) {
-  const hasRunFailed = run?.runStatus === 'failed' || run?.runStatus === 'cancelled';
   const showsProgress =
     Boolean(run) && (isAgentConnected || run?.runStatus === 'completed' || hasRunFailed);
 
@@ -108,8 +110,8 @@ export function AgenticSetup({
             >
               <AgenticProgress
                 run={run}
-                onboardingCode={onboardingCode}
                 issueLinkReferrer={issueLinkReferrer}
+                metaAction={metaAction}
               />
             </MotionContainer>
           ) : (

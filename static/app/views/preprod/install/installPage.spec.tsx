@@ -6,7 +6,7 @@ import {
 
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
-import {DateTimeProvider} from '@sentry/scraps/datetime';
+import {DateTimeProvider} from '@sentry/scraps/dateTime';
 
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {BuildDetailsSizeAnalysisState} from 'sentry/views/preprod/types/buildDetailsTypes';
@@ -149,7 +149,7 @@ describe('InstallPage', () => {
     });
 
     render(
-      <DateTimeProvider value={{timezone: 'America/Los_Angeles', clockDisplay: '12'}}>
+      <DateTimeProvider value={{timezone: 'America/Los_Angeles', clock: '12'}}>
         <ExampleInstallPage />
       </DateTimeProvider>,
       {organization, initialRouterConfig}

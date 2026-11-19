@@ -57,7 +57,7 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: $/.github/actions/setup-node-pnpm
 
       # Setup custom TypeScript matcher, see https://github.com/actions/setup-node/issues/97
       - name: setup matchers
@@ -65,8 +65,8 @@ jobs:
           echo "::remove-matcher owner=masters::"
           echo "::add-matcher::.github/tsc.json"
 
-      - name: tsc
-        id: tsc
+      - name: Type check with tsrs
+        id: typecheck
         run: pnpm run typecheck
 
   oxlint:
@@ -85,7 +85,7 @@ jobs:
         with:
           fetch-depth: ${{ github.event_name == 'pull_request' && '100' || '1' }}
 
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: $/.github/actions/setup-node-pnpm
 
       - name: Find verified lint baseline
         if: github.event_name == 'pull_request'
@@ -149,7 +149,7 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/master' && needs.oxlint.outputs.budgets == 'stale'
     permissions:
       contents: read
-    uses: ./.github/workflows/prune-oxlint-suppressions.yml
+    uses: $/.github/workflows/prune-oxlint-suppressions.yml
     secrets:
       SENTRY_INTERNAL_APP_PRIVATE_KEY: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
@@ -165,7 +165,7 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: $/.github/actions/setup-node-pnpm
 
       - name: ${{ matrix.command }}
         run: pnpm run ${{ matrix.command }}
@@ -185,7 +185,7 @@ jobs:
           # PRs need history for git merge-base to find the fork point.
           fetch-depth: ${{ github.event_name == 'pull_request' && '100' || '1' }}
 
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: $/.github/actions/setup-node-pnpm
 
       - name: Test workspace CI runner
         run: node --test scripts/testCi.test.ts
@@ -240,7 +240,7 @@ jobs:
       # runner truncates whenever a step starts (getsentry/sentry#127566). It is also
       # a composite action, and the runner corrupts shared job state when a composite
       # overlaps another step (actions/runner#4789).
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: $/.github/actions/setup-node-pnpm
 
       # None of these depend on each other, fetch them all at once. Nothing in this
       # group may read $GITHUB_EVENT_PATH (e.g. actions/setup-node, pnpm/action-setup,
@@ -294,7 +294,7 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: $/.github/actions/setup-node-pnpm
 
       - name: Generate form field registry
         run: node scripts/extractFormFields.ts
@@ -319,7 +319,7 @@ jobs:
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: $/.github/actions/setup-node-pnpm
 
       - name: Generate embed widgets
         run: pnpm run gen:embed-widgets
