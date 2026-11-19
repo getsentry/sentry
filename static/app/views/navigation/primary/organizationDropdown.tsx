@@ -37,6 +37,7 @@ import type {Organization, OrganizationSummary} from 'sentry/types/organization'
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
+import {groupProjectsByMembership} from 'sentry/utils/project/groupProjectsByMembership';
 import {sortProjectsByBookmarkAndMembership} from 'sentry/utils/project/sortProjects';
 import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
@@ -174,14 +175,6 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   const createOrganizationItem = makeCreateOrganizationMenuItem();
 
   if (settingsV3) {
-    const memberProjects = sortProjectsByBookmarkAndMembership(
-      projects.filter(project => project.isMember),
-      bookmarkedSnapshot
-    );
-    const otherProjects = sortProjectsByBookmarkAndMembership(
-      projects.filter(project => !project.isMember),
-      bookmarkedSnapshot
-    );
     // Unbookmarked projects fill the remaining slots, so the list is not empty
     // when nothing is bookmarked.
     const quickAccessProjects = sortProjectsByBookmarkAndMembership(
@@ -312,24 +305,15 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                       maxWidth: ORGANIZATION_MENU_MAX_WIDTH,
                     },
                     hidden: projects.length === 0,
-                    children: [
-                      {
-                        key: 'my-projects',
-                        label: t('My Projects'),
-                        hidden: memberProjects.length === 0,
-                        children: memberProjects.map(project =>
+                    children: groupProjectsByMembership(projects, bookmarkedSnapshot).map(
+                      group => ({
+                        key: group.key,
+                        label: group.label,
+                        children: group.projects.map(project =>
                           makeSettingsProjectMenuItem(project, 'all_projects')
                         ),
-                      },
-                      {
-                        key: 'other-projects',
-                        label: t('Other Projects'),
-                        hidden: otherProjects.length === 0,
-                        children: otherProjects.map(project =>
-                          makeSettingsProjectMenuItem(project, 'all_projects')
-                        ),
-                      },
-                    ],
+                      })
+                    ),
                   },
                   {
                     key: 'create-project',
