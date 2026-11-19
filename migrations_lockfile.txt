@@ -27,7 +27,7 @@ monitors: 0031_drop_checkin_env_status_index
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
-notebooks: 0004_add_notebook_org_auth_token_creator
+notebooks: 0005_workflow_notebooks
 
 notifications: 0019_require_inbox_event_idempotency_key
 
