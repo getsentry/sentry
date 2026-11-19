@@ -20,6 +20,7 @@ from fixtures.partitions import (
     fixture_project_state,
     fixture_tables,
 )
+from sentry.db.models import FlexibleForeignKey
 from sentry.db.partitions import sql
 from sentry.db.partitions.catalog import (
     PartitionedTableInfo,
@@ -234,6 +235,70 @@ class PartitionedIndexTest(TransactionTestCase):
                 f"SET lock_timeout TO '{previous}'",
             ]
             assert self.session_lock_timeout() == previous
+
+    def indexes_on(self, column: str) -> list[str]:
+        """Indexes on the parent and its partitions that cover ``column``."""
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT indexname FROM pg_indexes WHERE tablename LIKE %s AND indexdef LIKE %s",
+                [f"{RANGE_TABLE}%", f"%({column}%"],
+            )
+            return [row[0] for row in cursor.fetchall()]
+
+    def test_alter_field_removes_index(self) -> None:
+        with fixture_tables(), override_settings(ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT="10s"):
+            # Foreign keys are indexed by default.
+            assert len(self.indexes_on("parent_id")) == 4
+            old = RangePartitionedFixture._meta.get_field("parent")
+            assert isinstance(old, models.Field)
+            new: models.Field[Any, Any] = FlexibleForeignKey(
+                HashPartitionedFixture, null=True, db_constraint=False, db_index=False
+            )
+            new.set_attributes_from_name("parent")
+            new.model = RangePartitionedFixture
+            with CaptureQueriesContext(connection) as queries, safe_editor() as editor:
+                editor.alter_field(RangePartitionedFixture, old, new)
+            drops = [q["sql"] for q in queries.captured_queries if "DROP INDEX" in q["sql"]]
+            assert len(drops) == 1
+            assert drops[0].startswith("DROP INDEX IF EXISTS ")
+            assert "SET lock_timeout TO '10s'" in [q["sql"] for q in queries.captured_queries]
+            assert self.indexes_on("parent_id") == []
+
+    def test_remove_conditional_unique_constraint(self) -> None:
+        constraint = models.UniqueConstraint(
+            fields=["value", "date_added"],
+            condition=models.Q(value__gt=0),
+            name="fx_partitions_range_cond_uniq",
+        )
+        with fixture_tables():
+            # Backed by a unique index rather than a constraint.
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f'CREATE UNIQUE INDEX "{constraint.name}" ON "{RANGE_TABLE}" '
+                    "(value, date_added) WHERE value > 0"
+                )
+            with CaptureQueriesContext(connection) as queries, safe_editor() as editor:
+                editor.remove_constraint(RangePartitionedFixture, constraint)
+            drops = [q["sql"] for q in queries.captured_queries if "DROP INDEX" in q["sql"]]
+            assert drops == [f'DROP INDEX IF EXISTS "{constraint.name}"']
+            with connection.cursor() as cursor:
+                cursor.execute(sql.TABLE_EXISTS, [constraint.name])
+                assert cursor.fetchone() == (False,)
+
+    def test_index_drops_on_unpartitioned_tables_stay_concurrent(self) -> None:
+        with fixture_tables(partitioned=False):
+            old = RangePartitionedFixture._meta.get_field("parent")
+            assert isinstance(old, models.Field)
+            new: models.Field[Any, Any] = FlexibleForeignKey(
+                HashPartitionedFixture, null=True, db_constraint=False, db_index=False
+            )
+            new.set_attributes_from_name("parent")
+            new.model = RangePartitionedFixture
+            with CaptureQueriesContext(connection) as queries, safe_editor() as editor:
+                editor.alter_field(RangePartitionedFixture, old, new)
+            drops = [q["sql"] for q in queries.captured_queries if "DROP INDEX" in q["sql"]]
+            assert len(drops) == 1
+            assert drops[0].startswith("DROP INDEX CONCURRENTLY IF EXISTS ")
 
     def test_remove_index_gives_up_waiting_for_the_lock(self) -> None:
         with fixture_tables(), override_settings(ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT="100ms"):

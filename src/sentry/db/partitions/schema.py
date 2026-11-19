@@ -212,6 +212,14 @@ class PartitioningSchemaEditorMixin(PostgresDatabaseSchemaEditor):
                 yield part
 
 
+_DELETE_INDEX_TEMPLATES = ("sql_delete_index", "sql_delete_index_concurrently")
+_DEFAULT_LOCK_TIMEOUT = sql.DEFAULT_LOCK_TIMEOUT
+
+
+class _PartitionedIndexDrop(PGLock):
+    """Template of a ``DROP INDEX`` on a partitioned table, see ``execute``."""
+
+
 def _statement(template: PGLock, **parts: Any) -> Statement:
     # The zero downtime migrations editor runs statements built from lock templates with
     # that lock's timeout handling.
@@ -313,17 +321,58 @@ class SafePartitioningSchemaEditorMixin(PartitioningSchemaEditorMixin):
                 )
             )
 
-    def remove_index(self, model: type[Model], index: Index, concurrently: bool = False) -> None:
+    @contextmanager
+    def partitioned_index_drops(self, model: type[Model]) -> Iterator[None]:
+        """
+        Drop indexes of a partitioned table with a plain ``DROP INDEX``.
+
+        Partitioned indexes can't be dropped concurrently, and Postgres rejects the
+        zero downtime migrations editor's ``DROP INDEX CONCURRENTLY``. Every index drop
+        (removing an index, an indexed field's index or a unique constraint backed by
+        an index) is built from these two templates, so they are swapped for the
+        operation. The plain drop takes an ACCESS EXCLUSIVE lock on the table and all
+        of its partitions, and every query queues behind it while it waits, so
+        ``execute`` always runs it with a lock timeout.
+        """
         if self._partitioned_table_info(model) is None:
-            super().remove_index(model, index, concurrently=concurrently)
+            yield
             return
-        # Partitioned indexes can't be dropped concurrently. The plain drop takes an ACCESS
-        # EXCLUSIVE lock on the table and all of its partitions, and every query queues
-        # behind it while it waits, so it always runs with a lock timeout.
-        lock_timeout = self.LOCK_TIMEOUT or sql.DEFAULT_LOCK_TIMEOUT
+        for name in _DELETE_INDEX_TEMPLATES:
+            self.__dict__[name] = _PartitionedIndexDrop(sql.DROP_INDEX)
+        try:
+            yield
+        finally:
+            for name in _DELETE_INDEX_TEMPLATES:
+                self.__dict__.pop(name, None)
+
+    def execute(self, sql: Any, params: Any = ()) -> None:
+        template = sql.template if isinstance(sql, Statement) else sql
+        if not isinstance(template, _PartitionedIndexDrop):
+            super().execute(sql, params)
+            return
+        statement = (
+            Statement(template.sql, **sql.parts) if isinstance(sql, Statement) else template.sql
+        )
+        lock_timeout = self.LOCK_TIMEOUT or _DEFAULT_LOCK_TIMEOUT
         with self._set_operation_timeout(self.STATEMENT_TIMEOUT, lock_timeout):
-            # Postgres' `_delete_index_sql` ignores a custom template, so build it here.
-            self.execute(Statement(sql.DROP_INDEX, name=self.quote_name(index.name)))
+            super().execute(statement, params)
+
+    def remove_index(self, model: type[Model], index: Index, concurrently: bool = False) -> None:
+        with self.partitioned_index_drops(model):
+            super().remove_index(model, index, concurrently=concurrently)
+
+    def remove_constraint(self, model: type[Model], constraint: BaseConstraint) -> None:
+        with self.partitioned_index_drops(model):
+            super().remove_constraint(model, constraint)
+
+    def alter_index_together(
+        self,
+        model: type[Model],
+        old_index_together: Any,
+        new_index_together: Any,
+    ) -> None:
+        with self.partitioned_index_drops(model):
+            super().alter_index_together(model, old_index_together, new_index_together)
 
     def add_constraint(self, model: type[Model], constraint: BaseConstraint) -> None:
         if isinstance(constraint, UniqueConstraint) and self._partitioned_table_info(model):
@@ -347,7 +396,8 @@ class SafePartitioningSchemaEditorMixin(PartitioningSchemaEditorMixin):
                 f"{model._meta.db_table} is not supported: Postgres can't build it "
                 f"concurrently on a partitioned table."
             )
-        super().alter_unique_together(model, old_unique_together, new_unique_together)
+        with self.partitioned_index_drops(model):
+            super().alter_unique_together(model, old_unique_together, new_unique_together)
 
     def _check_partitioned_add_field(self, model: type[Model], field: Field[Any, Any]) -> None:
         if self._partitioned_table_info(model) is None:

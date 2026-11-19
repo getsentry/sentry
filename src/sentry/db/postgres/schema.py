@@ -111,7 +111,8 @@ class SafePostgresDatabaseSchemaEditor(
     ) -> None:
         self._check_alter_indexed_column_type(model, old_field, new_field)
         self._check_partitioned_alter_field(model, old_field, new_field)
-        PostgresDatabaseSchemaEditor.alter_field(self, model, old_field, new_field, strict)
+        with self.partitioned_index_drops(model):
+            PostgresDatabaseSchemaEditor.alter_field(self, model, old_field, new_field, strict)
 
     def _check_alter_indexed_column_type(
         self, model: type[Model], old_field: Field[Any, Any], new_field: Field[Any, Any]
