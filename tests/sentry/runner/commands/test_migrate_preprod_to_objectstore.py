@@ -9,7 +9,7 @@ from sentry.constants import DataCategory
 from sentry.models.files.file import File
 from sentry.objectstore import UsecaseId, get_session
 from sentry.preprod.models import PreprodArtifactSizeMetrics
-from sentry.preprod.storage import ObjectstoreFile
+from sentry.preprod.objectstore import ObjectstoreFile
 from sentry.runner.commands.migrate_preprod_to_objectstore import migrate_preprod_to_objectstore
 from sentry.testutils.cases import CliTestCase
 from sentry.testutils.skips import requires_objectstore
@@ -50,7 +50,7 @@ class MigratePreprodTest(CliTestCase):
         assert File.objects.filter(id=analysis.id).exists()
 
         with patch(
-            "sentry.preprod.storage.quotas.backend.get_event_retention",
+            "sentry.preprod.objectstore.quotas.backend.get_event_retention",
             side_effect=lambda *, organization, category: 30
             if category == DataCategory.SIZE_ANALYSIS
             else 90,

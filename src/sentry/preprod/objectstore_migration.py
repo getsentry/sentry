@@ -16,7 +16,7 @@ from sentry.preprod.models import (
     PreprodArtifactSizeComparison,
     PreprodArtifactSizeMetrics,
 )
-from sentry.preprod.storage import ObjectstoreFile
+from sentry.preprod.objectstore import ObjectstoreFile
 
 
 @dataclass
