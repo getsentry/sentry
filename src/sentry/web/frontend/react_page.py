@@ -26,6 +26,7 @@ from sentry.web.helpers import render_to_response
 
 logger = logging.getLogger(__name__)
 
+COLOR_SCHEMES = frozenset({"light", "dark", "system"})
 
 # url names that should only be accessible from a non-customer domain hostname.
 NON_CUSTOMER_DOMAIN_URL_NAMES = [
@@ -102,10 +103,14 @@ class ReactMixin:
         react_config = get_client_config(request, org_context)
 
         user_theme = ""
+        color_scheme = "system"
         if react_config.get("user", None) and react_config["user"].get("options", {}).get(
             "theme", None
         ):
-            user_theme = f"theme-{react_config['user']['options']['theme']}"
+            theme = react_config["user"]["options"]["theme"]
+            user_theme = f"theme-{theme}"
+            if theme in COLOR_SCHEMES:
+                color_scheme = theme
 
         context = {
             "CSRF_COOKIE_NAME": settings.CSRF_COOKIE_NAME,
@@ -121,6 +126,7 @@ class ReactMixin:
             "org_context": org_context,
             "react_config": react_config,
             "user_theme": user_theme,
+            "color_scheme": color_scheme,
         }
 
         # Force a new CSRF token to be generated and set in user's

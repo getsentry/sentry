@@ -13,6 +13,7 @@ from sentry.testutils.cell import override_cells
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 from sentry.types.cell import Cell
+from sentry.users.models.user_option import UserOption
 from sentry.web.frontend.react_page import NON_CUSTOMER_DOMAIN_URL_NAMES, ReactMixin
 
 us = Cell("us", 1, "http://us.testserver")
@@ -41,6 +42,26 @@ class ReactPageViewTest(TestCase):
         assert resp.status_code == 200
         self.assertTemplateUsed(resp, "sentry/base-react.html")
         assert resp.context["request"]
+
+    def test_renders_color_scheme_from_user_theme(self) -> None:
+        org = self.create_organization(owner=self.user)
+        UserOption.objects.set_value(user=self.user, key="theme", value="dark")
+        self.login_as(self.user)
+
+        resp = self.client.get(reverse("sentry-organization-home", args=[org.slug]))
+
+        assert resp.status_code == 200
+        self.assertContains(resp, '<html lang="en" data-color-scheme="dark">')
+        self.assertContains(resp, '<body class="theme-dark')
+
+    def test_renders_default_color_scheme_without_user_theme(self) -> None:
+        org = self.create_organization(owner=self.user)
+        self.login_as(self.user)
+
+        resp = self.client.get(reverse("sentry-organization-home", args=[org.slug]))
+
+        assert resp.status_code == 200
+        self.assertContains(resp, '<html lang="en" data-color-scheme="system">')
 
     def test_redirects_user_to_auth_without_membership(self) -> None:
         owner = self.create_user("bar@example.com")
