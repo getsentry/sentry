@@ -15,6 +15,7 @@ function pathFilterOutputs(overrides = {}) {
     backend_src_count: '0',
     api_url_codegen_count: '0',
     embed_widget_codegen_count: '0',
+    nav_snapshot_codegen_count: '0',
     test_utility_only_paths_count: '0',
     ...overrides,
   };
@@ -158,9 +159,10 @@ describe('reconcilePrScope', () => {
       core,
       pathFilterOutputs: pathFilterOutputs({
         frontend_all_count: '1',
-        backend_src_count: '2',
+        backend_src_count: '3',
         api_url_codegen_count: '1',
         embed_widget_codegen_count: '1',
+        nav_snapshot_codegen_count: '1',
         test_utility_only_paths_count: '1',
       }),
     });

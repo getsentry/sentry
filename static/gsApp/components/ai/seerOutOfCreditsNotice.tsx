@@ -3,10 +3,10 @@ import {IconMail} from '@sentry/icons/mail';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, type ButtonProps} from '@sentry/scraps/button';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {DateTime} from 'sentry/components/dateTime';
 import type {
   SeerOutOfCreditsCtaProps,
   SeerOutOfCreditsReason,
@@ -62,7 +62,7 @@ const CONTACT_MESSAGE: Record<SeerOutOfCreditsReason, string> = {
 
 // From the Agent Chat designs, for an org that hit its daily usage limit, and
 // the same for Autofix. Members can't raise the limit, so their copy says who
-// can.
+// can, and "Contact Admin" asks them to.
 const DAILY_LIMIT_MESSAGE: Record<
   SeerOutOfCreditsReason,
   Record<'configure' | 'member', string>
@@ -181,7 +181,7 @@ export function SeerOutOfCreditsNotice({
         {isDailyLimitReached && (
           <Text>
             {tct('This will reset at [time].', {
-              time: <DateTime date={getDailyLimitResetsAt()} timeOnly timeZone />,
+              time: <DateTime date={getDailyLimitResetsAt()} mode="time" showTimezone />,
             })}
           </Text>
         )}

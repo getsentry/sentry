@@ -584,6 +584,25 @@ describe('MetricSelector', () => {
       });
     });
 
+    it('skips options the caller excludes when auto-selecting', async () => {
+      const onChange = jest.fn();
+
+      render(
+        <MetricSelector
+          traceMetric={{name: '', type: ''}}
+          onChange={onChange}
+          skipDefaultOption={option => option.metricName === SORTED_METRIC_NAMES[0]}
+        />,
+        {organization}
+      );
+
+      await waitFor(() => {
+        expect(onChange).toHaveBeenCalledWith(
+          expect.objectContaining({name: SORTED_METRIC_NAMES[1]})
+        );
+      });
+    });
+
     it('shows unit badges', async () => {
       render(<MetricSelector traceMetric={DEFAULT_TRACE_METRIC} onChange={jest.fn()} />, {
         organization,

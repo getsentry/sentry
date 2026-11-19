@@ -1,8 +1,14 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+from sentry.inbox.event_data import (
+    InboxEventData,
+    NotebookCompletedDataResponse,
+    NotebookMentionedDataResponse,
+    NotebookParticipantAddedDataResponse,
+)
 from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
-from sentry.inbox.types import InboxEventData, InboxEventSummary, InboxEventType, InboxItemType
+from sentry.inbox.types import InboxEventSummary, InboxEventType, InboxItemType
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.notebooks.access import NOTEBOOK_SCOPES, has_notebooks_access
@@ -28,7 +34,7 @@ class NotebookItemType(InboxItemType[Notebook]):
 
     def get_url(self, *, organization: Organization, subject_id: str) -> str:
         return organization.absolute_url(
-            f"/organizations/{organization.slug}/seer/investigations/{subject_id}/"
+            f"/organizations/{organization.slug}/inbox/notebook/{subject_id}/"
         )
 
     def filter_recipients(self, *, subject: Notebook, user_ids: Sequence[int]) -> list[int]:
@@ -47,6 +53,10 @@ class NotebookItemType(InboxItemType[Notebook]):
 @dataclass(frozen=True, kw_only=True)
 class NotebookCompletedData(InboxEventData):
     seer_run_id: int  # Seer DbRunState ID, matching issue inbox events.
+    generation: int
+
+    def serialize(self) -> NotebookCompletedDataResponse:
+        return {"seerRunId": str(self.seer_run_id), "generation": self.generation}
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -54,10 +64,17 @@ class NotebookMentionedData(InboxEventData):
     comment_id: int
     block_id: int | None = None
 
+    def serialize(self) -> NotebookMentionedDataResponse:
+        return {
+            "commentId": str(self.comment_id),
+            "blockId": str(self.block_id) if self.block_id is not None else None,
+        }
+
 
 @dataclass(frozen=True, kw_only=True)
 class NotebookParticipantAddedData(InboxEventData):
-    pass
+    def serialize(self) -> NotebookParticipantAddedDataResponse:
+        return {}
 
 
 NOTEBOOK = NotebookItemType()
@@ -72,7 +89,7 @@ NOTEBOOK_COMPLETED = InboxEventType(
 )
 NOTEBOOK_USER_MENTIONED = InboxEventType(
     event_type="notebook.user_mentioned",
-    summary=InboxEventSummary.NOTEBOOK_MENTIONED,
+    summary=InboxEventSummary.NOTEBOOK_USER_MENTIONED,
     item_type=NOTEBOOK,
     data_class=NotebookMentionedData,
     notification_setting=NotificationSettingEnum.INBOX_MENTIONS,

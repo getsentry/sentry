@@ -2,6 +2,7 @@ import {useTheme} from '@emotion/react';
 import moment from 'moment-timezone';
 
 import {InlineCode} from '@sentry/scraps/code';
+import {useDateTimeFormatter} from '@sentry/scraps/dateTime';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {useRenderToString} from '@sentry/scraps/renderToString';
 import {Separator} from '@sentry/scraps/separator';
@@ -12,7 +13,6 @@ import {hydrateToFlagSeries, type RawFlag} from 'sentry/components/featureFlags/
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 
 interface FlagSeriesProps {
   event: Event | undefined;
@@ -21,6 +21,7 @@ interface FlagSeriesProps {
 
 export function useFlagSeries({event, flags}: FlagSeriesProps) {
   const theme = useTheme();
+  const formatDateTime = useDateTimeFormatter();
   const {selection} = usePageFilters();
   const renderToString = useRenderToString();
 
@@ -47,13 +48,11 @@ export function useFlagSeries({event, flags}: FlagSeriesProps) {
     tooltip: {
       trigger: 'item',
       formatter: ({data}: any) => {
-        const time = getFormattedDate(
-          data.xAxis,
-          getFormat({timeZone: true, year: true}),
-          {
-            local: !selection.datetime.utc,
-          }
-        );
+        const time = formatDateTime(data.xAxis, {
+          year: 'always',
+          showTimezone: true,
+          timezone: selection.datetime.utc ? 'UTC' : undefined,
+        });
 
         const timeObject = moment(data.xAxis);
         const eventIsBefore = moment(event?.dateCreated).isBefore(timeObject);

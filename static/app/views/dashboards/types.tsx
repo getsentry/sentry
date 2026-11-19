@@ -1,5 +1,6 @@
 import type {Layout} from 'react-grid-layout';
 
+import type {QuerySpeed} from 'sentry/components/querySpeedMenu';
 import {t} from 'sentry/locale';
 import type {Tag} from 'sentry/types/group';
 import type {User} from 'sentry/types/user';
@@ -216,7 +217,7 @@ export type GlobalFilter = {
 /**
  * Saved on the dashboard. `normal` is the default when the field is unset.
  */
-export type DashboardQueryPriority = 'normal' | 'faster';
+export type DashboardQueryPriority = QuerySpeed;
 
 /**
  * Saved dashboard with widgets

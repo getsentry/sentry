@@ -30,7 +30,7 @@ from sentry.apidocs.response_types import (
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.principal import require_user
 from sentry.core.endpoints.organization_member_index import OrganizationMemberRequestSerializer
-from sentry.core.endpoints.organization_member_utils import get_allowed_org_roles
+from sentry.core.endpoints.organization_member_utils import TeamAssignment, get_allowed_org_roles
 from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
@@ -134,6 +134,7 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
             )
 
         result = serializer.validated_data
+        team_assignments: tuple[TeamAssignment, ...] = result["teamRoles"]
 
         with outbox_context(
             transaction.atomic(router.db_for_write(OrganizationMember)), flush=False
@@ -148,7 +149,7 @@ class OrganizationInviteRequestIndexEndpoint(OrganizationEndpoint):
 
             # Do not set team-roles when inviting a member
             if "teams" in result or "teamRoles" in result:
-                teams = result.get("teams") or [team for team, _ in result.get("teamRoles") or []]
+                teams = result.get("teams") or [assignment.team for assignment in team_assignments]
                 # The member is new, so no other request can change its teams before the commit
                 OrganizationMemberTeam.objects.bulk_create(
                     [OrganizationMemberTeam(organizationmember=om, team=team) for team in teams]

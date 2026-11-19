@@ -101,6 +101,7 @@ export function MetricSelector({
   usePortal,
   fieldOption,
   getDisabledOptionReason,
+  skipDefaultOption,
 }: {
   onChange: (traceMetric: TraceMetric) => void;
   traceMetric: TraceMetric;
@@ -117,6 +118,9 @@ export function MetricSelector({
   // maps). Omitting it leaves every option enabled.
   getDisabledOptionReason?: (option: MetricSelectorOption) => string | undefined;
   projectIds?: number[];
+  // Returns true for options that should not be picked as the default metric
+  // for an empty slot. They stay selectable in the list.
+  skipDefaultOption?: (option: MetricSelectorOption) => boolean;
   usePortal?: boolean;
 }) {
   const theme = useTheme();
@@ -257,6 +261,7 @@ export function MetricSelector({
               return option;
             }
 
+            // oxlint-disable-next-line react/immutability
             hasMatchedSelectedMetric = true;
             return {...option, value: traceMetricSelectValue};
           })
@@ -319,7 +324,8 @@ export function MetricSelector({
       (option): option is MetricSelectorOption =>
         isMetricSelectorOption(option) &&
         option.value !== FIELD_OPTION_VALUE &&
-        !getDisabledOptionReason?.(option)
+        !getDisabledOptionReason?.(option) &&
+        !skipDefaultOption?.(option)
     );
     if (firstSelectable) {
       onChange({
@@ -333,6 +339,7 @@ export function MetricSelector({
     getDisabledOptionReason,
     metricOptions,
     onChange,
+    skipDefaultOption,
     traceMetric.name,
   ]);
 

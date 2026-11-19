@@ -14,6 +14,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithTeamsSerializer
 from sentry.core.endpoints.organization_member_index import OrganizationMemberRequestSerializer
 from sentry.core.endpoints.organization_member_utils import (
+    TeamAssignment,
     get_allowed_org_roles,
     save_team_assignments,
 )
@@ -134,6 +135,7 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationMemberEndpoint):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         result = serializer.validated_data
+        team_assignments: tuple[TeamAssignment, ...] | None = result.get("teamRoles")
 
         if result.get("orgRole"):
             member.role = result["orgRole"]
@@ -145,8 +147,8 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationMemberEndpoint):
         # Do not set team-roles when inviting members
         if "teamRoles" in result or "teams" in result:
             teams = (
-                [team for team, _ in result.get("teamRoles")]
-                if "teamRoles" in result and result["teamRoles"]
+                [assignment.team for assignment in team_assignments]
+                if team_assignments
                 else result.get("teams")
             )
             save_team_assignments(member, teams)

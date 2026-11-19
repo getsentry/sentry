@@ -20,11 +20,7 @@ from sentry.testutils.cases import AcceptanceTestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import no_silo_test
 
-FEATURE_NAMES = [
-    "organizations:performance-view",
-    "organizations:discover-basic",
-    "organizations:discover-query",
-]
+FEATURE_NAMES = ["organizations:discover-basic", "organizations:discover-query"]
 
 pytestmark = pytest.mark.sentry_metrics
 

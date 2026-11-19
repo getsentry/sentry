@@ -597,7 +597,9 @@ class MsTeamsWebhookEndpoint(Endpoint):
         team_id = integration.external_id
         client = MsTeamsClient(integration)
 
-        group = Group.objects.select_related("project__organization").filter(id=group_id).first()
+        group = (
+            Group.objects.select_related("project__organization").filter(id=group_id).get_or_none()
+        )
         if group:
             integration = integration_service.get_integration(
                 integration_id=integration.id,

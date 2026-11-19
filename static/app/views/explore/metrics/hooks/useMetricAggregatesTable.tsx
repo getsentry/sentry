@@ -6,6 +6,7 @@ import {defined} from 'sentry/utils/defined';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
+import {useExploreQuerySpeed} from 'sentry/views/explore/hooks/useExploreQuerySpeed';
 import {
   useProgressiveQuery,
   type RPCQueryExtras,
@@ -92,6 +93,7 @@ export function useMetricAggregatesTable({
   queryExtras,
   staleTime,
 }: UseMetricAggregatesTableOptions) {
+  const {isReady: querySpeedReady, samplingMode} = useExploreQuerySpeed();
   const visualize = useMetricVisualize();
   const canTriggerHighAccuracy = useCallback(
     (result: ReturnType<typeof useMetricAggregatesTableImp>['result']) => {
@@ -111,7 +113,7 @@ export function useMetricAggregatesTable({
   return useProgressiveQuery<typeof useMetricAggregatesTableImp>({
     queryHookImplementation: useMetricAggregatesTableImp, // oxlint-disable-line react/hooks -- useProgressiveQuery takes the query hook as a value and calls it per accuracy tier.
     queryHookArgs: {
-      enabled,
+      enabled: enabled && querySpeedReady,
       limit,
       traceMetric,
       queryExtras,
@@ -119,6 +121,7 @@ export function useMetricAggregatesTable({
     },
     queryOptions: {
       canTriggerHighAccuracy,
+      samplingMode,
     },
   });
 }

@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         name: Checkout sentry
 
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: $/.github/actions/setup-node-pnpm
 
       # GitHub cache entries are immutable, so the sha in the key forces a fresh
       # save per commit; the master fallback lets new branches start warm.

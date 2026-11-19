@@ -363,7 +363,7 @@ export function EventsTable({
       ].join('&');
 
       const res: IssueAttachment[] = await api.requestPromise(
-        `/api/0/organizations/${organization.slug}/issues/${issueId}/attachments/?${queries}`
+        `/organizations/${organization.slug}/issues/${issueId}/attachments/?${queries}`
       );
 
       let newHasMinidumps = false;
@@ -422,7 +422,6 @@ export function EventsTable({
                   return renderError(queryError);
                 }
 
-                // oxlint-disable-next-line react/todo
                 tableData ??= {data: []};
                 const pageEventsCount = tableData?.data?.length ?? 0;
                 const parsedPageLinks = parseLinkHeader(pageLinks);

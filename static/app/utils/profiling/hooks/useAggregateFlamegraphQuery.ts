@@ -50,8 +50,8 @@ export function useAggregateFlamegraphQuery(
 ): UseAggregateFlamegraphQueryResult {
   const {dataSource, metrics, datetime, enabled, environments, projects} = props;
 
-  let fingerprint: string | undefined = undefined;
-  let query: string | undefined = undefined;
+  let fingerprint: string | undefined;
+  let query: string | undefined;
 
   if (isDataSourceFunctions(props)) {
     fingerprint = props.fingerprint;

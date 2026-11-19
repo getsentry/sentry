@@ -1,8 +1,8 @@
-import qs from 'query-string';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
 import type {PageFilters} from 'sentry/types/core';
+import * as qs from 'sentry/utils/url/qs';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
@@ -61,6 +61,38 @@ describe('getWidgetMetricsUrl', () => {
       expect(params.referrer).toBe('dashboards');
       expect(params.metric).toBeDefined();
       expect(Array.isArray(params.metric) ? params.metric.length : 1).toBe(1);
+    });
+
+    it('preserves the dashboard query speed', () => {
+      const widget: Widget = {
+        id: '1',
+        title: 'Test Widget',
+        displayType: DisplayType.LINE,
+        interval: '5m',
+        widgetType: WidgetType.TRACEMETRICS,
+        queries: [
+          {
+            name: 'Query 1',
+            fields: [],
+            aggregates: ['avg(value,duration,d,none)'],
+            columns: [],
+            conditions: 'transaction:"/api/users"',
+            orderby: '',
+            fieldAliases: [],
+          },
+        ],
+      };
+
+      const url = getWidgetMetricsUrl(
+        widget,
+        undefined,
+        selection,
+        organization,
+        'faster'
+      );
+      const {params} = parseMetricsUrl(url);
+
+      expect(params.queryPriority).toBe('faster');
     });
 
     it('generates URL for multiple aggregates', () => {
@@ -159,6 +191,39 @@ describe('getWidgetMetricsUrl', () => {
       const equation = `equation|${PERFORMANCE_SCORE_FIELD}`;
       expect(metricQuery.metric).toEqual({name: '', type: ''});
       expect(metricQuery.mode).toBe('aggregate');
+      expect(metricQuery.query).toBe('release:1.0.0');
+      expect(metricQuery.aggregateFields).toEqual([
+        {chartType: ChartType.LINE, yAxes: [equation]},
+        {groupBy: 'transaction'},
+      ]);
+      expect(metricQuery.aggregateSortBys).toEqual([{field: equation, kind: 'desc'}]);
+    });
+
+    it('opens a stored score equation as a single equation', () => {
+      const equation = `equation|${PERFORMANCE_SCORE_FIELD}`;
+      const widget = WidgetFixture({
+        title: 'Pages',
+        displayType: DisplayType.TABLE,
+        widgetType: WidgetType.TRACEMETRICS,
+        queries: [
+          {
+            name: '',
+            fields: ['transaction', equation],
+            aggregates: [equation],
+            columns: ['transaction'],
+            conditions: 'release:1.0.0',
+            orderby: `-${equation}`,
+          },
+        ],
+      });
+
+      const url = getWidgetMetricsUrl(widget, undefined, selection, organization);
+      const {params} = parseMetricsUrl(url);
+
+      const metrics = Array.isArray(params.metric) ? params.metric : [params.metric];
+      expect(metrics).toHaveLength(1);
+      const metricQuery = JSON.parse(metrics[0]!);
+      expect(metricQuery.metric).toEqual({name: '', type: ''});
       expect(metricQuery.query).toBe('release:1.0.0');
       expect(metricQuery.aggregateFields).toEqual([
         {chartType: ChartType.LINE, yAxes: [equation]},

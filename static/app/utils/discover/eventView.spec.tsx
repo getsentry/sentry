@@ -5,11 +5,11 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
-import {toLegacyLocation} from 'sentry/router/legacy/location';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {NewQuery, SavedQuery} from 'sentry/types/organization';
 import type {Config} from 'sentry/types/system';
 import {AggregationKey} from 'sentry/utils/fields';
+import * as qs from 'sentry/utils/url/qs';
 import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
 import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
 
@@ -28,14 +28,7 @@ import {
   SavedQueryDatasets,
 } from './types';
 
-const locationFromSearch = (search: string) =>
-  toLegacyLocation({
-    pathname: '/mock-pathname/',
-    search,
-    hash: '',
-    state: null,
-    key: '',
-  });
+const locationFromSearch = (search: string) => LocationFixture({query: qs.parse(search)});
 
 const generateFields = (fields: string[]) =>
   fields.map(field => ({

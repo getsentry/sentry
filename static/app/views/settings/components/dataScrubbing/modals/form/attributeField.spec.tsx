@@ -421,4 +421,28 @@ describe('AttributeField', () => {
     // Should not contain any tags
     expect(suggestionTexts).toEqual(['message', 'user.email', 'custom.field']);
   });
+
+  it('does not duplicate the static message field for logs', async () => {
+    MockApiClient.clearMockResponses();
+    mockTraceItemAttributeKeysApi(organization.slug, [
+      {key: 'user.email', name: 'user.email', kind: FieldKind.TAG},
+      {key: 'message', name: 'message', kind: FieldKind.TAG},
+    ]);
+
+    render(
+      <AttributeField
+        fieldProps={defaultFieldProps}
+        dataset={AllowedDataScrubbingDatasets.LOGS}
+        onChange={jest.fn()}
+        value=""
+      />,
+      {organization}
+    );
+
+    await userEvent.click(await screen.findByPlaceholderText('Select or type attribute'));
+    await screen.findByText('user.email');
+
+    const suggestionTexts = screen.getAllByRole('listitem').map(item => item.textContent);
+    expect(suggestionTexts).toEqual(['message', 'user.email']);
+  });
 });

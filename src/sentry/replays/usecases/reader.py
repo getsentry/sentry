@@ -119,11 +119,11 @@ def fetch_filestore_segment_meta(
     segment_id: int,
 ) -> RecordingSegmentStorageMeta | None:
     """Return filestore metadata derived from our Postgres table."""
-    segment = ReplayRecordingSegment.objects.filter(
+    segment = ReplayRecordingSegment.objects.get_or_none(
         project_id=project_id,
         replay_id=replay_id,
         segment_id=segment_id,
-    ).first()
+    )
     if segment is None:
         return None
 
