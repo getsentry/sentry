@@ -351,7 +351,7 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
             _validate_legacy_row_change(stored, data_type, conditions)
 
         if "conditions" in attrs:
-            _validate_feature_conditions_for_organization(
+            _validate_feature_conditions_of_organization_for_inbound_filter(
                 conditions=conditions,
                 organization=self.context["project"].organization,
                 request=self.context["request"],
@@ -442,7 +442,7 @@ def _validate_legacy_row_change(
         )
 
 
-def _validate_feature_conditions_for_organization(
+def _validate_feature_conditions_of_organization_for_inbound_filter(
     conditions: list[CustomInboundFilterCondition], organization: Any, request: Request
 ) -> None:
     for condition_type in sorted({ConditionType(c["type"]) for c in conditions}):
