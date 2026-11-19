@@ -29,14 +29,38 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer[Any]):
     logic_type = serializers.ChoiceField([(t.value, t.value) for t in DataConditionGroup.Type])
     conditions = serializers.ListField(required=False)
 
+    # When set, every condition must use a handler from this group. Workflow triggers and
+    # action filters are evaluated against WorkflowEventData, so operator conditions and
+    # other handler groups can never evaluate there.
+    handler_group: DataConditionHandler.Group | None = None
+
+    def __init__(
+        self, *args: Any, handler_group: DataConditionHandler.Group | None = None, **kwargs: Any
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        if handler_group is not None:
+            self.handler_group = handler_group
+
     def validate_conditions(self, value: list[dict[str, Any]]) -> list[dict[str, Any]]:
         conditions = []
         for condition in value:
             condition_validator = BaseDataConditionValidator(data=condition, context=self.context)
             condition_validator.is_valid(raise_exception=True)
-            conditions.append(condition_validator.validated_data)
+            validated = condition_validator.validated_data
+            self._validate_handler_group(validated["type"])
+            conditions.append(validated)
 
         return conditions
+
+    def _validate_handler_group(self, condition_type: str) -> None:
+        if self.handler_group is None:
+            return
+
+        handler = get_condition_handler(Condition(condition_type))
+        if handler is None or handler.group != self.handler_group:
+            raise serializers.ValidationError(
+                f"Condition type '{condition_type}' is not a valid {self.handler_group} condition"
+            )
 
     def _validate_logic_type(self, condition_data: list[dict[str, Any]], logic_type: str) -> None:
         """
