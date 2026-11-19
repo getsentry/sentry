@@ -97,6 +97,7 @@ class SdkConfigAnnotationProducerTest(APITestCase):
         assert row["description"] == "SDK config changed: tracesSampleRate 0.2 → 0.1"
         assert row["tags"]["changed_keys"] == ["options.tracesSampleRate"]
         assert row["createdByLabel"] == "sdk-config-producer"
+        assert row["severity"] == "high"
 
     def test_idempotent_on_repeat(self) -> None:
         with self._with_flags():

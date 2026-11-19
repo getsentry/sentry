@@ -186,10 +186,8 @@ class AutomationDefinition[Inputs: BaseModel](Protocol):
     @staticmethod
     def is_enabled(config: SeerWorkflowConfig) -> bool:
         workflow = config.backing_workflow
-        if workflow is None:
-            # TODO(telkins): Cascade a deleted backing workflow to its automation.
-            raise ValueError(f"Automation {config.id} has no backing workflow")
-        return workflow.enabled and workflow.status == ObjectStatus.ACTIVE
+        # TODO(telkins): Cascade a deleted backing workflow to its automation.
+        return workflow is not None and workflow.enabled and workflow.status == ObjectStatus.ACTIVE
 
     def covers(self, config: SeerWorkflowConfig, project_id: int, environment: str | None) -> bool:
         filters = SeerWorkflowFilters.parse_obj(config.filters)

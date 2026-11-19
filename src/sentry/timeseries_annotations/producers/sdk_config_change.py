@@ -25,6 +25,7 @@ from sentry.timeseries_annotations.models import (
     AnnotationScope,
     AnnotationType,
     IntervalType,
+    Severity,
     TimeseriesAnnotation,
 )
 from sentry.timeseries_annotations.service import TimeseriesAnnotationData
@@ -349,6 +350,9 @@ def _as_model(data: TimeseriesAnnotationData) -> TimeseriesAnnotation:
         interval_type=data.interval_type,
         annotation_type=data.annotation_type,
         scope=data.scope,
+        # A config change (sampling, integrations, beforeSend) can move telemetry volume a lot, so
+        # it always warrants attention on the timeline.
+        severity=Severity.HIGH,
         description=data.description,
         tags=dict(data.tags) if data.tags is not None else None,
         created_by_label=data.created_by_label,

@@ -10,6 +10,7 @@ from sentry.timeseries_annotations.models import (
     AnnotationScope,
     AnnotationType,
     IntervalType,
+    Severity,
     TimeseriesAnnotation,
 )
 from sentry.users.models.user import User
@@ -19,6 +20,7 @@ from sentry.viewer_context import ActorType
 _INTERVAL_LABELS = dict(IntervalType.as_choices())
 _SCOPE_LABELS = dict(AnnotationScope.as_choices())
 _TYPE_LABELS = dict(AnnotationType.as_choices())
+_SEVERITY_LABELS = dict(Severity.as_choices())
 
 
 @register(TimeseriesAnnotation)
@@ -44,11 +46,13 @@ class TimeseriesAnnotationSerializer(Serializer):
             "id": str(obj.id),
             "organizationId": str(obj.organization_id),
             "projectId": str(obj.project_id) if obj.project_id is not None else None,
+            "environmentId": (str(obj.environment_id) if obj.environment_id is not None else None),
             "startTimestamp": obj.start_timestamp,
             "endTimestamp": obj.end_timestamp,
             "intervalType": _INTERVAL_LABELS[obj.interval_type],
             "annotationType": _TYPE_LABELS[obj.annotation_type],
             "scope": _SCOPE_LABELS[obj.scope],
+            "severity": _SEVERITY_LABELS[obj.severity],
             "description": obj.description,
             "tags": obj.tags,
             "createdBy": created_by,

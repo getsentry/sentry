@@ -1,8 +1,10 @@
 import {defined} from 'sentry/utils/defined';
-import type {
-  AggregationKeyWithAlias,
-  Column,
-  QueryFieldValue,
+import {
+  explodeFieldString,
+  generateFieldAsString,
+  type AggregationKeyWithAlias,
+  type Column,
+  type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
@@ -10,23 +12,89 @@ import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/constant
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {NONE_UNIT} from 'sentry/views/explore/metrics/constants';
 import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
+import {buildConditionalAggregate} from 'sentry/views/explore/utils/conditionalAggregate';
+import {
+  IF_SUFFIX,
+  parseConditionalAggregate,
+} from 'sentry/views/explore/utils/parseConditionalAggregate';
+
+export interface TraceMetricFunctionParts {
+  /**
+   * Base aggregation name with any `_if` suffix removed.
+   */
+  aggregation: string;
+  /**
+   * Aggregate arguments in the `value, name, type, unit` order. The `_if`
+   * filter argument is not included.
+   */
+  args: string[];
+  /**
+   * The `_if` filter, or an empty string when the aggregate has none.
+   */
+  filter: string;
+}
+
+/**
+ * Splits a trace metric aggregate column into its base aggregation, its
+ * metric arguments and its optional `_if` filter.
+ */
+export function getTraceMetricFunctionParts(
+  column: Column
+): TraceMetricFunctionParts | undefined {
+  if (column.kind !== 'function') {
+    return undefined;
+  }
+
+  if (!column.function[0].endsWith(IF_SUFFIX)) {
+    const [aggregation, ...args] = column.function;
+    return {aggregation, args: args.filter(defined), filter: ''};
+  }
+
+  const parsed = parseConditionalAggregate(generateFieldAsString(column));
+  if (!parsed) {
+    return undefined;
+  }
+  return {aggregation: parsed.name, args: parsed.arguments, filter: parsed.filter ?? ''};
+}
 
 export function buildTraceMetricAggregate(
   aggregation: AggregationKeyWithAlias,
-  traceMetric: TraceMetric
+  traceMetric: TraceMetric,
+  filter = ''
 ): QueryFieldValue {
+  const args = [
+    'value',
+    traceMetric.name,
+    traceMetric.type,
+    defined(traceMetric.unit) && traceMetric.unit !== '-' ? traceMetric.unit : NONE_UNIT,
+  ];
+
+  if (filter) {
+    return explodeFieldString(
+      buildConditionalAggregate({name: aggregation, arguments: args, filter})
+    );
+  }
+
   return {
     kind: 'function',
-    function: [
-      aggregation,
-      'value',
-      traceMetric.name,
-      traceMetric.type,
-      defined(traceMetric.unit) && traceMetric.unit !== '-'
-        ? traceMetric.unit
-        : NONE_UNIT,
-    ],
+    function: [aggregation, args[0]!, ...args.slice(1)],
   };
+}
+
+/**
+ * Sets (or clears, when `filter` is empty) the `_if` filter on a trace metric
+ * aggregate column. Non-aggregate columns are returned unchanged.
+ * @public used by the upcoming unified visualize list's per-row filter bar
+ */
+export function applyTraceMetricAggregateFilter(column: Column, filter: string): Column {
+  const parts = getTraceMetricFunctionParts(column);
+  if (!parts) {
+    return column;
+  }
+  return explodeFieldString(
+    buildConditionalAggregate({name: parts.aggregation, arguments: parts.args, filter}),
+    column.alias
+  );
 }
 
 /**
@@ -34,13 +102,17 @@ export function buildTraceMetricAggregate(
  * Trace metric aggregates store the metric info in function args:
  *   function[0] = aggregation, function[1] = 'value',
  *   function[2] = name, function[3] = type, function[4] = unit
+ * Aggregates carrying an `_if` filter store the filter first and shift the
+ * metric info by one argument.
  */
 export function extractTraceMetricFromColumn(column: Column): TraceMetric | undefined {
-  if (column.kind === 'function' && column.function) {
-    const [, , name, type, unit] = column.function;
-    if (name && type) {
-      return {name, type, unit: defined(unit) && unit !== '-' ? unit : NONE_UNIT};
-    }
+  const parts = getTraceMetricFunctionParts(column);
+  if (!parts) {
+    return undefined;
+  }
+  const [, name, type, unit] = parts.args;
+  if (name && type) {
+    return {name, type, unit: defined(unit) && unit !== '-' ? unit : NONE_UNIT};
   }
   return undefined;
 }
