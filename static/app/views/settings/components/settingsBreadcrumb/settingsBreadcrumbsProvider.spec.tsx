@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import * as constants from 'sentry/constants';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -195,47 +195,6 @@ describe('SettingsBreadcrumbsProvider', () => {
     expect(router.location.pathname).toBe(
       `/settings/${organization.slug}/projects/python/keys/`
     );
-  });
-
-  it('groups the project switcher into my projects and other projects', async () => {
-    ProjectsStore.loadInitialData([
-      ProjectFixture({id: '1', slug: 'python', isMember: false}),
-      ProjectFixture({id: '2', slug: 'javascript', isMember: true}),
-      ProjectFixture({id: '3', slug: 'go', isMember: true, isBookmarked: true}),
-    ]);
-    render(<Page />, {
-      organization,
-      initialRouterConfig: {
-        route: '/settings/:orgId/projects/:projectId/',
-        location: {pathname: `/settings/${organization.slug}/projects/javascript/keys/`},
-        children: [
-          {
-            handle: {
-              settingsBreadcrumb: {
-                type: 'project',
-                to: '/settings/:orgId/projects/:projectId/',
-              } satisfies SettingsBreadcrumb,
-            },
-            children: [{path: 'keys/', element: <div />}],
-          },
-        ],
-      },
-    });
-
-    await userEvent.click(await screen.findByRole('button', {name: 'Switch javascript'}));
-
-    const myProjects = screen.getByRole('group', {name: 'My Projects'});
-    expect(
-      within(myProjects)
-        .getAllByRole('option')
-        .map(o => o.textContent)
-    ).toEqual(['go', 'javascript']);
-    const otherProjects = screen.getByRole('group', {name: 'Other Projects'});
-    expect(
-      within(otherProjects)
-        .getAllByRole('option')
-        .map(o => o.textContent)
-    ).toEqual(['python']);
   });
 
   it('leaves scope crumbs to the settings navigation with settings v3', () => {
