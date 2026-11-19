@@ -490,7 +490,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
         assert not DebugIdArtifactBundle.objects.filter(
             artifact_bundle_id=artifact_bundle.id
         ).exists()
-        assert not File.objects.filter(id=artifact_bundle.file.id).exists()
+        assert not File.objects.filter(id=artifact_bundle.file_id).exists()
 
     def test_delete_artifact_bundle_with_multiple_projects_connected(self) -> None:
         project_a = self.create_project(name="foo")

@@ -597,6 +597,7 @@ class ReleaseLookupData:
             self.source_file_lookup_result = "wrong-dist"
         for possible_release_artifact_bundle in possible_release_artifact_bundles:
             if possible_release_artifact_bundle.dist_name == (self.event.dist or ""):
+                assert possible_release_artifact_bundle.artifact_bundle.file is not None
                 with ArtifactBundleArchive(
                     possible_release_artifact_bundle.artifact_bundle.file.getfile()
                 ) as archive:
