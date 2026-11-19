@@ -15,6 +15,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {PRIMARY_NAVIGATION_OVERLAY_OFFSET} from 'sentry/views/navigation/constants';
 
 import {PrimaryNavigation, usePrimaryNavigationButtonOverlay} from './components';
 
@@ -238,13 +239,18 @@ export function WhatsNewContent() {
 }
 
 export function PrimaryNavigationWhatsNew() {
+  const organization = useOrganization();
   const {unseenPostIds} = useWhatsNewBroadcasts();
 
   const {
     isOpen,
     triggerProps: overlayTriggerProps,
     overlayProps,
-  } = usePrimaryNavigationButtonOverlay();
+  } = usePrimaryNavigationButtonOverlay(
+    organization.features.includes('universal-inbox')
+      ? {offset: PRIMARY_NAVIGATION_OVERLAY_OFFSET}
+      : undefined
+  );
 
   return (
     <Fragment>

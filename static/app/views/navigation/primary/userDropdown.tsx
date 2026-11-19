@@ -19,6 +19,7 @@ import {useApi} from 'sentry/utils/useApi';
 import {useMutateUserOptions} from 'sentry/utils/useMutateUserOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
+import {PRIMARY_NAVIGATION_OVERLAY_OFFSET} from 'sentry/views/navigation/constants';
 import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
 import {useSettingsScope} from 'sentry/views/settings/useSettingsScope';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
@@ -81,6 +82,10 @@ export function UserDropdown() {
         : {type: 'letter_avatar' as const, identifier, name};
 
   const size = useSizeContext();
+  const offset =
+    layout === 'sidebar' && organization?.features.includes('universal-inbox')
+      ? PRIMARY_NAVIGATION_OVERLAY_OFFSET
+      : undefined;
 
   if (settingsV3) {
     return (
@@ -91,6 +96,7 @@ export function UserDropdown() {
         zIndex={theme.zIndex.modal}
         renderWrapAs={PassthroughWrapper}
         position={layout === 'mobile' ? 'bottom' : 'right-end'}
+        offset={offset}
         minMenuWidth={224}
         trigger={triggerProps => (
           <AvatarButton
@@ -192,6 +198,7 @@ export function UserDropdown() {
       zIndex={theme.zIndex.modal}
       renderWrapAs={PassthroughWrapper}
       position={layout === 'mobile' ? 'bottom' : 'right-end'}
+      offset={offset}
       minMenuWidth={200}
       trigger={triggerProps => (
         <AvatarButton

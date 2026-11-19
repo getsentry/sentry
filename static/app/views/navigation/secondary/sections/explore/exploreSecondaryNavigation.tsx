@@ -1,7 +1,9 @@
 import {Fragment} from 'react';
+import {useStore} from 'zustand';
 
 import {Feature} from 'sentry/components/acl/feature';
 import {t} from 'sentry/locale';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {EXPLORE_AGENTS_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import {
@@ -28,6 +30,10 @@ import {ExploreSavedQueryNavigationItems} from './exploreSavedQueryNavigationIte
 function ExploreSecondaryNavigationImpl() {
   const settingsV3 = useSettingsV3();
   const organization = useOrganization();
+  const configFeatures = useStore(ConfigStore, state => state.features);
+  const hasSavedQueries = ['visibility-explore-view', 'performance-view'].every(
+    feature => organization.features.includes(feature) || configFeatures.has(feature)
+  );
 
   const baseUrl = `/organizations/${organization.slug}/explore`;
   // Seer tabs live here until Seer primary nav release.
@@ -48,10 +54,7 @@ function ExploreSecondaryNavigationImpl() {
   // the explore-errors and discover-basic branches) but point elsewhere.
   const navItems: Array<{label: string; to: string; badge?: 'new' | 'beta' | 'alpha'}> =
     [];
-  if (
-    organization.features.includes('performance-view') &&
-    organization.features.includes('visibility-explore-view')
-  ) {
+  if (hasSavedQueries) {
     navItems.push({label: 'Traces', to: `${baseUrl}/traces/`});
   }
   if (organization.features.includes('ourlogs-enabled')) {
@@ -119,7 +122,7 @@ function ExploreSecondaryNavigationImpl() {
         <SecondaryNavigation.HeaderTitle>{t('Explore')}</SecondaryNavigation.HeaderTitle>
       </SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
-        <SecondaryNavigation.Section id="explore-main">
+        <SecondaryNavigation.Section id="explore-main" tabLabel={t('Explore')}>
           <SecondaryNavigation.List>
             <Feature features={['performance-view']}>
               <Feature features={['visibility-explore-view']}>
@@ -276,51 +279,56 @@ function ExploreSecondaryNavigationImpl() {
             )}
           </SecondaryNavigation.List>
         </SecondaryNavigation.Section>
-        <Feature features={['visibility-explore-view', 'performance-view']}>
+        {hasSavedQueries && (
           <Fragment>
             <SecondaryNavigation.Separator />
-            <SecondaryNavigation.Section id="explore-saved-queries">
-              <SecondaryNavigation.List>
-                <SecondaryNavigation.ListItem>
-                  <SecondaryNavigation.Link to={`${baseUrl}/saved-queries/`}>
-                    {t('Saved Queries')}
-                  </SecondaryNavigation.Link>
-                </SecondaryNavigation.ListItem>
-                <Feature features="organizations:explore-saved-formulas">
+            <SecondaryNavigation.SectionGroup
+              id="explore-queries"
+              tabLabel={t('Saved Queries')}
+            >
+              <SecondaryNavigation.Section id="explore-saved-queries">
+                <SecondaryNavigation.List>
                   <SecondaryNavigation.ListItem>
-                    <SecondaryNavigation.Link
-                      to={`${baseUrl}/saved-formulas/`}
-                      analyticsItemName="explore_saved_formulas"
-                      leadingItems={
-                        settingsV3 ? (
-                          <SecondaryNavigation.FeatureBadge type="alpha" />
-                        ) : null
-                      }
-                      trailingItems={
-                        settingsV3 ? null : (
-                          <SecondaryNavigation.FeatureBadge type="alpha" />
-                        )
-                      }
-                    >
-                      {t('Saved Formulas')}
+                    <SecondaryNavigation.Link to={`${baseUrl}/saved-queries/`}>
+                      {t('Saved Queries')}
                     </SecondaryNavigation.Link>
                   </SecondaryNavigation.ListItem>
-                </Feature>
-              </SecondaryNavigation.List>
-            </SecondaryNavigation.Section>
-            {starredQueries && starredQueries.length > 0 && (
-              <Fragment>
-                <SecondaryNavigation.Separator />
-                <SecondaryNavigation.Section
-                  id="explore-starred-queries"
-                  title={t('Starred Queries')}
-                >
-                  <ExploreSavedQueryNavigationItems queries={starredQueries} />
-                </SecondaryNavigation.Section>
-              </Fragment>
-            )}
+                  <Feature features="organizations:explore-saved-formulas">
+                    <SecondaryNavigation.ListItem>
+                      <SecondaryNavigation.Link
+                        to={`${baseUrl}/saved-formulas/`}
+                        analyticsItemName="explore_saved_formulas"
+                        leadingItems={
+                          settingsV3 ? (
+                            <SecondaryNavigation.FeatureBadge type="alpha" />
+                          ) : null
+                        }
+                        trailingItems={
+                          settingsV3 ? null : (
+                            <SecondaryNavigation.FeatureBadge type="alpha" />
+                          )
+                        }
+                      >
+                        {t('Saved Formulas')}
+                      </SecondaryNavigation.Link>
+                    </SecondaryNavigation.ListItem>
+                  </Feature>
+                </SecondaryNavigation.List>
+              </SecondaryNavigation.Section>
+              {starredQueries && starredQueries.length > 0 && (
+                <Fragment>
+                  <SecondaryNavigation.Separator />
+                  <SecondaryNavigation.Section
+                    id="explore-starred-queries"
+                    title={t('Starred Queries')}
+                  >
+                    <ExploreSavedQueryNavigationItems queries={starredQueries} />
+                  </SecondaryNavigation.Section>
+                </Fragment>
+              )}
+            </SecondaryNavigation.SectionGroup>
           </Fragment>
-        </Feature>
+        )}
       </SecondaryNavigation.Body>
     </Fragment>
   );

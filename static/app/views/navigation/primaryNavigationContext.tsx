@@ -36,7 +36,7 @@ const PRIMARY_NAVIGATION_GROUP_CONFIG = {
   admin: {paths: ['manage'], secondaryNavigation: true},
 } as const satisfies Record<string, NavigationGroupConfig>;
 
-type NavigationGroup = keyof typeof PRIMARY_NAVIGATION_GROUP_CONFIG;
+export type NavigationGroup = keyof typeof PRIMARY_NAVIGATION_GROUP_CONFIG;
 
 export function hasSecondaryNavigation(group: NavigationGroup): boolean {
   return PRIMARY_NAVIGATION_GROUP_CONFIG[group].secondaryNavigation;

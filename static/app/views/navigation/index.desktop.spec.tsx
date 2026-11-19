@@ -1714,45 +1714,297 @@ describe('desktop navigation', () => {
         ).not.toBeInTheDocument();
       });
 
-      describe('hover', () => {
-        beforeEach(() => {
-          jest.useFakeTimers();
+      it('previews the current item while the sidebar is collapsed', async () => {
+        render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({organization: universalInbox})
+        );
+
+        await userEvent.click(screen.getByRole('button', {name: 'Collapse'}));
+        await userEvent.hover(screen.getByRole('link', {name: 'Issues'}));
+
+        const preview = within(
+          await screen.findByRole('dialog', {name: 'Navigation preview'})
+        );
+        expect(preview.getByRole('link', {name: 'Feed'})).toBeInTheDocument();
+        expect(
+          screen.queryByRole('navigation', {name: 'Secondary Navigation'})
+        ).not.toBeInTheDocument();
+        expect(
+          screen.queryByTestId('collapsed-secondary-sidebar')
+        ).not.toBeInTheDocument();
+
+        expect(screen.queryByRole('button', {name: 'Expand'})).not.toBeInTheDocument();
+        await userEvent.hover(
+          screen.getByRole('button', {name: 'Toggle organization menu'})
+        );
+        await userEvent.click(screen.getByRole('button', {name: 'Expand'}));
+
+        const sidebar = within(
+          screen.getByRole('navigation', {name: 'Secondary Navigation'})
+        );
+        expect(sidebar.getByRole('link', {name: 'Feed'})).toBeInTheDocument();
+        expect(
+          screen.queryByRole('dialog', {name: 'Navigation preview'})
+        ).not.toBeInTheDocument();
+      });
+
+      it('reveals Expand when the organization switcher receives keyboard focus', async () => {
+        localStorage.setItem(NAVIGATION_SIDEBAR_COLLAPSED_LOCAL_STORAGE_KEY, 'true');
+        render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({organization: universalInbox})
+        );
+
+        const switcher = screen.getByRole('button', {name: 'Toggle organization menu'});
+        act(() => switcher.focus());
+        await userEvent.tab();
+
+        const expand = screen.getByRole('button', {name: 'Expand'});
+        expect(expand).toHaveFocus();
+        await userEvent.keyboard('{Enter}');
+        expect(
+          screen.getByRole('navigation', {name: 'Secondary Navigation'})
+        ).toBeInTheDocument();
+      });
+
+      it('shows saved and starred queries together in the Explore preview', async () => {
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/explore/all-queries/',
+          body: [
+            {
+              id: 1,
+              queryType: 'explore',
+              name: 'Starred Explore Query',
+              dataset: 'spans',
+              projects: [],
+              starred: true,
+              position: 1,
+              query: [{query: '', fields: [], groupby: [], visualize: []}],
+            },
+          ],
+        });
+        const {router} = render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({organization: universalInbox})
+        );
+
+        const secondaryNav = screen.getByRole('navigation', {
+          name: 'Secondary Navigation',
+        });
+        const primaryNav = within(
+          screen.getByRole('navigation', {name: 'Primary Navigation'})
+        );
+        await userEvent.hover(primaryNav.getByRole('link', {name: 'Explore'}));
+
+        const preview = within(
+          await screen.findByRole('dialog', {name: 'Navigation preview'})
+        );
+        expect(preview.getByRole('tab', {name: 'Explore'})).toHaveAttribute(
+          'aria-selected',
+          'true'
+        );
+        expect(preview.getByRole('link', {name: 'Traces'})).toBeInTheDocument();
+        expect(
+          within(secondaryNav).getByRole('link', {name: 'Feed'})
+        ).toBeInTheDocument();
+
+        await userEvent.hover(preview.getByRole('tab', {name: 'Saved Queries'}));
+        await userEvent.click(preview.getByRole('tab', {name: 'Saved Queries'}));
+        const queries = within(preview.getByRole('tabpanel', {name: 'Saved Queries'}));
+        expect(
+          await queries.findByRole('link', {name: 'Starred Explore Query'})
+        ).toBeInTheDocument();
+        expect(queries.getByRole('separator')).toBeInTheDocument();
+        expect(
+          preview.queryByRole('tab', {name: 'Starred Queries'})
+        ).not.toBeInTheDocument();
+        expect(router.location.pathname).toBe('/organizations/org-slug/issues/');
+
+        await userEvent.click(preview.getByRole('link', {name: 'Saved Queries'}));
+        expect(router.location.pathname).toBe(
+          '/organizations/org-slug/explore/saved-queries/'
+        );
+        expect(
+          screen.queryByRole('dialog', {name: 'Navigation preview'})
+        ).not.toBeInTheDocument();
+      });
+
+      it('shows Feed with Issue Types and Views with Starred Views in the Issues preview', async () => {
+        render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({
+            organization: universalInbox,
+            initialRouterConfig: {location: {pathname: '/organizations/org-slug/inbox/'}},
+          })
+        );
+
+        await userEvent.hover(screen.getByRole('link', {name: 'Issues'}));
+
+        const preview = within(
+          await screen.findByRole('dialog', {name: 'Navigation preview'})
+        );
+        const feed = within(preview.getByRole('tabpanel', {name: 'Feed'}));
+        expect(feed.getByRole('link', {name: 'Feed'})).toBeInTheDocument();
+        expect(feed.getByRole('link', {name: 'User Feedback'})).toBeInTheDocument();
+        expect(feed.getByRole('separator')).toBeInTheDocument();
+        expect(preview.queryByRole('tab', {name: 'Issue Types'})).not.toBeInTheDocument();
+
+        await userEvent.click(preview.getByRole('tab', {name: 'Views'}));
+        const views = within(preview.getByRole('tabpanel', {name: 'Views'}));
+        expect(views.getByRole('link', {name: 'All Views'})).toBeInTheDocument();
+        expect(
+          await views.findByRole('link', {name: /Starred View 1/})
+        ).toBeInTheDocument();
+        expect(views.getByRole('separator')).toBeInTheDocument();
+        expect(
+          preview.queryByRole('tab', {name: 'Starred Views'})
+        ).not.toBeInTheDocument();
+      });
+
+      it('shows monitor types under Monitors with a divider', async () => {
+        render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({organization: universalInbox})
+        );
+
+        await userEvent.hover(screen.getByRole('link', {name: 'Monitors'}));
+
+        const preview = within(
+          await screen.findByRole('dialog', {name: 'Navigation preview'})
+        );
+        const monitors = within(preview.getByRole('tabpanel', {name: 'Monitors'}));
+        expect(monitors.getByRole('link', {name: 'All Monitors'})).toBeInTheDocument();
+        expect(monitors.getByRole('link', {name: 'Cron'})).toBeInTheDocument();
+        expect(monitors.getByRole('separator')).toBeInTheDocument();
+        expect(
+          preview.queryByRole('tab', {name: 'By Monitor Type'})
+        ).not.toBeInTheDocument();
+        expect(preview.getByRole('tab', {name: 'Alerts'})).toBeInTheDocument();
+      });
+
+      it('keeps the preview open while hovering across primary items', async () => {
+        render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({organization: universalInbox})
+        );
+
+        const explore = screen.getByRole('link', {name: 'Explore'});
+        const dashboards = screen.getByRole('link', {name: 'Dashboards'});
+        await userEvent.hover(explore);
+
+        const dialog = await screen.findByRole('dialog', {name: 'Navigation preview'});
+        const preview = within(dialog);
+        const traces = preview.getByRole('link', {name: 'Traces'});
+
+        await userEvent.hover(dashboards);
+        expect(screen.getByRole('dialog', {name: 'Navigation preview'})).toBe(dialog);
+        const allDashboards = preview.getByRole('link', {name: 'All Dashboards'});
+        expect(traces).not.toBeInTheDocument();
+
+        await userEvent.hover(explore);
+        expect(screen.getByRole('dialog', {name: 'Navigation preview'})).toBe(dialog);
+        expect(preview.getByRole('link', {name: 'Traces'})).toBeInTheDocument();
+        expect(allDashboards).not.toBeInTheDocument();
+      });
+
+      it('dismisses the preview when the pointer moves to the current primary item', async () => {
+        render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({organization: universalInbox})
+        );
+
+        await userEvent.hover(screen.getByRole('link', {name: 'Explore'}));
+        await screen.findByRole('dialog', {name: 'Navigation preview'});
+
+        await userEvent.hover(screen.getByRole('link', {name: 'Issues'}));
+        expect(
+          screen.queryByRole('dialog', {name: 'Navigation preview'})
+        ).not.toBeInTheDocument();
+      });
+
+      it('shows a single-section preview without a tab list', async () => {
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/dashboards/',
+          body: [],
         });
 
-        afterEach(() => {
-          try {
-            act(() => jest.runOnlyPendingTimers());
-          } finally {
-            jest.useRealTimers();
-          }
-        });
+        render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({organization: universalInbox})
+        );
 
-        it('does not preview groups on hover', async () => {
-          render(
-            <PrimaryNavigationContextProvider>
-              <Navigation />
-            </PrimaryNavigationContextProvider>,
-            navigationContext({organization: universalInbox})
-          );
+        await userEvent.hover(screen.getByRole('link', {name: 'Dashboards'}));
 
-          const secondaryNav = screen.getByRole('navigation', {
-            name: 'Secondary Navigation',
-          });
-          expect(
-            within(secondaryNav).getByRole('link', {name: 'Feed'})
-          ).toBeInTheDocument();
+        const preview = within(
+          await screen.findByRole('dialog', {name: 'Navigation preview'})
+        );
+        expect(preview.getByRole('link', {name: 'All Dashboards'})).toBeInTheDocument();
+        expect(preview.queryByRole('tablist')).not.toBeInTheDocument();
+      });
 
-          await userEvent.hover(screen.getByRole('link', {name: 'Explore'}), {
-            delay: null,
-          });
-          // Advance past the longest hover activation delay.
-          act(() => jest.advanceTimersByTime(250));
+      it('opens the preview from the keyboard and returns focus on Escape', async () => {
+        render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({organization: universalInbox})
+        );
 
-          expect(
-            within(secondaryNav).getByRole('link', {name: 'Feed'})
-          ).toBeInTheDocument();
-          expect(screen.queryByRole('link', {name: 'Traces'})).not.toBeInTheDocument();
-        });
+        const explore = screen.getByRole('link', {name: 'Explore'});
+        act(() => explore.focus());
+        await userEvent.keyboard('{ArrowRight}');
+
+        const preview = within(
+          await screen.findByRole('dialog', {name: 'Navigation preview'})
+        );
+        expect(preview.getByRole('tab', {name: 'Explore'})).toHaveFocus();
+        await userEvent.keyboard('{Escape}');
+        expect(
+          screen.queryByRole('dialog', {name: 'Navigation preview'})
+        ).not.toBeInTheDocument();
+        await waitFor(() => expect(explore).toHaveFocus());
+      });
+
+      it('dismisses a preview on Inbox hover and opens Inbox on click', async () => {
+        const {router} = render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({organization: universalInbox})
+        );
+
+        const primaryNav = within(
+          screen.getByRole('navigation', {name: 'Primary Navigation'})
+        );
+        await userEvent.hover(primaryNav.getByRole('link', {name: 'Explore'}));
+        await screen.findByRole('dialog', {name: 'Navigation preview'});
+
+        const inbox = primaryNav.getByRole('link', {name: 'Inbox'});
+        await userEvent.hover(inbox);
+        expect(
+          screen.queryByRole('dialog', {name: 'Navigation preview'})
+        ).not.toBeInTheDocument();
+        expect(router.location.pathname).toBe('/organizations/org-slug/issues/');
+
+        await userEvent.click(inbox);
+        expect(router.location.pathname).toBe('/organizations/org-slug/inbox/');
       });
 
       it('shows the secondary navigation after navigating away from the inbox', async () => {

@@ -1,6 +1,8 @@
 import {
+  Children,
   createContext,
   Fragment,
+  isValidElement,
   useContext,
   useEffect,
   useRef,
@@ -40,6 +42,7 @@ import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
 import {Separator} from '@sentry/scraps/separator';
+import {TabList, TabPanels, Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 import {useScrollLock} from '@sentry/scraps/useScrollLock';
 
@@ -308,9 +311,20 @@ interface SecondaryNavigationHeaderProps {
   children?: ReactNode;
 }
 
+const SecondaryNavigationPreview = createContext(false);
+
+export function useIsSecondaryNavigationPreview() {
+  return useContext(SecondaryNavigationPreview);
+}
+
 function SecondaryNavigationHeader(props: SecondaryNavigationHeaderProps) {
   const {layout} = usePrimaryNavigation();
   const isMobile = layout === 'mobile';
+  const isPreview = useContext(SecondaryNavigationPreview);
+
+  if (isPreview) {
+    return null;
+  }
 
   return (
     <Grid
@@ -343,7 +357,9 @@ function SecondaryNavigationHeaderTitle({children}: {children: ReactNode}) {
   );
 }
 
-function SecondaryNavigationToggle() {
+function SecondaryNavigationToggle({
+  variant,
+}: Pick<ComponentProps<typeof Button>, 'variant'>) {
   const {layout} = usePrimaryNavigation();
   const {collapsible, view, setView} = useSecondaryNavigation();
   const isCollapsed = view !== 'expanded';
@@ -367,10 +383,11 @@ function SecondaryNavigationToggle() {
   return (
     <Button
       size="sm"
+      data-secondary-navigation-toggle
       icon={<IconChevron direction={isCollapsed ? 'right' : 'left'} isDouble />}
       aria-label={isCollapsed ? t('Expand') : t('Collapse')}
       onClick={() => setView(isCollapsed ? 'expanded' : 'collapsed')}
-      variant={isCollapsed ? 'primary' : 'transparent'}
+      variant={variant ?? (isCollapsed ? 'primary' : 'transparent')}
       analyticsEventName="Sidebar: Secondary Toggle Button Clicked"
       analyticsEventKey="sidebar_secondary_toggle_button_clicked"
       analyticsParams={{is_collapsed: isCollapsed}}
@@ -385,6 +402,13 @@ interface SecondaryNavigationBodyProps {
 function SecondaryNavigationBody(props: SecondaryNavigationBodyProps) {
   const {layout} = usePrimaryNavigation();
   const settingsV3 = useSettingsV3();
+  const isPreview = useContext(SecondaryNavigationPreview);
+
+  if (isPreview) {
+    return (
+      <SecondaryNavigationPreviewBody>{props.children}</SecondaryNavigationPreviewBody>
+    );
+  }
 
   return (
     <Container
@@ -394,6 +418,73 @@ function SecondaryNavigationBody(props: SecondaryNavigationBodyProps) {
     >
       {props.children}
     </Container>
+  );
+}
+
+interface SecondaryNavigationSectionGroupProps {
+  children: ReactNode;
+  id: string;
+  tabLabel: string;
+}
+
+function SecondaryNavigationSectionGroup({
+  children,
+}: SecondaryNavigationSectionGroupProps) {
+  return children;
+}
+
+function getPreviewSections(children: ReactNode): Array<{
+  content: ReactNode;
+  id: string;
+  label: string;
+} | null> {
+  return Children.toArray(children).flatMap(child => {
+    if (isValidElement<{children: ReactNode}>(child) && child.type === Fragment) {
+      return getPreviewSections(child.props.children);
+    }
+    if (
+      isValidElement<SecondaryNavigationSectionProps>(child) &&
+      child.type === SecondaryNavigationSection
+    ) {
+      const {id, tabLabel, title} = child.props;
+      const label = tabLabel ?? (typeof title === 'string' ? title : undefined);
+      return label ? [{content: child, id, label}] : [null];
+    }
+    if (
+      isValidElement<SecondaryNavigationSectionGroupProps>(child) &&
+      child.type === SecondaryNavigationSectionGroup
+    ) {
+      return [{content: child, id: child.props.id, label: child.props.tabLabel}];
+    }
+    return isValidElement(child) && child.type === SecondaryNavigationSeparator
+      ? []
+      : [null];
+  });
+}
+
+function SecondaryNavigationPreviewBody({children}: SecondaryNavigationBodyProps) {
+  const sections = getPreviewSections(children);
+  if (sections.length < 2 || !sections.every(section => section !== null)) {
+    return <Container padding="0 md">{children}</Container>;
+  }
+
+  return (
+    <Tabs size="sm" defaultValue={sections[0]?.id}>
+      <Container borderBottom="primary" padding="0 md">
+        <TabList aria-label={t('Navigation sections')}>
+          {sections.map(({id, label}) => (
+            <TabList.Item key={id}>{label}</TabList.Item>
+          ))}
+        </TabList>
+      </Container>
+      <TabPanels>
+        {sections.map(({content, id}) => (
+          <TabPanels.Item key={id}>
+            <Container padding="0 md">{content}</Container>
+          </TabPanels.Item>
+        ))}
+      </TabPanels>
+    </Tabs>
   );
 }
 
@@ -510,6 +601,7 @@ function SectionTitle(props: SectionTitleProps) {
 interface SecondaryNavigationSectionProps {
   children: ReactNode;
   id: string;
+  tabLabel?: string;
   /**
    * The title is the collapse toggle, so only titled sections can collapse.
    */
@@ -523,12 +615,13 @@ function SecondaryNavigationSection(props: SecondaryNavigationSectionProps) {
     `secondary-nav-section-${props.id}-collapsed`,
     false
   );
-  const canCollapse = layout === 'sidebar' && !!props.title;
+  const isPreview = useContext(SecondaryNavigationPreview);
+  const canCollapse = !isPreview && layout === 'sidebar' && !!props.title;
   const isCollapsed = canCollapse ? isCollapsedState : false;
 
   return (
     <Container padding={settingsV3 ? '0' : 'md sm'} data-nav-section>
-      {props.title ? (
+      {props.title && !isPreview ? (
         <SectionTitle
           canCollapse={canCollapse}
           isCollapsed={isCollapsed}
@@ -1368,8 +1461,11 @@ const LegacySidebarNavigationLink = styled(Link)`
 `;
 
 export const SecondaryNavigation = {
+  Preview: SecondaryNavigationPreview,
+  SectionGroup: SecondaryNavigationSectionGroup,
   Header: SecondaryNavigationHeader,
   HeaderTitle: SecondaryNavigationHeaderTitle,
+  Toggle: SecondaryNavigationToggle,
   Body: SecondaryNavigationBody,
   Section: SecondaryNavigationSection,
   Separator: SecondaryNavigationSeparator,

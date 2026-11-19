@@ -24,11 +24,11 @@ const IGNORE_ELEMENTS = [
  * Interaction outside nav -> close
  * Escape -> close
  */
-export function useCollapsedNavigation() {
+export function useCollapsedNavigation({enabled}: {enabled: boolean}) {
   const {setActiveGroup} = usePrimaryNavigation();
   const {view, setView} = useSecondaryNavigation();
 
-  const isCollapsed = view !== 'expanded';
+  const isCollapsed = enabled && view !== 'expanded';
   // Keep a ref so event handlers can read the latest isCollapsed value during
   // React's commit phase (e.g. focusout fires while React is unmounting elements).
   const isCollapsedRef = useRef(isCollapsed);
@@ -191,7 +191,7 @@ export function useCollapsedNavigation() {
 
       closeNavigation();
     },
-    isDisabled: view !== 'peek',
+    isDisabled: !enabled || view !== 'peek',
   });
 
   return {view};

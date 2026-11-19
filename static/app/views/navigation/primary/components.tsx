@@ -1,6 +1,6 @@
 import {Fragment, useEffect, useRef} from 'react';
 import {createPortal} from 'react-dom';
-import {useTheme} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {mergeProps} from '@react-aria/utils';
@@ -37,6 +37,7 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   NAVIGATION_PRIMARY_LINK_DATA_ATTRIBUTE,
+  PRIMARY_NAVIGATION_OVERLAY_OFFSET,
   PRIMARY_HEADER_HEIGHT,
   PRIMARY_SIDEBAR_WIDTH,
   SIDEBAR_NAVIGATION_SOURCE,
@@ -58,9 +59,48 @@ function PrimaryNavigationSidebar({children, ...props}: PrimaryNavigationSidebar
       width={`${PRIMARY_SIDEBAR_WIDTH}px`}
       padding="0"
       borderRight="primary"
+      position="relative"
       background="primary"
       align="center"
       style={{zIndex: theme.zIndex.sidebarPanel}}
+      css={css`
+        [data-secondary-navigation-toggle] {
+          position: absolute;
+          top: 50%;
+          /* Start the tab at the inside edge of the highlighted rail border. */
+          left: calc(100% - 3px);
+          z-index: 1;
+          translate: 0 -50%;
+          box-sizing: border-box;
+          width: 40px;
+          height: 40px;
+          padding-right: 3px;
+          background-color: ${theme.tokens.background.primary};
+          border: 1px solid ${theme.tokens.border.primary};
+          border-left: 0;
+          border-radius: 0 ${theme.radius.md} ${theme.radius.md} 0;
+
+          &:is(:hover, :focus-visible) {
+            padding-right: 0;
+            background-color: ${theme.tokens.background.tertiary};
+            border-width: 4px 4px 4px 0;
+            border-color: ${theme.tokens.border.accent.vibrant};
+            box-shadow: none;
+          }
+        }
+
+        &:has([data-secondary-navigation-toggle]:is(:hover, :focus-visible)) {
+          border-right-color: ${theme.tokens.border.accent.vibrant};
+          &::after {
+            content: '';
+            position: absolute;
+            inset: 0 0 0 auto;
+            /* The existing border supplies the fourth pixel. */
+            border-right: 3px solid ${theme.tokens.border.accent.vibrant};
+            pointer-events: none;
+          }
+        }
+      `}
       {...props}
     >
       {children}
@@ -141,9 +181,13 @@ function PrimaryNavigationLink(props: PrimaryNavigationLinkProps) {
     reloadDocument: appState === 'stale',
     state: {source: SIDEBAR_NAVIGATION_SOURCE},
     'aria-current': props['aria-current'],
+    'aria-keyshortcuts': props['aria-keyshortcuts'],
     'data-active-group': props['data-active-group'],
     onMouseEnter: props.onMouseEnter,
     onMouseLeave: props.onMouseLeave,
+    onPointerEnter: props.onPointerEnter,
+    onPointerLeave: props.onPointerLeave,
+    onKeyDown: props.onKeyDown,
     onClick: (e: React.MouseEvent<HTMLAnchorElement>) => {
       trackAnalytics('navigation.primary_item_clicked', {
         item: props.analyticsKey,
@@ -282,6 +326,11 @@ function PrimaryNavigationMenu(props: PrimaryNavigationMenuProps) {
       zIndex={theme.zIndex.modal}
       renderWrapAs={PassthroughWrapper}
       position={layout === 'mobile' ? 'bottom' : 'right-end'}
+      offset={
+        layout === 'sidebar' && organization?.features.includes('universal-inbox')
+          ? PRIMARY_NAVIGATION_OVERLAY_OFFSET
+          : undefined
+      }
       shouldApplyMinWidth={false}
       minMenuWidth={200}
       trigger={triggerProps => {

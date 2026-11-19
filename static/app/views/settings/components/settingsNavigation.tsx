@@ -20,7 +20,10 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
-import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
+import {
+  SecondaryNavigation,
+  useIsSecondaryNavigationPreview,
+} from 'sentry/views/navigation/secondary/components';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 import {getSettingsScopeTitle} from 'sentry/views/settings/settingsScope';
 import type {NavigationProps, NavigationSection} from 'sentry/views/settings/types';
@@ -28,7 +31,10 @@ import {useSettingsProjectSwitchTemplate} from 'sentry/views/settings/useSetting
 import {useSettingsScope} from 'sentry/views/settings/useSettingsScope';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
-import {SettingsNavigationGroup} from './settingsNavigationGroup';
+import {
+  isSettingsNavigationItemVisible,
+  SettingsNavigationGroup,
+} from './settingsNavigationGroup';
 
 type Props = NavigationProps & {
   /**
@@ -51,7 +57,16 @@ export function SettingsNavigation({
   hooks,
   ...otherProps
 }: Props) {
-  const navWithHooks = navigationObjects.concat(hookConfigs);
+  const isPreview = useIsSecondaryNavigationPreview();
+  const navWithHooks = navigationObjects
+    .concat(hookConfigs)
+    .filter(
+      config =>
+        !isPreview ||
+        config.items.some(item =>
+          isSettingsNavigationItemVisible(item, {...otherProps, ...config})
+        )
+    );
   const settingsV3 = useSettingsV3();
   const {scope} = useSettingsScope();
   const showProjectSelector = settingsV3 && scope === 'project';
@@ -70,10 +85,19 @@ export function SettingsNavigation({
         {navWithHooks.map((config, index) => (
           <Fragment key={config.name}>
             {index > 0 && <SecondaryNavigation.Separator />}
-            <SettingsNavigationGroup {...otherProps} {...config} />
+            <SecondaryNavigation.SectionGroup id={config.id} tabLabel={config.name}>
+              <SettingsNavigationGroup {...otherProps} {...config} />
+            </SecondaryNavigation.SectionGroup>
           </Fragment>
         ))}
-        {hooks.map((Hook, i) => cloneElement(Hook, {key: `hook-${i}`}))}
+        {hooks.length > 0 && (
+          <SecondaryNavigation.SectionGroup
+            id="settings-additional"
+            tabLabel={t('More Settings')}
+          >
+            {hooks.map((Hook, i) => cloneElement(Hook, {key: `hook-${i}`}))}
+          </SecondaryNavigation.SectionGroup>
+        )}
       </SecondaryNavigation.Body>
     </ErrorBoundary>
   );

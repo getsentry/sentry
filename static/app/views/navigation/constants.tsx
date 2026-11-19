@@ -7,6 +7,7 @@ export const NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE =
   'data-secondary-navigation-sidebar';
 
 export const PRIMARY_SIDEBAR_WIDTH = 74;
+export const PRIMARY_NAVIGATION_OVERLAY_OFFSET = 12;
 export const PRIMARY_HEADER_HEIGHT = 49;
 export const PRIMARY_HEADER_TITLE_MIN_WIDTH = 120;
 export const SUPERUSER_MARQUEE_HEIGHT = 24;
