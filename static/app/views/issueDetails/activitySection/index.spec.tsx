@@ -337,11 +337,50 @@ describe('ActivitySection', () => {
     const videos = await screen.findAllByTestId('note-video');
     expect(videos).toHaveLength(1);
     expect(videos[0]).toHaveAttribute('src', videoUrl);
+    const fileLink = screen.getByRole('link', {name: 'video_1.mp4'});
+    expect(fileLink).toHaveAttribute('href', videoUrl);
+    // Opens the file itself instead of routing inside the app.
+    expect(fileLink).toHaveAttribute('target', '_blank');
+    expect(screen.getByRole('link', {name: 'docs'})).toBeInTheDocument();
+  });
+
+  it('loads comment videos from the region host', async () => {
+    const originalFeatures = ConfigStore.get('features');
+    const originalLinks = ConfigStore.get('links');
+    ConfigStore.set('features', new Set(['system:multi-region']));
+    ConfigStore.set('links', {...originalLinks, regionUrl: 'https://us.sentry.io'});
+    const videoUrl = '/api/0/organizations/org-slug/issues/1340/comment-attachments/5/';
+    const regionGroup = GroupFixture({
+      id: '1340',
+      activity: [
+        {
+          type: GroupActivityType.NOTE,
+          id: 'note-1',
+          commentId: 'note-1',
+          data: {text: `[video_1.mp4](${videoUrl})`},
+          dateCreated: tenMinutesAgo(),
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={regionGroup} project={regionGroup.project}>
+        <ActivitySection group={regionGroup} />
+      </GroupDataContextProvider>
+    );
+
+    expect(await screen.findByTestId('note-video')).toHaveAttribute(
+      'src',
+      `https://us.sentry.io${videoUrl}`
+    );
     expect(screen.getByRole('link', {name: 'video_1.mp4'})).toHaveAttribute(
       'href',
-      videoUrl
+      `https://us.sentry.io${videoUrl}`
     );
-    expect(screen.getByRole('link', {name: 'docs'})).toBeInTheDocument();
+    ConfigStore.set('features', originalFeatures);
+    ConfigStore.set('links', originalLinks);
   });
 
   it('uploads a video and links it in the comment', async () => {

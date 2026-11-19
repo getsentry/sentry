@@ -1,7 +1,10 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {ExternalLink} from '@sentry/scraps/link';
 import {Markdown, type MarkdownProps} from '@sentry/scraps/markdown';
+
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 
 import {COMMENT_ATTACHMENT_URL_PATTERN} from './commentAttachmentButton';
 
@@ -15,20 +18,26 @@ type NoteLinkProps = React.ComponentProps<NonNullable<MarkdownComponents['Link']
 /**
  * Links to videos uploaded to the comment play inline, with the link kept
  * below the player so the file can still be opened directly.
+ *
+ * Both go to the region's host like other API requests: the browser loads
+ * them itself, so they skip the API client, and the default link would treat
+ * the `/api/0/` path as an in-app route.
  */
 function NoteLink({Default, href, title, children}: NoteLinkProps) {
-  const link = (
-    <Default href={href} title={title}>
-      {children}
-    </Default>
-  );
   if (!COMMENT_ATTACHMENT_URL_PATTERN.test(href)) {
-    return link;
+    return (
+      <Default href={href} title={title}>
+        {children}
+      </Default>
+    );
   }
+  const videoUrl = resolveHostname(href);
   return (
     <Fragment>
-      <Video controls preload="metadata" src={href} data-test-id="note-video" />
-      {link}
+      <Video controls preload="metadata" src={videoUrl} data-test-id="note-video" />
+      <ExternalLink href={videoUrl} title={title ?? undefined}>
+        {children}
+      </ExternalLink>
     </Fragment>
   );
 }
