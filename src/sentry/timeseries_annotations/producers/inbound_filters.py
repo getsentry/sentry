@@ -53,21 +53,14 @@ def _create_filter_change_annotation(
 ) -> None:
     organization = project.organization
     actor = acting_user(principal)
-    # The framework-wide flag gates every annotation producer; the use-case flag on top
-    # rolls out or kills this one producer on its own.
-    framework_on = features.has("organizations:timeseries-annotations", organization, actor=actor)
-    usecase_on = features.has(
+    # This producer rolls out and off on its own use-case flag. The framework flag gates
+    # only consumption (the read endpoint), so production does not depend on it.
+    if not features.has(
         "organizations:timeseries-annotations-usecase-filter-change", organization, actor=actor
-    )
-    if not (framework_on and usecase_on):
+    ):
         logger.info(
             "timeseries_annotations.producer_skipped_flag_off",
-            extra={
-                "organization_id": organization.id,
-                "project_id": project.id,
-                "framework_flag": framework_on,
-                "usecase_flag": usecase_on,
-            },
+            extra={"organization_id": organization.id, "project_id": project.id},
         )
         return
     # Best-effort context: a producer failure must never break the filter write.
